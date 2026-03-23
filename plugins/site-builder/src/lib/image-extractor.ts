@@ -4,19 +4,11 @@ import type { Logger } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
 import { createHash } from "crypto";
-
-// Image entity type (inline to avoid @brains/image dependency during investigation)
-interface ImageEntity {
-  id: string;
-  entityType: string;
-  content: string;
-  metadata: {
-    format?: string;
-  };
-  created: string;
-  updated: string;
-  contentHash: string;
-}
+import {
+  type ImageEntity,
+  detectImageFormat,
+  extractBase64,
+} from "./image-utils";
 
 /**
  * Map of image ID to static URL path
@@ -132,10 +124,9 @@ export class ImageExtractor {
         }
 
         // Determine format from metadata or data URL
-        const format = this.detectFormat(image.metadata, image.content);
+        const format = detectImageFormat(image.metadata, image.content);
 
-        // Extract base64 data and write to file
-        const base64Data = this.extractBase64(image.content);
+        const base64Data = extractBase64(image.content);
         if (!base64Data) {
           this.logger.warn("Could not extract base64 data from image", {
             imageId,
@@ -165,36 +156,6 @@ export class ImageExtractor {
     }
 
     return imageMap;
-  }
-
-  /**
-   * Detect image format from metadata or data URL
-   */
-  private detectFormat(
-    metadata: ImageEntity["metadata"],
-    dataUrl: string,
-  ): string {
-    // Try metadata first (ImageMetadata has typed format field)
-    if (metadata.format) {
-      return metadata.format;
-    }
-
-    // Parse from data URL: data:image/png;base64,...
-    const match = dataUrl.match(/^data:image\/([^;]+);/);
-    if (match?.[1]) {
-      return match[1];
-    }
-
-    // Default to png
-    return "png";
-  }
-
-  /**
-   * Extract base64 data from data URL
-   */
-  private extractBase64(dataUrl: string): string | null {
-    const match = dataUrl.match(/^data:image\/[^;]+;base64,(.+)$/);
-    return match?.[1] ?? null;
   }
 
   /**
@@ -252,10 +213,10 @@ export class ImageExtractor {
         const hash = this.hashDataUrl(dataUrl);
 
         // Determine format from data URL
-        const format = this.detectFormatFromDataUrl(dataUrl);
+        const format = detectImageFormat({}, dataUrl);
 
         // Extract base64 data and write to file
-        const base64Data = this.extractBase64(dataUrl);
+        const base64Data = extractBase64(dataUrl);
         if (!base64Data) {
           this.logger.warn("Could not extract base64 data from data URL");
           continue;
@@ -289,16 +250,5 @@ export class ImageExtractor {
    */
   private hashDataUrl(dataUrl: string): string {
     return createHash("sha256").update(dataUrl).digest("hex").slice(0, 16);
-  }
-
-  /**
-   * Detect format from data URL (without metadata)
-   */
-  private detectFormatFromDataUrl(dataUrl: string): string {
-    const match = dataUrl.match(/^data:image\/([^;]+);/);
-    if (match?.[1]) {
-      return match[1];
-    }
-    return "png";
   }
 }

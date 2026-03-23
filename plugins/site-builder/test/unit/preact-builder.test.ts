@@ -358,7 +358,7 @@ describe("PreactBuilder", () => {
     expect(html).toContain("Entity Content");
   });
 
-  it("should clean up directories", async () => {
+  it("should clean up directories but preserve images/", async () => {
     const builder = createPreactBuilder({
       logger,
       outputDir,
@@ -366,26 +366,35 @@ describe("PreactBuilder", () => {
       cssProcessor: new MockCSSProcessor(),
     });
 
-    // Create some test files
+    // Create test files in output and working dirs
     await fs.mkdir(outputDir, { recursive: true });
     await fs.writeFile(join(outputDir, "test.txt"), "test");
+    await fs.mkdir(join(outputDir, "images"), { recursive: true });
+    await fs.writeFile(join(outputDir, "images/photo.webp"), "fake");
     await fs.mkdir(workingDir, { recursive: true });
     await fs.writeFile(join(workingDir, "test.txt"), "test");
 
     await builder.clean();
 
-    // Check that directories are removed
-    const outputExists = await fs
-      .access(outputDir)
-      .then(() => true)
-      .catch(() => false);
+    // Working directory should be fully removed
     const workingExists = await fs
       .access(workingDir)
       .then(() => true)
       .catch(() => false);
-
-    expect(outputExists).toBe(false);
     expect(workingExists).toBe(false);
+
+    // Output files should be removed, but images/ preserved
+    const testFileExists = await fs
+      .access(join(outputDir, "test.txt"))
+      .then(() => true)
+      .catch(() => false);
+    expect(testFileExists).toBe(false);
+
+    const imagesExists = await fs
+      .access(join(outputDir, "images/photo.webp"))
+      .then(() => true)
+      .catch(() => false);
+    expect(imagesExists).toBe(true);
   });
 
   it("should extract inline data URLs to static files", async () => {

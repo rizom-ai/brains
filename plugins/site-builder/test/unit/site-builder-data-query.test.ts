@@ -113,6 +113,7 @@ describe("SiteBuilder dataQuery handling", () => {
         outputDir: "/tmp/test-build",
         environment: "preview",
         enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
         cleanBeforeBuild: false,
         siteConfig: {
           title: "Test Site",
@@ -167,6 +168,7 @@ describe("SiteBuilder dataQuery handling", () => {
           outputDir: "/tmp/test-build",
           environment: "preview",
           enableContentGeneration: false,
+          sharedImagesDir: "./dist/images",
           cleanBeforeBuild: false,
           siteConfig: {
             title: "Test Site",
@@ -233,6 +235,7 @@ describe("SiteBuilder dataQuery handling", () => {
           outputDir: "/tmp/test-build",
           environment: "preview",
           enableContentGeneration: false,
+          sharedImagesDir: "./dist/images",
           cleanBeforeBuild: false,
           siteConfig: {
             title: "Test Site",
@@ -300,6 +303,7 @@ describe("SiteBuilder dataQuery handling", () => {
           outputDir: "/tmp/test-build",
           environment: "preview",
           enableContentGeneration: false,
+          sharedImagesDir: "./dist/images",
           cleanBeforeBuild: false,
           siteConfig: {
             title: "Test Site",
@@ -353,6 +357,7 @@ describe("SiteBuilder dataQuery handling", () => {
         outputDir: "/tmp/test-build",
         environment: "production",
         enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
         cleanBeforeBuild: false,
         siteConfig: {
           title: "Test Site",
@@ -399,6 +404,7 @@ describe("SiteBuilder dataQuery handling", () => {
         outputDir: "/tmp/test-build",
         environment: "production",
         enableContentGeneration: false,
+        sharedImagesDir: "./dist/images",
         cleanBeforeBuild: false,
         siteConfig: {
           title: "Test Site",
@@ -451,6 +457,7 @@ describe("SiteBuilder dataQuery handling", () => {
           outputDir: "/tmp/test-build",
           environment: "preview",
           enableContentGeneration: false,
+          sharedImagesDir: "./dist/images",
           cleanBeforeBuild: false,
           siteConfig: {
             title: "Test Site",

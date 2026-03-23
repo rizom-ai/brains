@@ -27,6 +27,9 @@ export type {
   MarkdownToHtmlOptions,
 } from "./markdown";
 
+// Concurrency
+export { default as pLimit } from "p-limit";
+
 // Progress utilities
 export { ProgressReporter } from "./progress";
 export type {

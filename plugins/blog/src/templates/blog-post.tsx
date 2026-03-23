@@ -75,6 +75,8 @@ export const BlogPostTemplate = ({
                     alt={post.frontmatter.title}
                     width={post.coverImageWidth}
                     height={post.coverImageHeight}
+                    srcset={post.coverImageSrcset}
+                    sizes={post.coverImageSizes}
                     className="mb-8 shadow-lg"
                   />
                 )}

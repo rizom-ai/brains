@@ -34,8 +34,8 @@ COPY public ./public
 RUN test -f /app/dist/brain.yaml && cp /app/dist/brain.yaml /app/brain.yaml || true
 
 # Layer 8: Create writable directories for site builder output
-RUN mkdir -p /app/dist/site-production /app/dist/site-preview && \
-    chmod -R 777 /app/dist/site-production /app/dist/site-preview
+RUN mkdir -p /app/dist/site-production /app/dist/site-preview /app/dist/images && \
+    chmod -R 777 /app/dist/site-production /app/dist/site-preview /app/dist/images
 
 EXPOSE 3333
 

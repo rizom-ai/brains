@@ -86,6 +86,7 @@ export interface ServerManagerOptions {
   logger: Logger;
   previewDistDir?: string;
   productionDistDir: string;
+  sharedImagesDir: string;
   previewPort?: number;
   productionPort: number;
 }
@@ -114,6 +115,7 @@ export class ServerManager {
     this.options = {
       logger: options.logger,
       productionDistDir: resolve(process.cwd(), options.productionDistDir),
+      sharedImagesDir: resolve(process.cwd(), options.sharedImagesDir),
       productionPort: options.productionPort,
       ...(options.previewDistDir && {
         previewDistDir: resolve(process.cwd(), options.previewDistDir),
@@ -298,6 +300,10 @@ export class ServerManager {
     this.servers.preview = Bun.serve({
       port: this.options.previewPort,
       fetch: async (req) => {
+        // Fast path: serve images directly via Bun.file(), skipping Hono middleware
+        const fastResponse = await this.serveImageFastPath(req);
+        if (fastResponse) return fastResponse;
+
         const res = await app.fetch(req);
         // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
         if (res.constructor === NativeResponse) return res;
@@ -336,6 +342,10 @@ export class ServerManager {
     this.servers.production = Bun.serve({
       port: this.options.productionPort,
       fetch: async (req) => {
+        // Fast path: serve images directly via Bun.file(), skipping Hono middleware
+        const fastResponse = await this.serveImageFastPath(req);
+        if (fastResponse) return fastResponse;
+
         const res = await app.fetch(req);
         // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
         if (res.constructor === NativeResponse) return res;
@@ -418,5 +428,32 @@ export class ServerManager {
         `Mounted API route: ${route.definition.method} ${route.fullPath} -> ${route.pluginId}_${route.definition.tool}`,
       );
     }
+  }
+
+  /**
+   * Serve /images/* requests directly via Bun.file(), bypassing Hono middleware.
+   * Returns a Response with immutable cache headers, or null if not an image request.
+   */
+  private async serveImageFastPath(req: Request): Promise<Response | null> {
+    if (!req.url.includes("/images/")) return null;
+
+    let url: URL;
+    try {
+      url = new URL(req.url);
+    } catch {
+      return null;
+    }
+    if (!url.pathname.startsWith("/images/")) return null;
+
+    // Serve from shared images directory (used by both preview and production)
+    const fileName = url.pathname.replace("/images/", "");
+    const file = Bun.file(join(this.options.sharedImagesDir, fileName));
+    if (!(await file.exists())) return null;
+
+    return new NativeResponse(file, {
+      headers: {
+        "Cache-Control": "public, max-age=31536000, immutable",
+      },
+    });
   }
 }

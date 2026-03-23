@@ -5,6 +5,8 @@ import { toString } from "mdast-util-to-string";
 import { visit } from "unist-util-visit";
 import type { Image } from "mdast";
 
+const remarkProcessor = remark();
+
 /**
  * Parse frontmatter and content from markdown
  * Note: We spread the data object to create a shallow copy because gray-matter
@@ -135,25 +137,25 @@ export interface MarkdownToHtmlOptions {
  * @param options Optional configuration (e.g. custom image renderer)
  * @returns HTML string
  */
+const defaultMarked = new Marked({ gfm: true, breaks: true });
+
 export function markdownToHtml(
   markdown: string,
   options?: MarkdownToHtmlOptions,
 ): string {
-  const instance = new Marked({
-    gfm: true,
-    breaks: true,
-  });
+  let instance = defaultMarked;
 
   if (options?.imageRenderer) {
     const imageRenderer = options.imageRenderer;
+    instance = new Marked({ gfm: true, breaks: true });
     instance.use({
       renderer: {
-        image(href: string, title: string | null, text: string): string {
-          const custom = imageRenderer(href, title, text);
-          if (custom !== undefined) return custom;
-          // Default rendering
-          const titleAttr = title ? ` title="${title}"` : "";
-          return `<img src="${href}" alt="${text}"${titleAttr}>`;
+        image(
+          href: string,
+          title: string | null,
+          text: string,
+        ): string | false {
+          return imageRenderer(href, title, text) ?? false;
         },
       },
     });
@@ -177,7 +179,7 @@ export function markdownToHtml(
  * Strip markdown formatting from text to get plain text
  */
 export function stripMarkdown(text: string): string {
-  const tree = remark().parse(text);
+  const tree = remarkProcessor.parse(text);
   return toString(tree);
 }
 
@@ -210,7 +212,7 @@ export interface ExtractedImage {
 export function extractMarkdownImages(markdown: string): ExtractedImage[] {
   const images: ExtractedImage[] = [];
 
-  const tree = remark().parse(markdown);
+  const tree = remarkProcessor.parse(markdown);
 
   visit(tree, "image", (node: Image) => {
     images.push({

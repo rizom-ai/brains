@@ -28,6 +28,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
     private layouts: Record<string, LayoutComponent>,
     private defaultSiteConfig: SiteBuilderConfig["siteInfo"],
     private context: ServicePluginContext,
+    private sharedImagesDir: string,
     private themeCSS?: string,
     private previewUrl?: string,
     private productionUrl?: string,
@@ -76,6 +77,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         {
           outputDir: data.outputDir,
           workingDir: data.workingDir,
+          sharedImagesDir: this.sharedImagesDir,
           enableContentGeneration,
           environment,
           cleanBeforeBuild: true,

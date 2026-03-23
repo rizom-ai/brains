@@ -4,6 +4,7 @@ import type { RouteDefinition } from "@brains/plugins";
 import type { CSSProcessor } from "../css/css-processor";
 import type { LayoutComponent, LayoutSlots } from "../config";
 import type { SiteInfo } from "../types/site-info";
+import type { ImageBuildService } from "./image-build-service";
 
 // Re-export SiteInfo type for consumers
 export type { SiteInfo } from "../types/site-info";
@@ -36,6 +37,8 @@ export interface BuildContext {
   slots?: LayoutSlots;
   /** Head scripts registered by other plugins (e.g., analytics beacon) */
   headScripts?: string[] | undefined;
+  /** Pre-resolved optimized images for the build */
+  imageBuildService?: ImageBuildService;
 }
 
 /**

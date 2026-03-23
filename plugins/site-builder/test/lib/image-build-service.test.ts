@@ -31,10 +31,12 @@ async function createTestDataUrl(
 describe("ImageBuildService", () => {
   const logger = createSilentLogger();
   let outputDir: string;
+  let imagesDir: string;
 
   beforeEach(async () => {
     outputDir = join(tmpdir(), `image-build-service-test-${Date.now()}`);
-    await fs.mkdir(outputDir, { recursive: true });
+    imagesDir = join(outputDir, "images");
+    await fs.mkdir(imagesDir, { recursive: true });
   });
 
   afterEach(async () => {
@@ -62,7 +64,7 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(outputDir, mockEntityService, logger);
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
     await service.resolveAll(["cover-photo"]);
 
     const resolved = service.get("cover-photo");
@@ -94,7 +96,7 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(outputDir, mockEntityService, logger);
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
     await service.resolveAll(["tiny-icon"]);
 
     const resolved = service.get("tiny-icon");
@@ -110,7 +112,7 @@ describe("ImageBuildService", () => {
       returns: { getEntity: null },
     });
 
-    const service = new ImageBuildService(outputDir, mockEntityService, logger);
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
     await service.resolveAll(["missing-id"]);
 
     expect(service.get("missing-id")).toBeUndefined();
@@ -119,12 +121,9 @@ describe("ImageBuildService", () => {
   test("should deduplicate image IDs", async () => {
     const dataUrl = await createTestDataUrl(1000, 500);
 
-    let callCount = 0;
-    const mockEntityService = createMockEntityService();
-    Object.defineProperty(mockEntityService, "getEntity", {
-      value: () => {
-        callCount++;
-        return Promise.resolve({
+    const mockEntityService = createMockEntityService({
+      returns: {
+        getEntity: {
           id: "shared",
           entityType: "image",
           content: dataUrl,
@@ -132,15 +131,15 @@ describe("ImageBuildService", () => {
           created: new Date().toISOString(),
           updated: new Date().toISOString(),
           contentHash: "hash",
-        });
+        },
       },
-      writable: true,
     });
 
-    const service = new ImageBuildService(outputDir, mockEntityService, logger);
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
     await service.resolveAll(["shared", "shared", "shared"]);
 
-    expect(callCount).toBe(1);
+    // Only one entry in the map — deduplication worked
+    expect(Object.keys(service.getMap())).toHaveLength(1);
   });
 
   test("should provide full image map via getMap()", async () => {
@@ -160,7 +159,7 @@ describe("ImageBuildService", () => {
       },
     });
 
-    const service = new ImageBuildService(outputDir, mockEntityService, logger);
+    const service = new ImageBuildService(mockEntityService, logger, imagesDir);
     await service.resolveAll(["test"]);
 
     const map = service.getMap();
@@ -187,9 +186,9 @@ describe("ImageBuildService", () => {
       });
 
       const service = new ImageBuildService(
-        outputDir,
         mockEntityService,
         logger,
+        imagesDir,
       );
       await service.resolveAll(["photo"]);
 
@@ -208,9 +207,9 @@ describe("ImageBuildService", () => {
     test("should fall back to default rendering for non-entity images", async () => {
       const mockEntityService = createMockEntityService();
       const service = new ImageBuildService(
-        outputDir,
         mockEntityService,
         logger,
+        imagesDir,
       );
 
       const renderer = service.createImageRenderer();
@@ -225,9 +224,9 @@ describe("ImageBuildService", () => {
     test("should fall back for unresolved entity://image refs", async () => {
       const mockEntityService = createMockEntityService();
       const service = new ImageBuildService(
-        outputDir,
         mockEntityService,
         logger,
+        imagesDir,
       );
 
       const renderer = service.createImageRenderer();

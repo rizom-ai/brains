@@ -12,6 +12,10 @@ export const webserverConfigSchema = z.object({
     .string()
     .describe("Directory for production site files")
     .default("./dist/site-production"),
+  sharedImagesDir: z
+    .string()
+    .default("./dist/images")
+    .describe("Shared directory for optimized images"),
   previewPort: z.number().default(4321).describe("Port for preview server"),
   productionPort: z
     .number()

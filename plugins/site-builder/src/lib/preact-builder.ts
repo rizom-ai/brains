@@ -105,11 +105,18 @@ export class PreactBuilder implements StaticSiteBuilder {
       this.logger.warn(`Failed to clean working directory: ${error}`);
     }
 
-    // Remove output directory
+    // Remove output directory contents, preserving images/ for sharp cache
     try {
-      await fs.rm(this.outputDir, { recursive: true, force: true });
-    } catch (error) {
-      this.logger.warn(`Failed to clean output directory: ${error}`);
+      const entries = await fs.readdir(this.outputDir, {
+        withFileTypes: true,
+      });
+      for (const entry of entries) {
+        if (entry.name === "images") continue;
+        const fullPath = join(this.outputDir, entry.name);
+        await fs.rm(fullPath, { recursive: true, force: true });
+      }
+    } catch {
+      // Output directory may not exist — that's fine
     }
   }
 

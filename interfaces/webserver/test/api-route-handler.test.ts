@@ -188,6 +188,7 @@ describe("ServerManager.mountApiRoutes", () => {
     serverManager = new ServerManager({
       logger: createSilentLogger("test-server"),
       productionDistDir: "/tmp/test-dist",
+      sharedImagesDir: "/tmp/test-images",
       productionPort: 9999,
     });
 

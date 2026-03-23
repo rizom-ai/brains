@@ -9,6 +9,7 @@ export const SiteBuilderOptionsSchema = z.object({
   environment: z.enum(["preview", "production"]),
   outputDir: z.string(),
   workingDir: z.string().optional(),
+  sharedImagesDir: z.string().default("./dist/images"),
   enableContentGeneration: z.boolean().default(false),
   cleanBeforeBuild: z.boolean().default(true),
   siteConfig: z.object({

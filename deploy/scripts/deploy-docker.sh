@@ -150,7 +150,7 @@ deploy_local() {
     cleanup_docker "$APP_NAME"
     
     # Create directories
-    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,site-production,site-preview,matrix-storage,brain-data}
+    mkdir -p "$HOME/personal-brain-data/"{data,brain-repo,site-production,site-preview,images,matrix-storage,brain-data}
     
     # Get environment file
     local env_file="$APP_DIR/deploy/.env.production"
@@ -167,6 +167,7 @@ deploy_local() {
         -v "$HOME/personal-brain-data/brain-data:/app/brain-data" \
         -v "$HOME/personal-brain-data/site-production:/app/dist/site-production" \
         -v "$HOME/personal-brain-data/site-preview:/app/dist/site-preview" \
+        -v "$HOME/personal-brain-data/images:/app/dist/images" \
         -v "$HOME/personal-brain-data/matrix-storage:/app/.matrix-storage" \
         -v "$env_file:/app/.env:ro" \
         --user "$(id -u):$(id -g)" \

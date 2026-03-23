@@ -172,6 +172,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         this.layouts,
         this.config.siteInfo,
         context,
+        this.config.sharedImagesDir,
         this.config.themeCSS,
         this.config.previewUrl,
         this.config.productionUrl,

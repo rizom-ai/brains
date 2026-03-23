@@ -5,7 +5,7 @@ import type {
   ResolutionOptions,
 } from "@brains/plugins";
 import { baseEntitySchema } from "@brains/plugins";
-import { resolveEntityCoverImage } from "@brains/image";
+import { resolveEntityCoverImage, extractCoverImageId } from "@brains/image";
 import type { Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
 import type { SectionDefinition, RouteDefinition } from "@brains/plugins";
@@ -28,6 +28,7 @@ import type { EntityRouteConfig } from "../config";
 import { buildSiteInfo } from "./build-site-info";
 import type { SiteInfo } from "../types/site-info";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
+import { ImageBuildService } from "./image-build-service";
 
 // Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = baseEntitySchema.extend({
@@ -47,6 +48,8 @@ export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
   coverImageUrl?: string;
   coverImageWidth?: number;
   coverImageHeight?: number;
+  coverImageSrcset?: string;
+  coverImageSizes?: string;
 };
 
 export class SiteBuilder implements ISiteBuilder {
@@ -60,6 +63,7 @@ export class SiteBuilder implements ISiteBuilder {
   private siteInfoService: SiteInfoService;
   private profileService: IAnchorProfileService;
   private entityRouteConfig: EntityRouteConfig | undefined;
+  private imageBuildService: ImageBuildService | null = null;
 
   /**
    * Set the default static site builder factory for all instances
@@ -197,6 +201,22 @@ export class SiteBuilder implements ISiteBuilder {
         total: 100,
       });
 
+      // Pre-resolve all images before rendering (Astro-like approach)
+      await reporter?.report({
+        message: "Resolving images",
+        progress: 25,
+        total: 100,
+      });
+      this.imageBuildService = new ImageBuildService(
+        this.context.entityService,
+        this.logger,
+        parsedOptions.sharedImagesDir,
+      );
+      const imageIds = await this.collectAllImageIds();
+      if (imageIds.length > 0) {
+        await this.imageBuildService.resolveAll(imageIds);
+      }
+
       // Create build context
       const siteConfig = parsedOptions.siteConfig;
 
@@ -234,6 +254,7 @@ export class SiteBuilder implements ISiteBuilder {
           themeCSS: parsedOptions.themeCSS,
         }),
         ...(options.slots && { slots: options.slots }),
+        imageBuildService: this.imageBuildService,
       };
 
       // Run static site build (85% to 95% of overall progress)
@@ -416,10 +437,37 @@ export class SiteBuilder implements ISiteBuilder {
     const listUrl = `/${pluralName}`;
     const listLabel = pluralName.charAt(0).toUpperCase() + pluralName.slice(1);
 
-    const coverImage = await resolveEntityCoverImage(
-      entity,
-      this.context.entityService,
-    );
+    // Resolve cover image: prefer pre-optimized from ImageBuildService, fall back to data URL
+    const coverImageId = extractCoverImageId(entity);
+    const preResolved = coverImageId
+      ? this.imageBuildService?.get(coverImageId)
+      : undefined;
+
+    let coverImageFields: Partial<EnrichedEntity> = {};
+    if (preResolved) {
+      coverImageFields = {
+        coverImageUrl: preResolved.src,
+        coverImageWidth: preResolved.width,
+        coverImageHeight: preResolved.height,
+        ...(preResolved.srcset && {
+          coverImageSrcset: preResolved.srcset,
+          coverImageSizes: preResolved.sizes,
+        }),
+      };
+    } else {
+      // Fallback: resolve directly (returns data URL — post-processing will extract)
+      const coverImage = await resolveEntityCoverImage(
+        entity,
+        this.context.entityService,
+      );
+      if (coverImage) {
+        coverImageFields = {
+          coverImageUrl: coverImage.url,
+          coverImageWidth: coverImage.width,
+          coverImageHeight: coverImage.height,
+        };
+      }
+    }
 
     const enrichedEntity: EnrichedEntity = {
       ...enriched,
@@ -428,13 +476,41 @@ export class SiteBuilder implements ISiteBuilder {
       typeLabel,
       listUrl,
       listLabel,
-      ...(coverImage && {
-        coverImageUrl: coverImage.url,
-        coverImageWidth: coverImage.width,
-        coverImageHeight: coverImage.height,
-      }),
+      ...coverImageFields,
     };
 
     return enrichedEntity;
+  }
+
+  /**
+   * Scan all entities for coverImageId references to pre-resolve before rendering.
+   */
+  private async collectAllImageIds(): Promise<string[]> {
+    const imageIds = new Set<string>();
+
+    try {
+      // Get all entity types that have been registered
+      const entityTypes = this.context.entityService.getEntityTypes();
+
+      for (const entityType of entityTypes) {
+        if (entityType === "image") continue; // Skip image entities themselves
+
+        const entities =
+          await this.context.entityService.listEntities(entityType);
+
+        for (const entity of entities) {
+          const coverImageId = extractCoverImageId(entity);
+          if (coverImageId) {
+            imageIds.add(coverImageId);
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.warn("Failed to collect image IDs for pre-resolution", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+
+    return [...imageIds];
   }
 }

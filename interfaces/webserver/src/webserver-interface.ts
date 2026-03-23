@@ -43,6 +43,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     this.serverManager = new ServerManager({
       logger: context.logger,
       productionDistDir: this.config.productionDistDir,
+      sharedImagesDir: this.config.sharedImagesDir,
       productionPort: this.config.productionPort,
       ...(this.config.previewDistDir && {
         previewDistDir: this.config.previewDistDir,

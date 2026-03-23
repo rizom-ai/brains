@@ -17,6 +17,7 @@ export function createTestConfig(
   const defaultConfig: SiteBuilderConfig = {
     previewOutputDir: "./dist/site-preview",
     productionOutputDir: "./dist/site-production",
+    sharedImagesDir: "./dist/images",
     workingDir: "./.preact-work",
     siteInfo: {
       title: "Test Site",

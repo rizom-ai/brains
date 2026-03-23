@@ -40,6 +40,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
       undefined,
       "https://preview.example.com",
       "https://example.com",
@@ -75,6 +76,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
       undefined,
       "https://preview.example.com",
       "https://example.com",
@@ -110,6 +112,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
       undefined,
       undefined, // No preview URL
       "https://example.com",
@@ -144,6 +147,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
       undefined,
       "preview.example.com", // No protocol
       "example.com", // No protocol
@@ -178,6 +182,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
       undefined,
       "http://localhost:4321",
       "https://example.com",
@@ -212,6 +217,7 @@ describe("SiteBuildJobHandler - Environment URL Selection", () => {
       {},
       { title: "Test", description: "Test" },
       mockContext,
+      "./dist/images",
     );
 
     await handler.process(

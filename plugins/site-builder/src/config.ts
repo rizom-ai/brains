@@ -49,6 +49,12 @@ export const siteBuilderConfigSchema = z.object({
     .string()
     .describe("Output directory for production builds")
     .default("./dist/site-production"),
+  sharedImagesDir: z
+    .string()
+    .describe(
+      "Shared directory for optimized images (used by both preview and production)",
+    )
+    .default("./dist/images"),
   previewUrl: z
     .string()
     .optional()

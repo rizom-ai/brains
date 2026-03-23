@@ -38,6 +38,7 @@ describe("SiteBuildJobHandler", () => {
       {}, // layouts
       defaultSiteConfig,
       mockContext,
+      "./dist/images",
     );
   });
 
@@ -140,6 +141,7 @@ describe("SiteBuildJobHandler", () => {
         {}, // layouts
         defaultSiteConfig,
         mockContext,
+        "./dist/images",
         undefined, // themeCSS
         undefined, // previewUrl
         undefined, // productionUrl
