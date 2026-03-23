@@ -103,6 +103,37 @@ Does NOT include:
 | dashboard | Widget registration, no entities   |
 | analytics | Query tool + head script injection |
 
+## Directory structure
+
+Entity plugins move to their own workspace: `entities/`
+
+```
+entities/           # Content type definitions
+  blog/
+  decks/
+  note/
+  link/
+  portfolio/
+  social-media/
+  wishlist/
+  topics/
+  summary/
+  products/
+
+plugins/            # Things that provide tools
+  system/
+  content-pipeline/
+  newsletter/
+  directory-sync/
+  site-builder/
+  image/
+  analytics/
+  dashboard/
+  obsidian-vault/
+```
+
+Root `package.json` workspaces adds `"entities/*"`.
+
 ## Steps
 
 ### Step 1: Create EntityPlugin base class
@@ -117,21 +148,35 @@ Does NOT include:
 - Subset of ServicePluginContext
 - Contains only what entity management needs
 
-### Step 3: Migrate blog plugin (reference implementation)
+### Step 3: Add `entities/*` workspace
 
+- Update root `package.json` workspaces
+- Update turborepo config if needed
+
+### Step 4: Migrate blog plugin (reference implementation)
+
+- Move `plugins/blog/` → `entities/blog/`
 - Change `extends ServicePlugin` to `extends EntityPlugin`
 - Remove manual `onRegister` boilerplate
 - Declare entity type, schema, adapter as class properties
 - Override `createGenerationHandler` for blog generation
+- Update all imports across the codebase
 
-### Step 4: Migrate remaining plugins
+### Step 5: Migrate remaining plugins
 
-- decks, note, link, portfolio, social-media, wishlist, topics, products
+- Move + convert: decks, note, link, portfolio, social-media, wishlist, topics, products, summary
 - One commit per plugin
+- Update brain model imports (`brains/rover/src/index.ts`, etc.)
 
-### Step 5: Update test harness
+### Step 6: Update test harness
 
 - Add `createEntityPluginHarness` or update existing harness to detect EntityPlugin
+
+### Step 7: Update docs
+
+- `docs/architecture/package-structure.md` — add entities section
+- `docs/codebase-map.html` — add entities group
+- `CLAUDE.md` — update plugin patterns
 
 ## Verification
 
