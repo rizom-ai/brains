@@ -72,7 +72,7 @@ describe("Deck Tools", () => {
         expect(result.message).toContain("queued");
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.objectContaining({ prompt: "Create a talk about AI" }),
           mockToolContext,
           expect.any(Object),
@@ -93,7 +93,7 @@ describe("Deck Tools", () => {
         expect(data2.jobId).toBe("job-123");
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.objectContaining({
             title: "My Presentation",
             content: "# Slide 1\n\n---\n\n# Slide 2",
@@ -119,7 +119,7 @@ describe("Deck Tools", () => {
         expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.objectContaining({
             author: "Test Author",
             event: "Tech Conference 2024",
@@ -134,7 +134,7 @@ describe("Deck Tools", () => {
         await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.any(Object),
           mockToolContext,
           expect.objectContaining({
@@ -218,7 +218,7 @@ describe("Deck Tools", () => {
         expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.objectContaining({ skipAi: true, title: "My Deck" }),
           mockToolContext,
           expect.any(Object),
@@ -238,7 +238,7 @@ describe("Deck Tools", () => {
         expectSuccess(result);
 
         expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-          "generation",
+          "deck:generation",
           expect.objectContaining({
             skipAi: true,
             content: "# Slide 1\n\n---\n\n# Slide 2",

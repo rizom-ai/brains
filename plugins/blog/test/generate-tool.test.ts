@@ -62,7 +62,7 @@ describe("Generate Tool", () => {
       expect(result.message).toContain("queued");
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({ prompt: "Write about AI" }),
         mockToolContext,
         expect.any(Object),
@@ -83,7 +83,7 @@ describe("Generate Tool", () => {
       expect(data.jobId).toBe("job-123");
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({
           title: "My Post",
           content: "Post content here",
@@ -110,7 +110,7 @@ describe("Generate Tool", () => {
       expectSuccess(result);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({
           seriesName: "AI Series",
           seriesIndex: 1,
@@ -125,7 +125,7 @@ describe("Generate Tool", () => {
       await generateTool.handler({ prompt: "Test" }, mockToolContext);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.any(Object),
         mockToolContext,
         expect.objectContaining({
@@ -198,7 +198,7 @@ describe("Generate Tool", () => {
       expectSuccess(result);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({
           seriesName: "My Series",
           seriesIndex: 1,
@@ -221,7 +221,7 @@ describe("Generate Tool", () => {
       expectSuccess(result);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({ seriesName: "My Series" }),
         mockToolContext,
         expect.any(Object),
@@ -265,7 +265,7 @@ describe("Generate Tool", () => {
       expectSuccess(result);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({ skipAi: true, title: "My Post" }),
         mockToolContext,
         expect.any(Object),
@@ -285,7 +285,7 @@ describe("Generate Tool", () => {
       expectSuccess(result);
 
       expect(mockContext.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "post:generation",
         expect.objectContaining({
           skipAi: true,
           content: "Some blog content here",

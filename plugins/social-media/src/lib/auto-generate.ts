@@ -1,5 +1,6 @@
 import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
+import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils";
 
 /**
@@ -90,7 +91,7 @@ export function subscribeToAutoGenerate(
 
     try {
       const jobId = await context.jobs.enqueue(
-        "social-media:generation",
+        `${socialPostAdapter.entityType}:generation`,
         {
           sourceEntityType,
           sourceEntityId,
@@ -183,7 +184,7 @@ export function subscribeToGenerateExecute(
         }
 
         const jobId = await context.jobs.enqueue(
-          "social-media:generation",
+          `${socialPostAdapter.entityType}:generation`,
           {
             sourceEntityType: "post",
             sourceEntityId: sourcePost.id,

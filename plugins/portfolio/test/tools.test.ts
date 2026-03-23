@@ -197,7 +197,7 @@ describe("Portfolio Tools", () => {
 
       expectSuccess(result);
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "project:generation",
         expect.objectContaining({ title: "My API Project" }),
         expect.anything(),
         expect.anything(),

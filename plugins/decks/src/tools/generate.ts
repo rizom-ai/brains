@@ -1,5 +1,6 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
+import { deckAdapter } from "../adapters/deck-adapter";
 import { z } from "@brains/utils";
 
 /**
@@ -58,7 +59,7 @@ export function createGenerateTool(
       // Note: Don't set rootJobId - let the job queue service default it to the job's own ID
       // Setting a different rootJobId would cause progress events to be skipped
       const jobId = await context.jobs.enqueue(
-        "generation",
+        `${deckAdapter.entityType}:generation`,
         input,
         toolContext,
         {

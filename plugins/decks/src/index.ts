@@ -9,7 +9,7 @@ export {
   enrichedDeckSchema,
   type EnrichedDeck,
 } from "./schemas/deck";
-export { DeckFormatter } from "./formatters/deck-formatter";
+export { DeckAdapter, deckAdapter } from "./adapters/deck-adapter";
 export { parseDeckData } from "./datasources/parse-helpers";
 export { deckTemplate } from "./templates/deck-template";
 export { deckListTemplate } from "./templates/deck-list";

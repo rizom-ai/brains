@@ -1,4 +1,5 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { projectAdapter } from "../adapters/project-adapter";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
@@ -62,7 +63,7 @@ export function createPortfolioTools(
 
         // Enqueue the project generation job with enriched context
         const jobId = await context.jobs.enqueue(
-          "generation",
+          `${projectAdapter.entityType}:generation`,
           {
             prompt: enrichedPrompt,
             year: input.year,

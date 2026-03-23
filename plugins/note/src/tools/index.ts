@@ -77,7 +77,7 @@ export function createNoteTools(
       async (input, toolContext) => {
         // Enqueue the note generation job
         const jobId = await context.jobs.enqueue(
-          "generation",
+          `${noteAdapter.entityType}:generation`,
           input,
           toolContext,
           {

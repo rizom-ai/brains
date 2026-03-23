@@ -12,7 +12,7 @@ import {
  * Deck formatter for managing presentation deck entities
  * Validates that content contains proper slide separators (---) on both parse and serialize
  */
-export class DeckFormatter extends BaseEntityAdapter<
+export class DeckAdapter extends BaseEntityAdapter<
   DeckEntity,
   DeckMetadata,
   DeckFrontmatter
@@ -117,3 +117,5 @@ export class DeckFormatter extends BaseEntityAdapter<
     return this.toMarkdown(entity);
   }
 }
+
+export const deckAdapter = new DeckAdapter();

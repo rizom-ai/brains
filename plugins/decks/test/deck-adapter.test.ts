@@ -1,17 +1,17 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { DeckFormatter } from "../src/formatters/deck-formatter";
+import { DeckAdapter } from "../src/adapters/deck-adapter";
 import { createMockDeckEntity } from "./fixtures/deck-entities";
 
-describe("DeckFormatter", () => {
-  let formatter: DeckFormatter;
+describe("DeckAdapter", () => {
+  let adapter: DeckAdapter;
 
   beforeEach(() => {
-    formatter = new DeckFormatter();
+    adapter = new DeckAdapter();
   });
 
   describe("schema", () => {
     it("should have a valid zod schema", () => {
-      const schema = formatter.schema;
+      const schema = adapter.schema;
 
       const validDeck = createMockDeckEntity({
         content: "# Slide 1\n\n---\n\n# Slide 2",
@@ -27,7 +27,7 @@ describe("DeckFormatter", () => {
     });
 
     it("should reject invalid entity type", () => {
-      const schema = formatter.schema;
+      const schema = adapter.schema;
 
       const invalidDeck = {
         id: "test-deck",
@@ -58,7 +58,7 @@ describe("DeckFormatter", () => {
         },
       });
 
-      const markdown = formatter.toMarkdown(entity);
+      const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("---");
       expect(markdown).toContain("title: Test Presentation");
@@ -75,7 +75,7 @@ describe("DeckFormatter", () => {
         title: "Invalid Deck",
       });
 
-      expect(() => formatter.toMarkdown(entity)).toThrow(
+      expect(() => adapter.toMarkdown(entity)).toThrow(
         "Invalid deck: markdown must contain slide separators (---)",
       );
     });
@@ -87,7 +87,7 @@ describe("DeckFormatter", () => {
         description: "Optional description",
       });
 
-      const markdown = formatter.toMarkdown(entity);
+      const markdown = adapter.toMarkdown(entity);
 
       expect(markdown).toContain("description: Optional description");
     });
@@ -112,7 +112,7 @@ Intro slide
 
 Key points`;
 
-      const result = formatter.fromMarkdown(markdown);
+      const result = adapter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("deck");
       expect(result.metadata?.title).toBe("Test Presentation");
@@ -130,7 +130,7 @@ status: draft
 
 # Just one slide`;
 
-      expect(() => formatter.fromMarkdown(markdown)).toThrow(
+      expect(() => adapter.fromMarkdown(markdown)).toThrow(
         "Invalid deck: markdown must contain slide separators (---)",
       );
     });
@@ -147,7 +147,7 @@ status: draft
 
 # Slide 2`;
 
-      const result = formatter.fromMarkdown(markdown);
+      const result = adapter.fromMarkdown(markdown);
 
       expect(result.metadata?.title).toBe("Minimal Deck");
       expect(result.metadata?.status).toBe("draft");
@@ -167,7 +167,7 @@ status: draft
         },
       });
 
-      const metadata = formatter.extractMetadata(entity);
+      const metadata = adapter.extractMetadata(entity);
 
       expect(metadata.slug).toBe("test-deck");
       expect(metadata.title).toBe("Test Deck");
@@ -180,7 +180,7 @@ status: draft
         title: "Test Deck",
       });
 
-      const metadata = formatter.extractMetadata(entity);
+      const metadata = adapter.extractMetadata(entity);
 
       expect(metadata.title).toBe("Test Deck");
       expect(metadata.publishedAt).toBeUndefined();
@@ -195,7 +195,7 @@ status: draft
         title: "My Presentation",
       });
 
-      const title = formatter.generateTitle(entity);
+      const title = adapter.generateTitle(entity);
 
       expect(title).toBe("My Presentation");
     });
@@ -208,7 +208,7 @@ status: draft
         title: "Test Deck",
       });
 
-      const summary = formatter.generateSummary(entity);
+      const summary = adapter.generateSummary(entity);
 
       expect(summary).toBe("Presentation: Test Deck");
     });
@@ -235,7 +235,7 @@ status: draft
 
 # Slide 4`;
 
-      const result = formatter.fromMarkdown(markdown);
+      const result = adapter.fromMarkdown(markdown);
 
       expect(result.entityType).toBe("deck");
       expect(result.metadata?.title).toBe("Multi-slide Deck");
@@ -253,7 +253,7 @@ status: draft
 
 # Slide 2`;
 
-      expect(() => formatter.fromMarkdown(markdown)).not.toThrow();
+      expect(() => adapter.fromMarkdown(markdown)).not.toThrow();
     });
   });
 
@@ -265,7 +265,7 @@ status: draft
         description: "Test description",
       });
 
-      const result = formatter.generateFrontMatter(entity);
+      const result = adapter.generateFrontMatter(entity);
 
       expect(result).toContain("title: Test Deck");
       expect(result).toContain("description: Test description");

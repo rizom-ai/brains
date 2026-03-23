@@ -216,7 +216,7 @@ describe("Note Tools", () => {
 
       expectSuccess(result);
       expect(context.jobs.enqueue).toHaveBeenCalledWith(
-        "generation",
+        "base:generation",
         expect.objectContaining({ title: "My Title" }),
         expect.anything(),
         expect.anything(),

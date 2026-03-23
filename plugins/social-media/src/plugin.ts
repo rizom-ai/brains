@@ -36,7 +36,7 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
     this.pluginContext = context;
 
     context.entities.register(
-      "social-post",
+      socialPostAdapter.entityType,
       socialPostSchema,
       socialPostAdapter,
     );
@@ -53,7 +53,10 @@ export class SocialMediaPlugin extends ServicePlugin<SocialMediaConfig> {
       this.logger.child("GenerationJobHandler"),
       context,
     );
-    context.jobs.registerHandler("generation", generationHandler);
+    context.jobs.registerHandler(
+      `${socialPostAdapter.entityType}:generation`,
+      generationHandler,
+    );
 
     registerWithPublishPipeline(context, this.providers, this.logger);
     subscribeToPublishExecute(context, this.providers, this.logger);

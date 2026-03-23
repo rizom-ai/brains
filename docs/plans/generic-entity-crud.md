@@ -1,136 +1,172 @@
-# Plan: Generic Entity CRUD in System Plugin
+# Plan: Unified Entity Tools in System Plugin
 
 ## Context
 
-Each plugin implements its own create/generate tools with the same boilerplate. The system plugin should own the tool interface; plugins own the domain logic via standardized handlers.
+Eight plugins expose their own create/generate tools with plugin-specific fields (seriesName, platform, skipAi, etc.) that the AI agent almost never uses. These fields add noise to the tool schema without providing value. Meanwhile, plugin handlers already contain all the domain logic — they don't need the tool to pass them hints.
 
-## Architecture
+## Design
 
-```
-User: "system_generate { entityType: 'post', prompt: 'write about AI' }"
-  → System plugin (tool)
-    → Queues job: "post:generation"
-      → Blog plugin's handler (series logic, unique title, excerpt, etc.)
-        → Creates entity
-```
-
-System plugin owns ALL entity tools under the `system_` prefix. Plugins register handlers under standardized job types. The plugin's handler contains all domain logic — the system tool is just the uniform entry point.
-
-### Standardized job types
-
-`{entityType}:{operation}`
-
-| Job type                 | Handler owner       | What it does                          |
-| ------------------------ | ------------------- | ------------------------------------- |
-| `base:generation`        | note plugin         | AI-generates a note                   |
-| `post:generation`        | blog plugin         | Series logic, unique title, excerpt   |
-| `deck:generation`        | decks plugin        | Slide generation, skipAi mode         |
-| `social-post:generation` | social-media plugin | Platform routing, source entity fetch |
-| `link:capture`           | link plugin         | URL fetch + AI extraction             |
-| `project:generation`     | portfolio plugin    | Related content search + enrichment   |
-| `wish:create`            | wishlist plugin     | Semantic dedup + count increment      |
-
-### Tools (all `system_` prefix)
-
-| Tool              | Input                                  | Behavior                                                                                       |
-| ----------------- | -------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `system_create`   | entityType, title, content?, metadata? | Sync create. Slugify title → ID. For types with a `{type}:create` handler, queues job instead. |
-| `system_generate` | entityType, prompt, options?           | Queues `{entityType}:generation` job. Plugin handler does the rest.                            |
-| `system_update`   | entityType, id, content/fields         | Already done. Diff confirmation.                                                               |
-| `system_delete`   | entityType, id                         | Already done. Title+preview confirmation.                                                      |
-| `system_list`     | entityType, filter?                    | Unchanged                                                                                      |
-| `system_get`      | entityType, id                         | Unchanged                                                                                      |
-| `system_search`   | query, entityType?                     | Unchanged                                                                                      |
-
-### What plugins lose (tools)
-
-- `note_create`, `note_generate`
-- `blog_generate` (blog_publish stays — it's not CRUD)
-- `deck_generate`
-- `social-media_generate`
-- `portfolio_create`
-- `wishlist_add`
-- `link_capture`
-
-### What plugins keep (tools)
-
-| Plugin           | Keeps                                 | Why                                      |
-| ---------------- | ------------------------------------- | ---------------------------------------- |
-| blog             | `blog_publish`, `blog_enhance-series` | Status change + event pipeline, not CRUD |
-| newsletter       | `newsletter_send`                     | External API integration                 |
-| content-pipeline | `pipeline_publish`, `pipeline_queue`  | Orchestration                            |
-| directory-sync   | `sync`, `git_sync`, `git_status`      | Infrastructure ops                       |
-
-### What plugins keep (handlers)
-
-Everything. The generation/create handlers stay in the plugins. They just register under standardized job types:
-
-```typescript
-// Before (in blog plugin):
-context.jobs.registerHandler("generation", new BlogGenerationJobHandler(...));
-
-// After:
-context.jobs.registerHandler("post:generation", new BlogGenerationJobHandler(...));
-```
-
-### system_generate options passthrough
-
-Plugin-specific options (platform, seriesName, skipAi, etc.) pass through as the `options` field:
+One tool for content creation. The agent says what it wants; the brain figures out how.
 
 ```
-system_generate {
-  entityType: "social-post",
-  prompt: "Share about our new feature",
-  options: { platform: "linkedin", generateImage: true }
+system_create {
+  entityType: string,                  // required — what to create
+  title?: string,                      // optional — hint for entity name
+  prompt?: string,                     // optional — triggers AI generation via plugin handler
+  content?: string,                    // optional — direct content to store
+  options?: Record<string, unknown>,   // optional — passthrough to handler for programmatic clients
 }
 ```
 
-The system tool queues the job with these options. The plugin's handler reads them. The system tool doesn't validate plugin-specific options — schema validation happens in the handler.
+**Routing logic:**
+
+- `content` provided → direct create (sync). Slugify title → ID, store entity.
+- `prompt` provided → queue `{entityType}:generation` job (async). Plugin handler does all domain logic.
+- Both → handler uses prompt to enhance the content.
+- Neither → error.
+
+**Options passthrough:**
+For programmatic MCP clients that need precision without putting structured data in a prompt string. The handler receives `options` alongside `prompt` and uses whichever is more specific. AI agents use the prompt; automation scripts use options.
+
+```
+// Automation script:
+system_create { entityType: "social-post", prompt: "Share about launch", options: { platform: "linkedin" } }
+
+// AI agent (same result):
+system_create { entityType: "social-post", prompt: "Create a LinkedIn post about our launch" }
+```
+
+**Response:**
+
+```typescript
+{ entityId: string, status: "created" | "generating", jobId?: string }
+```
+
+The agent doesn't choose between create and generate — it describes what it wants. Status tells it what happened.
+
+## What plugins lose (tools)
+
+- `note_create`, `note_generate`
+- `blog_generate`
+- `deck_generate`
+- `social-media_generate`
+- `portfolio_create`
+
+## What plugins keep (tools)
+
+| Plugin           | Keeps                                               | Why                                 |
+| ---------------- | --------------------------------------------------- | ----------------------------------- |
+| blog             | `blog_publish`, `blog_enhance-series`               | Not content creation                |
+| newsletter       | `newsletter_send`                                   | External API                        |
+| content-pipeline | `pipeline_publish`, `pipeline_queue`                | Orchestration                       |
+| link             | `link_capture`                                      | URL fetching workflow, not creation |
+| wishlist         | `wishlist_add`                                      | Semantic dedup, not generic create  |
+| directory-sync   | `sync`, `git_sync`, `git_status`                    | Infrastructure                      |
+| image            | `image_upload`, `image_generate`, `image_set-cover` | Binary handling                     |
+
+## What plugins keep (handlers)
+
+Everything. Handlers register under `{entityType}:generation`:
+
+```typescript
+// Blog plugin:
+context.jobs.registerHandler("post:generation", new BlogGenerationJobHandler(...));
+// Handler owns: series logic, unique title, excerpt, slug generation
+```
+
+## Where do plugin-specific fields go?
+
+They don't. The agent puts intent in the prompt:
+
+- "Write a blog post for the AI Series" → handler detects series from prompt
+- "Create a LinkedIn post about our launch" → handler detects platform from prompt
+- "Write a deck for the Amsterdam conference" → handler detects event from prompt
+
+If a field is truly needed programmatically (rare), the handler can expose it via brain.yaml config or a separate specialized tool later.
+
+## Full system plugin tool surface
+
+| Tool            | Input                                 | Behavior                   |
+| --------------- | ------------------------------------- | -------------------------- |
+| `system_create` | entityType, title?, prompt?, content? | Unified create/generate    |
+| `system_update` | entityType, id, content/fields        | Diff confirmation          |
+| `system_delete` | entityType, id                        | Title+preview confirmation |
+| `system_list`   | entityType, filter?                   | Unchanged                  |
+| `system_get`    | entityType, id                        | Unchanged                  |
+| `system_search` | query, entityType?                    | Unchanged                  |
+
+Six tools for all entity operations. Down from ~14 (6 system + 8 plugin create/generate).
 
 ## Steps
 
 ### Step 1: Standardize job types
 
-- Each plugin changes its handler registration from ad-hoc to `{entityType}:{operation}`
-- Update: note, blog, decks, social-media, portfolio, wishlist, link
-- Tests: existing handler tests pass with new job types
+Each plugin registers handler as `{entityType}:generation`:
 
-### Step 2: Add system_create and system_generate (tests first)
+- note → `base:generation`
+- blog → `post:generation`
+- decks → `deck:generation`
+- social-media → `social-post:generation`
+- portfolio → `project:generation`
 
-- `system_create`: sync create for simple cases, queues `{type}:create` job if handler exists
-- `system_generate`: queues `{type}:generation` job, returns jobId
-- Tests verify routing to correct handlers
+### Step 2: Add unified system_create (tests first)
 
-### Step 3: Remove plugin tools
+- Direct path: content provided → sync create
+- Generate path: prompt provided → queue `{entityType}:generation` job
+- Return `{ entityId, status, jobId? }`
 
-- Remove `note_create`, `note_generate`, `blog_generate`, `deck_generate`, `portfolio_create`, `wishlist_add`, `social-media_generate`, `link_capture`
-- Keep: `blog_publish`, `blog_enhance-series`, `newsletter_send`, pipeline tools, sync tools
+### Step 3: Remove plugin create/generate tools
+
+- Remove from: note, blog, decks, social-media, portfolio
+- Keep: link_capture, wishlist_add, image tools, publish tools
 
 ### Step 4: Update eval test cases
 
-- Update any YAML test cases referencing old tool names
+- Update YAML test cases referencing old tool names
 
-## Key files
+## Step 5: Thorough evals
 
-| File                                 | Change                                       |
-| ------------------------------------ | -------------------------------------------- |
-| `plugins/system/src/tools/index.ts`  | Add system_create, system_generate           |
-| `plugins/system/test/`               | New tests for create, generate               |
-| `plugins/note/src/plugin.ts`         | Register handler as `base:generation`        |
-| `plugins/blog/src/plugin.ts`         | Register handler as `post:generation`        |
-| `plugins/decks/src/plugin.ts`        | Register handler as `deck:generation`        |
-| `plugins/social-media/src/plugin.ts` | Register handler as `social-post:generation` |
-| `plugins/portfolio/src/plugin.ts`    | Register handler as `project:generation`     |
-| `plugins/wishlist/src/plugin.ts`     | Register handler as `wish:create`            |
-| `plugins/link/src/plugin.ts`         | Register handler as `link:capture`           |
-| All plugin tools files               | Remove create/generate tools                 |
-| All plugin test files                | Remove create/generate tool tests            |
+This is a major change to the agent's tool surface. Write comprehensive evals to verify the AI agent handles the new tools correctly in real conversations:
+
+**Direct create evals:**
+
+- "Save this as a note: [content]" → agent uses system_create with content
+- "Create a note called X" → agent uses system_create with title
+- "Remember this for later: [content]" → agent infers entityType: base
+
+**Generate evals:**
+
+- "Write a blog post about X" → agent uses system_create with prompt, entityType: post
+- "Create a presentation about X" → agent infers entityType: deck
+- "Draft a LinkedIn post about X" → agent infers entityType: social-post
+- "Write something about X for my portfolio" → agent infers entityType: project
+
+**Implicit entity type evals:**
+
+- Agent correctly infers entity type from conversational context without explicit entityType
+- Agent falls back to "base" for ambiguous requests
+
+**Series/platform via prompt (no typed fields) evals:**
+
+- "Write a blog post for the AI Series about X" → handler detects series from prompt
+- "Create a social post for LinkedIn about X" → handler detects platform from prompt
+
+**Update/delete evals:**
+
+- "Change the title of my post X to Y" → agent uses system_update with fields
+- "Delete the note called X" → agent uses system_delete, confirms
+
+**Edge cases:**
+
+- Agent doesn't hallucinate old tool names (blog_generate, note_create)
+- Agent handles "generating" status correctly (doesn't try to fetch entity immediately)
+- Agent composes multi-step flows (create post → set cover image)
 
 ## Verification
 
-1. `bun test` — all tests pass
-2. `bun run typecheck` / `bun run lint`
-3. Via MCP: `system_create { entityType: "base", title: "Test" }` → note created
-4. Via MCP: `system_generate { entityType: "post", prompt: "write about AI" }` → blog handler runs
-5. Via MCP: `system_generate { entityType: "social-post", prompt: "share", options: { platform: "linkedin" } }` → social-media handler runs
-6. Via MCP: `system_list { entityType: "post" }` → lists posts
+1. `bun test` — all unit tests pass
+2. `bun run eval` — all evals pass
+3. `system_create { entityType: "base", title: "Test", content: "Hello" }` → `{ status: "created" }`
+4. `system_create { entityType: "post", prompt: "write about AI" }` → `{ status: "generating" }` → blog handler runs
+5. `system_create { entityType: "deck", prompt: "conference talk" }` → deck handler runs
+6. `system_list`, `system_get`, `system_search` unchanged

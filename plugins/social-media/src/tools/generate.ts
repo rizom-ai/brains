@@ -1,4 +1,5 @@
 import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
@@ -64,7 +65,7 @@ export function createGenerateTool(
       }
 
       const jobId = await context.jobs.enqueue(
-        "generation",
+        `${socialPostAdapter.entityType}:generation`,
         input,
         toolContext,
         {

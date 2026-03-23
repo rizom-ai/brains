@@ -4,7 +4,7 @@ import {
   type PluginTool,
 } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
-import { DeckFormatter } from "./formatters/deck-formatter";
+import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
 import { deckListTemplate } from "./templates/deck-list";
 import { deckGenerationTemplate } from "./templates/generation-template";
@@ -19,7 +19,7 @@ const decksConfigSchema = z.object({});
 
 export class DecksPlugin extends ServicePlugin<Record<string, never>> {
   private pluginContext?: ServicePluginContext;
-  private formatter = new DeckFormatter();
+  private adapter = deckAdapter;
 
   constructor() {
     super("decks", packageJson, {}, decksConfigSchema);
@@ -29,9 +29,12 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     this.pluginContext = context;
     await super.onRegister(context);
 
-    context.entities.register("deck", this.formatter.schema, this.formatter, {
-      weight: 1.5,
-    });
+    context.entities.register(
+      this.adapter.entityType,
+      this.adapter.schema,
+      this.adapter,
+      { weight: 1.5 },
+    );
 
     context.entities.registerDataSource(new DeckDataSource(this.logger));
 
@@ -43,7 +46,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
     });
 
     context.jobs.registerHandler(
-      "generation",
+      `${this.adapter.entityType}:generation`,
       new DeckGenerationJobHandler(
         this.logger.child("DeckGenerationJobHandler"),
         context,
@@ -114,7 +117,7 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
 
         await context.entityService.updateEntity({
           ...updatedDeck,
-          content: this.formatter.toMarkdown(updatedDeck),
+          content: this.adapter.toMarkdown(updatedDeck),
         });
 
         await context.messaging.send("publish:report:success", {

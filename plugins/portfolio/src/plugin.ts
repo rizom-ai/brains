@@ -60,7 +60,11 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
     this.pluginContext = context;
 
     // Register project entity type
-    context.entities.register("project", projectSchema, projectAdapter);
+    context.entities.register(
+      projectAdapter.entityType,
+      projectSchema,
+      projectAdapter,
+    );
 
     // Register project datasource
     const projectDataSource = new ProjectDataSource(
@@ -123,7 +127,10 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
       this.logger.child("ProjectGenerationJobHandler"),
       context,
     );
-    context.jobs.registerHandler("generation", projectGenerationHandler);
+    context.jobs.registerHandler(
+      `${projectAdapter.entityType}:generation`,
+      projectGenerationHandler,
+    );
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);

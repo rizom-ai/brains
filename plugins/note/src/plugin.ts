@@ -35,7 +35,7 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
     this.pluginContext = context;
 
     // Register base entity type (notes are base entities)
-    context.entities.register("base", noteSchema, noteAdapter);
+    context.entities.register(noteAdapter.entityType, noteSchema, noteAdapter);
 
     // Register generation template
     context.templates.register({
@@ -47,7 +47,10 @@ export class NotePlugin extends ServicePlugin<NoteConfig> {
       this.logger.child("NoteGenerationJobHandler"),
       context,
     );
-    context.jobs.registerHandler("generation", noteGenerationHandler);
+    context.jobs.registerHandler(
+      `${noteAdapter.entityType}:generation`,
+      noteGenerationHandler,
+    );
 
     // Register eval handlers for AI testing
     this.registerEvalHandlers(context);

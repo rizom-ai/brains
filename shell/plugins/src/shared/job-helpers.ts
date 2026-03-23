@@ -124,7 +124,9 @@ export function createRegisterHandlerFn(
   pluginId: string,
 ): RegisterHandlerFn {
   return (type, handler) => {
-    const scopedType = `${pluginId}:${type}`;
+    // If type already contains ":", treat it as fully qualified (entity-type scoped).
+    // Otherwise, auto-scope with pluginId for backward compatibility.
+    const scopedType = type.includes(":") ? type : `${pluginId}:${type}`;
     jobQueueService.registerHandler(scopedType, handler, pluginId);
   };
 }

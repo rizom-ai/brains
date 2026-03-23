@@ -34,9 +34,12 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     this.pluginContext = context;
 
     // Register entity types
-    context.entities.register("post", blogPostSchema, blogPostAdapter, {
-      weight: 2.0,
-    });
+    context.entities.register(
+      blogPostAdapter.entityType,
+      blogPostSchema,
+      blogPostAdapter,
+      { weight: 2.0 },
+    );
     context.entities.register("series", seriesSchema, seriesAdapter);
 
     // Subscribe to entity events for series auto-derivation
@@ -52,7 +55,10 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
       this.logger.child("BlogGenerationJobHandler"),
       context,
     );
-    context.jobs.registerHandler("generation", blogGenerationHandler);
+    context.jobs.registerHandler(
+      `${blogPostAdapter.entityType}:generation`,
+      blogGenerationHandler,
+    );
 
     await registerWithPublishPipeline(context, this.logger);
     subscribeToPublishExecute(context, this.logger);
