@@ -205,6 +205,9 @@ export interface CorePluginContext {
   /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io"), undefined if no domain */
   readonly previewUrl: string | undefined;
 
+  /** App metadata (version, model, plugins) */
+  readonly appInfo: () => Promise<AppInfo>;
+
   // ============================================================================
   // Entity Service (Read-Only)
   // ============================================================================
@@ -312,6 +315,9 @@ export function createCorePluginContext(
       getProfile: () => shell.getProfile(),
       getAppInfo: () => shell.getAppInfo(),
     },
+
+    // App metadata
+    appInfo: () => shell.getAppInfo(),
 
     // Domain — derived from top-level domain config
     domain: shell.getDomain(),

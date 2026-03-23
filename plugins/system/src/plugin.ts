@@ -406,7 +406,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
    * Get app metadata (model and version)
    */
   public getAppInfo(): Promise<AppInfo> {
-    return this.getContext().identity.getAppInfo();
+    return this.getContext().appInfo();
   }
 
   /**

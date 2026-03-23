@@ -164,6 +164,15 @@ export function createMockServicePluginContext(
       ),
     },
 
+    // App metadata
+    appInfo: mock(() =>
+      Promise.resolve({
+        version: "0.0.0",
+        model: "test-model",
+        plugins: [],
+      }),
+    ),
+
     // Domain (top-level, like dataDir)
     domain: undefined,
     siteUrl: undefined,

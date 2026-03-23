@@ -4,7 +4,7 @@ import { createMockShell } from "../../src/test/mock-shell";
 import { createServicePluginContext } from "../../src/service/context";
 import { createSilentLogger } from "@brains/test-utils";
 
-describe("Domain URL context", () => {
+describe("Top-level context properties", () => {
   const logger = createSilentLogger();
 
   describe("context.domain", () => {
@@ -75,7 +75,19 @@ describe("Domain URL context", () => {
     });
   });
 
-  describe("ServicePluginContext inherits domain properties", () => {
+  describe("context.appInfo", () => {
+    it("should return app metadata", async () => {
+      const shell = createMockShell({ logger });
+      const context = createCorePluginContext(shell, "test-plugin");
+
+      const info = await context.appInfo();
+      expect(info.model).toBe("test-brain");
+      expect(info.version).toBe("1.0.0");
+      expect(info.plugins).toEqual([]);
+    });
+  });
+
+  describe("ServicePluginContext inherits top-level properties", () => {
     it("should expose domain via service context", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
       const context = createServicePluginContext(shell, "test-plugin");
@@ -95,6 +107,14 @@ describe("Domain URL context", () => {
       const context = createServicePluginContext(shell, "test-plugin");
 
       expect(context.previewUrl).toBe("https://preview.yeehaa.io");
+    });
+
+    it("should expose appInfo via service context", async () => {
+      const shell = createMockShell({ logger });
+      const context = createServicePluginContext(shell, "test-plugin");
+
+      const info = await context.appInfo();
+      expect(info.model).toBeDefined();
     });
   });
 });
