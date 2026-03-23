@@ -13,11 +13,17 @@ interface ConfigureOptions {
  *   - sync:status:request
  *   - sync:configure:request
  */
+interface GitConfig {
+  repo?: string | undefined;
+  branch?: string | undefined;
+}
+
 export function registerMessageHandlers(
   context: ServicePluginContext,
   getDirectorySync: () => DirectorySync,
   configure: (options: ConfigureOptions) => Promise<void>,
   logger: Logger,
+  gitConfig?: GitConfig,
 ): void {
   const { subscribe } = context.messaging;
 
@@ -95,6 +101,16 @@ export function registerMessageHandlers(
         error: error instanceof Error ? error.message : "Configuration failed",
       };
     }
+  });
+
+  subscribe("git-sync:get-repo-info", async () => {
+    if (!gitConfig?.repo) {
+      return { success: false, error: "Git not configured" };
+    }
+    return {
+      success: true,
+      data: { repo: gitConfig.repo, branch: gitConfig.branch ?? "main" },
+    };
   });
 
   logger.debug("Registered message handlers");

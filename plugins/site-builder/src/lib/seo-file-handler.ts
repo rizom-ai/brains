@@ -65,7 +65,7 @@ async function generateCmsFiles(
   const cmsConfig = generateCmsConfig({
     repo: repoInfo.data.repo,
     branch: repoInfo.data.branch,
-    ...(config.cms.baseUrl && { baseUrl: config.cms.baseUrl }),
+    ...(context.siteUrl && { baseUrl: context.siteUrl }),
     entityTypes,
     getFrontmatterSchema: (type) =>
       context.entities.getEffectiveFrontmatterSchema(type),

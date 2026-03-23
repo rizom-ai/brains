@@ -133,6 +133,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       () => this.requireDirectorySync(),
       (options) => this.configure(options),
       this.logger,
+      this.config.git,
     );
   }
 

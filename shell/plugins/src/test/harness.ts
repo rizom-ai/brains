@@ -29,6 +29,8 @@ export interface HarnessOptions {
   logger?: Logger;
   logContext?: string;
   dataDir?: string;
+  /** Bare domain for context.domain/siteUrl/previewUrl */
+  domain?: string;
 }
 
 /**
@@ -45,9 +47,16 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     this.options = options;
     const logger =
       options.logger ?? createSilentLogger(options.logContext ?? "plugin-test");
-    const mockShellOptions: { logger: Logger; dataDir?: string } = { logger };
+    const mockShellOptions: {
+      logger: Logger;
+      dataDir?: string;
+      domain?: string;
+    } = { logger };
     if (options.dataDir !== undefined) {
       mockShellOptions.dataDir = options.dataDir;
+    }
+    if (options.domain !== undefined) {
+      mockShellOptions.domain = options.domain;
     }
     this.mockShell = createMockShell(mockShellOptions);
   }

@@ -53,7 +53,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     );
 
     this.logger.info("A2A interface registered", {
-      domain: this.config.domain,
+      domain: context.domain,
     });
   }
 
@@ -73,7 +73,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       character,
       profile,
       version: packageJson.version,
-      domain: this.config.domain,
+      domain: context.domain,
       organization: this.config.organization,
       tools,
       authEnabled: hasTrustedTokens,

@@ -18,6 +18,8 @@ import packageJson from "../package.json";
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager?: ServerManager;
+  private siteUrl: string | undefined;
+  private previewUrl: string | undefined;
 
   /**
    * Get server manager, throwing if not initialized
@@ -39,6 +41,10 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
+    // Store domain URLs from context (unified domain config)
+    this.siteUrl = context.siteUrl;
+    this.previewUrl = context.previewUrl;
+
     // Initialize server manager with validated config
     this.serverManager = new ServerManager({
       logger: context.logger,
@@ -87,13 +93,11 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         const isRunning = status.preview || status.production;
 
         const previewUrl =
-          this.config.previewDomain ??
-          (this.config.productionDomain
-            ? this.config.productionDomain.replace("://", "://preview.")
-            : `http://localhost:${this.config.previewPort}`);
+          this.previewUrl ??
+          this.siteUrl ??
+          `http://localhost:${this.config.previewPort}`;
         const productionUrl =
-          this.config.productionDomain ??
-          `http://localhost:${this.config.productionPort}`;
+          this.siteUrl ?? `http://localhost:${this.config.productionPort}`;
 
         const urls: string[] = [];
         if (status.preview) {
