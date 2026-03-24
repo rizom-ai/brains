@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, generationResultSchema } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { projectAdapter } from "../adapters/project-adapter";
 
 /**
@@ -46,7 +46,7 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
   ProjectGenerationJobData,
   ProjectGenerationResult
 > {
-  constructor(logger: Logger, context: ServicePluginContext) {
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: projectGenerationJobSchema,
       jobTypeName: "project-generation",

@@ -1,7 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, PROGRESS_STEPS, JobResult } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlFetcher } from "../lib/url-fetcher";
 import { UrlUtils } from "../lib/url-utils";
@@ -52,13 +52,13 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
   LinkCaptureJobData,
   LinkCaptureResult
 > {
-  private readonly context: ServicePluginContext;
+  private readonly context: EntityPluginContext;
   private linkAdapter: LinkAdapter;
   private urlFetcher: UrlFetcher;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     options?: LinkCaptureJobHandlerOptions,
   ) {
     super(logger, {

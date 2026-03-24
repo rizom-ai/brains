@@ -1,11 +1,11 @@
 import type {
   Plugin,
-  PluginTool,
-  PluginResource,
-  ServicePluginContext,
+  EntityPluginContext,
+  Template,
+  DataSource,
 } from "@brains/plugins";
 import {
-  ServicePlugin,
+  EntityPlugin,
   paginationInfoSchema,
   parseMarkdownWithFrontmatter,
   generateMarkdownWithFrontmatter,
@@ -24,7 +24,6 @@ import {
   type Project,
 } from "./schemas/project";
 import { projectAdapter } from "./adapters/project-adapter";
-// portfolio_create removed — entity creation via system_create
 import type { PortfolioConfig, PortfolioConfigInput } from "./config";
 import { portfolioConfigSchema } from "./config";
 import {
@@ -40,47 +39,31 @@ import { ProjectGenerationJobHandler } from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
 import packageJson from "../package.json";
 
-/**
- * Portfolio Plugin
- * Provides portfolio project management with AI-powered case study generation
- */
-export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
-  constructor(config: PortfolioConfigInput) {
+const projectListSchema = z.object({
+  projects: z.array(enrichedProjectSchema),
+  pageTitle: z.string().optional(),
+  pagination: paginationInfoSchema.nullable(),
+  baseUrl: z.string().optional(),
+});
+
+export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
+  readonly entityType = projectAdapter.entityType;
+  readonly schema = projectSchema;
+  readonly adapter = projectAdapter;
+
+  constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
   }
 
-  /**
-   * Initialize the plugin
-   */
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    // Register project entity type
-    context.entities.register(
-      projectAdapter.entityType,
-      projectSchema,
-      projectAdapter,
+  protected override createGenerationHandler(context: EntityPluginContext) {
+    return new ProjectGenerationJobHandler(
+      this.logger.child("ProjectGenerationJobHandler"),
+      context,
     );
+  }
 
-    // Register project datasource
-    const projectDataSource = new ProjectDataSource(
-      this.logger.child("ProjectDataSource"),
-    );
-    context.entities.registerDataSource(projectDataSource);
-
-    // Register portfolio templates
-    // Datasource transforms Project → ProjectWithData (adds parsed frontmatter)
-    // Schema validates with optional url/typeLabel, site-builder enriches before rendering
-
-    // Define schema for project list template (with pagination support)
-    const projectListSchema = z.object({
-      projects: z.array(enrichedProjectSchema),
-      pageTitle: z.string().optional(),
-      pagination: paginationInfoSchema.nullable(),
-      baseUrl: z.string().optional(),
-    });
-
-    context.templates.register({
+  protected override getTemplates(): Record<string, Template> {
+    return {
       "project-list": createTemplate<
         z.infer<typeof projectListSchema>,
         ProjectListProps
@@ -90,9 +73,7 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         schema: projectListSchema,
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
-        layout: {
-          component: ProjectListTemplate,
-        },
+        layout: { component: ProjectListTemplate },
       }),
       "project-detail": createTemplate<
         {
@@ -111,48 +92,29 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         }),
         dataSourceId: "portfolio:entities",
         requiredPermission: "public",
-        layout: {
-          component: ProjectDetailTemplate,
-        },
+        layout: { component: ProjectDetailTemplate },
       }),
       generation: projectGenerationTemplate,
-    });
-
-    // Register job handler for project generation
-    const projectGenerationHandler = new ProjectGenerationJobHandler(
-      this.logger.child("ProjectGenerationJobHandler"),
-      context,
-    );
-    context.jobs.registerHandler(
-      `${projectAdapter.entityType}:generation`,
-      projectGenerationHandler,
-    );
-
-    // Register eval handlers for AI testing
-    this.registerEvalHandlers(context);
-
-    // Register with publish-pipeline for both direct and queued publishing
-    await this.registerWithPublishPipeline(context);
-    this.subscribeToPublishExecute(context);
-
-    this.logger.info(
-      "Portfolio plugin registered successfully (routes auto-generated at /projects/)",
-    );
+    };
   }
 
-  /**
-   * Register eval handlers for plugin testing
-   */
-  private registerEvalHandlers(context: ServicePluginContext): void {
-    // Generate project case study from prompt
-    const generateProjectInputSchema = z.object({
-      prompt: z.string(),
-      year: z.number(),
-    });
+  protected override getDataSources(): DataSource[] {
+    return [new ProjectDataSource(this.logger.child("ProjectDataSource"))];
+  }
 
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    this.registerEvalHandlers(context);
+    await this.registerWithPublishPipeline(context);
+    this.subscribeToPublishExecute(context);
+  }
+
+  private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateProject", async (input: unknown) => {
-      const parsed = generateProjectInputSchema.parse(input);
-
+      const parsed = z
+        .object({ prompt: z.string(), year: z.number() })
+        .parse(input);
       return context.ai.generate<{
         title: string;
         description: string;
@@ -160,53 +122,36 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
         problem: string;
         solution: string;
         outcome: string;
-      }>({
-        prompt: parsed.prompt,
-        templateName: "portfolio:generation",
-      });
+      }>({ prompt: parsed.prompt, templateName: "portfolio:generation" });
     });
   }
 
-  /**
-   * Register with publish-pipeline using internal provider
-   */
   private async registerWithPublishPipeline(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
   ): Promise<void> {
-    const internalProvider: PublishProvider = {
+    const provider: PublishProvider = {
       name: "internal",
-      publish: async (): Promise<PublishResult> => {
-        return { id: "internal" };
-      },
+      publish: async (): Promise<PublishResult> => ({ id: "internal" }),
     };
-
     await context.messaging.send("publish:register", {
       entityType: "project",
-      provider: internalProvider,
+      provider,
     });
   }
 
-  /**
-   * Subscribe to publish:execute messages for project entities
-   */
-  private subscribeToPublishExecute(context: ServicePluginContext): void {
+  private subscribeToPublishExecute(context: EntityPluginContext): void {
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("publish:execute", async (msg) => {
       const { entityType, entityId } = msg.payload;
-
-      // Only handle project entities
-      if (entityType !== "project") {
-        return { success: true };
-      }
+      if (entityType !== "project") return { success: true };
 
       try {
         const project = await context.entityService.getEntity<Project>(
           "project",
           entityId,
         );
-
         if (!project) {
           await context.messaging.send("publish:report:failure", {
             entityType,
@@ -215,83 +160,42 @@ export class PortfolioPlugin extends ServicePlugin<PortfolioConfig> {
           });
           return { success: true };
         }
+        if (project.metadata.status === "published") return { success: true };
 
-        // Skip already published projects
-        if (project.metadata.status === "published") {
-          return { success: true };
-        }
-
-        // Parse existing content and update frontmatter
         const parsed = parseMarkdownWithFrontmatter(
           project.content,
           projectFrontmatterSchema,
         );
-
         const publishedAt = new Date().toISOString();
-        const updatedFrontmatter = {
+        const updatedContent = generateMarkdownWithFrontmatter(parsed.content, {
           ...parsed.metadata,
           status: "published" as const,
           publishedAt,
-        };
+        });
 
-        const updatedContent = generateMarkdownWithFrontmatter(
-          parsed.content,
-          updatedFrontmatter,
-        );
-
-        // Update entity
         await context.entityService.updateEntity({
           ...project,
           content: updatedContent,
-          metadata: {
-            ...project.metadata,
-            status: "published",
-            publishedAt,
-          },
+          metadata: { ...project.metadata, status: "published", publishedAt },
         });
 
-        // Report success
         await context.messaging.send("publish:report:success", {
           entityType,
           entityId,
           publishedAt,
         });
-
-        this.logger.info(`Published project: ${entityId}`);
-        return { success: true };
       } catch (error) {
-        const errorMessage = getErrorMessage(error);
         await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,
-          error: errorMessage,
+          error: getErrorMessage(error),
         });
-        this.logger.error(`Failed to publish project ${entityId}:`, {
-          error: errorMessage,
-        });
-        return { success: true };
       }
+      return { success: true };
     });
-  }
-
-  /**
-   * Get the tools provided by this plugin
-   */
-  protected override async getTools(): Promise<PluginTool[]> {
-    return [];
-  }
-
-  /**
-   * No resources needed for this plugin
-   */
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
   }
 }
 
-/**
- * Factory function to create the plugin
- */
-export function portfolioPlugin(config: PortfolioConfigInput): Plugin {
+export function portfolioPlugin(config: PortfolioConfigInput = {}): Plugin {
   return new PortfolioPlugin(config);
 }

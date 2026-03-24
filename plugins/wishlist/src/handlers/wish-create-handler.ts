@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { slugify } from "@brains/utils";
 import { WishAdapter } from "../adapters/wish-adapter";
@@ -32,7 +32,7 @@ export class WishCreateHandler {
 
   constructor(
     private readonly logger: Logger,
-    private readonly context: ServicePluginContext,
+    private readonly context: EntityPluginContext,
   ) {}
 
   async process(

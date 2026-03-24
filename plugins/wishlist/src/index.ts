@@ -1,5 +1,5 @@
-import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import type { Plugin, EntityPluginContext } from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
 import {
   wishlistConfigSchema,
   wishSchema,
@@ -11,23 +11,19 @@ import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
-/**
- * Wishlist plugin for tracking unfulfilled user requests.
- *
- * When the agent can't fulfill a request because the capability doesn't exist,
- * it logs a wish. Repeated requests increment the request count. The wishlist
- * forms a living roadmap of what users want.
- */
-export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
+export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
+  readonly entityType = "wish";
+  readonly schema = wishSchema;
+  readonly adapter = new WishAdapter();
+
   constructor(config: Partial<WishlistConfig> = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
   }
 
   protected override async onRegister(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
   ): Promise<void> {
-    context.entities.register("wish", wishSchema, new WishAdapter());
-
+    // Dashboard widget
     context.messaging.subscribe("system:plugins:ready", async () => {
       await context.messaging.send("dashboard:register-widget", {
         id: "top-wishes",
@@ -39,13 +35,9 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
         dataProvider: async () => {
           const wishes = await context.entityService.listEntities<WishEntity>(
             "wish",
-            {
-              limit: 10,
-            },
+            { limit: 10 },
           );
-
           sortWishesByDemand(wishes);
-
           return {
             items: wishes.map((w) => ({
               id: w.id,
@@ -60,18 +52,12 @@ export class WishlistPlugin extends ServicePlugin<WishlistConfig> {
       return { success: true };
     });
 
-    // Register wish:create handler for semantic dedup via system_create
+    // Custom create handler with semantic dedup
     const handler = new WishCreateHandler(this.logger, context);
     context.jobs.registerHandler("wish:create", {
       process: handler.process.bind(handler),
       validateAndParse: (data: unknown) => data,
     });
-
-    this.logger.debug("Wishlist plugin registered");
-  }
-
-  protected override async getTools(): Promise<PluginTool[]> {
-    return [];
   }
 
   protected override async getInstructions(): Promise<string> {

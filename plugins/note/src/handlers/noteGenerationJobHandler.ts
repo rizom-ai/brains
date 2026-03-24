@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, generationResultSchema } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { noteAdapter } from "../adapters/note-adapter";
 
 /**
@@ -29,7 +29,7 @@ export class NoteGenerationJobHandler extends BaseGenerationJobHandler<
   NoteGenerationJobData,
   NoteGenerationResult
 > {
-  constructor(logger: Logger, context: ServicePluginContext) {
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: noteGenerationJobSchema,
       jobTypeName: "note-generation",

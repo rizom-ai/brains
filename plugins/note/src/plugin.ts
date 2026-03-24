@@ -1,103 +1,47 @@
-import type {
-  Plugin,
-  PluginTool,
-  PluginResource,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import type { Plugin, EntityPluginContext, Template } from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { noteSchema } from "./schemas/note";
+import { noteSchema, type Note } from "./schemas/note";
 import { noteAdapter } from "./adapters/note-adapter";
-// Tools removed — entity creation now handled by system_create
 import type { NoteConfig, NoteConfigInput } from "./config";
 import { noteConfigSchema } from "./config";
 import { noteGenerationTemplate } from "./templates/generation-template";
 import { NoteGenerationJobHandler } from "./handlers/noteGenerationJobHandler";
 import packageJson from "../package.json";
 
-/**
- * Note Plugin
- * Provides personal knowledge capture with markdown-first workflow
- */
-export class NotePlugin extends ServicePlugin<NoteConfig> {
-  // Context stored for handler access
+export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
+  readonly entityType = noteAdapter.entityType;
+  readonly schema = noteSchema;
+  readonly adapter = noteAdapter;
 
-  constructor(config: NoteConfigInput) {
+  constructor(config: NoteConfigInput = {}) {
     super("note", packageJson, config, noteConfigSchema);
   }
 
-  /**
-   * Initialize the plugin
-   */
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    // context used by handlers registered below
-
-    // Register base entity type (notes are base entities)
-    context.entities.register(noteAdapter.entityType, noteSchema, noteAdapter);
-
-    // Register generation template
-    context.templates.register({
-      generation: noteGenerationTemplate,
-    });
-
-    // Register job handler for note generation
-    const noteGenerationHandler = new NoteGenerationJobHandler(
+  protected override createGenerationHandler(context: EntityPluginContext) {
+    return new NoteGenerationJobHandler(
       this.logger.child("NoteGenerationJobHandler"),
       context,
     );
-    context.jobs.registerHandler(
-      `${noteAdapter.entityType}:generation`,
-      noteGenerationHandler,
-    );
-
-    // Register eval handlers for AI testing
-    this.registerEvalHandlers(context);
-
-    this.logger.info("Note plugin registered successfully");
   }
 
-  /**
-   * Register eval handlers for plugin testing
-   */
-  private registerEvalHandlers(context: ServicePluginContext): void {
-    // Generate note (title, body) from prompt
-    const generateNoteInputSchema = z.object({
-      prompt: z.string(),
-    });
+  protected override getTemplates(): Record<string, Template> {
+    return { generation: noteGenerationTemplate };
+  }
 
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
     context.eval.registerHandler("generateNote", async (input: unknown) => {
-      const parsed = generateNoteInputSchema.parse(input);
-
-      return context.ai.generate<{
-        title: string;
-        body: string;
-      }>({
+      const parsed = z.object({ prompt: z.string() }).parse(input);
+      return context.ai.generate<{ title: string; body: string }>({
         prompt: parsed.prompt,
         templateName: "note:generation",
       });
     });
   }
-
-  /**
-   * Get the tools provided by this plugin
-   */
-  protected override async getTools(): Promise<PluginTool[]> {
-    return [];
-  }
-
-  /**
-   * No resources needed for this plugin
-   */
-  protected override async getResources(): Promise<PluginResource[]> {
-    return [];
-  }
 }
 
-/**
- * Factory function to create the plugin
- */
 export function notePlugin(config: NoteConfigInput = {}): Plugin {
   return new NotePlugin(config);
 }

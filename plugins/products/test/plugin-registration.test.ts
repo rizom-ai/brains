@@ -22,7 +22,7 @@ describe("ProductsPlugin", () => {
   describe("Plugin Registration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("products");
-      expect(plugin.type).toBe("service");
+      expect(plugin.type).toBe("entity");
       expect(plugin.version).toBeDefined();
     });
 
