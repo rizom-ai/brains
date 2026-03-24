@@ -1,17 +1,11 @@
-import type { CorePluginContext } from "../core/context";
+import type { CorePluginContext, IJobsWriteNamespace } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type {
   IEntitiesNamespace,
   IServiceAINamespace,
   IServiceTemplatesNamespace,
-  IEvalNamespace,
 } from "../service/context";
-import type { IJobsWriteNamespace } from "../core/context";
-import type {
-  IShell,
-  EvalHandler,
-  ContentGenerationConfig,
-} from "../interfaces";
+import type { IShell, ContentGenerationConfig } from "../interfaces";
 import type {
   IEntityService,
   BaseEntity,
@@ -47,7 +41,6 @@ export interface EntityPluginContext extends CorePluginContext {
   readonly templates: IServiceTemplatesNamespace;
   readonly jobs: IJobsWriteNamespace;
   readonly dataDir: string;
-  readonly eval: IEvalNamespace;
 }
 
 /**
@@ -164,11 +157,5 @@ export function createEntityPluginContext(
     },
 
     dataDir: shell.getDataDir(),
-
-    eval: {
-      registerHandler: (handlerId: string, handler: EvalHandler): void => {
-        shell.registerEvalHandler(pluginId, handlerId, handler);
-      },
-    },
   };
 }

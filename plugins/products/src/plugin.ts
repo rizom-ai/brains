@@ -38,7 +38,7 @@ const productDetailSchema = z.object({
 });
 
 export class ProductsPlugin extends EntityPlugin<Product, ProductsConfig> {
-  readonly entityType = "product";
+  readonly entityType = productAdapter.entityType;
   readonly schema = productSchema;
   readonly adapter = productAdapter;
 

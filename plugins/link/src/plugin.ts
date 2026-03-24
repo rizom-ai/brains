@@ -12,7 +12,7 @@ import {
   type LinkConfig,
   type LinkEntity,
 } from "./schemas/link";
-import { LinkAdapter } from "./adapters/link-adapter";
+import { linkAdapter } from "./adapters/link-adapter";
 import {
   linkExtractionTemplate,
   type LinkExtractionResult,
@@ -25,9 +25,9 @@ import { LinkCaptureJobHandler } from "./handlers/capture-handler";
 import packageJson from "../package.json";
 
 export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
-  readonly entityType = "link";
+  readonly entityType = linkAdapter.entityType;
   readonly schema = linkSchema;
-  readonly adapter = new LinkAdapter();
+  readonly adapter = linkAdapter;
 
   constructor(config: Partial<LinkConfig> = {}) {
     super("link", packageJson, config, linkConfigSchema);

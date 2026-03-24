@@ -6,15 +6,15 @@ import {
   type WishlistConfig,
   type WishEntity,
 } from "./schemas/wish";
-import { WishAdapter } from "./adapters/wish-adapter";
+import { wishAdapter } from "./adapters/wish-adapter";
 import { WishCreateHandler } from "./handlers/wish-create-handler";
 import { sortWishesByDemand } from "./lib/sort-wishes";
 import packageJson from "../package.json";
 
 export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
-  readonly entityType = "wish";
+  readonly entityType = wishAdapter.entityType;
   readonly schema = wishSchema;
-  readonly adapter = new WishAdapter();
+  readonly adapter = wishAdapter;
 
   constructor(config: Partial<WishlistConfig> = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);

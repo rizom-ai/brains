@@ -18,7 +18,7 @@ import type {
 } from "@brains/conversation-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
-import type { AppInfo } from "../interfaces";
+import type { AppInfo, EvalHandler } from "../interfaces";
 import type {
   IJobsNamespace,
   JobHandler,
@@ -174,6 +174,13 @@ export interface IConversationsNamespace {
 }
 
 /**
+ * Eval namespace — cross-cutting testing concern for all plugin types
+ */
+export interface IEvalNamespace {
+  registerHandler: (handlerId: string, handler: EvalHandler) => void;
+}
+
+/**
  * Core plugin context - provides basic services to core plugins
  *
  * ## Method Naming Conventions
@@ -278,6 +285,16 @@ export interface CorePluginContext {
    * - `conversations.getMessages()` - Get messages from a conversation
    */
   readonly conversations: IConversationsNamespace;
+
+  // ============================================================================
+  // Evaluation
+  // ============================================================================
+
+  /**
+   * Eval namespace for plugin testing
+   * - `eval.registerHandler()` - Register an eval handler
+   */
+  readonly eval: IEvalNamespace;
 }
 
 /**
@@ -420,5 +437,12 @@ export function createCorePluginContext(
 
     // Data directory
     dataDir: shell.getDataDir(),
+
+    // Eval namespace
+    eval: {
+      registerHandler: (handlerId: string, handler: EvalHandler): void => {
+        shell.registerEvalHandler(pluginId, handlerId, handler);
+      },
+    },
   };
 }

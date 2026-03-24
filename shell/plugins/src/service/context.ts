@@ -7,7 +7,6 @@ import type {
 import type {
   IShell,
   ContentGenerationConfig,
-  EvalHandler,
   PluginResourceTemplate,
   PluginPrompt,
 } from "../interfaces";
@@ -138,15 +137,6 @@ export interface IServiceAINamespace extends IAINamespace {
 }
 
 /**
- * Eval namespace for ServicePluginContext
- * Provides methods for registering evaluation handlers for plugin testing
- */
-export interface IEvalNamespace {
-  /** Register an eval handler for plugin testing */
-  registerHandler: (handlerId: string, handler: EvalHandler) => void;
-}
-
-/**
  * Plugins namespace for ServicePluginContext
  * Provides plugin metadata access
  */
@@ -263,16 +253,6 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly prompts: {
     register: (prompt: PluginPrompt) => void;
   };
-
-  // ============================================================================
-  // Evaluation
-  // ============================================================================
-
-  /**
-   * Eval namespace for plugin testing
-   * - `eval.registerHandler()` - Register an eval handler for plugin testing
-   */
-  readonly eval: IEvalNamespace;
 }
 
 /**
@@ -470,13 +450,6 @@ export function createServicePluginContext(
     prompts: {
       register: (prompt: PluginPrompt): void => {
         shell.registerPluginPrompt(pluginId, prompt);
-      },
-    },
-
-    // Eval namespace - automatically scopes to this plugin
-    eval: {
-      registerHandler: (handlerId: string, handler: EvalHandler): void => {
-        shell.registerEvalHandler(pluginId, handlerId, handler);
       },
     },
   };

@@ -24,6 +24,10 @@ import {
   createServicePluginContext,
   type ServicePluginContext,
 } from "../service/context";
+import {
+  createEntityPluginContext,
+  type EntityPluginContext,
+} from "../entity/context";
 
 export interface HarnessOptions {
   logger?: Logger;
@@ -133,6 +137,13 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
    */
   getServiceContext(pluginId: string): ServicePluginContext {
     return createServicePluginContext(this.mockShell, pluginId);
+  }
+
+  /**
+   * Create an EntityPluginContext for testing entity plugin handlers/datasources
+   */
+  getEntityContext(pluginId: string): EntityPluginContext {
+    return createEntityPluginContext(this.mockShell, pluginId);
   }
 
   /**
