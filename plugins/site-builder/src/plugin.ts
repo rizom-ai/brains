@@ -244,7 +244,39 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   protected override async getResources(): Promise<PluginResource[]> {
-    return [];
+    const siteInfoService = this.siteInfoService;
+    const context = this.pluginContext;
+    return [
+      {
+        uri: "brain://site",
+        name: "Site Info",
+        description: "Site metadata — title, description, domain, URLs",
+        mimeType: "application/json",
+        handler: async () => {
+          const siteInfo = siteInfoService
+            ? await siteInfoService.getSiteInfo()
+            : { title: "Brain", description: "" };
+          return {
+            contents: [
+              {
+                uri: "brain://site",
+                mimeType: "application/json",
+                text: JSON.stringify(
+                  {
+                    ...siteInfo,
+                    domain: context?.domain,
+                    siteUrl: context?.siteUrl,
+                    previewUrl: context?.previewUrl,
+                  },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        },
+      },
+    ];
   }
 
   public getSiteBuilder(): SiteBuilder | undefined {
