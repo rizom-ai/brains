@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { SiteBuildCompletedPayload } from "@brains/site-builder-plugin";
@@ -10,7 +10,7 @@ import { promises as fs } from "fs";
 import { join } from "path";
 
 export function subscribeToSiteBuildCompleted(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.messaging.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
@@ -33,7 +33,7 @@ export function subscribeToSiteBuildCompleted(
 }
 
 async function generateRSSAfterBuild(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
   payload: SiteBuildCompletedPayload,
 ): Promise<void> {

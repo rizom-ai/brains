@@ -165,6 +165,10 @@ No directory rename. The base class lives in `shell/plugins/src/entity/` and plu
 - `docs/architecture-overview.md` — update plugin types table
 - `CLAUDE.md` — update plugin patterns
 
+## Tech debt
+
+- `eval` namespace should move from ServicePluginContext/EntityPluginContext to CorePluginContext — it's a cross-cutting testing concern, not specific to any plugin type
+
 ## Verification
 
 1. `bun test` — all tests pass

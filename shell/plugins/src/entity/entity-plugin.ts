@@ -9,7 +9,7 @@ import type { Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils";
 import type { EntityPluginContext } from "./context";
-import { createServicePluginContext } from "../service/context";
+import { createEntityPluginContext } from "./context";
 
 const emptyConfigSchema = z.object({});
 
@@ -48,36 +48,31 @@ export abstract class EntityPlugin<
    * entity type, handlers, templates, and datasources.
    */
   override async register(shell: IShell): Promise<PluginCapabilities> {
-    // Use ServicePluginContext internally — EntityPluginContext is the public contract
-    // but we need the full context for registration mechanics
-    const fullContext = createServicePluginContext(shell, this.id);
-    this.context = fullContext as unknown as EntityPluginContext;
+    const context = createEntityPluginContext(shell, this.id);
+    this.context = context;
 
     // Set up message handlers (tool/resource execution via message bus)
-    this.setupMessageHandlers(this.context);
+    this.setupMessageHandlers(context);
 
     // Auto-register entity type
-    fullContext.entities.register(this.entityType, this.schema, this.adapter);
+    context.entities.register(this.entityType, this.schema, this.adapter);
 
     // Auto-register generation handler if provided
-    const handler = this.createGenerationHandler(this.context);
+    const handler = this.createGenerationHandler(context);
     if (handler) {
-      fullContext.jobs.registerHandler(
-        `${this.entityType}:generation`,
-        handler,
-      );
+      context.jobs.registerHandler(`${this.entityType}:generation`, handler);
     }
 
     // Auto-register templates if provided
     const templates = this.getTemplates();
     if (templates && Object.keys(templates).length > 0) {
-      fullContext.templates.register(templates);
+      context.templates.register(templates);
     }
 
     // Auto-register datasources if provided
     const dataSources = this.getDataSources();
     for (const ds of dataSources) {
-      fullContext.entities.registerDataSource(ds);
+      context.entities.registerDataSource(ds);
     }
 
     // Call subclass hook for additional registration

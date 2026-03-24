@@ -1,9 +1,0 @@
-import type { ServicePluginContext } from "@brains/plugins";
-import { blogPostSchema } from "../schemas/blog-post";
-import { blogPostAdapter } from "../adapters/blog-post-adapter";
-
-export function registerEntities(context: ServicePluginContext): void {
-  context.entities.register("post", blogPostSchema, blogPostAdapter, {
-    weight: 2.0,
-  });
-}

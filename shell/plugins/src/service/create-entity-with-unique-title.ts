@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "./context";
+import type { EntityPluginContext } from "../entity/context";
 import { z } from "@brains/utils";
 
 /**
@@ -14,7 +14,7 @@ export interface EnsureUniqueTitleParams {
   /** Prompt hint for the AI when it needs to regenerate */
   regeneratePrompt: string;
   /** Service context (needs entityService, ai, logger) */
-  context: Pick<ServicePluginContext, "entityService" | "ai" | "logger">;
+  context: Pick<EntityPluginContext, "entityService" | "ai" | "logger">;
 }
 
 /**

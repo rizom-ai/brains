@@ -1,12 +1,17 @@
-import type { Plugin, ServicePluginContext } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
-import { blogPostSchema } from "./schemas/blog-post";
+import type {
+  Plugin,
+  EntityPluginContext,
+  DataSource,
+  Template,
+} from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
+import { blogPostSchema, type BlogPost } from "./schemas/blog-post";
 import { blogPostAdapter } from "./adapters/blog-post-adapter";
 import type { BlogConfig, BlogConfigInput } from "./config";
 import { blogConfigSchema } from "./config";
 import { BlogGenerationJobHandler } from "./handlers/blogGenerationJobHandler";
 import { BlogDataSource } from "./datasources/blog-datasource";
-import { registerTemplates } from "./lib/register-templates";
+import { getTemplates } from "./lib/register-templates";
 import {
   registerWithPublishPipeline,
   subscribeToPublishExecute,
@@ -15,44 +20,40 @@ import { subscribeToSiteBuildCompleted } from "./lib/rss-handler";
 import { registerEvalHandlers } from "./lib/eval-handlers";
 import packageJson from "../package.json";
 
-export class BlogPlugin extends ServicePlugin<BlogConfig> {
-  constructor(config: BlogConfigInput) {
+export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
+  readonly entityType = blogPostAdapter.entityType;
+  readonly schema = blogPostSchema;
+  readonly adapter = blogPostAdapter;
+
+  constructor(config: BlogConfigInput = {}) {
     super("blog", packageJson, config, blogConfigSchema);
   }
 
+  protected override createGenerationHandler(context: EntityPluginContext) {
+    return new BlogGenerationJobHandler(
+      this.logger.child("BlogGenerationJobHandler"),
+      context,
+    );
+  }
+
+  protected override getTemplates(): Record<string, Template> {
+    return getTemplates();
+  }
+
+  protected override getDataSources(): DataSource[] {
+    return [new BlogDataSource(this.logger.child("BlogDataSource"))];
+  }
+
   protected override async onRegister(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
   ): Promise<void> {
-    // Register entity type
-    context.entities.register(
-      blogPostAdapter.entityType,
-      blogPostSchema,
-      blogPostAdapter,
-      { weight: 2.0 },
-    );
-
-    // Register datasources
-    const blogDataSource = new BlogDataSource(
-      this.logger.child("BlogDataSource"),
-    );
-    context.entities.registerDataSource(blogDataSource);
-
+    // RSS datasource (dynamic import)
     const { RSSDataSource } = await import("./datasources/rss-datasource");
-    const rssDataSource = new RSSDataSource(this.logger.child("RSSDataSource"));
-    context.entities.registerDataSource(rssDataSource);
-
-    // Register templates and generation handler
-    registerTemplates(context);
-
-    context.jobs.registerHandler(
-      `${blogPostAdapter.entityType}:generation`,
-      new BlogGenerationJobHandler(
-        this.logger.child("BlogGenerationJobHandler"),
-        context,
-      ),
+    context.entities.registerDataSource(
+      new RSSDataSource(this.logger.child("RSSDataSource")),
     );
 
-    // Publish pipeline and RSS
+    // Publish pipeline and RSS subscriptions
     await registerWithPublishPipeline(context, this.logger);
     subscribeToPublishExecute(context, this.logger);
     subscribeToSiteBuildCompleted(context, this.logger);
@@ -64,6 +65,6 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
   }
 }
 
-export function blogPlugin(config: BlogConfigInput): Plugin {
+export function blogPlugin(config: BlogConfigInput = {}): Plugin {
   return new BlogPlugin(config);
 }

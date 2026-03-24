@@ -7,7 +7,7 @@ import {
   type GenerationResult,
   type z,
 } from "@brains/utils";
-import type { ServicePluginContext } from "./context";
+import type { EntityPluginContext } from "../entity/context";
 
 /**
  * Configuration for BaseGenerationJobHandler
@@ -94,12 +94,12 @@ export abstract class BaseGenerationJobHandler<
   TInput = unknown,
   TResult extends GenerationResult = GenerationResult,
 > extends BaseJobHandler<string, TInput, TResult> {
-  protected readonly context: ServicePluginContext;
+  protected readonly context: EntityPluginContext;
   protected readonly entityType: string;
 
   constructor(
     logger: Logger,
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     config: GenerationJobHandlerConfig<TInput>,
   ) {
     super(logger, {

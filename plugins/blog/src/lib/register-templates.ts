@@ -1,6 +1,6 @@
 import { paginationInfoSchema } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
 import { createTemplate } from "@brains/templates";
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils";
 import { enrichedBlogPostSchema } from "../schemas/blog-post";
 import { BlogListTemplate, type BlogListProps } from "../templates/blog-list";
@@ -16,8 +16,8 @@ const postListSchema = z.object({
   baseUrl: z.string().optional(),
 });
 
-export function registerTemplates(context: ServicePluginContext): void {
-  context.templates.register({
+export function getTemplates(): Record<string, Template> {
+  return {
     "post-list": createTemplate<z.infer<typeof postListSchema>, BlogListProps>({
       name: "post-list",
       description: "Blog list page template",
@@ -54,5 +54,5 @@ export function registerTemplates(context: ServicePluginContext): void {
     homepage: homepageTemplate,
     generation: blogGenerationTemplate,
     excerpt: blogExcerptTemplate,
-  });
+  };
 }

@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 const generatePostInputSchema = z.object({
@@ -11,7 +11,7 @@ const generateExcerptInputSchema = z.object({
   content: z.string(),
 });
 
-export function registerEvalHandlers(context: ServicePluginContext): void {
+export function registerEvalHandlers(context: EntityPluginContext): void {
   context.eval.registerHandler("generatePost", async (input: unknown) => {
     const parsed = generatePostInputSchema.parse(input);
     const generationPrompt = `${parsed.prompt}${parsed.seriesName ? `\n\nNote: This is part of a series called "${parsed.seriesName}".` : ""}`;

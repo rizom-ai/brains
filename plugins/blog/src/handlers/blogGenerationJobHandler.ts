@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, generationResultSchema } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { BlogPostFrontmatter, BlogPost } from "../schemas/blog-post";
 
 /**
@@ -36,7 +36,7 @@ export class BlogGenerationJobHandler extends BaseGenerationJobHandler<
   BlogGenerationJobData,
   BlogGenerationResult
 > {
-  constructor(logger: Logger, context: ServicePluginContext) {
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: blogGenerationJobSchema,
       jobTypeName: "blog-generation",

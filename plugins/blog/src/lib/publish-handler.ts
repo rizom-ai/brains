@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { BlogPost } from "../schemas/blog-post";
@@ -7,7 +7,7 @@ import { blogPostFrontmatterSchema } from "../schemas/blog-post";
 import { blogPostAdapter } from "../adapters/blog-post-adapter";
 
 export async function registerWithPublishPipeline(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): Promise<void> {
   const internalProvider = {
@@ -26,7 +26,7 @@ export async function registerWithPublishPipeline(
 }
 
 export function subscribeToPublishExecute(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.messaging.subscribe<
