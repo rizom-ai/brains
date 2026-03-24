@@ -137,6 +137,8 @@ async function handleSendMessage(
   const messageText = textParts.map((p) => p.text).join("\n");
   const contextId = parsed.data.message.contextId;
 
+  const blocking = parsed.data.configuration?.blocking ?? false;
+
   // Create task
   const record = context.taskManager.createTask(messageText, contextId);
   const taskId = record.task.id;
@@ -144,12 +146,46 @@ async function handleSendMessage(
   // Move to working
   context.taskManager.updateState(taskId, "working");
 
-  // Process through AgentService
+  if (blocking) {
+    // Synchronous path: await agent and return completed/failed task
+    return processAndRespond(
+      id,
+      taskId,
+      messageText,
+      record.conversationId,
+      parsed.data.configuration?.historyLength,
+      context,
+    );
+  }
+
+  // Non-blocking path: fire agent processing in background, return "working" immediately
+  processInBackground(taskId, messageText, record.conversationId, context);
+
+  const workingRecord = context.taskManager.getTask(taskId);
+  if (!workingRecord) {
+    return errorResponse(id, -32603, "Internal error: task disappeared");
+  }
+
+  return successResponse(id, workingRecord.task);
+}
+
+/**
+ * Process agent chat synchronously and return a completed/failed response.
+ * Used for blocking mode.
+ */
+async function processAndRespond(
+  id: string | number,
+  taskId: string,
+  messageText: string,
+  conversationId: string,
+  historyLength: number | undefined,
+  context: JsonRpcHandlerContext,
+): Promise<JsonRpcResponse> {
   let updated: ReturnType<typeof context.taskManager.updateState>;
   try {
     const agentResponse = await context.agentService.chat(
       messageText,
-      record.conversationId,
+      conversationId,
       {
         userPermissionLevel: context.callerPermissionLevel,
         interfaceType: "a2a",
@@ -174,8 +210,6 @@ async function handleSendMessage(
     return errorResponse(id, -32603, "Internal error: task disappeared");
   }
 
-  // Apply historyLength trimming if requested
-  const historyLength = parsed.data.configuration?.historyLength;
   const task =
     historyLength !== undefined
       ? context.taskManager.getTaskWithHistory(taskId, historyLength)
@@ -186,6 +220,35 @@ async function handleSendMessage(
   }
 
   return successResponse(id, task);
+}
+
+/**
+ * Process agent chat in the background (fire-and-forget).
+ * Transitions task to completed or failed when done.
+ * Own try/catch to prevent unhandled rejections.
+ */
+function processInBackground(
+  taskId: string,
+  messageText: string,
+  conversationId: string,
+  context: JsonRpcHandlerContext,
+): void {
+  context.agentService
+    .chat(messageText, conversationId, {
+      userPermissionLevel: context.callerPermissionLevel,
+      interfaceType: "a2a",
+    })
+    .then((agentResponse) => {
+      context.taskManager.updateState(taskId, "completed", agentResponse.text);
+    })
+    .catch((err: unknown) => {
+      const errorMessage = err instanceof Error ? err.message : "Unknown error";
+      context.taskManager.updateState(
+        taskId,
+        "failed",
+        `Error: ${errorMessage}`,
+      );
+    });
 }
 
 function handleGetTask(

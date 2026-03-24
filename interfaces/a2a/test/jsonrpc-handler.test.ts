@@ -94,6 +94,17 @@ function userMessage(
   };
 }
 
+/** User message with blocking: true (synchronous completion) */
+function blockingMessage(
+  text: string,
+  extra?: Record<string, unknown>,
+): Record<string, unknown> {
+  return {
+    ...userMessage(text, extra),
+    configuration: { blocking: true },
+  };
+}
+
 describe("JSON-RPC Handler", () => {
   let taskManager: TaskManager;
   let agentService: IAgentService;
@@ -107,7 +118,7 @@ describe("JSON-RPC Handler", () => {
     it("should create a task and return completed result", async () => {
       const request = rpcRequest(
         "message/send",
-        userMessage("Write a blog post about AI"),
+        blockingMessage("Write a blog post about AI"),
       );
 
       const response = await handleJsonRpc(request, {
@@ -129,7 +140,7 @@ describe("JSON-RPC Handler", () => {
       agentService = createMockAgentService({ text: "Here is your blog post" });
       const request = rpcRequest(
         "message/send",
-        userMessage("Write something"),
+        blockingMessage("Write something"),
       );
 
       const response = await handleJsonRpc(request, {
@@ -162,7 +173,10 @@ describe("JSON-RPC Handler", () => {
         }),
       };
 
-      const request = rpcRequest("message/send", userMessage("Hello agent"));
+      const request = rpcRequest(
+        "message/send",
+        blockingMessage("Hello agent"),
+      );
       await handleJsonRpc(request, {
         taskManager,
         agentService: trackingService,
@@ -190,7 +204,7 @@ describe("JSON-RPC Handler", () => {
         }),
       };
 
-      const request = rpcRequest("message/send", userMessage("Hello"));
+      const request = rpcRequest("message/send", blockingMessage("Hello"));
       await handleJsonRpc(request, {
         taskManager,
         agentService: trackingService,
@@ -203,7 +217,7 @@ describe("JSON-RPC Handler", () => {
     it("should use contextId from message when provided", async () => {
       const request = rpcRequest(
         "message/send",
-        userMessage("Hello", {
+        blockingMessage("Hello", {
           contextId: "existing-context-123",
         }),
       );
@@ -257,7 +271,7 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should store the task for later retrieval", async () => {
-      const request = rpcRequest("message/send", userMessage("Hello"));
+      const request = rpcRequest("message/send", blockingMessage("Hello"));
 
       const response = await handleJsonRpc(request, {
         taskManager,
@@ -279,7 +293,7 @@ describe("JSON-RPC Handler", () => {
         },
       };
 
-      const request = rpcRequest("message/send", userMessage("Hello"));
+      const request = rpcRequest("message/send", blockingMessage("Hello"));
 
       const response = await handleJsonRpc(request, {
         taskManager,
@@ -330,7 +344,7 @@ describe("JSON-RPC Handler", () => {
     it("should return an existing task", async () => {
       // First create a task
       const sendResponse = await handleJsonRpc(
-        rpcRequest("message/send", userMessage("Hello")),
+        rpcRequest("message/send", blockingMessage("Hello")),
         { taskManager, agentService, callerPermissionLevel: "public" },
       );
       const taskId = expectSuccess(sendResponse).id;
@@ -348,7 +362,7 @@ describe("JSON-RPC Handler", () => {
 
     it("should respect historyLength parameter", async () => {
       const sendResponse = await handleJsonRpc(
-        rpcRequest("message/send", userMessage("Hello")),
+        rpcRequest("message/send", blockingMessage("Hello")),
         { taskManager, agentService, callerPermissionLevel: "public" },
       );
       const taskId = expectSuccess(sendResponse).id;
@@ -397,7 +411,7 @@ describe("JSON-RPC Handler", () => {
 
     it("should return error for already completed task", async () => {
       const sendResponse = await handleJsonRpc(
-        rpcRequest("message/send", userMessage("Hello")),
+        rpcRequest("message/send", blockingMessage("Hello")),
         { taskManager, agentService, callerPermissionLevel: "public" },
       );
       const taskId = expectSuccess(sendResponse).id;
@@ -436,11 +450,107 @@ describe("JSON-RPC Handler", () => {
 
     it("should preserve request id in success responses", async () => {
       const response = await handleJsonRpc(
-        rpcRequest("message/send", userMessage("Hello"), "req-abc"),
+        rpcRequest("message/send", blockingMessage("Hello"), "req-abc"),
         { taskManager, agentService, callerPermissionLevel: "public" },
       );
 
       expect(response.id).toBe("req-abc");
+    });
+  });
+
+  describe("message/send (non-blocking)", () => {
+    it("should return working task immediately without awaiting agent", async () => {
+      // Agent that takes a long time — non-blocking should NOT wait for it
+      let agentCalled = false;
+      const slowAgent: IAgentService = {
+        chat: async () => {
+          agentCalled = true;
+          await new Promise((r) => setTimeout(r, 5000));
+          return {
+            text: "done",
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+          };
+        },
+        confirmPendingAction: async () => ({
+          text: "",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+      };
+
+      const request = rpcRequest("message/send", userMessage("Hello"));
+      const response = await handleJsonRpc(request, {
+        taskManager,
+        agentService: slowAgent,
+        callerPermissionLevel: "public",
+      });
+
+      const task = expectSuccess(response);
+      expect(task.status.state).toBe("working");
+      // Agent was called (fire-and-forget), but we didn't wait for it
+      expect(agentCalled).toBe(true);
+    });
+
+    it("should complete task in background after returning working", async () => {
+      const agentDone = createMockAgentService({
+        text: "Background result",
+      });
+
+      // Agent responds after a short delay
+      const delayedAgent: IAgentService = {
+        chat: async (...args) => {
+          await new Promise((r) => setTimeout(r, 50));
+          return agentDone.chat(...args);
+        },
+        confirmPendingAction: agentDone.confirmPendingAction,
+      };
+
+      const request = rpcRequest("message/send", userMessage("Hello"));
+      const response = await handleJsonRpc(request, {
+        taskManager,
+        agentService: delayedAgent,
+        callerPermissionLevel: "public",
+      });
+
+      const task = expectSuccess(response);
+      expect(task.status.state).toBe("working");
+
+      // Wait for background processing to complete
+      await new Promise((r) => setTimeout(r, 100));
+
+      // Task should now be completed
+      const completed = taskManager.getTask(task.id);
+      expect(completed?.task.status.state).toBe("completed");
+      expect(statusMessageText(completed?.task as Task)).toBe(
+        "Background result",
+      );
+    });
+
+    it("should transition task to failed when agent throws in background", async () => {
+      const failingAgent: IAgentService = {
+        chat: async () => {
+          throw new Error("Agent crashed");
+        },
+        confirmPendingAction: async () => ({
+          text: "",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+      };
+
+      const request = rpcRequest("message/send", userMessage("Hello"));
+      const response = await handleJsonRpc(request, {
+        taskManager,
+        agentService: failingAgent,
+        callerPermissionLevel: "public",
+      });
+
+      const task = expectSuccess(response);
+
+      // Background processing may complete before or after return,
+      // so wait a tick then verify the task reached "failed"
+      await new Promise((r) => setTimeout(r, 10));
+
+      const failed = taskManager.getTask(task.id);
+      expect(failed?.task.status.state).toBe("failed");
     });
   });
 });
