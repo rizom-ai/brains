@@ -3,7 +3,7 @@ import type { Task, TaskState, Message, Part } from "@a2a-js/sdk";
 /** Default TTL for completed tasks: 1 hour */
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
-export const TERMINAL_STATES: Set<TaskState> = new Set([
+export const TERMINAL_STATES = new Set<string>([
   "completed",
   "failed",
   "canceled",

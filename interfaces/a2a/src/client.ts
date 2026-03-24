@@ -141,6 +141,8 @@ export function parseA2AResponse(data: unknown): A2AResult {
   };
 }
 
+import { TERMINAL_STATES } from "./task-manager";
+
 // -- Network functions --
 
 type FetchFn = (
@@ -218,11 +220,82 @@ async function sendMessage(
       return { success: false, error: parsed.error };
     }
 
+    // If task is not in a terminal state, poll until completion
+    if (parsed.data.taskId && !TERMINAL_STATES.has(parsed.data.state)) {
+      return await pollTaskCompletion(
+        endpointUrl,
+        parsed.data.taskId,
+        fetchFn,
+        authToken,
+      );
+    }
+
     return { success: true, data: parsed.data };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown network error";
     return { success: false, error: `Failed to reach remote agent: ${msg}` };
   }
+}
+
+/** Polling schedule: 500, 1000, 2000, 4000, then 5000ms cap */
+const POLL_INTERVALS = [500, 1000, 2000, 4000];
+const POLL_CAP_MS = 5000;
+const MAX_POLL_ITERATIONS = 30;
+
+/**
+ * Poll tasks/get until the task reaches a terminal state.
+ * Uses exponential backoff capped at 5s, max ~120s total.
+ */
+async function pollTaskCompletion(
+  endpointUrl: string,
+  taskId: string,
+  fetchFn: FetchFn,
+  authToken?: string,
+): Promise<ToolResponse> {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+  if (authToken) {
+    headers["Authorization"] = `Bearer ${authToken}`;
+  }
+
+  for (let i = 0; i < MAX_POLL_ITERATIONS; i++) {
+    const delay = POLL_INTERVALS[i] ?? POLL_CAP_MS;
+    await new Promise((r) => setTimeout(r, delay));
+
+    try {
+      const response = await fetchFn(endpointUrl, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: crypto.randomUUID(),
+          method: "tasks/get",
+          params: { id: taskId },
+        }),
+      });
+
+      if (!response.ok) continue;
+
+      const rpcResponse: unknown = await response.json();
+      const parsed = parseA2AResponse(rpcResponse);
+
+      if (!parsed.success) {
+        return { success: false, error: parsed.error };
+      }
+
+      if (TERMINAL_STATES.has(parsed.data.state)) {
+        return { success: true, data: parsed.data };
+      }
+    } catch {
+      // Network error during poll — retry
+    }
+  }
+
+  return {
+    success: false,
+    error: `Task ${taskId} did not complete within polling timeout`,
+  };
 }
 
 // -- Tool factory --

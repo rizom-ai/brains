@@ -296,4 +296,206 @@ describe("A2A Client", () => {
       expect(capturedHeaders[0]?.["Authorization"]).toBeUndefined();
     });
   });
+
+  describe("polling for non-terminal tasks", () => {
+    function createPollingFetch(
+      completesAfter: number,
+    ): (url: string | URL | Request, init?: RequestInit) => Promise<Response> {
+      let pollCount = 0;
+      return async (_url: string | URL | Request, init?: RequestInit) => {
+        const body = init?.body ? JSON.parse(init.body as string) : {};
+
+        // Agent card discovery
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        // message/send — return working task
+        if (body.method === "message/send") {
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                kind: "task",
+                id: "task-123",
+                status: { state: "working" },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        // tasks/get — return working until completesAfter polls, then completed
+        if (body.method === "tasks/get") {
+          pollCount++;
+          const state = pollCount >= completesAfter ? "completed" : "working";
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                kind: "task",
+                id: "task-123",
+                status: {
+                  state,
+                  ...(state === "completed" && {
+                    message: {
+                      parts: [{ kind: "text", text: "Final answer" }],
+                    },
+                  }),
+                },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response("Not found", { status: 404 });
+      };
+    }
+
+    it("should poll tasks/get when message/send returns non-terminal state", async () => {
+      const tool = createA2ACallTool({
+        fetch: createPollingFetch(2),
+      });
+
+      const result = await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(result).toHaveProperty("success", true);
+      expect(result).toHaveProperty("data.state", "completed");
+      expect(result).toHaveProperty("data.response", "Final answer");
+    });
+
+    it("should return immediately when message/send returns terminal state", async () => {
+      let pollCalled = false;
+      const directFetch: (
+        url: string | URL | Request,
+        init?: RequestInit,
+      ) => Promise<Response> = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const body = init?.body ? JSON.parse(init.body as string) : {};
+
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (body.method === "tasks/get") {
+          pollCalled = true;
+        }
+
+        // message/send returns completed directly
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: body.id,
+            result: {
+              kind: "task",
+              id: "task-456",
+              status: {
+                state: "completed",
+                message: {
+                  parts: [{ kind: "text", text: "Instant reply" }],
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      };
+
+      const tool = createA2ACallTool({ fetch: directFetch });
+
+      const result = await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(result).toHaveProperty("success", true);
+      expect(pollCalled).toBe(false);
+    });
+
+    it("should handle task failure during polling", async () => {
+      const failFetch: (
+        url: string | URL | Request,
+        init?: RequestInit,
+      ) => Promise<Response> = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ) => {
+        const body = init?.body ? JSON.parse(init.body as string) : {};
+
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (body.method === "message/send") {
+          return new Response(
+            JSON.stringify({
+              jsonrpc: "2.0",
+              id: body.id,
+              result: {
+                kind: "task",
+                id: "task-789",
+                status: { state: "working" },
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        // tasks/get returns failed
+        return new Response(
+          JSON.stringify({
+            jsonrpc: "2.0",
+            id: body.id,
+            result: {
+              kind: "task",
+              id: "task-789",
+              status: {
+                state: "failed",
+                message: {
+                  parts: [{ kind: "text", text: "Error: Agent crashed" }],
+                },
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      };
+
+      const tool = createA2ACallTool({ fetch: failFetch });
+
+      const result = await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(result).toHaveProperty("success", true);
+      expect(result).toHaveProperty("data.state", "failed");
+    });
+  });
 });
