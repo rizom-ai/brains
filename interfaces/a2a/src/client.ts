@@ -141,8 +141,6 @@ export function parseA2AResponse(data: unknown): A2AResult {
   };
 }
 
-import { TERMINAL_STATES } from "./task-manager";
-
 // -- Network functions --
 
 type FetchFn = (
@@ -172,26 +170,16 @@ async function fetchAgentCard(
   }
 }
 
+/**
+ * Send a message via message/stream (SSE) and wait for the final result.
+ * Reads the SSE stream until a terminal status-update event arrives.
+ */
 async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
   authToken?: string,
 ): Promise<ToolResponse> {
-  const rpcRequest = {
-    jsonrpc: "2.0",
-    id: crypto.randomUUID(),
-    method: "message/send",
-    params: {
-      message: {
-        kind: "message",
-        messageId: crypto.randomUUID(),
-        role: "user",
-        parts: [{ kind: "text", text: message }],
-      },
-    },
-  };
-
   try {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -203,7 +191,19 @@ async function sendMessage(
     const response = await fetchFn(endpointUrl, {
       method: "POST",
       headers,
-      body: JSON.stringify(rpcRequest),
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: crypto.randomUUID(),
+        method: "message/stream",
+        params: {
+          message: {
+            kind: "message",
+            messageId: crypto.randomUUID(),
+            role: "user",
+            parts: [{ kind: "text", text: message }],
+          },
+        },
+      }),
     });
 
     if (!response.ok) {
@@ -213,89 +213,79 @@ async function sendMessage(
       };
     }
 
-    const rpcResponse: unknown = await response.json();
-    const parsed = parseA2AResponse(rpcResponse);
-
-    if (!parsed.success) {
-      return { success: false, error: parsed.error };
+    if (!response.body) {
+      return { success: false, error: "No response body (SSE expected)" };
     }
 
-    // If task is not in a terminal state, poll until completion
-    if (parsed.data.taskId && !TERMINAL_STATES.has(parsed.data.state)) {
-      return await pollTaskCompletion(
-        endpointUrl,
-        parsed.data.taskId,
-        fetchFn,
-        authToken,
-      );
-    }
-
-    return { success: true, data: parsed.data };
+    return await readStreamToCompletion(response.body);
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown network error";
     return { success: false, error: `Failed to reach remote agent: ${msg}` };
   }
 }
 
-/** Polling schedule: 500, 1000, 2000, 4000, then 5000ms cap */
-const POLL_INTERVALS = [500, 1000, 2000, 4000];
-const POLL_CAP_MS = 5000;
-const MAX_POLL_ITERATIONS = 30;
-
 /**
- * Poll tasks/get until the task reaches a terminal state.
- * Uses exponential backoff capped at 5s, max ~120s total.
+ * Read an SSE stream until a final status-update event arrives.
+ * Returns the parsed result from the terminal event.
  */
-async function pollTaskCompletion(
-  endpointUrl: string,
-  taskId: string,
-  fetchFn: FetchFn,
-  authToken?: string,
+async function readStreamToCompletion(
+  body: ReadableStream<Uint8Array>,
 ): Promise<ToolResponse> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-  };
-  if (authToken) {
-    headers["Authorization"] = `Bearer ${authToken}`;
-  }
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
 
-  for (let i = 0; i < MAX_POLL_ITERATIONS; i++) {
-    const delay = POLL_INTERVALS[i] ?? POLL_CAP_MS;
-    await new Promise((r) => setTimeout(r, delay));
+  let chunk = await reader.read();
+  while (!chunk.done) {
+    buffer += decoder.decode(chunk.value, { stream: true });
 
-    try {
-      const response = await fetchFn(endpointUrl, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({
-          jsonrpc: "2.0",
-          id: crypto.randomUUID(),
-          method: "tasks/get",
-          params: { id: taskId },
-        }),
-      });
+    // Parse SSE events (data: {...}\n\n)
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop() ?? "";
 
-      if (!response.ok) continue;
+    for (const part of parts) {
+      const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
+      if (!dataLine) continue;
 
-      const rpcResponse: unknown = await response.json();
-      const parsed = parseA2AResponse(rpcResponse);
+      const event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
 
-      if (!parsed.success) {
-        return { success: false, error: parsed.error };
-      }
+      // Check if this is a JSON-RPC envelope with a result
+      const result = event["result"] as Record<string, unknown> | undefined;
+      if (!result) continue;
 
-      if (TERMINAL_STATES.has(parsed.data.state)) {
-        return { success: true, data: parsed.data };
-      }
-    } catch {
-      // Network error during poll — retry
+      const isFinal = result["final"] === true;
+      if (!isFinal) continue;
+
+      // Terminal event — extract response
+      reader.cancel().catch(() => {});
+      const status = result["status"] as
+        | {
+            state: string;
+            message?: { parts: Array<{ kind: string; text?: string }> };
+          }
+        | undefined;
+
+      const state = status?.state ?? "unknown";
+      const responseParts = status?.message?.parts ?? [];
+      const responseText =
+        responseParts
+          .filter(
+            (p): p is { kind: "text"; text: string } =>
+              p.kind === "text" && typeof p.text === "string",
+          )
+          .map((p) => p.text)
+          .join("\n") || "No response text";
+
+      return {
+        success: true,
+        data: { state, response: responseText },
+      };
     }
+
+    chunk = await reader.read();
   }
 
-  return {
-    success: false,
-    error: `Task ${taskId} did not complete within polling timeout`,
-  };
+  return { success: false, error: "Stream ended without a terminal event" };
 }
 
 // -- Tool factory --

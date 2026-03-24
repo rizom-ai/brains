@@ -297,14 +297,48 @@ describe("A2A Client", () => {
     });
   });
 
-  describe("polling for non-terminal tasks", () => {
-    function createPollingFetch(
-      completesAfter: number,
-    ): (url: string | URL | Request, init?: RequestInit) => Promise<Response> {
-      let pollCount = 0;
-      return async (_url: string | URL | Request, init?: RequestInit) => {
-        const body = init?.body ? JSON.parse(init.body as string) : {};
+  describe("SSE streaming via message/stream", () => {
+    /** Build an SSE response body from status-update events */
+    function sseBody(
+      events: Array<{ state: string; final: boolean; text?: string }>,
+    ): ReadableStream<Uint8Array> {
+      const encoder = new TextEncoder();
+      return new ReadableStream({
+        start(controller): void {
+          for (const event of events) {
+            const data = {
+              jsonrpc: "2.0",
+              id: "req-1",
+              result: {
+                kind: "status-update",
+                taskId: "task-123",
+                status: {
+                  state: event.state,
+                  ...(event.text && {
+                    message: {
+                      parts: [{ kind: "text", text: event.text }],
+                    },
+                  }),
+                },
+                final: event.final,
+              },
+            };
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+            );
+          }
+          controller.close();
+        },
+      });
+    }
 
+    function createStreamFetch(
+      events: Array<{ state: string; final: boolean; text?: string }>,
+    ): (url: string | URL | Request, init?: RequestInit) => Promise<Response> {
+      return async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
         // Agent card discovery
         if (!init?.method || init.method === "GET") {
           return new Response(
@@ -316,54 +350,20 @@ describe("A2A Client", () => {
           );
         }
 
-        // message/send — return working task
-        if (body.method === "message/send") {
-          return new Response(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: body.id,
-              result: {
-                kind: "task",
-                id: "task-123",
-                status: { state: "working" },
-              },
-            }),
-            { status: 200 },
-          );
-        }
-
-        // tasks/get — return working until completesAfter polls, then completed
-        if (body.method === "tasks/get") {
-          pollCount++;
-          const state = pollCount >= completesAfter ? "completed" : "working";
-          return new Response(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: body.id,
-              result: {
-                kind: "task",
-                id: "task-123",
-                status: {
-                  state,
-                  ...(state === "completed" && {
-                    message: {
-                      parts: [{ kind: "text", text: "Final answer" }],
-                    },
-                  }),
-                },
-              },
-            }),
-            { status: 200 },
-          );
-        }
-
-        return new Response("Not found", { status: 404 });
+        // message/stream — return SSE
+        return new Response(sseBody(events), {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
       };
     }
 
-    it("should poll tasks/get when message/send returns non-terminal state", async () => {
+    it("should read SSE stream and return completed result", async () => {
       const tool = createA2ACallTool({
-        fetch: createPollingFetch(2),
+        fetch: createStreamFetch([
+          { state: "working", final: false },
+          { state: "completed", final: true, text: "Final answer" },
+        ]),
       });
 
       const result = await tool.handler(
@@ -376,118 +376,13 @@ describe("A2A Client", () => {
       expect(result).toHaveProperty("data.response", "Final answer");
     });
 
-    it("should return immediately when message/send returns terminal state", async () => {
-      let pollCalled = false;
-      const directFetch: (
-        url: string | URL | Request,
-        init?: RequestInit,
-      ) => Promise<Response> = async (
-        _url: string | URL | Request,
-        init?: RequestInit,
-      ) => {
-        const body = init?.body ? JSON.parse(init.body as string) : {};
-
-        if (!init?.method || init.method === "GET") {
-          return new Response(
-            JSON.stringify({
-              name: "Test Agent",
-              url: "https://remote.example.com/a2a",
-            }),
-            { status: 200 },
-          );
-        }
-
-        if (body.method === "tasks/get") {
-          pollCalled = true;
-        }
-
-        // message/send returns completed directly
-        return new Response(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: body.id,
-            result: {
-              kind: "task",
-              id: "task-456",
-              status: {
-                state: "completed",
-                message: {
-                  parts: [{ kind: "text", text: "Instant reply" }],
-                },
-              },
-            },
-          }),
-          { status: 200 },
-        );
-      };
-
-      const tool = createA2ACallTool({ fetch: directFetch });
-
-      const result = await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
-        { interfaceType: "test", userId: "test" },
-      );
-
-      expect(result).toHaveProperty("success", true);
-      expect(pollCalled).toBe(false);
-    });
-
-    it("should handle task failure during polling", async () => {
-      const failFetch: (
-        url: string | URL | Request,
-        init?: RequestInit,
-      ) => Promise<Response> = async (
-        _url: string | URL | Request,
-        init?: RequestInit,
-      ) => {
-        const body = init?.body ? JSON.parse(init.body as string) : {};
-
-        if (!init?.method || init.method === "GET") {
-          return new Response(
-            JSON.stringify({
-              name: "Test Agent",
-              url: "https://remote.example.com/a2a",
-            }),
-            { status: 200 },
-          );
-        }
-
-        if (body.method === "message/send") {
-          return new Response(
-            JSON.stringify({
-              jsonrpc: "2.0",
-              id: body.id,
-              result: {
-                kind: "task",
-                id: "task-789",
-                status: { state: "working" },
-              },
-            }),
-            { status: 200 },
-          );
-        }
-
-        // tasks/get returns failed
-        return new Response(
-          JSON.stringify({
-            jsonrpc: "2.0",
-            id: body.id,
-            result: {
-              kind: "task",
-              id: "task-789",
-              status: {
-                state: "failed",
-                message: {
-                  parts: [{ kind: "text", text: "Error: Agent crashed" }],
-                },
-              },
-            },
-          }),
-          { status: 200 },
-        );
-      };
-
-      const tool = createA2ACallTool({ fetch: failFetch });
+    it("should handle failed task via SSE stream", async () => {
+      const tool = createA2ACallTool({
+        fetch: createStreamFetch([
+          { state: "working", final: false },
+          { state: "failed", final: true, text: "Error: Agent crashed" },
+        ]),
+      });
 
       const result = await tool.handler(
         { agent: "https://remote.example.com", message: "hello" },
@@ -496,6 +391,22 @@ describe("A2A Client", () => {
 
       expect(result).toHaveProperty("success", true);
       expect(result).toHaveProperty("data.state", "failed");
+    });
+
+    it("should handle stream that closes without final event", async () => {
+      const tool = createA2ACallTool({
+        fetch: createStreamFetch([
+          { state: "working", final: false },
+          // stream closes without final: true
+        ]),
+      });
+
+      const result = await tool.handler(
+        { agent: "https://remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(result).toHaveProperty("success", false);
     });
   });
 });
