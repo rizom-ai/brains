@@ -32,6 +32,7 @@ import {
   App,
 } from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
+import type { EvaluationOptions } from "./types";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
@@ -56,6 +57,10 @@ export interface RunEvaluationsOptions {
   testType?: "agent" | "plugin";
   /** Show verbose output */
   verbose?: boolean;
+  /** Run tests in parallel */
+  parallel?: boolean;
+  /** Maximum parallel tests (default: 3) */
+  maxParallel?: number;
 }
 
 /**
@@ -90,18 +95,19 @@ export async function runEvaluations(
   console.log(`\nRunning evaluations...`);
   console.log(`Test cases: ${testCasesDir}`);
   console.log(`Results: ${resultsDir}`);
+  if (options.parallel)
+    console.log(`Parallel: up to ${options.maxParallel ?? 3} concurrent`);
   if (skipLLMJudge) console.log(`LLM Judge: skipped`);
   if (tags?.length) console.log(`Tags: ${tags.join(", ")}`);
   if (testCaseIds?.length) console.log(`Tests: ${testCaseIds.join(", ")}`);
   if (testType) console.log(`Type: ${testType}`);
   console.log("");
 
-  const evalOptions: {
-    skipLLMJudge: boolean;
-    tags?: string[];
-    testCaseIds?: string[];
-    testType?: "agent" | "plugin";
-  } = { skipLLMJudge };
+  const evalOptions: EvaluationOptions = {
+    skipLLMJudge,
+    ...(options.parallel && { parallel: options.parallel }),
+    ...(options.maxParallel && { maxParallel: options.maxParallel }),
+  };
   if (tags?.length) evalOptions.tags = tags;
   if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
   if (testType) evalOptions.testType = testType;
@@ -152,11 +158,15 @@ Options:
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
   --skip-llm-judge    Skip LLM quality scoring (faster)
+  --parallel, -p      Run tests in parallel (default: 3 concurrent)
+  --max-parallel <n>  Set max concurrent tests (default: 3)
   --verbose, -v       Show verbose output
   --help, -h          Show this help message
 
 Examples:
   bun run eval                              Run all tests
+  bun run eval --parallel                   Run tests in parallel (3x faster)
+  bun run eval --parallel --max-parallel 5  Run up to 5 tests at once
   bun run eval --test tool-invocation-list  Run single test
   bun run eval --filter my-test             Run single test (alias)
   bun run eval --test list,search           Run multiple tests
@@ -239,6 +249,9 @@ export async function main(): Promise<void> {
 
   // Parse CLI args
   const skipLLMJudge = args.includes("--skip-llm-judge");
+  const parallel = args.includes("--parallel") || args.includes("-p");
+  const maxParallelArg = parseSingleFlag(args, "--max-parallel");
+  const maxParallel = maxParallelArg ? parseInt(maxParallelArg, 10) : 3;
   const verbose = args.includes("--verbose") || args.includes("-v");
   const tags = parseFlag(args, "--tags");
   const testCaseIds = parseFlag(args, "--test") ?? parseFlag(args, "--filter");
@@ -337,6 +350,8 @@ export async function main(): Promise<void> {
       aiService,
       skipLLMJudge,
       verbose,
+      parallel,
+      maxParallel,
       ...(tags && { tags }),
       ...(testCaseIds && { testCaseIds }),
       ...(testType && { testType }),
