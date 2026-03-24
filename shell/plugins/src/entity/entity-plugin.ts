@@ -4,6 +4,7 @@ import type {
   EntityAdapter,
   BaseEntity,
   DataSource,
+  EntityTypeConfig,
 } from "@brains/entity-service";
 import type { Template } from "@brains/templates";
 import type { JobHandler } from "@brains/job-queue";
@@ -55,7 +56,12 @@ export abstract class EntityPlugin<
     this.setupMessageHandlers(context);
 
     // Auto-register entity type
-    context.entities.register(this.entityType, this.schema, this.adapter);
+    context.entities.register(
+      this.entityType,
+      this.schema,
+      this.adapter,
+      this.getEntityTypeConfig(),
+    );
 
     // Auto-register generation handler if provided
     const handler = this.createGenerationHandler(context);
@@ -108,5 +114,12 @@ export abstract class EntityPlugin<
    */
   protected getDataSources(): DataSource[] {
     return [];
+  }
+
+  /**
+   * Override to provide entity type config (e.g. search weight).
+   */
+  protected getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return undefined;
   }
 }

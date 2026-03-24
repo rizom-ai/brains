@@ -4,7 +4,7 @@ import {
   generateMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, generationResultSchema } from "@brains/utils";
 
@@ -38,7 +38,7 @@ export class DeckGenerationJobHandler extends BaseGenerationJobHandler<
   DeckGenerationJobData,
   DeckGenerationResult
 > {
-  constructor(logger: Logger, context: ServicePluginContext) {
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: deckGenerationJobSchema,
       jobTypeName: "deck-generation",

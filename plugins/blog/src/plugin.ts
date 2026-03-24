@@ -29,6 +29,10 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     super("blog", packageJson, config, blogConfigSchema);
   }
 
+  protected override getEntityTypeConfig() {
+    return { weight: 2.0 };
+  }
+
   protected override createGenerationHandler(context: EntityPluginContext) {
     return new BlogGenerationJobHandler(
       this.logger.child("BlogGenerationJobHandler"),

@@ -1,8 +1,10 @@
-import {
-  ServicePlugin,
-  type ServicePluginContext,
-  type PluginTool,
+import type {
+  Plugin,
+  EntityPluginContext,
+  DataSource,
+  Template,
 } from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
 import { deckAdapter } from "./adapters/deck-adapter";
 import { deckTemplate } from "./templates/deck-template";
@@ -11,55 +13,54 @@ import { deckGenerationTemplate } from "./templates/generation-template";
 import { deckDescriptionTemplate } from "./templates/description-template";
 import { DeckDataSource } from "./datasources/deck-datasource";
 import { DeckGenerationJobHandler } from "./handlers/deckGenerationJobHandler";
-// deck_generate removed — entity creation via system_create
 import type { DeckEntity } from "./schemas/deck";
 import packageJson from "../package.json";
 
-const decksConfigSchema = z.object({});
-
-export class DecksPlugin extends ServicePlugin<Record<string, never>> {
-  private adapter = deckAdapter;
+export class DecksPlugin extends EntityPlugin<DeckEntity> {
+  readonly entityType = deckAdapter.entityType;
+  readonly schema = deckAdapter.schema;
+  readonly adapter = deckAdapter;
 
   constructor() {
-    super("decks", packageJson, {}, decksConfigSchema);
+    super("decks", packageJson);
   }
 
-  override async onRegister(context: ServicePluginContext): Promise<void> {
-    await super.onRegister(context);
-
-    context.entities.register(
-      this.adapter.entityType,
-      this.adapter.schema,
-      this.adapter,
-      { weight: 1.5 },
+  protected override createGenerationHandler(context: EntityPluginContext) {
+    return new DeckGenerationJobHandler(
+      this.logger.child("DeckGenerationJobHandler"),
+      context,
     );
+  }
 
-    context.entities.registerDataSource(new DeckDataSource(this.logger));
-
-    context.templates.register({
+  protected override getTemplates(): Record<string, Template> {
+    return {
       "deck-detail": deckTemplate,
       "deck-list": deckListTemplate,
       generation: deckGenerationTemplate,
       description: deckDescriptionTemplate,
-    });
+    };
+  }
 
-    context.jobs.registerHandler(
-      `${this.adapter.entityType}:generation`,
-      new DeckGenerationJobHandler(
-        this.logger.child("DeckGenerationJobHandler"),
-        context,
-      ),
-    );
+  protected override getDataSources(): DataSource[] {
+    return [new DeckDataSource(this.logger)];
+  }
 
-    this.registerEvalHandlers(context);
+  protected override getEntityTypeConfig() {
+    return { weight: 1.5 };
+  }
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
     await this.registerWithPublishPipeline(context);
     this.subscribeToPublishExecute(context);
+    this.registerEvalHandlers(context);
 
-    this.logger.info("Decks plugin registered successfully");
+    this.logger.info("Decks plugin registered");
   }
 
   private async registerWithPublishPipeline(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
   ): Promise<void> {
     await context.messaging.send("publish:register", {
       entityType: "deck",
@@ -68,27 +69,21 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
         publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
       },
     });
-
-    this.logger.info("Registered deck with publish-pipeline");
   }
 
-  private subscribeToPublishExecute(context: ServicePluginContext): void {
+  private subscribeToPublishExecute(context: EntityPluginContext): void {
     context.messaging.subscribe<
       { entityType: string; entityId: string },
       { success: boolean }
     >("publish:execute", async (msg) => {
       const { entityType, entityId } = msg.payload;
-
-      if (entityType !== "deck") {
-        return { success: true };
-      }
+      if (entityType !== "deck") return { success: true };
 
       try {
         const deck = await context.entityService.getEntity<DeckEntity>(
           "deck",
           entityId,
         );
-
         if (!deck) {
           await context.messaging.send("publish:report:failure", {
             entityType,
@@ -98,19 +93,12 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
           return { success: true };
         }
 
-        if (deck.metadata.status === "published") {
-          this.logger.debug(`Deck already published: ${entityId}`);
-          return { success: true };
-        }
+        if (deck.metadata.status === "published") return { success: true };
 
         const publishedAt = new Date().toISOString();
         const updatedDeck: DeckEntity = {
           ...deck,
-          metadata: {
-            ...deck.metadata,
-            status: "published",
-            publishedAt,
-          },
+          metadata: { ...deck.metadata, status: "published", publishedAt },
         };
 
         await context.entityService.updateEntity({
@@ -123,74 +111,49 @@ export class DecksPlugin extends ServicePlugin<Record<string, never>> {
           entityId,
           result: { id: entityId },
         });
-
-        this.logger.info(`Published deck: ${entityId}`);
       } catch (error) {
-        const errorMessage = getErrorMessage(error);
         await context.messaging.send("publish:report:failure", {
           entityType,
           entityId,
-          error: errorMessage,
+          error: getErrorMessage(error),
         });
-        this.logger.error(`Failed to publish deck: ${errorMessage}`);
       }
 
       return { success: true };
     });
-
-    this.logger.debug("Subscribed to publish:execute messages");
   }
 
-  private registerEvalHandlers(context: ServicePluginContext): void {
-    const generateDeckInputSchema = z.object({
-      prompt: z.string(),
-      event: z.string().optional(),
-    });
-
+  private registerEvalHandlers(context: EntityPluginContext): void {
     context.eval.registerHandler("generateDeck", async (input: unknown) => {
-      const parsed = generateDeckInputSchema.parse(input);
-      const generationPrompt = `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`;
-
+      const parsed = z
+        .object({ prompt: z.string(), event: z.string().optional() })
+        .parse(input);
       return context.ai.generate<{
         title: string;
         content: string;
         description: string;
       }>({
-        prompt: generationPrompt,
+        prompt: `${parsed.prompt}${parsed.event ? `\n\nNote: This presentation is for "${parsed.event}".` : ""}`,
         templateName: "decks:generation",
       });
-    });
-
-    const generateDescriptionInputSchema = z.object({
-      title: z.string(),
-      content: z.string(),
     });
 
     context.eval.registerHandler(
       "generateDescription",
       async (input: unknown) => {
-        const parsed = generateDescriptionInputSchema.parse(input);
-
-        return context.ai.generate<{
-          description: string;
-        }>({
+        const parsed = z
+          .object({ title: z.string(), content: z.string() })
+          .parse(input);
+        return context.ai.generate<{ description: string }>({
           prompt: `Title: ${parsed.title}\n\nContent:\n${parsed.content}`,
           templateName: "decks:description",
         });
       },
     );
   }
-
-  protected override async getTools(): Promise<PluginTool[]> {
-    return [];
-  }
-
-  protected override async onShutdown(): Promise<void> {
-    this.logger.info("Shutting down Decks plugin");
-  }
 }
 
-export function decksPlugin(): DecksPlugin {
+export function decksPlugin(): Plugin {
   return new DecksPlugin();
 }
 
