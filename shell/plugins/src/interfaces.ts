@@ -252,7 +252,7 @@ export type { IMCPTransport } from "@brains/mcp-service";
 /**
  * Plugin type enumeration
  */
-export type PluginType = "core" | "service" | "interface";
+export type PluginType = "core" | "entity" | "service" | "interface";
 
 /**
  * Base tracking info that all interface plugins must have
@@ -268,7 +268,7 @@ export interface BaseJobTrackingInfo {
 export const pluginMetadataSchema = z.object({
   id: z.string(),
   version: z.string(),
-  type: z.enum(["core", "service", "interface"] as const), // Required field for plugin type
+  type: z.enum(["core", "entity", "service", "interface"] as const), // Required field for plugin type
   description: z.string().optional(),
   dependencies: z.array(z.string()).optional(),
   packageName: z.string(), // Package name for import resolution (e.g., "@brains/site-builder-plugin")
