@@ -35,6 +35,10 @@ export class MCPService implements IMCPService {
     pluginId: string;
     template: PluginResourceTemplate;
   }> = [];
+  private registeredPrompts: Array<{
+    pluginId: string;
+    prompt: PluginPrompt;
+  }> = [];
 
   // Track plugin instructions for agent system prompt
   private pluginInstructions = new Map<string, string>();
@@ -115,6 +119,10 @@ export class MCPService implements IMCPService {
       this.registerResourceTemplateOnServer(server, template);
     }
 
+    for (const { prompt } of this.registeredPrompts) {
+      this.registerPromptOnServer(server, prompt);
+    }
+
     return server;
   }
 
@@ -180,6 +188,30 @@ export class MCPService implements IMCPService {
     this.registerResourceOnServer(this.mcpServer, pluginId, resource);
     this.registeredResources.set(resource.uri, { pluginId, resource });
     this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
+  }
+
+  /**
+   * Register a prompt on a specific MCP server instance
+   */
+  private registerPromptOnServer(
+    server: McpServer,
+    prompt: PluginPrompt,
+  ): void {
+    const argsSchema = Object.fromEntries(
+      Object.entries(prompt.args).map(([key, arg]) => [
+        key,
+        arg.required
+          ? z.string().describe(arg.description)
+          : z.string().optional().describe(arg.description),
+      ]),
+    );
+
+    server.prompt(
+      prompt.name,
+      prompt.description ?? "Prompt",
+      argsSchema,
+      async (args) => prompt.handler(args as Record<string, string>),
+    );
   }
 
   /**
@@ -315,23 +347,8 @@ export class MCPService implements IMCPService {
    * Register an MCP prompt
    */
   public registerPrompt(pluginId: string, prompt: PluginPrompt): void {
-    // Convert args to Zod schemas for the SDK
-    const argsSchema = Object.fromEntries(
-      Object.entries(prompt.args).map(([key, arg]) => [
-        key,
-        arg.required
-          ? z.string().describe(arg.description)
-          : z.string().optional().describe(arg.description),
-      ]),
-    );
-
-    this.mcpServer.prompt(
-      prompt.name,
-      prompt.description ?? `Prompt from ${pluginId}`,
-      argsSchema,
-      async (args) => prompt.handler(args as Record<string, string>),
-    );
-
+    this.registerPromptOnServer(this.mcpServer, prompt);
+    this.registeredPrompts.push({ pluginId, prompt });
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
 
