@@ -1,10 +1,10 @@
 import type { JSX } from "preact";
 import {
-  markdownToHtml,
   parseSlideDirectives,
   splitColumns,
   convertMermaidBlocks,
 } from "@brains/utils";
+import { useMarkdownToHtml } from "./ImageRendererProvider";
 
 export interface PresentationLayoutProps {
   markdown: string;
@@ -18,6 +18,8 @@ export interface PresentationLayoutProps {
 export const PresentationLayout = ({
   markdown,
 }: PresentationLayoutProps): JSX.Element => {
+  const toHtml = useMarkdownToHtml();
+
   // Split markdown by slide separators (---)
   const slides = markdown.split(/^---$/gm).map((slide) => slide.trim());
 
@@ -32,12 +34,12 @@ export const PresentationLayout = ({
       const columnHtml = columns
         .map(
           (col) =>
-            `<div class="slide-column">${convertMermaidBlocks(markdownToHtml(col.trim()))}</div>`,
+            `<div class="slide-column">${convertMermaidBlocks(toHtml(col.trim()))}</div>`,
         )
         .join("");
       htmlContent = `<div class="slide-columns">${columnHtml}</div>`;
     } else {
-      htmlContent = convertMermaidBlocks(markdownToHtml(cleanMarkdown));
+      htmlContent = convertMermaidBlocks(toHtml(cleanMarkdown));
     }
 
     return { attributes, htmlContent };
