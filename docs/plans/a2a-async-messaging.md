@@ -74,6 +74,15 @@ New tests for non-blocking:
 | `interfaces/a2a/test/client.test.ts`                    | Add polling + timeout tests                         |
 | `deploy/providers/hetzner/templates/Caddyfile.template` | Add explicit timeouts                               |
 
+## Follow-up: A2A Inspector compatibility
+
+The A2A Inspector and some third-party clients don't implement `tasks/get` polling — they expect `message/send` to return a completed task. Options:
+
+- **`message/stream` (SSE)**: Server pushes state transitions over a streaming connection. The A2A spec supports this via `message/stream`. Most modern clients (including the Inspector) support SSE.
+- **Inspector-side fix**: The Inspector should poll `tasks/get` for non-terminal responses per the A2A spec.
+
+Blocking mode was intentionally removed — it ties up the connection for 30-60s+ and causes Caddy timeouts. SSE is the proper solution for clients that want real-time updates without polling.
+
 ## Verification
 
 1. `bun test interfaces/a2a/` — all tests pass

@@ -3,6 +3,9 @@ import type { Task, TaskState, Message, Part } from "@a2a-js/sdk";
 /** Default TTL for completed tasks: 1 hour */
 const DEFAULT_TTL_MS = 60 * 60 * 1000;
 
+/** Default processing timeout for working tasks: 5 minutes */
+const DEFAULT_PROCESSING_TIMEOUT_MS = 5 * 60 * 1000;
+
 export const TERMINAL_STATES = new Set<string>([
   "completed",
   "failed",
@@ -18,6 +21,8 @@ export interface TaskRecord {
   conversationId: string;
   createdAt: string;
   updatedAt: string;
+  /** Timestamp when task entered "working" state (for stale detection) */
+  workingStartedAt?: string;
 }
 
 /**
@@ -31,9 +36,14 @@ export interface TaskRecord {
 export class TaskManager {
   private tasks = new Map<string, TaskRecord>();
   private readonly ttlMs: number;
+  private readonly processingTimeoutMs: number;
 
-  constructor(ttlMs: number = DEFAULT_TTL_MS) {
+  constructor(
+    ttlMs: number = DEFAULT_TTL_MS,
+    processingTimeoutMs: number = DEFAULT_PROCESSING_TIMEOUT_MS,
+  ) {
     this.ttlMs = ttlMs;
+    this.processingTimeoutMs = processingTimeoutMs;
   }
 
   /**
@@ -116,6 +126,10 @@ export class TaskManager {
     };
     record.updatedAt = now;
 
+    if (state === "working") {
+      record.workingStartedAt = now;
+    }
+
     if (messageText) {
       const agentMessage: Message = {
         kind: "message",
@@ -163,6 +177,16 @@ export class TaskManager {
   getTaskWithHistory(taskId: string, historyLength?: number): Task | undefined {
     const record = this.tasks.get(taskId);
     if (!record) return undefined;
+
+    // Auto-fail stale working tasks
+    if (
+      record.task.status.state === "working" &&
+      record.workingStartedAt &&
+      Date.now() - new Date(record.workingStartedAt).getTime() >=
+        this.processingTimeoutMs
+    ) {
+      this.updateState(taskId, "failed", "Processing timed out");
+    }
 
     if (historyLength === undefined || !record.task.history) {
       return record.task;

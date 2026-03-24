@@ -100,4 +100,60 @@ describe("TaskManager", () => {
       expect(tm.size).toBe(1);
     });
   });
+
+  describe("stale task protection", () => {
+    it("should auto-fail working tasks that exceed processing timeout", () => {
+      const tm = new TaskManager(60_000, 100); // 100ms processing timeout
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+
+      // Before timeout: task is still working
+      const beforeTask = tm.getTaskWithHistory(record.task.id);
+      expect(beforeTask?.status.state).toBe("working");
+
+      // Wait for timeout to expire
+      const start = Date.now();
+      while (Date.now() - start < 150) {
+        // busy wait
+      }
+
+      // After timeout: getTaskWithHistory should auto-fail
+      const afterTask = tm.getTaskWithHistory(record.task.id);
+      expect(afterTask?.status.state).toBe("failed");
+    });
+
+    it("should not auto-fail working tasks within timeout", () => {
+      const tm = new TaskManager(60_000, 5000); // 5s timeout
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+
+      const task = tm.getTaskWithHistory(record.task.id);
+      expect(task?.status.state).toBe("working");
+    });
+
+    it("should not affect completed tasks", () => {
+      const tm = new TaskManager(60_000, 100);
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+      tm.updateState(record.task.id, "completed", "Done");
+
+      const start = Date.now();
+      while (Date.now() - start < 150) {
+        // busy wait
+      }
+
+      const task = tm.getTaskWithHistory(record.task.id);
+      expect(task?.status.state).toBe("completed");
+    });
+
+    it("should use default 5 minute timeout when not specified", () => {
+      const tm = new TaskManager();
+      const record = tm.createTask("Hello");
+      tm.updateState(record.task.id, "working");
+
+      // Should still be working (5 min hasn't passed)
+      const task = tm.getTaskWithHistory(record.task.id);
+      expect(task?.status.state).toBe("working");
+    });
+  });
 });
