@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -137,6 +136,133 @@
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/blog": {
+      "name": "@brains/blog",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
+        "@brains/identity-service": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/decks": {
+      "name": "@brains/decks",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
+        "@brains/image": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/link": {
+      "name": "@brains/link",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/note": {
+      "name": "@brains/note",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/portfolio": {
+      "name": "@brains/portfolio",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/products": {
+      "name": "@brains/products",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/wishlist": {
+      "name": "@brains/wishlist",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -311,25 +437,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "plugins/blog": {
-      "name": "@brains/blog",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/ai-evaluation": "workspace:*",
-        "@brains/identity-service": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "plugins/content-pipeline": {
       "name": "@brains/content-pipeline",
       "version": "0.1.0",
@@ -358,25 +465,6 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/decks": {
-      "name": "@brains/decks",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/ai-evaluation": "workspace:*",
-        "@brains/image": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
@@ -429,23 +517,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "plugins/link": {
-      "name": "@brains/link",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "plugins/newsletter": {
       "name": "@brains/newsletter",
       "version": "0.1.0",
@@ -465,26 +536,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "plugins/note": {
-      "name": "@brains/note",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "plugins/obsidian-vault": {
       "name": "@brains/obsidian-vault",
       "version": "0.1.0",
@@ -493,42 +544,6 @@
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/portfolio": {
-      "name": "@brains/portfolio",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/entity-service": "workspace:*",
-        "@brains/job-queue": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/products": {
-      "name": "@brains/products",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
@@ -641,22 +656,6 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/wishlist": {
-      "name": "@brains/wishlist",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1269,7 +1268,7 @@
 
     "@brains/app": ["@brains/app@workspace:shell/app"],
 
-    "@brains/blog": ["@brains/blog@workspace:plugins/blog"],
+    "@brains/blog": ["@brains/blog@workspace:entities/blog"],
 
     "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
 
@@ -1285,7 +1284,7 @@
 
     "@brains/dashboard": ["@brains/dashboard@workspace:plugins/dashboard"],
 
-    "@brains/decks": ["@brains/decks@workspace:plugins/decks"],
+    "@brains/decks": ["@brains/decks@workspace:entities/decks"],
 
     "@brains/directory-sync": ["@brains/directory-sync@workspace:plugins/directory-sync"],
 
@@ -1307,7 +1306,7 @@
 
     "@brains/layout-professional": ["@brains/layout-professional@workspace:layouts/professional"],
 
-    "@brains/link": ["@brains/link@workspace:plugins/link"],
+    "@brains/link": ["@brains/link@workspace:entities/link"],
 
     "@brains/matrix": ["@brains/matrix@workspace:interfaces/matrix"],
 
@@ -1321,7 +1320,7 @@
 
     "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
 
-    "@brains/note": ["@brains/note@workspace:plugins/note"],
+    "@brains/note": ["@brains/note@workspace:entities/note"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
 
@@ -1329,11 +1328,11 @@
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
 
-    "@brains/portfolio": ["@brains/portfolio@workspace:plugins/portfolio"],
+    "@brains/portfolio": ["@brains/portfolio@workspace:entities/portfolio"],
 
     "@brains/product-site-content": ["@brains/product-site-content@workspace:shared/product-site-content"],
 
-    "@brains/products": ["@brains/products@workspace:plugins/products"],
+    "@brains/products": ["@brains/products@workspace:entities/products"],
 
     "@brains/professional-brain": ["@brains/professional-brain@workspace:apps/professional-brain"],
 
@@ -1397,7 +1396,7 @@
 
     "@brains/webserver": ["@brains/webserver@workspace:interfaces/webserver"],
 
-    "@brains/wishlist": ["@brains/wishlist@workspace:plugins/wishlist"],
+    "@brains/wishlist": ["@brains/wishlist@workspace:entities/wishlist"],
 
     "@clack/core": ["@clack/core@0.3.5", "", { "dependencies": { "picocolors": "^1.0.0", "sisteransi": "^1.0.5" } }, "sha512-5cfhQNH+1VQ2xLQlmzXMqUoiaH0lRBq9/CLW9lTyMbuKLC3+xEK01tHVvyut++mLOn5urSHmkm6I0Lg9MaJSTQ=="],
 
