@@ -5,7 +5,6 @@ import type {
   BlogPostFrontmatter,
   BlogPostStatus,
 } from "../../src/schemas/blog-post";
-import type { Series } from "../../src/schemas/series";
 import { createTestEntity } from "@brains/test-utils";
 
 /**
@@ -130,19 +129,5 @@ export function createMockPost(
       seriesName: opts.seriesName,
       seriesIndex: opts.seriesIndex,
     },
-  });
-}
-
-/**
- * Create a mock Series entity from a title.
- * Generates slug from title and builds frontmatter content.
- */
-export function createMockSeries(title: string, slug?: string): Series {
-  const seriesSlug = slug ?? title.toLowerCase().replace(/\s+/g, "-");
-  const content = `---\ntitle: ${title}\nslug: ${seriesSlug}\n---\n\n# ${title}`;
-  return createTestEntity<Series>("series", {
-    id: seriesSlug,
-    content,
-    metadata: { title, slug: seriesSlug },
   });
 }
