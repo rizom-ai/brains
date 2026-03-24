@@ -10,7 +10,12 @@ import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
 import { TaskManager } from "./task-manager";
-import { handleJsonRpc, jsonrpcRequestSchema } from "./jsonrpc-handler";
+import {
+  handleJsonRpc,
+  handleStreamMessage,
+  jsonrpcRequestSchema,
+  streamParamsSchema,
+} from "./jsonrpc-handler";
 import { createA2ACallTool } from "./client";
 import packageJson from "../package.json";
 
@@ -167,6 +172,42 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       const callerPermissionLevel = this.resolveCallerPermission(
         c.req.header("Authorization"),
       );
+
+      // SSE streaming for message/stream
+      if (parsed.data.method === "message/stream") {
+        const streamParams = streamParamsSchema.safeParse(
+          parsed.data.params ?? {},
+        );
+
+        if (!streamParams.success) {
+          return c.json({
+            jsonrpc: "2.0",
+            error: {
+              code: -32602,
+              message: `Invalid params: ${streamParams.error.message}`,
+            },
+            id: parsed.data.id,
+          });
+        }
+
+        const { stream } = handleStreamMessage(
+          parsed.data.id,
+          streamParams.data.message,
+          {
+            taskManager: this.taskManager,
+            agentService: this.agentService,
+            callerPermissionLevel,
+          },
+        );
+
+        return new Response(stream, {
+          headers: {
+            "Content-Type": "text/event-stream",
+            "Cache-Control": "no-cache",
+            Connection: "keep-alive",
+          },
+        });
+      }
 
       const response = await handleJsonRpc(parsed.data, {
         taskManager: this.taskManager,

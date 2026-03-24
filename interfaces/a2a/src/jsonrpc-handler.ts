@@ -182,6 +182,132 @@ function processInBackground(
     });
 }
 
+// -- Streaming (SSE) handler --
+
+export const streamParamsSchema = z.object({
+  message: z.object({
+    kind: z.string(),
+    parts: messagePartsSchema,
+    contextId: z.string().optional(),
+  }),
+});
+
+interface StreamResult {
+  taskId: string;
+  stream: ReadableStream<Uint8Array>;
+}
+
+/**
+ * Handle message/stream — returns an SSE stream of task status updates.
+ * Creates a task, starts processing, and streams events until terminal state.
+ * Each SSE event is wrapped in a JSON-RPC 2.0 response envelope.
+ */
+export function handleStreamMessage(
+  requestId: string | number,
+  message: z.infer<typeof streamParamsSchema>["message"],
+  context: JsonRpcHandlerContext,
+): StreamResult {
+  const textParts = message.parts.filter(
+    (p): p is { kind: "text"; text: string } =>
+      p.kind === "text" && typeof p.text === "string",
+  );
+
+  const messageText =
+    textParts.map((p) => p.text).join("\n") || "No message text";
+
+  const record = context.taskManager.createTask(messageText, message.contextId);
+  const taskId = record.task.id;
+
+  context.taskManager.updateState(taskId, "working");
+
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller): void {
+      let closed = false;
+
+      function send(data: Record<string, unknown>): void {
+        if (closed) return;
+        try {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
+          );
+        } catch {
+          closed = true;
+        }
+      }
+
+      function finish(): void {
+        if (closed) return;
+        closed = true;
+        try {
+          controller.close();
+        } catch {
+          // already closed
+        }
+      }
+
+      function statusEvent(
+        task: Task,
+        isFinal: boolean,
+      ): Record<string, unknown> {
+        return {
+          jsonrpc: "2.0",
+          id: requestId,
+          result: {
+            kind: "status-update",
+            taskId: task.id,
+            contextId: task.contextId,
+            status: task.status,
+            final: isFinal,
+          },
+        };
+      }
+
+      // Send initial "working" event
+      const workingTask = context.taskManager.getTask(taskId);
+      if (workingTask) {
+        send(statusEvent(workingTask.task, false));
+      }
+
+      // Process in background, send completion event, then close
+      context.agentService
+        .chat(messageText, record.conversationId, {
+          userPermissionLevel: context.callerPermissionLevel,
+          interfaceType: "a2a",
+        })
+        .then((agentResponse) => {
+          context.taskManager.updateState(
+            taskId,
+            "completed",
+            agentResponse.text,
+          );
+          const completed = context.taskManager.getTask(taskId);
+          if (completed) {
+            send(statusEvent(completed.task, true));
+          }
+          finish();
+        })
+        .catch((err: unknown) => {
+          const errorMessage =
+            err instanceof Error ? err.message : "Unknown error";
+          context.taskManager.updateState(
+            taskId,
+            "failed",
+            `Error: ${errorMessage}`,
+          );
+          const failed = context.taskManager.getTask(taskId);
+          if (failed) {
+            send(statusEvent(failed.task, true));
+          }
+          finish();
+        });
+    },
+  });
+
+  return { taskId, stream };
+}
+
 function handleGetTask(
   id: string | number,
   params: Record<string, unknown>,

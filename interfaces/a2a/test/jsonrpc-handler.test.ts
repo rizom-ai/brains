@@ -1,6 +1,10 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TaskManager } from "../src/task-manager";
-import { handleJsonRpc, type JsonRpcResponse } from "../src/jsonrpc-handler";
+import {
+  handleJsonRpc,
+  handleStreamMessage,
+  type JsonRpcResponse,
+} from "../src/jsonrpc-handler";
 import type { IAgentService, AgentResponse } from "@brains/plugins";
 import type { Task } from "@a2a-js/sdk";
 
@@ -509,6 +513,149 @@ describe("JSON-RPC Handler", () => {
 
       const failed = taskManager.getTask(task.id);
       expect(failed?.task.status.state).toBe("failed");
+    });
+  });
+
+  describe("message/stream (SSE)", () => {
+    /** Collect all SSE events from a ReadableStream */
+    async function collectEvents(
+      stream: ReadableStream<Uint8Array>,
+    ): Promise<Record<string, unknown>[]> {
+      const reader = stream.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      const events: Record<string, unknown>[] = [];
+
+      let chunk = await reader.read();
+      while (!chunk.done) {
+        buffer += decoder.decode(chunk.value, { stream: true });
+
+        // Parse SSE events (data: {...}\n\n)
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() ?? "";
+        for (const part of parts) {
+          const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
+          if (dataLine) {
+            events.push(JSON.parse(dataLine.slice(6)));
+          }
+        }
+        chunk = await reader.read();
+      }
+      return events;
+    }
+
+    it("should stream status-update events with correct shape", async () => {
+      agentService = createMockAgentService({ text: "Streamed result" });
+
+      const result = handleStreamMessage(
+        1,
+        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "public",
+        },
+      );
+
+      const events = await collectEvents(result.stream);
+
+      // All events should be JSON-RPC envelopes with status-update result
+      for (const event of events) {
+        expect(event).toHaveProperty("jsonrpc", "2.0");
+        expect(event).toHaveProperty("id", 1);
+        expect(event).toHaveProperty("result.kind", "status-update");
+        expect(event).toHaveProperty("result.taskId");
+        expect(event).toHaveProperty("result.status");
+        expect(event).toHaveProperty("result.final");
+      }
+
+      // First event: working, not final
+      expect(events[0]).toHaveProperty("result.status.state", "working");
+      expect(events[0]).toHaveProperty("result.final", false);
+
+      // Last event: completed, final
+      const last = events[events.length - 1];
+      expect(last).toHaveProperty("result.status.state", "completed");
+      expect(last).toHaveProperty("result.final", true);
+    });
+
+    it("should stream failed status-update when agent throws", async () => {
+      const failingAgent: IAgentService = {
+        chat: async () => {
+          throw new Error("Boom");
+        },
+        confirmPendingAction: async () => ({
+          text: "",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+      };
+
+      const result = handleStreamMessage(
+        1,
+        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        {
+          taskManager,
+          agentService: failingAgent,
+          callerPermissionLevel: "public",
+        },
+      );
+
+      const events = await collectEvents(result.stream);
+
+      const last = events[events.length - 1];
+      expect(last).toHaveProperty("result.kind", "status-update");
+      expect(last).toHaveProperty("result.status.state", "failed");
+      expect(last).toHaveProperty("result.final", true);
+    });
+
+    it("should return taskId with the stream", () => {
+      const result = handleStreamMessage(
+        1,
+        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        {
+          taskManager,
+          agentService,
+          callerPermissionLevel: "public",
+        },
+      );
+
+      expect(result.taskId).toBeDefined();
+      expect(typeof result.taskId).toBe("string");
+    });
+
+    it("should not throw when consumer disconnects early", async () => {
+      // Slow agent — consumer will cancel before it completes
+      const slowAgent: IAgentService = {
+        chat: async () => {
+          await new Promise((r) => setTimeout(r, 5000));
+          return {
+            text: "late",
+            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+          };
+        },
+        confirmPendingAction: async () => ({
+          text: "",
+          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        }),
+      };
+
+      const result = handleStreamMessage(
+        1,
+        { kind: "message", parts: [{ kind: "text", text: "Hello" }] },
+        {
+          taskManager,
+          agentService: slowAgent,
+          callerPermissionLevel: "public",
+        },
+      );
+
+      // Read one event then cancel
+      const reader = result.stream.getReader();
+      await reader.read(); // get working event
+      await reader.cancel(); // disconnect
+
+      // Should not throw — give background a tick
+      await new Promise((r) => setTimeout(r, 50));
     });
   });
 });

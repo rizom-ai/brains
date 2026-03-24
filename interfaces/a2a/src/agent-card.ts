@@ -59,7 +59,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
     version,
     protocolVersion: "0.2.2",
     capabilities: {
-      streaming: false,
+      streaming: true,
       pushNotifications: false,
     },
     skills,

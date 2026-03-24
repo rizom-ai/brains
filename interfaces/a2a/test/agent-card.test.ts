@@ -111,7 +111,7 @@ describe("buildAgentCard", () => {
       tools: [],
     });
 
-    expect(card.capabilities.streaming).toBe(false);
+    expect(card.capabilities.streaming).toBe(true);
     expect(card.capabilities.pushNotifications).toBe(false);
   });
 
