@@ -37,7 +37,6 @@ import {
   AnchorProfileAdapter,
   AnchorProfileService,
 } from "@brains/identity-service";
-// Image entity now registered by ImagePlugin (entities/image)
 import {
   BatchJobManager,
   JobProgressMonitor,
@@ -207,8 +206,6 @@ export class ShellInitializer {
     );
     this.logger.debug("Anchor profile entity support registered");
   }
-
-  // Image entity type now registered by ImagePlugin (entities/image)
 
   public async initializePlugins(pluginManager: PluginManager): Promise<void> {
     this.logger.debug(
@@ -447,7 +444,6 @@ export class ShellInitializer {
       this.registerBaseEntityDisplayTemplate(templateRegistry);
       this.registerBrainCharacterSupport(entityRegistry);
       this.registerAnchorProfileSupport(entityRegistry);
-      // Image entity type now registered by ImagePlugin
       await this.initializePlugins(pluginManager);
 
       // Register fallback base entity adapter only if no plugin claimed "base"
