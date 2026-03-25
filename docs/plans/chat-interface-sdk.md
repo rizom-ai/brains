@@ -138,6 +138,13 @@ Existing `brain.yaml` files only need:
 | `shell/app/src/brain-resolver.ts`                                 | Config merge behavior for adapter sub-objects                    |
 | `brains/rover/src/index.ts`                                       | First brain to adopt ChatInterface                               |
 
+## Dependencies & Compatibility
+
+- **Plugin hierarchy simplification must be complete** — InterfacePlugin base class must be stable before building ChatInterface on top of it
+- **Hosted rovers shared Discord gateway** — ranger's gateway proxies Discord messages to rovers via A2A. ChatInterface's Discord adapter must be compatible with this pattern (ranger runs the shared bot, rovers receive via A2A, not via their own Discord adapter)
+- **API route registration** — webhook adapters (Slack, Teams) need route mounting. After hierarchy simplification, verify how IntegrationPlugin/InterfacePlugin handles `apiRoutes` (currently a ServicePlugin method via `getApiRoutes()`)
+- **Eval mode** — `evalDisable` should include `"chat"` to prevent chat interfaces from running during evals
+
 ## Verification
 
 1. `bun install` → picks up new `@brains/chat` workspace package

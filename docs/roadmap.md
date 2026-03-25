@@ -87,13 +87,13 @@ Replace 4 plugin classes with 3 siblings: IntegrationPlugin (tools), EntityPlugi
 
 Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
 
+### 5. Chat SDK Migration
+
+Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Depends on plugin hierarchy simplification (InterfacePlugin base class must be stable). Phase 1: deprecate Matrix. Phase 2: build `@brains/chat`. Must be compatible with hosted rovers' shared Discord gateway. ([plan](./plans/chat-interface-sdk.md))
+
 ### Agent Directory
 
 Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
-
-### Chat SDK Migration
-
-Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix (removes native crypto). Phase 2: build `@brains/chat`. Adds Slack, Teams, Telegram, WhatsApp. ([plan](./plans/chat-interface-sdk.md))
 
 ### rizom.work
 
@@ -151,6 +151,8 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 3. plugin-hierarchy-simplification (IntegrationPlugin + unified PluginContext)
      ↓
 4. eval-overhaul (mode: eval, two runners, result store)
+     ↓
+5. chat-sdk (depends on stable InterfacePlugin hierarchy)
 
 a2a-async ──→ agent-directory ──┐
                                 ├──→ hosted-rovers (K8s)
