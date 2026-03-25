@@ -35,9 +35,8 @@ plugins:
   social-media:
     linkedin:
       accessToken: ${LINKEDIN_ACCESS_TOKEN}
-  newsletter:
-    buttondown:
-      apiKey: ${BUTTONDOWN_API_KEY}
+  buttondown:
+    apiKey: ${BUTTONDOWN_API_KEY}
   analytics:
     cloudflare:
       accountId: ${CLOUDFLARE_ACCOUNT_ID}
