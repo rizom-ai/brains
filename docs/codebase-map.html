@@ -9,706 +9,399 @@
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;background:#0d1117;color:#e6edf3;height:100vh;overflow:hidden}
 #app{display:flex;height:100vh}
 
-/* Sidebar */
-#sidebar{width:272px;min-width:272px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
+#sidebar{width:260px;min-width:260px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:14px}
 #sidebar h1{font-size:15px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:8px}
 #sidebar h1 span{font-size:11px;color:#8b949e;font-weight:400}
 .section-title{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8b949e;margin-bottom:8px}
 .section{background:#1c2333;border:1px solid #30363d;border-radius:8px;padding:10px 12px}
-
-/* Presets */
 .preset-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px}
 .preset-btn{background:#21262d;border:1px solid #30363d;border-radius:6px;color:#8b949e;font-size:11px;padding:5px 8px;cursor:pointer;transition:all .15s;font-family:inherit;text-align:center}
 .preset-btn:hover{background:#30363d;color:#e6edf3}
 .preset-btn.active{background:#1f6feb22;border-color:#58a6ff;color:#58a6ff}
-
-/* Toggles */
 .toggle-row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;user-select:none;font-size:12px}
 .toggle-row:hover{opacity:.85}
 .toggle-box{width:12px;height:12px;border-radius:3px;border:2px solid;flex-shrink:0;position:relative;transition:all .15s}
 .toggle-box.on::after{content:'';position:absolute;inset:1px;border-radius:1px;background:currentColor}
+.stats{font-size:11px;color:#8b949e;line-height:1.6}
+.stats b{color:#c9d1d9}
 
-/* Comments */
-.comment-item{background:#21262d;border:1px solid #30363d;border-radius:6px;padding:8px 10px;margin-bottom:5px;position:relative}
-.comment-target{font-size:11px;font-weight:600;color:#58a6ff}
-.comment-file{font-size:10px;color:#484f58;margin-top:1px}
-.comment-text{font-size:12px;color:#c9d1d9;margin-top:4px;line-height:1.4}
-.comment-del{position:absolute;top:6px;right:8px;background:none;border:none;color:#484f58;cursor:pointer;font-size:13px;line-height:1}
-.comment-del:hover{color:#f85149}
-.no-comments{font-size:12px;color:#484f58;font-style:italic}
-
-/* Main */
 #main{flex:1;display:flex;flex-direction:column;min-width:0}
 #canvas-area{flex:1;position:relative;overflow:hidden;background:#0d1117}
 #canvas-area svg{width:100%;height:100%;display:block}
-
-/* Zoom */
 .zoom-bar{position:absolute;top:10px;right:10px;display:flex;gap:3px}
 .zoom-btn{background:#21262dee;border:1px solid #30363d;border-radius:6px;color:#8b949e;width:30px;height:30px;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-family:inherit;backdrop-filter:blur(4px)}
 .zoom-btn:hover{background:#30363dee;color:#e6edf3}
 
-/* Legend */
-.legend{position:absolute;bottom:10px;left:10px;background:#161b22dd;border:1px solid #30363d;border-radius:8px;padding:8px 14px;display:flex;gap:14px;font-size:10px;backdrop-filter:blur(4px)}
-.legend-item{display:flex;align-items:center;gap:5px;color:#8b949e}
+.legend{position:absolute;bottom:10px;left:10px;background:#161b22ee;border:1px solid #30363d;border-radius:8px;padding:10px 14px;backdrop-filter:blur(4px);display:flex;gap:16px;flex-wrap:wrap}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:#8b949e}
+.legend-dot{width:10px;height:10px;border-radius:3px}
 
-/* Prompt */
-#prompt-bar{background:#161b22;border-top:1px solid #30363d;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;max-height:180px}
-#prompt-text{flex:1;font-family:'SF Mono','Fira Code','Cascadia Code',monospace;font-size:11.5px;color:#8b949e;white-space:pre-wrap;overflow-y:auto;max-height:160px;line-height:1.5}
-#copy-btn{background:#238636;border:1px solid #2ea04366;border-radius:6px;color:#fff;font-size:12px;padding:5px 14px;cursor:pointer;font-family:inherit;font-weight:500;white-space:nowrap;flex-shrink:0}
-#copy-btn:hover{background:#2ea043}
-#copy-btn.copied{background:#1f6feb;border-color:#58a6ff66}
-
-/* Modal */
-#modal-overlay{display:none;position:fixed;inset:0;background:#000a;backdrop-filter:blur(4px);z-index:100;align-items:center;justify-content:center}
-#modal-overlay.vis{display:flex}
-#modal{background:#161b22;border:1px solid #30363d;border-radius:12px;padding:20px;width:380px;max-width:90vw}
-#modal h3{font-size:14px;margin-bottom:2px}
-#modal .sub{font-size:11px;color:#8b949e;margin-bottom:10px;font-family:'SF Mono',monospace}
-#modal textarea{width:100%;height:72px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e6edf3;font-family:inherit;font-size:13px;padding:8px;resize:vertical}
-#modal textarea:focus{outline:none;border-color:#58a6ff}
-.modal-btns{display:flex;justify-content:flex-end;gap:6px;margin-top:10px}
-.mbtn{border-radius:6px;font-size:12px;padding:5px 14px;cursor:pointer;font-family:inherit;border:1px solid #30363d}
-.mbtn-cancel{background:#21262d;color:#8b949e}
-.mbtn-save{background:#238636;border-color:#2ea04366;color:#fff}
-
-/* SVG */
 .node-group{cursor:pointer}
-.node-bg{transition:filter .15s}
 .node-group:hover .node-bg{filter:brightness(1.4)}
-.node-title{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;font-size:12px;font-weight:600;fill:#e6edf3}
-.node-sub{font-family:'SF Mono','Fira Code',monospace;font-size:9px;fill:#8b949e}
-.node-desc{font-family:-apple-system,system-ui,sans-serif;font-size:9px;fill:#6e7681}
-.conn-path{fill:none;stroke-width:1.4;opacity:.35;transition:opacity .15s}
-.conn-path:hover{opacity:.9;stroke-width:2.2}
+.node-label{font-size:11px;font-weight:600;fill:#e6edf3;pointer-events:none}
+.node-sub{font-size:9px;fill:#8b949e;pointer-events:none;font-family:'SF Mono',Menlo,monospace}
+
+#detail{position:absolute;top:10px;left:10px;width:300px;background:#161b22ee;border:1px solid #30363d;border-radius:8px;padding:14px;backdrop-filter:blur(8px);display:none}
+#detail.open{display:block}
+#detail h3{font-size:14px;font-weight:600;margin-bottom:2px}
+#detail .path{font-size:11px;color:#58a6ff;font-family:monospace;margin-bottom:6px}
+#detail .desc{font-size:12px;color:#8b949e;line-height:1.5}
+#detail .close{position:absolute;top:8px;right:10px;background:none;border:none;color:#8b949e;cursor:pointer;font-size:16px}
+#detail .close:hover{color:#f0f6fc}
+#detail .deps{margin-top:8px;font-size:11px;color:#484f58}
+#detail .deps span{color:#8b949e;cursor:pointer}
+#detail .deps span:hover{color:#58a6ff;text-decoration:underline}
 </style>
 </head>
 <body>
 <div id="app">
 <div id="sidebar">
-  <h1>Brains <span>codebase map</span></h1>
+  <h1>Brains <span>Codebase Map</span></h1>
 
-  <div>
-    <div class="section-title">Presets</div>
-    <div class="section">
-      <div class="preset-grid" id="presets"></div>
-    </div>
+  <div class="section">
+    <div class="section-title">View</div>
+    <div class="preset-grid" id="presets"></div>
   </div>
 
-  <div>
-    <div class="section-title">Groups</div>
-    <div class="section" id="group-toggles"></div>
+  <div class="section">
+    <div class="section-title">Layers</div>
+    <div id="layers"></div>
   </div>
 
-  <div>
-    <div class="section-title">Connections</div>
-    <div class="section" id="conn-toggles"></div>
-  </div>
-
-  <div>
-    <div class="section-title">Comments <span id="comment-count"></span></div>
-    <div class="section" id="comments-list">
-      <div class="no-comments">Click a component to add feedback</div>
-    </div>
+  <div class="section">
+    <div class="section-title">Stats</div>
+    <div class="stats" id="stats"></div>
   </div>
 </div>
 
 <div id="main">
   <div id="canvas-area">
-    <svg id="svg" xmlns="http://www.w3.org/2000/svg"></svg>
+    <svg id="svg"></svg>
     <div class="zoom-bar">
-      <button class="zoom-btn" onclick="zoomIn()" title="Zoom in">+</button>
-      <button class="zoom-btn" onclick="zoomOut()" title="Zoom out">&minus;</button>
-      <button class="zoom-btn" onclick="zoomReset()" title="Reset">R</button>
+      <button class="zoom-btn" onclick="zoom(1.2)">+</button>
+      <button class="zoom-btn" onclick="zoom(1/1.2)">−</button>
+      <button class="zoom-btn" onclick="resetZoom()" style="font-size:11px">⟲</button>
     </div>
     <div class="legend" id="legend"></div>
-  </div>
-  <div id="prompt-bar">
-    <pre id="prompt-text"></pre>
-    <button id="copy-btn" onclick="copyPrompt()">Copy</button>
-  </div>
-</div>
-</div>
-
-<div id="modal-overlay" onclick="if(event.target===this)closeModal()">
-  <div id="modal">
-    <h3 id="modal-title"></h3>
-    <div class="sub" id="modal-sub"></div>
-    <textarea id="modal-input" placeholder="Add your feedback or question about this component..."></textarea>
-    <div class="modal-btns">
-      <button class="mbtn mbtn-cancel" onclick="closeModal()">Cancel</button>
-      <button class="mbtn mbtn-save" onclick="saveComment()">Save</button>
+    <div id="detail">
+      <button class="close" onclick="closeDetail()">×</button>
+      <h3 id="d-name"></h3>
+      <div class="path" id="d-path"></div>
+      <div class="desc" id="d-desc"></div>
+      <div class="deps" id="d-deps"></div>
     </div>
   </div>
+</div>
 </div>
 
 <script>
-// ── Group definitions (merged shell into one) ──
-const GROUPS = {
-  brains:     { label: 'Brains',           color: '#79c0ff', bg: '#162640' },
-  interfaces: { label: 'Interfaces',       color: '#d29922', bg: '#3b2a1a' },
-  content:    { label: 'Content',          color: '#3fb950', bg: '#1a3326' },
-  shell:      { label: 'Shell',            color: '#bc8cff', bg: '#2a1840' },
-  sites:      { label: 'Sites',            color: '#e3b341', bg: '#3a3010' },
-  layouts:    { label: 'Layouts',          color: '#a371f7', bg: '#251a40' },
-  publishing: { label: 'Publishing',       color: '#8b8cf8', bg: '#1f2044' },
-  sync:       { label: 'Sync & Storage',   color: '#f0883e', bg: '#3a2510' },
-  shared:     { label: 'Shared',           color: '#f778ba', bg: '#3a1530' },
-  system:     { label: 'System',           color: '#f85149', bg: '#3a1520' },
+const W = 130, H = 44;
+const layers = {
+  brains:     { label: 'Brain Models',    color: '#f97316', on: true },
+  entities:   { label: 'Entity Plugins',  color: '#3b82f6', on: true },
+  plugins:    { label: 'Integration Plugins', color: '#10b981', on: true },
+  interfaces: { label: 'Interfaces',      color: '#a855f7', on: true },
+  shell:      { label: 'Shell Services',  color: '#eab308', on: true },
+  sites:      { label: 'Sites',           color: '#ec4899', on: true },
+  layouts:    { label: 'Layouts',          color: '#f43f5e', on: true },
+  shared:     { label: 'Shared',           color: '#6b7280', on: true },
 };
-
-const CONN_TYPES = {
-  'data-flow':  { label: 'Data Flow',  color: '#58a6ff', dash: '' },
-  'tool-call':  { label: 'Tool Call',  color: '#3fb950', dash: '6,3' },
-  'event':      { label: 'Event',      color: '#f85149', dash: '4,4' },
-  'dependency': { label: 'Dependency', color: '#484f58', dash: '2,4' },
-};
-
-// ── Cluster boxes ──
-const CLUSTERS = {
-  brains:     { x: 20,   y: 10,  w: 530,  h: 90  },
-  interfaces: { x: 580,  y: 10,  w: 810,  h: 90  },
-  content:    { x: 20,   y: 124, w: 360,  h: 380 },
-  shell:      { x: 410,  y: 124, w: 530,  h: 310 },
-  sites:      { x: 970,  y: 124, w: 420,  h: 90  },
-  layouts:    { x: 970,  y: 238, w: 420,  h: 90  },
-  publishing: { x: 970,  y: 352, w: 420,  h: 170 },
-  sync:       { x: 20,   y: 550, w: 440,  h: 90  },
-  shared:     { x: 490,  y: 550, w: 410,  h: 90  },
-  system:     { x: 930,  y: 550, w: 460,  h: 90  },
-};
-
-// ── Node data ──
-// Each node has: id, label, subtitle (path), desc (description), x, y, w, h, group
-const W = 155, H = 58;
 
 const nodes = [
-  // ─ Brains ─
-  { id:'rover',  label:'Rover',  subtitle:'brains/rover',  desc:'Professional brain',  x:36,  y:32, w:W, h:H, group:'brains' },
-  { id:'relay',  label:'Relay',  subtitle:'brains/relay',  desc:'Team brain',           x:207, y:32, w:W, h:H, group:'brains' },
-  { id:'ranger', label:'Ranger', subtitle:'brains/ranger', desc:'Collective brain',     x:378, y:32, w:W, h:H, group:'brains' },
+  // Brain models (row 0)
+  { id:'rover',  label:'Rover',  sub:'brains/rover',  desc:'Personal brain model — presets: minimal/default/pro', x:36, y:28, w:W, h:H, layer:'brains' },
+  { id:'relay',  label:'Relay',  sub:'brains/relay',  desc:'Team brain model', x:180, y:28, w:W, h:H, layer:'brains' },
+  { id:'ranger', label:'Ranger', sub:'brains/ranger', desc:'Collective brain model — community, onboarding', x:324, y:28, w:W, h:H, layer:'brains' },
 
-  // ─ Interfaces ─
-  { id:'cli',       label:'CLI',       subtitle:'interfaces/cli',       desc:'Terminal interface',     x:596,  y:32, w:120, h:H, group:'interfaces' },
-  { id:'matrix',    label:'Matrix',    subtitle:'interfaces/matrix',    desc:'Matrix chat bot',        x:730,  y:32, w:120, h:H, group:'interfaces' },
-  { id:'discord',   label:'Discord',   subtitle:'interfaces/discord',   desc:'Discord chat bot',       x:864,  y:32, w:120, h:H, group:'interfaces' },
-  { id:'mcp-if',    label:'MCP',       subtitle:'interfaces/mcp',       desc:'Model Context Protocol', x:998,  y:32, w:120, h:H, group:'interfaces' },
-  { id:'webserver', label:'Webserver', subtitle:'interfaces/webserver', desc:'Static site server',     x:1132, y:32, w:120, h:H, group:'interfaces' },
-  { id:'a2a',       label:'A2A',       subtitle:'interfaces/a2a',       desc:'Agent-to-Agent protocol',x:1266, y:32, w:110, h:H, group:'interfaces' },
+  // Interfaces (row 0, right)
+  { id:'cli',       label:'CLI',       sub:'interfaces/cli',       desc:'Terminal interface',               x:520, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'mcp-if',    label:'MCP',       sub:'interfaces/mcp',       desc:'Model Context Protocol (stdio+HTTP)', x:630, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'discord',   label:'Discord',   sub:'interfaces/discord',   desc:'Discord chat bot',                x:740, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'matrix',    label:'Matrix',    sub:'interfaces/matrix',    desc:'Matrix chat bot (deprecating)',    x:850, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'webserver', label:'Webserver', sub:'interfaces/webserver', desc:'Static site + preview server',     x:960, y:28, w:100, h:H, layer:'interfaces' },
+  { id:'a2a',       label:'A2A',       sub:'interfaces/a2a',       desc:'Agent-to-Agent protocol',          x:1070,y:28, w:100, h:H, layer:'interfaces' },
 
-  // ─ Content (2 cols × 5 rows) ─
-  { id:'note',         label:'Note',         subtitle:'plugins/note',         desc:'Knowledge capture',     x:36,  y:150, w:W, h:H, group:'content' },
-  { id:'blog',         label:'Blog',         subtitle:'plugins/blog',         desc:'Essays and articles',   x:207, y:150, w:W, h:H, group:'content' },
-  { id:'link',         label:'Link',         subtitle:'plugins/link',         desc:'Curated bookmarks',     x:36,  y:222, w:W, h:H, group:'content' },
-  { id:'portfolio',    label:'Portfolio',     subtitle:'plugins/portfolio',    desc:'Case studies',          x:207, y:222, w:W, h:H, group:'content' },
-  { id:'products',     label:'Products',     subtitle:'plugins/products',     desc:'Product listings',      x:36,  y:294, w:W, h:H, group:'content' },
-  { id:'decks',        label:'Decks',        subtitle:'plugins/decks',        desc:'Presentations',         x:207, y:294, w:W, h:H, group:'content' },
-  { id:'image',        label:'Image',        subtitle:'plugins/image',        desc:'Image management',      x:36,  y:366, w:W, h:H, group:'content' },
-  { id:'site-content', label:'Site Content', subtitle:'plugins/site-content', desc:'Pages and navigation',  x:207, y:366, w:W, h:H, group:'content' },
-  { id:'summary',      label:'Summary',      subtitle:'plugins/summary',      desc:'AI summaries',          x:36,  y:438, w:W, h:H, group:'content' },
-  { id:'topics',       label:'Topics',       subtitle:'plugins/topics',       desc:'AI-powered tagging',    x:207, y:438, w:W, h:H, group:'content' },
+  // Entities (rows 1-3)
+  { id:'blog',         label:'Blog',         sub:'entities/blog',         desc:'Essays + articles. EntityPlugin with generation handler.',    x:36,  y:110, w:W, h:H, layer:'entities' },
+  { id:'decks',        label:'Decks',        sub:'entities/decks',        desc:'Presentations. EntityPlugin with generation.',               x:180, y:110, w:W, h:H, layer:'entities' },
+  { id:'note',         label:'Note',         sub:'entities/note',         desc:'Knowledge capture. EntityPlugin.',                           x:324, y:110, w:W, h:H, layer:'entities' },
+  { id:'link',         label:'Link',         sub:'entities/link',         desc:'Curated bookmarks. EntityPlugin with capture handler.',       x:468, y:110, w:W, h:H, layer:'entities' },
+  { id:'portfolio',    label:'Portfolio',     sub:'entities/portfolio',    desc:'Case studies. EntityPlugin.',                                x:612, y:110, w:W, h:H, layer:'entities' },
+  { id:'social-media', label:'Social Media', sub:'entities/social-media', desc:'LinkedIn posts. EntityPlugin with derive().',                x:756, y:110, w:W, h:H, layer:'entities' },
+  { id:'newsletter',   label:'Newsletter',   sub:'entities/newsletter',   desc:'Email newsletters. EntityPlugin + publish pipeline.',         x:36,  y:166, w:W, h:H, layer:'entities' },
+  { id:'wishlist',     label:'Wishlist',     sub:'entities/wishlist',     desc:'Unfulfilled requests. EntityPlugin.',                        x:180, y:166, w:W, h:H, layer:'entities' },
+  { id:'products',     label:'Products',     sub:'entities/products',     desc:'Product listings. EntityPlugin.',                            x:324, y:166, w:W, h:H, layer:'entities' },
+  { id:'image',        label:'Image',        sub:'entities/image',        desc:'Image entities. EntityPlugin with AI generation.',            x:468, y:166, w:W, h:H, layer:'entities' },
+  { id:'series',       label:'Series',       sub:'entities/series',       desc:'Derived from posts. EntityPlugin with derive().',             x:612, y:166, w:W, h:H, layer:'entities' },
+  { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'AI-extracted tags. EntityPlugin with derive().',              x:756, y:166, w:W, h:H, layer:'entities' },
+  { id:'summary',      label:'Summary',      sub:'entities/summary',      desc:'Conversation summaries. EntityPlugin with derive().',         x:900, y:166, w:W, h:H, layer:'entities' },
 
-  // ─ Shell (3 cols × 4 rows) ─
-  { id:'core',         label:'Core',          subtitle:'shell/core',               desc:'Plugin lifecycle',      x:426, y:150, w:W, h:H, group:'shell' },
-  { id:'app',          label:'App',           subtitle:'shell/app',                desc:'Brain resolver + CLI',  x:597, y:150, w:W, h:H, group:'shell' },
-  { id:'plugin-fw',    label:'Plugin',        subtitle:'shell/plugins',            desc:'Base classes + context',x:768, y:150, w:W, h:H, group:'shell' },
-  { id:'entity-svc',   label:'Entity Svc',    subtitle:'shell/entity-service',     desc:'CRUD + search + embed', x:426, y:222, w:W, h:H, group:'shell' },
-  { id:'content-svc',  label:'Content Svc',   subtitle:'shell/content-service',    desc:'Template rendering',    x:597, y:222, w:W, h:H, group:'shell' },
-  { id:'job-queue',    label:'Job Queue',     subtitle:'shell/job-queue',          desc:'Background jobs',       x:768, y:222, w:W, h:H, group:'shell' },
-  { id:'messaging',    label:'Messaging',     subtitle:'shell/messaging-service',  desc:'Pub/sub event bus',     x:426, y:294, w:W, h:H, group:'shell' },
-  { id:'mcp-svc',      label:'MCP Service',   subtitle:'shell/mcp-service',       desc:'Tool + resource registry',x:597, y:294, w:W, h:H, group:'shell' },
-  { id:'ai-svc',       label:'AI Service',    subtitle:'shell/ai-service',        desc:'Agent state machine',   x:768, y:294, w:W, h:H, group:'shell' },
-  { id:'conversation', label:'Conversations', subtitle:'shell/conversation-service',desc:'Chat history + memory',x:426, y:366, w:W, h:H, group:'shell' },
-  { id:'templates',    label:'Templates',     subtitle:'shell/templates',          desc:'Render + permissions',  x:597, y:366, w:W, h:H, group:'shell' },
-  { id:'identity',     label:'Identity',      subtitle:'shell/identity-service',   desc:'Character + profile',   x:768, y:366, w:W, h:H, group:'shell' },
+  // Integration plugins (row 4)
+  { id:'system',       label:'System',       sub:'plugins/system',            desc:'Core CRUD tools (create, get, list, search, update, delete, extract, set-cover).', x:36,  y:248, w:W, h:H, layer:'plugins' },
+  { id:'dir-sync',     label:'Dir Sync',     sub:'plugins/directory-sync',    desc:'File sync + git ops. Serialized with withLock().', x:180, y:248, w:W, h:H, layer:'plugins' },
+  { id:'site-builder', label:'Site Builder', sub:'plugins/site-builder',      desc:'SSR static site gen. Routes, templates, CMS.',     x:324, y:248, w:W, h:H, layer:'plugins' },
+  { id:'content-pipe', label:'Pipeline',     sub:'plugins/content-pipeline',  desc:'Publish + queue orchestration.',                   x:468, y:248, w:W, h:H, layer:'plugins' },
+  { id:'dashboard',    label:'Dashboard',    sub:'plugins/dashboard',         desc:'Widget registration + rendering.',                 x:612, y:248, w:W, h:H, layer:'plugins' },
+  { id:'analytics',    label:'Analytics',    sub:'plugins/analytics',         desc:'Cloudflare analytics query tool.',                 x:756, y:248, w:W, h:H, layer:'plugins' },
+  { id:'buttondown',   label:'Buttondown',   sub:'plugins/buttondown',       desc:'Subscriber tools + API routes. Split from newsletter.', x:900, y:248, w:W, h:H, layer:'plugins' },
+  { id:'notion',       label:'Notion',       sub:'plugins/notion',           desc:'MCP bridge to Notion workspace.',                  x:1044,y:248, w:W, h:H, layer:'plugins' },
+  { id:'hackmd',       label:'HackMD',       sub:'plugins/hackmd',           desc:'MCP bridge to HackMD.',                            x:1044,y:304, w:W, h:H, layer:'plugins' },
+  { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:900, y:304, w:W, h:H, layer:'plugins' },
+  { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen (redesigning).',           x:756, y:304, w:W, h:H, layer:'plugins' },
 
-  // ─ Sites ─
-  { id:'site-default',  label:'Default',       subtitle:'sites/default',       desc:'Minimal default site',    x:986,  y:150, w:90,  h:H, group:'sites' },
-  { id:'site-yeehaa',   label:'Yeehaa',        subtitle:'sites/yeehaa',        desc:'Brutalist professional',  x:1086, y:150, w:90,  h:H, group:'sites' },
-  { id:'site-ranger',   label:'Ranger',        subtitle:'sites/ranger',        desc:'Community CTA site',      x:1186, y:150, w:90,  h:H, group:'sites' },
-  { id:'site-mlp',      label:'MLP',           subtitle:'sites/mylittlephoney',desc:'Personal pink site',      x:1286, y:150, w:90,  h:H, group:'sites' },
+  // Shell services (rows 5-6)
+  { id:'core',         label:'Core',         sub:'shell/core',               desc:'Shell init, plugin lifecycle, entity bootstrap.',   x:36,  y:386, w:W, h:H, layer:'shell' },
+  { id:'app',          label:'App',          sub:'shell/app',                desc:'Brain resolver, CLI, brain.yaml parsing.',          x:180, y:386, w:W, h:H, layer:'shell' },
+  { id:'plugin-fw',    label:'Plugins',      sub:'shell/plugins',            desc:'BasePlugin, EntityPlugin, ServicePlugin, contexts.',x:324, y:386, w:W, h:H, layer:'shell' },
+  { id:'entity-svc',   label:'Entity Svc',   sub:'shell/entity-service',     desc:'CRUD + search + embeddings + adapters.',            x:468, y:386, w:W, h:H, layer:'shell' },
+  { id:'ai-svc',       label:'AI Service',   sub:'shell/ai-service',         desc:'Agent state machine, Vercel AI SDK.',               x:612, y:386, w:W, h:H, layer:'shell' },
+  { id:'mcp-svc',      label:'MCP Svc',      sub:'shell/mcp-service',        desc:'Tool + resource + prompt + template registry.',     x:756, y:386, w:W, h:H, layer:'shell' },
+  { id:'job-queue',    label:'Job Queue',    sub:'shell/job-queue',           desc:'Background jobs, batch ops, progress.',             x:36,  y:442, w:W, h:H, layer:'shell' },
+  { id:'messaging',    label:'Messaging',    sub:'shell/messaging-service',   desc:'Pub/sub event bus.',                                x:180, y:442, w:W, h:H, layer:'shell' },
+  { id:'conversation', label:'Conversations',sub:'shell/conversation-service',desc:'Chat history + digest.',                            x:324, y:442, w:W, h:H, layer:'shell' },
+  { id:'content-svc',  label:'Content Svc',  sub:'shell/content-service',     desc:'Template rendering + content resolution.',          x:468, y:442, w:W, h:H, layer:'shell' },
+  { id:'templates',    label:'Templates',    sub:'shell/templates',            desc:'Template registry + render service.',               x:612, y:442, w:W, h:H, layer:'shell' },
+  { id:'identity',     label:'Identity',     sub:'shell/identity-service',     desc:'Brain character + anchor profile.',                 x:756, y:442, w:W, h:H, layer:'shell' },
+  { id:'ai-eval',      label:'AI Eval',      sub:'shell/ai-evaluation',        desc:'Eval runner, test cases, LLM judge.',              x:900, y:442, w:W, h:H, layer:'shell' },
 
-  // ─ Layouts ─
-  { id:'pro-layout',  label:'Professional', subtitle:'layouts/professional', desc:'Blog + decks + profile', x:986,  y:264, w:180, h:H, group:'layouts' },
-  { id:'pers-layout', label:'Personal',     subtitle:'layouts/personal',     desc:'Blog + profile',         x:1190, y:264, w:180, h:H, group:'layouts' },
+  // Sites + Layouts (row 7)
+  { id:'site-default', label:'Default',     sub:'sites/default',          desc:'Minimal rover site.',         x:36,  y:524, w:100, h:H, layer:'sites' },
+  { id:'site-yeehaa',  label:'Yeehaa',      sub:'sites/yeehaa',           desc:'Brutalist professional.',     x:146, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-ranger',  label:'Ranger',      sub:'sites/ranger',           desc:'Community CTA site.',         x:256, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-mlp',     label:'MLP',         sub:'sites/mylittlephoney',   desc:'Personal pink site.',         x:366, y:524, w:100, h:H, layer:'sites' },
+  { id:'layout-pro',   label:'Professional',sub:'layouts/professional',   desc:'Blog + decks + portfolio.',   x:500, y:524, w:140, h:H, layer:'layouts' },
+  { id:'layout-pers',  label:'Personal',    sub:'layouts/personal',       desc:'Blog + minimal footer.',      x:654, y:524, w:140, h:H, layer:'layouts' },
 
-  // ─ Publishing (2 cols × 2 rows) ─
-  { id:'site-builder', label:'Site Builder',     subtitle:'plugins/site-builder',     desc:'SSR static site gen',  x:986,  y:378, w:180, h:H, group:'publishing' },
-  { id:'content-pipe', label:'Content Pipeline', subtitle:'plugins/content-pipeline', desc:'Publish orchestrator', x:1190, y:378, w:180, h:H, group:'publishing' },
-  { id:'newsletter',   label:'Newsletter',       subtitle:'plugins/newsletter',       desc:'Buttondown integration',x:986,  y:450, w:180, h:H, group:'publishing' },
-  { id:'social',       label:'Social Media',     subtitle:'plugins/social-media',     desc:'LinkedIn + scheduling', x:1190, y:450, w:180, h:H, group:'publishing' },
-
-  // ─ Sync & Storage ─
-  { id:'dir-sync', label:'Directory Sync', subtitle:'plugins/directory-sync', desc:'File + git sync',       x:36,  y:576, w:180, h:H, group:'sync' },
-  { id:'obsidian', label:'Obsidian Vault', subtitle:'plugins/obsidian-vault', desc:'Obsidian integration',  x:232, y:576, w:180, h:H, group:'sync' },
-
-  // ─ Shared ─
-  { id:'utils',      label:'Utils',      subtitle:'shared/utils',      desc:'Zod, slugify, helpers', x:506, y:576, w:120, h:H, group:'shared' },
-  { id:'ui-lib',     label:'UI Library', subtitle:'shared/ui-library', desc:'Preact components',     x:640, y:576, w:120, h:H, group:'shared' },
-  { id:'theme-base', label:'Theme Base', subtitle:'shared/theme-base', desc:'composeTheme() base',   x:774, y:576, w:120, h:H, group:'shared' },
-
-  // ─ System ─
-  { id:'system',    label:'System',    subtitle:'plugins/system',    desc:'Search, list, status',  x:946,  y:576, w:120, h:H, group:'system' },
-  { id:'dashboard', label:'Dashboard', subtitle:'plugins/dashboard', desc:'Widget system',         x:1080, y:576, w:120, h:H, group:'system' },
-  { id:'analytics', label:'Analytics', subtitle:'plugins/analytics', desc:'Cloudflare analytics',  x:1214, y:576, w:120, h:H, group:'system' },
-  { id:'wishlist',  label:'Wishlist',  subtitle:'plugins/wishlist',  desc:'Feature requests',      x:1214, y:504, w:120, h:H, group:'system' },
+  // Shared (row 8)
+  { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, progress.', x:36,  y:596, w:100, h:H, layer:'shared' },
+  { id:'ui-lib',       label:'UI Library',  sub:'shared/ui-library',      desc:'Header, Footer, ThemeToggle, Card.', x:146, y:596, w:100, h:H, layer:'shared' },
+  { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:256, y:596, w:100, h:H, layer:'shared' },
+  { id:'mcp-bridge',   label:'MCP Bridge',  sub:'shared/mcp-bridge',      desc:'Base class for upstream MCP servers.', x:366, y:596, w:100, h:H, layer:'shared' },
+  { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:476, y:596, w:100, h:H, layer:'shared' },
+  { id:'theme-base',   label:'Theme Base',  sub:'shared/theme-base',      desc:'CSS variable foundation.',             x:586, y:596, w:100, h:H, layer:'shared' },
 ];
 
-// ── Connections ──
 const connections = [
-  // Brains → Interfaces
-  { from:'rover',  to:'cli',       type:'dependency' },
-  { from:'rover',  to:'matrix',    type:'dependency' },
-  { from:'rover',  to:'discord',   type:'dependency' },
-  { from:'rover',  to:'mcp-if',    type:'dependency' },
-  { from:'rover',  to:'webserver', type:'dependency' },
-  { from:'rover',  to:'a2a',       type:'dependency' },
-  { from:'relay',  to:'cli',       type:'dependency' },
-  { from:'relay',  to:'mcp-if',    type:'dependency' },
-  { from:'ranger', to:'cli',       type:'dependency' },
-  { from:'ranger', to:'matrix',    type:'dependency' },
-  { from:'ranger', to:'mcp-if',    type:'dependency' },
+  // Brain models → shell
+  { from:'rover', to:'core', type:'dep' },
+  { from:'ranger', to:'core', type:'dep' },
+  { from:'relay', to:'core', type:'dep' },
 
-  // Brains → Sites
-  { from:'rover',  to:'site-default', type:'dependency' },
-  { from:'ranger', to:'site-ranger',  type:'dependency' },
-  { from:'relay',  to:'site-default', type:'dependency' },
+  // Entities → shell
+  { from:'blog', to:'plugin-fw', type:'dep' },
+  { from:'series', to:'plugin-fw', type:'dep' },
+  { from:'topics', to:'plugin-fw', type:'dep' },
+  { from:'social-media', to:'plugin-fw', type:'dep' },
 
-  // Sites → Layouts
-  { from:'site-yeehaa',  to:'pro-layout',  type:'dependency' },
-  { from:'site-default', to:'pro-layout',  type:'dependency' },
-  { from:'site-mlp',     to:'pers-layout', type:'dependency' },
-  { from:'site-ranger',  to:'pro-layout',  type:'dependency' },
+  // Plugins → shell
+  { from:'system', to:'entity-svc', type:'tool' },
+  { from:'system', to:'ai-svc', type:'tool' },
+  { from:'dir-sync', to:'entity-svc', type:'data' },
+  { from:'site-builder', to:'content-svc', type:'data' },
+  { from:'site-builder', to:'templates', type:'data' },
+  { from:'content-pipe', to:'job-queue', type:'data' },
 
-  // Sites → Themes
-  { from:'site-default', to:'theme-base', type:'dependency', label:'theme' },
-  { from:'site-yeehaa',  to:'theme-base', type:'dependency', label:'theme' },
+  // Interfaces → shell
+  { from:'mcp-if', to:'mcp-svc', type:'dep' },
+  { from:'discord', to:'ai-svc', type:'data' },
+  { from:'a2a', to:'ai-svc', type:'data' },
+  { from:'webserver', to:'site-builder', type:'data' },
 
-  // Interfaces → Shell (tool routing)
-  { from:'cli',     to:'mcp-svc',   type:'tool-call', label:'tools' },
-  { from:'matrix',  to:'mcp-svc',   type:'tool-call', label:'tools' },
-  { from:'discord', to:'mcp-svc',   type:'tool-call', label:'tools' },
-  { from:'mcp-if',  to:'mcp-svc',   type:'tool-call', label:'tools' },
-  { from:'a2a',     to:'mcp-svc',   type:'tool-call', label:'tools' },
-  { from:'mcp-svc', to:'plugin-fw', type:'tool-call', label:'routes' },
+  // MCP bridges → shared
+  { from:'notion', to:'mcp-bridge', type:'dep' },
+  { from:'hackmd', to:'mcp-bridge', type:'dep' },
 
-  // Interfaces → Shell (agent & conversation)
-  { from:'cli',     to:'ai-svc',      type:'tool-call', label:'queries' },
-  { from:'matrix',  to:'ai-svc',      type:'tool-call', label:'queries' },
-  { from:'discord', to:'ai-svc',      type:'tool-call', label:'queries' },
-  { from:'a2a',     to:'ai-svc',      type:'tool-call', label:'tasks' },
-  { from:'cli',     to:'conversation', type:'data-flow', label:'chat' },
-  { from:'matrix',  to:'conversation', type:'data-flow', label:'chat' },
-  { from:'discord', to:'conversation', type:'data-flow', label:'chat' },
+  // Newsletter ↔ Buttondown
+  { from:'newsletter', to:'buttondown', type:'event', label:'publish' },
 
-  // Webserver → rendering
-  { from:'webserver', to:'templates',    type:'data-flow', label:'renders' },
-  { from:'webserver', to:'site-builder', type:'data-flow', label:'serves' },
+  // Series derives from blog
+  { from:'series', to:'blog', type:'event', label:'derive' },
+  { from:'topics', to:'blog', type:'event', label:'derive' },
+  { from:'social-media', to:'blog', type:'event', label:'derive' },
 
-  // Content → Shell
-  { from:'note',         to:'entity-svc', type:'data-flow' },
-  { from:'blog',         to:'entity-svc', type:'data-flow' },
-  { from:'link',         to:'entity-svc', type:'data-flow' },
-  { from:'portfolio',    to:'entity-svc', type:'data-flow' },
-  { from:'products',     to:'entity-svc', type:'data-flow' },
-  { from:'decks',        to:'entity-svc', type:'data-flow' },
-  { from:'image',        to:'entity-svc', type:'data-flow' },
-  { from:'site-content', to:'entity-svc', type:'data-flow' },
-  { from:'site-content', to:'job-queue',  type:'data-flow', label:'enqueue' },
-  { from:'site-content', to:'messaging',  type:'event',     label:'routes:list' },
-  { from:'summary',      to:'entity-svc', type:'data-flow' },
-  { from:'summary',      to:'ai-svc',     type:'tool-call', label:'generate' },
-  { from:'topics',       to:'entity-svc', type:'data-flow' },
-  { from:'blog',         to:'ai-svc',     type:'tool-call', label:'generate' },
-
-  // Publishing → Shell
-  { from:'site-builder', to:'entity-svc', type:'data-flow', label:'read' },
-  { from:'content-pipe', to:'job-queue',  type:'data-flow', label:'schedule' },
-  { from:'newsletter',   to:'entity-svc', type:'data-flow' },
-  { from:'social',       to:'entity-svc', type:'data-flow' },
-
-  // Sync → Shell
-  { from:'dir-sync', to:'entity-svc', type:'data-flow', label:'import/export' },
-  { from:'dir-sync', to:'job-queue',  type:'data-flow' },
-  { from:'dir-sync', to:'job-queue',  type:'data-flow', label:'enqueue' },
-  { from:'obsidian', to:'entity-svc', type:'data-flow', label:'schemas' },
-
-  // System → Shell
-  { from:'system',    to:'entity-svc', type:'data-flow', label:'search' },
-  { from:'dashboard', to:'messaging',  type:'event', label:'widget:*' },
-  { from:'wishlist',  to:'entity-svc', type:'data-flow' },
-  { from:'wishlist',  to:'messaging',  type:'event', label:'widget:register' },
-
-  // Shell internal
-  { from:'core',    to:'plugin-fw', type:'dependency' },
-  { from:'mcp-svc', to:'templates', type:'dependency', label:'checks' },
-
-  // Shell events
-  { from:'entity-svc', to:'messaging', type:'event', label:'entity:*' },
-
-  // Messaging → subscribers
-  { from:'messaging', to:'dir-sync',     type:'event', label:'entity:*' },
-  { from:'messaging', to:'dir-sync',      type:'event', label:'entity:*' },
-  { from:'messaging', to:'site-builder', type:'event', label:'sync:*' },
-  { from:'messaging', to:'obsidian',     type:'event', label:'plugins:ready' },
-  { from:'messaging', to:'content-pipe', type:'event', label:'entity:*' },
-
-  // Publish pipeline
-  { from:'blog',       to:'content-pipe', type:'event', label:'publish:register' },
-  { from:'social',     to:'content-pipe', type:'event', label:'publish:register' },
-  { from:'newsletter', to:'content-pipe', type:'event', label:'publish:register' },
-
-  // Cross-plugin
-  { from:'social', to:'blog', type:'event', label:'entity:updated' },
-
-  // Dependencies
-  { from:'site-builder', to:'ui-lib',      type:'dependency' },
-  { from:'site-builder', to:'theme-base',  type:'dependency' },
-  { from:'pro-layout',   to:'blog',        type:'dependency', label:'schemas' },
-  { from:'pro-layout',   to:'decks',       type:'dependency', label:'schemas' },
-  { from:'pro-layout',   to:'site-builder', type:'dependency' },
-  { from:'pers-layout',  to:'blog',        type:'dependency', label:'schemas' },
-  { from:'pers-layout',  to:'site-builder', type:'dependency' },
+  // Sites → layouts
+  { from:'site-default', to:'layout-pro', type:'dep' },
+  { from:'site-yeehaa', to:'layout-pro', type:'dep' },
+  { from:'site-ranger', to:'layout-pro', type:'dep' },
+  { from:'site-mlp', to:'layout-pers', type:'dep' },
 ];
 
-// ── Presets (simplified to 4) ──
-const ALL_GROUPS = Object.keys(GROUPS);
-const ALL_CONNS = Object.keys(CONN_TYPES);
-const PRESETS = {
-  overview:    { label:'Overview',    groups: ALL_GROUPS, conns: ['dependency'] },
-  interfaces:  { label:'Interfaces',  groups: ['brains','interfaces','shell'], conns: ['tool-call','data-flow'] },
-  content:     { label:'Content',     groups: ['content','publishing','layouts','sites','shell','shared'], conns: ['data-flow','event'] },
-  full:        { label:'Full System', groups: ALL_GROUPS, conns: ALL_CONNS },
+const connStyles = {
+  dep:   { color:'#6b7280', dash:'', label:'dependency' },
+  data:  { color:'#3b82f6', dash:'', label:'data flow' },
+  tool:  { color:'#10b981', dash:'6,3', label:'tool call' },
+  event: { color:'#f97316', dash:'4,4', label:'event / derive' },
 };
 
-// ── State ──
-const state = {
-  groups: {},
-  conns: {},
-  zoom: 1,
-  panX: 0,
-  panY: 0,
-  comments: [],
-  preset: 'overview',
-  modalNode: null,
+const presets = {
+  'Full System': () => Object.keys(layers).forEach(k => layers[k].on = true),
+  'Entities': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.entities.on = true; layers.shell.on = true; },
+  'Plugins': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.plugins.on = true; layers.shell.on = true; },
+  'Interfaces': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.interfaces.on = true; layers.shell.on = true; layers.brains.on = true; },
+  'Sites': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.sites.on = true; layers.layouts.on = true; layers.shared.on = true; },
+  'Shell': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.shell.on = true; },
 };
 
-// Start with overview (dependencies only — less visual noise)
-ALL_GROUPS.forEach(k => state.groups[k] = true);
-ALL_CONNS.forEach(k => state.conns[k] = k === 'dependency');
+let scale = 1, tx = 0, ty = 0, activePreset = 'Full System';
 
-// ── Helpers ──
-const nodeMap = {};
-nodes.forEach(n => nodeMap[n.id] = n);
-
-function cx(n) { return n.x + n.w / 2; }
-function cy(n) { return n.y + n.h / 2; }
-
-function connPath(fromId, toId) {
-  const f = nodeMap[fromId], t = nodeMap[toId];
-  if (!f || !t) return '';
-
-  const fcy = cy(f), tcy = cy(t);
-  const dy = Math.abs(fcy - tcy);
-
-  // Same row
-  if (dy < 20) {
-    if (f.x < t.x) {
-      const sx = f.x + f.w, ex = t.x;
-      return `M${sx},${fcy} C${sx + (ex-sx)*0.4},${fcy + 20} ${ex - (ex-sx)*0.4},${tcy + 20} ${ex},${tcy}`;
-    }
-    const sx = f.x, ex = t.x + t.w;
-    return `M${sx},${fcy} C${sx - (sx-ex)*0.4},${fcy + 20} ${ex + (sx-ex)*0.4},${tcy + 20} ${ex},${tcy}`;
-  }
-
-  // Upward
-  if (f.y > t.y) {
-    const sx = cx(f), sy = f.y, ex = cx(t), ey = t.y + t.h;
-    const cp = (sy - ey) * 0.4;
-    return `M${sx},${sy} C${sx},${sy - cp} ${ex},${ey + cp} ${ex},${ey}`;
-  }
-
-  // Downward
-  const sx = cx(f), sy = f.y + f.h, ex = cx(t), ey = t.y;
-  const cp = (ey - sy) * 0.4;
-  return `M${sx},${sy} C${sx},${sy + cp} ${ex},${ey - cp} ${ex},${ey}`;
-}
-
-// ── Rendering ──
 function render() {
   const svg = document.getElementById('svg');
-  svg.setAttribute('viewBox', '0 0 1420 680');
+  const visible = new Set(nodes.filter(n => layers[n.layer]?.on).map(n => n.id));
 
-  let html = '<defs>';
-  Object.entries(CONN_TYPES).forEach(([k, v]) => {
-    html += `<marker id="arrow-${k}" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
-      <polygon points="0 0, 7 2.5, 0 5" fill="${v.color}" opacity=".7"/></marker>`;
-  });
-  html += '</defs>';
+  // Defs
+  let html = `<defs>`;
+  for (const [type, style] of Object.entries(connStyles)) {
+    html += `<marker id="arrow-${type}" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+      <polygon points="0 0, 7 2.5, 0 5" fill="${style.color}"/>
+    </marker>`;
+  }
+  html += `</defs>`;
 
-  html += `<g id="viewport" transform="translate(${state.panX},${state.panY}) scale(${state.zoom})">`;
-
-  // Cluster backgrounds
-  Object.entries(CLUSTERS).forEach(([key, c]) => {
-    if (!state.groups[key]) return;
-    const g = GROUPS[key];
-    html += `<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="12" fill="${g.color}" fill-opacity=".04" stroke="${g.color}" stroke-opacity=".15" stroke-width="1"/>`;
-    html += `<text x="${c.x + 12}" y="${c.y + 16}" fill="${g.color}" opacity=".4" style="font-size:10px;font-weight:600;letter-spacing:.05em;font-family:-apple-system,system-ui,sans-serif">${g.label.toUpperCase()}</text>`;
-  });
+  html += `<g transform="translate(${tx},${ty}) scale(${scale})">`;
 
   // Connections
-  connections.forEach(c => {
-    const fNode = nodeMap[c.from], tNode = nodeMap[c.to];
-    if (!fNode || !tNode) return;
-    if (!state.groups[fNode.group] || !state.groups[tNode.group]) return;
-    if (!state.conns[c.type]) return;
-
-    const ct = CONN_TYPES[c.type];
-    const d = connPath(c.from, c.to);
-    const dash = ct.dash ? `stroke-dasharray="${ct.dash}"` : '';
-    html += `<path d="${d}" stroke="${ct.color}" ${dash} marker-end="url(#arrow-${c.type})" class="conn-path"/>`;
-
-    if (c.label) {
-      const mx = (cx(fNode) + cx(tNode)) / 2;
-      const my = (cy(fNode) + cy(tNode)) / 2;
-      html += `<text x="${mx}" y="${my - 5}" text-anchor="middle" fill="${ct.color}" opacity=".45" style="font-size:8px;font-family:SF Mono,monospace">${c.label}</text>`;
-    }
-  });
+  for (const c of connections) {
+    if (!visible.has(c.from) || !visible.has(c.to)) continue;
+    const f = nodes.find(n => n.id === c.from);
+    const t = nodes.find(n => n.id === c.to);
+    if (!f || !t) continue;
+    const style = connStyles[c.type] || connStyles.dep;
+    const x1 = f.x + f.w/2, y1 = f.y + f.h;
+    const x2 = t.x + t.w/2, y2 = t.y;
+    const my = (y1 + y2) / 2;
+    html += `<path d="M${x1},${y1} C${x1},${my} ${x2},${my} ${x2},${y2}"
+      fill="none" stroke="${style.color}" stroke-width="1.5" opacity="0.5"
+      ${style.dash ? `stroke-dasharray="${style.dash}"` : ''}
+      marker-end="url(#arrow-${c.type})"/>`;
+  }
 
   // Nodes
-  const commentedIds = new Set(state.comments.map(c => c.target));
-  nodes.forEach(n => {
-    if (!state.groups[n.group]) return;
-    const g = GROUPS[n.group];
-    const commented = commentedIds.has(n.id);
-    const stroke = commented ? '#58a6ff' : g.color + '44';
-    const sw = commented ? 2 : 1;
+  for (const n of nodes) {
+    if (!visible.has(n.id)) continue;
+    const col = layers[n.layer]?.color || '#6b7280';
+    html += `<g class="node-group" onclick="showDetail('${n.id}')">
+      <rect class="node-bg" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}"
+        rx="6" fill="${col}18" stroke="${col}66" stroke-width="1.5"/>
+      <text class="node-label" x="${n.x + n.w/2}" y="${n.y + 18}" text-anchor="middle">${n.label}</text>
+      <text class="node-sub" x="${n.x + n.w/2}" y="${n.y + 32}" text-anchor="middle">${n.sub}</text>
+    </g>`;
+  }
 
-    html += `<g class="node-group" onclick="openModal('${n.id}')">`;
-    html += `<rect class="node-bg" x="${n.x}" y="${n.y}" width="${n.w}" height="${n.h}" rx="6" fill="${g.bg}" stroke="${stroke}" stroke-width="${sw}"/>`;
-    html += `<rect x="${n.x}" y="${n.y + 6}" width="3" height="${n.h - 12}" rx="1.5" fill="${g.color}" opacity=".6"/>`;
-    html += `<text class="node-title" x="${n.x + 12}" y="${n.y + 17}">${n.label}</text>`;
-    html += `<text class="node-sub" x="${n.x + 12}" y="${n.y + 30}">${n.subtitle}</text>`;
-    if (n.desc) {
-      html += `<text class="node-desc" x="${n.x + 12}" y="${n.y + 43}">${n.desc}</text>`;
-    }
-    if (commented) {
-      html += `<circle cx="${n.x + n.w - 8}" cy="${n.y + 8}" r="4" fill="#58a6ff"/>`;
-    }
-    html += '</g>';
-  });
-
-  html += '</g>';
+  html += `</g>`;
   svg.innerHTML = html;
+
+  // Stats
+  const eCnt = nodes.filter(n => n.layer === 'entities').length;
+  const pCnt = nodes.filter(n => n.layer === 'plugins').length;
+  const iCnt = nodes.filter(n => n.layer === 'interfaces').length;
+  const sCnt = nodes.filter(n => n.layer === 'shell').length;
+  document.getElementById('stats').innerHTML = `
+    <b>${nodes.length}</b> packages<br>
+    <b>${eCnt}</b> entity plugins · <b>${pCnt}</b> integration plugins<br>
+    <b>${iCnt}</b> interfaces · <b>${sCnt}</b> shell services<br>
+    <b>${connections.length}</b> connections
+  `;
 }
 
-// ── Controls ──
 function renderControls() {
-  document.getElementById('presets').innerHTML = Object.entries(PRESETS).map(([k, v]) =>
-    `<button class="preset-btn ${state.preset === k ? 'active' : ''}" onclick="applyPreset('${k}')">${v.label}</button>`
-  ).join('');
-
-  document.getElementById('group-toggles').innerHTML = Object.entries(GROUPS).map(([k, v]) => {
-    const on = state.groups[k];
-    return `<div class="toggle-row" onclick="toggleGroup('${k}')">
-      <div class="toggle-box ${on ? 'on' : ''}" style="border-color:${v.color};color:${v.color}"></div>
-      <span>${v.label}</span>
-    </div>`;
-  }).join('');
-
-  document.getElementById('conn-toggles').innerHTML = Object.entries(CONN_TYPES).map(([k, v]) => {
-    const on = state.conns[k];
-    const dash = v.dash || 'none';
-    return `<div class="toggle-row" onclick="toggleConn('${k}')">
-      <div class="toggle-box ${on ? 'on' : ''}" style="border-color:${v.color};color:${v.color}"></div>
-      <svg width="22" height="12" style="flex-shrink:0"><line x1="0" y1="6" x2="22" y2="6" stroke="${v.color}" stroke-width="2" stroke-dasharray="${dash}"/></svg>
-      <span>${v.label}</span>
-    </div>`;
-  }).join('');
-
-  renderComments();
-}
-
-function renderComments() {
-  const el = document.getElementById('comments-list');
-  const countEl = document.getElementById('comment-count');
-  if (state.comments.length === 0) {
-    el.innerHTML = '<div class="no-comments">Click a component to add feedback</div>';
-    countEl.textContent = '';
-    return;
+  // Presets
+  let ph = '';
+  for (const name of Object.keys(presets)) {
+    const cls = name === activePreset ? ' active' : '';
+    ph += `<button class="preset-btn${cls}" onclick="setPreset('${name}')">${name}</button>`;
   }
-  countEl.textContent = `(${state.comments.length})`;
-  el.innerHTML = state.comments.map((c, i) =>
-    `<div class="comment-item">
-      <button class="comment-del" onclick="deleteComment(${i})">&times;</button>
-      <div class="comment-target">${c.targetLabel}</div>
-      <div class="comment-file">${c.targetFile}</div>
-      <div class="comment-text">${esc(c.text)}</div>
-    </div>`
-  ).join('');
-}
+  document.getElementById('presets').innerHTML = ph;
 
-function renderLegend() {
-  document.getElementById('legend').innerHTML = Object.entries(CONN_TYPES).map(([k, v]) => {
-    const dash = v.dash || 'none';
-    return `<div class="legend-item">
-      <svg width="24" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke="${v.color}" stroke-width="2" stroke-dasharray="${dash}"/>
-      <polygon points="18,2 24,5 18,8" fill="${v.color}"/></svg>
-      ${v.label}
+  // Layers
+  let lh = '';
+  for (const [key, layer] of Object.entries(layers)) {
+    const cls = layer.on ? ' on' : '';
+    lh += `<div class="toggle-row" onclick="toggleLayer('${key}')">
+      <div class="toggle-box${cls}" style="border-color:${layer.color};color:${layer.color}"></div>
+      ${layer.label}
     </div>`;
-  }).join('');
+  }
+  document.getElementById('layers').innerHTML = lh;
+
+  // Legend
+  let leg = '';
+  for (const [, style] of Object.entries(connStyles)) {
+    leg += `<div class="legend-item"><div class="legend-dot" style="background:${style.color}"></div>${style.label}</div>`;
+  }
+  document.getElementById('legend').innerHTML = leg;
 }
 
-// ── Prompt ──
-function updatePrompt() {
-  const visible = Object.entries(state.groups).filter(([,v]) => v).map(([k]) => GROUPS[k].label);
-  const allVisible = visible.length === ALL_GROUPS.length;
+function setPreset(name) {
+  activePreset = name;
+  presets[name]();
+  renderControls();
+  render();
+}
 
-  let text = 'This is the Brains codebase architecture — a plugin-based personal knowledge management system.\n\n';
+function toggleLayer(key) {
+  layers[key].on = !layers[key].on;
+  activePreset = '';
+  renderControls();
+  render();
+}
 
-  if (allVisible) {
-    text += 'Showing the full system with clustered groups:\n';
-    text += '- Brains: Rover (Professional), Relay (Team), Ranger (Collective) — brain definitions with identity, capabilities, content model\n';
-    text += '- Interfaces: CLI, Matrix, Discord, MCP, Webserver, A2A (Agent-to-Agent)\n';
-    text += '- Content: Note, Blog, Link, Portfolio, Products, Decks, Image, Site Content, Summary, Topics\n';
-    text += '- Shell: Core, App, Plugin Framework, Entity Service, Content Service, Job Queue, Messaging, MCP Service, AI Service (xstate agent), Conversations, Templates, Identity\n';
-    text += '- Layouts: Professional — brain-specific site composition\n';
-    text += '- Publishing: Site Builder, Content Pipeline, Newsletter, Social Media\n';
-    text += '- Sync & Storage: Directory Sync, Git Sync, Obsidian Vault\n';
-    text += '- Shared: Utils, UI Library, Theme Base\n';
-    text += '- System: System, Dashboard, Analytics, Wishlist';
-  } else {
-    text += `Currently focusing on: ${visible.join(', ')}.`;
-  }
+function zoom(factor) {
+  scale *= factor;
+  render();
+}
 
-  if (state.comments.length > 0) {
-    text += '\n\nFeedback on specific components:\n';
-    state.comments.forEach(c => {
-      text += `\n**${c.targetLabel}** (${c.targetFile}):\n${c.text}\n`;
+function resetZoom() {
+  scale = 1; tx = 0; ty = 0;
+  render();
+}
+
+function showDetail(id) {
+  const n = nodes.find(x => x.id === id);
+  if (!n) return;
+  document.getElementById('d-name').textContent = n.label;
+  document.getElementById('d-path').textContent = n.sub;
+  document.getElementById('d-desc').textContent = n.desc;
+
+  const deps = connections.filter(c => c.from === id || c.to === id);
+  if (deps.length) {
+    const items = deps.map(c => {
+      const other = c.from === id ? c.to : c.from;
+      const otherNode = nodes.find(x => x.id === other);
+      const dir = c.from === id ? '→' : '←';
+      return `<span onclick="showDetail('${other}')">${dir} ${otherNode?.label || other}</span>`;
     });
+    document.getElementById('d-deps').innerHTML = 'Connections: ' + items.join(' · ');
+  } else {
+    document.getElementById('d-deps').innerHTML = '';
   }
 
-  document.getElementById('prompt-text').textContent = text;
+  document.getElementById('detail').classList.add('open');
 }
 
-// ── Actions ──
-function applyPreset(key) {
-  state.preset = key;
-  const p = PRESETS[key];
-  ALL_GROUPS.forEach(k => state.groups[k] = p.groups.includes(k));
-  ALL_CONNS.forEach(k => state.conns[k] = p.conns.includes(k));
-  updateAll();
+function closeDetail() {
+  document.getElementById('detail').classList.remove('open');
 }
 
-function toggleGroup(key) {
-  state.groups[key] = !state.groups[key];
-  state.preset = detectPreset();
-  updateAll();
-}
-
-function toggleConn(key) {
-  state.conns[key] = !state.conns[key];
-  state.preset = detectPreset();
-  updateAll();
-}
-
-function detectPreset() {
-  for (const [k, p] of Object.entries(PRESETS)) {
-    const gMatch = ALL_GROUPS.every(g => state.groups[g] === p.groups.includes(g));
-    const cMatch = ALL_CONNS.every(c => state.conns[c] === p.conns.includes(c));
-    if (gMatch && cMatch) return k;
-  }
-  return null;
-}
-
-function openModal(nodeId) {
-  const node = nodeMap[nodeId];
-  if (!node) return;
-  state.modalNode = node;
-  document.getElementById('modal-title').textContent = node.label;
-  document.getElementById('modal-sub').textContent = node.subtitle;
-  document.getElementById('modal-input').value = '';
-  document.getElementById('modal-overlay').classList.add('vis');
-  setTimeout(() => document.getElementById('modal-input').focus(), 50);
-}
-
-function closeModal() {
-  document.getElementById('modal-overlay').classList.remove('vis');
-  state.modalNode = null;
-}
-
-function saveComment() {
-  const text = document.getElementById('modal-input').value.trim();
-  if (!text || !state.modalNode) return;
-  state.comments.push({
-    id: Date.now(),
-    target: state.modalNode.id,
-    targetLabel: state.modalNode.label,
-    targetFile: state.modalNode.subtitle,
-    text,
-  });
-  closeModal();
-  updateAll();
-}
-
-function deleteComment(index) {
-  state.comments.splice(index, 1);
-  updateAll();
-}
-
-function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
-
-function copyPrompt() {
-  const text = document.getElementById('prompt-text').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copy-btn');
-    btn.textContent = 'Copied!';
-    btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
-  });
-}
-
-// ── Zoom / Pan ──
-function zoomIn()    { state.zoom = Math.min(state.zoom * 1.2, 3); render(); }
-function zoomOut()   { state.zoom = Math.max(state.zoom / 1.2, 0.3); render(); }
-function zoomReset() { state.zoom = 1; state.panX = 0; state.panY = 0; render(); }
-
-let dragging = false, lastX = 0, lastY = 0;
+// Pan
+let dragging = false, dragX, dragY;
 document.getElementById('canvas-area').addEventListener('mousedown', e => {
-  if (e.target.closest('.node-group')) return;
-  dragging = true; lastX = e.clientX; lastY = e.clientY;
-  e.preventDefault();
+  if (e.target.closest('.node-group,.zoom-btn,#detail')) return;
+  dragging = true; dragX = e.clientX; dragY = e.clientY;
 });
 document.addEventListener('mousemove', e => {
   if (!dragging) return;
-  state.panX += (e.clientX - lastX) / state.zoom;
-  state.panY += (e.clientY - lastY) / state.zoom;
-  lastX = e.clientX; lastY = e.clientY;
+  tx += e.clientX - dragX; ty += e.clientY - dragY;
+  dragX = e.clientX; dragY = e.clientY;
   render();
 });
-document.addEventListener('mouseup', () => { dragging = false; });
+document.addEventListener('mouseup', () => dragging = false);
 document.getElementById('canvas-area').addEventListener('wheel', e => {
   e.preventDefault();
-  const delta = e.deltaY > 0 ? 0.92 : 1.08;
-  state.zoom = Math.max(0.3, Math.min(3, state.zoom * delta));
-  render();
+  zoom(e.deltaY < 0 ? 1.08 : 1/1.08);
 }, { passive: false });
 
-document.getElementById('modal-input').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); saveComment(); }
-});
-
-// ── Update all ──
-function updateAll() {
-  render();
-  renderControls();
-  updatePrompt();
-}
-
-// ── Init ──
-renderLegend();
-updateAll();
+renderControls();
+render();
 </script>
 </body>
 </html>

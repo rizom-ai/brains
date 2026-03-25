@@ -138,16 +138,98 @@ Every brain instance goes behind Cloudflare (free tier). Standard for all deploy
 
 Kamal needs a health check endpoint. The webserver plugin needs to expose `/health` returning 200 when the brain is initialized. This is also useful for monitoring.
 
+## Apps as standalone repos
+
+Apps (`apps/professional-brain`, `apps/mylittlephoney`, etc.) are currently monorepo workspace packages. They should be standalone repos — each is just brain.yaml + seed-content + secrets. The brain model is the code, the app is the config.
+
+### Why
+
+- Apps are instances, not code — they don't belong in the code repo
+- Aligns with hosted rovers (ranger creates a repo with brain.yaml)
+- Aligns with desktop app (Electrobun creates brain.yaml on first run)
+- Docker image becomes generic (`ghcr.io/rizom-ai/rover`), brain.yaml is mounted
+- Simplifies the monorepo (fewer workspaces, faster installs)
+
+### Standalone app repo structure
+
+```
+yeehaa-brain/             # standalone repo
+  brain.yaml              # instance config (preset, domain, plugin overrides)
+  brain.eval.yaml         # eval config (optional)
+  deploy.yml              # Kamal deploy config
+  seed-content/           # initial content (optional, for new instances)
+  brain-data/             # content (managed by directory-sync + git)
+  .env                    # secrets (not committed)
+```
+
+No package.json, no node_modules, no build step. The Docker image contains the brain model. brain.yaml configures the instance.
+
+### Docker image
+
+One published image per brain model:
+
+```
+ghcr.io/rizom-ai/rover:latest    # rover brain model
+ghcr.io/rizom-ai/ranger:latest   # ranger brain model
+ghcr.io/rizom-ai/relay:latest    # relay brain model
+```
+
+The deploy.yml points to the image. brain.yaml is mounted as a volume. Secrets via env vars.
+
+```yaml
+# deploy.yml
+service: yeehaa-brain
+image: ghcr.io/rizom-ai/rover:latest
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+```
+
+### Migration from monorepo
+
+1. Publish brain model images to GHCR (CI builds on release)
+2. Create standalone repos for existing apps (brain.yaml + deploy.yml)
+3. Move brain-data content repos to be the app repos (they already exist on GitHub)
+4. Delete `apps/` from monorepo
+5. Update CI to build + publish brain model images
+
+### Dev mode
+
+During development, the monorepo can still run apps locally via a dev script that loads brain.yaml and starts the brain model from source. No published image needed.
+
 ## Steps
 
-1. Install Kamal (`gem install kamal` or use Docker image)
-2. Write post-deploy hook (`deploy/hooks/post-deploy`) — Cloudflare + Route 53 API calls
+### Phase 1: Kamal deploy (current apps in monorepo)
+
+1. Install Kamal
+2. Write post-deploy hook — Cloudflare + Route 53 API calls
 3. Create `deploy.yml` for each app (yeehaa, rizom, mylittlephoney)
-4. Set secrets: `kamal env push` (includes Cloudflare + AWS tokens)
-5. First deploy: `kamal setup` (installs kamal-proxy on server)
+4. Set secrets: `kamal env push`
+5. First deploy: `kamal setup`
 6. Run `kamal deploy` — deploys container + sets up DNS/CDN automatically
 7. Verify all 3 instances work
-8. Delete Terraform config, old deploy scripts, Caddyfile templates, Bunny CDN module
+8. Delete Terraform config, old deploy scripts, Caddyfile templates
+
+### Phase 2: Publish brain model images
+
+1. CI pipeline: build + publish `ghcr.io/rizom-ai/rover`, `ranger`, `relay` on release
+2. Tag with version and `latest`
+3. Verify: `docker run ghcr.io/rizom-ai/rover` with a brain.yaml starts correctly
+
+### Phase 3: Standalone app repos
+
+1. Create standalone repos (yeehaa-brain, rizom-brain, mlp-brain)
+2. Move brain.yaml + deploy.yml into each repo
+3. Update deploy.yml to reference published image
+4. Merge brain-data content repos into app repos (or keep separate, brain.yaml points to git remote)
+5. Verify: `kamal deploy` from standalone repo works
+
+### Phase 4: Remove apps from monorepo
+
+1. Delete `apps/` directory
+2. Update CI — monorepo builds packages and publishes images, doesn't deploy
+3. Deploy happens from app repos via `kamal deploy`
 
 ## Key files
 
@@ -159,6 +241,8 @@ Kamal needs a health check endpoint. The webserver plugin needs to expose `/heal
 | `deploy/hooks/post-deploy`        | Create — Cloudflare + Route 53 automation |
 | `deploy/providers/hetzner/`       | Delete after migration                    |
 | `interfaces/webserver/src/`       | Add `/health` endpoint                    |
+| `.github/workflows/`              | Add image publish pipeline                |
+| `apps/`                           | Delete after standalone repos are live    |
 
 ## Verification
 
@@ -169,5 +253,7 @@ Kamal needs a health check endpoint. The webserver plugin needs to expose `/heal
 5. Static assets served from CDN edge
 6. `/mcp` and `/a2a` bypass CDN cache
 7. `kamal rollback` reverts to previous version
-8. New domain deploy (e.g. test.rizom.ai) provisions DNS + CDN automatically
-9. Old Terraform/Caddy config deleted
+8. New domain deploy provisions DNS + CDN automatically
+9. Published brain model images run correctly with mounted brain.yaml
+10. Standalone app repos deploy independently from the monorepo
+11. `apps/` directory deleted from monorepo

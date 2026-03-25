@@ -115,9 +115,9 @@ New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03
 
 OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
 
-### Kamal Deploy (Core Brains)
+### Kamal Deploy + Standalone Apps
 
-Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, DNS + CDN automation via Cloudflare/Route 53 hooks. One command: `kamal deploy`. Same cost (~$20/month for 3 instances). ([plan](./plans/deploy-kamal.md))
+Replace Terraform + SSH + Caddy with Kamal on Hetzner. DNS + CDN automation via Cloudflare/Route 53 hooks. Publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml) — no monorepo workspace. Same pattern as hosted rovers and desktop app. ([plan](./plans/deploy-kamal.md))
 
 ### Hosted Rovers
 

@@ -214,7 +214,7 @@ const items = [
 
   // Medium-term
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "kamal", name: "Kamal Deploy", status: "medium-term", desc: "Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, DNS + CDN via Cloudflare/Route 53 hooks. ~$20/month.", blocks: ["hostedrovers"] },
+  { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "medium-term", desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml). Same pattern as hosted rovers and desktop app.", blocks: ["hostedrovers"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["agentdir", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
 
