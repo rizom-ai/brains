@@ -54,7 +54,33 @@ Newsletter is the only plugin that mixes entity management with integration tool
 
 ### Site-info extraction
 
-Site-info entity type extracted from site-builder. Site-builder keeps its infrastructure role (build tools, route management) but depends on the entity package.
+Site-info entity type extracted from site-builder into `entities/site-info/`.
+
+**What moves:**
+
+- Schema (`siteInfoSchema`, `siteInfoBodySchema`, `siteInfoCTASchema`)
+- Adapter (`SiteInfoAdapter`)
+- Service (`SiteInfoService`)
+- Helpers (`fetchSiteInfo`)
+- Types (`SiteInfo`, `SiteInfoBody`, `SiteInfoCTA`)
+- Datasource (`SiteInfoDataSource`) — refactored to remove site-builder dependencies
+
+**Datasource refactor:** Currently the datasource takes `RouteRegistry` and `profileService` as constructor args. Refactored to use only the `BaseDataSourceContext` passed to `fetch()`:
+
+- Site-info entity: `context.entityService.getEntity("site-info", "site-info")`
+- Profile (socialLinks): `context.entityService.getEntity("anchor-profile", "anchor-profile")`
+- Navigation: message bus `site-builder:navigation:list`
+- Constructor takes only `logger`
+
+**Site-builder changes:**
+
+- Removes entity registration, schema, adapter, service, datasource
+- Imports `@brains/site-info` for types
+- Exposes `site-builder:navigation:list` message handler (already has `site-builder:routes:list`)
+
+**Layout/site changes:**
+
+- Import `SiteInfo`, `SiteInfoCTA`, `fetchSiteInfo` from `@brains/site-info` instead of `@brains/site-builder-plugin`
 
 ### Site-content redesign
 
@@ -87,7 +113,7 @@ Replaces both CorePlugin and ServicePlugin for plugins that provide tools and in
 Complete entity consolidation — all entity types in `entities/`.
 
 1. **Newsletter split**: extract buttondown subscriber tools + API routes into `plugins/buttondown/` (ServicePlugin for now). Move entity part to `entities/newsletter/` (EntityPlugin).
-2. **Site-info**: extract entity type from site-builder into `entities/site-info/` (EntityPlugin).
+2. **Site-info**: extract entity type from site-builder into `entities/site-info/` (EntityPlugin). Refactor datasource to use entityService + message bus instead of RouteRegistry. Update layouts to import from `@brains/site-info`. Add `site-builder:navigation:list` message handler to site-builder.
 3. **Site-content redesign**: move to `entities/site-content/` (EntityPlugin with derive()). Add `edited` flag to metadata. Delete SiteContentService, SiteContentOperations, site-content_generate tool. Update AIContentDataSource to check for stored entity before generating.
 4. Update brain model registrations
 5. Tests
