@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-23
+Last Updated: 2026-03-25
 
 ---
 
@@ -24,7 +24,7 @@ Replaced `disable: [list]` with `preset: minimal | default | pro` + `add`/`remov
 
 ### Git-Sync Merge (2026-03)
 
-Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles file sync + git ops. Serialized with `withLock()`, `LeadingTrailingDebounce`, filesystem cache. ([plan](./plans/merge-git-into-directory-sync.md))
+Merged `@brains/git-sync` into `@brains/directory-sync`. Single plugin handles file sync + git ops. Serialized with `withLock()`, `LeadingTrailingDebounce`, filesystem cache.
 
 ### Unified Entity Tools (2026-03)
 
@@ -33,6 +33,14 @@ Consolidated create/generate tools into `system_create` with prompt-driven routi
 ### Image Performance (2026-03)
 
 Lazy loading + decode hints on image components. Sharp-based WebP conversion + responsive variants at build time. Shared images directory with filesystem cache. Custom image renderer in markdown pipeline.
+
+### Unified Domain Config (2026-03)
+
+Single top-level `domain` in brain.yaml replaces per-plugin URL duplication. Identity service derives productionUrl, previewUrl, A2A endpoint, CMS base_url.
+
+### EntityPlugin — First Pass (2026-03)
+
+New base class for content plugins. Migrated 8 plugins (blog, decks, note, link, portfolio, wishlist, products). Declarative registration of schema, adapter, handler, templates, datasources.
 
 ### Other (2026-03)
 
@@ -47,10 +55,7 @@ Lazy loading + decode hints on image components. Sharp-based WebP conversion + r
 - Pre-compiled hydration for site builds
 - mylittlephoney.com deployed to Hetzner
 - MockShell migration (test harness replaces direct shell access)
-
-### Unified Domain Config (2026-03)
-
-Single top-level `domain` in brain.yaml replaces per-plugin URL duplication. Identity service derives productionUrl, previewUrl, A2A endpoint, CMS base_url. Removed webserver.productionDomain, site-builder.productionUrl, a2a.domain.
+- MCP resources (entity://{type}/{id}, brain://identity, brain://profile) + prompts + resource templates
 
 ---
 
@@ -64,17 +69,23 @@ Default to async task flow — return "working" immediately, caller polls `tasks
 
 ## Planned (Short-term)
 
-### EntityPlugin — Third Plugin Type
+Short-term items are ordered by dependency. Items at the same level can be done in parallel.
 
-New base class for content plugins that define entity types but expose no tools. Declarative registration of schema, adapter, handler, templates, datasources. Migrates 8 plugins (blog, decks, note, link, portfolio, social-media, wishlist, products). Blog's `enhance-series` tool becomes a `series:generation` handler. Packages stay in `plugins/`. ([plan](./plans/entity-plugin.md))
+### 1. Entity Consolidation
 
-### Eval Overhaul
+Add `derive()` to EntityPlugin for event-driven entities. Add `system_extract` tool. Migrate remaining ServicePlugins to EntityPlugin: topics (with derive), series (extracted from blog, with derive), summary (with derive), social-media (with derive), image (entity registration from shell into plugin). Split newsletter into entity + buttondown integration. ([plan](./plans/entity-consolidation.md))
+
+### 2. System Tools to Framework
+
+Move system plugin from a plugin into shell-level registration. Tools, resources, prompts, instructions, and dashboard widgets register directly on shell services. Removes the only plugin that needed `ai.query()` on context. ([plan](./plans/system-to-framework.md))
+
+### 3. Plugin Hierarchy Simplification
+
+Replace 4 plugin classes with 3 siblings: IntegrationPlugin (tools), EntityPlugin (content + derive), InterfacePlugin (transports). One unified PluginContext. Delete CorePlugin, ServicePlugin, and three context types. ([plan](./plans/plugin-hierarchy-simplification.md))
+
+### 4. Eval Overhaul
 
 Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
-
-### MCP Resources & Prompts
-
-Entity resources with URI templates (`entity://{type}/{id}`) make the brain browsable in MCP clients. Workflow prompts (create, generate, review, publish, brainstorm) surface in client prompt pickers. Sampling deferred. ([plan](./plans/mcp-resources-prompts.md))
 
 ### Agent Directory
 
@@ -102,7 +113,7 @@ Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, au
 
 ### Hosted Rovers
 
-Ranger provisions, cluster service runs. Cluster is a lightweight A2A service (not a brain) that spawns rover child processes with on-demand start/stop. Turso (libSQL) for per-rover databases. Shared Discord bot gateway. 1,000 users for ~$50/month. ([plan](./plans/hosted-rovers.md))
+Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zero, Turso for per-rover databases. Shared Discord bot gateway. Wildcard DNS for `*.rover.rizom.ai`. ([plan](./plans/hosted-rovers.md))
 
 ### Media Sidecar
 
@@ -130,26 +141,21 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ---
 
-## Open Questions
-
-### Derived Entity Pattern
-
-Topics and summary don't fit cleanly into EntityPlugin. Their tools derive entities from other entities (topics from posts, summaries from content) — a pattern distinct from creation, orchestration, and building. Missing abstraction to be revisited after EntityPlugin lands.
-
----
-
 ## Dependency Graph
 
 ```
-unified-entity-tools ──→ entity-plugin ──→ eval-overhaul
+1. entity-consolidation (derive, system_extract, series/topics/summary/image migration)
+     ↓
+2. system-to-framework (system tools → shell, removes AI from PluginContext)
+     ↓
+3. plugin-hierarchy-simplification (IntegrationPlugin + unified PluginContext)
+     ↓
+4. eval-overhaul (mode: eval, two runners, result store)
 
 a2a-async ──→ agent-directory ──┐
-                                ├──→ hosted-rovers
+                                ├──→ hosted-rovers (K8s)
 chat-sdk + media-sidecar ──────┘
-       + kamal-deploy ─────────┘
-                ▲
-       standalone-binary
 
 kamal-deploy (independent)
-mcp-resources-prompts (independent)
+rizom.work (independent)
 ```
