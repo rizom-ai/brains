@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import {
@@ -43,9 +43,9 @@ export class TopicExtractionHandler extends BaseJobHandler<
   TopicExtractionResult
 > {
   private topicExtractor: TopicExtractor;
-  private readonly context: ServicePluginContext;
+  private readonly context: EntityPluginContext;
 
-  constructor(context: ServicePluginContext, logger: Logger) {
+  constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
       schema: topicExtractionJobDataSchema,
       jobTypeName: "topic-extraction",

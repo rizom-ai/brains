@@ -5,8 +5,7 @@ import { z } from "@brains/utils";
  * Only requires a HackMD API token.
  */
 export const hackmdConfigSchema = z.object({
-  /** HackMD API token */
-  token: z.string(),
+  token: z.string().min(1),
 });
 
 export type HackMDConfig = z.infer<typeof hackmdConfigSchema>;

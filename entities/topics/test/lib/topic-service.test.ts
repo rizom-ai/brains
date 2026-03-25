@@ -3,14 +3,14 @@ import { TopicService } from "../../src/lib/topic-service";
 import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
-  createServicePluginContext,
+  createEntityPluginContext,
 } from "@brains/plugins/test";
 
 describe("TopicService", () => {
   it("should be instantiable", () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
-    const context = createServicePluginContext(mockShell, "topics");
+    const context = createEntityPluginContext(mockShell, "topics");
     const service = new TopicService(context.entityService, logger);
 
     expect(service).toBeDefined();
@@ -19,7 +19,7 @@ describe("TopicService", () => {
   it("should return null for non-existent topic", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
-    const context = createServicePluginContext(mockShell, "topics");
+    const context = createEntityPluginContext(mockShell, "topics");
     const service = new TopicService(context.entityService, logger);
 
     const result = await service.getTopic("non-existent");
@@ -29,7 +29,7 @@ describe("TopicService", () => {
   it("should return empty array when no topics exist", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
-    const context = createServicePluginContext(mockShell, "topics");
+    const context = createEntityPluginContext(mockShell, "topics");
     const service = new TopicService(context.entityService, logger);
 
     const result = await service.listTopics();
@@ -39,7 +39,7 @@ describe("TopicService", () => {
   it("should return empty search results for empty query", async () => {
     const logger = createSilentLogger();
     const mockShell = createMockShell({ logger });
-    const context = createServicePluginContext(mockShell, "topics");
+    const context = createEntityPluginContext(mockShell, "topics");
     const service = new TopicService(context.entityService, logger);
 
     const result = await service.searchTopics("");

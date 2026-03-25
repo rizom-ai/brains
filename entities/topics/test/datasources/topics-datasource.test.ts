@@ -4,8 +4,8 @@ import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
   type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
+  createEntityPluginContext,
+  type EntityPluginContext,
   type Logger,
 } from "@brains/plugins/test";
 import type { BaseDataSourceContext } from "@brains/plugins";
@@ -13,7 +13,7 @@ import { topicListSchema } from "../../src/templates/topic-list/schema";
 
 describe("TopicsDataSource", () => {
   let dataSource: TopicsDataSource;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let mockContext: BaseDataSourceContext;
   let logger: Logger;
   let mockShell: MockShell;
@@ -21,7 +21,7 @@ describe("TopicsDataSource", () => {
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, "topics");
+    context = createEntityPluginContext(mockShell, "topics");
     dataSource = new TopicsDataSource(logger);
     mockContext = { entityService: context.entityService };
   });

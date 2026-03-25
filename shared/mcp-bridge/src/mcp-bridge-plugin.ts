@@ -78,24 +78,12 @@ export abstract class MCPBridgePlugin<
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private remoteTools: RemoteTool[] = [];
+  private cachedTools: PluginTool[] | null = null;
   private connected = false;
 
-  // ============================================================================
-  // Abstract methods — subclass must implement
-  // ============================================================================
-
-  /** Define how to spawn the MCP server child process */
   protected abstract getServerCommand(): ServerCommand;
-
-  /** Define which remote tool names to expose (allowlist) */
   protected abstract getAllowedTools(): string[];
-
-  /** Provide instructions for the agent about how to use these tools */
   protected abstract getAgentInstructions(): string;
-
-  // ============================================================================
-  // Lifecycle
-  // ============================================================================
 
   protected override async onRegister(
     context: CorePluginContext,
@@ -201,21 +189,20 @@ export abstract class MCPBridgePlugin<
         { error },
       );
       this.remoteTools = [];
+      this.cachedTools = null;
     }
   }
 
-  // ============================================================================
-  // Tool Adaptation
-  // ============================================================================
-
   /**
-   * Convert remote MCP tools into PluginTool[] with:
-   * - Name prefixing (e.g. "search" → "notion_search")
-   * - Error isolation (child crash → error response, not brain crash)
-   * - JSON Schema → Zod shape conversion for inputSchema
+   * Adapt remote MCP tools: prefix names, isolate errors, convert JSON Schema → Zod.
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    return this.remoteTools.map((remote) => this.adaptTool(remote));
+    if (!this.cachedTools) {
+      this.cachedTools = this.remoteTools.map((remote) =>
+        this.adaptTool(remote),
+      );
+    }
+    return this.cachedTools;
   }
 
   /**
@@ -224,7 +211,6 @@ export abstract class MCPBridgePlugin<
   private adaptTool(remote: RemoteTool): PluginTool {
     const pluginId = this.id;
 
-    // Convert JSON Schema properties to a Zod shape for inputSchema
     const zodShape = this.jsonSchemaToZodShape(
       remote.inputSchema.properties ?? {},
       remote.inputSchema.required ?? [],
@@ -288,17 +274,9 @@ export abstract class MCPBridgePlugin<
     }
   }
 
-  // ============================================================================
-  // Instructions
-  // ============================================================================
-
   protected override async getInstructions(): Promise<string> {
     return this.getAgentInstructions();
   }
-
-  // ============================================================================
-  // Shutdown
-  // ============================================================================
 
   protected override async onShutdown(): Promise<void> {
     this.connected = false;
@@ -322,13 +300,9 @@ export abstract class MCPBridgePlugin<
     }
 
     this.remoteTools = [];
+    this.cachedTools = null;
   }
 
-  // ============================================================================
-  // Utilities
-  // ============================================================================
-
-  /** Whether the bridge is currently connected to the remote MCP server */
   public isConnected(): boolean {
     return this.connected;
   }

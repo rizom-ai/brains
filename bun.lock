@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -269,6 +268,23 @@
         "@types/bun": "latest",
         "bun-types": "latest",
         "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/topics": {
+      "name": "@brains/topics",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/ai-evaluation": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/app": "workspace:*",
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
         "typescript": "^5.3.3",
       },
     },
@@ -690,23 +706,6 @@
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "@types/node": "^20.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/topics": {
-      "name": "@brains/topics",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/ai-evaluation": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "@types/node": "^20.0.0",
@@ -1464,7 +1463,7 @@
 
     "@brains/theme-yeehaa": ["@brains/theme-yeehaa@workspace:shared/theme-yeehaa"],
 
-    "@brains/topics": ["@brains/topics@workspace:plugins/topics"],
+    "@brains/topics": ["@brains/topics@workspace:entities/topics"],
 
     "@brains/typescript-config": ["@brains/typescript-config@workspace:shared/typescript-config"],
 

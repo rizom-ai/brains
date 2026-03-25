@@ -15,6 +15,7 @@ Entity plugins extend `EntityPlugin` and have **zero tools**. All entity CRUD go
 | note      | `base`      | Personal notes with markdown-first workflow              |
 | portfolio | `project`   | Portfolio projects with structured case studies          |
 | products  | `product`   | Product entities with marketing overview                 |
+| topics    | `topic`     | AI-extracted topics from posts, links, and other content |
 | wishlist  | `wish`      | Unfulfilled user requests with semantic dedup            |
 
 ## vs plugins/

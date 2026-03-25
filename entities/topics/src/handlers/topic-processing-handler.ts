@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { getErrorMessage, z, PROGRESS_STEPS, JobResult } from "@brains/utils";
@@ -49,7 +49,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
 > {
   private topicService: TopicService;
 
-  constructor(context: ServicePluginContext, logger: Logger) {
+  constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
       schema: topicProcessingJobDataSchema,
       jobTypeName: "topic-processing",

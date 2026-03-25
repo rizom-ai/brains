@@ -1,11 +1,11 @@
 import {
-  ServicePlugin,
-  type ServicePluginContext,
-  type PluginTool,
+  EntityPlugin,
+  type EntityPluginContext,
+  type DataSource,
+  type Template,
   type BaseEntity,
 } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
-import { computeContentHash } from "@brains/utils/hash";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -18,15 +18,24 @@ import { topicExtractionTemplate } from "./templates/extraction-template";
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
+import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
+import { computeContentHash } from "@brains/utils/hash";
 import packageJson from "../package.json";
-import { createTopicsTools } from "./tools";
 
-export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
+const topicAdapter = new TopicAdapter();
+
+export class TopicsPlugin extends EntityPlugin<
+  TopicEntity,
+  TopicsPluginConfig
+> {
+  readonly entityType = "topic";
+  readonly schema = topicEntitySchema;
+  readonly adapter = topicAdapter;
+
   declare protected config: TopicsPluginConfig;
 
   /**
    * Auto-extraction starts disabled and is enabled after initial sync completes.
-   * This prevents flooding the job queue during startup when directory-sync imports entities.
    */
   private autoExtractionEnabled = false;
 
@@ -34,44 +43,36 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     super("topics", packageJson, config, topicsPluginConfigSchema);
   }
 
-  public isAutoExtractionEnabled(): boolean {
-    return this.autoExtractionEnabled;
+  protected override getEntityTypeConfig() {
+    return { weight: 0.5 };
   }
 
-  public enableAutoExtraction(): void {
-    if (this.config.enableAutoExtraction) {
-      this.autoExtractionEnabled = true;
-      this.logger.info("Auto-extraction enabled after initial sync");
-    }
-  }
-
-  override async onRegister(context: ServicePluginContext): Promise<void> {
-    await super.onRegister(context);
-
-    const adapter = new TopicAdapter();
-    context.entities.register("topic", adapter.schema, adapter, {
-      weight: 0.5,
-    });
-
-    context.templates.register({
+  protected override getTemplates(): Record<string, Template> {
+    return {
       extraction: topicExtractionTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
-    });
+    };
+  }
 
-    const topicsDataSource = new TopicsDataSource(
-      this.logger.child("TopicsDataSource"),
-    );
-    context.entities.registerDataSource(topicsDataSource);
+  protected override getDataSources(): DataSource[] {
+    return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
+  }
 
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    // Job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.jobs.registerHandler("process-single", processingHandler);
 
     const extractionHandler = new TopicExtractionHandler(context, this.logger);
     context.jobs.registerHandler("extract", extractionHandler);
 
+    // Eval handlers
     this.registerEvalHandler(context);
 
+    // Event subscriptions for auto-extraction
     if (this.config.enableAutoExtraction) {
       context.messaging.subscribe(
         "sync:initial:completed",
@@ -82,30 +83,21 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       );
 
       const handleEntityEvent = async (message: {
-        payload: { entityType: string; entityId: string; entity?: BaseEntity };
+        payload: {
+          entityType: string;
+          entityId: string;
+          entity?: BaseEntity;
+        };
       }): Promise<{ success: boolean }> => {
-        // Skip if auto-extraction not yet enabled (during startup)
         if (!this.autoExtractionEnabled) {
-          this.logger.debug(
-            "Skipping extraction - auto-extraction not yet enabled",
-            {
-              entityId: message.payload.entityId,
-            },
-          );
           return { success: true };
         }
 
         const { entityType, entity } = message.payload;
-
         if (!this.shouldProcessEntityType(entityType)) {
           return { success: true };
         }
-
         if (!entity) {
-          this.logger.debug("Entity not included in event payload, skipping", {
-            entityType,
-            entityId: message.payload.entityId,
-          });
           return { success: true };
         }
 
@@ -118,78 +110,46 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     }
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
-    return createTopicsTools(this.getContext(), (options) =>
-      this.getEntitiesToExtract(options),
-    );
+  // ── derive() / deriveAll() ──
+
+  /**
+   * Extract topics from a single source entity.
+   */
+  public override async derive(
+    source: BaseEntity,
+    _event: string,
+    context: EntityPluginContext,
+  ): Promise<void> {
+    if (!this.shouldProcessEntityType(source.entityType)) return;
+    if (!this.isEntityPublished(source)) return;
+    await this.handleEntityChanged(context, source);
   }
 
-  public getExtractableEntityTypes(): string[] {
-    const allTypes = this.getContext().entityService.getEntityTypes();
-    return allTypes.filter((type) => this.shouldProcessEntityType(type));
-  }
-
-  public async getEntitiesToExtract(options?: {
-    entityTypes?: string[] | undefined;
-    limit?: number | undefined;
-    force?: boolean | undefined;
-  }): Promise<BaseEntity[]> {
-    const context = this.getContext();
-    const { entityTypes, limit, force = false } = options ?? {};
-
-    // Determine which types to process
-    const typesToProcess =
-      entityTypes && entityTypes.length > 0
-        ? entityTypes.filter((t) => this.shouldProcessEntityType(t))
-        : this.getExtractableEntityTypes();
-
-    // Get processed content hashes from existing topics (unless force=true)
-    const processedHashes = new Set<string>();
-    if (!force) {
-      const topics = await context.entityService.listEntities("topic");
-      for (const topic of topics) {
-        const metadata = topic.metadata as {
-          sources?: Array<{ contentHash?: string }>;
-        };
-        if (metadata.sources) {
-          for (const source of metadata.sources) {
-            if (source.contentHash) {
-              processedHashes.add(source.contentHash);
-            }
-          }
-        }
-      }
+  /**
+   * Batch re-extract topics from all source entities.
+   */
+  public override async deriveAll(context: EntityPluginContext): Promise<void> {
+    const toExtract = await this.getEntitiesToExtract(context);
+    for (const entity of toExtract) {
+      await this.handleEntityChanged(context, entity);
     }
-
-    // Collect entities to extract
-    const toExtract: BaseEntity[] = [];
-    for (const type of typesToProcess) {
-      const entities = await context.entityService.listEntities(type);
-      for (const entity of entities) {
-        // Skip drafts
-        if (!this.isEntityPublished(entity)) {
-          continue;
-        }
-        // Skip already processed (unless force)
-        if (!force && processedHashes.has(entity.contentHash)) {
-          continue;
-        }
-        toExtract.push(entity);
-      }
-    }
-
-    // Apply limit if specified
-    return limit !== undefined ? toExtract.slice(0, limit) : toExtract;
   }
 
-  protected override async onShutdown(): Promise<void> {
-    this.logger.info("Shutting down Topics plugin");
+  // ── Public helpers (used by tests) ──
+
+  public isAutoExtractionEnabled(): boolean {
+    return this.autoExtractionEnabled;
+  }
+
+  public enableAutoExtraction(): void {
+    if (this.config.enableAutoExtraction) {
+      this.autoExtractionEnabled = true;
+      this.logger.info("Auto-extraction enabled after initial sync");
+    }
   }
 
   public shouldProcessEntityType(entityType: string): boolean {
-    if (entityType === "topic") {
-      return false;
-    }
+    if (entityType === "topic") return false;
     return this.config.includeEntityTypes.includes(entityType);
   }
 
@@ -199,29 +159,54 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     return status === "published" || status === undefined || status === null;
   }
 
-  private async handleEntityChanged(
-    context: ServicePluginContext,
-    entity: BaseEntity,
-  ): Promise<void> {
-    // Skip draft entities - only extract topics from published content
-    if (!this.isEntityPublished(entity)) {
-      this.logger.debug("Skipping topic extraction for draft entity", {
-        entityId: entity.id,
-        entityType: entity.entityType,
-      });
-      return;
+  // ── Private helpers ──
+
+  private async getEntitiesToExtract(
+    context: EntityPluginContext,
+  ): Promise<BaseEntity[]> {
+    const typesToProcess = this.getExtractableEntityTypes(context);
+
+    // Get processed content hashes from existing topics
+    const processedHashes = new Set<string>();
+    const topics = await context.entityService.listEntities("topic");
+    for (const topic of topics) {
+      const metadata = topic.metadata as {
+        sources?: Array<{ contentHash?: string }>;
+      };
+      if (metadata.sources) {
+        for (const source of metadata.sources) {
+          if (source.contentHash) {
+            processedHashes.add(source.contentHash);
+          }
+        }
+      }
     }
 
-    try {
-      this.logger.debug("Queuing topic extraction for entity", {
-        entityId: entity.id,
-        entityType: entity.entityType,
-        contentHash: entity.contentHash,
-      });
+    const toExtract: BaseEntity[] = [];
+    for (const type of typesToProcess) {
+      const entities = await context.entityService.listEntities(type);
+      for (const entity of entities) {
+        if (!this.isEntityPublished(entity)) continue;
+        if (processedHashes.has(entity.contentHash)) continue;
+        toExtract.push(entity);
+      }
+    }
 
-      // Queue extraction job - the AI extraction runs asynchronously
-      // This prevents blocking entity creation/updates
-      // Job data is minimal (no content) to avoid large base64 data in job queue
+    return toExtract;
+  }
+
+  private getExtractableEntityTypes(context: EntityPluginContext): string[] {
+    const allTypes = context.entityService.getEntityTypes();
+    return allTypes.filter((type) => this.shouldProcessEntityType(type));
+  }
+
+  private async handleEntityChanged(
+    context: EntityPluginContext,
+    entity: BaseEntity,
+  ): Promise<void> {
+    if (!this.isEntityPublished(entity)) return;
+
+    try {
       await context.jobs.enqueue(
         "extract",
         {
@@ -234,7 +219,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
         },
         null,
         {
-          priority: 5, // Low priority - background processing
+          priority: 5,
           source: "topics-plugin",
           metadata: {
             operationType: "data_processing" as const,
@@ -243,11 +228,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
           },
         },
       );
-
-      this.logger.debug("Queued topic extraction job", {
-        entityId: entity.id,
-        entityType: entity.entityType,
-      });
     } catch (error) {
       this.logger.error("Failed to queue topic extraction job", {
         error: getErrorMessage(error),
@@ -257,7 +237,7 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
     }
   }
 
-  private registerEvalHandler(context: ServicePluginContext): void {
+  private registerEvalHandler(context: EntityPluginContext): void {
     const extractor = new TopicExtractor(context, this.logger);
 
     const entityInputSchema = z.object({
@@ -288,7 +268,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       return extractor.extractFromEntity(entity, minRelevanceScore);
     };
 
-    // Single entity extraction
     const extractInputSchema = entityInputSchema.extend({
       minRelevanceScore: z.number().optional(),
     });
@@ -303,7 +282,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
       },
     );
 
-    // Merge similarity check - tests if two pieces of content produce matching topics
     const mergeTestInputSchema = z.object({
       contentA: entityInputSchema,
       contentB: entityInputSchema,
@@ -322,7 +300,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
           extractTopics(parsed.contentB, minScore, "-b"),
         ]);
 
-        // Check for matching titles (case-insensitive)
         const titlesA = topicsA.map((t) => t.title.toLowerCase());
         const titlesB = topicsB.map((t) => t.title.toLowerCase());
         const matchingTitles = titlesA.filter((title) =>
@@ -342,10 +319,6 @@ export class TopicsPlugin extends ServicePlugin<TopicsPluginConfig> {
           wouldMerge: matchingTitles.length > 0,
         };
       },
-    );
-
-    this.logger.debug(
-      "Registered eval handlers: topics:extractFromEntity, topics:checkMergeSimilarity",
     );
   }
 }

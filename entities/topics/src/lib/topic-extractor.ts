@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext, BaseEntity } from "@brains/plugins";
+import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicSource } from "../schemas/topic";
 import type { ExtractedTopicData } from "../schemas/extraction";
@@ -16,7 +16,7 @@ export interface ExtractedTopic extends ExtractedTopicData {
  */
 export class TopicExtractor {
   constructor(
-    private readonly context: ServicePluginContext,
+    private readonly context: EntityPluginContext,
     private readonly logger: Logger,
   ) {}
 

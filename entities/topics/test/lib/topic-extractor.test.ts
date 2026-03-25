@@ -4,22 +4,22 @@ import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
   type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
+  createEntityPluginContext,
+  type EntityPluginContext,
   type Logger,
 } from "@brains/plugins/test";
 import { createMockBaseEntity } from "../fixtures/topic-entities";
 
 describe("TopicExtractor", () => {
   let extractor: TopicExtractor;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let logger: Logger;
   let mockShell: MockShell;
 
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, "topics");
+    context = createEntityPluginContext(mockShell, "topics");
     extractor = new TopicExtractor(context, logger);
   });
 
