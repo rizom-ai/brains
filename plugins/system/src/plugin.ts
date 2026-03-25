@@ -707,32 +707,19 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     const data: { sourceId?: string; sourceType?: string } = {};
 
     if (source) {
-      // Find the source entity to determine its type
-      const entity = await this.getContext().entityService.getEntity(
-        // Search all entity types — source could be any type
-        // We don't know the source type, so find it by ID across types
-        entityType,
-        source,
-      );
-      // If not found in the same entity type, search across all types
-      if (!entity) {
-        for (const type of this.getEntityTypes()) {
-          const found = await this.getContext().entityService.getEntity(
-            type,
-            source,
-          );
-          if (found) {
-            data.sourceId = found.id;
-            data.sourceType = found.entityType;
-            break;
-          }
+      for (const type of this.getEntityTypes()) {
+        const found = await this.getContext().entityService.getEntity(
+          type,
+          source,
+        );
+        if (found) {
+          data.sourceId = found.id;
+          data.sourceType = found.entityType;
+          break;
         }
-        if (!data.sourceId) {
-          throw new Error(`Source entity not found: ${source}`);
-        }
-      } else {
-        data.sourceId = entity.id;
-        data.sourceType = entity.entityType;
+      }
+      if (!data.sourceId) {
+        throw new Error(`Source entity not found: ${source}`);
       }
     }
 

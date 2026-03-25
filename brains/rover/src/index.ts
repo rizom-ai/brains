@@ -9,6 +9,7 @@ import { A2AInterface } from "@brains/a2a";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { blogPlugin } from "@brains/blog";
+import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
 import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
@@ -54,6 +55,7 @@ const standard = [
   "image",
   "dashboard",
   "blog",
+  "series",
   "decks",
   "analytics",
   "obsidian-vault",
@@ -77,6 +79,7 @@ const evaluation = [
   "image",
   "dashboard",
   "blog",
+  "series",
   "decks",
   "note",
   "link",
@@ -108,6 +111,7 @@ export default defineBrain({
     ["image", imagePlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],
+    ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

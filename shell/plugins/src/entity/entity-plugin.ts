@@ -14,6 +14,8 @@ import { createEntityPluginContext } from "./context";
 
 const emptyConfigSchema = z.object({});
 
+export type DeriveEvent = "created" | "updated" | "deleted" | "extract";
+
 /**
  * Base class for entity plugins — plugins that define an entity type
  * with adapter, optional generation handler, templates, and datasources.
@@ -137,11 +139,15 @@ export abstract class EntityPlugin<
    * Called automatically during registration when hasDeriveHandler() is true.
    */
   private createExtractHandler(context: EntityPluginContext): JobHandler {
+    const extractDataSchema = z.object({
+      sourceId: z.string().optional(),
+      sourceType: z.string().optional(),
+    });
+
     return {
-      process: async (data: {
-        sourceId?: string;
-        sourceType?: string;
-      }): Promise<{ extracted: number }> => {
+      process: async (
+        data: z.infer<typeof extractDataSchema>,
+      ): Promise<{ extracted: number }> => {
         if (data.sourceId && data.sourceType) {
           const source = await context.entityService.getEntity(
             data.sourceType,
@@ -153,20 +159,15 @@ export abstract class EntityPlugin<
           }
           return { extracted: 0 };
         }
-        // Batch mode — no source specified, subclass handles via derive()
+        // Batch mode — no source specified, call deriveAll()
+        await this.deriveAll(context);
         return { extracted: 0 };
       },
       validateAndParse(
         data: unknown,
-      ): { sourceId?: string; sourceType?: string } | null {
-        if (data === null || data === undefined) return {};
-        if (typeof data !== "object") return null;
-        const d = data as Record<string, unknown>;
-        const result: { sourceId?: string; sourceType?: string } = {};
-        if (typeof d["sourceId"] === "string") result.sourceId = d["sourceId"];
-        if (typeof d["sourceType"] === "string")
-          result.sourceType = d["sourceType"];
-        return result;
+      ): z.infer<typeof extractDataSchema> | null {
+        const result = extractDataSchema.safeParse(data ?? {});
+        return result.success ? result.data : null;
       },
     };
   }
@@ -186,6 +187,17 @@ export abstract class EntityPlugin<
     _context: EntityPluginContext,
   ): Promise<void> {
     // No-op by default — subclasses override to implement derivation logic
+  }
+
+  /**
+   * Override to batch-derive all entities of this type.
+   * Called by `system_extract` when no source is specified.
+   *
+   * Subclasses implement full resync logic here (e.g. series syncs
+   * from all entities with seriesName, topics re-extracts from all posts).
+   */
+  public async deriveAll(_context: EntityPluginContext): Promise<void> {
+    // No-op by default — subclasses override for batch derivation
   }
 
   /**

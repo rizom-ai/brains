@@ -4,7 +4,7 @@
 
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export { EntityPlugin } from "./entity/entity-plugin";
+export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
 export type { EntityPluginContext } from "./entity/context";
 export { createEntityPluginContext } from "./entity/context";
 export { CorePlugin } from "./core/core-plugin";

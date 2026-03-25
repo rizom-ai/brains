@@ -126,6 +126,7 @@
         "@brains/note": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
         "@brains/portfolio": "workspace:*",
+        "@brains/series": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-default": "workspace:*",
         "@brains/social-media": "workspace:*",
@@ -243,6 +244,26 @@
       "devDependencies": {
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/series": {
+      "name": "@brains/series",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
@@ -1341,6 +1362,8 @@
     "@brains/relay": ["@brains/relay@workspace:brains/relay"],
 
     "@brains/rover": ["@brains/rover@workspace:brains/rover"],
+
+    "@brains/series": ["@brains/series@workspace:entities/series"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
 

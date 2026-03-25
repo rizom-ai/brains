@@ -6,15 +6,16 @@ Entity plugins extend `EntityPlugin` and have **zero tools**. All entity CRUD go
 
 ## Plugins
 
-| Plugin    | Entity Type | Description                                        |
-| --------- | ----------- | -------------------------------------------------- |
-| blog      | `post`      | Blog posts with frontmatter, publish pipeline, RSS |
-| decks     | `deck`      | Slide decks with markdown directives               |
-| link      | `link`      | Web links with AI-powered content extraction       |
-| note      | `base`      | Personal notes with markdown-first workflow        |
-| portfolio | `project`   | Portfolio projects with structured case studies    |
-| products  | `product`   | Product entities with marketing overview           |
-| wishlist  | `wish`      | Unfulfilled user requests with semantic dedup      |
+| Plugin    | Entity Type | Description                                              |
+| --------- | ----------- | -------------------------------------------------------- |
+| blog      | `post`      | Blog posts with frontmatter, publish pipeline, RSS       |
+| series    | `series`    | Cross-content series, auto-derived from seriesName field |
+| decks     | `deck`      | Slide decks with markdown directives                     |
+| link      | `link`      | Web links with AI-powered content extraction             |
+| note      | `base`      | Personal notes with markdown-first workflow              |
+| portfolio | `project`   | Portfolio projects with structured case studies          |
+| products  | `product`   | Product entities with marketing overview                 |
+| wishlist  | `wish`      | Unfulfilled user requests with semantic dedup            |
 
 ## vs plugins/
 

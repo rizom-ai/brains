@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
-import { EntityPlugin } from "../../src/entity/entity-plugin";
+import { EntityPlugin, type DeriveEvent } from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import { z } from "@brains/utils";
 import type { BaseEntity } from "@brains/entity-service";
@@ -59,19 +59,27 @@ class DerivedEntityPlugin extends EntityPlugin<TestEntity> {
   readonly adapter = new TestAdapter();
   public deriveCalls: Array<{
     source: BaseEntity;
-    event: string;
+    event: DeriveEvent;
   }> = [];
 
   constructor() {
     super("derived-item", testPkg);
   }
 
+  public deriveAllCalled = false;
+
   public override async derive(
     source: BaseEntity,
-    event: string,
+    event: DeriveEvent,
     _context: EntityPluginContext,
   ): Promise<void> {
     this.deriveCalls.push({ source, event });
+  }
+
+  public override async deriveAll(
+    _context: EntityPluginContext,
+  ): Promise<void> {
+    this.deriveAllCalled = true;
   }
 }
 
@@ -175,6 +183,25 @@ describe("EntityPlugin", () => {
 
       expect(plugin.deriveCalls).toHaveLength(2);
       expect(plugin.deriveCalls[1]?.event).toBe("updated");
+    });
+
+    it("should call deriveAll() directly", async () => {
+      const plugin = new DerivedEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const context = harness.getEntityContext(plugin.id);
+      await plugin.deriveAll(context);
+
+      expect(plugin.deriveAllCalled).toBe(true);
+    });
+
+    it("should default deriveAll() to no-op for plugins without it", async () => {
+      const plugin = new TestEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const context = harness.getEntityContext(plugin.id);
+      // Should not throw
+      await plugin.deriveAll(context);
     });
   });
 
