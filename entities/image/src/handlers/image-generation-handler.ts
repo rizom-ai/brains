@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
@@ -69,9 +69,9 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
   ImageGenerationJobData,
   ImageGenerationResult
 > {
-  private readonly context: ServicePluginContext;
+  private readonly context: EntityPluginContext;
 
-  constructor(context: ServicePluginContext, logger: Logger) {
+  constructor(context: EntityPluginContext, logger: Logger) {
     super(logger, {
       schema: imageGenerationJobDataSchema,
       jobTypeName: "image-generate",

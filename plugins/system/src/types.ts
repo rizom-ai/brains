@@ -96,4 +96,13 @@ export interface ISystemPlugin {
     entityType: string,
     source?: string,
   ): Promise<{ jobId: string }>;
+
+  /**
+   * Set or remove cover image on an entity
+   */
+  setCoverImage(
+    entityType: string,
+    entityId: string,
+    imageId: string | null,
+  ): Promise<void>;
 }

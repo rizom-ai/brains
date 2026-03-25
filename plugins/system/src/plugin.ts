@@ -1,4 +1,5 @@
 import { ServicePlugin, findEntityByIdentifier } from "@brains/plugins";
+import { setCoverImageId } from "@brains/utils";
 import type {
   PluginTool,
   PluginResource,
@@ -725,6 +726,38 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
 
     const jobId = await this.enqueueJob(jobType, data);
     return { jobId };
+  }
+
+  /**
+   * Set or remove cover image on an entity
+   */
+  public async setCoverImage(
+    entityType: string,
+    entityId: string,
+    imageId: string | null,
+  ): Promise<void> {
+    const entity = await this.findEntity(entityType, entityId);
+    if (!entity) {
+      throw new Error(`Entity not found: ${entityType}/${entityId}`);
+    }
+
+    // Check adapter supports cover images
+    const adapter = this.getContext().entities.getAdapter(entityType);
+    if (!adapter?.supportsCoverImage) {
+      throw new Error(
+        `Entity type '${entityType}' doesn't support cover images`,
+      );
+    }
+
+    if (imageId) {
+      const image = await this.getEntity("image", imageId);
+      if (!image) {
+        throw new Error(`Image not found: ${imageId}`);
+      }
+    }
+
+    const updated = setCoverImageId(entity, imageId);
+    await this.updateEntity(updated);
   }
 
   /**

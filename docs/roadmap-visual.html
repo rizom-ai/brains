@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Brains Project Roadmap</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: #0d1117;
+    color: #c9d1d9;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .header {
+    padding: 32px 40px 16px;
+    border-bottom: 1px solid #21262d;
+  }
+  .header h1 { font-size: 24px; font-weight: 600; color: #f0f6fc; }
+  .header p { font-size: 13px; color: #8b949e; margin-top: 4px; }
+  .legend {
+    display: flex; gap: 20px; padding: 12px 40px;
+    border-bottom: 1px solid #21262d; font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 10px; height: 10px; border-radius: 50%;
+  }
+  .main { display: flex; height: calc(100vh - 110px); }
+  .graph {
+    flex: 1; overflow: auto; padding: 32px 40px;
+    position: relative;
+  }
+  .detail-panel {
+    width: 380px; border-left: 1px solid #21262d;
+    padding: 24px; overflow-y: auto;
+    background: #161b22; display: none;
+  }
+  .detail-panel.open { display: block; }
+  .detail-panel h2 { font-size: 16px; color: #f0f6fc; margin-bottom: 4px; }
+  .detail-panel .status-badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px;
+    border-radius: 10px; margin-bottom: 12px;
+  }
+  .detail-panel .desc { font-size: 13px; line-height: 1.6; color: #8b949e; }
+  .detail-panel .deps { margin-top: 16px; }
+  .detail-panel .deps h3 { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .detail-panel .dep-item {
+    font-size: 12px; padding: 4px 0; color: #58a6ff; cursor: pointer;
+  }
+  .detail-panel .dep-item:hover { text-decoration: underline; }
+  .close-btn {
+    position: absolute; top: 16px; right: 16px;
+    background: none; border: none; color: #8b949e; cursor: pointer;
+    font-size: 18px;
+  }
+  .close-btn:hover { color: #f0f6fc; }
+
+  /* Sections */
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: #8b949e; margin-bottom: 12px; font-weight: 600;
+  }
+
+  /* Pipeline */
+  .pipeline {
+    display: flex; align-items: center; gap: 0;
+    margin-bottom: 24px; flex-wrap: wrap;
+  }
+  .pipeline-arrow {
+    color: #30363d; font-size: 20px; margin: 0 4px;
+    user-select: none;
+  }
+
+  /* Cards */
+  .card-row {
+    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
+  }
+  .card {
+    padding: 10px 14px; border-radius: 8px;
+    border: 1px solid #21262d; cursor: pointer;
+    transition: all 0.15s ease; min-width: 180px; max-width: 280px;
+    position: relative;
+  }
+  .card:hover { border-color: #58a6ff; transform: translateY(-1px); }
+  .card.selected { border-color: #58a6ff; box-shadow: 0 0 0 1px #58a6ff; }
+  .card .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+  .card .brief { font-size: 11px; color: #8b949e; line-height: 1.4; }
+  .card .step-num {
+    position: absolute; top: -8px; left: -8px;
+    background: #58a6ff; color: #0d1117; font-size: 10px;
+    font-weight: 700; width: 18px; height: 18px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* Status colors */
+  .card.completed { background: #0d1117; border-color: #1a2a1a; opacity: 0.55; }
+  .card.completed .name { color: #3fb950; }
+  .card.completed:hover { opacity: 0.8; }
+
+  .card.in-progress { background: #1c1a0e; border-color: #3d3520; }
+  .card.in-progress .name { color: #d29922; }
+
+  .card.short-term { background: #0d1a2d; border-color: #1a3050; }
+  .card.short-term .name { color: #58a6ff; }
+
+  .card.medium-term { background: #151520; border-color: #252540; }
+  .card.medium-term .name { color: #bc8cff; }
+
+  .card.long-term { background: #12151a; border-color: #21262d; }
+  .card.long-term .name { color: #8b949e; }
+
+  .badge-completed { background: #1a2a1a; color: #3fb950; }
+  .badge-in-progress { background: #1c1a0e; color: #d29922; }
+  .badge-short-term { background: #0d1a2d; color: #58a6ff; }
+  .badge-medium-term { background: #151520; color: #bc8cff; }
+  .badge-long-term { background: #12151a; color: #8b949e; }
+
+  .dot-completed { background: #3fb950; }
+  .dot-in-progress { background: #d29922; }
+  .dot-short-term { background: #58a6ff; }
+  .dot-medium-term { background: #bc8cff; }
+  .dot-long-term { background: #8b949e; }
+
+  /* Dependency graph SVG */
+  .dep-graph {
+    margin-top: 8px; padding: 20px;
+    background: #161b22; border-radius: 8px; border: 1px solid #21262d;
+  }
+  .dep-graph h3 {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+    color: #8b949e; margin-bottom: 16px; font-weight: 600;
+  }
+  .dep-node {
+    display: inline-flex; align-items: center; padding: 5px 10px;
+    border-radius: 6px; font-size: 11px; font-weight: 500;
+    margin: 3px; cursor: pointer; transition: all 0.15s;
+  }
+  .dep-node:hover { filter: brightness(1.3); }
+  .dep-node.s-done { background: #1a2a1a; color: #3fb950; }
+  .dep-node.s-wip { background: #1c1a0e; color: #d29922; }
+  .dep-node.s-next { background: #0d1a2d; color: #58a6ff; }
+  .dep-node.s-mid { background: #151520; color: #bc8cff; }
+  .dep-node.s-far { background: #12151a; color: #8b949e; }
+  .dep-row { display: flex; align-items: center; margin-bottom: 6px; }
+  .dep-arrow { color: #30363d; margin: 0 6px; font-size: 14px; }
+  .dep-label { font-size: 10px; color: #484f58; margin-left: 8px; }
+  .dep-group { margin-bottom: 16px; }
+  .dep-group-title { font-size: 10px; color: #484f58; margin-bottom: 6px; }
+  .dep-plus { color: #30363d; margin: 0 4px; font-size: 12px; }
+
+  /* Completed grid */
+  .completed-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 8px;
+  }
+  .completed-grid .card { min-width: unset; max-width: unset; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Brains Project Roadmap</h1>
+  <p>Last updated: 2026-03-25 — Click any item for details</p>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot dot-completed"></div> Completed</div>
+  <div class="legend-item"><div class="legend-dot dot-in-progress"></div> In Progress</div>
+  <div class="legend-item"><div class="legend-dot dot-short-term"></div> Short-term</div>
+  <div class="legend-item"><div class="legend-dot dot-medium-term"></div> Medium-term</div>
+  <div class="legend-item"><div class="legend-dot dot-long-term"></div> Long-term</div>
+</div>
+
+<div class="main">
+  <div class="graph" id="graph"></div>
+  <div class="detail-panel" id="detail">
+    <button class="close-btn" onclick="closeDetail()">&times;</button>
+    <div id="detail-content"></div>
+  </div>
+</div>
+
+<script>
+const items = [
+  // Completed
+  { id: "v1", name: "Professional-Brain v1.0", status: "completed", desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Matrix/Discord/MCP interfaces, git sync, CMS, Hetzner deploy, 7 themes.", date: "2026-01" },
+  { id: "refactor", name: "Codebase Refactor", status: "completed", desc: "Brain model/instance split, layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, barrel export cleanup. ~2,860 lines eliminated.", date: "2026-02/03" },
+  { id: "sites", name: "Site Packages", status: "completed", desc: "Theme + layout + routes into reusable packages. Brain models reference a default site; instances override via brain.yaml.", date: "2026-03" },
+  { id: "presets", name: "Enable-Based Presets", status: "completed", desc: "preset: minimal | default | pro with add/remove. Curated plugin subsets for rover, ranger, relay.", date: "2026-03" },
+  { id: "gitsync", name: "Git-Sync Merge", status: "completed", desc: "Merged into directory-sync. Single plugin: file sync + git ops. withLock(), LeadingTrailingDebounce.", date: "2026-03" },
+  { id: "entitytools", name: "Unified Entity Tools", status: "completed", desc: "system_create/update/delete with prompt-driven routing. Removed ~8 plugin-specific tools.", date: "2026-03" },
+  { id: "imgperf", name: "Image Performance", status: "completed", desc: "Lazy loading, WebP via Sharp, responsive variants, shared images directory, filesystem cache.", date: "2026-03" },
+  { id: "domain", name: "Unified Domain Config", status: "completed", desc: "Single domain in brain.yaml. Identity service derives all URLs.", date: "2026-03" },
+  { id: "entityplugin", name: "EntityPlugin + Consolidation", status: "completed", desc: "New base class. Migrated all content plugins. derive() + system_extract. Series extracted from blog. entities/ workspace.", date: "2026-03" },
+  { id: "mcpbridge", name: "MCP Bridge", status: "completed", desc: "MCPBridgePlugin base class. Spawns upstream MCP servers, discovers tools, prefixes + error isolation. Notion + HackMD.", date: "2026-03" },
+  { id: "a2aasync", name: "A2A Non-Blocking", status: "completed", desc: "Async task flow — return 'working' immediately, caller polls. Stale task protection.", date: "2026-03" },
+  { id: "other", name: "Other (2026-03)", status: "completed", desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.", date: "2026-03" },
+
+  // In Progress
+  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Newsletter split (entity + buttondown integration). Image migration (entity registration from shell into plugin, image_set-cover → system_set-cover).", deps: ["entityplugin"], blocks: ["sysframework"] },
+
+  // Short-term pipeline
+  { id: "sysframework", name: "System Tools to Framework", status: "short-term", step: 1, desc: "Move system plugin into shell-level registration. Tools, resources, prompts, instructions, widgets register directly. Removes AI from PluginContext.", deps: ["entityremain"], blocks: ["hierarchy"] },
+  { id: "hierarchy", name: "Plugin Hierarchy Simplification", status: "short-term", step: 2, desc: "3 siblings: IntegrationPlugin (tools), EntityPlugin (content + derive), InterfacePlugin (transports). One unified PluginContext. Delete CorePlugin + ServicePlugin.", deps: ["sysframework"], blocks: ["eval"] },
+  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 3, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines.", deps: ["hierarchy"], blocks: ["chatsdk"] },
+  { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", step: 4, desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp.", deps: ["hierarchy"], blocks: ["hostedrovers", "desktopapp"] },
+
+  // Short-term independent
+  { id: "agentdir", name: "Agent Directory", status: "short-term", desc: "Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves by name.", blocks: ["hostedrovers"] },
+  { id: "blockio", name: "Blocking I/O Elimination", status: "short-term", desc: "Async FS in webserver + directory-sync. Worker thread for site builds. MCP/Discord stay responsive during builds." },
+  { id: "rizomwork", name: "rizom.work", status: "short-term", desc: "New relay instance with Discord, rizom theme variations." },
+
+  // Medium-term
+  { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
+  { id: "kamal", name: "Kamal Deploy", status: "medium-term", desc: "Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, DNS + CDN via Cloudflare/Route 53 hooks. ~$20/month.", blocks: ["hostedrovers"] },
+  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["agentdir", "chatsdk", "mediasidecar"] },
+  { id: "mediasidecar", name: "Media Sidecar", status: "medium-term", desc: "Extract ONNX (embeddings) + Sharp (images) into sidecar process. Brain drops to ~1GB. Enables per-rover hosting + desktop app.", blocks: ["hostedrovers", "desktopapp"] },
+
+  // Long-term
+  { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat. Presets + interfaces orthogonal.", deps: ["chatsdk", "mediasidecar"] },
+  { id: "agentregistry", name: "Ranger as Agent Registry", status: "long-term", desc: "Central discovery: brains search ranger for agents by capability. Builds on agent directory + hosted rovers." },
+  { id: "webui", name: "Web UI", status: "long-term", desc: "Browser interface beyond static site." },
+  { id: "obsidian", name: "Obsidian Community Plugin", status: "long-term", desc: "Chat, publish, generate from inside Obsidian via MCP HTTP." },
+];
+
+const statusLabels = {
+  "completed": "Completed",
+  "in-progress": "In Progress",
+  "short-term": "Short-term",
+  "medium-term": "Medium-term",
+  "long-term": "Long-term"
+};
+
+const badgeClass = {
+  "completed": "badge-completed",
+  "in-progress": "badge-in-progress",
+  "short-term": "badge-short-term",
+  "medium-term": "badge-medium-term",
+  "long-term": "badge-long-term"
+};
+
+let selectedId = null;
+
+function renderCard(item) {
+  const sel = selectedId === item.id ? " selected" : "";
+  const stepHtml = item.step ? `<div class="step-num">${item.step}</div>` : "";
+  return `<div class="card ${item.status}${sel}" onclick="selectItem('${item.id}')" id="card-${item.id}">
+    ${stepHtml}
+    <div class="name">${item.name}</div>
+    <div class="brief">${item.desc.slice(0, 80)}${item.desc.length > 80 ? "…" : ""}</div>
+  </div>`;
+}
+
+function render() {
+  const graph = document.getElementById("graph");
+
+  const completed = items.filter(i => i.status === "completed");
+  const inProgress = items.filter(i => i.status === "in-progress");
+  const pipeline = items.filter(i => i.status === "short-term" && i.step).sort((a, b) => a.step - b.step);
+  const independent = items.filter(i => i.status === "short-term" && !i.step);
+  const medium = items.filter(i => i.status === "medium-term");
+  const long = items.filter(i => i.status === "long-term");
+
+  let html = "";
+
+  // In Progress
+  if (inProgress.length) {
+    html += `<div class="section">
+      <div class="section-title">In Progress</div>
+      <div class="card-row">${inProgress.map(renderCard).join("")}</div>
+    </div>`;
+  }
+
+  // Pipeline
+  html += `<div class="section">
+    <div class="section-title">Short-term Pipeline (sequential)</div>
+    <div class="pipeline">
+      ${pipeline.map((item, i) =>
+        renderCard(item) + (i < pipeline.length - 1 ? '<span class="pipeline-arrow">→</span>' : "")
+      ).join("")}
+    </div>
+  </div>`;
+
+  // Independent
+  if (independent.length) {
+    html += `<div class="section">
+      <div class="section-title">Short-term (independent)</div>
+      <div class="card-row">${independent.map(renderCard).join("")}</div>
+    </div>`;
+  }
+
+  // Dependency Graph
+  html += `<div class="dep-graph">
+    <h3>Dependency Graph</h3>
+    <div class="dep-group">
+      <div class="dep-group-title">Main Pipeline</div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('entityremain')">entity-consolidation</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('sysframework')">system-to-framework</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('hierarchy')">hierarchy-simplification</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('eval')">eval-overhaul</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+      </div>
+    </div>
+    <div class="dep-group">
+      <div class="dep-group-title">Hosted Rovers</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('agentdir')">agent-directory</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">media-sidecar</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('hostedrovers')">hosted-rovers</span>
+      </div>
+    </div>
+    <div class="dep-group">
+      <div class="dep-group-title">Desktop App</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">media-sidecar</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-far" onclick="selectItem('desktopapp')">desktop-app</span>
+      </div>
+    </div>
+    <div class="dep-group">
+      <div class="dep-group-title">Independent</div>
+      <div class="dep-row">
+        <span class="dep-node s-mid" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('blockio')">blocking-io</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
+    </div>
+  </div>`;
+
+  // Medium-term
+  html += `<div class="section" style="margin-top:24px">
+    <div class="section-title">Medium-term</div>
+    <div class="card-row">${medium.map(renderCard).join("")}</div>
+  </div>`;
+
+  // Long-term
+  html += `<div class="section">
+    <div class="section-title">Long-term</div>
+    <div class="card-row">${long.map(renderCard).join("")}</div>
+  </div>`;
+
+  // Completed (collapsed by default)
+  html += `<div class="section">
+    <div class="section-title" style="cursor:pointer" onclick="toggleCompleted()">
+      Completed (${completed.length}) <span id="toggle-arrow">▸</span>
+    </div>
+    <div id="completed-grid" class="completed-grid" style="display:none">
+      ${completed.map(renderCard).join("")}
+    </div>
+  </div>`;
+
+  graph.innerHTML = html;
+}
+
+function toggleCompleted() {
+  const grid = document.getElementById("completed-grid");
+  const arrow = document.getElementById("toggle-arrow");
+  if (grid.style.display === "none") {
+    grid.style.display = "grid";
+    arrow.textContent = "▾";
+  } else {
+    grid.style.display = "none";
+    arrow.textContent = "▸";
+  }
+}
+
+function selectItem(id) {
+  selectedId = id;
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+
+  const panel = document.getElementById("detail");
+  const content = document.getElementById("detail-content");
+
+  const deps = (item.deps || []).map(d => items.find(i => i.id === d)).filter(Boolean);
+  const blocks = items.filter(i => (i.deps || []).includes(id));
+
+  let html = `
+    <h2>${item.name}</h2>
+    <div class="status-badge ${badgeClass[item.status]}">${statusLabels[item.status]}${item.step ? ` — Step ${item.step}` : ""}${item.date ? ` — ${item.date}` : ""}</div>
+    <div class="desc">${item.desc}</div>
+  `;
+
+  if (deps.length) {
+    html += `<div class="deps">
+      <h3>Depends on</h3>
+      ${deps.map(d => `<div class="dep-item" onclick="selectItem('${d.id}')">${d.name}</div>`).join("")}
+    </div>`;
+  }
+
+  if (blocks.length) {
+    html += `<div class="deps">
+      <h3>Unblocks</h3>
+      ${blocks.map(b => `<div class="dep-item" onclick="selectItem('${b.id}')">${b.name}</div>`).join("")}
+    </div>`;
+  }
+
+  content.innerHTML = html;
+  panel.classList.add("open");
+
+  // Highlight card
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
+  const card = document.getElementById(`card-${id}`);
+  if (card) {
+    card.classList.add("selected");
+    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+}
+
+function closeDetail() {
+  document.getElementById("detail").classList.remove("open");
+  document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
+  selectedId = null;
+}
+
+render();
+</script>
+</body>
+</html>

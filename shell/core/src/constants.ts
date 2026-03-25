@@ -2,7 +2,6 @@ export const SHELL_ENTITY_TYPES = {
   BASE: "base",
   BRAIN_CHARACTER: "brain-character",
   ANCHOR_PROFILE: "anchor-profile",
-  IMAGE: "image",
 } as const;
 
 export const SHELL_TEMPLATE_NAMES = {

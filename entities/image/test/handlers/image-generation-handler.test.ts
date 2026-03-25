@@ -7,7 +7,7 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
 
@@ -18,7 +18,7 @@ const VALID_PNG_DATA_URL = `data:image/png;base64,${VALID_PNG_BASE64}`;
 
 describe("ImageGenerationJobHandler", () => {
   let handler: ImageGenerationJobHandler;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;

@@ -178,6 +178,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "entities/image": {
+      "name": "@brains/image-plugin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/image": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "entities/link": {
       "name": "@brains/link",
       "version": "0.1.0",
@@ -583,22 +599,6 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/image": {
-      "name": "@brains/image-plugin",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/image": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "@types/node": "^20.0.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1091,7 +1091,6 @@
         "@brains/entity-service": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/identity-service": "workspace:*",
-        "@brains/image": "workspace:*",
         "@brains/job-queue": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/messaging-service": "workspace:*",
@@ -1369,7 +1368,7 @@
 
     "@brains/image": ["@brains/image@workspace:shared/image"],
 
-    "@brains/image-plugin": ["@brains/image-plugin@workspace:plugins/image"],
+    "@brains/image-plugin": ["@brains/image-plugin@workspace:entities/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
 

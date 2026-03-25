@@ -85,6 +85,15 @@ const searchInputSchema = z.object({
   limit: z.number().optional().describe("Maximum number of results"),
 });
 
+const setCoverInputSchema = z.object({
+  entityType: z.string().describe("Entity type (e.g., 'post', 'project')"),
+  entityId: z.string().describe("Entity ID or slug"),
+  imageId: z
+    .string()
+    .nullable()
+    .describe("Image ID to set as cover, or null to remove"),
+});
+
 const extractInputSchema = z.object({
   entityType: z
     .string()
@@ -744,5 +753,44 @@ export function createSystemTools(
       },
       visibility: "trusted",
     },
+    // ── Set cover image tool ──
+    createTypedTool(
+      pluginId,
+      "set-cover",
+      "Set or remove cover image on an entity. Use imageId to set an existing image, or null to remove.",
+      setCoverInputSchema,
+      async (input) => {
+        try {
+          await plugin.setCoverImage(
+            input.entityType,
+            input.entityId,
+            input.imageId,
+          );
+
+          const message = input.imageId
+            ? `Cover image set to '${input.imageId}' on ${input.entityType}/${input.entityId}`
+            : `Cover image removed from ${input.entityType}/${input.entityId}`;
+
+          return {
+            success: true,
+            data: {
+              entityType: input.entityType,
+              entityId: input.entityId,
+              imageId: input.imageId,
+            },
+            message,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to set cover image",
+          };
+        }
+      },
+      { visibility: "trusted" },
+    ),
   ];
 }
