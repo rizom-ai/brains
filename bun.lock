@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -557,6 +558,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/notion": {
+      "name": "@brains/notion",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/mcp-bridge": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/obsidian-vault": {
       "name": "@brains/obsidian-vault",
       "version": "0.1.0",
@@ -702,6 +719,22 @@
         "@types/bun": "latest",
         "bun-types": "latest",
         "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "shared/mcp-bridge": {
+      "name": "@brains/mcp-bridge",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.24.0",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1333,6 +1366,8 @@
 
     "@brains/mcp": ["@brains/mcp@workspace:interfaces/mcp"],
 
+    "@brains/mcp-bridge": ["@brains/mcp-bridge@workspace:shared/mcp-bridge"],
+
     "@brains/mcp-service": ["@brains/mcp-service@workspace:shell/mcp-service"],
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
@@ -1342,6 +1377,8 @@
     "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
 
     "@brains/note": ["@brains/note@workspace:entities/note"],
+
+    "@brains/notion": ["@brains/notion@workspace:plugins/notion"],
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
 

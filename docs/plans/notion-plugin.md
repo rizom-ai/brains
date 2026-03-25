@@ -149,14 +149,43 @@ Each new integration is a single file — server command, tool allowlist, instru
 
 ## Implementation
 
+### Package Architecture
+
+The MCP bridge lives in its own shared package (`@brains/mcp-bridge`) to keep the
+MCP SDK dependency isolated. Without this, adding it to `@brains/plugins` would pull
+`@modelcontextprotocol/sdk` into every plugin in the monorepo.
+
+```
+shared/          ←  shell/          ←  plugins/
+@brains/utils        @brains/plugins      @brains/system
+@brains/mcp-bridge                        @brains/notion
+```
+
+Dependency graph:
+
+```
+@brains/mcp-bridge
+  depends on: @brains/plugins, @modelcontextprotocol/sdk
+
+@brains/notion (and future bridge plugins)
+  depends on: @brains/plugins, @brains/mcp-bridge
+```
+
 ### Files
 
 ```
-shared/plugins/src/bridge/
-  mcp-bridge-plugin.ts       # Base class (spawn, connect, filter, adapt)
+shared/mcp-bridge/
+  package.json                # @brains/mcp-bridge — depends on @brains/plugins + @modelcontextprotocol/sdk
+  tsconfig.json
+  src/
+    index.ts                  # Public exports
+    mcp-bridge-plugin.ts      # MCPBridgePlugin base class (spawn, connect, filter, adapt)
+  test/
+    mcp-bridge-plugin.test.ts # Tests with mock transport (no real child process)
 
 plugins/notion/
-  package.json
+  package.json                # @brains/notion — depends on @brains/plugins + @brains/mcp-bridge
+  tsconfig.json
   src/
     index.ts                  # Plugin export
     plugin.ts                 # NotionPlugin extends MCPBridgePlugin
@@ -167,38 +196,43 @@ plugins/notion/
 
 ### Dependencies
 
-- `@modelcontextprotocol/sdk` — already in monorepo (Client, StdioClientTransport)
-- No new dependencies
+- `@modelcontextprotocol/sdk` — already in monorepo root, added as dependency only to `@brains/mcp-bridge`
+- `@brains/plugins` — imported by `@brains/mcp-bridge` for the `CorePlugin` base class
+- No new external dependencies
 
 ## Steps
 
-### Phase 1: MCPBridgePlugin base class
+### Phase 1: `@brains/mcp-bridge` shared package
 
-1. Base class in `shared/plugins/src/bridge/mcp-bridge-plugin.ts`
-2. Spawn child process via StdioClientTransport
-3. Connect via MCP SDK Client
-4. Discover tools, filter by allowlist, adapt with prefix + error isolation
-5. Tests with mock transport (no real child process)
+1. Create `shared/mcp-bridge/` package with `@brains/mcp-bridge` name
+2. Base class in `shared/mcp-bridge/src/mcp-bridge-plugin.ts`
+3. Spawn child process via StdioClientTransport
+4. Connect via MCP SDK Client
+5. Discover tools, filter by allowlist, adapt with prefix + error isolation
+6. Tests with mock transport (no real child process)
 
 ### Phase 2: Notion plugin
 
-1. NotionPlugin extends MCPBridgePlugin
-2. Config schema (just token)
-3. Tool allowlist (read-only tools)
-4. Agent instructions
-5. Register in rover brain definition (optional, not in any preset)
-6. Manual test: ask rover about Notion content
+1. Create `plugins/notion/` package with `@brains/mcp-bridge` dependency
+2. NotionPlugin extends MCPBridgePlugin (imported from `@brains/mcp-bridge`)
+3. Config schema (just token)
+4. Tool allowlist (read-only tools)
+5. Agent instructions
+6. Register in rover brain definition (optional, not in any preset)
+7. Manual test: ask rover about Notion content
 
 ### Phase 3: Validate pattern with second integration
 
 1. Pick GitHub or Linear
-2. Implement as MCPBridgePlugin subclass (~20 lines)
+2. Implement as MCPBridgePlugin subclass (~20 lines) using `@brains/mcp-bridge`
 3. Verify the base class works for a different server
 
 ## Verification
 
-1. `bun test plugins/notion/`
-2. `bun run typecheck --filter=@brains/notion`
-3. Manual: configure NOTION_TOKEN, ask rover "search my Notion for meeting notes"
-4. Verify: only read tools appear in MCP Inspector, no write tools
-5. Kill the Notion MCP server process, verify tools return errors (not crash)
+1. `bun test shared/mcp-bridge/`
+2. `bun test plugins/notion/`
+3. `bun run typecheck --filter=@brains/mcp-bridge`
+4. `bun run typecheck --filter=@brains/notion`
+5. Manual: configure NOTION_TOKEN, ask rover "search my Notion for meeting notes"
+6. Verify: only read tools appear in MCP Inspector, no write tools
+7. Kill the Notion MCP server process, verify tools return errors (not crash)
