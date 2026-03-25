@@ -159,8 +159,6 @@ entity-consolidation (remaining: newsletter split, image migration)
 2. plugin-hierarchy-simplification (IntegrationPlugin + unified PluginContext)
      ↓
 3. eval-overhaul (mode: eval, two runners, result store)
-     ↓
-4. chat-sdk (depends on stable InterfacePlugin hierarchy)
 
 agent-directory ────────────────┐
                                 ├──→ hosted-rovers (K8s)
@@ -168,7 +166,9 @@ chat-sdk + media-sidecar ──────┘
                     ↓
               desktop-app (Electrobun)
 
+chat-sdk (independent — InterfacePlugin already stable)
 kamal-deploy (independent)
 blocking-io (independent)
+simplify-sync (independent)
 rizom.work (independent)
 ```

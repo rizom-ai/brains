@@ -25,11 +25,10 @@ Two previously separate plans merged into one ordered pipeline:
 
 ### Remaining entity types in ServicePlugins
 
-| Plugin       | Entity type    | Has tools?            | Has API routes?      |
-| ------------ | -------------- | --------------------- | -------------------- |
-| newsletter   | `newsletter`   | Yes (subscriber mgmt) | Yes (subscribe POST) |
-| site-builder | `site-info`    | No                    | No                   |
-| site-content | `site-content` | Yes (generate)        | No                   |
+| Plugin       | Entity type  | Has tools?            | Has API routes?      |
+| ------------ | ------------ | --------------------- | -------------------- |
+| newsletter   | `newsletter` | Yes (subscriber mgmt) | Yes (subscribe POST) |
+| site-builder | `site-info`  | No                    | No                   |
 
 ## Design
 
@@ -56,10 +55,6 @@ Newsletter is the only plugin that mixes entity management with integration tool
 
 Site-info entity type extracted from site-builder. Site-builder keeps its infrastructure role (build tools, route management) but depends on the entity package.
 
-### Site-content migration
-
-Site-content becomes an EntityPlugin. `site-content_generate` tool → `site-content:generation` handler via `system_create`.
-
 ### Unified PluginContext
 
 `PluginContext` replaces CorePluginContext, ServicePluginContext, and EntityPluginContext. Used by both EntityPlugin and IntegrationPlugin. InterfacePluginContext stays separate.
@@ -72,15 +67,16 @@ Replaces both CorePlugin and ServicePlugin for plugins that provide tools and in
 
 ## Steps
 
-### Phase 5: Split newsletter + extract site-info + migrate site-content
+### Phase 5: Split newsletter + extract site-info
 
 Complete entity consolidation — all entity types in `entities/`.
 
 1. **Newsletter split**: extract buttondown subscriber tools + API routes into `plugins/buttondown/` (ServicePlugin for now). Move entity part (schema, adapter, datasource, templates, generation handler, publish pipeline) to `entities/newsletter/` (EntityPlugin).
 2. **Site-info**: extract entity type from site-builder into `entities/site-info/` (EntityPlugin). Site-builder imports from the entity package.
-3. **Site-content**: move to `entities/site-content/` (EntityPlugin). Remove `site-content_generate` tool, add generation handler.
-4. Update brain model registrations
-5. Tests
+3. Update brain model registrations
+4. Tests
+
+Note: site-content stays as a ServicePlugin — it's orchestration infrastructure, not a natural entity type. To be revisited separately.
 
 ### Phase 6: Unified PluginContext
 
