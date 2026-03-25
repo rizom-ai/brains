@@ -10,7 +10,7 @@ Rover needs access to Notion workspace content as conversational context. The pl
 Notion API → sync daemon → local markdown cache → MCP resources + tools
 ```
 
-**Plugin type**: CorePlugin (read-only, no entity writes)
+**Plugin type**: IntegrationPlugin (read-only, no entity writes)
 
 ### Sync flow
 
@@ -56,7 +56,7 @@ plugins/notion/
   package.json
   src/
     index.ts                   # Plugin export
-    plugin.ts                  # CorePlugin — registers tools, resources, daemon
+    plugin.ts                  # IntegrationPlugin — registers tools, resources
     config.ts                  # Zod config schema
     notion-client.ts           # Notion API wrapper (constructor DI for fetch)
     block-to-markdown.ts       # Convert Notion block tree to markdown string

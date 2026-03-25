@@ -34,7 +34,7 @@ Professional brain managing essays, presentations, and portfolio projects.
 
 ### New plugin: `plugins/agent-directory/`
 
-A CorePlugin (read-only entity service) or ServicePlugin (full CRUD) with:
+An IntegrationPlugin with:
 
 **Tools:**
 
@@ -98,7 +98,7 @@ Not in this plan, but the path is clear:
 plugins/agent-directory/
   src/
     index.ts
-    plugin.ts           # ServicePlugin, registers entity type + tools
+    plugin.ts           # IntegrationPlugin, registers tools
     schemas/agent.ts    # Entity schema
     adapters/agent-adapter.ts
     tools/index.ts      # add, list, trust, remove, discover

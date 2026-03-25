@@ -58,7 +58,7 @@ No changes needed to brain-resolver or instance-overrides — ConfigMap mounts b
 
 ## Ranger's Provisioner Plugin
 
-New ServicePlugin: `plugins/rover-provisioner/`
+New IntegrationPlugin: `plugins/rover-provisioner/`
 
 ### K8s API access
 
