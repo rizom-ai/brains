@@ -696,6 +696,51 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
   }
 
   /**
+   * Enqueue an extract job for a derived entity type.
+   * Routes to `{entityType}:extract` handler registered by EntityPlugin.
+   */
+  public async enqueueExtractJob(
+    entityType: string,
+    source?: string,
+  ): Promise<{ jobId: string }> {
+    const jobType = `${entityType}:extract`;
+    const data: { sourceId?: string; sourceType?: string } = {};
+
+    if (source) {
+      // Find the source entity to determine its type
+      const entity = await this.getContext().entityService.getEntity(
+        // Search all entity types — source could be any type
+        // We don't know the source type, so find it by ID across types
+        entityType,
+        source,
+      );
+      // If not found in the same entity type, search across all types
+      if (!entity) {
+        for (const type of this.getEntityTypes()) {
+          const found = await this.getContext().entityService.getEntity(
+            type,
+            source,
+          );
+          if (found) {
+            data.sourceId = found.id;
+            data.sourceType = found.entityType;
+            break;
+          }
+        }
+        if (!data.sourceId) {
+          throw new Error(`Source entity not found: ${source}`);
+        }
+      } else {
+        data.sourceId = entity.id;
+        data.sourceType = entity.entityType;
+      }
+    }
+
+    const jobId = await this.enqueueJob(jobType, data);
+    return { jobId };
+  }
+
+  /**
    * Enqueue a generation job
    */
   public override async enqueueJob(

@@ -88,4 +88,12 @@ export interface ISystemPlugin {
    * Enqueue a job (for generation)
    */
   enqueueJob(type: string, data: unknown): Promise<string>;
+
+  /**
+   * Enqueue an extract job for a derived entity type
+   */
+  enqueueExtractJob(
+    entityType: string,
+    source?: string,
+  ): Promise<{ jobId: string }>;
 }

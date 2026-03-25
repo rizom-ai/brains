@@ -85,6 +85,18 @@ const searchInputSchema = z.object({
   limit: z.number().optional().describe("Maximum number of results"),
 });
 
+const extractInputSchema = z.object({
+  entityType: z
+    .string()
+    .describe(
+      "Derived entity type to extract (e.g. 'topic', 'series', 'summary')",
+    ),
+  source: z
+    .string()
+    .optional()
+    .describe("Source entity ID to extract from — omit for batch extraction"),
+});
+
 const getInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID, slug, or title"),
@@ -680,6 +692,55 @@ export function createSystemTools(
             contentHash: entity.contentHash,
           },
         };
+      },
+      visibility: "trusted",
+    },
+    // ── Extract tool ──
+    {
+      name: `${pluginId}_extract`,
+      description:
+        "Extract derived entities (e.g. topics, series) from source content. " +
+        "Provide a source entity ID to extract from one, or omit for batch extraction.",
+      inputSchema: extractInputSchema.shape,
+      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+        const parsed = extractInputSchema.safeParse(rawInput);
+        if (!parsed.success) {
+          return {
+            success: false,
+            error: `Invalid input: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
+          };
+        }
+        const { entityType, source } = parsed.data;
+
+        // Check if entity type exists
+        const availableTypes = plugin.getEntityTypes();
+        if (!availableTypes.includes(entityType)) {
+          return {
+            success: false,
+            error: `Unknown entity type: ${entityType}. Available types: ${availableTypes.join(", ")}`,
+          };
+        }
+
+        try {
+          const { jobId } = await plugin.enqueueExtractJob(entityType, source);
+          return {
+            success: true,
+            data: {
+              status: "extracting",
+              jobId,
+              entityType,
+              ...(source && { source }),
+            },
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error
+                ? error.message
+                : "Failed to queue extraction job",
+          };
+        }
       },
       visibility: "trusted",
     },

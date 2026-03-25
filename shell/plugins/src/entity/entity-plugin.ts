@@ -69,6 +69,15 @@ export abstract class EntityPlugin<
       context.jobs.registerHandler(`${this.entityType}:generation`, handler);
     }
 
+    // Auto-register extract handler if derive() is overridden
+    if (this.hasDeriveHandler()) {
+      const extractHandler = this.createExtractHandler(context);
+      context.jobs.registerHandler(
+        `${this.entityType}:extract`,
+        extractHandler,
+      );
+    }
+
     // Auto-register templates if provided
     const templates = this.getTemplates();
     if (templates && Object.keys(templates).length > 0) {
@@ -121,5 +130,69 @@ export abstract class EntityPlugin<
    */
   protected getEntityTypeConfig(): EntityTypeConfig | undefined {
     return undefined;
+  }
+
+  /**
+   * Create the extract handler that wraps derive() for job queue routing.
+   * Called automatically during registration when hasDeriveHandler() is true.
+   */
+  private createExtractHandler(context: EntityPluginContext): JobHandler {
+    return {
+      process: async (data: {
+        sourceId?: string;
+        sourceType?: string;
+      }): Promise<{ extracted: number }> => {
+        if (data.sourceId && data.sourceType) {
+          const source = await context.entityService.getEntity(
+            data.sourceType,
+            data.sourceId,
+          );
+          if (source) {
+            await this.derive(source, "extract", context);
+            return { extracted: 1 };
+          }
+          return { extracted: 0 };
+        }
+        // Batch mode — no source specified, subclass handles via derive()
+        return { extracted: 0 };
+      },
+      validateAndParse(
+        data: unknown,
+      ): { sourceId?: string; sourceType?: string } | null {
+        if (data === null || data === undefined) return {};
+        if (typeof data !== "object") return null;
+        const d = data as Record<string, unknown>;
+        const result: { sourceId?: string; sourceType?: string } = {};
+        if (typeof d["sourceId"] === "string") result.sourceId = d["sourceId"];
+        if (typeof d["sourceType"] === "string")
+          result.sourceType = d["sourceType"];
+        return result;
+      },
+    };
+  }
+
+  /**
+   * Override to derive entities from a source entity in response to events.
+   *
+   * Used for entity types that are automatically maintained (e.g. topics
+   * extracted from posts, series grouped from posts/decks). The plugin
+   * subscribes to events in onRegister() and calls derive() itself.
+   *
+   * Also callable via `system_extract` for batch reprocessing.
+   */
+  public async derive(
+    _source: BaseEntity,
+    _event: string,
+    _context: EntityPluginContext,
+  ): Promise<void> {
+    // No-op by default — subclasses override to implement derivation logic
+  }
+
+  /**
+   * Check whether this plugin has a derive() implementation.
+   * Used by system_extract to determine if extraction is supported.
+   */
+  public hasDeriveHandler(): boolean {
+    return this.derive !== EntityPlugin.prototype.derive;
   }
 }

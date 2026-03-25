@@ -2,7 +2,9 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
 import { EntityPlugin } from "../../src/entity/entity-plugin";
+import type { EntityPluginContext } from "../../src/entity/context";
 import { z } from "@brains/utils";
+import type { BaseEntity } from "@brains/entity-service";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/entity-service";
 
 // Test schema
@@ -39,7 +41,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
   }
 }
 
-// Minimal EntityPlugin subclass
+// Minimal EntityPlugin subclass (no derive)
 class TestEntityPlugin extends EntityPlugin<TestEntity> {
   readonly entityType = "test-item";
   readonly schema = testSchema;
@@ -48,6 +50,41 @@ class TestEntityPlugin extends EntityPlugin<TestEntity> {
   constructor() {
     super("test-item", testPkg);
   }
+}
+
+// EntityPlugin subclass with derive() implementation
+class DerivedEntityPlugin extends EntityPlugin<TestEntity> {
+  readonly entityType = "derived-item";
+  readonly schema = testSchema;
+  readonly adapter = new TestAdapter();
+  public deriveCalls: Array<{
+    source: BaseEntity;
+    event: string;
+  }> = [];
+
+  constructor() {
+    super("derived-item", testPkg);
+  }
+
+  public override async derive(
+    source: BaseEntity,
+    event: string,
+    _context: EntityPluginContext,
+  ): Promise<void> {
+    this.deriveCalls.push({ source, event });
+  }
+}
+
+function createTestSourceEntity(): BaseEntity {
+  return {
+    id: "source-1",
+    entityType: "post",
+    content: "# Hello World\n\nSome content here.",
+    contentHash: "abc123",
+    metadata: { title: "Hello World" },
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
 }
 
 describe("EntityPlugin", () => {
@@ -94,6 +131,90 @@ describe("EntityPlugin", () => {
       await harness.installPlugin(plugin);
 
       expect(plugin.id).toBe("test-item");
+    });
+  });
+
+  describe("derive()", () => {
+    it("should be optional — plugins without derive() work normally", async () => {
+      const plugin = new TestEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      expect(plugin.hasDeriveHandler()).toBe(false);
+    });
+
+    it("should report hasDeriveHandler() = true when derive() is overridden", async () => {
+      const plugin = new DerivedEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      expect(plugin.hasDeriveHandler()).toBe(true);
+    });
+
+    it("should call derive() with source entity and event", async () => {
+      const plugin = new DerivedEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const source = createTestSourceEntity();
+      const context = harness.getEntityContext(plugin.id);
+      await plugin.derive(source, "created", context);
+
+      expect(plugin.deriveCalls).toHaveLength(1);
+      expect(plugin.deriveCalls[0]?.source.id).toBe("source-1");
+      expect(plugin.deriveCalls[0]?.event).toBe("created");
+    });
+
+    it("should support multiple derive() calls", async () => {
+      const plugin = new DerivedEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const source1 = createTestSourceEntity();
+      const source2 = { ...createTestSourceEntity(), id: "source-2" };
+      const context = harness.getEntityContext(plugin.id);
+
+      await plugin.derive(source1, "created", context);
+      await plugin.derive(source2, "updated", context);
+
+      expect(plugin.deriveCalls).toHaveLength(2);
+      expect(plugin.deriveCalls[1]?.event).toBe("updated");
+    });
+  });
+
+  describe("extract handler auto-registration", () => {
+    it("should not register extract handler for plugins without derive()", async () => {
+      const registeredHandlers: string[] = [];
+      const mockShell = harness.getMockShell();
+      const origJobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...origJobQueue,
+        registerHandler: (type: string) => {
+          registeredHandlers.push(type);
+        },
+      };
+      mockShell.getJobQueueService = () =>
+        trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+
+      const plugin = new TestEntityPlugin();
+      await plugin.register(mockShell);
+
+      expect(registeredHandlers).not.toContain("test-item:extract");
+    });
+
+    it("should auto-register extract handler for plugins with derive()", async () => {
+      const registeredHandlers: string[] = [];
+      const mockShell = harness.getMockShell();
+      const origJobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...origJobQueue,
+        registerHandler: (type: string) => {
+          registeredHandlers.push(type);
+        },
+      };
+      mockShell.getJobQueueService = () =>
+        trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+
+      const plugin = new DerivedEntityPlugin();
+      await plugin.register(mockShell);
+
+      expect(registeredHandlers).toContain("derived-item:extract");
     });
   });
 });
