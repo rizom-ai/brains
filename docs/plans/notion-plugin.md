@@ -1,41 +1,109 @@
-# Plan: Notion Plugin (Read-Only Knowledge Source)
+# Plan: Notion Plugin + MCP Bridge Base Class
 
 ## Context
 
-Rover needs access to Notion workspace content as conversational context. The plugin syncs the full workspace (pages, databases, comments) into a local cache and exposes it as MCP resources and search tools. Read-only — no entity creation, no writes to Notion.
+Rover needs read-only access to a user's Notion workspace. The official `@notionhq/notion-mcp-server` already handles the Notion API, token optimization for LLMs, and markdown conversion. Rather than reimplementing all of that, we spawn it as a child process and connect via MCP SDK.
+
+This pattern — spawn an MCP server, connect via stdio, expose a filtered subset of its tools — will repeat for GitHub, Slack, Linear, etc. So we extract a reusable `MCPBridgePlugin` base class that any future integration can extend with minimal code.
 
 ## Architecture
 
 ```
-Notion API → sync daemon → local markdown cache → MCP resources + tools
+MCPBridgePlugin (base class)
+  ↓ extends
+NotionPlugin
+  ↓ spawns
+@notionhq/notion-mcp-server (child process, stdio)
+  ↓ MCP SDK Client
+Tool discovery → filter → adapt → register as PluginTool[]
 ```
 
-**Plugin type**: IntegrationPlugin (read-only, no entity writes)
+## MCPBridgePlugin Base Class
 
-### Sync flow
+Reusable base for any plugin that wraps an external MCP server:
 
-1. Daemon runs on interval (default 5 minutes)
-2. Fetches workspace tree via Notion API (`search`, `blocks.children`)
-3. Converts Notion blocks to markdown (headings, lists, code, tables, etc.)
-4. Stores in in-memory cache with file backup for persistence
-5. Incremental: uses `last_edited_time` to skip unchanged pages
+```typescript
+abstract class MCPBridgePlugin<TConfig> extends CorePlugin<TConfig> {
+  private client: Client;
+  private transport: StdioClientTransport;
 
-### Tools
+  // Subclass defines how to spawn the server
+  protected abstract getServerCommand(): { command: string; args: string[]; env?: Record<string, string> };
 
-| Tool            | Description                                        | Permission |
-| --------------- | -------------------------------------------------- | ---------- |
-| `notion_search` | Full-text search across pages and database entries | public     |
-| `notion_read`   | Read a specific page by ID or title as markdown    | public     |
-| `notion_list`   | List top-level pages or entries in a database      | public     |
+  // Subclass defines which tools to expose (allowlist)
+  protected abstract getAllowedTools(): string[];
 
-### MCP Resources
+  // Subclass provides instructions for the agent
+  protected abstract getAgentInstructions(): string;
 
-| Resource                 | Description                                  |
-| ------------------------ | -------------------------------------------- |
-| `notion://pages`         | List of all synced pages with titles and IDs |
-| `notion://page/{id}`     | Page content as markdown                     |
-| `notion://databases`     | List of databases with field schemas         |
-| `notion://database/{id}` | Database entries as structured data          |
+  // Base handles: spawn, connect, discover, filter, adapt, register
+  protected override async onRegister(context): Promise<void> { ... }
+  protected override async getTools(): Promise<PluginTool[]> { ... }
+  protected override async getInstructions(): Promise<string> { ... }
+  async shutdown(): Promise<void> { ... }
+}
+```
+
+The base class handles all MCP client lifecycle (spawn, handshake, tool discovery, adaptation, error isolation, shutdown). Subclasses only define three things: what to spawn, which tools to expose, and what to tell the agent.
+
+### Tool Adaptation
+
+Remote tools are automatically prefixed and wrapped:
+
+```typescript
+// Remote tool "search" from NotionPlugin (id: "notion")
+// → registered as "notion_search" with error isolation
+{
+  name: "notion_search",
+  description: "[Notion] Search for pages in the user's Notion workspace",
+  handler: async (input) => {
+    try {
+      return { success: true, data: await client.callTool("search", input) };
+    } catch (error) {
+      return { success: false, error: `Notion: ${error.message}` };
+    }
+  }
+}
+```
+
+### Error Isolation
+
+If the child process crashes, tools return errors — the brain doesn't crash. The base class monitors the process and logs warnings. No auto-restart in v1.
+
+## NotionPlugin
+
+```typescript
+class NotionPlugin extends MCPBridgePlugin<NotionConfig> {
+  protected getServerCommand() {
+    return {
+      command: "npx",
+      args: ["-y", "@notionhq/notion-mcp-server"],
+      env: {
+        OPENAPI_MCP_HEADERS: JSON.stringify({
+          Authorization: `Bearer ${this.config.token}`,
+          "Notion-Version": "2022-06-28",
+        }),
+      },
+    };
+  }
+
+  protected getAllowedTools() {
+    return [
+      "search",
+      "read_page",
+      "retrieve_block_children",
+      "list_databases",
+      "query_database",
+    ];
+  }
+
+  protected getAgentInstructions() {
+    return `Use notion_* tools to look up information in the user's Notion workspace.
+Use the brain's own tools (search_entities, create_note, etc.) for the brain's
+knowledge base. Never write to Notion — only read tools are available.`;
+  }
+}
+```
 
 ### Config
 
@@ -43,152 +111,94 @@ Notion API → sync daemon → local markdown cache → MCP resources + tools
 plugins:
   notion:
     token: ${NOTION_TOKEN}
-    syncInterval: 300
-    workspaceFilter: [] # Optional: limit to specific page/database IDs
 ```
+
+That's the entire user-facing config.
+
+## Future integrations
+
+Same pattern, minimal code per integration:
+
+```typescript
+// GitHub plugin — ~20 lines
+class GitHubPlugin extends MCPBridgePlugin<GitHubConfig> {
+  protected getServerCommand() {
+    return {
+      command: "npx",
+      args: ["-y", "@modelcontextprotocol/server-github"],
+      env: { GITHUB_PERSONAL_ACCESS_TOKEN: this.config.token },
+    };
+  }
+
+  protected getAllowedTools() {
+    return [
+      "search_repositories",
+      "get_file_contents",
+      "list_issues",
+      "get_issue",
+    ];
+  }
+
+  protected getAgentInstructions() {
+    return "Use github_* tools to look up code and issues in the user's GitHub repositories.";
+  }
+}
+```
+
+Each new integration is a single file — server command, tool allowlist, instructions.
 
 ## Implementation
 
 ### Files
 
 ```
+shared/plugins/src/bridge/
+  mcp-bridge-plugin.ts       # Base class (spawn, connect, filter, adapt)
+
 plugins/notion/
   package.json
   src/
-    index.ts                   # Plugin export
-    plugin.ts                  # IntegrationPlugin — registers tools, resources
-    config.ts                  # Zod config schema
-    notion-client.ts           # Notion API wrapper (constructor DI for fetch)
-    block-to-markdown.ts       # Convert Notion block tree to markdown string
-    sync.ts                    # Sync orchestration: fetch → convert → cache
-    cache.ts                   # NotionCache: in-memory Map + file persistence
-    tools/
-      notion-search.ts         # Search tool
-      notion-read.ts           # Read page tool
-      notion-list.ts           # List pages/databases tool
-    resources/
-      notion-resources.ts      # MCP resource handlers
+    index.ts                  # Plugin export
+    plugin.ts                 # NotionPlugin extends MCPBridgePlugin
+    config.ts                 # Zod schema (just token)
   test/
-    block-to-markdown.test.ts  # Block conversion (pure, no API)
-    sync.test.ts               # Sync with mock Notion client
-    cache.test.ts              # Cache read/write/TTL
-    tools.test.ts              # Tool handlers with mock cache
+    plugin.test.ts            # Tests with mock transport
 ```
 
 ### Dependencies
 
-- `@notionhq/client` — official Notion SDK (or raw fetch for lighter weight)
-- No other new deps — uses existing `@brains/plugins` framework
+- `@modelcontextprotocol/sdk` — already in monorepo (Client, StdioClientTransport)
+- No new dependencies
 
-### Notion API Client
+## Steps
 
-Constructor DI pattern (same as Discord):
+### Phase 1: MCPBridgePlugin base class
 
-```typescript
-interface NotionDeps {
-  fetch?: typeof globalThis.fetch;
-  token: string;
-}
+1. Base class in `shared/plugins/src/bridge/mcp-bridge-plugin.ts`
+2. Spawn child process via StdioClientTransport
+3. Connect via MCP SDK Client
+4. Discover tools, filter by allowlist, adapt with prefix + error isolation
+5. Tests with mock transport (no real child process)
 
-class NotionClient {
-  constructor(private deps: NotionDeps) {}
+### Phase 2: Notion plugin
 
-  async searchPages(query: string): Promise<NotionPage[]> { ... }
-  async getPage(id: string): Promise<NotionPage> { ... }
-  async getBlockChildren(id: string): Promise<NotionBlock[]> { ... }
-  async getDatabase(id: string): Promise<NotionDatabase> { ... }
-  async queryDatabase(id: string, filter?: object): Promise<NotionEntry[]> { ... }
-}
-```
+1. NotionPlugin extends MCPBridgePlugin
+2. Config schema (just token)
+3. Tool allowlist (read-only tools)
+4. Agent instructions
+5. Register in rover brain definition (optional, not in any preset)
+6. Manual test: ask rover about Notion content
 
-### Block-to-Markdown Conversion
+### Phase 3: Validate pattern with second integration
 
-Recursive converter handling:
-
-- Paragraphs, headings (h1-h3), bulleted/numbered lists
-- Code blocks (with language), quotes, callouts
-- Tables, toggles, dividers
-- Rich text: bold, italic, code, links, mentions
-- Child pages (as links), synced blocks
-- Database entries: frontmatter-style key/value pairs
-- Comments: appended as blockquotes below page content
-
-### Cache
-
-```typescript
-interface CachedPage {
-  id: string;
-  title: string;
-  markdown: string;
-  parentId: string | null;
-  type: "page" | "database" | "database_entry";
-  lastEdited: string;
-  syncedAt: number;
-}
-
-class NotionCache {
-  private pages: Map<string, CachedPage>;
-  private cacheFile: string;
-
-  search(query: string): CachedPage[]; // simple substring match on title + markdown
-  get(id: string): CachedPage | undefined;
-  list(type?: string): CachedPage[];
-  set(page: CachedPage): void;
-  persist(): Promise<void>; // write to disk
-  restore(): Promise<void>; // read from disk on startup
-}
-```
-
-### Daemon
-
-```typescript
-// In plugin.ts
-protected override createDaemon(): Daemon {
-  return {
-    start: async () => {
-      await this.cache.restore();
-      await this.sync.fullSync();          // initial
-      this.interval = setInterval(
-        () => this.sync.incrementalSync(),
-        this.config.syncInterval * 1000,
-      );
-    },
-    stop: async () => {
-      clearInterval(this.interval);
-      await this.cache.persist();
-    },
-  };
-}
-```
-
-## Phases
-
-### Phase 1: Core sync + cache
-
-- NotionClient with constructor DI
-- Block-to-markdown converter
-- NotionCache with file persistence
-- Sync daemon (full + incremental)
-- Tests for converter and cache
-
-### Phase 2: Tools
-
-- `notion_search`, `notion_read`, `notion_list`
-- Tests with mock cache
-
-### Phase 3: MCP Resources
-
-- Resource handlers for pages, databases
-- Resource templates for `notion://page/{id}`
-
-### Phase 4: Register in Rover
-
-- Add to rover brain definition (optional plugin)
-- Add `NOTION_TOKEN` to brain.yaml config
+1. Pick GitHub or Linear
+2. Implement as MCPBridgePlugin subclass (~20 lines)
+3. Verify the base class works for a different server
 
 ## Verification
 
-1. `bun test plugins/notion/` — all tests pass
+1. `bun test plugins/notion/`
 2. `bun run typecheck --filter=@brains/notion`
-3. Manual: start rover with notion config, verify `notion_search` returns results
-4. Manual: check MCP resources via MCP Inspector
+3. Manual: configure NOTION_TOKEN, ask rover "search my Notion for meeting notes"
+4. Verify: only read tools appear in MCP Inspector, no write tools
+5. Kill the Notion MCP server process, verify tools return errors (not crash)
