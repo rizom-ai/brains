@@ -113,6 +113,7 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/blog": "workspace:*",
+        "@brains/buttondown": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -122,7 +123,7 @@
         "@brains/link": "workspace:*",
         "@brains/matrix": "workspace:*",
         "@brains/mcp": "workspace:*",
-        "@brains/newsletter": "workspace:*",
+        "@brains/newsletter-entity": "workspace:*",
         "@brains/note": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
         "@brains/portfolio": "workspace:*",
@@ -204,6 +205,28 @@
       "devDependencies": {
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/newsletter": {
+      "name": "@brains/newsletter-entity",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/job-queue": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
@@ -522,6 +545,23 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/buttondown": {
+      "name": "@brains/buttondown",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/content-pipeline": {
       "name": "@brains/content-pipeline",
       "version": "0.1.0",
@@ -599,25 +639,6 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/newsletter": {
-      "name": "@brains/newsletter",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "preact": "^10.27.2",
         "typescript": "^5.3.3",
       },
     },
@@ -1338,6 +1359,8 @@
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
 
+    "@brains/buttondown": ["@brains/buttondown@workspace:plugins/buttondown"],
+
     "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
 
     "@brains/collective-brain": ["@brains/collective-brain@workspace:apps/collective-brain"],
@@ -1390,7 +1413,7 @@
 
     "@brains/mylittlephoney": ["@brains/mylittlephoney@workspace:apps/mylittlephoney"],
 
-    "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
+    "@brains/newsletter-entity": ["@brains/newsletter-entity@workspace:entities/newsletter"],
 
     "@brains/note": ["@brains/note@workspace:entities/note"],
 

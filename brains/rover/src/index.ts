@@ -19,7 +19,8 @@ import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
 import { dashboardPlugin } from "@brains/dashboard";
-import { createNewsletterPlugin } from "@brains/newsletter";
+import { newsletterPlugin } from "@brains/newsletter-entity";
+import { buttondownPlugin } from "@brains/buttondown";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import defaultSite from "@brains/site-default";
@@ -70,6 +71,7 @@ const pro = [
   "content-pipeline",
   "social-media",
   "newsletter",
+  "buttondown",
   "matrix",
 ];
 
@@ -89,6 +91,7 @@ const evaluation = [
   "content-pipeline",
   "social-media",
   "newsletter",
+  "buttondown",
   "analytics",
   "obsidian-vault",
   "directory-sync",
@@ -149,15 +152,8 @@ export default defineBrain({
         autoGenerateOnBlogPublish: true,
       },
     ],
-    [
-      "newsletter",
-      createNewsletterPlugin,
-      {
-        buttondown: {
-          doubleOptIn: true,
-        },
-      },
-    ],
+    ["newsletter", newsletterPlugin, {}],
+    ["buttondown", buttondownPlugin, { doubleOptIn: true }],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
     [

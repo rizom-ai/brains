@@ -25,10 +25,11 @@ Two previously separate plans merged into one ordered pipeline:
 
 ### Remaining entity types in ServicePlugins
 
-| Plugin       | Entity type  | Has tools?            | Has API routes?      |
-| ------------ | ------------ | --------------------- | -------------------- |
-| newsletter   | `newsletter` | Yes (subscriber mgmt) | Yes (subscribe POST) |
-| site-builder | `site-info`  | No                    | No                   |
+| Plugin       | Entity type    | Has tools?            | Has API routes?      |
+| ------------ | -------------- | --------------------- | -------------------- |
+| newsletter   | `newsletter`   | Yes (subscriber mgmt) | Yes (subscribe POST) |
+| site-builder | `site-info`    | No                    | No                   |
+| site-content | `site-content` | Yes (generate)        | No                   |
 
 ## Design
 
@@ -55,6 +56,20 @@ Newsletter is the only plugin that mixes entity management with integration tool
 
 Site-info entity type extracted from site-builder. Site-builder keeps its infrastructure role (build tools, route management) but depends on the entity package.
 
+### Site-content redesign
+
+Site-content becomes an EntityPlugin with derive(). AI generates landing page content from brain data on first build, stores as site-content entities. User edits via CMS persist across rebuilds (protected by `edited` flag). derive() auto-regenerates unedited sections when source content changes.
+
+Key change: `AIContentDataSource` checks for a stored site-content entity before generating fresh. First build persists, subsequent builds read from storage.
+
+| Current                                        | New                                                   |
+| ---------------------------------------------- | ----------------------------------------------------- |
+| `plugins/site-content/` (ServicePlugin)        | `entities/site-content/` (EntityPlugin with derive()) |
+| `SiteContentService` + `SiteContentOperations` | Deleted — logic in derive() + AIContentDataSource     |
+| `site-content_generate` tool                   | Deleted — auto-generate on build, derive on changes   |
+| No persistence                                 | Stored as entities, editable via CMS                  |
+| No `edited` flag                               | `edited: true` protects manual tweaks from derive()   |
+
 ### Unified PluginContext
 
 `PluginContext` replaces CorePluginContext, ServicePluginContext, and EntityPluginContext. Used by both EntityPlugin and IntegrationPlugin. InterfacePluginContext stays separate.
@@ -67,16 +82,15 @@ Replaces both CorePlugin and ServicePlugin for plugins that provide tools and in
 
 ## Steps
 
-### Phase 5: Split newsletter + extract site-info
+### Phase 5: Split newsletter + extract site-info + redesign site-content
 
 Complete entity consolidation — all entity types in `entities/`.
 
-1. **Newsletter split**: extract buttondown subscriber tools + API routes into `plugins/buttondown/` (ServicePlugin for now). Move entity part (schema, adapter, datasource, templates, generation handler, publish pipeline) to `entities/newsletter/` (EntityPlugin).
-2. **Site-info**: extract entity type from site-builder into `entities/site-info/` (EntityPlugin). Site-builder imports from the entity package.
-3. Update brain model registrations
-4. Tests
-
-Note: site-content stays as a ServicePlugin — it's orchestration infrastructure, not a natural entity type. To be revisited separately.
+1. **Newsletter split**: extract buttondown subscriber tools + API routes into `plugins/buttondown/` (ServicePlugin for now). Move entity part to `entities/newsletter/` (EntityPlugin).
+2. **Site-info**: extract entity type from site-builder into `entities/site-info/` (EntityPlugin).
+3. **Site-content redesign**: move to `entities/site-content/` (EntityPlugin with derive()). Add `edited` flag to metadata. Delete SiteContentService, SiteContentOperations, site-content_generate tool. Update AIContentDataSource to check for stored entity before generating.
+4. Update brain model registrations
+5. Tests
 
 ### Phase 6: Unified PluginContext
 
@@ -112,5 +126,9 @@ Note: site-content stays as a ServicePlugin — it's orchestration infrastructur
 7. Newsletter API routes work (in buttondown plugin)
 8. Site builds still work (site-builder imports site-info entity)
 9. System plugin's ai.query() works (stored dependency)
-10. Only three plugin classes: IntegrationPlugin, EntityPlugin, InterfacePlugin
-11. All interfaces work unchanged
+10. First site build generates and stores landing page content as site-content entities
+11. Second build reads stored content (no AI call)
+12. User edits via CMS persist across rebuilds (`edited` flag)
+13. derive() regenerates unedited sections when source content changes
+14. Only three plugin classes: IntegrationPlugin, EntityPlugin, InterfacePlugin
+15. All interfaces work unchanged

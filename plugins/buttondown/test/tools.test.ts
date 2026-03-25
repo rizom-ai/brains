@@ -1,0 +1,199 @@
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import {
+  createPluginHarness,
+  expectSuccess,
+  expectError,
+} from "@brains/plugins/test";
+import { mockFetch } from "@brains/test-utils";
+import { ButtondownPlugin } from "../src/plugin";
+
+// Save original fetch to restore after tests
+const originalFetch = globalThis.fetch;
+
+afterEach(() => {
+  globalThis.fetch = originalFetch;
+});
+
+describe("Buttondown Tools", () => {
+  let harness: ReturnType<typeof createPluginHarness>;
+
+  beforeEach(async () => {
+    harness = createPluginHarness();
+  });
+
+  afterEach(() => {
+    harness.reset();
+  });
+
+  describe("buttondown_subscribe", () => {
+    it("should subscribe email via Buttondown API", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "sub-123",
+              email: "test@example.com",
+              subscriber_type: "unactivated",
+            }),
+        }),
+      );
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      const result = await harness.executeTool("buttondown_subscribe", {
+        email: "test@example.com",
+      });
+
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("subscriberId", "sub-123");
+    });
+
+    it("should include name when provided", async () => {
+      let capturedBody: string | undefined;
+      mockFetch((_url, options) => {
+        capturedBody = options.body as string;
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              id: "sub-123",
+              email: "test@example.com",
+            }),
+        });
+      });
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      await harness.executeTool("buttondown_subscribe", {
+        email: "test@example.com",
+        name: "Test User",
+      });
+
+      expect(capturedBody).toContain("Test User");
+    });
+
+    it("should handle API errors gracefully", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          json: () => Promise.resolve({ detail: "Invalid email" }),
+        }),
+      );
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      const result = await harness.executeTool("buttondown_subscribe", {
+        email: "invalid",
+      });
+
+      expectError(result);
+      expect(result).toHaveProperty("error");
+      expect((result as { error: string }).error).toContain("Invalid email");
+    });
+
+    it("should detect already subscribed users", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: false,
+          status: 400,
+          json: () =>
+            Promise.resolve({
+              detail: "This email is already subscribed (id=sub-existing)",
+            }),
+        }),
+      );
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      const result = await harness.executeTool("buttondown_subscribe", {
+        email: "existing@example.com",
+      });
+
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("message", "already_subscribed");
+    });
+  });
+
+  describe("buttondown_unsubscribe", () => {
+    it("should unsubscribe email via Buttondown API", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({}),
+        }),
+      );
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      const result = await harness.executeTool("buttondown_unsubscribe", {
+        email: "test@example.com",
+      });
+
+      expectSuccess(result);
+    });
+  });
+
+  describe("buttondown_list_subscribers", () => {
+    it("should list subscribers from Buttondown API", async () => {
+      mockFetch(() =>
+        Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve({
+              results: [
+                {
+                  id: "sub-1",
+                  email: "a@test.com",
+                  subscriber_type: "regular",
+                },
+                {
+                  id: "sub-2",
+                  email: "b@test.com",
+                  subscriber_type: "regular",
+                },
+              ],
+              count: 2,
+            }),
+        }),
+      );
+
+      await harness.installPlugin(
+        new ButtondownPlugin({ apiKey: "test-key", doubleOptIn: true }),
+      );
+
+      const result = await harness.executeTool(
+        "buttondown_list_subscribers",
+        {},
+      );
+
+      expectSuccess(result);
+      expect(result.data).toHaveProperty("subscribers");
+      expect(result.data).toHaveProperty("count", 2);
+    });
+  });
+
+  describe("without buttondown config", () => {
+    it("should return empty tools array when no config provided", async () => {
+      await harness.installPlugin(new ButtondownPlugin({}));
+
+      // Tools should not be registered, so executing should throw
+      expect(
+        harness.executeTool("buttondown_subscribe", {
+          email: "test@example.com",
+        }),
+      ).rejects.toThrow("Tool not found");
+    });
+  });
+});

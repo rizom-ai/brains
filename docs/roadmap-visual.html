@@ -199,16 +199,16 @@ const items = [
   { id: "other", name: "Other (2026-03)", status: "completed", desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.", date: "2026-03" },
 
   // In Progress
-  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Newsletter split (entity + buttondown integration). Image migration (entity registration from shell into plugin, image_set-cover → system_set-cover).", deps: ["entityplugin"], blocks: ["sysframework"] },
+  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Newsletter split (entity + buttondown integration). Image migration. Plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). All in one plan.", deps: ["entityplugin"], blocks: ["sysframework"] },
 
   // Short-term pipeline
-  { id: "sysframework", name: "System Tools to Framework", status: "short-term", step: 1, desc: "Move system plugin into shell-level registration. Tools, resources, prompts, instructions, widgets register directly. Removes AI from PluginContext.", deps: ["entityremain"], blocks: ["hierarchy"] },
-  { id: "hierarchy", name: "Plugin Hierarchy Simplification", status: "short-term", step: 2, desc: "3 siblings: IntegrationPlugin (tools), EntityPlugin (content + derive), InterfacePlugin (transports). One unified PluginContext. Delete CorePlugin + ServicePlugin.", deps: ["sysframework"], blocks: ["eval"] },
-  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 3, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines.", deps: ["hierarchy"], blocks: ["chatsdk"] },
-  { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", step: 4, desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp.", deps: ["hierarchy"], blocks: ["hostedrovers", "desktopapp"] },
-
+  { id: "sysframework", name: "System Tools to Framework", status: "short-term", step: 1, desc: "Move system plugin into shell-level registration. Tools, resources, prompts, instructions, widgets register directly. Removes AI from PluginContext.", deps: ["entityremain"], blocks: ["eval"] },
+  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 2, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines.", deps: ["sysframework"] },
   // Short-term independent
+  { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp. InterfacePlugin already stable.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "agentdir", name: "Agent Directory", status: "short-term", desc: "Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves by name.", blocks: ["hostedrovers"] },
+  { id: "prompts", name: "Prompts as Entities", status: "short-term", desc: "Prompt entity type — markdown files in brain-data. Users customize voice/tone via CMS or system_update. Seed content ships defaults. Per-instance personality." },
+  { id: "syncsimplify", name: "Simplify Sync Tools", status: "short-term", desc: "3 tools → 2. Unified sync (pull → import → export → commit → push). fullSync() method replaces batch jobs." },
   { id: "blockio", name: "Blocking I/O Elimination", status: "short-term", desc: "Async FS in webserver + directory-sync. Worker thread for site builds. MCP/Discord stay responsive during builds." },
   { id: "rizomwork", name: "rizom.work", status: "short-term", desc: "New relay instance with Discord, rizom theme variations." },
 
@@ -216,7 +216,7 @@ const items = [
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
   { id: "kamal", name: "Kamal Deploy", status: "medium-term", desc: "Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, automatic SSL, DNS + CDN via Cloudflare/Route 53 hooks. ~$20/month.", blocks: ["hostedrovers"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["agentdir", "chatsdk", "mediasidecar"] },
-  { id: "mediasidecar", name: "Media Sidecar", status: "medium-term", desc: "Extract ONNX (embeddings) + Sharp (images) into sidecar process. Brain drops to ~1GB. Enables per-rover hosting + desktop app.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
 
   // Long-term
   { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat. Presets + interfaces orthogonal.", deps: ["chatsdk", "mediasidecar"] },
@@ -301,11 +301,7 @@ function render() {
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('sysframework')">system-to-framework</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('hierarchy')">hierarchy-simplification</span>
-        <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('eval')">eval-overhaul</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
       </div>
     </div>
     <div class="dep-group">
@@ -315,7 +311,7 @@ function render() {
         <span class="dep-plus">+</span>
         <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">media-sidecar</span>
+        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-mid" onclick="selectItem('hostedrovers')">hosted-rovers</span>
       </div>
@@ -325,13 +321,25 @@ function render() {
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">media-sidecar</span>
+        <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-far" onclick="selectItem('desktopapp')">desktop-app</span>
       </div>
     </div>
     <div class="dep-group">
       <div class="dep-group-title">Independent</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+        <span class="dep-label">InterfacePlugin already stable</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('prompts')">prompts-as-markdown</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('syncsimplify')">simplify-sync</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
       <div class="dep-row">
         <span class="dep-node s-mid" onclick="selectItem('kamal')">kamal-deploy</span>
         <span class="dep-label">no dependencies</span>

@@ -71,7 +71,7 @@ Default to async task flow — return "working" immediately, caller polls `tasks
 
 ### Entity Consolidation — Remaining
 
-Newsletter split (entity + buttondown integration) and image migration (entity registration from shell into plugin, image_set-cover → system_set-cover). ([plan](./plans/entity-consolidation.md))
+Newsletter split (entity + buttondown integration), image migration, site-content redesign (persistent editable landing pages with derive()), site-info extraction, plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). ([plan](./plans/entity-consolidation.md))
 
 ---
 
@@ -83,11 +83,7 @@ Short-term items are ordered by dependency. Items at the same level can be done 
 
 Move system plugin from a plugin into shell-level registration. Tools, resources, prompts, instructions, and dashboard widgets register directly on shell services. Removes the only plugin that needed `ai.query()` on context. ([plan](./plans/system-to-framework.md))
 
-### 2. Plugin Hierarchy Simplification
-
-Replace 4 plugin classes with 3 siblings: IntegrationPlugin (tools), EntityPlugin (content + derive), InterfacePlugin (transports). One unified PluginContext. Delete CorePlugin, ServicePlugin, and three context types. ([plan](./plans/plugin-hierarchy-simplification.md))
-
-### 3. Eval Overhaul
+### 2. Eval Overhaul
 
 Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
 
@@ -98,6 +94,10 @@ Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat 
 ### Agent Directory
 
 Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
+
+### Prompts as Entities
+
+Prompts become a `prompt` entity type — markdown files in brain-data managed by existing entity infrastructure. Users customize voice, tone, and generation behavior via CMS or system_update. Seed content ships defaults. Per-instance personality. ([plan](./plans/prompts-as-markdown.md))
 
 ### Blocking I/O Elimination
 
@@ -123,9 +123,9 @@ Replace Terraform + SSH + Caddy with Kamal on Hetzner. Zero-downtime deploys, au
 
 Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zero, Turso for per-rover databases. Shared Discord bot gateway. Wildcard DNS for `*.rover.rizom.ai`. ([plan](./plans/hosted-rovers.md))
 
-### Media Sidecar
+### Local AI Runtime
 
-Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain drops to ~1GB. Enables affordable per-rover hosting and desktop app. ([plan](./plans/embedding-service.md))
+Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
 ---
 
@@ -152,23 +152,22 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-entity-consolidation (remaining: newsletter split, image migration)
+entity-consolidation (newsletter, image, site-content, site-info, hierarchy)
      ↓
 1. system-to-framework (system tools → shell, removes AI from PluginContext)
      ↓
-2. plugin-hierarchy-simplification (IntegrationPlugin + unified PluginContext)
-     ↓
-3. eval-overhaul (mode: eval, two runners, result store)
+2. eval-overhaul (mode: eval, two runners, result store)
 
 agent-directory ────────────────┐
                                 ├──→ hosted-rovers (K8s)
-chat-sdk + media-sidecar ──────┘
+chat-sdk + ai-runtime ──────┘
                     ↓
               desktop-app (Electrobun)
 
 chat-sdk (independent — InterfacePlugin already stable)
 kamal-deploy (independent)
 blocking-io (independent)
+prompts-as-entities (independent)
 simplify-sync (independent)
 rizom.work (independent)
 ```
