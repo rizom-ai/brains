@@ -123,9 +123,9 @@ Extract ONNX (embeddings) + Sharp (images) into single sidecar process. Brain dr
 
 ## Planned (Long-term)
 
-### Standalone Binary
+### Desktop App (Electrobun)
 
-`bun build --compile` produces single executable per platform. Requires: no native deps (media sidecar extracted), no Matrix crypto. `./rover` + `brain.yaml` = running brain. ([plan](./plans/standalone-binary.md))
+Native desktop app via Electrobun (Bun-native framework). Brain IS the main process. Tray icon, dashboard, config editor, local CMS (Sveltia against brain-data, no OAuth), optional chat. Replaces standalone binary plan. Any preset works — interfaces are orthogonal. ([plan](./plans/desktop-app.md))
 
 ### Ranger as Agent Registry
 
@@ -157,6 +157,8 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 a2a-async ──→ agent-directory ──┐
                                 ├──→ hosted-rovers (K8s)
 chat-sdk + media-sidecar ──────┘
+                    ↓
+              desktop-app (Electrobun)
 
 kamal-deploy (independent)
 rizom.work (independent)

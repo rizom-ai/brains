@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { z, ProgressReporter } from "@brains/utils";
 import { GenerationJobHandler } from "../handlers/generationHandler";
 
@@ -15,7 +15,7 @@ const createInputSchema = z.object({
   platform: z.enum(["linkedin"]).optional(),
 });
 
-export function registerEvalHandlers(context: ServicePluginContext): void {
+export function registerEvalHandlers(context: EntityPluginContext): void {
   // Eval: test AI text generation only (fast, no entity persistence)
   context.eval.registerHandler("generation", async (input: unknown) => {
     const parsed = generationInputSchema.parse(input);

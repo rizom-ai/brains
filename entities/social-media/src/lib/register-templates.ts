@@ -1,7 +1,7 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import { paginationInfoSchema } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
+import type { Template } from "@brains/templates";
 import { enrichedSocialPostSchema } from "../schemas/social-post";
 import { linkedinTemplate } from "../templates/linkedin-template";
 import {
@@ -13,23 +13,20 @@ import {
   type SocialPostDetailProps,
 } from "../templates/social-post-detail";
 
-export function registerTemplates(context: ServicePluginContext): void {
-  context.templates.register({
+const postListSchema = z.object({
+  posts: z.array(enrichedSocialPostSchema),
+  totalCount: z.number().optional(),
+  pagination: paginationInfoSchema.nullable(),
+  baseUrl: z.string().optional(),
+});
+
+const postDetailSchema = z.object({
+  post: enrichedSocialPostSchema,
+});
+
+export function getTemplates(): Record<string, Template> {
+  return {
     linkedin: linkedinTemplate,
-  });
-
-  const postListSchema = z.object({
-    posts: z.array(enrichedSocialPostSchema),
-    totalCount: z.number().optional(),
-    pagination: paginationInfoSchema.nullable(),
-    baseUrl: z.string().optional(),
-  });
-
-  const postDetailSchema = z.object({
-    post: enrichedSocialPostSchema,
-  });
-
-  context.templates.register({
     "social-post-list": createTemplate<
       z.infer<typeof postListSchema>,
       SocialPostListProps
@@ -56,5 +53,5 @@ export function registerTemplates(context: ServicePluginContext): void {
         component: SocialPostDetailTemplate,
       },
     }),
-  });
+  };
 }

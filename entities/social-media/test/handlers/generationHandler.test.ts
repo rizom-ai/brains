@@ -9,13 +9,13 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;
   let harness: PluginTestHarness;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
 

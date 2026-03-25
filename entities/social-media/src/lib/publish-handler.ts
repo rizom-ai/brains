@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger, PublishProvider } from "@brains/utils";
 import {
   PublishExecuteHandler,
@@ -6,7 +6,7 @@ import {
 } from "../handlers/publishExecuteHandler";
 
 export function registerWithPublishPipeline(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   providers: Map<string, PublishProvider>,
   logger: Logger,
 ): void {
@@ -33,7 +33,7 @@ export function registerWithPublishPipeline(
 }
 
 export function subscribeToPublishExecute(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   providers: Map<string, PublishProvider>,
   logger: Logger,
 ): void {

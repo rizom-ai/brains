@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import type { Logger } from "@brains/utils";
 
@@ -7,7 +7,7 @@ import type { Logger } from "@brains/utils";
  * Subscribe to entity:updated to trigger auto-generation when blog posts are queued.
  */
 export function subscribeToEntityUpdatedForAutoGenerate(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.messaging.subscribe<
@@ -76,7 +76,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
  * Subscribe to social:auto-generate to enqueue generation jobs.
  */
 export function subscribeToAutoGenerate(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.messaging.subscribe<
@@ -124,7 +124,7 @@ export function subscribeToAutoGenerate(
  * Subscribe to generate:execute to handle scheduled generation triggers.
  */
 export function subscribeToGenerateExecute(
-  context: ServicePluginContext,
+  context: EntityPluginContext,
   logger: Logger,
 ): void {
   context.messaging.subscribe<{ entityType: string }, { success: boolean }>(

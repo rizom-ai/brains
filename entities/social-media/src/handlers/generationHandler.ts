@@ -2,7 +2,7 @@ import { BaseGenerationJobHandler, ensureUniqueTitle } from "@brains/plugins";
 import type { GeneratedContent } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, slugify, generationResultSchema } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { SocialPostFrontmatter } from "../schemas/social-post";
 import { socialPostAdapter } from "../adapters/social-post-adapter";
 import { getTemplateName } from "../templates";
@@ -41,7 +41,7 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
   GenerationJobData,
   GenerationResult
 > {
-  constructor(logger: Logger, context: ServicePluginContext) {
+  constructor(logger: Logger, context: EntityPluginContext) {
     super(logger, context, {
       schema: generationJobSchema,
       jobTypeName: "social-post-generation",
