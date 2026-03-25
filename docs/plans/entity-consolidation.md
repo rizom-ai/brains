@@ -2,26 +2,29 @@
 
 ## Context
 
-Several plugins that manage entity types are still ServicePlugins — they use the ServicePlugin base class even though their primary concern is defining an entity type with event-driven derivation or generation. This plan migrates them to EntityPlugin, adds the `derive()` pattern for event-driven entities, and consolidates extraction into `system_extract`.
+Several plugins that manage entity types are still ServicePlugins — they use the ServicePlugin base class even though their primary concern is defining an entity type with event-driven derivation or generation. This plan migrates them to EntityPlugin, adds the `derive()` pattern for event-driven entities, and uses `system_extract` for batch enrichment.
 
 This plan works entirely within the current plugin system. No class hierarchy changes, no new plugin types, no context refactors.
 
 ## Design
 
-### derive() on EntityPlugin
+### derive() and deriveAll() on EntityPlugin
 
-Some entity types are automatically maintained in response to events — not created by users. `derive()` is an optional method on EntityPlugin for this pattern.
+`derive()` and `deriveAll()` are optional methods on EntityPlugin for two purposes:
+
+1. **Event-driven derivation**: plugins subscribe to events in `onRegister()` and call `derive()` to create/update derived entities (e.g. topics extracted from posts, series grouped from posts).
+2. **Self-enrichment**: `deriveAll()` fills in missing derived fields on the entity type's own entities (e.g. generating missing descriptions or queueing missing cover images).
 
 ```typescript
 export class TopicPlugin extends EntityPlugin<Topic> {
   readonly entityType = "topic";
   readonly schema = topicSchema;
   readonly adapter = topicAdapter;
-  readonly derivedFrom = ["post", "link"];
 
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    // Event-driven: extract topics when posts change
     context.messaging.subscribe("entity:created", (msg) => {
       if (["post", "link"].includes(msg.payload.entityType)) {
         this.derive(msg.payload.entity, "created", context);
@@ -29,83 +32,77 @@ export class TopicPlugin extends EntityPlugin<Topic> {
     });
   }
 
-  protected async derive(
+  // Single entity derivation
+  public override async derive(
     source: BaseEntity,
-    event: DeriveEvent,
+    event: string,
     context: EntityPluginContext,
   ): Promise<void> {
     // Extract topics from source content, create/merge topic entities
   }
+
+  // Batch enrichment: re-extract all topics from all sources
+  public override async deriveAll(context: EntityPluginContext): Promise<void> {
+    // List all source entities, extract topics from each
+  }
 }
 ```
 
-The plugin subscribes to events in `onRegister()` and calls `derive()` itself — no magic auto-wiring. The method exists for:
+No magic auto-wiring. The plugin subscribes to whatever events it needs and calls `derive()` itself. The methods exist for:
 
-- **Convention**: signals this is a derived entity
+- **Convention**: signals this entity type has derived data
 - **Testability**: call `derive()` directly in tests without firing events
-- **Manual trigger**: `system_extract` calls `derive()` for batch reprocessing
-
-### derivedFrom — source type declaration
-
-EntityPlugins with `derive()` declare which source entity types they watch:
-
-```typescript
-readonly derivedFrom = ["post", "link"];  // topics
-readonly derivedFrom = ["post", "deck"];  // series
-readonly derivedFrom = ["post", "deck", "project"];  // image (cover generation)
-```
-
-`system_extract` uses `derivedFrom` to find which plugins to invoke for a given source type. This is the only place `derivedFrom` is used — event subscriptions are still wired manually in `onRegister()`.
-
-### Derived entity plugins
-
-| Plugin       | derivedFrom                   | Subscribes to                                                        | What derive() does                                     |
-| ------------ | ----------------------------- | -------------------------------------------------------------------- | ------------------------------------------------------ |
-| topics       | `["post", "link"]`            | `entity:created`, `entity:updated` for posts/links                   | Extract topics, create/merge topic entities            |
-| series       | `["post", "deck"]`            | `entity:created`, `entity:updated`, `entity:deleted` for posts/decks | Group by `seriesName`, auto-create/delete series       |
-| summary      | —                             | `conversation:digest`                                                | Update summary from conversation digest                |
-| link         | —                             | `conversation:message`                                               | Detect URLs in messages, auto-capture as link entities |
-| social-media | `["post"]`                    | `entity:created` for posts                                           | Auto-generate social posts from new blog content       |
-| image        | `["post", "deck", "project"]` | `entity:created` for posts/decks/projects                            | Auto-generate cover image for entities that lack one   |
-
-Summary and link derive from non-entity events (conversations), so they have no `derivedFrom` — `system_extract` doesn't apply to them. They use `derive()` for event-driven updates and `createGenerationHandler()` for user-triggered creation.
-
-Some plugins have both `derive()` (event-driven) and `createGenerationHandler()` (user-triggered):
-
-- **Link**: derive() auto-captures URLs from conversations + generation handler for explicit "capture this URL"
-- **Summary**: derive() auto-updates on conversation digest + generation handler for "summarize my conversations"
-- **Social-media**: derive() auto-generates social posts from new content + generation handler for explicit "create a post about X"
-- **Image**: derive() auto-generates cover images for new content + generation handler for explicit "generate an image for X"
+- **Manual trigger**: `system_extract` calls `deriveAll()` for batch enrichment
 
 ### system_extract tool
 
-Operates on **source entity types**, not derived types. One call triggers all plugins that derive from that source:
+Operates on a **specific entity type**. Calls that type's `{entityType}:extract` handler, which triggers `deriveAll()` to fill in missing derived data.
 
 ```
 system_extract { entityType: "post" }
-  → topics: extract topics from all posts
-  → series: sync series from all posts
-  → image: generate missing covers for all posts
-  → social-media: generate social posts from all posts
+  → post:extract handler → generate missing cover images for all posts
 
-system_extract { entityType: "post", source: "post-123" }
-  → same plugins, but only for post-123
+system_extract { entityType: "series" }
+  → series:extract handler → sync series, generate missing descriptions
 
-system_extract { entityType: "link" }
-  → topics: extract topics from all links
+system_extract { entityType: "topic" }
+  → topic:extract handler → re-extract topics from all source entities
+
+system_extract { entityType: "series", source: "eco-arch" }
+  → series:extract handler → enrich single series entity
 ```
 
-Routing: system finds all EntityPlugins where `derivedFrom` includes the given entity type. For single-source, calls `derive(source)` on each. For batch, calls `deriveAll(context)` on each.
+Each entity type's extract handler knows what "enrichment" means for that type:
 
-Summary and link are not triggered by `system_extract` — they derive from conversations, not entities. They're triggered by their own events or by `system_create`.
+- **post**: generate missing cover images
+- **series**: sync from entities with seriesName, generate missing descriptions, queue missing cover images
+- **topic**: re-extract from source entities (posts, links)
+- **social-post**: re-generate from source posts
+- **image**: no extract (images are always explicitly created)
+
+No cross-plugin routing needed. No `derivedFrom` property. Each handler is self-contained.
+
+### Derived entity plugins
+
+| Plugin       | Subscribes to                                                     | What derive() does                                     | What deriveAll() does                           |
+| ------------ | ----------------------------------------------------------------- | ------------------------------------------------------ | ----------------------------------------------- |
+| topics       | `entity:created`, `entity:updated` for posts/links                | Extract topics from one source entity                  | Re-extract topics from all source entities      |
+| series       | `entity:created`, `entity:updated`, `entity:deleted` for any type | Ensure series exists for entity's seriesName           | Sync all series, generate missing descriptions  |
+| summary      | `conversation:digest`                                             | Update summary from conversation digest                | —                                               |
+| social-media | `entity:updated` for published posts                              | Auto-generate social post from newly published content | Re-generate missing social posts from all posts |
+
+Some plugins have both `derive()` (event-driven) and `createGenerationHandler()` (user-triggered):
+
+- **Summary**: derive() auto-updates on conversation digest + generation handler for "summarize my conversations"
+- **Social-media**: derive() auto-generates from new content + generation handler for "create a post about X"
 
 ### summary_get tool
 
-`summary_get` looks up a summary by conversationId — a domain-specific query, not derivation. It stays as-is. It is not replaced by `system_extract`.
+`summary_get` looks up a summary by conversationId — a domain-specific query, not extraction. It stays as-is.
 
 ### Image as EntityPlugin
 
-Image is currently a ServicePlugin but it defines an entity type (image) with a schema and adapter. The entity registration currently lives in `shellInitializer` — it should move into the plugin.
+Image is currently a ServicePlugin but defines an entity type (image) with a schema and adapter. The entity registration currently lives in `shellInitializer` — it should move into the plugin.
 
 Current image tools:
 
@@ -113,17 +110,17 @@ Current image tools:
 - `image_upload` — creates image entity from URL/data URL → uses existing `system_create` direct creation path (content provided, no generation needed)
 - `image_set-cover` — sets cover image on any entity type → moves to **system plugin** (cross-entity operation)
 
-After migration, image becomes a clean EntityPlugin with `derive()` (auto-generate covers) and a generation handler (explicit "generate an image"). Zero tools. AI access for handlers is obtained during `onRegister()` as a stored dependency.
+After migration, image becomes a clean EntityPlugin with a generation handler. Zero tools. Cover image generation is agent-driven — the agent uses `system_create { entityType: "image" }` and `system_set-cover` as needed.
 
 ### Migration map
 
-| Plugin       | Currently     | Becomes                                        | Notes                                            |
-| ------------ | ------------- | ---------------------------------------------- | ------------------------------------------------ |
-| series       | Part of blog  | EntityPlugin (with derive + derivedFrom)       | Extracted from blog, see simplify-series plan    |
-| topics       | ServicePlugin | EntityPlugin (with derive + derivedFrom)       | batch-extract tool → system_extract              |
-| summary      | ServicePlugin | EntityPlugin (with derive + generation)        | summary_get tool stays (domain-specific lookup)  |
-| social-media | ServicePlugin | EntityPlugin (with derive + derivedFrom)       | Zero tools today, just subscriptions             |
-| image        | ServicePlugin | EntityPlugin (with derive + derivedFrom + gen) | Entity registration moves from shell into plugin |
+| Plugin       | Currently     | Becomes                          | Notes                                            |
+| ------------ | ------------- | -------------------------------- | ------------------------------------------------ |
+| series       | Part of blog  | EntityPlugin (with derive)       | ✅ Done — extracted from blog                    |
+| topics       | ServicePlugin | EntityPlugin (with derive)       | batch-extract tool → system_extract              |
+| summary      | ServicePlugin | EntityPlugin (with derive + gen) | summary_get tool stays (domain-specific lookup)  |
+| social-media | ServicePlugin | EntityPlugin (with derive + gen) | Zero tools today, just subscriptions             |
+| image        | ServicePlugin | EntityPlugin (with generation)   | Entity registration moves from shell into plugin |
 
 ### What gets deleted
 
@@ -135,42 +132,37 @@ After migration, image becomes a clean EntityPlugin with `derive()` (auto-genera
 
 ### What gets added
 
-- `derivedFrom` optional property on EntityPlugin
-- `system_extract` routing by source type (finds plugins via `derivedFrom`)
 - `system_set-cover` tool in system plugin (from image)
-- `entities/series/` — new EntityPlugin with derive() (see simplify-series plan)
+- `entities/series/` — ✅ Done
 - `entities/image/` — image as EntityPlugin (moved from plugins/image)
 
 ## Steps
 
-### Phase 1: derive() + derivedFrom + system_extract
+### Phase 1: derive() + system_extract ✅
 
 Foundation for derived entities.
 
-1. Add optional `derive()`, `deriveAll()`, and `derivedFrom` to EntityPlugin
-2. Update `system_extract` to route by source type — find plugins where `derivedFrom` includes entityType
-3. For single source: fetch entity, call `derive(source)` on each matching plugin
-4. For batch: call `deriveAll(context)` on each matching plugin
-5. Tests
+1. ✅ Add optional `derive()`, `deriveAll()`, `hasDeriveHandler()` to EntityPlugin
+2. ✅ Auto-register `{entityType}:extract` handler when `hasDeriveHandler()` is true
+3. ✅ Add `system_extract` tool to system plugin
+4. ✅ Tests
 
-### Phase 2: Extract series from blog
+### Phase 2: Extract series from blog ✅
 
-Validates derive() with the simplest case. See simplify-series plan for full details.
-
-1. Create `entities/series/` EntityPlugin with derive() + derivedFrom
-2. Move series schema, adapter, datasource, templates, routes from blog
-3. Series subscribes to entity events in onRegister(), calls derive()
-4. Blog becomes single-entity EntityPlugin (post only)
-5. Update brain model registrations
-6. Tests
+1. ✅ Create `entities/series/` EntityPlugin with derive() + deriveAll()
+2. ✅ Series schema, adapter, datasource, templates, generation handler
+3. ✅ Cross-content: watches entity events across all types with seriesName
+4. ✅ Blog unchanged (already single-entity EntityPlugin)
+5. ✅ Registered in rover brain model
+6. ✅ Tests
 
 ### Phase 3: Migrate topics + summary + social-media
 
 Convert ServicePlugins to EntityPlugins with derive().
 
-1. Topics: move to `entities/topics/`, remove batch-extract tool, add derive() + derivedFrom, subscribe to entity events
-2. Summary: move to `entities/summary/`, keep summary_get as-is, add derive(), subscribe to conversation events (no derivedFrom — conversation-driven)
-3. Social-media: move to `entities/social-media/`, add derive() + derivedFrom for auto-generation from new posts
+1. Topics: move to `entities/topics/`, remove batch-extract tool, add derive() + deriveAll(), subscribe to entity events
+2. Summary: move to `entities/summary/`, keep summary_get as-is, add derive(), subscribe to conversation events
+3. Social-media: move to `entities/social-media/`, add derive() + deriveAll() for auto-generation from published posts
 4. All three keep generation handlers for system_create
 5. Tests
 
@@ -178,13 +170,11 @@ Convert ServicePlugins to EntityPlugins with derive().
 
 1. Move to `entities/image/`
 2. Remove image entity registration from shellInitializer
-3. Add derivedFrom for posts/decks/projects
-4. Add derive() — auto-generate cover image for entities that lack one
-5. Convert `image_generate` → `image:generation` handler (store AI dependency in onRegister)
-6. Remove `image_upload` tool — use `system_create` with direct content
-7. Move `image_set-cover` → `system_set-cover` in system plugin
-8. Update brain model registrations
-9. Tests
+3. Convert `image_generate` → `image:generation` handler
+4. Remove `image_upload` tool — use `system_create` with direct content
+5. Move `image_set-cover` → `system_set-cover` in system plugin
+6. Update brain model registrations
+7. Tests
 
 ## Verification
 
@@ -194,14 +184,13 @@ Convert ServicePlugins to EntityPlugins with derive().
 4. `system_create` still routes to correct generation handlers
 5. `system_create { entityType: "image" }` generates images via AI
 6. `system_create` with image content creates images directly (upload path)
-7. `system_extract { entityType: "post" }` triggers topics, series, image, social-media derivation
-8. `system_extract { entityType: "post", source: "post-123" }` triggers derivation for one post
-9. `system_extract { entityType: "link" }` triggers only topics derivation
+7. `system_extract { entityType: "post" }` generates missing cover images for posts
+8. `system_extract { entityType: "series" }` syncs series + generates missing descriptions
+9. `system_extract { entityType: "topic" }` re-extracts topics from source entities
 10. `system_set-cover` works for all entity types with cover image support
 11. Series auto-derive from posts/decks via derive()
 12. Topics extract via derive() on entity changes
-13. Image auto-generates covers via derive() on new content
-14. Summary updates via derive() on conversation digest
-15. Social posts auto-generate via derive() on new blog content
-16. Site builds still work
-17. summary_get tool still works
+13. Summary updates via derive() on conversation digest
+14. Social posts auto-generate via derive() on published posts
+15. Site builds still work
+16. summary_get tool still works
