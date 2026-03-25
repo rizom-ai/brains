@@ -1,5 +1,5 @@
 import type {
-  ServicePluginContext,
+  EntityPluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -39,7 +39,7 @@ export class SummaryExtractor {
    * Get singleton instance
    */
   public static getInstance(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     logger: Logger,
   ): SummaryExtractor {
     SummaryExtractor.instance ??= new SummaryExtractor(context, logger);
@@ -57,7 +57,7 @@ export class SummaryExtractor {
    * Create fresh instance (for testing)
    */
   public static createFresh(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     logger: Logger,
   ): SummaryExtractor {
     return new SummaryExtractor(context, logger);
@@ -67,7 +67,7 @@ export class SummaryExtractor {
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    private readonly context: ServicePluginContext,
+    private readonly context: EntityPluginContext,
     private readonly logger: Logger,
   ) {
     this.adapter = new SummaryAdapter();

@@ -13,8 +13,8 @@ import { createSilentLogger } from "@brains/test-utils";
 import {
   createMockShell,
   type MockShell,
-  createServicePluginContext,
-  type ServicePluginContext,
+  createEntityPluginContext,
+  type EntityPluginContext,
   type Logger,
   type ConversationDigestPayload,
 } from "@brains/plugins/test";
@@ -23,14 +23,14 @@ import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("DigestHandler", () => {
   let handler: DigestHandler;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let logger: Logger;
   let mockShell: MockShell;
 
   beforeEach(() => {
     logger = createSilentLogger();
     mockShell = createMockShell({ logger });
-    context = createServicePluginContext(mockShell, "summary");
+    context = createEntityPluginContext(mockShell, "summary");
 
     // Reset singletons and create fresh instances
     DigestHandler.resetInstance();

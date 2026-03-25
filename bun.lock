@@ -271,6 +271,21 @@
         "typescript": "^5.3.3",
       },
     },
+    "entities/summary": {
+      "name": "@brains/summary",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/node": "^20.0.0",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "entities/topics": {
       "name": "@brains/topics",
       "version": "0.1.0",
@@ -677,21 +692,6 @@
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
         "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "plugins/summary": {
-      "name": "@brains/summary",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/node": "^20.0.0",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
@@ -1433,7 +1433,7 @@
 
     "@brains/social-media": ["@brains/social-media@workspace:plugins/social-media"],
 
-    "@brains/summary": ["@brains/summary@workspace:plugins/summary"],
+    "@brains/summary": ["@brains/summary@workspace:entities/summary"],
 
     "@brains/system": ["@brains/system@workspace:plugins/system"],
 

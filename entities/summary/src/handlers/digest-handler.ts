@@ -1,5 +1,5 @@
 import type {
-  ServicePluginContext,
+  EntityPluginContext,
   ConversationDigestPayload,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -27,7 +27,7 @@ export class DigestHandler {
    * Get singleton instance
    */
   public static getInstance(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     logger: Logger,
   ): DigestHandler {
     DigestHandler.instance ??= new DigestHandler(context, logger);
@@ -45,7 +45,7 @@ export class DigestHandler {
    * Create fresh instance (for testing)
    */
   public static createFresh(
-    context: ServicePluginContext,
+    context: EntityPluginContext,
     logger: Logger,
   ): DigestHandler {
     return new DigestHandler(context, logger);
@@ -55,7 +55,7 @@ export class DigestHandler {
    * Private constructor to enforce singleton pattern
    */
   private constructor(
-    private readonly context: ServicePluginContext,
+    private readonly context: EntityPluginContext,
     private readonly logger: Logger,
   ) {
     this.extractor = SummaryExtractor.createFresh(context, logger);
