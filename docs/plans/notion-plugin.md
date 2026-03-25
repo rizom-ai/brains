@@ -221,11 +221,11 @@ plugins/notion/
 6. Register in rover brain definition (optional, not in any preset)
 7. Manual test: ask rover about Notion content
 
-### Phase 3: Validate pattern with second integration
+### Phase 3: Validate pattern with second integration ✅
 
-1. Pick GitHub or Linear
-2. Implement as MCPBridgePlugin subclass (~20 lines) using `@brains/mcp-bridge`
-3. Verify the base class works for a different server
+1. Implemented HackMD plugin (`@brains/hackmd`) as MCPBridgePlugin subclass
+2. Read-only allowlist: get_user_info, list_user_notes, get_note, get_history, list_teams, list_team_notes
+3. Confirmed the base class works for a different server with zero friction
 
 ## Verification
 

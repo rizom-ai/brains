@@ -523,6 +523,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/hackmd": {
+      "name": "@brains/hackmd",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/mcp-bridge": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/image": {
       "name": "@brains/image-plugin",
       "version": "0.1.0",
@@ -1347,6 +1363,8 @@
     "@brains/entity-service": ["@brains/entity-service@workspace:shell/entity-service"],
 
     "@brains/eslint-config": ["@brains/eslint-config@workspace:shared/eslint-config"],
+
+    "@brains/hackmd": ["@brains/hackmd@workspace:plugins/hackmd"],
 
     "@brains/identity-service": ["@brains/identity-service@workspace:shell/identity-service"],
 
