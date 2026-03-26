@@ -6,6 +6,7 @@ import {
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
+import { ApiServer } from "./api-server";
 import { existsSync } from "fs";
 import { join } from "path";
 import { webserverConfigSchema, type WebserverConfig } from "./config";
@@ -13,39 +14,28 @@ import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
 
 /**
- * Webserver interface for serving static sites
- * This is a pure serving interface - site building is handled by site-builder
+ * Webserver interface for serving static sites and API routes.
+ *
+ * The static file server runs as a child process (off the main event loop).
+ * The API server runs on the main thread (needs message bus) on its own port.
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager?: ServerManager;
+  private apiServer?: ApiServer;
   private siteUrl: string | undefined;
   private previewUrl: string | undefined;
-
-  /**
-   * Get server manager, throwing if not initialized
-   */
-  private getServerManager(): ServerManager {
-    if (!this.serverManager) {
-      throw new Error("ServerManager not initialized - onRegister not called");
-    }
-    return this.serverManager;
-  }
 
   constructor(config: Partial<WebserverConfig> = {}) {
     super("webserver", packageJson, config, webserverConfigSchema);
   }
 
-  /**
-   * Initialize server manager after config validation
-   */
   protected override async onRegister(
     context: InterfacePluginContext,
   ): Promise<void> {
-    // Store domain URLs from context (unified domain config)
     this.siteUrl = context.siteUrl;
     this.previewUrl = context.previewUrl;
 
-    // Initialize server manager with validated config
+    // Initialize server manager (spawns child process for static files)
     this.serverManager = new ServerManager({
       logger: context.logger,
       productionDistDir: this.config.productionDistDir,
@@ -57,40 +47,50 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       ...(this.config.previewPort && { previewPort: this.config.previewPort }),
     });
 
-    // Configure API routes from plugins
+    // Initialize API server (runs on main thread, own port)
     const apiRoutes = context.apiRoutes.getRoutes();
     if (apiRoutes.length > 0) {
       const messageBus = context.apiRoutes.getMessageBus();
-      this.serverManager.setApiRoutes(apiRoutes, messageBus);
-      context.logger.info(`Configured ${apiRoutes.length} API routes`);
+      this.apiServer = new ApiServer({
+        logger: context.logger,
+        port: this.config.apiPort,
+        routes: apiRoutes,
+        messageBus,
+      });
+      context.logger.info(
+        `Configured ${apiRoutes.length} API routes on port ${this.config.apiPort}`,
+      );
     }
   }
 
-  /**
-   * Create daemon for managing webserver lifecycle
-   */
+  private getServerManager(): ServerManager {
+    if (!this.serverManager) {
+      throw new Error("ServerManager not initialized — onRegister not called");
+    }
+    return this.serverManager;
+  }
+
   protected override createDaemon(): Daemon | undefined {
     return {
       start: async (): Promise<void> => {
-        // Ensure dist directory exists
+        // Ensure dist directories exist with placeholder content
         await this.ensureDistDirectories();
 
-        // Auto-start servers based on configuration
-        if (this.config.previewPort && this.config.previewDistDir) {
-          await this.getServerManager().startPreviewServer();
-          this.logger.info("Preview server enabled");
-        } else {
-          this.logger.info("Preview server disabled (not configured)");
-        }
+        // Start static file server (child process)
+        await this.getServerManager().start();
 
-        await this.getServerManager().startProductionServer();
+        // Start API server (main thread, own port)
+        if (this.apiServer) {
+          await this.apiServer.start();
+        }
       },
       stop: async (): Promise<void> => {
-        await this.getServerManager().stopAll();
+        await this.serverManager?.stop();
+        await this.apiServer?.stop();
       },
       healthCheck: async (): Promise<DaemonHealth> => {
-        const status = this.getServerManager().getStatus();
-        const isRunning = status.preview || status.production;
+        const status = this.serverManager?.getStatus();
+        const isRunning = status?.running ?? false;
 
         const previewUrl =
           this.previewUrl ??
@@ -100,31 +100,28 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
           this.siteUrl ?? `http://localhost:${this.config.productionPort}`;
 
         const urls: string[] = [];
-        if (status.preview) {
-          urls.push(`Preview: ${previewUrl}`);
-        }
-        if (status.production) {
+        if (isRunning) {
           urls.push(`Production: ${productionUrl}`);
+          if (status?.previewUrl) {
+            urls.push(`Preview: ${previewUrl}`);
+          }
         }
 
         return {
           status: isRunning ? "healthy" : "error",
-          message: isRunning ? urls.join(", ") : "No servers are running",
+          message: isRunning ? urls.join(", ") : "Webserver not running",
           lastCheck: new Date(),
           details: {
-            preview: status.preview,
-            production: status.production,
-            previewUrl: status.preview ? previewUrl : undefined,
-            productionUrl: status.production ? productionUrl : undefined,
+            preview: !!status?.previewUrl,
+            production: isRunning,
+            previewUrl: status?.previewUrl ? previewUrl : undefined,
+            productionUrl: isRunning ? productionUrl : undefined,
           },
         };
       },
     };
   }
 
-  /**
-   * Handle progress events (no-op for webserver interface)
-   */
   protected override async handleProgressEvent(
     _event: JobProgressEvent,
     _context: JobContext,
@@ -132,13 +129,9 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     // Webserver doesn't need to handle progress events
   }
 
-  /**
-   * Ensure the dist directories exist with at least a basic index.html
-   */
   private async ensureDistDirectories(): Promise<void> {
     const { mkdir, writeFile } = await import("fs/promises");
 
-    // Create preview dist directory if configured and doesn't exist
     if (this.config.previewDistDir && !existsSync(this.config.previewDistDir)) {
       await mkdir(this.config.previewDistDir, { recursive: true });
       await writeFile(
@@ -150,7 +143,6 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       );
     }
 
-    // Create production dist directory if it doesn't exist
     if (!existsSync(this.config.productionDistDir)) {
       await mkdir(this.config.productionDistDir, { recursive: true });
       await writeFile(

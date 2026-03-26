@@ -17,6 +17,7 @@ services:
       - ${APP_DIR}/matrix-storage:/app/.matrix-storage
     ports:
       - "3333:3333"
+      - "3335:3335"
       - "8080:8080"
       - "4321:4321"
     networks:

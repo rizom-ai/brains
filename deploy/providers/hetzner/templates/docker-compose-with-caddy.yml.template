@@ -19,6 +19,7 @@ services:
       - personal-brain-net
     expose:
       - "3333"
+      - "3335"
       - "8080"
       - "4321"
     healthcheck:

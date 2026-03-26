@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Hono } from "hono";
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
-import { ServerManager, createApiRouteHandler } from "../src/server-manager";
+import { createApiRouteHandler } from "../src/api-server";
 import { createSilentLogger, createMockMessageBus } from "@brains/test-utils";
+import { ApiServer } from "../src/api-server";
 
 describe("createApiRouteHandler", () => {
   let mockMessageBus: IMessageBus;
@@ -150,7 +151,6 @@ describe("createApiRouteHandler", () => {
     });
 
     it("should redirect to errorRedirect on failure for form submissions", async () => {
-      // Create a fresh mock bus with error response (tool result format)
       const errorMockBus = createMockMessageBus({
         returns: {
           send: {
@@ -180,18 +180,10 @@ describe("createApiRouteHandler", () => {
   });
 });
 
-describe("ServerManager.mountApiRoutes", () => {
-  let serverManager: ServerManager;
+describe("ApiServer", () => {
   let mockMessageBus: IMessageBus;
 
   beforeEach(() => {
-    serverManager = new ServerManager({
-      logger: createSilentLogger("test-server"),
-      productionDistDir: "/tmp/test-dist",
-      sharedImagesDir: "/tmp/test-images",
-      productionPort: 9999,
-    });
-
     mockMessageBus = createMockMessageBus({
       returns: {
         send: {
@@ -202,125 +194,15 @@ describe("ServerManager.mountApiRoutes", () => {
     }) as unknown as IMessageBus;
   });
 
-  it("should mount POST routes on the app", () => {
-    const app = new Hono();
-    const routes: RegisteredApiRoute[] = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/subscribe",
-        definition: {
-          path: "/subscribe",
-          method: "POST",
-          tool: "subscribe",
-          public: true,
-        },
-      },
-    ];
-
-    serverManager.mountApiRoutes(app, routes, mockMessageBus);
-
-    // Verify route was mounted by checking app has the route
-    expect(app.routes.length).toBeGreaterThan(0);
-  });
-
-  it("should mount GET routes on the app", () => {
-    const app = new Hono();
-    const routes: RegisteredApiRoute[] = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/status",
-        definition: {
-          path: "/status",
-          method: "GET",
-          tool: "get_status",
-          public: true,
-        },
-      },
-    ];
-
-    serverManager.mountApiRoutes(app, routes, mockMessageBus);
-
-    expect(app.routes.length).toBeGreaterThan(0);
-  });
-
-  it("should mount multiple routes", () => {
-    const app = new Hono();
-    const routes: RegisteredApiRoute[] = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/subscribe",
-        definition: {
-          path: "/subscribe",
-          method: "POST",
-          tool: "subscribe",
-          public: true,
-        },
-      },
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/unsubscribe",
-        definition: {
-          path: "/unsubscribe",
-          method: "POST",
-          tool: "unsubscribe",
-          public: true,
-        },
-      },
-    ];
-
-    serverManager.mountApiRoutes(app, routes, mockMessageBus);
-
-    expect(app.routes.length).toBeGreaterThanOrEqual(2);
-  });
-
-  it("should handle requests to mounted routes", async () => {
-    const app = new Hono();
-    const routes: RegisteredApiRoute[] = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/subscribe",
-        definition: {
-          path: "/subscribe",
-          method: "POST",
-          tool: "subscribe",
-          public: true,
-        },
-      },
-    ];
-
-    serverManager.mountApiRoutes(app, routes, mockMessageBus);
-
-    const response = await app.request("/api/newsletter/subscribe", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        accept: "application/json",
-      },
-      body: JSON.stringify({ email: "test@example.com" }),
+  it("should skip starting when no routes are registered", async () => {
+    const server = new ApiServer({
+      logger: createSilentLogger("test-api"),
+      port: 0,
+      routes: [],
+      messageBus: mockMessageBus,
     });
 
-    expect(response.status).toBe(200);
-    const json = await response.json();
-    expect(json).toEqual({ success: true, data: { subscribed: true } });
-  });
-
-  it("should store api routes configuration for use when starting servers", () => {
-    const routes: RegisteredApiRoute[] = [
-      {
-        pluginId: "newsletter",
-        fullPath: "/api/newsletter/subscribe",
-        definition: {
-          path: "/subscribe",
-          method: "POST",
-          tool: "subscribe",
-          public: true,
-        },
-      },
-    ];
-
-    serverManager.setApiRoutes(routes, mockMessageBus);
-
-    // Routes are stored and will be mounted when servers start
-    expect(serverManager.hasApiRoutes()).toBe(true);
+    const url = await server.start();
+    expect(url).toBe("");
   });
 });

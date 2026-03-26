@@ -1,86 +1,6 @@
-import { Hono, type Context } from "hono";
-import { serveStatic } from "hono/bun";
-import { compress } from "@hono/bun-compress";
-import { etag } from "hono/etag";
-import type { Server } from "bun";
+import type { Subprocess } from "bun";
 import type { Logger } from "@brains/utils";
-import { toolResultSchema } from "@brains/plugins";
-import { join, resolve } from "path";
-
-import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
-
-// WORKAROUND: Capture native Response before @hono/node-server can override it.
-// The MCP SDK's streamableHttp.js imports @hono/node-server which calls getRequestListener(),
-// overriding global.Response with a custom _Response class. Bun.serve doesn't recognize
-// _Response objects, causing "Expected a Response object" errors.
-// TODO: File issue with MCP SDK - they shouldn't override globals on Bun.
-const NativeResponse = globalThis.Response;
-
-/**
- * Create an API route handler for a registered plugin route
- * Handles request parsing, tool invocation via message bus, and response formatting
- */
-export function createApiRouteHandler(
-  route: RegisteredApiRoute,
-  messageBus: IMessageBus,
-): (c: Context) => Promise<Response> {
-  return async (c: Context): Promise<Response> => {
-    const req = c.req.raw;
-    const contentType = req.headers.get("content-type") ?? "";
-    const acceptsJson = req.headers.get("accept")?.includes("application/json");
-
-    // Parse request body
-    let args: Record<string, unknown> = {};
-    if (contentType.includes("application/json")) {
-      args = await req.json();
-    } else if (contentType.includes("form")) {
-      const formData = await req.formData();
-      for (const [key, value] of formData.entries()) {
-        args[key] = value;
-      }
-    }
-
-    // Call tool via message bus
-    const toolName = `${route.pluginId}_${route.definition.tool}`;
-    const response = await messageBus.send(
-      `plugin:${route.pluginId}:tool:execute`,
-      {
-        toolName,
-        args,
-        interfaceType: "webserver",
-        userId: "anonymous",
-      },
-      "webserver",
-    );
-
-    // The message bus wraps the tool result in { success, data }
-    // Extract and validate the inner tool result
-    const innerData =
-      typeof response === "object" && "data" in response
-        ? response.data
-        : response;
-
-    const parseResult = toolResultSchema.safeParse(innerData);
-    const toolResult = parseResult.success ? parseResult.data : innerData;
-    const success = parseResult.success && parseResult.data.success === true;
-
-    // Return response based on Accept header and route config
-    if (acceptsJson) {
-      return c.json(toolResult, success ? 200 : 400);
-    }
-
-    // Redirect for form submissions
-    if (success && route.definition.successRedirect) {
-      return c.redirect(route.definition.successRedirect);
-    }
-    if (!success && route.definition.errorRedirect) {
-      return c.redirect(route.definition.errorRedirect);
-    }
-
-    // Default JSON response if no redirect configured
-    return c.json(toolResult, success ? 200 : 400);
-  };
-}
+import { resolve, join } from "path";
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -91,361 +11,215 @@ export interface ServerManagerOptions {
   productionPort: number;
 }
 
-interface ServerState {
-  preview: Server<unknown> | null;
-  production: Server<unknown> | null;
-}
-
 /**
- * Manages HTTP servers for serving static sites
+ * Manages the webserver child process.
+ *
+ * The static file server runs in a separate process to keep HTTP traffic
+ * off the main brain event loop. The child process is a standalone Bun
+ * script that serves static files with clean URLs, cache headers, and 404s.
  */
 export class ServerManager {
   private logger: Logger;
   private options: ServerManagerOptions;
-  private servers: ServerState = {
-    preview: null,
-    production: null,
-  };
-  private apiRoutes: RegisteredApiRoute[] = [];
-  private messageBus: IMessageBus | null = null;
+  private childProcess: Subprocess | null = null;
+  private isRunning = false;
+  private cleanupHandler: (() => void) | null = null;
 
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
-    // Resolve paths relative to process.cwd()
     this.options = {
-      logger: options.logger,
+      ...options,
       productionDistDir: resolve(process.cwd(), options.productionDistDir),
       sharedImagesDir: resolve(process.cwd(), options.sharedImagesDir),
-      productionPort: options.productionPort,
       ...(options.previewDistDir && {
         previewDistDir: resolve(process.cwd(), options.previewDistDir),
       }),
-      ...(options.previewPort && { previewPort: options.previewPort }),
     };
   }
 
   /**
-   * Set API routes to be mounted when servers start
+   * Start the webserver child process
    */
-  setApiRoutes(routes: RegisteredApiRoute[], messageBus: IMessageBus): void {
-    this.apiRoutes = routes;
-    this.messageBus = messageBus;
-    this.logger.debug(`Configured ${routes.length} API routes`);
-  }
-
-  /**
-   * Check if API routes have been configured
-   */
-  hasApiRoutes(): boolean {
-    return this.apiRoutes.length > 0 && this.messageBus !== null;
-  }
-
-  /**
-   * Create preview server app
-   */
-  private createPreviewApp(): Hono {
-    if (!this.options.previewDistDir) {
-      throw new Error("Preview dist dir not configured");
-    }
-
-    const previewDistDir = this.options.previewDistDir;
-    const app = new Hono();
-
-    // Add middleware
-    app.use("/*", etag());
-
-    // Preview caching: images/fonts cached (immutable), code/HTML revalidates via ETag
-    app.use("/*", async (c, next) => {
-      await next();
-      const path = c.req.path;
-      if (path.match(/\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/)) {
-        c.header("Cache-Control", "public, max-age=31536000, immutable");
-      } else {
-        c.header("Cache-Control", "no-cache");
-      }
-    });
-
-    // Mount API routes before static files
-    if (this.messageBus) {
-      this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
-    }
-
-    // Async clean-URL middleware: serves /foo as /foo/index.html or /foo.html
-    app.use("/*", async (c, next) => {
-      const path = c.req.path;
-      if (path.includes(".") || path === "/") return next();
-
-      const indexFile = Bun.file(join(previewDistDir, path, "index.html"));
-      if (await indexFile.exists()) return c.html(await indexFile.text());
-
-      const htmlFile = Bun.file(join(previewDistDir, path + ".html"));
-      if (await htmlFile.exists()) return c.html(await htmlFile.text());
-
-      return next();
-    });
-
-    // Serve actual static assets (files with extensions)
-    app.use("/*", serveStatic({ root: previewDistDir }));
-
-    // 404 handler
-    app.notFound(async (c) => {
-      const notFoundFile = Bun.file(join(previewDistDir, "404.html"));
-      if (await notFoundFile.exists()) {
-        return c.html(await notFoundFile.text(), 404);
-      }
-      return c.text("Not Found", 404);
-    });
-
-    return app;
-  }
-
-  /**
-   * Create production server app
-   */
-  private createProductionApp(): Hono {
-    const app = new Hono();
-
-    // Add middleware
-    app.use("/*", compress()); // Compression for production
-    app.use("/*", etag());
-
-    // Production caching
-    app.use("/*", async (c, next) => {
-      await next();
-
-      const path = c.req.path;
-
-      // Cache static assets for 1 year
-      if (path.match(/\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/)) {
-        c.header("Cache-Control", "public, max-age=31536000, immutable");
-      } else {
-        // Cache HTML for 1 hour
-        c.header("Cache-Control", "public, max-age=3600");
-      }
-    });
-
-    // Mount API routes before static files
-    if (this.messageBus) {
-      this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
-    }
-
-    // Async clean-URL middleware: serves /foo as /foo/index.html or /foo.html
-    const productionDistDir = this.options.productionDistDir;
-    app.use("/*", async (c, next) => {
-      const path = c.req.path;
-      if (path.includes(".") || path === "/") return next();
-
-      const indexFile = Bun.file(join(productionDistDir, path, "index.html"));
-      if (await indexFile.exists()) return c.html(await indexFile.text());
-
-      const htmlFile = Bun.file(join(productionDistDir, path + ".html"));
-      if (await htmlFile.exists()) return c.html(await htmlFile.text());
-
-      return next();
-    });
-
-    // Serve actual static assets (files with extensions)
-    app.use("/*", serveStatic({ root: productionDistDir }));
-
-    // 404 handler
-    app.notFound(async (c) => {
-      const notFoundFile = Bun.file(join(productionDistDir, "404.html"));
-      if (await notFoundFile.exists()) {
-        return c.html(await notFoundFile.text(), 404);
-      }
-      return c.text("Not Found", 404);
-    });
-
-    return app;
-  }
-
-  /**
-   * Start the preview server
-   */
-  async startPreviewServer(): Promise<string> {
-    if (!this.options.previewPort || !this.options.previewDistDir) {
-      this.logger.warn("Preview server not configured, skipping");
-      return "";
-    }
-
-    if (this.servers.preview) {
-      this.logger.warn("Preview server already running");
-      return `http://localhost:${this.options.previewPort}`;
-    }
-
-    const previewDirExists = await Bun.file(
-      join(this.options.previewDistDir, "index.html"),
-    ).exists();
-    if (!previewDirExists) {
-      throw new Error("No preview build found. Run build_site first.");
-    }
-
-    this.logger.debug(
-      `Starting preview server on port ${this.options.previewPort}`,
-    );
-
-    const app = this.createPreviewApp();
-
-    this.servers.preview = Bun.serve({
-      port: this.options.previewPort,
-      fetch: async (req) => {
-        // Fast path: serve images directly via Bun.file(), skipping Hono middleware
-        const fastResponse = await this.serveImageFastPath(req);
-        if (fastResponse) return fastResponse;
-
-        const res = await app.fetch(req);
-        // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
-        if (res.constructor === NativeResponse) return res;
-        return new NativeResponse(res.body, {
-          status: res.status,
-          statusText: res.statusText,
-          headers: res.headers,
-        });
-      },
-    });
-
-    const url = `http://localhost:${this.options.previewPort}`;
-    this.logger.debug(`Preview server started at ${url}`);
-    return url;
-  }
-
-  /**
-   * Start the production server
-   */
-  async startProductionServer(): Promise<string> {
-    if (this.servers.production) {
-      this.logger.warn("Production server already running");
-      return `http://localhost:${this.options.productionPort}`;
-    }
-
-    const productionDirExists = await Bun.file(
-      join(this.options.productionDistDir, "index.html"),
-    ).exists();
-    if (!productionDirExists) {
-      throw new Error("No build found. Run build_site first.");
-    }
-
-    this.logger.debug(
-      `Starting production server on port ${this.options.productionPort}`,
-    );
-
-    const app = this.createProductionApp();
-
-    this.servers.production = Bun.serve({
-      port: this.options.productionPort,
-      fetch: async (req) => {
-        // Fast path: serve images directly via Bun.file(), skipping Hono middleware
-        const fastResponse = await this.serveImageFastPath(req);
-        if (fastResponse) return fastResponse;
-
-        const res = await app.fetch(req);
-        // Ensure native Response for Bun.serve (see WORKAROUND comment at top)
-        if (res.constructor === NativeResponse) return res;
-        return new NativeResponse(res.body, {
-          status: res.status,
-          statusText: res.statusText,
-          headers: res.headers,
-        });
-      },
-    });
-
-    const url = `http://localhost:${this.options.productionPort}`;
-    this.logger.debug(`Production server started at ${url}`);
-    return url;
-  }
-
-  /**
-   * Stop a server
-   */
-  async stopServer(type: "preview" | "production"): Promise<void> {
-    const server = this.servers[type];
-    if (!server) {
-      this.logger.warn(`${type} server not running`);
+  async start(): Promise<void> {
+    if (this.childProcess) {
+      this.logger.warn("Webserver child process already running");
       return;
     }
 
-    await server.stop();
-    this.servers[type] = null;
-    this.logger.debug(`${type} server stopped`);
+    const standaloneServerPath = join(import.meta.dir, "standalone-server.ts");
+
+    const env: Record<string, string> = {
+      PRODUCTION_DIST_DIR: this.options.productionDistDir,
+      SHARED_IMAGES_DIR: this.options.sharedImagesDir,
+      PRODUCTION_PORT: String(this.options.productionPort),
+    };
+
+    if (this.options.previewDistDir) {
+      env["PREVIEW_DIST_DIR"] = this.options.previewDistDir;
+    }
+    if (this.options.previewPort) {
+      env["PREVIEW_PORT"] = String(this.options.previewPort);
+    }
+
+    this.logger.debug("Spawning webserver child process", {
+      script: standaloneServerPath,
+      productionPort: this.options.productionPort,
+      previewPort: this.options.previewPort,
+    });
+
+    this.childProcess = Bun.spawn(["bun", "run", standaloneServerPath], {
+      env: { ...process.env, ...env },
+      stdout: "pipe",
+      stderr: "pipe",
+      onExit: (_proc, exitCode) => {
+        this.isRunning = false;
+        this.childProcess = null;
+        if (exitCode !== 0 && exitCode !== null) {
+          this.logger.error("Webserver child process exited unexpectedly", {
+            exitCode,
+          });
+        }
+      },
+    });
+
+    try {
+      await this.waitForReady();
+    } catch (err) {
+      this.childProcess.kill();
+      this.childProcess = null;
+      throw err;
+    }
+    this.isRunning = true;
+
+    // Kill child if parent exits unexpectedly
+    this.cleanupHandler = () => this.childProcess?.kill();
+    process.once("exit", this.cleanupHandler);
+
+    this.logger.info(
+      `Webserver child process started (pid: ${this.childProcess.pid})`,
+    );
+
+    // Pipe child output to logger to prevent buffer fill
+    const { stdout, stderr } = this.childProcess;
+    if (stdout && typeof stdout !== "number") {
+      void this.pipeStreamToLogger(stdout, "debug");
+    }
+    if (stderr && typeof stderr !== "number") {
+      void this.pipeStreamToLogger(stderr, "warn");
+    }
   }
 
   /**
-   * Stop all servers
+   * Stop the webserver child process
    */
-  async stopAll(): Promise<void> {
-    await this.stopServer("preview");
-    await this.stopServer("production");
+  async stop(): Promise<void> {
+    if (!this.childProcess) return;
+
+    this.logger.debug("Stopping webserver child process");
+    if (this.cleanupHandler) {
+      process.off("exit", this.cleanupHandler);
+      this.cleanupHandler = null;
+    }
+    this.childProcess.kill();
+    this.childProcess = null;
+    this.isRunning = false;
+    this.logger.debug("Webserver child process stopped");
   }
 
   /**
    * Get server status
    */
   getStatus(): {
-    preview: boolean;
-    production: boolean;
-    previewUrl: string | undefined;
+    running: boolean;
+    pid: number | undefined;
     productionUrl: string | undefined;
+    previewUrl: string | undefined;
   } {
     return {
-      preview: !!this.servers.preview,
-      production: !!this.servers.production,
-      previewUrl: this.servers.preview
-        ? `http://localhost:${this.options.previewPort}`
-        : undefined,
-      productionUrl: this.servers.production
+      running: this.isRunning,
+      pid: this.childProcess?.pid,
+      productionUrl: this.isRunning
         ? `http://localhost:${this.options.productionPort}`
         : undefined,
+      previewUrl:
+        this.isRunning && this.options.previewPort
+          ? `http://localhost:${this.options.previewPort}`
+          : undefined,
     };
   }
 
   /**
-   * Mount API routes from plugins onto a Hono app
-   * Routes are mounted at /api/{pluginId}/{path}
+   * Wait for the child process to signal readiness via stdout.
    */
-  mountApiRoutes(
-    app: Hono,
-    routes: RegisteredApiRoute[],
-    messageBus: IMessageBus,
-  ): void {
-    for (const route of routes) {
-      const handler = createApiRouteHandler(route, messageBus);
-      const method = route.definition.method.toLowerCase() as
-        | "get"
-        | "post"
-        | "put"
-        | "delete";
+  private async waitForReady(): Promise<void> {
+    const stdout = this.childProcess?.stdout;
+    if (!stdout || typeof stdout === "number") {
+      throw new Error("Child process stdout not available");
+    }
 
-      app[method](route.fullPath, handler);
-      this.logger.debug(
-        `Mounted API route: ${route.definition.method} ${route.fullPath} -> ${route.pluginId}_${route.definition.tool}`,
-      );
+    const reader = stdout.getReader();
+    const decoder = new TextDecoder();
+    const timeout = 10_000;
+    const start = Date.now();
+
+    try {
+      let buffer = "";
+      while (Date.now() - start < timeout) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+
+        for (const line of lines) {
+          if (line.includes("WEBSERVER_READY")) {
+            // Log any other output lines
+            for (const l of lines) {
+              const trimmed = l.trim();
+              if (trimmed && !trimmed.includes("WEBSERVER_READY")) {
+                this.logger.debug(`[webserver] ${trimmed}`);
+              }
+            }
+            return;
+          }
+        }
+
+        // Keep the last incomplete line in the buffer
+        buffer = lines[lines.length - 1] ?? "";
+      }
+
+      throw new Error("Webserver child process did not become ready in time");
+    } finally {
+      reader.releaseLock();
     }
   }
 
   /**
-   * Serve /images/* requests directly via Bun.file(), bypassing Hono middleware.
-   * Returns a Response with immutable cache headers, or null if not an image request.
+   * Pipe child process stderr to the logger.
    */
-  private async serveImageFastPath(req: Request): Promise<Response | null> {
-    if (!req.url.includes("/images/")) return null;
+  private async pipeStreamToLogger(
+    stream: ReadableStream<Uint8Array>,
+    level: "debug" | "warn",
+  ): Promise<void> {
+    const reader = stream.getReader();
+    const decoder = new TextDecoder();
 
-    let url: URL;
     try {
-      url = new URL(req.url);
+      let result = await reader.read();
+      while (!result.done) {
+        const text = decoder.decode(result.value, { stream: true }).trim();
+        if (text) {
+          this.logger[level](`[webserver] ${text}`);
+        }
+        result = await reader.read();
+      }
     } catch {
-      return null;
+      // Stream closed — child process exited
+    } finally {
+      reader.releaseLock();
     }
-    if (!url.pathname.startsWith("/images/")) return null;
-
-    // Serve from shared images directory (used by both preview and production)
-    const fileName = url.pathname.replace("/images/", "");
-    const file = Bun.file(join(this.options.sharedImagesDir, fileName));
-    if (!(await file.exists())) return null;
-
-    return new NativeResponse(file, {
-      headers: {
-        "Cache-Control": "public, max-age=31536000, immutable",
-      },
-    });
   }
 }
+
+// Re-export API server components for backward compatibility with tests
+export { createApiRouteHandler } from "./api-server";

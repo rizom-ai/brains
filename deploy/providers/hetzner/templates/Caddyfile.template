@@ -38,6 +38,11 @@ http://{{domain}} {
         }
     }
 
+    # Plugin API routes (e.g. newsletter subscribe)
+    handle /api/* {
+        reverse_proxy personal-brain:3335
+    }
+
     # Production site (catch-all)
     handle {
         reverse_proxy personal-brain:8080
@@ -78,6 +83,11 @@ http://{{domain}} {
             Access-Control-Allow-Methods "GET, POST, OPTIONS"
             Access-Control-Allow-Headers "Content-Type, Authorization"
         }
+    }
+
+    # Plugin API routes (e.g. newsletter subscribe)
+    handle /api/* {
+        reverse_proxy personal-brain:3335
     }
 
     # Production site (catch-all)

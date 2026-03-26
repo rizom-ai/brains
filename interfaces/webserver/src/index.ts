@@ -11,3 +11,5 @@ export { webserverConfigSchema, type WebserverConfig } from "./config";
 
 export { ServerManager } from "./server-manager";
 export type { ServerManagerOptions } from "./server-manager";
+export { ApiServer, createApiRouteHandler } from "./api-server";
+export type { ApiServerOptions } from "./api-server";

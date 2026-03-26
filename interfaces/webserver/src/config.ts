@@ -21,6 +21,10 @@ export const webserverConfigSchema = z.object({
     .number()
     .describe("Port for production server")
     .default(8080),
+  apiPort: z
+    .number()
+    .describe("Port for API route server (plugin HTTP endpoints)")
+    .default(3335),
 });
 
 export type WebserverConfig = z.infer<typeof webserverConfigSchema>;
