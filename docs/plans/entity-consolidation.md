@@ -187,6 +187,15 @@ Shell packages (`shell/core`, `shell/plugins`) should import `Tool`, `Resource`,
 
 Plugin/entity packages continue importing from `@brains/plugins` (which re-exports from `@brains/mcp-service`).
 
+#### Merge IJobsNamespace + IJobsWriteNamespace
+
+The read/write split is a historical artifact from CorePlugin (which was read-only). CorePlugin is gone — every consumer needs both monitoring and enqueue. Merge into one `JobsNamespace`:
+
+- Delete `IJobsNamespace` (read-only) from `@brains/job-queue`
+- Delete `IJobsWriteNamespace` (extends read) from `@brains/job-queue`
+- Create `JobsNamespace` with all methods: `enqueue`, `enqueueBatch`, `registerHandler`, `getActiveJobs`, `getBatchStatus`, `getActiveBatches`, `getStatus`
+- Scoping (auto-prefix plugin ID on enqueue/registerHandler) stays in the factory functions, not the type
+
 #### Remove duplicate job helpers
 
 `IJobsWriteNamespace`, `createEnqueueJobFn`, `createEnqueueBatchFn`, `createRegisterHandlerFn` exist in BOTH:
