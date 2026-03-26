@@ -1,43 +1,174 @@
 # Plugin Development Guidelines
 
-Guidelines for developing CorePlugin and ServicePlugin types.
+Guidelines for developing EntityPlugin, ServicePlugin, and InterfacePlugin types.
 
 > **Quick Reference**: See [docs/plugin-quick-reference.md](../docs/plugin-quick-reference.md) for a condensed cheat sheet.
 
 ## Plugin Type Selection
 
 ```typescript
-// CorePlugin - For features that provide tools/resources (read-only)
-export class MyFeaturePlugin extends CorePlugin {
-  // Provides: tools, resources, handlers
+// EntityPlugin — content type definitions (most common)
+export class BlogPlugin extends EntityPlugin<BlogPost> {
+  // Defines: entity type, schema, adapter, generation handler, derive()
+  // No tools — entity CRUD goes through system_create/update/delete
 }
 
-// ServicePlugin - For plugins that manage entities (read/write)
-export class DataPlugin extends ServicePlugin {
-  // Provides: entities, tools, job handlers
+// ServicePlugin — tools + external service integrations
+export class DirectorySyncPlugin extends ServicePlugin {
+  // Provides: tools, job handlers, API routes
+  // Does NOT define entity types
+}
+
+// InterfacePlugin — transport layers (MCP, Discord, Webserver)
+export class MCPInterface extends InterfacePlugin {
+  // Provides: daemons, transport management, permissions
 }
 ```
+
+### Decision tree
+
+1. **Does it define an entity type?** → `EntityPlugin` (in `entities/`)
+2. **Does it provide tools or integrate with external services?** → `ServicePlugin` (in `plugins/`)
+3. **Does it provide a user-facing transport?** → `InterfacePlugin` (in `interfaces/`)
 
 ## File Structure
 
+### EntityPlugin (in `entities/`)
+
 ```
-plugins/my-plugin/
+entities/blog/
 ├── src/
-│   ├── index.ts           # Main plugin export
-│   ├── plugin.ts          # Plugin implementation
-│   ├── config.ts          # Zod config schema
-│   ├── schemas/           # Entity schemas
-│   ├── adapters/          # Entity adapters
-│   ├── tools/index.ts     # All tools
-│   ├── handlers/          # Job handlers
+│   ├── index.ts           # Public exports
+│   ├── plugin.ts          # EntityPlugin implementation
+│   ├── schemas/           # Entity schema + frontmatter
+│   ├── adapters/          # Markdown serialization
+│   ├── handlers/          # Generation job handler
+│   ├── datasources/       # Site builder data sources
+│   ├── templates/         # AI generation + site templates
 │   └── lib/               # Business logic
 ├── test/
-│   ├── plugin.test.ts
-│   └── tools.test.ts
+│   └── plugin.test.ts
 └── package.json
 ```
 
+### ServicePlugin (in `plugins/`)
+
+```
+plugins/directory-sync/
+├── src/
+│   ├── index.ts
+│   ├── plugin.ts          # ServicePlugin implementation
+│   ├── tools/index.ts     # Tool definitions
+│   ├── handlers/          # Job handlers
+│   └── lib/               # Business logic
+├── test/
+└── package.json
+```
+
+## EntityPlugin Implementation
+
+The most common plugin type. Defines an entity type with schema, adapter, and optional generation/derivation.
+
+```typescript
+import type {
+  Plugin,
+  EntityPluginContext,
+  EntityTypeConfig,
+  JobHandler,
+  Template,
+  DataSource,
+} from "@brains/plugins";
+import { EntityPlugin } from "@brains/plugins";
+
+export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
+  readonly entityType = "post";
+  readonly schema = blogPostSchema;
+  readonly adapter = blogPostAdapter;
+
+  constructor(config: Partial<BlogConfig> = {}) {
+    super("blog", packageJson, config, blogConfigSchema);
+  }
+
+  // Optional: entity type config (search weight, embeddable, etc.)
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return { weight: 2.0 };
+  }
+
+  // Optional: AI generation handler (registered as {entityType}:generation)
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
+    return new BlogGenerationJobHandler(this.logger, context);
+  }
+
+  // Optional: AI templates for generation
+  protected override getTemplates(): Record<string, Template> {
+    return { generation: blogGenerationTemplate };
+  }
+
+  // Optional: data sources for site building
+  protected override getDataSources(): DataSource[] {
+    return [new BlogDataSource(this.logger)];
+  }
+
+  // Optional: additional registration (event subscriptions, eval handlers)
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    // Subscribe to events, register eval handlers, etc.
+  }
+}
+```
+
+### What the base class handles automatically
+
+- `context.entities.register(entityType, schema, adapter)` — no manual call needed
+- `context.jobs.registerHandler("{entityType}:generation", handler)` — if createGenerationHandler returns a handler
+- Template registration — if getTemplates returns templates
+- DataSource registration — if getDataSources returns sources
+- Extract handler registration — if derive() is overridden
+- `getTools()` returns `[]` — EntityPlugins don't expose tools
+
+### derive() — Event-driven entity derivation
+
+For entities that are automatically maintained from other entities (topics from posts, series from posts, etc.):
+
+```typescript
+export class SeriesPlugin extends EntityPlugin<Series> {
+  readonly entityType = "series";
+
+  protected override async onRegister(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    // Wire up event subscriptions
+    context.messaging.subscribe("entity:created", async (msg) => {
+      if (msg.payload.entityType === "series") return { success: true };
+      if (msg.payload.entity) {
+        await this.derive(msg.payload.entity, "created", context);
+      }
+      return { success: true };
+    });
+  }
+
+  // Called by event subscriptions + system_extract for batch reprocessing
+  public override async derive(
+    source: BaseEntity,
+    event: DeriveEvent,
+    context: EntityPluginContext,
+  ): Promise<void> {
+    // Create/update/delete derived entities based on source
+  }
+
+  // Called by system_extract when no source specified (batch mode)
+  public override async deriveAll(context: EntityPluginContext): Promise<void> {
+    // Full resync of all derived entities
+  }
+}
+```
+
 ## ServicePlugin Implementation
+
+For plugins that provide tools and integrate with external services.
 
 ```typescript
 import {
@@ -45,45 +176,24 @@ import {
   type ServicePluginContext,
   type PluginTool,
 } from "@brains/plugins";
-import { z } from "@brains/utils";
 
-const configSchema = z.object({
-  enableFeatureX: z.boolean().default(true),
-});
-type PluginConfig = z.infer<typeof configSchema>;
-
-export class MyPlugin extends ServicePlugin<PluginConfig> {
-  constructor(config?: Partial<PluginConfig>) {
-    super("my-plugin", packageJson, config, configSchema);
+export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
+  constructor(config: Partial<DirectorySyncConfig> = {}) {
+    super("directory-sync", packageJson, config, configSchema);
   }
 
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Register entity type
-    context.entities.register("my-type", myEntitySchema, new MyEntityAdapter());
-
-    // Subscribe to events
-    context.messaging.subscribe(
-      "entity:created",
-      this.handleEntityCreated.bind(this),
-    );
+    // Initialize services, subscribe to events, register job handlers
   }
 
-  protected override async onInstall(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    // Register job handlers
-    context.jobs.registerHandler(
-      "my-job",
-      new MyJobHandler(context.logger, context),
+  protected override async getTools(): Promise<PluginTool[]> {
+    return createDirectorySyncTools(
+      this.directorySync,
+      this.getContext(),
+      this.id,
     );
-  }
-
-  protected override async getTools(
-    context: ServicePluginContext,
-  ): Promise<PluginTool[]> {
-    return createMyTools(this.id, context);
   }
 }
 ```
@@ -91,198 +201,98 @@ export class MyPlugin extends ServicePlugin<PluginConfig> {
 ## Entity Definition Pattern
 
 ```typescript
-// 1. Define entity schema
-export const myEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("my-type"),
-  metadata: myMetadataSchema,
-});
-
-// 2. Create factory function
-export function createMyEntity(input: Partial<MyEntity>): MyEntity {
-  const now = new Date().toISOString();
-  return myEntitySchema.parse({
-    id: input.id ?? slugify(input.metadata?.title ?? "untitled"),
-    entityType: "my-type",
-    created: now,
-    updated: now,
-    ...input,
-  });
-}
-
-// 3. Implement adapter
-export class MyEntityAdapter implements EntityAdapter<MyEntity> {
-  entityType = "my-type";
-  schema = myEntitySchema;
-
-  toMarkdown(entity: MyEntity): string {
-    const frontmatter = matter.stringify("", entity.frontmatter);
-    return `${frontmatter}${entity.body}`;
-  }
-
-  fromMarkdown(markdown: string): Partial<MyEntity> {
-    const { data, content } = matter(markdown);
-    return { frontmatter: data, body: content.trim() };
-  }
-}
-```
-
-## Schema Derivation Pattern
-
-Keep metadata in sync with frontmatter using `.pick()`:
-
-```typescript
-// Step 1: Define complete frontmatter schema (stored in markdown)
+// 1. Define frontmatter schema (stored in markdown)
 export const myFrontmatterSchema = z.object({
   title: z.string(),
   slug: z.string().optional(),
   status: z.enum(["draft", "published"]),
-  description: z.string(),
 });
 
-// Step 2: Derive metadata using .pick() - only fields needed for DB queries
+// 2. Derive metadata using .pick() — only fields needed for DB queries
 export const myMetadataSchema = myFrontmatterSchema
   .pick({ title: true, status: true })
-  .extend({
-    slug: z.string(), // Required in metadata (auto-generated)
-  });
+  .extend({ slug: z.string() });
 
-// Step 3: Entity schema extends BaseEntity
+// 3. Entity schema extends BaseEntity
 export const myEntitySchema = baseEntitySchema.extend({
   entityType: z.literal("my-type"),
   metadata: myMetadataSchema,
 });
-```
 
-**Why**: Using `.pick()` prevents metadata from drifting out of sync with frontmatter.
-
-## Job Handler Pattern
-
-For async operations, extend BaseJobHandler:
-
-```typescript
-import { BaseJobHandler } from "@brains/plugins";
-import { PROGRESS_STEPS, JobResult } from "@brains/utils";
-
-const myJobSchema = z.object({
-  topic: z.string(),
-  year: z.number(),
-});
-type MyJobData = z.infer<typeof myJobSchema>;
-
-export class MyJobHandler extends BaseJobHandler<
-  "my-job",
-  MyJobData,
-  MyJobResult
-> {
-  constructor(
-    logger: Logger,
-    private context: ServicePluginContext,
-  ) {
-    super(logger, { schema: myJobSchema, jobTypeName: "my-job" });
+// 4. Adapter extends BaseEntityAdapter
+export class MyAdapter extends BaseEntityAdapter<MyEntity, MyMetadata> {
+  constructor() {
+    super({
+      entityType: "my-type",
+      schema: myEntitySchema,
+      frontmatterSchema: myFrontmatterSchema,
+    });
   }
-
-  async process(
-    data: MyJobData,
-    jobId: string,
-    progressReporter: ProgressReporter,
-  ): Promise<MyJobResult> {
-    try {
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.START,
-        message: "Starting job",
-      });
-
-      // ... do work ...
-
-      await this.reportProgress(progressReporter, {
-        progress: PROGRESS_STEPS.COMPLETE,
-        message: "Job complete",
-      });
-
-      return { success: true, entityId: "new-id" };
-    } catch (error) {
-      return JobResult.failure(error);
-    }
+  public toMarkdown(entity: MyEntity): string {
+    /* ... */
+  }
+  public fromMarkdown(markdown: string): Partial<MyEntity> {
+    /* ... */
   }
 }
 ```
 
-**Standard utilities:**
-
-- `PROGRESS_STEPS`: START(0), INIT(10), FETCH(20), PROCESS(40), GENERATE(50), EXTRACT(60), SAVE(80), COMPLETE(100)
-- `JobResult.success(data)`: Returns `{ success: true, ...data }`
-- `JobResult.failure(error)`: Returns `{ success: false, error: string }`
-
-## Async Job Pattern (Tools Queue Jobs)
-
-For operations >1 second, queue a job and return immediately:
-
-```typescript
-// In tool handler:
-const jobId = await context.jobs.enqueue(
-  "my-job-type", // Job type (matches handler)
-  { topic, year }, // Job data
-  toolContext, // Tool context (for permissions)
-  { source: `${pluginId}_create` },
-);
-
-return {
-  success: true,
-  data: { jobId },
-  message: `Job queued (jobId: ${jobId})`,
-};
-```
-
-## Messaging
-
-Use messaging for cross-plugin communication:
-
-```typescript
-// Define event constants
-export const MY_EVENT = "my-plugin:event";
-
-// Send messages
-await context.messaging.send(MY_EVENT, {
-  entityId: entity.id,
-  action: "processed",
-});
-
-// Subscribe to events
-context.messaging.subscribe(OTHER_EVENT, async (payload) => {
-  await this.processEvent(payload);
-  return { success: true };
-});
-```
-
 ## Testing
+
+Use the unified `createPluginHarness`:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createServicePluginHarness } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import { MyPlugin } from "../src";
 
 describe("MyPlugin", () => {
-  let harness: ReturnType<typeof createServicePluginHarness>;
+  let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(async () => {
-    harness = createServicePluginHarness({ dataDir: "/tmp/test" });
+    harness = createPluginHarness({ dataDir: "/tmp/test" });
     await harness.installPlugin(new MyPlugin());
   });
 
-  it("should execute tool successfully", async () => {
-    const result = await harness.executeTool("my-plugin_create", {
-      topic: "test",
+  it("should register entity type", () => {
+    expect(harness.getEntityService().getEntityTypes()).toContain("my-type");
+  });
+
+  it("should execute tool", async () => {
+    const result = await harness.executeTool("my-plugin_do-thing", {
+      input: "test",
     });
     expect(result.success).toBe(true);
   });
 });
 ```
 
+## Import Rules
+
+**Everything through `@brains/plugins`** — never import from shell packages directly:
+
+```typescript
+// CORRECT
+import type {
+  EntityPluginContext,
+  JobHandler,
+  BaseEntity,
+} from "@brains/plugins";
+import { EntityPlugin, BaseJobHandler } from "@brains/plugins";
+
+// WRONG — don't import from shell packages
+import type { JobHandler } from "@brains/job-queue";
+import type { BaseEntity } from "@brains/entity-service";
+```
+
 ## Reference Implementations
 
-| Pattern           | Reference File                                   |
-| ----------------- | ------------------------------------------------ |
-| Complete plugin   | `plugins/link/src/`                              |
-| Job handler       | `plugins/link/src/handlers/capture-handler.ts`   |
-| Schema derivation | `plugins/blog/src/schemas/blog-post.ts`          |
-| Entity adapter    | `plugins/blog/src/adapters/blog-post-adapter.ts` |
+| Pattern               | Reference                                         |
+| --------------------- | ------------------------------------------------- |
+| EntityPlugin          | `entities/blog/src/plugin.ts`                     |
+| EntityPlugin + derive | `entities/series/src/plugin.ts`                   |
+| ServicePlugin         | `plugins/directory-sync/src/plugin.ts`            |
+| MCP Bridge            | `plugins/notion/src/plugin.ts`                    |
+| Job handler           | `entities/link/src/handlers/capture-handler.ts`   |
+| Schema derivation     | `entities/blog/src/schemas/blog-post.ts`          |
+| Entity adapter        | `entities/blog/src/adapters/blog-post-adapter.ts` |

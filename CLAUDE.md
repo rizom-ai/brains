@@ -71,51 +71,23 @@ When you encounter uncertainty about implementation details or architectural dec
 - Keep tests minimal but effective
 - Move stable units to packages with their own tests
 
-### Component Implementation Pattern
+### Plugin Types
 
-Always follow the Component Interface Standardization pattern:
+- **EntityPlugin** (in `entities/`): Content types — schema, adapter, generation handler, derive(). No tools.
+- **ServicePlugin** (in `plugins/`): Integration tools — CRUD, orchestration, external services.
+- **InterfacePlugin** (in `interfaces/`): Transport layers — MCP, Discord, webserver.
 
-```typescript
-export class SomeComponent {
-  private static instance: SomeComponent | null = null;
-
-  // Singleton access
-  public static getInstance(): SomeComponent {
-    if (!SomeComponent.instance) {
-      SomeComponent.instance = new SomeComponent();
-    }
-    return SomeComponent.instance;
-  }
-
-  // Testing reset
-  public static resetInstance(): void {
-    SomeComponent.instance = null;
-  }
-
-  // Isolated instance creation
-  public static createFresh(): SomeComponent {
-    return new SomeComponent();
-  }
-
-  // Private constructor to enforce factory methods
-  private constructor() {
-    // Initialization
-  }
-}
-```
+See `plugins/CLAUDE.md` for detailed plugin development guidelines.
 
 ## Key Documentation
 
-Refer to these documents for detailed architecture information:
-
 - **Architecture Overview**: `docs/architecture-overview.md`
-- **Plugin System**: `docs/plugin-system.md`
-- **Entity Model**: `docs/entity-model.md`
-- **Messaging System**: `docs/messaging-system.md`
-- **Development Workflow**: `docs/development-workflow.md`
-- **Deployment Guide**: `docs/deployment.md`
-- **Plugin Quick Reference**: `docs/plugin-quick-reference.md` (condensed cheat sheet)
-- **Theming System**: `docs/theming-guide.md` (comprehensive theming guide)
+- **Plugin Guidelines**: `plugins/CLAUDE.md` (EntityPlugin, ServicePlugin, patterns)
+- **Interface Guidelines**: `interfaces/CLAUDE.md`
+- **Theming System**: `docs/theming-guide.md`
+- **Roadmap**: `docs/roadmap.md` + `docs/roadmap-visual.html`
+- **Codebase Map**: `docs/codebase-map.html`
+- **Plans**: `docs/plans/`
 
 ## Theming Guidelines
 
