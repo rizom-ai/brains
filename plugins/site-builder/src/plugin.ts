@@ -145,7 +145,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           previewUrl: context.previewUrl,
           themeCSS: this.config.themeCSS,
           slots: this._slotRegistry,
-          getHeadScripts: () => this.getRegisteredHeadScripts(),
+          getHeadScripts: (): string[] => this.getRegisteredHeadScripts(),
         },
       ),
     );
@@ -218,7 +218,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         name: "Site Info",
         description: "Site metadata — title, description, domain, URLs",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{ uri: string; mimeType: string; text: string }>;
+        }> => {
           let siteInfo;
           try {
             siteInfo = await fetchSiteInfo(context.entityService);
@@ -233,9 +235,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                 text: JSON.stringify(
                   {
                     ...siteInfo,
-                    domain: context?.domain,
-                    siteUrl: context?.siteUrl,
-                    previewUrl: context?.previewUrl,
+                    domain: context.domain,
+                    siteUrl: context.siteUrl,
+                    previewUrl: context.previewUrl,
                   },
                   null,
                   2,
