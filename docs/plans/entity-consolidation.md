@@ -157,12 +157,63 @@ Extract system tools from plugin to shell. See `docs/plans/system-to-framework.m
 
 ### Phase 6b: Naming cleanup
 
-Immediately after system-to-framework, before context refactor:
+Immediately after system-to-framework, before context refactor.
 
-1. Rename `PluginTool` → `Tool`, `PluginResource` → `Resource`, `PluginPrompt` → `Prompt` in `@brains/mcp-service` and everywhere
-2. Move `createTypedTool` → `createTool` from `@brains/plugins` to `@brains/mcp-service`
-3. Shell packages import from `@brains/mcp-service` (source), not through `@brains/plugins`
-4. No aliases — clean rename everywhere
+#### Renames in `@brains/mcp-service` (source of truth)
+
+| Old name                     | New name               | Files affected |
+| ---------------------------- | ---------------------- | -------------- |
+| `PluginTool`                 | `Tool`                 | ~51            |
+| `PluginResource`             | `Resource`             | ~15            |
+| `PluginResourceTemplate`     | `ResourceTemplate`     | ~9             |
+| `PluginPrompt`               | `Prompt`               | ~10            |
+| `registerPluginTools`        | `registerTools`        | ~5             |
+| `registerPluginResources`    | `registerResources`    | ~3             |
+| `registerPluginInstructions` | `registerInstructions` | ~3             |
+
+No aliases. Rename at source (`shell/mcp-service/src/types.ts`), then update all consumers.
+
+#### Move `createTypedTool` → `createTool`
+
+Currently in `shell/plugins/src/utils/tool-helpers.ts`. Move to `shell/mcp-service/src/tool-helpers.ts` and rename. Update 13 files that import it:
+
+- `shell/core/src/system/tools.ts` (imports from `@brains/plugins`)
+- `plugins/buttondown/`, `plugins/content-pipeline/`, `plugins/site-builder/`, `plugins/analytics/`, `plugins/dashboard/`, `plugins/directory-sync/`, `plugins/obsidian-vault/`, `plugins/site-content/`
+- `shell/plugins/` re-exports it for backward compat during transition (delete re-export in Phase 9)
+
+#### Import path cleanup
+
+Shell packages (`shell/core`, `shell/plugins`) should import `Tool`, `Resource`, `Prompt`, `createTool` from `@brains/mcp-service` directly — not through `@brains/plugins`.
+
+Plugin/entity packages continue importing from `@brains/plugins` (which re-exports from `@brains/mcp-service`).
+
+#### Remove duplicate job helpers
+
+`IJobsWriteNamespace`, `createEnqueueJobFn`, `createEnqueueBatchFn`, `createRegisterHandlerFn` exist in BOTH:
+
+- `shell/plugins/src/shared/job-helpers.ts` + `shell/plugins/src/core/context.ts` (old)
+- `shell/job-queue/src/job-helpers.ts` (new, canonical)
+
+Delete the old copies. Update `shell/plugins/` context files to import from `@brains/job-queue`. 4 files affected:
+
+- `shell/plugins/src/core/context.ts` — delete `IJobsWriteNamespace` definition
+- `shell/plugins/src/entity/context.ts` — import from `@brains/job-queue`
+- `shell/plugins/src/service/context.ts` — import from `@brains/job-queue`
+- `shell/plugins/src/interface/context.ts` — import from `@brains/job-queue`
+
+Then delete `shell/plugins/src/shared/job-helpers.ts`.
+
+#### Steps
+
+1. Remove duplicate job helpers — delete from `@brains/plugins`, import from `@brains/job-queue`
+2. Rename types in `shell/mcp-service/src/types.ts`
+3. Move + rename `createTypedTool` → `createTool` in `shell/mcp-service/src/tool-helpers.ts`
+4. Update `shell/mcp-service/src/index.ts` exports
+5. Update `shell/core/` imports to use `@brains/mcp-service`
+6. Update `shell/plugins/` — rename internal usages, re-export new names
+7. Update all plugin/entity packages — mechanical find-replace
+8. Rename `registerPlugin*` methods on `IMCPService` and `IShell`
+9. Tests
 
 ### Phase 7: Three sibling contexts
 
