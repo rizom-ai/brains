@@ -1,6 +1,10 @@
-import type { EntityPluginContext, Plugin } from "@brains/plugins";
+import type {
+  EntityPluginContext,
+  EntityTypeConfig,
+  JobHandler,
+  Plugin,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import type { JobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -32,7 +36,7 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
     super("image", packageJson, config, imageConfigSchema);
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { embeddable: false };
   }
 

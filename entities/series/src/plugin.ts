@@ -1,16 +1,17 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
+  JobHandler,
   DeriveEvent,
   DataSource,
   Template,
+  BaseEntity,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import type { BaseEntity } from "@brains/entity-service";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
-import type { JobHandler } from "@brains/job-queue";
 import { SeriesDataSource } from "./datasources/series-datasource";
 import { SeriesGenerationHandler } from "./handlers/seriesGenerationHandler";
 import { getTemplates } from "./lib/register-templates";
@@ -33,7 +34,7 @@ export class SeriesPlugin extends EntityPlugin<Series> {
     super("series", packageJson);
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { weight: 0.5 };
   }
 

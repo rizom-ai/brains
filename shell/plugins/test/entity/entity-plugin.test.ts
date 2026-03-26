@@ -212,12 +212,13 @@ describe("EntityPlugin", () => {
       const origJobQueue = mockShell.getJobQueueService();
       const trackingJobQueue = {
         ...origJobQueue,
-        registerHandler: (type: string) => {
+        registerHandler: (type: string): void => {
           registeredHandlers.push(type);
         },
       };
-      mockShell.getJobQueueService = () =>
-        trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
 
       const plugin = new TestEntityPlugin();
       await plugin.register(mockShell);
@@ -231,12 +232,13 @@ describe("EntityPlugin", () => {
       const origJobQueue = mockShell.getJobQueueService();
       const trackingJobQueue = {
         ...origJobQueue,
-        registerHandler: (type: string) => {
+        registerHandler: (type: string): void => {
           registeredHandlers.push(type);
         },
       };
-      mockShell.getJobQueueService = () =>
-        trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
 
       const plugin = new DerivedEntityPlugin();
       await plugin.register(mockShell);

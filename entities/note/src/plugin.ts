@@ -1,4 +1,9 @@
-import type { Plugin, EntityPluginContext, Template } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  JobHandler,
+  Template,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { noteSchema, type Note } from "./schemas/note";
@@ -18,7 +23,9 @@ export class NotePlugin extends EntityPlugin<Note, NoteConfig> {
     super("note", packageJson, config, noteConfigSchema);
   }
 
-  protected override createGenerationHandler(context: EntityPluginContext) {
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
     return new NoteGenerationJobHandler(
       this.logger.child("NoteGenerationJobHandler"),
       context,

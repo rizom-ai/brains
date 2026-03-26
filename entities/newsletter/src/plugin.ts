@@ -1,11 +1,11 @@
 import type {
   Plugin,
   EntityPluginContext,
+  JobHandler,
   DataSource,
   Template,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import type { JobHandler } from "@brains/job-queue";
 import { getErrorMessage, z, type PublishProvider } from "@brains/utils";
 import { h } from "preact";
 import { NewsletterSignup } from "@brains/ui-library";

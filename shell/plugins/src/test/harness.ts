@@ -6,7 +6,7 @@ import type {
   ToolConfirmation,
 } from "../interfaces";
 import { type z } from "@brains/utils";
-import { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
+import type { toolSuccessSchema, toolErrorSchema } from "@brains/mcp-service";
 
 type ToolSuccess = z.infer<typeof toolSuccessSchema>;
 type ToolError = z.infer<typeof toolErrorSchema>;
@@ -168,7 +168,9 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
   setPermissionService(
     service: ReturnType<MockShell["getPermissionService"]>,
   ): void {
-    this.mockShell.getPermissionService = () => service;
+    this.mockShell.getPermissionService = (): ReturnType<
+      MockShell["getPermissionService"]
+    > => service;
   }
 
   /**

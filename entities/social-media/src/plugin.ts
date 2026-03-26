@@ -1,11 +1,11 @@
 import type {
   EntityPluginContext,
+  JobHandler,
   DataSource,
   Template,
+  BaseEntity,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import type { BaseEntity } from "@brains/entity-service";
-import type { JobHandler } from "@brains/job-queue";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
 import { socialPostAdapter } from "./adapters/social-post-adapter";
 import { SocialPostDataSource } from "./datasources/social-post-datasource";

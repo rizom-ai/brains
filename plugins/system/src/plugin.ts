@@ -244,10 +244,13 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
         }
         return entries;
       },
-      complete: (() => {
+      complete: ((): Record<
+        "type" | "id",
+        (value: string) => Promise<string[]>
+      > => {
         let lastType: string | undefined;
         return {
-          type: async (value) => {
+          type: async (value): Promise<string[]> => {
             const types = context.entityService.getEntityTypes();
             const matches = value
               ? types.filter((t) => t.startsWith(value))
@@ -255,7 +258,7 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
             if (matches.length === 1 && matches[0]) lastType = matches[0];
             return matches;
           },
-          id: async () => {
+          id: async (): Promise<string[]> => {
             if (!lastType) return [];
             const entities = await context.entityService.listEntities(lastType);
             return entities.map((e) => e.id);
@@ -280,7 +283,8 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
     });
 
     // Register MCP prompts
-    const entityTypes = () => context.entityService.getEntityTypes().join(", ");
+    const entityTypes = (): string =>
+      context.entityService.getEntityTypes().join(", ");
 
     context.prompts.register({
       name: "create",
@@ -419,7 +423,9 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
         name: "Brain Identity",
         description: "Brain character — name, role, purpose, values",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{ text: string; uri: string; mimeType?: string }>;
+        }> => {
           const identity = this.getIdentityData();
           return {
             contents: [
@@ -437,7 +443,9 @@ export class SystemPlugin extends ServicePlugin<SystemConfig> {
         name: "Anchor Profile",
         description: "Brain owner profile — name, bio, expertise",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{ text: string; uri: string; mimeType?: string }>;
+        }> => {
           const profile = this.getProfileData();
           return {
             contents: [

@@ -63,6 +63,7 @@ export type {
   BaseEntity,
   EntityAdapter,
   EntityInput,
+  EntityTypeConfig,
   ICoreEntityService,
   IEntityService,
   SearchResult,
@@ -96,6 +97,7 @@ export { paginationInfoSchema } from "@brains/entity-service";
 // ============================================================================
 
 export { BaseJobHandler, JobProgressEventSchema } from "@brains/job-queue";
+export type { JobHandler } from "@brains/job-queue";
 export {
   BaseGenerationJobHandler,
   type GenerationJobHandlerConfig,

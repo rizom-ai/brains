@@ -1,4 +1,9 @@
-import type { Plugin, EntityPluginContext, DataSource } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  EntityTypeConfig,
+  DataSource,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import {
   siteInfoSchema,
@@ -30,7 +35,7 @@ export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
     this.defaultSiteInfo = config?.siteInfo ?? {};
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { embeddable: false };
   }
 

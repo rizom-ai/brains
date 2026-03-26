@@ -84,7 +84,8 @@ export class WishCreateHandler {
 
     const slug = slugify(title);
     const priority =
-      (data.options?.priority as "low" | "medium" | "high") ?? "medium";
+      (data.options?.priority as "low" | "medium" | "high" | undefined) ??
+      "medium";
     const content = this.adapter.createWishContent(
       {
         title,

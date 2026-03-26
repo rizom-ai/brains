@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  JobHandler,
   Template,
   DataSource,
 } from "@brains/plugins";
@@ -55,7 +56,9 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
     super("portfolio", packageJson, config, portfolioConfigSchema);
   }
 
-  protected override createGenerationHandler(context: EntityPluginContext) {
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
     return new ProjectGenerationJobHandler(
       this.logger.child("ProjectGenerationJobHandler"),
       context,

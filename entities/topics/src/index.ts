@@ -1,6 +1,7 @@
 import {
   EntityPlugin,
   type EntityPluginContext,
+  type EntityTypeConfig,
   type DataSource,
   type Template,
   type BaseEntity,
@@ -43,7 +44,7 @@ export class TopicsPlugin extends EntityPlugin<
     super("topics", packageJson, config, topicsPluginConfigSchema);
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { weight: 0.5 };
   }
 

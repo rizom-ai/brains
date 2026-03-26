@@ -71,7 +71,9 @@ export function createEntityPluginContext(
       ): void => {
         entityRegistry.registerEntityType(entityType, schema, adapter, config);
       },
-      getAdapter: <T extends BaseEntity>(entityType: string) => {
+      getAdapter: <T extends BaseEntity>(
+        entityType: string,
+      ): EntityAdapter<T> | undefined => {
         try {
           return entityRegistry.getAdapter<T>(entityType);
         } catch {
@@ -84,10 +86,14 @@ export function createEntityPluginContext(
       ): void => {
         entityRegistry.extendFrontmatterSchema(type, extension);
       },
-      getEffectiveFrontmatterSchema: (type: string) => {
+      getEffectiveFrontmatterSchema: (
+        type: string,
+      ): z.ZodObject<z.ZodRawShape> | undefined => {
         return entityRegistry.getEffectiveFrontmatterSchema(type);
       },
-      update: async <T extends BaseEntity>(entity: T) => {
+      update: async <T extends BaseEntity>(
+        entity: T,
+      ): Promise<{ entityId: string; jobId: string }> => {
         return entityService.updateEntity(entity);
       },
       registerDataSource: (dataSource: DataSource): void => {
@@ -97,10 +103,15 @@ export function createEntityPluginContext(
 
     ai: {
       query: coreContext.ai.query,
-      generate: async <T = unknown>(config: ContentGenerationConfig) => {
+      generate: async <T = unknown>(
+        config: ContentGenerationConfig,
+      ): Promise<T> => {
         return shell.generateContent<T>(config);
       },
-      generateObject: async <T>(prompt: string, schema: z.ZodType<T>) => {
+      generateObject: async <T>(
+        prompt: string,
+        schema: z.ZodType<T>,
+      ): Promise<{ object: T }> => {
         return shell.generateObject(prompt, schema);
       },
       generateImage: async (
@@ -133,7 +144,14 @@ export function createEntityPluginContext(
         );
         return result as T;
       },
-      getCapabilities: (templateName: string) => {
+      getCapabilities: (
+        templateName: string,
+      ): {
+        canGenerate: boolean;
+        canFetch: boolean;
+        canRender: boolean;
+        isStaticOnly: boolean;
+      } | null => {
         const scopedName = templateName.includes(":")
           ? templateName
           : `${pluginId}:${templateName}`;

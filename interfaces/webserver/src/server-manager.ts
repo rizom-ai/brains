@@ -92,7 +92,9 @@ export class ServerManager {
     this.isRunning = true;
 
     // Kill child if parent exits unexpectedly
-    this.cleanupHandler = () => this.childProcess?.kill();
+    this.cleanupHandler = (): void => {
+      this.childProcess?.kill();
+    };
     process.once("exit", this.cleanupHandler);
 
     this.logger.info(

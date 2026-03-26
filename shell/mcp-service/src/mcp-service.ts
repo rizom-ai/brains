@@ -322,9 +322,10 @@ export class MCPService implements IMCPService {
         : undefined,
       ...(template.complete && {
         complete: Object.fromEntries(
-          Object.entries(template.complete)
-            .filter((e): e is [string, NonNullable<(typeof e)[1]>] => !!e[1])
-            .map(([k, fn]) => [k, (v: string) => fn(v)]),
+          Object.entries(template.complete).map(([k, fn]) => [
+            k,
+            (v: string): string[] | Promise<string[]> => fn(v),
+          ]),
         ),
       }),
     });

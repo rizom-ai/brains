@@ -1,6 +1,8 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
+  JobHandler,
   DataSource,
   Template,
 } from "@brains/plugins";
@@ -29,11 +31,13 @@ export class BlogPlugin extends EntityPlugin<BlogPost, BlogConfig> {
     super("blog", packageJson, config, blogConfigSchema);
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { weight: 2.0 };
   }
 
-  protected override createGenerationHandler(context: EntityPluginContext) {
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
     return new BlogGenerationJobHandler(
       this.logger.child("BlogGenerationJobHandler"),
       context,

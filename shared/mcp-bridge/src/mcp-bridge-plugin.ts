@@ -197,11 +197,9 @@ export abstract class MCPBridgePlugin<
    * Adapt remote MCP tools: prefix names, isolate errors, convert JSON Schema → Zod.
    */
   protected override async getTools(): Promise<PluginTool[]> {
-    if (!this.cachedTools) {
-      this.cachedTools = this.remoteTools.map((remote) =>
-        this.adaptTool(remote),
-      );
-    }
+    this.cachedTools ??= this.remoteTools.map((remote) =>
+      this.adaptTool(remote),
+    );
     return this.cachedTools;
   }
 

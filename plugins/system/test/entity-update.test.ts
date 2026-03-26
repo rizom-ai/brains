@@ -202,7 +202,7 @@ describe("entity_update tool", () => {
       const origUpdate = harness
         .getEntityService()
         .updateEntity.bind(harness.getEntityService());
-      harness.getEntityService().updateEntity = async () => {
+      harness.getEntityService().updateEntity = async (): Promise<never> => {
         throw new Error("Validation failed: invalid status value");
       };
 

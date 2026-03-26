@@ -1,6 +1,7 @@
 import type {
   Plugin,
   EntityPluginContext,
+  JobHandler,
   Template,
   DataSource,
 } from "@brains/plugins";
@@ -33,7 +34,9 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
     super("link", packageJson, config, linkConfigSchema);
   }
 
-  protected override createGenerationHandler(context: EntityPluginContext) {
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
     return new LinkCaptureJobHandler(
       this.logger.child("LinkCaptureJobHandler"),
       context,

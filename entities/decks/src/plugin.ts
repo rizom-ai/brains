@@ -1,6 +1,8 @@
 import type {
   Plugin,
   EntityPluginContext,
+  EntityTypeConfig,
+  JobHandler,
   DataSource,
   Template,
 } from "@brains/plugins";
@@ -25,7 +27,9 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     super("decks", packageJson);
   }
 
-  protected override createGenerationHandler(context: EntityPluginContext) {
+  protected override createGenerationHandler(
+    context: EntityPluginContext,
+  ): JobHandler | null {
     return new DeckGenerationJobHandler(
       this.logger.child("DeckGenerationJobHandler"),
       context,
@@ -45,7 +49,7 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
     return [new DeckDataSource(this.logger)];
   }
 
-  protected override getEntityTypeConfig() {
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { weight: 1.5 };
   }
 
