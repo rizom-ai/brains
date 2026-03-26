@@ -23,7 +23,6 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-ranger": "workspace:*",
     "@brains/social-media": "workspace:*",
-    "@brains/system": "workspace:*",
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*"
   },

@@ -33,7 +33,6 @@
     "@brains/site-default": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
-    "@brains/system": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*",
     "@brains/wishlist": "workspace:*"

@@ -1,6 +1,5 @@
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
-import type { IJobsNamespace } from "@brains/job-queue";
-import type { ScopedJobQueue } from "@brains/job-queue";
+import type { IJobsWriteNamespace } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
 import type { MessageBus } from "@brains/messaging-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
@@ -14,8 +13,7 @@ import type { AppInfo } from "@brains/plugins";
 export interface SystemServices {
   entityService: IEntityService;
   entityRegistry: IEntityRegistry;
-  jobs: IJobsNamespace;
-  scopedJobs: ScopedJobQueue;
+  jobs: IJobsWriteNamespace;
   conversationService: IConversationService;
   messageBus: MessageBus;
   logger: Logger;

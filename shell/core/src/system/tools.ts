@@ -35,14 +35,15 @@ const confirmedSchema = z
 function isConfirmed(rawInput: unknown): boolean {
   return confirmedSchema.safeParse(rawInput).success;
 }
-function parseConfirmed(rawInput: unknown) {
+function parseConfirmed(
+  rawInput: unknown,
+): z.infer<typeof confirmedSchema> | undefined {
   const parsed = confirmedSchema.safeParse(rawInput);
   return parsed.success ? parsed.data : undefined;
 }
 
 export function createSystemTools(services: SystemServices): PluginTool[] {
-  const { entityService, conversationService, logger, scopedJobs, jobs } =
-    services;
+  const { entityService, conversationService, logger, jobs } = services;
 
   return [
     // ── Search ──
@@ -326,7 +327,10 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
       description:
         "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
       inputSchema: createInputSchema.shape,
-      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+      handler: async (
+        rawInput: unknown,
+        toolContext,
+      ): Promise<ToolResponse> => {
         const parsed = createInputSchema.safeParse(rawInput);
         if (!parsed.success)
           return {
@@ -343,7 +347,7 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
 
         if (input.prompt) {
           try {
-            const jobId = await scopedJobs.enqueue(
+            const jobId = await jobs.enqueue(
               `${input.entityType}:generation`,
               {
                 prompt: input.prompt,
@@ -351,6 +355,7 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
                 content: input.content,
                 ...input.options,
               },
+              toolContext,
             );
             return { success: true, data: { status: "generating", jobId } };
           } catch (error) {
@@ -545,7 +550,10 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
       description:
         "Extract derived entities from source content. Provide source for single, omit for batch.",
       inputSchema: extractInputSchema.shape,
-      handler: async (rawInput: unknown): Promise<ToolResponse> => {
+      handler: async (
+        rawInput: unknown,
+        toolContext,
+      ): Promise<ToolResponse> => {
         const parsed = extractInputSchema.safeParse(rawInput);
         if (!parsed.success)
           return {
@@ -576,7 +584,11 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
                 error: `Source entity not found: ${source}`,
               };
           }
-          const jobId = await scopedJobs.enqueue(`${entityType}:extract`, data);
+          const jobId = await jobs.enqueue(
+            `${entityType}:extract`,
+            data,
+            toolContext,
+          );
           return {
             success: true,
             data: {
@@ -619,7 +631,7 @@ export function createSystemTools(services: SystemServices): PluginTool[] {
               error: `Entity not found: ${input.entityType}/${input.entityId}`,
             };
           const adapter = services.entityRegistry.getAdapter(input.entityType);
-          if (!adapter?.supportsCoverImage)
+          if (!adapter.supportsCoverImage)
             return {
               success: false,
               error: `Entity type '${input.entityType}' doesn't support cover images`,

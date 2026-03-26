@@ -1,5 +1,5 @@
 import { defineBrain, type PluginConfig } from "@brains/app";
-import { systemPlugin } from "@brains/system";
+// System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
@@ -33,7 +33,6 @@ export default defineBrain({
   site: rangerSite,
   presets: {
     default: [
-      "system",
       "topics",
       "summary",
       "link",
@@ -48,7 +47,6 @@ export default defineBrain({
   },
 
   capabilities: [
-    ["system", systemPlugin, {}],
     ["topics", topicsPlugin, {}],
     ["summary", summaryPlugin, {}],
     ["link", linkPlugin, {}],

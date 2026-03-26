@@ -52,4 +52,12 @@ export type {
   JobStats,
 } from "./schema/types";
 
-export { createScopedJobQueue, type ScopedJobQueue } from "./scoped-job-queue";
+export {
+  createEnqueueJobFn,
+  createEnqueueBatchFn,
+  createRegisterHandlerFn,
+  type EnqueueJobFn,
+  type EnqueueBatchFn,
+  type RegisterHandlerFn,
+  type IJobsWriteNamespace,
+} from "./job-helpers";

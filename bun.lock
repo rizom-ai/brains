@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -75,7 +74,6 @@
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-ranger": "workspace:*",
         "@brains/social-media": "workspace:*",
-        "@brains/system": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
       },
@@ -98,7 +96,6 @@
         "@brains/site-content": "workspace:*",
         "@brains/site-ranger": "workspace:*",
         "@brains/summary": "workspace:*",
-        "@brains/system": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
       },
@@ -133,7 +130,6 @@
         "@brains/site-default": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/social-media": "workspace:*",
-        "@brains/system": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
@@ -740,22 +736,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "plugins/system": {
-      "name": "@brains/system",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "@types/node": "^20.0.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shared/eslint-config": {
       "name": "@brains/eslint-config",
       "version": "0.1.0",
@@ -1022,7 +1002,6 @@
         "@brains/ai-service": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/core": "workspace:*",
-        "@brains/system": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
         "chalk": "^5.4.1",
@@ -1181,6 +1160,7 @@
       "name": "@brains/job-queue",
       "version": "0.0.0",
       "dependencies": {
+        "@brains/mcp-service": "workspace:*",
         "@brains/utils": "workspace:*",
         "@libsql/client": "^0.15.7",
         "drizzle-orm": "^0.44.4",
@@ -1481,8 +1461,6 @@
     "@brains/social-media": ["@brains/social-media@workspace:entities/social-media"],
 
     "@brains/summary": ["@brains/summary@workspace:entities/summary"],
-
-    "@brains/system": ["@brains/system@workspace:plugins/system"],
 
     "@brains/team-brain": ["@brains/team-brain@workspace:apps/team-brain"],
 

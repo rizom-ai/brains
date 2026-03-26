@@ -60,16 +60,14 @@ export function createMockSystemServices(
   } as unknown as SystemServices["entityService"];
 
   const jobs = {
+    enqueue: async () => `job-${Date.now()}`,
+    enqueueBatch: async () => `batch-${Date.now()}`,
+    registerHandler: () => {},
     getActiveJobs: async () => [],
     getActiveBatches: async () => [],
     getBatchStatus: async () => null,
     getStatus: async () => null,
-    enqueueBatch: async () => `batch-${Date.now()}`,
   } as unknown as SystemServices["jobs"];
-
-  const scopedJobs = {
-    enqueue: async () => `job-${Date.now()}`,
-  } as SystemServices["scopedJobs"];
 
   const conversationService = {
     getConversation: async () => null,
@@ -79,14 +77,13 @@ export function createMockSystemServices(
 
   const messageBus = {
     send: async () => ({ success: true }),
-    subscribe: () => () => {},
+    subscribe: (): (() => void) => () => {},
   } as unknown as SystemServices["messageBus"];
 
   return {
     entityService,
     entityRegistry,
     jobs,
-    scopedJobs,
     conversationService,
     messageBus,
     logger: createSilentLogger("system-test"),

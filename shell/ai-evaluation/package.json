@@ -18,7 +18,6 @@
     "@brains/ai-service": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/core": "workspace:*",
-    "@brains/system": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "chalk": "^5.4.1",

@@ -1,5 +1,5 @@
 import { defineBrain, type PluginConfig } from "@brains/app";
-import { systemPlugin } from "@brains/system";
+// System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
 import { MatrixInterface } from "@brains/matrix";
@@ -42,7 +42,6 @@ import { join } from "path";
  * Only secrets (tokens, API keys) come from .env.
  */
 const minimal = [
-  "system",
   "note",
   "link",
   "wishlist",
@@ -79,7 +78,6 @@ const pro = [
 
 // Eval = all capabilities, no interfaces (no daemons/servers)
 const evaluation = [
-  "system",
   "image",
   "dashboard",
   "blog",
@@ -113,7 +111,6 @@ export default defineBrain({
   },
 
   capabilities: [
-    ["system", systemPlugin, {}],
     ["image", imagePlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],

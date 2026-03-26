@@ -1,0 +1,32 @@
+import type { SystemServices } from "./types";
+
+export function createSystemInstructions(services: SystemServices): string {
+  const types = services.entityService.getEntityTypes();
+
+  return [
+    "## Entity CRUD",
+    "",
+    "Use these system tools for ALL entity operations:",
+    "",
+    "- **system_create**: Create or generate any entity. " +
+      "Pass `content` for direct creation, or `prompt` for AI generation. " +
+      `Available entity types: ${types.join(", ")}.`,
+    "- **system_update**: Modify an entity's fields or content. " +
+      "Requires confirmation before applying changes.",
+    "- **system_delete**: Remove an entity. " +
+      "Requires confirmation before deleting.",
+    "- **system_get**: Retrieve a specific entity by type and ID/slug/title.",
+    "- **system_list**: List entities by type with optional filters.",
+    "- **system_search**: Semantic search across all entities.",
+    "",
+    "When a user asks to create content, determine the entity type from context:",
+    '- "Write a blog post" → entityType: "post"',
+    '- "Create a presentation/deck" → entityType: "deck"',
+    '- "Save this as a note" → entityType: "base"',
+    '- "Draft a LinkedIn post" → entityType: "social-post"',
+    '- "Create a newsletter" → entityType: "newsletter"',
+    '- "Add a project" → entityType: "project"',
+    "",
+    "Never use old tool names like blog_generate, note_create, or deck_generate.",
+  ].join("\n");
+}

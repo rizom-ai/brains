@@ -19,6 +19,7 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*",
     "@libsql/client": "^0.15.7",
     "drizzle-orm": "^0.44.4"

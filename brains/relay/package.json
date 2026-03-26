@@ -22,7 +22,6 @@
     "@brains/site-content": "workspace:*",
     "@brains/site-ranger": "workspace:*",
     "@brains/summary": "workspace:*",
-    "@brains/system": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*"
   },

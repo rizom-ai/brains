@@ -62,6 +62,12 @@ import {
   ShellInitializer,
   type ShellServices,
 } from "./initialization/shellInitializer";
+import { registerSystemCapabilities } from "./system/register";
+import {
+  createEnqueueJobFn,
+  createEnqueueBatchFn,
+  createRegisterHandlerFn,
+} from "@brains/job-queue";
 import type { ShellDependencies } from "./types/shell-types";
 
 export type { ShellDependencies };
@@ -154,6 +160,7 @@ export class Shell implements IShell {
       );
 
       this.registerCoreDataSources();
+      this.registerSystemCapabilities();
 
       // NOTE: Identity and profile services are initialized via sync:initial:completed
       // subscription in shellInitializer. This ensures remote data is pulled by
@@ -567,5 +574,32 @@ export class Shell implements IShell {
     );
 
     this.services.logger.debug("Core DataSources registered");
+  }
+
+  private registerSystemCapabilities(): void {
+    const jqs = this.services.jobQueueService;
+    registerSystemCapabilities(
+      {
+        entityService: this.services.entityService,
+        entityRegistry: this.services.entityRegistry,
+        jobs: {
+          ...this.jobs,
+          enqueue: createEnqueueJobFn(jqs, "system", false),
+          enqueueBatch: createEnqueueBatchFn(this.jobs, "system"),
+          registerHandler: createRegisterHandlerFn(jqs, "system"),
+        },
+        conversationService: this.services.conversationService,
+        messageBus: this.services.messageBus,
+        logger: this.services.logger.child("system"),
+        query: (prompt, context) => this.query(prompt, context),
+        getIdentity: () => this.services.identityService.getCharacter(),
+        getProfile: () => this.services.profileService.getProfile(),
+        getAppInfo: () => this.getAppInfo(),
+        searchLimit: 10,
+      },
+      this.services.mcpService,
+      this.services.messageBus,
+      this.services.logger.child("system"),
+    );
   }
 }

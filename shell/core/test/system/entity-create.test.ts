@@ -13,7 +13,7 @@ describe("system_create tool", () => {
     tools = createSystemTools(services);
   });
 
-  function exec(input: Record<string, unknown>) {
+  function exec(input: Record<string, unknown>): Promise<unknown> {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
     return tool.handler(input, { interfaceType: "test", userId: "test" });
