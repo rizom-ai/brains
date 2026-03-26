@@ -208,10 +208,7 @@ export class FileOperations {
     }
 
     if (entity.entityType !== "base") {
-      const dir = dirname(filePath);
-      if (!(await pathExists(dir))) {
-        await mkdir(dir, { recursive: true });
-      }
+      await mkdir(dirname(filePath), { recursive: true });
     }
 
     if (isImage) {
@@ -339,10 +336,7 @@ export class FileOperations {
 
     for (const entityType of entityTypes) {
       if (entityType !== "base") {
-        const dir = join(this.syncPath, entityType);
-        if (!(await pathExists(dir))) {
-          await mkdir(dir, { recursive: true });
-        }
+        await mkdir(join(this.syncPath, entityType), { recursive: true });
       }
     }
   }

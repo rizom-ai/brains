@@ -2,6 +2,7 @@ import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import { createId } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { DirectorySync } from "./directory-sync";
+import { unlink, access } from "fs/promises";
 import type { DirectorySyncConfig, JobRequest } from "../types";
 
 /**
@@ -82,8 +83,6 @@ export function setupAutoSync(
       const { entityId, entityType } = message.payload;
 
       const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
-      const { unlink, access } = await import("fs/promises");
-
       const exists = await access(filePath).then(
         () => true,
         () => false,

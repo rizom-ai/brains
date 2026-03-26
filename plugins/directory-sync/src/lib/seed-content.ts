@@ -1,5 +1,7 @@
 import { access, readdir, mkdir, copyFile } from "fs/promises";
-import { execSync } from "child_process";
+import { exec } from "child_process";
+import { promisify } from "util";
+const execAsync = promisify(exec);
 import { join, resolve } from "path";
 import type { Logger } from "@brains/utils";
 
@@ -54,12 +56,8 @@ async function hasGitRemote(dirPath: string): Promise<boolean> {
   }
 
   try {
-    const result = execSync("git remote", {
-      cwd: dirPath,
-      encoding: "utf-8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    return result.trim().length > 0;
+    const { stdout } = await execAsync("git remote", { cwd: dirPath });
+    return stdout.trim().length > 0;
   } catch {
     return false;
   }
