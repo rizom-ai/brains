@@ -7,7 +7,6 @@ import {
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { IAnchorProfileService } from "@brains/plugins";
 import { z, EntityUrlGenerator } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
@@ -22,7 +21,6 @@ describe("SiteBuilder - URL Enrichment", () => {
   let testableSiteBuilder: SiteBuilderTestable;
   let mockContext: ServicePluginContext;
   let mockRouteRegistry: Partial<RouteRegistry>;
-  let mockSiteInfoService: Partial<SiteInfoService>;
   let mockProfileService: IAnchorProfileService;
   const logger = createSilentLogger();
 
@@ -52,13 +50,6 @@ describe("SiteBuilder - URL Enrichment", () => {
       getNavigationItems: mock().mockReturnValue([]),
     };
 
-    mockSiteInfoService = {
-      getSiteInfo: mock().mockReturnValue({
-        title: "Test Site",
-        description: "Test Description",
-      }),
-    };
-
     mockProfileService = {
       getProfile: (): { name: string } => ({ name: "Test" }),
     };
@@ -67,7 +58,6 @@ describe("SiteBuilder - URL Enrichment", () => {
       logger,
       mockContext,
       mockRouteRegistry as RouteRegistry,
-      mockSiteInfoService as SiteInfoService,
       mockProfileService,
       () => ({
         build: mock().mockResolvedValue({ success: true }),
@@ -292,7 +282,6 @@ describe("SiteBuilder - URL Enrichment", () => {
         logger,
         mockContext,
         mockRouteRegistry as RouteRegistry,
-        mockSiteInfoService as SiteInfoService,
         mockProfileService,
         () => ({
           build: mock().mockResolvedValue({ success: true }),

@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 import type { ProfessionalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
-import type { SiteInfoCTA } from "@brains/site-builder-plugin";
+import type { SiteInfoCTA } from "@brains/site-info";
 import {
   ContentSection,
   CTASection,

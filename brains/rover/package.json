@@ -31,6 +31,7 @@
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-default": "workspace:*",
+    "@brains/site-info": "workspace:*",
     "@brains/social-media": "workspace:*",
     "@brains/system": "workspace:*",
     "@brains/topics": "workspace:*",

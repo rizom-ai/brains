@@ -23,7 +23,7 @@ import { createPreactBuilder } from "./preact-builder";
 import { join } from "path";
 import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
-import type { SiteInfoService } from "../services/site-info-service";
+
 import type { EntityRouteConfig } from "../config";
 import { buildSiteInfo } from "./build-site-info";
 import type { SiteInfo } from "../types/site-info";
@@ -60,7 +60,6 @@ export class SiteBuilder implements ISiteBuilder {
   private context: ServicePluginContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private routeRegistry: RouteRegistry;
-  private siteInfoService: SiteInfoService;
   private profileService: IAnchorProfileService;
   private entityRouteConfig: EntityRouteConfig | undefined;
   private imageBuildService: ImageBuildService | null = null;
@@ -78,7 +77,6 @@ export class SiteBuilder implements ISiteBuilder {
     logger: Logger,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
-    siteInfoService: SiteInfoService,
     profileService: IAnchorProfileService,
     entityRouteConfig?: EntityRouteConfig,
   ): SiteBuilder {
@@ -87,7 +85,6 @@ export class SiteBuilder implements ISiteBuilder {
       SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
       routeRegistry,
-      siteInfoService,
       profileService,
       entityRouteConfig,
     );
@@ -102,7 +99,6 @@ export class SiteBuilder implements ISiteBuilder {
     logger: Logger,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
-    siteInfoService: SiteInfoService,
     profileService: IAnchorProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
     entityRouteConfig?: EntityRouteConfig,
@@ -112,7 +108,6 @@ export class SiteBuilder implements ISiteBuilder {
       staticSiteBuilderFactory ?? SiteBuilder.defaultStaticSiteBuilderFactory,
       context,
       routeRegistry,
-      siteInfoService,
       profileService,
       entityRouteConfig,
     );
@@ -123,7 +118,6 @@ export class SiteBuilder implements ISiteBuilder {
     staticSiteBuilderFactory: StaticSiteBuilderFactory,
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
-    siteInfoService: SiteInfoService,
     profileService: IAnchorProfileService,
     entityRouteConfig?: EntityRouteConfig,
   ) {
@@ -131,7 +125,6 @@ export class SiteBuilder implements ISiteBuilder {
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.routeRegistry = routeRegistry;
-    this.siteInfoService = siteInfoService;
     this.profileService = profileService;
     this.entityRouteConfig = entityRouteConfig;
 
@@ -141,7 +134,7 @@ export class SiteBuilder implements ISiteBuilder {
 
   private async getSiteInfo(): Promise<SiteInfo> {
     return buildSiteInfo(
-      this.siteInfoService,
+      this.context.entityService,
       this.profileService,
       this.routeRegistry,
     );

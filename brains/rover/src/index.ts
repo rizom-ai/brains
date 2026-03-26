@@ -8,6 +8,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { A2AInterface } from "@brains/a2a";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteInfoPlugin } from "@brains/site-info";
 import { blogPlugin } from "@brains/blog";
 import { seriesPlugin } from "@brains/series";
 import { decksPlugin } from "@brains/decks";
@@ -60,6 +61,7 @@ const standard = [
   "decks",
   "analytics",
   "obsidian-vault",
+  "site-info",
   "site-builder",
   "webserver",
 ];
@@ -95,6 +97,7 @@ const evaluation = [
   "analytics",
   "obsidian-vault",
   "directory-sync",
+  "site-info",
   "site-builder",
 ];
 
@@ -170,6 +173,7 @@ export default defineBrain({
       },
     ],
     ["analytics", analyticsPlugin, {}],
+    ["site-info", siteInfoPlugin, undefined],
     [
       "site-builder",
       siteBuilderPlugin,

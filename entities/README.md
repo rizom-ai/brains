@@ -18,6 +18,7 @@ Entity plugins extend `EntityPlugin` and have **zero tools**. All entity CRUD go
 | summary      | `summary`     | Conversation summaries, auto-derived from digests        |
 | social-media | `social-post` | Social media posts, auto-derived from published content  |
 | topics       | `topic`       | AI-extracted topics from posts, links, and other content |
+| site-info    | `site-info`   | Site metadata — title, description, CTA, theme           |
 | wishlist     | `wish`        | Unfulfilled user requests with semantic dedup            |
 
 ## vs plugins/

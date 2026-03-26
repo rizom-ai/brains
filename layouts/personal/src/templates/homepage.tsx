@@ -1,7 +1,7 @@
 import type { JSX } from "preact";
 import type { PersonalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
-import type { SiteInfoCTA } from "@brains/site-builder-plugin";
+import type { SiteInfoCTA } from "@brains/site-info";
 import { Head } from "@brains/ui-library";
 
 export interface HomepageData {

@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { siteInfoBodySchema } from "@brains/site-info";
+import { siteInfoBodySchema } from "./site-info-schema";
 
 /**
  * Schema for site information

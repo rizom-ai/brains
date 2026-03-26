@@ -1,4 +1,4 @@
-import type { SiteInfoEntity } from "../../src/services/site-info-schema";
+import type { SiteInfoEntity } from "@brains/site-info";
 import { createTestEntity } from "@brains/test-utils";
 
 /**

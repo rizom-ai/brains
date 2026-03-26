@@ -17,6 +17,7 @@
     "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-info": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",

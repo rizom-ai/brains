@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test";
-import { SiteInfoAdapter } from "../../src/services/site-info-adapter";
+import { SiteInfoAdapter } from "@brains/site-info";
 import { z } from "@brains/utils";
 import { createMockSiteInfo } from "../fixtures/site-entities";
 import { createTestEntity } from "@brains/test-utils";

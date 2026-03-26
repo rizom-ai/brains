@@ -1,24 +1,30 @@
-import type { IAnchorProfileService } from "@brains/plugins";
+import type { IAnchorProfileService, IEntityService } from "@brains/plugins";
+import { fetchSiteInfo } from "@brains/site-info";
 import type { RouteRegistry } from "./route-registry";
-import type { SiteInfoService } from "../services/site-info-service";
 import type { SiteInfo } from "../types/site-info";
 
 /**
- * Assemble complete SiteInfo from services and route registry.
- * Shared by SiteBuilder and SiteInfoDataSource.
+ * Assemble complete SiteInfo from entity service, profile, and route registry.
+ * Used by SiteBuilder at build time.
  */
 export async function buildSiteInfo(
-  siteInfoService: SiteInfoService,
+  entityService: IEntityService,
   profileService: IAnchorProfileService,
   routeRegistry: RouteRegistry,
 ): Promise<SiteInfo> {
-  const siteInfoBody = await siteInfoService.getSiteInfo();
-  const profileBody = profileService.getProfile();
+  let siteInfoBody;
+  try {
+    siteInfoBody = await fetchSiteInfo(entityService);
+  } catch {
+    siteInfoBody = {
+      title: "Personal Brain",
+      description: "A knowledge management system",
+    };
+  }
 
+  const profileBody = profileService.getProfile();
   const primaryItems = routeRegistry.getNavigationItems("primary");
   const secondaryItems = routeRegistry.getNavigationItems("secondary");
-
-  const defaultCopyright = "Powered by Rizom";
 
   return {
     ...siteInfoBody,
@@ -27,6 +33,6 @@ export async function buildSiteInfo(
       primary: primaryItems,
       secondary: secondaryItems,
     },
-    copyright: siteInfoBody.copyright ?? defaultCopyright,
+    copyright: siteInfoBody.copyright ?? "Powered by Rizom",
   };
 }

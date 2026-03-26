@@ -5,25 +5,20 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
-import { SiteBuilder } from "./lib/site-builder.js";
-import { RouteRegistry } from "./lib/route-registry.js";
-import {
-  UISlotRegistry,
-  type SlotRegistration,
-} from "./lib/ui-slot-registry.js";
-import { RebuildManager } from "./lib/auto-rebuild.js";
-import { setupRouteHandlers } from "./lib/route-handlers.js";
-import { registerConfigRoutes } from "./lib/route-helpers.js";
-import { subscribeBuildCompleted } from "./lib/seo-file-handler.js";
-import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler.js";
-import { NavigationDataSource } from "./datasources/navigation-datasource.js";
-import { SiteInfoDataSource } from "./datasources/site-info-datasource.js";
-import { createSiteBuilderTools } from "./tools/index.js";
-import type { SiteBuilderConfig, LayoutComponent } from "./config.js";
-import { siteBuilderConfigSchema } from "./config.js";
-import { SiteInfoService } from "./services/site-info-service.js";
-import { siteInfoSchema } from "./services/site-info-schema.js";
-import { SiteInfoAdapter } from "./services/site-info-adapter.js";
+import { SiteBuilder } from "./lib/site-builder";
+import { RouteRegistry } from "./lib/route-registry";
+import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
+import { RebuildManager } from "./lib/auto-rebuild";
+import { setupRouteHandlers } from "./lib/route-handlers";
+import { registerConfigRoutes } from "./lib/route-helpers";
+import { subscribeBuildCompleted } from "./lib/seo-file-handler";
+import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
+import { NavigationDataSource } from "./datasources/navigation-datasource";
+import { fetchSiteInfo } from "@brains/site-info";
+import { createSiteBuilderTools } from "./tools/index";
+import type { SiteBuilderConfig, LayoutComponent } from "./config";
+import { siteBuilderConfigSchema } from "./config";
+
 import packageJson from "../package.json";
 
 /**
@@ -35,7 +30,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   private pluginContext?: ServicePluginContext;
   private _routeRegistry?: RouteRegistry;
   private _slotRegistry?: UISlotRegistry;
-  private siteInfoService?: SiteInfoService;
   private profileService?: AnchorProfileService;
   private layouts: Record<string, LayoutComponent>;
   private rebuildManager?: RebuildManager;
@@ -104,43 +98,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       ),
     );
 
-    // Register site-info entity type
-    context.entities.register(
-      "site-info",
-      siteInfoSchema,
-      new SiteInfoAdapter(),
-    );
-
-    // Create services (initialized after seed content is loaded)
-    this.siteInfoService = SiteInfoService.getInstance(
-      context.entityService,
-      context.logger,
-      this.config.siteInfo,
-    );
+    // Site-info entity type + datasource registered by SiteInfoPlugin (entities/site-info)
     this.profileService = AnchorProfileService.getInstance(
       context.entityService,
       context.logger,
     );
 
     context.messaging.subscribe("sync:initial:completed", async () => {
-      this.logger.info(
-        "sync:initial:completed received, initializing services",
-      );
-      await this.siteInfoService?.initialize();
-      this.logger.info("SiteInfoService initialized");
       await this.profileService?.initialize();
       this.logger.info("AnchorProfileService initialized");
       return { success: true };
     });
-
-    context.entities.registerDataSource(
-      new SiteInfoDataSource(
-        this._routeRegistry,
-        this.siteInfoService,
-        this.profileService,
-        context.logger.child("SiteInfoDataSource"),
-      ),
-    );
 
     // Wire up route message handlers and register config routes
     setupRouteHandlers(context, this._routeRegistry, this.logger);
@@ -158,7 +126,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger.child("SiteBuilder"),
       context,
       this.routeRegistry,
-      this.siteInfoService,
       this.profileService,
       this.config.entityRouteConfig,
     );
@@ -244,8 +211,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
   }
 
   protected override async getResources(): Promise<PluginResource[]> {
-    const siteInfoService = this.siteInfoService;
-    const context = this.pluginContext;
+    const context = this.getContext();
     return [
       {
         uri: "brain://site",
@@ -253,9 +219,12 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         description: "Site metadata — title, description, domain, URLs",
         mimeType: "application/json",
         handler: async () => {
-          const siteInfo = siteInfoService
-            ? await siteInfoService.getSiteInfo()
-            : { title: "Brain", description: "" };
+          let siteInfo;
+          try {
+            siteInfo = await fetchSiteInfo(context.entityService);
+          } catch {
+            siteInfo = { title: "Brain", description: "" };
+          }
           return {
             contents: [
               {

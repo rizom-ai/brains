@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { fetchSiteInfo } from "../../src/services/site-info-helpers";
+import { fetchSiteInfo } from "@brains/site-info";
 
 describe("fetchSiteInfo", () => {
   it("should fetch and parse site-info entity", async () => {

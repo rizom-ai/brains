@@ -13,13 +13,15 @@ export { createPreactBuilder } from "./lib/preact-builder";
 export { Head, useHead, HeadProvider } from "@brains/ui-library";
 export type { HeadProps } from "@brains/ui-library";
 
-// Export site info types and adapter
+// Re-export site info types from entity package
 export type { SiteInfo } from "./types/site-info";
 export { SiteInfoSchema } from "./types/site-info";
-export { SiteInfoAdapter } from "./services/site-info-adapter";
-export type { SiteInfoBody, SiteInfoCTA } from "./services/site-info-schema";
-export { siteInfoCTASchema } from "./services/site-info-schema";
-export { fetchSiteInfo } from "./services/site-info-helpers";
+export {
+  SiteInfoAdapter,
+  fetchSiteInfo,
+  siteInfoCTASchema,
+} from "@brains/site-info";
+export type { SiteInfoBody, SiteInfoCTA } from "@brains/site-info";
 
 // Export event payload types for plugins that subscribe to build events
 export type { SiteBuildCompletedPayload } from "./types/job-types";

@@ -82,6 +82,14 @@ Site-info entity type extracted from site-builder into `entities/site-info/`.
 
 - Import `SiteInfo`, `SiteInfoCTA`, `fetchSiteInfo` from `@brains/site-info` instead of `@brains/site-builder-plugin`
 
+### Entity schema consolidation (deferred)
+
+Several entity type definitions are split across packages. Consolidate so each entity type has one canonical package:
+
+- **Image**: schema + adapter in `shared/image/`, plugin in `entities/image/`. Move schema into `entities/image/`, consumers import from `@brains/image-plugin`.
+- **Brain-character**: schema + adapter + service in `shell/identity-service/`. Move to `entities/brain-character/` (no plugin class — shell registers directly). Shell imports from the entity package.
+- **Anchor-profile**: schema + adapter + service in `shell/identity-service/`. Move to `entities/anchor-profile/` (no plugin class). Shell imports from the entity package.
+
 ### Site-content redesign
 
 Site-content becomes an EntityPlugin with derive(). AI generates landing page content from brain data on first build, stores as site-content entities. User edits via CMS persist across rebuilds (protected by `edited` flag). derive() auto-regenerates unedited sections when source content changes.

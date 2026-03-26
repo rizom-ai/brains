@@ -7,7 +7,6 @@ import {
 } from "@brains/test-utils";
 import type { RouteRegistry } from "../../src/lib/route-registry";
 import type { RouteDefinitionInput } from "@brains/plugins";
-import type { SiteInfoService } from "../../src/services/site-info-service";
 import type { IAnchorProfileService } from "@brains/plugins";
 import { TestLayout } from "../test-helpers";
 import { z } from "@brains/utils";
@@ -16,7 +15,6 @@ describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
   let mockContext: ServicePluginContext;
   let mockRouteRegistry: Partial<RouteRegistry>;
-  let mockSiteInfoService: Partial<SiteInfoService>;
   let logger: ReturnType<typeof createSilentLogger>;
   let mockStaticSiteBuilder: {
     build: ReturnType<typeof mock>;
@@ -43,14 +41,6 @@ describe("SiteBuilder dataQuery handling", () => {
       getNavigationItems: mock().mockReturnValue([]),
     };
 
-    // Create mock site info service
-    mockSiteInfoService = {
-      getSiteInfo: mock().mockReturnValue({
-        title: "Test Site",
-        description: "Test Description",
-      }),
-    };
-
     // Create mock static site builder
     mockStaticSiteBuilder = {
       build: mock().mockImplementation(async (buildContext) => {
@@ -74,7 +64,6 @@ describe("SiteBuilder dataQuery handling", () => {
       logger,
       mockContext,
       mockRouteRegistry as RouteRegistry,
-      mockSiteInfoService as SiteInfoService,
       mockProfileService,
       () => mockStaticSiteBuilder,
     );

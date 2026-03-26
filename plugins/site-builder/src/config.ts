@@ -5,7 +5,7 @@ import {
   NavigationSlots,
   type RouteDefinitionInput,
 } from "@brains/plugins";
-import { siteInfoBodySchema } from "./services/site-info-schema";
+import { siteInfoBodySchema } from "@brains/site-info";
 
 /**
  * Configuration schema for the site builder plugin

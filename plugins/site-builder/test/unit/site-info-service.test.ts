@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import { SiteInfoService } from "../../src/services/site-info-service";
+import { SiteInfoService } from "@brains/site-info";
 import type { IEntityService } from "@brains/plugins";
 import {
   createSilentLogger,

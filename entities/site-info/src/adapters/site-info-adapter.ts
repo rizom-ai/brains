@@ -6,7 +6,7 @@ import {
   type SiteInfoEntity,
   type SiteInfoBody,
   type SiteInfoMetadata,
-} from "./site-info-schema";
+} from "../schemas/site-info-schema";
 
 /**
  * Entity adapter for SiteInfo entities

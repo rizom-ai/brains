@@ -1,6 +1,6 @@
 import type { ICoreEntityService } from "@brains/plugins";
-import { SiteInfoAdapter } from "./site-info-adapter";
-import type { SiteInfoBody } from "./site-info-schema";
+import { SiteInfoAdapter } from "../adapters/site-info-adapter";
+import type { SiteInfoBody } from "../schemas/site-info-schema";
 
 const adapter = new SiteInfoAdapter();
 

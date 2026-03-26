@@ -1,7 +1,7 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import { fetchAnchorProfile } from "@brains/plugins";
 import { AnchorProfileAdapter } from "@brains/identity-service";
-import { fetchSiteInfo } from "@brains/site-builder-plugin";
+import { fetchSiteInfo } from "@brains/site-info";
 import { sortByPublicationDate, type z } from "@brains/utils";
 import { personalProfileSchema, type PersonalProfile } from "../schemas";
 import {
@@ -9,7 +9,7 @@ import {
   parsePostData,
   type BlogPostWithData,
 } from "@brains/blog";
-import type { SiteInfoCTA } from "@brains/site-builder-plugin";
+import type { SiteInfoCTA } from "@brains/site-info";
 
 const adapter = new AnchorProfileAdapter();
 

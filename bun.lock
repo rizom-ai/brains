@@ -130,6 +130,7 @@
         "@brains/series": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-default": "workspace:*",
+        "@brains/site-info": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/system": "workspace:*",
         "@brains/topics": "workspace:*",
@@ -298,6 +299,24 @@
         "@brains/job-queue": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/site-info": {
+      "name": "@brains/site-info",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/entity-service": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -491,6 +510,7 @@
         "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-info": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -514,6 +534,7 @@
         "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-info": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -680,6 +701,7 @@
       "dependencies": {
         "@brains/identity-service": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-info": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@tailwindcss/cli": "^4.0.0",
         "@tailwindcss/postcss": "^4.1.13",
@@ -1446,6 +1468,8 @@
     "@brains/site-content": ["@brains/site-content@workspace:plugins/site-content"],
 
     "@brains/site-default": ["@brains/site-default@workspace:sites/default"],
+
+    "@brains/site-info": ["@brains/site-info@workspace:entities/site-info"],
 
     "@brains/site-mylittlephoney": ["@brains/site-mylittlephoney@workspace:sites/mylittlephoney"],
 
