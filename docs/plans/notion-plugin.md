@@ -115,124 +115,75 @@ plugins:
 
 That's the entire user-facing config.
 
-## Future integrations
+## Existing pattern: HackMD plugin
 
-Same pattern, minimal code per integration:
+The `MCPBridgePlugin` base class and pattern already exist. `plugins/hackmd/` is the reference implementation — a read-only HackMD integration in ~55 lines:
 
 ```typescript
-// GitHub plugin — ~20 lines
-class GitHubPlugin extends MCPBridgePlugin<GitHubConfig> {
+// plugins/hackmd/src/plugin.ts
+export class HackMDPlugin extends MCPBridgePlugin<HackMDConfig> {
   protected getServerCommand() {
     return {
       command: "npx",
-      args: ["-y", "@modelcontextprotocol/server-github"],
-      env: { GITHUB_PERSONAL_ACCESS_TOKEN: this.config.token },
+      args: ["-y", "hackmd-mcp"],
+      env: { HACKMD_API_TOKEN: this.config.token },
     };
   }
 
   protected getAllowedTools() {
-    return [
-      "search_repositories",
-      "get_file_contents",
-      "list_issues",
-      "get_issue",
-    ];
+    return ["get_user_info", "list_user_notes", "get_note",
+            "get_history", "list_teams", "list_team_notes"];
   }
 
-  protected getAgentInstructions() {
-    return "Use github_* tools to look up code and issues in the user's GitHub repositories.";
-  }
+  protected getAgentInstructions() { ... }
 }
 ```
 
-Each new integration is a single file — server command, tool allowlist, instructions.
+The Notion plugin follows the same pattern — just different command, tools, and instructions.
 
 ## Implementation
 
-### Package Architecture
-
-The MCP bridge lives in its own shared package (`@brains/mcp-bridge`) to keep the
-MCP SDK dependency isolated. Without this, adding it to `@brains/plugins` would pull
-`@modelcontextprotocol/sdk` into every plugin in the monorepo.
-
-```
-shared/          ←  shell/          ←  plugins/
-@brains/utils        @brains/plugins      @brains/system
-@brains/mcp-bridge                        @brains/notion
-```
-
-Dependency graph:
-
-```
-@brains/mcp-bridge
-  depends on: @brains/plugins, @modelcontextprotocol/sdk
-
-@brains/notion (and future bridge plugins)
-  depends on: @brains/plugins, @brains/mcp-bridge
-```
+`MCPBridgePlugin` base class and `@brains/mcp-bridge` package already exist (built for HackMD). No new infrastructure needed — just a new plugin.
 
 ### Files
 
 ```
-shared/mcp-bridge/
-  package.json                # @brains/mcp-bridge — depends on @brains/plugins + @modelcontextprotocol/sdk
-  tsconfig.json
-  src/
-    index.ts                  # Public exports
-    mcp-bridge-plugin.ts      # MCPBridgePlugin base class (spawn, connect, filter, adapt)
-  test/
-    mcp-bridge-plugin.test.ts # Tests with mock transport (no real child process)
-
 plugins/notion/
-  package.json                # @brains/notion — depends on @brains/plugins + @brains/mcp-bridge
-  tsconfig.json
+  package.json
   src/
-    index.ts                  # Plugin export
-    plugin.ts                 # NotionPlugin extends MCPBridgePlugin
-    config.ts                 # Zod schema (just token)
+    index.ts              # Plugin export
+    plugin.ts             # NotionPlugin extends MCPBridgePlugin (~30 lines)
+    config.ts             # Zod schema (just token)
   test/
-    plugin.test.ts            # Tests with mock transport
+    plugin.test.ts        # Tests with mock transport
 ```
 
 ### Dependencies
 
-- `@modelcontextprotocol/sdk` — already in monorepo root, added as dependency only to `@brains/mcp-bridge`
-- `@brains/plugins` — imported by `@brains/mcp-bridge` for the `CorePlugin` base class
+- `@brains/mcp-bridge` — already exists (shared/mcp-bridge/)
 - No new external dependencies
 
 ## Steps
 
-### Phase 1: `@brains/mcp-bridge` shared package
+### Phase 1: Notion plugin
 
-1. Create `shared/mcp-bridge/` package with `@brains/mcp-bridge` name
-2. Base class in `shared/mcp-bridge/src/mcp-bridge-plugin.ts`
-3. Spawn child process via StdioClientTransport
-4. Connect via MCP SDK Client
-5. Discover tools, filter by allowlist, adapt with prefix + error isolation
-6. Tests with mock transport (no real child process)
+1. Create `plugins/notion/` — NotionPlugin extends MCPBridgePlugin
+2. Config schema (just token)
+3. Tool allowlist (read-only tools)
+4. Agent instructions
+5. Tests with mock transport
 
-### Phase 2: Notion plugin
+### Phase 2: Register in Rover
 
-1. Create `plugins/notion/` package with `@brains/mcp-bridge` dependency
-2. NotionPlugin extends MCPBridgePlugin (imported from `@brains/mcp-bridge`)
-3. Config schema (just token)
-4. Tool allowlist (read-only tools)
-5. Agent instructions
-6. Register in rover brain definition (optional, not in any preset)
-7. Manual test: ask rover about Notion content
-
-### Phase 3: Validate pattern with second integration ✅
-
-1. Implemented HackMD plugin (`@brains/hackmd`) as MCPBridgePlugin subclass
-2. Read-only allowlist: get_user_info, list_user_notes, get_note, get_history, list_teams, list_team_notes
-3. Confirmed the base class works for a different server with zero friction
+1. Add to rover brain definition (optional, not in any preset)
+2. Add `NOTION_TOKEN` to brain.yaml
+3. Manual test: ask rover about Notion content
 
 ## Verification
 
-1. `bun test shared/mcp-bridge/`
-2. `bun test plugins/notion/`
-3. `bun run typecheck --filter=@brains/mcp-bridge`
-4. `bun run typecheck --filter=@brains/notion`
-5. Manual: configure NOTION_TOKEN, ask rover "search my Notion for meeting notes"
-6. Verify: only read tools appear in MCP Inspector, no write tools
-7. Kill the Notion MCP server process, verify tools return errors (not crash)
+1. `bun test plugins/notion/`
+2. `bun run typecheck --filter=@brains/mcp-bridge`
+3. `bun run typecheck --filter=@brains/notion`
+4. Manual: configure NOTION_TOKEN, ask rover "search my Notion for meeting notes"
+5. Verify: only read tools appear in MCP Inspector, no write tools
+6. Kill the Notion MCP server process, verify tools return errors (not crash)

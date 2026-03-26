@@ -2,76 +2,83 @@
 
 ## Context
 
-Several synchronous I/O patterns block the event loop during runtime:
+The brain runs everything on one thread: webserver, MCP, Discord, A2A, site builds, directory sync. The webserver is the biggest offender — it handles every HTTP request (static files, clean URL resolution, 404s) on the same event loop that processes agent conversations.
 
-- Webserver calls `existsSync()` on every request for clean URL resolution
-- Directory-sync plugin uses 19 sync FS calls (readFileSync, writeFileSync, etc.)
-- Site build (Preact SSR + Tailwind + image optimization) runs entirely on main thread
+## Phase 1: Move webserver to child process
 
-These cause latency spikes under load and make the brain unresponsive during builds.
+**Problem**: The webserver (`Bun.serve()` + Hono) handles all HTTP traffic on the main thread. Every static file request, every `existsSync` call in clean URL resolution, every site page serve competes with MCP/Discord/A2A message handling.
 
-## Phase 1: Webserver async route rewriting
+**Insight**: The webserver is a pure static file server with API route proxying. It doesn't need the plugin context, entity service, or message bus. It only needs:
 
-**Problem**: `rewriteRequestPath()` in Hono's `serveStatic` calls `existsSync()` on every request without a file extension. The callback is synchronous — can't use async FS.
+- Two directory paths (production + preview dist dirs)
+- Two ports to listen on
+- The main brain's MCP/A2A ports to reverse-proxy API routes
 
-**Fix**: Replace `serveStatic` + `rewriteRequestPath` with a custom async middleware that serves clean-URL HTML directly via `Bun.file()`, letting `serveStatic` only handle actual static assets.
+**Fix**: Spawn the webserver as a `Bun.spawn()` child process.
 
-**File: `interfaces/webserver/src/server-manager.ts`**
+```
+Main thread (brain)              Child process (webserver)
+├── MCP server (:3333)           ├── Production site (:8080)
+├── A2A server (:3334)           ├── Preview site (:4321)
+├── Discord bot                  ├── /mcp → proxy to :3333
+├── Site builder (job queue)     ├── /a2a → proxy to :3334
+└── Directory sync               └── Static files from dist/
+```
 
-- Remove `existsSync` import
-- Add async middleware before `serveStatic` that checks `Bun.file(path/index.html).exists()` and `Bun.file(path.html).exists()`
-- If found, serve directly with `Bun.file()` — no need for `serveStatic` to rewrite
-- Replace 404 handler's `existsSync(notFoundPath)` with `await Bun.file(notFoundPath).exists()`
-- Keep one-time startup `existsSync` checks (acceptable)
+The child process is a lightweight script:
 
-**Verify**: `bun test interfaces/webserver/`, manual test clean URLs + 404 + static assets
+1. Receives config via CLI args or env: dist dirs, ports, proxy targets
+2. Serves static files (can use `existsSync` freely — own thread)
+3. Reverse-proxies `/mcp`, `/a2a`, `/.well-known/agent-card.json` to the main process
+4. Handles clean URLs, 404s, cache headers — all independently
+
+**Benefits**:
+
+- MCP/Discord/A2A never blocked by HTTP traffic
+- Site builds don't affect page serving (files are on disk)
+- `existsSync` in route rewriting is fine (own event loop)
+- Webserver crash doesn't kill the brain
+- No need to convert sync FS calls to async (Phase 1 of old plan eliminated)
+
+**Files**:
+
+- `interfaces/webserver/src/standalone-server.ts` — new: standalone entry point for child process
+- `interfaces/webserver/src/server-manager.ts` — spawn child process instead of running in-process
+- `interfaces/webserver/src/proxy.ts` — new: reverse proxy for API routes
+
+**Verify**: Start brain, verify site serves, verify MCP/A2A remain responsive under load
 
 ## Phase 2: Directory-sync async FS conversion
 
-**Problem**: `FileOperations` class uses `readFileSync`, `writeFileSync`, `readdirSync`, `statSync`, `mkdirSync`, `utimesSync` — blocks during entity import/export.
+**Problem**: `FileOperations` class uses 19 sync FS calls — blocks during entity import/export. With the webserver off the main thread, this is the remaining sync bottleneck.
 
-**Fix**: Convert all sync calls to `fs/promises` equivalents. Methods are already async or can be made async. Callers are in async contexts — just add `await`.
-
-**Files**:
-
-- `plugins/directory-sync/src/lib/file-operations.ts` — core conversion (19 calls)
-- `plugins/directory-sync/src/lib/seed-content.ts` — existsSync, readdirSync, copyFileSync
-- `plugins/directory-sync/src/lib/quarantine.ts` — renameSync, appendFileSync, readFileSync
-- `plugins/directory-sync/src/lib/git-sync.ts` — mkdirSync, existsSync, writeFileSync
-- `plugins/directory-sync/src/handlers/image-conversion-handler.ts` — readFileSync, writeFileSync
-- `plugins/directory-sync/src/handlers/inline-image-conversion-handler.ts` — readFileSync, writeFileSync
-- Callers in `directory-sync.ts`, `import-pipeline.ts`, `export-pipeline.ts`, `cleanup-pipeline.ts`
-
-**Verify**: `bun test plugins/directory-sync/`, test import/export cycle
-
-## Phase 3: Worker thread for site builds
-
-**Problem**: Site build (10-60s) blocks main thread — MCP/A2A/Discord can't respond during builds.
-
-**Fix**: Run site-build job handler in a Bun Worker thread. The worker re-opens the SQLite DB read-only and runs the build independently.
+**Fix**: Convert sync calls to `fs/promises` equivalents. Mechanical conversion — methods are already async, callers are in async contexts.
 
 **Files**:
 
-- `shell/job-queue/src/worker-job-runner.ts` — new: manages Worker lifecycle
-- `shell/job-queue/src/worker-entry.ts` — new: script that runs inside Worker
-- `shell/job-queue/src/types.ts` — add `runInWorker?: boolean` to JobHandler
-- `shell/job-queue/src/job-queue-worker.ts` — dispatch to worker when `runInWorker` is set
-- `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` — set `runInWorker = true`
+- `plugins/directory-sync/src/lib/file-operations.ts` — core (19 calls)
+- `plugins/directory-sync/src/lib/seed-content.ts`
+- `plugins/directory-sync/src/lib/quarantine.ts`
+- `plugins/directory-sync/src/lib/git-sync.ts`
+- `plugins/directory-sync/src/handlers/*-handler.ts`
 
-**Challenge**: Worker threads can't share object references. The worker receives serializable config and re-creates minimal context (DB connection, template registry). Progress reported back via `postMessage`.
+**Verify**: `bun test plugins/directory-sync/`
 
-**Verify**: Trigger site build, verify MCP/Discord remain responsive
+## Phase 3: Child process for site builds (if needed)
+
+With the webserver in its own process, site builds blocking the main thread may be tolerable — MCP/Discord/A2A are async I/O that yield between messages, and builds are infrequent. Monitor first before adding complexity.
+
+If still needed: `Bun.spawn()` with `--build-only` flag, same approach as Phase 1. The brain already has a build entrypoint. ~50ms startup overhead on a 10-60s build.
 
 ## Files
 
-| File                                                | Phase | Action                                   |
-| --------------------------------------------------- | ----- | ---------------------------------------- |
-| `interfaces/webserver/src/server-manager.ts`        | 1     | Replace existsSync with async middleware |
-| `plugins/directory-sync/src/lib/file-operations.ts` | 2     | Convert 19 sync FS calls to async        |
-| `plugins/directory-sync/src/lib/seed-content.ts`    | 2     | Convert sync FS to async                 |
-| `plugins/directory-sync/src/lib/quarantine.ts`      | 2     | Convert sync FS to async                 |
-| `plugins/directory-sync/src/lib/git-sync.ts`        | 2     | Convert sync FS to async                 |
-| `plugins/directory-sync/src/handlers/*-handler.ts`  | 2     | Convert readFileSync/writeFileSync       |
-| `shell/job-queue/src/worker-job-runner.ts`          | 3     | Create worker manager                    |
-| `shell/job-queue/src/worker-entry.ts`               | 3     | Create worker script                     |
-| `shell/job-queue/src/job-queue-worker.ts`           | 3     | Add worker dispatch                      |
+| File                                                | Phase | Action                             |
+| --------------------------------------------------- | ----- | ---------------------------------- |
+| `interfaces/webserver/src/standalone-server.ts`     | 1     | New: child process entry point     |
+| `interfaces/webserver/src/server-manager.ts`        | 1     | Spawn child instead of in-process  |
+| `interfaces/webserver/src/proxy.ts`                 | 1     | New: reverse proxy for API routes  |
+| `plugins/directory-sync/src/lib/file-operations.ts` | 2     | Convert 19 sync FS calls to async  |
+| `plugins/directory-sync/src/lib/seed-content.ts`    | 2     | Convert sync FS to async           |
+| `plugins/directory-sync/src/lib/quarantine.ts`      | 2     | Convert sync FS to async           |
+| `plugins/directory-sync/src/lib/git-sync.ts`        | 2     | Convert sync FS to async           |
+| `plugins/directory-sync/src/handlers/*-handler.ts`  | 2     | Convert readFileSync/writeFileSync |

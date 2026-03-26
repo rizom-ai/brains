@@ -6,7 +6,7 @@ import type { Server } from "bun";
 import type { Logger } from "@brains/utils";
 import { toolResultSchema } from "@brains/plugins";
 import { join, resolve } from "path";
-import { existsSync } from "fs";
+
 import type { RegisteredApiRoute, IMessageBus } from "@brains/plugins";
 
 // WORKAROUND: Capture native Response before @hono/node-server can override it.
@@ -170,34 +170,28 @@ export class ServerManager {
       this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
     }
 
-    // Serve static files
-    app.use(
-      "/*",
-      serveStatic({
-        root: previewDistDir,
-        rewriteRequestPath: (path) => {
-          // Handle clean URLs
-          if (!path.includes(".") && path !== "/") {
-            // First try directory with index.html
-            const indexPath = path + "/index.html";
-            const fullIndexPath = join(previewDistDir, indexPath);
-            if (existsSync(fullIndexPath)) {
-              return indexPath;
-            }
-            // Then try with .html extension
-            return path + ".html";
-          }
-          return path;
-        },
-      }),
-    );
+    // Async clean-URL middleware: serves /foo as /foo/index.html or /foo.html
+    app.use("/*", async (c, next) => {
+      const path = c.req.path;
+      if (path.includes(".") || path === "/") return next();
+
+      const indexFile = Bun.file(join(previewDistDir, path, "index.html"));
+      if (await indexFile.exists()) return c.html(await indexFile.text());
+
+      const htmlFile = Bun.file(join(previewDistDir, path + ".html"));
+      if (await htmlFile.exists()) return c.html(await htmlFile.text());
+
+      return next();
+    });
+
+    // Serve actual static assets (files with extensions)
+    app.use("/*", serveStatic({ root: previewDistDir }));
 
     // 404 handler
     app.notFound(async (c) => {
-      const notFoundPath = join(previewDistDir, "404.html");
-      if (existsSync(notFoundPath)) {
-        const file = await Bun.file(notFoundPath).text();
-        return c.html(file, 404);
+      const notFoundFile = Bun.file(join(previewDistDir, "404.html"));
+      if (await notFoundFile.exists()) {
+        return c.html(await notFoundFile.text(), 404);
       }
       return c.text("Not Found", 404);
     });
@@ -235,37 +229,29 @@ export class ServerManager {
       this.mountApiRoutes(app, this.apiRoutes, this.messageBus);
     }
 
-    // Serve static files
-    app.use(
-      "/*",
-      serveStatic({
-        root: this.options.productionDistDir,
-        rewriteRequestPath: (path) => {
-          // Handle clean URLs
-          if (!path.includes(".") && path !== "/") {
-            // First try directory with index.html
-            const indexPath = path + "/index.html";
-            const fullIndexPath = join(
-              this.options.productionDistDir,
-              indexPath,
-            );
-            if (existsSync(fullIndexPath)) {
-              return indexPath;
-            }
-            // Then try with .html extension
-            return path + ".html";
-          }
-          return path;
-        },
-      }),
-    );
+    // Async clean-URL middleware: serves /foo as /foo/index.html or /foo.html
+    const productionDistDir = this.options.productionDistDir;
+    app.use("/*", async (c, next) => {
+      const path = c.req.path;
+      if (path.includes(".") || path === "/") return next();
+
+      const indexFile = Bun.file(join(productionDistDir, path, "index.html"));
+      if (await indexFile.exists()) return c.html(await indexFile.text());
+
+      const htmlFile = Bun.file(join(productionDistDir, path + ".html"));
+      if (await htmlFile.exists()) return c.html(await htmlFile.text());
+
+      return next();
+    });
+
+    // Serve actual static assets (files with extensions)
+    app.use("/*", serveStatic({ root: productionDistDir }));
 
     // 404 handler
     app.notFound(async (c) => {
-      const notFoundPath = join(this.options.productionDistDir, "404.html");
-      if (existsSync(notFoundPath)) {
-        const file = await Bun.file(notFoundPath).text();
-        return c.html(file, 404);
+      const notFoundFile = Bun.file(join(productionDistDir, "404.html"));
+      if (await notFoundFile.exists()) {
+        return c.html(await notFoundFile.text(), 404);
       }
       return c.text("Not Found", 404);
     });
@@ -287,7 +273,10 @@ export class ServerManager {
       return `http://localhost:${this.options.previewPort}`;
     }
 
-    if (!existsSync(this.options.previewDistDir)) {
+    const previewDirExists = await Bun.file(
+      join(this.options.previewDistDir, "index.html"),
+    ).exists();
+    if (!previewDirExists) {
       throw new Error("No preview build found. Run build_site first.");
     }
 
@@ -329,7 +318,10 @@ export class ServerManager {
       return `http://localhost:${this.options.productionPort}`;
     }
 
-    if (!existsSync(this.options.productionDistDir)) {
+    const productionDirExists = await Bun.file(
+      join(this.options.productionDistDir, "index.html"),
+    ).exists();
+    if (!productionDirExists) {
       throw new Error("No build found. Run build_site first.");
     }
 
