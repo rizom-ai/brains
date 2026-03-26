@@ -90,7 +90,7 @@ export function createMockDirectorySync(
     exportEntitiesWithProgress: mock(() =>
       Promise.resolve(emptyExportResult()),
     ),
-    getAllMarkdownFiles: mock(() => []),
+    getAllMarkdownFiles: mock(() => Promise.resolve([])),
     processEntityExport: mock(() => Promise.resolve({ success: true })),
     fileOps: {
       readEntity: mock(() => Promise.resolve({} as never)),

@@ -43,7 +43,8 @@ export class ProgressOperations {
     };
 
     // Get all files to process
-    const filesToProcess = paths ?? this.fileOperations.getAllMarkdownFiles();
+    const filesToProcess =
+      paths ?? (await this.fileOperations.getAllMarkdownFiles());
     const totalFiles = filesToProcess.length;
 
     // Report initial progress

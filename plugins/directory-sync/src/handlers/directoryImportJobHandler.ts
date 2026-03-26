@@ -52,7 +52,7 @@ export class DirectoryImportJobHandler extends BaseJobHandler<
 
     try {
       const filesToImport =
-        data.paths ?? this.directorySync.getAllMarkdownFiles();
+        data.paths ?? (await this.directorySync.getAllMarkdownFiles());
 
       this.logger.debug("Starting import", {
         jobId,

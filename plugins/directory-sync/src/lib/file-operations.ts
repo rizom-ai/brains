@@ -1,14 +1,14 @@
 import type { BaseEntity } from "@brains/plugins";
 import { join, dirname, extname } from "path";
 import {
-  mkdirSync,
-  readFileSync,
-  writeFileSync,
-  existsSync,
-  readdirSync,
-  statSync,
-  utimesSync,
-} from "fs";
+  mkdir,
+  readFile,
+  writeFile,
+  readdir,
+  stat,
+  utimes,
+  access,
+} from "fs/promises";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
 
@@ -53,6 +53,18 @@ function getExtensionForFormat(format: string): string {
       return ".svg";
     default:
       return `.${format.toLowerCase()}`;
+  }
+}
+
+/**
+ * Check if a path exists (async replacement for existsSync)
+ */
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
   }
 }
 
@@ -127,7 +139,7 @@ export class FileOperations {
       ? filePath
       : join(this.syncPath, filePath);
 
-    const stats = statSync(fullPath);
+    const stats = await stat(fullPath);
 
     const { entityType, id } = this.parseEntityFromPath(filePath);
 
@@ -138,13 +150,13 @@ export class FileOperations {
 
     let content: string;
     if (isImageFile(filePath)) {
-      const buffer = readFileSync(fullPath);
+      const buffer = await readFile(fullPath);
       const base64 = buffer.toString("base64");
       const ext = extname(filePath);
       const mimeType = getMimeTypeForExtension(ext);
       content = `data:${mimeType};base64,${base64}`;
     } else {
-      content = readFileSync(fullPath, "utf-8");
+      content = await readFile(fullPath, "utf-8");
     }
 
     return {
@@ -174,10 +186,10 @@ export class FileOperations {
       contentToWrite = this.entityService.serializeEntity(entity);
     }
 
-    if (existsSync(filePath)) {
+    if (await pathExists(filePath)) {
       const currentContent = isImage
-        ? readFileSync(filePath)
-        : readFileSync(filePath, "utf-8");
+        ? await readFile(filePath)
+        : await readFile(filePath, "utf-8");
 
       const currentHash = computeContentHash(
         isImage
@@ -197,20 +209,20 @@ export class FileOperations {
 
     if (entity.entityType !== "base") {
       const dir = dirname(filePath);
-      if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+      if (!(await pathExists(dir))) {
+        await mkdir(dir, { recursive: true });
       }
     }
 
     if (isImage) {
-      writeFileSync(filePath, contentToWrite as Buffer);
+      await writeFile(filePath, contentToWrite as Buffer);
     } else {
-      writeFileSync(filePath, contentToWrite as string, "utf-8");
+      await writeFile(filePath, contentToWrite as string, "utf-8");
     }
 
     // Preserve entity timestamps on the file to prevent unnecessary re-syncs
     const updatedTime = new Date(entity.updated);
-    utimesSync(filePath, updatedTime, updatedTime);
+    await utimes(filePath, updatedTime, updatedTime);
   }
 
   getFilePath(
@@ -264,29 +276,28 @@ export class FileOperations {
     return this.getFilePath(entity.id, entity.entityType, extension);
   }
 
-  getAllMarkdownFiles(): string[] {
+  async getAllMarkdownFiles(): Promise<string[]> {
     return this.findFiles({ includeImages: false });
   }
 
   /**
    * Get all syncable files in sync directory (markdown + images in image/ dir)
    */
-  getAllSyncFiles(): string[] {
+  async getAllSyncFiles(): Promise<string[]> {
     return this.findFiles({ includeImages: true });
   }
 
-  private findFiles(opts: { includeImages: boolean }): string[] {
+  private async findFiles(opts: { includeImages: boolean }): Promise<string[]> {
     const files: string[] = [];
-    if (!existsSync(this.syncPath)) return files;
+    if (!(await pathExists(this.syncPath))) return files;
 
-    const walk = (
+    const walk = async (
       currentPath: string,
       relativePath: string = "",
       inImageDir: boolean = false,
-    ): void => {
-      const entries = readdirSync(currentPath, { withFileTypes: true });
+    ): Promise<void> => {
+      const entries = await readdir(currentPath, { withFileTypes: true });
       for (const entry of entries) {
-        const entryPath = join(currentPath, entry.name);
         const rel = relativePath ? join(relativePath, entry.name) : entry.name;
 
         if (entry.isFile() && !entry.name.endsWith(".invalid")) {
@@ -307,13 +318,14 @@ export class FileOperations {
           ) {
             continue;
           }
+          const entryPath = join(currentPath, entry.name);
           const isImgDir = entry.name === "image" && relativePath === "";
-          walk(entryPath, rel, inImageDir || isImgDir);
+          await walk(entryPath, rel, inImageDir || isImgDir);
         }
       }
     };
 
-    walk(this.syncPath);
+    await walk(this.syncPath);
     return files;
   }
 
@@ -321,15 +333,15 @@ export class FileOperations {
    * Ensure directory structure exists
    */
   async ensureDirectoryStructure(entityTypes: string[]): Promise<void> {
-    if (!existsSync(this.syncPath)) {
-      mkdirSync(this.syncPath, { recursive: true });
+    if (!(await pathExists(this.syncPath))) {
+      await mkdir(this.syncPath, { recursive: true });
     }
 
     for (const entityType of entityTypes) {
       if (entityType !== "base") {
         const dir = join(this.syncPath, entityType);
-        if (!existsSync(dir)) {
-          mkdirSync(dir, { recursive: true });
+        if (!(await pathExists(dir))) {
+          await mkdir(dir, { recursive: true });
         }
       }
     }
@@ -347,26 +359,26 @@ export class FileOperations {
   /**
    * Gather file status information for directory sync status
    */
-  gatherFileStatus(): {
+  async gatherFileStatus(): Promise<{
     files: DirectorySyncStatus["files"];
     stats: DirectorySyncStatus["stats"];
-  } {
+  }> {
     const files: DirectorySyncStatus["files"] = [];
     const stats: DirectorySyncStatus["stats"] = {
       totalFiles: 0,
       byEntityType: {},
     };
 
-    if (!existsSync(this.syncPath)) {
+    if (!(await pathExists(this.syncPath))) {
       return { files, stats };
     }
 
-    const allFiles = this.getAllMarkdownFiles();
+    const allFiles = await this.getAllMarkdownFiles();
 
     for (const filePath of allFiles) {
       try {
         const fullPath = join(this.syncPath, filePath);
-        const fileStat = statSync(fullPath);
+        const fileStat = await stat(fullPath);
         const { entityType } = this.parseEntityFromPath(filePath);
 
         files.push({
@@ -387,11 +399,11 @@ export class FileOperations {
     return { files, stats };
   }
 
-  syncDirectoryExists(): boolean {
-    return existsSync(this.syncPath);
+  async syncDirectoryExists(): Promise<boolean> {
+    return pathExists(this.syncPath);
   }
 
-  fileExists(filePath: string): boolean {
-    return existsSync(filePath);
+  async fileExists(filePath: string): Promise<boolean> {
+    return pathExists(filePath);
   }
 }

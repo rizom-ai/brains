@@ -287,7 +287,7 @@ export interface IDirectorySync {
   ): Promise<ExportResult>;
 
   /** Get all markdown files in the sync directory */
-  getAllMarkdownFiles(): string[];
+  getAllMarkdownFiles(): Promise<string[]>;
 
   /** Process export for a single entity */
   processEntityExport(entity: BaseEntity): Promise<{

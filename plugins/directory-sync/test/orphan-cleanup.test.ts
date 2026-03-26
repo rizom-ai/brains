@@ -30,7 +30,8 @@ function createMockDeps(
     fileOperations: {
       getEntityFilePath: (entity: BaseEntity) =>
         `/data/${entity.entityType}/${entity.id}.md`,
-      fileExists: (filePath: string) => existingFiles.has(filePath),
+      fileExists: (filePath: string) =>
+        Promise.resolve(existingFiles.has(filePath)),
     },
     deleteOnFileRemoval,
   };

@@ -7,7 +7,7 @@ import {
   mock,
   spyOn,
 } from "bun:test";
-import * as fs from "fs";
+import * as fsp from "fs/promises";
 import {
   CoverImageConversionJobHandler,
   type CoverImageConversionJobData,
@@ -28,8 +28,8 @@ describe("CoverImageConversionJobHandler", () => {
   let progressReporter: ProgressReporter;
   let progressCalls: Array<{ progress: number; message?: string }>;
   let mockFetcher: ReturnType<typeof mock>;
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
-  let writeFileSyncSpy: ReturnType<typeof spyOn>;
+  let readFileSpy: ReturnType<typeof spyOn>;
+  let writeFileSpy: ReturnType<typeof spyOn>;
 
   const createProgressReporter = (): ProgressReporter => {
     progressCalls = [];
@@ -65,14 +65,14 @@ describe("CoverImageConversionJobHandler", () => {
     progressReporter = createProgressReporter();
 
     // Mock file system operations - reset any previous spies first
-    readFileSyncSpy = spyOn(fs, "readFileSync");
-    writeFileSyncSpy = spyOn(fs, "writeFileSync");
+    readFileSpy = spyOn(fsp, "readFile");
+    writeFileSpy = spyOn(fsp, "writeFile");
   });
 
   afterEach(() => {
     // Restore original implementations
-    readFileSyncSpy.mockRestore();
-    writeFileSyncSpy.mockRestore();
+    readFileSpy.mockRestore();
+    writeFileSpy.mockRestore();
   });
 
   describe("validateAndParse", () => {
@@ -198,8 +198,8 @@ Some content here.
 `;
 
     it("should convert coverImageUrl to coverImageId", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData();
       const result = await handler.process(
@@ -212,15 +212,15 @@ Some content here.
       expect(result.imageId).toBe("test-post-cover");
 
       // Verify file was written with updated frontmatter
-      expect(writeFileSyncSpy).toHaveBeenCalled();
-      const writtenContent = writeFileSyncSpy.mock.calls[0]?.[1] as string;
+      expect(writeFileSpy).toHaveBeenCalled();
+      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
       expect(writtenContent).toContain("coverImageId: test-post-cover");
       expect(writtenContent).not.toContain("coverImageUrl:");
     });
 
     it("should use customAlt when provided", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData({ customAlt: "My custom alt text" });
       await handler.process(jobData, "job-123", progressReporter);
@@ -236,8 +236,8 @@ Some content here.
     });
 
     it("should use title-based alt when customAlt not provided", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
@@ -253,7 +253,7 @@ Some content here.
     });
 
     it("should skip if file already has coverImageId", async () => {
-      readFileSyncSpy.mockReturnValue(markdownAlreadyConverted);
+      readFileSpy.mockResolvedValue(markdownAlreadyConverted);
 
       const jobData = createValidJobData();
       const result = await handler.process(
@@ -265,12 +265,12 @@ Some content here.
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
       expect(mockFetcher).not.toHaveBeenCalled();
-      expect(writeFileSyncSpy).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should reuse existing image entity with same sourceUrl", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       // Mock listEntities to return existing image
       (
@@ -291,7 +291,7 @@ Some content here.
     });
 
     it("should handle fetch failure gracefully", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
       mockFetcher.mockRejectedValue(new Error("Network error"));
 
       const jobData = createValidJobData();
@@ -303,13 +303,11 @@ Some content here.
 
       expect(result.success).toBe(false);
       expect(result.error).toContain("Network error");
-      expect(writeFileSyncSpy).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should handle file read failure gracefully", async () => {
-      readFileSyncSpy.mockImplementation(() => {
-        throw new Error("File not found");
-      });
+      readFileSpy.mockRejectedValue(new Error("File not found"));
 
       const jobData = createValidJobData();
       const result = await handler.process(
@@ -323,8 +321,8 @@ Some content here.
     });
 
     it("should report progress during conversion", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
@@ -333,8 +331,8 @@ Some content here.
     });
 
     it("should create image entity with correct metadata", async () => {
-      readFileSyncSpy.mockReturnValue(markdownWithCoverImageUrl);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithCoverImageUrl);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData();
       await handler.process(jobData, "job-123", progressReporter);
@@ -363,13 +361,13 @@ coverImageAlt: Custom alt
 ---
 Some content here.
 `;
-      readFileSyncSpy.mockReturnValue(markdownWithAlt);
-      writeFileSyncSpy.mockImplementation(() => {});
+      readFileSpy.mockResolvedValue(markdownWithAlt);
+      writeFileSpy.mockResolvedValue(undefined);
 
       const jobData = createValidJobData({ customAlt: "Custom alt" });
       await handler.process(jobData, "job-123", progressReporter);
 
-      const writtenContent = writeFileSyncSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
       expect(writtenContent).not.toContain("coverImageAlt:");
     });
   });

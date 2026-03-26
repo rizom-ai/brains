@@ -254,7 +254,7 @@ describe("FileOperations", () => {
     });
 
     describe("getAllMarkdownFiles with subdirectories", () => {
-      it("should find files in nested subdirectories", () => {
+      it("should find files in nested subdirectories", async () => {
         // Create nested structure with files
         const paths = [
           join(testDir, "summary", "daily", "2024", "01-27.md"),
@@ -268,7 +268,7 @@ describe("FileOperations", () => {
           writeFileSync(path, "test content");
         });
 
-        const files = fileOps.getAllMarkdownFiles();
+        const files = await fileOps.getAllMarkdownFiles();
 
         expect(files).toContain("summary/daily/2024/01-27.md");
         expect(files).toContain("summary/daily/2024/01-28.md");
@@ -277,7 +277,7 @@ describe("FileOperations", () => {
         expect(files.length).toBe(4);
       });
 
-      it("should handle mixed flat and nested files", () => {
+      it("should handle mixed flat and nested files", async () => {
         // Create mix of flat and nested files
         mkdirSync(join(testDir, "topic"), { recursive: true });
         mkdirSync(join(testDir, "summary", "daily"), { recursive: true });
@@ -286,14 +286,14 @@ describe("FileOperations", () => {
         writeFileSync(join(testDir, "summary", "daily", "nested.md"), "nested");
         writeFileSync(join(testDir, "root.md"), "root");
 
-        const files = fileOps.getAllMarkdownFiles();
+        const files = await fileOps.getAllMarkdownFiles();
 
         expect(files).toContain("root.md");
         expect(files).toContain("topic/flat.md");
         expect(files).toContain("summary/daily/nested.md");
       });
 
-      it("should skip root directories that are not registered entity types", () => {
+      it("should skip root directories that are not registered entity types", async () => {
         const selectiveService: FileOperationsEntityService = {
           serializeEntity: () => "",
           hasEntityType: (type: string) => ["post", "link"].includes(type),
@@ -309,7 +309,7 @@ describe("FileOperations", () => {
         writeFileSync(join(testDir, "templates", "post.md"), "template");
         writeFileSync(join(testDir, "root.md"), "root");
 
-        const files = selectiveFileOps.getAllMarkdownFiles();
+        const files = await selectiveFileOps.getAllMarkdownFiles();
 
         expect(files).toContain("post/hello.md");
         expect(files).toContain("link/ref.md");
@@ -350,7 +350,7 @@ describe("FileOperations", () => {
       expect(writtenBytes.equals(TINY_PNG_BYTES)).toBe(true);
     });
 
-    it("should include image files from image/ directory in getAllSyncFiles", () => {
+    it("should include image files from image/ directory in getAllSyncFiles", async () => {
       // Create mix of markdown and image files
       mkdirSync(join(testDir, "topic"), { recursive: true });
       mkdirSync(join(testDir, "image"), { recursive: true });
@@ -359,21 +359,21 @@ describe("FileOperations", () => {
       writeFileSync(join(testDir, "image", "photo.png"), TINY_PNG_BYTES);
       writeFileSync(join(testDir, "image", "banner.jpg"), TINY_PNG_BYTES);
 
-      const files = fileOps.getAllSyncFiles();
+      const files = await fileOps.getAllSyncFiles();
 
       expect(files).toContain("topic/test.md");
       expect(files).toContain("image/photo.png");
       expect(files).toContain("image/banner.jpg");
     });
 
-    it("should NOT include image files from non-image directories", () => {
+    it("should NOT include image files from non-image directories", async () => {
       // Create image files in wrong directory
       mkdirSync(join(testDir, "topic"), { recursive: true });
 
       writeFileSync(join(testDir, "topic", "test.md"), "# Topic");
       writeFileSync(join(testDir, "topic", "photo.png"), TINY_PNG_BYTES); // Wrong!
 
-      const files = fileOps.getAllSyncFiles();
+      const files = await fileOps.getAllSyncFiles();
 
       expect(files).toContain("topic/test.md");
       expect(files).not.toContain("topic/photo.png"); // Should be ignored

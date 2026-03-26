@@ -5,7 +5,7 @@ import type {
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { resolve, isAbsolute } from "path";
-import { existsSync, mkdirSync } from "fs";
+import { mkdir } from "fs/promises";
 import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
@@ -124,7 +124,7 @@ export class DirectorySync {
 
   async initialize(): Promise<void> {
     this.logger.debug("Initializing directory sync", { path: this.syncPath });
-    this.ensureSyncPath();
+    await this.ensureSyncPath();
 
     if (this.autoSync) {
       void this.startWatching();
@@ -135,14 +135,11 @@ export class DirectorySync {
     this.logger.debug("Initializing directory structure", {
       path: this.syncPath,
     });
-    this.ensureSyncPath();
+    await this.ensureSyncPath();
   }
 
-  private ensureSyncPath(): void {
-    if (!existsSync(this.syncPath)) {
-      mkdirSync(this.syncPath, { recursive: true });
-      this.logger.info("Created sync directory", { path: this.syncPath });
-    }
+  private async ensureSyncPath(): Promise<void> {
+    await mkdir(this.syncPath, { recursive: true });
   }
 
   setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
@@ -281,7 +278,7 @@ export class DirectorySync {
     return this.deleteOnFileRemoval;
   }
 
-  getAllMarkdownFiles(): string[] {
+  async getAllMarkdownFiles(): Promise<string[]> {
     return this.fileOperations.getAllMarkdownFiles();
   }
 
@@ -291,11 +288,11 @@ export class DirectorySync {
   }
 
   async getStatus(): Promise<DirectorySyncStatus> {
-    const { files, stats } = this.fileOperations.gatherFileStatus();
+    const { files, stats } = await this.fileOperations.gatherFileStatus();
 
     return {
       syncPath: this.syncPath,
-      exists: this.fileOperations.syncDirectoryExists(),
+      exists: await this.fileOperations.syncDirectoryExists(),
       watching: this.fileWatcher?.isWatching() ?? false,
       lastSync: this.lastSync,
       files,
@@ -315,7 +312,7 @@ export class DirectorySync {
     totalFiles: number;
   } | null> {
     const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
-    const files = this.fileOperations.getAllMarkdownFiles();
+    const files = await this.fileOperations.getAllMarkdownFiles();
 
     return this.batchOperationsManager.queueSyncBatch(
       pluginContext,

@@ -82,10 +82,14 @@ export function setupAutoSync(
       const { entityId, entityType } = message.payload;
 
       const filePath = directorySync.fileOps.getFilePath(entityId, entityType);
-      const { unlinkSync, existsSync } = await import("fs");
+      const { unlink, access } = await import("fs/promises");
 
-      if (existsSync(filePath)) {
-        unlinkSync(filePath);
+      const exists = await access(filePath).then(
+        () => true,
+        () => false,
+      );
+      if (exists) {
+        await unlink(filePath);
         logger.debug("Auto-deleted entity file", {
           id: entityId,
           entityType,

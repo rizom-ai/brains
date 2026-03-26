@@ -1,13 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { ImportResult } from "../types.js";
 import { getErrorMessage, z } from "@brains/utils";
-import {
-  existsSync,
-  renameSync,
-  appendFileSync,
-  readFileSync,
-  writeFileSync,
-} from "fs";
+import { rename, appendFile, readFile, writeFile, access } from "fs/promises";
 import { join } from "path";
 
 export class Quarantine {
@@ -30,17 +24,17 @@ export class Quarantine {
     );
   }
 
-  quarantineInvalidFile(
+  async quarantineInvalidFile(
     filePath: string,
     error: unknown,
     result: ImportResult,
     resolveFilePath: (filePath: string) => string,
-  ): void {
+  ): Promise<void> {
     const fullPath = resolveFilePath(filePath);
     const quarantinePath = `${fullPath}.invalid`;
 
     try {
-      renameSync(fullPath, quarantinePath);
+      await rename(fullPath, quarantinePath);
       result.quarantined++;
       result.quarantinedFiles.push(filePath);
 
@@ -49,7 +43,7 @@ export class Quarantine {
       const errorMessage = getErrorMessage(error);
       const logEntry = `${timestamp} - ${filePath}: ${errorMessage}\n\u2192 ${filePath}.invalid\n\n`;
 
-      appendFileSync(errorLogPath, logEntry);
+      await appendFile(errorLogPath, logEntry);
 
       this.logger.warn("Quarantined invalid entity file", {
         originalPath: filePath,
@@ -69,15 +63,17 @@ export class Quarantine {
     }
   }
 
-  markAsRecoveredIfNeeded(filePath: string): void {
+  async markAsRecoveredIfNeeded(filePath: string): Promise<void> {
     const errorLogPath = join(this.syncPath, ".import-errors.log");
 
-    if (!existsSync(errorLogPath)) {
+    try {
+      await access(errorLogPath);
+    } catch {
       return;
     }
 
     try {
-      const logContent = readFileSync(errorLogPath, "utf-8");
+      const logContent = await readFile(errorLogPath, "utf-8");
 
       if (logContent.includes(filePath)) {
         const timestamp = new Date().toISOString();
@@ -100,7 +96,7 @@ export class Quarantine {
           }
         }
 
-        writeFileSync(errorLogPath, newLines.join("\n"));
+        await writeFile(errorLogPath, newLines.join("\n"));
 
         this.logger.debug("Marked file as recovered in error log", {
           path: filePath,

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFile, writeFile } from "fs/promises";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
@@ -76,7 +76,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
       // Step 1: Re-read the file (may have changed since job was queued)
       let fileContent: string;
       try {
-        fileContent = readFileSync(filePath, "utf-8");
+        fileContent = await readFile(filePath, "utf-8");
       } catch (error) {
         const message = getErrorMessage(error);
         this.logger.error("Failed to read file", { filePath, error: message });
@@ -132,7 +132,7 @@ export class InlineImageConversionJobHandler extends BaseJobHandler<
 
       // Step 4: Write updated content back to file
       try {
-        writeFileSync(filePath, result.content, "utf-8");
+        await writeFile(filePath, result.content, "utf-8");
       } catch (error) {
         const message = getErrorMessage(error);
         this.logger.error("Failed to write file", { filePath, error: message });

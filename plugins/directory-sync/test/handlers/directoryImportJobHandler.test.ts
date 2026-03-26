@@ -128,7 +128,9 @@ slug: test-series
       });
 
       const mockDirSync = createMockDirectorySync({
-        getAllMarkdownFiles: mock(() => ["/path/to/series.md"]),
+        getAllMarkdownFiles: mock(() =>
+          Promise.resolve(["/path/to/series.md"]),
+        ),
         fileOps: {
           readEntity: mock(() => Promise.resolve(fileEntity)),
           parseEntityFromPath: mock(() => ({

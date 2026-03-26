@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFile, writeFile } from "fs/promises";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { BaseJobHandler } from "@brains/plugins";
@@ -104,7 +104,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       // Step 1: Re-read the file (may have changed since job was queued)
       let fileContent: string;
       try {
-        fileContent = readFileSync(filePath, "utf-8");
+        fileContent = await readFile(filePath, "utf-8");
       } catch (error) {
         this.logger.error("Failed to read file", {
           filePath,
@@ -238,7 +238,7 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       const updatedContent = generateMarkdown(newFrontmatter, parsed.content);
 
       try {
-        writeFileSync(filePath, updatedContent, "utf-8");
+        await writeFile(filePath, updatedContent, "utf-8");
       } catch (error) {
         this.logger.error("Failed to write file", {
           filePath,

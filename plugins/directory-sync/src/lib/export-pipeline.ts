@@ -80,7 +80,7 @@ export async function processEntityExport(
 }> {
   try {
     const filePath = deps.fileOperations.getEntityFilePath(entity);
-    if (!deps.fileOperations.fileExists(filePath)) {
+    if (!(await deps.fileOperations.fileExists(filePath))) {
       if (deps.deleteOnFileRemoval) {
         deps.logger.debug("File missing, deleting entity from DB", {
           entityId: entity.id,

@@ -36,7 +36,7 @@ export async function importEntities(
     jobIds: [],
   };
 
-  const filesToProcess = paths ?? deps.fileOperations.getAllSyncFiles();
+  const filesToProcess = paths ?? (await deps.fileOperations.getAllSyncFiles());
 
   for (const filePath of filesToProcess) {
     await importFile(deps, filePath, result);
@@ -151,10 +151,14 @@ async function processEntityImport(
     );
   } catch (error) {
     if (deps.quarantine.isValidationError(error)) {
-      deps.quarantine.quarantineInvalidFile(filePath, error, result, (fp) =>
-        fp.startsWith(deps.imageJobQueue.syncPath)
-          ? fp
-          : `${deps.imageJobQueue.syncPath}/${fp}`,
+      await deps.quarantine.quarantineInvalidFile(
+        filePath,
+        error,
+        result,
+        (fp) =>
+          fp.startsWith(deps.imageJobQueue.syncPath)
+            ? fp
+            : `${deps.imageJobQueue.syncPath}/${fp}`,
       );
       return;
     }
@@ -225,13 +229,17 @@ async function processEntityImport(
       jobId: upsertResult.jobId,
     });
 
-    deps.quarantine.markAsRecoveredIfNeeded(filePath);
+    await deps.quarantine.markAsRecoveredIfNeeded(filePath);
   } catch (error) {
     if (deps.quarantine.isValidationError(error)) {
-      deps.quarantine.quarantineInvalidFile(filePath, error, result, (fp) =>
-        fp.startsWith(deps.imageJobQueue.syncPath)
-          ? fp
-          : `${deps.imageJobQueue.syncPath}/${fp}`,
+      await deps.quarantine.quarantineInvalidFile(
+        filePath,
+        error,
+        result,
+        (fp) =>
+          fp.startsWith(deps.imageJobQueue.syncPath)
+            ? fp
+            : `${deps.imageJobQueue.syncPath}/${fp}`,
       );
       return;
     }

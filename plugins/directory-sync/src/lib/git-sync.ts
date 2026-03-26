@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { existsSync, mkdirSync, writeFileSync } from "fs";
+import { mkdir, writeFile, access } from "fs/promises";
 import { join, basename } from "path";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
@@ -109,11 +109,13 @@ export class GitSync {
       gitUrl: this.remoteUrl,
     });
 
-    if (!existsSync(this.dataDir)) {
-      mkdirSync(this.dataDir, { recursive: true });
-    }
+    await mkdir(this.dataDir, { recursive: true });
 
-    if (!existsSync(join(this.dataDir, ".git"))) {
+    const gitDirExists = await access(join(this.dataDir, ".git")).then(
+      () => true,
+      () => false,
+    );
+    if (!gitDirExists) {
       if (this.remoteUrl) {
         // Try to clone
         this.logger.info("Cloning repository", { gitUrl: this.remoteUrl });
@@ -168,8 +170,12 @@ export class GitSync {
       const log = await this.git.log().catch(() => ({ all: [] }));
       if (log.all.length === 0) {
         const gitkeepPath = join(this.dataDir, ".gitkeep");
-        if (!existsSync(gitkeepPath)) {
-          writeFileSync(gitkeepPath, "");
+        const gitkeepExists = await access(gitkeepPath).then(
+          () => true,
+          () => false,
+        );
+        if (!gitkeepExists) {
+          await writeFile(gitkeepPath, "");
         }
         await this.git.add(".gitkeep");
         await this.git.commit("Initial commit");

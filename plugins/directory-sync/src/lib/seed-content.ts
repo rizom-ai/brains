@@ -1,7 +1,16 @@
-import { existsSync, readdirSync, mkdirSync, copyFileSync } from "fs";
+import { access, readdir, mkdir, copyFile } from "fs/promises";
 import { execSync } from "child_process";
 import { join, resolve } from "path";
 import type { Logger } from "@brains/utils";
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await access(path);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * Check whether a brain-data directory is effectively empty.
@@ -10,15 +19,15 @@ import type { Logger } from "@brains/utils";
  * - The directory contains content files (excluding .git and .gitkeep)
  * - The directory has a .git folder with a configured remote (git-sync will pull data)
  */
-export function isBrainDataEmpty(
+export async function isBrainDataEmpty(
   brainDataPath: string,
   logger: Logger,
-): boolean {
-  if (!existsSync(brainDataPath)) {
+): Promise<boolean> {
+  if (!(await pathExists(brainDataPath))) {
     return true;
   }
 
-  const files = readdirSync(brainDataPath);
+  const files = await readdir(brainDataPath);
   const contentFiles = files.filter(
     (f) => !f.startsWith(".") && !f.startsWith("_"),
   );
@@ -27,7 +36,7 @@ export function isBrainDataEmpty(
     return false;
   }
 
-  if (hasGitRemote(brainDataPath)) {
+  if (await hasGitRemote(brainDataPath)) {
     logger.debug(
       "Git repository with remote detected - skipping seed content",
       { path: brainDataPath },
@@ -38,9 +47,9 @@ export function isBrainDataEmpty(
   return true;
 }
 
-function hasGitRemote(dirPath: string): boolean {
+async function hasGitRemote(dirPath: string): Promise<boolean> {
   const gitDir = join(dirPath, ".git");
-  if (!existsSync(gitDir)) {
+  if (!(await pathExists(gitDir))) {
     return false;
   }
 
@@ -57,19 +66,19 @@ function hasGitRemote(dirPath: string): boolean {
 }
 
 async function copyDirectory(src: string, dest: string): Promise<void> {
-  const entries = readdirSync(src, { withFileTypes: true });
+  const entries = await readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
     const srcPath = join(src, entry.name);
     const destPath = join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      if (!existsSync(destPath)) {
-        mkdirSync(destPath, { recursive: true });
+      if (!(await pathExists(destPath))) {
+        await mkdir(destPath, { recursive: true });
       }
       await copyDirectory(srcPath, destPath);
     } else {
-      copyFileSync(srcPath, destPath);
+      await copyFile(srcPath, destPath);
     }
   }
 }
@@ -91,9 +100,9 @@ export async function copySeedContentIfNeeded(
     ? resolve(seedContentPath)
     : resolve(process.cwd(), "seed-content");
 
-  const isEmpty = isBrainDataEmpty(brainDataPath, logger);
+  const isEmpty = await isBrainDataEmpty(brainDataPath, logger);
 
-  if (isEmpty && existsSync(seedContentPath)) {
+  if (isEmpty && (await pathExists(seedContentPath))) {
     logger.debug("Copying seed content to brain-data directory");
     await copyDirectory(seedContentPath, brainDataPath);
     logger.debug("Seed content copied successfully");

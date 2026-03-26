@@ -7,7 +7,7 @@ import {
   mock,
   spyOn,
 } from "bun:test";
-import * as fs from "fs";
+import * as fsp from "fs/promises";
 import { InlineImageConversionJobHandler } from "../../src/handlers/inline-image-conversion-handler";
 import {
   createSilentLogger,
@@ -24,8 +24,8 @@ describe("InlineImageConversionJobHandler", () => {
   let logger: Logger;
   let progressReporter: ProgressReporter;
   let progressCalls: ProgressNotification[];
-  let readFileSyncSpy: ReturnType<typeof spyOn>;
-  let writeFileSyncSpy: ReturnType<typeof spyOn>;
+  let readFileSpy: ReturnType<typeof spyOn>;
+  let writeFileSpy: ReturnType<typeof spyOn>;
   let mockFetcher: ReturnType<typeof mock>;
 
   const createProgressReporter = (): ProgressReporter => {
@@ -57,13 +57,13 @@ describe("InlineImageConversionJobHandler", () => {
     progressReporter = createProgressReporter();
 
     // Mock file system operations
-    readFileSyncSpy = spyOn(fs, "readFileSync");
-    writeFileSyncSpy = spyOn(fs, "writeFileSync").mockImplementation(() => {});
+    readFileSpy = spyOn(fsp, "readFile");
+    writeFileSpy = spyOn(fsp, "writeFile").mockResolvedValue(undefined);
   });
 
   afterEach(() => {
-    readFileSyncSpy.mockRestore();
-    writeFileSyncSpy.mockRestore();
+    readFileSpy.mockRestore();
+    writeFileSpy.mockRestore();
   });
 
   describe("process", () => {
@@ -75,7 +75,7 @@ slug: test-post
 
 Just plain text without images.`;
 
-      readFileSyncSpy.mockReturnValue(content);
+      readFileSpy.mockResolvedValue(content);
 
       const result = await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -86,7 +86,7 @@ Just plain text without images.`;
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
       expect(result.convertedCount).toBe(0);
-      expect(writeFileSyncSpy).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should skip already converted entity:// references", async () => {
@@ -97,7 +97,7 @@ slug: test-post
 
 Already converted: ![Alt](entity://image/existing-id)`;
 
-      readFileSyncSpy.mockReturnValue(content);
+      readFileSpy.mockResolvedValue(content);
 
       const result = await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -107,7 +107,7 @@ Already converted: ![Alt](entity://image/existing-id)`;
 
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
-      expect(writeFileSyncSpy).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
 
     it("should convert inline HTTP image to entity reference", async () => {
@@ -118,7 +118,7 @@ slug: test-post
 
 Here is an image: ![Alt text](https://example.com/image.png)`;
 
-      readFileSyncSpy.mockReturnValue(content);
+      readFileSpy.mockResolvedValue(content);
 
       const result = await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -128,19 +128,17 @@ Here is an image: ![Alt text](https://example.com/image.png)`;
 
       expect(result.success).toBe(true);
       expect(result.convertedCount).toBe(1);
-      expect(writeFileSyncSpy).toHaveBeenCalled();
+      expect(writeFileSpy).toHaveBeenCalled();
       expect(mockFetcher).toHaveBeenCalled();
 
       // Check that the written content has entity:// reference
-      const writtenContent = writeFileSyncSpy.mock.calls[0]?.[1] as string;
+      const writtenContent = writeFileSpy.mock.calls[0]?.[1] as string;
       expect(writtenContent).toContain("entity://image/");
       expect(writtenContent).not.toContain("https://example.com/image.png");
     });
 
     it("should handle file read errors gracefully", async () => {
-      readFileSyncSpy.mockImplementation(() => {
-        throw new Error("File not found");
-      });
+      readFileSpy.mockRejectedValue(new Error("File not found"));
 
       const result = await handler.process(
         { filePath: "/path/to/missing.md", postSlug: "test-post" },
@@ -160,10 +158,8 @@ slug: test-post
 
 ![Image](https://example.com/image.png)`;
 
-      readFileSyncSpy.mockReturnValue(content);
-      writeFileSyncSpy.mockImplementation(() => {
-        throw new Error("Permission denied");
-      });
+      readFileSpy.mockResolvedValue(content);
+      writeFileSpy.mockRejectedValue(new Error("Permission denied"));
 
       const result = await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -183,7 +179,7 @@ slug: test-post
 
 Just text.`;
 
-      readFileSyncSpy.mockReturnValue(content);
+      readFileSpy.mockResolvedValue(content);
 
       await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -209,7 +205,7 @@ slug: test-post
 
 No real images here.`;
 
-      readFileSyncSpy.mockReturnValue(content);
+      readFileSpy.mockResolvedValue(content);
 
       const result = await handler.process(
         { filePath: "/path/to/post.md", postSlug: "test-post" },
@@ -219,7 +215,7 @@ No real images here.`;
 
       expect(result.success).toBe(true);
       expect(result.skipped).toBe(true);
-      expect(writeFileSyncSpy).not.toHaveBeenCalled();
+      expect(writeFileSpy).not.toHaveBeenCalled();
     });
   });
 });

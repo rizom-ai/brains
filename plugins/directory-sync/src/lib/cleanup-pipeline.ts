@@ -20,7 +20,7 @@ export interface CleanupPipelineDeps {
   };
   fileOperations: {
     getEntityFilePath(entity: BaseEntity): string;
-    fileExists(filePath: string): boolean;
+    fileExists(filePath: string): Promise<boolean>;
   };
   deleteOnFileRemoval: boolean;
   entityTypes?: string[] | undefined;
@@ -55,7 +55,7 @@ export async function removeOrphanedEntities(
 
     for (const entity of entities) {
       const filePath = deps.fileOperations.getEntityFilePath(entity);
-      if (!deps.fileOperations.fileExists(filePath)) {
+      if (!(await deps.fileOperations.fileExists(filePath))) {
         try {
           await deps.entityService.deleteEntity(entity.entityType, entity.id);
           result.deleted++;
