@@ -237,9 +237,11 @@ Before submitting an interface:
 
 ## Reference Implementations
 
-| Interface Type    | Reference               |
-| ----------------- | ----------------------- |
-| CLI (terminal)    | `interfaces/cli/`       |
-| Chat bot (Matrix) | `interfaces/matrix/`    |
-| API server (MCP)  | `interfaces/mcp/`       |
-| Web server        | `interfaces/webserver/` |
+| Interface Type     | Reference               | Notes                                            |
+| ------------------ | ----------------------- | ------------------------------------------------ |
+| CLI (terminal)     | `interfaces/cli/`       | InterfacePlugin                                  |
+| Chat bot (Discord) | `interfaces/discord/`   | MessageInterfacePlugin                           |
+| Chat bot (Matrix)  | `interfaces/matrix/`    | MessageInterfacePlugin (deprecating → Chat SDK)  |
+| MCP server         | `interfaces/mcp/`       | InterfacePlugin (stdio + HTTP)                   |
+| Web server         | `interfaces/webserver/` | InterfacePlugin (child process for static files) |
+| Agent-to-Agent     | `interfaces/a2a/`       | InterfacePlugin (JSON-RPC, non-blocking tasks)   |

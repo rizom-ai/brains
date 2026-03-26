@@ -71,7 +71,7 @@ Default to async task flow — return "working" immediately, caller polls `tasks
 
 ### Entity Consolidation — Remaining
 
-Newsletter split (entity + buttondown integration), image migration, site-content redesign (persistent editable landing pages with derive()), site-info extraction, plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). ([plan](./plans/entity-consolidation.md))
+Site-content redesign (persistent editable landing pages with derive()), plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). Newsletter split, image migration, and site-info extraction done. ([plan](./plans/entity-consolidation.md))
 
 ---
 

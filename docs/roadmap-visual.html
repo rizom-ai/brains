@@ -199,7 +199,7 @@ const items = [
   { id: "other", name: "Other (2026-03)", status: "completed", desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.", date: "2026-03" },
 
   // In Progress
-  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Newsletter split (entity + buttondown integration). Image migration. Plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). All in one plan.", deps: ["entityplugin"], blocks: ["sysframework"] },
+  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). Site-content redesign. Newsletter split and image migration done.", deps: ["entityplugin"], blocks: ["sysframework"] },
 
   // Short-term pipeline
   { id: "sysframework", name: "System Tools to Framework", status: "short-term", step: 1, desc: "Move system plugin into shell-level registration. Tools, resources, prompts, instructions, widgets register directly. Removes AI from PluginContext.", deps: ["entityremain"], blocks: ["eval"] },

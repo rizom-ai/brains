@@ -51,3 +51,5 @@ export type {
   JobOptions,
   JobStats,
 } from "./schema/types";
+
+export { createScopedJobQueue, type ScopedJobQueue } from "./scoped-job-queue";

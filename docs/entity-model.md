@@ -77,7 +77,7 @@ Each plugin is responsible for:
 Each plugin defines its own entities:
 
 ```typescript
-// plugins/link/src/entities/link-entity.ts
+// entities/link/src/schemas/link.ts
 import { z } from "zod";
 import { nanoid } from "nanoid";
 import { baseEntitySchema } from "@brains/plugins";
@@ -574,24 +574,21 @@ export class EntityService {
 
 ## Plugin Registration
 
-Plugins register their entity types during initialization:
+EntityPlugins auto-register their entity types during initialization:
 
 ```typescript
-// In LinkPlugin
-export class LinkPlugin extends CorePlugin {
-  async register(context: CorePluginContext): Promise<PluginCapabilities> {
-    const { entityService, logger } = context;
+// In LinkPlugin (entities/link/src/plugin.ts)
+export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
+  readonly entityType = linkAdapter.entityType;
+  readonly schema = linkSchema;
+  readonly adapter = linkAdapter;
 
-    // Register the link entity adapter
-    const adapter = new LinkAdapter();
-    entityService.registerEntityAdapter(adapter);
-
-    // Register tools, resources, etc.
-    return {
-      tools: [...],
-      resources: [...],
-    };
-  }
+  // EntityPlugin base class auto-registers:
+  // - Entity type + schema + adapter
+  // - Generation handler (if createGenerationHandler() returns one)
+  // - Templates (if getTemplates() returns any)
+  // - DataSources (if getDataSources() returns any)
+  // - Extract handler (if derive() is overridden)
 }
 ```
 

@@ -155,6 +155,15 @@ Extract system tools from plugin to shell. See `docs/plans/system-to-framework.m
 5. Remove system from brain model registrations
 6. Tests
 
+### Phase 6b: Naming cleanup
+
+Immediately after system-to-framework, before context refactor:
+
+1. Rename `PluginTool` → `Tool`, `PluginResource` → `Resource`, `PluginPrompt` → `Prompt` in `@brains/mcp-service` and everywhere
+2. Move `createTypedTool` → `createTool` from `@brains/plugins` to `@brains/mcp-service`
+3. Shell packages import from `@brains/mcp-service` (source), not through `@brains/plugins`
+4. No aliases — clean rename everywhere
+
 ### Phase 7: Three sibling contexts
 
 1. Define shared base context type (entityService, jobs, messaging, identity, conversations, eval, logger, dataDir, domain)
