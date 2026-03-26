@@ -110,32 +110,58 @@ Site builds are CPU-bound: Preact `render()` is synchronous per route, Tailwind 
 
 The build is already behind a 5s debounce and runs via the job queue, so it's infrequent. But when it runs, it monopolizes the CPU.
 
-### Approach: Not like Phase 1
+### Key insight: entities are already in SQLite
 
-Phase 1 moved the webserver to a standalone script with zero brain dependencies. A site build is fundamentally different — it needs the full plugin context:
+The parent brain has already synced all entities from disk to the database. The child process doesn't need directory-sync, git, or any import pipeline — it just opens the same SQLite file (read-only via WAL mode) and builds from what's there.
 
-- **EntityService** — reads entities for every route
-- **TemplateRegistry + DataSourceRegistry** — resolves content for sections
-- **RouteRegistry** — knows what routes to build
-- **ViewRegistry** — gets view templates for rendering
-- **SiteInfoService + AnchorProfileService** — builds site metadata
-- **UISlotRegistry** — renders plugin-registered UI components (newsletter CTA)
+### What the child needs
+
+A site build reads entities, resolves templates, and renders HTML. That requires:
+
+- **EntityService** — read-only queries against the existing DB
+- **TemplateRegistry + DataSourceRegistry** — populated by entity plugins and the site plugin during `onRegister()`
+- **RouteRegistry** — populated by site-builder during `onRegister()`
+- **ViewRegistry** — for view templates used in rendering
+- **SiteInfoService + AnchorProfileService** — initialized from DB on `sync:initial:completed`
+- **UISlotRegistry** — for plugin-registered UI components (newsletter CTA)
 - **Layouts, theme CSS** — from the site package
 
-All of these are populated during the plugin lifecycle (`onRegister`). A standalone script can't get them without running the full brain startup.
+All of these are populated during the normal plugin lifecycle. The child just needs to run that lifecycle for the right subset of plugins.
+
+### What the child does NOT need
+
+- **Interfaces** — no MCP, Discord, A2A, webserver
+- **Directory-sync** — entities already in DB, no file sync needed
+- **Job queue worker** — no polling, no background jobs
+- **Git sync** — no periodic pull/push
+- **Content pipeline** — no publish pipeline
+- **Analytics, social media** — no side effects needed
 
 ### Design: `Bun.spawn()` with the brain runner
 
-Instead of a standalone script, the child process is the **same brain runner** (`shell/app/src/runner.ts`) with a `--site-build` flag. (Not `--build-only` — that would be confused with the bundler build in `shell/app/scripts/build.ts`.) It:
+The child process is the **same brain runner** (`shell/app/src/runner.ts`) with a `--site-build` flag. (Not `--build-only` — that would be confused with the bundler build in `shell/app/scripts/build.ts`.) It:
 
-1. Loads `brain.yaml`, resolves the brain definition, runs the full plugin lifecycle — same as normal startup
-2. Skips interface startup (no MCP, Discord, A2A, webserver daemons)
-3. Skips the job queue worker (no polling)
-4. Runs one site build directly after `sync:initial:completed`
-5. Reports progress + result via structured JSON lines on stdout
-6. Exits
+1. Loads `brain.yaml`, resolves the brain definition — same as normal startup
+2. Strips interfaces and directory-sync from the plugin list
+3. Runs `App.initialize()` — remaining plugins register schemas, templates, datasources (~1.3s)
+4. Emits a synthetic `sync:initial:completed` event — triggers SiteInfoService and AnchorProfileService to initialize from the existing DB (no import needed)
+5. Gets the site-builder plugin, calls `siteBuilder.build()` directly
+6. Reports progress + result via structured JSON lines on stdout
+7. Exits
 
-This means the child process uses the same code paths as a normal build — no headless context stubs, no serialization boundary, no slot migration. The only difference is it starts up, builds, and shuts down.
+### Spike results (2026-03-26)
+
+Tested against the professional brain (rover model, 25 plugins, 116 routes):
+
+| Metric                             | Full brain startup                   | Site-build mode                  |
+| ---------------------------------- | ------------------------------------ | -------------------------------- |
+| Plugins loaded                     | 20 (minus interfaces)                | 19 (minus interfaces + dir-sync) |
+| Initial sync                       | 64s (git pull + import + embeddings) | 0s (skipped — entities in DB)    |
+| Plugin registration                | 1.7s                                 | 1.3s                             |
+| Site build (116 routes + Tailwind) | 36s                                  | 8.5s                             |
+| **Total**                          | **~102s**                            | **~10s**                         |
+
+The 10x speedup comes from skipping directory-sync entirely and reading entities directly from the existing SQLite database.
 
 ### Startup path
 
@@ -144,45 +170,28 @@ runner.ts --site-build --environment preview --output-dir ./dist/site-preview
   ↓
 handleCLI() detects --site-build
   ↓
-App.initialize()  — full plugin lifecycle (but no interfaces registered)
+Strip interfaces + directory-sync from plugins
   ↓
-Skip App.start()  — no signal handlers, no "keep process alive"
+App.initialize()  — remaining plugins register in ~1.3s
   ↓
-Wait for sync:initial:completed (entities loaded from disk)
+Emit synthetic "sync:initial:completed"
+  (SiteInfoService + AnchorProfileService init from DB)
   ↓
-Get site-builder plugin, call siteBuilder.build() directly
+Get site-builder plugin, call siteBuilder.build()
   ↓
 Print JSON result to stdout
   ↓
 process.exit(0)
 ```
 
-### What to skip
-
-The child process needs to skip:
-
-- **All interfaces** — no MCP, Discord, A2A, webserver
-- **Job queue worker** — no polling for jobs
-- **Auto-rebuild subscriptions** — no entity event listeners
-- **Git periodic sync** — no interval timers
-
-It still needs:
-
-- **All entity plugins** — their schemas, adapters, datasources are needed for content resolution
-- **Site-builder plugin** — the builder itself
-- **Directory-sync plugin** — to populate entities from disk (initial sync)
-- **Layout/site plugin** — templates, routes, datasources
-
-The simplest way: pass all the same plugins but no interfaces. The existing preset system already supports this — `interfaces` is a separate array from `capabilities` in `BrainDefinition`.
-
 ### Communication protocol
 
-Stdout JSON lines, same as we proposed earlier:
+Stdout JSON lines:
 
 ```jsonl
 {"type":"progress","progress":25,"total":100,"message":"Building routes"}
 {"type":"progress","progress":90,"total":100,"message":"Generating CSS"}
-{"type":"complete","success":true,"routesBuilt":42,"outputDir":"./dist/site-preview","environment":"preview"}
+{"type":"complete","success":true,"routesBuilt":116,"outputDir":"./dist/site-preview","environment":"preview"}
 ```
 
 Or on failure:
@@ -201,29 +210,15 @@ The parent (`SiteBuildJobHandler`) spawns the child, reads stdout line-by-line, 
 
 `site:build:completed` triggers SEO file generation (sitemap, robots.txt, CMS config) and RSS feed generation. These run on the parent process where the messaging system lives. The child just produces the HTML files.
 
-### Startup overhead
-
-Full brain resolve + plugin init is heavier than Phase 1's standalone script. Expected: 500ms-2s depending on how many plugins init. For a 10-60s build, this is acceptable. The 5s debounce already absorbs more than this.
-
-To validate: measure actual startup time in the `--site-build` path before and after implementing.
-
 ### Implementation steps
 
 **Step 1: Add `--site-build` to CLI** (small)
 
 - `shell/app/src/cli.ts` — detect `--site-build`, parse `--environment` and `--output-dir` args
-- `shell/app/src/app.ts` — add `siteBuild()` method: initialize without interfaces, run build, exit
-- The brain resolver already separates capabilities from interfaces — pass empty interfaces array
+- `shell/app/src/app.ts` — add `siteBuild()` method: strip interfaces + directory-sync, initialize, emit synthetic event, build, exit
+- `shell/app/src/types.ts` — add `siteBuildMode` to AppConfig
 
-**Step 2: Build execution in child** (medium)
-
-- After `initialize()`, wait for `sync:initial:completed` (directory-sync loads entities)
-- Get the site-builder plugin instance from the plugin manager
-- Call `siteBuilder.build()` with the right options
-- Write progress + result as JSON lines to stdout
-- Exit
-
-**Step 3: Parent spawns child** (medium)
+**Step 2: Parent spawns child** (medium)
 
 - `SiteBuildJobHandler` gains a `useChildProcess` option
 - When enabled, spawns `bun run <entrypoint> --site-build --environment <env> --output-dir <dir>`
@@ -232,50 +227,38 @@ To validate: measure actual startup time in the `--site-build` path before and a
 - On non-zero exit or `error` message, fails the job
 - Timeout: 5 minutes
 
-**Step 4: Skip unnecessary init in child** (small)
-
-- Add a `siteBuildMode` flag to `AppConfig` or `ShellConfig`
-- Shell skips starting the job queue worker when `siteBuildMode` is set
-- Site-builder plugin skips auto-rebuild subscription when `siteBuildMode` is set
-- Directory-sync skips periodic git sync and auto-commit when `siteBuildMode` is set
-
 ### Files
 
-| File                                                       | Step | Action                                |
-| ---------------------------------------------------------- | ---- | ------------------------------------- |
-| `shell/app/src/cli.ts`                                     | 1    | Parse `--site-build` + args           |
-| `shell/app/src/app.ts`                                     | 1, 2 | `siteBuild()` method                  |
-| `shell/app/src/types.ts`                                   | 1    | Add `siteBuildMode` to AppConfig      |
-| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3    | Spawn child process option            |
-| `plugins/site-builder/src/plugin.ts`                       | 4    | Skip auto-rebuild when siteBuildMode  |
-| `plugins/directory-sync/src/plugin.ts`                     | 4    | Skip periodic sync when siteBuildMode |
+| File                                                       | Step | Action                        |
+| ---------------------------------------------------------- | ---- | ----------------------------- |
+| `shell/app/src/cli.ts`                                     | 1    | Parse `--site-build` + args   |
+| `shell/app/src/app.ts`                                     | 1    | `siteBuild()` method          |
+| `shell/app/src/types.ts`                                   | 1    | Add `siteBuildMode` to config |
+| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 2    | Spawn child process option    |
 
 ### Verify
 
-1. `bun run <entrypoint> --site-build --environment preview --output-dir ./dist/site-preview` produces a valid site
+1. `bun run <entrypoint> --site-build --environment preview --output-dir ./dist/site-preview` produces a valid site with CTA
 2. Trigger build via MCP tool — parent spawns child, MCP stays responsive during build
-3. `site:build:completed` fires, SEO files + RSS generated
-4. Newsletter CTA present in built pages
-5. Measure startup overhead of `--site-build` path
+3. `site:build:completed` fires on parent, SEO files + RSS generated
+4. Measure: child process completes in ~10s for 116 routes
 
 ## Files
 
-| File                                                       | Phase | Action                                |
-| ---------------------------------------------------------- | ----- | ------------------------------------- |
-| `interfaces/webserver/src/standalone-server.ts`            | 1 ✅  | New: child process entry point        |
-| `interfaces/webserver/src/server-manager.ts`               | 1 ✅  | Spawn child, remove API mounting      |
-| `interfaces/webserver/src/api-server.ts`                   | 1 ✅  | New: API route server on main thread  |
-| `interfaces/webserver/src/webserver-interface.ts`          | 1 ✅  | Start child + API server in daemon    |
-| `interfaces/webserver/src/config.ts`                       | 1 ✅  | Add apiPort config                    |
-| `deploy/providers/hetzner/templates/Caddyfile.template`    | 1 ✅  | Route /api/\* to :3335                |
-| `plugins/directory-sync/src/lib/file-operations.ts`        | 2 ✅  | Convert 19 sync FS calls to async     |
-| `plugins/directory-sync/src/lib/seed-content.ts`           | 2 ✅  | Convert sync FS to async              |
-| `plugins/directory-sync/src/lib/quarantine.ts`             | 2 ✅  | Convert sync FS to async              |
-| `plugins/directory-sync/src/lib/git-sync.ts`               | 2 ✅  | Convert sync FS to async              |
-| `plugins/directory-sync/src/handlers/*-handler.ts`         | 2 ✅  | Convert readFileSync/writeFileSync    |
-| `shell/app/src/cli.ts`                                     | 3     | Parse --site-build + args             |
-| `shell/app/src/app.ts`                                     | 3     | siteBuild() method                    |
-| `shell/app/src/types.ts`                                   | 3     | Add siteBuildMode to AppConfig        |
-| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3     | Spawn child process option            |
-| `plugins/site-builder/src/plugin.ts`                       | 3     | Skip auto-rebuild when siteBuildMode  |
-| `plugins/directory-sync/src/plugin.ts`                     | 3     | Skip periodic sync when siteBuildMode |
+| File                                                       | Phase | Action                               |
+| ---------------------------------------------------------- | ----- | ------------------------------------ |
+| `interfaces/webserver/src/standalone-server.ts`            | 1 ✅  | New: child process entry point       |
+| `interfaces/webserver/src/server-manager.ts`               | 1 ✅  | Spawn child, remove API mounting     |
+| `interfaces/webserver/src/api-server.ts`                   | 1 ✅  | New: API route server on main thread |
+| `interfaces/webserver/src/webserver-interface.ts`          | 1 ✅  | Start child + API server in daemon   |
+| `interfaces/webserver/src/config.ts`                       | 1 ✅  | Add apiPort config                   |
+| `deploy/providers/hetzner/templates/Caddyfile.template`    | 1 ✅  | Route /api/\* to :3335               |
+| `plugins/directory-sync/src/lib/file-operations.ts`        | 2 ✅  | Convert 19 sync FS calls to async    |
+| `plugins/directory-sync/src/lib/seed-content.ts`           | 2 ✅  | Convert sync FS to async             |
+| `plugins/directory-sync/src/lib/quarantine.ts`             | 2 ✅  | Convert sync FS to async             |
+| `plugins/directory-sync/src/lib/git-sync.ts`               | 2 ✅  | Convert sync FS to async             |
+| `plugins/directory-sync/src/handlers/*-handler.ts`         | 2 ✅  | Convert readFileSync/writeFileSync   |
+| `shell/app/src/cli.ts`                                     | 3     | Parse --site-build + args            |
+| `shell/app/src/app.ts`                                     | 3     | siteBuild() method                   |
+| `shell/app/src/types.ts`                                   | 3     | Add siteBuildMode to AppConfig       |
+| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3     | Spawn child process option           |
