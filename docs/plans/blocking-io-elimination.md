@@ -126,7 +126,7 @@ All of these are populated during the plugin lifecycle (`onRegister`). A standal
 
 ### Design: `Bun.spawn()` with the brain runner
 
-Instead of a standalone script, the child process is the **same brain runner** (`shell/app/src/runner.ts`) with a `--build-only` flag. It:
+Instead of a standalone script, the child process is the **same brain runner** (`shell/app/src/runner.ts`) with a `--site-build` flag. (Not `--build-only` — that would be confused with the bundler build in `shell/app/scripts/build.ts`.) It:
 
 1. Loads `brain.yaml`, resolves the brain definition, runs the full plugin lifecycle — same as normal startup
 2. Skips interface startup (no MCP, Discord, A2A, webserver daemons)
@@ -140,9 +140,9 @@ This means the child process uses the same code paths as a normal build — no h
 ### Startup path
 
 ```
-runner.ts --build-only --environment preview --output-dir ./dist/site-preview
+runner.ts --site-build --environment preview --output-dir ./dist/site-preview
   ↓
-handleCLI() detects --build-only
+handleCLI() detects --site-build
   ↓
 App.initialize()  — full plugin lifecycle (but no interfaces registered)
   ↓
@@ -205,14 +205,14 @@ The parent (`SiteBuildJobHandler`) spawns the child, reads stdout line-by-line, 
 
 Full brain resolve + plugin init is heavier than Phase 1's standalone script. Expected: 500ms-2s depending on how many plugins init. For a 10-60s build, this is acceptable. The 5s debounce already absorbs more than this.
 
-To validate: measure actual startup time in the `--build-only` path before and after implementing.
+To validate: measure actual startup time in the `--site-build` path before and after implementing.
 
 ### Implementation steps
 
-**Step 1: Add `--build-only` to CLI** (small)
+**Step 1: Add `--site-build` to CLI** (small)
 
-- `shell/app/src/cli.ts` — detect `--build-only`, parse `--environment` and `--output-dir` args
-- `shell/app/src/app.ts` — add `buildOnly()` method: initialize without interfaces, run build, exit
+- `shell/app/src/cli.ts` — detect `--site-build`, parse `--environment` and `--output-dir` args
+- `shell/app/src/app.ts` — add `siteBuild()` method: initialize without interfaces, run build, exit
 - The brain resolver already separates capabilities from interfaces — pass empty interfaces array
 
 **Step 2: Build execution in child** (medium)
@@ -226,7 +226,7 @@ To validate: measure actual startup time in the `--build-only` path before and a
 **Step 3: Parent spawns child** (medium)
 
 - `SiteBuildJobHandler` gains a `useChildProcess` option
-- When enabled, spawns `bun run <entrypoint> --build-only --environment <env> --output-dir <dir>`
+- When enabled, spawns `bun run <entrypoint> --site-build --environment <env> --output-dir <dir>`
 - Reads stdout line-by-line, forwards progress
 - On exit code 0 + `complete` message, emits `site:build:completed`
 - On non-zero exit or `error` message, fails the job
@@ -234,48 +234,48 @@ To validate: measure actual startup time in the `--build-only` path before and a
 
 **Step 4: Skip unnecessary init in child** (small)
 
-- Add a `buildOnly` flag to `AppConfig` or `ShellConfig`
-- Shell skips starting the job queue worker when `buildOnly` is set
-- Site-builder plugin skips auto-rebuild subscription when `buildOnly` is set
-- Directory-sync skips periodic git sync and auto-commit when `buildOnly` is set
+- Add a `siteBuildMode` flag to `AppConfig` or `ShellConfig`
+- Shell skips starting the job queue worker when `siteBuildMode` is set
+- Site-builder plugin skips auto-rebuild subscription when `siteBuildMode` is set
+- Directory-sync skips periodic git sync and auto-commit when `siteBuildMode` is set
 
 ### Files
 
-| File                                                       | Step | Action                            |
-| ---------------------------------------------------------- | ---- | --------------------------------- |
-| `shell/app/src/cli.ts`                                     | 1    | Parse `--build-only` + args       |
-| `shell/app/src/app.ts`                                     | 1, 2 | `buildOnly()` method              |
-| `shell/app/src/types.ts`                                   | 1    | Add `buildOnly` to AppConfig      |
-| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3    | Spawn child process option        |
-| `plugins/site-builder/src/plugin.ts`                       | 4    | Skip auto-rebuild when buildOnly  |
-| `plugins/directory-sync/src/plugin.ts`                     | 4    | Skip periodic sync when buildOnly |
+| File                                                       | Step | Action                                |
+| ---------------------------------------------------------- | ---- | ------------------------------------- |
+| `shell/app/src/cli.ts`                                     | 1    | Parse `--site-build` + args           |
+| `shell/app/src/app.ts`                                     | 1, 2 | `siteBuild()` method                  |
+| `shell/app/src/types.ts`                                   | 1    | Add `siteBuildMode` to AppConfig      |
+| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3    | Spawn child process option            |
+| `plugins/site-builder/src/plugin.ts`                       | 4    | Skip auto-rebuild when siteBuildMode  |
+| `plugins/directory-sync/src/plugin.ts`                     | 4    | Skip periodic sync when siteBuildMode |
 
 ### Verify
 
-1. `bun run <entrypoint> --build-only --environment preview --output-dir ./dist/site-preview` produces a valid site
+1. `bun run <entrypoint> --site-build --environment preview --output-dir ./dist/site-preview` produces a valid site
 2. Trigger build via MCP tool — parent spawns child, MCP stays responsive during build
 3. `site:build:completed` fires, SEO files + RSS generated
 4. Newsletter CTA present in built pages
-5. Measure startup overhead of `--build-only` path
+5. Measure startup overhead of `--site-build` path
 
 ## Files
 
-| File                                                       | Phase | Action                               |
-| ---------------------------------------------------------- | ----- | ------------------------------------ |
-| `interfaces/webserver/src/standalone-server.ts`            | 1 ✅  | New: child process entry point       |
-| `interfaces/webserver/src/server-manager.ts`               | 1 ✅  | Spawn child, remove API mounting     |
-| `interfaces/webserver/src/api-server.ts`                   | 1 ✅  | New: API route server on main thread |
-| `interfaces/webserver/src/webserver-interface.ts`          | 1 ✅  | Start child + API server in daemon   |
-| `interfaces/webserver/src/config.ts`                       | 1 ✅  | Add apiPort config                   |
-| `deploy/providers/hetzner/templates/Caddyfile.template`    | 1 ✅  | Route /api/\* to :3335               |
-| `plugins/directory-sync/src/lib/file-operations.ts`        | 2 ✅  | Convert 19 sync FS calls to async    |
-| `plugins/directory-sync/src/lib/seed-content.ts`           | 2 ✅  | Convert sync FS to async             |
-| `plugins/directory-sync/src/lib/quarantine.ts`             | 2 ✅  | Convert sync FS to async             |
-| `plugins/directory-sync/src/lib/git-sync.ts`               | 2 ✅  | Convert sync FS to async             |
-| `plugins/directory-sync/src/handlers/*-handler.ts`         | 2 ✅  | Convert readFileSync/writeFileSync   |
-| `shell/app/src/cli.ts`                                     | 3     | Parse --build-only + args            |
-| `shell/app/src/app.ts`                                     | 3     | buildOnly() method                   |
-| `shell/app/src/types.ts`                                   | 3     | Add buildOnly to AppConfig           |
-| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3     | Spawn child process option           |
-| `plugins/site-builder/src/plugin.ts`                       | 3     | Skip auto-rebuild when buildOnly     |
-| `plugins/directory-sync/src/plugin.ts`                     | 3     | Skip periodic sync when buildOnly    |
+| File                                                       | Phase | Action                                |
+| ---------------------------------------------------------- | ----- | ------------------------------------- |
+| `interfaces/webserver/src/standalone-server.ts`            | 1 ✅  | New: child process entry point        |
+| `interfaces/webserver/src/server-manager.ts`               | 1 ✅  | Spawn child, remove API mounting      |
+| `interfaces/webserver/src/api-server.ts`                   | 1 ✅  | New: API route server on main thread  |
+| `interfaces/webserver/src/webserver-interface.ts`          | 1 ✅  | Start child + API server in daemon    |
+| `interfaces/webserver/src/config.ts`                       | 1 ✅  | Add apiPort config                    |
+| `deploy/providers/hetzner/templates/Caddyfile.template`    | 1 ✅  | Route /api/\* to :3335                |
+| `plugins/directory-sync/src/lib/file-operations.ts`        | 2 ✅  | Convert 19 sync FS calls to async     |
+| `plugins/directory-sync/src/lib/seed-content.ts`           | 2 ✅  | Convert sync FS to async              |
+| `plugins/directory-sync/src/lib/quarantine.ts`             | 2 ✅  | Convert sync FS to async              |
+| `plugins/directory-sync/src/lib/git-sync.ts`               | 2 ✅  | Convert sync FS to async              |
+| `plugins/directory-sync/src/handlers/*-handler.ts`         | 2 ✅  | Convert readFileSync/writeFileSync    |
+| `shell/app/src/cli.ts`                                     | 3     | Parse --site-build + args             |
+| `shell/app/src/app.ts`                                     | 3     | siteBuild() method                    |
+| `shell/app/src/types.ts`                                   | 3     | Add siteBuildMode to AppConfig        |
+| `plugins/site-builder/src/handlers/siteBuildJobHandler.ts` | 3     | Spawn child process option            |
+| `plugins/site-builder/src/plugin.ts`                       | 3     | Skip auto-rebuild when siteBuildMode  |
+| `plugins/directory-sync/src/plugin.ts`                     | 3     | Skip periodic sync when siteBuildMode |
