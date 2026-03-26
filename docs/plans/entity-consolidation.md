@@ -104,15 +104,33 @@ Key change: `AIContentDataSource` checks for a stored site-content entity before
 | No persistence                                 | Stored as entities, editable via CMS                  |
 | No `edited` flag                               | `edited: true` protects manual tweaks from derive()   |
 
-### Unified PluginContext
+### System to framework
 
-`PluginContext` replaces CorePluginContext, ServicePluginContext, and EntityPluginContext. Used by both EntityPlugin and IntegrationPlugin. InterfacePluginContext stays separate.
+System plugin is framework code pretending to be a plugin. Move system tools, resources, prompts, instructions, and dashboard widgets to shell-level registration. No SystemPlugin class. See `docs/plans/system-to-framework.md` for full design.
 
-No `ai` namespace on the unified context. Plugins that need AI obtain it during `onRegister()` as a stored dependency.
+This unblocks the context refactor: system was the only IntegrationPlugin that needed AI on its context. After extraction, no integration plugin needs `ai`.
+
+### Three sibling contexts
+
+Three context types, each scoped to its plugin type. Not subsets — siblings with a shared base:
+
+**Shared base**: `entityService`, `jobs`, `messaging`, `identity`, `conversations`, `eval`, `logger`, `dataDir`, `domain`
+
+**EntityPluginContext** = base + `entities` + `ai` + `templates`
+
+- Entity plugins are content machines — they need AI (generation handlers) and templates (content formatting)
+
+**IntegrationPluginContext** = base + `views` + `resources` + `prompts` + `plugins`
+
+- Integration plugins are infrastructure connectors — they need MCP registration and view access
+
+**InterfacePluginContext** = base + transport + daemon + agent + conversation write
+
+- Interface plugins are user-facing transports
 
 ### IntegrationPlugin
 
-Replaces both CorePlugin and ServicePlugin for plugins that provide tools and infrastructure.
+Replaces both CorePlugin and ServicePlugin for plugins that provide tools and infrastructure. Uses `IntegrationPluginContext`.
 
 ## Steps
 
@@ -126,43 +144,52 @@ Complete entity consolidation — all entity types in `entities/`.
 4. Update brain model registrations
 5. Tests
 
-### Phase 6: Unified PluginContext
+### Phase 6: System to framework
 
-1. Create `PluginContext` type — replaces all three existing context types
-2. Create `createPluginContext()` factory
-3. Update EntityPlugin to use `PluginContext`
-4. Verify all entity plugins still work
-5. Tests
+Extract system tools from plugin to shell. See `docs/plans/system-to-framework.md`.
 
-### Phase 7: IntegrationPlugin class
+1. Move system tools to `shell/core/src/system-tools.ts` — direct service access, no plugin instance
+2. Move resources, prompts, instructions, dashboard widgets to shell
+3. Register in shell initialization after plugins
+4. Delete `plugins/system/`
+5. Remove system from brain model registrations
+6. Tests
 
-1. Create `IntegrationPlugin` class extending BasePlugin
-2. Migrate system (store AI dependency in onRegister)
-3. Migrate content-pipeline, directory-sync, site-builder, obsidian-vault, dashboard, analytics, buttondown
-4. Tests
+### Phase 7: Three sibling contexts
 
-### Phase 8: Cleanup
+1. Define shared base context type (entityService, jobs, messaging, identity, conversations, eval, logger, dataDir, domain)
+2. Define `EntityPluginContext` = base + entities + ai + templates
+3. Define `IntegrationPluginContext` = base + views + resources + prompts + plugins
+4. Create factories: `createEntityPluginContext()`, `createIntegrationPluginContext()`
+5. Delete `CorePluginContext`, `ServicePluginContext`, `createCorePluginContext()`, `createServicePluginContext()`
+6. Update all consumers
+7. Tests
+
+### Phase 8: IntegrationPlugin class
+
+1. Create `IntegrationPlugin` class extending `BasePlugin<TConfig, IntegrationPluginContext>`
+2. Migrate content-pipeline, directory-sync, site-builder, obsidian-vault, dashboard, analytics, buttondown
+3. Tests
+
+### Phase 9: Cleanup
 
 1. Delete CorePlugin, ServicePlugin classes
-2. Delete old context types and factories
-3. Remove `setupMessageHandlers()`, `getTools()`, `getResources()` from BasePlugin
-4. Update example plugins, docs, test harness
-5. Tests
+2. Remove `setupMessageHandlers()`, `getTools()`, `getResources()` from BasePlugin
+3. Update example plugins, docs, test harness
+4. Tests
 
 ## Verification
 
 1. `bun test` — all tests pass
 2. `bun run typecheck` / `bun run lint`
 3. All entity types registered as EntityPlugins in `entities/`
-4. `system_create` routes to correct generation handlers
-5. `system_extract` routes to correct derive() methods
-6. Newsletter subscriber tools work (in buttondown plugin)
-7. Newsletter API routes work (in buttondown plugin)
-8. Site builds still work (site-builder imports site-info entity)
-9. System plugin's ai.query() works (stored dependency)
-10. First site build generates and stores landing page content as site-content entities
-11. Second build reads stored content (no AI call)
-12. User edits via CMS persist across rebuilds (`edited` flag)
-13. derive() regenerates unedited sections when source content changes
-14. Only three plugin classes: IntegrationPlugin, EntityPlugin, InterfacePlugin
-15. All interfaces work unchanged
+4. System tools registered at shell level (no SystemPlugin)
+5. `system_create` routes to correct generation handlers
+6. `system_extract` routes to correct derive() methods
+7. Newsletter subscriber tools work (in buttondown plugin)
+8. Newsletter API routes work (in buttondown plugin)
+9. Site builds still work
+10. Only three plugin classes: IntegrationPlugin, EntityPlugin, InterfacePlugin
+11. Three matching context types: IntegrationPluginContext, EntityPluginContext, InterfacePluginContext
+12. No AI on IntegrationPluginContext
+13. All interfaces work unchanged
