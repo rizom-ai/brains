@@ -376,15 +376,12 @@ export class MCPService implements IMCPService {
     return Array.from(this.registeredResources.values());
   }
 
-  public registerPluginInstructions(
-    pluginId: string,
-    instructions: string,
-  ): void {
+  public registerInstructions(pluginId: string, instructions: string): void {
     this.pluginInstructions.set(pluginId, instructions);
     this.logger.debug(`Registered instructions from plugin: ${pluginId}`);
   }
 
-  public getPluginInstructions(): string[] {
+  public getInstructions(): string[] {
     return Array.from(this.pluginInstructions.values());
   }
 }

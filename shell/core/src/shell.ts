@@ -428,11 +428,8 @@ export class Shell implements IShell {
     this.services.mcpService.registerPrompt(pluginId, prompt);
   }
 
-  public registerPluginInstructions(
-    pluginId: string,
-    instructions: string,
-  ): void {
-    this.services.mcpService.registerPluginInstructions(pluginId, instructions);
+  public registerInstructions(pluginId: string, instructions: string): void {
+    this.services.mcpService.registerInstructions(pluginId, instructions);
   }
 
   public getPluginPackageName(pluginId: string): string | undefined {

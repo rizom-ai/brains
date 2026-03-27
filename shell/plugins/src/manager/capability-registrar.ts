@@ -39,7 +39,7 @@ export class CapabilityRegistrar {
 
     // Register instructions
     if (capabilities.instructions) {
-      shell.registerPluginInstructions(pluginId, capabilities.instructions);
+      shell.registerInstructions(pluginId, capabilities.instructions);
       this.logger.debug(`Registered instructions from ${pluginId}`);
     }
   }

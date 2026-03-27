@@ -241,9 +241,7 @@ export interface ServicePluginContext extends CorePluginContext {
    * Prompts namespace for resolving AI prompts from prompt entities
    * - `prompts.resolve()` - Look up prompt entity by target, fall back to default
    */
-  readonly prompts: {
-    resolve: (target: string, fallback: string) => Promise<string>;
-  };
+  readonly prompts: IPromptsNamespace;
 
   // ============================================================================
   // MCP Protocol Registration
@@ -453,7 +451,7 @@ export function createServicePluginContext(
     // AI prompt resolution
     prompts: {
       resolve: (target: string, fallback: string): Promise<string> => {
-        return resolvePrompt(shell.getEntityService(), target, fallback);
+        return resolvePrompt(entityService, target, fallback);
       },
     },
 

@@ -465,10 +465,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _template: ResourceTemplate,
     ) => {},
     registerPrompt: (_pluginId: string, _prompt: Prompt) => {},
-    registerPluginInstructions: (
-      _pluginId: string,
-      _instructions: string,
-    ) => {},
+    registerInstructions: (_pluginId: string, _instructions: string) => {},
 
     // Plugin info
     getPluginPackageName: (pluginId: string) =>

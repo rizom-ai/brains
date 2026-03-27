@@ -88,7 +88,7 @@ export function registerSystemCapabilities(
   // ── Instructions ──
   const instructions = createSystemInstructions(services);
   try {
-    mcpService.registerPluginInstructions(SYSTEM_ID, instructions);
+    mcpService.registerInstructions(SYSTEM_ID, instructions);
   } catch {
     logger.debug("System instructions already registered, skipping");
   }

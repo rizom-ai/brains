@@ -231,12 +231,12 @@ export interface IMCPService extends IMCPTransport {
   /**
    * Register behavioral instructions from a plugin for the agent system prompt
    */
-  registerPluginInstructions(pluginId: string, instructions: string): void;
+  registerInstructions(pluginId: string, instructions: string): void;
 
   /**
    * Get all registered plugin instructions
    */
-  getPluginInstructions(): string[];
+  getInstructions(): string[];
 }
 
 /**

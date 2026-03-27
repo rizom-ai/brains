@@ -180,7 +180,7 @@ export interface IShell {
     template: ResourceTemplate<K>,
   ): void;
   registerPrompt(pluginId: string, prompt: Prompt): void;
-  registerPluginInstructions(pluginId: string, instructions: string): void;
+  registerInstructions(pluginId: string, instructions: string): void;
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;

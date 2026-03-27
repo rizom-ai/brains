@@ -42,8 +42,8 @@ const createMockMCPService = (): IMCPService => ({
     () => ({}) as ReturnType<IMCPService["createMcpServer"]>,
   ),
   setPermissionLevel: mock(() => {}),
-  registerPluginInstructions: mock(() => {}),
-  getPluginInstructions: mock(() => []),
+  registerInstructions: mock(() => {}),
+  getInstructions: mock(() => []),
 });
 
 // Mock BrainCharacterService
@@ -535,7 +535,7 @@ describe("AgentService", () => {
 
     it("should pass plugin instructions from MCPService to agent factory", async () => {
       const mcpWithInstructions = createMockMCPService();
-      mcpWithInstructions.getPluginInstructions = mock(() => [
+      mcpWithInstructions.getInstructions = mock(() => [
         "Always log unfulfilled requests.",
       ]);
 
