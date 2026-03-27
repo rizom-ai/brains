@@ -1,0 +1,25 @@
+{
+  "name": "@brains/prompt",
+  "version": "0.1.0",
+  "description": "Prompt entity type — AI prompts as editable markdown entities",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "bun-types": "latest",
+    "typescript": "^5.3.3"
+  }
+}
