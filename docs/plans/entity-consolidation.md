@@ -155,9 +155,11 @@ Extract system tools from plugin to shell. See `docs/plans/system-to-framework.m
 5. Remove system from brain model registrations
 6. Tests
 
-### Phase 6b: Naming cleanup
+### Phase 6b: Naming cleanup ✅
 
 Immediately after system-to-framework, before context refactor.
+
+**Completed.** All renames applied, duplicates removed, utilities moved to canonical packages.
 
 #### Renames in `@brains/mcp-service` (source of truth)
 
