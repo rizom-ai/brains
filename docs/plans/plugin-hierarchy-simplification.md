@@ -2,14 +2,14 @@
 
 ## Goal
 
-Collapse the four-level plugin hierarchy into three sibling types with clean context separation.
+Collapse the four-level plugin hierarchy into three sibling types. Keep the "ServicePlugin" name — it fits the mixed bag of non-entity, non-interface plugins better than "IntegrationPlugin". Design contexts from actual usage, not theory.
 
 ```
 Current:                          Target:
 BasePlugin                        BasePlugin (abstract)
   ├── CorePlugin                    ├── EntityPlugin
-  │   └── ServicePlugin             ├── IntegrationPlugin
-  ├── EntityPlugin                   └── InterfacePlugin
+  │   └── ServicePlugin             ├── ServicePlugin
+  ├── EntityPlugin                  └── InterfacePlugin
   └── InterfacePlugin
 ```
 
@@ -21,7 +21,7 @@ BasePlugin                        BasePlugin (abstract)
 - System tools are framework code in `shell/core/src/system/`
 - Types renamed: `Tool`, `Resource`, `ResourceTemplate`, `Prompt`, `JobsNamespace`
 - `createTool` + `findEntityByIdentifier` in canonical packages (`@brains/mcp-service`, `@brains/entity-service`)
-- Duplicate job helpers deleted
+- Duplicate job helpers and re-export shims deleted
 
 ### Current plugin classes
 
@@ -39,16 +39,53 @@ BasePlugin                        BasePlugin (abstract)
 | ------------------------ | ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
 | `CorePluginContext`      | Base for Service + Entity + Interface | entityService (read), jobs (monitor), messaging, identity, conversations, eval, logger, dataDir, domain, ai, templates    |
 | `ServicePluginContext`   | ServicePlugin                         | entities (register + write), ai (generate + image), templates (resolve), jobs (write), views, plugins, resources, prompts |
-| `EntityPluginContext`    | EntityPlugin                          | entities (register + write), ai (generate + image), templates (resolve), jobs (write)                                     |
+| `EntityPluginContext`    | EntityPlugin                          | entities (register + write), ai (generate + image), templates (resolve), jobs (write), prompts (resolve)                  |
 | `InterfacePluginContext` | InterfacePlugin                       | mcpTransport, agentService, permissions, daemons, jobs (write), conversations (write), tools, apiRoutes                   |
 
 ### Problem
 
-`CorePluginContext` is the shared base, but it includes AI and templates — capabilities that IntegrationPlugins don't need. `ServicePluginContext extends CorePluginContext` creates an inheritance chain where IntegrationPlugin inherits AI just because the base has it. The context hierarchy should match the plugin hierarchy: three siblings with a shared base, each adding only what it needs.
+`CorePluginContext` is the shared base, but it includes AI and templates — capabilities most plugin types don't need. `ServicePlugin extends CorePlugin` creates an unnecessary inheritance level. The context hierarchy should match the plugin hierarchy: three siblings with a shared base, each adding only what it actually uses.
+
+## Usage Audit
+
+Capability usage was audited across all plugins to drive the design. Key findings:
+
+### ServicePlugins (10 plugins + 2 CorePlugins → 12 total)
+
+| Capability                           | Users | Details                                                                                                         |
+| ------------------------------------ | ----- | --------------------------------------------------------------------------------------------------------------- |
+| `messaging`                          | 8     | directory-sync, site-builder, content-pipeline, buttondown, dashboard, obsidian-vault, analytics, mcp-bridge(0) |
+| `entityService`                      | 8     | all except ranger, analytics, mcp-bridge                                                                        |
+| `entities`                           | 6     | directory-sync, site-builder, dashboard, obsidian-vault, personal, professional                                 |
+| `templates` (register/format)        | 6     | directory-sync, site-builder, dashboard, personal, professional, ranger                                         |
+| `templates.resolve`                  | 1     | site-builder                                                                                                    |
+| `templates.getCapabilities`          | 1     | site-content                                                                                                    |
+| `jobs`                               | 4     | directory-sync, site-builder, content-pipeline, site-content                                                    |
+| `views`                              | 1     | site-builder                                                                                                    |
+| **`ai`**                             | **0** | —                                                                                                               |
+| **`mcp.prompts.register`**           | **0** | —                                                                                                               |
+| **`mcp.resources.registerTemplate`** | **0** | —                                                                                                               |
+| **`plugins.getPackageName`**         | **0** | —                                                                                                               |
+
+### EntityPlugins (14 total)
+
+| Capability             | Users | Details                                                                   |
+| ---------------------- | ----- | ------------------------------------------------------------------------- |
+| `ai.generate`          | 10    | all except products, prompt                                               |
+| `ai.generateObject`    | 1     | social-media                                                              |
+| `entityService`        | 10    | all except products, prompt, note                                         |
+| `messaging`            | 8     | blog, decks, newsletter, portfolio, social-media, series, summary, topics |
+| `eval.registerHandler` | 8     | blog, decks, link, newsletter, note, portfolio, social-media, topics      |
+| `entities`             | 3     | blog (registerDataSource), products (register), series (update)           |
+| `jobs`                 | 3     | newsletter, social-media, topics                                          |
+| `identity.getProfile`  | 1     | blog                                                                      |
+| **`templates`**        | **0** | —                                                                         |
+| **`prompts.resolve`**  | **0** | (plumbing added, no callers yet)                                          |
+| **`views`**            | **0** | —                                                                         |
 
 ## Design
 
-### Three sibling contexts
+### Three sibling contexts (usage-driven)
 
 **`BasePluginContext`** — shared by all plugin types:
 
@@ -65,17 +102,15 @@ BasePlugin                        BasePlugin (abstract)
 - `entityService` (full `IEntityService` with write)
 - `entities` (register, getAdapter, extendFrontmatterSchema, update, registerDataSource)
 - `ai` (query, generate, generateObject, generateImage, canGenerateImages)
-- `templates` (register, format, parse, resolve, getCapabilities)
+- `prompts` (resolve — prompt entity resolution for AI prompts)
 
-**`IntegrationPluginContext`** = `BasePluginContext` + :
+**`ServicePluginContext`** = `BasePluginContext` + :
 
 - `entityService` (full `IEntityService` with write)
 - `entities` (register, getAdapter, extendFrontmatterSchema, update, registerDataSource)
+- `templates` (register, format, parse, resolve, getCapabilities)
 - `views` (get, list, hasRenderer, getRenderer, validate)
-- `resources` (registerTemplate)
-- `prompts` (register)
-- `plugins` (getPackageName)
-- `templates` (register, format, parse — base only, no resolve/getCapabilities)
+- `prompts` (resolve — prompt entity resolution)
 
 **`InterfacePluginContext`** = `BasePluginContext` + :
 
@@ -88,11 +123,14 @@ BasePlugin                        BasePlugin (abstract)
 
 ### Key decisions
 
-- **No AI on IntegrationPluginContext** — integration plugins are infrastructure connectors, not content generators
-- **Both Entity and Integration get `entities` namespace** — both can register entity types and write entities
-- **`BasePluginContext` has no AI** — AI moves from base to EntityPluginContext only
-- **`templates` split** — EntityPluginContext gets full templates (resolve, getCapabilities); IntegrationPluginContext gets base only (register, format, parse)
-- **Jobs always unified** — every context gets full `JobsNamespace` (monitoring + write), scoped by factory
+- **Keep "ServicePlugin" name** — the current ServicePlugins are site-builders, content processors, dashboards, and external connectors. "Integration" implies only external systems; "Service" fits the actual mix. Keeping the name also avoids ~130 files of mechanical import churn.
+- **No AI on ServicePluginContext** — zero ServicePlugins use AI today. If a future ServicePlugin needs AI, add it then (one interface change, one factory change). Don't pre-wire unused capabilities.
+- **No templates on EntityPluginContext** — zero entity plugins use any templates method. Entity plugins generate content via `context.ai.generate()`, not through the template system.
+- **`prompts.resolve` on both Entity and Service** — prompt entity resolution is available to both, since both deal with content. Entity plugins will use it when migrating hardcoded prompts to prompt entities (Phase 2 of prompts-as-entities plan).
+- **`mcp` namespace dropped from ServicePluginContext** — `mcp.resources.registerTemplate` and `mcp.prompts.register` have zero users. Can be re-added when a plugin actually needs MCP protocol registration.
+- **`plugins.getPackageName` dropped** — zero users. Can be re-added if needed.
+- **Jobs unified on base** — every context gets full `JobsNamespace` (monitoring + write). This is a least-privilege tradeoff for simplicity — scoping is handled by factory functions.
+- **`BasePluginContext` has no AI, no templates** — these move to the sibling contexts that actually use them.
 
 ## Steps
 
@@ -107,15 +145,16 @@ BasePlugin                        BasePlugin (abstract)
 #### 7b. Refactor `EntityPluginContext`
 
 1. Change `EntityPluginContext extends BasePluginContext` (was `CorePluginContext`)
-2. Keep: `entities`, `ai` (full), `templates` (full with resolve/getCapabilities)
-3. Factory calls `createBasePluginContext()` then adds entity-specific namespaces
+2. Keep: `entities`, `ai` (full), `prompts` (resolve)
+3. Remove: `templates` (no entity plugin uses it)
+4. Factory calls `createBasePluginContext()` then adds entity-specific namespaces
 
-#### 7c. Create `IntegrationPluginContext`
+#### 7c. Refactor `ServicePluginContext`
 
-1. New interface in `shell/plugins/src/integration/context.ts`
-2. `IntegrationPluginContext extends BasePluginContext`
-3. Adds: `entities`, `views`, `resources`, `prompts`, `plugins`, `templates` (base only)
-4. Factory: `createIntegrationPluginContext()`
+1. Change `ServicePluginContext extends BasePluginContext` (was `CorePluginContext`)
+2. Keep: `entities`, `templates` (full), `views`, `prompts` (resolve)
+3. Remove: `plugins.getPackageName`, `mcp` namespace (zero users)
+4. Factory calls `createBasePluginContext()` then adds service-specific namespaces
 
 #### 7d. Refactor `InterfacePluginContext`
 
@@ -123,63 +162,60 @@ BasePlugin                        BasePlugin (abstract)
 2. Keep all interface-specific namespaces
 3. Factory calls `createBasePluginContext()` then adds interface-specific namespaces
 
-#### 7e. Delete old contexts
+#### 7e. Delete `CorePluginContext`
 
 1. Delete `CorePluginContext`, `createCorePluginContext()` from `shell/plugins/src/core/context.ts`
-2. Delete `ServicePluginContext`, `createServicePluginContext()` from `shell/plugins/src/service/context.ts`
-3. Update `shell/plugins/src/index.ts` exports
-4. Update all consumers importing `CorePluginContext` or `ServicePluginContext`
+2. Update `shell/plugins/src/index.ts` exports
+3. Update ~20 files importing `CorePluginContext` → `BasePluginContext`
 
 #### 7f. Tests
 
-1. Verify all 14 entity plugins get `EntityPluginContext` with AI + full templates
-2. Verify all ServicePlugins get `IntegrationPluginContext` with views but no AI
+1. Verify all 14 entity plugins get `EntityPluginContext` with AI, no templates
+2. Verify all ServicePlugins get `ServicePluginContext` with templates + views, no AI
 3. Verify all InterfacePlugins get `InterfacePluginContext` with transport + daemons
 4. All existing tests pass
 5. `bun run typecheck` clean
 
-### Phase 8: IntegrationPlugin class
+### Phase 8: Merge CorePlugin into ServicePlugin
 
-1. Create `IntegrationPlugin` class in `shell/plugins/src/integration/integration-plugin.ts`
-2. Extends `BasePlugin<TConfig, IntegrationPluginContext>`
-3. Migrate ServicePlugins: `DirectorySyncPlugin`, `SiteBuilderPlugin`, `ContentPipelinePlugin`, `ButtondownPlugin`, `DashboardPlugin`, `ObsidianVaultPlugin`, `SiteContentPlugin`
-4. Migrate layout plugins: `ProfessionalSitePlugin`, `PersonalSitePlugin`, `RangerSitePlugin`
-5. Migrate CorePlugins: `AnalyticsPlugin`
-6. Migrate `MCPBridgePlugin` (currently extends CorePlugin)
-7. Tests
+1. Migrate `AnalyticsPlugin` to extend `ServicePlugin` (currently `CorePlugin`)
+2. Migrate `MCPBridgePlugin` to extend `ServicePlugin` (currently `CorePlugin`)
+3. Update example plugin: `ExampleCorePlugin` → extend `ServicePlugin`
+4. Delete `CorePlugin` class (`shell/plugins/src/core/core-plugin.ts`)
+5. Update `shell/plugins/src/index.ts` exports
+6. Tests — only ~6 files import `CorePlugin`
 
 ### Phase 9: Cleanup
 
-1. Delete `CorePlugin` class (`shell/plugins/src/core/core-plugin.ts`)
-2. Delete `ServicePlugin` class (`shell/plugins/src/service/service-plugin.ts`)
-3. Clean up `BasePlugin` — remove `setupMessageHandlers()`, `getTools()`, `getResources()` if no longer needed
-4. Delete `shell/plugins/src/core/context.ts` (if not already deleted)
-5. Delete `shell/plugins/src/service/context.ts` (if not already deleted)
-6. Update example plugins in `plugins/examples/`
-7. Update test harness (`shell/plugins/src/test/harness.ts`)
-8. Delete `shell/plugins/src/utils/tool-helpers.ts` re-export file (consumers import from `@brains/mcp-service` or `@brains/plugins`)
-9. Tests
+1. Delete `shell/plugins/src/core/context.ts` (if not already deleted in 7e)
+2. Clean up `BasePlugin` — remove methods that should be on sibling classes only
+3. Update test harness (`shell/plugins/src/test/harness.ts`)
+4. Update example plugins in `plugins/examples/`
+5. Update docs: `plugins/CLAUDE.md`, `.claude/rules/plugin-patterns.md`, `shell/plugins/README.md`
+6. Tests
 
 ## Files affected (estimated)
 
-| Phase | Files | Nature                                            |
-| ----- | ----- | ------------------------------------------------- |
-| 7a    | ~5    | New base context + move namespace interfaces      |
-| 7b    | ~3    | Refactor entity context                           |
-| 7c    | ~3    | New integration context                           |
-| 7d    | ~3    | Refactor interface context                        |
-| 7e    | ~130  | Delete old types, update all imports (mechanical) |
-| 7f    | ~10   | Test updates                                      |
-| 8     | ~15   | Class migration (mechanical)                      |
-| 9     | ~10   | Delete old code, update examples                  |
+| Phase | Files | Nature                                         |
+| ----- | ----- | ---------------------------------------------- |
+| 7a    | ~5    | New base context + move namespace interfaces   |
+| 7b    | ~3    | Refactor entity context, remove templates      |
+| 7c    | ~3    | Refactor service context, remove mcp + plugins |
+| 7d    | ~3    | Refactor interface context                     |
+| 7e    | ~20   | Delete CorePluginContext, update imports       |
+| 7f    | ~10   | Test updates                                   |
+| 8     | ~6    | Merge CorePlugin into ServicePlugin            |
+| 9     | ~10   | Delete old code, update examples + docs        |
 
 ## Verification
 
 1. `bun test` — all tests pass
 2. `bun run typecheck` clean
-3. Only three plugin classes: `EntityPlugin`, `IntegrationPlugin`, `InterfacePlugin`
-4. Three matching context types: `EntityPluginContext`, `IntegrationPluginContext`, `InterfacePluginContext`
-5. No AI on `IntegrationPluginContext` or `BasePluginContext`
-6. All entity plugins have AI + full templates
-7. All interfaces work unchanged
-8. No `CorePlugin`, `ServicePlugin`, `CorePluginContext`, `ServicePluginContext` references remain
+3. Only three plugin classes: `EntityPlugin`, `ServicePlugin`, `InterfacePlugin`
+4. Three matching context types: `EntityPluginContext`, `ServicePluginContext`, `InterfacePluginContext`
+5. No AI on `ServicePluginContext` or `BasePluginContext`
+6. No templates on `EntityPluginContext`
+7. All entity plugins have AI + prompts.resolve
+8. All service plugins have templates + views, no mcp
+9. All interfaces work unchanged
+10. No `CorePlugin`, `CorePluginContext` references remain
