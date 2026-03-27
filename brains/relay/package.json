@@ -18,6 +18,7 @@
     "@brains/link": "workspace:*",
     "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
+    "@brains/prompt": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-ranger": "workspace:*",

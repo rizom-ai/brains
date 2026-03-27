@@ -28,6 +28,7 @@
     "@brains/note": "workspace:*",
     "@brains/obsidian-vault": "workspace:*",
     "@brains/portfolio": "workspace:*",
+    "@brains/prompt": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-default": "workspace:*",

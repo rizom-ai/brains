@@ -12,6 +12,7 @@ import { topicsPlugin } from "@brains/topics";
 import { linkPlugin } from "@brains/link";
 import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
+import { promptPlugin } from "@brains/prompt";
 import rangerSite from "@brains/site-ranger";
 
 /**
@@ -33,6 +34,7 @@ export default defineBrain({
   site: rangerSite,
   presets: {
     default: [
+      "prompt",
       "topics",
       "summary",
       "link",
@@ -47,6 +49,7 @@ export default defineBrain({
   },
 
   capabilities: [
+    ["prompt", promptPlugin, undefined],
     ["topics", topicsPlugin, {}],
     ["summary", summaryPlugin, {}],
     ["link", linkPlugin, {}],

@@ -13,6 +13,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { analyticsPlugin } from "@brains/analytics";
 import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
+import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
 import rangerSite from "@brains/site-ranger";
@@ -37,6 +38,7 @@ export default defineBrain({
   site: rangerSite,
   presets: {
     default: [
+      "prompt",
       "dashboard",
       "note",
       "link",
@@ -54,6 +56,7 @@ export default defineBrain({
   },
 
   capabilities: [
+    ["prompt", promptPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

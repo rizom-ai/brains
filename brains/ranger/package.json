@@ -20,6 +20,7 @@
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/products": "workspace:*",
+    "@brains/prompt": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-ranger": "workspace:*",
     "@brains/social-media": "workspace:*",

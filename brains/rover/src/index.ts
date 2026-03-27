@@ -24,6 +24,7 @@ import { newsletterPlugin } from "@brains/newsletter-entity";
 import { buttondownPlugin } from "@brains/buttondown";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
+import { promptPlugin } from "@brains/prompt";
 import defaultSite from "@brains/site-default";
 import { join } from "path";
 
@@ -42,6 +43,7 @@ import { join } from "path";
  * Only secrets (tokens, API keys) come from .env.
  */
 const minimal = [
+  "prompt",
   "note",
   "link",
   "wishlist",
@@ -78,6 +80,7 @@ const pro = [
 
 // Eval = all capabilities, no interfaces (no daemons/servers)
 const evaluation = [
+  "prompt",
   "image",
   "dashboard",
   "blog",
@@ -111,6 +114,7 @@ export default defineBrain({
   },
 
   capabilities: [
+    ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],

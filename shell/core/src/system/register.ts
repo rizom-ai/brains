@@ -4,6 +4,7 @@ import type { Logger } from "@brains/utils";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";
 import { createSystemResources } from "./resources";
+import { createSystemResourceTemplates } from "./resource-templates";
 import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
 import { createSystemWidgets } from "./widgets";
@@ -73,6 +74,21 @@ export function registerSystemCapabilities(
     }
   }
   logger.debug(`Registered ${resources.length} system resources`);
+
+  // ── Resource Templates ──
+  const resourceTemplates = createSystemResourceTemplates(services);
+  for (const template of resourceTemplates) {
+    try {
+      mcpService.registerResourceTemplate(SYSTEM_ID, template);
+    } catch {
+      logger.debug(
+        `System resource template ${template.uriTemplate} already registered, skipping`,
+      );
+    }
+  }
+  logger.debug(
+    `Registered ${resourceTemplates.length} system resource templates`,
+  );
 
   // ── Prompts ──
   const prompts = createSystemPrompts(services);

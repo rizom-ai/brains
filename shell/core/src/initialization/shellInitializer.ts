@@ -47,7 +47,7 @@ import {
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
-import { PluginManager, type IShell } from "@brains/plugins";
+import { PluginManager, resolvePrompt, type IShell } from "@brains/plugins";
 import {
   PermissionService,
   RenderService,
@@ -360,6 +360,24 @@ export class ShellInitializer {
         await identityService.initialize();
         await profileService.initialize();
         logger.debug("Identity and profile services initialized");
+
+        // Materialize prompt entities for all templates with basePrompt.
+        // This makes prompts visible in CMS/files immediately, not just on first generation.
+        const templates = templateRegistry.list();
+        let promptCount = 0;
+        for (const template of templates) {
+          if (template.basePrompt) {
+            await resolvePrompt(
+              entityService,
+              template.name,
+              template.basePrompt,
+            );
+            promptCount++;
+          }
+        }
+        if (promptCount > 0) {
+          logger.debug(`Materialized ${promptCount} prompt entities`);
+        }
         return { success: true };
       },
     );

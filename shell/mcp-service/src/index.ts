@@ -8,6 +8,7 @@ export type {
   Resource,
   ResourceTemplate,
   Prompt,
+  ResourceVars,
 } from "./types";
 export {
   toolResponseSchema,

@@ -1,15 +1,24 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { resolvePrompt } from "../../src/entity/prompt-resolver";
+import {
+  resolvePrompt,
+  resetPromptCache,
+} from "../../src/entity/prompt-resolver";
 import type { IEntityService } from "@brains/entity-service";
 
 describe("resolvePrompt", () => {
   let mockGetEntity: ReturnType<typeof mock>;
-  let mockEntityService: Pick<IEntityService, "getEntity">;
+  let mockCreateEntity: ReturnType<typeof mock>;
+  let mockEntityService: Pick<IEntityService, "getEntity" | "createEntity">;
 
   beforeEach(() => {
+    resetPromptCache();
     mockGetEntity = mock();
+    mockCreateEntity = mock(() =>
+      Promise.resolve({ entityId: "test", jobId: "" }),
+    );
     mockEntityService = {
       getEntity: mockGetEntity,
+      createEntity: mockCreateEntity,
     };
   });
 
@@ -89,5 +98,96 @@ describe("resolvePrompt", () => {
       "prompt",
       "social-media-linkedin",
     );
+  });
+
+  describe("auto-materialization", () => {
+    it("should create prompt entity from fallback when none exists", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(
+        mockEntityService as IEntityService,
+        "blog:generation",
+        "You write blog posts in a distinctive voice.",
+      );
+
+      expect(mockCreateEntity).toHaveBeenCalledTimes(1);
+      expect(mockCreateEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "blog-generation",
+          entityType: "prompt",
+          metadata: expect.objectContaining({
+            title: "Blog Generation",
+            target: "blog:generation",
+          }),
+        }),
+      );
+    });
+
+    it("should not create entity when one already exists", async () => {
+      mockGetEntity.mockResolvedValue({
+        id: "blog-generation",
+        entityType: "prompt",
+        content: "---\ntitle: Blog\ntarget: blog:generation\n---\nCustom.",
+        metadata: {},
+      });
+
+      await resolvePrompt(
+        mockEntityService as IEntityService,
+        "blog:generation",
+        "fallback",
+      );
+
+      expect(mockCreateEntity).not.toHaveBeenCalled();
+    });
+
+    it("should only attempt creation once per target", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(
+        mockEntityService as IEntityService,
+        "blog:generation",
+        "fallback",
+      );
+      await resolvePrompt(
+        mockEntityService as IEntityService,
+        "blog:generation",
+        "fallback",
+      );
+
+      expect(mockCreateEntity).toHaveBeenCalledTimes(1);
+    });
+
+    it("should handle creation failure silently", async () => {
+      mockGetEntity.mockResolvedValue(null);
+      mockCreateEntity.mockRejectedValue(
+        new Error("entity type not registered"),
+      );
+
+      const result = await resolvePrompt(
+        mockEntityService as IEntityService,
+        "blog:generation",
+        "fallback prompt",
+      );
+
+      expect(result).toBe("fallback prompt");
+    });
+
+    it("should generate correct title from target", async () => {
+      mockGetEntity.mockResolvedValue(null);
+
+      await resolvePrompt(
+        mockEntityService as IEntityService,
+        "social-media:linkedin",
+        "fallback",
+      );
+
+      expect(mockCreateEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          metadata: expect.objectContaining({
+            title: "Social-media Linkedin",
+          }),
+        }),
+      );
+    });
   });
 });
