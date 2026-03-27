@@ -221,14 +221,21 @@ export function createMockServicePluginContext(
       getPackageName: mock(() => undefined),
     },
 
-    // MCP resources namespace
-    resources: {
-      registerTemplate: mock(() => {}),
+    // AI prompt resolution
+    prompts: {
+      resolve: mock((_target: string, fallback: string) =>
+        Promise.resolve(fallback),
+      ),
     },
 
-    // MCP prompts namespace
-    prompts: {
-      register: mock(() => {}),
+    // MCP protocol registration
+    mcp: {
+      resources: {
+        registerTemplate: mock(() => {}),
+      },
+      prompts: {
+        register: mock(() => {}),
+      },
     },
 
     // Eval namespace

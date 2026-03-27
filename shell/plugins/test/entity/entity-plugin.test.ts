@@ -205,6 +205,30 @@ describe("EntityPlugin", () => {
     });
   });
 
+  describe("prompts namespace", () => {
+    it("should have context.prompts.resolve available", async () => {
+      const plugin = new TestEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const context = harness.getEntityContext(plugin.id);
+      expect(context.prompts).toBeDefined();
+      expect(typeof context.prompts.resolve).toBe("function");
+    });
+
+    it("should return fallback when no prompt entity exists", async () => {
+      const plugin = new TestEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const context = harness.getEntityContext(plugin.id);
+      const result = await context.prompts.resolve(
+        "test:generation",
+        "My default prompt",
+      );
+
+      expect(result).toBe("My default prompt");
+    });
+  });
+
   describe("extract handler auto-registration", () => {
     it("should not register extract handler for plugins without derive()", async () => {
       const registeredHandlers: string[] = [];

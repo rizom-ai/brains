@@ -10,6 +10,7 @@ import type {
   PluginResourceTemplate,
   PluginPrompt,
 } from "../interfaces";
+import { resolvePrompt } from "../entity/prompt-resolver";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -233,25 +234,35 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly dataDir: string;
 
   // ============================================================================
-  // MCP Resources & Prompts
+  // Prompt Resolution
   // ============================================================================
 
   /**
-   * Resources namespace for MCP resource registration
-   * - `resources.registerTemplate()` - Register a parameterized resource template
-   */
-  readonly resources: {
-    registerTemplate: <K extends string = string>(
-      template: PluginResourceTemplate<K>,
-    ) => void;
-  };
-
-  /**
-   * Prompts namespace for MCP prompt registration
-   * - `prompts.register()` - Register an MCP prompt
+   * Prompts namespace for resolving AI prompts from prompt entities
+   * - `prompts.resolve()` - Look up prompt entity by target, fall back to default
    */
   readonly prompts: {
-    register: (prompt: PluginPrompt) => void;
+    resolve: (target: string, fallback: string) => Promise<string>;
+  };
+
+  // ============================================================================
+  // MCP Protocol Registration
+  // ============================================================================
+
+  /**
+   * MCP namespace for registering protocol-level resources and prompts
+   * - `mcp.resources.registerTemplate()` - Register a parameterized resource template
+   * - `mcp.prompts.register()` - Register an MCP prompt
+   */
+  readonly mcp: {
+    resources: {
+      registerTemplate: <K extends string = string>(
+        template: PluginResourceTemplate<K>,
+      ) => void;
+    };
+    prompts: {
+      register: (prompt: PluginPrompt) => void;
+    };
   };
 }
 
@@ -439,17 +450,24 @@ export function createServicePluginContext(
     // Data directory
     dataDir: shell.getDataDir(),
 
-    // MCP resources namespace
-    resources: {
-      registerTemplate: (template: PluginResourceTemplate): void => {
-        shell.registerPluginResourceTemplate(pluginId, template);
+    // AI prompt resolution
+    prompts: {
+      resolve: (target: string, fallback: string): Promise<string> => {
+        return resolvePrompt(shell.getEntityService(), target, fallback);
       },
     },
 
-    // MCP prompts namespace
-    prompts: {
-      register: (prompt: PluginPrompt): void => {
-        shell.registerPluginPrompt(pluginId, prompt);
+    // MCP protocol registration
+    mcp: {
+      resources: {
+        registerTemplate: (template: PluginResourceTemplate): void => {
+          shell.registerPluginResourceTemplate(pluginId, template);
+        },
+      },
+      prompts: {
+        register: (prompt: PluginPrompt): void => {
+          shell.registerPluginPrompt(pluginId, prompt);
+        },
       },
     },
   };

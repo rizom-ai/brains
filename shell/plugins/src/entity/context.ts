@@ -13,6 +13,7 @@ import type {
   EntityTypeConfig,
 } from "@brains/entity-service";
 import type { DataSource } from "@brains/entity-service";
+import { resolvePrompt } from "./prompt-resolver";
 import type { ResolutionOptions } from "@brains/content-service";
 import type {
   ImageGenerationOptions,
@@ -34,12 +35,22 @@ import {
  *
  * Excludes: views, plugins namespace, MCP tool/resource/prompt registration.
  */
+/**
+ * Prompts namespace for EntityPluginContext
+ * Resolves AI prompts from prompt entities, falling back to hardcoded defaults
+ */
+export interface IPromptsNamespace {
+  /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */
+  resolve: (target: string, fallback: string) => Promise<string>;
+}
+
 export interface EntityPluginContext extends CorePluginContext {
   readonly entityService: IEntityService;
   readonly entities: IEntitiesNamespace;
   readonly ai: IServiceAINamespace;
   readonly templates: IServiceTemplatesNamespace;
   readonly jobs: IJobsWriteNamespace;
+  readonly prompts: IPromptsNamespace;
   readonly dataDir: string;
 }
 
@@ -172,6 +183,12 @@ export function createEntityPluginContext(
       enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
       enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
       registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
+    },
+
+    prompts: {
+      resolve: (target: string, fallback: string): Promise<string> => {
+        return resolvePrompt(entityService, target, fallback);
+      },
     },
 
     dataDir: shell.getDataDir(),

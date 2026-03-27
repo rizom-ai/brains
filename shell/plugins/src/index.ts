@@ -5,8 +5,9 @@
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
-export type { EntityPluginContext } from "./entity/context";
+export type { EntityPluginContext, IPromptsNamespace } from "./entity/context";
 export { createEntityPluginContext } from "./entity/context";
+export { resolvePrompt } from "./entity/prompt-resolver";
 export { CorePlugin } from "./core/core-plugin";
 export { InterfacePlugin } from "./interface/interface-plugin";
 
