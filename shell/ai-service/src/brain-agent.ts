@@ -15,7 +15,7 @@ import {
 } from "ai";
 import { z } from "@brains/utils";
 import type { BrainCharacter } from "@brains/identity-service";
-import type { PluginTool, ToolContext } from "@brains/mcp-service";
+import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { BrainAgent, BrainAgentFactory } from "./agent-types";
@@ -45,10 +45,10 @@ export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
  */
 export interface BrainAgentConfig {
   identity: BrainCharacter;
-  tools: PluginTool[];
+  tools: Tool[];
   pluginInstructions?: string[];
   stepLimit?: number;
-  getToolsForPermission: (level: UserPermissionLevel) => PluginTool[];
+  getToolsForPermission: (level: UserPermissionLevel) => Tool[];
 }
 
 /**
@@ -74,12 +74,12 @@ interface ToolContextInfo {
 }
 
 /**
- * Convert PluginTool array to AI SDK tool format
+ * Convert Tool array to AI SDK tool format
  * Uses dynamicTool for runtime-defined tools with unknown input types
  * Wraps each tool's execute function to emit invocation events
  */
 function convertToSDKTools(
-  pluginTools: PluginTool[],
+  pluginTools: Tool[],
   contextInfo: ToolContextInfo,
   emitter: ToolEventEmitter,
 ): ToolSet {

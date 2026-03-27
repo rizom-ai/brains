@@ -1,4 +1,4 @@
-import type { PluginTool } from "@brains/plugins";
+import type { Tool } from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage, z } from "@brains/utils";
@@ -34,7 +34,7 @@ export function createButtondownTools(
   pluginId: string,
   config: ButtondownConfig,
   logger: Logger,
-): PluginTool[] {
+): Tool[] {
   const client = new ButtondownClient(config, logger);
 
   return [

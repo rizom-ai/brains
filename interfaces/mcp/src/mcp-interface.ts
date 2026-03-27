@@ -1,8 +1,8 @@
 import {
   InterfacePlugin,
   type InterfacePluginContext,
-  type PluginTool,
-  type PluginResource,
+  type Tool,
+  type Resource,
   type JobProgressEvent,
   type JobContext,
 } from "@brains/plugins";
@@ -45,7 +45,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   /**
    * Get MCP's own tools
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return createMCPTools(this.id, () => this.context);
   }
 
@@ -53,7 +53,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
    * MCP interface provides no resources — they are registered by plugins
    * (system plugin provides entity://types, brain://identity, brain://profile)
    */
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     return [];
   }
 

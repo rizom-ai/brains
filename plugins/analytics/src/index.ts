@@ -1,4 +1,4 @@
-import type { Plugin, PluginTool, CorePluginContext } from "@brains/plugins";
+import type { Plugin, Tool, CorePluginContext } from "@brains/plugins";
 import { CorePlugin } from "@brains/plugins";
 import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
 import { createAnalyticsTools } from "./tools";
@@ -46,7 +46,7 @@ export class AnalyticsPlugin extends CorePlugin<AnalyticsConfig> {
   /**
    * Get plugin tools
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return createAnalyticsTools(
       this.id,
       this.getContext(),

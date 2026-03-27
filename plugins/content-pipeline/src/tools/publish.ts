@@ -1,5 +1,5 @@
 import type {
-  PluginTool,
+  Tool,
   ToolResult,
   ServicePluginContext,
   BaseEntity,
@@ -66,7 +66,7 @@ export function createPublishTool(
   context: ServicePluginContext,
   pluginId: string,
   providerRegistry: ProviderRegistry,
-): PluginTool<PublishOutput> {
+): Tool<PublishOutput> {
   const tool = createTypedTool(
     pluginId,
     "publish",
@@ -196,5 +196,5 @@ export function createPublishTool(
   return {
     ...tool,
     outputSchema: publishOutputSchema,
-  } as PluginTool<PublishOutput>;
+  } as Tool<PublishOutput>;
 }

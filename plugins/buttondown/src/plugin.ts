@@ -1,5 +1,5 @@
 import type {
-  PluginTool,
+  Tool,
   ServicePluginContext,
   ApiRouteDefinition,
 } from "@brains/plugins";
@@ -89,7 +89,7 @@ export class ButtondownPlugin extends ServicePlugin<ButtondownConfig> {
     }
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     if (!this.config.apiKey) return [];
     return createButtondownTools(
       this.id,

@@ -85,10 +85,10 @@ export const toolResponseSchema = z.union([
 export type ToolResponse = z.infer<typeof toolResponseSchema>;
 
 /**
- * Plugin tool definition
+ * Tool definition
  * @template TOutput - The output type, defaults to ToolResponse for backward compatibility
  */
-export interface PluginTool<TOutput = ToolResponse> {
+export interface Tool<TOutput = ToolResponse> {
   name: string;
   description: string;
   inputSchema: ZodRawShape; // Same type as MCP expects
@@ -98,9 +98,9 @@ export interface PluginTool<TOutput = ToolResponse> {
 }
 
 /**
- * Plugin resource definition
+ * Resource definition
  */
-export interface PluginResource {
+export interface Resource {
   uri: string;
   name: string;
   description?: string;
@@ -123,7 +123,7 @@ export type ResourceVars<K extends string = string> = { [P in K]: string };
 /**
  * A parameterized resource with URI template (e.g. "entity://{type}/{id}")
  */
-export interface PluginResourceTemplate<K extends string = string> {
+export interface ResourceTemplate<K extends string = string> {
   name: string;
   uriTemplate: string;
   description?: string;
@@ -147,7 +147,7 @@ export interface PluginResourceTemplate<K extends string = string> {
 /**
  * An MCP prompt — parameterized message template for client prompt pickers
  */
-export interface PluginPrompt {
+export interface Prompt {
   name: string;
   description?: string;
   args: Record<string, { description: string; required?: boolean }>;
@@ -190,30 +190,30 @@ export interface IMCPService extends IMCPTransport {
   /**
    * Register a tool with the MCP server
    */
-  registerTool(pluginId: string, tool: PluginTool): void;
+  registerTool(pluginId: string, tool: Tool): void;
 
   /**
    * Register a resource with the MCP server
    */
-  registerResource(pluginId: string, resource: PluginResource): void;
+  registerResource(pluginId: string, resource: Resource): void;
 
   /**
    * Register a resource template with parameterized URI
    */
   registerResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate<K>,
+    template: ResourceTemplate<K>,
   ): void;
 
   /**
    * Register an MCP prompt
    */
-  registerPrompt(pluginId: string, prompt: PluginPrompt): void;
+  registerPrompt(pluginId: string, prompt: Prompt): void;
 
   /**
    * List all registered tools
    */
-  listTools(): Array<{ pluginId: string; tool: PluginTool }>;
+  listTools(): Array<{ pluginId: string; tool: Tool }>;
 
   /**
    * List tools filtered by user permission level
@@ -221,12 +221,12 @@ export interface IMCPService extends IMCPTransport {
    */
   listToolsForPermissionLevel(
     userLevel: UserPermissionLevel,
-  ): Array<{ pluginId: string; tool: PluginTool }>;
+  ): Array<{ pluginId: string; tool: Tool }>;
 
   /**
    * List all registered resources
    */
-  listResources(): Array<{ pluginId: string; resource: PluginResource }>;
+  listResources(): Array<{ pluginId: string; resource: Resource }>;
 
   /**
    * Register behavioral instructions from a plugin for the agent system prompt

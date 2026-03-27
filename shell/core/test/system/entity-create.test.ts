@@ -2,10 +2,10 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createOutputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
-import type { PluginTool } from "@brains/mcp-service";
+import type { Tool } from "@brains/mcp-service";
 
 describe("system_create tool", () => {
-  let tools: PluginTool[];
+  let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
   beforeEach(() => {

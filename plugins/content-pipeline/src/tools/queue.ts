@@ -1,8 +1,4 @@
-import type {
-  PluginTool,
-  ServicePluginContext,
-  ToolResult,
-} from "@brains/plugins";
+import type { Tool, ServicePluginContext, ToolResult } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
@@ -82,7 +78,7 @@ export function createQueueTool(
   _context: ServicePluginContext,
   pluginId: string,
   queueManager: QueueManager,
-): PluginTool<QueueOutput> {
+): Tool<QueueOutput> {
   const tool = createTypedTool(
     pluginId,
     "queue",
@@ -112,7 +108,7 @@ export function createQueueTool(
   return {
     ...tool,
     outputSchema: queueOutputSchema,
-  } as PluginTool<QueueOutput>;
+  } as Tool<QueueOutput>;
 }
 
 /**

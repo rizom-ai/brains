@@ -2,8 +2,8 @@ import type {
   Plugin,
   PluginType,
   PluginCapabilities,
-  PluginTool,
-  PluginResource,
+  Tool,
+  Resource,
   ToolContext,
 } from "./interfaces";
 import type { MessageHandler, MessageSender } from "@brains/messaging-service";
@@ -59,8 +59,7 @@ export interface CoreContext {
 export abstract class BasePlugin<
   TConfig = unknown,
   TContext extends CoreContext = CoreContext,
-> implements Plugin
-{
+> implements Plugin {
   public readonly id: string;
   public readonly version: string;
   public readonly description: string;
@@ -224,7 +223,7 @@ export abstract class BasePlugin<
    * Get the tools provided by this plugin
    * Override this to provide plugin-specific tools
    */
-  protected async getTools(): Promise<PluginTool[]> {
+  protected async getTools(): Promise<Tool[]> {
     return [];
   }
 
@@ -232,7 +231,7 @@ export abstract class BasePlugin<
    * Get the resources provided by this plugin
    * Override this to provide plugin-specific resources
    */
-  protected async getResources(): Promise<PluginResource[]> {
+  protected async getResources(): Promise<Resource[]> {
     return [];
   }
 

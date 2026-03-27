@@ -1,8 +1,4 @@
-import type {
-  PluginTool,
-  PluginResource,
-  ServicePluginContext,
-} from "@brains/plugins";
+import type { Tool, Resource, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { templates } from "./templates";
@@ -31,11 +27,11 @@ export class RangerSitePlugin extends ServicePlugin {
     this.logger.info("Ranger site plugin registered successfully");
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [];
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     return [];
   }
 }

@@ -7,8 +7,8 @@ export type {
   PluginManager as IPluginManager,
   PluginInfo,
   PluginManagerEventMap,
-  PluginToolRegisterEvent,
-  PluginResourceRegisterEvent,
+  ToolRegisterEvent,
+  ResourceRegisterEvent,
 } from "./types";
 
 // Enums

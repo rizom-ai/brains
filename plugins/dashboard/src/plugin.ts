@@ -1,4 +1,4 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import {
   ServicePlugin,
   createTypedTool,
@@ -154,7 +154,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   /**
    * Get plugin tools
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [
       createTypedTool(
         this.id,

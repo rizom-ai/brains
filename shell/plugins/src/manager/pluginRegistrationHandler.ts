@@ -1,11 +1,8 @@
 import type { Logger } from "@brains/utils";
 import type { EventEmitter } from "events";
 import { PluginEvent } from "./types";
-import type {
-  PluginToolRegisterEvent,
-  PluginResourceRegisterEvent,
-} from "./types";
-import type { PluginTool, PluginResource } from "../interfaces";
+import type { ToolRegisterEvent, ResourceRegisterEvent } from "./types";
+import type { Tool, Resource } from "../interfaces";
 import type { IShell } from "../interfaces";
 
 /**
@@ -68,10 +65,7 @@ export class PluginRegistrationHandler {
   /**
    * Register plugin tools and emit events for Shell to handle
    */
-  public async registerPluginTools(
-    pluginId: string,
-    tools: PluginTool[],
-  ): Promise<void> {
+  public async registerTools(pluginId: string, tools: Tool[]): Promise<void> {
     this.logger.debug(
       `Registering ${tools.length} tools for plugin ${pluginId}`,
     );
@@ -87,7 +81,7 @@ export class PluginRegistrationHandler {
       this.logger.debug(`Registering MCP tool: ${tool.name}`);
 
       // Emit event for Shell to handle (existing behavior)
-      const toolEvent: PluginToolRegisterEvent = { pluginId, tool };
+      const toolEvent: ToolRegisterEvent = { pluginId, tool };
       this.events.emit(PluginEvent.TOOL_REGISTER, toolEvent);
 
       // Also publish to MessageBus for plugin consumption
@@ -110,9 +104,9 @@ export class PluginRegistrationHandler {
   /**
    * Register plugin resources and emit events for Shell to handle
    */
-  public async registerPluginResources(
+  public async registerResources(
     pluginId: string,
-    resources: PluginResource[],
+    resources: Resource[],
   ): Promise<void> {
     this.logger.debug(
       `Registering ${resources.length} resources for plugin ${pluginId}`,
@@ -129,7 +123,7 @@ export class PluginRegistrationHandler {
       this.logger.debug(`Registering MCP resource: ${resource.uri}`);
 
       // Emit event for Shell to handle (existing behavior)
-      const resourceEvent: PluginResourceRegisterEvent = {
+      const resourceEvent: ResourceRegisterEvent = {
         pluginId,
         resource,
       };

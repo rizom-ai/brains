@@ -1,9 +1,4 @@
-import type {
-  PluginTool,
-  PluginResource,
-  ToolResponse,
-  ToolContext,
-} from "../interfaces";
+import type { Tool, Resource, ToolResponse, ToolContext } from "../interfaces";
 import { getErrorMessage, z, Logger } from "@brains/utils";
 
 /**
@@ -91,10 +86,10 @@ export function createTypedTool<
     context: ToolContext,
   ) => Promise<ToolResult<TOutput>>,
   options: {
-    visibility?: PluginTool["visibility"];
+    visibility?: Tool["visibility"];
     debug?: boolean;
   } = {},
-): PluginTool {
+): Tool {
   const { visibility = "anchor", debug = false } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
 
@@ -145,12 +140,12 @@ export function createResource(
   uri: string,
   name: string,
   description: string,
-  handler: PluginResource["handler"],
+  handler: Resource["handler"],
   options: {
     mimeType?: string;
     debug?: boolean;
   } = {},
-): PluginResource {
+): Resource {
   const { mimeType = "text/plain", debug = false } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
 

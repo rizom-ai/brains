@@ -23,7 +23,7 @@ export class CapabilityRegistrar {
   ): Promise<void> {
     // Register tools
     if (capabilities.tools.length > 0) {
-      shell.registerPluginTools(pluginId, capabilities.tools);
+      shell.registerTools(pluginId, capabilities.tools);
       this.logger.debug(
         `Registered ${capabilities.tools.length} tools from ${pluginId}`,
       );
@@ -31,7 +31,7 @@ export class CapabilityRegistrar {
 
     // Register resources
     if (capabilities.resources.length > 0) {
-      shell.registerPluginResources(pluginId, capabilities.resources);
+      shell.registerResources(pluginId, capabilities.resources);
       this.logger.debug(
         `Registered ${capabilities.resources.length} resources from ${pluginId}`,
       );

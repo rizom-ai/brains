@@ -1,5 +1,5 @@
 import { CorePlugin } from "@brains/plugins";
-import type { CorePluginContext, PluginTool } from "@brains/plugins";
+import type { CorePluginContext, Tool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 /**
@@ -183,7 +183,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
    * - Define input schemas with Zod
    * - Return structured responses
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [
       {
         name: "calc_add",

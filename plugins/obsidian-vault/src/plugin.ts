@@ -6,11 +6,7 @@ import {
   toolSuccess,
   toolError,
 } from "@brains/plugins";
-import type {
-  ServicePluginContext,
-  PluginTool,
-  ToolResult,
-} from "@brains/plugins";
+import type { ServicePluginContext, Tool, ToolResult } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { obsidianVaultConfigSchema, type ObsidianVaultConfig } from "./config";
 import { introspectSchema } from "./lib/schema-introspector";
@@ -65,7 +61,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
     });
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     const context = this.getContext();
     return [
       createTypedTool(

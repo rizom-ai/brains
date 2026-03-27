@@ -1,7 +1,7 @@
 import type {
   Plugin,
-  PluginTool,
-  PluginResource,
+  Tool,
+  Resource,
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
@@ -196,7 +196,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return Array.from(this.headScripts.values());
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     if (!this.pluginContext || !this.rebuildManager) {
       throw new Error("Plugin context not initialized");
     }
@@ -210,7 +210,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     );
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     const context = this.getContext();
     return [
       {

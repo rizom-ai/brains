@@ -2,10 +2,10 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
-import type { PluginResource } from "@brains/plugins";
+import type { Resource } from "@brains/plugins";
 
 describe("Site Builder brain://site resource", () => {
-  let resources: PluginResource[];
+  let resources: Resource[];
 
   beforeEach(async () => {
     const harness = createPluginHarness({

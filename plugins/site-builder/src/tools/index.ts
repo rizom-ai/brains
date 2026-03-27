@@ -1,4 +1,4 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "@brains/utils";
@@ -17,7 +17,7 @@ export function createSiteBuilderTools(
   pluginId: string,
   routeRegistry: RouteRegistry,
   requestBuild: (environment?: "preview" | "production") => void,
-): PluginTool[] {
+): Tool[] {
   return [
     createTypedTool(
       pluginId,

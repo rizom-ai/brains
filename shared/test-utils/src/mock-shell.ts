@@ -1,10 +1,10 @@
 import type {
   IShell,
   Plugin,
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
   ContentGenerationConfig,
   QueryContext,
   DefaultQueryResponse,
@@ -86,7 +86,7 @@ function createDefaultMockAgentService(): IAgentService {
  *
  * Returns a plain object satisfying IShell + test helpers.
  * Stateful backing stores for entities, templates, data sources, and message handlers.
- * Methods can be reassigned in tests: `mockShell.registerPluginTools = mock(...)`
+ * Methods can be reassigned in tests: `mockShell.registerTools = mock(...)`
  */
 export function createMockShell(options: MockShellOptions = {}): MockShell {
   const logger = options.logger ?? createSilentLogger("MockShell");
@@ -458,16 +458,13 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getTemplate: (name: string) => templates.get(name),
 
     // Plugin capability registration
-    registerPluginTools: (_pluginId: string, _tools: PluginTool[]) => {},
-    registerPluginResources: (
+    registerTools: (_pluginId: string, _tools: Tool[]) => {},
+    registerResources: (_pluginId: string, _resources: Resource[]) => {},
+    registerResourceTemplate: (
       _pluginId: string,
-      _resources: PluginResource[],
+      _template: ResourceTemplate,
     ) => {},
-    registerPluginResourceTemplate: (
-      _pluginId: string,
-      _template: PluginResourceTemplate,
-    ) => {},
-    registerPluginPrompt: (_pluginId: string, _prompt: PluginPrompt) => {},
+    registerPrompt: (_pluginId: string, _prompt: Prompt) => {},
     registerPluginInstructions: (
       _pluginId: string,
       _instructions: string,

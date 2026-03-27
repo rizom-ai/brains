@@ -1,7 +1,7 @@
 import {
   InterfacePlugin,
   type InterfacePluginContext,
-  type PluginTool,
+  type Tool,
 } from "@brains/plugins";
 import type { Daemon, IAgentService } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -117,7 +117,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return this.permissionContext.getUserLevel("a2a", identity);
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [
       createA2ACallTool({
         outboundTokens: this.config.outboundTokens,

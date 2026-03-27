@@ -1,9 +1,7 @@
-import type { PluginResource } from "@brains/mcp-service";
+import type { Resource } from "@brains/mcp-service";
 import type { SystemServices } from "./types";
 
-export function createSystemResources(
-  services: SystemServices,
-): PluginResource[] {
+export function createSystemResources(services: SystemServices): Resource[] {
   return [
     {
       uri: "entity://types",

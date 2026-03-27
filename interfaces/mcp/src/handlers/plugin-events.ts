@@ -1,8 +1,4 @@
-import type {
-  InterfacePluginContext,
-  PluginTool,
-  PluginResource,
-} from "@brains/plugins";
+import type { InterfacePluginContext, Tool, Resource } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
@@ -18,7 +14,7 @@ export function setupSystemEventListeners(
   context.messaging.subscribe("system:tool:register", (message) => {
     const { pluginId, tool } = message.payload as {
       pluginId: string;
-      tool: PluginTool;
+      tool: Tool;
       timestamp: number;
     };
     handleToolRegistration(pluginId, tool, mcpServer, context, logger);
@@ -29,7 +25,7 @@ export function setupSystemEventListeners(
   context.messaging.subscribe("system:resource:register", (message) => {
     const { pluginId, resource } = message.payload as {
       pluginId: string;
-      resource: PluginResource;
+      resource: Resource;
       timestamp: number;
     };
     handleResourceRegistration(pluginId, resource, mcpServer, context, logger);
@@ -45,7 +41,7 @@ export function setupSystemEventListeners(
  */
 export function handleToolRegistration(
   pluginId: string,
-  tool: PluginTool,
+  tool: Tool,
   mcpServer: McpServer | undefined,
   context: InterfacePluginContext,
   logger: Logger,
@@ -124,7 +120,7 @@ export function handleToolRegistration(
  */
 export function handleResourceRegistration(
   pluginId: string,
-  resource: PluginResource,
+  resource: Resource,
   mcpServer: McpServer | undefined,
   context: InterfacePluginContext,
   logger: Logger,

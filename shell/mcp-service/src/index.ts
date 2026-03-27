@@ -4,10 +4,10 @@ export type {
   ToolVisibility,
   ToolContext,
   ToolResponse,
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
 } from "./types";
 export {
   toolResponseSchema,

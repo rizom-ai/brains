@@ -1,7 +1,7 @@
 import type {
   Plugin,
-  PluginTool,
-  PluginResource,
+  Tool,
+  Resource,
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
@@ -101,11 +101,11 @@ export class PersonalSitePlugin extends ServicePlugin<PersonalSiteConfig> {
     this.logger.info("Personal site plugin registered successfully");
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [];
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     return [];
   }
 }

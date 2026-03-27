@@ -1,4 +1,4 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
@@ -7,7 +7,7 @@ export function createDirectorySyncTools(
   directorySync: DirectorySync,
   pluginContext: ServicePluginContext,
   pluginId: string,
-): PluginTool[] {
+): Tool[] {
   return [
     createTypedTool(
       pluginId,

@@ -1,7 +1,7 @@
 import type {
   Plugin,
-  PluginTool,
-  PluginResource,
+  Tool,
+  Resource,
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
@@ -153,14 +153,14 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
   /**
    * No tools needed for this plugin
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [];
   }
 
   /**
    * No resources needed for this plugin
    */
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     return [];
   }
 }

@@ -1,4 +1,4 @@
-import type { PluginTool, JobContext } from "@brains/plugins";
+import type { Tool, JobContext } from "@brains/plugins";
 import { createTypedTool } from "@brains/plugins";
 import type { SiteContentService } from "../lib/site-content-service";
 import { GenerateOptionsSchema } from "../schemas/generate-options";
@@ -6,7 +6,7 @@ import { GenerateOptionsSchema } from "../schemas/generate-options";
 export function createSiteContentTools(
   getSiteContentService: () => SiteContentService | undefined,
   pluginId: string,
-): PluginTool[] {
+): Tool[] {
   return [
     createTypedTool(
       pluginId,

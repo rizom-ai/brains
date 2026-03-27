@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
 import { CorePlugin } from "../src/core/core-plugin";
-import type { PluginTool, PluginResource } from "../src/interfaces";
+import type { Tool, Resource } from "../src/interfaces";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createSilentLogger } from "@brains/test-utils";
 import type { IMCPService } from "@brains/mcp-service";
@@ -19,7 +19,7 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
     );
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [
       {
         name: "test_tool1",
@@ -38,7 +38,7 @@ class TestPlugin extends CorePlugin<Record<string, never>> {
     ];
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     return [
       {
         name: "test://resource1",
@@ -57,10 +57,10 @@ describe("PluginManager - Direct Registration", () => {
   let pluginManager: PluginManager;
   let mockMCPService: IMCPService;
   let mockShell: MockShell;
-  let registeredTools: Array<{ pluginId: string; tool: PluginTool }> = [];
+  let registeredTools: Array<{ pluginId: string; tool: Tool }> = [];
   let registeredResources: Array<{
     pluginId: string;
-    resource: PluginResource;
+    resource: Resource;
   }> = [];
 
   beforeEach(() => {
@@ -91,16 +91,14 @@ describe("PluginManager - Direct Registration", () => {
     mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
 
     // Override the shell's registration methods to use our mocked registries
-    mockShell.registerPluginTools = mock(
-      (_pluginId: string, tools: PluginTool[]) => {
-        for (const tool of tools) {
-          mockMCPService.registerTool(_pluginId, tool);
-        }
-      },
-    );
+    mockShell.registerTools = mock((_pluginId: string, tools: Tool[]) => {
+      for (const tool of tools) {
+        mockMCPService.registerTool(_pluginId, tool);
+      }
+    });
 
-    mockShell.registerPluginResources = mock(
-      (_pluginId: string, resources: PluginResource[]) => {
+    mockShell.registerResources = mock(
+      (_pluginId: string, resources: Resource[]) => {
         for (const resource of resources) {
           mockMCPService.registerResource(_pluginId, resource);
         }
@@ -187,7 +185,7 @@ describe("PluginManager - Direct Registration", () => {
           );
         }
 
-        protected override async getTools(): Promise<PluginTool[]> {
+        protected override async getTools(): Promise<Tool[]> {
           return [
             {
               name: "second_tool",
@@ -258,17 +256,15 @@ describe("PluginManager - Direct Registration", () => {
       mockMCPService.registerTool = registerToolMock;
 
       // Update shell's method to use the new mock
-      mockShell.registerPluginTools = mock(
-        (_pluginId: string, tools: PluginTool[]) => {
-          for (const tool of tools) {
-            try {
-              mockMCPService.registerTool(_pluginId, tool);
-            } catch {
-              // Shell catches and logs errors, so we do the same here
-            }
+      mockShell.registerTools = mock((_pluginId: string, tools: Tool[]) => {
+        for (const tool of tools) {
+          try {
+            mockMCPService.registerTool(_pluginId, tool);
+          } catch {
+            // Shell catches and logs errors, so we do the same here
           }
-        },
-      );
+        }
+      });
 
       const plugin = new TestPlugin();
       pluginManager.registerPlugin(plugin);

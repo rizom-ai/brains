@@ -1,8 +1,8 @@
 import { ServicePlugin } from "@brains/plugins";
 import type {
   ServicePluginContext,
-  PluginTool,
-  PluginResource,
+  Tool,
+  Resource,
   ToolResponse,
   MessageWithPayload,
 } from "@brains/plugins";
@@ -258,7 +258,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     await super.onRegister(context);
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     const context = this.getContext();
 
     return [
@@ -301,7 +301,7 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     ];
   }
 
-  protected override async getResources(): Promise<PluginResource[]> {
+  protected override async getResources(): Promise<Resource[]> {
     const context = this.getContext();
 
     return [

@@ -1,4 +1,4 @@
-import type { PluginTool, CorePluginContext } from "@brains/plugins";
+import type { Tool, CorePluginContext } from "@brains/plugins";
 import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
 import {
   getErrorMessage,
@@ -73,8 +73,8 @@ export function createAnalyticsTools(
   pluginId: string,
   _context: CorePluginContext,
   cloudflareConfig?: CloudflareConfig,
-): PluginTool[] {
-  const tools: PluginTool[] = [];
+): Tool[] {
+  const tools: Tool[] = [];
 
   // Only add tools if Cloudflare credentials are configured
   if (!cloudflareConfig?.apiToken || !cloudflareConfig.accountId) {

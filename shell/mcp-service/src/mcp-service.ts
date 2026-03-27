@@ -2,14 +2,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import type {
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
-} from "./types";
+import type { Tool, Resource, ResourceTemplate, Prompt } from "./types";
 import type { IMCPService } from "./types";
-import { ResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ResourceTemplate as MCPResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@brains/utils";
 
 /**
@@ -23,21 +18,18 @@ export class MCPService implements IMCPService {
   private messageBus: IMessageBus;
 
   // Track registered tools and resources
-  private registeredTools = new Map<
-    string,
-    { pluginId: string; tool: PluginTool }
-  >();
+  private registeredTools = new Map<string, { pluginId: string; tool: Tool }>();
   private registeredResources = new Map<
     string,
-    { pluginId: string; resource: PluginResource }
+    { pluginId: string; resource: Resource }
   >();
   private registeredTemplates: Array<{
     pluginId: string;
-    template: PluginResourceTemplate;
+    template: ResourceTemplate;
   }> = [];
   private registeredPrompts: Array<{
     pluginId: string;
-    prompt: PluginPrompt;
+    prompt: Prompt;
   }> = [];
 
   // Track plugin instructions for agent system prompt
@@ -151,7 +143,7 @@ export class MCPService implements IMCPService {
   /**
    * Register a tool with the MCP server
    */
-  public registerTool(pluginId: string, tool: PluginTool): void {
+  public registerTool(pluginId: string, tool: Tool): void {
     const toolVisibility = tool.visibility ?? "anchor";
 
     // Check permissions
@@ -172,7 +164,7 @@ export class MCPService implements IMCPService {
   /**
    * Register a resource with the MCP server
    */
-  public registerResource(pluginId: string, resource: PluginResource): void {
+  public registerResource(pluginId: string, resource: Resource): void {
     // Resources don't have visibility, default to anchor permission
     const resourceVisibility: UserPermissionLevel = "anchor";
 
@@ -193,10 +185,7 @@ export class MCPService implements IMCPService {
   /**
    * Register a prompt on a specific MCP server instance
    */
-  private registerPromptOnServer(
-    server: McpServer,
-    prompt: PluginPrompt,
-  ): void {
+  private registerPromptOnServer(server: McpServer, prompt: Prompt): void {
     const argsSchema = Object.fromEntries(
       Object.entries(prompt.args).map(([key, arg]) => [
         key,
@@ -220,7 +209,7 @@ export class MCPService implements IMCPService {
   private registerToolOnServer(
     server: McpServer,
     pluginId: string,
-    tool: PluginTool,
+    tool: Tool,
   ): void {
     server.tool(
       tool.name,
@@ -278,7 +267,7 @@ export class MCPService implements IMCPService {
   private registerResourceOnServer(
     server: McpServer,
     _pluginId: string,
-    resource: PluginResource,
+    resource: Resource,
   ): void {
     server.resource(
       resource.name,
@@ -293,7 +282,7 @@ export class MCPService implements IMCPService {
    */
   public registerResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate<K>,
+    template: ResourceTemplate<K>,
   ): void {
     this.registerResourceTemplateOnServer(this.mcpServer, template);
 
@@ -305,11 +294,11 @@ export class MCPService implements IMCPService {
 
   private registerResourceTemplateOnServer(
     server: McpServer,
-    template: PluginResourceTemplate,
+    template: ResourceTemplate,
   ): void {
     const listFn = template.list;
 
-    const sdkTemplate = new ResourceTemplate(template.uriTemplate, {
+    const sdkTemplate = new MCPResourceTemplate(template.uriTemplate, {
       list: listFn
         ? async (): Promise<{
             resources: Array<{ uri: string; name: string }>;
@@ -347,7 +336,7 @@ export class MCPService implements IMCPService {
   /**
    * Register an MCP prompt
    */
-  public registerPrompt(pluginId: string, prompt: PluginPrompt): void {
+  public registerPrompt(pluginId: string, prompt: Prompt): void {
     this.registerPromptOnServer(this.mcpServer, prompt);
     this.registeredPrompts.push({ pluginId, prompt });
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
@@ -356,7 +345,7 @@ export class MCPService implements IMCPService {
   /**
    * List all registered tools
    */
-  public listTools(): Array<{ pluginId: string; tool: PluginTool }> {
+  public listTools(): Array<{ pluginId: string; tool: Tool }> {
     return Array.from(this.registeredTools.values());
   }
 
@@ -368,7 +357,7 @@ export class MCPService implements IMCPService {
    */
   public listToolsForPermissionLevel(
     userLevel: UserPermissionLevel,
-  ): Array<{ pluginId: string; tool: PluginTool }> {
+  ): Array<{ pluginId: string; tool: Tool }> {
     const allTools = this.listTools();
 
     return allTools.filter(({ tool }) => {
@@ -382,7 +371,7 @@ export class MCPService implements IMCPService {
    */
   public listResources(): Array<{
     pluginId: string;
-    resource: PluginResource;
+    resource: Resource;
   }> {
     return Array.from(this.registeredResources.values());
   }

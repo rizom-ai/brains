@@ -1,7 +1,7 @@
-import type { PluginPrompt } from "@brains/mcp-service";
+import type { Prompt } from "@brains/mcp-service";
 import type { SystemServices } from "./types";
 
-export function createSystemPrompts(services: SystemServices): PluginPrompt[] {
+export function createSystemPrompts(services: SystemServices): Prompt[] {
   const entityTypes = (): string =>
     services.entityService.getEntityTypes().join(", ");
 

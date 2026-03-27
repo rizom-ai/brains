@@ -1,8 +1,8 @@
-import type { PluginTool, InterfacePluginContext } from "@brains/plugins";
+import type { Tool, InterfacePluginContext } from "@brains/plugins";
 
 /**
  * Create MCP interface tools
- * Returns standard PluginTool array like other plugins
+ * Returns standard Tool array like other plugins
  *
  * @param _pluginId - The plugin ID (typically "mcp")
  * @param _getContext - Function to get the interface plugin context
@@ -10,7 +10,7 @@ import type { PluginTool, InterfacePluginContext } from "@brains/plugins";
 export function createMCPTools(
   _pluginId: string,
   _getContext: () => InterfacePluginContext | undefined,
-): PluginTool[] {
+): Tool[] {
   // Core tools (query, search, get, check-job-status) are now provided by the system plugin
   // MCP interface only needs to provide MCP-specific tools if any
   return [];

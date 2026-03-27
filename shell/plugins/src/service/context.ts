@@ -6,8 +6,8 @@ import type {
 import type {
   IShell,
   ContentGenerationConfig,
-  PluginResourceTemplate,
-  PluginPrompt,
+  ResourceTemplate,
+  Prompt,
 } from "../interfaces";
 import { resolvePrompt } from "../entity/prompt-resolver";
 import type {
@@ -257,11 +257,11 @@ export interface ServicePluginContext extends CorePluginContext {
   readonly mcp: {
     resources: {
       registerTemplate: <K extends string = string>(
-        template: PluginResourceTemplate<K>,
+        template: ResourceTemplate<K>,
       ) => void;
     };
     prompts: {
-      register: (prompt: PluginPrompt) => void;
+      register: (prompt: Prompt) => void;
     };
   };
 }
@@ -460,13 +460,13 @@ export function createServicePluginContext(
     // MCP protocol registration
     mcp: {
       resources: {
-        registerTemplate: (template: PluginResourceTemplate): void => {
-          shell.registerPluginResourceTemplate(pluginId, template);
+        registerTemplate: (template: ResourceTemplate): void => {
+          shell.registerResourceTemplate(pluginId, template);
         },
       },
       prompts: {
-        register: (prompt: PluginPrompt): void => {
-          shell.registerPluginPrompt(pluginId, prompt);
+        register: (prompt: Prompt): void => {
+          shell.registerPrompt(pluginId, prompt);
         },
       },
     },

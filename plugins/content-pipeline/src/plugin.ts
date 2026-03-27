@@ -1,4 +1,4 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { QueueManager } from "./queue-manager";
 import { createQueueTool, createPublishTool } from "./tools";
@@ -119,7 +119,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     this.logger.info("Content pipeline plugin started");
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     if (!this.pluginContext) {
       throw new Error("Plugin context not initialized");
     }

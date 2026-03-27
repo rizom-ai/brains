@@ -1,11 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { CorePlugin } from "@brains/plugins";
-import type {
-  PluginTool,
-  CorePluginContext,
-  ToolResponse,
-} from "@brains/plugins";
+import type { Tool, CorePluginContext, ToolResponse } from "@brains/plugins";
 import { z, getErrorMessage } from "@brains/utils";
 
 /**
@@ -78,7 +74,7 @@ export abstract class MCPBridgePlugin<
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private remoteTools: RemoteTool[] = [];
-  private cachedTools: PluginTool[] | null = null;
+  private cachedTools: Tool[] | null = null;
   private connected = false;
 
   protected abstract getServerCommand(): ServerCommand;
@@ -196,7 +192,7 @@ export abstract class MCPBridgePlugin<
   /**
    * Adapt remote MCP tools: prefix names, isolate errors, convert JSON Schema → Zod.
    */
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     this.cachedTools ??= this.remoteTools.map((remote) =>
       this.adaptTool(remote),
     );
@@ -204,9 +200,9 @@ export abstract class MCPBridgePlugin<
   }
 
   /**
-   * Adapt a single remote tool into a PluginTool.
+   * Adapt a single remote tool into a Tool.
    */
-  private adaptTool(remote: RemoteTool): PluginTool {
+  private adaptTool(remote: RemoteTool): Tool {
     const pluginId = this.id;
 
     const zodShape = this.jsonSchemaToZodShape(
@@ -308,7 +304,7 @@ export abstract class MCPBridgePlugin<
   /**
    * Convert JSON Schema properties to a Zod shape.
    *
-   * MCP tools declare inputSchema as JSON Schema, but PluginTool expects
+   * MCP tools declare inputSchema as JSON Schema, but Tool expects
    * a ZodRawShape. This does a best-effort conversion for common types.
    */
   private jsonSchemaToZodShape(

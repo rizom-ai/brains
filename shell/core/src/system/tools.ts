@@ -1,4 +1,4 @@
-import type { PluginTool, ToolResponse } from "@brains/mcp-service";
+import type { Tool, ToolResponse } from "@brains/mcp-service";
 // TODO (Phase 6b): move createTypedTool to @brains/mcp-service
 import { createTypedTool, findEntityByIdentifier } from "@brains/plugins";
 import { z, slugify, setCoverImageId } from "@brains/utils";
@@ -42,7 +42,7 @@ function parseConfirmed(
   return parsed.success ? parsed.data : undefined;
 }
 
-export function createSystemTools(services: SystemServices): PluginTool[] {
+export function createSystemTools(services: SystemServices): Tool[] {
   const { entityService, conversationService, logger, jobs } = services;
 
   return [

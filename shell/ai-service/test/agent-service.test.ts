@@ -2,7 +2,7 @@ import { describe, expect, it, beforeEach, mock, afterEach } from "bun:test";
 import { AgentService } from "../src/agent-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
-import type { IMCPService, PluginTool } from "@brains/mcp-service";
+import type { IMCPService, Tool } from "@brains/mcp-service";
 import type { IBrainCharacterService } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
@@ -266,7 +266,7 @@ describe("AgentService", () => {
 
   describe("tools integration", () => {
     it("should create agent with MCP tools", async () => {
-      const searchTool: PluginTool = {
+      const searchTool: Tool = {
         name: "search",
         description: "Search for content",
         inputSchema: { query: z.string() },
@@ -304,7 +304,7 @@ describe("AgentService", () => {
 
   describe("permission-based tool filtering", () => {
     it("should filter tools based on userPermissionLevel", async () => {
-      const publicTool: PluginTool = {
+      const publicTool: Tool = {
         name: "public_search",
         description: "Public search tool",
         inputSchema: { query: z.string() },
@@ -312,7 +312,7 @@ describe("AgentService", () => {
         handler: mock(async () => ({ success: true as const, data: {} })),
       };
 
-      const anchorTool: PluginTool = {
+      const anchorTool: Tool = {
         name: "admin_delete",
         description: "Admin delete tool",
         inputSchema: { id: z.string() },

@@ -6,10 +6,10 @@ import type {
   EvalHandler,
   IShell,
   Plugin,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
-  PluginTool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
+  Tool,
   QueryContext,
   RegisteredApiRoute,
 } from "@brains/plugins";
@@ -391,7 +391,7 @@ export class Shell implements IShell {
     return this.services.agentService;
   }
 
-  public registerPluginTools(pluginId: string, tools: PluginTool[]): void {
+  public registerTools(pluginId: string, tools: Tool[]): void {
     for (const tool of tools) {
       try {
         this.services.mcpService.registerTool(pluginId, tool);
@@ -404,10 +404,7 @@ export class Shell implements IShell {
     }
   }
 
-  public registerPluginResources(
-    pluginId: string,
-    resources: PluginResource[],
-  ): void {
+  public registerResources(pluginId: string, resources: Resource[]): void {
     for (const resource of resources) {
       try {
         this.services.mcpService.registerResource(pluginId, resource);
@@ -420,14 +417,14 @@ export class Shell implements IShell {
     }
   }
 
-  public registerPluginResourceTemplate<K extends string = string>(
+  public registerResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate<K>,
+    template: ResourceTemplate<K>,
   ): void {
     this.services.mcpService.registerResourceTemplate(pluginId, template);
   }
 
-  public registerPluginPrompt(pluginId: string, prompt: PluginPrompt): void {
+  public registerPrompt(pluginId: string, prompt: Prompt): void {
     this.services.mcpService.registerPrompt(pluginId, prompt);
   }
 

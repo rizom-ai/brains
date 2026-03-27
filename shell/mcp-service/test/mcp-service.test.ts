@@ -3,12 +3,7 @@ import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
-import type {
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
-} from "../src/types";
+import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
 describe("MCPService", () => {
   let mcpService: MCPService;
@@ -65,7 +60,7 @@ describe("MCPService", () => {
 
   describe("tool registration", () => {
     it("should register a tool with anchor permission", () => {
-      const tool: PluginTool = {
+      const tool: Tool = {
         name: "test_tool",
         description: "Test tool",
         inputSchema: {
@@ -87,7 +82,7 @@ describe("MCPService", () => {
     });
 
     it("should skip tool registration with insufficient permissions", () => {
-      const tool: PluginTool = {
+      const tool: Tool = {
         name: "admin_tool",
         description: "Admin tool",
         inputSchema: {},
@@ -103,14 +98,14 @@ describe("MCPService", () => {
     });
 
     it("should register multiple tools from different plugins", () => {
-      const tool1: PluginTool = {
+      const tool1: Tool = {
         name: "plugin1_tool",
         description: "Plugin 1 tool",
         inputSchema: {},
         handler: async () => ({ success: true, formatted: "Plugin 1 success" }),
       };
 
-      const tool2: PluginTool = {
+      const tool2: Tool = {
         name: "plugin2_tool",
         description: "Plugin 2 tool",
         inputSchema: {},
@@ -132,7 +127,7 @@ describe("MCPService", () => {
 
   describe("resource registration", () => {
     it("should register a resource", () => {
-      const resource: PluginResource = {
+      const resource: Resource = {
         name: "test://resource",
         uri: "test://resource",
         description: "Test resource",
@@ -154,7 +149,7 @@ describe("MCPService", () => {
     });
 
     it("should register multiple resources", () => {
-      const resource1: PluginResource = {
+      const resource1: Resource = {
         name: "plugin1://resource",
         uri: "plugin1://resource",
         description: "Plugin 1 resource",
@@ -163,7 +158,7 @@ describe("MCPService", () => {
         }),
       };
 
-      const resource2: PluginResource = {
+      const resource2: Resource = {
         name: "plugin2://resource",
         uri: "plugin2://resource",
         description: "Plugin 2 resource",
@@ -192,7 +187,7 @@ describe("MCPService", () => {
     });
 
     it("should filter tools based on permission level", () => {
-      const publicTool: PluginTool = {
+      const publicTool: Tool = {
         name: "public_tool",
         description: "Public tool",
         inputSchema: {},
@@ -200,7 +195,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, formatted: "Public success" }),
       };
 
-      const trustedTool: PluginTool = {
+      const trustedTool: Tool = {
         name: "trusted_tool",
         description: "Trusted tool",
         inputSchema: {},
@@ -208,7 +203,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, formatted: "Trusted success" }),
       };
 
-      const anchorTool: PluginTool = {
+      const anchorTool: Tool = {
         name: "anchor_tool",
         description: "Anchor tool",
         inputSchema: {},
@@ -263,7 +258,7 @@ describe("MCPService", () => {
       mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
       mcpService.setPermissionLevel("anchor");
 
-      const publicTool: PluginTool = {
+      const publicTool: Tool = {
         name: "public_tool",
         description: "Public tool",
         inputSchema: {},
@@ -271,7 +266,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, formatted: "Public success" }),
       };
 
-      const trustedTool: PluginTool = {
+      const trustedTool: Tool = {
         name: "trusted_tool",
         description: "Trusted tool",
         inputSchema: {},
@@ -279,7 +274,7 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, formatted: "Trusted success" }),
       };
 
-      const anchorTool: PluginTool = {
+      const anchorTool: Tool = {
         name: "anchor_tool",
         description: "Anchor tool",
         inputSchema: {},
@@ -288,7 +283,7 @@ describe("MCPService", () => {
       };
 
       // Tool with default visibility (should be anchor)
-      const defaultTool: PluginTool = {
+      const defaultTool: Tool = {
         name: "default_tool",
         description: "Tool with default visibility",
         inputSchema: {},
@@ -343,7 +338,7 @@ describe("MCPService", () => {
 
   describe("resource handler passthrough (no double-wrapping)", () => {
     it("should pass handler result directly to SDK without re-wrapping", () => {
-      const resource: PluginResource = {
+      const resource: Resource = {
         name: "test-resource",
         uri: "test://resource",
         description: "Test resource",
@@ -368,7 +363,7 @@ describe("MCPService", () => {
     });
 
     it("should not double-wrap contents in serialized JSON", async () => {
-      const resource: PluginResource = {
+      const resource: Resource = {
         name: "entity-types",
         uri: "entity://types",
         description: "List of entity types",
@@ -397,7 +392,7 @@ describe("MCPService", () => {
 
   describe("resource template registration", () => {
     it("should register a resource template without throwing", () => {
-      const template: PluginResourceTemplate = {
+      const template: ResourceTemplate = {
         name: "entity-list",
         uriTemplate: "entity://{type}",
         description: "List entities by type",
@@ -419,7 +414,7 @@ describe("MCPService", () => {
     });
 
     it("should register a resource template with list callback", () => {
-      const template: PluginResourceTemplate = {
+      const template: ResourceTemplate = {
         name: "entity-detail",
         uriTemplate: "entity://{type}/{id}",
         description: "Read entity by type and ID",
@@ -447,7 +442,7 @@ describe("MCPService", () => {
 
   describe("prompt registration", () => {
     it("should register a prompt without throwing", () => {
-      const prompt: PluginPrompt = {
+      const prompt: Prompt = {
         name: "create",
         description: "Create new content",
         args: {
@@ -471,7 +466,7 @@ describe("MCPService", () => {
     });
 
     it("should register a prompt with only required args", () => {
-      const prompt: PluginPrompt = {
+      const prompt: Prompt = {
         name: "brainstorm",
         description: "Brainstorm ideas",
         args: {

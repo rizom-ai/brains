@@ -17,10 +17,10 @@ import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
 import type {
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
   ToolInfo,
 } from "@brains/mcp-service";
 export type {
@@ -28,10 +28,10 @@ export type {
   ToolContext,
   ToolResponse,
   ToolConfirmation,
-  PluginTool,
-  PluginResource,
-  PluginResourceTemplate,
-  PluginPrompt,
+  Tool,
+  Resource,
+  ResourceTemplate,
+  Prompt,
   ToolInfo,
 } from "@brains/mcp-service";
 export {
@@ -173,13 +173,13 @@ export interface IShell {
   getTemplate(name: string): Template | undefined;
 
   // Plugin capability registration
-  registerPluginTools(pluginId: string, tools: PluginTool[]): void;
-  registerPluginResources(pluginId: string, resources: PluginResource[]): void;
-  registerPluginResourceTemplate<K extends string = string>(
+  registerTools(pluginId: string, tools: Tool[]): void;
+  registerResources(pluginId: string, resources: Resource[]): void;
+  registerResourceTemplate<K extends string = string>(
     pluginId: string,
-    template: PluginResourceTemplate<K>,
+    template: ResourceTemplate<K>,
   ): void;
-  registerPluginPrompt(pluginId: string, prompt: PluginPrompt): void;
+  registerPrompt(pluginId: string, prompt: Prompt): void;
   registerPluginInstructions(pluginId: string, instructions: string): void;
 
   // Plugin information
@@ -278,8 +278,8 @@ export const pluginMetadataSchema = z.object({
  * Plugin capabilities that can be exposed
  */
 export interface PluginCapabilities {
-  tools: PluginTool[];
-  resources: PluginResource[];
+  tools: Tool[];
+  resources: Resource[];
   instructions?: string;
 }
 

@@ -1,4 +1,4 @@
-import type { Plugin, ServicePluginContext, PluginTool } from "@brains/plugins";
+import type { Plugin, ServicePluginContext, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { DirectorySync } from "./lib/directory-sync";
 import { GitSync } from "./lib/git-sync";
@@ -137,7 +137,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     );
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     const directorySync = this.requireDirectorySync();
     const tools = createDirectorySyncTools(
       directorySync,

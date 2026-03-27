@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { PluginTool, ToolResponse } from "@brains/plugins";
+import type { Tool, ToolResponse } from "@brains/plugins";
 
 /**
  * Validated agent card fields from discovery.
@@ -299,7 +299,7 @@ export interface A2AClientDeps {
 /**
  * Create the a2a_call tool for calling remote A2A agents
  */
-export function createA2ACallTool(deps: A2AClientDeps = {}): PluginTool {
+export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   const fetchFn = deps.fetch ?? globalThis.fetch;
 
   return {

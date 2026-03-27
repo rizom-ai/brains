@@ -1,4 +1,4 @@
-import type { PluginTool, ServicePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { siteContentSchema } from "./schemas/site-content";
@@ -26,7 +26,7 @@ export class SiteContentPlugin extends ServicePlugin {
     this.siteContentService = new SiteContentService(context);
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return createSiteContentTools(() => this.siteContentService, this.id);
   }
 }
