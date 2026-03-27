@@ -1,5 +1,5 @@
 import type { Tool } from "@brains/plugins";
-import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
+import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { getErrorMessage, z } from "@brains/utils";
 import { ButtondownClient } from "../lib/buttondown-client";
@@ -38,7 +38,7 @@ export function createButtondownTools(
   const client = new ButtondownClient(config, logger);
 
   return [
-    createTypedTool(
+    createTool(
       pluginId,
       "subscribe",
       "Subscribe an email address to the newsletter. Uses double opt-in by default.",
@@ -70,7 +70,7 @@ export function createButtondownTools(
         }
       },
     ),
-    createTypedTool(
+    createTool(
       pluginId,
       "unsubscribe",
       "Unsubscribe an email address from the newsletter.",
@@ -87,7 +87,7 @@ export function createButtondownTools(
         }
       },
     ),
-    createTypedTool(
+    createTool(
       pluginId,
       "list_subscribers",
       "List newsletter subscribers with optional filtering by status.",

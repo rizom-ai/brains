@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "fs";
 import { join } from "path";
 import {
   ServicePlugin,
-  createTypedTool,
+  createTool,
   toolSuccess,
   toolError,
 } from "@brains/plugins";
@@ -64,7 +64,7 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
   protected override async getTools(): Promise<Tool[]> {
     const context = this.getContext();
     return [
-      createTypedTool(
+      createTool(
         this.id,
         "sync-templates",
         "Generate Obsidian templates, Metadata Menu fileClass definitions, and Bases views for all registered entity types.",

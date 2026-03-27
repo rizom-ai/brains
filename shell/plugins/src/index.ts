@@ -164,7 +164,8 @@ export type { AgentResponse, ChatContext } from "@brains/ai-service";
 // ============================================================================
 
 export {
-  createTypedTool,
+  createTool,
+  createResource,
   toolSuccess,
   toolError,
   toolResultSchema,
@@ -172,7 +173,7 @@ export {
 } from "./utils/tool-helpers";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
-export { findEntityByIdentifier } from "./utils/find-entity";
+
 export { createId } from "@brains/utils";
 
 // ============================================================================

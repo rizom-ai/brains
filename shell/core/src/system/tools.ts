@@ -1,6 +1,7 @@
 import type { Tool, ToolResponse } from "@brains/mcp-service";
-// TODO (Phase 6b): move createTypedTool to @brains/mcp-service
-import { createTypedTool, findEntityByIdentifier } from "@brains/plugins";
+// TODO (Phase 6b): move createTool to @brains/mcp-service
+import { createTool } from "@brains/mcp-service";
+import { findEntityByIdentifier } from "@brains/entity-service";
 import { z, slugify, setCoverImageId } from "@brains/utils";
 import type { BaseEntity } from "@brains/entity-service";
 import type { SystemServices } from "./types";
@@ -47,7 +48,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
 
   return [
     // ── Search ──
-    createTypedTool(
+    createTool(
       "system",
       "search",
       "Search entities using semantic search. Optionally filter by entity type.",
@@ -67,7 +68,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Get ──
-    createTypedTool(
+    createTool(
       "system",
       "get",
       "Retrieve a specific entity by type and identifier (ID, slug, or title).",
@@ -96,7 +97,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── List ──
-    createTypedTool(
+    createTool(
       "system",
       "list",
       "List entities by type. Returns metadata only — use system_get for full content.",
@@ -204,7 +205,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     },
 
     // ── Get conversation ──
-    createTypedTool(
+    createTool(
       "system",
       "get-conversation",
       "Get conversation details",
@@ -233,7 +234,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── List conversations ──
-    createTypedTool(
+    createTool(
       "system",
       "list-conversations",
       "List conversations, optionally filtered by search query",
@@ -263,7 +264,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Get messages ──
-    createTypedTool(
+    createTool(
       "system",
       "get-messages",
       "Get messages from a specific conversation",
@@ -292,7 +293,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Get identity ──
-    createTypedTool(
+    createTool(
       "system",
       "get-identity",
       "Get the brain's identity — name, role, purpose, values.",
@@ -302,7 +303,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Get profile ──
-    createTypedTool(
+    createTool(
       "system",
       "get-profile",
       "Get the anchor's profile — name, bio, social links.",
@@ -312,7 +313,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Get status ──
-    createTypedTool(
+    createTool(
       "system",
       "get-status",
       "Get system status including model, version, interfaces, and tools",
@@ -612,7 +613,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     },
 
     // ── Set cover ──
-    createTypedTool(
+    createTool(
       "system",
       "set-cover",
       "Set or remove cover image on an entity.",

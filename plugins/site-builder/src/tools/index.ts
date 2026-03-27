@@ -1,5 +1,5 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
-import { createTypedTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "@brains/utils";
 
@@ -19,7 +19,7 @@ export function createSiteBuilderTools(
   requestBuild: (environment?: "preview" | "production") => void,
 ): Tool[] {
   return [
-    createTypedTool(
+    createTool(
       pluginId,
       "build-site",
       "Build a static site from registered routes",
@@ -34,7 +34,7 @@ export function createSiteBuilderTools(
         };
       },
     ),
-    createTypedTool(
+    createTool(
       pluginId,
       "list_routes",
       "List all registered routes",
@@ -62,7 +62,7 @@ export function createSiteBuilderTools(
       },
       { visibility: "public" },
     ),
-    createTypedTool(
+    createTool(
       pluginId,
       "list_templates",
       "List all registered view templates",

@@ -1,5 +1,5 @@
 import type { Tool, JobContext } from "@brains/plugins";
-import { createTypedTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import type { SiteContentService } from "../lib/site-content-service";
 import { GenerateOptionsSchema } from "../schemas/generate-options";
 
@@ -8,7 +8,7 @@ export function createSiteContentTools(
   pluginId: string,
 ): Tool[] {
   return [
-    createTypedTool(
+    createTool(
       pluginId,
       "generate",
       "Generate content for all routes, a specific route, or a specific section",

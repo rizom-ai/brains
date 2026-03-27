@@ -1,5 +1,5 @@
 import type { Tool, ServicePluginContext, ToolResult } from "@brains/plugins";
-import { createTypedTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { QueueManager, QueueEntry } from "../queue-manager";
 
@@ -79,7 +79,7 @@ export function createQueueTool(
   pluginId: string,
   queueManager: QueueManager,
 ): Tool<QueueOutput> {
-  const tool = createTypedTool(
+  const tool = createTool(
     pluginId,
     "queue",
     "Manage the publish queue for all entity types (list, add, remove, reorder)",

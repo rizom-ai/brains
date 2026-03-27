@@ -1,5 +1,5 @@
 import type { Tool, CorePluginContext } from "@brains/plugins";
-import { createTypedTool, toolSuccess, toolError } from "@brains/plugins";
+import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import {
   getErrorMessage,
   z,
@@ -84,7 +84,7 @@ export function createAnalyticsTools(
   const cloudflareClient = new CloudflareClient(cloudflareConfig);
 
   tools.push(
-    createTypedTool(
+    createTool(
       pluginId,
       "query",
       `Query website analytics from Cloudflare.

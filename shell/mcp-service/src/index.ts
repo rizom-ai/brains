@@ -17,3 +17,11 @@ export {
   type ToolConfirmation,
   ToolContextRoutingSchema,
 } from "./types";
+export {
+  createTool,
+  createResource,
+  toolSuccess,
+  toolError,
+  toolResultSchema,
+  type ToolResult,
+} from "./tool-helpers";

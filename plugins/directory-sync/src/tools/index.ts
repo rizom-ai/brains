@@ -1,5 +1,5 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
-import { createTypedTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
 
@@ -9,7 +9,7 @@ export function createDirectorySyncTools(
   pluginId: string,
 ): Tool[] {
   return [
-    createTypedTool(
+    createTool(
       pluginId,
       "sync",
       "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",

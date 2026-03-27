@@ -1,11 +1,11 @@
 import type { Tool } from "@brains/plugins";
-import { createTypedTool } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { GitSync } from "../lib/git-sync";
 
 export function createGitTools(gitSync: GitSync, pluginId: string): Tool[] {
   return [
-    createTypedTool(
+    createTool(
       pluginId,
       "git_sync",
       "Commit and push brain data to git. Use when users want to backup or sync their data.",
@@ -25,7 +25,7 @@ export function createGitTools(gitSync: GitSync, pluginId: string): Tool[] {
         }
       },
     ),
-    createTypedTool(
+    createTool(
       pluginId,
       "git_status",
       "Get git repository status — pending changes, branch, remote.",

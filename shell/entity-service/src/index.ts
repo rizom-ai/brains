@@ -54,3 +54,4 @@ export type {
   PaginateOptions,
   PaginateResult,
 } from "./pagination";
+export { findEntityByIdentifier } from "./find-entity";

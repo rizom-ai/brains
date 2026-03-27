@@ -1,7 +1,7 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import {
   ServicePlugin,
-  createTypedTool,
+  createTool,
   toolSuccess,
   toolError,
 } from "@brains/plugins";
@@ -156,7 +156,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
    */
   protected override async getTools(): Promise<Tool[]> {
     return [
-      createTypedTool(
+      createTool(
         this.id,
         "get-data",
         "Get all dashboard widget data aggregated from plugins",

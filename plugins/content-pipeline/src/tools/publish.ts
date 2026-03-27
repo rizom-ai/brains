@@ -4,7 +4,7 @@ import type {
   ServicePluginContext,
   BaseEntity,
 } from "@brains/plugins";
-import { createTypedTool, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { createTool, parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { PublishImageData } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
@@ -67,7 +67,7 @@ export function createPublishTool(
   pluginId: string,
   providerRegistry: ProviderRegistry,
 ): Tool<PublishOutput> {
-  const tool = createTypedTool(
+  const tool = createTool(
     pluginId,
     "publish",
     "Publish an entity directly to its platform. Works with any registered entity type (social-post, post, deck, etc.)",
