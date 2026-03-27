@@ -59,5 +59,5 @@ export {
   type EnqueueJobFn,
   type EnqueueBatchFn,
   type RegisterHandlerFn,
-  type IJobsWriteNamespace,
+  type JobsNamespace,
 } from "./job-helpers";

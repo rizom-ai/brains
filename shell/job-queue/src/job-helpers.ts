@@ -2,9 +2,10 @@ import type {
   JobOptions,
   IJobQueueService,
   BatchOperation,
-  IJobsNamespace,
   JobHandler,
+  JobInfo,
 } from "./types";
+import type { Batch, BatchJobStatus } from "./batch-schemas";
 import { createId } from "@brains/utils";
 import type { ToolContext } from "@brains/mcp-service";
 
@@ -19,18 +20,33 @@ export type EnqueueJobFn = (
 ) => Promise<string>;
 
 /**
- * Extended jobs namespace with write operations.
- * Used by plugin contexts and system tools.
+ * Unified jobs namespace with monitoring and write operations.
+ * Used by all plugin contexts and system tools.
+ *
+ * The former read-only IJobsNamespace/write IJobsWriteNamespace split is gone —
+ * every consumer (entity, integration, interface, system) needs both.
+ * Scoping (auto-prefix plugin ID) is handled by factory functions, not the type.
  */
-export interface IJobsWriteNamespace extends Omit<
-  IJobsNamespace,
-  "enqueueBatch"
-> {
+export interface JobsNamespace {
+  // === Monitoring ===
+  /** Get active jobs, optionally filtered by type */
+  getActiveJobs(types?: string[]): Promise<JobInfo[]>;
+  /** Get status of a specific job */
+  getStatus(jobId: string): Promise<JobInfo | null>;
+  /** Get all active batches */
+  getActiveBatches(): Promise<Batch[]>;
+  /** Get status of a specific batch */
+  getBatchStatus(batchId: string): Promise<BatchJobStatus | null>;
+
+  // === Write ===
+  /** Enqueue a job for background processing */
   enqueue: EnqueueJobFn;
+  /** Enqueue multiple operations as a batch (batchId generated internally) */
   enqueueBatch: (
     operations: BatchOperation[],
     options?: JobOptions,
   ) => Promise<string>;
+  /** Register a handler for a job type */
   registerHandler: <T = unknown, R = unknown>(
     type: string,
     handler: JobHandler<string, T, R>,
@@ -98,7 +114,14 @@ export type EnqueueBatchFn = (
  * Handles operation type scoping, batchId generation, and metadata.
  */
 export function createEnqueueBatchFn(
-  shellJobs: IJobsNamespace,
+  shellJobs: {
+    enqueueBatch(
+      operations: BatchOperation[],
+      options: JobOptions,
+      batchId: string,
+      pluginId: string,
+    ): Promise<string>;
+  },
   pluginId: string,
 ): EnqueueBatchFn {
   return async (operations, options) => {

@@ -1,4 +1,4 @@
-import type { CorePluginContext, IJobsWriteNamespace } from "../core/context";
+import type { CorePluginContext } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type {
   IEntitiesNamespace,
@@ -25,7 +25,8 @@ import {
   createEnqueueJobFn,
   createEnqueueBatchFn,
   createRegisterHandlerFn,
-} from "../shared/job-helpers";
+  type JobsNamespace,
+} from "@brains/job-queue";
 
 /**
  * Context for entity plugins — scoped subset of ServicePluginContext.
@@ -49,7 +50,7 @@ export interface EntityPluginContext extends CorePluginContext {
   readonly entities: IEntitiesNamespace;
   readonly ai: IServiceAINamespace;
   readonly templates: IServiceTemplatesNamespace;
-  readonly jobs: IJobsWriteNamespace;
+  readonly jobs: JobsNamespace;
   readonly prompts: IPromptsNamespace;
   readonly dataDir: string;
 }

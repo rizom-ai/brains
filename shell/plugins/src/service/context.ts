@@ -2,7 +2,6 @@ import type {
   CorePluginContext,
   ITemplatesNamespace,
   IAINamespace,
-  IJobsWriteNamespace,
 } from "../core/context";
 import type {
   IShell,
@@ -19,7 +18,8 @@ import {
   createEnqueueJobFn,
   createEnqueueBatchFn,
   createRegisterHandlerFn,
-} from "../shared/job-helpers";
+  type JobsNamespace,
+} from "@brains/job-queue";
 import type {
   IEntityService,
   BaseEntity,
@@ -204,7 +204,7 @@ export interface ServicePluginContext extends CorePluginContext {
   // ============================================================================
 
   /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: IJobsWriteNamespace;
+  readonly jobs: JobsNamespace;
 
   // ============================================================================
   // View Templates

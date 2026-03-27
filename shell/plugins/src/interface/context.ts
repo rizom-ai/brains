@@ -1,7 +1,6 @@
 import type {
   CorePluginContext,
   IConversationsNamespace,
-  IJobsWriteNamespace,
 } from "../core/context";
 import { createCorePluginContext } from "../core/context";
 import type { IShell, IMCPTransport } from "../interfaces";
@@ -9,7 +8,8 @@ import {
   createEnqueueJobFn,
   createEnqueueBatchFn,
   createRegisterHandlerFn,
-} from "../shared/job-helpers";
+  type JobsNamespace,
+} from "@brains/job-queue";
 import type { Daemon } from "../manager/daemon-types";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IAgentService } from "@brains/ai-service";
@@ -127,7 +127,7 @@ export interface InterfacePluginContext extends CorePluginContext {
   // ============================================================================
 
   /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: IJobsWriteNamespace;
+  readonly jobs: JobsNamespace;
 
   // ============================================================================
   // Conversation Management (Read + Write Operations)
