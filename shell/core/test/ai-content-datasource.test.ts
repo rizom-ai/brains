@@ -354,4 +354,38 @@ describe("AIContentDataSource", () => {
       void expect(generate("Hello")).rejects.toThrow();
     });
   });
+
+  describe("prompt entity override", () => {
+    it("should use prompt entity content instead of template basePrompt when entity exists", async () => {
+      // Mock: prompt entity exists for this template
+      const mockGetEntity = mockEntityService.getEntity as ReturnType<
+        typeof mock
+      >;
+      mockGetEntity.mockResolvedValue({
+        id: "test-template",
+        entityType: "prompt",
+        content:
+          "---\ntitle: Test Template\ntarget: test-template\n---\nCustom prompt from entity.",
+        metadata: { title: "Test Template", target: "test-template" },
+      });
+
+      await generate("Hello");
+
+      const systemPrompt = getSystemPrompt();
+      expect(systemPrompt).toContain("Custom prompt from entity.");
+      expect(systemPrompt).not.toContain("You are a helpful assistant.");
+    });
+
+    it("should fall back to template basePrompt when no prompt entity exists", async () => {
+      const mockGetEntity = mockEntityService.getEntity as ReturnType<
+        typeof mock
+      >;
+      mockGetEntity.mockResolvedValue(null);
+
+      await generate("Hello");
+
+      const systemPrompt = getSystemPrompt();
+      expect(systemPrompt).toContain("You are a helpful assistant.");
+    });
+  });
 });

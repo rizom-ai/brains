@@ -3,6 +3,7 @@ import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 import { z, EntityUrlGenerator } from "@brains/utils";
+import { resolvePrompt } from "@brains/plugins";
 
 export const GenerationContextSchema = z.object({
   prompt: z.string().optional(),
@@ -42,9 +43,14 @@ export class AIContentDataSource implements DataSource {
       );
     }
 
-    const searchTerms = [template.basePrompt, context.prompt]
-      .filter(Boolean)
-      .join(" ");
+    // Resolve prompt entity override (falls back to template.basePrompt)
+    const basePrompt = await resolvePrompt(
+      this.entityService,
+      context.templateName,
+      template.basePrompt,
+    );
+
+    const searchTerms = [basePrompt, context.prompt].filter(Boolean).join(" ");
 
     const weightMap = this.entityService.getWeightMap();
     const hasWeights = Object.keys(weightMap).length > 0;
@@ -57,12 +63,12 @@ export class AIContentDataSource implements DataSource {
       : [];
 
     const enhancedPrompt = await this.buildPrompt(
-      { basePrompt: template.basePrompt },
+      { basePrompt },
       context,
       relevantEntities,
     );
 
-    const systemPrompt = this.buildSystemPrompt(template.basePrompt);
+    const systemPrompt = this.buildSystemPrompt(basePrompt);
 
     const result = await this.aiService.generateObject(
       systemPrompt,
