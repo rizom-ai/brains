@@ -33,6 +33,12 @@ export {
   type MockServicePluginContextReturns,
 } from "./mock-service-plugin-context";
 
+// Entity plugin context mocks
+export {
+  createMockEntityPluginContext,
+  type MockEntityPluginContextOptions,
+} from "./mock-entity-plugin-context";
+
 // AI service mocks
 export {
   createMockAIService,

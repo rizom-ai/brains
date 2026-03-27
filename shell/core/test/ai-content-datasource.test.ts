@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { AIContentDataSource } from "../src/datasources/ai-content-datasource";
 import type { IAIService } from "@brains/ai-service";
 import type { IEntityService, SearchResult } from "@brains/plugins";
+import { resetPromptCache } from "@brains/plugins";
 import {
   createMockEntityService,
   createMockAIService,
@@ -109,6 +110,7 @@ describe("AIContentDataSource", () => {
   }
 
   beforeEach(() => {
+    resetPromptCache();
     EntityUrlGenerator.resetInstance();
     EntityUrlGenerator.getInstance().configure({
       post: { label: "Post" },

@@ -5,7 +5,7 @@ import {
 } from "../../src/handlers/image-generation-handler";
 import {
   createSilentLogger,
-  createMockServicePluginContext,
+  createMockEntityPluginContext,
 } from "@brains/test-utils";
 import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
@@ -42,7 +42,7 @@ describe("ImageGenerationJobHandler", () => {
 
   beforeEach(() => {
     logger = createSilentLogger();
-    context = createMockServicePluginContext({
+    context = createMockEntityPluginContext({
       returns: {
         entityService: {
           createEntity: { entityId: "test-image", jobId: "job-123" },
@@ -182,7 +182,7 @@ describe("ImageGenerationJobHandler", () => {
         contentHash: "old-hash",
       };
 
-      const regenContext = createMockServicePluginContext({
+      const regenContext = createMockEntityPluginContext({
         returns: {
           entityService: {
             getEntity: existingImage, // Image already exists
@@ -231,7 +231,7 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should fail when image generation not available", async () => {
-      const noImageGenContext = createMockServicePluginContext({
+      const noImageGenContext = createMockEntityPluginContext({
         returns: {
           ai: { canGenerateImages: false },
         },
@@ -253,7 +253,7 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should handle AI generation failure gracefully", async () => {
-      const errorContext = createMockServicePluginContext({
+      const errorContext = createMockEntityPluginContext({
         returns: {
           ai: {
             canGenerateImages: true,
@@ -294,7 +294,7 @@ describe("ImageGenerationJobHandler", () => {
         contentHash: "abc123",
       };
 
-      const targetContext = createMockServicePluginContext({
+      const targetContext = createMockEntityPluginContext({
         returns: {
           entityService: {
             getEntity: mockTargetEntity,
@@ -367,7 +367,7 @@ describe("ImageGenerationJobHandler", () => {
     });
 
     it("should call AI to distill prompt when entityContent is provided", async () => {
-      const distillContext = createMockServicePluginContext({
+      const distillContext = createMockEntityPluginContext({
         returns: {
           entityService: {
             createEntity: { entityId: "test-image", jobId: "job-123" },

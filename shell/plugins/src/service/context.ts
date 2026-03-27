@@ -1,83 +1,33 @@
-import type {
-  CorePluginContext,
-  ITemplatesNamespace,
-  IAINamespace,
-} from "../core/context";
-import type {
-  IShell,
-  ContentGenerationConfig,
-  ResourceTemplate,
-  Prompt,
-} from "../interfaces";
-import type { IPromptsNamespace } from "../entity/context";
+import type { BasePluginContext } from "../base/context";
+import { createBasePluginContext } from "../base/context";
+import type { IShell } from "../interfaces";
+import type { IEntitiesNamespace, IPromptsNamespace } from "../entity/context";
 import { resolvePrompt } from "../entity/prompt-resolver";
-import type {
-  ImageGenerationOptions,
-  ImageGenerationResult,
-} from "@brains/ai-service";
-import {
-  createEnqueueJobFn,
-  createEnqueueBatchFn,
-  createRegisterHandlerFn,
-  type JobsNamespace,
-} from "@brains/job-queue";
 import type {
   IEntityService,
   BaseEntity,
   EntityAdapter,
-  EntityTypeConfig,
 } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
-
-import type { ViewTemplate, WebRenderer } from "@brains/templates";
+import type { Template, ViewTemplate, WebRenderer } from "@brains/templates";
 import type { DataSource } from "@brains/entity-service";
 import type { z } from "@brains/utils";
-import { createCorePluginContext } from "../core/context";
 
 /**
- * Entity management namespace for ServicePluginContext
- * Provides methods for registering entity types, accessing adapters, and managing data sources
+ * Template operations namespace for ServicePluginContext
+ * Includes registration, formatting, parsing, resolution, and capability checking
  */
-export interface IEntitiesNamespace {
-  /** Register a new entity type with schema and adapter */
-  register: <T extends BaseEntity>(
-    entityType: string,
-    schema: z.ZodSchema<T>,
-    adapter: EntityAdapter<T>,
-    config?: EntityTypeConfig,
-  ) => void;
+export interface IServiceTemplatesNamespace {
+  /** Register templates for this plugin */
+  register: (templates: Record<string, Template>) => void;
 
-  /** Get the adapter for an entity type */
-  getAdapter: <T extends BaseEntity>(
-    entityType: string,
-  ) => EntityAdapter<T> | undefined;
+  /** Format data using a template formatter */
+  format: <T = unknown>(templateName: string, data: T) => string;
 
-  /** Extend an adapter's frontmatterSchema with additional fields */
-  extendFrontmatterSchema: (
-    type: string,
-    extension: z.ZodObject<z.ZodRawShape>,
-  ) => void;
+  /** Parse content using a template parser */
+  parse: <T = unknown>(templateName: string, content: string) => T;
 
-  /** Get effective frontmatter schema (base + extensions) for an entity type */
-  getEffectiveFrontmatterSchema: (
-    type: string,
-  ) => z.ZodObject<z.ZodRawShape> | undefined;
-
-  /** Update an existing entity */
-  update: <T extends BaseEntity>(
-    entity: T,
-  ) => Promise<{ entityId: string; jobId: string }>;
-
-  /** Register a data source for dynamic content */
-  registerDataSource: (dataSource: DataSource) => void;
-}
-
-/**
- * Extended template operations namespace for ServicePluginContext
- * Includes all base template operations plus resolution and capability checking
- */
-export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
   /** Resolve content from a template (may fetch or generate) */
   resolve: <T = unknown>(
     templateName: string,
@@ -94,8 +44,7 @@ export interface IServiceTemplatesNamespace extends ITemplatesNamespace {
 }
 
 /**
- * Views namespace for ServicePluginContext
- * Provides access to view templates and rendering utilities
+ * Views namespace — view template access and rendering utilities
  */
 export interface IViewsNamespace {
   /** Get a view template by name */
@@ -115,180 +64,47 @@ export interface IViewsNamespace {
 }
 
 /**
- * Extended AI namespace for ServicePluginContext
- * Includes base AI operations plus content and image generation
- */
-export interface IServiceAINamespace extends IAINamespace {
-  /** Generate content using AI with template */
-  generate: <T = unknown>(config: ContentGenerationConfig) => Promise<T>;
-
-  /** Generate a structured object using AI with a Zod schema */
-  generateObject: <T>(
-    prompt: string,
-    schema: z.ZodType<T>,
-  ) => Promise<{ object: T }>;
-
-  /** Generate an image using AI (requires OPENAI_API_KEY) */
-  generateImage: (
-    prompt: string,
-    options?: ImageGenerationOptions,
-  ) => Promise<ImageGenerationResult>;
-
-  /** Check if image generation is available */
-  canGenerateImages: () => boolean;
-}
-
-/**
- * Plugins namespace for ServicePluginContext
- * Provides plugin metadata access
- */
-export interface IPluginsNamespace {
-  /** Get package name for a plugin */
-  getPackageName: (pluginId: string) => string | undefined;
-}
-
-/**
- * Context interface for service plugins
- * Extends CorePluginContext with entity management, job queuing, and AI generation
+ * Context for service plugins.
  *
- * ## Method Naming Conventions
- * - Properties: Direct access to services/values (e.g., `entityService`, `dataDir`)
- * - `get*`: Retrieve existing data (e.g., `getAdapter`, `getJobStatus`)
- * - `list*`: Retrieve collections (e.g., `listViewTemplates`)
- * - `register*`: Register handlers/types (e.g., `registerEntityType`, `registerJobHandler`)
- * - Action verbs: Mutations and operations (e.g., `enqueueJob`, `generateContent`)
+ * Includes: entity management, templates, views, prompt resolution, messaging, jobs.
+ * Excludes: AI generation, MCP protocol registration, transport.
  */
-export interface ServicePluginContext extends CorePluginContext {
-  // ============================================================================
-  // Entity Management
-  // ============================================================================
-
+export interface ServicePluginContext extends BasePluginContext {
   /** Full entity service with write operations */
   readonly entityService: IEntityService;
 
-  /**
-   * Entity management namespace
-   * - `entities.register()` - Register a new entity type with schema and adapter
-   * - `entities.getAdapter()` - Get the adapter for an entity type
-   * - `entities.update()` - Update an existing entity
-   * - `entities.registerDataSource()` - Register a data source for dynamic content
-   */
+  /** Entity management namespace */
   readonly entities: IEntitiesNamespace;
 
-  // ============================================================================
-  // AI Operations (extends CorePluginContext.ai)
-  // ============================================================================
-
-  /**
-   * Extended AI operations namespace
-   * Includes base operations plus:
-   * - `ai.generate()` - Generate content using AI with template
-   * - `ai.generateImage()` - Generate an image using AI
-   * - `ai.canGenerateImages()` - Check if image generation is available
-   */
-  readonly ai: IServiceAINamespace;
-
-  // ============================================================================
-  // Template Operations (extends CorePluginContext.templates)
-  // ============================================================================
-
-  /**
-   * Extended template operations namespace
-   * Includes all base operations plus:
-   * - `templates.resolve()` - Resolve content from a template (may fetch or generate)
-   * - `templates.getCapabilities()` - Get capabilities of a template
-   */
+  /** Template operations namespace (register, format, parse, resolve, getCapabilities) */
   readonly templates: IServiceTemplatesNamespace;
 
-  // ============================================================================
-  // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
-  // ============================================================================
-
-  /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: JobsNamespace;
-
-  // ============================================================================
-  // View Templates
-  // ============================================================================
-
-  /**
-   * Views namespace for view template access and rendering utilities
-   * - `views.get()` - Get a view template by name
-   * - `views.list()` - List all registered view templates
-   * - `views.hasRenderer()` - Check if a template has a web renderer
-   * - `views.getRenderer()` - Get the web renderer for a template
-   * - `views.validate()` - Validate content against a template's schema
-   */
+  /** Views namespace for view template access and rendering */
   readonly views: IViewsNamespace;
 
-  // ============================================================================
-  // Plugin Metadata
-  // ============================================================================
-
-  /**
-   * Plugins namespace for plugin metadata access
-   * - `plugins.getPackageName()` - Get package name for a plugin
-   */
-  readonly plugins: IPluginsNamespace;
-
-  /** Data directory for storing entity files */
-  readonly dataDir: string;
-
-  // ============================================================================
-  // Prompt Resolution
-  // ============================================================================
-
-  /**
-   * Prompts namespace for resolving AI prompts from prompt entities
-   * - `prompts.resolve()` - Look up prompt entity by target, fall back to default
-   */
+  /** Prompt resolution namespace */
   readonly prompts: IPromptsNamespace;
-
-  // ============================================================================
-  // MCP Protocol Registration
-  // ============================================================================
-
-  /**
-   * MCP namespace for registering protocol-level resources and prompts
-   * - `mcp.resources.registerTemplate()` - Register a parameterized resource template
-   * - `mcp.prompts.register()` - Register an MCP prompt
-   */
-  readonly mcp: {
-    resources: {
-      registerTemplate: <K extends string = string>(
-        template: ResourceTemplate<K>,
-      ) => void;
-    };
-    prompts: {
-      register: (prompt: Prompt) => void;
-    };
-  };
 }
 
 /**
- * Create a ServicePluginContext for a plugin
+ * Create a ServicePluginContext from the shell.
  */
 export function createServicePluginContext(
   shell: IShell,
   pluginId: string,
 ): ServicePluginContext {
-  // Start with core context
-  const coreContext = createCorePluginContext(shell, pluginId);
-
-  // Get service-specific components
+  const baseContext = createBasePluginContext(shell, pluginId);
   const entityService = shell.getEntityService();
   const entityRegistry = shell.getEntityRegistry();
-  const jobQueueService = shell.getJobQueueService();
   const renderService = shell.getRenderService();
   const dataSourceRegistry = shell.getDataSourceRegistry();
+  const contentService = shell.getContentService();
 
   return {
-    ...coreContext,
+    ...baseContext,
 
-    // Entity service access
     entityService,
 
-    // Entity management namespace
     entities: {
       register: (entityType, schema, adapter, config): void => {
         entityRegistry.registerEntityType(entityType, schema, adapter, config);
@@ -319,62 +135,24 @@ export function createServicePluginContext(
         return entityService.updateEntity(entity);
       },
       registerDataSource: (dataSource: DataSource): void => {
-        // Just register the DataSource directly - the register method handles prefixing
         dataSourceRegistry.register(dataSource);
       },
     },
 
-    // AI operations namespace - extends coreContext.ai with generation capabilities
-    ai: {
-      // Base AI operation from core context
-      query: coreContext.ai.query,
-
-      // Content generation
-      generate: async <T = unknown>(
-        config: ContentGenerationConfig,
-      ): Promise<T> => {
-        return shell.generateContent(config);
-      },
-
-      // Structured object generation
-      generateObject: async <T>(
-        prompt: string,
-        schema: z.ZodType<T>,
-      ): Promise<{ object: T }> => {
-        return shell.generateObject(prompt, schema);
-      },
-
-      // Image generation
-      generateImage: async (
-        prompt: string,
-        options?: ImageGenerationOptions,
-      ): Promise<ImageGenerationResult> => {
-        return shell.generateImage(prompt, options);
-      },
-      canGenerateImages: (): boolean => {
-        return shell.canGenerateImages();
-      },
-    },
-
-    // Template operations namespace - extends coreContext.templates with resolve and getCapabilities
     templates: {
-      // Base template operations (override from core context)
-      register: coreContext.templates.register,
+      register: (templates: Record<string, Template>): void => {
+        shell.registerTemplates(templates, pluginId);
+      },
       format: <T = unknown>(templateName: string, data: T): string => {
-        const contentService = shell.getContentService();
         return contentService.formatContent(templateName, data, { pluginId });
       },
       parse: <T = unknown>(templateName: string, content: string): T => {
-        const contentService = shell.getContentService();
         return contentService.parseContent(templateName, content, pluginId);
       },
-
-      // Extended operations for service plugins
       resolve: async <T = unknown>(
         templateName: string,
         options?: ResolutionOptions,
       ): Promise<T | null> => {
-        const contentService = shell.getContentService();
         const result = await contentService.resolveContent(
           templateName,
           options,
@@ -382,7 +160,6 @@ export function createServicePluginContext(
         );
         return result as T;
       },
-
       getCapabilities: (
         templateName: string,
       ): {
@@ -391,17 +168,11 @@ export function createServicePluginContext(
         canRender: boolean;
         isStaticOnly: boolean;
       } | null => {
-        // Apply plugin scoping if not already scoped
         const scopedTemplateName = templateName.includes(":")
           ? templateName
           : `${pluginId}:${templateName}`;
-
-        // Use the getTemplate method from shell which already handles registry access
         const template = shell.getTemplate(scopedTemplateName);
-        if (!template) {
-          return null;
-        }
-
+        if (!template) return null;
         const capabilities = TemplateCapabilities.getCapabilities(template);
         return {
           canGenerate: capabilities.canGenerate,
@@ -412,15 +183,6 @@ export function createServicePluginContext(
       },
     },
 
-    // Job operations namespace - extends shell.jobs with plugin-scoped operations
-    jobs: {
-      ...shell.jobs,
-      enqueue: createEnqueueJobFn(jobQueueService, pluginId, true),
-      enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
-      registerHandler: createRegisterHandlerFn(jobQueueService, pluginId),
-    },
-
-    // Views namespace
     views: {
       get: (name: string): ViewTemplate<unknown> | undefined => {
         return renderService.get(name) ?? undefined;
@@ -439,34 +201,9 @@ export function createServicePluginContext(
       },
     },
 
-    // Plugins namespace
-    plugins: {
-      getPackageName: (targetPluginId: string): string | undefined => {
-        return shell.getPluginPackageName(targetPluginId);
-      },
-    },
-
-    // Data directory
-    dataDir: shell.getDataDir(),
-
-    // AI prompt resolution
     prompts: {
       resolve: (target: string, fallback: string): Promise<string> => {
         return resolvePrompt(entityService, target, fallback);
-      },
-    },
-
-    // MCP protocol registration
-    mcp: {
-      resources: {
-        registerTemplate: (template: ResourceTemplate): void => {
-          shell.registerResourceTemplate(pluginId, template);
-        },
-      },
-      prompts: {
-        register: (prompt: Prompt): void => {
-          shell.registerPrompt(pluginId, prompt);
-        },
       },
     },
   };

@@ -12,29 +12,11 @@ import {
 import { createMockLogger } from "./mock-logger";
 
 /**
- * Return value configuration for AI namespace methods
- */
-export interface MockAIReturns {
-  /** Return value for canGenerateImages */
-  canGenerateImages?: boolean;
-  /** Return value for generateImage */
-  generateImage?: { base64: string; dataUrl: string };
-  /** Error to throw from generateImage */
-  generateImageError?: Error;
-  /** Return value for generate */
-  generate?: Record<string, unknown>;
-  /** Return value for generateObject (the object field) */
-  generateObject?: unknown;
-}
-
-/**
  * Return value configuration for mock service plugin context methods
  */
 export interface MockServicePluginContextReturns {
   /** Return values for entity service methods */
   entityService?: MockEntityServiceReturns;
-  /** Return values for AI namespace methods */
-  ai?: MockAIReturns;
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
   /** Custom messaging.send implementation */
@@ -80,10 +62,6 @@ export interface MockServicePluginContextOptions {
  *       getEntity: mockEntity,
  *       deleteEntity: true,
  *     },
- *     ai: {
- *       canGenerateImages: true,
- *       generateImage: { base64: "...", dataUrl: "data:image/png;base64,..." },
- *     },
  *     jobsEnqueue: "job-123",
  *   }
  * });
@@ -128,27 +106,6 @@ export function createMockServicePluginContext(
         Promise.resolve({ entityId: "mock-id", jobId: "mock-job" }),
       ),
       registerDataSource: mock(() => {}),
-    },
-
-    // AI operations namespace
-    ai: {
-      query: mock(() => Promise.resolve({ message: "mock response" })),
-      generate: mock(() => Promise.resolve(returns.ai?.generate ?? {})),
-      generateImage: mock(() => {
-        if (returns.ai?.generateImageError) {
-          return Promise.reject(returns.ai.generateImageError);
-        }
-        return Promise.resolve(
-          returns.ai?.generateImage ?? {
-            base64: "mock-base64",
-            dataUrl: "data:image/png;base64,mock-base64",
-          },
-        );
-      }),
-      canGenerateImages: mock(() => returns.ai?.canGenerateImages ?? false),
-      generateObject: mock(() =>
-        Promise.resolve({ object: returns.ai?.generateObject ?? {} }),
-      ),
     },
 
     // Identity namespace
@@ -216,26 +173,11 @@ export function createMockServicePluginContext(
       validate: mock(() => true),
     },
 
-    // Plugins namespace
-    plugins: {
-      getPackageName: mock(() => undefined),
-    },
-
-    // AI prompt resolution
+    // Prompt resolution
     prompts: {
       resolve: mock((_target: string, fallback: string) =>
         Promise.resolve(fallback),
       ),
-    },
-
-    // MCP protocol registration
-    mcp: {
-      resources: {
-        registerTemplate: mock(() => {}),
-      },
-      prompts: {
-        register: mock(() => {}),
-      },
     },
 
     // Eval namespace
@@ -250,13 +192,6 @@ export function createMockServicePluginContext(
       ),
       subscribe: mock(() => () => {}),
     },
-
-    // Other core context methods
-    onMessage: mock(() => () => {}),
-    registerTool: mock(() => {}),
-    registerTemplate: mock(() => {}),
-    getTemplate: mock(() => undefined),
-    listTemplates: mock(() => []),
 
     // Properties
     pluginId,

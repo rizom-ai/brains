@@ -1,15 +1,9 @@
 import type {
-  CorePluginContext,
+  BasePluginContext,
   IConversationsNamespace,
-} from "../core/context";
-import { createCorePluginContext } from "../core/context";
+} from "../base/context";
+import { createBasePluginContext } from "../base/context";
 import type { IShell, IMCPTransport } from "../interfaces";
-import {
-  createEnqueueJobFn,
-  createEnqueueBatchFn,
-  createRegisterHandlerFn,
-  type JobsNamespace,
-} from "@brains/job-queue";
 import type { Daemon } from "../manager/daemon-types";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IAgentService } from "@brains/ai-service";
@@ -91,7 +85,7 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
  * - `register*`: Register handlers/daemons (e.g., `registerDaemon`, `registerJobHandler`)
  * - Action verbs: Operations with side effects (e.g., `enqueueJob`, `addMessage`)
  */
-export interface InterfacePluginContext extends CorePluginContext {
+export interface InterfacePluginContext extends BasePluginContext {
   // ============================================================================
   // Services
   // ============================================================================
@@ -125,9 +119,6 @@ export interface InterfacePluginContext extends CorePluginContext {
   // ============================================================================
   // Job Queue (extends base IJobsNamespace with plugin-scoped operations)
   // ============================================================================
-
-  /** Extended jobs namespace with plugin-scoped write operations */
-  readonly jobs: JobsNamespace;
 
   // ============================================================================
   // Conversation Management (Read + Write Operations)
@@ -172,8 +163,7 @@ export function createInterfacePluginContext(
   shell: IShell,
   pluginId: string,
 ): InterfacePluginContext {
-  // Start with core context
-  const coreContext = createCorePluginContext(shell, pluginId);
+  const baseContext = createBasePluginContext(shell, pluginId);
 
   // Get interface-specific components
   const mcpTransport = shell.getMcpTransport();
@@ -181,15 +171,12 @@ export function createInterfacePluginContext(
   const agentService = shell.getAgentService();
 
   return {
-    ...coreContext,
+    ...baseContext,
 
-    // MCP transport
     mcpTransport,
 
-    // Agent service
     agentService,
 
-    // Permissions namespace
     permissions: {
       getUserLevel: (
         interfaceType: string,
@@ -199,33 +186,19 @@ export function createInterfacePluginContext(
       },
     },
 
-    // Job operations namespace - extends shell.jobs with plugin-scoped operations
-    jobs: {
-      ...shell.jobs,
-      enqueue: createEnqueueJobFn(shell.getJobQueueService(), pluginId, false),
-      enqueueBatch: createEnqueueBatchFn(shell.jobs, pluginId),
-      registerHandler: createRegisterHandlerFn(
-        shell.getJobQueueService(),
-        pluginId,
-      ),
-    },
-
     // Daemons namespace
     daemons: {
       register: (name: string, daemon: Daemon): void => {
         // Ensure daemon name is unique by prefixing with plugin ID
         const daemonName = `${pluginId}:${name}`;
         shell.registerDaemon(daemonName, daemon, pluginId);
-        coreContext.logger.debug(`Registered daemon: ${daemonName}`);
+        baseContext.logger.debug(`Registered daemon: ${daemonName}`);
       },
     },
 
-    // Extended conversations namespace (read + write operations)
     conversations: {
-      // Include read operations from core
-      ...coreContext.conversations,
+      ...baseContext.conversations,
 
-      // Add write operations
       start: async (
         conversationId: string,
         interfaceType: string,

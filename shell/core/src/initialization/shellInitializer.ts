@@ -363,20 +363,20 @@ export class ShellInitializer {
 
         // Materialize prompt entities for all templates with basePrompt.
         // This makes prompts visible in CMS/files immediately, not just on first generation.
-        const templates = templateRegistry.list();
-        let promptCount = 0;
-        for (const template of templates) {
-          if (template.basePrompt) {
-            await resolvePrompt(
-              entityService,
-              template.name,
-              template.basePrompt,
-            );
-            promptCount++;
-          }
-        }
-        if (promptCount > 0) {
-          logger.debug(`Materialized ${promptCount} prompt entities`);
+        const promptTemplates = templateRegistry
+          .list()
+          .filter(
+            (t): t is typeof t & { basePrompt: string } => !!t.basePrompt,
+          );
+        if (promptTemplates.length > 0) {
+          await Promise.all(
+            promptTemplates.map((t) =>
+              resolvePrompt(entityService, t.name, t.basePrompt),
+            ),
+          );
+          logger.debug(
+            `Materialized ${promptTemplates.length} prompt entities`,
+          );
         }
         return { success: true };
       },

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { WishlistPlugin } from "../src";
 import { WishCreateHandler } from "../src/handlers/wish-create-handler";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 
 const noopProgress = {} as ProgressReporter;
@@ -10,12 +10,12 @@ const noopProgress = {} as ProgressReporter;
 describe("WishCreateHandler", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let handler: WishCreateHandler;
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
 
   beforeEach(async () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-wishlist" });
     await harness.installPlugin(new WishlistPlugin({}));
-    context = harness.getServiceContext("wishlist");
+    context = harness.getEntityContext("wishlist");
     handler = new WishCreateHandler(
       {
         info: () => {},

@@ -169,17 +169,6 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
       },
     );
 
-    // Test AI content generation
-    const explanation = await context.ai.generate({
-      templateName: "math-explanation",
-      prompt: "Explain the mathematical concept of addition",
-      data: {
-        operation: "addition",
-        operands: ["numbers", "values"],
-      },
-    });
-    context.logger.info("Generated explanation:", explanation);
-
     // Register job handler for complex calculations
     context.jobs.registerHandler("complex-calculation", {
       async process(data: unknown, jobId: string) {

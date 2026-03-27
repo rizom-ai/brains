@@ -1,13 +1,10 @@
 import { describe, expect, test, mock } from "bun:test";
 import { ensureUniqueTitle } from "../../src/service/create-entity-with-unique-title";
 import type { BaseEntity } from "@brains/entity-service";
-import type { ServicePluginContext } from "../../src/service/context";
+import type { EntityPluginContext } from "../../src/entity/context";
 import { createSilentLogger } from "@brains/test-utils";
 
-type MockContext = Pick<
-  ServicePluginContext,
-  "entityService" | "ai" | "logger"
->;
+type MockContext = Pick<EntityPluginContext, "entityService" | "ai" | "logger">;
 
 function createMockContext(
   existingIds: Set<string>,
@@ -39,8 +36,8 @@ function createMockContext(
     context: {
       entityService: {
         getEntity,
-      } as unknown as ServicePluginContext["entityService"],
-      ai: { generateObject } as unknown as ServicePluginContext["ai"],
+      } as unknown as EntityPluginContext["entityService"],
+      ai: { generateObject } as unknown as EntityPluginContext["ai"],
       logger: createSilentLogger(),
     },
     mocks: { generateObject },

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
 import {
@@ -7,13 +7,13 @@ import {
   projectGenerationJobSchema,
 } from "../src/handlers/generation-handler";
 import {
-  createMockServicePluginContext,
+  createMockEntityPluginContext,
   createMockLogger,
   createMockProgressReporter,
 } from "@brains/test-utils";
 
-function createMockContext(): ServicePluginContext {
-  return createMockServicePluginContext({
+function createMockContext(): EntityPluginContext {
+  return createMockEntityPluginContext({
     returns: {
       jobsEnqueue: "job-456",
       ai: {
@@ -36,7 +36,7 @@ function createMockContext(): ServicePluginContext {
 }
 
 describe("ProjectGenerationJobHandler", () => {
-  let context: ServicePluginContext;
+  let context: EntityPluginContext;
   let logger: Logger;
   let handler: ProjectGenerationJobHandler;
   let progressReporter: ProgressReporter;
@@ -160,7 +160,7 @@ describe("ProjectGenerationJobHandler", () => {
 
     it("should return error result when generation fails", async () => {
       // Create a fresh context with failing generateContent
-      const failingContext = createMockServicePluginContext({
+      const failingContext = createMockEntityPluginContext({
         returns: {
           entityService: {
             createEntity: { entityId: "project-123" },

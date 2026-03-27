@@ -1,23 +1,23 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { BlogGenerationJobHandler } from "../src/handlers/blogGenerationJobHandler";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
   createSilentLogger,
   createMockProgressReporter,
-  createMockServicePluginContext,
+  createMockEntityPluginContext,
 } from "@brains/test-utils";
 import { createMockPost } from "./fixtures/blog-entities";
 
 describe("BlogGenerationJobHandler", () => {
   let handler: BlogGenerationJobHandler;
-  let mockContext: ServicePluginContext;
+  let mockContext: EntityPluginContext;
   let mockProgressReporter: ProgressReporter;
 
   beforeEach(() => {
     mockProgressReporter = createMockProgressReporter();
 
-    mockContext = createMockServicePluginContext({
+    mockContext = createMockEntityPluginContext({
       returns: {
         ai: {
           generate: {

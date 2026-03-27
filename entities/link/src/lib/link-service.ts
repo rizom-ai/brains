@@ -1,4 +1,4 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { LinkAdapter } from "../adapters/link-adapter";
 import { UrlUtils } from "./url-utils";
@@ -37,7 +37,7 @@ export class LinkService {
   private urlFetcher: UrlFetcher;
 
   constructor(
-    private context: ServicePluginContext,
+    private context: EntityPluginContext,
     options?: LinkServiceOptions,
   ) {
     this.linkAdapter = new LinkAdapter();

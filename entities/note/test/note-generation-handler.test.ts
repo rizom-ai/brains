@@ -2,14 +2,14 @@ import { describe, it, expect, beforeEach } from "bun:test";
 import { NoteGenerationJobHandler } from "../src/handlers/noteGenerationJobHandler";
 import {
   createSilentLogger,
-  createMockServicePluginContext,
+  createMockEntityPluginContext,
 } from "@brains/test-utils";
 
 describe("NoteGenerationJobHandler", () => {
   let handler: NoteGenerationJobHandler;
 
   beforeEach(() => {
-    const mockContext = createMockServicePluginContext({
+    const mockContext = createMockEntityPluginContext({
       returns: {
         entityService: {
           getEntity: null,

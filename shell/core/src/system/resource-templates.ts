@@ -19,7 +19,7 @@ export function createSystemResourceTemplates(
       uriTemplate: "entity://{type}",
       description: "List entities of a given type",
       mimeType: "application/json",
-      list: async () => {
+      list: async (): Promise<Array<{ uri: string; name: string }>> => {
         const types = entityService.getEntityTypes();
         return types.map((t) => ({
           uri: `entity://${t}`,
@@ -29,7 +29,11 @@ export function createSystemResourceTemplates(
       complete: {
         type: async () => entityService.getEntityTypes(),
       },
-      handler: async ({ type }: ResourceVars<"type">) => {
+      handler: async ({
+        type,
+      }: ResourceVars<"type">): Promise<{
+        contents: Array<{ uri: string; mimeType: string; text: string }>;
+      }> => {
         const availableTypes = entityService.getEntityTypes();
         if (!availableTypes.includes(type)) {
           throw new Error(
@@ -59,39 +63,32 @@ export function createSystemResourceTemplates(
       uriTemplate: "entity://{type}/{id}",
       description: "Read a single entity by type and ID",
       mimeType: "text/markdown",
-      list: async () => {
+      list: async (): Promise<Array<{ uri: string; name: string }>> => {
         const types = entityService.getEntityTypes();
-        const entries: Array<{ uri: string; name: string }> = [];
-        for (const t of types) {
-          const entities = await entityService.listEntities(t);
-          for (const e of entities) {
-            entries.push({
+        const results = await Promise.all(
+          types.map(async (t) => {
+            const entities = await entityService.listEntities(t);
+            return entities.map((e) => ({
               uri: `entity://${t}/${e.id}`,
               name: `${t}/${e.id}`,
-            });
-          }
-        }
-        return entries;
+            }));
+          }),
+        );
+        return results.flat();
       },
-      complete: (() => {
-        let lastType: string | undefined;
-        return {
-          type: async (value: string): Promise<string[]> => {
-            const types = entityService.getEntityTypes();
-            const matches = value
-              ? types.filter((t) => t.startsWith(value))
-              : types;
-            if (matches.length === 1 && matches[0]) lastType = matches[0];
-            return matches;
-          },
-          id: async (): Promise<string[]> => {
-            if (!lastType) return [];
-            const entities = await entityService.listEntities(lastType);
-            return entities.map((e) => e.id);
-          },
-        };
-      })(),
-      handler: async ({ type, id }: ResourceVars<"type" | "id">) => {
+      complete: {
+        type: async (value: string): Promise<string[]> => {
+          const types = entityService.getEntityTypes();
+          return value ? types.filter((t) => t.startsWith(value)) : types;
+        },
+        id: async (): Promise<string[]> => [],
+      },
+      handler: async ({
+        type,
+        id,
+      }: ResourceVars<"type" | "id">): Promise<{
+        contents: Array<{ uri: string; mimeType: string; text: string }>;
+      }> => {
         const entity = await entityService.getEntity(type, id);
         if (!entity) {
           throw new Error(`Entity not found: ${type}/${id}`);

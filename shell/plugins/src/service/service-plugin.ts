@@ -1,10 +1,5 @@
 import { BasePlugin } from "../base-plugin";
-import type {
-  PluginCapabilities,
-  IShell,
-  ContentGenerationConfig,
-  ToolContext,
-} from "../interfaces";
+import type { PluginCapabilities, IShell, ToolContext } from "../interfaces";
 import type {
   IEntityService,
   BaseEntity,
@@ -60,16 +55,6 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
   protected get entityService(): IEntityService {
     const context = this.getContext();
     return context.entityService;
-  }
-
-  /**
-   * Helper method to generate content using AI
-   */
-  protected async generateContent<T = unknown>(
-    config: ContentGenerationConfig,
-  ): Promise<T> {
-    const context = this.getContext();
-    return context.ai.generate<T>(config);
   }
 
   /**

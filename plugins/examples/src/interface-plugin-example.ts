@@ -100,91 +100,6 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
       };
     });
 
-    // Register templates for web output
-    context.templates.register({
-      "web-page": {
-        name: "web-page",
-        description: "Format web page content",
-        requiredPermission: "public",
-        basePrompt: "",
-        schema: z.object({
-          title: z.string(),
-          content: z.string(),
-          timestamp: z.string().optional(),
-        }),
-        formatter: {
-          format: (data: {
-            title: string;
-            content: string;
-            timestamp?: string;
-          }) => {
-            return `<!DOCTYPE html>
-<html>
-<head><title>${data.title}</title></head>
-<body>
-  <h1>${data.title}</h1>
-  <div>${data.content}</div>
-  ${data.timestamp ? `<footer>Generated at: ${data.timestamp}</footer>` : ""}
-</body>
-</html>`;
-          },
-          parse: (html: string) => {
-            const titleMatch = html.match(/<title>([^<]+)<\/title>/);
-            const h1Match = html.match(/<h1>([^<]+)<\/h1>/);
-            const contentMatch = html.match(/<div>([^<]+)<\/div>/);
-            const footerMatch = html.match(
-              /<footer>Generated at: ([^<]+)<\/footer>/,
-            );
-
-            return {
-              title: titleMatch?.[1] ?? h1Match?.[1] ?? "",
-              content: contentMatch?.[1] ?? "",
-              timestamp: footerMatch?.[1],
-            };
-          },
-        },
-      },
-      "api-response": {
-        name: "api-response",
-        description: "Format API responses",
-        requiredPermission: "public",
-        basePrompt: "",
-        schema: z.object({
-          data: z.any(),
-          status: z.string(),
-          timestamp: z.string(),
-        }),
-        formatter: {
-          format: (data: {
-            data: unknown;
-            status: string;
-            timestamp: string;
-          }) => {
-            return JSON.stringify(
-              {
-                status: data.status,
-                data: data.data,
-                timestamp: data.timestamp,
-              },
-              null,
-              2,
-            );
-          },
-          parse: (json: string) => {
-            try {
-              return JSON.parse(json);
-            } catch {
-              return {
-                data: null,
-                status: "error",
-                timestamp: new Date().toISOString(),
-              };
-            }
-          },
-        },
-      },
-    });
-
     context.logger.info("Webserver interface plugin registered");
 
     // Call parent implementation
@@ -209,43 +124,6 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
       await this.daemon.stop();
       this.logger.info("Webserver interface stopped");
     }
-  }
-
-  /**
-   * Example method showing how to serve content
-   */
-  async serveContent(path: string): Promise<string> {
-    const context = this.getContext();
-
-    // In a real implementation, this would:
-    // 1. Check if the path maps to a route
-    // 2. Query for the appropriate content
-    // 3. Format it using templates
-
-    const response = await context.ai.query(`Content for path: ${path}`, {
-      interfaceId: this.id,
-      source: "webserver",
-    });
-
-    // Format the response as HTML
-    return this.getContext().templates.format("web-page", {
-      title: `Page: ${path}`,
-      content: response.message,
-      timestamp: new Date().toISOString(),
-    });
-  }
-
-  /**
-   * Example method showing how to handle API requests
-   */
-  async handleApiRequest(endpoint: string, params: unknown): Promise<string> {
-    // In a real implementation, this would route to appropriate handlers
-    // For now, just echo the request
-    return this.getContext().templates.format("api-response", {
-      data: { endpoint, params },
-      status: "success",
-      timestamp: new Date().toISOString(),
-    });
   }
 
   /**

@@ -22,7 +22,7 @@ describe("GenerationJobHandler", () => {
   beforeEach(() => {
     const logger = createSilentLogger();
     harness = createPluginHarness();
-    context = harness.getServiceContext("social-media");
+    context = harness.getEntityContext("social-media");
     handler = new GenerationJobHandler(logger, context);
 
     progressCalls = [];

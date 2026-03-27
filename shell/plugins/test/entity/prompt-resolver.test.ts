@@ -184,7 +184,7 @@ describe("resolvePrompt", () => {
       expect(mockCreateEntity).toHaveBeenCalledWith(
         expect.objectContaining({
           metadata: expect.objectContaining({
-            title: "Social-media Linkedin",
+            title: "Social Media Linkedin",
           }),
         }),
       );

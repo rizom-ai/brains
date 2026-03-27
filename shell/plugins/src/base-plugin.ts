@@ -43,14 +43,6 @@ export interface CoreContext {
       handler: MessageHandler<T, R>,
     ) => () => void;
   };
-  templates: {
-    format: <T = unknown>(
-      templateName: string,
-      data: T,
-      options?: { truncate?: number },
-    ) => string;
-    parse: <T = unknown>(templateName: string, content: string) => T;
-  };
 }
 
 /**

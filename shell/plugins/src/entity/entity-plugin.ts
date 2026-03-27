@@ -83,7 +83,7 @@ export abstract class EntityPlugin<
     // Auto-register templates if provided
     const templates = this.getTemplates();
     if (templates && Object.keys(templates).length > 0) {
-      context.templates.register(templates);
+      shell.registerTemplates(templates, this.id);
     }
 
     // Auto-register datasources if provided
