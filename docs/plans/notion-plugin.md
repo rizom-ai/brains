@@ -15,7 +15,7 @@ NotionPlugin
   ↓ spawns
 @notionhq/notion-mcp-server (child process, stdio)
   ↓ MCP SDK Client
-Tool discovery → filter → adapt → register as PluginTool[]
+Tool discovery → filter → adapt → register as Tool[]
 ```
 
 ## MCPBridgePlugin Base Class
@@ -38,7 +38,7 @@ abstract class MCPBridgePlugin<TConfig> extends CorePlugin<TConfig> {
 
   // Base handles: spawn, connect, discover, filter, adapt, register
   protected override async onRegister(context): Promise<void> { ... }
-  protected override async getTools(): Promise<PluginTool[]> { ... }
+  protected override async getTools(): Promise<Tool[]> { ... }
   protected override async getInstructions(): Promise<string> { ... }
   async shutdown(): Promise<void> { ... }
 }

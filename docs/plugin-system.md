@@ -249,7 +249,7 @@ interface InterfacePluginContext extends CorePluginContext {
 MCP tools that can be invoked by any MCP client:
 
 ```typescript
-interface PluginTool {
+interface Tool {
   name: string;
   description: string;
   inputSchema: z.ZodSchema;
@@ -262,7 +262,7 @@ interface PluginTool {
 MCP resources that provide data:
 
 ```typescript
-interface PluginResource {
+interface Resource {
   uri: string;
   name: string;
   description?: string;

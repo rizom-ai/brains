@@ -170,7 +170,7 @@ export {
   toolError,
   toolResultSchema,
   type ToolResult,
-} from "./utils/tool-helpers";
+} from "@brains/mcp-service";
 
 export { ensureUniqueTitle } from "./service/create-entity-with-unique-title";
 

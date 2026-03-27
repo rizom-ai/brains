@@ -139,7 +139,7 @@ export class BlogPlugin extends ServicePlugin<BlogConfig> {
     this.registerBlogRoutes(context);
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return [
       {
         name: `${this.id}:generate`,

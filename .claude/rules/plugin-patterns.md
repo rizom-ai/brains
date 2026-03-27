@@ -138,8 +138,8 @@ import {
   type ServicePluginContext,
   type CorePluginContext,
   type InterfacePluginContext,
-  type PluginTool,
-  createTypedTool,
+  type Tool,
+  createTool,
 } from "@brains/plugins";
 
 // Utilities

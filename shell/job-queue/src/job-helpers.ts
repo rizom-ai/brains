@@ -22,9 +22,6 @@ export type EnqueueJobFn = (
 /**
  * Unified jobs namespace with monitoring and write operations.
  * Used by all plugin contexts and system tools.
- *
- * The former read-only IJobsNamespace/write IJobsWriteNamespace split is gone —
- * every consumer (entity, integration, interface, system) needs both.
  * Scoping (auto-prefix plugin ID) is handled by factory functions, not the type.
  */
 export interface JobsNamespace {

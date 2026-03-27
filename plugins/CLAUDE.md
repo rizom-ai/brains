@@ -174,7 +174,7 @@ For plugins that provide tools and integrate with external services.
 import {
   ServicePlugin,
   type ServicePluginContext,
-  type PluginTool,
+  type Tool,
 } from "@brains/plugins";
 
 export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
@@ -188,7 +188,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     // Initialize services, subscribe to events, register job handlers
   }
 
-  protected override async getTools(): Promise<PluginTool[]> {
+  protected override async getTools(): Promise<Tool[]> {
     return createDirectorySyncTools(
       this.directorySync,
       this.getContext(),

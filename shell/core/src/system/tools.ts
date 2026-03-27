@@ -1,5 +1,4 @@
 import type { Tool, ToolResponse } from "@brains/mcp-service";
-// TODO (Phase 6b): move createTool to @brains/mcp-service
 import { createTool } from "@brains/mcp-service";
 import { findEntityByIdentifier } from "@brains/entity-service";
 import { z, slugify, setCoverImageId } from "@brains/utils";

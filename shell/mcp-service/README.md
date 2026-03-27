@@ -111,8 +111,8 @@ Transports connect to the MCP service:
 
 ```typescript
 interface IMCPTransport {
-  registerTool(tool: PluginTool): void;
-  registerResource(resource: PluginResource): void;
+  registerTool(tool: Tool): void;
+  registerResource(resource: Resource): void;
   setPermissionLevel(level: UserPermissionLevel): void;
   getMcpServer(): McpServer;
 }
