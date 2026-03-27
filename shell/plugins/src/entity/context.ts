@@ -36,9 +36,9 @@ import {
  *
  * Excludes: views, plugins namespace, MCP tool/resource/prompt registration.
  */
+
 /**
- * Prompts namespace for EntityPluginContext
- * Resolves AI prompts from prompt entities, falling back to hardcoded defaults
+ * Prompts namespace — resolves AI prompts from prompt entities, falling back to hardcoded defaults
  */
 export interface IPromptsNamespace {
   /** Resolve a prompt by target name. Returns entity content if found, fallback otherwise. */

@@ -9,6 +9,7 @@ import type {
   ResourceTemplate,
   Prompt,
 } from "../interfaces";
+import type { IPromptsNamespace } from "../entity/context";
 import { resolvePrompt } from "../entity/prompt-resolver";
 import type {
   ImageGenerationOptions,
