@@ -1,15 +1,9 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
-import {
-  ServicePlugin,
-  createTool,
-  toolSuccess,
-  toolError,
-} from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
-import { dashboardDataSchema } from "./templates/dashboard/schema";
 import { dashboardTemplate } from "./templates/dashboard";
 import packageJson from "../package.json";
 
@@ -151,33 +145,8 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     this.logger.info("Dashboard plugin registered");
   }
 
-  /**
-   * Get plugin tools
-   */
   protected override async getTools(): Promise<Tool[]> {
-    return [
-      createTool(
-        this.id,
-        "get-data",
-        "Get all dashboard widget data aggregated from plugins",
-        z.object({}),
-        async () => {
-          if (!this.datasource || !this.context) {
-            return toolError("Dashboard not initialized");
-          }
-
-          try {
-            const data = await this.datasource.fetch({}, dashboardDataSchema, {
-              entityService: this.context.entityService,
-            });
-            return toolSuccess(data, "Dashboard data retrieved");
-          } catch (error) {
-            const msg = getErrorMessage(error);
-            return toolError(msg);
-          }
-        },
-      ),
-    ];
+    return [];
   }
 
   /**
