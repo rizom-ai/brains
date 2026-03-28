@@ -1,15 +1,21 @@
+import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { GitSync } from "./git-sync";
 import type { DirectorySync } from "./directory-sync";
 
 /**
- * Periodic pull → import → commit → push cycle.
- * Skips commit+push when nothing changed (no remote files pulled, no local changes).
+ * Periodic pull → queue imports → auto-commit cycle.
+ *
+ * Uses queueSyncBatch (non-blocking) instead of sync() (blocking).
+ * Imports run through the job queue so MCP/Discord stay responsive.
+ * Git commit+push is handled by auto-commit when entity changes land.
+ *
  * Returns a cleanup function that stops the timer.
  */
 export function setupPeriodicGitSync(
   gitSync: GitSync,
   directorySync: DirectorySync,
+  pluginContext: ServicePluginContext,
   intervalMinutes: number,
   logger: Logger,
 ): () => void {
@@ -34,11 +40,16 @@ export function setupPeriodicGitSync(
           });
         }
 
-        await directorySync.sync();
+        const result = await directorySync.queueSyncBatch(
+          pluginContext,
+          "periodic-sync",
+        );
 
-        if (files.length > 0 || (await gitSync.hasLocalChanges())) {
-          await gitSync.commit();
-          await gitSync.push();
+        if (result) {
+          logger.debug("Periodic sync: queued imports", {
+            importOperations: result.importOperationsCount,
+            totalFiles: result.totalFiles,
+          });
         }
       });
     } catch (error) {

@@ -1,27 +1,14 @@
 import { describe, it, expect, mock, afterEach } from "bun:test";
 import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { GitSync, PullResult } from "../../src/lib/git-sync";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import type { SyncResult, ImportResult } from "../../src/types";
-
-const emptyImport: ImportResult = {
-  imported: 0,
-  skipped: 0,
-  failed: 0,
-  quarantined: 0,
-  quarantinedFiles: [],
-  errors: [],
-  jobIds: [],
-};
-
-const emptySyncResult: SyncResult = {
-  import: emptyImport,
-  export: { exported: 0, failed: 0, errors: [] },
-  duration: 0,
-};
+import type { BatchResult } from "../../src/lib/batch-operations";
 
 function createTestMessaging(): {
   messaging: ServicePluginContext["messaging"];
@@ -114,7 +101,10 @@ describe("git operation serialization", () => {
     cleanups.push(
       setupPeriodicGitSync(
         git,
-        { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
+        {
+          queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
+        } as unknown as DirectorySync,
+        createMockServicePluginContext(),
         0.001, // 60ms interval
         createSilentLogger(),
       ),

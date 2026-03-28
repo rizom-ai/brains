@@ -20,10 +20,10 @@ describe("batch operations should not include exports (regression)", () => {
       "/tmp/test",
     );
 
-    const result = manager.prepareBatchOperations(
-      ["note", "blog-post", "series"],
-      ["note/my-note.md", "blog-post/my-post.md"],
-    );
+    const result = manager.prepareBatchOperations([
+      "note/my-note.md",
+      "blog-post/my-post.md",
+    ]);
 
     expect(result.exportOperationsCount).toBe(0);
     expect(result.importOperationsCount).toBeGreaterThan(0);
@@ -41,10 +41,11 @@ describe("batch operations should not include exports (regression)", () => {
       "/tmp/test",
     );
 
-    const result = manager.prepareBatchOperations(
-      ["note"],
-      ["note/a.md", "note/b.md", "note/c.md"],
-    );
+    const result = manager.prepareBatchOperations([
+      "note/a.md",
+      "note/b.md",
+      "note/c.md",
+    ]);
 
     expect(result.importOperationsCount).toBeGreaterThan(0);
     expect(result.totalFiles).toBe(3);
@@ -55,13 +56,25 @@ describe("batch operations should not include exports (regression)", () => {
     expect(importOps.length).toBeGreaterThan(0);
   });
 
+  it("prepareBatchOperations should append cleanup as last operation", () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+    );
+
+    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"]);
+
+    const lastOp = result.operations[result.operations.length - 1];
+    expect(lastOp?.type).toBe("directory-cleanup");
+  });
+
   it("prepareBatchOperations should return empty when no files", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
     );
 
-    const result = manager.prepareBatchOperations(["note"], []);
+    const result = manager.prepareBatchOperations([]);
 
     expect(result.operations).toHaveLength(0);
     expect(result.exportOperationsCount).toBe(0);

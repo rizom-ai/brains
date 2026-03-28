@@ -4,6 +4,7 @@ import { createSilentLogger } from "@brains/test-utils";
 import type { DirectorySync } from "../../src/lib/directory-sync";
 import type { DirectorySyncConfig } from "../../src/types";
 import type { GitSync } from "../../src/lib/git-sync";
+import type { BatchResult } from "../../src/lib/batch-operations";
 
 function createMockContext(): {
   context: Parameters<typeof setupInitialSync>[0];
@@ -27,29 +28,29 @@ function createMockContext(): {
       },
       jobs: {
         getStatus: mock(async () => null),
+        getBatchStatus: mock(async () => ({
+          status: "completed",
+          completedOperations: 1,
+          failedOperations: 0,
+        })),
       },
     } as unknown as Parameters<typeof setupInitialSync>[0],
     handlers,
   };
 }
 
-function createMockDirectorySync(): DirectorySync {
+function createMockDirectorySync(): DirectorySync & {
+  queueSyncBatch: ReturnType<typeof mock>;
+} {
+  const queueSyncBatchMock = mock(
+    async (): Promise<BatchResult | null> => null,
+  );
   return {
-    sync: mock(async () => ({
-      import: {
-        imported: 0,
-        skipped: 0,
-        failed: 0,
-        quarantined: 0,
-        quarantinedFiles: [],
-        errors: [],
-        jobIds: [],
-      },
-      export: { exported: 0, failed: 0, errors: [] },
-      duration: 0,
-    })),
+    queueSyncBatch: queueSyncBatchMock,
     initializeDirectory: mock(async () => {}),
-  } as unknown as DirectorySync;
+  } as unknown as DirectorySync & {
+    queueSyncBatch: ReturnType<typeof mock>;
+  };
 }
 
 function createMockGitSync(): GitSync & { pull: ReturnType<typeof mock> } {
@@ -86,7 +87,7 @@ const baseConfig: DirectorySyncConfig = {
 };
 
 describe("setupInitialSync with git", () => {
-  it("should call gitSync.pull() before directorySync.sync()", async () => {
+  it("should call gitSync.pull() before queueSyncBatch()", async () => {
     const { context, handlers } = createMockContext();
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
@@ -96,21 +97,9 @@ describe("setupInitialSync with git", () => {
       callOrder.push("pull");
       return { files: [] };
     });
-    (ds.sync as ReturnType<typeof mock>) = mock(async () => {
-      callOrder.push("sync");
-      return {
-        import: {
-          imported: 0,
-          skipped: 0,
-          failed: 0,
-          quarantined: 0,
-          quarantinedFiles: [],
-          errors: [],
-          jobIds: [],
-        },
-        export: { exported: 0, failed: 0, errors: [] },
-        duration: 0,
-      };
+    ds.queueSyncBatch = mock(async () => {
+      callOrder.push("queueSyncBatch");
+      return null;
     });
 
     setupInitialSync(
@@ -126,10 +115,10 @@ describe("setupInitialSync with git", () => {
     expect(handler).toBeDefined();
     if (handler) await handler();
 
-    expect(callOrder).toEqual(["pull", "sync"]);
+    expect(callOrder).toEqual(["pull", "queueSyncBatch"]);
   });
 
-  it("should not call gitSync.pull() when gitSync is not provided", async () => {
+  it("should call queueSyncBatch when gitSync is not provided", async () => {
     const { context, handlers } = createMockContext();
     const ds = createMockDirectorySync();
 
@@ -144,7 +133,7 @@ describe("setupInitialSync with git", () => {
     const handler = handlers.get("system:plugins:ready");
     if (handler) await handler();
 
-    expect(ds.sync).toHaveBeenCalledTimes(1);
+    expect(ds.queueSyncBatch).toHaveBeenCalledTimes(1);
   });
 
   it("should emit sync:initial:completed after sync", async () => {

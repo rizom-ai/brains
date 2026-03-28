@@ -1,24 +1,19 @@
 import { describe, it, expect, mock, afterEach } from "bun:test";
 import { setupPeriodicGitSync } from "../../src/lib/git-periodic-sync";
-import { createSilentLogger } from "@brains/test-utils";
+import {
+  createSilentLogger,
+  createMockServicePluginContext,
+} from "@brains/test-utils";
 import type { GitSync, PullResult } from "../../src/lib/git-sync";
 import type { DirectorySync } from "../../src/lib/directory-sync";
-import type { ImportResult, SyncResult } from "../../src/types";
+import type { BatchResult } from "../../src/lib/batch-operations";
 
-const emptyImport: ImportResult = {
-  imported: 0,
-  skipped: 0,
-  failed: 0,
-  quarantined: 0,
-  quarantinedFiles: [],
-  errors: [],
-  jobIds: [],
-};
-
-const emptySyncResult: SyncResult = {
-  import: emptyImport,
-  export: { exported: 0, failed: 0, errors: [] },
-  duration: 0,
+const emptyBatchResult: BatchResult = {
+  batchId: "batch-1",
+  operationCount: 1,
+  exportOperationsCount: 0,
+  importOperationsCount: 1,
+  totalFiles: 3,
 };
 
 describe("setupPeriodicGitSync", () => {
@@ -28,31 +23,57 @@ describe("setupPeriodicGitSync", () => {
     cleanup?.();
   });
 
-  it("should call pull and sync on each interval", async () => {
+  it("should call pull and queueSyncBatch on each interval", async () => {
     const pullMock = mock(
       async (): Promise<PullResult> => ({ files: ["a.md"] }),
     );
-    const syncMock = mock(async (): Promise<SyncResult> => emptySyncResult);
-    const commitMock = mock(async () => {});
-    const pushMock = mock(async () => {});
+    const queueSyncBatchMock = mock(
+      async (): Promise<BatchResult | null> => emptyBatchResult,
+    );
 
     cleanup = setupPeriodicGitSync(
       {
         pull: pullMock,
-        commit: commitMock,
-        push: pushMock,
         withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-        hasLocalChanges: mock(async () => true),
       } as unknown as GitSync,
-      { sync: syncMock } as unknown as DirectorySync,
-      0.001, // interval in minutes (60ms)
+      { queueSyncBatch: queueSyncBatchMock } as unknown as DirectorySync,
+      createMockServicePluginContext(),
+      0.001, // 60ms
       createSilentLogger(),
     );
 
     await new Promise((r) => setTimeout(r, 150));
 
     expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(syncMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(queueSyncBatchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("should not call sync() directly (non-blocking)", async () => {
+    const syncMock = mock(async () => {
+      throw new Error("sync() should not be called — use queueSyncBatch");
+    });
+    const queueSyncBatchMock = mock(
+      async (): Promise<BatchResult | null> => emptyBatchResult,
+    );
+
+    cleanup = setupPeriodicGitSync(
+      {
+        pull: mock(async (): Promise<PullResult> => ({ files: [] })),
+        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
+      } as unknown as GitSync,
+      {
+        sync: syncMock,
+        queueSyncBatch: queueSyncBatchMock,
+      } as unknown as DirectorySync,
+      createMockServicePluginContext(),
+      0.001,
+      createSilentLogger(),
+    );
+
+    await new Promise((r) => setTimeout(r, 150));
+
+    expect(syncMock).not.toHaveBeenCalled();
+    expect(queueSyncBatchMock.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 
   it("should not start when intervalMinutes is 0", () => {
@@ -60,7 +81,8 @@ describe("setupPeriodicGitSync", () => {
 
     cleanup = setupPeriodicGitSync(
       { pull: pullMock } as unknown as GitSync,
-      { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
+      {} as unknown as DirectorySync,
+      createMockServicePluginContext(),
       0,
       createSilentLogger(),
     );
@@ -74,12 +96,12 @@ describe("setupPeriodicGitSync", () => {
     cleanup = setupPeriodicGitSync(
       {
         pull: pullMock,
-        commit: mock(async () => {}),
-        push: mock(async () => {}),
-        hasLocalChanges: mock(async () => false),
         withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
       } as unknown as GitSync,
-      { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
+      {
+        queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
+      } as unknown as DirectorySync,
+      createMockServicePluginContext(),
       0.001,
       createSilentLogger(),
     );
@@ -90,33 +112,6 @@ describe("setupPeriodicGitSync", () => {
     await new Promise((r) => setTimeout(r, 100));
 
     expect(pullMock.mock.calls.length).toBe(callsBefore);
-  });
-
-  it("should skip commit+push when nothing changed", async () => {
-    const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
-    const syncMock = mock(async (): Promise<SyncResult> => emptySyncResult);
-    const commitMock = mock(async () => {});
-    const pushMock = mock(async () => {});
-
-    cleanup = setupPeriodicGitSync(
-      {
-        pull: pullMock,
-        commit: commitMock,
-        push: pushMock,
-        hasLocalChanges: mock(async () => false),
-        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-      } as unknown as GitSync,
-      { sync: syncMock } as unknown as DirectorySync,
-      0.001,
-      createSilentLogger(),
-    );
-
-    await new Promise((r) => setTimeout(r, 150));
-
-    // Pull ran, but no remote changes + no local changes = skip commit+push
-    expect(pullMock.mock.calls.length).toBeGreaterThanOrEqual(1);
-    expect(commitMock).not.toHaveBeenCalled();
-    expect(pushMock).not.toHaveBeenCalled();
   });
 
   it("should not overlap cycles", async () => {
@@ -134,19 +129,20 @@ describe("setupPeriodicGitSync", () => {
     cleanup = setupPeriodicGitSync(
       {
         pull: slowPull,
-        commit: mock(async () => {}),
-        push: mock(async () => {}),
-        hasLocalChanges: mock(async () => false),
         withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
       } as unknown as GitSync,
-      { sync: mock(async () => emptySyncResult) } as unknown as DirectorySync,
-      0.001, // 60ms interval — faster than the 80ms pull
+      {
+        queueSyncBatch: mock(
+          async (): Promise<BatchResult | null> => emptyBatchResult,
+        ),
+      } as unknown as DirectorySync,
+      createMockServicePluginContext(),
+      0.001,
       createSilentLogger(),
     );
 
     await new Promise((r) => setTimeout(r, 300));
 
-    // Should never have more than 1 concurrent cycle
     expect(maxConcurrent).toBe(1);
   });
 });

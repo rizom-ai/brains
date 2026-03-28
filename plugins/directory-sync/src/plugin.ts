@@ -71,9 +71,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
     await this.registerJobHandlers(context);
 
+    // Always export entities to disk when they change — this is how
+    // entities become durable, not optional behavior tied to autoSync
+    const ds = this.requireDirectorySync();
+    setupAutoSync(context, ds, this.logger, this.config.entityTypes);
+
     if (this.config.autoSync) {
-      const ds = this.requireDirectorySync();
-      setupAutoSync(context, ds, this.logger, this.config.entityTypes);
       setupFileWatcher(context, ds, this.config.syncPath ?? context.dataDir);
     }
 
@@ -109,6 +112,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
           setupPeriodicGitSync(
             this.gitSync,
             this.requireDirectorySync(),
+            context,
             this.config.syncInterval,
             this.logger.child("GitPeriodicSync"),
           ),

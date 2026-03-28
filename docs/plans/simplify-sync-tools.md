@@ -1,8 +1,10 @@
 # Plan: Simplify Sync Tools
 
+## Status: complete (except Phase 6)
+
 ## Context
 
-Directory-sync has three tools from before the git-sync merge:
+Directory-sync had three tools from before the git-sync merge:
 
 | Tool                        | What it does            |
 | --------------------------- | ----------------------- |
@@ -12,40 +14,24 @@ Directory-sync has three tools from before the git-sync merge:
 
 From the user's perspective, "sync" means "make everything consistent." The split between filesystem sync and git sync is an implementation detail.
 
-## Current state (partially implemented)
+## What's done
 
-We already:
-
-- ✅ Added `fullSync()` to DirectorySync (pull → sync → commit+push)
-- ✅ Added status tool (sync path, lastSync, watching, git info)
-- ✅ Deleted git-tools.ts (git_sync, git_status)
-- ✅ Updated plugin to pass gitSync to tool factory
-- ✅ Updated YAML test cases
-- ❌ Deleted batch-operations.ts — REGRESSION, must restore
-- ❌ Deleted queueSyncBatch() — REGRESSION, must restore
-- ❌ Sync tool calls fullSync() synchronously — BLOCKS event loop
-
-## Problem: blocking imports
-
-There are two places where imports block the event loop:
-
-### 1. Sync tool (user-initiated)
-
-The sync tool now calls `fullSync()` which calls `sync()` which calls `importEntities()` — a tight loop over all files. For 100+ entities, this blocks MCP/Discord for seconds.
-
-The old tool called `queueSyncBatch()` which queued individual import jobs into the job queue worker. Each job processes one file, then yields to the event loop before the next. This is what kept the brain responsive.
-
-**Fix**: Restore `queueSyncBatch()` and `BatchOperationsManager`. Sync tool calls git pull → `queueSyncBatch()` → returns immediately. Auto-commit handles git push after imports complete.
-
-### 2. Periodic sync + initial sync (background)
-
-`setupPeriodicGitSync` and `setupInitialSync` both call `directorySync.sync()` directly — same tight import loop. During periodic sync (every 2 min) and initial startup, the brain is unresponsive.
-
-**Fix**: These should also use the job queue for imports. Change `sync()` to queue import jobs instead of running them inline. Or add a `syncViaJobQueue()` method.
-
-However, this is a bigger change: `sync()` currently returns an `ImportResult` with counts. If it queues jobs instead, it returns immediately and the results come later via events. The callers (`setupInitialSync`, `setupPeriodicGitSync`) would need to subscribe to completion events instead of awaiting results.
-
-This is out of scope for the tool simplification. Track separately.
+- ✅ Merged three tools into two (`sync` + `status`)
+- ✅ Deleted `git-tools.ts` (`git_sync`, `git_status`)
+- ✅ Status tool returns sync path, lastSync, watching, git info (conditional)
+- ✅ Updated YAML test cases for new tool names
+- ✅ Sync tool uses `queueSyncBatch()` (non-blocking)
+- ✅ Removed dead `fullSync()` method
+- ✅ Removed unused `_entityTypes` param from `prepareBatchOperations`
+- ✅ Fixed lock scope: pull + queueSyncBatch run inside the same `withLock`
+- ✅ Fixed metadata forwarding: `interfaceType`/`channelId` passed to batch metadata
+- ✅ Fixed tool description (no longer claims orphan cleanup or commit/push)
+- ✅ Auto-export always registered regardless of `autoSync` — entities created via tools get written to disk
+- ✅ Periodic sync uses `queueSyncBatch()` instead of blocking `sync()`
+- ✅ Initial sync uses `queueSyncBatch()` + polls `getBatchStatus()` instead of blocking `sync()`
+- ✅ Orphan cleanup runs as `directory-cleanup` job at end of every batch
+- ✅ Deleted inline-implementation test files (prompt-materialization, job-tracking, simplified-tools)
+- ✅ Full edge case test coverage (sync tool, status tool, auto-export, cleanup job)
 
 ## Design
 
@@ -54,11 +40,15 @@ This is out of scope for the tool simplification. Track separately.
 ```
 User calls directory-sync_sync
   ↓
-1. git pull (if configured) — fast async I/O
-2. queueSyncBatch() — queues import jobs, returns immediately
-3. return { batchId, importOperations, totalFiles, gitPulled }
+if git: withLock {
+  1. git pull
+  2. queueSyncBatch() — queues import jobs + cleanup
+}
+else: queueSyncBatch()
   ↓
-(background) job queue processes imports one by one
+return { batchId, importOperations, totalFiles, gitPulled }
+  ↓
+(background) job queue: imports one by one, then orphan cleanup
   ↓
 (background) auto-commit detects entity changes, commits + pushes
 ```
@@ -82,28 +72,6 @@ User calls directory-sync_sync
 
 Git field omitted when git not configured.
 
-## Remaining steps
+## Phase 6: Clean up test mock patterns
 
-1. Restore `batch-operations.ts` and `queueSyncBatch()` (revert deletion)
-2. Restore `batch-export-regression.test.ts` (revert deletion)
-3. Write tests: sync tool calls `queueSyncBatch()` not `fullSync()`, returns immediately
-4. Rewrite sync tool: git pull → `queueSyncBatch()` → return batch info
-5. Update plugin: pass `pluginContext` back to tool factory (needed for `queueSyncBatch`)
-6. Verify non-blocking behavior
-
-## Future work (out of scope)
-
-- Make periodic sync use job queue for imports
-- Make initial sync use job queue for imports
-- Consider removing `fullSync()` if nothing uses it after tool fix
-
-## Files
-
-| File                                   | Action                               |
-| -------------------------------------- | ------------------------------------ |
-| `src/lib/batch-operations.ts`          | Restore                              |
-| `src/lib/directory-sync.ts`            | Restore `queueSyncBatch()`           |
-| `test/batch-export-regression.test.ts` | Restore                              |
-| `src/tools/index.ts`                   | Sync: pull → queueSyncBatch → return |
-| `src/plugin.ts`                        | Pass pluginContext to tool factory   |
-| `test/sync-tools.test.ts`              | New: verify non-blocking behavior    |
+Replace `as unknown as GitSync` / `as unknown as DirectorySync` casts with properly typed mock factories (like `createMockGitSync` in `sync-tools.test.ts`). Affects `periodic-sync.test.ts`, `git-lock.test.ts`, `setup-initial-sync-git.test.ts`, and others.

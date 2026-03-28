@@ -6,6 +6,7 @@ import {
   DirectoryImportJobHandler,
   DirectorySyncJobHandler,
   DirectoryDeleteJobHandler,
+  DirectoryCleanupJobHandler,
   CoverImageConversionJobHandler,
   InlineImageConversionJobHandler,
 } from "../handlers";
@@ -49,6 +50,13 @@ export function registerDirectorySyncJobHandlers(
     new DirectoryDeleteJobHandler(
       childLogger("DirectoryDeleteJobHandler"),
       context,
+      directorySync,
+    ),
+  );
+  context.jobs.registerHandler(
+    "directory-cleanup",
+    new DirectoryCleanupJobHandler(
+      childLogger("DirectoryCleanupJobHandler"),
       directorySync,
     ),
   );

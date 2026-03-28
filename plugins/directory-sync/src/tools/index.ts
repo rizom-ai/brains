@@ -14,44 +14,65 @@ export function createDirectorySyncTools(
     createTool(
       pluginId,
       "sync",
-      "Sync brain entities with the filesystem. Pulls from git, imports files, cleans up orphans, then commits and pushes changes.",
+      "Sync brain entities with the filesystem. Pulls from git if configured, then imports files. Git commit and push happen automatically after imports complete.",
       z.object({}),
       async (_input, context) => {
         try {
-          // 1. Git pull (fast async I/O)
-          let gitPulled = false;
-          if (gitSync) {
-            await gitSync.withLock(async () => {
-              await gitSync.pull();
-            });
-            gitPulled = true;
-          }
-
-          // 2. Queue import jobs (non-blocking — returns immediately)
           const source = context.channelId
             ? `${context.interfaceType}:${context.channelId}`
             : `plugin:${pluginId}`;
 
+          const metadata = {
+            interfaceType: context.interfaceType,
+            channelId: context.channelId,
+          };
+
+          // Pull + queue imports under the same lock so the file listing
+          // sees the post-pull directory state without races
+          if (gitSync) {
+            const result = await gitSync.withLock(async () => {
+              await gitSync.pull();
+              return directorySync.queueSyncBatch(
+                pluginContext,
+                source,
+                metadata,
+              );
+            });
+
+            if (!result) {
+              return toolSuccess({ gitPulled: true }, "No files to sync");
+            }
+
+            // Git commit+push happens via auto-commit when imports complete
+            return toolSuccess(
+              {
+                batchId: result.batchId,
+                importOperations: result.importOperationsCount,
+                totalFiles: result.totalFiles,
+                gitPulled: true,
+              },
+              `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files (pulled from git)`,
+            );
+          }
+
           const result = await directorySync.queueSyncBatch(
             pluginContext,
             source,
+            metadata,
           );
 
           if (!result) {
-            return toolSuccess({ gitPulled }, "No files to sync");
+            return toolSuccess({ gitPulled: false }, "No files to sync");
           }
-
-          // Git commit+push happens automatically via auto-commit
-          // when entity changes are detected after imports complete
 
           return toolSuccess(
             {
               batchId: result.batchId,
               importOperations: result.importOperationsCount,
               totalFiles: result.totalFiles,
-              gitPulled,
+              gitPulled: false,
             },
-            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files${gitPulled ? " (pulled from git)" : ""}`,
+            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
           );
         } catch (error) {
           return toolError(
