@@ -204,8 +204,10 @@ const items = [
   { id: "eval", name: "Eval Overhaul", status: "completed", desc: "mode: eval replaces preset: eval. eval.yaml for plugin evals. Three-tier test case loading. Markdown + comparison reporters. Result store with history rollups.", date: "2026-03" },
   { id: "syncsimplify", name: "Sync Tools Simplification", status: "completed", desc: "Unified sync + status tools. Non-blocking via job queue. Auto-export always on. Orphan cleanup on initial sync. Sync mutex. IGitSync + IDirectorySync interfaces.", date: "2026-03" },
 
+  { id: "toolresource", name: "Tool-to-Resource Migration", status: "completed", desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.", date: "2026-03" },
+
   // Short-term
-  { id: "toolresource", name: "Tool-to-Resource Migration", status: "short-term", desc: "Remove 5 read-only tools (get-identity, get-profile, get-status, list_routes, list_templates). Embed profile + site info in system prompt. Invalidate agent on entity changes." },
+  { id: "targetentity", name: "Target Entity Pattern", status: "short-term", desc: "Promote targetEntityType/targetEntityId to first-class fields on system_create. Enables 'create X and attach to Y' pattern. Removes untyped options bag." },
   { id: "sitebuilder", name: "Site Builder Decoupling", status: "short-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
   { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp. InterfacePlugin already stable.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "atproto", name: "AT Protocol Integration", status: "short-term", desc: "Federated content distribution, portable identity (DIDs), Bluesky presence, inbound ingestion, decentralized discovery, cross-brain feeds. Replaces agent directory.", blocks: ["hostedrovers"] },
@@ -327,8 +329,8 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Independent</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('toolresource')">tool-to-resource</span>
-        <span class="dep-label">no dependencies</span>
+        <span class="dep-node s-next" onclick="selectItem('targetentity')">target-entity-pattern</span>
+        <span class="dep-label">small — improves eval pass rate</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>

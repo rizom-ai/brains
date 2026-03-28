@@ -89,11 +89,19 @@ Async FS in directory-sync and webserver. Webserver moved to child process. Work
 
 Unified `directory-sync_sync` replaces 3 separate tools (sync + git_sync + git_status → sync + status). Non-blocking sync via job queue. Auto-export always enabled (entities durable without autoSync). Orphan cleanup on initial sync only. Sync mutex prevents concurrent batches. IGitSync + IDirectorySync interfaces for clean test mocks.
 
+### Tool-to-Resource Migration (2026-03)
+
+Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_get-status`, `site-builder_list_routes`, `site-builder_list_templates`), replaced with MCP resources. Profile and site info embedded in agent system prompt. Agent invalidated on identity/profile/site-info entity changes. ([plan](./plans/tool-to-resource-migration.md))
+
 ---
 
 ## Planned (Short-term)
 
 Short-term items are ordered by dependency. Items at the same level can be done in parallel.
+
+### Target Entity Pattern
+
+Promote `targetEntityType`/`targetEntityId` from `options` bag to first-class fields on `system_create`. Enables "create X and attach to Y" as a general pattern (images as covers, social posts from blog posts, newsletters from posts). Removes the untyped `options` field. ([plan](./plans/target-entity-pattern.md))
 
 ### Site Builder Decoupling
 
@@ -160,6 +168,8 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
+target-entity-pattern (independent — small, improves eval pass rate)
+
 site-builder-decoupling (parallel routes → engine extraction → Astro eval)
 
 atproto (identity + publishing → discovery → federation)
@@ -170,6 +180,6 @@ atproto + chat-sdk + ai-runtime ──→ hosted-rovers (K8s)
               desktop-app (Electrobun)
 
 chat-sdk (independent — InterfacePlugin already stable)
-kamal-deploy (independent)
+kamal-deploy + standalone-apps (independent)
 rizom.work (independent)
 ```
