@@ -3,31 +3,75 @@ import type {
   AgentResponse,
   ChatContext,
 } from "@brains/ai-service";
+import { z } from "@brains/utils";
+
+const agentResponseSchema = z.object({
+  text: z.string(),
+  usage: z.object({
+    promptTokens: z.number(),
+    completionTokens: z.number(),
+    totalTokens: z.number(),
+  }),
+  toolResults: z
+    .array(
+      z.object({
+        toolName: z.string(),
+        args: z.record(z.unknown()).optional(),
+        jobId: z.string().optional(),
+        data: z.unknown().optional(),
+      }),
+    )
+    .optional(),
+  pendingConfirmation: z
+    .object({
+      toolName: z.string(),
+      description: z.string(),
+      args: z.unknown(),
+    })
+    .optional(),
+});
+
+function parseAgentResponse(json: unknown): AgentResponse {
+  const result = agentResponseSchema.safeParse(json);
+  if (!result.success) {
+    throw new Error(
+      `Invalid response from remote agent: ${result.error.message}`,
+    );
+  }
+  const p = result.data;
+  const response: AgentResponse = { text: p.text, usage: p.usage };
+  if (p.toolResults) {
+    response.toolResults = p.toolResults.map((t) => ({
+      toolName: t.toolName,
+      ...(t.args && { args: t.args }),
+      ...(t.jobId && { jobId: t.jobId }),
+      ...(t.data !== undefined && { data: t.data }),
+    }));
+  }
+  if (p.pendingConfirmation) {
+    response.pendingConfirmation = {
+      toolName: p.pendingConfirmation.toolName,
+      description: p.pendingConfirmation.description,
+      args: p.pendingConfirmation.args,
+    };
+  }
+  return response;
+}
 
 export interface RemoteAgentServiceConfig {
-  /** Base URL of the remote brain (e.g., http://localhost:3333) */
   baseUrl: string;
-  /** Optional auth token for protected endpoints */
   authToken?: string | undefined;
 }
 
-/**
- * Remote agent service that connects to a running brain via HTTP
- * Implements IAgentService for use with evaluation runner
- */
 export class RemoteAgentService implements IAgentService {
   private readonly baseUrl: string;
   private readonly authToken?: string | undefined;
 
   constructor(config: RemoteAgentServiceConfig) {
-    // Remove trailing slash if present
     this.baseUrl = config.baseUrl.replace(/\/$/, "");
     this.authToken = config.authToken;
   }
 
-  /**
-   * Send a chat message to the remote agent
-   */
   async chat(
     message: string,
     conversationId: string,
@@ -49,13 +93,9 @@ export class RemoteAgentService implements IAgentService {
       );
     }
 
-    return response.json() as Promise<AgentResponse>;
+    return parseAgentResponse(await response.json());
   }
 
-  /**
-   * Confirm a pending action on the remote agent
-   * Note: This is not commonly used in evaluations
-   */
   async confirmPendingAction(
     conversationId: string,
     confirmed: boolean,
@@ -76,12 +116,13 @@ export class RemoteAgentService implements IAgentService {
       );
     }
 
-    return response.json() as Promise<AgentResponse>;
+    return parseAgentResponse(await response.json());
   }
 
-  /**
-   * Create a fresh instance
-   */
+  invalidateAgent(): void {
+    // Remote agents manage their own state
+  }
+
   static createFresh(config: RemoteAgentServiceConfig): RemoteAgentService {
     return new RemoteAgentService(config);
   }

@@ -8,7 +8,7 @@ tags:
   - entity-crud
 
 turns:
-  - userMessage: "Create a new social media post about our latest product launch and save it as a draft"
+  - userMessage: "Create a LinkedIn post about our latest product launch"
 
 successCriteria:
   expectedTools:

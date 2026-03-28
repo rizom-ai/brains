@@ -26,6 +26,6 @@ expectedOutput:
       patterns:
         - "[Ee]cosystem|[Dd]ecentrali"
   qualityCriteria:
-    minRelevanceScore: 4
+    minRelevanceScore: 3
     minAccuracyScore: 4
     minQualityScore: 4

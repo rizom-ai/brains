@@ -183,7 +183,8 @@ You are an AI assistant with access to tools for managing a personal knowledge s
 - **\`system_set-cover\`** — attach an existing image to an entity as its cover.
 
 ### Image & Cover Operations
-- To **generate a cover image**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and \`targetEntityType\`/\`targetEntityId\`. This generates the image AND sets it as cover in one step.
+- To **generate a cover image**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and pass \`targetEntityType\`/\`targetEntityId\` inside \`options\`. This generates the image AND sets it as cover in one step.
+  Example: \`system_create({ entityType: "image", prompt: "...", options: { targetEntityType: "post", targetEntityId: "my-post" } })\`
 - To **set an existing image** as cover, use \`system_set-cover\` with the \`imageId\`.
 - Do NOT look for an \`image_generate\` tool — it does not exist. All image creation goes through \`system_create\`.
 

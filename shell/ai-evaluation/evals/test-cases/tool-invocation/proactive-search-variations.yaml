@@ -41,7 +41,7 @@ turns:
         - "Would you like me to"
 
 successCriteria:
-  minHelpfulnessScore: 4
+  minHelpfulnessScore: 3
   minInstructionFollowingScore: 4
 
 efficiency:

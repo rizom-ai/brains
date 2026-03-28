@@ -84,6 +84,9 @@ export interface ServicePluginContext extends BasePluginContext {
 
   /** Prompt resolution namespace */
   readonly prompts: IPromptsNamespace;
+
+  /** Register or update plugin instructions for the agent system prompt */
+  registerInstructions: (instructions: string) => void;
 }
 
 /**
@@ -205,6 +208,10 @@ export function createServicePluginContext(
       resolve: (target: string, fallback: string): Promise<string> => {
         return resolvePrompt(entityService, target, fallback);
       },
+    },
+
+    registerInstructions: (instructions: string): void => {
+      shell.registerInstructions(pluginId, instructions);
     },
   };
 }

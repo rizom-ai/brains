@@ -169,6 +169,82 @@ describe("Entity cache invalidation", () => {
     });
   });
 
+  describe("agent invalidation on identity/profile/site-info changes", () => {
+    it("should invalidate agent when brain-character is updated", async () => {
+      const invalidateAgent = mock(() => {});
+      messageBus.subscribe<EntityPayload, void>(
+        "entity:updated",
+        async (message) => {
+          if (message.payload.entityType === "brain-character") {
+            invalidateAgent();
+          }
+          return { success: true };
+        },
+      );
+
+      await sendEntityEvent(
+        "entity:updated",
+        "brain-character",
+        "brain-character",
+      );
+      expect(invalidateAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it("should invalidate agent when anchor-profile is updated", async () => {
+      const invalidateAgent = mock(() => {});
+      messageBus.subscribe<EntityPayload, void>(
+        "entity:updated",
+        async (message) => {
+          if (message.payload.entityType === "anchor-profile") {
+            invalidateAgent();
+          }
+          return { success: true };
+        },
+      );
+
+      await sendEntityEvent(
+        "entity:updated",
+        "anchor-profile",
+        "anchor-profile",
+      );
+      expect(invalidateAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it("should invalidate agent when site-info is updated", async () => {
+      const invalidateAgent = mock(() => {});
+      messageBus.subscribe<EntityPayload, void>(
+        "entity:updated",
+        async (message) => {
+          if (message.payload.entityType === "site-info") {
+            invalidateAgent();
+          }
+          return { success: true };
+        },
+      );
+
+      await sendEntityEvent("entity:updated", "site-info", "site-info");
+      expect(invalidateAgent).toHaveBeenCalledTimes(1);
+    });
+
+    it("should NOT invalidate agent for unrelated entity types", async () => {
+      const invalidateAgent = mock(() => {});
+      const watchedTypes = ["brain-character", "anchor-profile", "site-info"];
+      messageBus.subscribe<EntityPayload, void>(
+        "entity:updated",
+        async (message) => {
+          if (watchedTypes.includes(message.payload.entityType)) {
+            invalidateAgent();
+          }
+          return { success: true };
+        },
+      );
+
+      await sendEntityEvent("entity:updated", "post", "my-post");
+      await sendEntityEvent("entity:updated", "note", "my-note");
+      expect(invalidateAgent).toHaveBeenCalledTimes(0);
+    });
+  });
+
   describe("multiple entity types with independent caches", () => {
     it("should refresh only the matching service cache", async () => {
       const identityRefresh = subscribeForEntity(

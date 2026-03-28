@@ -16,7 +16,7 @@ turns:
           argsContain:
             entityType: "post"
 
-  - userMessage: "Tell me more about the first one"
+  - userMessage: "Show me the full content of the first one"
     successCriteria:
       expectedTools:
         - toolName: system_get

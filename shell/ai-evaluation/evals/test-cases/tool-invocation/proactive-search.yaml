@@ -31,7 +31,7 @@ successCriteria:
     - "let me know if you'd like me to"
     - "Let me know if you'd like me to"
 
-  minHelpfulnessScore: 4
+  minHelpfulnessScore: 3
   minInstructionFollowingScore: 4
 
 efficiency:

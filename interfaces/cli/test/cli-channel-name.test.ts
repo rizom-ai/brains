@@ -35,6 +35,7 @@ describe("CLI Interface - Agent Context Integration", () => {
         text: "Confirmed",
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       }),
+      invalidateAgent: (): void => {},
     };
 
     harness.setAgentService(mockAgentService);

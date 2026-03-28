@@ -15,6 +15,7 @@ interface MockAgentService {
   confirmPendingAction: Mock<
     (conversationId: string, confirmed: boolean) => Promise<AgentResponse>
   >;
+  invalidateAgent: () => void;
 }
 
 // ── Mock matrix-bot-sdk ──
@@ -116,6 +117,7 @@ const createMockAgentService = (): MockAgentService => ({
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       }),
   ),
+  invalidateAgent: (): void => {},
 });
 
 function getHandler(event: string): (roomId: string, event: unknown) => void {

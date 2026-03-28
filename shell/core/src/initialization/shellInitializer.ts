@@ -350,6 +350,21 @@ export class ShellInitializer {
       logger,
     );
 
+    // Invalidate cached agent when identity or profile changes.
+    // Next conversation will rebuild with fresh data.
+    for (const entityType of [
+      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+    ]) {
+      subscribeToEntityCacheInvalidation(
+        messageBus,
+        entityType,
+        entityType,
+        async () => agentService.invalidateAgent(),
+        logger,
+      );
+    }
+
     // Initialize identity and profile services after sync completes.
     // This ensures remote data is pulled before defaults are created for empty DB.
     messageBus.subscribe<{ success: boolean }, void>(

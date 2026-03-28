@@ -15,6 +15,7 @@ interface MockAgentService {
   confirmPendingAction: Mock<
     (conversationId: string, confirmed: boolean) => Promise<AgentResponse>
   >;
+  invalidateAgent: () => void;
 }
 
 // ── Mock discord.js ──
@@ -136,6 +137,7 @@ const createMockAgentService = (): MockAgentService => ({
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       }),
   ),
+  invalidateAgent: (): void => {},
 });
 
 const mockReact = mock(() => Promise.resolve());

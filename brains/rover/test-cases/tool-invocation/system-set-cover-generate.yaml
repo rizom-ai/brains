@@ -1,6 +1,6 @@
 id: tool-invocation-set-cover-generate
 name: Generate Cover Image for Entity
-description: Verifies that the agent uses system_create with entityType "image" and targetEntityType/targetEntityId when asked to generate a cover image for an entity
+description: Verifies that the agent uses system_create with entityType "image" and passes targetEntityType/targetEntityId in options when asked to generate a cover image
 type: tool_invocation
 tags:
   - core
@@ -16,8 +16,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "image"
-        targetEntityType: "post"
-        targetEntityId: "urging-new-institutions"
+        options.targetEntityType: "post"
+        options.targetEntityId: "urging-new-institutions"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -197,22 +197,38 @@ export class TestRunner implements ITestRunner {
         }
 
         // Check args if specified - pass if ANY call to the tool has matching args
+        // Supports dot-notation paths (e.g. "options.targetEntityType")
         if (expected.shouldBeCalled && wasCalled && expected.argsContain) {
           const matchingCalls = toolCalls.filter(
             (tc) => tc.toolName === expected.toolName,
           );
 
+          const resolvePath = (
+            obj: Record<string, unknown>,
+            path: string,
+          ): unknown => {
+            const parts = path.split(".");
+            let current: unknown = obj;
+            for (const part of parts) {
+              if (current == null || typeof current !== "object")
+                return undefined;
+              current = (current as Record<string, unknown>)[part];
+            }
+            return current;
+          };
+
           for (const [key, expectedValue] of Object.entries(
             expected.argsContain,
           )) {
-            // Check if ANY call has the expected arg value (use deep equality for arrays/objects)
             const anyCallMatches = matchingCalls.some(
-              (tc) => tc.args && Bun.deepEquals(tc.args[key], expectedValue),
+              (tc) =>
+                tc.args &&
+                Bun.deepEquals(resolvePath(tc.args, key), expectedValue),
             );
 
             if (!anyCallMatches) {
               const actualValues = matchingCalls
-                .map((tc) => tc.args?.[key])
+                .map((tc) => tc.args && resolvePath(tc.args, key))
                 .filter((v) => v !== undefined);
               results.push({
                 criterion: "toolArgsContain",

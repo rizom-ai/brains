@@ -130,6 +130,13 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
     ];
   }
 
+  protected override async getInstructions(): Promise<string | undefined> {
+    return `## Publishing
+- Use \`content-pipeline_queue\` to manage the publish queue — list queued items, add entities to the queue, remove them, or reorder.
+- Use \`content-pipeline_publish\` to publish an entity directly to its platform (e.g. LinkedIn, Buttondown).
+- When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
+  }
+
   public async cleanup(): Promise<void> {
     await this.scheduler.stop();
     this.logger.info("Content pipeline plugin stopped");

@@ -131,4 +131,10 @@ export interface IAgentService {
     conversationId: string,
     confirmed: boolean,
   ): Promise<AgentResponse>;
+
+  /**
+   * Invalidate the cached agent so the next conversation rebuilds
+   * with fresh identity, profile, and instructions.
+   */
+  invalidateAgent(): void;
 }

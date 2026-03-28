@@ -430,6 +430,9 @@ export class Shell implements IShell {
 
   public registerInstructions(pluginId: string, instructions: string): void {
     this.services.mcpService.registerInstructions(pluginId, instructions);
+    if (this.initialized) {
+      this.services.agentService.invalidateAgent();
+    }
   }
 
   public getPluginPackageName(pluginId: string): string | undefined {

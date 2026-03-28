@@ -78,6 +78,7 @@ function createDefaultMockAgentService(): IAgentService {
       text: "Action confirmed.",
       usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
     }),
+    invalidateAgent: (): void => {},
   };
 }
 

@@ -21,6 +21,7 @@ describe("TestRunner", () => {
     mockAgentService = {
       chat: mock(() => Promise.resolve(createMockResponse())),
       confirmPendingAction: mock(() => Promise.resolve(createMockResponse())),
+      invalidateAgent: (): void => {},
     };
     testRunner = TestRunner.createFresh(mockAgentService);
   });
@@ -142,6 +143,165 @@ describe("TestRunner", () => {
       expect(result.turnResults).toHaveLength(2);
       expect(result.totalMetrics.turnCount).toBe(2);
       expect(result.totalMetrics.totalTokens).toBe(300); // 150 per turn
+    });
+
+    it("should verify tool args with argsContain", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: { entityType: "image", prompt: "a landscape" },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-args",
+        name: "Args Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Create an image" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: { entityType: "image" },
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(true);
+    });
+
+    it("should fail when argsContain value doesn't match", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: { entityType: "note" },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-args-fail",
+        name: "Args Mismatch Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Create an image" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: { entityType: "image" },
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(false);
+      expect(
+        result.failures.some((f) => f.criterion === "toolArgsContain"),
+      ).toBe(true);
+    });
+
+    it("should support dot-notation paths in argsContain", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: {
+                  entityType: "image",
+                  options: {
+                    targetEntityType: "post",
+                    targetEntityId: "my-post",
+                  },
+                },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-nested-args",
+        name: "Nested Args Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Generate a cover image" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: {
+                entityType: "image",
+                "options.targetEntityType": "post",
+                "options.targetEntityId": "my-post",
+              },
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(true);
+    });
+
+    it("should fail when nested dot-notation path doesn't match", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: {
+                  entityType: "image",
+                  options: { targetEntityType: "note" },
+                },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-nested-args-fail",
+        name: "Nested Args Mismatch Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Generate a cover image" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: { "options.targetEntityType": "post" },
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(false);
+      expect(
+        result.failures.some((f) => f.criterion === "toolArgsContain"),
+      ).toBe(true);
     });
 
     it("should check efficiency constraints", async () => {

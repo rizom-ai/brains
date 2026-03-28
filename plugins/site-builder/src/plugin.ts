@@ -179,6 +179,21 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       });
     }
 
+    // Re-register instructions when site-info changes so agent prompt stays fresh
+    context.messaging.subscribe("entity:updated", async (message) => {
+      const payload = message.payload as {
+        entityType: string;
+        entityId: string;
+      };
+      if (payload.entityType === "site-info") {
+        const instructions = await this.getInstructions();
+        if (instructions) {
+          context.registerInstructions(instructions);
+        }
+      }
+      return { success: true };
+    });
+
     // Subscribe to build-completed for SEO + CMS file generation
     subscribeBuildCompleted({
       context,

@@ -8,13 +8,13 @@ import {
 import type { IAgentService, AgentResponse } from "@brains/plugins";
 import type { Task } from "@a2a-js/sdk";
 
-/**
- * Create a mock AgentService that returns a fixed response
- */
+const OK_USAGE = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
+const OK_RESPONSE: AgentResponse = { text: "ok", usage: OK_USAGE };
+
 function createMockAgentService(
   response?: Partial<AgentResponse>,
 ): IAgentService {
-  const defaultResponse: AgentResponse = {
+  const r: AgentResponse = {
     text: response?.text ?? "Hello from the agent",
     usage: response?.usage ?? {
       promptTokens: 10,
@@ -24,11 +24,18 @@ function createMockAgentService(
     toolResults: response?.toolResults,
     pendingConfirmation: response?.pendingConfirmation,
   };
-
   return {
-    chat: async () => defaultResponse,
-    confirmPendingAction: async () => defaultResponse,
+    chat: async () => r,
+    confirmPendingAction: async () => r,
+    invalidateAgent: (): void => {},
   };
+}
+
+function createCustomAgentService(
+  overrides: Partial<IAgentService>,
+): IAgentService {
+  const base = createMockAgentService();
+  return { ...base, ...overrides };
 }
 
 /**
@@ -112,20 +119,13 @@ describe("JSON-RPC Handler", () => {
       let capturedMessage = "";
       let capturedConversationId = "";
 
-      const trackingService: IAgentService = {
+      const trackingService = createCustomAgentService({
         chat: async (message, conversationId) => {
           capturedMessage = message;
           capturedConversationId = conversationId;
-          return {
-            text: "ok",
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
+          return OK_RESPONSE;
         },
-        confirmPendingAction: async () => ({
-          text: "ok",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const request = rpcRequest("message/send", userMessage("Hello agent"));
       await handleJsonRpc(request, {
@@ -141,19 +141,12 @@ describe("JSON-RPC Handler", () => {
     it("should pass caller permission level to AgentService", async () => {
       let capturedLevel = "";
 
-      const trackingService: IAgentService = {
+      const trackingService = createCustomAgentService({
         chat: async (_message, _conversationId, context) => {
           capturedLevel = context?.userPermissionLevel ?? "public";
-          return {
-            text: "ok",
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
+          return OK_RESPONSE;
         },
-        confirmPendingAction: async () => ({
-          text: "ok",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const request = rpcRequest("message/send", userMessage("Hello"));
       await handleJsonRpc(request, {
@@ -186,19 +179,12 @@ describe("JSON-RPC Handler", () => {
     it("should concatenate multiple text parts", async () => {
       let capturedMessage = "";
 
-      const trackingService: IAgentService = {
+      const trackingService = createCustomAgentService({
         chat: async (message) => {
           capturedMessage = message;
-          return {
-            text: "ok",
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
+          return OK_RESPONSE;
         },
-        confirmPendingAction: async () => ({
-          text: "ok",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const request = rpcRequest("message/send", {
         message: {
@@ -235,14 +221,14 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should return failed task when AgentService throws", async () => {
-      const failingService: IAgentService = {
+      const failingService = createCustomAgentService({
         chat: async () => {
           throw new Error("LLM provider unavailable");
         },
         confirmPendingAction: async () => {
           throw new Error("not implemented");
         },
-      };
+      });
 
       const request = rpcRequest("message/send", userMessage("Hello"));
 
@@ -424,20 +410,13 @@ describe("JSON-RPC Handler", () => {
     it("should return working task immediately without awaiting agent", async () => {
       // Agent that takes a long time — non-blocking should NOT wait for it
       let agentCalled = false;
-      const slowAgent: IAgentService = {
+      const slowAgent = createCustomAgentService({
         chat: async () => {
           agentCalled = true;
           await new Promise((r) => setTimeout(r, 5000));
-          return {
-            text: "done",
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
+          return { text: "done", usage: OK_USAGE };
         },
-        confirmPendingAction: async () => ({
-          text: "",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const request = rpcRequest("message/send", userMessage("Hello"));
       const response = await handleJsonRpc(request, {
@@ -464,6 +443,7 @@ describe("JSON-RPC Handler", () => {
           return agentDone.chat(...args);
         },
         confirmPendingAction: agentDone.confirmPendingAction,
+        invalidateAgent: (): void => {},
       };
 
       const request = rpcRequest("message/send", userMessage("Hello"));
@@ -488,15 +468,11 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should transition task to failed when agent throws in background", async () => {
-      const failingAgent: IAgentService = {
+      const failingAgent = createCustomAgentService({
         chat: async () => {
           throw new Error("Agent crashed");
         },
-        confirmPendingAction: async () => ({
-          text: "",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const request = rpcRequest("message/send", userMessage("Hello"));
       const response = await handleJsonRpc(request, {
@@ -580,15 +556,11 @@ describe("JSON-RPC Handler", () => {
     });
 
     it("should stream failed status-update when agent throws", async () => {
-      const failingAgent: IAgentService = {
+      const failingAgent = createCustomAgentService({
         chat: async () => {
           throw new Error("Boom");
         },
-        confirmPendingAction: async () => ({
-          text: "",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const result = handleStreamMessage(
         1,
@@ -625,19 +597,12 @@ describe("JSON-RPC Handler", () => {
 
     it("should not throw when consumer disconnects early", async () => {
       // Slow agent — consumer will cancel before it completes
-      const slowAgent: IAgentService = {
+      const slowAgent = createCustomAgentService({
         chat: async () => {
           await new Promise((r) => setTimeout(r, 5000));
-          return {
-            text: "late",
-            usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-          };
+          return { text: "late", usage: OK_USAGE };
         },
-        confirmPendingAction: async () => ({
-          text: "",
-          usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-        }),
-      };
+      });
 
       const result = handleStreamMessage(
         1,
