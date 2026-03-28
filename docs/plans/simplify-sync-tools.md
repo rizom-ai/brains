@@ -75,3 +75,13 @@ Git field omitted when git not configured.
 ## Phase 6: Clean up test mock patterns
 
 Replace `as unknown as GitSync` / `as unknown as DirectorySync` casts with properly typed mock factories (like `createMockGitSync` in `sync-tools.test.ts`). Affects `periodic-sync.test.ts`, `git-lock.test.ts`, `setup-initial-sync-git.test.ts`, and others.
+
+## Phase 7: Fix concurrent batch race conditions
+
+The job queue processes jobs concurrently across batches. When two sync operations overlap (e.g. sync tool + periodic sync, or two rapid sync tool calls), their batches interleave:
+
+**Duplicate imports (low risk):** Two batches import the same files. Safe because `importEntities` uses `upsertEntity` (idempotent), but wastes work.
+
+**Cleanup races with imports (high risk):** Batch A's `directory-cleanup` job runs while batch B's import jobs are still in progress. Cleanup scans for DB entities without files — but batch B hasn't imported those files' entities yet. Cleanup deletes them, then batch B re-creates them. Data is preserved but the entity gets a new creation timestamp and loses its embedding until regenerated.
+
+**Fix:** Add a sync mutex to `DirectorySync` — a simple flag or lock that prevents `queueSyncBatch` from being called while another batch is in progress. If a second call arrives, either queue it (run after current batch completes) or return early with a "sync already in progress" message. This keeps the non-blocking property (the tool still returns immediately) while preventing batch overlap.

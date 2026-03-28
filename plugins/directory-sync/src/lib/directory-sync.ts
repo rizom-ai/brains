@@ -61,6 +61,7 @@ export class DirectorySync {
   private entityTypes: string[] | undefined;
   private fileWatcher: FileWatcher | undefined;
   private lastSync: Date | undefined;
+  private syncInProgress = false;
   private batchOperationsManager: BatchOperationsManager;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
@@ -312,15 +313,25 @@ export class DirectorySync {
     importOperationsCount: number;
     totalFiles: number;
   } | null> {
-    const files = await this.fileOperations.getAllMarkdownFiles();
+    if (this.syncInProgress) {
+      this.logger.debug("Sync already in progress, skipping", { source });
+      return null;
+    }
 
-    return this.batchOperationsManager.queueSyncBatch(
-      pluginContext,
-      source,
-      files,
-      metadata,
-      options,
-    );
+    this.syncInProgress = true;
+    try {
+      const files = await this.fileOperations.getAllMarkdownFiles();
+
+      return await this.batchOperationsManager.queueSyncBatch(
+        pluginContext,
+        source,
+        files,
+        metadata,
+        options,
+      );
+    } finally {
+      this.syncInProgress = false;
+    }
   }
 
   async startWatching(): Promise<void> {
