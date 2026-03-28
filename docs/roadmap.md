@@ -73,21 +73,13 @@ Moved system plugin from a plugin into shell-level registration (`shell/core/src
 
 Prompts became a `prompt` entity type with EntityPlugin. Defaults materialize from code on first startup, then become editable. AI generation resolves prompt entities automatically. Phase 3 complete.
 
-### Plugin Hierarchy Simplification — Phases 1–6b (2026-03)
+### Plugin Hierarchy Simplification (2026-03)
 
-All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Tool`, `Resource`, `Prompt`, `JobsNamespace`). `createTool` + `findEntityByIdentifier` in canonical packages. Duplicate job helpers and re-export shims deleted.
+All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Tool`, `Resource`, `Prompt`, `JobsNamespace`). `createTool` + `findEntityByIdentifier` in canonical packages. Duplicate job helpers deleted. Three sibling contexts (`BasePluginContext` → `EntityPluginContext`, `ServicePluginContext`, `InterfacePluginContext`). CorePlugin deleted, consumers merged into ServicePlugin. AI only on EntityPluginContext, templates only on ServicePluginContext.
 
 ### Blocking I/O Elimination — Phases 1–2 (2026-03)
 
 Async FS in directory-sync and webserver. Webserver moved to child process. Phase 3 (worker thread for site builds) parked.
-
----
-
-## In Progress
-
-### Plugin Hierarchy Simplification — Phases 7–9
-
-Collapse four-level hierarchy into three sibling types (EntityPlugin, ServicePlugin, InterfacePlugin). Extract shared BasePluginContext, remove CorePlugin level. ([plan](./plans/plugin-hierarchy-simplification.md))
 
 ---
 
@@ -156,8 +148,6 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-plugin-hierarchy (Phases 7–9)
-     ↓
 1. eval-overhaul (mode: eval, two runners, result store)
 
 agent-directory ────────────────┐
