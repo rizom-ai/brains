@@ -42,10 +42,10 @@ export class MarkdownReporter implements IReporter {
       parts.push(
         formatAsTable(categories, {
           columns: [
-            { header: "Category", value: (r) => r.category },
-            { header: "Pass", value: (r) => r.pass, align: "right" },
-            { header: "Fail", value: (r) => r.fail, align: "right" },
-            { header: "Rate", value: (r) => r.rate, align: "right" },
+            { header: "Category", value: (r): string => r.category },
+            { header: "Pass", value: (r): number => r.pass, align: "right" },
+            { header: "Fail", value: (r): number => r.fail, align: "right" },
+            { header: "Rate", value: (r): string => r.rate, align: "right" },
           ],
         }),
       );

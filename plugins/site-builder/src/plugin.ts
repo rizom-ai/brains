@@ -258,6 +258,22 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return this._slotRegistry;
   }
 
+  protected override async getInstructions(): Promise<string | undefined> {
+    const context = this.getContext();
+    try {
+      const siteInfo = await fetchSiteInfo(context.entityService);
+      const parts = [
+        `**Title:** ${siteInfo.title}`,
+        `**Description:** ${siteInfo.description}`,
+        context.domain && `**Domain:** ${context.domain}`,
+        context.siteUrl && `**URL:** ${context.siteUrl}`,
+      ].filter(Boolean);
+      return `## Your Site\n${parts.join("\n")}`;
+    } catch {
+      return undefined;
+    }
+  }
+
   protected override async onShutdown(): Promise<void> {
     this.logger.debug("Shutting down site-builder plugin");
     this.rebuildManager?.dispose();

@@ -3,7 +3,10 @@ import { AgentService } from "../src/agent-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import type { IMCPService, Tool } from "@brains/mcp-service";
-import type { IBrainCharacterService } from "@brains/identity-service";
+import type {
+  IBrainCharacterService,
+  IAnchorProfileService,
+} from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
 import type { BrainAgentConfig, BrainCallOptions } from "../src/brain-agent";
@@ -69,6 +72,7 @@ describe("AgentService", () => {
   let logger: ReturnType<typeof createSilentLogger>;
   let mockMCPService: IMCPService;
   let mockCharacterService: IBrainCharacterService;
+  let mockProfileService: IAnchorProfileService;
   let mockConversationService: Partial<IConversationService>;
 
   beforeEach(() => {
@@ -76,6 +80,9 @@ describe("AgentService", () => {
     logger = createSilentLogger();
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
+    mockProfileService = {
+      getProfile: () => ({ name: "Test Anchor", description: "Test" }),
+    };
     mockConversationService = createMockConversationService();
 
     mockAgentGenerateResult = {
@@ -97,6 +104,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -104,6 +112,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -116,6 +125,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -126,6 +136,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -137,6 +148,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -144,6 +156,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -154,6 +167,7 @@ describe("AgentService", () => {
           mockMCPService,
           mockConversationService as IConversationService,
           mockCharacterService,
+          mockProfileService,
           logger,
           { agentFactory: mockAgentFactory },
         ),
@@ -167,6 +181,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -187,6 +202,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -229,6 +245,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -253,6 +270,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -288,6 +306,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -335,6 +354,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -359,6 +379,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -385,6 +406,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -404,6 +426,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -452,6 +475,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -480,6 +504,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -501,6 +526,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -520,6 +546,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -543,6 +570,7 @@ describe("AgentService", () => {
         mcpWithInstructions,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -589,6 +617,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -617,6 +646,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );
@@ -677,6 +707,7 @@ describe("AgentService", () => {
         mockMCPService,
         mockConversationService as IConversationService,
         mockCharacterService,
+        mockProfileService,
         logger,
         { agentFactory: mockAgentFactory },
       );

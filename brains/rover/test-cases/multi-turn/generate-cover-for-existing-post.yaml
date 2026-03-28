@@ -1,6 +1,6 @@
 id: social-media-generate-cover-for-existing
 name: Generate cover image for previously created post
-description: Tests that in a multi-turn conversation, the agent uses image_generate with targetEntityType when asked to add a cover image to a previously generated post
+description: Tests that in a multi-turn conversation, the agent uses system_create with entityType "image" and targetEntityType when asked to add a cover image to a previously generated post
 type: multi_turn
 tags:
   - social-media
@@ -14,12 +14,13 @@ turns:
       expectedTools:
         - toolName: system_create
           shouldBeCalled: true
-  - userMessage: "Now add a cover image to that post by generating one with image_generate"
+  - userMessage: "Now generate a cover image for that post"
     successCriteria:
       expectedTools:
-        - toolName: image_generate
+        - toolName: system_create
           shouldBeCalled: true
           argsContain:
+            entityType: "image"
             targetEntityType: "social-post"
 
 successCriteria: {}

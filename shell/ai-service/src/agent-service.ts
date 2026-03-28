@@ -1,7 +1,10 @@
 import { type Logger } from "@brains/utils";
 import { type IMCPService, type ToolContext } from "@brains/mcp-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { IBrainCharacterService } from "@brains/identity-service";
+import type {
+  IBrainCharacterService,
+  IAnchorProfileService,
+} from "@brains/identity-service";
 import type { ModelMessage } from "ai";
 import type {
   AgentConfig,
@@ -66,6 +69,7 @@ export class AgentService implements IAgentService {
     mcpService: IMCPService,
     conversationService: IConversationService,
     identityService: IBrainCharacterService,
+    profileService: IAnchorProfileService,
     logger: Logger,
     config: AgentConfig,
   ): AgentService {
@@ -73,6 +77,7 @@ export class AgentService implements IAgentService {
       mcpService,
       conversationService,
       identityService,
+      profileService,
       logger,
       config,
     );
@@ -99,6 +104,7 @@ export class AgentService implements IAgentService {
     mcpService: IMCPService,
     conversationService: IConversationService,
     identityService: IBrainCharacterService,
+    profileService: IAnchorProfileService,
     logger: Logger,
     config: AgentConfig,
   ): AgentService {
@@ -106,6 +112,7 @@ export class AgentService implements IAgentService {
       mcpService,
       conversationService,
       identityService,
+      profileService,
       logger,
       config,
     );
@@ -118,6 +125,7 @@ export class AgentService implements IAgentService {
     private mcpService: IMCPService,
     private conversationService: IConversationService,
     private identityService: IBrainCharacterService,
+    private profileService: IAnchorProfileService,
     logger: Logger,
     config: AgentConfig,
   ) {
@@ -133,6 +141,7 @@ export class AgentService implements IAgentService {
   private getAgent(): BrainAgent {
     this.agent ??= this.agentFactory({
       identity: this.identityService.getCharacter(),
+      profile: this.profileService.getProfile(),
       tools: this.mcpService.listTools().map((t) => t.tool),
       pluginInstructions: this.mcpService.getInstructions(),
       stepLimit: this.stepLimit,

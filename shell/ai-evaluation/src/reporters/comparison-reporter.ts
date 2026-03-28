@@ -93,10 +93,18 @@ export class ComparisonReporter implements IReporter {
       formatAsTable(metrics, {
         header: "## Comparison: current vs previous",
         columns: [
-          { header: "Metric", value: (r) => r.metric },
-          { header: "Previous", value: (r) => r.previous, align: "right" },
-          { header: "Current", value: (r) => r.current, align: "right" },
-          { header: "Delta", value: (r) => r.delta, align: "right" },
+          { header: "Metric", value: (r): string => r.metric },
+          {
+            header: "Previous",
+            value: (r): string => r.previous,
+            align: "right",
+          },
+          {
+            header: "Current",
+            value: (r): string => r.current,
+            align: "right",
+          },
+          { header: "Delta", value: (r): string => r.delta, align: "right" },
         ],
       }),
     );

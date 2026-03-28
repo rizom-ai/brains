@@ -337,6 +337,7 @@ export class ShellInitializer {
       mcpService,
       conversationService,
       identityService,
+      profileService,
       logger,
       { agentFactory },
     );

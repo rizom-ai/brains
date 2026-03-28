@@ -1,6 +1,6 @@
 id: image-generate-uses-target-params
 name: Image generate uses target entity params for cover image
-description: Tests that when asked to generate a cover image for a specific entity, the agent uses targetEntityType and targetEntityId params on image_generate
+description: Tests that when asked to generate a cover image for a specific entity, the agent uses system_create with entityType "image" and targetEntityType/targetEntityId params
 type: tool_invocation
 tags:
   - image
@@ -12,9 +12,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: image_generate
+    - toolName: system_create
       shouldBeCalled: true
       argsContain:
+        entityType: "image"
         targetEntityType: "post"
         targetEntityId: "the-future-of-work-is-play"
   responseNotContains:

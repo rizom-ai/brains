@@ -29,6 +29,7 @@ describe("PromptPlugin", () => {
   it("should not be embeddable (excluded from search)", () => {
     const plugin = new PromptPlugin();
     const config = plugin.getEntityTypeConfig();
-    expect(config?.embeddable).toBe(false);
+    expect(config).toBeDefined();
+    expect(config.embeddable).toBe(false);
   });
 });

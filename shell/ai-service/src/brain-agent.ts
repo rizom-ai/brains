@@ -14,7 +14,7 @@ import {
   type LanguageModel,
 } from "ai";
 import { z } from "@brains/utils";
-import type { BrainCharacter } from "@brains/identity-service";
+import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
@@ -45,6 +45,7 @@ export type BrainCallOptions = z.infer<typeof brainCallOptionsSchema>;
  */
 export interface BrainAgentConfig {
   identity: BrainCharacter;
+  profile?: AnchorProfile;
   tools: Tool[];
   pluginInstructions?: string[];
   stepLimit?: number;
@@ -117,18 +118,19 @@ function convertToSDKTools(
 /**
  * Build the system instructions/prompt from identity
  */
-function buildInstructions(
+export function buildInstructions(
   identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,
   pluginInstructions?: string[],
+  profile?: AnchorProfile,
 ): string {
   let userContext = "";
   if (userPermissionLevel === "anchor") {
+    const anchorName = profile?.name ? ` (${profile.name})` : "";
     userContext = `
 ## Current User
-**You are speaking with your ANCHOR (owner).** This is the person who created and manages you.
-Address them personally and recognize that they know you well. Use \`system_get-profile\`
-to get their name and details if needed.`;
+**You are speaking with your ANCHOR${anchorName} (owner).** This is the person who created and manages you.
+Address them personally and recognize that they know you well.`;
   } else if (userPermissionLevel === "trusted") {
     userContext = `
 ## Current User
@@ -139,12 +141,27 @@ You are speaking with a **trusted user** who has elevated access but is not the 
 You are speaking with a **public user** with limited access.`;
   }
 
+  // Build profile section
+  let profileSection = "";
+  if (profile) {
+    const fields = [
+      profile.name && `**Name:** ${profile.name}`,
+      profile.email && `**Email:** ${profile.email}`,
+      profile.website && `**Website:** ${profile.website}`,
+      profile.description && `**Bio:** ${profile.description}`,
+    ].filter(Boolean);
+    if (fields.length > 0) {
+      profileSection = `\n## Your Anchor\n${fields.join("\n")}`;
+    }
+  }
+
   return (
     `# ${identity.name}
 
 **Role:** ${identity.role}
 **Purpose:** ${identity.purpose}
 **Values:** ${identity.values.join(", ")}
+${profileSection}
 ${userContext}
 
 ## Agent Instructions
@@ -152,22 +169,35 @@ ${userContext}
 You are an AI assistant with access to tools for managing a personal knowledge system.
 
 ### Identity vs Profile
-- **Identity** (from \`system_get-identity\`): This is YOU - the brain's persona, role, purpose, and values
-- **Profile** (from \`system_get-profile\`): This is your ANCHOR - the person who owns and manages this brain
-- When someone asks "who are you?" → use identity (describe yourself as the brain)
-- When someone asks "who owns this?" → use profile (describe your anchor/owner)
+- **Identity**: This is YOU — the brain's persona, role, purpose, and values (shown above)
+- **Profile**: This is your ANCHOR — the person who owns and manages this brain (shown above)
+- When someone asks "who are you?" → describe yourself using your identity
+- When someone asks "who owns this?" → describe your anchor using the profile
 - When your anchor is talking to you, address them personally (they created you!)
 
-### Tool Usage
-- **ALWAYS use your available tools** - you have many tools, USE THEM proactively
-- Look at the tool names: they tell you what they do (e.g., *_list, *_get, *_search)
-- **Never claim you don't have access** - if a tool exists for something, use it immediately
-- Never say "I don't know" or "I don't have access" without first trying the appropriate tool
-- **Be efficient** - use the minimum number of tool calls needed. Don't make redundant calls
-- **Prefer single-step operations** - use tool parameters to combine actions rather than chaining multiple tool calls (e.g., use \`generateImage: true\` instead of generating and attaching separately)
-- **Always specify target entities** - when an operation relates to an existing entity, pass its type and ID so the tool can act on it directly
-- **Always attempt tool calls** - when the user asks for an action on a specific entity, call the tool with the given parameters. Let the tool validate inputs and report errors rather than refusing preemptively. Never skip a tool call because you think an entity might not exist
-- Summarize tool results concisely rather than showing raw output` +
+### Core Tools
+- **\`system_create\`** — creates ANY entity type: notes, blog posts, social posts, newsletters, images, decks. Pass \`entityType\` to specify what to create. Use \`prompt\` for AI generation or \`content\` for direct creation.
+- **\`system_get\`** / **\`system_list\`** / **\`system_search\`** — read entities. Use \`system_search\` for semantic queries, \`system_list\` for browsing by type, \`system_get\` for a specific entity by ID or slug.
+- **\`system_update\`** — modify an entity's content or metadata.
+- **\`system_delete\`** — remove an entity. Always attempt the delete when asked — the tool handles confirmation.
+- **\`system_set-cover\`** — attach an existing image to an entity as its cover.
+
+### Image & Cover Operations
+- To **generate a cover image**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and \`targetEntityType\`/\`targetEntityId\`. This generates the image AND sets it as cover in one step.
+- To **set an existing image** as cover, use \`system_set-cover\` with the \`imageId\`.
+- Do NOT look for an \`image_generate\` tool — it does not exist. All image creation goes through \`system_create\`.
+
+### Tool Usage Rules
+- **ALWAYS use your available tools** — you have many tools, USE THEM proactively
+- **Never claim you don't have access** — if a tool exists for something, use it immediately
+- **Always attempt tool calls** — let the tool validate inputs and report errors rather than refusing preemptively. Never skip a tool call because you think an entity might not exist
+- **Be efficient** — use the minimum number of tool calls needed
+- **Always specify target entities** — when an operation relates to an existing entity, pass its type and ID
+- Summarize tool results concisely rather than showing raw output
+
+### Multi-Turn Context
+- **Remember previous results** — when the user says "that post", "the first one", "it", refer back to entities from earlier turns
+- After listing entities, remember their IDs so you can get details without asking the user to repeat themselves` +
     (pluginInstructions && pluginInstructions.length > 0
       ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`
       : "") +
@@ -265,6 +295,7 @@ export function createBrainAgentFactory(
             config.identity,
             callOptions.userPermissionLevel,
             config.pluginInstructions,
+            config.profile,
           ),
           tools: toolsWithContext,
           activeTools: allowedToolNames,

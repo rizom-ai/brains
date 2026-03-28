@@ -33,7 +33,7 @@ describe("sync mutex", () => {
         listEntities: [],
       },
     });
-    entityService.hasEntityType = () => true;
+    entityService.hasEntityType = (): boolean => true;
 
     directorySync = new DirectorySync({
       syncPath: testDir,
