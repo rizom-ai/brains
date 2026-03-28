@@ -26,6 +26,15 @@ Problems:
 
 Replaced `preset: eval` with `mode: eval` that layers on top of any preset. Brain models define `evalDisable` listing plugins with external side effects. Committed.
 
+## Two eval modes
+
+The system has two distinct eval paths:
+
+- **Agent evals** — full brain with `brain.eval.yaml` (`mode: eval`). Tests tool invocation, multi-turn conversation, response quality. Uses `evalDisable` to strip side-effect plugins. Run from `apps/*/`.
+- **Plugin evals** — minimal shell with a single plugin. Tests one handler in isolation. No presets, no `mode: eval`, no `evalDisable` — these don't apply since there's only one plugin. Run from `entities/*/evals/`.
+
+Phase 1 (`mode: eval` + `evalDisable`) only applies to agent evals. Phases 2-4 improve both.
+
 ## Phase 2: Replace plugin eval configs with `eval.yaml`
 
 The 7 `brain.eval.config.ts` files are identical boilerplate:
@@ -69,10 +78,11 @@ aiModel: sonnet # Override AI model (optional, future)
 
 ### Steps
 
-1. Add `eval.yaml` schema and loader to `run-evaluations.ts`
-2. Create `eval.yaml` for each of the 7 entity plugins
-3. Delete 7 `brain.eval.config.ts` files
-4. Test: `cd entities/blog/evals && bun run eval` still works
+1. Verify workspace resolution: `import("@brains/blog")` from `entities/blog/evals/` resolves correctly via bun's workspace protocol
+2. Add `eval.yaml` schema and loader to `run-evaluations.ts`
+3. Create `eval.yaml` for each of the 7 entity plugins
+4. Delete 7 `brain.eval.config.ts` files
+5. Test: `cd entities/blog/evals && bun run eval` still works
 
 ### Files
 
@@ -94,7 +104,7 @@ The agent runner loads test cases from multiple directories, merged in priority 
 3. App instance    apps/{instance}/test-cases/               (instance-specific overrides by filename)
 ```
 
-Higher tiers override lower tiers by test case `id`.
+Higher tiers override lower tiers by **filename** — a test case at the app level with the same filename as one at the brain model level replaces it entirely.
 
 ### What moves where
 
@@ -117,9 +127,9 @@ Higher tiers override lower tiers by test case `id`.
 
 - wishlist-add-variations.yaml, wishlist-add-unfulfillable.yaml
 
-**Shell evals stay** (7 files) — brain-agnostic response quality baselines.
+**Shell evals stay** (7 files) — brain-agnostic response quality baselines. These are loaded as tier 1 in every agent eval run (any brain, any app). They're never run separately — they're the shared foundation.
 
-**Plugin evals stay with plugins** — `entities/*/evals/test-cases/` unchanged. The runner loads them from the plugin directory.
+**Plugin evals stay with plugins** — `entities/*/evals/test-cases/` unchanged. The plugin eval runner loads them from the plugin directory. These are completely separate from the three-tier agent eval system.
 
 ### Runner changes
 
@@ -153,20 +163,39 @@ Single directory at repo root, committed to git:
 eval-results/
   agent/
     rover/
-      latest.json
-      baseline.json
-      2026-03-23T14-30.json
+      latest.json       # full detail of most recent run
+      baseline.json      # named snapshot (saved manually via --baseline)
+      history.json       # rolling summary — one entry per run
     ranger/
       latest.json
-      ...
+      history.json
   handler/
     blog/
       latest.json
-      baseline.json
+      history.json
       ...
 ```
 
-Both agent and plugin evals write to the same store. `latest.json` is a copy of the most recent run. Named baselines are saved via `--baseline <name>`.
+Both agent and plugin evals write to the same store. `latest.json` is overwritten on each run with full test case results. Named baselines are saved via `--baseline <name>`.
+
+**History rollups:** instead of keeping N full result files, `history.json` appends one summary entry per run:
+
+```json
+[
+  {
+    "date": "2026-03-23T14:30:00Z",
+    "preset": "pro",
+    "total": 47,
+    "passed": 45,
+    "failed": 2,
+    "passRate": 0.957,
+    "avgTokens": 1234,
+    "failures": ["search-tool", "blog-context"]
+  }
+]
+```
+
+This gives trend data (pass rate over time, regression tracking) without bloating git with duplicate full results. The comparison reporter reads from `history.json` for trends and from `latest.json` / `baseline.json` for detailed diffs.
 
 ### Reporters
 

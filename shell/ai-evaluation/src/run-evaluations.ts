@@ -188,7 +188,22 @@ Examples:
  * brain.eval.config.ts uses the legacy defineConfig() pattern.
  */
 async function loadEvalConfig(): Promise<AppConfig> {
-  // Try brain.eval.yaml first (new pattern)
+  // Try eval.yaml first (plugin eval — minimal brain, single plugin)
+  const pluginEvalPath = resolvePath(process.cwd(), "eval.yaml");
+  if (existsSync(pluginEvalPath)) {
+    const { parseEvalYaml, loadPluginEvalConfig } =
+      await import("./eval-yaml-loader");
+    const content = readFileSync(pluginEvalPath, "utf-8");
+    const evalConfig = parseEvalYaml(content);
+    if (evalConfig) {
+      console.log(
+        `Loaded plugin eval config from eval.yaml (${evalConfig.plugin})`,
+      );
+      return loadPluginEvalConfig(evalConfig);
+    }
+  }
+
+  // Try brain.eval.yaml (agent eval — full brain with eval mode)
   const yamlPath = resolvePath(process.cwd(), "brain.eval.yaml");
   if (existsSync(yamlPath)) {
     const content = readFileSync(yamlPath, "utf-8");
@@ -215,10 +230,10 @@ async function loadEvalConfig(): Promise<AppConfig> {
   const configPath = resolvePath(process.cwd(), "brain.eval.config.ts");
   if (!existsSync(configPath)) {
     console.error(
-      "❌ No brain.eval.yaml or brain.eval.config.ts found in current directory",
+      "❌ No eval.yaml, brain.eval.yaml, or brain.eval.config.ts found in current directory",
     );
     console.error(
-      "Run this command from an app directory (e.g., apps/collective-brain)",
+      "Run from an app directory (apps/*) or plugin eval directory (entities/*/evals/)",
     );
     process.exit(1);
   }
