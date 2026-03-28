@@ -29,7 +29,7 @@ describe("CorePlugin", () => {
 
   test("plugin registers successfully", () => {
     expect(capabilities).toBeDefined();
-    expect(capabilities.tools).toHaveLength(2);
+    expect(capabilities.tools).toHaveLength(1);
     expect(capabilities.resources).toEqual([]);
   });
 
@@ -37,12 +37,6 @@ describe("CorePlugin", () => {
     const addTool = capabilities.tools.find((t) => t.name === "calc_add");
     expect(addTool).toBeDefined();
     expect(addTool?.description).toBe("Add two numbers");
-  });
-
-  test("provides calc_format tool", () => {
-    const formatTool = capabilities.tools.find((t) => t.name === "calc_format");
-    expect(formatTool).toBeDefined();
-    expect(formatTool?.description).toBe("Format a calculation result");
   });
 
   test("handles calculation requests through messaging", async () => {
