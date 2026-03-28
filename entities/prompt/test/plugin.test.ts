@@ -25,4 +25,10 @@ describe("PromptPlugin", () => {
     expect(plugin.entityType).toBe("prompt");
     expect(plugin.version).toBeDefined();
   });
+
+  it("should not be embeddable (excluded from search)", () => {
+    const plugin = new PromptPlugin();
+    const config = plugin.getEntityTypeConfig();
+    expect(config?.embeddable).toBe(false);
+  });
 });
