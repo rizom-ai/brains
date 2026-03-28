@@ -85,11 +85,19 @@ All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Too
 
 Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread for site builds evaluated and parked (Preact rendering is fast, real bottleneck is sequential route processing). See site-builder decoupling plan for the actual performance fix.
 
+### Sync Tools Simplification (2026-03)
+
+Unified `directory-sync_sync` replaces 3 separate tools (sync + git_sync + git_status → sync + status). Non-blocking sync via job queue. Auto-export always enabled (entities durable without autoSync). Orphan cleanup on initial sync only. Sync mutex prevents concurrent batches. IGitSync + IDirectorySync interfaces for clean test mocks.
+
 ---
 
 ## Planned (Short-term)
 
 Short-term items are ordered by dependency. Items at the same level can be done in parallel.
+
+### Tool-to-Resource Migration
+
+Remove 5 read-only tools (get-identity, get-profile, get-status, list_routes, list_templates), replace with MCP resources. Embed profile and site info in agent system prompt. Invalidate agent on entity changes. ([plan](./plans/tool-to-resource-migration.md))
 
 ### Site Builder Decoupling
 

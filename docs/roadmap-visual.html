@@ -201,19 +201,20 @@ const items = [
   { id: "prompts", name: "Prompts as Entities", status: "completed", desc: "Prompt entity type with auto-materialization. Defaults emerge from code on first startup, become editable. AI generation resolves prompt entities automatically.", date: "2026-03" },
   { id: "hierarchy", name: "Plugin Hierarchy Simplification", status: "completed", desc: "Three sibling contexts (BasePluginContext → Entity, Service, Interface). CorePlugin deleted. AI only on EntityPluginContext, templates only on ServicePluginContext. Types renamed.", date: "2026-03" },
   { id: "blockio", name: "Blocking I/O — Phases 1-2", status: "completed", desc: "Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread evaluated and parked.", date: "2026-03" },
+  { id: "eval", name: "Eval Overhaul", status: "completed", desc: "mode: eval replaces preset: eval. eval.yaml for plugin evals. Three-tier test case loading. Markdown + comparison reporters. Result store with history rollups.", date: "2026-03" },
+  { id: "syncsimplify", name: "Sync Tools Simplification", status: "completed", desc: "Unified sync + status tools. Non-blocking via job queue. Auto-export always on. Orphan cleanup on initial sync. Sync mutex. IGitSync + IDirectorySync interfaces.", date: "2026-03" },
 
-  // Short-term pipeline
-  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 1, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines." },
-  // Short-term independent
+  // Short-term
+  { id: "toolresource", name: "Tool-to-Resource Migration", status: "short-term", desc: "Remove 5 read-only tools (get-identity, get-profile, get-status, list_routes, list_templates). Embed profile + site info in system prompt. Invalidate agent on entity changes." },
   { id: "sitebuilder", name: "Site Builder Decoupling", status: "short-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
   { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp. InterfacePlugin already stable.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "agentdir", name: "Agent Directory", status: "short-term", desc: "Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves by name.", blocks: ["hostedrovers"] },
+  { id: "atproto", name: "AT Protocol Integration", status: "short-term", desc: "Federated content distribution, portable identity (DIDs), Bluesky presence, inbound ingestion, decentralized discovery, cross-brain feeds. Replaces agent directory.", blocks: ["hostedrovers"] },
   { id: "rizomwork", name: "rizom.work", status: "short-term", desc: "New relay instance with Discord, rizom theme variations." },
 
   // Medium-term
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
   { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "medium-term", desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml). Same pattern as hosted rovers and desktop app.", blocks: ["hostedrovers"] },
-  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["agentdir", "chatsdk", "mediasidecar"] },
+  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["atproto", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "astro", name: "Astro Migration", status: "medium-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Content Collections from entity DB, island architecture, native Tailwind + image optimization.", deps: ["sitebuilder"] },
 
@@ -304,7 +305,7 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Hosted Rovers</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('agentdir')">agent-directory</span>
+        <span class="dep-node s-next" onclick="selectItem('atproto')">atproto</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
