@@ -73,6 +73,10 @@ Moved system plugin from a plugin into shell-level registration (`shell/core/src
 
 Prompts became a `prompt` entity type with EntityPlugin. Defaults materialize from code on first startup, then become editable. AI generation resolves prompt entities automatically. Phase 3 complete.
 
+### Eval Overhaul (2026-03)
+
+`mode: eval` replaces `preset: eval` — layers on any preset, brain models define `evalDisable`. Plugin eval configs replaced with one-line `eval.yaml`. Three-tier test case loading (shell → brain model → app instance) with ID deduplication. Markdown + comparison reporters with `--compare` and `--baseline` flags. ([plan](./plans/eval-overhaul.md))
+
 ### Plugin Hierarchy Simplification (2026-03)
 
 All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Tool`, `Resource`, `Prompt`, `JobsNamespace`). `createTool` + `findEntityByIdentifier` in canonical packages. Duplicate job helpers deleted. Three sibling contexts (`BasePluginContext` → `EntityPluginContext`, `ServicePluginContext`, `InterfacePluginContext`). CorePlugin deleted, consumers merged into ServicePlugin. AI only on EntityPluginContext, templates only on ServicePluginContext.
@@ -86,10 +90,6 @@ Async FS in directory-sync and webserver. Webserver moved to child process. Work
 ## Planned (Short-term)
 
 Short-term items are ordered by dependency. Items at the same level can be done in parallel.
-
-### 1. Eval Overhaul
-
-Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
 
 ### Site Builder Decoupling
 
@@ -156,8 +156,6 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-1. eval-overhaul (mode: eval, two runners, result store)
-
 site-builder-decoupling (parallel routes → engine extraction → Astro eval)
 
 atproto (identity + publishing → discovery → federation)
