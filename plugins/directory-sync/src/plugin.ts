@@ -138,7 +138,12 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
   protected override async getTools(): Promise<Tool[]> {
     const directorySync = this.requireDirectorySync();
-    return createDirectorySyncTools(directorySync, this.id, this.gitSync);
+    return createDirectorySyncTools(
+      directorySync,
+      this.getContext(),
+      this.id,
+      this.gitSync,
+    );
   }
 
   protected override async onShutdown(): Promise<void> {

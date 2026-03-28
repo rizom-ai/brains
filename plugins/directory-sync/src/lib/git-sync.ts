@@ -187,6 +187,10 @@ export class GitSync {
     return !!this.remoteUrl;
   }
 
+  async pullWithLock(): Promise<PullResult> {
+    return this.withLock(() => this.pull());
+  }
+
   async getStatus(): Promise<GitSyncStatus> {
     try {
       const status = await this.git.status();

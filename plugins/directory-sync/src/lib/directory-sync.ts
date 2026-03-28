@@ -1,4 +1,10 @@
-import type { BaseEntity, IEntityService } from "@brains/plugins";
+import type {
+  BaseEntity,
+  IEntityService,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { BatchOperationsManager } from "./batch-operations";
+import type { BatchMetadata } from "./batch-operations";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type { GitSync } from "./git-sync";
 import { resolve, isAbsolute } from "path";
@@ -56,6 +62,7 @@ export class DirectorySync {
   private entityTypes: string[] | undefined;
   private fileWatcher: FileWatcher | undefined;
   private lastSync: Date | undefined;
+  private batchOperationsManager: BatchOperationsManager;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
   private coverImageConverter: FrontmatterImageConverter;
@@ -80,6 +87,10 @@ export class DirectorySync {
     this.watchInterval = options.watchInterval ?? 5000;
     this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
     this.entityTypes = options.entityTypes;
+    this.batchOperationsManager = new BatchOperationsManager(
+      this.logger,
+      this.syncPath,
+    );
     this.fileOperations = new FileOperations(this.syncPath, this.entityService);
     this.progressOperations = new ProgressOperations(
       this.logger,
@@ -326,6 +337,29 @@ export class DirectorySync {
       files,
       stats,
     };
+  }
+
+  async queueSyncBatch(
+    pluginContext: ServicePluginContext,
+    source: string,
+    metadata?: BatchMetadata,
+  ): Promise<{
+    batchId: string;
+    operationCount: number;
+    exportOperationsCount: number;
+    importOperationsCount: number;
+    totalFiles: number;
+  } | null> {
+    const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
+    const files = await this.fileOperations.getAllMarkdownFiles();
+
+    return this.batchOperationsManager.queueSyncBatch(
+      pluginContext,
+      source,
+      entityTypes,
+      files,
+      metadata,
+    );
   }
 
   async startWatching(): Promise<void> {

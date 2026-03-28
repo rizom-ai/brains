@@ -1,11 +1,12 @@
-import type { Tool } from "@brains/plugins";
-import { createTool } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
+import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
 import type { GitSync } from "../lib/git-sync";
 
 export function createDirectorySyncTools(
   directorySync: DirectorySync,
+  pluginContext: ServicePluginContext,
   pluginId: string,
   gitSync?: GitSync,
 ): Tool[] {
@@ -13,26 +14,49 @@ export function createDirectorySyncTools(
     createTool(
       pluginId,
       "sync",
-      "Sync brain entities with the filesystem. Pulls from git, imports files, cleans up orphans, commits and pushes changes.",
+      "Sync brain entities with the filesystem. Pulls from git, imports files, cleans up orphans, then commits and pushes changes.",
       z.object({}),
-      async () => {
+      async (_input, context) => {
         try {
-          const result = await directorySync.fullSync(gitSync);
+          // 1. Git pull (fast async I/O)
+          let gitPulled = false;
+          if (gitSync) {
+            await gitSync.withLock(async () => {
+              await gitSync.pull();
+            });
+            gitPulled = true;
+          }
 
-          const parts = [`Synced ${result.imported} entities`];
-          if (result.gitPulled) parts.push("pulled from git");
-          if (result.gitPushed) parts.push("pushed to git");
+          // 2. Queue import jobs (non-blocking — returns immediately)
+          const source = context.channelId
+            ? `${context.interfaceType}:${context.channelId}`
+            : `plugin:${pluginId}`;
 
-          return {
-            success: true,
-            data: result,
-            message: parts.join(", "),
-          };
+          const result = await directorySync.queueSyncBatch(
+            pluginContext,
+            source,
+          );
+
+          if (!result) {
+            return toolSuccess({ gitPulled }, "No files to sync");
+          }
+
+          // Git commit+push happens automatically via auto-commit
+          // when entity changes are detected after imports complete
+
+          return toolSuccess(
+            {
+              batchId: result.batchId,
+              importOperations: result.importOperationsCount,
+              totalFiles: result.totalFiles,
+              gitPulled,
+            },
+            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files${gitPulled ? " (pulled from git)" : ""}`,
+          );
         } catch (error) {
-          return {
-            success: false,
-            error: error instanceof Error ? error.message : "Sync failed",
-          };
+          return toolError(
+            error instanceof Error ? error.message : "Sync failed",
+          );
         }
       },
     ),
@@ -63,13 +87,11 @@ export function createDirectorySyncTools(
             };
           }
 
-          return { success: true, data };
+          return toolSuccess(data);
         } catch (error) {
-          return {
-            success: false,
-            error:
-              error instanceof Error ? error.message : "Status check failed",
-          };
+          return toolError(
+            error instanceof Error ? error.message : "Status check failed",
+          );
         }
       },
       { visibility: "public" },

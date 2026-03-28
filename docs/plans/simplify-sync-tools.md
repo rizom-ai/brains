@@ -10,42 +10,60 @@ Directory-sync has three tools from before the git-sync merge:
 | `directory-sync_git_sync`   | Commit + push           |
 | `directory-sync_git_status` | Git status              |
 
-From the user's perspective, "sync" means "make everything consistent." The split between filesystem sync and git sync is an implementation detail. The batch job queuing adds complexity for no benefit — the operation takes seconds.
+From the user's perspective, "sync" means "make everything consistent." The split between filesystem sync and git sync is an implementation detail.
+
+## Current state (partially implemented)
+
+We already:
+
+- ✅ Added `fullSync()` to DirectorySync (pull → sync → commit+push)
+- ✅ Added status tool (sync path, lastSync, watching, git info)
+- ✅ Deleted git-tools.ts (git_sync, git_status)
+- ✅ Updated plugin to pass gitSync to tool factory
+- ✅ Updated YAML test cases
+- ❌ Deleted batch-operations.ts — REGRESSION, must restore
+- ❌ Deleted queueSyncBatch() — REGRESSION, must restore
+- ❌ Sync tool calls fullSync() synchronously — BLOCKS event loop
+
+## Problem: blocking imports
+
+There are two places where imports block the event loop:
+
+### 1. Sync tool (user-initiated)
+
+The sync tool now calls `fullSync()` which calls `sync()` which calls `importEntities()` — a tight loop over all files. For 100+ entities, this blocks MCP/Discord for seconds.
+
+The old tool called `queueSyncBatch()` which queued individual import jobs into the job queue worker. Each job processes one file, then yields to the event loop before the next. This is what kept the brain responsive.
+
+**Fix**: Restore `queueSyncBatch()` and `BatchOperationsManager`. Sync tool calls git pull → `queueSyncBatch()` → returns immediately. Auto-commit handles git push after imports complete.
+
+### 2. Periodic sync + initial sync (background)
+
+`setupPeriodicGitSync` and `setupInitialSync` both call `directorySync.sync()` directly — same tight import loop. During periodic sync (every 2 min) and initial startup, the brain is unresponsive.
+
+**Fix**: These should also use the job queue for imports. Change `sync()` to queue import jobs instead of running them inline. Or add a `syncViaJobQueue()` method.
+
+However, this is a bigger change: `sync()` currently returns an `ImportResult` with counts. If it queues jobs instead, it returns immediately and the results come later via events. The callers (`setupInitialSync`, `setupPeriodicGitSync`) would need to subscribe to completion events instead of awaiting results.
+
+This is out of scope for the tool simplification. Track separately.
 
 ## Design
 
-Two tools:
-
-| Tool                    | What it does                                 |
-| ----------------------- | -------------------------------------------- |
-| `directory-sync_sync`   | Pull → import + cleanup → commit + push      |
-| `directory-sync_status` | Git status + last sync time + sync path info |
-
-### sync tool
-
-One tool does everything in order:
+### Sync tool (non-blocking)
 
 ```
-1. git pull (if git configured)
-2. import files → entities + orphan cleanup
-3. git commit + push (if git configured, if changes exist)
+User calls directory-sync_sync
+  ↓
+1. git pull (if configured) — fast async I/O
+2. queueSyncBatch() — queues import jobs, returns immediately
+3. return { batchId, importOperations, totalFiles, gitPulled }
+  ↓
+(background) job queue processes imports one by one
+  ↓
+(background) auto-commit detects entity changes, commits + pushes
 ```
 
-No explicit export step — auto-sync subscribers handle export reactively when entities change. Adding an explicit export would risk overwriting user edits with stale DB content before imports run.
-
-Returns:
-
-```json
-{
-  "imported": 42,
-  "orphansDeleted": 0,
-  "gitPushed": true
-}
-```
-
-### status tool
-
-Combines git status + sync metadata:
+### Status tool
 
 ```json
 {
@@ -62,87 +80,30 @@ Combines git status + sync metadata:
 }
 ```
 
-If git is not configured, the `git` field is omitted.
+Git field omitted when git not configured.
 
-### Under the hood
+## Remaining steps
 
-The sync tool calls `directorySync.fullSync(gitSync?)` — a new method that combines existing pieces:
+1. Restore `batch-operations.ts` and `queueSyncBatch()` (revert deletion)
+2. Restore `batch-export-regression.test.ts` (revert deletion)
+3. Write tests: sync tool calls `queueSyncBatch()` not `fullSync()`, returns immediately
+4. Rewrite sync tool: git pull → `queueSyncBatch()` → return batch info
+5. Update plugin: pass `pluginContext` back to tool factory (needed for `queueSyncBatch`)
+6. Verify non-blocking behavior
 
-```typescript
-async fullSync(gitSync?: GitSync): Promise<FullSyncResult> {
-  if (gitSync) {
-    await gitSync.withLock(async () => {
-      await gitSync.pull();
-    });
-  }
+## Future work (out of scope)
 
-  const syncResult = await this.sync(); // import + orphan cleanup
+- Make periodic sync use job queue for imports
+- Make initial sync use job queue for imports
+- Consider removing `fullSync()` if nothing uses it after tool fix
 
-  let gitPushed = false;
-  if (gitSync) {
-    await gitSync.withLock(async () => {
-      if (await gitSync.hasLocalChanges()) {
-        await gitSync.commit();
-        await gitSync.push();
-        gitPushed = true;
-      }
-    });
-  }
+## Files
 
-  return {
-    imported: syncResult.import.imported,
-    orphansDeleted: syncResult.import.jobIds.length,
-    gitPushed,
-  };
-}
-```
-
-This is the same cycle as `setupPeriodicGitSync` already does. The periodic sync will also call `fullSync()` instead of reimplementing the cycle.
-
-## Files deleted
-
-- `src/tools/git-tools.ts` — git_sync and git_status tools
-- `src/lib/batch-operations.ts` — BatchOperationsManager (only used by sync tool)
-- `test/git/git-tools.test.ts` — tests for deleted tools
-- `test/batch-export-regression.test.ts` — tests batch-only behavior being removed
-
-## Files modified
-
-- `src/lib/directory-sync.ts` — add `fullSync(gitSync?)`, remove `queueSyncBatch` + BatchOperationsManager
-- `src/tools/index.ts` — sync calls `fullSync()`, new status tool
-- `src/plugin.ts` — pass `gitSync` to tool factory, remove `createGitTools` import
-- `src/lib/git-periodic-sync.ts` — call `fullSync(gitSync)` instead of inline cycle
-- `test/plugin.test.ts` — update tool count/name expectations
-- `test/git/periodic-sync.test.ts` — update assertions for fullSync call
-- YAML test cases — update tool names (`git_sync` → `sync`, `git_status` → `status`)
-
-## What stays untouched
-
-- Auto-sync (file watcher → import on change)
-- Auto-commit (debounced git commit on entity changes)
-- Initial sync (already calls `directorySync.sync()` directly)
-- Message handlers (`entity:export:request`, `entity:import:request`)
-- All job handlers and pipelines
-
-## Steps
-
-1. Write tests for `fullSync()`, new sync tool, and new status tool
-2. Add `fullSync(gitSync?)` to DirectorySync
-3. Rewrite sync tool to call `fullSync()` — no batch jobs
-4. Add status tool (git status + lastSync, git fields conditional)
-5. Delete `git-tools.ts` and `batch-operations.ts`
-6. Update `plugin.ts` — pass gitSync to tool factory, remove git tools import
-7. Update periodic sync to use `fullSync()`
-8. Update YAML test cases for new tool names
-9. Delete stale test files
-
-## Verification
-
-1. `bun run typecheck`
-2. `bun test plugins/directory-sync/`
-3. `bun run lint`
-4. `directory-sync_sync` does full pull → import → commit → push
-5. `directory-sync_status` returns git status + last sync time
-6. Periodic sync still works (uses fullSync)
-7. Auto-sync (file watcher) still works
-8. No reference to `git_sync`, `git_status`, or `BatchOperationsManager` anywhere
+| File                                   | Action                               |
+| -------------------------------------- | ------------------------------------ |
+| `src/lib/batch-operations.ts`          | Restore                              |
+| `src/lib/directory-sync.ts`            | Restore `queueSyncBatch()`           |
+| `test/batch-export-regression.test.ts` | Restore                              |
+| `src/tools/index.ts`                   | Sync: pull → queueSyncBatch → return |
+| `src/plugin.ts`                        | Pass pluginContext to tool factory   |
+| `test/sync-tools.test.ts`              | New: verify non-blocking behavior    |
