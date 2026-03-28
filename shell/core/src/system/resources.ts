@@ -48,5 +48,20 @@ export function createSystemResources(services: SystemServices): Resource[] {
         ],
       }),
     },
+    {
+      uri: "brain://status",
+      name: "Brain Status",
+      description: "System status — version, model, interfaces, tools",
+      mimeType: "application/json",
+      handler: async () => ({
+        contents: [
+          {
+            uri: "brain://status",
+            mimeType: "application/json",
+            text: JSON.stringify(await services.getAppInfo(), null, 2),
+          },
+        ],
+      }),
+    },
   ];
 }

@@ -12,7 +12,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_get-status
+    - toolName: system_status
       shouldBeCalled: true
   responseNotContains:
     - "I cannot"

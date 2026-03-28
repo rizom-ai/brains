@@ -291,30 +291,10 @@ export function createSystemTools(services: SystemServices): Tool[] {
       { visibility: "public" },
     ),
 
-    // ── Get identity ──
+    // ── Status ──
     createTool(
       "system",
-      "get-identity",
-      "Get the brain's identity — name, role, purpose, values.",
-      z.object({}),
-      async () => ({ success: true, data: services.getIdentity() }),
-      { visibility: "public" },
-    ),
-
-    // ── Get profile ──
-    createTool(
-      "system",
-      "get-profile",
-      "Get the anchor's profile — name, bio, social links.",
-      z.object({}),
-      async () => ({ success: true, data: services.getProfile() }),
-      { visibility: "public" },
-    ),
-
-    // ── Get status ──
-    createTool(
-      "system",
-      "get-status",
+      "status",
       "Get system status including model, version, interfaces, and tools",
       z.object({}),
       async () => ({ success: true, data: await services.getAppInfo() }),

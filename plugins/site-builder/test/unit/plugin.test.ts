@@ -1,14 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { SiteBuilderPlugin } from "../../src/plugin";
-import { createPluginHarness, expectSuccess } from "@brains/plugins/test";
+import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
 import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
-
-// Schema for parsing routes response data
-const routesData = z.object({ routes: z.array(z.unknown()) });
 
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
@@ -89,48 +86,6 @@ describe("SiteBuilderPlugin", () => {
     expect(templates.has("site-builder:test-template")).toBe(true);
   });
 
-  it("should provide list_routes tool that shows configured routes", async () => {
-    plugin = new SiteBuilderPlugin(
-      createTestConfig({
-        previewOutputDir: "/tmp/test-output",
-        productionOutputDir: "/tmp/test-output-production",
-        routes: [
-          {
-            id: "test",
-            path: "/test",
-            title: "Test Page",
-            description: "Test Description",
-            layout: "default",
-            sections: [{ id: "section1", template: "test" }],
-          },
-        ],
-      }),
-    );
-
-    capabilities = await harness.installPlugin(plugin);
-
-    // The list_routes tool should be available
-    const listRoutesTool = capabilities.tools.find(
-      (t) => t.name === "site-builder_list_routes",
-    );
-    expect(listRoutesTool).toBeDefined();
-
-    // When we use the tool, it should show our configured route
-    if (listRoutesTool) {
-      const result = await listRoutesTool.handler(
-        {},
-        {
-          interfaceType: "test",
-          userId: "test-user",
-        },
-      );
-      expectSuccess(result);
-      const data = routesData.parse(result.data);
-      expect(data.routes).toBeDefined();
-      expect(Array.isArray(data.routes)).toBe(true);
-    }
-  });
-
   it("should provide site builder tools", async () => {
     plugin = new SiteBuilderPlugin(
       createTestConfig({
@@ -143,9 +98,7 @@ describe("SiteBuilderPlugin", () => {
 
     const toolNames = capabilities.tools.map((t) => t.name);
 
-    expect(toolNames).toContain("site-builder_build-site");
-    expect(toolNames).toContain("site-builder_list_routes");
-    expect(toolNames).toContain("site-builder_list_templates");
+    expect(toolNames).toEqual(["site-builder_build-site"]);
   });
 
   it("should set environment on routes", async () => {

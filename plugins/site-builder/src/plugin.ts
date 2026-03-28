@@ -217,11 +217,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     }
 
     const rebuildManager = this.rebuildManager;
-    return createSiteBuilderTools(
-      this.pluginContext,
-      this.id,
-      this.routeRegistry,
-      (env) => rebuildManager.requestBuild(env),
+    return createSiteBuilderTools(this.id, (env) =>
+      rebuildManager.requestBuild(env),
     );
   }
 
@@ -254,6 +251,63 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                     siteUrl: context.siteUrl,
                     previewUrl: context.previewUrl,
                   },
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        },
+      },
+      {
+        uri: "site://routes",
+        name: "Site Routes",
+        description: "All registered routes with sections and templates",
+        mimeType: "application/json",
+        handler: async () => {
+          const routes = this.routeRegistry.list();
+          return {
+            contents: [
+              {
+                uri: "site://routes",
+                mimeType: "application/json",
+                text: JSON.stringify(
+                  routes.map((route) => ({
+                    id: route.id,
+                    path: route.path,
+                    title: route.title,
+                    description: route.description,
+                    sections: route.sections.map((s) => ({
+                      id: s.id,
+                      template: s.template,
+                    })),
+                  })),
+                  null,
+                  2,
+                ),
+              },
+            ],
+          };
+        },
+      },
+      {
+        uri: "site://templates",
+        name: "View Templates",
+        description: "All registered view templates",
+        mimeType: "application/json",
+        handler: async () => {
+          const templates = context.views.list();
+          return {
+            contents: [
+              {
+                uri: "site://templates",
+                mimeType: "application/json",
+                text: JSON.stringify(
+                  templates.map((t) => ({
+                    name: t.name,
+                    description: t.description,
+                    hasWebRenderer: !!t.renderers.web,
+                  })),
                   null,
                   2,
                 ),

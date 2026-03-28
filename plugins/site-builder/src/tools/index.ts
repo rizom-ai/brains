@@ -1,6 +1,5 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type { Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
-import type { RouteRegistry } from "../lib/route-registry";
 import { z } from "@brains/utils";
 
 const buildSiteInputSchema = z.object({
@@ -13,9 +12,7 @@ const buildSiteInputSchema = z.object({
 });
 
 export function createSiteBuilderTools(
-  pluginContext: ServicePluginContext,
   pluginId: string,
-  routeRegistry: RouteRegistry,
   requestBuild: (environment?: "preview" | "production") => void,
 ): Tool[] {
   return [
@@ -33,57 +30,6 @@ export function createSiteBuilderTools(
           data: {},
         };
       },
-    ),
-    createTool(
-      pluginId,
-      "list_routes",
-      "List all registered routes",
-      z.object({}),
-      async () => {
-        const routes = routeRegistry.list();
-
-        return {
-          success: true,
-          message: `Found ${routes.length} registered routes`,
-          data: {
-            routes: routes.map((route) => ({
-              id: route.id,
-              path: route.path,
-              title: route.title,
-              description: route.description,
-              sections: route.sections.map((section) => ({
-                id: section.id,
-                template: section.template,
-              })),
-            })),
-            count: routes.length,
-          },
-        };
-      },
-      { visibility: "public" },
-    ),
-    createTool(
-      pluginId,
-      "list_templates",
-      "List all registered view templates",
-      z.object({}),
-      async () => {
-        const templates = pluginContext.views.list();
-
-        return {
-          success: true,
-          message: `Found ${templates.length} registered templates`,
-          data: {
-            templates: templates.map((template) => ({
-              name: template.name,
-              description: template.description,
-              hasWebRenderer: !!template.renderers.web,
-            })),
-            count: templates.length,
-          },
-        };
-      },
-      { visibility: "public" },
     ),
   ];
 }
