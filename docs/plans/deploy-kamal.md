@@ -6,6 +6,18 @@ Current deploy pipeline is over-engineered: Terraform provisions Hetzner VPS, SS
 
 Kamal replaces the entire stack with `kamal deploy` — zero-downtime deploys, automatic SSL, instant rollbacks. Same Hetzner servers, same cost (~$20/month for 3 instances).
 
+## Default domain: `{name}.rizom.work`
+
+Every brain gets a subdomain on `rizom.work` by default. No custom domain required to deploy. SSL works from day one.
+
+```
+rover.rizom.work     → 1.2.3.4  (yeehaa's rover)
+ranger.rizom.work    → 5.6.7.8  (collective ranger)
+relay.rizom.work     → 9.10.11.12
+```
+
+Custom domains are optional overrides — add `domain: yeehaa.io` to brain.yaml later. Both the subdomain and custom domain point to the same server.
+
 ## What Kamal replaces
 
 | Concern       | Current                                      | Kamal                          |
@@ -16,12 +28,12 @@ Kamal replaces the entire stack with `kamal deploy` — zero-downtime deploys, a
 | Zero-downtime | No (compose down/up)                         | Yes (container swap)           |
 | Rollback      | Rebuild and redeploy                         | `kamal rollback` (instant)     |
 | Config        | Terraform .tf + compose template + Caddyfile | Single `deploy.yml`            |
-| DNS + CDN     | Cloudflare Terraform (separate step)         | Automated via deploy hook      |
+| DNS + CDN     | Cloudflare Terraform (separate step)         | Automated via deploy script    |
 
 ## deploy.yml (per app)
 
 ```yaml
-service: yeehaa-brain
+service: rover
 image: ghcr.io/rizom-ai/brains
 
 servers:
@@ -33,7 +45,7 @@ servers:
 
 proxy:
   ssl: true
-  host: yeehaa.io
+  host: rover.rizom.work
   app_port: 8080
 
 registry:
@@ -50,8 +62,6 @@ env:
     - DISCORD_BOT_TOKEN
     - GIT_SYNC_TOKEN
     - CLOUDFLARE_API_TOKEN
-    - AWS_ACCESS_KEY_ID
-    - AWS_SECRET_ACCESS_KEY
 
 volumes:
   - /opt/brain-data:/app/brain-data
@@ -61,33 +71,45 @@ healthcheck:
   port: 8080
 ```
 
-## DNS + CDN automation
+## DNS setup
 
-Every brain instance goes behind Cloudflare (free tier). DNS and CDN setup is automated — first deploy creates everything, subsequent deploys are no-ops (all calls idempotent).
+### Phase 0: Move rizom.work to Cloudflare
 
-### Domain setup script (one-time per domain)
+`rizom.work` is registered on AWS Route 53. Move DNS to Cloudflare:
 
-A `deploy/setup-domain` script that:
+1. Add `rizom.work` as a zone on Cloudflare (free plan)
+2. Cloudflare assigns nameservers (e.g. `ada.ns.cloudflare.com`, `bob.ns.cloudflare.com`)
+3. Update Route 53 hosted zone nameservers to point to Cloudflare
+4. Wait for propagation (~minutes)
+5. Cloudflare now manages all DNS for `rizom.work`
 
-1. Creates Cloudflare zone for the domain (if new)
-2. Gets Cloudflare's assigned nameservers
-3. Updates Route 53 hosted zone with Cloudflare nameservers
-4. Creates DNS A records (apex + www → server IP, proxied)
-5. Creates preview DNS (preview.{domain} → server IP)
-6. Sets SSL mode (full_strict)
-7. Sets cache rules (bypass /mcp, /a2a, /api/\*)
+No domain transfer needed — just nameserver delegation. Works regardless of domain age.
 
-Called manually before first deploy of a new domain. Not in a post-deploy hook — DNS propagation takes minutes and shouldn't block deploys.
+### Per-brain DNS (automated)
 
-### Existing domain (no-op)
+A `deploy/setup-brain` script creates the DNS record for a brain:
 
-Script checks if records exist before creating. Running it on an existing domain is safe.
+1. Creates A record: `{name}.rizom.work → server IP` (Cloudflare, proxied)
+2. Sets SSL mode (Full Strict) if not already set
+3. All idempotent — safe to re-run
+
+Called once before first deploy. Subsequent deploys don't touch DNS.
+
+### Custom domain (optional, later)
+
+When a brain gets its own domain:
+
+1. Add zone to Cloudflare for the custom domain
+2. Update registrar nameservers to Cloudflare
+3. Create A records: `apex + www → server IP` (proxied)
+4. Create preview DNS: `preview.{domain} → server IP`
+5. Update `deploy.yml`: `host: yeehaa.io`
+6. Kamal-proxy serves both `rover.rizom.work` and `yeehaa.io`
 
 ### CDN rules (all sites)
 
 - Static assets (HTML, CSS, JS, images, WebP) cached at edge
 - API routes (`/mcp`, `/a2a`, `/api/*`) bypass cache
-- `/mcp` on preview subdomain (direct to origin)
 - Cloudflare handles DDoS, edge SSL
 - kamal-proxy handles origin SSL (Full Strict mode)
 
@@ -114,20 +136,28 @@ Kamal needs a health check endpoint. The webserver plugin exposes `/health` retu
 
 ## Steps
 
+### Phase 0: Cloudflare for rizom.work
+
+1. Add `rizom.work` zone on Cloudflare
+2. Update Route 53 nameservers to Cloudflare
+3. Verify DNS resolution works
+
 ### Phase 1: Kamal deploy
 
 1. Install Kamal
-2. Create `deploy.yml` for each app (yeehaa, rizom, mylittlephoney)
-3. Add `/health` endpoint to webserver plugin
-4. Set secrets: `kamal env push`
-5. First deploy: `kamal setup`
-6. Run `kamal deploy` — verify zero-downtime container swap
-7. Verify all 3 instances work
+2. Add `/health` endpoint to webserver plugin
+3. Write `deploy/setup-brain` script — creates `{name}.rizom.work` A record on Cloudflare
+4. Run `setup-brain` for each brain (creates DNS records)
+5. Create `deploy.yml` for each brain (host: `{name}.rizom.work`)
+6. Set secrets: `kamal env push`
+7. First deploy: `kamal setup`
+8. Run `kamal deploy` — verify zero-downtime container swap
+9. Verify all instances accessible via `{name}.rizom.work` with SSL
 
-### Phase 2: DNS/CDN automation
+### Phase 2: Custom domains
 
-1. Write `deploy/setup-domain` script — Cloudflare + Route 53 API calls
-2. Run for each existing domain
+1. Extend `setup-brain` to handle custom domains (zone creation, nameserver update, A records)
+2. Migrate existing custom domains (yeehaa.io, mylittlephoney.com)
 3. Verify CDN caching + SSL + cache bypass rules
 4. Delete Terraform config, old deploy scripts, Caddyfile templates
 
@@ -140,24 +170,25 @@ Kamal needs a health check endpoint. The webserver plugin exposes `/health` retu
 
 ## Key files
 
-| File                              | Action                               |
-| --------------------------------- | ------------------------------------ |
-| `deploy/kamal/yeehaa.yml`         | Create — Kamal deploy config         |
-| `deploy/kamal/rizom.yml`          | Create                               |
-| `deploy/kamal/mylittlephoney.yml` | Create                               |
-| `deploy/setup-domain`             | Create — Cloudflare + Route 53 setup |
-| `deploy/providers/hetzner/`       | Delete after migration               |
-| `interfaces/webserver/src/`       | Add `/health` endpoint               |
-| `.github/workflows/`              | Add image publish pipeline           |
+| File                        | Action                                  |
+| --------------------------- | --------------------------------------- |
+| `deploy/kamal/rover.yml`    | Create — Kamal deploy config            |
+| `deploy/kamal/ranger.yml`   | Create                                  |
+| `deploy/kamal/relay.yml`    | Create                                  |
+| `deploy/setup-brain`        | Create — Cloudflare DNS setup per brain |
+| `deploy/providers/hetzner/` | Delete after migration                  |
+| `interfaces/webserver/src/` | Add `/health` endpoint                  |
+| `.github/workflows/`        | Add image publish pipeline              |
 
 ## Verification
 
-1. `kamal setup` succeeds on each Hetzner server
-2. `kamal deploy` deploys new image with zero downtime
-3. `setup-domain` creates/verifies DNS records and CDN rules
-4. All 3 sites accessible via Cloudflare with SSL
-5. Static assets served from CDN edge
-6. `/mcp` and `/a2a` bypass CDN cache
-7. `kamal rollback` reverts to previous version
-8. New domain setup provisions DNS + CDN automatically
-9. Published brain model images deploy correctly
+1. `rizom.work` DNS managed by Cloudflare
+2. `{name}.rizom.work` resolves to correct server IP for each brain
+3. `kamal setup` succeeds on each Hetzner server
+4. `kamal deploy` deploys new image with zero downtime
+5. All brains accessible via `{name}.rizom.work` with SSL
+6. Custom domains work alongside subdomains
+7. Static assets served from CDN edge
+8. `/mcp` and `/a2a` bypass CDN cache
+9. `kamal rollback` reverts to previous version
+10. Published brain model images deploy correctly

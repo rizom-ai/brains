@@ -114,14 +114,27 @@ describe("ImageGenerationJobHandler", () => {
       expect(result).toBeNull();
     });
 
-    it("should reject missing title", () => {
-      const invalidData = {
-        prompt: "A beautiful sunset",
-      };
+    it("should generate image with derived title when title is omitted", async () => {
+      const jobData = {
+        prompt: "A beautiful sunset over mountains",
+      } as ImageGenerationJobData;
 
-      const result = handler.validateAndParse(invalidData);
+      const result = await handler.process(
+        jobData,
+        "job-no-title",
+        progressReporter,
+      );
 
-      expect(result).toBeNull();
+      expect(result.success).toBe(true);
+      expect(result.imageId).toBeDefined();
+      expect(context.entityService.createEntity).toHaveBeenCalledWith(
+        expect.objectContaining({
+          entityType: "image",
+          metadata: expect.objectContaining({
+            title: expect.any(String),
+          }),
+        }),
+      );
     });
 
     it("should reject invalid aspectRatio", () => {

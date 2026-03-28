@@ -1,6 +1,6 @@
 id: shell-no-verbose-repetition
 name: No Verbose Repetition
-description: Tests that agent doesn't repeat the same information multiple times
+description: Tests that agent answers identity/profile questions concisely from its system prompt without repetition
 type: response_quality
 tags:
   - shell
@@ -12,12 +12,7 @@ turns:
   - userMessage: "Show me my identity and my profile"
 
 successCriteria:
-  expectedTools:
-    - toolName: system_get-identity
-      shouldBeCalled: true
-    - toolName: system_get-profile
-      shouldBeCalled: true
-  # Response should combine info concisely without repetition
+  # Agent should answer from system prompt — no tool calls needed
   minHelpfulnessScore: 3
   minInstructionFollowingScore: 3
 

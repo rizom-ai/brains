@@ -95,10 +95,6 @@ Unified `directory-sync_sync` replaces 3 separate tools (sync + git_sync + git_s
 
 Short-term items are ordered by dependency. Items at the same level can be done in parallel.
 
-### Tool-to-Resource Migration
-
-Remove 5 read-only tools (get-identity, get-profile, get-status, list_routes, list_templates), replace with MCP resources. Embed profile and site info in agent system prompt. Invalidate agent on entity changes. ([plan](./plans/tool-to-resource-migration.md))
-
 ### Site Builder Decoupling
 
 Parallel route rendering with `pLimit` (immediate perf win). Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. Enables future Astro evaluation as alternative rendering engine. ([plan](./plans/site-builder-decoupling.md))

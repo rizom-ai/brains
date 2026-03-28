@@ -30,8 +30,8 @@ const imagePromptSchema = z.object({
 export const imageGenerationJobDataSchema = z.object({
   /** Text prompt for image generation (used directly when provided without entityContent) */
   prompt: z.string(),
-  /** Title for the generated image (used to generate ID) */
-  title: z.string(),
+  /** Title for the generated image (derived from prompt if omitted) */
+  title: z.string().optional(),
   /** Aspect ratio for the generated image */
   aspectRatio: z.enum(["1:1", "16:9", "9:16", "4:3", "3:4"]).optional(),
   /** Target entity type to update with coverImageId (optional) */
@@ -84,8 +84,10 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<ImageGenerationResult> {
-    const { prompt, title, aspectRatio, targetEntityType, targetEntityId } =
-      data;
+    const { prompt, aspectRatio, targetEntityType, targetEntityId } = data;
+    const title =
+      data.title ??
+      (targetEntityId ? `cover-${targetEntityId}` : `image-${Date.now()}`);
 
     this.logger.debug("Starting image generation job", {
       jobId,
