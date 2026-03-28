@@ -1,6 +1,6 @@
 id: tool-invocation-git-sync-status
 name: Git Sync Status Check
-description: Tests that agent calls directory-sync git_status tool when user asks about sync state
+description: Tests that agent calls directory-sync status tool when user asks about sync state
 type: tool_invocation
 tags:
   - core
@@ -12,7 +12,7 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: directory-sync_git_status
+    - toolName: directory-sync_status
       shouldBeCalled: true
   toolCountRange:
     min: 1
