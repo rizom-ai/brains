@@ -12,9 +12,6 @@ type CalculatorConfigInput = Partial<CalculatorConfig>;
 
 /**
  * Example ServicePlugin — demonstrates messaging and tool registration.
- *
- * NOTE: ServicePlugin is being removed in Phase 8. This example will be
- * rewritten to use ServicePlugin. See docs/plans/plugin-hierarchy-simplification.md.
  */
 export class ExampleServicePlugin extends ServicePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {

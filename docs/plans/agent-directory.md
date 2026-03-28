@@ -4,7 +4,7 @@
 
 A2A lets brains talk to each other, but there's no discovery or contact management. You need to know an agent's URL upfront, and tokens are hardcoded in brain.yaml.
 
-The A2A authentication plan (`docs/plans/2026-03-15-a2a-authentication.md`) established bearer tokens for trust. This plan builds the **next layer**: instead of hardcoding agent URLs and tokens in brain.yaml, manage them as entities with encrypted tokens. Each brain maintains its own directory of known agents.
+A2A authentication Phase 1 (bearer tokens) is complete. This plan builds the **next layer**: instead of hardcoding agent URLs and tokens in brain.yaml, manage them as entities with encrypted tokens. Each brain maintains its own directory of known agents.
 
 ## Design
 

@@ -4,7 +4,7 @@
 
 Create a new relay brain instance for rizom.work with Discord-only messaging, Cloudflare deployment, and a theme that's a playful variation of the default theme (visually related to rizom.ai but distinct).
 
-**Prerequisites:** [Infrastructure plan](./2026-03-14-infrastructure.md) (Varlock + Cloudflare) should be completed first.
+**Prerequisites:** Varlock + Cloudflare infrastructure (completed 2026-03).
 
 ## Decisions
 
