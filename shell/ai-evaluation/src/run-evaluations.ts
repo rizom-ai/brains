@@ -35,6 +35,7 @@ import { EvaluationService } from "./evaluation-service";
 import type { EvaluationOptions } from "./types";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
+import { MarkdownReporter } from "./reporters/markdown-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
 
@@ -73,7 +74,7 @@ export async function runEvaluations(
     agentService,
     aiService,
     testCasesDir = resolvePath(process.cwd(), "test-cases"),
-    resultsDir = resolvePath(process.cwd(), "data/evaluation-results"),
+    resultsDir = resolvePath(process.cwd(), "eval-results"),
     skipLLMJudge = false,
     tags,
     testCaseIds,
@@ -88,6 +89,7 @@ export async function runEvaluations(
     reporters: [
       ConsoleReporter.createFresh({ verbose, showFailures: true }),
       JSONReporter.createFresh({ outputDirectory: resultsDir }),
+      MarkdownReporter.createFresh({ outputDirectory: resultsDir }),
     ],
     evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
   });

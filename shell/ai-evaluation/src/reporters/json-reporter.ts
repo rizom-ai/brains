@@ -35,16 +35,21 @@ export class JSONReporter implements IReporter {
   async report(summary: EvaluationSummary): Promise<void> {
     await mkdir(this.options.outputDirectory, { recursive: true });
 
-    const filename =
-      this.options.filename ??
-      `evaluation-${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
-    const filepath = join(this.options.outputDirectory, filename);
-
     const output = this.options.includeFullResults
       ? summary
       : this.summarize(summary);
+    const json = JSON.stringify(output, null, 2);
 
-    await writeFile(filepath, JSON.stringify(output, null, 2), "utf-8");
+    // Write timestamped file
+    const filename =
+      this.options.filename ??
+      `${new Date().toISOString().replace(/[:.]/g, "-")}.json`;
+    const filepath = join(this.options.outputDirectory, filename);
+    await writeFile(filepath, json, "utf-8");
+
+    // Write latest.json (always overwritten)
+    const latestPath = join(this.options.outputDirectory, "latest.json");
+    await writeFile(latestPath, json, "utf-8");
 
     console.log(`Results saved to: ${filepath}`);
   }
