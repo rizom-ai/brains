@@ -1,11 +1,19 @@
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
+import { formatAsTable, formatAsList } from "@brains/utils";
 
 import type { IReporter } from "../types";
 import type { EvaluationSummary, EvaluationResult } from "../schemas";
 
 export interface MarkdownReporterOptions {
   outputDirectory: string;
+}
+
+interface CategoryRow {
+  category: string;
+  pass: number;
+  fail: number;
+  rate: string;
 }
 
 export class MarkdownReporter implements IReporter {
@@ -21,82 +29,69 @@ export class MarkdownReporter implements IReporter {
   }
 
   render(summary: EvaluationSummary): string {
-    const lines: string[] = [];
+    const parts: string[] = [];
     const date = summary.timestamp.split("T")[0];
 
-    lines.push(`## Eval Run (${date})`);
-    lines.push("");
-    lines.push(
-      `**${summary.totalTests} tests** — ${summary.passedTests} passed, ${summary.failedTests} failed (${(summary.passRate * 100).toFixed(1)}%)`,
+    parts.push(
+      `## Eval Run (${date})\n\n**${summary.totalTests} tests** — ${summary.passedTests} passed, ${summary.failedTests} failed (${(summary.passRate * 100).toFixed(1)}%)`,
     );
-    lines.push("");
 
     // Category breakdown
     const categories = this.categorize(summary.results);
-    if (categories.size > 0) {
-      lines.push("| Category | Pass | Fail | Rate |");
-      lines.push("|---|---|---|---|");
-      for (const [category, results] of categories) {
-        const pass = results.filter((r) => r.passed).length;
-        const fail = results.length - pass;
-        const rate =
-          results.length > 0
-            ? ((pass / results.length) * 100).toFixed(1)
-            : "0.0";
-        lines.push(`| ${category} | ${pass} | ${fail} | ${rate}% |`);
-      }
-      lines.push("");
+    if (categories.length > 0) {
+      parts.push(
+        formatAsTable(categories, {
+          columns: [
+            { header: "Category", value: (r) => r.category },
+            { header: "Pass", value: (r) => r.pass, align: "right" },
+            { header: "Fail", value: (r) => r.fail, align: "right" },
+            { header: "Rate", value: (r) => r.rate, align: "right" },
+          ],
+        }),
+      );
     }
 
     // Failures
     const failures = summary.results.filter((r) => !r.passed);
     if (failures.length > 0) {
-      lines.push("### Failures");
-      lines.push("");
-      for (const result of failures) {
-        const reason =
-          result.failures[0]?.message ??
-          result.failures[0]?.criterion ??
-          "unknown";
-        lines.push(`- **${result.testCaseId}**: ${reason}`);
-      }
-      lines.push("");
+      parts.push(
+        formatAsList<string>(
+          failures.map((r) => {
+            const reason =
+              r.failures[0]?.message ?? r.failures[0]?.criterion ?? "unknown";
+            return `**${r.testCaseId}**: ${reason}`;
+          }),
+          { title: (s) => s, header: "### Failures" },
+        ),
+      );
     }
 
     // Metrics
-    lines.push("### Metrics (avg)");
-    lines.push("");
-    lines.push(
-      `Tokens: ${Math.round(summary.avgMetrics.totalTokens)} | Tool calls: ${summary.avgMetrics.toolCallCount.toFixed(1)} | Duration: ${(summary.avgMetrics.durationMs / 1000).toFixed(1)}s`,
+    const m = summary.avgMetrics;
+    parts.push(
+      `### Metrics (avg)\n\nTokens: ${Math.round(m.totalTokens)} | Tool calls: ${m.toolCallCount.toFixed(1)} | Duration: ${(m.durationMs / 1000).toFixed(1)}s`,
     );
-    lines.push("");
 
     // Quality scores
     if (summary.avgQualityScores) {
       const q = summary.avgQualityScores;
-      lines.push("### Quality (avg)");
-      lines.push("");
-      const parts = [
+      const scores = [
         `Helpfulness: ${q.helpfulness.toFixed(1)}`,
         `Accuracy: ${q.accuracy.toFixed(1)}`,
         `Instructions: ${q.instructionFollowing.toFixed(1)}`,
       ];
       if (q.appropriateToolUse !== undefined) {
-        parts.push(`Tool use: ${q.appropriateToolUse.toFixed(1)}`);
+        scores.push(`Tool use: ${q.appropriateToolUse.toFixed(1)}`);
       }
-      lines.push(parts.join(" | "));
-      lines.push("");
+      parts.push(`### Quality (avg)\n\n${scores.join(" | ")}`);
     }
 
-    return lines.join("\n");
+    return parts.join("\n\n");
   }
 
-  private categorize(
-    results: EvaluationResult[],
-  ): Map<string, EvaluationResult[]> {
+  private categorize(results: EvaluationResult[]): CategoryRow[] {
     const map = new Map<string, EvaluationResult[]>();
     for (const r of results) {
-      // Derive category from test case ID prefix (e.g. "tool-invocation-list" → "tool-invocation")
       const parts = r.testCaseId.split("-");
       const category =
         parts.length >= 2 ? parts.slice(0, 2).join("-") : r.testCaseId;
@@ -104,7 +99,16 @@ export class MarkdownReporter implements IReporter {
       list.push(r);
       map.set(category, list);
     }
-    return map;
+
+    return Array.from(map.entries()).map(([category, items]) => {
+      const pass = items.filter((r) => r.passed).length;
+      const fail = items.length - pass;
+      const rate =
+        items.length > 0
+          ? `${((pass / items.length) * 100).toFixed(1)}%`
+          : "0.0%";
+      return { category, pass, fail, rate };
+    });
   }
 
   static createFresh(options: MarkdownReporterOptions): MarkdownReporter {

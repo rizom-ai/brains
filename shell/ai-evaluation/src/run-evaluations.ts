@@ -36,6 +36,7 @@ import type { EvaluationOptions } from "./types";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
 import { MarkdownReporter } from "./reporters/markdown-reporter";
+import { ComparisonReporter } from "./reporters/comparison-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
 
@@ -50,6 +51,10 @@ export interface RunEvaluationsOptions {
   resultsDir?: string;
   /** Skip LLM-as-judge scoring */
   skipLLMJudge?: boolean;
+  /** Compare against previous run or named baseline */
+  compareAgainst?: string;
+  /** Save results as a named baseline */
+  saveBaseline?: string;
   /** Filter by tags */
   tags?: string[];
   /** Specific test case IDs to run */
@@ -90,6 +95,19 @@ export async function runEvaluations(
       ConsoleReporter.createFresh({ verbose, showFailures: true }),
       JSONReporter.createFresh({ outputDirectory: resultsDir }),
       MarkdownReporter.createFresh({ outputDirectory: resultsDir }),
+      ...(options.compareAgainst !== undefined || options.saveBaseline
+        ? [
+            ComparisonReporter.createFresh({
+              outputDirectory: resultsDir,
+              ...(options.compareAgainst !== undefined && {
+                compareAgainst: options.compareAgainst,
+              }),
+              ...(options.saveBaseline && {
+                saveBaseline: options.saveBaseline,
+              }),
+            }),
+          ]
+        : []),
     ],
     evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
   });
@@ -159,6 +177,8 @@ Options:
   --type <type>       Filter by type: "agent" or "plugin"
   --url <url>         Run against a remote brain instance
   --token <token>     Auth token for remote instance
+  --compare [name]    Compare with previous run or named baseline
+  --baseline <name>   Save results as a named baseline
   --skip-llm-judge    Skip LLM quality scoring (faster)
   --parallel, -p      Run tests in parallel (default: 3 concurrent)
   --max-parallel <n>  Set max concurrent tests (default: 3)
@@ -167,6 +187,9 @@ Options:
 
 Examples:
   bun run eval                              Run all tests
+  bun run eval --compare                    Compare with last run
+  bun run eval --compare baseline           Compare with named baseline
+  bun run eval --baseline pre-refactor      Save as named baseline
   bun run eval --parallel                   Run tests in parallel (3x faster)
   bun run eval --parallel --max-parallel 5  Run up to 5 tests at once
   bun run eval --test tool-invocation-list  Run single test
@@ -318,6 +341,11 @@ export async function main(): Promise<void> {
       : undefined;
   const remoteUrl = parseSingleFlag(args, "--url");
   const authToken = parseSingleFlag(args, "--token");
+  const compareFlag = args.includes("--compare");
+  const compareAgainst = compareFlag
+    ? (parseSingleFlag(args, "--compare") ?? "")
+    : undefined;
+  const saveBaseline = parseSingleFlag(args, "--baseline");
 
   try {
     const { config, testCasesDirs } = await loadEvalConfig();
@@ -412,6 +440,8 @@ export async function main(): Promise<void> {
       ...(tags && { tags }),
       ...(testCaseIds && { testCaseIds }),
       ...(testType && { testType }),
+      ...(compareAgainst !== undefined && { compareAgainst }),
+      ...(saveBaseline && { saveBaseline }),
     };
 
     await runEvaluations(runOptions);
