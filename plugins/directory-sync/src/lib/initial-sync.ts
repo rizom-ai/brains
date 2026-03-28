@@ -85,6 +85,8 @@ export function setupInitialSync(
       const batchResult = await directorySync.queueSyncBatch(
         context,
         "initial-sync",
+        undefined,
+        { includeCleanup: true },
       );
 
       if (!batchResult) {

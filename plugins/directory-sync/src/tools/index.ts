@@ -27,32 +27,11 @@ export function createDirectorySyncTools(
             channelId: context.channelId,
           };
 
-          // Pull + queue imports under the same lock so the file listing
-          // sees the post-pull directory state without races
+          // Pull under lock so the file listing sees post-pull state
+          let gitPulled = false;
           if (gitSync) {
-            const result = await gitSync.withLock(async () => {
-              await gitSync.pull();
-              return directorySync.queueSyncBatch(
-                pluginContext,
-                source,
-                metadata,
-              );
-            });
-
-            if (!result) {
-              return toolSuccess({ gitPulled: true }, "No files to sync");
-            }
-
-            // Git commit+push happens via auto-commit when imports complete
-            return toolSuccess(
-              {
-                batchId: result.batchId,
-                importOperations: result.importOperationsCount,
-                totalFiles: result.totalFiles,
-                gitPulled: true,
-              },
-              `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files (pulled from git)`,
-            );
+            await gitSync.withLock(() => gitSync.pull());
+            gitPulled = true;
           }
 
           const result = await directorySync.queueSyncBatch(
@@ -62,7 +41,7 @@ export function createDirectorySyncTools(
           );
 
           if (!result) {
-            return toolSuccess({ gitPulled: false }, "No files to sync");
+            return toolSuccess({ gitPulled }, "No files to sync");
           }
 
           return toolSuccess(
@@ -70,9 +49,9 @@ export function createDirectorySyncTools(
               batchId: result.batchId,
               importOperations: result.importOperationsCount,
               totalFiles: result.totalFiles,
-              gitPulled: false,
+              gitPulled,
             },
-            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files`,
+            `Sync started: ${result.importOperationsCount} import jobs queued for ${result.totalFiles} files${gitPulled ? " (pulled from git)" : ""}`,
           );
         } catch (error) {
           return toolError(

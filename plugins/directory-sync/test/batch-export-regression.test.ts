@@ -56,7 +56,21 @@ describe("batch operations should not include exports (regression)", () => {
     expect(importOps.length).toBeGreaterThan(0);
   });
 
-  it("prepareBatchOperations should append cleanup as last operation", () => {
+  it("prepareBatchOperations should append cleanup when includeCleanup is true", () => {
+    const manager = new BatchOperationsManager(
+      createSilentLogger("test"),
+      "/tmp/test",
+    );
+
+    const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"], {
+      includeCleanup: true,
+    });
+
+    const lastOp = result.operations[result.operations.length - 1];
+    expect(lastOp?.type).toBe("directory-cleanup");
+  });
+
+  it("prepareBatchOperations should not include cleanup by default", () => {
     const manager = new BatchOperationsManager(
       createSilentLogger("test"),
       "/tmp/test",
@@ -64,8 +78,8 @@ describe("batch operations should not include exports (regression)", () => {
 
     const result = manager.prepareBatchOperations(["note/a.md", "note/b.md"]);
 
-    const lastOp = result.operations[result.operations.length - 1];
-    expect(lastOp?.type).toBe("directory-cleanup");
+    const types = result.operations.map((op) => op.type);
+    expect(types).not.toContain("directory-cleanup");
   });
 
   it("prepareBatchOperations should return empty when no files", () => {

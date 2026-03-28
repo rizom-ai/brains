@@ -31,27 +31,25 @@ export function setupPeriodicGitSync(
     running = true;
 
     try {
-      await gitSync.withLock(async () => {
-        const { files } = await gitSync.pull();
+      const { files } = await gitSync.withLock(() => gitSync.pull());
 
-        if (files.length > 0) {
-          logger.info("Periodic sync: pulled changes", {
-            filesChanged: files.length,
-          });
-        }
+      if (files.length > 0) {
+        logger.info("Periodic sync: pulled changes", {
+          filesChanged: files.length,
+        });
+      }
 
-        const result = await directorySync.queueSyncBatch(
-          pluginContext,
-          "periodic-sync",
-        );
+      const result = await directorySync.queueSyncBatch(
+        pluginContext,
+        "periodic-sync",
+      );
 
-        if (result) {
-          logger.debug("Periodic sync: queued imports", {
-            importOperations: result.importOperationsCount,
-            totalFiles: result.totalFiles,
-          });
-        }
-      });
+      if (result) {
+        logger.debug("Periodic sync: queued imports", {
+          importOperations: result.importOperationsCount,
+          totalFiles: result.totalFiles,
+        });
+      }
     } catch (error) {
       logger.error("Periodic git sync failed", { error });
     } finally {

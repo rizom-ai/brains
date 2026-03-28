@@ -304,6 +304,7 @@ export class DirectorySync {
     pluginContext: ServicePluginContext,
     source: string,
     metadata?: BatchMetadata,
+    options?: { includeCleanup?: boolean },
   ): Promise<{
     batchId: string;
     operationCount: number;
@@ -318,6 +319,7 @@ export class DirectorySync {
       source,
       files,
       metadata,
+      options,
     );
   }
 
