@@ -4,6 +4,7 @@ import type {
   IEntityService,
 } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
+import type { GitSync } from "./git-sync";
 import { resolve, isAbsolute } from "path";
 import { mkdir } from "fs/promises";
 import { z } from "@brains/utils";
@@ -179,6 +180,44 @@ export class DirectorySync {
       export: { exported: 0, failed: 0, errors: [] },
       import: importResult,
       duration,
+    };
+  }
+
+  /**
+   * Full sync cycle: pull → import + cleanup → commit + push.
+   * Replaces the batch-based sync tool + separate git tools.
+   */
+  async fullSync(gitSync?: GitSync): Promise<{
+    imported: number;
+    gitPulled: boolean;
+    gitPushed: boolean;
+  }> {
+    let gitPulled = false;
+    let gitPushed = false;
+
+    if (gitSync) {
+      await gitSync.withLock(async () => {
+        await gitSync.pull();
+      });
+      gitPulled = true;
+    }
+
+    const syncResult = await this.sync();
+
+    if (gitSync) {
+      await gitSync.withLock(async () => {
+        if (await gitSync.hasLocalChanges()) {
+          await gitSync.commit();
+          await gitSync.push();
+          gitPushed = true;
+        }
+      });
+    }
+
+    return {
+      imported: syncResult.import.imported,
+      gitPulled,
+      gitPushed,
     };
   }
 
