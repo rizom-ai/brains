@@ -135,20 +135,20 @@ const nodes = [
   { id:'series',       label:'Series',       sub:'entities/series',       desc:'Derived from posts. EntityPlugin with derive().',             x:612, y:166, w:W, h:H, layer:'entities' },
   { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'AI-extracted tags. EntityPlugin with derive().',              x:756, y:166, w:W, h:H, layer:'entities' },
   { id:'summary',      label:'Summary',      sub:'entities/summary',      desc:'Conversation summaries. EntityPlugin with derive().',         x:900, y:166, w:W, h:H, layer:'entities' },
+  { id:'prompt',       label:'Prompt',       sub:'entities/prompt',       desc:'AI prompts as editable markdown entities. EntityPlugin.',    x:900, y:110, w:W, h:H, layer:'entities' },
   { id:'site-info',    label:'Site Info',    sub:'entities/site-info',    desc:'Site metadata (title, description). EntityPlugin.',           x:1044,y:166, w:W, h:H, layer:'entities' },
 
   // Integration plugins (row 4)
-  { id:'system',       label:'System',       sub:'plugins/system',            desc:'Core CRUD tools (create, get, list, search, update, delete, extract, set-cover).', x:36,  y:248, w:W, h:H, layer:'plugins' },
-  { id:'dir-sync',     label:'Dir Sync',     sub:'plugins/directory-sync',    desc:'File sync + git ops. Serialized with withLock().', x:180, y:248, w:W, h:H, layer:'plugins' },
-  { id:'site-builder', label:'Site Builder', sub:'plugins/site-builder',      desc:'SSR static site gen. Routes, templates, CMS.',     x:324, y:248, w:W, h:H, layer:'plugins' },
-  { id:'content-pipe', label:'Pipeline',     sub:'plugins/content-pipeline',  desc:'Publish + queue orchestration.',                   x:468, y:248, w:W, h:H, layer:'plugins' },
-  { id:'dashboard',    label:'Dashboard',    sub:'plugins/dashboard',         desc:'Widget registration + rendering.',                 x:612, y:248, w:W, h:H, layer:'plugins' },
-  { id:'analytics',    label:'Analytics',    sub:'plugins/analytics',         desc:'Cloudflare analytics query tool.',                 x:756, y:248, w:W, h:H, layer:'plugins' },
-  { id:'buttondown',   label:'Buttondown',   sub:'plugins/buttondown',       desc:'Subscriber tools + API routes. Split from newsletter.', x:900, y:248, w:W, h:H, layer:'plugins' },
-  { id:'notion',       label:'Notion',       sub:'plugins/notion',           desc:'MCP bridge to Notion workspace.',                  x:1044,y:248, w:W, h:H, layer:'plugins' },
-  { id:'hackmd',       label:'HackMD',       sub:'plugins/hackmd',           desc:'MCP bridge to HackMD.',                            x:1044,y:304, w:W, h:H, layer:'plugins' },
-  { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:900, y:304, w:W, h:H, layer:'plugins' },
-  { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen (redesigning).',           x:756, y:304, w:W, h:H, layer:'plugins' },
+  { id:'dir-sync',     label:'Dir Sync',     sub:'plugins/directory-sync',    desc:'File sync + git ops. Serialized with withLock().', x:36,  y:248, w:W, h:H, layer:'plugins' },
+  { id:'site-builder', label:'Site Builder', sub:'plugins/site-builder',      desc:'Site build orchestration (tools, events, jobs). Engine moving to @brains/site-engine.', x:180, y:248, w:W, h:H, layer:'plugins' },
+  { id:'content-pipe', label:'Pipeline',     sub:'plugins/content-pipeline',  desc:'Publish + queue orchestration.',                   x:324, y:248, w:W, h:H, layer:'plugins' },
+  { id:'dashboard',    label:'Dashboard',    sub:'plugins/dashboard',         desc:'Widget registration + rendering.',                 x:468, y:248, w:W, h:H, layer:'plugins' },
+  { id:'analytics',    label:'Analytics',    sub:'plugins/analytics',         desc:'Cloudflare analytics query tool.',                 x:612, y:248, w:W, h:H, layer:'plugins' },
+  { id:'buttondown',   label:'Buttondown',   sub:'plugins/buttondown',       desc:'Subscriber tools + API routes. Split from newsletter.', x:756, y:248, w:W, h:H, layer:'plugins' },
+  { id:'notion',       label:'Notion',       sub:'plugins/notion',           desc:'MCP bridge to Notion workspace.',                  x:900, y:248, w:W, h:H, layer:'plugins' },
+  { id:'hackmd',       label:'HackMD',       sub:'plugins/hackmd',           desc:'MCP bridge to HackMD.',                            x:900, y:304, w:W, h:H, layer:'plugins' },
+  { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:756, y:304, w:W, h:H, layer:'plugins' },
+  { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen.',                         x:612, y:304, w:W, h:H, layer:'plugins' },
 
   // Shell services (rows 5-6)
   { id:'core',         label:'Core',         sub:'shell/core',               desc:'Shell init, plugin lifecycle, entity bootstrap.',   x:36,  y:386, w:W, h:H, layer:'shell' },
@@ -179,7 +179,8 @@ const nodes = [
   { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:256, y:596, w:100, h:H, layer:'shared' },
   { id:'mcp-bridge',   label:'MCP Bridge',  sub:'shared/mcp-bridge',      desc:'Base class for upstream MCP servers.', x:366, y:596, w:100, h:H, layer:'shared' },
   { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:476, y:596, w:100, h:H, layer:'shared' },
-  { id:'theme-base',   label:'Theme Base',  sub:'shared/theme-base',      desc:'CSS variable foundation.',             x:586, y:596, w:100, h:H, layer:'shared' },
+  { id:'site-engine',  label:'Site Engine', sub:'shared/site-engine',      desc:'Static site build engine (planned). Preact/Astro rendering.', x:586, y:596, w:100, h:H, layer:'shared' },
+  { id:'theme-base',   label:'Theme Base',  sub:'shared/theme-base',      desc:'CSS variable foundation.',             x:696, y:596, w:100, h:H, layer:'shared' },
 ];
 
 const connections = [
@@ -195,8 +196,6 @@ const connections = [
   { from:'social-media', to:'plugin-fw', type:'dep' },
 
   // Plugins → shell
-  { from:'system', to:'entity-svc', type:'tool' },
-  { from:'system', to:'ai-svc', type:'tool' },
   { from:'dir-sync', to:'entity-svc', type:'data' },
   { from:'site-builder', to:'content-svc', type:'data' },
   { from:'site-builder', to:'templates', type:'data' },
