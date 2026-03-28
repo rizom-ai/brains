@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-25
+Last Updated: 2026-03-28
 
 ---
 
@@ -65,13 +65,29 @@ New base class for content plugins. Migrated all content plugins to EntityPlugin
 
 Default to async task flow — return "working" immediately, caller polls `tasks/get`. Stale task protection. Client polls transparently.
 
+### System Tools as Framework (2026-03)
+
+Moved system plugin from a plugin into shell-level registration (`shell/core/src/system/`). Tools, resources, prompts, instructions register directly on shell services. Removed the only plugin that needed `ai.query()` on context.
+
+### Prompts as Entities (2026-03)
+
+Prompts became a `prompt` entity type with EntityPlugin. Defaults materialize from code on first startup, then become editable. AI generation resolves prompt entities automatically. Phase 3 complete.
+
+### Plugin Hierarchy Simplification — Phases 1–6b (2026-03)
+
+All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Tool`, `Resource`, `Prompt`, `JobsNamespace`). `createTool` + `findEntityByIdentifier` in canonical packages. Duplicate job helpers and re-export shims deleted.
+
+### Blocking I/O Elimination — Phases 1–2 (2026-03)
+
+Async FS in directory-sync and webserver. Webserver moved to child process. Phase 3 (worker thread for site builds) parked.
+
 ---
 
 ## In Progress
 
-### Entity Consolidation — Remaining
+### Plugin Hierarchy Simplification — Phases 7–9
 
-Site-content redesign (persistent editable landing pages with derive()), plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). Newsletter split, image migration, and site-info extraction done. ([plan](./plans/entity-consolidation.md))
+Collapse four-level hierarchy into three sibling types (EntityPlugin, ServicePlugin, InterfacePlugin). Extract shared BasePluginContext, remove CorePlugin level. ([plan](./plans/plugin-hierarchy-simplification.md))
 
 ---
 
@@ -79,11 +95,7 @@ Site-content redesign (persistent editable landing pages with derive()), plugin 
 
 Short-term items are ordered by dependency. Items at the same level can be done in parallel.
 
-### 1. System Tools to Framework
-
-Move system plugin from a plugin into shell-level registration. Tools, resources, prompts, instructions, and dashboard widgets register directly on shell services. Removes the only plugin that needed `ai.query()` on context. ([plan](./plans/system-to-framework.md))
-
-### 2. Eval Overhaul
+### 1. Eval Overhaul
 
 Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
 
@@ -94,14 +106,6 @@ Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat 
 ### Agent Directory
 
 Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
-
-### Prompts as Entities
-
-Prompts become a `prompt` entity type — markdown files in brain-data managed by existing entity infrastructure. Users customize voice, tone, and generation behavior via CMS or system_update. Seed content ships defaults. Per-instance personality. ([plan](./plans/prompts-as-markdown.md))
-
-### Blocking I/O Elimination
-
-Replace sync FS calls with async in webserver and directory-sync. Move site builds to worker thread so MCP/Discord stay responsive during builds. ([plan](./plans/blocking-io-elimination.md))
 
 ### rizom.work
 
@@ -152,11 +156,9 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-entity-consolidation (newsletter, image, site-content, site-info, hierarchy)
+plugin-hierarchy (Phases 7–9)
      ↓
-1. system-to-framework (system tools → shell, removes AI from PluginContext)
-     ↓
-2. eval-overhaul (mode: eval, two runners, result store)
+1. eval-overhaul (mode: eval, two runners, result store)
 
 agent-directory ────────────────┐
                                 ├──→ hosted-rovers (K8s)
@@ -166,8 +168,5 @@ chat-sdk + ai-runtime ──────┘
 
 chat-sdk (independent — InterfacePlugin already stable)
 kamal-deploy (independent)
-blocking-io (independent)
-prompts-as-entities (independent)
-simplify-sync (independent)
 rizom.work (independent)
 ```
