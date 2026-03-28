@@ -44,7 +44,7 @@ export interface RunEvaluationsOptions {
   /** AI service for LLM judge */
   aiService: IAIService;
   /** Directory containing test cases */
-  testCasesDir?: string;
+  testCasesDir?: string | string[];
   /** Directory to save results */
   resultsDir?: string;
   /** Skip LLM-as-judge scoring */
@@ -187,7 +187,12 @@ Examples:
  *
  * brain.eval.config.ts uses the legacy defineConfig() pattern.
  */
-async function loadEvalConfig(): Promise<AppConfig> {
+interface EvalConfigResult {
+  config: AppConfig;
+  testCasesDirs: string[];
+}
+
+async function loadEvalConfig(): Promise<EvalConfigResult> {
   // Try eval.yaml first (plugin eval — minimal brain, single plugin)
   const pluginEvalPath = resolvePath(process.cwd(), "eval.yaml");
   if (existsSync(pluginEvalPath)) {
@@ -199,7 +204,11 @@ async function loadEvalConfig(): Promise<AppConfig> {
       console.log(
         `Loaded plugin eval config from eval.yaml (${evalConfig.plugin})`,
       );
-      return loadPluginEvalConfig(evalConfig);
+      const config = await loadPluginEvalConfig(evalConfig);
+      return {
+        config,
+        testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
+      };
     }
   }
 
@@ -223,7 +232,34 @@ async function loadEvalConfig(): Promise<AppConfig> {
     }
 
     console.log(`Loaded eval config from brain.eval.yaml (${overrides.brain})`);
-    return resolveConfig(mod.default, process.env, overrides);
+
+    // Resolve test case directories: shell → brain model → app instance
+    const shellTestCases = resolvePath(
+      import.meta.dir,
+      "..",
+      "evals",
+      "test-cases",
+    );
+    // Resolve brain package path to find its test-cases directory
+    // import.meta.resolve returns a file:// URL, convert to path
+    const brainModulePath = import.meta
+      .resolve(overrides.brain)
+      .replace("file://", "")
+      .replace(/\/src\/.*$/, "");
+    const brainModelTestCases = resolvePath(brainModulePath, "test-cases");
+    const appTestCases = resolvePath(process.cwd(), "test-cases");
+
+    // Only include directories that exist
+    const testCasesDirs = [
+      shellTestCases,
+      brainModelTestCases,
+      appTestCases,
+    ].filter((dir) => existsSync(dir));
+
+    return {
+      config: resolveConfig(mod.default, process.env, overrides),
+      testCasesDirs,
+    };
   }
 
   // Fall back to brain.eval.config.ts (legacy pattern)
@@ -239,14 +275,17 @@ async function loadEvalConfig(): Promise<AppConfig> {
   }
 
   const configModule = await import(configPath);
-  const config = configModule.default;
+  const config: AppConfig | undefined = configModule.default;
   if (!config) {
     console.error("❌ No default export found in brain.eval.config.ts");
     process.exit(1);
   }
 
   console.log("Loaded eval config from brain.eval.config.ts (legacy)");
-  return config as AppConfig;
+  return {
+    config,
+    testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
+  };
 }
 
 /**
@@ -279,7 +318,7 @@ export async function main(): Promise<void> {
   const authToken = parseSingleFlag(args, "--token");
 
   try {
-    const config = await loadEvalConfig();
+    const { config, testCasesDirs } = await loadEvalConfig();
 
     // Create and initialize the app (needed for AI service in both modes)
     // Use a temp database and data directory for evals to avoid polluting real data
@@ -363,6 +402,7 @@ export async function main(): Promise<void> {
     const runOptions: RunEvaluationsOptions = {
       agentService,
       aiService,
+      testCasesDir: testCasesDirs,
       skipLLMJudge,
       verbose,
       parallel,

@@ -40,18 +40,19 @@ export class YAMLLoader implements ITestCaseLoader {
       files.push(...dirFiles);
     }
 
-    const testCases: TestCase[] = [];
+    // Load all test cases, later directories override earlier ones by ID
+    const testCaseMap = new Map<string, TestCase>();
 
     for (const file of files) {
       try {
         const testCase = await this.loadTestCase(file);
-        testCases.push(testCase);
+        testCaseMap.set(testCase.id, testCase);
       } catch (error) {
         console.error(`Failed to load test case from ${file}:`, error);
       }
     }
 
-    return testCases;
+    return Array.from(testCaseMap.values());
   }
 
   /**
