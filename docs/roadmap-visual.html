@@ -208,14 +208,14 @@ const items = [
 
   // Short-term
   { id: "targetentity", name: "Target Entity Pattern", status: "short-term", desc: "Promote targetEntityType/targetEntityId to first-class fields on system_create. Enables 'create X and attach to Y' pattern. Removes untyped options bag." },
-  { id: "sitebuilder", name: "Site Builder Decoupling", status: "short-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
-  { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp. InterfacePlugin already stable.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "atproto", name: "AT Protocol Integration", status: "short-term", desc: "Federated content distribution, portable identity (DIDs), Bluesky presence, inbound ingestion, decentralized discovery, cross-brain feeds. Replaces agent directory.", blocks: ["hostedrovers"] },
-  { id: "rizomwork", name: "rizom.work", status: "short-term", desc: "New relay instance with Discord, rizom theme variations." },
+  { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "short-term", step: 1, desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos — two repos per app (config + content).", blocks: ["rizomwork", "hostedrovers"] },
+  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 2, desc: "New relay instance with Discord, rizom theme variations.", deps: ["kamal"] },
 
   // Medium-term
+  { id: "sitebuilder", name: "Site Builder Decoupling", status: "medium-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
+  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "atproto", name: "AT Protocol Integration", status: "medium-term", desc: "Federated content distribution, portable identity (DIDs), Bluesky presence, inbound ingestion, decentralized discovery, cross-brain feeds. Replaces agent directory.", blocks: ["hostedrovers"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "medium-term", desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml). Same pattern as hosted rovers and desktop app.", blocks: ["hostedrovers"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["atproto", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "astro", name: "Astro Migration", status: "medium-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Content Collections from entity DB, island architecture, native Tailwind + image optimization.", deps: ["sitebuilder"] },
@@ -305,11 +305,19 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
+      <div class="dep-group-title">Deploy Pipeline</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
+      </div>
+    </div>
+    <div class="dep-group">
       <div class="dep-group-title">Hosted Rovers</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('atproto')">atproto</span>
+        <span class="dep-node s-mid" onclick="selectItem('atproto')">atproto</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+        <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
         <span class="dep-arrow">→</span>
@@ -319,7 +327,7 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Desktop App</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
+        <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
         <span class="dep-arrow">→</span>
@@ -331,18 +339,6 @@ function render() {
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('targetentity')">target-entity-pattern</span>
         <span class="dep-label">small — improves eval pass rate</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
-        <span class="dep-label">InterfacePlugin already stable</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-mid" onclick="selectItem('kamal')">kamal-deploy</span>
-        <span class="dep-label">no dependencies</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
-        <span class="dep-label">no dependencies</span>
       </div>
     </div>
   </div>`;

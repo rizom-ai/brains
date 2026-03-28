@@ -103,33 +103,33 @@ Short-term items are ordered by dependency. Items at the same level can be done 
 
 Promote `targetEntityType`/`targetEntityId` from `options` bag to first-class fields on `system_create`. Enables "create X and attach to Y" as a general pattern (images as covers, social posts from blog posts, newsletters from posts). Removes the untyped `options` field. ([plan](./plans/target-entity-pattern.md))
 
+### Kamal Deploy + Standalone Apps
+
+Replace Terraform + SSH + Caddy with Kamal on Hetzner. DNS + CDN automation via Cloudflare/Route 53 hooks. Publish brain model images to GHCR. Apps become standalone repos — two repos per app (config + content). ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+
+### rizom.work
+
+New relay instance with Discord, rizom theme variations. Depends on Kamal deploy. ([plan](./plans/2026-03-14-rizom-work.md))
+
+---
+
+## Planned (Medium-term)
+
 ### Site Builder Decoupling
 
 Parallel route rendering with `pLimit` (immediate perf win). Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. Enables future Astro evaluation as alternative rendering engine. ([plan](./plans/site-builder-decoupling.md))
 
 ### Chat SDK Migration
 
-Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: build `@brains/chat`. Must be compatible with hosted rovers' shared Discord gateway. InterfacePlugin already extends BasePlugin directly — no dependency on hierarchy simplification. ([plan](./plans/chat-interface-sdk.md))
+Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: build `@brains/chat`. Must be compatible with hosted rovers' shared Discord gateway. ([plan](./plans/chat-interface-sdk.md))
 
 ### AT Protocol Integration
 
 Federated content distribution, portable identity (DIDs), Bluesky presence, inbound content ingestion, decentralized brain discovery, cross-brain feeds. Replaces planned agent directory with protocol-native discovery. A2A stays for directed RPC. ([plan](./plans/atproto-integration.md))
 
-### rizom.work
-
-New relay instance with Discord, rizom theme variations. ([plan](./plans/2026-03-14-rizom-work.md))
-
----
-
-## Planned (Medium-term)
-
 ### A2A Authentication (Phase 2+)
 
 OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
-
-### Kamal Deploy + Standalone Apps
-
-Replace Terraform + SSH + Caddy with Kamal on Hetzner. DNS + CDN automation via Cloudflare/Route 53 hooks. Publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml) — no monorepo workspace. Same pattern as hosted rovers and desktop app. ([plan](./plans/deploy-kamal.md))
 
 ### Hosted Rovers
 
@@ -168,18 +168,15 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-target-entity-pattern (independent — small, improves eval pass rate)
+Short-term:
+  target-entity-pattern (independent — small)
+  kamal-deploy → standalone-apps → rizom.work
 
-site-builder-decoupling (parallel routes → engine extraction → Astro eval)
+Medium-term:
+  site-builder-decoupling → astro-migration
+  atproto (identity → publishing → discovery → federation)
+  chat-sdk + atproto + ai-runtime ──→ hosted-rovers (K8s)
 
-atproto (identity + publishing → discovery → federation)
-  └──→ replaces agent-directory for brain discovery
-
-atproto + chat-sdk + ai-runtime ──→ hosted-rovers (K8s)
-                    ↓
-              desktop-app (Electrobun)
-
-chat-sdk (independent — InterfacePlugin already stable)
-kamal-deploy + standalone-apps (independent)
-rizom.work (independent)
+Long-term:
+  chat-sdk + ai-runtime ──→ desktop-app (Electrobun)
 ```
