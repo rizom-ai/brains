@@ -72,20 +72,13 @@ export async function loadPluginEvalConfig(
     }
   }
 
-  const aiApiKey = process.env["ANTHROPIC_API_KEY"];
-  if (!aiApiKey) {
-    throw new Error(
-      "ANTHROPIC_API_KEY not set. Export it in your shell before running evals.",
-    );
-  }
-
   const pluginId = plugin.id;
   const evalDbBase = `/tmp/${pluginId}-eval-${Date.now()}`;
 
   return defineConfig({
     name: `${pluginId}-eval`,
     version: "0.1.0",
-    aiApiKey,
+    aiApiKey: process.env["ANTHROPIC_API_KEY"],
     plugins: [plugin],
     shellConfig: {
       database: { url: `file:${evalDbBase}.db` },

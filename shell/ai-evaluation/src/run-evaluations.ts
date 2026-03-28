@@ -13,7 +13,7 @@
  *   bun run eval --url http://localhost:3333 --token <token>  # With auth
  */
 
-import { resolve as resolvePath } from "path";
+import { resolve as resolvePath, join } from "path";
 import {
   existsSync,
   readFileSync,
@@ -453,7 +453,18 @@ export async function main(): Promise<void> {
   }
 }
 
-// Run if executed directly
 if (import.meta.main) {
+  // Load .env from the ai-evaluation package directory.
+  // This is the single location for eval secrets (API keys).
+  const { config } = await import("dotenv");
+  config({ path: join(import.meta.dir, "..", ".env") });
+
+  if (!process.env["ANTHROPIC_API_KEY"]) {
+    console.error(
+      "ANTHROPIC_API_KEY not set. Add it to shell/ai-evaluation/.env or export it in your shell.",
+    );
+    process.exit(1);
+  }
+
   main().catch(console.error);
 }
