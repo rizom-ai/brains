@@ -4,133 +4,83 @@
 
 The eval system works but has grown organically into three separate silos:
 
-1. **Plugin evals** (`plugins/*/evals/`) — legacy `brain.eval.config.ts`, each plugin spins up a minimal brain. ~31 test cases across 8 plugins.
-2. **App evals** (`apps/*/test-cases/`) — `brain.eval.yaml`, full brain with eval preset. 46 test cases.
+1. **Plugin evals** (`entities/*/evals/`) — legacy `brain.eval.config.ts`, each plugin spins up a minimal brain. ~31 test cases across 7 entity plugins.
+2. **App evals** (`apps/*/test-cases/`) — `brain.eval.yaml`, full brain with eval mode. 46 test cases.
 3. **Shell evals** (`shell/ai-evaluation/evals/`) — 7 generic test cases, unclear integration.
 
 Problems:
 
-- **Eval is a preset, but it's a safety constraint** — maintaining a separate plugin list drifts out of sync
+- **Plugin evals use 7 identical boilerplate configs** — `brain.eval.config.ts` files that differ only in which plugin they import
 - **84% of app evals are generic** — they test tool behavior, not instance-specific content
-- **Plugin evals use legacy config** — `defineConfig()` spinning up a full brain for handler tests
 - **No unified reporting** — each run produces isolated console output and timestamped JSON files
 - **No history or trends** — no comparison between runs, no regression detection
-- **No single place to see results** — results scattered across apps and plugins
 
 ## Design Principles
 
-- **Two runners**: agent evals (full brain, conversation, tool routing) and handler evals (no brain, just handler + AI)
-- **Shared reporting format**: both runners produce the same result schema
-- **Repo-level result store**: `eval-results/` at repo root, committed to git
-- **Named baselines + history**: compare against previous run or named snapshots
+- **Same runner for both agent and plugin evals** — plugin evals just use a simpler config
+- **`eval.yaml` replaces `brain.eval.config.ts`** — declarative, no boilerplate TypeScript
+- **Repo-level result store** — `eval-results/` at repo root, committed to git
+- **Named baselines + history** — compare against previous run or named snapshots
 
-## Phase 1: Eval Mode (replaces eval preset)
+## Phase 1: Eval Mode ✅
 
-Replace `preset: eval` with `mode: eval` that layers on top of any preset.
+Replaced `preset: eval` with `mode: eval` that layers on top of any preset. Brain models define `evalDisable` listing plugins with external side effects. Committed.
 
-```yaml
-# Before
-preset: eval
+## Phase 2: Replace plugin eval configs with `eval.yaml`
 
-# After
-preset: default
-mode: eval
-```
-
-The brain model defines which plugins are **unsafe for eval**:
+The 7 `brain.eval.config.ts` files are identical boilerplate:
 
 ```typescript
-export default defineBrain({
-  name: "rover",
-  presets: { minimal, default: standard, pro },
-  evalDisable: [
-    "matrix",
-    "discord",
-    "analytics",
-    "dashboard",
-    "content-pipeline",
-    "newsletter",
-    "webserver",
-  ],
+import { defineConfig } from "@brains/app";
+import { BlogPlugin } from "../src";
+export default defineConfig({
+  name: "blog-eval",
+  version: "0.1.0",
+  aiApiKey: process.env["ANTHROPIC_API_KEY"],
+  database: `file:/tmp/blog-eval-${Date.now()}.db`,
+  plugins: [new BlogPlugin({})],
 });
 ```
 
-### Resolution
+Replace with declarative `eval.yaml`:
 
+```yaml
+# entities/blog/evals/eval.yaml
+plugin: "@brains/blog"
 ```
-1. Resolve preset → activeIds
-2. If mode === "eval": remove all IDs in definition.evalDisable
-3. Apply add/remove as usual
+
+The runner auto-generates the equivalent config: imports the plugin's default export, creates an in-memory DB, injects the API key from env, registers the single plugin in a minimal shell. Same execution path as today, zero boilerplate.
+
+### What the loader does
+
+1. Read `eval.yaml` from current directory
+2. `plugin` field → dynamic import → get default export (plugin factory or plugin instance)
+3. Create `defineConfig()` with: name from plugin ID, in-memory DB, `ANTHROPIC_API_KEY` from env, single plugin
+4. Pass to existing `loadEvalConfig()` → `App.create()` → `app.initialize()` → run tests
+
+### Optional fields
+
+```yaml
+plugin: "@brains/blog"
+config: # Plugin config overrides (optional)
+  autoGenerateOnPublish: false
+aiModel: sonnet # Override AI model (optional, future)
 ```
-
-### What gets disabled in eval
-
-Plugins with external side effects:
-
-- Chat interfaces (matrix, discord) — sends messages to real users
-- Analytics — sends data to Cloudflare
-- Content pipeline — auto-publishes
-- Newsletter — sends emails
-- Webserver — serves public site
-- Dashboard — not needed without webserver
 
 ### Steps
 
-1. Add `evalDisable: string[]` to `BrainDefinition`
-2. Add `mode: z.enum(["eval"]).optional()` to instance overrides schema
-3. Update `resolveActiveIds()` in brain-resolver to apply evalDisable when mode is eval
-4. Remove `eval` from rover preset definitions
-5. Add `evalDisable` to ranger and relay (they currently have no eval preset)
-6. Update `brain.eval.yaml` files: `preset: eval` → `preset: default` + `mode: eval`
-7. Tests
+1. Add `eval.yaml` schema and loader to `run-evaluations.ts`
+2. Create `eval.yaml` for each of the 7 entity plugins
+3. Delete 7 `brain.eval.config.ts` files
+4. Test: `cd entities/blog/evals && bun run eval` still works
 
-### Key files
+### Files
 
-| File                                  | Change                                |
-| ------------------------------------- | ------------------------------------- |
-| `shell/app/src/brain-definition.ts`   | Add `evalDisable` to BrainDefinition  |
-| `shell/app/src/instance-overrides.ts` | Add `mode` field                      |
-| `shell/app/src/brain-resolver.ts`     | Apply evalDisable in resolveActiveIds |
-| `brains/rover/src/index.ts`           | Remove eval preset, add evalDisable   |
-| `brains/ranger/src/index.ts`          | Add evalDisable                       |
-| `brains/relay/src/index.ts`           | Add evalDisable                       |
-| `apps/*/brain.eval.yaml`              | `preset: default` + `mode: eval`      |
-
-## Phase 2: Split into two runners
-
-### Agent runner (existing, refined)
-
-Full brain + conversation + tool invocation checks + LLM-as-judge for response quality. Tests agent behavior: does it pick the right tool? Does it respond helpfully?
-
-- Runs from app directories (`apps/*/`)
-- Loads test cases from three tiers (see Phase 3)
-- Requires `brain.eval.yaml` with brain model
-- Expensive — full conversation per test case
-
-### Handler runner (new, lightweight)
-
-No brain. Imports the handler directly, injects a real AI service, validates output. Tests generation quality: does blog generation produce good content? Does topic extraction find the right topics?
-
-- Runs from plugin eval directories (`plugins/*/evals/`)
-- Minimal config — no brain model, no preset, no plugin resolution:
-
-```yaml
-# plugins/blog/evals/eval.yaml
-handler: ./src/handlers/generation-handler.ts
-aiModel: sonnet
-```
-
-- Uses YAML test cases with the same schema (quality criteria, LLM judge)
-- `--skip-llm-judge` available for fast local iteration
-- Cheap — no conversation overhead, just handler input → output
-
-### Shared between both
-
-- YAML test case format
-- `EvaluationResult` / `EvaluationSummary` schemas
-- LLM-as-judge scoring
-- All reporters (console, JSON, markdown, comparison)
-- Result store format
+| File                                         | Change                                                                                 |
+| -------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `shell/ai-evaluation/src/run-evaluations.ts` | Add `eval.yaml` loader alongside existing `brain.eval.yaml` and `brain.eval.config.ts` |
+| `entities/*/evals/eval.yaml`                 | New — one line each                                                                    |
+| `entities/*/evals/brain.eval.config.ts`      | Delete                                                                                 |
 
 ## Phase 3: Consolidate test case locations
 
@@ -169,9 +119,7 @@ Higher tiers override lower tiers by test case `id`.
 
 **Shell evals stay** (7 files) — brain-agnostic response quality baselines.
 
-### Handler evals stay with plugins
-
-Plugin-level test cases (`plugins/*/evals/test-cases/`) stay where they are. The handler runner loads them directly. No migration needed — only the runner config changes (legacy `brain.eval.config.ts` → lightweight `eval.yaml`).
+**Plugin evals stay with plugins** — `entities/*/evals/test-cases/` unchanged. The runner loads them from the plugin directory.
 
 ### Runner changes
 
@@ -186,6 +134,14 @@ testCasesDirectory: [
 ```
 
 `EvaluationService` already accepts `string | string[]` for `testCasesDirectory`.
+
+### Steps
+
+1. Update agent runner to load from multiple directories
+2. Move generic test cases to `brains/rover/test-cases/`
+3. Move ranger-specific test cases to `brains/ranger/test-cases/`
+4. Verify app-level test cases still work as overrides
+5. Tests
 
 ## Phase 4: Unified reporting and result store
 
@@ -207,22 +163,20 @@ eval-results/
     blog/
       latest.json
       baseline.json
-      2026-03-23T14-30.json
-    link/
       ...
 ```
 
-Both runners write to the same store. `latest.json` is a copy of (not symlink to) the most recent run. Named baselines are saved via `--baseline <name>`.
+Both agent and plugin evals write to the same store. `latest.json` is a copy of the most recent run. Named baselines are saved via `--baseline <name>`.
 
 ### Reporters
 
-All reporters receive the same `EvaluationSummary` — shared between agent and handler runners.
+All reporters receive the same `EvaluationSummary`.
 
 **Console reporter** (existing, keep) — colored pass/fail during the run.
 
-**JSON reporter** (existing, redirect) — writes to `eval-results/{type}/{name}/` instead of per-app `data/evaluation-results/`.
+**JSON reporter** (existing, redirect) — writes to `eval-results/` instead of per-app `data/evaluation-results/`.
 
-**Markdown reporter** (new) — generates summary for commit messages and quick review:
+**Markdown reporter** (new) — generates summary for commit messages:
 
 ```markdown
 ## Eval Run: rover/default (2026-03-23)
@@ -233,37 +187,22 @@ All reporters receive the same `EvaluationSummary` — shared between agent and 
 | ---------------- | ---- | ---- | ----- |
 | tool-invocation  | 22   | 1    | 95.5% |
 | response-quality | 3    | 0    | 100%  |
-| plugin           | 6    | 1    | 85.7% |
-| multi-turn       | 2    | 0    | 100%  |
-| agent            | 12   | 0    | 100%  |
 
 ### Failures
 
 - **search-tool**: Response must contain "results"
 - **blog-context**: Quality score 2.1 < min 3.0
-
-### Metrics (avg)
-
-Tokens: 1,234 | Tool calls: 2.3 | Duration: 1.2s
-
-### Quality (avg)
-
-Helpfulness: 4.5 | Accuracy: 4.2 | Instructions: 4.8
 ```
 
-Passing tests are not listed individually — only failures.
-
-**Comparison reporter** (new) — diffs current run against previous run or named baseline. Reports only, does not fail the run on regressions.
+**Comparison reporter** (new) — diffs current run against previous or named baseline:
 
 ```markdown
-## Comparison: 2026-03-23 vs baseline
+## Comparison: current vs baseline
 
-| Metric       | Previous | Current | Delta  |
-| ------------ | -------- | ------- | ------ |
-| Pass rate    | 93.6%    | 95.7%   | +2.1%  |
-| Avg tokens   | 1,456    | 1,234   | -15.2% |
-| Avg duration | 1.8s     | 1.2s    | -33.3% |
-| Helpfulness  | 4.3      | 4.5     | +0.2   |
+| Metric     | Previous | Current | Delta  |
+| ---------- | -------- | ------- | ------ |
+| Pass rate  | 93.6%    | 95.7%   | +2.1%  |
+| Avg tokens | 1,456    | 1,234   | -15.2% |
 
 ### Regressions
 
@@ -277,40 +216,47 @@ Passing tests are not listed individually — only failures.
 ### CLI
 
 ```bash
-# Agent evals
-cd apps/professional-brain && bun run eval
-cd apps/professional-brain && bun run eval --compare              # compare with last run
-cd apps/professional-brain && bun run eval --compare baseline     # compare with named baseline
-cd apps/professional-brain && bun run eval --baseline pre-refactor # save as named baseline
-cd apps/professional-brain && bun run eval --skip-llm-judge       # fast mode
+# Agent evals (from app directory)
+bun run eval
+bun run eval --compare
+bun run eval --compare baseline
+bun run eval --baseline pre-refactor
+bun run eval --skip-llm-judge
 
-# Handler evals
-cd plugins/blog/evals && bun run eval
-cd plugins/blog/evals && bun run eval --skip-llm-judge            # fast mode
-cd plugins/blog/evals && bun run eval --compare                   # compare with last run
+# Plugin evals (from plugin eval directory)
+cd entities/blog/evals && bun run eval
+cd entities/blog/evals && bun run eval --skip-llm-judge
+cd entities/blog/evals && bun run eval --compare
 ```
+
+### Steps
+
+1. Create `eval-results/` directory structure
+2. Redirect JSON reporter to write to `eval-results/`
+3. Add `--baseline` flag to save named snapshots
+4. Markdown reporter
+5. Comparison reporter + `--compare` flag
 
 ## Steps (ordered)
 
-1. Phase 1: evalDisable + mode: eval
-2. Phase 2: Handler runner (new, lightweight)
+1. ~~Phase 1: evalDisable + mode: eval~~ ✅
+2. Phase 2: Replace `brain.eval.config.ts` with `eval.yaml`
 3. Phase 3a: Update agent runner to load from multiple directories
 4. Phase 3b: Move generic test cases to brain model level
-5. Phase 3c: Migrate plugin eval configs to `eval.yaml`
-6. Phase 4a: Result store at repo root + redirect JSON reporter
-7. Phase 4b: Markdown reporter
-8. Phase 4c: Comparison reporter + baselines
+5. Phase 4a: Result store at repo root + redirect JSON reporter
+6. Phase 4b: Markdown reporter
+7. Phase 4c: Comparison reporter + baselines
 
 ## Verification
 
 1. `bun run typecheck` / `bun test` / `bun run lint`
-2. `preset: pro` + `mode: eval` produces pro plugins minus chat/analytics/etc.
-3. `preset: minimal` + `mode: eval` produces minimal minus discord
-4. `bun run eval` from `apps/professional-brain/` — runs shell + rover + yeehaa agent tests
-5. `bun run eval` from `apps/collective-brain/` — runs shell + ranger + collective agent tests
-6. `bun run eval` from `plugins/blog/evals/` — runs blog handler tests (no brain)
-7. Results written to `eval-results/` at repo root
-8. Markdown report generated after each run
-9. `--compare` shows regressions and fixes against previous run
-10. `--baseline` saves named snapshot for future comparison
-11. No test case references old file paths
+2. `preset: pro` + `mode: eval` produces pro plugins minus side-effect plugins
+3. `bun run eval` from `apps/professional-brain/` — runs shell + rover + yeehaa agent tests
+4. `bun run eval` from `apps/collective-brain/` — runs shell + ranger + collective agent tests
+5. `bun run eval` from `entities/blog/evals/` — runs blog plugin tests (minimal brain, no full app)
+6. Results written to `eval-results/` at repo root
+7. Markdown report generated after each run
+8. `--compare` shows regressions and fixes against previous run
+9. `--baseline` saves named snapshot for future comparison
+10. No test case references old file paths
+11. No `brain.eval.config.ts` files remain
