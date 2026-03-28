@@ -149,7 +149,7 @@ Native desktop app via Electrobun (Bun-native framework). Brain IS the main proc
 
 ### Ranger as Agent Registry
 
-Central discovery: brains search ranger for agents by capability. Builds on agent directory plugin + hosted rovers.
+Central discovery: brains search ranger for agents by capability. Builds on AT Protocol discovery + hosted rovers.
 
 ### Web UI
 
