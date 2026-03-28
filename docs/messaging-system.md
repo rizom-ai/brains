@@ -194,8 +194,8 @@ Plugins register message handlers during initialization:
 
 ```typescript
 // In SummaryPlugin
-export class SummaryPlugin extends CorePlugin {
-  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+export class SummaryPlugin extends ServicePlugin {
+  async register(context: ServicePluginContext): Promise<PluginCapabilities> {
     const { messageBus, logger, jobQueue } = context;
 
     // Subscribe to digest request events
@@ -271,7 +271,7 @@ Plugins communicate with each other through events:
 
 ```typescript
 // LinkPlugin triggering summary generation
-export class LinkPlugin extends CorePlugin {
+export class LinkPlugin extends ServicePlugin {
   async captureLink(url: string): Promise<LinkEntity> {
     const { messageBus, entityService } = this.context;
 
@@ -298,8 +298,8 @@ export class LinkPlugin extends CorePlugin {
 }
 
 // TopicsPlugin listening to link events
-export class TopicsPlugin extends CorePlugin {
-  async register(context: CorePluginContext): Promise<PluginCapabilities> {
+export class TopicsPlugin extends ServicePlugin {
+  async register(context: ServicePluginContext): Promise<PluginCapabilities> {
     const { messageBus } = context;
 
     // Listen for new links to extract topics
@@ -359,15 +359,15 @@ Messages and handlers are easy to test:
 ```typescript
 // Testing event handlers in a plugin
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { SummaryPlugin } from "../src";
 
 describe("SummaryPlugin message handlers", () => {
-  let harness: ReturnType<typeof createCorePluginHarness>;
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let plugin: SummaryPlugin;
 
   beforeEach(async () => {
-    harness = createCorePluginHarness();
+    harness = createServicePluginHarness();
     plugin = new SummaryPlugin();
     await harness.installPlugin(plugin);
   });

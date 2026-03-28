@@ -220,7 +220,7 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 ### Plugin Architecture
 
 - **Extensible Core** - Plugin-based system
-  - BasePlugin → CorePlugin → ServicePlugin/InterfacePlugin
+  - BasePlugin → ServicePlugin → ServicePlugin/InterfacePlugin
   - Hot-reloadable plugins
   - Isolated plugin contexts
 

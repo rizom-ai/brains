@@ -64,7 +64,7 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/social-media` | Social media posts                   |
 | `entities/wishlist`     | Feature request tracking             |
 
-## Plugins (ServicePlugin/CorePlugin — tools + infrastructure)
+## Plugins (ServicePlugin — tools + infrastructure)
 
 Plugins that provide MCP tools, orchestration, or infrastructure operations.
 

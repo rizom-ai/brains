@@ -244,15 +244,15 @@ Testing a plugin with the provided harness:
 
 ```typescript
 import { describe, it, expect, beforeEach } from "bun:test";
-import { createCorePluginHarness } from "@brains/plugins/test";
+import { createServicePluginHarness } from "@brains/plugins/test";
 import { LinkPlugin } from "../src";
 
 describe("LinkPlugin", () => {
-  let harness: ReturnType<typeof createCorePluginHarness>;
+  let harness: ReturnType<typeof createServicePluginHarness>;
   let plugin: LinkPlugin;
 
   beforeEach(async () => {
-    harness = createCorePluginHarness();
+    harness = createServicePluginHarness();
     plugin = new LinkPlugin();
     await harness.installPlugin(plugin);
   });

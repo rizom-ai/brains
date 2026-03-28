@@ -79,8 +79,8 @@ The service uses direct registration to avoid timing issues:
 
 ```typescript
 // Plugins register directly with the service
-class MyPlugin extends CorePlugin {
-  async onRegister(context: CorePluginContext) {
+class MyPlugin extends ServicePlugin {
+  async onRegister(context: ServicePluginContext) {
     // Direct registration - no events
     const tool = await this.getTools();
     context.mcpTransport.registerTool(tool);

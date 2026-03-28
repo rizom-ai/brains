@@ -8,7 +8,7 @@ The plugin system follows a **tool-first architecture** where plugins expose the
 
 ## Plugin Types
 
-### CorePlugin
+### ServicePlugin
 
 Base class for plugins that provide core functionality:
 
@@ -97,12 +97,12 @@ This eliminates timing issues that would occur with event-based registration.
 
 Plugins receive a typed context object based on their plugin type. Context objects are organized into namespaces for better discoverability and maintainability.
 
-### CorePluginContext
+### ServicePluginContext
 
 Base context available to all plugins with read-only operations:
 
 ```typescript
-interface CorePluginContext {
+interface ServicePluginContext {
   // Direct properties
   pluginId: string;
   logger: Logger;
@@ -155,7 +155,7 @@ interface CorePluginContext {
 Extended context for plugins that manage entities and background jobs:
 
 ```typescript
-interface ServicePluginContext extends CorePluginContext {
+interface ServicePluginContext extends ServicePluginContext {
   entityService: IEntityService; // Full entity service
   dataDir: string;
 
@@ -168,21 +168,21 @@ interface ServicePluginContext extends CorePluginContext {
   };
 
   // Job queue (extends core jobs)
-  jobs: CorePluginContext["jobs"] & {
+  jobs: ServicePluginContext["jobs"] & {
     enqueue(type, data, toolContext, options?): Promise<string>;
     enqueueBatch(operations, options?): Promise<string>;
     registerHandler(type, handler): void;
   };
 
   // AI operations (extends core ai)
-  ai: CorePluginContext["ai"] & {
+  ai: ServicePluginContext["ai"] & {
     generate<T>(config): Promise<T>;
     generateImage(prompt, options?): Promise<ImageGenerationResult>;
     canGenerateImages(): boolean;
   };
 
   // Templates (extends core templates)
-  templates: CorePluginContext["templates"] & {
+  templates: ServicePluginContext["templates"] & {
     resolve<T>(templateName, options?): Promise<T | null>;
     getCapabilities(templateName): TemplateCapabilities | null;
   };
@@ -213,7 +213,7 @@ interface ServicePluginContext extends CorePluginContext {
 Context for plugins providing user interfaces:
 
 ```typescript
-interface InterfacePluginContext extends CorePluginContext {
+interface InterfacePluginContext extends ServicePluginContext {
   mcpTransport: IMCPTransport;
   agentService: IAgentService;
 
@@ -228,14 +228,14 @@ interface InterfacePluginContext extends CorePluginContext {
   };
 
   // Job queue (extends core jobs)
-  jobs: CorePluginContext["jobs"] & {
+  jobs: ServicePluginContext["jobs"] & {
     enqueue(type, data, toolContext, options?): Promise<string>;
     enqueueBatch(operations, options?): Promise<string>;
     registerHandler(type, handler): void;
   };
 
   // Conversations (extends core with write operations)
-  conversations: CorePluginContext["conversations"] & {
+  conversations: ServicePluginContext["conversations"] & {
     start(id, interfaceType, channelId, metadata): Promise<string>;
     addMessage(conversationId, role, content, metadata?): Promise<void>;
   };
@@ -305,10 +305,10 @@ interface PluginHandler {
 All plugin types have standardized test harnesses:
 
 ```typescript
-// Test any CorePlugin
-import { createCorePluginHarness } from "@brains/plugins/test";
+// Test any ServicePlugin
+import { createServicePluginHarness } from "@brains/plugins/test";
 
-const harness = createCorePluginHarness();
+const harness = createServicePluginHarness();
 const plugin = new MyPlugin();
 const capabilities = await harness.installPlugin(plugin);
 
@@ -353,7 +353,7 @@ When plugins need to communicate with other plugins via the message bus, timing 
 #### Widget Producer Pattern (System/Analytics plugins)
 
 ```typescript
-protected override async onRegister(context: CorePluginContext): Promise<void> {
+protected override async onRegister(context: ServicePluginContext): Promise<void> {
   // Subscribe to system:plugins:ready to send widgets AFTER Dashboard is listening
   context.messaging.subscribe("system:plugins:ready", async () => {
     await context.messaging.send("dashboard:register-widget", {
