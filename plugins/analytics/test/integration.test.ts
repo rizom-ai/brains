@@ -100,7 +100,7 @@ describe("AnalyticsPlugin Integration", () => {
 
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("analytics");
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
       expect(plugin.version).toBe("0.1.0");
     });
 

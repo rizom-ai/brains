@@ -1,7 +1,7 @@
 import { Client } from "@modelcontextprotocol/sdk/client";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { CorePlugin } from "@brains/plugins";
-import type { Tool, CorePluginContext, ToolResponse } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import type { Tool, ServicePluginContext, ToolResponse } from "@brains/plugins";
 import { z, getErrorMessage } from "@brains/utils";
 
 /**
@@ -70,7 +70,7 @@ type RemoteTool = z.infer<typeof remoteToolSchema>;
  */
 export abstract class MCPBridgePlugin<
   TConfig = unknown,
-> extends CorePlugin<TConfig> {
+> extends ServicePlugin<TConfig> {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private remoteTools: RemoteTool[] = [];
@@ -82,7 +82,7 @@ export abstract class MCPBridgePlugin<
   protected abstract getAgentInstructions(): string;
 
   protected override async onRegister(
-    context: CorePluginContext,
+    context: ServicePluginContext,
   ): Promise<void> {
     await this.connect(context);
   }
@@ -90,7 +90,7 @@ export abstract class MCPBridgePlugin<
   /**
    * Spawn the MCP server, connect via stdio, discover and filter tools.
    */
-  private async connect(context: CorePluginContext): Promise<void> {
+  private async connect(context: ServicePluginContext): Promise<void> {
     const serverCommand = this.getServerCommand();
 
     context.logger.info(
@@ -157,7 +157,7 @@ export abstract class MCPBridgePlugin<
   /**
    * Discover tools from the remote server and filter by allowlist.
    */
-  private async discoverTools(context: CorePluginContext): Promise<void> {
+  private async discoverTools(context: ServicePluginContext): Promise<void> {
     if (!this.client || !this.connected) return;
 
     try {

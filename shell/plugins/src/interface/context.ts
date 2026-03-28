@@ -77,7 +77,7 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
 
 /**
  * Context interface for interface plugins
- * Extends CorePluginContext with daemon support, job creation, and conversation management
+ * Extends BasePluginContext with daemon support, job creation, and conversation management
  *
  * ## Method Naming Conventions
  * - Properties: Direct access to services (e.g., `mcpTransport`, `agentService`)

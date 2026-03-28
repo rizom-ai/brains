@@ -1,5 +1,5 @@
-import { CorePlugin } from "@brains/plugins";
-import type { CorePluginContext, Tool } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import type { ServicePluginContext, Tool } from "@brains/plugins";
 import { z } from "@brains/utils";
 
 const calculatorConfigSchema = z.object({
@@ -11,12 +11,12 @@ type CalculatorConfig = z.infer<typeof calculatorConfigSchema>;
 type CalculatorConfigInput = Partial<CalculatorConfig>;
 
 /**
- * Example CorePlugin — demonstrates messaging and tool registration.
+ * Example ServicePlugin — demonstrates messaging and tool registration.
  *
- * NOTE: CorePlugin is being removed in Phase 8. This example will be
+ * NOTE: ServicePlugin is being removed in Phase 8. This example will be
  * rewritten to use ServicePlugin. See docs/plans/plugin-hierarchy-simplification.md.
  */
-export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
+export class ExampleServicePlugin extends ServicePlugin<CalculatorConfig> {
   constructor(config: CalculatorConfigInput = {}) {
     super(
       "calculator",
@@ -32,7 +32,7 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
   }
 
   protected override async onRegister(
-    context: CorePluginContext,
+    context: ServicePluginContext,
   ): Promise<void> {
     context.messaging.subscribe(
       "calc:request",
@@ -91,6 +91,6 @@ export class ExampleCorePlugin extends CorePlugin<CalculatorConfig> {
 
 export function calculatorPlugin(
   config?: CalculatorConfigInput,
-): ExampleCorePlugin {
-  return new ExampleCorePlugin(config);
+): ExampleServicePlugin {
+  return new ExampleServicePlugin(config);
 }

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { PluginManager } from "../src/manager/pluginManager";
-import { CorePlugin } from "../src/core/core-plugin";
+import { ServicePlugin } from "../src/service/service-plugin";
 import type { Tool, Resource } from "../src/interfaces";
 import { createMockShell, type MockShell } from "../src/test/mock-shell";
 import { createSilentLogger } from "@brains/test-utils";
@@ -9,7 +9,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "@brains/utils";
 
 // Mock plugin for testing
-class TestPlugin extends CorePlugin<Record<string, never>> {
+class TestPlugin extends ServicePlugin<Record<string, never>> {
   constructor() {
     super(
       "test-plugin",
@@ -154,7 +154,7 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should handle plugins with no capabilities", async () => {
-      class EmptyPlugin extends CorePlugin<Record<string, never>> {
+      class EmptyPlugin extends ServicePlugin<Record<string, never>> {
         constructor() {
           super(
             "empty-plugin",
@@ -175,7 +175,7 @@ describe("PluginManager - Direct Registration", () => {
     });
 
     it("should register capabilities from multiple plugins", async () => {
-      class SecondPlugin extends CorePlugin<Record<string, never>> {
+      class SecondPlugin extends ServicePlugin<Record<string, never>> {
         constructor() {
           super(
             "second-plugin",

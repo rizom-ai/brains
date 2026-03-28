@@ -1,5 +1,5 @@
-import type { Plugin, Tool, CorePluginContext } from "@brains/plugins";
-import { CorePlugin } from "@brains/plugins";
+import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
 import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
@@ -18,13 +18,13 @@ import packageJson from "../package.json";
  *
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
-export class AnalyticsPlugin extends CorePlugin<AnalyticsConfig> {
+export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
   }
 
   protected override async onRegister(
-    context: CorePluginContext,
+    context: ServicePluginContext,
   ): Promise<void> {
     const siteTag = this.config.cloudflare?.siteTag;
     if (siteTag) {

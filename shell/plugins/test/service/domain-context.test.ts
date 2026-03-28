@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { createCorePluginContext } from "../../src/core/context";
+import { createBasePluginContext } from "../../src/base/context";
 import { createMockShell } from "../../src/test/mock-shell";
 import { createServicePluginContext } from "../../src/service/context";
 import { createSilentLogger } from "@brains/test-utils";
@@ -10,14 +10,14 @@ describe("Top-level context properties", () => {
   describe("context.domain", () => {
     it("should return the raw domain string", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.domain).toBe("yeehaa.io");
     });
 
     it("should return undefined when no domain is set", () => {
       const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.domain).toBeUndefined();
     });
@@ -26,14 +26,14 @@ describe("Top-level context properties", () => {
   describe("context.siteUrl", () => {
     it("should return https URL when domain is set", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.siteUrl).toBe("https://yeehaa.io");
     });
 
     it("should return undefined when no domain is set", () => {
       const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.siteUrl).toBeUndefined();
     });
@@ -43,7 +43,7 @@ describe("Top-level context properties", () => {
         logger,
         domain: "recall.rizom.ai",
       });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.siteUrl).toBe("https://recall.rizom.ai");
     });
@@ -52,14 +52,14 @@ describe("Top-level context properties", () => {
   describe("context.previewUrl", () => {
     it("should return preview subdomain URL when domain is set", () => {
       const shell = createMockShell({ logger, domain: "yeehaa.io" });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.previewUrl).toBe("https://preview.yeehaa.io");
     });
 
     it("should return undefined when no domain is set", () => {
       const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.previewUrl).toBeUndefined();
     });
@@ -69,7 +69,7 @@ describe("Top-level context properties", () => {
         logger,
         domain: "recall.rizom.ai",
       });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       expect(context.previewUrl).toBe("https://preview.recall.rizom.ai");
     });
@@ -78,7 +78,7 @@ describe("Top-level context properties", () => {
   describe("context.appInfo", () => {
     it("should return app metadata", async () => {
       const shell = createMockShell({ logger });
-      const context = createCorePluginContext(shell, "test-plugin");
+      const context = createBasePluginContext(shell, "test-plugin");
 
       const info = await context.appInfo();
       expect(info.model).toBe("test-brain");

@@ -1,4 +1,4 @@
-import type { CorePlugin, CorePluginContext } from "@brains/plugins";
+import type { ServicePlugin, ServicePluginContext } from "@brains/plugins";
 import { noteSchema, NoteAdapter } from "./entity/noteEntity";
 import { NoteService } from "./services/noteService";
 import { NoteTools } from "./tools/noteTools";

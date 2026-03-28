@@ -8,16 +8,16 @@ export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
 export type { EntityPluginContext, IPromptsNamespace } from "./entity/context";
 export { createEntityPluginContext } from "./entity/context";
 export { resolvePrompt, resetPromptCache } from "./entity/prompt-resolver";
-export { CorePlugin } from "./core/core-plugin";
+
 export { InterfacePlugin } from "./interface/interface-plugin";
 
 // Plugin contexts (needed for plugin initialization)
 export type { ServicePluginContext } from "./service/context";
-export type { CorePluginContext } from "./core/context";
+export type { BasePluginContext } from "./base/context";
 export type { InterfacePluginContext } from "./interface/context";
 
 export { createServicePluginContext } from "./service/context";
-export { createCorePluginContext } from "./core/context";
+export { createBasePluginContext } from "./base/context";
 export { createInterfacePluginContext } from "./interface/context";
 
 // ============================================================================

@@ -60,7 +60,7 @@ describe("HackMDPlugin", () => {
 
     it("is a core plugin", () => {
       const plugin = new TestableHackMDPlugin({ token: "test" });
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
     });
   });
 

@@ -11,6 +11,6 @@
  */
 
 // Export example implementations
-export { ExampleCorePlugin } from "./core-plugin-example";
+export { ExampleServicePlugin } from "./core-plugin-example";
 export { ExampleInterfacePlugin } from "./interface-plugin-example";
 export { CalculatorServicePlugin } from "./service-plugin-example";

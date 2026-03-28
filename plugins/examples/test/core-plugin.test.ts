@@ -5,7 +5,7 @@ import type { PluginCapabilities } from "@brains/plugins/test";
 import { DefaultContentFormatter } from "@brains/utils";
 import { z } from "@brains/utils";
 
-describe("CorePlugin", () => {
+describe("ServicePlugin (formerly CorePlugin)", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let capabilities: PluginCapabilities;
 
@@ -68,7 +68,7 @@ describe("CorePlugin", () => {
     expect(plugin).toBeDefined();
     expect(plugin.id).toBe("calculator");
     expect(plugin.packageName).toBe("@brains/calculator-plugin");
-    expect(plugin.type).toBe("core");
+    expect(plugin.type).toBe("service");
   });
 
   test("calculator plugin messaging works", async () => {

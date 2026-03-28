@@ -1,10 +1,9 @@
 import { describe, it, expect } from "bun:test";
-import { CorePlugin } from "../src/core/core-plugin";
 import { ServicePlugin } from "../src/service/service-plugin";
 import { createPluginHarness } from "../src/test/harness";
 import { z } from "@brains/utils";
 
-class PluginWithInstructions extends CorePlugin<Record<string, never>> {
+class PluginWithInstructions extends ServicePlugin<Record<string, never>> {
   constructor() {
     super(
       "instructed-plugin",
@@ -19,7 +18,7 @@ class PluginWithInstructions extends CorePlugin<Record<string, never>> {
   }
 }
 
-class PluginWithoutInstructions extends CorePlugin<Record<string, never>> {
+class PluginWithoutInstructions extends ServicePlugin<Record<string, never>> {
   constructor() {
     super(
       "plain-plugin",
@@ -48,7 +47,7 @@ class ServicePluginWithInstructions extends ServicePlugin<
 }
 
 describe("Plugin Instructions", () => {
-  describe("CorePlugin", () => {
+  describe("ServicePlugin", () => {
     it("should include instructions in capabilities when provided", async () => {
       const harness = createPluginHarness();
       const capabilities = await harness.installPlugin(

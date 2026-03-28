@@ -60,7 +60,7 @@ describe("NotionPlugin", () => {
 
     it("is a core plugin", () => {
       const plugin = new TestableNotionPlugin({ token: "ntn_test" });
-      expect(plugin.type).toBe("core");
+      expect(plugin.type).toBe("service");
     });
   });
 

@@ -1,4 +1,4 @@
-import type { Tool, CorePluginContext } from "@brains/plugins";
+import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import {
   getErrorMessage,
@@ -71,7 +71,7 @@ function validateParams(input: QueryAnalyticsParams): string | null {
  */
 export function createAnalyticsTools(
   pluginId: string,
-  _context: CorePluginContext,
+  _context: ServicePluginContext,
   cloudflareConfig?: CloudflareConfig,
 ): Tool[] {
   const tools: Tool[] = [];
