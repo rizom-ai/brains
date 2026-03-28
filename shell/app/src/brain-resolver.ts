@@ -43,6 +43,13 @@ function resolveActiveIds(
 
   const activeIds = new Set(preset);
 
+  // Eval mode: remove plugins with external side effects
+  if (overrides?.mode === "eval" && definition.evalDisable) {
+    for (const id of definition.evalDisable) {
+      activeIds.delete(id);
+    }
+  }
+
   // Add: union with preset (only IDs that exist in brain definition)
   if (overrides?.add) {
     for (const id of overrides.add) {

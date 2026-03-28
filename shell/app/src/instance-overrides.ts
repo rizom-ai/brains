@@ -1,5 +1,5 @@
 import { z, fromYaml } from "@brains/utils";
-import { presetNameSchema } from "./brain-definition";
+import { presetNameSchema, modeSchema } from "./brain-definition";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g;
@@ -33,6 +33,9 @@ const instanceOverridesSchema = z.object({
 
   /** Preset name — selects a curated subset of capabilities + interfaces */
   preset: presetNameSchema.optional(),
+
+  /** Eval mode — disables plugins with side effects (defined by evalDisable in brain model) */
+  mode: modeSchema.optional(),
 
   /** Plugin/interface IDs to add on top of the preset */
   add: z.array(z.string()).optional(),

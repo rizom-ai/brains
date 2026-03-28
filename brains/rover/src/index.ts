@@ -78,30 +78,6 @@ const pro = [
   "matrix",
 ];
 
-// Eval = all capabilities, no interfaces (no daemons/servers)
-const evaluation = [
-  "prompt",
-  "image",
-  "dashboard",
-  "blog",
-  "series",
-  "decks",
-  "note",
-  "link",
-  "wishlist",
-  "portfolio",
-  "topics",
-  "content-pipeline",
-  "social-media",
-  "newsletter",
-  "buttondown",
-  "analytics",
-  "obsidian-vault",
-  "directory-sync",
-  "site-info",
-  "site-builder",
-];
-
 export default defineBrain({
   name: "rover",
   version: "1.0.0",
@@ -110,8 +86,17 @@ export default defineBrain({
     minimal,
     default: standard,
     pro,
-    eval: evaluation,
   },
+
+  evalDisable: [
+    "matrix",
+    "discord",
+    "webserver",
+    "a2a",
+    "analytics",
+    "dashboard",
+    "content-pipeline",
+  ],
 
   capabilities: [
     ["prompt", promptPlugin, undefined],

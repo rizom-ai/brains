@@ -48,6 +48,8 @@ export default defineBrain({
     ],
   },
 
+  evalDisable: ["matrix", "webserver"],
+
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["topics", topicsPlugin, {}],

@@ -8,9 +8,12 @@ import { z } from "@brains/utils";
 /**
  * Standard preset names.
  */
-export const presetNameSchema = z.enum(["minimal", "default", "pro", "eval"]);
+export const presetNameSchema = z.enum(["minimal", "default", "pro"]);
 export const PresetNames = presetNameSchema.options;
 export type PresetName = z.infer<typeof presetNameSchema>;
+
+export const modeSchema = z.enum(["eval"]);
+export type BrainMode = z.infer<typeof modeSchema>;
 
 /**
  * Environment record — the deployment-specific variables
@@ -142,6 +145,13 @@ export interface BrainDefinition {
 
   /** Content model — seed content, entity routes */
   contentModel?: BrainContentModel;
+
+  /**
+   * Plugin/interface IDs to disable when running in eval mode.
+   * These are plugins with external side effects (chat, email, analytics, etc.)
+   * that should not run during evaluation.
+   */
+  evalDisable?: string[];
 
   /**
    * Additional config passed directly to the app.

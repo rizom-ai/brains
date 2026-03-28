@@ -1,8 +1,9 @@
 brain: "@brains/rover"
-preset: eval
+preset: pro
+mode: eval
 
 # Eval-specific config — safe subset for automated testing
-# No chat interfaces, no git auto-push
+# mode: eval disables interfaces and side-effect plugins (defined by evalDisable in brain model)
 
 plugins:
   directory-sync:

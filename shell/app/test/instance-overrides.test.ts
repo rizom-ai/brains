@@ -1240,3 +1240,173 @@ describe("resolve with presets", () => {
     expect(pluginIds).toContain("blog");
   });
 });
+
+describe("resolve with mode: eval", () => {
+  test("should remove evalDisable IDs when mode is eval", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [blogFactory] = createMockFactory("blog");
+    const [analyticsFactory] = createMockFactory("analytics");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "blog", "analytics"],
+      },
+      evalDisable: ["analytics"],
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["blog", blogFactory, {}],
+        ["analytics", analyticsFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "default", mode: "eval" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("blog");
+    expect(pluginIds).not.toContain("analytics");
+  });
+
+  test("should not remove evalDisable IDs when mode is not eval", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [analyticsFactory] = createMockFactory("analytics");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "analytics"],
+      },
+      evalDisable: ["analytics"],
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["analytics", analyticsFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "default" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("analytics");
+  });
+
+  test("should apply evalDisable to interfaces too", () => {
+    const [systemFactory] = createMockFactory("system");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "mcp", "matrix"],
+      },
+      evalDisable: ["matrix"],
+      capabilities: [["system", systemFactory, {}]],
+      interfaces: [
+        [
+          "mcp",
+          MockMCP as InterfaceConstructor,
+          (): PluginConfig => ({ port: 3333 }),
+        ],
+        [
+          "matrix",
+          MockMatrix as InterfaceConstructor,
+          (): PluginConfig => ({ homeserver: "https://matrix.example.com" }),
+        ],
+      ],
+    });
+
+    const config = resolve(def, {}, { preset: "default", mode: "eval" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("mcp");
+    expect(pluginIds).not.toContain("matrix");
+  });
+
+  test("should combine evalDisable with preset and add/remove", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [blogFactory] = createMockFactory("blog");
+    const [analyticsFactory] = createMockFactory("analytics");
+    const [dashboardFactory] = createMockFactory("dashboard");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "blog", "analytics", "dashboard"],
+      },
+      evalDisable: ["analytics", "dashboard"],
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["blog", blogFactory, {}],
+        ["analytics", analyticsFactory, {}],
+        ["dashboard", dashboardFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      { preset: "default", mode: "eval", add: ["dashboard"] },
+    );
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    // evalDisable removes analytics and dashboard, but add brings dashboard back
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("blog");
+    expect(pluginIds).not.toContain("analytics");
+    // add happens after evalDisable, so dashboard comes back
+    expect(pluginIds).toContain("dashboard");
+  });
+
+  test("should work without evalDisable defined", () => {
+    const [systemFactory] = createMockFactory("system");
+    const [blogFactory] = createMockFactory("blog");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        default: ["system", "blog"],
+      },
+      capabilities: [
+        ["system", systemFactory, {}],
+        ["blog", blogFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { preset: "default", mode: "eval" });
+    const pluginIds = config.plugins?.map((p) => p.id) ?? [];
+
+    expect(pluginIds).toContain("system");
+    expect(pluginIds).toContain("blog");
+  });
+});
+
+describe("parseInstanceOverrides with mode", () => {
+  test("should parse mode: eval from yaml", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: default
+mode: eval
+`;
+    const overrides = parseInstanceOverrides(yaml);
+    expect(overrides.mode).toBe("eval");
+  });
+
+  test("should leave mode undefined when not specified", () => {
+    const yaml = `
+brain: "@brains/rover"
+preset: default
+`;
+    const overrides = parseInstanceOverrides(yaml);
+    expect(overrides.mode).toBeUndefined();
+  });
+});

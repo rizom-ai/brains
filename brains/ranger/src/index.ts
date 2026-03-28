@@ -55,6 +55,8 @@ export default defineBrain({
     ],
   },
 
+  evalDisable: ["matrix", "discord", "webserver", "analytics", "dashboard"],
+
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
