@@ -12,7 +12,6 @@ import { setupGitAutoCommit } from "./lib/git-auto-commit";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
-import { createGitTools } from "./tools/git-tools";
 import "./types/job-augmentation";
 import packageJson from "../package.json";
 
@@ -139,15 +138,7 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
 
   protected override async getTools(): Promise<Tool[]> {
     const directorySync = this.requireDirectorySync();
-    const tools = createDirectorySyncTools(
-      directorySync,
-      this.getContext(),
-      this.id,
-    );
-    if (this.gitSync) {
-      tools.push(...createGitTools(this.gitSync, this.id));
-    }
-    return tools;
+    return createDirectorySyncTools(directorySync, this.id, this.gitSync);
   }
 
   protected override async onShutdown(): Promise<void> {

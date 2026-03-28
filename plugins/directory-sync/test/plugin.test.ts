@@ -61,7 +61,8 @@ describe("DirectorySyncPlugin", () => {
     it("should provide expected tools", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).toContain("directory-sync_sync");
-      expect(toolNames.length).toBe(1);
+      expect(toolNames).toContain("directory-sync_status");
+      expect(toolNames.length).toBe(2);
     });
 
     it("should register templates", () => {

@@ -1,78 +1,78 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type { Tool } from "@brains/plugins";
 import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { DirectorySync } from "../lib/directory-sync";
+import type { GitSync } from "../lib/git-sync";
 
 export function createDirectorySyncTools(
   directorySync: DirectorySync,
-  pluginContext: ServicePluginContext,
   pluginId: string,
+  gitSync?: GitSync,
 ): Tool[] {
   return [
     createTool(
       pluginId,
       "sync",
-      "Sync brain entities with the filesystem. Use when users want to refresh content from files or save changes to disk.",
+      "Sync brain entities with the filesystem. Pulls from git, imports files, cleans up orphans, commits and pushes changes.",
       z.object({}),
-      async (_input, context) => {
-        const source = context.channelId
-          ? `${context.interfaceType}:${context.channelId}`
-          : `plugin:${pluginId}`;
+      async () => {
+        try {
+          const result = await directorySync.fullSync(gitSync);
 
-        const metadata: {
-          progressToken?: string;
-          pluginId?: string;
-          interfaceType?: string;
-          channelId?: string;
-        } = {
-          pluginId,
-          // Routing context for progress messages
-          interfaceType: context.interfaceType,
-        };
+          const parts = [`Synced ${result.imported} entities`];
+          if (result.gitPulled) parts.push("pulled from git");
+          if (result.gitPushed) parts.push("pushed to git");
 
-        // Only set channelId if defined (exactOptionalPropertyTypes)
-        if (context.channelId !== undefined) {
-          metadata.channelId = context.channelId;
-        }
-
-        const progressToken = context.progressToken?.toString();
-        if (progressToken !== undefined) {
-          metadata.progressToken = progressToken;
-        }
-
-        const result = await directorySync.queueSyncBatch(
-          pluginContext,
-          source,
-          metadata,
-        );
-
-        if (!result) {
           return {
             success: true,
-            data: {
-              jobId: "",
-              batchId: "",
-              exportOperations: 0,
-              importOperations: 0,
-              totalFiles: 0,
-            },
-            message: "No operations needed - no entity types or files to sync",
+            data: result,
+            message: parts.join(", "),
+          };
+        } catch (error) {
+          return {
+            success: false,
+            error: error instanceof Error ? error.message : "Sync failed",
           };
         }
-
-        // Include batchId as jobId for agent response tracking
-        return {
-          success: true,
-          data: {
-            jobId: result.batchId,
-            batchId: result.batchId,
-            exportOperations: result.exportOperationsCount,
-            importOperations: result.importOperationsCount,
-            totalFiles: result.totalFiles,
-          },
-          message: `Sync batch operation queued: ${result.exportOperationsCount} export jobs, ${result.importOperationsCount} import jobs for ${result.totalFiles} files`,
-        };
       },
+    ),
+    createTool(
+      pluginId,
+      "status",
+      "Get sync and git repository status — last sync time, watching state, pending git changes.",
+      z.object({}),
+      async () => {
+        try {
+          const syncStatus = await directorySync.getStatus();
+
+          const data: Record<string, unknown> = {
+            syncPath: syncStatus.syncPath,
+            lastSync: syncStatus.lastSync?.toISOString(),
+            watching: syncStatus.watching,
+          };
+
+          if (gitSync) {
+            const gitStatus = await gitSync.getStatus();
+            data["git"] = {
+              isRepo: gitStatus.isRepo,
+              branch: gitStatus.branch,
+              hasChanges: gitStatus.hasChanges,
+              ahead: gitStatus.ahead,
+              behind: gitStatus.behind,
+              remote: gitStatus.remote,
+            };
+          }
+
+          return { success: true, data };
+        } catch (error) {
+          return {
+            success: false,
+            error:
+              error instanceof Error ? error.message : "Status check failed",
+          };
+        }
+      },
+      { visibility: "public" },
     ),
   ];
 }
