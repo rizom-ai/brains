@@ -159,4 +159,56 @@ describe("setupInitialSync with git", () => {
       { broadcast: true },
     );
   });
+
+  it("should emit sync:initial:completed with success:false when pull fails", async () => {
+    const { context, handlers } = createMockContext();
+    const ds = createMockDirectorySync();
+    const gs = createMockGitSync();
+    gs.pull = mock(async () => {
+      throw new Error("Network timeout");
+    });
+
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      "directory-sync",
+      createSilentLogger(),
+      gs,
+    );
+
+    const handler = handlers.get("system:plugins:ready");
+    if (handler) await handler();
+
+    expect(context.messaging.send).toHaveBeenCalledWith(
+      "sync:initial:completed",
+      expect.objectContaining({ success: false, error: "Network timeout" }),
+      { broadcast: true },
+    );
+  });
+
+  it("should emit sync:initial:completed with success:false when queueSyncBatch fails", async () => {
+    const { context, handlers } = createMockContext();
+    const ds = createMockDirectorySync();
+    ds.queueSyncBatch = mock(async () => {
+      throw new Error("DB locked");
+    });
+
+    setupInitialSync(
+      context,
+      () => ds,
+      baseConfig,
+      "directory-sync",
+      createSilentLogger(),
+    );
+
+    const handler = handlers.get("system:plugins:ready");
+    if (handler) await handler();
+
+    expect(context.messaging.send).toHaveBeenCalledWith(
+      "sync:initial:completed",
+      expect.objectContaining({ success: false, error: "DB locked" }),
+      { broadcast: true },
+    );
+  });
 });
