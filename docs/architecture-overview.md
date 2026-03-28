@@ -64,33 +64,34 @@ All content types live in `entities/` as EntityPlugins. Zero tools — entity CR
 | `entities/series`       | `series`      | Derived from posts via derive()          |
 | `entities/topics`       | `topic`       | AI-extracted tags via derive()           |
 | `entities/summary`      | `summary`     | Conversation summaries via derive()      |
+| `entities/prompt`       | `prompt`      | AI prompts as editable markdown entities |
 | `entities/site-info`    | `site-info`   | Site metadata (title, description)       |
 
 ### Integration Plugins (Tools + Services)
 
-| Package                    | Purpose                                                                    |
-| -------------------------- | -------------------------------------------------------------------------- |
-| `plugins/system`           | Core tools (create, get, list, search, update, delete, extract, set-cover) |
-| `plugins/directory-sync`   | File sync + git ops                                                        |
-| `plugins/site-builder`     | Static site generation (Preact + Tailwind CSS v4)                          |
-| `plugins/content-pipeline` | Publishing queue with scheduling and retry                                 |
-| `plugins/dashboard`        | Extensible widget system                                                   |
-| `plugins/analytics`        | Cloudflare analytics integration                                           |
-| `plugins/buttondown`       | Buttondown subscriber management + API routes                              |
-| `plugins/notion`           | MCP bridge to Notion workspace                                             |
-| `plugins/hackmd`           | MCP bridge to HackMD                                                       |
-| `plugins/obsidian-vault`   | Obsidian template generation                                               |
+| Package                    | Purpose                                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| `plugins/directory-sync`   | File sync + git ops                                                                                            |
+| `plugins/site-builder`     | Static site generation orchestration (tools, events, job queue). Build engine moving to `@brains/site-engine`. |
+| `plugins/content-pipeline` | Publishing queue with scheduling and retry                                                                     |
+| `plugins/dashboard`        | Extensible widget system                                                                                       |
+| `plugins/analytics`        | Cloudflare analytics integration                                                                               |
+| `plugins/buttondown`       | Buttondown subscriber management + API routes                                                                  |
+| `plugins/notion`           | MCP bridge to Notion workspace                                                                                 |
+| `plugins/hackmd`           | MCP bridge to HackMD                                                                                           |
+| `plugins/obsidian-vault`   | Obsidian template generation                                                                                   |
 
 ### Shared Packages
 
-| Package             | Purpose                                            |
-| ------------------- | -------------------------------------------------- |
-| `shared/utils`      | Logging, markdown, permissions, Zod re-export      |
-| `shared/ui-library` | Preact UI components (Header, Footer, ThemeToggle) |
-| `shared/mcp-bridge` | Base class for upstream MCP server integration     |
-| `shared/image`      | Image schema, adapter, utilities                   |
-| `shared/theme-*`    | CSS themes (10 themes)                             |
-| `shared/test-utils` | Mock factories, harness helpers                    |
+| Package              | Purpose                                                                                   |
+| -------------------- | ----------------------------------------------------------------------------------------- |
+| `shared/utils`       | Logging, markdown, permissions, Zod re-export                                             |
+| `shared/ui-library`  | Preact UI components (Header, Footer, ThemeToggle)                                        |
+| `shared/mcp-bridge`  | Base class for upstream MCP server integration                                            |
+| `shared/image`       | Image schema, adapter, utilities                                                          |
+| `shared/theme-*`     | CSS themes (10 themes)                                                                    |
+| `shared/site-engine` | Static site build engine (planned) — Preact/Astro rendering, Tailwind, image optimization |
+| `shared/test-utils`  | Mock factories, harness helpers                                                           |
 
 ### Interface Packages
 

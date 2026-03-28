@@ -79,7 +79,7 @@ All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Too
 
 ### Blocking I/O Elimination — Phases 1–2 (2026-03)
 
-Async FS in directory-sync and webserver. Webserver moved to child process. Phase 3 (worker thread for site builds) parked.
+Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread for site builds evaluated and parked (Preact rendering is fast, real bottleneck is sequential route processing). See site-builder decoupling plan for the actual performance fix.
 
 ---
 
@@ -90,6 +90,10 @@ Short-term items are ordered by dependency. Items at the same level can be done 
 ### 1. Eval Overhaul
 
 Replace `preset: eval` with `mode: eval` that layers on any preset. Two runners: agent (full brain) and handler (lightweight, no brain). Move 84% of agent evals to brain model level. Repo-level result store with markdown reports and comparison against baselines. ([plan](./plans/eval-overhaul.md))
+
+### Site Builder Decoupling
+
+Parallel route rendering with `pLimit` (immediate perf win). Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. Enables future Astro evaluation as alternative rendering engine. ([plan](./plans/site-builder-decoupling.md))
 
 ### Chat SDK Migration
 
@@ -123,6 +127,10 @@ Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zer
 
 Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
+### Astro Migration
+
+If spike succeeds (site-builder Phase 5), replace Preact builder with Astro behind `SiteEngineServices` interface. Content Collections from entity DB, island architecture for interactivity, native Tailwind + image optimization. Depends on site-builder decoupling Phases 2-4. ([plan](./plans/site-builder-decoupling.md))
+
 ---
 
 ## Planned (Long-term)
@@ -149,6 +157,8 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 1. eval-overhaul (mode: eval, two runners, result store)
+
+site-builder-decoupling (parallel routes → engine extraction → Astro eval)
 
 agent-directory ────────────────┐
                                 ├──→ hosted-rovers (K8s)

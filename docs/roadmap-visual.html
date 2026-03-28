@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-03-25 — Click any item for details</p>
+  <p>Last updated: 2026-03-28 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -197,19 +197,17 @@ const items = [
   { id: "mcpbridge", name: "MCP Bridge", status: "completed", desc: "MCPBridgePlugin base class. Spawns upstream MCP servers, discovers tools, prefixes + error isolation. Notion + HackMD.", date: "2026-03" },
   { id: "a2aasync", name: "A2A Non-Blocking", status: "completed", desc: "Async task flow — return 'working' immediately, caller polls. Stale task protection.", date: "2026-03" },
   { id: "other", name: "Other (2026-03)", status: "completed", desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.", date: "2026-03" },
-
-  // In Progress
-  { id: "entityremain", name: "Entity Consolidation — Remaining", status: "in-progress", desc: "Plugin hierarchy simplification (IntegrationPlugin + unified PluginContext). Site-content redesign. Newsletter split and image migration done.", deps: ["entityplugin"], blocks: ["sysframework"] },
+  { id: "sysframework", name: "System Tools as Framework", status: "completed", desc: "Moved system plugin into shell-level registration. Tools, resources, prompts, instructions register directly on shell services. Removed AI from base context.", date: "2026-03" },
+  { id: "prompts", name: "Prompts as Entities", status: "completed", desc: "Prompt entity type with auto-materialization. Defaults emerge from code on first startup, become editable. AI generation resolves prompt entities automatically.", date: "2026-03" },
+  { id: "hierarchy", name: "Plugin Hierarchy Simplification", status: "completed", desc: "Three sibling contexts (BasePluginContext → Entity, Service, Interface). CorePlugin deleted. AI only on EntityPluginContext, templates only on ServicePluginContext. Types renamed.", date: "2026-03" },
+  { id: "blockio", name: "Blocking I/O — Phases 1-2", status: "completed", desc: "Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread evaluated and parked.", date: "2026-03" },
 
   // Short-term pipeline
-  { id: "sysframework", name: "System Tools to Framework", status: "short-term", step: 1, desc: "Move system plugin into shell-level registration. Tools, resources, prompts, instructions, widgets register directly. Removes AI from PluginContext.", deps: ["entityremain"], blocks: ["eval"] },
-  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 2, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines.", deps: ["sysframework"] },
+  { id: "eval", name: "Eval Overhaul", status: "short-term", step: 1, desc: "mode: eval replaces preset: eval. Two runners: agent (full brain) + handler (lightweight). Repo-level result store. Markdown reports + comparison baselines." },
   // Short-term independent
+  { id: "sitebuilder", name: "Site Builder Decoupling", status: "short-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
   { id: "chatsdk", name: "Chat SDK Migration", status: "short-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp. InterfacePlugin already stable.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "agentdir", name: "Agent Directory", status: "short-term", desc: "Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves by name.", blocks: ["hostedrovers"] },
-  { id: "prompts", name: "Prompts as Entities", status: "short-term", desc: "Prompt entity type — markdown files in brain-data. Users customize voice/tone via CMS or system_update. Seed content ships defaults. Per-instance personality." },
-  { id: "syncsimplify", name: "Simplify Sync Tools", status: "short-term", desc: "3 tools → 2. Unified sync (pull → import → export → commit → push). fullSync() method replaces batch jobs." },
-  { id: "blockio", name: "Blocking I/O Elimination", status: "short-term", desc: "Async FS in webserver + directory-sync. Worker thread for site builds. MCP/Discord stay responsive during builds." },
   { id: "rizomwork", name: "rizom.work", status: "short-term", desc: "New relay instance with Discord, rizom theme variations." },
 
   // Medium-term
@@ -217,6 +215,7 @@ const items = [
   { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "medium-term", desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos (brain.yaml + deploy.yml). Same pattern as hosted rovers and desktop app.", blocks: ["hostedrovers"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["agentdir", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "astro", name: "Astro Migration", status: "medium-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Content Collections from entity DB, island architecture, native Tailwind + image optimization.", deps: ["sitebuilder"] },
 
   // Long-term
   { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat. Presets + interfaces orthogonal.", deps: ["chatsdk", "mediasidecar"] },
@@ -295,13 +294,11 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Main Pipeline</div>
+      <div class="dep-group-title">Site Builder</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('entityremain')">entity-consolidation</span>
+        <span class="dep-node s-next" onclick="selectItem('sitebuilder')">site-builder-decoupling</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('sysframework')">system-to-framework</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('eval')">eval-overhaul</span>
+        <span class="dep-node s-mid" onclick="selectItem('astro')">astro-migration</span>
       </div>
     </div>
     <div class="dep-group">
@@ -329,23 +326,15 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Independent</div>
       <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('eval')">eval-overhaul</span>
+        <span class="dep-label">no dependencies</span>
+      </div>
+      <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-label">InterfacePlugin already stable</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('prompts')">prompts-as-markdown</span>
-        <span class="dep-label">no dependencies</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('syncsimplify')">simplify-sync</span>
-        <span class="dep-label">no dependencies</span>
-      </div>
-      <div class="dep-row">
         <span class="dep-node s-mid" onclick="selectItem('kamal')">kamal-deploy</span>
-        <span class="dep-label">no dependencies</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('blockio')">blocking-io</span>
         <span class="dep-label">no dependencies</span>
       </div>
       <div class="dep-row">
