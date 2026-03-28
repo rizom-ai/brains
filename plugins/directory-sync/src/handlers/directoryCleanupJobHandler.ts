@@ -1,7 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
-import type { DirectorySync } from "../lib/directory-sync";
+import type { IDirectorySync } from "../types";
 import type { CleanupResult } from "../lib/cleanup-pipeline";
 import { z } from "@brains/utils";
 
@@ -12,9 +12,9 @@ export class DirectoryCleanupJobHandler extends BaseJobHandler<
   Record<string, never>,
   CleanupResult
 > {
-  private directorySync: DirectorySync;
+  private directorySync: IDirectorySync;
 
-  constructor(logger: Logger, directorySync: DirectorySync) {
+  constructor(logger: Logger, directorySync: IDirectorySync) {
     super(logger, {
       schema: directoryCleanupJobSchema,
       jobTypeName: "directory-cleanup",

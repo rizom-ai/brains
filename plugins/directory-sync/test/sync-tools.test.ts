@@ -1,12 +1,18 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { createDirectorySyncTools } from "../src/tools";
-import type { DirectorySync } from "../src/lib/directory-sync";
-import type { GitSync } from "../src/lib/git-sync";
-import type { DirectorySyncStatus } from "../src/types";
+import type {
+  DirectorySyncStatus,
+  IDirectorySync,
+  IGitSync,
+} from "../src/types";
 import type { BatchResult } from "../src/lib/batch-operations";
 import type { ServicePluginContext } from "@brains/plugins";
 import { createMockServicePluginContext } from "@brains/test-utils";
 import { toolResultSchema, type Tool } from "@brains/plugins";
+import {
+  createMockDirectorySync as createBaseMockDS,
+  createMockGitSync as createBaseMockGS,
+} from "./fixtures";
 
 function defaultStatus(
   overrides?: Partial<DirectorySyncStatus>,
@@ -22,7 +28,11 @@ function defaultStatus(
   };
 }
 
-function createMockDirectorySync() {
+function createMockDirectorySync(): {
+  directorySync: IDirectorySync;
+  queueSyncBatchMock: ReturnType<typeof mock>;
+  getStatusMock: ReturnType<typeof mock>;
+} {
   const queueSyncBatchMock = mock(
     (): Promise<BatchResult | null> =>
       Promise.resolve({
@@ -38,16 +48,21 @@ function createMockDirectorySync() {
   );
 
   return {
-    directorySync: {
+    directorySync: createBaseMockDS({
       queueSyncBatch: queueSyncBatchMock,
       getStatus: getStatusMock,
-    } as unknown as DirectorySync,
+    }),
     queueSyncBatchMock,
     getStatusMock,
   };
 }
 
-function createMockGitSync() {
+function createMockGitSync(): {
+  gitSync: IGitSync;
+  pullMock: ReturnType<typeof mock>;
+  getStatusMock: ReturnType<typeof mock>;
+  withLockCallCount: { value: number };
+} {
   const pullMock = mock(() =>
     Promise.resolve({ files: [], alreadyUpToDate: true }),
   );
@@ -63,19 +78,20 @@ function createMockGitSync() {
       files: [],
     }),
   );
-  const withLockMock = mock(
-    async <T>(fn: () => Promise<T>): Promise<T> => fn(),
-  );
+  const withLockCallCount = { value: 0 };
 
   return {
-    gitSync: {
+    gitSync: createBaseMockGS({
       pull: pullMock,
-      withLock: withLockMock,
       getStatus: getStatusMock,
-    } as unknown as GitSync,
+      withLock: async <T>(fn: () => Promise<T>): Promise<T> => {
+        withLockCallCount.value++;
+        return fn();
+      },
+    }),
     pullMock,
     getStatusMock,
-    withLockMock,
+    withLockCallCount,
   };
 }
 
@@ -302,7 +318,7 @@ describe("sync tool", () => {
 
   it("should run pull and queueSyncBatch inside the same withLock call", async () => {
     const { directorySync, queueSyncBatchMock } = createMockDirectorySync();
-    const { gitSync, pullMock, withLockMock } = createMockGitSync();
+    const { gitSync, pullMock, withLockCallCount } = createMockGitSync();
 
     const tools = createDirectorySyncTools(
       directorySync,
@@ -314,7 +330,7 @@ describe("sync tool", () => {
     await syncTool.handler({}, toolContext);
 
     // withLock should be called exactly once (both pull and queue inside it)
-    expect(withLockMock).toHaveBeenCalledTimes(1);
+    expect(withLockCallCount.value).toBe(1);
     // Both pull and queueSyncBatch should have been called
     expect(pullMock).toHaveBeenCalledTimes(1);
     expect(queueSyncBatchMock).toHaveBeenCalledTimes(1);

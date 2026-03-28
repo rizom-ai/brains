@@ -1,6 +1,9 @@
 import { z } from "@brains/utils";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
+import type { GitSyncStatus, PullResult } from "./lib/git-sync";
+import type { BatchMetadata } from "./lib/batch-operations";
+import type { CleanupResult } from "./lib/cleanup-pipeline";
 
 /**
  * Configuration schema for directory sync plugin
@@ -268,34 +271,70 @@ export interface IFileOperations {
 }
 
 /**
- * Interface for DirectorySync used by job handlers
- * Allows mocking in tests without depending on the concrete DirectorySync class
+ * Interface for DirectorySync — all public methods.
+ * Consumers accept this instead of the class, enabling clean test mocks.
  */
 export interface IDirectorySync {
-  /** Import entities from directory with progress reporting */
-  importEntitiesWithProgress(
-    paths: string[] | undefined,
-    reporter: ProgressReporter,
-    batchSize: number,
-  ): Promise<ImportResult>;
-
-  /** Export entities to directory with progress reporting */
-  exportEntitiesWithProgress(
-    entityTypes: string[] | undefined,
-    reporter: ProgressReporter,
-    batchSize: number,
-  ): Promise<ExportResult>;
-
-  /** Get all markdown files in the sync directory */
-  getAllMarkdownFiles(): Promise<string[]>;
-
-  /** Process export for a single entity */
+  initialize(): Promise<void>;
+  initializeDirectory(): Promise<void>;
+  setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void;
+  sync(): Promise<{
+    export: ExportResult;
+    import: ImportResult;
+    duration: number;
+  }>;
   processEntityExport(entity: BaseEntity): Promise<{
     success: boolean;
     deleted?: boolean;
     error?: string;
   }>;
-
-  /** File operations for reading/writing entities */
+  exportEntities(entityTypes?: string[]): Promise<ExportResult>;
+  importEntitiesWithProgress(
+    paths: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ImportResult>;
+  exportEntitiesWithProgress(
+    entityTypes: string[] | undefined,
+    reporter: ProgressReporter,
+    batchSize: number,
+  ): Promise<ExportResult>;
+  importEntities(paths?: string[]): Promise<ImportResult>;
+  removeOrphanedEntities(): Promise<CleanupResult>;
   readonly fileOps: IFileOperations;
+  readonly shouldDeleteOnFileRemoval: boolean;
+  getAllMarkdownFiles(): Promise<string[]>;
+  ensureDirectoryStructure(): Promise<void>;
+  getStatus(): Promise<DirectorySyncStatus>;
+  queueSyncBatch(
+    pluginContext: ServicePluginContext,
+    source: string,
+    metadata?: BatchMetadata,
+    options?: { includeCleanup?: boolean },
+  ): Promise<{
+    batchId: string;
+    operationCount: number;
+    exportOperationsCount: number;
+    importOperationsCount: number;
+    totalFiles: number;
+  } | null>;
+  startWatching(): Promise<void>;
+  stopWatching(): void;
+  setWatchCallback(callback: (event: string, path: string) => void): void;
+}
+
+/**
+ * Interface for GitSync — all public methods.
+ * Consumers accept this instead of the class, enabling clean test mocks.
+ */
+export interface IGitSync {
+  withLock<T>(fn: () => Promise<T>): Promise<T>;
+  initialize(): Promise<void>;
+  hasRemote(): boolean;
+  getStatus(): Promise<GitSyncStatus>;
+  hasLocalChanges(): Promise<boolean>;
+  commit(message?: string): Promise<void>;
+  push(): Promise<void>;
+  pull(): Promise<PullResult>;
+  cleanup(): void;
 }

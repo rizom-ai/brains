@@ -2,18 +2,8 @@ import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { setupGitAutoCommit } from "../../src/lib/git-auto-commit";
 import { createSilentLogger } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { GitSync } from "../../src/lib/git-sync";
-
-function createGitMock(): Pick<GitSync, "commit" | "push" | "withLock"> & {
-  commit: ReturnType<typeof mock>;
-  push: ReturnType<typeof mock>;
-} {
-  return {
-    commit: mock(async () => {}),
-    push: mock(async () => {}),
-    withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-  };
-}
+import type { IGitSync } from "../../src/types";
+import { createMockGitSync } from "../fixtures";
 
 /**
  * Minimal messaging mock that wires subscribe → send.
@@ -55,20 +45,19 @@ function createTestMessaging(): {
 }
 
 describe("setupGitAutoCommit", () => {
-  let git: ReturnType<typeof createGitMock>;
+  let git: IGitSync;
+  let commitMock: ReturnType<typeof mock>;
+  let pushMock: ReturnType<typeof mock>;
 
   beforeEach(() => {
-    git = createGitMock();
+    commitMock = mock(async () => {});
+    pushMock = mock(async () => {});
+    git = createMockGitSync({ commit: commitMock, push: pushMock });
   });
 
   it("should subscribe to entity CRUD events", () => {
     const { messaging, channels } = createTestMessaging();
-    setupGitAutoCommit(
-      messaging,
-      git as unknown as GitSync,
-      50,
-      createSilentLogger(),
-    );
+    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
     expect(channels).toContain("entity:created");
     expect(channels).toContain("entity:updated");
@@ -77,12 +66,7 @@ describe("setupGitAutoCommit", () => {
 
   it("should commit and push after debounce", async () => {
     const { messaging } = createTestMessaging();
-    setupGitAutoCommit(
-      messaging,
-      git as unknown as GitSync,
-      50,
-      createSilentLogger(),
-    );
+    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
     await messaging.send("entity:created", {
       entity: {},
@@ -91,18 +75,13 @@ describe("setupGitAutoCommit", () => {
     });
     await new Promise((r) => setTimeout(r, 100));
 
-    expect(git.commit).toHaveBeenCalledTimes(1);
-    expect(git.push).toHaveBeenCalledTimes(1);
+    expect(commitMock).toHaveBeenCalledTimes(1);
+    expect(pushMock).toHaveBeenCalledTimes(1);
   });
 
   it("should commit immediately on first event (leading edge)", async () => {
     const { messaging } = createTestMessaging();
-    setupGitAutoCommit(
-      messaging,
-      git as unknown as GitSync,
-      200,
-      createSilentLogger(),
-    );
+    setupGitAutoCommit(messaging, git, 200, createSilentLogger());
 
     await messaging.send("entity:created", {
       entity: {},
@@ -110,50 +89,39 @@ describe("setupGitAutoCommit", () => {
       entityId: "1",
     });
 
-    // Leading edge fires immediately
-    expect(git.commit).toHaveBeenCalledTimes(1);
+    expect(commitMock).toHaveBeenCalledTimes(1);
   });
 
   it("should cancel trailing commit on cleanup", async () => {
     const { messaging } = createTestMessaging();
     const cleanup = setupGitAutoCommit(
       messaging,
-      git as unknown as GitSync,
+      git,
       50,
       createSilentLogger(),
     );
 
-    // First event → leading commit fires immediately
     await messaging.send("entity:created", {
       entity: {},
       entityType: "post",
       entityId: "1",
     });
-    // Second event → schedules trailing commit
     await messaging.send("entity:updated", {
       entity: {},
       entityType: "post",
       entityId: "2",
     });
 
-    // Cleanup before trailing fires
     cleanup();
     await new Promise((r) => setTimeout(r, 100));
 
-    // Only the leading commit, trailing was cancelled
-    expect(git.commit).toHaveBeenCalledTimes(1);
+    expect(commitMock).toHaveBeenCalledTimes(1);
   });
 
   it("should batch rapid events into one commit", async () => {
     const { messaging } = createTestMessaging();
-    setupGitAutoCommit(
-      messaging,
-      git as unknown as GitSync,
-      50,
-      createSilentLogger(),
-    );
+    setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
-    // Fire 5 events rapidly
     for (let i = 0; i < 5; i++) {
       await messaging.send("entity:updated", {
         entity: {},
@@ -164,8 +132,7 @@ describe("setupGitAutoCommit", () => {
 
     await new Promise((r) => setTimeout(r, 100));
 
-    // Should batch into at most 2 commits (leading + trailing)
-    expect(git.commit.mock.calls.length).toBeLessThanOrEqual(2);
-    expect(git.commit.mock.calls.length).toBeGreaterThanOrEqual(1);
+    expect(commitMock.mock.calls.length).toBeLessThanOrEqual(2);
+    expect(commitMock.mock.calls.length).toBeGreaterThanOrEqual(1);
   });
 });

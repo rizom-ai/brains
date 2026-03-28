@@ -1,10 +1,8 @@
 import { getErrorMessage } from "@brains/utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { DirectorySync } from "./directory-sync";
-import type { DirectorySyncConfig } from "../types";
+import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
 import { copySeedContentIfNeeded } from "./seed-content";
-import type { GitSync } from "./git-sync";
 
 /**
  * Poll batch status until all jobs complete (or timeout).
@@ -49,11 +47,11 @@ async function waitForBatch(
  */
 export function setupInitialSync(
   context: ServicePluginContext,
-  getDirectorySync: () => DirectorySync,
+  getDirectorySync: () => IDirectorySync,
   config: DirectorySyncConfig,
   _pluginId: string,
   logger: Logger,
-  gitSync?: GitSync,
+  gitSync?: IGitSync,
 ): void {
   let initialSyncStarted = false;
 

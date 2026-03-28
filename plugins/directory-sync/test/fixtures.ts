@@ -8,7 +8,13 @@ import { mock } from "bun:test";
 import type { BaseEntity } from "@brains/plugins/test";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/plugins/test";
 import { z } from "@brains/utils";
-import type { IDirectorySync, ImportResult, ExportResult } from "../src/types";
+import type {
+  IDirectorySync,
+  IGitSync,
+  ImportResult,
+  ExportResult,
+} from "../src/types";
+import type { BatchResult } from "../src/lib/batch-operations";
 
 // ---------------------------------------------------------------------------
 // PNG test data
@@ -83,19 +89,61 @@ export class MockEntityAdapter extends BaseEntityAdapter<BaseEntity> {
 export function createMockDirectorySync(
   overrides: Partial<IDirectorySync> = {},
 ): IDirectorySync {
-  return {
-    importEntitiesWithProgress: mock(() =>
-      Promise.resolve(emptyImportResult()),
-    ),
-    exportEntitiesWithProgress: mock(() =>
-      Promise.resolve(emptyExportResult()),
-    ),
-    getAllMarkdownFiles: mock(() => Promise.resolve([])),
-    processEntityExport: mock(() => Promise.resolve({ success: true })),
+  const base: IDirectorySync = {
+    initialize: mock(async () => {}),
+    initializeDirectory: mock(async () => {}),
+    setJobQueueCallback: mock(() => {}),
+    sync: mock(async () => ({
+      export: emptyExportResult(),
+      import: emptyImportResult(),
+      duration: 0,
+    })),
+    processEntityExport: mock(async () => ({ success: true })),
+    exportEntities: mock(async () => emptyExportResult()),
+    importEntitiesWithProgress: mock(async () => emptyImportResult()),
+    exportEntitiesWithProgress: mock(async () => emptyExportResult()),
+    importEntities: mock(async () => emptyImportResult()),
+    removeOrphanedEntities: mock(async () => ({ deleted: 0, errors: [] })),
     fileOps: {
-      readEntity: mock(() => Promise.resolve({} as never)),
+      readEntity: mock(async () => ({}) as never),
       parseEntityFromPath: mock(() => ({ entityType: "topic", id: "test" })),
     },
-    ...overrides,
+    shouldDeleteOnFileRemoval: true,
+    getAllMarkdownFiles: mock(async () => []),
+    ensureDirectoryStructure: mock(async () => {}),
+    getStatus: mock(async () => ({
+      syncPath: "/tmp/test",
+      exists: true,
+      watching: false,
+      files: [],
+      stats: { totalFiles: 0, byEntityType: {} },
+    })),
+    queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
+    startWatching: mock(async () => {}),
+    stopWatching: mock(() => {}),
+    setWatchCallback: mock(() => {}),
   };
+  return Object.assign(base, overrides);
+}
+
+export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
+  const base: IGitSync = {
+    withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
+    initialize: mock(async () => {}),
+    hasRemote: () => true,
+    getStatus: mock(async () => ({
+      isRepo: true,
+      hasChanges: false,
+      ahead: 0,
+      behind: 0,
+      branch: "main",
+      files: [],
+    })),
+    hasLocalChanges: mock(async () => false),
+    commit: mock(async () => {}),
+    push: mock(async () => {}),
+    pull: mock(async () => ({ files: [] })),
+    cleanup: () => {},
+  };
+  return Object.assign(base, overrides);
 }

@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { LeadingTrailingDebounce } from "@brains/utils";
-import type { GitSync } from "./git-sync";
+import type { IGitSync } from "../types";
 
 /**
  * Subscribe to entity CRUD events and debounce git commit + push.
@@ -11,7 +11,7 @@ import type { GitSync } from "./git-sync";
  */
 export function setupGitAutoCommit(
   messaging: ServicePluginContext["messaging"],
-  git: GitSync,
+  git: IGitSync,
   debounceMs: number,
   logger: Logger,
 ): () => void {

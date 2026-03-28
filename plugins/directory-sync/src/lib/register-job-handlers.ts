@@ -1,6 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { DirectorySync } from "./directory-sync";
+import type { IDirectorySync } from "../types";
 import {
   DirectoryExportJobHandler,
   DirectoryImportJobHandler,
@@ -16,7 +16,7 @@ import {
  */
 export function registerDirectorySyncJobHandlers(
   context: ServicePluginContext,
-  directorySync: DirectorySync,
+  directorySync: IDirectorySync,
   logger: Logger,
 ): void {
   const childLogger = (name: string): Logger => logger.child(name);

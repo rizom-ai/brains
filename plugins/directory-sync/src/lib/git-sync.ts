@@ -4,6 +4,7 @@ import { mkdir, writeFile, access } from "fs/promises";
 import { join, basename } from "path";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
+import type { IGitSync } from "../types";
 
 /**
  * Git sync status
@@ -43,7 +44,7 @@ export interface GitSyncOptions {
  * The directory-sync plugin orchestrates when to call these methods.
  * This class only knows how to talk to git.
  */
-export class GitSync {
+export class GitSync implements IGitSync {
   private _git: SimpleGit | null = null;
   private readonly logger: Logger;
   private readonly remoteUrl: string;

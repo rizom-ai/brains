@@ -4,9 +4,9 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { GitSync, PullResult } from "../../src/lib/git-sync";
-import type { DirectorySync } from "../../src/lib/directory-sync";
+import type { PullResult } from "../../src/lib/git-sync";
 import type { BatchResult } from "../../src/lib/batch-operations";
+import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
 const emptyBatchResult: BatchResult = {
   batchId: "batch-1",
@@ -32,13 +32,10 @@ describe("setupPeriodicGitSync", () => {
     );
 
     cleanup = setupPeriodicGitSync(
-      {
-        pull: pullMock,
-        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-      } as unknown as GitSync,
-      { queueSyncBatch: queueSyncBatchMock } as unknown as DirectorySync,
+      createMockGitSync({ pull: pullMock }),
+      createMockDirectorySync({ queueSyncBatch: queueSyncBatchMock }),
       createMockServicePluginContext(),
-      0.001, // 60ms
+      0.001,
       createSilentLogger(),
     );
 
@@ -57,14 +54,13 @@ describe("setupPeriodicGitSync", () => {
     );
 
     cleanup = setupPeriodicGitSync(
-      {
+      createMockGitSync({
         pull: mock(async (): Promise<PullResult> => ({ files: [] })),
-        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-      } as unknown as GitSync,
-      {
+      }),
+      createMockDirectorySync({
         sync: syncMock,
         queueSyncBatch: queueSyncBatchMock,
-      } as unknown as DirectorySync,
+      }),
       createMockServicePluginContext(),
       0.001,
       createSilentLogger(),
@@ -80,8 +76,8 @@ describe("setupPeriodicGitSync", () => {
     const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
     cleanup = setupPeriodicGitSync(
-      { pull: pullMock } as unknown as GitSync,
-      {} as unknown as DirectorySync,
+      createMockGitSync({ pull: pullMock }),
+      createMockDirectorySync(),
       createMockServicePluginContext(),
       0,
       createSilentLogger(),
@@ -94,13 +90,8 @@ describe("setupPeriodicGitSync", () => {
     const pullMock = mock(async (): Promise<PullResult> => ({ files: [] }));
 
     cleanup = setupPeriodicGitSync(
-      {
-        pull: pullMock,
-        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-      } as unknown as GitSync,
-      {
-        queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
-      } as unknown as DirectorySync,
+      createMockGitSync({ pull: pullMock }),
+      createMockDirectorySync(),
       createMockServicePluginContext(),
       0.001,
       createSilentLogger(),
@@ -127,15 +118,12 @@ describe("setupPeriodicGitSync", () => {
     });
 
     cleanup = setupPeriodicGitSync(
-      {
-        pull: slowPull,
-        withLock: <T>(fn: () => Promise<T>): Promise<T> => fn(),
-      } as unknown as GitSync,
-      {
+      createMockGitSync({ pull: slowPull }),
+      createMockDirectorySync({
         queueSyncBatch: mock(
           async (): Promise<BatchResult | null> => emptyBatchResult,
         ),
-      } as unknown as DirectorySync,
+      }),
       createMockServicePluginContext(),
       0.001,
       createSilentLogger(),

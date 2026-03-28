@@ -1,12 +1,10 @@
 import { describe, it, expect, mock, beforeEach } from "bun:test";
 import { DirectoryCleanupJobHandler } from "../../src/handlers/directoryCleanupJobHandler";
-import { createSilentLogger } from "@brains/test-utils";
-import type { DirectorySync } from "../../src/lib/directory-sync";
-import type { ProgressReporter } from "@brains/utils";
-
-function createMockProgressReporter(): ProgressReporter {
-  return { report: mock(async () => {}) } as unknown as ProgressReporter;
-}
+import {
+  createSilentLogger,
+  createMockProgressReporter,
+} from "@brains/test-utils";
+import { createMockDirectorySync } from "../fixtures";
 
 describe("DirectoryCleanupJobHandler", () => {
   let removeOrphanedEntitiesMock: ReturnType<typeof mock>;
@@ -18,9 +16,12 @@ describe("DirectoryCleanupJobHandler", () => {
       errors: [],
     }));
 
-    handler = new DirectoryCleanupJobHandler(createSilentLogger("test"), {
-      removeOrphanedEntities: removeOrphanedEntitiesMock,
-    } as unknown as DirectorySync);
+    handler = new DirectoryCleanupJobHandler(
+      createSilentLogger("test"),
+      createMockDirectorySync({
+        removeOrphanedEntities: removeOrphanedEntitiesMock,
+      }),
+    );
   });
 
   it("should validate correct job data", () => {

@@ -1,7 +1,6 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { GitSync } from "./git-sync";
-import type { DirectorySync } from "./directory-sync";
+import type { IGitSync, IDirectorySync } from "../types";
 
 /**
  * Periodic pull → queue imports → auto-commit cycle.
@@ -13,8 +12,8 @@ import type { DirectorySync } from "./directory-sync";
  * Returns a cleanup function that stops the timer.
  */
 export function setupPeriodicGitSync(
-  gitSync: GitSync,
-  directorySync: DirectorySync,
+  gitSync: IGitSync,
+  directorySync: IDirectorySync,
   pluginContext: ServicePluginContext,
   intervalMinutes: number,
   logger: Logger,

@@ -6,9 +6,8 @@ import {
   createMockServicePluginContext,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { GitSync, PullResult } from "../../src/lib/git-sync";
-import type { DirectorySync } from "../../src/lib/directory-sync";
-import type { BatchResult } from "../../src/lib/batch-operations";
+import type { PullResult } from "../../src/lib/git-sync";
+import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
 function createTestMessaging(): {
   messaging: ServicePluginContext["messaging"];
@@ -68,7 +67,7 @@ describe("git operation serialization", () => {
       return { files: ["a.md"] };
     });
 
-    // Use real withLock from GitSync prototype for serialization
+    // Real lock implementation to test serialization
     let lockQueue: Promise<void> = Promise.resolve();
     const withLock = <T>(fn: () => Promise<T>): Promise<T> => {
       let resolve: (() => void) | undefined;
@@ -86,26 +85,23 @@ describe("git operation serialization", () => {
       });
     };
 
-    const git = {
+    const git = createMockGitSync({
       commit: commitMock,
       push: pushMock,
       pull: pullMock,
       hasLocalChanges: mock(async () => true),
       withLock,
-    } as unknown as GitSync;
+    });
 
     const { messaging } = createTestMessaging();
 
-    // Start both auto-commit and periodic-sync with same git instance
     cleanups.push(setupGitAutoCommit(messaging, git, 10, createSilentLogger()));
     cleanups.push(
       setupPeriodicGitSync(
         git,
-        {
-          queueSyncBatch: mock(async (): Promise<BatchResult | null> => null),
-        } as unknown as DirectorySync,
+        createMockDirectorySync(),
         createMockServicePluginContext(),
-        0.001, // 60ms interval
+        0.001,
         createSilentLogger(),
       ),
     );

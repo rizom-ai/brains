@@ -1,10 +1,8 @@
 import { describe, it, expect, mock } from "bun:test";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import { createSilentLogger } from "@brains/test-utils";
-import type { DirectorySync } from "../../src/lib/directory-sync";
 import type { DirectorySyncConfig } from "../../src/types";
-import type { GitSync } from "../../src/lib/git-sync";
-import type { BatchResult } from "../../src/lib/batch-operations";
+import { createMockDirectorySync, createMockGitSync } from "../fixtures";
 
 function createMockContext(): {
   context: Parameters<typeof setupInitialSync>[0];
@@ -39,39 +37,6 @@ function createMockContext(): {
   };
 }
 
-function createMockDirectorySync(): DirectorySync & {
-  queueSyncBatch: ReturnType<typeof mock>;
-} {
-  const queueSyncBatchMock = mock(
-    async (): Promise<BatchResult | null> => null,
-  );
-  return {
-    queueSyncBatch: queueSyncBatchMock,
-    initializeDirectory: mock(async () => {}),
-  } as unknown as DirectorySync & {
-    queueSyncBatch: ReturnType<typeof mock>;
-  };
-}
-
-function createMockGitSync(): GitSync & { pull: ReturnType<typeof mock> } {
-  return {
-    pull: mock(async () => ({ files: ["post/new.md"] })),
-    commit: mock(async () => {}),
-    push: mock(async () => {}),
-    initialize: mock(async () => {}),
-    hasRemote: (): boolean => true,
-    getStatus: mock(async () => ({
-      isRepo: true,
-      hasChanges: false,
-      ahead: 0,
-      behind: 0,
-      branch: "main",
-      files: [],
-    })),
-    cleanup: (): void => {},
-  } as unknown as GitSync & { pull: ReturnType<typeof mock> };
-}
-
 const baseConfig: DirectorySyncConfig = {
   autoSync: true,
   watchInterval: 1000,
@@ -89,17 +54,19 @@ const baseConfig: DirectorySyncConfig = {
 describe("setupInitialSync with git", () => {
   it("should call gitSync.pull() before queueSyncBatch()", async () => {
     const { context, handlers } = createMockContext();
-    const ds = createMockDirectorySync();
-    const gs = createMockGitSync();
     const callOrder: string[] = [];
 
-    gs.pull = mock(async () => {
-      callOrder.push("pull");
-      return { files: [] };
+    const ds = createMockDirectorySync({
+      queueSyncBatch: mock(async () => {
+        callOrder.push("queueSyncBatch");
+        return null;
+      }),
     });
-    ds.queueSyncBatch = mock(async () => {
-      callOrder.push("queueSyncBatch");
-      return null;
+    const gs = createMockGitSync({
+      pull: mock(async () => {
+        callOrder.push("pull");
+        return { files: [] };
+      }),
     });
 
     setupInitialSync(
@@ -120,7 +87,8 @@ describe("setupInitialSync with git", () => {
 
   it("should call queueSyncBatch when gitSync is not provided", async () => {
     const { context, handlers } = createMockContext();
-    const ds = createMockDirectorySync();
+    const queueMock = mock(async () => null);
+    const ds = createMockDirectorySync({ queueSyncBatch: queueMock });
 
     setupInitialSync(
       context,
@@ -133,7 +101,7 @@ describe("setupInitialSync with git", () => {
     const handler = handlers.get("system:plugins:ready");
     if (handler) await handler();
 
-    expect(ds.queueSyncBatch).toHaveBeenCalledTimes(1);
+    expect(queueMock).toHaveBeenCalledTimes(1);
   });
 
   it("should emit sync:initial:completed after sync", async () => {
@@ -163,9 +131,10 @@ describe("setupInitialSync with git", () => {
   it("should emit sync:initial:completed with success:false when pull fails", async () => {
     const { context, handlers } = createMockContext();
     const ds = createMockDirectorySync();
-    const gs = createMockGitSync();
-    gs.pull = mock(async () => {
-      throw new Error("Network timeout");
+    const gs = createMockGitSync({
+      pull: mock(async () => {
+        throw new Error("Network timeout");
+      }),
     });
 
     setupInitialSync(
@@ -189,9 +158,10 @@ describe("setupInitialSync with git", () => {
 
   it("should emit sync:initial:completed with success:false when queueSyncBatch fails", async () => {
     const { context, handlers } = createMockContext();
-    const ds = createMockDirectorySync();
-    ds.queueSyncBatch = mock(async () => {
-      throw new Error("DB locked");
+    const ds = createMockDirectorySync({
+      queueSyncBatch: mock(async () => {
+        throw new Error("DB locked");
+      }),
     });
 
     setupInitialSync(

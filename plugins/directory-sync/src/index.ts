@@ -16,6 +16,7 @@ export type {
   SyncResult,
   RawEntity,
   IDirectorySync,
+  IGitSync,
   IFileOperations,
 } from "./types";
 

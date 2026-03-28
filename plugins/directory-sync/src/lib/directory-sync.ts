@@ -12,6 +12,7 @@ import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
   ExportResult,
+  IDirectorySync,
   ImportResult,
   JobRequest,
 } from "../types";
@@ -51,7 +52,7 @@ export type DirectorySyncOptions = z.infer<
   logger: Logger;
 };
 
-export class DirectorySync {
+export class DirectorySync implements IDirectorySync {
   private entityService: IEntityService;
   private logger: Logger;
   private syncPath: string;

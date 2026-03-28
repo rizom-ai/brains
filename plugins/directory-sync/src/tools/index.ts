@@ -1,14 +1,13 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { DirectorySync } from "../lib/directory-sync";
-import type { GitSync } from "../lib/git-sync";
+import type { IDirectorySync, IGitSync } from "../types";
 
 export function createDirectorySyncTools(
-  directorySync: DirectorySync,
+  directorySync: IDirectorySync,
   pluginContext: ServicePluginContext,
   pluginId: string,
-  gitSync?: GitSync,
+  gitSync?: IGitSync,
 ): Tool[] {
   return [
     createTool(
