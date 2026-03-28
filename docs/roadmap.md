@@ -99,9 +99,9 @@ Parallel route rendering with `pLimit` (immediate perf win). Extract build engin
 
 Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: build `@brains/chat`. Must be compatible with hosted rovers' shared Discord gateway. InterfacePlugin already extends BasePlugin directly — no dependency on hierarchy simplification. ([plan](./plans/chat-interface-sdk.md))
 
-### Agent Directory
+### AT Protocol Integration
 
-Local agent contacts as entities. Encrypted outbound tokens. Discovery via Agent Card fetch. A2A client resolves agents by name. ([plan](./plans/agent-directory.md))
+Federated content distribution, portable identity (DIDs), Bluesky presence, inbound content ingestion, decentralized brain discovery, cross-brain feeds. Replaces planned agent directory with protocol-native discovery. A2A stays for directed RPC. ([plan](./plans/atproto-integration.md))
 
 ### rizom.work
 
@@ -160,9 +160,10 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 site-builder-decoupling (parallel routes → engine extraction → Astro eval)
 
-agent-directory ────────────────┐
-                                ├──→ hosted-rovers (K8s)
-chat-sdk + ai-runtime ──────┘
+atproto (identity + publishing → discovery → federation)
+  └──→ replaces agent-directory for brain discovery
+
+atproto + chat-sdk + ai-runtime ──→ hosted-rovers (K8s)
                     ↓
               desktop-app (Electrobun)
 

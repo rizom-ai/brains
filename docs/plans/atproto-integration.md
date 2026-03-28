@@ -56,12 +56,23 @@ Records are JSON with markdown in string fields (same pattern as WhiteWind). Ent
 
 Two DIDs per brain instance:
 
-- **Anchor DID** — the human. Owns the PDS account. Signs published content. Domain handle (e.g., `@yeehaa.io`). Persists across brain instances.
-- **Brain DID** — the agent. Published alongside the anchor. Links to the anchor ("operated by"). Can act autonomously (e.g., Ranger has no single anchor — its brain DID stands alone).
+- **Anchor DID** — the human. Owns the PDS account. Persists across brain instances. One person running multiple brains = one anchor DID, multiple brain DIDs.
+- **Brain DID** — the agent. Links to its anchor ("operated by"). Distinguishes which brain published what. Ranger (no single anchor) has a brain DID that stands alone.
 
-Open question: whether the brain DID uses `did:web` (tied to domain, simple) or `did:plc` (portable, depends on Bluesky's registry). Start with `did:web`, evaluate `did:plc` later.
+Both use `did:web` (DID document served at `/.well-known/did.json` on the brain's domain). Simple, no external dependencies. `did:plc` (Bluesky's portable registry) can be added later if domain-independent portability becomes important.
 
 Key management: signing keys stored in brain.yaml secrets or environment variables. Rotation handled by the identity service.
+
+## User Experience (today)
+
+The immediate value is a Bluesky presence. Day to day:
+
+1. AT Protocol users follow the brain on Bluesky — see blog post summaries, social posts
+2. Subscribe to custom feeds ("Yeehaa's architecture posts")
+3. Reply/quote to engage with brain content
+4. Click through to full content on the brain's site
+
+Future: @ mention the brain to interact directly (requires a mention-watching daemon — Phase 6+).
 
 ## Phases
 
