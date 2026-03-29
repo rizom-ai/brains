@@ -62,7 +62,7 @@ brain list posts --remote rover.rizom.ai  # remote — queries deployed brain
 
 ### `brain init`
 
-Scaffolds a new brain instance:
+Scaffolds a new brain instance. This is the entry point for [Kamal Deploy](./deploy-kamal.md) Phase 2 — creating standalone instance repos.
 
 ```bash
 $ brain init
@@ -78,7 +78,7 @@ Created:
   .github/workflows/deploy.yml  # CI pipeline
 ```
 
-Reads available brain models from the npm registry (or GHCR). Interactive prompts for configuration. Generates all files needed for standalone deployment.
+Reads available brain models from the npm registry (or GHCR). Interactive prompts for configuration. Generates all files needed for standalone deployment. See [deploy-kamal.md](./deploy-kamal.md) for the deploy.yml structure and CI pipeline details.
 
 ### `brain dev`
 

@@ -243,11 +243,12 @@ Dockerfile.model works on the current Hetzner setup too. External Caddy proxies 
 
 ### Phase 2: First standalone instance
 
-1. Manually create Hetzner VPS, label it, note IP
-2. Create `yeehaa-brain` config repo with `brain.yaml`, `deploy.yml`, `.kamal/hooks/pre-deploy`
-3. CI pipeline: server IP (env/lookup) → Cloudflare DNS → `kamal deploy`
-4. Verify: push to instance repo → brain deployed at `rover.rizom.ai`
-5. Old deployment on yeehaa.io keeps running — no cutover yet
+Depends on: [Brain CLI](./brain-cli.md) Phase 1 (`brain init`).
+
+1. `brain init --model rover` — scaffolds instance repo with brain.yaml, deploy.yml, CI pipeline
+2. Push to GitHub → CI provisions server, sets DNS, deploys
+3. Verify: `rover.rizom.ai` serves the brain
+4. Old deployment on yeehaa.io keeps running — no cutover yet
 
 ### Phase 3: Migrate remaining instances + custom domains
 
