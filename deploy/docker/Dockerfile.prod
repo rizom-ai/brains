@@ -1,5 +1,5 @@
 # Minimal production Dockerfile using pre-built bundle
-FROM oven/bun:1.2.13-debian
+FROM oven/bun:1.3.10-slim
 
 WORKDIR /app
 

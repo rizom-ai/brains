@@ -15,6 +15,9 @@ const NATIVE_MODULES = [
 // Additional dependencies needed for migrations and other functionality
 const ADDITIONAL_DEPS = ["drizzle-orm", "drizzle-kit"];
 
+// Dependencies used by standalone child processes (not bundled into main entrypoint)
+const STANDALONE_DEPS = ["hono", "@hono/bun-compress"];
+
 function findNodeModules() {
   // Check common locations
   const locations = [
@@ -70,6 +73,17 @@ function generateMinimalPackageJson(appName, appVersion, verbose = false) {
 
   // Add additional dependencies
   for (const moduleName of ADDITIONAL_DEPS) {
+    const version = getPackageVersion(nodeModulesPath, moduleName);
+    if (version) {
+      dependencies[moduleName] = version;
+      if (verbose) {
+        console.log(`  ${moduleName}: ${version}`);
+      }
+    }
+  }
+
+  // Add standalone child process dependencies
+  for (const moduleName of STANDALONE_DEPS) {
     const version = getPackageVersion(nodeModulesPath, moduleName);
     if (version) {
       dependencies[moduleName] = version;
