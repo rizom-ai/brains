@@ -26,6 +26,14 @@ jobs:
       - name: Install dependencies
         run: bun install
 
+      - name: Cache Turbo
+        uses: actions/cache@v4
+        with:
+          path: .turbo
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: |
+            turbo-${{ runner.os }}-
+
       - name: Compile hydration scripts
         run: bun scripts/compile-hydration.ts
 
