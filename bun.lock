@@ -540,6 +540,22 @@
         "typescript": "^5.3.3",
       },
     },
+    "packages/brain-cli": {
+      "name": "@brains/brain-cli",
+      "version": "0.1.0",
+      "bin": {
+        "brain": "./src/index.ts",
+      },
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/analytics": {
       "name": "@brains/analytics",
       "version": "0.1.0",
@@ -1352,6 +1368,8 @@
     "@brains/app": ["@brains/app@workspace:shell/app"],
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
+
+    "@brains/brain-cli": ["@brains/brain-cli@workspace:packages/brain-cli"],
 
     "@brains/buttondown": ["@brains/buttondown@workspace:plugins/buttondown"],
 

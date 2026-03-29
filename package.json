@@ -74,6 +74,7 @@
     "interfaces/*",
     "brains/*",
     "apps/*",
-    "sites/*"
+    "sites/*",
+    "packages/*"
   ]
 }
