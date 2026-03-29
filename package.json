@@ -64,9 +64,7 @@
     "arch:check": "depcruise --config .dependency-cruiser.js .",
     "arch:graph": "depcruise --config .dependency-cruiser.js --output-type dot . | dot -T svg > dependency-graph.svg"
   },
-  "trustedDependencies": [
-    "@matrix-org/matrix-sdk-crypto-nodejs"
-  ],
+  "trustedDependencies": [],
   "workspaces": [
     "shell/*",
     "shared/*",

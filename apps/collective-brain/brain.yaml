@@ -5,7 +5,6 @@ logLevel: debug
 
 # Permissions
 anchors:
-  - "matrix:@yeehaa:rizom.ai"
   - "discord:1442828818493735015"
 trusted:
   - "discord:624315360157499422"
@@ -20,11 +19,6 @@ plugins:
       authorEmail: collective@rizom.ai
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
-  matrix:
-    accessToken: ${MATRIX_ACCESS_TOKEN}
-    userId: "@ranger-local:rizom.ai"
-    homeserver: https://matrix.rizom.ai
-    deviceDisplayName: Ranger
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
   social-media:

@@ -101,7 +101,6 @@ try {
     sourcemap: "external",
     external: [
       // Native modules that cannot be bundled
-      "@matrix-org/matrix-sdk-crypto-nodejs",
       "@libsql/client",
       "libsql",
       "lightningcss",

@@ -22,7 +22,6 @@
     "@brains/discord": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
-    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/newsletter-entity": "workspace:*",
     "@brains/note": "workspace:*",

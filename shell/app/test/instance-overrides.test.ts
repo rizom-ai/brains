@@ -56,11 +56,11 @@ class MockWebserver implements Plugin {
   }
 }
 
-class MockMatrix implements Plugin {
-  public readonly id = "matrix";
+class MockChat implements Plugin {
+  public readonly id = "chat";
   public readonly version = "1.0.0";
-  public readonly description = "Mock matrix";
-  public readonly packageName = "@brains/matrix";
+  public readonly description = "Mock chat";
+  public readonly packageName = "@brains/chat";
   public readonly type = "interface" as const;
   public config: PluginConfig;
   constructor(config: PluginConfig) {
@@ -278,11 +278,11 @@ permissions:
   anchors:
     - "cli:*"
   trusted:
-    - "matrix:@friend:matrix.org"
+    - "discord:123456789"
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.permissions?.anchors).toEqual(["cli:*"]);
-    expect(result.permissions?.trusted).toEqual(["matrix:@friend:matrix.org"]);
+    expect(result.permissions?.trusted).toEqual(["discord:123456789"]);
   });
 });
 
@@ -1128,9 +1128,9 @@ describe("resolve with presets", () => {
           (): PluginConfig => ({ port: 3333 }),
         ],
         [
-          "matrix",
-          MockMatrix as InterfaceConstructor,
-          (): PluginConfig => ({ homeserver: "https://matrix.example.com" }),
+          "chat",
+          MockChat as InterfaceConstructor,
+          (): PluginConfig => ({ botToken: "test-token" }),
         ],
       ],
     });
@@ -1140,7 +1140,7 @@ describe("resolve with presets", () => {
 
     expect(pluginIds).toContain("system");
     expect(pluginIds).toContain("mcp");
-    expect(pluginIds).not.toContain("matrix");
+    expect(pluginIds).not.toContain("chat");
   });
 
   test("should ignore add IDs not in brain definition", () => {
@@ -1302,9 +1302,9 @@ describe("resolve with mode: eval", () => {
       name: "test",
       version: "1.0.0",
       presets: {
-        default: ["system", "mcp", "matrix"],
+        default: ["system", "mcp", "chat"],
       },
-      evalDisable: ["matrix"],
+      evalDisable: ["chat"],
       capabilities: [["system", systemFactory, {}]],
       interfaces: [
         [
@@ -1313,9 +1313,9 @@ describe("resolve with mode: eval", () => {
           (): PluginConfig => ({ port: 3333 }),
         ],
         [
-          "matrix",
-          MockMatrix as InterfaceConstructor,
-          (): PluginConfig => ({ homeserver: "https://matrix.example.com" }),
+          "chat",
+          MockChat as InterfaceConstructor,
+          (): PluginConfig => ({ botToken: "test-token" }),
         ],
       ],
     });
@@ -1325,7 +1325,7 @@ describe("resolve with mode: eval", () => {
 
     expect(pluginIds).toContain("system");
     expect(pluginIds).toContain("mcp");
-    expect(pluginIds).not.toContain("matrix");
+    expect(pluginIds).not.toContain("chat");
   });
 
   test("should combine evalDisable with preset and add/remove", () => {

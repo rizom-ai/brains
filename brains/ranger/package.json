@@ -16,7 +16,6 @@
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
     "@brains/link": "workspace:*",
-    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/products": "workspace:*",

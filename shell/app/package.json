@@ -14,7 +14,6 @@
   "dependencies": {
     "@brains/ai-service": "workspace:*",
     "@brains/core": "workspace:*",
-    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/templates": "workspace:*",

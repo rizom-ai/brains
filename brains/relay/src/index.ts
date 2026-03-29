@@ -1,7 +1,6 @@
 import { defineBrain, type PluginConfig } from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { MCPInterface } from "@brains/mcp";
-import { MatrixInterface } from "@brains/matrix";
 import { directorySync } from "@brains/directory-sync";
 
 import { join } from "path";
@@ -43,12 +42,11 @@ export default defineBrain({
       "site-builder",
       "directory-sync",
       "mcp",
-      "matrix",
       "webserver",
     ],
   },
 
-  evalDisable: ["matrix", "webserver"],
+  evalDisable: ["webserver"],
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
@@ -75,7 +73,6 @@ export default defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["matrix", MatrixInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
   ],
 

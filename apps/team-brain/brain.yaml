@@ -5,9 +5,6 @@ logLevel: debug
 
 # Permissions
 anchors:
-  - "matrix:@yeehaa:rizom.ai"
-
-# Matrix (dev instance uses dev bot)
 plugins:
   directory-sync:
     git:
@@ -17,8 +14,3 @@ plugins:
       authorEmail: yeehaa@rizom.ai
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
-  matrix:
-    accessToken: ${MATRIX_ACCESS_TOKEN}
-    userId: "@teambot-dev:rizom.ai"
-    homeserver: https://matrix.rizom.ai
-    deviceDisplayName: Relay

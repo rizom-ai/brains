@@ -14,14 +14,7 @@ COPY package.json ./package.json
 # Layer 3: Install runtime native modules (cached unless package.json changes)
 RUN bun install --ignore-scripts
 
-# Layer 4: Download Matrix native binary
-RUN cd /app/node_modules/@matrix-org/matrix-sdk-crypto-nodejs && \
-    PACKAGE_VERSION=$(grep '"version"' package.json | cut -d'"' -f4) && \
-    curl -fsSL -o matrix-sdk-crypto.linux-x64-gnu.node \
-        "https://github.com/matrix-org/matrix-rust-sdk/releases/download/matrix-sdk-crypto-nodejs-v${PACKAGE_VERSION}/matrix-sdk-crypto.linux-x64-gnu.node" && \
-    chmod +x matrix-sdk-crypto.linux-x64-gnu.node
-
-# Layer 5: Create directories
+# Layer 4: Create directories
 RUN mkdir -p /app/data /app/cache /app/brain-data && \
     chmod -R 777 /app/data /app/cache /app/brain-data
 

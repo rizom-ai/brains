@@ -47,8 +47,8 @@ describe("collectOverridePackageRefs", () => {
     const refs = collectOverridePackageRefs({
       site: "not-a-package",
       plugins: {
-        matrix: {
-          userId: "@user:server.com",
+        discord: {
+          botToken: "some-token",
         },
       },
     });

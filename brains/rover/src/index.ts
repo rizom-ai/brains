@@ -2,7 +2,6 @@ import { defineBrain, type PluginConfig } from "@brains/app";
 // System tools are now framework-level (registered by shell, not a plugin)
 import { imagePlugin } from "@brains/image-plugin";
 import { MCPInterface } from "@brains/mcp";
-import { MatrixInterface } from "@brains/matrix";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { A2AInterface } from "@brains/a2a";
@@ -75,7 +74,6 @@ const pro = [
   "social-media",
   "newsletter",
   "buttondown",
-  "matrix",
 ];
 export default defineBrain({
   name: "rover",
@@ -88,7 +86,6 @@ export default defineBrain({
   },
 
   evalDisable: [
-    "matrix",
     "discord",
     "webserver",
     "a2a",
@@ -170,7 +167,6 @@ export default defineBrain({
 
   interfaces: [
     ["mcp", MCPInterface, (): PluginConfig => ({})],
-    ["matrix", MatrixInterface, (): PluginConfig => ({})],
     ["discord", DiscordInterface, (): PluginConfig => ({})],
     ["webserver", WebserverInterface, (): PluginConfig => ({})],
     ["a2a", A2AInterface, (): PluginConfig => ({})],
@@ -181,7 +177,6 @@ export default defineBrain({
       { pattern: "cli:*", level: "anchor" },
       { pattern: "mcp:stdio", level: "anchor" },
       { pattern: "mcp:http", level: "public" },
-      { pattern: "matrix:*", level: "public" },
       { pattern: "discord:*", level: "public" },
     ],
   },

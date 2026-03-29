@@ -16,7 +16,6 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/link": "workspace:*",
-    "@brains/matrix": "workspace:*",
     "@brains/mcp": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",

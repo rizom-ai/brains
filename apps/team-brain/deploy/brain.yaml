@@ -5,7 +5,6 @@ domain: recall.rizom.ai
 
 # Permissions
 anchors:
-  - "matrix:@yeehaa:rizom.ai"
 
 plugins:
   directory-sync:
@@ -16,9 +15,4 @@ plugins:
       authorEmail: yeehaa@rizom.ai
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
-  matrix:
-    accessToken: ${MATRIX_ACCESS_TOKEN}
-    userId: "@teambot:rizom.ai"
-    homeserver: https://matrix.rizom.ai
-    deviceDisplayName: Relay
 
