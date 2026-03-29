@@ -134,7 +134,7 @@ bun test plugins/blog/    # Test a single package
 - 77 packages
 - 15 entity types, 24 service plugins, 6 interfaces, 10 themes
 - ~144k lines of TypeScript
-- 301 test files
+- 3,200 tests across 315 files
 
 ## Deployment
 
