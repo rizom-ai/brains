@@ -35,6 +35,9 @@ jobs:
 
       - run: bun install
 
+      - name: Compile hydration scripts
+        run: bun scripts/compile-hydration.ts
+
       - name: Build model bundle
         run: bun shell/app/scripts/build-model.ts ${{ matrix.model }}
 
