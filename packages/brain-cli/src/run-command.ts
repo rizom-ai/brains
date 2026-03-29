@@ -1,3 +1,5 @@
+import { mkdirSync } from "fs";
+import { join } from "path";
 import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
 
@@ -27,7 +29,18 @@ export async function runCommand(
   }
 }
 
-function runInit(parsed: ParsedArgs, dir: string): CommandResult {
+function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
+  const target = parsed.args[0];
+  if (!target) {
+    return {
+      success: false,
+      message: "Usage: brain init <directory> [--model rover]",
+    };
+  }
+
+  const dir = join(cwd, target);
+  mkdirSync(dir, { recursive: true });
+
   scaffold(dir, {
     model: parsed.flags.model ?? "rover",
     domain: parsed.flags.domain,
@@ -46,7 +59,7 @@ function runHelp(): CommandResult {
 Usage: brain <command> [options]
 
 Commands:
-  init          Scaffold a new brain instance
+  init <dir>    Scaffold a new brain instance in <dir>
   help          Show this help message
 
 Options:

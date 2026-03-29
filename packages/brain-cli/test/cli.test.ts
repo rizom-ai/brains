@@ -5,9 +5,10 @@ import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
 
 describe("parseArgs", () => {
-  it("should parse 'init' command", () => {
-    const result = parseArgs(["init"]);
+  it("should parse 'init' with directory as first arg", () => {
+    const result = parseArgs(["init", "mybrain"]);
     expect(result.command).toBe("init");
+    expect(result.args[0]).toBe("mybrain");
   });
 
   it("should parse 'init' with --model flag", () => {
@@ -67,16 +68,36 @@ describe("brain init (end-to-end)", () => {
     }
   });
 
-  it("should scaffold files when run with init command", async () => {
+  it("should require directory argument", async () => {
     const { runCommand } = await import("../src/run-command");
     const result = await runCommand(
-      { command: "init", flags: { model: "rover" }, args: [] },
+      {
+        command: "init",
+        flags: { model: "rover" },
+        args: [],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("directory");
+  });
+
+  it("should scaffold files in specified directory", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: { model: "rover" },
+        args: ["mybrain"],
+      },
       testDir,
     );
 
     expect(result.success).toBe(true);
-    expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
-    expect(existsSync(join(testDir, "deploy.yml"))).toBe(true);
-    expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+    expect(existsSync(join(outDir, "brain.yaml"))).toBe(true);
+    expect(existsSync(join(outDir, "deploy.yml"))).toBe(true);
+    expect(existsSync(join(outDir, ".env.example"))).toBe(true);
   });
 });
