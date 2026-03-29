@@ -23,7 +23,7 @@ import { HydrationManager } from "../hydration/hydration-manager";
 import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
 import { createHTMLShell } from "./html-generator";
-import { z } from "@brains/utils";
+import { z, pLimit } from "@brains/utils";
 
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
 import baseCSS from "../styles/base.css" with { type: "text" };
@@ -57,11 +57,16 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Fetch site info once for all routes
     const siteInfo = await context.getSiteInfo();
 
-    // Build each route first (HTML files)
-    for (const route of context.routes) {
-      onProgress(`Building route: ${route.path}`);
-      await this.buildRoute(route, context, siteInfo);
-    }
+    // Build routes concurrently (independent — different paths, content, output files)
+    const limit = pLimit(4);
+    await Promise.all(
+      context.routes.map((route) =>
+        limit(async () => {
+          onProgress(`Building route: ${route.path}`);
+          await this.buildRoute(route, context, siteInfo);
+        }),
+      ),
+    );
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
     onProgress("Processing Tailwind CSS");
