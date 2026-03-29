@@ -86,11 +86,6 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 
 ### External Interfaces
 
-- **[Matrix Protocol](https://matrix.org/)** - Decentralized chat
-  - Via [matrix-bot-sdk](https://github.com/turt2live/matrix-bot-sdk)
-  - End-to-end encryption support
-  - Room-based messaging
-
 ### AI Tool Integration
 
 - **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)** - AI tool standard
@@ -266,7 +261,6 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 ### Interface Packages
 
 - `@brains/cli` - Command-line interface
-- `@brains/matrix` - Matrix chat interface
 - `@brains/mcp` - Model Context Protocol interface
 - `@brains/webserver` - Web server interface
 
@@ -286,7 +280,7 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 
 - **Local-first architecture** - Data stored locally in LibSQL/SQLite
 - **Semantic search** - Vector embeddings for content similarity
-- **Multi-interface support** - CLI, Matrix, MCP, Web
+- **Multi-interface support** - CLI, Discord, MCP, A2A, Web
 - **AI-powered** - Integrated Claude AI for content generation
 - **Extensible** - Plugin system for custom functionality
 - **Type-safe** - End-to-end TypeScript with Zod validation

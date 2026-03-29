@@ -95,7 +95,7 @@ export DOCKER_REGISTRY=ghcr.io/myorg
 
 ## Native Modules
 
-Native modules (LibSQL, Matrix crypto) are handled automatically:
+Native modules (LibSQL) are handled automatically:
 
 - Build process marks them as external
 - Docker build installs them in first stage

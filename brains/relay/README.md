@@ -21,7 +21,6 @@ A collaborative knowledge management brain model for teams. Captures, organizes,
 | Interface | Purpose                               |
 | --------- | ------------------------------------- |
 | MCP       | Model Context Protocol (stdio + HTTP) |
-| Matrix    | Matrix chat bot                       |
 | Webserver | HTTP server for static site           |
 
 ## Seed Content
@@ -56,17 +55,11 @@ brain: "@brains/relay"
 logLevel: debug
 
 anchors:
-  - "matrix:@you:your-server.com"
-
 plugins:
   git-sync:
     repo: your-org/brain-content
     authorName: Relay
     authorEmail: you@example.com
-  matrix:
-    userId: "@bot:your-server.com"
-    homeserver: https://your-server.com
-    deviceDisplayName: Relay
   webserver:
     productionDomain: https://your-site.com
 ```

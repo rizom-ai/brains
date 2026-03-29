@@ -20,7 +20,7 @@ export class ChatInterface extends MessageInterfacePlugin {
 
 **Choose MessageInterfacePlugin when:**
 
-- Users interact via text messages (CLI, Matrix, Discord)
+- Users interact via text messages (CLI, Discord)
 - You need conversation management
 - You want agent-based query processing
 
@@ -119,7 +119,7 @@ export class MyInterface extends MessageInterfacePlugin<MyConfig> {
 // Start conversation with proper metadata
 const conversationId = await context.conversations.start(
   createId(), // Unique conversation ID
-  interfaceType, // Your interface type (e.g., "cli", "matrix")
+  interfaceType, // Your interface type (e.g., "cli", "discord")
   channelId, // Channel identifier
   {
     userId: userId,
@@ -237,11 +237,11 @@ Before submitting an interface:
 
 ## Reference Implementations
 
-| Interface Type     | Reference               | Notes                                            |
-| ------------------ | ----------------------- | ------------------------------------------------ |
-| CLI (terminal)     | `interfaces/cli/`       | InterfacePlugin                                  |
-| Chat bot (Discord) | `interfaces/discord/`   | MessageInterfacePlugin                           |
-| Chat bot (Matrix)  | `interfaces/matrix/`    | MessageInterfacePlugin (deprecating → Chat SDK)  |
-| MCP server         | `interfaces/mcp/`       | InterfacePlugin (stdio + HTTP)                   |
-| Web server         | `interfaces/webserver/` | InterfacePlugin (child process for static files) |
-| Agent-to-Agent     | `interfaces/a2a/`       | InterfacePlugin (JSON-RPC, non-blocking tasks)   |
+| Interface Type     | Reference             | Notes                  |
+| ------------------ | --------------------- | ---------------------- |
+| CLI (terminal)     | `interfaces/cli/`     | InterfacePlugin        |
+| Chat bot (Discord) | `interfaces/discord/` | MessageInterfacePlugin |
+
+| MCP server | `interfaces/mcp/` | InterfacePlugin (stdio + HTTP) |
+| Web server | `interfaces/webserver/` | InterfacePlugin (child process for static files) |
+| Agent-to-Agent | `interfaces/a2a/` | InterfacePlugin (JSON-RPC, non-blocking tasks) |

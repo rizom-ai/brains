@@ -104,7 +104,7 @@ The repository is organized into:
 - **`apps/`** - Brain applications (team-brain, collective-brain)
 - **`shell/`** - Core infrastructure packages
 - **`plugins/`** - Functionality plugins (system, git-sync, topics, etc.)
-- **`interfaces/`** - Interface implementations (cli, matrix, mcp, webserver)
+- **`interfaces/`** - Interface implementations (cli, discord, mcp, a2a, webserver)
 - **`shared/`** - Shared utilities and configurations
 
 **Important**: Changes to core packages (`shell/*`, `shared/*`) affect many dependent packages. The pre-commit hook will typecheck and test all affected packages.

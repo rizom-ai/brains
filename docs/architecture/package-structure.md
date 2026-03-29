@@ -83,14 +83,14 @@ Plugins that provide MCP tools, orchestration, or infrastructure operations.
 
 ## Interfaces
 
-| Package                | Purpose                                 |
-| ---------------------- | --------------------------------------- |
-| `interfaces/cli`       | Terminal REPL interface                 |
-| `interfaces/matrix`    | Matrix chat bot                         |
-| `interfaces/discord`   | Discord chat bot                        |
-| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)   |
+| Package          | Purpose                 |
+| ---------------- | ----------------------- |
+| `interfaces/cli` | Terminal REPL interface |
+
+| `interfaces/discord` | Discord chat bot |
+| `interfaces/mcp` | Model Context Protocol (stdio + HTTP) |
 | `interfaces/webserver` | Static site preview + production server |
-| `interfaces/a2a`       | Agent-to-Agent protocol                 |
+| `interfaces/a2a` | Agent-to-Agent protocol |
 
 ## Layouts
 

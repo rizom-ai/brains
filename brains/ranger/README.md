@@ -23,7 +23,6 @@ A community-facing brain model for collectives and organizations. Manages notes,
 | Interface | Purpose                                            |
 | --------- | -------------------------------------------------- |
 | MCP       | Model Context Protocol (stdio + HTTP)              |
-| Matrix    | Matrix chat bot                                    |
 | Discord   | Discord chat bot with URL capture                  |
 | Webserver | HTTP server for static site (with preview support) |
 
@@ -61,7 +60,6 @@ brain: "@brains/ranger"
 logLevel: debug
 
 anchors:
-  - "matrix:@you:your-server.com"
   - "discord:your-discord-user-id"
 trusted:
   - "discord:trusted-user-id"
@@ -71,10 +69,6 @@ plugins:
     repo: your-org/brain-content
     authorName: Ranger
     authorEmail: collective@example.com
-  matrix:
-    userId: "@bot:your-server.com"
-    homeserver: https://your-server.com
-    deviceDisplayName: Ranger
   discord: {}
   webserver:
     productionDomain: https://your-site.com

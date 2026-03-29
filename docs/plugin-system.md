@@ -77,7 +77,6 @@ Specialized interface plugin for message-based interfaces:
 **Implemented Message Interfaces:**
 
 - CLIInterface - Interactive command-line interface using Ink
-- MatrixInterface - Matrix bot integration with setup utility
 
 ## Plugin Registration
 

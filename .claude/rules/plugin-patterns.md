@@ -6,7 +6,7 @@ These patterns apply to ALL plugin types (EntityPlugin, ServicePlugin, Interface
 
 - **EntityPlugin** — Content types with schema, adapter, AI generation, derive()
 - **ServicePlugin** — Infrastructure: tools, templates, views, external service connections
-- **InterfacePlugin** — Transport layers: MCP, CLI, Discord, Matrix, webserver
+- **InterfacePlugin** — Transport layers: MCP, CLI, Discord, A2A, webserver
 
 ## Core Development Principles
 

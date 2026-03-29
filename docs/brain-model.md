@@ -90,7 +90,7 @@ plugins:
 
 The override is shallow-merged with the plugin's resolved config. The plugin is instantiated once to read its ID, then re-instantiated with the merged config if overrides exist.
 
-Common plugin IDs: `system`, `topics`, `summary`, `link`, `decks`, `directory-sync`, `git-sync`, `site-content`, `site-builder`, `mcp`, `matrix`, `webserver`, `blog`, `newsletter`, `analytics`, `social-media`, `wishlist`.
+Common plugin IDs: `system`, `topics`, `summary`, `link`, `decks`, `directory-sync`, `git-sync`, `site-content`, `site-builder`, `mcp`, `discord`, `webserver`, `a2a`, `blog`, `newsletter`, `analytics`, `social-media`, `wishlist`.
 
 ## .env — Secrets Only
 
@@ -113,9 +113,9 @@ Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If n
 | Secret (`.env`)        | Config (`brain.yaml`)                |
 | ---------------------- | ------------------------------------ |
 | `ANTHROPIC_API_KEY`    | `domain: recall.rizom.ai`            |
-| `MATRIX_ACCESS_TOKEN`  | `plugins.matrix.homeserver`          |
-| `GIT_SYNC_TOKEN`       | `plugins.matrix.userId`              |
+| `GIT_SYNC_TOKEN`       | `plugins.directory-sync.git.repo`    |
 | `MCP_AUTH_TOKEN`       | `plugins.webserver.productionDomain` |
+| `DISCORD_BOT_TOKEN`    | `plugins.discord.guildId`            |
 | `CLOUDFLARE_API_TOKEN` | `logLevel: debug`                    |
 
 ## Brain Model Definition
@@ -157,17 +157,10 @@ export default defineBrain({
     // [id, constructor, envMapper] tuples
     ["mcp", MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
     ["webserver", WebserverInterface, () => ({})],
-    [
-      "matrix",
-      MatrixInterface,
-      (env) => ({
-        accessToken: env["MATRIX_ACCESS_TOKEN"] ?? "",
-      }),
-    ],
   ],
 
   permissions: {
-    anchors: ["matrix:@admin:server.com"],
+    anchors: ["discord:123456789"],
     rules: [
       { pattern: "cli:*", level: "anchor" },
       { pattern: "mcp:stdio", level: "anchor" },
@@ -312,24 +305,23 @@ apps/team-brain/              # Dev instance
 │   brain: "@brains/relay"
 │   logLevel: debug
 │   plugins:
-│     matrix:
-│       userId: "@teambot-dev:rizom.ai"
+│     directory-sync:
+│       git:
+│         repo: my-org/team-brain-content
 ├── .env                      # Dev secrets
 │   ANTHROPIC_API_KEY=...
-│   MATRIX_ACCESS_TOKEN=...   # dev bot token
+│   GIT_SYNC_TOKEN=...
 
 apps/team-brain/deploy/       # Production deploy artifacts
 ├── brain.yaml                # Production config
 │   brain: "@brains/relay"
 │   domain: recall.rizom.ai
 │   plugins:
-│     matrix:
-│       userId: "@teambot:rizom.ai"
 │     webserver:
 │       productionDomain: https://recall.rizom.ai
 ├── .env.production           # Production secrets
 │   ANTHROPIC_API_KEY=...
-│   MATRIX_ACCESS_TOKEN=...   # prod bot token
+│   GIT_SYNC_TOKEN=...
 ```
 
 The build script (`brain-build`) generates a static entrypoint from `brain.yaml`, bundles with the brain package, and copies `brain.yaml` to `dist/`.

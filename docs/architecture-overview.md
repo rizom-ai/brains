@@ -95,14 +95,14 @@ All content types live in `entities/` as EntityPlugins. Zero tools — entity CR
 
 ### Interface Packages
 
-| Package                | Purpose                                                       |
-| ---------------------- | ------------------------------------------------------------- |
-| `interfaces/cli`       | Command-line interface                                        |
-| `interfaces/discord`   | Discord bot interface                                         |
-| `interfaces/matrix`    | Matrix bot interface (deprecating → Chat SDK)                 |
-| `interfaces/mcp`       | MCP transport (stdio + HTTP)                                  |
+| Package              | Purpose                |
+| -------------------- | ---------------------- |
+| `interfaces/cli`     | Command-line interface |
+| `interfaces/discord` | Discord bot interface  |
+
+| `interfaces/mcp` | MCP transport (stdio + HTTP) |
 | `interfaces/webserver` | Static site server (child process) + API routes (main thread) |
-| `interfaces/a2a`       | A2A protocol (Agent Card, JSON-RPC tasks, non-blocking)       |
+| `interfaces/a2a` | A2A protocol (Agent Card, JSON-RPC tasks, non-blocking) |
 
 ### Brain Definitions
 

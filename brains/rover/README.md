@@ -75,8 +75,6 @@ You stay in control of what's in the brain. They get access to a knowledgeable c
 
 Rover meets you where you are. Currently available on:
 
-- **Matrix** — Open protocol, privacy-respecting chat
-
 Coming soon:
 
 - Discord
@@ -139,7 +137,6 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | **content-pipeline** |         |         | x   |
 | **social-media**     |         |         | x   |
 | **newsletter**       |         |         | x   |
-| **matrix**           |         |         | x   |
 
 - **minimal** (10) — Headless. Notes, links, wishlist, sync, chat. No website.
 - **default** (18) — Personal site. Blog, decks, images, dashboard, analytics, Obsidian sync.

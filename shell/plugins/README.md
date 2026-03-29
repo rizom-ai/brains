@@ -46,7 +46,7 @@ export class MyPlugin extends ServicePlugin<MyConfig> {
 
 ### InterfacePlugin
 
-Transport layers — MCP, CLI, Discord, Matrix, webserver.
+Transport layers — MCP, CLI, Discord, A2A, webserver.
 
 ```typescript
 import { InterfacePlugin } from "@brains/plugins";

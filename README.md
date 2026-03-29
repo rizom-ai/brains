@@ -39,7 +39,7 @@ brain.yaml (instance config)
 apps/                    Brain instances (professional, team, mylittlephoney)
 entities/                Entity plugins (15): blog, note, link, portfolio, ...
 plugins/                 Service plugins (24): site-builder, directory-sync, notion, ...
-interfaces/              Interface plugins (6): mcp, discord, a2a, cli, matrix, webserver
+interfaces/              Interface plugins (5): mcp, discord, a2a, cli, webserver
 shell/                   Core infrastructure
   ├── core/              Shell orchestrator, system tools, plugin management
   ├── entity-service/    Entity CRUD, SQLite, vector search, Drizzle ORM

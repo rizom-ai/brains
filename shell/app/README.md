@@ -26,7 +26,7 @@ App (Main orchestrator)
 2. **Seed Data**: Copy seed content if brain-data is empty
 3. **Shell Creation**: Initialize the Shell with configuration
 4. **Plugin Loading**: Register and initialize plugins
-5. **Interface Startup**: Start the selected interface (CLI/Matrix/MCP)
+5. **Interface Startup**: Start the selected interface (CLI/Discord/MCP)
 
 ## Features
 
@@ -34,7 +34,7 @@ App (Main orchestrator)
 - **Automatic Plugin Loading**: Discovers and loads plugins based on configuration
 - **Database Management**: Handles database initialization and migrations via MigrationManager
 - **Seed Data Management**: Automatically copies seed content on first run via SeedDataManager
-- **Interface Management**: Supports multiple interfaces (CLI, Matrix, MCP)
+- **Interface Management**: Supports multiple interfaces (CLI, Discord, MCP, A2A)
 - **Environment Configuration**: Loads configuration from .env files
 
 ## Usage
@@ -105,7 +105,6 @@ try {
 The app package provides built-in CLI commands:
 
 - `--cli` - Start with CLI interface
-- `--matrix` - Start with Matrix bot interface
 - `--mcp` - Start as MCP server (default)
 - `--migrate` - Run database migrations
 - `--version` - Show version information
@@ -151,8 +150,6 @@ JOB_QUEUE_DATABASE_URL=file:./data/jobs.db
 CONVERSATION_DATABASE_URL=file:./data/conversations.db
 
 # Interface configuration
-MATRIX_HOMESERVER=https://matrix.org
-MATRIX_USER_ID=@bot:matrix.org
 MATRIX_ACCESS_TOKEN=your_token
 
 # AI Services
@@ -165,7 +162,7 @@ Plugins are loaded in dependency order and initialized with the shell context:
 
 1. Core plugins (system, directory-sync, git-sync)
 2. Service plugins (link, topics, summary, site-builder)
-3. Interface plugins (mcp, cli, matrix, webserver)
+3. Interface plugins (mcp, cli, discord, webserver)
 
 ## API
 

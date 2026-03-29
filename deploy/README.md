@@ -60,9 +60,6 @@ Required variables:
 
 Optional variables:
 
-- `MATRIX_HOMESERVER` - Matrix server URL
-- `MATRIX_USER_ID` - Matrix user ID
-- `MATRIX_ACCESS_TOKEN` - Matrix access token
 - `PORT` - Server port (default: 3333)
 
 ## Directory Structure

@@ -8,7 +8,7 @@ Last Updated: 2026-03-28
 
 ### Professional-Brain v1.0 (2026-01)
 
-Site builder, blog (17 essays, 3 series), decks, portfolio (8 case studies), topics, links, notes, social media, newsletter, analytics, dashboard, Matrix/Discord/MCP interfaces, git sync, CMS, Hetzner deploy, 7 themes.
+Site builder, blog (17 essays, 3 series), decks, portfolio (8 case studies), topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.
 
 ### Codebase Refactor (2026-02 — 2026-03)
 
@@ -107,9 +107,9 @@ Items at the same level can be done in parallel.
 
 ### Available
 
-### Deprecate Matrix
+### ~~Deprecate Matrix~~ ✅
 
-Remove Matrix interface from brain model presets. Stop deploying it. The module is unmaintained and unused.
+Removed. Matrix interface deleted from codebase, all brain models, Docker build, and docs.
 
 ### AT Protocol — Phases 1-2
 

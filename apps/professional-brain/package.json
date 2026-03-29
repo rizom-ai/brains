@@ -11,8 +11,7 @@
     "eval": "brain-eval",
     "test": "echo 'no test files'",
     "typecheck": "echo 'no source files'",
-    "clean": "rm -rf dist",
-    "matrix:setup": "bun scripts/matrix-setup.ts"
+    "clean": "rm -rf dist"
   },
   "dependencies": {
     "@brains/ai-evaluation": "workspace:*",
