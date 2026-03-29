@@ -104,6 +104,38 @@ Bundled packages — single artifact with all dependencies included. No transiti
 
 **Approach:** Docker first (Kamal deploys work today), npm second (needed for desktop app and hosted rovers). The Docker image is built FROM the npm package once bundling works.
 
+## Runtime themes from GitHub
+
+Themes (CSS) are decoupled from the brain model image. An instance can point to a GitHub repo for its theme:
+
+```yaml
+# brain.yaml
+theme: github:rizom-ai/theme-yeehaa
+```
+
+At startup, the brain fetches the theme CSS from the repo. No rebuild needed — styling is fully configurable per instance.
+
+- **Theme** = CSS file (variables, colors, fonts, spacing). Fetched at runtime.
+- **Layout** = Preact components (page structure, datasources, routes). Bundled in the model image.
+
+This separation means:
+
+- All instances of rover share the same layout components
+- Each instance can have a unique visual identity via theme
+- Theme changes are a brain.yaml edit + restart, not an image rebuild
+- Theme repos can be public (community themes) or private
+
+### How it works
+
+1. brain.yaml has `theme: github:org/repo` (or `theme: github:org/repo#branch`)
+2. On startup, site-builder fetches the CSS from the repo (raw GitHub URL or API)
+3. Theme CSS is passed to the Tailwind/PostCSS pipeline as before
+4. Cached locally — only re-fetched on restart or explicit refresh
+
+### Fallback
+
+No `theme` field in brain.yaml → brain model's default theme (bundled in image).
+
 ## Evals
 
 Evals stay in the monorepo — they test brain models and presets, not individual app instances. Standalone app repos don't need eval support.
