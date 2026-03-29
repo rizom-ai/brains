@@ -218,6 +218,9 @@ const items = [
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "short-term", desc: "Parallel route rendering with pLimit. 1-2 files, immediate perf win." },
   { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
   { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 90%+ with 70+ tests." },
+  { id: "searchquality12", name: "Search Quality Phases 1-2", status: "short-term", desc: "Tighten threshold + FTS5 hybrid search (keyword + semantic). Immediate precision improvement." },
+  { id: "contentinsights", name: "Content Insights", status: "short-term", desc: "system_insights tool + dashboard widget. Topic distribution, publishing cadence, content health." },
+  { id: "entityhistory", name: "Entity History", status: "short-term", desc: "system_history tool backed by git log. Version history, old content retrieval, diffs. No new storage." },
 
   // Medium-term
   { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
@@ -228,6 +231,9 @@ const items = [
   { id: "npmpackages", name: "npm Packages", status: "medium-term", desc: "Bundle brain models as npm packages. Single artifact, native deps as optionalDependencies. Enables desktop app + hosted rovers.", blocks: ["desktopapp"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "searchquality34", name: "Search Quality Phases 3-4", status: "medium-term", desc: "Better embedding model + cross-encoder reranking. Depends on local AI runtime.", deps: ["mediasidecar"] },
+  { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["kamal"] },
+  { id: "multiuser", name: "Multi-User & Permissions", status: "medium-term", desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.", blocks: [] },
   { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
 
   // Long-term
@@ -377,6 +383,18 @@ function render() {
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval-coverage</span>
         <span class="dep-label">seed content + more test cases</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 1-2</span>
+        <span class="dep-label">threshold + hybrid search</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('contentinsights')">content insights</span>
+        <span class="dep-label">topic distribution + health</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('entityhistory')">entity history</span>
+        <span class="dep-label">git-based version history</span>
       </div>
     </div>
   </div>`;

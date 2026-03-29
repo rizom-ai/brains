@@ -138,6 +138,18 @@ Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card f
 
 Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, conversation recall, error handling. Target: 90%+ pass rate with 70+ test cases.
 
+### Search Quality — Phase 1
+
+Tighten vector distance threshold, add FTS5 hybrid search (keyword + semantic). Immediate precision improvement. ([plan](./plans/search-quality.md))
+
+### Content Insights
+
+`system_insights` tool for topic distribution, publishing cadence, content health. Dashboard widget for visual overview. ([plan](./plans/content-insights.md))
+
+### Entity History
+
+`system_history` tool backed by git log. Show version history, retrieve old content, diff changes. No new storage — reads from existing git commits. ([plan](./plans/entity-history.md))
+
 ---
 
 ## Planned (Medium-term)
@@ -174,6 +186,14 @@ Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single 
 
 Production monitoring for deployed brains. Health dashboard (polling `/health`), log aggregation (structured logs → central store), alerting (brain down, build failed, sync stuck). Builds on Kamal deploy — needed once instances run on subdomains.
 
+### Search Quality — Phases 3-4
+
+Better embedding model (bge-base-en-v1.5) + cross-encoder reranking. Depends on local AI runtime. ([plan](./plans/search-quality.md))
+
+### Monetization
+
+Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing, auto-provisioning, admin dashboard. ([plan](./plans/monetization.md))
+
 ### Site Builder — Phases 2-4
 
 Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. ([plan](./plans/site-builder-decoupling.md))
@@ -208,20 +228,24 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 Short-term:
-  target-entity-pattern (in progress)
-  kamal-deploy → standalone-apps → rizom.work (in progress)
-  brain-cli phase 1 (blocks standalone-apps — brain init)
+  brain-cli phase 1 → kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
   site-builder phase 1 (independent)
   agent-directory phase 1 (independent)
   eval-coverage (independent)
+  search-quality phase 1-2 (independent)
+  content-insights (independent)
+  entity-history (independent)
 
 Medium-term:
   atproto phases 3-6 + agent-directory phase 2
+  multi-user (independent — enables team brains)
   chat-sdk (replaces discord)
+  monetization (after kamal)
+  search-quality phases 3-4 (after ai-runtime)
   site-builder phases 2-4
-  npm-packages (independent — parallel to docker)
-  monitoring (after kamal deploys are live)
+  npm-packages (parallel to docker)
+  monitoring (after kamal)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
