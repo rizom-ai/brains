@@ -111,6 +111,10 @@ Items at the same level can be done in parallel.
 
 Removed. Matrix interface deleted from codebase, all brain models, Docker build, and docs.
 
+### Brain CLI — Phase 1
+
+Command-line tool for instance management and direct operations. `brain init` scaffolds standalone repos, `brain start` runs the brain, `brain list/get/sync/build` invoke tools without daemons. Prerequisite for standalone apps. ([plan](./plans/brain-cli.md))
+
 ### AT Protocol — Phases 1-2
 
 Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS records), Bluesky cross-posting. Gives brains a Bluesky presence. ([plan](./plans/atproto-integration.md))
@@ -122,6 +126,10 @@ Parallel route rendering with `pLimit`. 1-2 files, immediate performance win. In
 ### Agent Directory — Phase 1
 
 Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card fetch). `a2a_call` resolves agent by name. Works without AT Protocol. ([plan](./plans/agent-directory.md))
+
+### Eval Coverage Expansion
+
+Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, conversation recall, error handling. Target: 90%+ pass rate with 70+ test cases.
 
 ---
 
@@ -150,6 +158,10 @@ Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, 
 ### npm Packages
 
 Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single artifact with all workspace deps inlined, native deps as optionalDependencies. Enables desktop app and hosted rovers. Independent of Docker path. ([plan](./plans/npm-packages.md))
+
+### Monitoring & Observability
+
+Production monitoring for deployed brains. Health dashboard (polling `/health`), log aggregation (structured logs → central store), alerting (brain down, build failed, sync stuck). Builds on Kamal deploy — needed once instances run on subdomains.
 
 ### Site Builder — Phases 2-4
 
@@ -187,15 +199,18 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 Short-term:
   target-entity-pattern (in progress)
   kamal-deploy → standalone-apps → rizom.work (in progress)
-  deprecate-matrix (independent)
+  brain-cli phase 1 (blocks standalone-apps — brain init)
   atproto phases 1-2 (independent)
   site-builder phase 1 (independent)
   agent-directory phase 1 (independent)
+  eval-coverage (independent)
 
 Medium-term:
   atproto phases 3-6 + agent-directory phase 2
-  chat-sdk (replaces deprecated matrix + discord)
+  chat-sdk (replaces discord)
   site-builder phases 2-4
+  npm-packages (independent — parallel to docker)
+  monitoring (after kamal deploys are live)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
