@@ -63,8 +63,10 @@ servers:
 
 proxy:
   ssl: true
-  host: rover.rizom.ai
-  app_port: 8080
+  hosts:
+    - rover.rizom.ai:80
+    - preview.rover.rizom.ai:81
+  app_port: 80
 
 registry:
   server: ghcr.io
@@ -159,13 +161,14 @@ Add to instance's deploy.yml and CI:
 
 The container runs multiple services on separate ports:
 
-| Service               | Port | Thread        |
-| --------------------- | ---- | ------------- |
-| Production static     | 8080 | Child process |
-| Preview static        | 4321 | Child process |
-| MCP HTTP (`/mcp`)     | 3333 | Main thread   |
-| API routes (`/api/*`) | 3335 | Main thread   |
-| Health (`/health`)    | 8080 | Child process |
+| Service                  | Port | Thread        |
+| ------------------------ | ---- | ------------- |
+| Production static        | 8080 | Child process |
+| Preview static           | 4321 | Child process |
+| MCP HTTP (`/mcp`)        | 3333 | Main thread   |
+| A2A (`/a2a`, agent card) | 3334 | Main thread   |
+| API routes (`/api/*`)    | 3335 | Main thread   |
+| Health (`/health`)       | 8080 | Child process |
 
 kamal-proxy does host → port routing (no path-based routing). So it maps:
 
@@ -178,8 +181,8 @@ But `rover.rizom.ai` needs to serve static files AND `/mcp` AND `/api/*` — thr
 
 ```
 Internet → kamal-proxy (SSL, host routing)
-  → rover.rizom.ai         → container:80   → Caddy → 8080 (static), 3333 (/mcp), 3335 (/api/*)
-  → preview.rover.rizom.ai → container:4321 → Caddy → 4321 (preview static)
+  → rover.rizom.ai         → container:80 → Caddy → 8080 (static), 3333 (/mcp), 3334 (/a2a), 3335 (/api/*)
+  → preview.rover.rizom.ai → container:81 → Caddy → 4321 (preview static)
 ```
 
 Caddy config is baked into the Docker image (it doesn't change per instance).
@@ -203,10 +206,14 @@ New Dockerfile for brain model images (`deploy/docker/Dockerfile.model`). Existi
 - brain.yaml mounted at runtime via volume
 - All workspace site packages bundled (any instance can use any site)
 
+## Dockerfile.model on current Hetzner
+
+Dockerfile.model works on the current Hetzner setup too. External Caddy proxies to container port 80 → internal Caddy routes to services. Double Caddy but functional. Once verified, Dockerfile.model replaces Dockerfile.prod and external Caddy simplifies to a pass-through (or gets removed entirely when Kamal takes over).
+
 ## What stays from current infra
 
 - **Hetzner VPS instances** — keep existing servers
-- **Dockerfile.prod** — unchanged, still works for legacy app-specific builds
+- **Dockerfile.prod** — unchanged until Dockerfile.model is verified
 - **git-sync** — still pushes to GitHub
 - **Discord bot** — runs inside container
 - **Cloudflare account** — same account, API-managed

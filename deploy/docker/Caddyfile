@@ -1,0 +1,61 @@
+# Internal Caddy — path-based routing to brain services.
+# kamal-proxy handles SSL + host routing externally.
+# This Caddy runs inside the container, no TLS.
+
+# Production site (port 80)
+:80 {
+	# MCP endpoint
+	handle /mcp* {
+		reverse_proxy localhost:3333
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+		}
+	}
+
+	# A2A endpoints
+	handle /.well-known/agent-card.json {
+		reverse_proxy localhost:3334
+	}
+
+	handle /a2a {
+		reverse_proxy localhost:3334
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization"
+		}
+	}
+
+	# Plugin API routes
+	handle /api/* {
+		reverse_proxy localhost:3335
+	}
+
+	# Static production site (catch-all)
+	handle {
+		reverse_proxy localhost:8080
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+}
+
+# Preview site (port 81)
+:81 {
+	reverse_proxy localhost:4321
+
+	header {
+		X-Frame-Options "SAMEORIGIN"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+	}
+}

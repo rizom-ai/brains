@@ -1,0 +1,38 @@
+# Brain model image — generic, reads brain.yaml at runtime
+FROM oven/bun:1.2.13-debian
+
+WORKDIR /app
+
+# Layer 1: System dependencies + Caddy
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git debian-keyring debian-archive-keyring apt-transport-https \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy \
+    && rm -rf /var/lib/apt/lists/*
+
+# Layer 2: Runtime native module package.json
+COPY package.json ./package.json
+
+# Layer 3: Install runtime native modules
+RUN bun install --ignore-scripts
+
+# Layer 4: Caddy config (path-based routing to internal services)
+COPY Caddyfile /etc/caddy/Caddyfile
+
+# Layer 5: Create directories
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+# Layer 6: Copy pre-built bundle
+COPY dist ./dist
+COPY seed-content ./seed-content
+COPY public ./public
+
+# Layer 7: Create writable directories for site builder output
+RUN mkdir -p /app/dist/site-production /app/dist/site-preview /app/dist/images && \
+    chmod -R 777 /app/dist/site-production /app/dist/site-preview /app/dist/images
+
+# brain.yaml is mounted at runtime via volume
+# Start Caddy (background) then brain
+CMD caddy start --config /etc/caddy/Caddyfile && exec bun dist/.model-entrypoint.js
