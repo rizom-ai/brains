@@ -123,7 +123,7 @@ export class App {
     // Register CLI interface if --cli flag is present
     if (this.hasCLI) {
       const pluginManager = this.getShell().getPluginManager();
-      const { CLIInterface } = await import("@brains/cli");
+      const { CLIInterface } = await import("@brains/chat-repl");
       const plugin = new CLIInterface(this.config.cliConfig);
       pluginManager.registerPlugin(plugin);
     }

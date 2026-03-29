@@ -35,7 +35,7 @@ describe("CLIInterface", () => {
       cliInterface = new CLIInterface();
       await harness.installPlugin(cliInterface);
       expect(cliInterface.id).toBe("cli");
-      expect(cliInterface.packageName).toBe("@brains/cli");
+      expect(cliInterface.packageName).toBe("@brains/chat-repl");
     });
 
     it("should create instance with custom config", async () => {

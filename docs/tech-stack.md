@@ -260,7 +260,7 @@ The Personal Brain project uses a modern, TypeScript-based stack optimized for b
 
 ### Interface Packages
 
-- `@brains/cli` - Command-line interface
+- `@brains/chat-repl` - Interactive chat REPL
 - `@brains/mcp` - Model Context Protocol interface
 - `@brains/webserver` - Web server interface
 

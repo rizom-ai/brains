@@ -107,6 +107,10 @@ try {
       "onnxruntime-node",
       "fastembed",
       "@tailwindcss/oxide",
+      // ink imports react-devtools-core unconditionally but it's not always
+      // installed as a transitive dep on CI. Mark external here, install in
+      // package.prod.json for Docker runtime.
+      "react-devtools-core",
     ],
   });
 

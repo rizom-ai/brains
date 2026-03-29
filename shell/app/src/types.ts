@@ -2,7 +2,7 @@ import { z } from "@brains/utils";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { Plugin } from "@brains/plugins";
 import type { Shell } from "@brains/core";
-import type { CLIConfig } from "@brains/cli";
+import type { CLIConfig } from "@brains/chat-repl";
 import type { PermissionConfig } from "@brains/templates";
 import { brainCharacterBodySchema } from "@brains/identity-service";
 

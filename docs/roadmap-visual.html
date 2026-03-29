@@ -206,21 +206,26 @@ const items = [
 
   { id: "toolresource", name: "Tool-to-Resource Migration", status: "completed", desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.", date: "2026-03" },
 
+  { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
+
   // Short-term (in progress)
-  { id: "targetentity", name: "Target Entity Pattern", status: "in-progress", desc: "Promote targetEntityType/targetEntityId to first-class fields on system_create. In progress by contributor." },
-  { id: "kamal", name: "Kamal Deploy", status: "in-progress", step: 1, desc: "Kamal on Hetzner + standalone apps. In progress by contributor.", blocks: ["rizomwork"] },
-  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 2, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
-  // Short-term (available)
-  { id: "deprecatematrix", name: "Deprecate Matrix", status: "short-term", desc: "Remove Matrix interface from presets. Stop deploying. Module is unmaintained and unused." },
+  { id: "braincli", name: "Brain CLI Phase 1", status: "in-progress", step: 1, desc: "Command-line tool: brain init (scaffold instances), brain start, brain list/get/sync/build (direct tool invocation, no daemons).", blocks: ["kamal"] },
+  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps. On hold — waiting for brain CLI.", deps: ["braincli"], blocks: ["rizomwork", "monitoring"] },
+  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
+  // Short-term (completed)
+  { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "short-term", desc: "Parallel route rendering with pLimit. 1-2 files, immediate perf win." },
   { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
+  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 90%+ with 70+ tests." },
 
   // Medium-term
-  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord + deprecated Matrix with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "atproto36", name: "AT Protocol Phases 3-6", status: "medium-term", desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.", deps: ["atproto12"], blocks: ["hostedrovers"] },
   { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
+  { id: "monitoring", name: "Monitoring & Observability", status: "medium-term", desc: "Health dashboard, log aggregation, alerting for deployed brains. Needed once Kamal deploys are live.", deps: ["kamal"] },
+  { id: "npmpackages", name: "npm Packages", status: "medium-term", desc: "Bundle brain models as npm packages. Single artifact, native deps as optionalDependencies. Enables desktop app + hosted rovers.", blocks: ["desktopapp"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
@@ -305,9 +310,16 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Deploy Pipeline</div>
       <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('braincli')">brain-cli</span>
+        <span class="dep-arrow">→</span>
         <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal-deploy</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('monitoring')">monitoring</span>
       </div>
     </div>
     <div class="dep-group">
@@ -347,6 +359,8 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Desktop App</div>
       <div class="dep-row">
+        <span class="dep-node s-mid" onclick="selectItem('npmpackages')">npm-packages</span>
+        <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('mediasidecar')">ai-runtime</span>
@@ -357,12 +371,12 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Independent (short-term)</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('deprecatematrix')">deprecate-matrix</span>
-        <span class="dep-label">remove from presets</span>
-      </div>
-      <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('agentdir1')">agent-dir phase 1</span>
         <span class="dep-label">manual discovery</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval-coverage</span>
+        <span class="dep-label">seed content + more test cases</span>
       </div>
     </div>
   </div>`;

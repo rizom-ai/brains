@@ -47,7 +47,7 @@ Recommended VS Code extensions:
 
 ```bash
 # Start the CLI interface
-bun run --filter @brains/cli dev
+bun run --filter @brains/chat-repl dev
 
 # Start the MCP server
 bun run --filter @brains/mcp dev
@@ -211,7 +211,7 @@ bun run typecheck
 
 # Run specific task in specific package
 bun run --filter @brains/link test
-bun run --filter @brains/cli build
+bun run --filter @brains/chat-repl build
 
 # Install dependencies
 bun install  # Installs all workspace dependencies

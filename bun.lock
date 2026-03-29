@@ -420,8 +420,8 @@
         "typescript": "^5.3.3",
       },
     },
-    "interfaces/cli": {
-      "name": "@brains/cli",
+    "interfaces/chat-repl": {
+      "name": "@brains/chat-repl",
       "version": "0.1.0",
       "dependencies": {
         "@brains/plugins": "workspace:*",
@@ -1355,7 +1355,7 @@
 
     "@brains/buttondown": ["@brains/buttondown@workspace:plugins/buttondown"],
 
-    "@brains/cli": ["@brains/cli@workspace:interfaces/cli"],
+    "@brains/chat-repl": ["@brains/chat-repl@workspace:interfaces/chat-repl"],
 
     "@brains/collective-brain": ["@brains/collective-brain@workspace:apps/collective-brain"],
 

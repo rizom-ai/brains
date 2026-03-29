@@ -91,7 +91,15 @@ Unified `directory-sync_sync` replaces 3 separate tools (sync + git_sync + git_s
 
 ### Tool-to-Resource Migration (2026-03)
 
-Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_get-status`, `site-builder_list_routes`, `site-builder_list_templates`), replaced with MCP resources. Profile and site info embedded in agent system prompt. Agent invalidated on identity/profile/site-info entity changes. ([plan](./plans/tool-to-resource-migration.md))
+Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_get-status`, `site-builder_list_routes`, `site-builder_list_templates`), replaced with MCP resources. Profile and site info embedded in agent system prompt. Agent invalidated on identity/profile/site-info entity changes.
+
+### Target Entity Pattern (2026-03)
+
+Promoted `targetEntityType`/`targetEntityId` from `options` bag to first-class fields on `system_create`. Enables "create X and attach to Y" as a general pattern. Removed the untyped `options` field.
+
+### Deprecate Matrix (2026-03)
+
+Removed Matrix interface entirely — code, Docker build layer (native binary), brain models, env schemas, docs. Chat SDK will replace it.
 
 ---
 
@@ -101,8 +109,7 @@ Items at the same level can be done in parallel.
 
 ### In progress (other contributors)
 
-- **Target Entity Pattern** — promote `targetEntityType`/`targetEntityId` to first-class fields on `system_create`. ([plan](./plans/target-entity-pattern.md))
-- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Blocked on Brain CLI for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
 ### Available
