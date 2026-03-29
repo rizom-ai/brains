@@ -146,10 +146,11 @@ describe("GitSync (simplified)", () => {
       const cloneDir = join(testDir, "clone");
       execSync(`git clone ${remoteDir} ${cloneDir}`, { stdio: "ignore" });
       writeFileSync(join(cloneDir, "new-post.md"), "# Remote post");
-      execSync("git add -A && git commit -m 'remote change'", {
-        cwd: cloneDir,
-        stdio: "ignore",
-      });
+      execSync("git add -A", { cwd: cloneDir, stdio: "ignore" });
+      execSync(
+        'git -c user.name="Test" -c user.email="test@test.com" commit -m "remote change"',
+        { cwd: cloneDir, stdio: "ignore" },
+      );
       execSync("git push", { cwd: cloneDir, stdio: "ignore" });
 
       // Pull should return the changed file
