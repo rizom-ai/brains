@@ -1,6 +1,7 @@
 import type { Subprocess } from "bun";
 import type { Logger } from "@brains/utils";
 import { resolve, join } from "path";
+import { type HealthMessage, HEARTBEAT_INTERVAL_MS } from "./health-ipc";
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -24,6 +25,7 @@ export class ServerManager {
   private childProcess: Subprocess | null = null;
   private isRunning = false;
   private cleanupHandler: (() => void) | null = null;
+  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
@@ -71,9 +73,13 @@ export class ServerManager {
       env: { ...process.env, ...env },
       stdout: "pipe",
       stderr: "pipe",
+      ipc: () => {
+        // Child can send IPC messages back — currently unused but keeps channel open
+      },
       onExit: (_proc, exitCode) => {
         this.isRunning = false;
         this.childProcess = null;
+        this.stopHeartbeat();
         if (exitCode !== 0 && exitCode !== null) {
           this.logger.error("Webserver child process exited unexpectedly", {
             exitCode,
@@ -97,6 +103,8 @@ export class ServerManager {
     };
     process.once("exit", this.cleanupHandler);
 
+    this.startHeartbeat();
+
     this.logger.info(
       `Webserver child process started (pid: ${this.childProcess.pid})`,
     );
@@ -118,6 +126,7 @@ export class ServerManager {
     if (!this.childProcess) return;
 
     this.logger.debug("Stopping webserver child process");
+    this.stopHeartbeat();
     if (this.cleanupHandler) {
       process.off("exit", this.cleanupHandler);
       this.cleanupHandler = null;
@@ -126,6 +135,39 @@ export class ServerManager {
     this.childProcess = null;
     this.isRunning = false;
     this.logger.debug("Webserver child process stopped");
+  }
+
+  /**
+   * Start sending periodic heartbeats to the child process via IPC.
+   */
+  private startHeartbeat(): void {
+    this.sendHeartbeat(); // Send immediately
+    this.heartbeatTimer = setInterval(() => {
+      this.sendHeartbeat();
+    }, HEARTBEAT_INTERVAL_MS);
+  }
+
+  /**
+   * Stop the heartbeat interval.
+   */
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = null;
+    }
+  }
+
+  /**
+   * Send a single heartbeat message to the child process.
+   */
+  private sendHeartbeat(): void {
+    if (!this.childProcess) return;
+    const message: HealthMessage = { type: "heartbeat" };
+    try {
+      this.childProcess.send(message);
+    } catch {
+      // Child process may have exited — heartbeat will stop on next onExit
+    }
   }
 
   /**

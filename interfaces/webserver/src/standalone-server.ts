@@ -15,6 +15,12 @@ import { serveStatic } from "hono/bun";
 import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
 import { join } from "path";
+import {
+  healthMessageSchema,
+  createHealthState,
+  recordHeartbeat,
+  isHealthy,
+} from "./health-ipc";
 
 // ─── Config from environment ───────────────────────────────────────────────
 
@@ -78,10 +84,30 @@ function createCleanUrlMiddleware(distDir: string) {
   };
 }
 
+// ─── Health state (heartbeat from main process via IPC) ────────────────────
+
+const healthState = createHealthState();
+
+// Listen for IPC messages from the parent (ServerManager)
+process.on("message", (msg: unknown) => {
+  const parsed = healthMessageSchema.safeParse(msg);
+  if (parsed.success) {
+    recordHeartbeat(healthState);
+  }
+});
+
 // ─── Create apps ───────────────────────────────────────────────────────────
 
 function createProductionApp(): Hono {
   const app = new Hono();
+
+  // Health check — must be before compression/caching middleware
+  app.get("/health", (c) => {
+    if (isHealthy(healthState)) {
+      return c.json({ status: "healthy" }, 200);
+    }
+    return c.json({ status: "unhealthy" }, 503);
+  });
 
   app.use("/*", compress());
   app.use("/*", etag());
