@@ -49,6 +49,7 @@ describe("DirectorySync - Non-blocking Image Conversion", () => {
         entityId: "test-post-id",
         jobId: "job-2",
         created: false,
+        skipped: false,
       }),
     );
 

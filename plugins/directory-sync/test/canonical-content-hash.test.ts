@@ -57,6 +57,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
           entityId: entity.id ?? "mock-entity-id",
           jobId: "mock-job",
           created: true,
+          skipped: false,
         };
       },
     );
@@ -91,6 +92,7 @@ describe("contentHash regression: canonical form, not raw content", () => {
           entityId: entity.id ?? "mock-entity-id",
           jobId: "mock-job",
           created: true,
+          skipped: false,
         };
       },
     );

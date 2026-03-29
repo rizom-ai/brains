@@ -112,6 +112,7 @@ describe("DigestHandler", () => {
         entityId: "conv-123",
         jobId: "job-123",
         created: true,
+        skipped: false,
       });
 
       // Mock content generation for AI decision and summary
@@ -228,6 +229,7 @@ User asked about project setup
         entityId: existingSummary.id,
         jobId: "job-123",
         created: false,
+        skipped: false,
       });
 
       await handler.handleDigest(digest);
@@ -353,6 +355,7 @@ Window End: 50
         entityId: existingSummary.id,
         jobId: "job-123",
         created: false,
+        skipped: false,
       });
 
       await handler.handleDigest(digest);
@@ -449,6 +452,7 @@ Window End: 50
         entityId: "conv-123",
         jobId: "job-123",
         created: true,
+        skipped: false,
       });
 
       await handler.handleDigest(digest);
@@ -518,6 +522,7 @@ Window End: 50
         entityId: existingSummary.id,
         jobId: "job-123",
         created: false,
+        skipped: false,
       });
 
       await handler.handleDigest(digest);

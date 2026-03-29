@@ -9,7 +9,10 @@ import {
   createPluginHarness,
   type PluginTestHarness,
 } from "@brains/plugins/test";
-import type { EntityPluginContext } from "@brains/plugins";
+import type {
+  EntityPluginContext,
+  EntityMutationResult,
+} from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 
 describe("GenerationJobHandler", () => {
@@ -258,7 +261,7 @@ describe("GenerationJobHandler", () => {
       );
       context.entityService.createEntity = async (
         input,
-      ): Promise<{ entityId: string; jobId: string }> => {
+      ): Promise<EntityMutationResult> => {
         const entityInput = input as { metadata?: { status?: string } };
         createdStatus = entityInput.metadata?.status;
         return originalCreate(input);

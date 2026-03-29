@@ -19,6 +19,7 @@ describe("SiteInfoService", () => {
     spyOn(mockEntityService, "createEntity").mockResolvedValue({
       entityId: "site-info",
       jobId: "job-123",
+      skipped: false,
     });
 
     siteInfoService = SiteInfoService.createFresh(
@@ -201,6 +202,7 @@ description: Personal knowledge base and professional showcase
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
         entityId: "site-info",
         jobId: "job-123",
+        skipped: false,
       });
 
       // Create a completely fresh service with custom site info

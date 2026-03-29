@@ -421,6 +421,7 @@ describe("BlogGenerationJobHandler", () => {
       spyOn(mockContext.entityService, "createEntity").mockResolvedValue({
         entityId: "my-post-slug",
         jobId: "job-456",
+        skipped: false,
       });
 
       const result = await handler.process(

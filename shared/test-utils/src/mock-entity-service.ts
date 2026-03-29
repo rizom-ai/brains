@@ -72,6 +72,7 @@ export function createMockEntityService(
         returns.createEntity ?? {
           entityId: "mock-entity-id",
           jobId: "mock-job-id",
+          skipped: false,
         },
       ),
     ),
@@ -80,6 +81,7 @@ export function createMockEntityService(
         returns.updateEntity ?? {
           entityId: "mock-entity-id",
           jobId: "mock-job-id",
+          skipped: false,
         },
       ),
     ),
@@ -89,6 +91,7 @@ export function createMockEntityService(
         entityId: "mock-entity-id",
         jobId: "mock-job-id",
         created: false,
+        skipped: false,
       }),
     ),
     listEntities: listEntitiesMock,

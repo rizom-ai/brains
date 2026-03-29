@@ -3,7 +3,7 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -372,11 +372,9 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(validFile, "# Valid Note\n\nThis content is valid");
 
       // Make upsertEntity fail with a database error (transient)
-      mockEntityService.upsertEntity = async (): Promise<{
-        entityId: string;
-        jobId: string;
-        created: boolean;
-      }> => {
+      mockEntityService.upsertEntity = async (): Promise<
+        EntityMutationResult & { created: boolean }
+      > => {
         throw new Error('Failed query: insert into "job_queue" values...');
       };
 
@@ -462,7 +460,7 @@ describe("Invalid Entity Handling", () => {
 
       mockEntityService.upsertEntity = async (
         entity: Partial<BaseEntity>,
-      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+      ): Promise<EntityMutationResult & { created: boolean }> => {
         callCount++;
         // Fail on the third call (db-fail.md)
         if (callCount === 2) {
@@ -472,6 +470,7 @@ describe("Invalid Entity Handling", () => {
           entityId: entity.id ?? "test-id",
           jobId: "test-job",
           created: true,
+          skipped: false,
         };
       };
 
@@ -497,11 +496,9 @@ describe("Invalid Entity Handling", () => {
       const originalContent = "# Important Note\n\nThis data must not be lost!";
       writeFileSync(validFile, originalContent);
 
-      mockEntityService.upsertEntity = async (): Promise<{
-        entityId: string;
-        jobId: string;
-        created: boolean;
-      }> => {
+      mockEntityService.upsertEntity = async (): Promise<
+        EntityMutationResult & { created: boolean }
+      > => {
         throw new Error("Network error: connection refused");
       };
 
@@ -520,7 +517,7 @@ describe("Invalid Entity Handling", () => {
       let attemptCount = 0;
       mockEntityService.upsertEntity = async (
         entity: Partial<BaseEntity>,
-      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+      ): Promise<EntityMutationResult & { created: boolean }> => {
         attemptCount++;
         if (attemptCount === 1) {
           throw new Error("Temporary database failure");
@@ -529,6 +526,7 @@ describe("Invalid Entity Handling", () => {
           entityId: entity.id ?? "test-id",
           jobId: "test-job",
           created: true,
+          skipped: false,
         };
       };
 

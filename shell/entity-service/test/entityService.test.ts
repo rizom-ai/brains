@@ -289,6 +289,68 @@ describe("EntityService > upsertEntity", () => {
     expect(result.created).toBe(false);
   });
 
+  test("should not update when content is unchanged", async () => {
+    const input = createNoteInput(
+      { title: "Stable Note", content: "Same content", tags: [] },
+      "stable-entity",
+    );
+    await ctx.entityService.createEntity<SharedNote>(input);
+
+    const before = await ctx.entityService.getEntity("note", "stable-entity");
+    expect(before).not.toBeNull();
+
+    // Upsert with the same content — simulates periodic sync re-importing
+    const result = await ctx.entityService.upsertEntity(
+      createTestEntity<SharedNote>("note", {
+        ...input,
+        id: "stable-entity",
+        content: "Same content",
+      }),
+    );
+
+    expect(result.created).toBe(false);
+
+    const after = await ctx.entityService.getEntity("note", "stable-entity");
+    expect(after).not.toBeNull();
+    expect(before).not.toBeNull();
+    // Updated timestamp should NOT have changed — no DB write happened
+    expect(after?.updated).toBe(before?.updated);
+  });
+
+  test("should not update when re-importing serialized entity (round-trip)", async () => {
+    const input = createNoteInput(
+      { title: "Round Trip", content: "Body text here", tags: [] },
+      "roundtrip-entity",
+    );
+    await ctx.entityService.createEntity<SharedNote>(input);
+
+    const stored = await ctx.entityService.getEntity(
+      "note",
+      "roundtrip-entity",
+    );
+    expect(stored).not.toBeNull();
+
+    // Simulate directory-sync round-trip: serialize → fromMarkdown → upsert
+    // fromMarkdown returns parsed fields with body as content (no frontmatter)
+    if (!stored) throw new Error("Entity not found after creation");
+    const serialized = ctx.entityService.serializeEntity(stored);
+    const parsed = sharedNoteAdapter.fromMarkdown(serialized);
+
+    const reimported = createTestEntity<SharedNote>("note", {
+      ...parsed,
+      id: "roundtrip-entity",
+    });
+
+    const result = await ctx.entityService.upsertEntity(reimported);
+
+    expect(result.created).toBe(false);
+    expect(result.skipped).toBe(true);
+
+    const after = await ctx.entityService.getEntity("note", "roundtrip-entity");
+    // Timestamp unchanged — the re-import was a no-op
+    expect(after?.updated).toBe(stored.updated);
+  });
+
   test("passes options through", async () => {
     const input = createNoteInput(
       { title: "Options Note", content: "Test content", tags: [] },

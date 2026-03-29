@@ -149,30 +149,45 @@ export class EntityMutations {
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
 
-    // Update 'updated' timestamp and recompute contentHash
+    // Validate and serialize first to compute the new content hash
     const updatedEntity = {
       ...entity,
       updated: new Date().toISOString(),
       contentHash: computeContentHash(entity.content),
     };
 
-    // Validate entity against its schema
     const validatedEntity = this.entityRegistry.validateEntity<T>(
       entity.entityType,
       updatedEntity,
     );
 
-    // Prepare entity for storage
     const { markdown, metadata } =
       this.entitySerializer.prepareEntityForStorage(
         validatedEntity,
         validatedEntity.entityType,
       );
 
-    // Compute contentHash from the serialized markdown
     const contentHash = computeContentHash(markdown);
 
-    // Update entity in database immediately
+    // Skip update if content hasn't changed
+    const existing = await this.db
+      .select({ contentHash: entities.contentHash })
+      .from(entities)
+      .where(
+        and(
+          eq(entities.id, validatedEntity.id),
+          eq(entities.entityType, validatedEntity.entityType),
+        ),
+      )
+      .limit(1);
+
+    if (existing[0]?.contentHash === contentHash) {
+      this.logger.debug(
+        `Skipping no-op update for ${validatedEntity.entityType}:${validatedEntity.id}`,
+      );
+      return { entityId: validatedEntity.id, jobId: "", skipped: true };
+    }
+
     await this.db
       .update(entities)
       .set({
@@ -358,7 +373,7 @@ export class EntityMutations {
       this.logger.debug(
         `Skipping embedding for non-embeddable entity type: ${entityType}:${entityId}`,
       );
-      return { entityId, jobId: "" };
+      return { entityId, jobId: "", skipped: false };
     }
 
     const jobData: EmbeddingJobData = {
@@ -388,6 +403,6 @@ export class EntityMutations {
       `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,
     );
 
-    return { entityId, jobId };
+    return { entityId, jobId, skipped: false };
   }
 }

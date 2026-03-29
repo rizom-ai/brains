@@ -13,6 +13,7 @@ import {
   type EntityPluginContext,
   type Logger,
 } from "@brains/plugins/test";
+import type { EntityMutationResult } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
 
 describe("GenerationJobHandler", () => {
@@ -141,7 +142,7 @@ describe("GenerationJobHandler", () => {
       );
       context.entityService.createEntity = async (
         input,
-      ): Promise<{ entityId: string; jobId: string }> => {
+      ): Promise<EntityMutationResult> => {
         const entityInput = input as { metadata?: { status?: string } };
         createdStatus = entityInput.metadata?.status;
         return originalCreate(input);
@@ -244,7 +245,7 @@ Content here.`,
       const originalCreate = entityService.createEntity.bind(entityService);
       entityService.createEntity = async (
         input,
-      ): Promise<{ entityId: string; jobId: string }> => {
+      ): Promise<EntityMutationResult> => {
         capturedMetadata = (input as { metadata?: { entityIds?: string[] } })
           .metadata;
         return originalCreate(input);

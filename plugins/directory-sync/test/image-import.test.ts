@@ -3,7 +3,7 @@ import { DirectorySync } from "../src/lib/directory-sync";
 import { mkdirSync, rmSync, writeFileSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, EntityMutationResult } from "@brains/plugins";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -36,7 +36,7 @@ describe("Image Import - Regression Tests", () => {
     spyOn(mockEntityService, "upsertEntity").mockImplementation(
       async (
         entity: Partial<BaseEntity>,
-      ): Promise<{ entityId: string; jobId: string; created: boolean }> => {
+      ): Promise<EntityMutationResult & { created: boolean }> => {
         upsertedEntities.push({
           entityType: entity.entityType ?? "unknown",
           id: entity.id ?? "unknown",
@@ -45,6 +45,7 @@ describe("Image Import - Regression Tests", () => {
           entityId: entity.id ?? "test-id",
           jobId: "test-job",
           created: true,
+          skipped: false,
         };
       },
     );
@@ -121,6 +122,7 @@ describe("Image Import - Regression Tests", () => {
             entityId: entity.id ?? "test-id",
             jobId: "test-job",
             created: true,
+            skipped: false,
           };
         },
       );

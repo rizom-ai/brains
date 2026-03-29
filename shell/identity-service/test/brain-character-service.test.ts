@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { BrainCharacterService } from "../src/brain-character-service";
-import type { IEntityService } from "@brains/entity-service";
+import type {
+  IEntityService,
+  EntityMutationResult,
+} from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -11,7 +14,7 @@ import type { BrainCharacterEntity } from "../src/brain-character-schema";
 describe("BrainCharacterService", () => {
   // Shared mock state that can be controlled per test
   let mockGetEntityImpl: () => Promise<BrainCharacterEntity | null>;
-  let mockCreateEntityImpl: () => Promise<{ entityId: string; jobId: string }>;
+  let mockCreateEntityImpl: () => Promise<EntityMutationResult>;
 
   let mockEntityService: IEntityService;
   let characterService: BrainCharacterService;
@@ -24,12 +27,10 @@ describe("BrainCharacterService", () => {
 
     // Default implementations
     mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> => null;
-    mockCreateEntityImpl = async (): Promise<{
-      entityId: string;
-      jobId: string;
-    }> => ({
+    mockCreateEntityImpl = async (): Promise<EntityMutationResult> => ({
       entityId: "brain-character",
       jobId: "job-123",
+      skipped: false,
     });
 
     // Create mock using factory, then override implementations
@@ -209,6 +210,7 @@ values:
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
         entityId: "brain-character",
         jobId: "job-123",
+        skipped: false,
       });
 
       // Create a completely fresh service with custom character

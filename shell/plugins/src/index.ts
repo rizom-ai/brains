@@ -64,6 +64,7 @@ export type {
   BaseEntity,
   EntityAdapter,
   EntityInput,
+  EntityMutationResult,
   EntityTypeConfig,
   ICoreEntityService,
   IEntityService,

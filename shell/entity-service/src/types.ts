@@ -30,11 +30,13 @@ export interface CreateEntityOptions extends EntityJobOptions {
 }
 
 /**
- * Result of an entity mutation that triggers an embedding job
+ * Result of an entity mutation that triggers an embedding job.
+ * When skipped is true, content was unchanged — no DB write, no event, no embedding job.
  */
 export interface EntityMutationResult {
   entityId: string;
   jobId: string;
+  skipped: boolean;
 }
 
 /**

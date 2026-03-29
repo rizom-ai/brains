@@ -1,6 +1,9 @@
 import { describe, it, expect, beforeEach, spyOn, type Mock } from "bun:test";
 import { AnchorProfileService } from "../src/anchor-profile-service";
-import type { IEntityService } from "@brains/entity-service";
+import type {
+  IEntityService,
+  EntityMutationResult,
+} from "@brains/entity-service";
 import {
   createSilentLogger,
   createMockEntityService,
@@ -11,7 +14,7 @@ import type { AnchorProfileEntity } from "../src/anchor-profile-schema";
 describe("AnchorProfileService", () => {
   // Shared mock state that can be controlled per test
   let mockGetEntityImpl: () => Promise<AnchorProfileEntity | null>;
-  let mockCreateEntityImpl: () => Promise<{ entityId: string; jobId: string }>;
+  let mockCreateEntityImpl: () => Promise<EntityMutationResult>;
 
   let mockEntityService: IEntityService;
   let profileService: AnchorProfileService;
@@ -24,12 +27,10 @@ describe("AnchorProfileService", () => {
 
     // Default implementations
     mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;
-    mockCreateEntityImpl = async (): Promise<{
-      entityId: string;
-      jobId: string;
-    }> => ({
+    mockCreateEntityImpl = async (): Promise<EntityMutationResult> => ({
       entityId: "anchor-profile",
       jobId: "job-123",
+      skipped: false,
     });
 
     // Create mock using factory, then override implementations
@@ -233,6 +234,7 @@ socialLinks:
       spyOn(freshMockEntityService, "createEntity").mockResolvedValue({
         entityId: "anchor-profile",
         jobId: "job-123",
+        skipped: false,
       });
 
       // Create a completely fresh service with custom profile
