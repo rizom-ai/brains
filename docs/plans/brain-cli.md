@@ -24,10 +24,12 @@ Two separate things:
 # Instance management
 brain init                      # scaffold brain.yaml + deploy.yml in cwd
 brain init --model rover        # use specific brain model
-brain dev                       # run brain from monorepo source
-brain start                     # run brain from installed npm package
 
-# Operations (direct tool invocation, no agent)
+# Run
+brain start                     # run brain (all daemons — MCP, Discord, webserver)
+brain chat                      # run brain with interactive chat REPL
+
+# Operations (boot brain, run command, exit — no daemons)
 brain status                    # system status
 brain list <type>               # list entities by type
 brain get <type> <id>           # get entity
@@ -37,32 +39,38 @@ brain sync                      # trigger directory sync
 brain build                     # build site
 brain build --preview           # build preview site
 
-# Chat
-brain chat                      # start interactive chat REPL (current CLI)
-
 # Eval
 brain eval                      # run evals (replaces bun run eval)
 brain eval --compare            # compare with previous run
 ```
 
+### Boot modes
+
+| Command                         | What boots                                                  |
+| ------------------------------- | ----------------------------------------------------------- |
+| `brain init`                    | Nothing — scaffolds files only                              |
+| `brain list/get/sync/build/...` | Full brain, no daemons. Invokes tool, prints result, exits. |
+| `brain start`                   | Full brain, all daemons. Long-running.                      |
+| `brain chat`                    | Full brain, all daemons + chat REPL attached.               |
+
+Operations boot the full brain without daemons (no MCP server, no Discord, no webserver). Plugins load, entity service connects, job handlers register — but no interfaces start. Same principle as `mode: eval`. The command invokes the relevant tool directly, prints the result, and exits.
+
 ### Architecture
 
-The CLI is a standalone tool, not an InterfacePlugin. It doesn't boot a full brain for simple operations — it connects to a running brain via MCP HTTP or invokes tools directly.
+Two access modes for operations:
 
-Two modes:
-
-**Local mode** (default): boots a minimal brain in-process, invokes tools directly. For `brain list`, `brain sync`, `brain build`, etc. Fast startup — only loads the plugins needed for the command.
+**Local mode** (default): boots brain in-process, invokes tools directly.
 
 **Remote mode** (`--remote <url>`): connects to a running brain via MCP HTTP. For operations on deployed instances.
 
 ```bash
-brain list posts                          # local — reads from local brain-data
-brain list posts --remote rover.rizom.ai  # remote — queries deployed brain
+brain list posts                          # local — boots brain, reads DB
+brain list posts --remote rover.rizom.ai  # remote — queries deployed brain via MCP
 ```
 
 ### `brain init`
 
-Scaffolds a new brain instance. This is the entry point for [Kamal Deploy](./deploy-kamal.md) Phase 2 — creating standalone instance repos.
+Scaffolds a new brain instance. Entry point for [Kamal Deploy](./deploy-kamal.md) Phase 2.
 
 ```bash
 $ brain init
@@ -78,20 +86,16 @@ Created:
   .github/workflows/deploy.yml  # CI pipeline
 ```
 
-Reads available brain models from the npm registry (or GHCR). Interactive prompts for configuration. Generates all files needed for standalone deployment. See [deploy-kamal.md](./deploy-kamal.md) for the deploy.yml structure and CI pipeline details.
+Reads available brain models from the npm registry (or GHCR). Interactive prompts for configuration. Generates all files needed for standalone deployment.
 
-### `brain dev`
+### `brain start`
 
-Development mode for the monorepo:
+Runs the brain with all daemons. Works from both monorepo (source) and standalone repo (npm package) — detects the context automatically.
 
 ```bash
-$ cd brains/rover
-$ brain dev                    # starts rover with default preset
-$ brain dev --preset minimal   # starts with minimal preset
-$ brain dev --brain-yaml /path/to/brain.yaml  # custom config
+brain start                     # default preset
+brain start --preset minimal    # specific preset
 ```
-
-Replaces the current `bun run` approach in the monorepo. Reads brain model from the current directory, resolves plugins, starts the brain.
 
 ### Package structure
 
@@ -101,8 +105,7 @@ packages/brain-cli/            # or shell/brain-cli/
     index.ts                   # entry point, arg parsing
     commands/
       init.ts                  # scaffold new instance
-      dev.ts                   # development mode
-      start.ts                 # production mode (from npm package)
+      start.ts                 # run brain (detects monorepo vs npm)
       status.ts                # system status
       list.ts                  # list entities
       get.ts                   # get entity
@@ -131,8 +134,8 @@ Over time, `interfaces/cli/` could be renamed to `interfaces/chat-repl/` for cla
 1. Create `packages/brain-cli/` package
 2. Arg parsing (`brain <command> [args] [--flags]`)
 3. `brain init` — interactive scaffolding
-4. `brain dev` — development mode (wraps current brain runner)
-5. `brain status` — connect to local brain, show status
+4. `brain start` — run brain (wraps current runner, detects context)
+5. `brain status` — boot brain, show status, exit
 6. Publish as `@brains/cli` or `brain` on npm
 
 ### Phase 2: Entity operations
@@ -168,8 +171,8 @@ Over time, `interfaces/cli/` could be renamed to `interfaces/chat-repl/` for cla
 ## Verification
 
 1. `brain init` scaffolds a deployable instance config
-2. `brain dev` starts a brain from the monorepo
-3. `brain list posts` returns entities without booting a full agent
+2. `brain start` runs a brain from both monorepo and standalone repo
+3. `brain list posts` returns entities without starting daemons
 4. `brain sync` triggers sync and returns
 5. `brain chat` launches the interactive REPL
 6. `brain list posts --remote rover.rizom.ai` works against a deployed brain
