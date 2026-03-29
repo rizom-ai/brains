@@ -77,4 +77,40 @@ describe("system_create tool", () => {
 
     expect(result).toHaveProperty("success", false);
   });
+
+  it("should pass targetEntityType and targetEntityId to job data", async () => {
+    await exec({
+      entityType: "image",
+      prompt: "Generate a cover image",
+      targetEntityType: "post",
+      targetEntityId: "my-blog-post",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.data.targetEntityType).toBe("post");
+    expect(enqueuedJob.data.targetEntityId).toBe("my-blog-post");
+  });
+
+  it("should not include options field in schema", () => {
+    const tool = tools.find((t) => t.name === "system_create");
+    if (!tool) throw new Error("system_create not found");
+    const schema = tool.inputSchema;
+    const shape = (schema as { shape?: Record<string, unknown> }).shape;
+    expect(shape).not.toHaveProperty("options");
+  });
+
+  it("should pass target fields as top-level (not nested in options)", async () => {
+    await exec({
+      entityType: "image",
+      prompt: "Generate image",
+      targetEntityType: "post",
+      targetEntityId: "test-post",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.data).not.toHaveProperty("options");
+    expect(enqueuedJob.data.targetEntityType).toBe("post");
+  });
 });

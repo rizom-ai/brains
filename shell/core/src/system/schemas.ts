@@ -27,10 +27,16 @@ export const createInputSchema = z.object({
   title: z.string().optional().describe("Title for the entity"),
   prompt: z.string().optional().describe("Prompt for AI generation"),
   content: z.string().optional().describe("Direct content to store"),
-  options: z
-    .record(z.unknown())
+  targetEntityType: z
+    .string()
     .optional()
-    .describe("Passthrough options for generation handler"),
+    .describe(
+      "Attach to this entity type after creation (e.g. set as cover image)",
+    ),
+  targetEntityId: z
+    .string()
+    .optional()
+    .describe("Attach to this entity ID after creation"),
 });
 
 export const updateInputSchema = z.object({

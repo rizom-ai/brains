@@ -333,7 +333,12 @@ export function createSystemTools(services: SystemServices): Tool[] {
                 prompt: input.prompt,
                 title: input.title,
                 content: input.content,
-                ...input.options,
+                ...(input.targetEntityType && {
+                  targetEntityType: input.targetEntityType,
+                }),
+                ...(input.targetEntityId && {
+                  targetEntityId: input.targetEntityId,
+                }),
               },
               toolContext,
             );
