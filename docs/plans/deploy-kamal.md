@@ -155,6 +155,35 @@ Add to instance's deploy.yml and CI:
 1. Additional A record for custom domain → same server IP
 2. kamal-proxy serves both `{name}.rizom.ai` and the custom domain
 
+## Internal port routing
+
+The container runs multiple services on separate ports:
+
+| Service               | Port | Thread        |
+| --------------------- | ---- | ------------- |
+| Production static     | 8080 | Child process |
+| Preview static        | 4321 | Child process |
+| MCP HTTP (`/mcp`)     | 3333 | Main thread   |
+| API routes (`/api/*`) | 3335 | Main thread   |
+| Health (`/health`)    | 8080 | Child process |
+
+kamal-proxy does host → port routing (no path-based routing). So it maps:
+
+- `rover.rizom.ai` → one port
+- `preview.rover.rizom.ai` → one port
+
+But `rover.rizom.ai` needs to serve static files AND `/mcp` AND `/api/*` — three different internal ports. kamal-proxy can't split those.
+
+**Solution: Caddy inside the container.** Caddy moves from external to internal — same job, just inside the container now. kamal-proxy handles SSL + host-based routing. Caddy handles path-based routing to internal services.
+
+```
+Internet → kamal-proxy (SSL, host routing)
+  → rover.rizom.ai         → container:80 → Caddy → 8080 (static), 3333 (/mcp), 3335 (/api/*)
+  → preview.rover.rizom.ai → container:81 → Caddy → 4321 (preview static)
+```
+
+Caddy config is baked into the Docker image (it doesn't change per instance).
+
 ## Health endpoint ✅
 
 Implemented. IPC heartbeat between main process and webserver child:
@@ -163,10 +192,21 @@ Implemented. IPC heartbeat between main process and webserver child:
 - **Child process (standalone-server):** `/health` returns 200 if heartbeat within 15s, 503 otherwise
 - **If main crashes:** heartbeats stop → child reports unhealthy → Kamal detects failure
 
+kamal-proxy health checks hit Caddy on port 80, which proxies to `/health` on 8080.
+
+## Dockerfile.model
+
+New Dockerfile for brain model images (`deploy/docker/Dockerfile.model`). Existing `Dockerfile.prod` is unchanged.
+
+- Entrypoint: `dist/.model-entrypoint.js` (reads brain.yaml at runtime)
+- Includes Caddy for internal port routing
+- brain.yaml mounted at runtime via volume
+- All workspace site packages bundled (any instance can use any site)
+
 ## What stays from current infra
 
 - **Hetzner VPS instances** — keep existing servers
-- **Dockerfile.prod** — reuse as-is
+- **Dockerfile.prod** — unchanged, still works for legacy app-specific builds
 - **git-sync** — still pushes to GitHub
 - **Discord bot** — runs inside container
 - **Cloudflare account** — same account, API-managed
@@ -177,7 +217,6 @@ Implemented. IPC heartbeat between main process and webserver child:
 - `deploy/providers/hetzner/deploy.sh` — replaced by instance CI
 - `deploy/providers/hetzner/deploy-app.sh` — same
 - `deploy/scripts/` — deployment is per-instance, not centralized
-- Caddyfile templates — kamal-proxy handles SSL
 - Bunny CDN Terraform module — replaced by Cloudflare
 
 ## Steps
@@ -189,9 +228,11 @@ Implemented. IPC heartbeat between main process and webserver child:
 
 ### Phase 1: Publish brain model images
 
-1. CI pipeline in monorepo: build + publish Docker images to GHCR on push to main
-2. Tag with git sha + `latest`
-3. One image per brain model: `ghcr.io/rizom-ai/rover`, `ranger`, `relay`
+1. `generateModelEntrypoint` (✅ done) + `build-model.ts` script (✅ done)
+2. `Dockerfile.model` — includes Caddy for internal routing, entrypoint reads brain.yaml at runtime
+3. CI pipeline in monorepo: build + publish Docker images to GHCR on push to main
+4. Tag with git sha + `latest`
+5. One image per brain model: `ghcr.io/rizom-ai/rover`, `ranger`, `relay`
 
 ### Phase 2: First standalone instance
 
