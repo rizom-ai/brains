@@ -11,6 +11,8 @@
     "postcss": "^8.5.6",
     "lightningcss": "^1.29.2",
     "fastembed": "^1.14.4",
+    "hono": "^4.7.10",
+    "@hono/bun-compress": "^0.1.0",
     "sharp": "^0.33.5"
   }
 }
