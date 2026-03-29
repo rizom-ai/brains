@@ -1,8 +1,10 @@
 name: Publish Brain Model Images
 
 on:
-  push:
+  workflow_run:
+    workflows: ["CI"]
     branches: ["main"]
+    types: [completed]
 
 concurrency:
   group: publish-images
@@ -13,24 +15,9 @@ env:
   IMAGE_PREFIX: ghcr.io/rizom-ai
 
 jobs:
-  ci:
-    name: CI
-    timeout-minutes: 15
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-      - run: bun install
-      - run: bun scripts/compile-hydration.ts
-      - run: bun run typecheck
-      - run: bun run lint
-      - run: bun run test
-
   build:
     name: Build & Publish
-    needs: ci
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
