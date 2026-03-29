@@ -89,11 +89,39 @@ healthcheck:
   port: 8080
 ```
 
+## brain.yaml deployment
+
+Kamal doesn't natively upload files for the main app. A pre-deploy hook SCPs `brain.yaml` from the instance repo to the server:
+
+```bash
+# .kamal/hooks/pre-deploy
+IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
+for host in "${HOSTS[@]}"; do
+  scp brain.yaml "deploy@${host}:/opt/brain.yaml"
+done
+```
+
+Runs automatically before every deploy.
+
+## brain-data volume
+
+The `/opt/brain-data` volume starts empty on a fresh server. On first startup, directory-sync's GitSync clones the content repo (configured via `git.gitUrl` in brain.yaml). If the content repo is also empty, it initializes locally and seed content is copied in. No manual setup needed.
+
 ## Instance CI pipeline
 
-Each instance repo has its own CI that:
+### Phase 1 (manual server)
 
-1. Provisions server via Hetzner API if it doesn't exist (labeled by brain name)
+Server exists (manually created on Hetzner). CI pipeline:
+
+1. Gets server IP from env var or Hetzner API lookup (by label)
+2. Creates/updates `{name}.rizom.ai` DNS via Cloudflare API
+3. Runs `kamal deploy` (pre-deploy hook uploads brain.yaml)
+
+### Phase 2+ (auto-provisioning)
+
+CI pipeline provisions the server too:
+
+1. Creates server via Hetzner API if it doesn't exist (labeled by brain name)
 2. Gets server IP from Hetzner API
 3. Creates/updates `{name}.rizom.ai` DNS via Cloudflare API
 4. Runs `kamal deploy`
@@ -167,17 +195,22 @@ Implemented. IPC heartbeat between main process and webserver child:
 
 ### Phase 2: First standalone instance
 
-1. Create `yeehaa-brain` config repo
-2. Add `brain.yaml`, `deploy.yml`, CI pipeline
-3. CI: Hetzner API → server IP → Cloudflare DNS → `kamal deploy`
+1. Manually create Hetzner VPS, label it, note IP
+2. Create `yeehaa-brain` config repo with `brain.yaml`, `deploy.yml`, `.kamal/hooks/pre-deploy`
+3. CI pipeline: server IP (env/lookup) → Cloudflare DNS → `kamal deploy`
 4. Verify: push to instance repo → brain deployed at `rover.rizom.ai`
+5. Old deployment on yeehaa.io keeps running — no cutover yet
 
-### Phase 3: Migrate remaining instances
+### Phase 3: Migrate remaining instances + custom domains
 
-1. Create config repos for remaining brains
-2. Migrate custom domains (yeehaa.io, mylittlephoney.com)
-3. Delete `apps/` from monorepo
-4. Delete old deploy scripts from monorepo
+Old infra keeps running in parallel throughout. No cutover risk.
+
+1. Create config repos for remaining brains (ranger, relay, mlp)
+2. Deploy each to `{name}.rizom.ai` subdomains — verify they work
+3. Point custom domain DNS to the Kamal server IP (one at a time)
+4. Add custom domain as additional host in deploy.yml (kamal-proxy serves both)
+5. Verify custom domain works, then decommission old deployment for that brain
+6. Delete `apps/` from monorepo after all instances migrated
 
 ## Verification
 
