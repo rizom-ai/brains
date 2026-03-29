@@ -27,6 +27,51 @@ function extractPackageRefs(data: unknown): string[] {
 }
 
 /**
+ * Generate a static entrypoint for a brain model image (no brain.yaml at build time).
+ *
+ * The brain model package and any extra packages (site themes, etc.) are
+ * statically imported so the bundler includes them. At runtime, brain.yaml
+ * is read from disk (mounted volume) and configures the instance.
+ *
+ * @param brainPackage - The brain model package (e.g. "@brains/rover")
+ * @param extraPackages - Additional packages to bundle (site themes, etc.)
+ * @returns Generated TypeScript code
+ */
+export function generateModelEntrypoint(
+  brainPackage: string,
+  extraPackages: string[],
+): string {
+  const extras = extraPackages.filter((pkg) => pkg !== brainPackage);
+
+  const packageImportLines = extras.map(
+    (pkg, i) => `import __pkg${i} from "${pkg}";`,
+  );
+
+  const registrationLines = extras.map(
+    (pkg, i) => `registerPackage("${pkg}", __pkg${i});`,
+  );
+
+  const hasRefs = extras.length > 0;
+
+  return [
+    `import definition from "${brainPackage}";`,
+    `import { resolve, handleCLI, parseInstanceOverrides } from "@brains/app";`,
+    ...(hasRefs ? [`import { registerPackage } from "@brains/app";`] : []),
+    `import { readFileSync } from "fs";`,
+    `import { join } from "path";`,
+    ...packageImportLines,
+    "",
+    ...registrationLines,
+    "",
+    `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
+    `const overrides = parseInstanceOverrides(yaml);`,
+    `const config = resolve(definition, process.env, overrides);`,
+    `await handleCLI(config);`,
+    "",
+  ].join("\n");
+}
+
+/**
  * Generate a static entrypoint for the bundler from brain.yaml content.
  *
  * Scans the yaml for @-prefixed package references and generates static
