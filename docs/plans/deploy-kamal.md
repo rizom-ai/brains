@@ -6,14 +6,14 @@ Current deploy pipeline is over-engineered: Terraform provisions Hetzner VPS, SS
 
 Kamal replaces the entire stack with `kamal deploy` — zero-downtime deploys, automatic SSL, instant rollbacks. Same Hetzner servers, same cost (~$20/month for 3 instances).
 
-## Default domain: `{name}.rizom.work`
+## Default domain: `{name}.rizom.ai`
 
-Every brain gets a subdomain on `rizom.work` by default. No custom domain required to deploy. SSL works from day one.
+Every brain gets a subdomain on `rizom.ai` by default. No custom domain required to deploy. SSL works from day one.
 
 ```
-rover.rizom.work     → 1.2.3.4  (yeehaa's rover)
-ranger.rizom.work    → 5.6.7.8  (collective ranger)
-relay.rizom.work     → 9.10.11.12
+rover.rizom.ai     → 1.2.3.4  (yeehaa's rover)
+ranger.rizom.ai    → 5.6.7.8  (collective ranger)
+relay.rizom.ai     → 9.10.11.12
 ```
 
 Custom domains are optional overrides — add `domain: yeehaa.io` to brain.yaml later. Both the subdomain and custom domain point to the same server.
@@ -49,7 +49,7 @@ servers:
 
 proxy:
   ssl: true
-  host: rover.rizom.work
+  host: rover.rizom.ai
   app_port: 8080
 
 registry:
@@ -93,23 +93,23 @@ volumes:
 
 ## DNS setup
 
-### Phase 0: Move rizom.work to Cloudflare
+### Phase 0: Transfer rizom.ai to Cloudflare
 
-`rizom.work` is registered on AWS Route 53. Move DNS to Cloudflare:
+`rizom.ai` is registered at MijnDomein. Transfer to Cloudflare Registrar:
 
-1. Add `rizom.work` as a zone on Cloudflare (free plan)
-2. Cloudflare assigns nameservers (e.g. `ada.ns.cloudflare.com`, `bob.ns.cloudflare.com`)
-3. Update Route 53 hosted zone nameservers to point to Cloudflare
-4. Wait for propagation (~minutes)
-5. Cloudflare now manages all DNS for `rizom.work`
+1. Add `rizom.ai` as a zone on Cloudflare (free plan)
+2. Update nameservers at MijnDomein to Cloudflare's assigned nameservers
+3. Wait for zone activation
+4. Transfer domain registration: **Domain Registration** → **Transfer Domains** → `rizom.ai`
+5. Once transferred, Cloudflare manages both registration and DNS
 
-No domain transfer needed — just nameserver delegation. Works regardless of domain age.
+Cloudflare Registrar renews at wholesale cost (no markup).
 
 ### Per-brain DNS (automated)
 
 A `deploy/setup-brain` script creates the DNS record for a brain:
 
-1. Creates A record: `{name}.rizom.work → server IP` (Cloudflare, proxied)
+1. Creates A record: `{name}.rizom.ai → server IP` (Cloudflare, proxied)
 2. Sets SSL mode (Full Strict) if not already set
 3. All idempotent — safe to re-run
 
@@ -124,7 +124,7 @@ When a brain gets its own domain:
 3. Create A records: `apex + www → server IP` (proxied)
 4. Create preview DNS: `preview.{domain} → server IP`
 5. Update `deploy.yml`: `host: yeehaa.io`
-6. Kamal-proxy serves both `rover.rizom.work` and `yeehaa.io`
+6. Kamal-proxy serves both `rover.rizom.ai` and `yeehaa.io`
 
 ### CDN rules (all sites)
 
@@ -177,11 +177,12 @@ The dashboard already supports client-side hydrated widgets. A health widget pol
 
 ## Steps
 
-### Phase 0: Cloudflare for rizom.work
+### Phase 0: Transfer rizom.ai to Cloudflare
 
-1. Add `rizom.work` zone on Cloudflare
-2. Update Route 53 nameservers to Cloudflare
-3. Verify DNS resolution works
+1. Add `rizom.ai` zone on Cloudflare (free plan)
+2. Update nameservers at MijnDomein to Cloudflare
+3. Transfer domain registration to Cloudflare Registrar
+4. Verify DNS resolution works
 
 ### Phase 1: Kamal deploy
 
@@ -189,18 +190,25 @@ The dashboard already supports client-side hydrated widgets. A health widget pol
 2. Add `/health` endpoint to webserver plugin
 3. Write `deploy/setup-brain` script — creates `{name}.rizom.work` A record on Cloudflare
 4. Run `setup-brain` for each brain (creates DNS records)
-5. Create `deploy.yml` for each brain (host: `{name}.rizom.work`)
+5. Create `deploy.yml` for each brain (host: `{name}.rizom.ai`)
 6. Set secrets: `kamal env push`
 7. First deploy: `kamal setup`
 8. Run `kamal deploy` — verify zero-downtime container swap
-9. Verify all instances accessible via `{name}.rizom.work` with SSL
+9. Verify all instances accessible via `{name}.rizom.ai` with SSL
 
 ### Phase 2: Custom domains
 
-1. Extend `setup-brain` to handle custom domains (zone creation, nameserver update, A records)
-2. Migrate existing custom domains (yeehaa.io, mylittlephoney.com)
-3. Verify CDN caching + SSL + cache bypass rules
-4. Delete Terraform config, old deploy scripts, Caddyfile templates
+Phase 1 deploys new instances to `{name}.rizom.work` subdomains. Old deployments on custom domains keep running on old infra. No migration — parallel instances until verified.
+
+Once subdomain deploys are verified:
+
+1. Point custom domain A record to the Kamal server IP (manual DNS change)
+2. Add custom domain as additional host in deploy.yml (kamal-proxy serves both)
+3. Verify: custom domain serves the brain correctly
+4. Decommission old deployment on old infra
+5. One domain at a time — yeehaa.io first, then mylittlephoney.com
+
+Old Terraform config and deploy scripts can be deleted whenever — no rush, the Kamal flow is independent.
 
 ### Phase 3: Publish brain model images
 
@@ -223,11 +231,11 @@ The dashboard already supports client-side hydrated widgets. A health widget pol
 
 ## Verification
 
-1. `rizom.work` DNS managed by Cloudflare
-2. `{name}.rizom.work` resolves to correct server IP for each brain
+1. `rizom.ai` DNS managed by Cloudflare
+2. `{name}.rizom.ai` resolves to correct server IP for each brain
 3. `kamal setup` succeeds on each Hetzner server
 4. `kamal deploy` deploys new image with zero downtime
-5. All brains accessible via `{name}.rizom.work` with SSL
+5. All brains accessible via `{name}.rizom.ai` with SSL
 6. Custom domains work alongside subdomains
 7. Static assets served from CDN edge
 8. `/mcp` and `/a2a` bypass CDN cache
