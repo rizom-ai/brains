@@ -188,7 +188,7 @@ The dashboard already supports client-side hydrated widgets. A health widget pol
 
 1. Install Kamal
 2. Add `/health` endpoint to webserver plugin
-3. Write `deploy/setup-brain` script — creates `{name}.rizom.work` A record on Cloudflare
+3. Write `deploy/setup-brain` script — creates `{name}.rizom.ai` A record on Cloudflare
 4. Run `setup-brain` for each brain (creates DNS records)
 5. Create `deploy.yml` for each brain (host: `{name}.rizom.ai`)
 6. Set secrets: `kamal env push`
@@ -198,7 +198,7 @@ The dashboard already supports client-side hydrated widgets. A health widget pol
 
 ### Phase 2: Custom domains
 
-Phase 1 deploys new instances to `{name}.rizom.work` subdomains. Old deployments on custom domains keep running on old infra. No migration — parallel instances until verified.
+Phase 1 deploys new instances to `{name}.rizom.ai` subdomains. Old deployments on custom domains keep running on old infra. No migration — parallel instances until verified.
 
 Once subdomain deploys are verified:
 

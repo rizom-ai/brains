@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+#
+# Create a Cloudflare DNS A record for a brain subdomain.
+#
+# Usage:
+#   ./deploy/scripts/setup-brain <name> <ip>
+#
+# Example:
+#   ./deploy/scripts/setup-brain rover 1.2.3.4
+#
+# Creates: rover.rizom.ai → 1.2.3.4 (proxied through Cloudflare)
+#
+# Idempotent — safe to re-run. Updates IP if record already exists.
+#
+# Requires:
+#   CLOUDFLARE_API_TOKEN  — API token with Zone:DNS:Edit permission
+#   CLOUDFLARE_ZONE_ID    — Zone ID for rizom.ai (found in Cloudflare dashboard)
+#
+
+set -euo pipefail
+
+DOMAIN="rizom.ai"
+
+# ─── Args ───────────────────────────────────────────────────────────────────
+
+if [[ $# -lt 2 ]]; then
+  echo "Usage: $0 <name> <ip>"
+  echo "Example: $0 rover 1.2.3.4"
+  exit 1
+fi
+
+NAME="$1"
+IP="$2"
+FQDN="${NAME}.${DOMAIN}"
+
+# ─── Env ────────────────────────────────────────────────────────────────────
+
+if [[ -z "${CLOUDFLARE_API_TOKEN:-}" ]]; then
+  echo "Error: CLOUDFLARE_API_TOKEN is required"
+  exit 1
+fi
+
+if [[ -z "${CLOUDFLARE_ZONE_ID:-}" ]]; then
+  echo "Error: CLOUDFLARE_ZONE_ID is required (find it in Cloudflare dashboard → rizom.ai → Overview)"
+  exit 1
+fi
+
+API="https://api.cloudflare.com/client/v4"
+AUTH_HEADER="Authorization: Bearer ${CLOUDFLARE_API_TOKEN}"
+
+# ─── Check for existing record ─────────────────────────────────────────────
+
+echo "Checking for existing DNS record: ${FQDN}..."
+
+EXISTING=$(curl -s -X GET \
+  "${API}/zones/${CLOUDFLARE_ZONE_ID}/dns_records?type=A&name=${FQDN}" \
+  -H "${AUTH_HEADER}" \
+  -H "Content-Type: application/json")
+
+RECORD_COUNT=$(echo "$EXISTING" | jq '.result | length')
+
+if [[ "$RECORD_COUNT" -gt 0 ]]; then
+  RECORD_ID=$(echo "$EXISTING" | jq -r '.result[0].id')
+  EXISTING_IP=$(echo "$EXISTING" | jq -r '.result[0].content')
+
+  if [[ "$EXISTING_IP" == "$IP" ]]; then
+    echo "✓ Record already exists: ${FQDN} → ${IP} (no change)"
+    exit 0
+  fi
+
+  echo "Updating existing record: ${FQDN} → ${IP} (was ${EXISTING_IP})..."
+
+  RESULT=$(curl -s -X PUT \
+    "${API}/zones/${CLOUDFLARE_ZONE_ID}/dns_records/${RECORD_ID}" \
+    -H "${AUTH_HEADER}" \
+    -H "Content-Type: application/json" \
+    --data "{
+      \"type\": \"A\",
+      \"name\": \"${FQDN}\",
+      \"content\": \"${IP}\",
+      \"ttl\": 1,
+      \"proxied\": true
+    }")
+else
+  echo "Creating DNS record: ${FQDN} → ${IP}..."
+
+  RESULT=$(curl -s -X POST \
+    "${API}/zones/${CLOUDFLARE_ZONE_ID}/dns_records" \
+    -H "${AUTH_HEADER}" \
+    -H "Content-Type: application/json" \
+    --data "{
+      \"type\": \"A\",
+      \"name\": \"${FQDN}\",
+      \"content\": \"${IP}\",
+      \"ttl\": 1,
+      \"proxied\": true
+    }")
+fi
+
+# ─── Verify ─────────────────────────────────────────────────────────────────
+
+SUCCESS=$(echo "$RESULT" | jq -r '.success')
+
+if [[ "$SUCCESS" == "true" ]]; then
+  echo "✓ DNS record set: ${FQDN} → ${IP} (proxied)"
+else
+  echo "✗ Failed to set DNS record:"
+  echo "$RESULT" | jq '.errors'
+  exit 1
+fi
