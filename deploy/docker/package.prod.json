@@ -2,6 +2,7 @@
   "name": "brain-runtime",
   "description": "Runtime dependencies for bundled brain apps",
   "dependencies": {
+    "react-devtools-core": "^6.1.1",
     "@libsql/client": "^0.14.0",
     "better-sqlite3": "^11.8.1",
     "tailwindcss": "^4.1.11",
@@ -12,6 +13,6 @@
     "fastembed": "^1.14.4",
     "hono": "^4.7.10",
     "@hono/bun-compress": "^0.1.0",
-    "sharp": "^0.33.5"
+    "sharp": "^0.34.5"
   }
 }

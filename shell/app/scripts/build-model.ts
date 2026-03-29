@@ -107,8 +107,6 @@ try {
       "onnxruntime-node",
       "fastembed",
       "@tailwindcss/oxide",
-      // Dev-only dependencies not needed at runtime
-      "react-devtools-core",
     ],
   });
 
