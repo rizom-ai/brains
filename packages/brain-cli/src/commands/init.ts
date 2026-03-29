@@ -3,8 +3,8 @@ import { join } from "path";
 
 export interface ScaffoldOptions {
   model: string;
-  domain?: string;
-  contentRepo?: string;
+  domain?: string | undefined;
+  contentRepo?: string | undefined;
 }
 
 /**

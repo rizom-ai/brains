@@ -154,6 +154,10 @@ Inbound ingestion, decentralized discovery (replaces manual Agent Card fetch), c
 
 OAuth 2.0 Client Credentials, then Cloudflare mTLS. ([plan](./plans/2026-03-15-a2a-authentication.md))
 
+### Multi-User & Permissions
+
+User entities with cross-interface identity. Map Discord IDs, DIDs, emails to brain-level users with roles (anchor/trusted/public). Enables team brains, hosted rover ownership, audit trails. Backward compatible — single-owner brains unchanged. ([plan](./plans/multi-user.md))
+
 ### Hosted Rovers
 
 Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zero, Turso for per-rover databases. Shared Discord bot gateway. Wildcard DNS for `*.rover.rizom.ai`. ([plan](./plans/hosted-rovers.md))
