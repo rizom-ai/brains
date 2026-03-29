@@ -178,8 +178,8 @@ But `rover.rizom.ai` needs to serve static files AND `/mcp` AND `/api/*` — thr
 
 ```
 Internet → kamal-proxy (SSL, host routing)
-  → rover.rizom.ai         → container:80 → Caddy → 8080 (static), 3333 (/mcp), 3335 (/api/*)
-  → preview.rover.rizom.ai → container:81 → Caddy → 4321 (preview static)
+  → rover.rizom.ai         → container:80   → Caddy → 8080 (static), 3333 (/mcp), 3335 (/api/*)
+  → preview.rover.rizom.ai → container:4321 → Caddy → 4321 (preview static)
 ```
 
 Caddy config is baked into the Docker image (it doesn't change per instance).
