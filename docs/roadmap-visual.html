@@ -206,23 +206,29 @@ const items = [
 
   { id: "toolresource", name: "Tool-to-Resource Migration", status: "completed", desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.", date: "2026-03" },
 
-  // Short-term
-  { id: "targetentity", name: "Target Entity Pattern", status: "short-term", desc: "Promote targetEntityType/targetEntityId to first-class fields on system_create. Enables 'create X and attach to Y' pattern. Removes untyped options bag." },
-  { id: "kamal", name: "Kamal Deploy + Standalone Apps", status: "short-term", step: 1, desc: "Kamal on Hetzner + publish brain model images to GHCR. Apps become standalone repos — two repos per app (config + content).", blocks: ["rizomwork", "hostedrovers"] },
-  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 2, desc: "New relay instance with Discord, rizom theme variations.", deps: ["kamal"] },
+  // Short-term (in progress)
+  { id: "targetentity", name: "Target Entity Pattern", status: "in-progress", desc: "Promote targetEntityType/targetEntityId to first-class fields on system_create. In progress by contributor." },
+  { id: "kamal", name: "Kamal Deploy", status: "in-progress", step: 1, desc: "Kamal on Hetzner + standalone apps. In progress by contributor.", blocks: ["rizomwork"] },
+  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 2, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
+  // Short-term (available)
+  { id: "deprecatematrix", name: "Deprecate Matrix", status: "short-term", desc: "Remove Matrix interface from presets. Stop deploying. Module is unmaintained and unused." },
+  { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
+  { id: "sitebuilder1", name: "Site Builder Phase 1", status: "short-term", desc: "Parallel route rendering with pLimit. 1-2 files, immediate perf win." },
+  { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
 
   // Medium-term
-  { id: "sitebuilder", name: "Site Builder Decoupling", status: "medium-term", desc: "Parallel route rendering with pLimit. Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface. Plugin becomes thin orchestration. Enables Astro evaluation.", blocks: ["astro"] },
-  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Single ChatInterface via Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: @brains/chat. Adds Slack, Teams, Telegram, WhatsApp.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "atproto", name: "AT Protocol Integration", status: "medium-term", desc: "Federated content distribution, portable identity (DIDs), Bluesky presence, inbound ingestion, decentralized discovery, cross-brain feeds. Replaces agent directory.", blocks: ["hostedrovers"] },
+  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord + deprecated Matrix with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "atproto36", name: "AT Protocol Phases 3-6", status: "medium-term", desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.", deps: ["atproto12"], blocks: ["hostedrovers"] },
+  { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs. Shared Discord gateway. *.rover.rizom.ai.", deps: ["atproto", "chatsdk", "mediasidecar"] },
-  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB. Enables offline desktop brains and cheap hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "astro", name: "Astro Migration", status: "medium-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Content Collections from entity DB, island architecture, native Tailwind + image optimization.", deps: ["sitebuilder"] },
+  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
+  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
 
   // Long-term
-  { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat. Presets + interfaces orthogonal.", deps: ["chatsdk", "mediasidecar"] },
-  { id: "agentregistry", name: "Ranger as Agent Registry", status: "long-term", desc: "Central discovery: brains search ranger for agents by capability. Builds on agent directory + hosted rovers." },
+  { id: "astro", name: "Astro Migration", status: "long-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Depends on site-builder phases 2-4.", deps: ["sitebuilder24"] },
+  { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat.", deps: ["chatsdk", "mediasidecar"] },
+  { id: "agentregistry", name: "Ranger as Agent Registry", status: "long-term", desc: "Central discovery: brains search ranger for agents by capability. Builds on AT Protocol discovery + hosted rovers." },
   { id: "webui", name: "Web UI", status: "long-term", desc: "Browser interface beyond static site." },
   { id: "obsidian", name: "Obsidian Community Plugin", status: "long-term", desc: "Chat, publish, generate from inside Obsidian via MCP HTTP." },
 ];
@@ -297,25 +303,39 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Site Builder</div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('sitebuilder')">site-builder-decoupling</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('astro')">astro-migration</span>
-      </div>
-    </div>
-    <div class="dep-group">
       <div class="dep-group-title">Deploy Pipeline</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal-deploy</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
       </div>
     </div>
     <div class="dep-group">
+      <div class="dep-group-title">AT Protocol + Discovery</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('atproto12')">atproto 1-2</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('atproto36')">atproto 3-6</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('agentdir2')">agent-dir phase 2</span>
+      </div>
+    </div>
+    <div class="dep-group">
+      <div class="dep-group-title">Site Builder</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('sitebuilder1')">phase 1 (parallel)</span>
+        <span class="dep-label">independent</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-mid" onclick="selectItem('sitebuilder24')">phases 2-4</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-far" onclick="selectItem('astro')">astro</span>
+      </div>
+    </div>
+    <div class="dep-group">
       <div class="dep-group-title">Hosted Rovers</div>
       <div class="dep-row">
-        <span class="dep-node s-mid" onclick="selectItem('atproto')">atproto</span>
+        <span class="dep-node s-mid" onclick="selectItem('atproto36')">atproto 3-6</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>
@@ -335,10 +355,14 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Independent</div>
+      <div class="dep-group-title">Independent (short-term)</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('targetentity')">target-entity-pattern</span>
-        <span class="dep-label">small — improves eval pass rate</span>
+        <span class="dep-node s-next" onclick="selectItem('deprecatematrix')">deprecate-matrix</span>
+        <span class="dep-label">remove from presets</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('agentdir1')">agent-dir phase 1</span>
+        <span class="dep-label">manual discovery</span>
       </div>
     </div>
   </div>`;

@@ -97,35 +97,43 @@ Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_
 
 ## Planned (Short-term)
 
-Short-term items are ordered by dependency. Items at the same level can be done in parallel.
+Items at the same level can be done in parallel.
 
-### Target Entity Pattern
+### In progress (other contributors)
 
-Promote `targetEntityType`/`targetEntityId` from `options` bag to first-class fields on `system_create`. Enables "create X and attach to Y" as a general pattern (images as covers, social posts from blog posts, newsletters from posts). Removes the untyped `options` field. ([plan](./plans/target-entity-pattern.md))
+- **Target Entity Pattern** — promote `targetEntityType`/`targetEntityId` to first-class fields on `system_create`. ([plan](./plans/target-entity-pattern.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
-### Kamal Deploy + Standalone Apps
+### Available
 
-Replace Terraform + SSH + Caddy with Kamal on Hetzner. DNS + CDN automation via Cloudflare/Route 53 hooks. Publish brain model images to GHCR. Apps become standalone repos — two repos per app (config + content). ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+### Deprecate Matrix
 
-### rizom.work
+Remove Matrix interface from brain model presets. Stop deploying it. The module is unmaintained and unused.
 
-New relay instance with Discord, rizom theme variations. Depends on Kamal deploy. ([plan](./plans/2026-03-14-rizom-work.md))
+### AT Protocol — Phases 1-2
+
+Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS records), Bluesky cross-posting. Gives brains a Bluesky presence. ([plan](./plans/atproto-integration.md))
+
+### Site Builder — Phase 1
+
+Parallel route rendering with `pLimit`. 1-2 files, immediate performance win. Independent of the larger engine extraction. ([plan](./plans/site-builder-decoupling.md))
+
+### Agent Directory — Phase 1
+
+Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card fetch). `a2a_call` resolves agent by name. Works without AT Protocol. ([plan](./plans/agent-directory.md))
 
 ---
 
 ## Planned (Medium-term)
 
-### Site Builder Decoupling
-
-Parallel route rendering with `pLimit` (immediate perf win). Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. Enables future Astro evaluation as alternative rendering engine. ([plan](./plans/site-builder-decoupling.md))
-
 ### Chat SDK Migration
 
-Replace Matrix + Discord interfaces with single ChatInterface using Vercel Chat SDK. Phase 1: deprecate Matrix. Phase 2: build `@brains/chat`. Must be compatible with hosted rovers' shared Discord gateway. ([plan](./plans/chat-interface-sdk.md))
+Replace Discord + deprecated Matrix with unified ChatInterface using Vercel Chat SDK. ([plan](./plans/chat-interface-sdk.md))
 
-### AT Protocol Integration
+### AT Protocol — Phases 3-6 + Agent Directory Phase 2
 
-Federated content distribution, portable identity (DIDs), Bluesky presence, inbound content ingestion, decentralized brain discovery, cross-brain feeds. Replaces planned agent directory with protocol-native discovery. A2A stays for directed RPC. ([plan](./plans/atproto-integration.md))
+Inbound ingestion, decentralized discovery (replaces manual Agent Card fetch), cross-brain feeds, ambient federation. Agent directory auto-discovers peers via firehose. ([plan](./plans/atproto-integration.md), [agent directory plan](./plans/agent-directory.md))
 
 ### A2A Authentication (Phase 2+)
 
@@ -139,17 +147,21 @@ Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zer
 
 Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
-### Astro Migration
+### Site Builder — Phases 2-4
 
-If spike succeeds (site-builder Phase 5), replace Preact builder with Astro behind `SiteEngineServices` interface. Content Collections from entity DB, island architecture for interactivity, native Tailwind + image optimization. Depends on site-builder decoupling Phases 2-4. ([plan](./plans/site-builder-decoupling.md))
+Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. ([plan](./plans/site-builder-decoupling.md))
 
 ---
 
 ## Planned (Long-term)
 
+### Astro Migration
+
+Replace Preact builder with Astro behind `SiteEngineServices` interface. Content Collections from entity DB, island architecture for interactivity, native Tailwind + image optimization. Depends on site-builder Phases 2-4. ([plan](./plans/site-builder-decoupling.md))
+
 ### Desktop App (Electrobun)
 
-Native desktop app via Electrobun (Bun-native framework). Brain IS the main process. Tray icon, dashboard, config editor, local CMS (Sveltia against brain-data, no OAuth), optional chat. Presets and interfaces are orthogonal — any preset works with any interface. Replaces standalone binary plan. ([plan](./plans/desktop-app.md))
+Native desktop app via Electrobun (Bun-native framework). Brain IS the main process. Tray icon, dashboard, config editor, local CMS (Sveltia against brain-data, no OAuth), optional chat. ([plan](./plans/desktop-app.md))
 
 ### Ranger as Agent Registry
 
@@ -169,14 +181,20 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 Short-term:
-  target-entity-pattern (independent — small)
-  kamal-deploy → standalone-apps → rizom.work
+  target-entity-pattern (in progress)
+  kamal-deploy → standalone-apps → rizom.work (in progress)
+  deprecate-matrix (independent)
+  atproto phases 1-2 (independent)
+  site-builder phase 1 (independent)
+  agent-directory phase 1 (independent)
 
 Medium-term:
-  site-builder-decoupling → astro-migration
-  atproto (identity → publishing → discovery → federation)
-  chat-sdk + atproto + ai-runtime ──→ hosted-rovers (K8s)
+  atproto phases 3-6 + agent-directory phase 2
+  chat-sdk (replaces deprecated matrix + discord)
+  site-builder phases 2-4
+  chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
-  chat-sdk + ai-runtime ──→ desktop-app (Electrobun)
+  site-builder phases 2-4 → astro-migration
+  chat-sdk + ai-runtime ──→ desktop-app
 ```
