@@ -32,9 +32,13 @@ Custom domains are optional overrides — add `domain: yeehaa.io` to brain.yaml 
 
 ## deploy.yml (per app)
 
+### Phase 1-2: build from monorepo
+
+brain.yaml is baked into the image (apps are still monorepo workspaces). Image is built locally and pushed to GHCR per deploy.
+
 ```yaml
 service: rover
-image: ghcr.io/rizom-ai/brains
+image: ghcr.io/rizom-ai/rover
 
 servers:
   web:
@@ -54,6 +58,9 @@ registry:
   password:
     - KAMAL_REGISTRY_PASSWORD
 
+builder:
+  dockerfile: deploy/docker/Dockerfile.prod
+
 env:
   clear:
     NODE_ENV: production
@@ -61,7 +68,6 @@ env:
     - ANTHROPIC_API_KEY
     - DISCORD_BOT_TOKEN
     - GIT_SYNC_TOKEN
-    - CLOUDFLARE_API_TOKEN
 
 volumes:
   - /opt/brain-data:/app/brain-data
@@ -69,6 +75,20 @@ volumes:
 healthcheck:
   path: /health
   port: 8080
+```
+
+### Phase 3+: published images + standalone apps
+
+brain.yaml is mounted (apps are standalone repos). Image is pre-published to GHCR.
+
+```yaml
+service: rover
+image: ghcr.io/rizom-ai/rover
+
+# ... same as above, but remove builder section and add:
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
 ```
 
 ## DNS setup
@@ -115,7 +135,28 @@ When a brain gets its own domain:
 
 ## Health endpoint
 
-Kamal needs a health check endpoint. The webserver plugin exposes `/health` returning 200 when the brain is initialized.
+Kamal needs a health check endpoint on port 8080 (production webserver).
+
+The webserver runs as a child process — it can't check brain state directly. The main process sends heartbeats via IPC (Bun subprocess messaging). The child tracks them and exposes `/health`:
+
+- **Main process (ServerManager):** sends `{ type: "heartbeat" }` every 5s via IPC after brain initialization
+- **Child process (standalone-server):** tracks last heartbeat timestamp. `/health` returns 200 if last heartbeat within 15s, 503 otherwise
+- **Zod schema:** shared `healthMessageSchema` validates IPC messages in both processes
+- **If main crashes:** heartbeats stop, child reports unhealthy after timeout, Kamal detects failure
+
+This gives Kamal a real liveness check — not just "is the webserver process alive" but "is the brain process alive and sending heartbeats."
+
+### Dashboard health widget (follow-up)
+
+The dashboard already supports client-side hydrated widgets. A health widget polls `/health` and shows live brain status (healthy/unhealthy, uptime). Not blocking for Kamal — add after the endpoint exists.
+
+### Files
+
+| File                                            | Change                                             |
+| ----------------------------------------------- | -------------------------------------------------- |
+| `interfaces/webserver/src/health-ipc.ts`        | New — shared Zod schema + constants                |
+| `interfaces/webserver/src/server-manager.ts`    | Add IPC channel to spawn, start heartbeat interval |
+| `interfaces/webserver/src/standalone-server.ts` | Listen for IPC heartbeats, add `/health` route     |
 
 ## What stays from current infra
 
