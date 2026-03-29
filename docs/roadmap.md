@@ -147,6 +147,10 @@ Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zer
 
 Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
+### npm Packages
+
+Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single artifact with all workspace deps inlined, native deps as optionalDependencies. Enables desktop app and hosted rovers. Independent of Docker path. ([plan](./plans/npm-packages.md))
+
 ### Site Builder — Phases 2-4
 
 Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. ([plan](./plans/site-builder-decoupling.md))
@@ -196,5 +200,5 @@ Medium-term:
 
 Long-term:
   site-builder phases 2-4 → astro-migration
-  chat-sdk + ai-runtime ──→ desktop-app
+  npm-packages + chat-sdk + ai-runtime ──→ desktop-app
 ```
