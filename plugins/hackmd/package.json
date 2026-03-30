@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@brains/mcp-bridge": "workspace:*",
-    "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

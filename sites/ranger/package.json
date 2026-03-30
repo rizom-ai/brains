@@ -22,7 +22,6 @@
     "@brains/theme-rizom": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
-    "lucide-preact": "^0.460.0",
     "preact": "^10.27.2"
   },
   "devDependencies": {

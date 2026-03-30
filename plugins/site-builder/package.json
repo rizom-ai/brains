@@ -13,11 +13,9 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/ui-library": "workspace:*",
-    "@tailwindcss/cli": "^4.0.0",
     "@tailwindcss/postcss": "^4.1.13",
     "@tailwindcss/typography": "^0.5.19",
     "postcss": "^8.5.6",

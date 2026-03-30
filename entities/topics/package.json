@@ -16,7 +16,6 @@
     "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
-    "@brains/ai-evaluation": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"
   },

@@ -168,6 +168,8 @@ package.json
 
 **External** (`optionalDependencies`): native platform-specific binaries. Installed by `bun install` in the instance directory.
 
+**Note:** `fastembed` and `onnxruntime-node` move to the [AI runtime sidecar](./embedding-service.md) when available. Until then, they're `optionalDependencies` on the brain model. The sidecar makes the package lighter and removes the heaviest native deps.
+
 ## Site overrides
 
 The bundled brain model includes a default site. Users override in brain.yaml:
