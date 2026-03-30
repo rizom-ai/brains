@@ -107,6 +107,21 @@ Removed Matrix interface entirely — code, Docker build layer (native binary), 
 
 ---
 
+## Rover 1.0 Milestone
+
+The following items must be complete before Rover 1.0:
+
+| Item                                    | Status        | Notes                                                  |
+| --------------------------------------- | ------------- | ------------------------------------------------------ |
+| Brain CLI (`brain init`, `brain start`) | In progress   | Scaffolds instances, runs brains                       |
+| Kamal Deploy (Phases 1-2)               | In progress   | Deployable by non-developers                           |
+| Eval pass rate ≥ 95%                    | 88%           | Agent reliability                                      |
+| Naming cleanup                          | Not started   | Remove "Personal Brain" references (60+ files)         |
+| Documentation — Phase 1                 | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref |
+| Stable API surface                      | Mostly stable | brain.yaml schema, tools, entity types                 |
+
+---
+
 ## Planned (Short-term)
 
 Items at the same level can be done in parallel.
@@ -136,7 +151,15 @@ Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card f
 
 ### Eval Coverage Expansion
 
-Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, conversation recall, error handling. Target: 90%+ pass rate with 70+ test cases.
+Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, conversation recall, error handling. Target: 95%+ pass rate with 70+ test cases. Blocks Rover 1.0.
+
+### Documentation — Phase 1
+
+Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0. ([plan](./plans/documentation.md))
+
+### Naming Cleanup
+
+Remove "Personal Brain" references from 60+ files across code, docs, READMEs, package descriptions. The system supports personal, team, and collective brains. Blocks Rover 1.0. ([plan](./plans/documentation.md))
 
 ### Search Quality — Phase 1
 
@@ -227,11 +250,16 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-Short-term:
-  brain-cli phase 1 → kamal-deploy → rizom.work
+Rover 1.0 blockers:
+  brain-cli → kamal-deploy (in progress)
+  eval-coverage (95%+ target)
+  documentation phase 1
+  naming cleanup
+
+Short-term (parallel):
+  kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
   agent-directory phase 1 (independent)
-  eval-coverage (independent)
   search-quality phase 1-2 (independent)
   content-insights (independent)
   entity-history (independent)
