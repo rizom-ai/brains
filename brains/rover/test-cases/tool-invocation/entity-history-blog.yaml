@@ -1,0 +1,26 @@
+id: tool-invocation-entity-history-blog
+name: Entity History for Blog Post
+description: Tests that the agent maps "blog post" or "essay" to entityType "post" when looking up history
+type: tool_invocation
+tags:
+  - core
+  - history
+  - entity-type-resolution
+
+turns:
+  - userMessage: "What's the version history of my blog post 'urging-new-institutions'?"
+
+successCriteria:
+  expectedTools:
+    - toolName: directory-sync_history
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000
