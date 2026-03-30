@@ -40,6 +40,8 @@ export type {
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
   IShell,
+  IInsightsRegistry,
+  InsightHandler,
   QueryContext,
   IMCPTransport,
   ToolInfo,

@@ -9,6 +9,7 @@ import type {
 import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
 import type { ICoreEntityService } from "@brains/entity-service";
+import type { InsightHandler } from "../interfaces";
 import type {
   Conversation,
   Message,
@@ -114,6 +115,14 @@ export interface IEvalNamespace {
 }
 
 /**
+ * Insights namespace — register domain-specific insight handlers
+ */
+export interface IInsightsNamespace {
+  /** Register a named insight handler */
+  register: (type: string, handler: InsightHandler) => void;
+}
+
+/**
  * Base plugin context — shared by all plugin types (Entity, Service, Interface).
  *
  * Contains only capabilities that every plugin needs.
@@ -203,6 +212,16 @@ export interface BasePluginContext {
    * - `eval.registerHandler()` - Register an eval handler
    */
   readonly eval: IEvalNamespace;
+
+  // ============================================================================
+  // Insights
+  // ============================================================================
+
+  /**
+   * Insights namespace
+   * - `insights.register()` - Register a domain-specific insight handler
+   */
+  readonly insights: IInsightsNamespace;
 }
 
 /**
@@ -314,6 +333,12 @@ export function createBasePluginContext(
     eval: {
       registerHandler: (handlerId: string, handler: EvalHandler): void => {
         shell.registerEvalHandler(pluginId, handlerId, handler);
+      },
+    },
+
+    insights: {
+      register: (type, handler) => {
+        shell.getInsightsRegistry().register(type, handler);
       },
     },
   };

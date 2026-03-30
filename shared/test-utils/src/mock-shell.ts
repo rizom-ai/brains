@@ -15,6 +15,8 @@ import type {
   AppInfo,
   Daemon,
   IDaemonRegistry,
+  IInsightsRegistry,
+  InsightHandler,
 } from "@brains/plugins";
 import type { Template } from "@brains/templates";
 import { PermissionService } from "@brains/templates";
@@ -301,6 +303,23 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   } as unknown as DataSourceRegistry;
 
   // --- Daemon Registry ---
+  // --- Insights Registry ---
+  const insightHandlers = new Map<string, InsightHandler>();
+  const insightsRegistry: IInsightsRegistry = {
+    register: (type: string, handler: InsightHandler) => {
+      insightHandlers.set(type, handler);
+    },
+    getTypes: () => Array.from(insightHandlers.keys()),
+    get: async (type: string, es) => {
+      const handler = insightHandlers.get(type);
+      if (!handler)
+        throw new Error(
+          `Unknown insight type: ${type}. Available: ${Array.from(insightHandlers.keys()).join(", ")}`,
+        );
+      return handler(es);
+    },
+  };
+
   const daemonRegistry: IDaemonRegistry = {
     register: () => {},
     has: () => false,
@@ -484,6 +503,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       _handlerId: string,
       _handler: EvalHandler,
     ) => {},
+
+    // Insights registry
+    getInsightsRegistry: () => insightsRegistry,
 
     // API routes
     getPluginApiRoutes: (): RegisteredApiRoute[] => {

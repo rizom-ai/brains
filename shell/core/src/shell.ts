@@ -64,6 +64,7 @@ import {
 } from "./initialization/shellInitializer";
 import { registerSystemCapabilities } from "./system/register";
 import { createInsightsRegistry } from "./system/insights";
+import type { IInsightsRegistry } from "@brains/plugins";
 import {
   createEnqueueJobFn,
   createEnqueueBatchFn,
@@ -77,6 +78,7 @@ export class Shell implements IShell {
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
   private initialized = false;
+  private readonly insightsRegistry: IInsightsRegistry;
 
   public readonly jobs: IJobsNamespace;
 
@@ -129,7 +131,13 @@ export class Shell implements IShell {
       ),
     };
 
+    this.insightsRegistry = createInsightsRegistry();
+
     shellInitializer.wireShell(this.services, this);
+  }
+
+  public getInsightsRegistry(): IInsightsRegistry {
+    return this.insightsRegistry;
   }
 
   /**
@@ -607,7 +615,7 @@ export class Shell implements IShell {
         getProfile: () => this.services.profileService.getProfile(),
         getAppInfo: () => this.getAppInfo(),
         searchLimit: 10,
-        insights: createInsightsRegistry(),
+        insights: this.insightsRegistry,
       },
       this.services.mcpService,
       this.services.messageBus,

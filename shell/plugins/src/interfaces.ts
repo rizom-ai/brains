@@ -15,7 +15,11 @@ import type { Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
-import type { IEntityService, IEntityRegistry } from "@brains/entity-service";
+import type {
+  IEntityService,
+  IEntityRegistry,
+  ICoreEntityService,
+} from "@brains/entity-service";
 import type {
   Tool,
   Resource,
@@ -121,6 +125,27 @@ export interface QueryContext {
  * Shell interface that plugins use to access core services
  * This avoids circular dependencies between core and plugin-context
  */
+/**
+ * Handler for a registered insight type.
+ * Receives the entity service for data queries, returns structured data.
+ */
+export type InsightHandler = (
+  entityService: ICoreEntityService,
+) => Promise<Record<string, unknown>>;
+
+/**
+ * Registry for insight types.
+ * Core registers generic insights; plugins register domain-specific ones.
+ */
+export interface IInsightsRegistry {
+  register(type: string, handler: InsightHandler): void;
+  getTypes(): string[];
+  get(
+    type: string,
+    entityService: ICoreEntityService,
+  ): Promise<Record<string, unknown>>;
+}
+
 export interface IShell {
   // Core service accessors
   getMessageBus(): IMessageBus;
@@ -197,6 +222,9 @@ export interface IShell {
     handlerId: string,
     handler: EvalHandler,
   ): void;
+
+  // Insights registry for plugin-contributed insights
+  getInsightsRegistry(): IInsightsRegistry;
 
   // API routes from plugins
   getPluginApiRoutes(): RegisteredApiRoute[];

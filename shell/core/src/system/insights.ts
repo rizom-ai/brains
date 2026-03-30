@@ -1,4 +1,5 @@
 import type { ICoreEntityService, BaseEntity } from "@brains/entity-service";
+import type { IInsightsRegistry, InsightHandler } from "@brains/plugins";
 
 interface CadenceEntry {
   month: string;
@@ -21,16 +22,11 @@ interface StaleEntry {
   daysSinceUpdate: number;
 }
 
-/** Plugin-registered insight handler */
-export type InsightHandler = (
-  entityService: ICoreEntityService,
-) => Promise<Record<string, unknown>>;
-
 /**
  * Registry for insight types.
  * Core registers generic insights; plugins register domain-specific ones.
  */
-export class InsightsRegistry {
+export class InsightsRegistry implements IInsightsRegistry {
   private handlers = new Map<string, InsightHandler>();
 
   register(type: string, handler: InsightHandler): void {
