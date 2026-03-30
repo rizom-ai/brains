@@ -4,63 +4,85 @@
 
 Brains generate and manage lots of content but have no self-awareness about it. "What do I write about most?" "When was I most productive?" "Which topics are underserved?" — the agent can answer these by querying entities, but there's no structured analysis, no trends, no dashboard.
 
-The analytics plugin only tracks Cloudflare page views (external). This plan is about internal content analysis.
-
 ## What it answers
 
 - **Topic distribution** — what do I write about? Weighted by entity count, recency, depth.
 - **Content gaps** — topics mentioned but never developed into posts. Links saved but never referenced.
 - **Publishing cadence** — how often do I publish? Trends over time. Dry spells.
-- **Content health** — drafts that never shipped. Old posts that could be refreshed. Series with missing entries.
-- **Cross-entity connections** — which posts link to which topics? How connected is the knowledge graph?
-- **Generation stats** — how much content was AI-generated vs manually created? Quality scores from evals.
+- **Content health** — drafts that never shipped. Old posts that could be refreshed.
+- **Traffic overview** — which content gets the most views? Traffic trends.
+
+One tool — `system_insights` — answers "how is my brain doing?" The agent doesn't need to know which of five tools to call and stitch together.
 
 ## Design
 
-### Two layers
+### Extensible InsightsRegistry
 
-**1. Insights tool** — `system_insights` tool the agent can call. Returns structured analysis. The agent can answer natural language questions about content.
+Core provides the `InsightsRegistry` and generic insight types. Plugins register domain-specific insights. Core stays entity-type agnostic.
 
 ```
-User: "What are my most common topics?"
-Agent: calls system_insights → gets topic distribution → summarizes
+system_insights({ type: "overview" })           // core — entity counts, recent activity, health summary
+system_insights({ type: "publishing-cadence" })  // core — creation trends by month
+system_insights({ type: "content-health" })      // core — drafts, stale entities
+system_insights({ type: "topic-distribution" })  // topics plugin — topics ranked by sources
+system_insights({ type: "traffic-overview" })    // analytics plugin — page views, top pages
 ```
 
-**2. Dashboard widget** — visual content insights on the dashboard page. Client-side hydrated widget (like existing dashboard widgets). Shows charts/stats at a glance.
+### Plugin registration
 
-### Insights tool
+Plugins register insight handlers via `context.insights.register()`:
 
 ```typescript
-system_insights({
-  type: "topic-distribution"    // → { topic, count, lastUsed }[]
-  type: "publishing-cadence"    // → { month, entityType, count }[]
-  type: "content-health"        // → { stale, drafts, incomplete }
-  type: "overview"              // → all of the above, summarized
-})
+// In topics plugin onRegister():
+context.insights.register("topic-distribution", async (entityService) => {
+  const topics = await entityService.listEntities("topic");
+  // ... aggregate sources, sort by count
+  return { topics: [...] };
+});
+
+// In analytics plugin onRegister():
+context.insights.register("traffic-overview", async () => {
+  // ... query Cloudflare for recent traffic summary
+  return { pageviews, topPages, visitors };
+});
 ```
 
-Built on entity service queries — no new data storage. Just aggregation of existing entity metadata (created dates, topics, entity types, status).
+The `system_insights` tool dispatches to the registry. Description auto-includes all registered types.
 
-### Dashboard widget
+### Why not just use existing tools?
 
-A `ContentInsightsWidget` registered by a new `content-insights` plugin (or by the dashboard plugin itself). Shows:
+- `analytics_query` stays for detailed queries ("show me traffic for last Tuesday")
+- Analytics _also_ registers a `traffic-overview` insight for the big picture
+- Different granularity — detailed tool vs summary insight — not redundant
 
-- Topic cloud or bar chart
-- Publishing timeline
-- Content health summary (drafts, stale posts)
+### Dashboard widget (Phase 3)
 
-Uses the dashboard's existing hydration system for client-side interactivity.
+Visual content insights on the dashboard page. Shows charts/stats at a glance. Uses the dashboard's existing hydration system.
 
 ## Steps
 
-### Phase 1: Insights tool
+### Phase 1: Core insights tool ✅
 
-1. Add `system_insights` tool to system tools
-2. Implement queries: topic distribution, publishing cadence, content health
-3. Agent can answer content analysis questions
-4. Tests
+1. `InsightsRegistry` class with `register()` and `get()` methods
+2. Three built-in generic insights: `overview`, `publishing-cadence`, `content-health`
+3. `system_insights` tool that dispatches to registry
+4. Exposed on `SystemServices` for shell wiring
+5. Tests including extensibility verification
 
-### Phase 2: Dashboard widget
+### Phase 2: Plugin-registered insights
+
+1. Expose `InsightsRegistry` on plugin contexts (`EntityPluginContext`, `ServicePluginContext`)
+2. Topics plugin registers `topic-distribution` insight
+   - Topics ranked by source count
+   - Source types per topic (post, note, link, etc.)
+   - Orphaned topics (no sources)
+3. Analytics plugin registers `traffic-overview` insight
+   - Recent page views and visitors (last 7 days)
+   - Top pages
+   - Graceful degradation when Cloudflare credentials absent
+4. Tests for each plugin's insight handler
+
+### Phase 3: Dashboard widget
 
 1. Create content insights dashboard widget
 2. Register via dashboard plugin's widget messaging
@@ -69,13 +91,30 @@ Uses the dashboard's existing hydration system for client-side interactivity.
 
 ## Files affected
 
-| Phase | Files | Nature                                  |
-| ----- | ----- | --------------------------------------- |
-| 1     | ~3    | System tool, insight queries            |
-| 2     | ~5    | Widget component, registration, styling |
+| Phase | Files | Nature                                                    |
+| ----- | ----- | --------------------------------------------------------- |
+| 1     | ~4    | InsightsRegistry, system tool, schemas, shell wiring ✅   |
+| 2     | ~6    | Plugin contexts, topics insight, analytics insight, tests |
+| 3     | ~5    | Widget component, registration, styling                   |
 
 ## Verification
 
-1. "What are my most common topics?" → agent calls insights tool, gives structured answer
-2. "How often do I publish?" → agent shows cadence trends
-3. Dashboard shows topic distribution and content health at a glance
+Phase 1 (done):
+
+1. `system_insights({ type: "overview" })` returns entity counts and health summary
+2. `system_insights({ type: "publishing-cadence" })` returns monthly breakdown
+3. `system_insights({ type: "content-health" })` returns drafts and stale entities
+4. Unknown types return clear error with available types listed
+5. Plugins can register custom insight types
+
+Phase 2:
+
+1. `system_insights({ type: "topic-distribution" })` returns topics sorted by source count
+2. `system_insights({ type: "traffic-overview" })` returns recent traffic summary
+3. Both work only when their plugin is enabled
+4. Graceful degradation when data is unavailable (no Cloudflare key, no topics)
+5. Existing plugin tests still pass
+
+Phase 3:
+
+1. Dashboard shows topic distribution and content health at a glance
