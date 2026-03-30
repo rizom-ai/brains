@@ -185,7 +185,7 @@
 <script>
 const items = [
   // Completed
-  { id: "v1", name: "Professional-Brain v1.0", status: "completed", desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Matrix/Discord/MCP interfaces, git sync, CMS, Hetzner deploy, 7 themes.", date: "2026-01" },
+  { id: "v1", name: "Rover v0.1 — yeehaa.io", status: "completed", desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.", date: "2026-01" },
   { id: "refactor", name: "Codebase Refactor", status: "completed", desc: "Brain model/instance split, layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, barrel export cleanup. ~2,860 lines eliminated.", date: "2026-02/03" },
   { id: "sites", name: "Site Packages", status: "completed", desc: "Theme + layout + routes into reusable packages. Brain models reference a default site; instances override via brain.yaml.", date: "2026-03" },
   { id: "presets", name: "Enable-Based Presets", status: "completed", desc: "preset: minimal | default | pro with add/remove. Curated plugin subsets for rover, ranger, relay.", date: "2026-03" },
@@ -218,7 +218,9 @@ const items = [
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
   { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
-  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 90%+ with 70+ tests." },
+  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 95%+ with 70+ tests. Blocks Rover 1.0." },
+  { id: "documentation", name: "Documentation Phase 1", status: "short-term", desc: "Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0." },
+  { id: "namingcleanup", name: "Naming Cleanup", status: "short-term", desc: "Remove 'Personal Brain' from 60+ files. System supports personal, team, and collective brains. Blocks Rover 1.0." },
   { id: "searchquality12", name: "Search Quality Phases 1-2", status: "short-term", desc: "Tighten threshold + FTS5 hybrid search (keyword + semantic). Immediate precision improvement." },
   { id: "contentinsights", name: "Content Insights", status: "short-term", desc: "system_insights tool + dashboard widget. Topic distribution, publishing cadence, content health." },
   { id: "entityhistory", name: "Entity History", status: "short-term", desc: "system_history tool backed by git log. Version history, old content retrieval, diffs. No new storage." },
@@ -376,14 +378,27 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
+      <div class="dep-group-title">Rover 1.0 Blockers</div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('braincli')">brain-cli</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
+        <span class="dep-label">deploy pipeline</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval 95%+</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-next" onclick="selectItem('documentation')">docs</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-next" onclick="selectItem('namingcleanup')">naming</span>
+        <span class="dep-label">all block 1.0</span>
+      </div>
+    </div>
+    <div class="dep-group">
       <div class="dep-group-title">Independent (short-term)</div>
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('agentdir1')">agent-dir phase 1</span>
         <span class="dep-label">manual discovery</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval-coverage</span>
-        <span class="dep-label">seed content + more test cases</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 1-2</span>

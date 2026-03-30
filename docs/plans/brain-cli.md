@@ -293,9 +293,95 @@ Plugins already register tools via `createTool()`. Adding `cli` is just an optio
 
 ### Phase 3: Remote mode
 
-1. MCP HTTP client — connect to running brain
-2. `--remote <url>` flag on all operation commands
-3. Authentication (bearer token or DID-based)
+Query a deployed brain from anywhere — no local brain boot needed.
+
+```bash
+brain list posts --remote rover.rizom.ai
+brain status --remote rover.rizom.ai --token $MCP_TOKEN
+brain search "deploy" --remote rover.rizom.ai
+```
+
+#### How it works
+
+The brain already exposes MCP at `/mcp` (StreamableHTTP). Remote mode is an MCP client:
+
+```
+brain list posts --remote rover.rizom.ai
+  → mapInput(["posts"], {}) → { entityType: "posts" }
+  → MCP Client → POST https://rover.rizom.ai/mcp
+  → callTool("system_list", { entityType: "posts" })
+  → print result
+```
+
+Same `cli.mapInput` as local mode. Only the invocation changes — HTTP instead of direct handler call.
+
+#### MCP Client
+
+Uses `@modelcontextprotocol/sdk` (already a dependency):
+
+```typescript
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+
+const transport = new StreamableHTTPClientTransport(
+  new URL("https://rover.rizom.ai/mcp"),
+  { requestInit: { headers: { Authorization: `Bearer ${token}` } } },
+);
+
+const client = new Client({ name: "brain-cli", version: "0.1.0" });
+await client.connect(transport);
+
+// Discover commands
+const { tools } = await client.listTools();
+
+// Invoke
+const result = await client.callTool({
+  name: "system_list",
+  arguments: { entityType: "posts" },
+});
+```
+
+#### Command discovery in remote mode
+
+`brain --help --remote rover.rizom.ai` lists tools from the remote brain via `client.listTools()`. Tools with `cli` metadata aren't visible over MCP (it's a local field) — but the tool name and description are. The CLI can show all tools and let the user invoke by tool name.
+
+Or simpler: in remote mode, the CLI uses `brain tool <name> <json> --remote` syntax. The friendly command names (list, sync, build) only work locally where `cli.mapInput` is available.
+
+Actually, better: the CLI knows the standard `cli.name → tool name` mapping for system tools (list → system_list, get → system_get, etc.). Plugin tools in remote mode fall back to `brain tool <name>`.
+
+#### Authentication
+
+The brain's MCP HTTP endpoint supports bearer tokens (`MCP_AUTH_TOKEN` in brain.yaml). The CLI passes it via:
+
+```bash
+brain list posts --remote rover.rizom.ai --token $TOKEN
+brain list posts --remote rover.rizom.ai  # reads BRAIN_REMOTE_TOKEN from env
+```
+
+Token resolution order:
+
+1. `--token <value>` flag
+2. `BRAIN_REMOTE_TOKEN` env var
+3. No token (public endpoints only)
+
+#### Flags
+
+```
+--remote <url>    Connect to remote brain (e.g. rover.rizom.ai)
+--token <token>   Bearer token for authentication
+```
+
+Added to `parseArgs` options. When `--remote` is present, `operate()` uses MCP client instead of spawning the runner.
+
+#### Implementation steps
+
+1. Add `--remote` and `--token` flags to `parseArgs`
+2. Create `packages/brain-cli/src/lib/mcp-client.ts` — connect, listTools, callTool
+3. Update `operate()`: if `--remote`, use MCP client; otherwise spawn runner
+4. System commands (list/get/search/status) work by mapping cli.name → tool name
+5. `brain tool <name> <json> --remote` works for any tool
+6. `brain --help --remote` lists tools from remote brain
+7. Error handling: connection refused, auth failed, tool not found
 
 ### Phase 4: Chat and eval integration
 
