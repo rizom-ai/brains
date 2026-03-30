@@ -156,65 +156,70 @@ The current entity operations hardcode tool names (`directory-sync_sync`, `site-
 
 **Fix:** Plugins register CLI commands during boot. The brain CLI discovers them.
 
-#### Command schema
+#### Design: CLI metadata on tools
+
+No separate command registry. Tools already get registered — add optional `cli` metadata to make them invocable from the CLI.
 
 ```typescript
-interface CLICommand {
-  name: string; // e.g. "sync", "build"
-  description: string; // shown in --help
-  pluginId: string; // which plugin registered it
-  toolName: string; // tool to invoke
-  mapInput: (
-    args: string[],
-    flags: Record<string, unknown>,
-  ) => Record<string, unknown>;
+interface Tool {
+  name: string;
+  description: string;
+  inputSchema: ZodRawShape;
+  handler: (input, context) => Promise<ToolResponse>;
+  visibility?: ToolVisibility;
+  cli?: {
+    name: string; // "list", "sync", "build"
+    mapInput: (
+      args: string[],
+      flags: Record<string, unknown>,
+    ) => Record<string, unknown>;
+  };
 }
 ```
 
-`mapInput` is the key — it translates CLI args/flags into tool input. Each plugin knows how its own tool expects input. No generic mapping needed.
+`cli.mapInput` translates CLI args/flags into tool input. Each tool knows how its own CLI invocation maps to its input schema.
 
-#### Registration
+Not every tool is a CLI command — only tools with `cli` defined. The CLI boots, filters tools that have `cli`, matches by `cli.name`.
 
-Plugins register commands during `onRegister()` via the plugin context:
+#### Examples
 
 ```typescript
-// directory-sync plugin
-context.registerCommand({
-  name: "sync",
+// system tool (shell/core/src/system/tools.ts)
+{
+  name: "system_list",
+  description: "List entities by type",
+  inputSchema: { entityType: z.string() },
+  handler: listHandler,
+  cli: {
+    name: "list",
+    mapInput: (args) => ({ entityType: args[0] }),
+  },
+}
+
+// directory-sync plugin tool
+{
+  name: "directory-sync_sync",
   description: "Trigger directory sync",
-  toolName: "directory-sync_sync",
-  mapInput: () => ({}),
-});
+  inputSchema: {},
+  handler: syncHandler,
+  cli: {
+    name: "sync",
+    mapInput: () => ({}),
+  },
+}
 
-// site-builder plugin
-context.registerCommand({
-  name: "build",
+// site-builder plugin tool
+{
+  name: "site-builder_build-site",
   description: "Build site",
-  toolName: "site-builder_build-site",
-  mapInput: (_args, flags) => ({
-    environment: flags["preview"] ? "preview" : "production",
-  }),
-});
-```
-
-#### Command registry
-
-Lives on Shell (alongside tools, resources, prompts). Simple map of name → CLICommand.
-
-```typescript
-// shell/core/src/shell.ts
-private cliCommands = new Map<string, CLICommand>();
-
-public registerCommand(command: CLICommand): void {
-  this.cliCommands.set(command.name, command);
-}
-
-public getCommands(): CLICommand[] {
-  return [...this.cliCommands.values()];
-}
-
-public getCommand(name: string): CLICommand | undefined {
-  return this.cliCommands.get(name);
+  inputSchema: { environment: z.string() },
+  handler: buildHandler,
+  cli: {
+    name: "build",
+    mapInput: (_args, flags) => ({
+      environment: flags["preview"] ? "preview" : "production",
+    }),
+  },
 }
 ```
 
@@ -225,20 +230,15 @@ The CLI always boots headless first, then dispatches:
 ```
 brain <command> [args] [--flags]
   │
-  ├── Built-in? (init/start/chat/help/version)
+  ├── No-boot command? (init/start/chat/help/version)
   │   └── Handle directly, no brain boot
   │
-  ├── System command? (list/get/search/status/create)
-  │   └── Boot headless → invoke system tool → print → exit
-  │
-  └── Unknown command?
-      └── Boot headless → check command registry → invoke tool → print → exit
-          (if not found: "Unknown command. Available: list, get, sync, build, ...")
+  └── Everything else
+      └── Boot headless → getCliTools() → match by cli.name → mapInput → invoke → print → exit
+          (if not found: "Unknown command. Available: list, get, search, sync, build, ...")
 ```
 
-For system commands, we still know the tool name statically — no registry lookup needed. The registry is only for plugin commands.
-
-This means `brain sync` on a brain without directory-sync will boot, find no "sync" command in the registry, and show a clear error with available commands.
+All commands with `cli` metadata follow the same path — system or plugin. `brain sync` on a brain without directory-sync boots, finds no "sync" in the registry, shows available commands.
 
 #### `brain --help` with dynamic commands
 
@@ -249,51 +249,47 @@ Commands:
   init <dir>       Scaffold a new brain instance
   start            Start the brain (all daemons)
   chat             Start with interactive chat REPL
+
+Brain commands (rover):
   list <type>      List entities by type
   get <type> <id>  Get a specific entity
   search <query>   Semantic search
   status           Show brain status
   create <type>    Create entity
-
-Plugin commands (rover):
   sync             Trigger directory sync
   build            Build site (--preview for preview)
 ```
 
-The plugin commands section is only shown when brain.yaml exists in cwd (so we can boot headless and discover them). Without brain.yaml, only built-in commands are shown.
+The "Brain commands" section is only shown when brain.yaml exists in cwd (boots headless to discover them). Without brain.yaml, only no-boot commands are shown.
 
-#### Built-in vs plugin
+#### No-boot vs registry
 
-Built-in commands (always available):
+Two categories:
 
-- `list`, `get`, `search`, `status`, `create` — system tools, hardcoded tool names
-- `init`, `start`, `chat`, `help`, `version` — CLI-only, no tool invocation
+**No-boot commands** (handled by CLI directly, no brain needed):
 
-Plugin commands (discovered at boot):
+- `init`, `start`, `chat`, `help`, `version`
 
-- `sync` — directory-sync
-- `build` — site-builder
-- Any future plugin-specific operations
+**Tool commands** (require brain boot, discovered via `cli` metadata on tools):
 
-#### Context API
+- System: `list`, `get`, `search`, `status`, `create` — system tools with `cli` field
+- Plugin: `sync`, `build`, etc. — plugin tools with `cli` field
 
-Add to `ServicePluginContext` and `EntityPluginContext`:
+One pattern, one code path. The CLI doesn't know or care whether a tool comes from the system or a plugin — it boots, gets CLI-enabled tools, matches, invokes.
 
-```typescript
-context.registerCommand(command: Omit<CLICommand, "pluginId">): void
-```
+#### No new API needed
 
-`pluginId` is injected automatically from the context.
+Plugins already register tools via `createTool()`. Adding `cli` is just an optional field on the tool definition. No new context method, no separate registry.
 
 #### Implementation steps
 
-1. Define `CLICommand` type in `@brains/mcp-service` (alongside Tool, Resource, etc.)
-2. Add command registry to Shell (`registerCommand`, `getCommands`, `getCommand`)
-3. Add `registerCommand()` to `BasePluginContext`
-4. Register commands in directory-sync and site-builder plugins
-5. Update brain-cli to query registry for unknown commands
-6. Update `--help` to show plugin commands when brain.yaml exists
-7. Remove hardcoded `sync`/`build` from `buildToolCall` in brain-cli
+1. Add optional `cli` field to `Tool` type in `@brains/mcp-service`
+2. Add `cli` metadata to system tools (list, get, search, status, create)
+3. Add `cli` metadata to directory-sync sync tool and site-builder build tool
+4. Add `getCliTools()` to `IMCPService` — returns tools where `cli` is defined
+5. Update brain-cli: boot → `getCliTools()` → match by `cli.name` → `mapInput` → invoke handler
+6. Update `--help` to show CLI-enabled tools when brain.yaml exists
+7. Remove `buildToolCall`, `operate.ts` and all hardcoded tool names from brain-cli
 
 ### Phase 3: Remote mode
 

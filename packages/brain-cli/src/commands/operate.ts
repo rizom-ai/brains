@@ -1,7 +1,5 @@
-import { existsSync } from "fs";
-import { join } from "path";
 import type { CommandResult } from "../run-command";
-import { findRunner } from "./start";
+import { requireRunner } from "./start";
 
 /**
  * Run a brain operation: boot brain headless, invoke tool, print result, exit.
@@ -14,21 +12,8 @@ export async function operate(
   toolName: string,
   toolInput: Record<string, unknown>,
 ): Promise<CommandResult> {
-  if (!existsSync(join(cwd, "brain.yaml"))) {
-    return {
-      success: false,
-      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
-    };
-  }
-
-  const runner = findRunner(cwd);
-  if (!runner) {
-    return {
-      success: false,
-      message:
-        "Could not find brain runner. Are you in a monorepo or a deployed instance?",
-    };
-  }
+  const runner = requireRunner(cwd);
+  if ("success" in runner) return runner;
 
   const proc = Bun.spawn(
     [

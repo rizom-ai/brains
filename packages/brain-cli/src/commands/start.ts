@@ -47,13 +47,11 @@ export function findRunner(
 }
 
 /**
- * Start a brain. Delegates to the existing runner which reads brain.yaml,
- * imports the brain model, resolves config, and boots.
+ * Validate that brain.yaml exists and a runner is available.
  */
-export async function start(
+export function requireRunner(
   cwd: string,
-  flags: { chat: boolean },
-): Promise<CommandResult> {
+): { path: string; type: "monorepo" | "standalone" } | CommandResult {
   if (!existsSync(join(cwd, "brain.yaml"))) {
     return {
       success: false,
@@ -69,6 +67,20 @@ export async function start(
         "Could not find brain runner. Are you in a monorepo or a deployed instance?",
     };
   }
+
+  return runner;
+}
+
+/**
+ * Start a brain. Delegates to the existing runner which reads brain.yaml,
+ * imports the brain model, resolves config, and boots.
+ */
+export async function start(
+  cwd: string,
+  flags: { chat: boolean },
+): Promise<CommandResult> {
+  const runner = requireRunner(cwd);
+  if ("success" in runner) return runner;
 
   const args = ["run", runner.path];
   if (flags.chat) {
