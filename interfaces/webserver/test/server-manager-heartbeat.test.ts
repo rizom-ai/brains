@@ -25,14 +25,14 @@ describe("ServerManager heartbeat", () => {
 
     // Create a readable stream that immediately signals WEBSERVER_READY
     const readyStream = new ReadableStream<Uint8Array>({
-      start(controller) {
+      start(controller): void {
         controller.enqueue(new TextEncoder().encode("WEBSERVER_READY\n"));
         controller.close();
       },
     });
 
     const emptyStream = new ReadableStream<Uint8Array>({
-      start(controller) {
+      start(controller): void {
         controller.close();
       },
     });
