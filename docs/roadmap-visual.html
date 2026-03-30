@@ -209,8 +209,8 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Short-term (in progress)
-  { id: "braincli", name: "Brain CLI Phase 1", status: "in-progress", step: 1, desc: "Command-line tool: brain init (scaffold instances), brain start, brain list/get/sync/build (direct tool invocation, no daemons).", blocks: ["kamal"] },
-  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps. On hold — waiting for brain CLI.", deps: ["braincli"], blocks: ["rizomwork", "monitoring"] },
+  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + @brains/rover brain model — ship together. brain init, brain start, brain list, --remote all done. npm publish next.", blocks: ["kamal"] },
+  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomwork", "monitoring"] },
   { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
   // Short-term (completed)
   { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
@@ -222,8 +222,8 @@ const items = [
   { id: "documentation", name: "Documentation Phase 1", status: "short-term", desc: "Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0." },
   { id: "namingcleanup", name: "Naming Cleanup", status: "short-term", desc: "Remove 'Personal Brain' from 60+ files. System supports personal, team, and collective brains. Blocks Rover 1.0." },
   { id: "searchquality12", name: "Search Quality Phases 1-2", status: "short-term", desc: "Tighten threshold + FTS5 hybrid search (keyword + semantic). Immediate precision improvement." },
-  { id: "contentinsights", name: "Content Insights", status: "short-term", desc: "system_insights tool + dashboard widget. Topic distribution, publishing cadence, content health." },
-  { id: "entityhistory", name: "Entity History", status: "short-term", desc: "system_history tool backed by git log. Version history, old content retrieval, diffs. No new storage." },
+  { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with registry pattern. Topic distribution, publishing cadence, content health.", date: "2026-03" },
+  { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool backed by git log. List commits, retrieve content at version.", date: "2026-03" },
 
   // Medium-term
   { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
@@ -231,9 +231,9 @@ const items = [
   { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
   { id: "monitoring", name: "Monitoring & Observability", status: "medium-term", desc: "Health dashboard, log aggregation, alerting for deployed brains. Needed once Kamal deploys are live.", deps: ["kamal"] },
-  { id: "npmpackages", name: "npm Packages", status: "medium-term", desc: "Bundle brain models as npm packages. Single artifact, native deps as optionalDependencies. Enables desktop app + hosted rovers.", blocks: ["desktopapp"] },
+  { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["npmpackages"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
-  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Separate process for all AI/ML: local models (ONNX, Ollama, Stable Diffusion, Sharp) or cloud APIs. Brain drops to ~200MB.", blocks: ["hostedrovers", "desktopapp"] },
+  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "searchquality34", name: "Search Quality Phases 3-4", status: "medium-term", desc: "Better embedding model + cross-encoder reranking. Depends on local AI runtime.", deps: ["mediasidecar"] },
   { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["kamal"] },
   { id: "multiuser", name: "Multi-User & Permissions", status: "medium-term", desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.", blocks: [] },
@@ -317,18 +317,23 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Deploy Pipeline</div>
+      <div class="dep-group-title">Rover 1.0 Pipeline</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('braincli')">brain-cli</span>
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal-deploy</span>
+        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-mid" onclick="selectItem('monitoring')">monitoring</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-mid" onclick="selectItem('compiledbinaries')">compiled binaries</span>
       </div>
     </div>
     <div class="dep-group">
@@ -380,7 +385,7 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Rover 1.0 Blockers</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('braincli')">brain-cli</span>
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
         <span class="dep-label">deploy pipeline</span>
@@ -403,14 +408,6 @@ function render() {
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 1-2</span>
         <span class="dep-label">threshold + hybrid search</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('contentinsights')">content insights</span>
-        <span class="dep-label">topic distribution + health</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('entityhistory')">entity history</span>
-        <span class="dep-label">git-based version history</span>
       </div>
     </div>
   </div>`;

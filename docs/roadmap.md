@@ -109,20 +109,28 @@ ServicePlugin (`plugins/stock-photo/`) with provider abstraction (`StockPhotoPro
 
 Removed Matrix interface entirely — code, Docker build layer (native binary), brain models, env schemas, docs. Chat SDK will replace it.
 
+### Content Insights (2026-03)
+
+Extensible `system_insights` tool with registry pattern. Plugins contribute insight handlers. Topic distribution, publishing cadence, content health, entity counts.
+
+### Entity History (2026-03)
+
+`directory-sync_history` tool backed by git log. List commit history for any entity, retrieve content at specific version. No new storage.
+
 ---
 
 ## Rover 1.0 Milestone
 
 The following items must be complete before Rover 1.0:
 
-| Item                       | Status        | Notes                                                  |
-| -------------------------- | ------------- | ------------------------------------------------------ |
-| `@rizom/brain` npm publish | In progress   | CLI: init, start, list, remote. npm publish next.      |
-| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                           |
-| Eval pass rate ≥ 95%       | 88%           | Agent reliability                                      |
-| Naming cleanup             | Not started   | Remove "Personal Brain" references (60+ files)         |
-| Documentation — Phase 1    | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref |
-| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                 |
+| Item                                            | Status        | Notes                                                              |
+| ----------------------------------------------- | ------------- | ------------------------------------------------------------------ |
+| npm Packages (`@rizom/brain` + `@brains/rover`) | In progress   | CLI + brain model ship together. `brain init && brain start` flow. |
+| Kamal Deploy (Phases 1-2)                       | In progress   | Deployable by non-developers                                       |
+| Eval pass rate ≥ 95%                            | 88%           | Agent reliability                                                  |
+| Naming cleanup                                  | Not started   | Remove "Personal Brain" references (60+ files)                     |
+| Documentation — Phase 1                         | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref             |
+| Stable API surface                              | Mostly stable | brain.yaml schema, tools, entity types                             |
 
 ---
 
@@ -132,8 +140,8 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **npm Packages** — `@rizom/brain` CLI (Phases 1-4 done, Phase 5 npm publish next) + `@brains/{model}` bundled brain models (future). ([plan](./plans/npm-packages.md))
-- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Waiting on `@rizom/brain` publish for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **npm Packages** — `@rizom/brain` CLI + `@brains/rover` brain model, shipped together. CLI done (init, start, list, remote, eval). Next: npm publish both. fastembed stays as optionalDependency until AI runtime sidecar. ([plan](./plans/npm-packages.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
 ### AT Protocol — Phases 1-2
@@ -159,14 +167,6 @@ Remove "Personal Brain" references from 60+ files across code, docs, READMEs, pa
 ### Search Quality — Phase 1
 
 Tighten vector distance threshold, add FTS5 hybrid search (keyword + semantic). Immediate precision improvement. ([plan](./plans/search-quality.md))
-
-### Content Insights
-
-`system_insights` tool for topic distribution, publishing cadence, content health. Dashboard widget for visual overview. ([plan](./plans/content-insights.md))
-
-### Entity History
-
-`system_history` tool backed by git log. Show version history, retrieve old content, diff changes. No new storage — reads from existing git commits. ([plan](./plans/entity-history.md))
 
 ---
 
@@ -196,9 +196,9 @@ Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zer
 
 Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
-### npm Packages — Brain Models
+### Compiled Binaries
 
-Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single artifact with all workspace deps inlined, native deps as optionalDependencies. Enables desktop app and hosted rovers. Independent of Docker path. CLI (`@rizom/brain`) ships first. ([plan](./plans/npm-packages.md))
+Standalone executables via `bun build --compile`. CLI binary works now (101MB, no deps). Brain model binary needs path resolution fix. Alternative to npm for users who don't want Node/Bun. ([plan](./plans/compiled-binaries.md))
 
 ### Monitoring & Observability
 
@@ -246,7 +246,7 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 Rover 1.0 blockers:
-  @rizom/brain publish → kamal-deploy (in progress)
+  npm packages (@rizom/brain + @brains/rover) → kamal-deploy
   eval-coverage (95%+ target)
   documentation phase 1
   naming cleanup
@@ -263,14 +263,15 @@ Medium-term:
   atproto phases 3-6 + agent-directory phase 2
   multi-user (independent — enables team brains)
   chat-sdk (replaces discord)
+  compiled-binaries (after npm packages)
+  ai-runtime / sidecar (lightens brain model — removes fastembed)
   monetization (after kamal)
   search-quality phases 3-4 (after ai-runtime)
   site-builder phases 2-4
-  @brains/{model} npm packages (parallel to docker)
   monitoring (after kamal)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
   site-builder phases 2-4 → astro-migration
-  @brains/{model} + chat-sdk + ai-runtime ──→ desktop-app
+  npm-packages + chat-sdk + ai-runtime ──→ desktop-app
 ```
