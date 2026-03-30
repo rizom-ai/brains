@@ -2,6 +2,7 @@ import { mkdirSync } from "fs";
 import { join } from "path";
 import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
+import { start } from "./commands/start";
 
 export interface CommandResult {
   success: boolean;
@@ -20,6 +21,10 @@ export async function runCommand(
   switch (parsed.command) {
     case "init":
       return runInit(parsed, dir);
+    case "start":
+      return start(dir, { chat: false });
+    case "chat":
+      return start(dir, { chat: true });
     case "help":
       return runHelp();
     case "version":
@@ -60,6 +65,8 @@ Usage: brain <command> [options]
 
 Commands:
   init <dir>    Scaffold a new brain instance in <dir>
+  start         Start the brain (all daemons)
+  chat          Start the brain with interactive chat REPL
   help          Show this help message
 
 Options:
