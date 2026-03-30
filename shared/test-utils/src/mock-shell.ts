@@ -367,7 +367,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         searchConversations: async () => [],
         getMessages: async () => [],
       }) as IConversationService,
-    getMcpTransport: () =>
+    getMCPService: () =>
       ({
         getMcpServer: () => {
           throw new Error("Mock MCP server not implemented");

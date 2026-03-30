@@ -166,7 +166,7 @@ export function createInterfacePluginContext(
   const baseContext = createBasePluginContext(shell, pluginId);
 
   // Get interface-specific components
-  const mcpTransport = shell.getMcpTransport();
+  const mcpTransport = shell.getMCPService();
   const permissionService = shell.getPermissionService();
   const agentService = shell.getAgentService();
 

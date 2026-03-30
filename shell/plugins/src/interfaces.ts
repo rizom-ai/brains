@@ -131,7 +131,7 @@ export interface IShell {
   getJobQueueService(): IJobQueueService;
   getRenderService(): RenderService;
   getConversationService(): IConversationService;
-  getMcpTransport(): IMCPTransport;
+  getMCPService(): IMCPTransport;
   listToolsForPermissionLevel(level: UserPermissionLevel): ToolInfo[];
   getPermissionService(): PermissionService;
   getDataSourceRegistry(): DataSourceRegistry;

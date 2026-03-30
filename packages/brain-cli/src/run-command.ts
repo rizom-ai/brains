@@ -3,6 +3,7 @@ import { join } from "path";
 import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
 import { start } from "./commands/start";
+import { operate, buildToolCall } from "./commands/operate";
 
 export interface CommandResult {
   success: boolean;
@@ -25,6 +26,13 @@ export async function runCommand(
       return start(dir, { chat: false });
     case "chat":
       return start(dir, { chat: true });
+    case "list":
+    case "get":
+    case "search":
+    case "sync":
+    case "build":
+    case "status":
+      return runOperation(parsed, dir);
     case "help":
       return runHelp();
     case "version":
@@ -58,6 +66,17 @@ function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
   };
 }
 
+async function runOperation(
+  parsed: ParsedArgs,
+  dir: string,
+): Promise<CommandResult> {
+  const result = buildToolCall(parsed.command, parsed.args, parsed.flags);
+  if ("success" in result) {
+    return result;
+  }
+  return operate(dir, result.toolName, result.toolInput);
+}
+
 function runHelp(): CommandResult {
   const help = `brain — CLI for managing brain instances
 
@@ -67,6 +86,12 @@ Commands:
   init <dir>    Scaffold a new brain instance in <dir>
   start         Start the brain (all daemons)
   chat          Start the brain with interactive chat REPL
+  list <type>   List entities by type
+  get <type> <id>  Get a specific entity
+  search <query>   Semantic search
+  sync          Trigger directory sync
+  build         Build site (--preview for preview)
+  status        Show brain status
   help          Show this help message
 
 Options:

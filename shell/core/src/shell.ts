@@ -50,7 +50,7 @@ import type {
   RenderService,
   UserPermissionLevel,
 } from "@brains/templates";
-import type { IMCPTransport, ToolInfo } from "@brains/mcp-service";
+import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger, type z } from "@brains/utils";
 
@@ -369,7 +369,7 @@ export class Shell implements IShell {
     return this.services.jobQueueService;
   }
 
-  public getMcpTransport(): IMCPTransport {
+  public getMCPService(): IMCPService {
     return this.services.mcpService;
   }
 

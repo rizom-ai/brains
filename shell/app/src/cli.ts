@@ -80,6 +80,9 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   } else if (args.includes("--version") || args.includes("-v")) {
     console.log(`${config.name} v${config.version}`);
     process.exit(0);
+  } else if (args.includes("--tool")) {
+    // Headless mode: boot brain, invoke tool, print result, exit
+    await runTool(config, args, App);
   } else {
     // Default: run the app
     console.log(`🚀 Starting ${config.name} v${config.version}...`);
@@ -88,6 +91,97 @@ export async function handleCLI(config: AppConfig): Promise<void> {
       process.exit(1);
     });
   }
+}
+
+/**
+ * Headless mode: boot brain without daemons, invoke a tool, print result, exit.
+ *
+ * Used by `brain list`, `brain get`, `brain sync`, etc.
+ * Skips all interface plugins (MCP, Discord, webserver) — only loads
+ * entity plugins and service plugins.
+ */
+async function runTool(
+  config: AppConfig,
+  args: string[],
+  App: { create: typeof import("./app").App.create },
+): Promise<void> {
+  const toolIdx = args.indexOf("--tool");
+  const toolName: string | undefined = args[toolIdx + 1];
+  if (toolName === undefined) {
+    console.error("❌ --tool requires a tool name");
+    process.exit(1);
+  }
+
+  const inputIdx = args.indexOf("--tool-input");
+  const inputJson = inputIdx !== -1 ? args[inputIdx + 1] : undefined;
+  let toolInput: Record<string, unknown> = {};
+  if (inputJson) {
+    try {
+      toolInput = JSON.parse(inputJson) as Record<string, unknown>;
+    } catch {
+      console.error("❌ --tool-input must be valid JSON");
+      process.exit(1);
+    }
+  }
+
+  // Strip all interfaces from config to prevent daemons from starting
+  const headlessConfig: AppConfig = {
+    ...config,
+    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+  };
+
+  const app = App.create(headlessConfig);
+  await app.initialize();
+
+  const shell = app.getShell();
+  const mcpService = shell.getMCPService();
+  const tools = mcpService.listTools();
+  const match = tools.find((t) => t.tool.name === toolName);
+
+  if (!match) {
+    console.error(`❌ Tool not found: ${toolName}`);
+    console.error(
+      `Available tools: ${tools.map((t) => t.tool.name).join(", ")}`,
+    );
+    process.exit(1);
+  }
+
+  try {
+    const result = await match.tool.handler(toolInput, {
+      interfaceType: "cli",
+      userId: "cli-anchor",
+    });
+
+    if ("needsConfirmation" in result) {
+      console.log(`Confirmation needed: ${result.description}`);
+      process.exit(0);
+    }
+
+    if (!result.success) {
+      console.error(`❌ ${result.error}`);
+      process.exit(1);
+    }
+
+    // Print data as formatted JSON or message
+    if (result.message) {
+      console.log(result.message);
+    }
+    if (result.data !== undefined) {
+      console.log(
+        typeof result.data === "string"
+          ? result.data
+          : JSON.stringify(result.data, null, 2),
+      );
+    }
+  } catch (error) {
+    console.error(
+      `❌ Tool ${toolName} failed:`,
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  }
+
+  process.exit(0);
 }
 
 /**

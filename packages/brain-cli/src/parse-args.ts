@@ -7,6 +7,7 @@ export interface ParsedArgs {
     model?: string | undefined;
     domain?: string | undefined;
     "content-repo"?: string | undefined;
+    preview?: boolean | undefined;
     help?: boolean | undefined;
     version?: boolean | undefined;
   };
@@ -16,6 +17,7 @@ const options = {
   model: { type: "string" as const },
   domain: { type: "string" as const },
   "content-repo": { type: "string" as const },
+  preview: { type: "boolean" as const },
   help: { type: "boolean" as const, short: "h" },
   version: { type: "boolean" as const, short: "v" },
 };
@@ -50,6 +52,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       model: values["model"] as string | undefined,
       domain: values["domain"] as string | undefined,
       "content-repo": values["content-repo"] as string | undefined,
+      preview: values["preview"] as boolean | undefined,
     },
   };
 }

@@ -46,100 +46,165 @@ status: trusted # testing | trusted | archived
 organization: Rizom
 description: Personal knowledge brain for Yeehaa
 discoveredAt: "2026-03-22T00:00:00.000Z"
-discoveredVia: atproto # atproto | manual
-outboundToken: ${A2A_OUTBOUND_TOKEN_YEEHAA} # plain env var, like existing secrets
+discoveredVia: manual # atproto | manual
 skills:
-  - system_create
-  - system_search
-  - system_update
+  - id: content-creation
+    name: Content Creation
+    description: Create blog posts, social media posts, newsletters, presentations, and notes
+    tags: [blog, social-media, newsletter, content, writing]
+  - id: knowledge-search
+    name: Knowledge Search
+    description: Search and retrieve from a personal knowledge base
+    tags: [search, knowledge, notes, links]
+  - id: site-publishing
+    name: Site Publishing
+    description: Build and publish static sites with blog, portfolio, and custom pages
+    tags: [site, publishing, blog, portfolio]
 ---
 Professional brain managing essays, presentations, and portfolio projects.
 ```
 
 ### Design decisions
 
-**Entity ID is the domain** — e.g., `yeehaa.io`, `mylittlephoney.com`. Domains are naturally unique and align with how `outboundTokens` is keyed today. `findEntityByIdentifier` still resolves by name/title as a fallback, but the domain is the canonical identifier.
+**Entity ID is the domain** — e.g., `yeehaa.io`, `mylittlephoney.com`. Domains are naturally unique. `findEntityByIdentifier` resolves by name/title as a fallback.
 
-**No encryption in Phase 1** — outbound tokens are stored as plain env var references (`${A2A_OUTBOUND_TOKEN_YEEHAA}`), consistent with how all secrets work in brain.yaml today. The agent entities live in brain-data (private repo or gitignored). Encryption can be added later if a real threat model warrants it (e.g., when brain-data repos become public).
+**Outbound tokens stay in brain.yaml** — not in entity frontmatter. Agent entities describe who you know; brain.yaml describes how you authenticate. Tokens are secrets — they belong in config alongside other secrets, not in content files that get committed to git. The A2A client checks both: entity for URL resolution, brain.yaml for the token (keyed by domain).
 
-**Skills are raw tool names from the Agent Card** — the Agent Card's `skills` array maps 1:1 from registered MCP tools (e.g., `system_create`, `system_search`). Stored as-is — machine-readable data for capability routing.
+**Skills are semantic capabilities, not tool names** — following the A2A spec's `AgentSkill` format. Each skill has an `id`, `name`, `description`, and `tags`. Populated from the Agent Card on discovery. This is what the agent was built to do (e.g., "content creation"), not which internal tools it uses (e.g., `system_create`). Skills enable capability-based routing ("find me a brain that can generate images") without coupling to tool implementations.
 
-**Pure EntityPlugin, no separate ServicePlugin** — follows the codebase pattern where EntityPlugins don't have custom tools. Instead:
+**ServicePlugin with custom tools, not generation handler** — `system_create` with a generation handler is the wrong pattern for fetching an Agent Card. That's not AI generation — it's a deterministic HTTP fetch. Instead, the agent directory is a ServicePlugin with:
 
-- `system_create { entityType: "agent", prompt: "add yeehaa.io" }` → `AgentGenerationHandler` fetches the Agent Card, populates the entity
-- `system_update` → handles trust changes (e.g., "trust yeehaa" updates status to `trusted`)
-- `system_delete` → removes agents
-- No `agent_add`/`agent_list`/`agent_trust`/`agent_remove` tools — the system tools handle everything
+- `agent_add { url: "yeehaa.io" }` — fetches Agent Card, creates entity
+- `agent_trust { agent: "yeehaa.io" }` — sets status to trusted
+- `agent_remove { agent: "yeehaa.io" }` — archives or deletes
 
-**`a2a_call` resolves agents from the entity service** — the A2A interface's `createA2ACallTool` is updated to accept an entity service dependency. When `agent` is not a URL, it looks up the agent entity by domain/name and resolves the URL + outbound token from there.
+Standard entity CRUD (`system_list`, `system_get`) still works for reading agents.
 
-**`derive()` reserved for Phase 2** — when AT Protocol discovery is active, the agent plugin's `derive()` watches for ingested `io.rizom.brain.card` records and creates/updates agent entities with `discoveredVia: atproto`. Not needed in Phase 1.
+**`a2a_call` auto-creates on first contact** — if you call an unknown agent by URL, the A2A client creates a directory entry with `status: testing` after the call succeeds. The agent is no longer forgotten — it's in the directory for future reference.
+
+**`derive()` reserved for Phase 2** — when AT Protocol discovery is active, the agent plugin's `derive()` watches for ingested `io.rizom.brain.card` records and creates/updates agent entities with `discoveredVia: atproto`.
 
 ### Entity schema
 
 ```typescript
+const agentSkillSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()).default([]),
+});
+
 const agentFrontmatterSchema = z.object({
   name: z.string(),
-  did: z.string().optional(), // did:web:... or did:plc:...
+  did: z.string().optional(),
   url: z.string().url(),
   status: z.enum(["testing", "trusted", "archived"]).default("testing"),
   organization: z.string().optional(),
   description: z.string().optional(),
   discoveredAt: z.string().datetime(),
   discoveredVia: z.enum(["atproto", "manual"]).default("manual"),
-  outboundToken: z.string().optional(), // plain env var or value
-  skills: z.array(z.string()).default([]),
+  skills: z.array(agentSkillSchema).default([]),
 });
 ```
 
-### Entity adapter
+### Skills: auto-generated from plugins
+
+Skills are not manually declared — they're derived from registered plugins. Each EntityPlugin and ServicePlugin declares what capability it contributes:
 
 ```typescript
-class AgentAdapter extends BaseEntityAdapter<AgentEntity, AgentMetadata> {
-  // Entity ID = domain extracted from url
-  // e.g., https://yeehaa.io → yeehaa.io
+// entities/blog/src/plugin.ts
+export class BlogPlugin extends EntityPlugin<Post> {
+  readonly skills: AgentSkill[] = [
+    {
+      id: "blog-writing",
+      name: "Blog Writing",
+      description: "Create and manage blog posts and essays with AI generation",
+      tags: ["blog", "writing", "essays", "content"],
+      examples: ["Write a blog post about ecosystem architecture"],
+    },
+  ];
+}
+
+// plugins/site-builder/src/plugin.ts
+export class SiteBuilderPlugin extends ServicePlugin {
+  readonly skills: AgentSkill[] = [
+    {
+      id: "site-publishing",
+      name: "Site Publishing",
+      description:
+        "Build and publish static sites with blog, portfolio, and custom pages",
+      tags: ["site", "publishing", "web", "static"],
+    },
+  ];
 }
 ```
 
-### Generation handler
+InterfacePlugins don't declare skills — they're transport, not capability.
 
-`AgentGenerationHandler` processes `system_create` for agent entities:
+The shell collects all plugin skills at registration time. The Agent Card serves the aggregate. Add a plugin → skill appears. Remove a plugin → skill disappears. No manual curation, no `defineBrain()` skills field needed.
 
-1. Parse the prompt for a URL (e.g., "add yeehaa.io as an agent")
-2. Fetch `https://{url}/.well-known/agent-card.json`
-3. Parse agent card → extract name, description, skills, A2A endpoint URL
-4. Create entity with `status: testing`, `discoveredVia: manual`, `discoveredAt: now`
+### How other brains use our skills
+
+When another brain fetches our Agent Card:
+
+1. They see our semantic skills (e.g., "blog writing", "site publishing")
+2. They store them in their agent directory entity for us
+3. They can route requests by capability: "find a brain that can generate images" → search agent entities by skill tags
+4. Skills describe **what** we can do, not **how** — no tool names leaked
+
+### How we use other brains' skills
+
+When we add an agent, we store their skills from their Agent Card:
+
+1. `agent_add { url: "ranger.rizom.ai" }` → fetches Agent Card → stores skills in entity
+2. "Which brains can help with social media?" → search agent entities by skill tags
+3. "Ask ranger to find agents that do image generation" → `a2a_call` with capability query
+
+Skills enable capability-based routing without coupling to tool implementations.
+
+### Agent Card generation fix
+
+The current Agent Card generation (`interfaces/a2a/src/agent-card.ts`) maps MCP tools 1:1 to skills. Replace with:
+
+1. Shell collects `skills` from all registered plugins during initialization
+2. Agent Card serves these aggregated semantic skills
+3. No tool names in the Agent Card
 
 ### A2A client integration
 
-Update `createA2ACallTool` to accept an entity service and resolve agents:
+Update `createA2ACallTool` to resolve agents from the directory:
 
 ```typescript
 // Current: agent must be a URL
 a2a_call { agent: "https://yeehaa.io", message: "..." }
 
-// New: agent can be a domain/name that resolves from directory
-a2a_call { agent: "yeehaa.io", message: "..." }   → looks up agent entity → gets url + token
+// New: agent can be a domain/name
+a2a_call { agent: "yeehaa.io", message: "..." }   → entity lookup → url + token
 a2a_call { agent: "yeehaa", message: "..." }       → findEntityByIdentifier fallback
-a2a_call { agent: "https://yeehaa.io", message: "..." }  → direct URL (backward compatible)
+a2a_call { agent: "https://...", message: "..." }  → direct URL (backward compatible)
 ```
 
 Resolution order:
 
-1. If agent starts with `http://` or `https://` → use as URL directly (current behavior)
-2. Otherwise → `findEntityByIdentifier("agent", agent)` → get url + outboundToken from entity
-3. If no entity found → try as domain: fetch Agent Card from `https://{agent}/.well-known/agent-card.json`
+1. If agent starts with `http://` or `https://` → use as URL directly
+2. Otherwise → `findEntityByIdentifier("agent", agent)` → get url from entity, token from brain.yaml
+3. If no entity found → try as domain: fetch Agent Card from `https://{agent}/.well-known/agent-card.json`, auto-create entity with `status: testing`
 
 ### How discovery works
 
 **Phase 1 (manual):**
 
 1. User says "add yeehaa.io as an agent"
-2. `system_create` routes to `AgentGenerationHandler`
-3. Handler fetches Agent Card from `https://yeehaa.io/.well-known/agent-card.json`
-4. Creates entity with domain ID `yeehaa.io`, `discoveredVia: manual`, `status: testing`
-5. User says "trust yeehaa.io" → `system_update` sets status to `trusted`
-6. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory → calls agent
+2. `agent_add { url: "yeehaa.io" }` fetches Agent Card from `https://yeehaa.io/.well-known/agent-card.json`
+3. Creates entity with domain ID `yeehaa.io`, semantic skills from card, `discoveredVia: manual`, `status: testing`
+4. User says "trust yeehaa.io" → `agent_trust` sets status to `trusted`
+5. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory, token from brain.yaml → calls agent
+
+**Auto-create on first contact:**
+
+1. `a2a_call { agent: "https://unknown.io", message: "..." }` → direct call (no entity yet)
+2. Call succeeds → A2A client fetches Agent Card → creates entity with `status: testing`
+3. Next call: `a2a_call { agent: "unknown.io" }` → resolves from directory
 
 **Phase 2 (AT Protocol — automatic):**
 
@@ -156,7 +221,7 @@ Currently A2A uses bearer tokens (pre-shared secrets). With DIDs on both sides, 
 
 Ranger subscribes to the full firehose, indexes all brain cards, and exposes a cross-brain feed. Other brains discover agents through Ranger's feed instead of subscribing to the firehose directly. Ranger becomes the curator, not a central registry — any brain can still discover directly.
 
-## Replaces brain.yaml A2A config
+## Relationship to brain.yaml
 
 Currently in brain.yaml:
 
@@ -171,18 +236,36 @@ plugins:
 
 With agent directory:
 
-- `outboundTokens` moves into agent entities (as plain env var references)
+- `outboundTokens` stays in brain.yaml — tokens are secrets, keyed by domain. A2A client checks brain.yaml for the token after resolving the URL from the directory.
 - `trustedTokens` (inbound) stays in brain.yaml — that's "who do I let in", not "who do I know"
-- A2A client resolves outbound tokens from the directory instead of config
+- The directory adds: identity (DID), capabilities (skills), trust status, discovery metadata. brain.yaml stays for secrets only.
+
+## Agent Card generation fix
+
+The current Agent Card generation (`interfaces/a2a/src/agent-card.ts`) maps MCP tools 1:1 to skills with empty tags. This needs to change:
+
+1. Brain models declare semantic skills in `defineBrain({ skills: [...] })`
+2. Agent Card serves these skills instead of tool dumps
+3. Skills flow from brain model → Agent Card → other brains' directories
 
 ## Steps
 
-### Phase 1: Agent entity + system tool integration
+### Phase 1: Agent entity + tools
 
-1. Create `entities/agent/` — EntityPlugin with schema, adapter, frontmatter parsing
-2. Implement `AgentGenerationHandler` — fetches Agent Card on `system_create`
-3. Update `a2a_call` to resolve agent name/domain from entity service
-4. Register in brain models
+1. Create `plugins/agent-directory/` — ServicePlugin with schema, adapter, tools
+2. Implement `agent_add` — fetches Agent Card, creates entity with semantic skills
+3. Implement `agent_trust`, `agent_remove`
+4. Update `a2a_call` to resolve agent name/domain from entity service, token from brain.yaml
+5. Auto-create entity on first successful `a2a_call` to unknown agent
+6. Register in brain models
+7. Tests
+
+### Phase 1b: Plugin-declared skills + Agent Card fix
+
+1. Add optional `skills: AgentSkill[]` field to `BasePlugin` (EntityPlugin and ServicePlugin)
+2. Shell collects skills from all registered plugins at initialization
+3. Update Agent Card generation to serve aggregated plugin skills instead of tool dump
+4. Add skills to existing entity and service plugins (blog, decks, note, link, site-builder, etc.)
 5. Tests
 
 ### Phase 2: AT Protocol discovery
@@ -213,10 +296,11 @@ Depends on AT Protocol Phase 4 (medium-term) — which provides Jetstream subscr
 ## Verification
 
 1. `bun run typecheck` / `bun test`
-2. `system_create { entityType: "agent", prompt: "add yeehaa.io" }` → entity created with Agent Card data, ID is `yeehaa.io`
-3. `system_update` → change agent status to trusted
-4. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory, calls the agent
-5. `a2a_call { agent: "https://yeehaa.io" }` → direct URL still works (backward compatible)
-6. `system_delete` → removes agent entity
-7. (Phase 2) Brain card on network → auto-discovered as agent entity via `derive()`
-8. (Phase 3) Existing brain.yaml tokens migrated to agent entities
+2. `agent_add { url: "yeehaa.io" }` → entity created with Agent Card data and semantic skills
+3. `agent_trust { agent: "yeehaa.io" }` → status changes to trusted
+4. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory, token from brain.yaml
+5. `a2a_call { agent: "https://unknown.io" }` → call succeeds → auto-creates entity
+6. `a2a_call { agent: "https://yeehaa.io" }` → direct URL still works (backward compatible)
+7. Agent Card at `/.well-known/agent-card.json` contains semantic skills, not tool names
+8. (Phase 2) Brain card on network → auto-discovered as agent entity via `derive()`
+9. (Phase 3) `outboundTokens` stays in brain.yaml, directory resolves URLs only
