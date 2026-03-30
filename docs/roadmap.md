@@ -115,14 +115,14 @@ Removed Matrix interface entirely — code, Docker build layer (native binary), 
 
 The following items must be complete before Rover 1.0:
 
-| Item                                    | Status        | Notes                                                  |
-| --------------------------------------- | ------------- | ------------------------------------------------------ |
-| Brain CLI (`brain init`, `brain start`) | In progress   | Scaffolds instances, runs brains                       |
-| Kamal Deploy (Phases 1-2)               | In progress   | Deployable by non-developers                           |
-| Eval pass rate ≥ 95%                    | 88%           | Agent reliability                                      |
-| Naming cleanup                          | Not started   | Remove "Personal Brain" references (60+ files)         |
-| Documentation — Phase 1                 | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref |
-| Stable API surface                      | Mostly stable | brain.yaml schema, tools, entity types                 |
+| Item                       | Status        | Notes                                                  |
+| -------------------------- | ------------- | ------------------------------------------------------ |
+| `@rizom/brain` npm publish | In progress   | CLI: init, start, list, remote. npm publish next.      |
+| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                           |
+| Eval pass rate ≥ 95%       | 88%           | Agent reliability                                      |
+| Naming cleanup             | Not started   | Remove "Personal Brain" references (60+ files)         |
+| Documentation — Phase 1    | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref |
+| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                 |
 
 ---
 
@@ -132,8 +132,8 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **Brain CLI** — `brain init`, `brain start`, `brain chat`, `brain list/get/sync/build`. Phases 1-2 done. Phase 2b (plugin-registered commands) in progress. ([plan](./plans/brain-cli.md))
-- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Waiting on Brain CLI for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **npm Packages** — `@rizom/brain` CLI (Phases 1-4 done, Phase 5 npm publish next) + `@brains/{model}` bundled brain models (future). ([plan](./plans/npm-packages.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Waiting on `@rizom/brain` publish for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
 ### AT Protocol — Phases 1-2
@@ -196,9 +196,9 @@ Ranger provisions, Kubernetes runs. Hetzner K8s with Ingress-NGINX, scale-to-zer
 
 Separate process for all AI/ML execution. Runs models locally (ONNX embeddings, Ollama/llama.cpp for text, Stable Diffusion for images, Sharp for optimization) or delegates to cloud APIs. Brain drops to ~200MB with zero native deps and zero API keys. Enables fully offline desktop brains and cheap hosted rovers. ([plan](./plans/embedding-service.md))
 
-### npm Packages
+### npm Packages — Brain Models
 
-Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single artifact with all workspace deps inlined, native deps as optionalDependencies. Enables desktop app and hosted rovers. Independent of Docker path. ([plan](./plans/npm-packages.md))
+Bundle brain models as publishable npm packages (`@brains/rover`, etc.). Single artifact with all workspace deps inlined, native deps as optionalDependencies. Enables desktop app and hosted rovers. Independent of Docker path. CLI (`@rizom/brain`) ships first. ([plan](./plans/npm-packages.md))
 
 ### Monitoring & Observability
 
@@ -246,7 +246,7 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 Rover 1.0 blockers:
-  brain-cli → kamal-deploy (in progress)
+  @rizom/brain publish → kamal-deploy (in progress)
   eval-coverage (95%+ target)
   documentation phase 1
   naming cleanup
@@ -266,11 +266,11 @@ Medium-term:
   monetization (after kamal)
   search-quality phases 3-4 (after ai-runtime)
   site-builder phases 2-4
-  npm-packages (parallel to docker)
+  @brains/{model} npm packages (parallel to docker)
   monitoring (after kamal)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
   site-builder phases 2-4 → astro-migration
-  npm-packages + chat-sdk + ai-runtime ──→ desktop-app
+  @brains/{model} + chat-sdk + ai-runtime ──→ desktop-app
 ```

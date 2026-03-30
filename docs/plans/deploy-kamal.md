@@ -243,7 +243,7 @@ Dockerfile.model works on the current Hetzner setup too. External Caddy proxies 
 
 ### Phase 2: First standalone instance
 
-Depends on: [Brain CLI](./brain-cli.md) Phase 1 (`brain init`).
+Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`).
 
 1. `brain init --model rover` — scaffolds instance repo with brain.yaml, deploy.yml, CI pipeline
 2. Push to GitHub → CI provisions server, sets DNS, deploys
