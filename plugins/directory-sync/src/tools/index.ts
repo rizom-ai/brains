@@ -2,6 +2,7 @@ import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
 import { z } from "@brains/utils";
 import type { IDirectorySync, IGitSync } from "../types";
+import { createHistoryTool } from "./history";
 
 export function createDirectorySyncTools(
   directorySync: IDirectorySync,
@@ -9,7 +10,7 @@ export function createDirectorySyncTools(
   pluginId: string,
   gitSync?: IGitSync,
 ): Tool[] {
-  return [
+  const tools: Tool[] = [
     createTool(
       pluginId,
       "sync",
@@ -99,4 +100,10 @@ export function createDirectorySyncTools(
       { visibility: "public" },
     ),
   ];
+
+  if (gitSync) {
+    tools.push(createHistoryTool(pluginId, gitSync));
+  }
+
+  return tools;
 }

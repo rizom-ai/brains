@@ -327,6 +327,15 @@ export interface IDirectorySync {
  * Interface for GitSync — all public methods.
  * Consumers accept this instead of the class, enabling clean test mocks.
  */
+/**
+ * A single entry from git log for a file
+ */
+export interface GitLogEntry {
+  sha: string;
+  date: string;
+  message: string;
+}
+
 export interface IGitSync {
   withLock<T>(fn: () => Promise<T>): Promise<T>;
   initialize(): Promise<void>;
@@ -337,4 +346,9 @@ export interface IGitSync {
   push(): Promise<void>;
   pull(): Promise<PullResult>;
   cleanup(): void;
+
+  /** Get commit history for a specific file path (relative to data dir) */
+  log(filePath: string, limit?: number): Promise<GitLogEntry[]>;
+  /** Get file content at a specific commit */
+  show(sha: string, filePath: string): Promise<string>;
 }

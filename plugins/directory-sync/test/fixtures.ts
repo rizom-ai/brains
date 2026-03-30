@@ -143,6 +143,8 @@ export function createMockGitSync(overrides: Partial<IGitSync> = {}): IGitSync {
     commit: mock(async () => {}),
     push: mock(async () => {}),
     pull: mock(async () => ({ files: [] })),
+    log: mock(async () => []),
+    show: mock(async () => ""),
     cleanup: () => {},
   };
   return Object.assign(base, overrides);
