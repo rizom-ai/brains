@@ -101,6 +101,10 @@ Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_
 
 Promoted `targetEntityType`/`targetEntityId` from `options` bag to first-class fields on `system_create`. Enables "create X and attach to Y" as a general pattern. Removed the untyped `options` field.
 
+### Stock Photo Plugin (2026-03)
+
+ServicePlugin (`plugins/stock-photo/`) with provider abstraction (`StockPhotoProvider` interface). Unsplash as first provider. Two tools: `stock-photo_search` and `stock-photo_select`. Deduplication by sourceUrl, optional cover image targeting, download tracking per Unsplash ToS. Graceful degradation when API key absent. Registered in rover `pro` preset.
+
 ### Deprecate Matrix (2026-03)
 
 Removed Matrix interface entirely — code, Docker build layer (native binary), brain models, env schemas, docs. Chat SDK will replace it.
