@@ -46,11 +46,18 @@ export async function operate(
 
   const proc = Bun.spawn(spawnArgs, {
     cwd,
-    stdio: ["inherit", "inherit", "inherit"],
+    stdout: "inherit",
+    stderr: "pipe",
     env: process.env,
   });
 
+  const stderrText = await new Response(proc.stderr).text();
   const exitCode = await proc.exited;
+
+  if (exitCode !== 0 && stderrText.trim()) {
+    console.error(stderrText.trim());
+  }
+
   return {
     success: exitCode === 0,
     ...(exitCode !== 0
