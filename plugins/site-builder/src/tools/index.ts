@@ -30,6 +30,14 @@ export function createSiteBuilderTools(
           data: {},
         };
       },
+      {
+        cli: {
+          name: "build",
+          mapInput: (_args, flags) => ({
+            environment: flags["preview"] ? "preview" : "production",
+          }),
+        },
+      },
     ),
   ];
 }

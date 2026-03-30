@@ -58,6 +58,12 @@ export function createDirectorySyncTools(
           );
         }
       },
+      {
+        cli: {
+          name: "sync",
+          mapInput: () => ({}),
+        },
+      },
     ),
     createTool(
       pluginId,

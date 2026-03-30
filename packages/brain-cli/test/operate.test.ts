@@ -1,100 +1,64 @@
 import { describe, it, expect } from "bun:test";
-import { buildToolCall } from "../src/commands/operate";
+import { parseArgs } from "../src/parse-args";
 
-describe("buildToolCall", () => {
-  describe("list", () => {
-    it("should map to system_list with entityType", () => {
-      const result = buildToolCall("list", ["post"], {});
-      expect(result).toEqual({
-        toolName: "system_list",
-        toolInput: { entityType: "post" },
-      });
+describe("command routing", () => {
+  describe("no-boot commands stay direct", () => {
+    it("should route 'init' as no-boot", () => {
+      const result = parseArgs(["init", "mybrain"]);
+      expect(result.command).toBe("init");
     });
 
-    it("should return error when entityType is missing", () => {
-      const result = buildToolCall("list", [], {});
-      expect("success" in result).toBe(true);
-      if ("success" in result) {
-        expect(result.success).toBe(false);
-      }
-    });
-  });
-
-  describe("get", () => {
-    it("should map to system_get with entityType and id", () => {
-      const result = buildToolCall("get", ["post", "my-first-post"], {});
-      expect(result).toEqual({
-        toolName: "system_get",
-        toolInput: { entityType: "post", id: "my-first-post" },
-      });
+    it("should route 'start' as no-boot", () => {
+      const result = parseArgs(["start"]);
+      expect(result.command).toBe("start");
     });
 
-    it("should return error when id is missing", () => {
-      const result = buildToolCall("get", ["post"], {});
-      expect("success" in result).toBe(true);
+    it("should route 'chat' as no-boot", () => {
+      const result = parseArgs(["chat"]);
+      expect(result.command).toBe("chat");
     });
   });
 
-  describe("search", () => {
-    it("should map to system_search with query", () => {
-      const result = buildToolCall("search", ["how to deploy"], {});
-      expect(result).toEqual({
-        toolName: "system_search",
-        toolInput: { query: "how to deploy" },
-      });
+  describe("tool command for raw invocation", () => {
+    it("should parse 'tool' with tool name and input", () => {
+      const result = parseArgs([
+        "tool",
+        "system_list",
+        '{"entityType":"post"}',
+      ]);
+      expect(result.command).toBe("tool");
+      expect(result.args[0]).toBe("system_list");
+      expect(result.args[1]).toBe('{"entityType":"post"}');
     });
 
-    it("should return error when query is missing", () => {
-      const result = buildToolCall("search", [], {});
-      expect("success" in result).toBe(true);
-    });
-  });
-
-  describe("sync", () => {
-    it("should map to directory-sync_sync", () => {
-      const result = buildToolCall("sync", [], {});
-      expect(result).toEqual({
-        toolName: "directory-sync_sync",
-        toolInput: {},
-      });
+    it("should parse 'tool' with just tool name", () => {
+      const result = parseArgs(["tool", "system_status"]);
+      expect(result.command).toBe("tool");
+      expect(result.args[0]).toBe("system_status");
     });
   });
 
-  describe("build", () => {
-    it("should map to site-builder_build-site for production", () => {
-      const result = buildToolCall("build", [], {});
-      expect(result).toEqual({
-        toolName: "site-builder_build-site",
-        toolInput: { environment: "production" },
-      });
+  describe("everything else goes through tool registry", () => {
+    it("should route 'list' as registry command with args", () => {
+      const result = parseArgs(["list", "post"]);
+      expect(result.command).toBe("list");
+      expect(result.args[0]).toBe("post");
     });
 
-    it("should use preview environment with --preview flag", () => {
-      const result = buildToolCall("build", [], { preview: true });
-      expect(result).toEqual({
-        toolName: "site-builder_build-site",
-        toolInput: { environment: "preview" },
-      });
+    it("should route 'sync' as registry command", () => {
+      const result = parseArgs(["sync"]);
+      expect(result.command).toBe("sync");
     });
-  });
 
-  describe("status", () => {
-    it("should map to system_status", () => {
-      const result = buildToolCall("status", [], {});
-      expect(result).toEqual({
-        toolName: "system_status",
-        toolInput: {},
-      });
+    it("should route 'build' with --preview flag", () => {
+      const result = parseArgs(["build", "--preview"]);
+      expect(result.command).toBe("build");
+      expect(result.flags.preview).toBe(true);
     });
-  });
 
-  describe("unknown", () => {
-    it("should return error for unknown command", () => {
-      const result = buildToolCall("foobar", [], {});
-      expect("success" in result).toBe(true);
-      if ("success" in result) {
-        expect(result.success).toBe(false);
-      }
+    it("should route unknown commands to registry", () => {
+      const result = parseArgs(["foobar"]);
+      expect(result.command).toBe("foobar");
     });
   });
 });

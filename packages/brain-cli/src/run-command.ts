@@ -3,7 +3,7 @@ import { join } from "path";
 import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
 import { start } from "./commands/start";
-import { operate, buildToolCall } from "./commands/operate";
+import { operate } from "./commands/operate";
 
 export interface CommandResult {
   success: boolean;
@@ -26,19 +26,15 @@ export async function runCommand(
       return start(dir, { chat: false });
     case "chat":
       return start(dir, { chat: true });
-    case "list":
-    case "get":
-    case "search":
-    case "sync":
-    case "build":
-    case "status":
-      return runOperation(parsed, dir);
+    case "tool":
+      return runRawTool(parsed, dir);
     case "help":
-      return runHelp();
+      return runHelp(dir);
     case "version":
       return runVersion();
     default:
-      return { success: false, message: `Unknown command: ${parsed.command}` };
+      // All other commands go through the tool registry
+      return operate(dir, parsed.command, parsed.args, parsed.flags);
   }
 }
 
@@ -66,45 +62,109 @@ function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
   };
 }
 
-async function runOperation(
+async function runRawTool(
   parsed: ParsedArgs,
   dir: string,
 ): Promise<CommandResult> {
-  const result = buildToolCall(parsed.command, parsed.args, parsed.flags);
-  if ("success" in result) {
-    return result;
+  const toolName = parsed.args[0];
+  const inputJson = parsed.args[1];
+
+  if (!toolName) {
+    return {
+      success: false,
+      message: 'Usage: brain tool <toolName> [\'{"key": "value"}\']',
+    };
   }
-  return operate(dir, result.toolName, result.toolInput);
+
+  const runner = (await import("./commands/start")).findRunner(dir);
+  if (!runner) {
+    return {
+      success: false,
+      message: "Could not find brain runner.",
+    };
+  }
+
+  const spawnArgs = ["bun", "run", runner.path, "--tool", toolName];
+  if (inputJson) {
+    spawnArgs.push("--tool-input", inputJson);
+  }
+
+  const proc = Bun.spawn(spawnArgs, {
+    cwd: dir,
+    stdio: ["inherit", "inherit", "inherit"],
+    env: process.env,
+  });
+
+  const exitCode = await proc.exited;
+  return {
+    success: exitCode === 0,
+    ...(exitCode !== 0
+      ? { message: `Tool failed with exit code ${exitCode}` }
+      : {}),
+  };
 }
 
-function runHelp(): CommandResult {
-  const help = `brain — CLI for managing brain instances
+async function runHelp(cwd?: string): Promise<CommandResult> {
+  const lines = [
+    "brain — CLI for managing brain instances",
+    "",
+    "Usage: brain <command> [options]",
+    "",
+    "Commands:",
+    "  init <dir>    Scaffold a new brain instance",
+    "  start         Start the brain (all daemons)",
+    "  chat          Start with interactive chat REPL",
+    "  tool <name>   Invoke a tool directly (for debugging)",
+    "  help          Show this help message",
+  ];
 
-Usage: brain <command> [options]
+  // If brain.yaml exists, discover CLI-enabled tools
+  const dir = cwd ?? process.cwd();
+  const hasBrainYaml = (await import("fs")).existsSync(
+    (await import("path")).join(dir, "brain.yaml"),
+  );
 
-Commands:
-  init <dir>    Scaffold a new brain instance in <dir>
-  start         Start the brain (all daemons)
-  chat          Start the brain with interactive chat REPL
-  list <type>   List entities by type
-  get <type> <id>  Get a specific entity
-  search <query>   Semantic search
-  sync          Trigger directory sync
-  build         Build site (--preview for preview)
-  status        Show brain status
-  help          Show this help message
+  if (hasBrainYaml) {
+    const runner = (await import("./commands/start")).findRunner(dir);
+    if (runner) {
+      try {
+        const proc = Bun.spawn(
+          ["bun", "run", runner.path, "--list-cli-commands"],
+          { cwd: dir, stdout: "pipe", stderr: "pipe", env: process.env },
+        );
+        const output = await new Response(proc.stdout).text();
+        const exitCode = await proc.exited;
 
-Options:
-  --help, -h    Show help
-  --version, -v Show version
+        if (exitCode === 0 && output.trim()) {
+          lines.push("", "Brain commands:");
+          for (const line of output.trim().split("\n")) {
+            lines.push(`  ${line}`);
+          }
+        }
+      } catch {
+        // Couldn't boot brain — skip dynamic commands
+      }
+    }
+  } else {
+    lines.push(
+      "",
+      "Run from a directory with brain.yaml to see available brain commands.",
+    );
+  }
 
-Init options:
-  --model <name>         Brain model (default: rover)
-  --domain <domain>      Domain (default: {model}.rizom.ai)
-  --content-repo <repo>  Content repo (e.g. github:user/brain-data)
-`;
+  lines.push(
+    "",
+    "Options:",
+    "  --help, -h    Show help",
+    "  --version, -v Show version",
+    "",
+    "Init options:",
+    "  --model <name>         Brain model (default: rover)",
+    "  --domain <domain>      Domain (default: {model}.rizom.ai)",
+    "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
+  );
 
-  console.log(help);
+  console.log(lines.join("\n"));
   return { success: true };
 }
 

@@ -80,8 +80,14 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   } else if (args.includes("--version") || args.includes("-v")) {
     console.log(`${config.name} v${config.version}`);
     process.exit(0);
+  } else if (args.includes("--list-cli-commands")) {
+    // List CLI-enabled tools for dynamic help
+    await listCliCommands(config, App);
+  } else if (args.includes("--cli-command")) {
+    // Headless mode via CLI command name: boot, find tool by cli.name, invoke, exit
+    await runCliCommand(config, args, App);
   } else if (args.includes("--tool")) {
-    // Headless mode: boot brain, invoke tool, print result, exit
+    // Raw tool invocation: boot, invoke by full tool name, exit
     await runTool(config, args, App);
   } else {
     // Default: run the app
@@ -91,6 +97,122 @@ export async function handleCLI(config: AppConfig): Promise<void> {
       process.exit(1);
     });
   }
+}
+
+/**
+ * List all CLI-enabled tools. Used by brain --help to discover available commands.
+ */
+async function listCliCommands(
+  config: AppConfig,
+  App: { create: typeof import("./app").App.create },
+): Promise<void> {
+  const headlessConfig: AppConfig = {
+    ...config,
+    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+  };
+
+  const app = App.create(headlessConfig);
+  await app.initialize();
+
+  const cliTools = app.getShell().getMCPService().getCliTools();
+  for (const { tool } of cliTools) {
+    if (tool.cli) {
+      console.log(`${tool.cli.name.padEnd(16)}${tool.description}`);
+    }
+  }
+
+  process.exit(0);
+}
+
+/**
+ * Headless mode via CLI command name: boot brain, find tool by cli.name, invoke, exit.
+ *
+ * Used by `brain list`, `brain sync`, etc. The brain CLI passes the command
+ * name and args/flags as JSON. This function discovers the matching tool
+ * via getCliTools() and invokes it.
+ */
+async function runCliCommand(
+  config: AppConfig,
+  args: string[],
+  App: { create: typeof import("./app").App.create },
+): Promise<void> {
+  const cmdIdx = args.indexOf("--cli-command");
+  const commandName = args[cmdIdx + 1];
+  if (commandName === undefined) {
+    console.error("❌ --cli-command requires a command name");
+    process.exit(1);
+  }
+
+  const argsIdx = args.indexOf("--cli-args");
+  const argsJson = argsIdx !== -1 ? args[argsIdx + 1] : undefined;
+  const cliArgs: string[] = argsJson ? (JSON.parse(argsJson) as string[]) : [];
+
+  const flagsIdx = args.indexOf("--cli-flags");
+  const flagsJson = flagsIdx !== -1 ? args[flagsIdx + 1] : undefined;
+  const cliFlags: Record<string, unknown> = flagsJson
+    ? (JSON.parse(flagsJson) as Record<string, unknown>)
+    : {};
+
+  // Boot headless (no interfaces)
+  const headlessConfig: AppConfig = {
+    ...config,
+    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+  };
+
+  const app = App.create(headlessConfig);
+  await app.initialize();
+
+  const shell = app.getShell();
+  const cliTools = shell.getMCPService().getCliTools();
+  const match = cliTools.find((t) => t.tool.cli?.name === commandName);
+
+  if (!match?.tool.cli) {
+    const available = cliTools
+      .map((t) => t.tool.cli?.name)
+      .filter(Boolean)
+      .join(", ");
+    console.error(`❌ Unknown command: ${commandName}`);
+    console.error(`Available commands: ${available}`);
+    process.exit(1);
+  }
+
+  const toolInput = match.tool.cli.mapInput(cliArgs, cliFlags);
+
+  try {
+    const result = await match.tool.handler(toolInput, {
+      interfaceType: "cli",
+      userId: "cli-anchor",
+    });
+
+    if ("needsConfirmation" in result) {
+      console.log(`Confirmation needed: ${result.description}`);
+      process.exit(0);
+    }
+
+    if (!result.success) {
+      console.error(`❌ ${result.error}`);
+      process.exit(1);
+    }
+
+    if (result.message) {
+      console.log(result.message);
+    }
+    if (result.data !== undefined) {
+      console.log(
+        typeof result.data === "string"
+          ? result.data
+          : JSON.stringify(result.data, null, 2),
+      );
+    }
+  } catch (error) {
+    console.error(
+      `❌ Command ${commandName} failed:`,
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  }
+
+  process.exit(0);
 }
 
 /**
