@@ -206,13 +206,10 @@ Plugin commands (only available when the plugin is loaded):
 2. `brain eval` — wraps eval runner
 3. Rename `interfaces/cli/` to `interfaces/chat-repl/` — ✅ done
 
-### Phase 5: Plugin-registered commands (Phase 2b)
+### Phase 5: Remaining items
 
-1. Add `registerCommand()` to plugin context
-2. Command registry on Shell — collects commands from all plugins during boot
-3. Brain CLI queries registry after headless boot
-4. Replace hardcoded `sync`, `build` with plugin-registered versions
-5. `brain --help` shows discovered commands dynamically
+1. `brain eval` — wraps eval runner
+2. npm publish as `@brains/brain-cli` or `brain`
 
 ## Files affected
 
