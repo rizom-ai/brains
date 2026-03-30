@@ -5,6 +5,7 @@ import { scaffold } from "./commands/init";
 import { start } from "./commands/start";
 import { operate } from "./commands/operate";
 import { operateRemote } from "./commands/operate-remote";
+import { runEval } from "./commands/eval";
 import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 
 export interface CommandResult {
@@ -28,6 +29,8 @@ export async function runCommand(
       return start(dir, { chat: false });
     case "chat":
       return start(dir, { chat: true });
+    case "eval":
+      return runEval(dir, process.argv.slice(2));
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -128,6 +131,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  init <dir>    Scaffold a new brain instance",
     "  start         Start the brain (all daemons)",
     "  chat          Start with interactive chat REPL",
+    "  eval          Run AI evaluations (pass-through to brain-eval)",
     "  tool <name>   Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
