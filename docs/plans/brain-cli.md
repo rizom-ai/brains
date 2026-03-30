@@ -129,23 +129,70 @@ Over time, `interfaces/cli/` could be renamed to `interfaces/chat-repl/` for cla
 
 ## Steps
 
-### Phase 1: Scaffold and core commands
+### Phase 1: Scaffold and core commands ✅
 
-1. Create `packages/brain-cli/` package
-2. Arg parsing (`brain <command> [args] [--flags]`)
-3. `brain init` — interactive scaffolding
-4. `brain start` — run brain (wraps current runner, detects context)
-5. `brain status` — boot brain, show status, exit
-6. Publish as `@brains/cli` or `brain` on npm
+1. `packages/brain-cli/` package with `bun run brain` convenience script
+2. Arg parsing via Node's `util.parseArgs`
+3. `brain init <dir>` — scaffolds brain.yaml, deploy.yml, CI, hooks
+4. `brain start` — detects monorepo vs standalone, delegates to runner
+5. `brain chat` — same as start with chat REPL
+6. Publish as `@brains/cli` or `brain` on npm (not yet)
 
-### Phase 2: Entity operations
+### Phase 2: Entity operations ✅
 
 1. `brain list <type>` — invokes `system_list` tool
 2. `brain get <type> <id>` — invokes `system_get` tool
 3. `brain search <query>` — invokes `system_search` tool
-4. `brain create <type>` — invokes `system_create` tool
-5. `brain sync` — invokes `directory-sync_sync` tool
-6. `brain build` — invokes `site-builder_build-site` tool
+4. `brain sync` — invokes `directory-sync_sync` tool
+5. `brain build` — invokes `site-builder_build-site` tool
+6. `brain status` — invokes `system_status` tool
+7. Headless `--tool` mode on runner — boots brain without daemons, invokes tool, exits
+
+Currently hardcoded tool names. Works for rover (which has all plugins). See Phase 5 for plugin-registered commands.
+
+### Phase 2b: Plugin-registered CLI commands
+
+The current entity operations hardcode tool names (`directory-sync_sync`, `site-builder_build-site`). This breaks for brain models that don't have those plugins.
+
+**Fix:** Plugins register CLI commands during boot. The brain CLI discovers them.
+
+```typescript
+// In a plugin's onRegister():
+context.registerCommand({
+  name: "sync",
+  description: "Trigger directory sync",
+  toolName: "directory-sync_sync",
+  args: [], // no positional args
+  flags: {}, // no flags
+});
+
+context.registerCommand({
+  name: "build",
+  description: "Build site",
+  toolName: "site-builder_build-site",
+  flags: { preview: { type: "boolean", description: "Build preview site" } },
+});
+```
+
+The brain CLI:
+
+1. Boots brain headless
+2. Collects registered commands from all plugins
+3. Matches the user's command to a registered command
+4. Invokes the corresponding tool
+
+Built-in commands (always available, regardless of plugins):
+
+- `list`, `get`, `search`, `status`, `create` — system tools
+- `init`, `start`, `chat` — CLI-only, no tool invocation
+
+Plugin commands (only available when the plugin is loaded):
+
+- `sync` — directory-sync plugin
+- `build` — site-builder plugin
+- Any future plugin-specific operations
+
+`brain --help` shows both built-in and plugin-registered commands.
 
 ### Phase 3: Remote mode
 
@@ -155,9 +202,17 @@ Over time, `interfaces/cli/` could be renamed to `interfaces/chat-repl/` for cla
 
 ### Phase 4: Chat and eval integration
 
-1. `brain chat` — launches existing Ink REPL
+1. `brain chat` — ✅ done (launches existing chat REPL)
 2. `brain eval` — wraps eval runner
-3. Rename `interfaces/cli/` to `interfaces/chat-repl/`
+3. Rename `interfaces/cli/` to `interfaces/chat-repl/` — ✅ done
+
+### Phase 5: Plugin-registered commands (Phase 2b)
+
+1. Add `registerCommand()` to plugin context
+2. Command registry on Shell — collects commands from all plugins during boot
+3. Brain CLI queries registry after headless boot
+4. Replace hardcoded `sync`, `build` with plugin-registered versions
+5. `brain --help` shows discovered commands dynamically
 
 ## Files affected
 
