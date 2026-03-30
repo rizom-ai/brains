@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -746,6 +747,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/stock-photo": {
+      "name": "@brains/stock-photo",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/image": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/eslint-config": {
       "name": "@brains/eslint-config",
       "version": "0.1.0",
@@ -1468,6 +1487,8 @@
     "@brains/site-yeehaa": ["@brains/site-yeehaa@workspace:sites/yeehaa"],
 
     "@brains/social-media": ["@brains/social-media@workspace:entities/social-media"],
+
+    "@brains/stock-photo": ["@brains/stock-photo@workspace:plugins/stock-photo"],
 
     "@brains/summary": ["@brains/summary@workspace:entities/summary"],
 
