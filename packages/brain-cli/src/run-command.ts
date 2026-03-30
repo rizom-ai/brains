@@ -4,6 +4,8 @@ import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
 import { start } from "./commands/start";
 import { operate } from "./commands/operate";
+import { operateRemote } from "./commands/operate-remote";
+import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 
 export interface CommandResult {
   success: boolean;
@@ -33,7 +35,19 @@ export async function runCommand(
     case "version":
       return runVersion();
     default:
-      // All other commands go through the tool registry
+      // Remote mode — query deployed brain via MCP HTTP
+      if (parsed.flags.remote) {
+        const url = resolveRemoteUrl(parsed.flags.remote);
+        const token = resolveToken(parsed.flags.token);
+        return operateRemote(
+          url,
+          parsed.command,
+          parsed.args,
+          parsed.flags,
+          token,
+        );
+      }
+      // Local mode — boot brain, invoke tool
       return operate(dir, parsed.command, parsed.args, parsed.flags);
   }
 }
@@ -157,6 +171,10 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "Options:",
     "  --help, -h    Show help",
     "  --version, -v Show version",
+    "",
+    "Remote mode:",
+    "  --remote <url>         Query a deployed brain via MCP HTTP",
+    "  --token <token>        Auth token (or set BRAIN_REMOTE_TOKEN)",
     "",
     "Init options:",
     "  --model <name>         Brain model (default: rover)",

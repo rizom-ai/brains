@@ -8,6 +8,8 @@ export interface ParsedArgs {
     domain?: string | undefined;
     "content-repo"?: string | undefined;
     preview?: boolean | undefined;
+    remote?: string | undefined;
+    token?: string | undefined;
     help?: boolean | undefined;
     version?: boolean | undefined;
   };
@@ -18,9 +20,27 @@ const options = {
   domain: { type: "string" as const },
   "content-repo": { type: "string" as const },
   preview: { type: "boolean" as const },
+  remote: { type: "string" as const },
+  token: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
   version: { type: "boolean" as const, short: "v" },
 };
+
+function getString(
+  values: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const v = values[key];
+  return typeof v === "string" ? v : undefined;
+}
+
+function getBoolean(
+  values: Record<string, unknown>,
+  key: string,
+): boolean | undefined {
+  const v = values[key];
+  return typeof v === "boolean" ? v : undefined;
+}
 
 /**
  * Parse CLI arguments into command, positional args, and flags.
@@ -49,10 +69,12 @@ export function parseArgs(argv: string[]): ParsedArgs {
     command,
     args: positionals.slice(1),
     flags: {
-      model: values["model"] as string | undefined,
-      domain: values["domain"] as string | undefined,
-      "content-repo": values["content-repo"] as string | undefined,
-      preview: values["preview"] as boolean | undefined,
+      model: getString(values, "model"),
+      domain: getString(values, "domain"),
+      "content-repo": getString(values, "content-repo"),
+      preview: getBoolean(values, "preview"),
+      remote: getString(values, "remote"),
+      token: getString(values, "token"),
     },
   };
 }
