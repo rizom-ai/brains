@@ -24,6 +24,7 @@ import { buttondownPlugin } from "@brains/buttondown";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
+import { stockPhotoPlugin } from "@brains/stock-photo";
 import defaultSite from "@brains/site-default";
 import { join } from "path";
 
@@ -74,6 +75,7 @@ const pro = [
   "social-media",
   "newsletter",
   "buttondown",
+  "stock-photo",
 ];
 export default defineBrain({
   name: "rover",
@@ -141,6 +143,7 @@ export default defineBrain({
     ["buttondown", buttondownPlugin, { doubleOptIn: true }],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
+    ["stock-photo", stockPhotoPlugin, {}],
     [
       "directory-sync",
       directorySync,

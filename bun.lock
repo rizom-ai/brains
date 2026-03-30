@@ -131,6 +131,7 @@
         "@brains/site-default": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/social-media": "workspace:*",
+        "@brains/stock-photo": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
