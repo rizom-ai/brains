@@ -1,10 +1,10 @@
-# Plan: Agent Directory Plugin
+# Plan: Agent Directory
 
 ## Context
 
 A2A lets brains talk to each other, but there's no discovery or contact management. You need to know an agent's URL upfront, and tokens are hardcoded in brain.yaml.
 
-A2A authentication Phase 1 (bearer tokens) is complete. This plan builds the **next layer**: manage known agents as entities with encrypted tokens, and discover new agents via AT Protocol.
+A2A authentication Phase 1 (bearer tokens) is complete. This plan builds the **next layer**: manage known agents as entities, and discover new agents via AT Protocol.
 
 ## Discovery: AT Protocol vs manual
 
@@ -13,7 +13,7 @@ Two discovery mechanisms, layered:
 | Mechanism                 | How                                                                                                                            | When                                                 |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
 | **AT Protocol (passive)** | Brains publish `io.rizom.brain.card` records. Subscribe to Jetstream, filter for brain cards. New brains appear automatically. | Default — always running if atproto plugin is active |
-| **Manual (active)**       | User provides a URL or DID. Brain resolves identity and creates a local contact.                                               | Fallback — for agents not on AT Protocol             |
+| **Manual (active)**       | User provides a URL. Brain fetches Agent Card and creates a local contact.                                                     | Fallback — for agents not on AT Protocol             |
 
 AT Protocol replaces the Agent Card fetch (`/.well-known/agent-card.json`) for identity and capabilities. Brain cards are signed by the brain's DID, so authenticity is guaranteed. If the agent moves servers, its DID document updates automatically — no stale URLs.
 
@@ -35,7 +35,7 @@ AT Protocol replaces the Agent Card fetch (`/.well-known/agent-card.json`) for i
 
 ### Entity type: `agent`
 
-Stores the local relationship with a known agent. Discovery data comes from AT Protocol, trust/token data is local.
+An EntityPlugin in `entities/agent/`. Stores the local relationship with a known agent. Discovery data comes from AT Protocol or Agent Card fetch, trust/token data is local.
 
 ```yaml
 ---
@@ -47,45 +47,33 @@ organization: Rizom
 description: Personal knowledge brain for Yeehaa
 discoveredAt: "2026-03-22T00:00:00.000Z"
 discoveredVia: atproto # atproto | manual
-outboundToken: "enc:a1b2c3d4..." # AES-encrypted, for A2A bearer auth
+outboundToken: ${A2A_OUTBOUND_TOKEN_YEEHAA} # plain env var, like existing secrets
 skills:
-  - note_create
-  - blog_publish
+  - system_create
   - system_search
+  - system_update
 ---
 Professional brain managing essays, presentations, and portfolio projects.
 ```
 
-**Tokens encrypted in the entity** — outbound tokens are AES-encrypted with a brain-specific key (`AGENT_ENCRYPTION_KEY` in `.env`). At runtime, decrypted to get the actual bearer token. One secret in `.env`, all agent tokens self-contained and portable.
+### Design decisions
 
-**DID field** — links the local entity to the AT Protocol identity. Used for resolution (DID → service endpoint → A2A URL) and verification (signed requests).
+**Entity ID is the domain** — e.g., `yeehaa.io`, `mylittlephoney.com`. Domains are naturally unique and align with how `outboundTokens` is keyed today. `findEntityByIdentifier` still resolves by name/title as a fallback, but the domain is the canonical identifier.
 
-### Plugin: `plugins/agent-directory/`
+**No encryption in Phase 1** — outbound tokens are stored as plain env var references (`${A2A_OUTBOUND_TOKEN_YEEHAA}`), consistent with how all secrets work in brain.yaml today. The agent entities live in brain-data (private repo or gitignored). Encryption can be added later if a real threat model warrants it (e.g., when brain-data repos become public).
 
-A ServicePlugin with:
+**Skills are raw tool names from the Agent Card** — the Agent Card's `skills` array maps 1:1 from registered MCP tools (e.g., `system_create`, `system_search`). Stored as-is — machine-readable data for capability routing.
 
-**Tools:**
+**Pure EntityPlugin, no separate ServicePlugin** — follows the codebase pattern where EntityPlugins don't have custom tools. Instead:
 
-- `agent_add` — add an agent by DID or URL. If DID: resolve from AT Protocol. If URL: fetch Agent Card as fallback. Creates entity with status `testing`.
-- `agent_list` — list known agents, optionally filtered by status or skill
-- `agent_trust` — change agent status to `trusted`
-- `agent_remove` — archive or delete an agent contact
+- `system_create { entityType: "agent", prompt: "add yeehaa.io" }` → `AgentGenerationHandler` fetches the Agent Card, populates the entity
+- `system_update` → handles trust changes (e.g., "trust yeehaa" updates status to `trusted`)
+- `system_delete` → removes agents
+- No `agent_add`/`agent_list`/`agent_trust`/`agent_remove` tools — the system tools handle everything
 
-**AT Protocol integration (if atproto plugin active):**
+**`a2a_call` resolves agents from the entity service** — the A2A interface's `createA2ACallTool` is updated to accept an entity service dependency. When `agent` is not a URL, it looks up the agent entity by domain/name and resolves the URL + outbound token from there.
 
-- On startup, subscribe to Jetstream filtered for `io.rizom.brain.card` records
-- New brain cards create agent entities with status `testing` and `discoveredVia: atproto`
-- Card updates refresh capabilities on existing entities
-- Configurable: auto-discover all, or only from known DIDs
-
-**A2A client integration:**
-
-The existing `a2a_call` tool accepts an agent name from the directory:
-
-```
-a2a_call { agent: "yeehaa" }        → resolves DID → URL from directory
-a2a_call { agent: "https://..." }   → direct URL (current behavior)
-```
+**`derive()` reserved for Phase 2** — when AT Protocol discovery is active, the agent plugin's `derive()` watches for ingested `io.rizom.brain.card` records and creates/updates agent entities with `discoveredVia: atproto`. Not needed in Phase 1.
 
 ### Entity schema
 
@@ -99,27 +87,66 @@ const agentFrontmatterSchema = z.object({
   description: z.string().optional(),
   discoveredAt: z.string().datetime(),
   discoveredVia: z.enum(["atproto", "manual"]).default("manual"),
-  outboundToken: z.string().optional(), // AES-encrypted
+  outboundToken: z.string().optional(), // plain env var or value
   skills: z.array(z.string()).default([]),
 });
 ```
 
+### Entity adapter
+
+```typescript
+class AgentAdapter extends BaseEntityAdapter<AgentEntity, AgentMetadata> {
+  // Entity ID = domain extracted from url
+  // e.g., https://yeehaa.io → yeehaa.io
+}
+```
+
+### Generation handler
+
+`AgentGenerationHandler` processes `system_create` for agent entities:
+
+1. Parse the prompt for a URL (e.g., "add yeehaa.io as an agent")
+2. Fetch `https://{url}/.well-known/agent-card.json`
+3. Parse agent card → extract name, description, skills, A2A endpoint URL
+4. Create entity with `status: testing`, `discoveredVia: manual`, `discoveredAt: now`
+
+### A2A client integration
+
+Update `createA2ACallTool` to accept an entity service and resolve agents:
+
+```typescript
+// Current: agent must be a URL
+a2a_call { agent: "https://yeehaa.io", message: "..." }
+
+// New: agent can be a domain/name that resolves from directory
+a2a_call { agent: "yeehaa.io", message: "..." }   → looks up agent entity → gets url + token
+a2a_call { agent: "yeehaa", message: "..." }       → findEntityByIdentifier fallback
+a2a_call { agent: "https://yeehaa.io", message: "..." }  → direct URL (backward compatible)
+```
+
+Resolution order:
+
+1. If agent starts with `http://` or `https://` → use as URL directly (current behavior)
+2. Otherwise → `findEntityByIdentifier("agent", agent)` → get url + outboundToken from entity
+3. If no entity found → try as domain: fetch Agent Card from `https://{agent}/.well-known/agent-card.json`
+
 ### How discovery works
 
-**With AT Protocol (automatic):**
-
-1. Brain subscribes to Jetstream for `io.rizom.brain.card` records
-2. New brain card appears → create `agent` entity with `discoveredVia: atproto`
-3. Agent appears in `agent_list` with status `testing`
-4. User says "trust yeehaa" → `agent_trust` sets status to `trusted`
-5. `a2a_call { agent: "yeehaa" }` → resolves DID → gets URL → calls agent
-
-**Without AT Protocol (manual):**
+**Phase 1 (manual):**
 
 1. User says "add yeehaa.io as an agent"
-2. `agent_add` fetches `https://yeehaa.io/.well-known/agent-card.json`
-3. Creates entity with `discoveredVia: manual`
-4. Same trust/call flow as above
+2. `system_create` routes to `AgentGenerationHandler`
+3. Handler fetches Agent Card from `https://yeehaa.io/.well-known/agent-card.json`
+4. Creates entity with domain ID `yeehaa.io`, `discoveredVia: manual`, `status: testing`
+5. User says "trust yeehaa.io" → `system_update` sets status to `trusted`
+6. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory → calls agent
+
+**Phase 2 (AT Protocol — automatic):**
+
+1. Brain subscribes to Jetstream for `io.rizom.brain.card` records
+2. Agent plugin's `derive()` creates agent entities from discovered brain cards
+3. Agent appears with `status: testing`, `discoveredVia: atproto`
+4. Same trust/call flow as Phase 1
 
 ### Future: DID-based authentication
 
@@ -144,52 +171,52 @@ plugins:
 
 With agent directory:
 
-- `outboundTokens` moves into agent entities (encrypted)
+- `outboundTokens` moves into agent entities (as plain env var references)
 - `trustedTokens` (inbound) stays in brain.yaml — that's "who do I let in", not "who do I know"
 - A2A client resolves outbound tokens from the directory instead of config
 
 ## Steps
 
-### Phase 1: Agent entity + basic tools
+### Phase 1: Agent entity + system tool integration
 
-1. Create `plugins/agent-directory/` with EntityPlugin for `agent` type
-2. Implement `agent_add` (manual — URL + Agent Card fetch)
-3. Implement `agent_list`, `agent_trust`, `agent_remove`
-4. Update `a2a_call` to resolve agent name from directory
-5. Register in brain models
-6. Tests
+1. Create `entities/agent/` — EntityPlugin with schema, adapter, frontmatter parsing
+2. Implement `AgentGenerationHandler` — fetches Agent Card on `system_create`
+3. Update `a2a_call` to resolve agent name/domain from entity service
+4. Register in brain models
+5. Tests
 
 ### Phase 2: AT Protocol discovery
 
-Depends on atproto plugin (Phase 4 of atproto-integration plan).
+Depends on AT Protocol Phase 4 (medium-term) — which provides Jetstream subscription and `io.rizom.brain.card` publishing.
 
-1. Subscribe to Jetstream for `io.rizom.brain.card` records
-2. Auto-create agent entities from discovered brain cards
+1. Add `derive()` to agent plugin — watches for ingested brain card records
+2. Auto-create agent entities from discovered brain cards with `discoveredVia: atproto`
 3. Refresh capabilities on card updates
 4. Configurable auto-discovery settings
 5. Tests
 
 ### Phase 3: Migrate from brain.yaml tokens
 
-1. Migration script: read `outboundTokens` from brain.yaml, create agent entities with encrypted tokens
+1. Migration script: read `outboundTokens` from brain.yaml, create agent entities
 2. Update A2A client to check directory before brain.yaml config
 3. Deprecate `outboundTokens` in brain.yaml
 4. Tests
 
 ## Files affected
 
-| Phase | Files | Nature                                                                                 |
-| ----- | ----- | -------------------------------------------------------------------------------------- |
-| 1     | ~8    | New plugin, entity schema, adapter, tools, a2a client update, brain model registration |
-| 2     | ~3    | Jetstream subscription, auto-create, config                                            |
-| 3     | ~3    | Migration script, A2A client update, brain.yaml deprecation                            |
+| Phase | Files | Nature                                                                   |
+| ----- | ----- | ------------------------------------------------------------------------ |
+| 1     | ~8    | New entity plugin, schema, adapter, generation handler, a2a client patch |
+| 2     | ~3    | derive() implementation, auto-create, config                             |
+| 3     | ~3    | Migration script, A2A client update, brain.yaml deprecation              |
 
 ## Verification
 
 1. `bun run typecheck` / `bun test`
-2. `agent_add { url: "https://yeehaa.io" }` → entity created with Agent Card data
-3. `agent_list` → shows the agent
-4. `a2a_call { agent: "yeehaa" }` → resolves URL from directory, calls the agent
-5. `agent_remove { name: "yeehaa" }` → archives the entity
-6. (Phase 2) Brain card on network → auto-discovered as agent entity
-7. (Phase 3) Existing brain.yaml tokens migrated to agent entities
+2. `system_create { entityType: "agent", prompt: "add yeehaa.io" }` → entity created with Agent Card data, ID is `yeehaa.io`
+3. `system_update` → change agent status to trusted
+4. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory, calls the agent
+5. `a2a_call { agent: "https://yeehaa.io" }` → direct URL still works (backward compatible)
+6. `system_delete` → removes agent entity
+7. (Phase 2) Brain card on network → auto-discovered as agent entity via `derive()`
+8. (Phase 3) Existing brain.yaml tokens migrated to agent entities
