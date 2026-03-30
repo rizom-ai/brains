@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-03-28 — Click any item for details</p>
+  <p>Last updated: 2026-03-30 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -215,7 +215,7 @@ const items = [
   // Short-term (completed)
   { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
-  { id: "sitebuilder1", name: "Site Builder Phase 1", status: "short-term", desc: "Parallel route rendering with pLimit. 1-2 files, immediate perf win." },
+  { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
   { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
   { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 90%+ with 70+ tests." },
   { id: "searchquality12", name: "Search Quality Phases 1-2", status: "short-term", desc: "Tighten threshold + FTS5 hybrid search (keyword + semantic). Immediate precision improvement." },
@@ -341,8 +341,8 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Site Builder</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('sitebuilder1')">phase 1 (parallel)</span>
-        <span class="dep-label">independent</span>
+        <span class="dep-node s-done" onclick="selectItem('sitebuilder1')">phase 1 (parallel) ✓</span>
+        <span class="dep-label">completed</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-mid" onclick="selectItem('sitebuilder24')">phases 2-4</span>

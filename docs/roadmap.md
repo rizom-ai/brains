@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-28
+Last Updated: 2026-03-30
 
 ---
 
@@ -89,6 +89,10 @@ Async FS in directory-sync and webserver. Webserver moved to child process. Work
 
 Unified `directory-sync_sync` replaces 3 separate tools (sync + git_sync + git_status → sync + status). Non-blocking sync via job queue. Auto-export always enabled (entities durable without autoSync). Orphan cleanup on initial sync only. Sync mutex prevents concurrent batches. IGitSync + IDirectorySync interfaces for clean test mocks.
 
+### Site Builder — Phase 1 (2026-03)
+
+Parallel route rendering with `pLimit(4)`. Routes are independent — different paths, content, output files. Replaced sequential `for...of` with `pLimit(4)` + `Promise.all`. Tailwind runs after all routes complete (unchanged).
+
 ### Tool-to-Resource Migration (2026-03)
 
 Removed 5 read-only tools (`system_get-identity`, `system_get-profile`, `system_get-status`, `site-builder_list_routes`, `site-builder_list_templates`), replaced with MCP resources. Profile and site info embedded in agent system prompt. Agent invalidated on identity/profile/site-info entity changes.
@@ -125,10 +129,6 @@ Command-line tool for instance management and direct operations. `brain init` sc
 ### AT Protocol — Phases 1-2
 
 Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS records), Bluesky cross-posting. Gives brains a Bluesky presence. ([plan](./plans/atproto-integration.md))
-
-### Site Builder — Phase 1
-
-Parallel route rendering with `pLimit`. 1-2 files, immediate performance win. Independent of the larger engine extraction. ([plan](./plans/site-builder-decoupling.md))
 
 ### Agent Directory — Phase 1
 
@@ -230,7 +230,6 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 Short-term:
   brain-cli phase 1 → kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
-  site-builder phase 1 (independent)
   agent-directory phase 1 (independent)
   eval-coverage (independent)
   search-quality phase 1-2 (independent)
