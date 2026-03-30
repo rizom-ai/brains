@@ -82,7 +82,10 @@ describe("AgentService", () => {
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
     mockProfileService = {
-      getProfile: () => ({ name: "Test Anchor", description: "Test" }),
+      getProfile: (): { name: string; description: string } => ({
+        name: "Test Anchor",
+        description: "Test",
+      }),
     };
     mockConversationService = createMockConversationService();
 

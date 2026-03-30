@@ -264,7 +264,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         name: "Site Routes",
         description: "All registered routes with sections and templates",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{ uri: string; mimeType: string; text: string }>;
+        }> => {
           const routes = this.routeRegistry.list();
           return {
             contents: [
@@ -295,7 +297,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         name: "View Templates",
         description: "All registered view templates",
         mimeType: "application/json",
-        handler: async () => {
+        handler: async (): Promise<{
+          contents: Array<{ uri: string; mimeType: string; text: string }>;
+        }> => {
           const templates = context.views.list();
           return {
             contents: [

@@ -1,4 +1,9 @@
 import type { AppConfig, DeploymentConfigInput } from "./types";
+import type { App as AppClass } from "./app";
+
+interface AppFactory {
+  create: typeof AppClass.create;
+}
 
 /**
  * Export deployment config as JSON for shell scripts
@@ -104,7 +109,7 @@ export async function handleCLI(config: AppConfig): Promise<void> {
  */
 async function listCliCommands(
   config: AppConfig,
-  App: { create: typeof import("./app").App.create },
+  App: AppFactory,
 ): Promise<void> {
   // Force all logging to stderr so stdout is clean for command listing
   const { Logger } = await import("@brains/utils");
@@ -138,7 +143,7 @@ async function listCliCommands(
 async function runCliCommand(
   config: AppConfig,
   args: string[],
-  App: { create: typeof import("./app").App.create },
+  App: AppFactory,
 ): Promise<void> {
   // Force all logging to stderr so stdout is clean for command output
   const { Logger } = await import("@brains/utils");
@@ -234,7 +239,7 @@ async function runCliCommand(
 async function runTool(
   config: AppConfig,
   args: string[],
-  App: { create: typeof import("./app").App.create },
+  App: AppFactory,
 ): Promise<void> {
   // Force all logging to stderr so stdout is clean for tool output
   const { Logger } = await import("@brains/utils");

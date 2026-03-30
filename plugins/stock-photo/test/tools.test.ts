@@ -20,7 +20,7 @@ function createMockProvider(
       totalPages: 0,
       page: 1,
     }),
-    triggerDownload: async () => {},
+    triggerDownload: async (): Promise<void> => {},
     ...overrides,
   };
 }
@@ -341,7 +341,7 @@ describe("stock-photo tools", () => {
     });
 
     it("should return error when image download fails", async () => {
-      const failingFetchImage = async () => {
+      const failingFetchImage = async (): Promise<never> => {
         throw new Error("Connection refused");
       };
 

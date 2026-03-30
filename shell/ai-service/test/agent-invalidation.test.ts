@@ -8,6 +8,7 @@ import type {
 } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgentConfig } from "../src/brain-agent";
+import type { BrainAgent } from "../src/agent-types";
 
 function createMockMCPService(): IMCPService {
   return {
@@ -36,7 +37,7 @@ describe("AgentService invalidation", () => {
   });
 
   function createService(): AgentService {
-    const mockAgentFactory = (_config: BrainAgentConfig) => {
+    const mockAgentFactory = (_config: BrainAgentConfig): BrainAgent => {
       agentFactoryCalls++;
       return {
         generate: mock(() =>
@@ -100,7 +101,7 @@ describe("AgentService invalidation", () => {
     };
 
     const capturedConfigs: BrainAgentConfig[] = [];
-    const mockAgentFactory = (config: BrainAgentConfig) => {
+    const mockAgentFactory = (config: BrainAgentConfig): BrainAgent => {
       capturedConfigs.push(config);
       return {
         generate: mock(() =>
