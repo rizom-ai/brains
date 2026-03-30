@@ -59,10 +59,7 @@ export function createDirectorySyncTools(
         }
       },
       {
-        cli: {
-          name: "sync",
-          mapInput: () => ({}),
-        },
+        cli: { name: "sync" },
       },
     ),
     createTool(

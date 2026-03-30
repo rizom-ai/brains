@@ -92,10 +92,7 @@ describe("Shell registerOnly mode", () => {
               description: "A test tool",
               inputSchema: {},
               handler: async () => ({ success: true, data: {} }),
-              cli: {
-                name: "test",
-                mapInput: () => ({}),
-              },
+              cli: { name: "test" },
             },
           ],
           resources: [],

@@ -195,17 +195,16 @@ const connections = [
   { from:'topics', to:'plugin-fw', type:'dep' },
   { from:'social-media', to:'plugin-fw', type:'dep' },
 
-  // Plugins → shell
-  { from:'dir-sync', to:'entity-svc', type:'data' },
-  { from:'site-builder', to:'content-svc', type:'data' },
-  { from:'site-builder', to:'templates', type:'data' },
-  { from:'content-pipe', to:'job-queue', type:'data' },
+  // Plugins → plugin framework (never directly to shell packages)
+  { from:'dir-sync', to:'plugin-fw', type:'dep' },
+  { from:'site-builder', to:'plugin-fw', type:'dep' },
+  { from:'content-pipe', to:'plugin-fw', type:'dep' },
 
-  // Interfaces → shell
-  { from:'mcp-if', to:'mcp-svc', type:'dep' },
-  { from:'discord', to:'ai-svc', type:'data' },
-  { from:'a2a', to:'ai-svc', type:'data' },
-  { from:'webserver', to:'site-builder', type:'data' },
+  // Interfaces → plugin framework
+  { from:'mcp-if', to:'plugin-fw', type:'dep' },
+  { from:'discord', to:'plugin-fw', type:'dep' },
+  { from:'a2a', to:'plugin-fw', type:'dep' },
+  { from:'webserver', to:'plugin-fw', type:'dep' },
 
   // MCP bridges → shared
   { from:'notion', to:'mcp-bridge', type:'dep' },

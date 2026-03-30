@@ -14,6 +14,7 @@
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
+    "@brains/mcp-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

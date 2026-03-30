@@ -132,10 +132,7 @@ describe("MCPService", () => {
         description: "List entities",
         inputSchema: {},
         handler: async () => ({ success: true, data: [] }),
-        cli: {
-          name: "list",
-          mapInput: (args) => ({ entityType: args[0] }),
-        },
+        cli: { name: "list" },
       };
 
       const toolWithoutCli: Tool = {

@@ -184,7 +184,8 @@ async function runCliCommand(
     process.exit(1);
   }
 
-  const toolInput = match.tool.cli.mapInput(cliArgs, cliFlags);
+  const { mapArgsToInput } = await import("@brains/mcp-service");
+  const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
 
   try {
     const result = await match.tool.handler(toolInput, {

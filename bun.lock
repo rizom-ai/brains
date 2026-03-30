@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -549,6 +548,7 @@
         "brain": "./src/index.ts",
       },
       "dependencies": {
+        "@brains/mcp-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {

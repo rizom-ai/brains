@@ -26,3 +26,4 @@ export {
   toolResultSchema,
   type ToolResult,
 } from "./tool-helpers";
+export { mapArgsToInput } from "./schema-map";

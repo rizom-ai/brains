@@ -67,7 +67,6 @@ export function createSystemTools(services: SystemServices): Tool[] {
         visibility: "public",
         cli: {
           name: "search",
-          mapInput: (args) => ({ query: args.join(" ") }),
         },
       },
     ),
@@ -102,7 +101,6 @@ export function createSystemTools(services: SystemServices): Tool[] {
         visibility: "public",
         cli: {
           name: "get",
-          mapInput: (args) => ({ entityType: args[0], id: args[1] }),
         },
       },
     ),
@@ -141,7 +139,6 @@ export function createSystemTools(services: SystemServices): Tool[] {
         visibility: "public",
         cli: {
           name: "list",
-          mapInput: (args) => ({ entityType: args[0] }),
         },
       },
     ),
@@ -320,7 +317,6 @@ export function createSystemTools(services: SystemServices): Tool[] {
         visibility: "public",
         cli: {
           name: "status",
-          mapInput: () => ({}),
         },
       },
     ),

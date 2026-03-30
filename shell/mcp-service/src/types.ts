@@ -99,11 +99,6 @@ export interface Tool<TOutput = ToolResponse> {
   cli?: {
     /** CLI command name (e.g. "list", "sync", "build") */
     name: string;
-    /** Translate CLI args/flags into tool input */
-    mapInput: (
-      args: string[],
-      flags: Record<string, unknown>,
-    ) => Record<string, unknown>;
   };
 }
 

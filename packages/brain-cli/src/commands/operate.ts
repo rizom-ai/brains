@@ -8,7 +8,7 @@ import { findRunner } from "./start";
  *
  * Spawns the runner with --cli-command, --cli-args, and --cli-flags.
  * The runner boots headless, finds the tool by cli.name, translates
- * args/flags via mapInput, invokes the handler, prints result, exits.
+ * args/flags via schema-driven mapping, invokes the handler, prints result, exits.
  */
 export async function operate(
   cwd: string,
