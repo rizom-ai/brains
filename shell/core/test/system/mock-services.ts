@@ -1,8 +1,8 @@
 import type { SystemServices } from "../../src/system/types";
-import { createInputSchema } from "../../src/system/schemas";
+import type { createInputSchema } from "../../src/system/schemas";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/entity-service";
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 
 /**
  * Create mock SystemServices for testing system tools.
