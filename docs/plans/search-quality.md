@@ -69,18 +69,54 @@ This is the local AI runtime territory — the reranker would run in the AI side
 
 ## Steps
 
+### Phase 0: Measure baseline (prerequisite)
+
+Before changing anything, understand current behavior. Blind threshold changes risk silently dropping results the agent depends on — eval scores could _drop_ instead of improve.
+
+1. **Distance distribution analysis** — query a real brain's DB to get the actual distance distribution of search results:
+
+   ```sql
+   -- What distances do current results actually have?
+   SELECT
+     ROUND(vector_distance_cos(e.embedding, vector32(?)), 2) as distance_bucket,
+     COUNT(*) as count
+   FROM embeddings e
+   -- Use a representative set of queries the agent actually makes
+   ```
+
+   Key questions: What % of results fall in 0.0–0.4, 0.4–0.6, 0.6–0.8, 0.8–1.0? Where's the natural gap between relevant and irrelevant?
+
+2. **Run eval baseline** — run full eval suite and record scores _before_ any changes. This is the number to beat.
+
+   ```bash
+   brain eval              # record pass rate, per-test results
+   ```
+
+3. **Identify search-dependent evals** — tag which eval test cases exercise search so we can measure impact precisely:
+   - `system-search.yaml` (direct search)
+   - `proactive-search.yaml` / `proactive-search-variations.yaml` (agent-initiated search)
+   - Any test that implicitly triggers search (content references, "what have I written about...")
+
 ### Phase 1: Threshold + score tuning
 
-1. Tighten vector distance threshold from 1.0 to 0.6
+Data-driven threshold choice based on Phase 0 analysis.
+
+1. Pick threshold based on actual distance distribution — find the natural gap between relevant and irrelevant results (likely 0.5–0.7 range, but let data decide)
 2. Add minimum weighted score filter
-3. Test: search quality improves (fewer irrelevant results)
+3. Run evals — pass rate must stay ≥ baseline. If it drops, threshold is too aggressive.
+4. Test: search quality improves (fewer irrelevant results) without losing relevant ones
 
 ### Phase 2: Hybrid search
 
-1. Create FTS5 index on entity content + metadata.title
-2. Implement keyword search function
-3. Combine vector + keyword scores with configurable α
-4. Test: exact keyword queries now return expected results
+1. Create FTS5 virtual table on entity content + metadata title (Drizzle migration)
+2. Keep FTS5 index in sync — update on entity create/update/delete in `EntityMutations`
+3. Implement keyword search function in `EntitySearch`
+4. Combine vector + keyword scores with configurable α:
+   ```
+   final_score = α * vector_score + (1 - α) * keyword_score
+   ```
+   Start with α = 0.7 (semantic-heavy), tune based on eval results.
+5. Run evals — compare against Phase 1 baseline. Keyword-dependent queries ("TypeScript", exact titles) should improve.
 
 ### Phase 3: Better embedding model (optional — with [local AI runtime](./embedding-service.md))
 
@@ -97,16 +133,22 @@ This is the local AI runtime territory — the reranker would run in the AI side
 
 ## Files affected
 
-| Phase | Files | Nature                                            |
-| ----- | ----- | ------------------------------------------------- |
-| 1     | 1     | entity-search.ts threshold change                 |
-| 2     | ~3    | FTS5 migration, keyword search, score combination |
-| 3     | ~3    | Model config, migration script, schema change     |
-| 4     | ~3    | Reranker integration, AI runtime                  |
+| Phase | Files | Nature                                                             |
+| ----- | ----- | ------------------------------------------------------------------ |
+| 0     | 0     | Analysis only — SQL queries on real DB + eval run                  |
+| 1     | 1     | entity-search.ts threshold change (data-driven value)              |
+| 2     | ~4    | FTS5 migration, entity-mutations sync, keyword search, score combo |
+| 3     | ~3    | Model config, migration script, schema change                      |
+| 4     | ~3    | Reranker integration, AI runtime                                   |
 
 ## Verification
 
-1. Search for exact title → finds the entity (keyword match)
-2. Search for semantic concept → finds related entities (vector match)
-3. Irrelevant results no longer in top-10
-4. "What did I write about X?" consistently returns the right posts
+Every phase must pass this gate before moving to the next:
+
+1. **Eval pass rate ≥ baseline** — no regressions
+2. **Search-specific evals stable or improved** — proactive search, system search
+3. Manual spot checks:
+   - Search for exact title → finds the entity (keyword match, Phase 2+)
+   - Search for semantic concept → finds related entities (vector match)
+   - Irrelevant results no longer in top-10
+   - "What did I write about X?" consistently returns the right posts

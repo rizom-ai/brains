@@ -6,12 +6,20 @@ Entities change over time but there's no way to see previous versions. Git alrea
 
 ## Design
 
-A `system_history` tool that reads git log for a specific entity file. No new storage — just a read interface to what git already tracks.
+A `directory-sync_history` tool in the directory-sync plugin. No new storage — just a read interface to what git already tracks.
+
+### Why directory-sync, not system tools?
+
+- `GitSync` class already has `simple-git` and knows the data directory
+- `IGitSync` interface is the clean seam to add `log()` and `show()`
+- Same pattern as existing `directory-sync_sync` and `directory-sync_status`
+- No new cross-plugin dependencies — system tools don't know about git
+- The agent doesn't care about tool namespace — it calls whatever tool answers the question
 
 ### Tool
 
 ```
-system_history {
+directory-sync_history {
   entityType: "post",
   id: "my-post",
   limit: 10           // optional, default 10
@@ -21,7 +29,7 @@ system_history {
     { sha: "def456", date: "2026-03-27T10:00:00Z", message: "Auto-sync: ...", summary: "+15 -0 lines" },
   ]
 
-system_history {
+directory-sync_history {
   entityType: "post",
   id: "my-post",
   sha: "def456"       // get content at specific version
@@ -31,13 +39,13 @@ system_history {
 
 ### Implementation
 
-The tool calls git commands on the brain-data directory:
+Add methods to `IGitSync` / `GitSync`:
 
-- **List history**: `git log --format=... -- {entityType}/{id}.md`
-- **Get version**: `git show {sha}:{entityType}/{id}.md`
-- **Diff**: `git diff {sha1} {sha2} -- {entityType}/{id}.md`
+- **`log(filePath, limit)`**: `git log --format=... -- {filePath}` → commit list
+- **`show(sha, filePath)`**: `git show {sha}:{filePath}` → file content at version
+- **`diff(sha1, sha2, filePath)`** (Phase 2): `git diff {sha1} {sha2} -- {filePath}` → diff output
 
-Uses the existing `GitSync` class (which wraps `simple-git`) or calls git directly.
+The tool resolves `entityType + id` to a file path (`{entityType}/{id}.md`) and delegates to GitSync.
 
 ### What the agent can do
 
@@ -55,24 +63,27 @@ Uses the existing `GitSync` class (which wraps `simple-git`) or calls git direct
 
 ### Phase 1: History tool
 
-1. Add `system_history` tool to system tools
-2. List mode: git log for entity file, return commit list
-3. Version mode: git show for entity at specific commit
-4. Handle: entity not found, git not configured, file never committed
-5. Tests
+1. Add `log(filePath, limit)` and `show(sha, filePath)` to `IGitSync` interface and `GitSync` class
+2. Add `directory-sync_history` tool in `plugins/directory-sync/src/tools/`
+3. List mode: resolve entity path, call `gitSync.log()`, return commit list
+4. Version mode: call `gitSync.show()`, return content at commit
+5. Handle: entity not found, git not configured (no gitSync instance), file never committed
+6. Unit tests for GitSync.log() and GitSync.show()
+7. Unit tests for the tool handler (mock IGitSync)
 
 ### Phase 2: Diff and restore (optional)
 
-1. Add diff mode: compare two versions
-2. "Revert" is just the agent calling system_update with old content — no special tool needed
-3. Tests
+1. Add `diff(sha1, sha2, filePath)` to `IGitSync` / `GitSync`
+2. Extend tool with diff mode: `sha` + `compareTo` params
+3. "Revert" is just the agent calling system_update with old content — no special tool needed
+4. Tests
 
 ## Files affected
 
-| Phase | Files | Nature                    |
-| ----- | ----- | ------------------------- |
-| 1     | ~2    | System tool, git commands |
-| 2     | ~1    | Diff mode addition        |
+| Phase | Files | Nature                                                 |
+| ----- | ----- | ------------------------------------------------------ |
+| 1     | ~4    | IGitSync interface, GitSync class, history tool, tests |
+| 2     | ~2    | GitSync diff method, tool diff mode                    |
 
 ## Verification
 
@@ -80,3 +91,5 @@ Uses the existing `GitSync` class (which wraps `simple-git`) or calls git direct
 2. "What did this post look like 3 versions ago?" → returns old content
 3. Works without git configured (returns "no history available")
 4. No new data storage — reads from existing git repo
+5. Existing directory-sync tests still pass
+6. `bun run typecheck` clean, `bun run lint` clean
