@@ -52,7 +52,7 @@ describe("Startup Initialization Order", () => {
       const source = readFileSync(shellPath, "utf-8");
 
       const initMethodMatch = source.match(
-        /public async initialize\(\)[^{]*\{([\s\S]*?)^\s{2}\}/m,
+        /public async initialize\([^)]*\)[^{]*\{([\s\S]*?)^\s{2}\}/m,
       );
       expect(initMethodMatch).not.toBeNull();
 

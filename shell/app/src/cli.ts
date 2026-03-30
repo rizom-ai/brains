@@ -106,13 +106,17 @@ async function listCliCommands(
   config: AppConfig,
   App: { create: typeof import("./app").App.create },
 ): Promise<void> {
+  // Force all logging to stderr so stdout is clean for command listing
+  const { Logger } = await import("@brains/utils");
+  Logger.getInstance().setUseStderr(true);
+
   const headlessConfig: AppConfig = {
     ...config,
     plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
   };
 
   const app = App.create(headlessConfig);
-  await app.initialize();
+  await app.initialize({ registerOnly: true });
 
   const cliTools = app.getShell().getMCPService().getCliTools();
   for (const { tool } of cliTools) {

@@ -130,7 +130,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
       try {
         const proc = Bun.spawn(
           ["bun", "run", runner.path, "--list-cli-commands"],
-          { cwd: dir, stdout: "pipe", stderr: "pipe", env: process.env },
+          { cwd: dir, stdout: "pipe", stderr: "ignore", env: process.env },
         );
         const output = await new Response(proc.stdout).text();
         const exitCode = await proc.exited;

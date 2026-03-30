@@ -48,7 +48,7 @@ export class App {
     });
   }
 
-  public async initialize(): Promise<void> {
+  public async initialize(options?: { registerOnly?: boolean }): Promise<void> {
     // Only run migrations when we're creating a shell (not when using mock shell for tests)
     if (!this.shell) {
       await this.runMigrations();
@@ -129,7 +129,7 @@ export class App {
     }
 
     // Initialize shell (which will initialize all plugins including interfaces)
-    await this.getShell().initialize();
+    await this.getShell().initialize(options);
   }
 
   public async start(): Promise<void> {

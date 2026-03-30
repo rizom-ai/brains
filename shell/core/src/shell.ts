@@ -131,7 +131,14 @@ export class Shell implements IShell {
     shellInitializer.wireShell(this.services, this);
   }
 
-  public async initialize(): Promise<void> {
+  /**
+   * Initialize the shell.
+   *
+   * @param options.registerOnly - If true, only registers plugins and system
+   *   capabilities (tools, resources, etc.) without emitting system:plugins:ready
+   *   or starting background services. Used by CLI for command discovery.
+   */
+  public async initialize(options?: { registerOnly?: boolean }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");
     if (this.initialized) {
       this.services.logger.warn("Shell already initialized");
@@ -162,13 +169,19 @@ export class Shell implements IShell {
       this.registerCoreDataSources();
       this.registerSystemCapabilities();
 
+      this.initialized = true;
+
+      // In registerOnly mode, stop here — no events, no background services.
+      // Tools, resources, and entity types are registered and discoverable.
+      if (options?.registerOnly) {
+        this.services.logger.debug("Shell initialized (registerOnly mode)");
+        return;
+      }
+
       // NOTE: Identity and profile services are initialized via sync:initial:completed
       // subscription in shellInitializer. This ensures remote data is pulled by
       // git-sync before defaults are created for empty DB.
 
-      // Mark shell as initialized BEFORE emitting ready event
-      // This ensures shell methods are available to plugins:ready handlers
-      this.initialized = true;
       this.services.logger.debug("Shell initialized successfully");
 
       // Emit system:plugins:ready BEFORE starting background services
