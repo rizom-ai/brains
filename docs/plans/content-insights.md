@@ -71,7 +71,17 @@ Visual content insights on the dashboard page. Shows charts/stats at a glance. U
 
 ### Phase 2: Plugin-registered insights
 
-1. Expose `InsightsRegistry` on plugin contexts (`EntityPluginContext`, `ServicePluginContext`)
+**Prerequisite — Shell refactor:** `createInsightsRegistry()` is currently called inline at `shell.ts:610` inside an object literal. The `Shell` class does not retain the instance, so plugins cannot access it. Before plugin registration can work:
+
+1. Hoist registry to `private insightsRegistry` field on `Shell`
+2. Add `getInsightsRegistry(): InsightsRegistry` to `IShell` interface (`shell/plugins/src/interfaces.ts`)
+3. Add `insights: { register }` to `BasePluginContext` (`shell/plugins/src/base/context.ts`) — flows to Entity/Service contexts automatically
+
+**Note on tool description:** `system_insights` description is composed at `createSystemTools` call time using `services.insights.getTypes().join(", ")`. This works correctly if plugins register insights during `onRegister()` (line 157) before system tools are created (line 171) — but only once the prerequisite refactor gives plugins access to the registry.
+
+**Steps:**
+
+1. Shell refactor: hoist registry, expose on `IShell`, wire into `BasePluginContext`
 2. Topics plugin registers `topic-distribution` insight
    - Topics ranked by source count
    - Source types per topic (post, note, link, etc.)
@@ -84,18 +94,21 @@ Visual content insights on the dashboard page. Shows charts/stats at a glance. U
 
 ### Phase 3: Dashboard widget
 
-1. Create content insights dashboard widget
-2. Register via dashboard plugin's widget messaging
-3. Client-side chart rendering (simple bar charts, no charting library — SVG or CSS)
-4. Tests
+**Approach:** Use `CustomWidget` renderer from `WIDGET_RENDERERS`. Adding a new renderer type would require cross-package changes to both the registry and `@brains/ui-library`'s `RENDERER_MAP` — not worth it for a data display. Can graduate to a dedicated renderer later if needed.
+
+1. Create content insights dashboard widget using `CustomWidget` renderer
+2. Register via dashboard plugin's widget messaging (pattern: `messageBus.send("dashboard:register-widget", ...)`)
+3. Data provider calls `services.insights.get("overview")` and `services.insights.get("content-health")`
+4. Client-side chart rendering (simple bar charts, no charting library — SVG or CSS)
+5. Tests
 
 ## Files affected
 
-| Phase | Files | Nature                                                    |
-| ----- | ----- | --------------------------------------------------------- |
-| 1     | ~4    | InsightsRegistry, system tool, schemas, shell wiring ✅   |
-| 2     | ~6    | Plugin contexts, topics insight, analytics insight, tests |
-| 3     | ~5    | Widget component, registration, styling                   |
+| Phase | Files | Nature                                                                            |
+| ----- | ----- | --------------------------------------------------------------------------------- |
+| 1     | ~4    | InsightsRegistry, system tool, schemas, shell wiring ✅                           |
+| 2     | ~9    | Shell refactor, IShell, 3 context files, topics insight, analytics insight, tests |
+| 3     | ~5    | Widget component, registration, styling                                           |
 
 ## Verification
 
