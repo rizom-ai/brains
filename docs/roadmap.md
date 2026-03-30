@@ -6,7 +6,7 @@ Last Updated: 2026-03-30
 
 ## Completed
 
-### Professional-Brain v1.0 (2026-01)
+### Rover v0.1 — yeehaa.io (2026-01)
 
 Site builder, blog (17 essays, 3 series), decks, portfolio (8 case studies), topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.
 
@@ -75,7 +75,7 @@ Prompts became a `prompt` entity type with EntityPlugin. Defaults materialize fr
 
 ### Eval Overhaul (2026-03)
 
-`mode: eval` replaces `preset: eval` — layers on any preset, brain models define `evalDisable`. Plugin eval configs replaced with one-line `eval.yaml`. Three-tier test case loading (shell → brain model → app instance) with ID deduplication. Markdown + comparison reporters with `--compare` and `--baseline` flags. ([plan](./plans/eval-overhaul.md))
+`mode: eval` replaces `preset: eval` — layers on any preset, brain models define `evalDisable`. Plugin eval configs replaced with one-line `eval.yaml`. Three-tier test case loading (shell → brain model → app instance) with ID deduplication. Markdown + comparison reporters with `--compare` and `--baseline` flags.
 
 ### Plugin Hierarchy Simplification (2026-03)
 
@@ -130,20 +130,11 @@ The following items must be complete before Rover 1.0:
 
 Items at the same level can be done in parallel.
 
-### In progress (other contributors)
+### In progress
 
-- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Blocked on Brain CLI for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **Brain CLI** — `brain init`, `brain start`, `brain chat`, `brain list/get/sync/build`. Phases 1-2 done. Phase 2b (plugin-registered commands) in progress. ([plan](./plans/brain-cli.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. Waiting on Brain CLI for `brain init`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
-
-### Available
-
-### ~~Deprecate Matrix~~ ✅
-
-Removed. Matrix interface deleted from codebase, all brain models, Docker build, and docs.
-
-### Brain CLI — Phase 1
-
-Command-line tool for instance management and direct operations. `brain init` scaffolds standalone repos, `brain start` runs the brain, `brain list/get/sync/build` invoke tools without daemons. Prerequisite for standalone apps. ([plan](./plans/brain-cli.md))
 
 ### AT Protocol — Phases 1-2
 
