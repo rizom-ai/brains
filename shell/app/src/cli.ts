@@ -140,6 +140,10 @@ async function runCliCommand(
   args: string[],
   App: { create: typeof import("./app").App.create },
 ): Promise<void> {
+  // Force all logging to stderr so stdout is clean for command output
+  const { Logger } = await import("@brains/utils");
+  Logger.getInstance().setUseStderr(true);
+
   const cmdIdx = args.indexOf("--cli-command");
   const commandName = args[cmdIdx + 1];
   if (commandName === undefined) {
@@ -231,6 +235,10 @@ async function runTool(
   args: string[],
   App: { create: typeof import("./app").App.create },
 ): Promise<void> {
+  // Force all logging to stderr so stdout is clean for tool output
+  const { Logger } = await import("@brains/utils");
+  Logger.getInstance().setUseStderr(true);
+
   const toolIdx = args.indexOf("--tool");
   const toolName: string | undefined = args[toolIdx + 1];
   if (toolName === undefined) {
