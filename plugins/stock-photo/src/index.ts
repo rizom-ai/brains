@@ -4,4 +4,7 @@ export type {
   StockPhotoProvider,
   SearchResult,
   PhotoCandidate,
+  SelectResult,
+  FetchFn,
+  FetchImageFn,
 } from "./lib/types";

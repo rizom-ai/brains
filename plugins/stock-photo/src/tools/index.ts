@@ -1,9 +1,16 @@
 import { z } from "@brains/utils";
-import { imageAdapter } from "@brains/image";
-import type { Tool, ToolResponse, IEntityService } from "@brains/plugins";
-import type { StockPhotoProvider } from "../lib/types";
-
-type FetchImageFn = (url: string) => Promise<string>;
+import { imageAdapter, type Image } from "@brains/image";
+import type {
+  Tool,
+  ToolResponse,
+  IEntityService,
+  EntityInput,
+} from "@brains/plugins";
+import type {
+  StockPhotoProvider,
+  FetchImageFn,
+  SelectResult,
+} from "../lib/types";
 
 export interface StockPhotoToolsDeps {
   provider: StockPhotoProvider;
@@ -54,9 +61,9 @@ export function createStockPhotoTools(
   return [createSearchTool(pluginId, deps), createSelectTool(pluginId, deps)];
 }
 
-function createSearchTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
+function createSearchTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
   return {
-    name: "stock-photo_search",
+    name: `${pluginId}_search`,
     description:
       "Search for stock photos. Returns photo candidates with preview URLs and metadata. Use stock-photo_select to materialize a chosen photo into an image entity.",
     inputSchema: searchInputSchema,
@@ -83,9 +90,9 @@ function createSearchTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
   };
 }
 
-function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
+function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
   return {
-    name: "stock-photo_select",
+    name: `${pluginId}_select`,
     description:
       "Select a stock photo from search results and materialize it as an image entity. Triggers provider download tracking per ToS. Optionally sets as cover image on a target entity.",
     inputSchema: selectInputSchema,
@@ -111,17 +118,19 @@ function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
         targetEntityId,
       } = parsed.data;
 
-      // Check deduplication by sourceUrl
+      const attribution = { photographerName, photographerUrl, sourceUrl };
+
+      // Deduplicate by image URL stored as sourceUrl on the entity
       const existing = await deps.entityService.listEntities("image", {
         limit: 1,
         filter: { metadata: { sourceUrl: imageUrl } },
       });
 
       if (existing[0]) {
-        const result: Record<string, unknown> = {
+        const result: SelectResult = {
           imageEntityId: existing[0].id,
           alreadyExisted: true,
-          attribution: { photographerName, photographerUrl, sourceUrl },
+          attribution,
         };
 
         if (targetEntityType && targetEntityId) {
@@ -131,16 +140,15 @@ function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
             targetEntityId,
             existing[0].id,
           );
-          result["coverSet"] = true;
+          result.coverSet = true;
         }
 
         return { success: true, data: result };
       }
 
-      // Trigger download tracking (fire-and-forget per ToS)
+      // Trigger download tracking and fetch image concurrently
       deps.provider.triggerDownload(downloadLocation).catch(() => {});
 
-      // Download image
       let dataUrl: string;
       try {
         dataUrl = await deps.fetchImage(imageUrl);
@@ -150,7 +158,6 @@ function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
         return { success: false, error: msg };
       }
 
-      // Create image entity
       const imageTitle = title ?? `Stock photo ${photoId}`;
       const imageData = imageAdapter.createImageEntity({
         dataUrl,
@@ -158,19 +165,21 @@ function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
         alt: alt ?? imageTitle,
       });
 
-      const { entityId } = await deps.entityService.createEntity({
+      const entityInput: EntityInput<Image> = {
         id: photoId,
         ...imageData,
         metadata: {
           ...imageData.metadata,
           sourceUrl: imageUrl,
         },
-      } as Parameters<typeof deps.entityService.createEntity>[0]);
+      };
 
-      const result: Record<string, unknown> = {
+      const { entityId } = await deps.entityService.createEntity(entityInput);
+
+      const result: SelectResult = {
         imageEntityId: entityId,
         alreadyExisted: false,
-        attribution: { photographerName, photographerUrl, sourceUrl },
+        attribution,
       };
 
       if (targetEntityType && targetEntityId) {
@@ -180,7 +189,7 @@ function createSelectTool(_pluginId: string, deps: StockPhotoToolsDeps): Tool {
           targetEntityId,
           entityId,
         );
-        result["coverSet"] = true;
+        result.coverSet = true;
       }
 
       return { success: true, data: result };

@@ -118,7 +118,7 @@ Passes through existing frontmatter adapter without modifying `@brains/image` sc
 
 ### Deduplication
 
-Uses `metadata.sourceUrl` matching the image URL from the provider. Reuses existing image entity if found.
+Uses `metadata.sourceUrl` matching the photo's page URL on the provider (not the CDN image URL, which can change). Reuses existing image entity if found.
 
 ## Data Flow
 
@@ -131,9 +131,13 @@ User → stock-photo_search({ query, perPage })
 
 User → stock-photo_select({ photoId, downloadLocation, imageUrl, ... })
   → Check deduplication via entityService.listEntities("image", sourceUrl filter)
-  → provider.triggerDownload(downloadLocation)  ← Unsplash ToS requirement
-  → fetchImage(imageUrl) → base64 data URL
-  → detectImageFormat + detectImageDimensions
+    → [match found] → return existing entity ID
+    → [no match] → continue:
+  → Promise.all([
+      provider.triggerDownload(downloadLocation),  ← Unsplash ToS (fire-and-forget)
+      fetchImage(imageUrl),                        ← fetchImageAsBase64 from @brains/utils
+    ])
+  → detectImageFormat + detectImageDimensions      ← from @brains/image
   → entityService.createEntity({ entityType: "image", content: dataUrl, metadata: { ... } })
   → [optional] setCoverImageId on target entity
   → toolSuccess({ imageEntityId, attribution, ... })

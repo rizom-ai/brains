@@ -1,21 +1,15 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type { Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { UnsplashClient } from "./lib/unsplash-client";
 import { createStockPhotoTools } from "./tools";
 import { fetchImageAsBase64 } from "@brains/utils";
+import type { FetchFn, FetchImageFn } from "./lib/types";
 import packageJson from "../package.json";
 
-type FetchFn = (
-  url: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
-
-type FetchImageFn = (url: string) => Promise<string>;
-
 export interface StockPhotoDeps {
-  fetch?: FetchFn | undefined;
-  fetchImage?: FetchImageFn | undefined;
+  fetch?: FetchFn;
+  fetchImage?: FetchImageFn;
 }
 
 const stockPhotoConfigSchema = z.object({
@@ -27,6 +21,7 @@ type StockPhotoConfig = z.infer<typeof stockPhotoConfigSchema>;
 
 export class StockPhotoPlugin extends ServicePlugin<StockPhotoConfig> {
   private readonly deps: StockPhotoDeps;
+  private cachedTools: Tool[] | null = null;
 
   constructor(
     config: Partial<StockPhotoConfig> = {},
@@ -38,18 +33,21 @@ export class StockPhotoPlugin extends ServicePlugin<StockPhotoConfig> {
 
   protected override async getTools(): Promise<Tool[]> {
     if (!this.config.apiKey) return [];
+    if (this.cachedTools) return this.cachedTools;
 
-    const context = this.getContext() as ServicePluginContext;
+    const context = this.getContext();
     const provider = new UnsplashClient(
       this.config.apiKey,
       this.deps.fetch ?? globalThis.fetch,
     );
 
-    return createStockPhotoTools(this.id, {
+    this.cachedTools = createStockPhotoTools(this.id, {
       provider,
       entityService: context.entityService,
       fetchImage: this.deps.fetchImage ?? fetchImageAsBase64,
     });
+
+    return this.cachedTools;
   }
 }
 

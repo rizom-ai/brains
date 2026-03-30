@@ -1,9 +1,9 @@
-import type { StockPhotoProvider, SearchResult, PhotoCandidate } from "./types";
-
-type FetchFn = (
-  url: string | URL | Request,
-  init?: RequestInit,
-) => Promise<Response>;
+import type {
+  StockPhotoProvider,
+  SearchResult,
+  PhotoCandidate,
+  FetchFn,
+} from "./types";
 
 /**
  * Unsplash API client implementing StockPhotoProvider.
@@ -57,7 +57,7 @@ export class UnsplashClient implements StockPhotoProvider {
         },
       });
     } catch {
-      // Fire-and-forget per Unsplash ToS — log but don't block
+      // Fire-and-forget per Unsplash ToS
     }
   }
 }

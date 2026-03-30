@@ -1,3 +1,10 @@
+export type FetchFn = (
+  url: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
+export type FetchImageFn = (url: string) => Promise<string>;
+
 /**
  * A photo candidate returned from a stock photo search.
  */
@@ -23,6 +30,20 @@ export interface SearchResult {
   total: number;
   totalPages: number;
   page: number;
+}
+
+/**
+ * Result from selecting a stock photo.
+ */
+export interface SelectResult {
+  imageEntityId: string;
+  alreadyExisted: boolean;
+  attribution: {
+    photographerName: string;
+    photographerUrl: string;
+    sourceUrl: string;
+  };
+  coverSet?: true;
 }
 
 /**
