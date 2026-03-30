@@ -63,6 +63,7 @@ import {
   type ShellServices,
 } from "./initialization/shellInitializer";
 import { registerSystemCapabilities } from "./system/register";
+import { createInsightsRegistry } from "./system/insights";
 import {
   createEnqueueJobFn,
   createEnqueueBatchFn,
@@ -606,6 +607,7 @@ export class Shell implements IShell {
         getProfile: () => this.services.profileService.getProfile(),
         getAppInfo: () => this.getAppInfo(),
         searchLimit: 10,
+        insights: createInsightsRegistry(),
       },
       this.services.mcpService,
       this.services.messageBus,

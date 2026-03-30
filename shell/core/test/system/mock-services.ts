@@ -3,6 +3,7 @@ import type { createInputSchema } from "../../src/system/schemas";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/entity-service";
 import type { z } from "@brains/utils";
+import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
  * Create mock SystemServices for testing system tools.
@@ -60,7 +61,23 @@ export function createMockSystemServices(
       entities.delete(id);
       return true;
     },
-    getEntityCounts: async () => [],
+    getEntityCounts: async () => {
+      const countMap = new Map<string, number>();
+      for (const e of entities.values()) {
+        countMap.set(e.entityType, (countMap.get(e.entityType) ?? 0) + 1);
+      }
+      return Array.from(countMap.entries()).map(([entityType, count]) => ({
+        entityType,
+        count,
+      }));
+    },
+    countEntities: async (type: string) => {
+      let count = 0;
+      for (const e of entities.values()) {
+        if (e.entityType === type) count++;
+      }
+      return count;
+    },
     serializeEntity: (entity: BaseEntity) => JSON.stringify(entity),
     deserializeEntity: (md: string) => ({ content: md }) as BaseEntity,
   } as unknown as SystemServices["entityService"];
@@ -119,6 +136,7 @@ export function createMockSystemServices(
       interfaces: [],
     }),
     searchLimit: 10,
+    insights: createInsightsRegistry(),
     ...overrides,
     // Test helpers
     getEntities: () => entities,

@@ -56,6 +56,7 @@ import {
   getConversationInputSchema,
   listConversationsInputSchema,
   getMessagesInputSchema,
+  insightsInputSchema,
 } from "./schemas";
 
 function sanitizeEntity<T extends BaseEntity>(entity: T): T {
@@ -669,6 +670,19 @@ export function createSystemTools(services: SystemServices): Tool[] {
         }
       },
       { visibility: "trusted" },
+    ),
+
+    // ── Insights ──
+    createTool(
+      "system",
+      "insights",
+      `Get content insights and analytics. Available types: ${services.insights.getTypes().join(", ")}.`,
+      insightsInputSchema,
+      async (input) => {
+        const data = await services.insights.get(input.type, entityService);
+        return { success: true, data };
+      },
+      { visibility: "public" },
     ),
   ];
 }

@@ -5,6 +5,7 @@ import type { MessageBus } from "@brains/messaging-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { DefaultQueryResponse, Logger } from "@brains/utils";
 import type { AppInfo } from "@brains/plugins";
+import type { InsightsRegistry } from "./insights";
 
 /**
  * Services required by system tools.
@@ -31,4 +32,7 @@ export interface SystemServices {
 
   /** Search config */
   searchLimit: number;
+
+  /** Extensible insights registry */
+  insights: InsightsRegistry;
 }

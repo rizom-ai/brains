@@ -90,6 +90,14 @@ export const getMessagesInputSchema = z.object({
   limit: z.number().optional().describe("Maximum messages (default: 20)"),
 });
 
+export const insightsInputSchema = z.object({
+  type: z
+    .string()
+    .describe(
+      "Type of insight to retrieve. Built-in: overview, publishing-cadence, content-health. Plugins may register additional types.",
+    ),
+});
+
 // ── Output schemas ──
 
 export const createOutputSchema = z.object({
