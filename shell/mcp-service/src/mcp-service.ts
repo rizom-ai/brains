@@ -349,6 +349,10 @@ export class MCPService implements IMCPService {
     return Array.from(this.registeredTools.values());
   }
 
+  public getCliTools(): Array<{ pluginId: string; tool: Tool }> {
+    return this.listTools().filter(({ tool }) => tool.cli !== undefined);
+  }
+
   /**
    * List tools filtered by user permission level
    * Used for per-message filtering in multi-user contexts (e.g., Matrix rooms)

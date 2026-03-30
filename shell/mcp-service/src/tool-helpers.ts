@@ -88,9 +88,10 @@ export function createTool<
   options: {
     visibility?: Tool["visibility"];
     debug?: boolean;
+    cli?: Tool["cli"];
   } = {},
 ): Tool {
-  const { visibility = "anchor", debug = false } = options;
+  const { visibility = "anchor", debug = false, cli } = options;
   const logger = debug ? Logger.createFresh({ context: pluginId }) : null;
 
   return {
@@ -127,6 +128,7 @@ export function createTool<
       }
     },
     visibility,
+    ...(cli ? { cli } : {}),
   };
 }
 

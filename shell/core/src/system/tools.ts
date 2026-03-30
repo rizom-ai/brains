@@ -63,7 +63,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
           ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
         },
       }),
-      { visibility: "public" },
+      {
+        visibility: "public",
+        cli: {
+          name: "search",
+          mapInput: (args) => ({ query: args.join(" ") }),
+        },
+      },
     ),
 
     // ── Get ──
@@ -92,7 +98,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
               error: `Entity not found: ${input.entityType}/${input.id}`,
             };
       },
-      { visibility: "public" },
+      {
+        visibility: "public",
+        cli: {
+          name: "get",
+          mapInput: (args) => ({ entityType: args[0], id: args[1] }),
+        },
+      },
     ),
 
     // ── List ──
@@ -125,7 +137,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
           data: { entities: items, count: items.length },
         };
       },
-      { visibility: "public" },
+      {
+        visibility: "public",
+        cli: {
+          name: "list",
+          mapInput: (args) => ({ entityType: args[0] }),
+        },
+      },
     ),
 
     // ── Check job status ──
@@ -298,7 +316,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
       "Get system status including model, version, interfaces, and tools",
       z.object({}),
       async () => ({ success: true, data: await services.getAppInfo() }),
-      { visibility: "public" },
+      {
+        visibility: "public",
+        cli: {
+          name: "status",
+          mapInput: () => ({}),
+        },
+      },
     ),
 
     // ── Create ──

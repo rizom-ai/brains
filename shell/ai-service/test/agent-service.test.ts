@@ -34,6 +34,7 @@ const mockAgentFactory = mock(
 // Mock MCPService
 const createMockMCPService = (): IMCPService => ({
   listTools: mock(() => []),
+  getCliTools: mock(() => []),
   listToolsForPermissionLevel: mock(() => []),
   listResources: mock(() => []),
   registerTool: mock(() => {}),

@@ -18,6 +18,7 @@ function createMockMCPService(): IMCPService {
     registerInstructions: mock(() => {}),
     getInstructions: mock(() => []),
     listTools: mock(() => []),
+    getCliTools: mock(() => []),
     listToolsForPermissionLevel: mock(() => []),
     listResources: mock(() => []),
     getMcpServer: mock(() => ({})),

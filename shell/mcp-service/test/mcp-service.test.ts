@@ -125,6 +125,51 @@ describe("MCPService", () => {
     });
   });
 
+  describe("getCliTools", () => {
+    it("should return only tools with cli metadata", () => {
+      const toolWithCli: Tool = {
+        name: "system_list",
+        description: "List entities",
+        inputSchema: {},
+        handler: async () => ({ success: true, data: [] }),
+        cli: {
+          name: "list",
+          mapInput: (args) => ({ entityType: args[0] }),
+        },
+      };
+
+      const toolWithoutCli: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: {},
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("system", toolWithCli);
+      mcpService.registerTool("system", toolWithoutCli);
+
+      const cliTools = mcpService.getCliTools();
+      expect(cliTools).toHaveLength(1);
+      expect(cliTools[0]?.tool.name).toBe("system_list");
+      expect(cliTools[0]?.tool.cli?.name).toBe("list");
+    });
+
+    it("should return empty array when no tools have cli metadata", () => {
+      const tool: Tool = {
+        name: "internal_tool",
+        description: "Internal",
+        inputSchema: {},
+        handler: async () => ({ success: true, data: {} }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("internal", tool);
+
+      expect(mcpService.getCliTools()).toHaveLength(0);
+    });
+  });
+
   describe("resource registration", () => {
     it("should register a resource", () => {
       const resource: Resource = {

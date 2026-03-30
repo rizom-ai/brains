@@ -95,6 +95,16 @@ export interface Tool<TOutput = ToolResponse> {
   outputSchema?: ZodType<TOutput>; // Optional: Zod schema for type-safe outputs
   handler: (input: unknown, context: ToolContext) => Promise<TOutput>;
   visibility?: ToolVisibility; // Default: "anchor" for safety - only explicitly marked tools are public
+  /** Optional CLI metadata — makes this tool invocable as a brain CLI command */
+  cli?: {
+    /** CLI command name (e.g. "list", "sync", "build") */
+    name: string;
+    /** Translate CLI args/flags into tool input */
+    mapInput: (
+      args: string[],
+      flags: Record<string, unknown>,
+    ) => Record<string, unknown>;
+  };
 }
 
 /**
@@ -216,8 +226,12 @@ export interface IMCPService extends IMCPTransport {
   listTools(): Array<{ pluginId: string; tool: Tool }>;
 
   /**
+   * List tools that have CLI metadata (invocable as brain CLI commands)
+   */
+  getCliTools(): Array<{ pluginId: string; tool: Tool }>;
+
+  /**
    * List tools filtered by user permission level
-   * Used for per-message filtering in multi-user contexts (e.g., Matrix rooms)
    */
   listToolsForPermissionLevel(
     userLevel: UserPermissionLevel,
