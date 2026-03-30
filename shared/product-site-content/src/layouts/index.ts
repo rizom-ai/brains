@@ -1,1 +1,0 @@
-export { DefaultLayout, type DefaultLayoutProps } from "./default-layout";
