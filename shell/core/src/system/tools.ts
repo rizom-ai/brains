@@ -1,9 +1,48 @@
-import type { Tool, ToolResponse } from "@brains/mcp-service";
+import type { Tool, ToolResponse, ToolContext } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
 import { findEntityByIdentifier } from "@brains/entity-service";
-import { z, slugify, setCoverImageId } from "@brains/utils";
+import { z, slugify, setCoverImageId, getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "@brains/entity-service";
 import type { SystemServices } from "./types";
+
+const PLUGIN_ID = "system";
+
+/**
+ * Like createTool but allows ToolResponse (incl. confirmations) as return type.
+ * Used for system tools that need confirmation flows.
+ */
+function createSystemTool<TSchema extends z.ZodObject<z.ZodRawShape>>(
+  name: string,
+  description: string,
+  inputSchema: TSchema,
+  handler: (
+    input: z.infer<TSchema>,
+    context: ToolContext,
+  ) => Promise<ToolResponse>,
+  options: { visibility?: Tool["visibility"] } = {},
+): Tool {
+  const { visibility = "anchor" } = options;
+  return {
+    name: `${PLUGIN_ID}_${name}`,
+    description,
+    inputSchema: inputSchema.shape,
+    handler: async (input, context): Promise<ToolResponse> => {
+      const parseResult = inputSchema.safeParse(input);
+      if (!parseResult.success) {
+        return {
+          success: false,
+          error: `Invalid input: ${parseResult.error.errors.map((e) => `${e.path.join(".")}: ${e.message}`).join(", ")}`,
+        };
+      }
+      try {
+        return await handler(parseResult.data, context);
+      } catch (error) {
+        return { success: false, error: getErrorMessage(error) };
+      }
+    },
+    visibility,
+  };
+}
 import {
   searchInputSchema,
   getInputSchema,
@@ -27,19 +66,6 @@ function sanitizeEntity<T extends BaseEntity>(entity: T): T {
     };
   }
   return entity;
-}
-
-const confirmedSchema = z
-  .object({ confirmed: z.literal(true), contentHash: z.string().optional() })
-  .passthrough();
-function isConfirmed(rawInput: unknown): boolean {
-  return confirmedSchema.safeParse(rawInput).success;
-}
-function parseConfirmed(
-  rawInput: unknown,
-): z.infer<typeof confirmedSchema> | undefined {
-  const parsed = confirmedSchema.safeParse(rawInput);
-  return parsed.success ? parsed.data : undefined;
 }
 
 export function createSystemTools(services: SystemServices): Tool[] {
@@ -144,14 +170,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Check job status ──
-    {
-      name: "system_check-job-status",
-      description: "Check the status of background operations",
-      inputSchema: checkJobStatusInputSchema.shape,
-      visibility: "public" as const,
-      handler: async (rawInput: unknown): Promise<ToolResponse> => {
-        const input = checkJobStatusInputSchema.parse(rawInput);
-
+    createSystemTool(
+      "check-job-status",
+      "Check the status of background operations",
+      checkJobStatusInputSchema,
+      async (input) => {
         if (input.batchId) {
           const batch = await jobs.getBatchStatus(input.batchId);
           if (!batch) {
@@ -216,7 +239,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
           },
         };
       },
-    },
+      { visibility: "public" },
+    ),
 
     // ── Get conversation ──
     createTool(
@@ -322,22 +346,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
     ),
 
     // ── Create ──
-    {
-      name: "system_create",
-      description:
-        "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
-      inputSchema: createInputSchema.shape,
-      handler: async (
-        rawInput: unknown,
-        toolContext,
-      ): Promise<ToolResponse> => {
-        const parsed = createInputSchema.safeParse(rawInput);
-        if (!parsed.success)
-          return {
-            success: false,
-            error: `Invalid input: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
-          };
-        const input = parsed.data;
+    createSystemTool(
+      "create",
+      "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
+      createInputSchema,
+      async (input, toolContext) => {
         if (!input.content && !input.prompt)
           return {
             success: false,
@@ -399,16 +412,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
           };
         }
       },
-      visibility: "trusted",
-    },
+      { visibility: "trusted" },
+    ),
 
     // ── Delete ──
-    {
-      name: "system_delete",
-      description: "Delete an entity. Requires confirmation.",
-      inputSchema: deleteInputSchema.shape,
-      handler: async (rawInput: unknown): Promise<ToolResponse> => {
-        const input = deleteInputSchema.parse(rawInput);
+    createSystemTool(
+      "delete",
+      "Delete an entity. Requires confirmation.",
+      deleteInputSchema,
+      async (input) => {
         const entity = await findEntityByIdentifier(
           entityService,
           input.entityType,
@@ -421,7 +433,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
             error: `Entity not found: ${input.entityType}/${input.id}`,
           };
 
-        if (isConfirmed(rawInput)) {
+        if (input.confirmed) {
           try {
             await entityService.deleteEntity(input.entityType, entity.id);
           } catch (error) {
@@ -447,17 +459,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
           args: { ...input, id: entity.id, confirmed: true },
         };
       },
-      visibility: "trusted",
-    },
+      { visibility: "trusted" },
+    ),
 
     // ── Update ──
-    {
-      name: "system_update",
-      description:
-        "Update an entity's fields or content. Requires confirmation.",
-      inputSchema: updateInputSchema.shape,
-      handler: async (rawInput: unknown): Promise<ToolResponse> => {
-        const input = updateInputSchema.parse(rawInput);
+    createSystemTool(
+      "update",
+      "Update an entity's fields or content. Requires confirmation.",
+      updateInputSchema,
+      async (input) => {
         const entity = await findEntityByIdentifier(
           entityService,
           input.entityType,
@@ -481,12 +491,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
               "Provide 'content' (full replacement) or 'fields' (partial update)",
           };
 
-        if (isConfirmed(rawInput)) {
-          const confirmed = parseConfirmed(rawInput);
-          if (
-            confirmed?.contentHash &&
-            entity.contentHash !== confirmed.contentHash
-          ) {
+        if (input.confirmed) {
+          if (input.contentHash && entity.contentHash !== input.contentHash) {
             return {
               success: false,
               error:
@@ -546,26 +552,16 @@ export function createSystemTools(services: SystemServices): Tool[] {
           },
         };
       },
-      visibility: "trusted",
-    },
+      { visibility: "trusted" },
+    ),
 
     // ── Extract ──
-    {
-      name: "system_extract",
-      description:
-        "Extract derived entities from source content. Provide source for single, omit for batch.",
-      inputSchema: extractInputSchema.shape,
-      handler: async (
-        rawInput: unknown,
-        toolContext,
-      ): Promise<ToolResponse> => {
-        const parsed = extractInputSchema.safeParse(rawInput);
-        if (!parsed.success)
-          return {
-            success: false,
-            error: `Invalid input: ${parsed.error.issues.map((i) => i.message).join(", ")}`,
-          };
-        const { entityType, source } = parsed.data;
+    createSystemTool(
+      "extract",
+      "Extract derived entities from source content. Provide source for single, omit for batch.",
+      extractInputSchema,
+      async (input, toolContext) => {
+        const { entityType, source } = input;
         if (!entityService.getEntityTypes().includes(entityType)) {
           return {
             success: false,
@@ -613,8 +609,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
           };
         }
       },
-      visibility: "trusted",
-    },
+      { visibility: "trusted" },
+    ),
 
     // ── Set cover ──
     createTool(

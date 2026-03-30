@@ -47,11 +47,17 @@ export const updateInputSchema = z.object({
     .optional()
     .describe("Partial frontmatter fields to update"),
   content: z.string().optional().describe("Full markdown content replacement"),
+  confirmed: z.literal(true).optional().describe("Confirm the update"),
+  contentHash: z
+    .string()
+    .optional()
+    .describe("Content hash for optimistic concurrency"),
 });
 
 export const deleteInputSchema = z.object({
   entityType: z.string().describe("Entity type"),
   id: z.string().describe("Entity ID"),
+  confirmed: z.literal(true).optional().describe("Confirm the deletion"),
 });
 
 export const extractInputSchema = z.object({
