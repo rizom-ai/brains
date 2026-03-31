@@ -21,6 +21,7 @@ import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
 import { topicEntitySchema, type TopicEntity } from "./schemas/topic";
 import { computeContentHash } from "@brains/utils/hash";
+import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
@@ -69,6 +70,12 @@ export class TopicsPlugin extends EntityPlugin<
 
     const extractionHandler = new TopicExtractionHandler(context, this.logger);
     context.jobs.registerHandler("extract", extractionHandler);
+
+    // Insights
+    context.insights.register(
+      "topic-distribution",
+      createTopicDistributionInsight(),
+    );
 
     // Eval handlers
     this.registerEvalHandler(context);
