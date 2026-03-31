@@ -3,6 +3,8 @@ import { ServicePlugin } from "@brains/plugins";
 import { analyticsConfigSchema, type AnalyticsConfig } from "./config";
 import { createAnalyticsTools } from "./tools";
 import { generateCloudflareBeaconScript } from "./lib/beacon-script";
+import { CloudflareClient } from "./lib/cloudflare-client";
+import { createTrafficOverviewInsight } from "./insights/traffic-overview";
 import packageJson from "../package.json";
 
 /**
@@ -26,6 +28,15 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
+    // Register traffic insight — gracefully degrades when no credentials
+    const cloudflareClient = this.config.cloudflare
+      ? new CloudflareClient(this.config.cloudflare)
+      : undefined;
+    context.insights.register(
+      "traffic-overview",
+      createTrafficOverviewInsight(cloudflareClient),
+    );
+
     const siteTag = this.config.cloudflare?.siteTag;
     if (siteTag) {
       // Wait until all plugins are registered so site-builder's
