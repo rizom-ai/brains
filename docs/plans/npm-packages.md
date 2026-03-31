@@ -1,5 +1,9 @@
 # Plan: @rizom/brain
 
+## Prerequisites
+
+Requires **Bun >= 1.3.3**. Node.js/npm support is a future possibility but not planned.
+
 ## Goal
 
 ```bash
@@ -31,19 +35,8 @@ Single Bun build. The CLI _is_ the runtime — no subprocess, no IPC, no spawn.
 
 ```yaml
 # brain.yaml
-brain: rover
-preset: default
-```
-
-```typescript
-// Future: custom brain with third-party plugins
-import { defineBrain } from "@rizom/brain";
-import { myPlugin } from "./my-plugin";
-
-export default defineBrain({
-  name: "custom",
-  capabilities: [["my-plugin", myPlugin, {}]],
-});
+brain: rover # built-in model
+preset: default # named capability subset (minimal, default, pro)
 ```
 
 ## What's in an instance
@@ -53,8 +46,8 @@ mybrain/
   brain.yaml        # model + config
   .env              # secrets
   .gitignore
-  brain-data/       # entities (managed by directory-sync)
-  data/             # databases (auto-created)
+  brain-data/       # entities as markdown (managed by directory-sync)
+  data/             # SQLite databases (auto-created)
 ```
 
 No `package.json`. No `node_modules`. Pure config + data. Everything else is in the global `@rizom/brain` install.
@@ -107,44 +100,126 @@ brain init mybrain --model rover --deploy
 
 Adds deploy.yml, Kamal hooks, CI workflow. Already implemented via `--deploy` flag.
 
-### Phase 3: Custom brain definitions (medium-term)
+### Phase 3: External plugins
 
-For users who need custom plugins beyond the built-in models:
+For users who need plugins beyond what rover/ranger/relay ship with. All config stays in YAML.
+
+#### How it works
 
 ```yaml
-brain: ./brain.ts # local definition file instead of built-in model
+# brain.yaml
+brain: rover
+plugins:
+  - @rizom/brain-plugin-calendar
+  - @rizom/brain-plugin-stripe:
+      apiKey: "${STRIPE_API_KEY}"
+```
+
+`brain start` resolves plugin names from `node_modules` and loads them alongside the built-in model's capabilities. Env var interpolation (`${...}`) works in plugin config values.
+
+**Build detail:** The bundled `dist/brain.js` can't resolve `node_modules` at bundle time. External plugins must be loaded via dynamic `import()` at runtime, not statically bundled. This works because Bun resolves dynamic imports from `node_modules` — the build script just needs to ensure plugin imports aren't caught by the bundler.
+
+```
+mybrain/
+  brain.yaml          # model + plugin config
+  package.json        # dependencies (auto-created when plugins are added)
+  node_modules/       # npm plugins live here
+  .env                # secrets
+  brain-data/
+  data/
+```
+
+`package.json` and `node_modules` only appear when external plugins are added. Built-in model users never see them.
+
+#### Plugin anatomy
+
+A published plugin is just an npm package:
+
+```
+@rizom/brain-plugin-calendar/
+  package.json          # peerDependency on @rizom/brain
+  src/
+    index.ts            # exports plugin factory
+    schema.ts           # Zod schema for the entity (if EntityPlugin)
+    adapter.ts          # markdown adapter (if EntityPlugin)
+    tools.ts            # tool definitions (if ServicePlugin)
+```
+
+```json
+{
+  "name": "@rizom/brain-plugin-calendar",
+  "peerDependencies": {
+    "@rizom/brain": "^1.0.0"
+  }
+}
 ```
 
 ```typescript
-// brain.ts
-import { defineBrain } from "@rizom/brain";
-import { myPlugin } from "./plugins/my-plugin";
+// index.ts
+import { ServicePlugin, createTool, z } from "@rizom/brain";
 
-export default defineBrain({
-  name: "custom",
-  capabilities: [["my-plugin", myPlugin, {}]],
+export const calendarPlugin = ServicePlugin.create({
+  id: "calendar",
+  name: "Calendar",
+  configSchema: z.object({ ... }),
+  tools: [ ... ],
+  onRegister: async (context) => { ... },
 });
 ```
 
-This requires a `package.json` + `node_modules` (for the import). But most users use built-in models and never need this.
+#### What `@rizom/brain` exports vs what stays internal
 
-### Phase 4: Runtime site/theme overrides (medium-term)
+| Exported (public API)                                     | Internal to shell                            |
+| --------------------------------------------------------- | -------------------------------------------- |
+| EntityPlugin, ServicePlugin, InterfacePlugin base classes | Shell, App, plugin loading/resolution        |
+| Context interfaces (read-only view)                       | Context implementation, dependency injection |
+| Tool types, createTool, toolSuccess/toolError             | Tool registry, MCP transport                 |
+| Zod, Logger, ProgressReporter types                       | EntityService internals, job queue impl      |
+| Entity schema/adapter helpers                             | Database, migrations, sync                   |
+| Messaging types (subscribe, send)                         | Message bus implementation                   |
+
+This is a contract. Shell internals can change without breaking external plugins as long as the contract holds.
+
+> For programmatic brain definitions (`brain.ts`, `defineBrain()`, preset composition), see [custom-brain-definitions.md](./custom-brain-definitions.md).
+
+### Phase 4: Runtime site/theme overrides
 
 ```yaml
 brain: rover
-site: "@mysites/portfolio" # npm package
+site: "@rizom/site-portfolio" # npm package
 theme: "./theme.css" # local CSS file
 ```
 
 Custom sites need `package.json` + `node_modules`. Theme-only overrides work with just a local CSS file.
 
+### Phase 5: Plugin discovery
+
+```bash
+brain search calendar
+# → @rizom/brain-plugin-calendar  Calendar events and scheduling
+# → @community/brain-plugin-gcal  Google Calendar sync
+
+brain add @rizom/brain-plugin-calendar
+# Installs package + adds to brain.yaml plugins list
+```
+
+Convention: plugins are npm packages named `brain-plugin-*` or `@scope/brain-plugin-*`. The CLI searches npm for packages matching this pattern.
+
+`brain add` does two things:
+
+1. `bun add @rizom/brain-plugin-calendar` (creates `package.json` if needed)
+2. Adds entry to `plugins:` list in `brain.yaml`
+
+Users can also edit `brain.yaml` manually and run `bun install` themselves.
+
 ## Verification
 
-1. `bun add -g @rizom/brain` installs on any machine with Bun
+1. `bun add -g @rizom/brain` installs on any machine with Bun >= 1.3.3
 2. `brain init mybrain` creates brain.yaml + .env.example (no package.json)
 3. `brain start` boots rover in-process from built-in bundle
 4. `brain list posts` runs headless in-process
-5. `brain --remote rover.rizom.ai` queries deployed brain
+5. `brain list posts --remote rover.rizom.ai` queries deployed brain
 6. `brain init mybrain --deploy` adds deploy files
 7. `brain eval` runs model evaluations
-8. Third-party plugins import from `@rizom/brain` (future)
+8. External plugin: add to `brain.yaml` plugins list + `bun add` → plugin loads and provides tools
+9. Public API: external plugins import base classes and types from `@rizom/brain`
