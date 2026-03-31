@@ -32,6 +32,7 @@ Entity ID is the domain (e.g. `yeehaa.io`, `ranger.rizom.ai`) — naturally uniq
 ---
 # The anchor (who)
 name: Yeehaa
+kind: professional
 organization: Rizom
 
 # The brain (what)
@@ -76,6 +77,7 @@ All sections get embedded for semantic search — "which of my contacts works on
 const agentFrontmatterSchema = z.object({
   // Anchor
   name: z.string(),
+  kind: z.enum(["professional", "team", "collective"]),
   organization: z.string().optional(),
 
   // Brain
@@ -84,9 +86,9 @@ const agentFrontmatterSchema = z.object({
   did: z.string().optional(),
 
   // Relationship
-  status: z.enum(["active", "archived"]).default("active"),
+  status: z.enum(["active", "archived"]),
   discoveredAt: z.string().datetime(),
-  discoveredVia: z.enum(["atproto", "manual"]).default("manual"),
+  discoveredVia: z.enum(["atproto", "manual"]),
 });
 ```
 
@@ -149,6 +151,7 @@ Our card declares the extension:
         "description": "Anchor (operator) identity for this brain",
         "params": {
           "name": "Yeehaa",
+          "kind": "professional",
           "organization": "Rizom",
           "did": "did:web:yeehaa.io",
           "description": "Founder of Rizom, working on institutional design and education technology"

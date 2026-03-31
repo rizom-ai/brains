@@ -114,6 +114,7 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
  */
 export interface CreateAgentContentInput {
   name: string;
+  kind: "professional" | "team" | "collective";
   organization?: string;
   brainName?: string;
   url: string;
@@ -152,6 +153,7 @@ export class AgentAdapter extends BaseEntityAdapter<
   public createAgentContent(input: CreateAgentContentInput): string {
     const frontmatter: AgentFrontmatter = {
       name: input.name,
+      kind: input.kind,
       ...(input.organization && { organization: input.organization }),
       ...(input.brainName && { brainName: input.brainName }),
       url: input.url,

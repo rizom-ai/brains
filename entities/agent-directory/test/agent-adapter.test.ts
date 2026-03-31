@@ -12,6 +12,7 @@ describe("AgentAdapter", () => {
     it("should build markdown with frontmatter and body sections", () => {
       const content = adapter.createAgentContent({
         name: "Yeehaa",
+        kind: "professional",
         organization: "Rizom",
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
@@ -58,6 +59,7 @@ describe("AgentAdapter", () => {
     it("should handle empty skills", () => {
       const content = adapter.createAgentContent({
         name: "Unknown",
+        kind: "professional",
         url: "https://unknown.io",
         status: "active",
         discoveredAt: "2026-03-31T00:00:00.000Z",
@@ -75,6 +77,7 @@ describe("AgentAdapter", () => {
     it("should handle optional fields being absent", () => {
       const content = adapter.createAgentContent({
         name: "Minimal",
+        kind: "professional",
         url: "https://minimal.io",
         status: "active",
         discoveredAt: "2026-03-31T00:00:00.000Z",
@@ -183,6 +186,7 @@ Test agent.
         entityType: "agent" as const,
         content: adapter.createAgentContent({
           name: "Yeehaa",
+          kind: "professional",
           url: "https://yeehaa.io",
           status: "active",
           discoveredAt: "2026-03-31T00:00:00.000Z",
@@ -207,6 +211,7 @@ Test agent.
     it("should preserve data through create → parse", () => {
       const content = adapter.createAgentContent({
         name: "Ranger",
+        kind: "collective",
         organization: "Rizom",
         brainName: "Ranger Brain",
         url: "https://ranger.rizom.ai",

@@ -8,6 +8,11 @@ import { baseEntitySchema } from "@brains/plugins";
 export const agentFrontmatterSchema = z.object({
   // Anchor (who)
   name: z.string().describe("Anchor name (person, team, or organization)"),
+  kind: z
+    .enum(["professional", "team", "collective"])
+    .describe(
+      "Type of anchor: professional (individual), team, or collective (community/network)",
+    ),
   organization: z
     .string()
     .optional()

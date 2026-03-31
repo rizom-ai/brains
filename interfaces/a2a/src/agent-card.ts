@@ -17,6 +17,8 @@ export interface AgentCardOptions {
   domain?: string;
   /** Organization name for the provider field */
   organization?: string;
+  /** Anchor kind: professional (individual), team, or collective */
+  kind?: "professional" | "team" | "collective";
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
   /** Whether bearer token auth is configured */
@@ -58,6 +60,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const anchorParams: Record<string, unknown> = {
     name: profile.name,
   };
+  if (options.kind) anchorParams["kind"] = options.kind;
   if (profile.description) anchorParams["description"] = profile.description;
   if (organization) anchorParams["organization"] = organization;
 

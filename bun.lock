@@ -565,6 +565,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "plugins/agent-directory": {
+      "name": "@brains/agent-directory-plugin",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/agent-directory": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "plugins/analytics": {
       "name": "@brains/analytics",
       "version": "0.1.0",
@@ -1377,6 +1395,8 @@
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
 
     "@brains/agent-directory": ["@brains/agent-directory@workspace:entities/agent-directory"],
+
+    "@brains/agent-directory-plugin": ["@brains/agent-directory-plugin@workspace:plugins/agent-directory"],
 
     "@brains/ai-evaluation": ["@brains/ai-evaluation@workspace:shell/ai-evaluation"],
 
