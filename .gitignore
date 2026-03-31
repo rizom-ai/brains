@@ -190,6 +190,9 @@ brain.db
 *.db-shm
 *.db-wal
 
+# Allow pre-built eval databases
+!**/eval-content/*.db
+
 # Data directories
 data/
 cache/

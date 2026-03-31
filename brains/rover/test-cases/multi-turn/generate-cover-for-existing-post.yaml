@@ -21,7 +21,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "image"
-            options.targetEntityType: "social-post"
+            targetEntityType: "social-post"
 
 successCriteria: {}
 

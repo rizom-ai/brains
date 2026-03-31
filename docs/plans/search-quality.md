@@ -120,6 +120,22 @@ Data-driven threshold choice based on Phase 0 analysis.
    Start with α = 0.7 (semantic-heavy), tune based on eval results.
 5. Run evals — compare against Phase 1 baseline. Keyword-dependent queries ("TypeScript", exact titles) should improve.
 
+### Phase 2.5: Separate embedding database
+
+Embeddings are currently stored in the same `brain.db` as entities. This couples derived data (embeddings) to source of truth (entities). Splitting them enables:
+
+- Rebuild embeddings without touching entity data
+- Swap embedding models without migrating the entity DB
+- Different backup/versioning strategies (entities are precious, embeddings are regenerable)
+- Pre-built eval databases that don't bloat with vector data
+
+1. Create dedicated `embeddings.db` (or `vectors.db`) alongside `brain.db`
+2. Move `embeddings` table out of entity DB into new DB
+3. Update `EntitySearch` to query across both databases (SQLite `ATTACH`)
+4. Update embedding job handler to write to new DB
+5. Update eval tooling (`build-eval-db.ts`) to produce both files
+6. Migration: move existing embeddings on first startup
+
 ### Phase 3: Better embedding model (optional — with [local AI runtime](./embedding-service.md))
 
 1. Switch to `bge-base-en-v1.5` or `nomic-embed-text-v1.5`

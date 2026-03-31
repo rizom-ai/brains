@@ -397,6 +397,13 @@ export async function main(): Promise<void> {
       mkdirSync(evalDataDir, { recursive: true });
       cpSync(contentDir, evalDataDir, { recursive: true });
       console.log(`Copied ${contentDir} into eval data dir`);
+
+      // Use pre-built eval database if available (skips sync + embedding wait)
+      const evalDb = resolvePath(contentDir, "brain.db");
+      if (existsSync(evalDb)) {
+        copyFileSync(evalDb, `${evalDbBase}.db`);
+        console.log("Using pre-built eval database");
+      }
     }
 
     // Recreate bare git repo fresh each run to avoid stale data from previous evals
@@ -427,17 +434,6 @@ export async function main(): Promise<void> {
 
     const shell = app.getShell();
     const aiService = shell.getAIService();
-
-    // Wait for eval content to be indexed before running tests
-    const entityService = shell.getEntityService();
-    const maxWait = 120000;
-    const start = Date.now();
-    while (Date.now() - start < maxWait) {
-      const posts = await entityService.listEntities("post");
-      if (posts.length >= 2) break;
-      await new Promise((r) => setTimeout(r, 1000));
-    }
-    console.log("Entities indexed, starting evaluations...");
 
     // Determine which agent service to use
     const agentService = remoteUrl
