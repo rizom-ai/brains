@@ -107,12 +107,14 @@ Future: @ mention the brain to interact directly (requires a mention-watching da
 
 ### Phase 4: Discovery
 
+Shares the `agent` entity type with the [Agent Directory](./agent-directory.md) plan. Firehose-discovered brains are stored as agent entities with `discoveredVia: "atproto"`. The agent directory may already have entries created via `agent_add` or A2A auto-create — firehose discovery updates these with richer AT Protocol identity data (signed profile, anchor DID) rather than creating duplicates.
+
 1. On brain startup, publish `io.rizom.brain.card` record to PDS (name, role, capabilities, A2A endpoint)
 2. Subscribe to Jetstream filtered for `io.rizom.brain.card` records
-3. Maintain local index of discovered brains (entity type: `agent`, same as planned agent-directory)
+3. Upsert discovered brains as `agent` entities (merge with existing entries by domain)
 4. Auto-populate A2A client with discovered brain endpoints
 5. Update card when capabilities change (new plugins registered)
-6. Tests: publish card → discover from another brain → verify A2A connectivity
+6. Tests: publish card → discover from another brain → verify A2A connectivity, upsert with existing agent entity
 
 ### Phase 5: Feed generators
 
