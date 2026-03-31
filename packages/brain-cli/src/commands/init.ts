@@ -20,7 +20,6 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
 
   // Always created
   writeBrainYaml(dir, model, domain, options.contentRepo);
-  writePackageJson(dir, model);
   writeEnvExample(dir);
   writeGitignore(dir);
 
@@ -42,7 +41,7 @@ function writeBrainYaml(
     ? contentRepo.replace("github:", "")
     : "# your-org/brain-data";
 
-  const content = `brain: "@brains/${model}"
+  const content = `brain: ${model}
 domain: ${domain}
 
 # Permissions
@@ -59,20 +58,6 @@ plugins:
 `;
 
   writeFileSync(join(dir, "brain.yaml"), content);
-}
-
-function writePackageJson(dir: string, model: string): void {
-  const pkg = {
-    private: true,
-    scripts: {
-      start: model,
-    },
-    dependencies: {
-      [`@brains/${model}`]: "latest",
-    },
-  };
-
-  writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
 }
 
 /**

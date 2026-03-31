@@ -23,7 +23,7 @@ describe("brain init", () => {
       scaffold(testDir, { model: "rover", domain: "mybrain.rizom.ai" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('brain: "@brains/rover"');
+      expect(yaml).toContain("brain: rover");
       expect(yaml).toContain("domain: mybrain.rizom.ai");
     });
 
@@ -45,46 +45,15 @@ describe("brain init", () => {
     });
   });
 
-  describe("package.json", () => {
-    it("should create package.json with brain model dependency", () => {
-      scaffold(testDir, { model: "rover" });
-
-      const pkg = JSON.parse(
-        readFileSync(join(testDir, "package.json"), "utf-8"),
-      );
-      expect(pkg.private).toBe(true);
-      expect(pkg.dependencies["@brains/rover"]).toBeDefined();
-    });
-
-    it("should include start script pointing to model binary", () => {
-      scaffold(testDir, { model: "rover" });
-
-      const pkg = JSON.parse(
-        readFileSync(join(testDir, "package.json"), "utf-8"),
-      );
-      expect(pkg.scripts.start).toBe("rover");
-    });
-
-    it("should use model name for different models", () => {
-      scaffold(testDir, { model: "ranger" });
-
-      const pkg = JSON.parse(
-        readFileSync(join(testDir, "package.json"), "utf-8"),
-      );
-      expect(pkg.dependencies["@brains/ranger"]).toBeDefined();
-      expect(pkg.scripts.start).toBe("ranger");
-    });
-  });
-
   describe("minimal scaffold (default)", () => {
     it("should create brain.yaml", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
     });
 
-    it("should create package.json", () => {
+    it("should NOT create package.json", () => {
       scaffold(testDir, { model: "rover" });
-      expect(existsSync(join(testDir, "package.json"))).toBe(true);
+      expect(existsSync(join(testDir, "package.json"))).toBe(false);
     });
 
     it("should create .env.example", () => {

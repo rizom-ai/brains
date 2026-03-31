@@ -1,0 +1,34 @@
+version: '3.8'
+
+services:
+  personal-brain:
+    image: ${DOCKER_IMAGE}
+    container_name: personal-brain
+    restart: unless-stopped
+    env_file: ${APP_DIR}/.env
+    volumes:
+      - ${DATA_DIR}:/app/data
+      - ${APP_DIR}/brain-repo:/app/brain-repo
+      - ${APP_DIR}/brain-data:/app/brain-data
+      - ${APP_DIR}/site-production:/app/dist/site-production
+      - ${APP_DIR}/site-preview:/app/dist/site-preview
+      - ${APP_DIR}/images:/app/dist/images
+      - ${APP_DIR}/matrix-storage:/app/.matrix-storage
+      - ${APP_DIR}/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ${APP_DIR}/caddy-data:/data
+      - ${APP_DIR}/caddy-config:/config
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - personal-brain-net
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3333/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  personal-brain-net:
+    external: true

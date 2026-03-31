@@ -75,30 +75,9 @@ function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
     deploy: parsed.flags.deploy,
   });
 
-  // Auto-install dependencies if Bun is available
-  let hasBun = false;
-  try {
-    execSync("bun --version", { stdio: "ignore" });
-    hasBun = true;
-  } catch {
-    // Bun not installed
-  }
-
-  if (hasBun) {
-    try {
-      execSync("bun install", { cwd: dir, stdio: "inherit" });
-      return { success: true, message: `Brain instance ready in ${dir}` };
-    } catch {
-      return {
-        success: true,
-        message: `Scaffolded brain instance in ${dir}\nDependency install failed. Run 'cd ${target} && bun install' manually.`,
-      };
-    }
-  }
-
   return {
     success: true,
-    message: `Scaffolded brain instance in ${dir}\nRun 'cd ${target} && bun install' to install dependencies.`,
+    message: `Brain instance ready in ${dir}`,
   };
 }
 

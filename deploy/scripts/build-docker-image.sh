@@ -75,9 +75,10 @@ else
     mkdir -p "$BUILD_DIR/public"
 fi
 
-# Copy Dockerfile and package.json
-cp deploy/docker/Dockerfile.prod "$BUILD_DIR/Dockerfile"
+# Copy Dockerfile, package.json, and Caddyfile
+cp deploy/docker/Dockerfile.model "$BUILD_DIR/Dockerfile"
 cp deploy/docker/package.prod.json "$BUILD_DIR/package.json"
+cp deploy/docker/Caddyfile "$BUILD_DIR/Caddyfile"
 
 # Step 3: Build Docker image
 log_step "Building Docker Image"

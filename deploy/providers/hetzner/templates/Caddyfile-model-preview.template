@@ -1,0 +1,11 @@
+
+# Preview site with TLS
+{{preview_domain}} {
+    reverse_proxy localhost:4321
+
+    header {
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}

@@ -97,7 +97,7 @@ setup_app_environment() {
 useradd -r -m -d $APP_DIR -s /bin/false personal-brain || true
 
 # Create data directories with correct ownership
-mkdir -p $DATA_DIR $APP_DIR/brain-repo $APP_DIR/website $APP_DIR/matrix-storage $APP_DIR/brain-data $APP_DIR/site-production $APP_DIR/site-preview $APP_DIR/images
+mkdir -p $DATA_DIR $APP_DIR/brain-repo $APP_DIR/website $APP_DIR/matrix-storage $APP_DIR/brain-data $APP_DIR/site-production $APP_DIR/site-preview $APP_DIR/images $APP_DIR/caddy-data $APP_DIR/caddy-config
 chown -R personal-brain:personal-brain $APP_DIR
 
 # Create docker network
@@ -179,15 +179,15 @@ deploy_app_files() {
     TEMPLATE_DIR="$PROVIDER_DIR/templates"
 
     if [ -n "$DOMAIN" ]; then
-        # With domain - use Caddy for SSL
+        # With domain - single container with built-in Caddy handling TLS
         sed -e "s|\${DOCKER_IMAGE}|$DOCKER_IMAGE|g" \
             -e "s|\${APP_DIR}|$APP_DIR|g" \
             -e "s|\${DATA_DIR}|$DATA_DIR|g" \
             -e "s|\${USER_ID}|$USER_ID|g" \
             -e "s|\${GROUP_ID}|$GROUP_ID|g" \
-            "$TEMPLATE_DIR/docker-compose-with-caddy.yml.template" | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
+            "$TEMPLATE_DIR/docker-compose-model.yml.template" | $SSH_CMD "cat > $APP_DIR/docker-compose.yml"
 
-        # Create Caddyfile from template
+        # Create Caddyfile from template (internal Caddy with TLS)
         log_info "Creating Caddyfile from template..."
 
         # Preview domain: explicit env var, or default to preview.$DOMAIN
@@ -196,8 +196,8 @@ deploy_app_files() {
             PREVIEW_DOMAIN="preview.$DOMAIN"
         fi
 
-        CADDY_TEMPLATE="$TEMPLATE_DIR/Caddyfile.template"
-        PREVIEW_TEMPLATE="$TEMPLATE_DIR/Caddyfile-preview.template"
+        CADDY_TEMPLATE="$TEMPLATE_DIR/Caddyfile-model.template"
+        PREVIEW_TEMPLATE="$TEMPLATE_DIR/Caddyfile-model-preview.template"
 
         # Generate Caddyfile from template
         sed "s|{{domain}}|$DOMAIN|g" "$CADDY_TEMPLATE" | $SSH_CMD "cat > $APP_DIR/Caddyfile"
@@ -208,7 +208,7 @@ deploy_app_files() {
             sed "s|{{preview_domain}}|$PREVIEW_DOMAIN|g" "$PREVIEW_TEMPLATE" | $SSH_CMD "cat >> $APP_DIR/Caddyfile"
         fi
     else
-        # Without domain - direct port access
+        # Without domain - standalone with direct port access
         sed -e "s|\${DOCKER_IMAGE}|$DOCKER_IMAGE|g" \
             -e "s|\${APP_DIR}|$APP_DIR|g" \
             -e "s|\${DATA_DIR}|$DATA_DIR|g" \

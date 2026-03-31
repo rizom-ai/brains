@@ -1,0 +1,94 @@
+{
+    email admin@{{domain}}
+}
+
+# Redirect www to non-www
+www.{{domain}} {
+    redir https://{{domain}}{uri} permanent
+}
+
+# HTTP listener for CDN origin requests (no HTTPS redirect)
+http://{{domain}} {
+    handle /mcp* {
+        reverse_proxy localhost:3333
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+        }
+    }
+
+    handle /.well-known/agent-card.json {
+        reverse_proxy localhost:3334
+    }
+
+    handle /a2a {
+        reverse_proxy localhost:3334
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization"
+        }
+    }
+
+    handle /api/* {
+        reverse_proxy localhost:3335
+    }
+
+    handle {
+        reverse_proxy localhost:8080
+
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            X-Content-Type-Options "nosniff"
+            Referrer-Policy "strict-origin-when-cross-origin"
+        }
+    }
+}
+
+# Production site with TLS (Let's Encrypt)
+{{domain}} {
+    handle /mcp* {
+        reverse_proxy localhost:3333
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+        }
+    }
+
+    handle /.well-known/agent-card.json {
+        reverse_proxy localhost:3334
+    }
+
+    handle /a2a {
+        reverse_proxy localhost:3334
+
+        header {
+            X-Content-Type-Options "nosniff"
+            Access-Control-Allow-Origin "*"
+            Access-Control-Allow-Methods "GET, POST, OPTIONS"
+            Access-Control-Allow-Headers "Content-Type, Authorization"
+        }
+    }
+
+    handle /api/* {
+        reverse_proxy localhost:3335
+    }
+
+    handle {
+        reverse_proxy localhost:8080
+
+        header {
+            X-Frame-Options "SAMEORIGIN"
+            X-Content-Type-Options "nosniff"
+            Referrer-Policy "strict-origin-when-cross-origin"
+        }
+    }
+}

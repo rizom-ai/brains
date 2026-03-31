@@ -48,9 +48,26 @@ mybrain/
   .gitignore
   brain-data/       # entities as markdown (managed by directory-sync)
   data/             # SQLite databases (auto-created)
+  package.json      # optional — only when version is pinned or external plugins added
 ```
 
-No `package.json`. No `node_modules`. Pure config + data. Everything else is in the global `@rizom/brain` install.
+By default, no `package.json`. Uses the globally installed `@rizom/brain`. For production or reproducibility, `brain pin` creates a `package.json` that locks to a specific version:
+
+```bash
+brain pin              # pins to currently installed version
+brain pin 1.2.0        # pins to specific version
+```
+
+```json
+{
+  "private": true,
+  "dependencies": {
+    "@rizom/brain": "1.2.0"
+  }
+}
+```
+
+`brain start` prefers local install over global. No `package.json` → global (dev mode). Has `package.json` → local pinned version (production mode).
 
 ## What's implemented
 
@@ -86,11 +103,13 @@ Merge CLI + runtime + models into one Bun build.
 2. Model registry: `brain start` reads `brain: rover` from yaml, resolves to built-in `defineBrain()` export
 3. `brain start` boots in-process — imports model, calls `App.create(config).run()`
 4. `brain list/sync/build` boots headless in-process — no subprocess
-5. `brain init` scaffolds brain.yaml only (no package.json, no node_modules)
+5. `brain init` scaffolds brain.yaml only (no package.json by default)
 6. `brain.yaml` uses `brain: rover` (not `brain: "@brains/rover"`)
-7. Native deps as `optionalDependencies` (sharp, libsql, fastembed, etc.)
-8. Publish to npm
-9. Test: `bun add -g @rizom/brain && brain init mybrain && cd mybrain && brain start`
+7. `brain pin` creates package.json pinning `@rizom/brain` to current (or specified) version
+8. `brain start` prefers local install (package.json) over global
+9. Native deps as `optionalDependencies` (sharp, libsql, fastembed, etc.)
+10. Publish to npm
+11. Test: `bun add -g @rizom/brain && brain init mybrain && cd mybrain && brain start`
 
 ### Phase 2: Deploy scaffolding (done)
 
@@ -216,10 +235,12 @@ Users can also edit `brain.yaml` manually and run `bun install` themselves.
 
 1. `bun add -g @rizom/brain` installs on any machine with Bun >= 1.3.3
 2. `brain init mybrain` creates brain.yaml + .env.example (no package.json)
-3. `brain start` boots rover in-process from built-in bundle
-4. `brain list posts` runs headless in-process
-5. `brain list posts --remote rover.rizom.ai` queries deployed brain
-6. `brain init mybrain --deploy` adds deploy files
-7. `brain eval` runs model evaluations
-8. External plugin: add to `brain.yaml` plugins list + `bun add` → plugin loads and provides tools
-9. Public API: external plugins import base classes and types from `@rizom/brain`
+3. `brain start` boots rover in-process from global install
+4. `brain pin` creates package.json with pinned version
+5. `brain start` (with package.json) uses local pinned version over global
+6. `brain list posts` runs headless in-process
+7. `brain list posts --remote rover.rizom.ai` queries deployed brain
+8. `brain init mybrain --deploy` adds deploy files
+9. `brain eval` runs model evaluations
+10. External plugin: add to `brain.yaml` plugins list + `bun add` → plugin loads and provides tools
+11. Public API: external plugins import base classes and types from `@rizom/brain`
