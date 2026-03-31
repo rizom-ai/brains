@@ -35,24 +35,12 @@ const agentBodySchema = z.object({
 type AgentBody = z.infer<typeof agentBodySchema>;
 
 /**
- * Format a skills array to markdown list:
- * - Name: Description [tag1, tag2]
- *
- * Uses plain text (no bold/italic) because StructuredContentFormatter
- * parses through remark AST which strips inline markdown formatting.
+ * Format a skills array to markdown list.
+ * Uses plain text — StructuredContentFormatter strips inline markdown.
  */
 function formatSkills(value: unknown): string {
-  const skills = z
-    .array(
-      z.object({
-        name: z.string(),
-        description: z.string(),
-        tags: z.array(z.string()).default([]),
-      }),
-    )
-    .parse(value);
-
-  if (skills.length === 0) return "";
+  const skills = value as AgentSkill[];
+  if (!skills || skills.length === 0) return "";
 
   return skills
     .map((s) => {

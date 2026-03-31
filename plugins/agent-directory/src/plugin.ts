@@ -1,38 +1,34 @@
-import type { Plugin, Tool, ServicePluginContext } from "@brains/plugins";
+import type { Plugin, Tool } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createAgentDirectoryTools } from "./tools";
 import type { AgentDirectoryDeps } from "./tools";
 import packageJson from "../package.json";
 
-const agentDirectoryConfigSchema = z.object({});
-type AgentDirectoryConfig = z.infer<typeof agentDirectoryConfigSchema>;
+const configSchema = z.object({});
 
-export class AgentDirectoryServicePlugin extends ServicePlugin<AgentDirectoryConfig> {
+export class AgentDirectoryServicePlugin extends ServicePlugin {
   private readonly deps: AgentDirectoryDeps;
+  private cachedTools: Tool[] | null = null;
 
-  constructor(
-    config: Partial<AgentDirectoryConfig> = {},
-    deps: AgentDirectoryDeps = {},
-  ) {
-    super("agent-directory", packageJson, config, agentDirectoryConfigSchema);
+  constructor(deps: AgentDirectoryDeps = {}) {
+    super("agent-directory", packageJson, {}, configSchema);
     this.deps = deps;
   }
 
-  protected override async onRegister(
-    _context: ServicePluginContext,
-  ): Promise<void> {
-    // No additional registration needed — tools handle everything
-  }
-
   protected override async getTools(): Promise<Tool[]> {
-    return createAgentDirectoryTools(this.id, this.getContext(), this.deps);
+    if (this.cachedTools) return this.cachedTools;
+    this.cachedTools = createAgentDirectoryTools(
+      this.id,
+      this.getContext(),
+      this.deps,
+    );
+    return this.cachedTools;
   }
 }
 
 export function agentDirectoryServicePlugin(
-  config: Partial<AgentDirectoryConfig> = {},
   deps: AgentDirectoryDeps = {},
 ): Plugin {
-  return new AgentDirectoryServicePlugin(config, deps);
+  return new AgentDirectoryServicePlugin(deps);
 }

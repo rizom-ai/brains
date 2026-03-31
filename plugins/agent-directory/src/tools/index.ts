@@ -1,6 +1,6 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { createTool, toolSuccess, toolError } from "@brains/plugins";
-import { z } from "@brains/utils";
+import { z, updateFrontmatterField } from "@brains/utils";
 import { AgentAdapter } from "@brains/agent-directory";
 import {
   fetchAgentCard,
@@ -76,7 +76,7 @@ export function createAgentDirectoryTools(
             id: domain,
             entityType: "agent",
             content,
-            metadata: { name: anchorName, status: "active" },
+            metadata: { name: anchorName, url: card.url, status: "active" },
           });
 
           return toolSuccess(
@@ -106,10 +106,10 @@ export function createAgentDirectoryTools(
           return toolError(`Agent not found: ${input.agent}`);
         }
 
-        // Replace status in content
-        const updatedContent = entity.content.replace(
-          /status: active/,
-          "status: archived",
+        const updatedContent = updateFrontmatterField(
+          entity.content,
+          "status",
+          "archived",
         );
 
         try {

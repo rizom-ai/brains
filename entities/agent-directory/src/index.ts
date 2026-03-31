@@ -1,6 +1,7 @@
 export { AgentDirectoryPlugin, agentDirectoryPlugin } from "./plugin";
 
 export {
+  ANCHOR_EXTENSION_URI,
   agentEntitySchema,
   agentFrontmatterSchema,
   agentMetadataSchema,

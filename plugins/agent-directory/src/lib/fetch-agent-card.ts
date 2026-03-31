@@ -1,6 +1,5 @@
 import { z } from "@brains/utils";
-
-const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
+import { ANCHOR_EXTENSION_URI } from "@brains/agent-directory";
 
 const skillSchema = z
   .object({

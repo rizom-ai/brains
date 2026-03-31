@@ -2,6 +2,12 @@ import { z } from "@brains/utils";
 import { baseEntitySchema } from "@brains/plugins";
 
 /**
+ * URI for the anchor-profile A2A Agent Card extension.
+ * Shared between card generation (a2a interface) and card parsing (agent-directory plugin).
+ */
+export const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
+
+/**
  * Agent frontmatter schema — structured data in YAML frontmatter.
  * Skills live in the body as markdown sections to keep frontmatter short.
  */
@@ -42,6 +48,7 @@ export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
  */
 export const agentMetadataSchema = agentFrontmatterSchema.pick({
   name: true,
+  url: true,
   status: true,
 });
 

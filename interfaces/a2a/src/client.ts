@@ -346,10 +346,9 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
               error: `Agent ${agent} is archived. Use agent_add to re-activate.`,
             };
           }
-          // Extract URL from entity content frontmatter
-          const urlMatch = entity.content.match(/url:\s*'?([^'\n]+)'?/);
-          if (urlMatch) {
-            agentUrl = urlMatch[1] ?? agent;
+          const entityUrl = entity.metadata["url"];
+          if (typeof entityUrl === "string") {
+            agentUrl = entityUrl;
           }
         }
       }

@@ -1,6 +1,7 @@
 import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
 import type { BrainCharacter, AnchorProfile, ToolInfo } from "@brains/plugins";
 
+// Canonical source: @brains/agent-directory ANCHOR_EXTENSION_URI
 const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
 
 /**

@@ -198,7 +198,11 @@ Test agent.
         contentHash: "abc",
         created: "2026-03-31T00:00:00.000Z",
         updated: "2026-03-31T00:00:00.000Z",
-        metadata: { name: "Yeehaa", status: "active" as const },
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io",
+          status: "active" as const,
+        },
       };
 
       const metadata = adapter.extractMetadata(entity);
