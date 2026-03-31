@@ -215,6 +215,7 @@ Examples:
 interface EvalConfigResult {
   config: AppConfig;
   testCasesDirs: string[];
+  brainModelPath?: string;
 }
 
 async function loadEvalConfig(): Promise<EvalConfigResult> {
@@ -284,6 +285,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
     return {
       config: resolveConfig(mod.default, process.env, overrides),
       testCasesDirs,
+      brainModelPath: brainModulePath,
     };
   }
 
@@ -348,7 +350,7 @@ export async function main(): Promise<void> {
   const saveBaseline = parseSingleFlag(args, "--baseline");
 
   try {
-    const { config, testCasesDirs } = await loadEvalConfig();
+    const { config, testCasesDirs, brainModelPath } = await loadEvalConfig();
 
     // Create and initialize the app (needed for AI service in both modes)
     // Use a temp database and data directory for evals to avoid polluting real data
@@ -382,19 +384,19 @@ export async function main(): Promise<void> {
       }
     }
 
-    // Copy eval content (or seed content as fallback) into eval data dir
-    const evalContentDir = resolvePath(process.cwd(), "eval-content");
-    const seedContentDir = resolvePath(process.cwd(), "seed-content");
+    // Copy eval content into eval data dir
+    // Resolution order: cwd/eval-content → brain model/eval-content → cwd/seed-content
     const evalDataDir = `${evalDbBase}-data`;
-    const contentDir = existsSync(evalContentDir)
-      ? evalContentDir
-      : seedContentDir;
-    if (existsSync(contentDir)) {
+    const candidateDirs = [
+      resolvePath(process.cwd(), "eval-content"),
+      ...(brainModelPath ? [resolvePath(brainModelPath, "eval-content")] : []),
+      resolvePath(process.cwd(), "seed-content"),
+    ];
+    const contentDir = candidateDirs.find((d) => existsSync(d));
+    if (contentDir) {
       mkdirSync(evalDataDir, { recursive: true });
       cpSync(contentDir, evalDataDir, { recursive: true });
-      console.log(
-        `Copied ${contentDir === evalContentDir ? "eval-content" : "seed-content"} into eval data dir`,
-      );
+      console.log(`Copied ${contentDir} into eval data dir`);
     }
 
     // Recreate bare git repo fresh each run to avoid stale data from previous evals

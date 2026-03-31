@@ -1,0 +1,24 @@
+id: response-quality-cross-reference
+name: Cross-Reference Content
+description: Tests that the agent can find connections between different content types
+type: response_quality
+tags:
+  - core
+  - search
+  - content-dependent
+
+turns:
+  - userMessage: "Which of my posts relate to the deck about distributed systems?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+  minHelpfulnessScore: 4
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 60000

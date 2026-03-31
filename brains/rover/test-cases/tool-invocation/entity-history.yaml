@@ -8,7 +8,7 @@ tags:
   - entity-type-resolution
 
 turns:
-  - userMessage: "Show me the version history of the deck 'have-your-agent-call-my-agent'"
+  - userMessage: "Show me the version history of the deck 'distributed-systems-primer'"
 
 successCriteria:
   expectedTools:

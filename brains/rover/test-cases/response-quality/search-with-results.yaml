@@ -1,0 +1,27 @@
+id: response-quality-search-with-results
+name: Search With Results
+description: Tests that the agent searches for content and references actual results in its response
+type: response_quality
+tags:
+  - core
+  - search
+  - content-dependent
+
+turns:
+  - userMessage: "What have I written about distributed systems?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "no results"
+    - "nothing found"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 50000

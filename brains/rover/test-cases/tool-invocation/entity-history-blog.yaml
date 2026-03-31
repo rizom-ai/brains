@@ -8,7 +8,7 @@ tags:
   - entity-type-resolution
 
 turns:
-  - userMessage: "What's the version history of my blog post 'urging-new-institutions'?"
+  - userMessage: "What's the version history of my blog post 'resilience-in-distributed-systems'?"
 
 successCriteria:
   expectedTools:

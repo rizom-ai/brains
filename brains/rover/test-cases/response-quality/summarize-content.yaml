@@ -1,0 +1,26 @@
+id: response-quality-summarize-content
+name: Summarize Blog Posts
+description: Tests that the agent can list and summarize existing blog posts
+type: response_quality
+tags:
+  - core
+  - list
+  - content-dependent
+
+turns:
+  - userMessage: "Give me a summary of my blog posts"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "no posts"
+    - "empty"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 10
+  maxTokens: 60000
