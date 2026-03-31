@@ -73,7 +73,9 @@ This is the local AI runtime territory — the reranker would run in the AI side
 
 Before changing anything, understand current behavior. Blind threshold changes risk silently dropping results the agent depends on — eval scores could _drop_ instead of improve.
 
-1. **Distance distribution analysis** — query a real brain's DB to get the actual distance distribution of search results:
+**Depends on [Eval Coverage Phase 1](./eval-coverage.md)** — the eval brain needs real content (test content repo) before search-dependent measurements are meaningful. An empty brain returns no search results, making distance distribution analysis useless.
+
+1. **Distance distribution analysis** — query the eval brain's DB (with test content loaded) to get the actual distance distribution:
 
    ```sql
    -- What distances do current results actually have?
@@ -86,7 +88,7 @@ Before changing anything, understand current behavior. Blind threshold changes r
 
    Key questions: What % of results fall in 0.0–0.4, 0.4–0.6, 0.6–0.8, 0.8–1.0? Where's the natural gap between relevant and irrelevant?
 
-2. **Run eval baseline** — run full eval suite and record scores _before_ any changes. This is the number to beat.
+2. **Run eval baseline** — run full eval suite (with test content) and record scores _before_ any changes. This is the number to beat.
 
    ```bash
    brain eval              # record pass rate, per-test results
@@ -95,7 +97,7 @@ Before changing anything, understand current behavior. Blind threshold changes r
 3. **Identify search-dependent evals** — tag which eval test cases exercise search so we can measure impact precisely:
    - `system-search.yaml` (direct search)
    - `proactive-search.yaml` / `proactive-search-variations.yaml` (agent-initiated search)
-   - Any test that implicitly triggers search (content references, "what have I written about...")
+   - Content-dependent quality tests from eval-coverage Phase 2 ("what have I written about...")
 
 ### Phase 1: Threshold + score tuning
 

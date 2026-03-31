@@ -4,6 +4,8 @@
 
 Rover evals pass at ~88% with 49 test cases. Target: 95%+ with 70+ test cases. The main gap: the eval brain has no content, so quality-dependent tests score low (search returns nothing, summaries have nothing to summarize, history has nothing to show).
 
+**This plan is also a prerequisite for [Search Quality](./search-quality.md)** — search quality Phase 0 (baseline measurement) requires a brain with real content to produce meaningful distance distributions. Phase 1 (test content repo) unblocks both eval coverage expansion and search quality tuning.
+
 ## Problems
 
 ### Empty brain

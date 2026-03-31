@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-30
+Last Updated: 2026-03-31
 
 ---
 
@@ -111,11 +111,11 @@ Removed Matrix interface entirely — code, Docker build layer (native binary), 
 
 ### Content Insights (2026-03)
 
-Extensible `system_insights` tool with registry pattern. Plugins contribute insight handlers. Topic distribution, publishing cadence, content health, entity counts.
+Extensible `system_insights` tool with `InsightsRegistry` pattern. Core provides generic insights (overview, publishing-cadence, content-health). Plugins register domain-specific handlers: topics registers `topic-distribution`, analytics registers `traffic-overview`. One tool answers "how is my brain doing?" ([plan](./plans/content-insights.md))
 
 ### Entity History (2026-03)
 
-`directory-sync_history` tool backed by git log. List commit history for any entity, retrieve content at specific version. No new storage.
+`directory-sync_history` tool backed by git log. `log()` and `show()` methods on `IGitSync`. List commit history for any entity, retrieve content at specific version. No new storage — reads from existing git commits. ([plan](./plans/entity-history.md))
 
 ---
 
@@ -154,7 +154,7 @@ Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card f
 
 ### Eval Coverage Expansion
 
-Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, conversation recall, error handling. Target: 95%+ pass rate with 70+ test cases. Blocks Rover 1.0.
+Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, entity history, content insights, error handling. Target: 95%+ pass rate with 70+ test cases. Blocks Rover 1.0. **Also prerequisite for Search Quality Phase 0** — search needs real content for meaningful baseline measurement. ([plan](./plans/eval-coverage.md))
 
 ### Documentation — Phase 1
 
@@ -164,9 +164,9 @@ Getting started guide, brain.yaml reference, deployment guide, CLI command refer
 
 Remove "Personal Brain" references from 60+ files across code, docs, READMEs, package descriptions. The system supports personal, team, and collective brains. Blocks Rover 1.0. ([plan](./plans/documentation.md))
 
-### Search Quality — Phase 1
+### Search Quality — Phases 0-2
 
-Tighten vector distance threshold, add FTS5 hybrid search (keyword + semantic). Immediate precision improvement. ([plan](./plans/search-quality.md))
+Phase 0: measure baseline on eval brain with real content (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search. ([plan](./plans/search-quality.md))
 
 ---
 
@@ -255,9 +255,9 @@ Short-term (parallel):
   kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
   agent-directory phase 1 (independent)
-  search-quality phase 1-2 (independent)
-  content-insights (independent)
-  entity-history (independent)
+  eval-coverage phase 1 (test content) → search-quality phases 0-2
+  content-insights (done)
+  entity-history (done)
 
 Medium-term:
   atproto phases 3-6 + agent-directory phase 2
