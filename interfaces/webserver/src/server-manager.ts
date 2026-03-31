@@ -1,7 +1,9 @@
-import type { Subprocess } from "bun";
 import type { Logger } from "@brains/utils";
 import { resolve, join } from "path";
-import { type HealthMessage, HEARTBEAT_INTERVAL_MS } from "./health-ipc";
+import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
+import { serveStatic } from "hono/bun";
+import { compress } from "@hono/bun-compress";
+import { etag } from "hono/etag";
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -12,20 +14,29 @@ export interface ServerManagerOptions {
   productionPort: number;
 }
 
+const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
+
+interface AppOptions {
+  distDir: string;
+  compress: boolean;
+  /** Cache-Control for non-asset responses */
+  defaultCache: string;
+  /** File extensions that get immutable cache headers */
+  immutableExtensions: RegExp;
+  healthEndpoint: boolean;
+}
+
 /**
- * Manages the webserver child process.
+ * Manages in-process static file servers for production and preview sites.
  *
- * The static file server runs in a separate process to keep HTTP traffic
- * off the main brain event loop. The child process is a standalone Bun
- * script that serves static files with clean URLs, cache headers, and 404s.
+ * Runs Hono servers via Bun.serve() directly — no child process.
+ * Serves static files with clean URLs, cache headers, image fast-path, and 404s.
  */
 export class ServerManager {
   private logger: Logger;
   private options: ServerManagerOptions;
-  private childProcess: Subprocess | null = null;
-  private isRunning = false;
-  private cleanupHandler: (() => void) | null = null;
-  private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private productionServer: ReturnType<typeof Bun.serve> | null = null;
+  private previewServer: ReturnType<typeof Bun.serve> | null = null;
 
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
@@ -39,229 +50,174 @@ export class ServerManager {
     };
   }
 
-  /**
-   * Start the webserver child process
-   */
   async start(): Promise<void> {
-    if (this.childProcess) {
-      this.logger.warn("Webserver child process already running");
+    if (this.productionServer) {
+      this.logger.warn("Webserver already running");
       return;
     }
 
-    const standaloneServerPath = join(import.meta.dir, "standalone-server.ts");
-
-    const env: Record<string, string> = {
-      PRODUCTION_DIST_DIR: this.options.productionDistDir,
-      SHARED_IMAGES_DIR: this.options.sharedImagesDir,
-      PRODUCTION_PORT: String(this.options.productionPort),
-    };
-
-    if (this.options.previewDistDir) {
-      env["PREVIEW_DIST_DIR"] = this.options.previewDistDir;
-    }
-    if (this.options.previewPort) {
-      env["PREVIEW_PORT"] = String(this.options.previewPort);
-    }
-
-    this.logger.debug("Spawning webserver child process", {
-      script: standaloneServerPath,
-      productionPort: this.options.productionPort,
-      previewPort: this.options.previewPort,
+    const productionApp = this.createApp({
+      distDir: this.options.productionDistDir,
+      compress: true,
+      defaultCache: "public, max-age=3600",
+      immutableExtensions: /\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/,
+      healthEndpoint: true,
     });
-
-    this.childProcess = Bun.spawn(["bun", "run", standaloneServerPath], {
-      env: { ...process.env, ...env },
-      stdout: "pipe",
-      stderr: "pipe",
-      ipc: () => {
-        // Child can send IPC messages back — currently unused but keeps channel open
-      },
-      onExit: (_proc, exitCode) => {
-        this.isRunning = false;
-        this.childProcess = null;
-        this.stopHeartbeat();
-        if (exitCode !== 0 && exitCode !== null) {
-          this.logger.error("Webserver child process exited unexpectedly", {
-            exitCode,
-          });
-        }
+    this.productionServer = Bun.serve({
+      port: this.options.productionPort,
+      fetch: async (req) => {
+        const fastResponse = await this.serveImageFastPath(req);
+        if (fastResponse) return fastResponse;
+        return productionApp.fetch(req);
       },
     });
-
-    try {
-      await this.waitForReady();
-    } catch (err) {
-      this.childProcess.kill();
-      this.childProcess = null;
-      throw err;
-    }
-    this.isRunning = true;
-
-    // Kill child if parent exits unexpectedly
-    this.cleanupHandler = (): void => {
-      this.childProcess?.kill();
-    };
-    process.once("exit", this.cleanupHandler);
-
-    this.startHeartbeat();
 
     this.logger.info(
-      `Webserver child process started (pid: ${this.childProcess.pid})`,
+      `Production server listening on http://localhost:${this.productionServer.port}`,
     );
 
-    // Pipe child output to logger to prevent buffer fill
-    const { stdout, stderr } = this.childProcess;
-    if (stdout && typeof stdout !== "number") {
-      void this.pipeStreamToLogger(stdout, "debug");
-    }
-    if (stderr && typeof stderr !== "number") {
-      void this.pipeStreamToLogger(stderr, "warn");
+    if (this.options.previewDistDir) {
+      const previewApp = this.createApp({
+        distDir: this.options.previewDistDir,
+        compress: false,
+        defaultCache: "no-cache",
+        immutableExtensions: /\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/,
+        healthEndpoint: false,
+      });
+      this.previewServer = Bun.serve({
+        port: this.options.previewPort ?? 4321,
+        fetch: async (req) => {
+          const fastResponse = await this.serveImageFastPath(req);
+          if (fastResponse) return fastResponse;
+          return previewApp.fetch(req);
+        },
+      });
+
+      this.logger.info(
+        `Preview server listening on http://localhost:${this.previewServer.port}`,
+      );
     }
   }
 
-  /**
-   * Stop the webserver child process
-   */
   async stop(): Promise<void> {
-    if (!this.childProcess) return;
-
-    this.logger.debug("Stopping webserver child process");
-    this.stopHeartbeat();
-    if (this.cleanupHandler) {
-      process.off("exit", this.cleanupHandler);
-      this.cleanupHandler = null;
+    if (this.productionServer) {
+      await this.productionServer.stop();
+      this.productionServer = null;
     }
-    this.childProcess.kill();
-    this.childProcess = null;
-    this.isRunning = false;
-    this.logger.debug("Webserver child process stopped");
-  }
-
-  /**
-   * Start sending periodic heartbeats to the child process via IPC.
-   */
-  private startHeartbeat(): void {
-    this.sendHeartbeat(); // Send immediately
-    this.heartbeatTimer = setInterval(() => {
-      this.sendHeartbeat();
-    }, HEARTBEAT_INTERVAL_MS);
-  }
-
-  /**
-   * Stop the heartbeat interval.
-   */
-  private stopHeartbeat(): void {
-    if (this.heartbeatTimer) {
-      clearInterval(this.heartbeatTimer);
-      this.heartbeatTimer = null;
+    if (this.previewServer) {
+      await this.previewServer.stop();
+      this.previewServer = null;
     }
+    this.logger.debug("Webserver stopped");
   }
 
-  /**
-   * Send a single heartbeat message to the child process.
-   */
-  private sendHeartbeat(): void {
-    if (!this.childProcess) return;
-    const message: HealthMessage = { type: "heartbeat" };
-    try {
-      this.childProcess.send(message);
-    } catch {
-      // Child process may have exited — heartbeat will stop on next onExit
-    }
-  }
-
-  /**
-   * Get server status
-   */
   getStatus(): {
     running: boolean;
-    pid: number | undefined;
     productionUrl: string | undefined;
     previewUrl: string | undefined;
   } {
     return {
-      running: this.isRunning,
-      pid: this.childProcess?.pid,
-      productionUrl: this.isRunning
-        ? `http://localhost:${this.options.productionPort}`
+      running: this.productionServer !== null,
+      productionUrl: this.productionServer
+        ? `http://localhost:${this.productionServer.port}`
         : undefined,
-      previewUrl:
-        this.isRunning && this.options.previewPort
-          ? `http://localhost:${this.options.previewPort}`
-          : undefined,
+      previewUrl: this.previewServer
+        ? `http://localhost:${this.previewServer.port}`
+        : undefined,
     };
   }
 
-  /**
-   * Wait for the child process to signal readiness via stdout.
-   */
-  private async waitForReady(): Promise<void> {
-    const stdout = this.childProcess?.stdout;
-    if (!stdout || typeof stdout === "number") {
-      throw new Error("Child process stdout not available");
+  // ─── App factory ────────────────────────────────────────────────────────
+
+  private createApp(opts: AppOptions): Hono {
+    const app = new Hono();
+
+    if (opts.healthEndpoint) {
+      app.get("/health", (c) => c.json({ status: "healthy" }, 200));
     }
 
-    const reader = stdout.getReader();
-    const decoder = new TextDecoder();
-    const timeout = 10_000;
-    const start = Date.now();
+    if (opts.compress) {
+      app.use("/*", compress());
+    }
+    app.use("/*", etag());
 
-    try {
-      let buffer = "";
-      while (Date.now() - start < timeout) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-
-        for (const line of lines) {
-          if (line.includes("WEBSERVER_READY")) {
-            // Log any other output lines
-            for (const l of lines) {
-              const trimmed = l.trim();
-              if (trimmed && !trimmed.includes("WEBSERVER_READY")) {
-                this.logger.debug(`[webserver] ${trimmed}`);
-              }
-            }
-            return;
-          }
-        }
-
-        // Keep the last incomplete line in the buffer
-        buffer = lines[lines.length - 1] ?? "";
+    app.use("/*", async (c, next) => {
+      await next();
+      if (opts.immutableExtensions.test(c.req.path)) {
+        c.header("Cache-Control", CACHE_IMMUTABLE);
+      } else {
+        c.header("Cache-Control", opts.defaultCache);
       }
+    });
 
-      throw new Error("Webserver child process did not become ready in time");
-    } finally {
-      reader.releaseLock();
-    }
+    app.use("/*", this.createCleanUrlMiddleware(opts.distDir));
+    app.use("/*", serveStatic({ root: opts.distDir }));
+
+    app.notFound(async (c) => {
+      const notFoundFile = Bun.file(join(opts.distDir, "404.html"));
+      if (await notFoundFile.exists()) {
+        return c.html(await notFoundFile.text(), 404);
+      }
+      return c.text("Not Found", 404);
+    });
+
+    return app;
   }
 
-  /**
-   * Pipe child process stderr to the logger.
-   */
-  private async pipeStreamToLogger(
-    stream: ReadableStream<Uint8Array>,
-    level: "debug" | "warn",
-  ): Promise<void> {
-    const reader = stream.getReader();
-    const decoder = new TextDecoder();
+  // ─── Helpers ─────────────────────────────────────────────────────────────
 
+  private async serveImageFastPath(req: Request): Promise<Response | null> {
+    let url: URL;
     try {
-      let result = await reader.read();
-      while (!result.done) {
-        const text = decoder.decode(result.value, { stream: true }).trim();
-        if (text) {
-          this.logger[level](`[webserver] ${text}`);
-        }
-        result = await reader.read();
-      }
+      url = new URL(req.url);
     } catch {
-      // Stream closed — child process exited
-    } finally {
-      reader.releaseLock();
+      return null;
     }
+    if (!url.pathname.startsWith("/images/")) return null;
+
+    const fileName = url.pathname.slice("/images/".length);
+    const filePath = resolve(this.options.sharedImagesDir, fileName);
+    // Prevent directory traversal
+    if (!filePath.startsWith(this.options.sharedImagesDir)) return null;
+
+    const file = Bun.file(filePath);
+    if (!(await file.exists())) return null;
+
+    return new Response(file, {
+      headers: { "Cache-Control": CACHE_IMMUTABLE },
+    });
+  }
+
+  private createCleanUrlMiddleware(
+    distDir: string,
+  ): (c: HonoContext, next: HonoNext) => Promise<void | Response> {
+    return async (c: HonoContext, next: HonoNext): Promise<void | Response> => {
+      const path = c.req.path;
+      if (path.includes(".") || path === "/") {
+        await next();
+        return;
+      }
+
+      const indexPath = resolve(distDir, `.${path}`, "index.html");
+      if (!indexPath.startsWith(distDir)) {
+        await next();
+        return;
+      }
+
+      const indexFile = Bun.file(indexPath);
+      if (await indexFile.exists()) {
+        return c.html(await indexFile.text());
+      }
+      const htmlPath = resolve(distDir, `.${path}.html`);
+      if (htmlPath.startsWith(distDir)) {
+        const htmlFile = Bun.file(htmlPath);
+        if (await htmlFile.exists()) {
+          return c.html(await htmlFile.text());
+        }
+      }
+
+      await next();
+    };
   }
 }
 

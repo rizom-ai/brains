@@ -8,13 +8,11 @@
     "start": "brains start",
     "start:cli": "brains start --cli",
     "build": "brains build",
-    "eval": "brain-eval",
     "test": "echo 'no test files'",
     "typecheck": "echo 'no source files'",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@brains/ai-evaluation": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/rover": "workspace:*"
   }

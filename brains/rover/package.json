@@ -6,6 +6,7 @@
   "main": "./src/index.ts",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "eval": "brain-eval",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix"
   },
@@ -39,6 +40,7 @@
     "@brains/wishlist": "workspace:*"
   },
   "devDependencies": {
+    "@brains/ai-evaluation": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "typescript": "^5.3.3"
   }

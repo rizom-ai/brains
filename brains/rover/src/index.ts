@@ -87,14 +87,7 @@ export default defineBrain({
     pro,
   },
 
-  evalDisable: [
-    "discord",
-    "webserver",
-    "a2a",
-    "analytics",
-    "dashboard",
-    "content-pipeline",
-  ],
+  evalDisable: ["discord", "webserver", "a2a", "analytics", "dashboard"],
 
   capabilities: [
     ["prompt", promptPlugin, undefined],

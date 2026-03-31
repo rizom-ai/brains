@@ -16,7 +16,7 @@ import packageJson from "../package.json";
 /**
  * Webserver interface for serving static sites and API routes.
  *
- * The static file server runs as a child process (off the main event loop).
+ * The static file server runs in-process via Bun.serve().
  * The API server runs on the main thread (needs message bus) on its own port.
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
@@ -92,12 +92,14 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         const status = this.serverManager?.getStatus();
         const isRunning = status?.running ?? false;
 
+        const productionUrl =
+          this.siteUrl ??
+          status?.productionUrl ??
+          `http://localhost:${this.config.productionPort}`;
         const previewUrl =
           this.previewUrl ??
-          this.siteUrl ??
+          status?.previewUrl ??
           `http://localhost:${this.config.previewPort}`;
-        const productionUrl =
-          this.siteUrl ?? `http://localhost:${this.config.productionPort}`;
 
         const urls: string[] = [];
         if (isRunning) {
