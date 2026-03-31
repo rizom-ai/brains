@@ -1,5 +1,7 @@
-import type { AgentCard, AgentSkill } from "@a2a-js/sdk";
+import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
 import type { BrainCharacter, AnchorProfile, ToolInfo } from "@brains/plugins";
+
+const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
 
 /**
  * Options for building an Agent Card
@@ -52,6 +54,21 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
     examples: [],
   }));
 
+  // Build anchor-profile extension
+  const anchorParams: Record<string, unknown> = {
+    name: profile.name,
+  };
+  if (profile.description) anchorParams["description"] = profile.description;
+  if (organization) anchorParams["organization"] = organization;
+
+  const extensions: AgentExtension[] = [
+    {
+      uri: ANCHOR_EXTENSION_URI,
+      description: "Anchor (operator) identity for this brain",
+      params: anchorParams,
+    },
+  ];
+
   return {
     name: character.name,
     description: buildDescription(character, profile),
@@ -61,6 +78,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
     capabilities: {
       streaming: true,
       pushNotifications: false,
+      extensions,
     },
     skills,
     defaultInputModes: ["text/plain"],
