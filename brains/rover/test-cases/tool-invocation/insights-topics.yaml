@@ -1,0 +1,24 @@
+id: tool-invocation-insights-topics
+name: Content Insights — Topics
+description: Tests that the agent uses system_insights when asked about topic distribution
+type: tool_invocation
+tags:
+  - core
+  - system
+  - insights
+
+turns:
+  - userMessage: "What are my most common topics?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_insights
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

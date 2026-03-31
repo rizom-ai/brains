@@ -1,0 +1,24 @@
+id: tool-invocation-extract-topics
+name: Extract Topics
+description: Tests that the agent uses system_extract when asked to extract/derive topics
+type: tool_invocation
+tags:
+  - core
+  - system
+  - extract
+
+turns:
+  - userMessage: "Extract topics from my blog posts"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_extract
+      shouldBeCalled: true
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

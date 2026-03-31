@@ -1,0 +1,25 @@
+id: tool-invocation-update-title
+name: Update Entity Title
+description: Tests that the agent uses system_update with correct entity reference to change a title
+type: tool_invocation
+tags:
+  - core
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: "Change the title of my note 'typescript-patterns' to 'TypeScript Design Patterns'"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_update
+      shouldBeCalled: true
+      argsContain:
+        entityType: "note"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 30000

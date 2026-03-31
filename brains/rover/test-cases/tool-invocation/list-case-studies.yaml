@@ -1,0 +1,26 @@
+id: tool-invocation-list-case-studies
+name: List Case Studies (entity type mapping)
+description: Tests that the agent maps "case studies" to entity type "project"
+type: tool_invocation
+tags:
+  - core
+  - list
+  - entity-type-resolution
+
+turns:
+  - userMessage: "Show me my case studies"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: "project"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000

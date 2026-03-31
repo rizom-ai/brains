@@ -382,13 +382,19 @@ export async function main(): Promise<void> {
       }
     }
 
-    // Copy seed content into eval data dir so directory-sync picks it up
+    // Copy eval content (or seed content as fallback) into eval data dir
+    const evalContentDir = resolvePath(process.cwd(), "eval-content");
     const seedContentDir = resolvePath(process.cwd(), "seed-content");
     const evalDataDir = `${evalDbBase}-data`;
-    if (existsSync(seedContentDir)) {
+    const contentDir = existsSync(evalContentDir)
+      ? evalContentDir
+      : seedContentDir;
+    if (existsSync(contentDir)) {
       mkdirSync(evalDataDir, { recursive: true });
-      cpSync(seedContentDir, evalDataDir, { recursive: true });
-      console.log("Copied seed-content into eval data dir");
+      cpSync(contentDir, evalDataDir, { recursive: true });
+      console.log(
+        `Copied ${contentDir === evalContentDir ? "eval-content" : "seed-content"} into eval data dir`,
+      );
     }
 
     // Recreate bare git repo fresh each run to avoid stale data from previous evals

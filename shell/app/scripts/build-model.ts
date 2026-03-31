@@ -2,10 +2,13 @@
 /**
  * Build a generic brain model image bundle.
  *
- * Usage: bun shell/app/scripts/build-model.ts <brain-model>
+ * Usage: bun shell/app/scripts/build-model.ts <brain-model> [--output npm]
  * Example: bun shell/app/scripts/build-model.ts rover
+ * Example: bun shell/app/scripts/build-model.ts rover --output npm
  *
- * Produces dist/ with a self-contained bundle that reads brain.yaml at runtime.
+ * Default output: dist/ with a self-contained bundle for Docker.
+ * With --output npm: adds package.json for npm publish.
+ *
  * All workspace site packages are bundled so any instance can use any site.
  */
 import { build } from "bun";
@@ -16,18 +19,25 @@ import {
   mkdirSync,
   readdirSync,
   readFileSync,
+  chmodSync,
 } from "fs";
 import { generateModelEntrypoint } from "../src/generate-entrypoint";
+import { generateNpmPackageJson } from "../src/generate-npm-package";
 import { join, dirname } from "path";
 
 // ─── Args ──────────────────────────────────────────────────────────────────
 
 const modelName = process.argv[2];
 if (!modelName) {
-  console.error("Usage: bun build-model.ts <brain-model>");
+  console.error("Usage: bun build-model.ts <brain-model> [--output npm]");
   console.error("Example: bun build-model.ts rover");
+  console.error("Example: bun build-model.ts rover --output npm");
   process.exit(1);
 }
+
+const isNpmOutput =
+  process.argv.includes("--output") &&
+  process.argv[process.argv.indexOf("--output") + 1] === "npm";
 
 // ─── Find monorepo root ───────────────────────────────────────────────────
 
@@ -156,6 +166,29 @@ const seedContentPath = join(brainModelDir, "seed-content");
 if (existsSync(seedContentPath)) {
   cpSync(seedContentPath, join(outdir, "seed-content"), { recursive: true });
   console.log("Copied seed-content");
+}
+
+// ─── npm output: generate package.json + make bin executable ──────────────
+
+if (isNpmOutput) {
+  const npmPkg = generateNpmPackageJson(modelName, brainPkgJson.version);
+  writeFileSync(
+    join(outdir, "..", "package.json.npm"),
+    JSON.stringify(npmPkg, null, 2) + "\n",
+  );
+
+  // Make entrypoint executable (bin entry)
+  const entrypoint = join(outdir, ".model-entrypoint.js");
+  const content = readFileSync(entrypoint, "utf-8");
+  if (!content.startsWith("#!/")) {
+    writeFileSync(entrypoint, `#!/usr/bin/env bun\n${content}`);
+  }
+  chmodSync(entrypoint, 0o755);
+
+  console.log(
+    `npm package.json written: ${join(outdir, "..", "package.json.npm")}`,
+  );
+  console.log(`To publish: cp package.json.npm package.json && npm publish`);
 }
 
 console.log(`Build complete: ${outdir}/.model-entrypoint.js`);

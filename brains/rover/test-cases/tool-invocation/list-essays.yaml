@@ -1,0 +1,26 @@
+id: tool-invocation-list-essays
+name: List Essays (entity type mapping)
+description: Tests that the agent maps "essays" to entity type "post"
+type: tool_invocation
+tags:
+  - core
+  - list
+  - entity-type-resolution
+
+turns:
+  - userMessage: "List my essays"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 50000
