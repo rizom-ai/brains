@@ -1,4 +1,4 @@
-# Plan: npm Packages
+# Plan: @rizom/brain
 
 ## Goal
 
@@ -9,307 +9,111 @@ cd mybrain
 brain start
 ```
 
-Four commands: install CLI, scaffold instance, enter directory, run brain.
+One package. CLI, runtime, and all brain models.
 
-## The runtime flow
-
-### 1. Install CLI
-
-```bash
-npm install -g @rizom/brain
-```
-
-Installs the `brain` command. Works on Node (no Bun needed for init and remote mode).
-
-### 2. Scaffold instance
-
-```bash
-brain init mybrain --model rover
-```
-
-Creates a minimal instance:
+## Architecture
 
 ```
-mybrain/
-  brain.yaml              # points to @brains/rover
-  package.json            # depends on @brains/rover, has "start" script
-  .env.example            # secret templates (API keys)
-  .gitignore              # excludes .env, node_modules
+@rizom/brain
+  ├── CLI (brain init, brain start, brain eval, --remote)
+  ├── Runtime (shell, plugins, entities, sites, themes)
+  └── Models (rover, ranger, relay — defineBrain() configs)
 ```
 
-`brain.yaml`:
+`brain.yaml` references models by name, not npm package:
 
 ```yaml
-brain: "@brains/rover"
+brain: rover # not "@brains/rover"
 preset: default
 ```
 
-`package.json`:
+The package resolves the model internally — no dependency installation needed in the instance directory. `brain start` just works.
 
-```json
-{
-  "private": true,
-  "scripts": {
-    "start": "rover"
-  },
-  "dependencies": {
-    "@brains/rover": "^1.0.0"
-  }
-}
+## What's in an instance
+
+```
+mybrain/
+  brain.yaml        # model + config
+  .env              # secrets
+  .gitignore
+  brain-data/       # entities (managed by directory-sync)
+  data/             # databases (auto-created)
 ```
 
-The version is pinned (caret range) — not `"latest"`. The CLI resolves the current version at init time.
+No `package.json`. No `node_modules`. The instance is pure config + data. The CLI has everything built in.
 
-Deploy scaffolding (deploy.yml, Kamal hooks, CI workflow) is opt-in:
+## What's implemented
+
+### CLI (done)
+
+- `brain init <dir>` — scaffolds brain.yaml, .env.example, .gitignore
+- `brain start` — boots brain (monorepo, Docker, or npm path)
+- `brain chat` — starts with interactive chat REPL
+- `brain eval` — runs evaluations
+- `brain list/get/search/sync/build/status` — headless tool invocation
+- `brain <command> --remote <url>` — queries deployed brain via MCP HTTP
+- `brain tool <name> <json>` — raw tool invocation
+- Schema-driven argument mapping from tool inputSchema
+- Node-compatible (no Bun APIs in CLI source)
+
+### Build (done)
+
+- `build-model.ts` bundles brain model + all workspace code into single JS file
+- All site packages bundled (any instance can use any site)
+- Migrations, seed content copied to dist
+
+### In-process webserver (done)
+
+- Hono servers run via Bun.serve() directly — no child process
+- Works in monorepo, Docker, and npm bundle
+
+## What's left
+
+### Phase 1: Single package
+
+Merge CLI + runtime + models into `@rizom/brain`.
+
+1. Bundle all brain models (rover, ranger, relay) into the CLI build
+2. `brain init` no longer scaffolds `package.json` — instances are just brain.yaml
+3. `brain start` resolves model by name from built-in registry, not npm
+4. `brain.yaml` uses `brain: rover` (not `brain: "@brains/rover"`)
+5. Build script produces single `@rizom/brain` package with CLI bin + runtime
+6. Publish to npm
+7. Test: `npm install -g @rizom/brain && brain init mybrain && cd mybrain && brain start`
+
+### Phase 2: Deploy scaffolding
+
+Deploy files are opt-in:
 
 ```bash
-brain init mybrain --model rover --deploy    # adds deploy files
+brain init mybrain --model rover --deploy
 ```
 
-After scaffolding, `brain init` runs `bun install` if Bun is available, or prints instructions.
-
-### 3. Start brain
-
-```bash
-brain start
-```
-
-The CLI:
-
-1. Reads `brain.yaml` → gets `brain: "@brains/rover"`
-2. If `node_modules/` doesn't exist → runs `bun install` (auto-install)
-3. Spawns: `bun run start`
-
-The scaffolded `package.json` has `"start": "rover"`. `bun run start` resolves the `rover` binary from `node_modules/.bin/rover`. No `bunx` ambiguity — local resolution only.
-
-The brain model's `package.json` declares `"bin": { "rover": "./dist/entrypoint.js" }`. `bun install` links it to `node_modules/.bin/rover`.
-
-The entrypoint (`@brains/rover/dist/entrypoint.js`):
-
-1. Reads `brain.yaml` from cwd
-2. Imports the brain definition from its own package
-3. Resolves site overrides (if `site:` is set in brain.yaml)
-4. Calls `resolve(definition, env, overrides)` → `AppConfig`
-5. Creates `App`, initializes, starts daemons
-
-```typescript
-// brain start — simplified
-const brainYaml = readBrainYaml(cwd);
-
-if (!existsSync(join(cwd, "node_modules"))) {
-  spawnSync("bun", ["install"], { cwd, stdio: "inherit" });
-}
-
-spawn("bun", ["run", "start"], { cwd, stdio: "inherit" });
-```
-
-### Runner resolution
-
-Three paths, checked in order:
-
-```typescript
-function resolveRunner(cwd: string): "monorepo" | "docker" | "npm" {
-  // 1. Monorepo: shell/app/src/runner.ts exists
-  const monorepoRoot = findMonorepoRoot(cwd);
-  if (monorepoRoot && existsSync(join(monorepoRoot, "shell/app/src/runner.ts")))
-    return "monorepo";
-
-  // 2. Docker: pre-built entrypoint in dist/
-  if (existsSync(join(cwd, "dist/.model-entrypoint.js"))) return "docker";
-
-  // 3. npm: package.json with brain model dependency
-  if (existsSync(join(cwd, "package.json"))) return "npm";
-
-  throw new Error("No runner found");
-}
-```
-
-- **Monorepo**: `bun run shell/app/src/runner.ts` (existing path)
-- **Docker**: `bun run dist/.model-entrypoint.js` (existing path)
-- **npm**: `bun run start` (uses scaffolded `"start"` script)
-
-## What's in each package
-
-### @rizom/brain (CLI)
-
-```
-dist/brain.js            # bundled CLI (single file)
-package.json             # bin: { brain: "./dist/brain.js" }
-```
-
-No native deps. MCP SDK loaded lazily (only for `--remote`). Works on Node.
-
-### @brains/rover (brain model)
-
-```
-dist/
-  entrypoint.js          # reads brain.yaml, boots brain
-  definition.js          # defineBrain() export (for programmatic use)
-migrations/
-  entity-service/        # Drizzle SQL files
-  conversation-service/
-  job-queue/
-seed-content/            # default markdown files for first run
-public/                  # static assets (favicons)
-package.json
-```
-
-`package.json`:
-
-```json
-{
-  "name": "@brains/rover",
-  "version": "1.0.0",
-  "bin": {
-    "rover": "./dist/entrypoint.js"
-  },
-  "exports": {
-    ".": "./dist/definition.js",
-    "./entrypoint": "./dist/entrypoint.js"
-  },
-  "optionalDependencies": {
-    "sharp": "^0.34.5",
-    "@libsql/client": "^0.14.0",
-    "better-sqlite3": "^11.8.1",
-    "fastembed": "^1.14.4",
-    "lightningcss": "^1.29.2",
-    "@tailwindcss/oxide": "^4.x"
-  }
-}
-```
-
-**Bundled** (inlined): all workspace code — shell, plugins, entities, shared utils, default themes/layouts/sites.
-
-**External** (`optionalDependencies`): native platform-specific binaries. Installed by `bun install` in the instance directory.
-
-**Note:** `fastembed` and `onnxruntime-node` move to the [AI runtime sidecar](./embedding-service.md) when available. Until then, they're `optionalDependencies` on the brain model. The sidecar makes the package lighter and removes the heaviest native deps.
-
-## Site overrides
-
-The bundled brain model includes a default site. Users override in brain.yaml:
-
-```yaml
-brain: "@brains/rover"
-site: "@mysites/portfolio" # npm package — install in instance package.json
-```
-
-The entrypoint resolves site at boot:
-
-```typescript
-// In @brains/rover entrypoint
-const overrides = parseInstanceOverrides(readFileSync("brain.yaml", "utf-8"));
-
-let site = definition.site; // bundled default
-if (overrides.site) {
-  site = (await import(overrides.site)).default; // dynamic import from node_modules
-}
-
-const config = resolve(definition, env, { ...overrides, site });
-```
-
-For a custom site, the user adds it to their instance `package.json`:
-
-```json
-{
-  "dependencies": {
-    "@brains/rover": "^1.0.0",
-    "@mysites/portfolio": "^1.0.0"
-  }
-}
-```
-
-**Theme-only override** (no separate site package):
-
-```yaml
-brain: "@brains/rover"
-theme: "./theme.css" # local CSS file, loaded at build time
-```
-
-The site builder loads `theme.css` from cwd if it exists, merging with the bundled theme's CSS variables.
-
-## Build
-
-### CLI build
-
-```bash
-bun build packages/brain-cli/src/index.ts --outdir dist --target node
-```
-
-Single file, no externals needed (MCP SDK bundled but lazy-imported).
-
-### Brain model build
-
-Extend existing `build-model.ts`:
-
-```bash
-bun shell/app/scripts/build-model.ts rover --output npm
-```
-
-1. Generate `entrypoint.js` (reads brain.yaml, imports definition, boots)
-2. Generate `definition.js` (exports `defineBrain()` result)
-3. Bundle both with `bun build` — workspace code inlined, native deps externalized
-4. Copy migrations, seed-content, public to output directory
-5. Generate `package.json` with correct metadata + `optionalDependencies`
-
-Same bundler config as Docker build. Different output structure.
-
-## Available brain models
-
-`brain init --model <name>` needs to know which models exist.
-
-Phase 1: hardcoded list in the CLI (`rover`, `ranger`, `relay`). Simple, covers our models.
-
-Phase 2: query npm registry — `npm search @brains/ --json` returns published brain model packages. Any package matching `@brains/*` with the right exports shape is a brain model.
-
-## Steps
-
-### Phase 1: CLI npm publish (short-term)
-
-1. Replace `Bun.spawn` with `child_process.spawn` (Node compat for init/remote)
-2. Build script for CLI bundle (`bun build --target node`)
-3. Publish-ready package.json (name: `@rizom/brain`, bin, files)
-4. Update `brain init` to scaffold `package.json` with start script
-5. Make deploy scaffolding opt-in (`--deploy` flag)
-6. Publish `@rizom/brain` to npm
-7. Test: `npm install -g @rizom/brain && brain init test && brain --help`
-
-### Phase 2: Brain model packages (short-term)
-
-1. Add npm output mode to `build-model.ts` (entrypoint.js + definition.js)
-2. Generate package.json with bin, exports, optionalDependencies
-3. Copy sidecar files (migrations, seed-content, public)
-4. Update `brain start` — auto-install + `bun run start` path when no monorepo/Docker runner found
-5. Publish `@brains/rover` to npm
-6. Test: `brain init mybrain && cd mybrain && brain start`
-
-### Phase 2b: In-process webserver
-
-The webserver currently spawns `standalone-server.ts` as a child process via `Bun.spawn`. In the npm bundle, all code is in a single file — the standalone server doesn't exist as a separate file, so the spawn fails.
-
-Fix: run the static file server (Hono) in-process instead of spawning a child process. The code is already in the bundle — it just needs to be imported and started directly rather than spawned as a separate file.
-
-This also simplifies the architecture: no child process management, no IPC heartbeat, no stdout parsing for readiness. The Hono server starts in the same process as everything else.
-
-1. Refactor ServerManager to start Hono server in-process
-2. Remove child process spawn, IPC heartbeat, stdout readiness detection
-3. Keep the same Hono routes (static files, clean URLs, cache headers)
-4. Test: `brain start` serves static site from npm package
+Adds deploy.yml, Kamal hooks, CI workflow. Already implemented, just needs the `--deploy` flag (done).
 
 ### Phase 3: Runtime site overrides (medium-term)
 
-1. Add `site` field to instance overrides schema
-2. Dynamic import of site package in entrypoint
-3. Theme-only CSS override (load from cwd)
-4. `brain init --site` flag
-5. Test: custom site package overrides bundled default
+```yaml
+brain: rover
+site: "@mysites/portfolio" # npm package in instance node_modules
+theme: "./theme.css" # local CSS file
+```
+
+For custom sites, instances DO need a package.json + node_modules. But only when overriding the bundled default — most instances don't need this.
+
+### Phase 4: In-process webserver cleanup
+
+Remove dead code from standalone-server.ts refactor:
+
+- Delete `standalone-server.ts` (no longer spawned)
+- Remove `health-ipc.ts` and heartbeat code (no more IPC)
+- Clean up health-route tests that test the old IPC pattern
 
 ## Verification
 
-1. `npm install -g @rizom/brain` works on Node
-2. `brain init mybrain` creates brain.yaml + package.json (no deploy files)
-3. `brain init mybrain --deploy` creates brain.yaml + package.json + deploy files
-4. `brain start` auto-installs deps and boots via `bun run start`
-5. `brain list posts` works headless
-6. `brain --remote rover.rizom.ai` works without Bun
-7. Custom `site:` in brain.yaml overrides bundled site
-8. `theme.css` in cwd overrides bundled theme colors
+1. `npm install -g @rizom/brain` installs CLI + runtime on any machine with Node
+2. `brain init mybrain` creates brain.yaml + .env.example (no package.json)
+3. `brain start` boots rover from built-in bundle (needs Bun)
+4. `brain list posts --remote rover.rizom.ai` works without Bun
+5. `brain init mybrain --deploy` adds deploy files
+6. `brain eval` runs model evaluations
