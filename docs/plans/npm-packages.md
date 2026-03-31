@@ -69,6 +69,11 @@ brain pin 1.2.0        # pins to specific version
 
 `brain start` prefers local install over global. No `package.json` → global (dev mode). Has `package.json` → local pinned version (production mode).
 
+**Implementation details:**
+
+- `brain pin` auto-installs after creating package.json — creating the file without installing is useless
+- `brain start` checks for `./node_modules/@rizom/brain` — if found, re-execs with the local binary instead of continuing with the global one. Same pattern as eslint, typescript, jest. Silent version mismatches are the worst kind of bug.
+
 ## What's implemented
 
 ### CLI (done)
