@@ -1,6 +1,6 @@
 # @brains/directory-sync
 
-File system synchronization plugin for Personal Brain applications.
+File system synchronization plugin for Brain applications.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # @brains/app
 
-Application orchestration and lifecycle management for Personal Brain applications.
+Application orchestration and lifecycle management for Brain applications.
 
 ## Overview
 
@@ -87,7 +87,7 @@ await app.start();
 import { App, defineConfig } from "@brains/app";
 
 const config = defineConfig({
-  name: "personal-brain",
+  name: "my-brain",
   version: "2.0.0",
   logLevel: "info",
 });

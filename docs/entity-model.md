@@ -1,6 +1,6 @@
 # Extensible Entity Model
 
-The entity model is a core part of the Personal Brain architecture. It provides a unified, functional approach to data modeling using **Zod schemas + TypeScript interfaces** with factory functions for entity creation.
+The entity model is a core part of the Brain architecture. It provides a unified, functional approach to data modeling using **Zod schemas + TypeScript interfaces** with factory functions for entity creation.
 
 ## Core Design Principles
 

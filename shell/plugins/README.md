@@ -1,6 +1,6 @@
 # @brains/plugins
 
-Base classes and utilities for Personal Brain plugin development.
+Base classes and utilities for Brain plugin development.
 
 ## Plugin Types
 

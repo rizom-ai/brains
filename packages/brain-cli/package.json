@@ -1,26 +1,49 @@
 {
-  "name": "@brains/brain-cli",
+  "name": "@rizom/brain",
   "version": "0.1.0",
+  "description": "CLI for managing brain instances — scaffold, run, query, deploy",
   "type": "module",
   "bin": {
-    "brain": "./src/index.ts"
+    "brain": "./dist/brain.js"
   },
   "exports": {
-    ".": "./src/index.ts"
+    "./cli": "./dist/brain.js"
   },
+  "files": [
+    "dist"
+  ],
   "scripts": {
+    "build": "bun scripts/build.ts",
+    "prepublishOnly": "bun scripts/build.ts",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts"
   },
   "dependencies": {
-    "@brains/mcp-service": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@modelcontextprotocol/sdk": "^1.24.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/mcp-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@brains/utils": "workspace:*",
     "@types/bun": "latest",
     "typescript": "^5.3.3"
-  }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rizom-ai/brains.git",
+    "directory": "packages/brain-cli"
+  },
+  "license": "MIT",
+  "keywords": [
+    "brain",
+    "ai",
+    "cli",
+    "mcp",
+    "agent"
+  ]
 }

@@ -1,6 +1,6 @@
 # @brains/mcp-service
 
-Model Context Protocol (MCP) server implementation for Personal Brain applications.
+Model Context Protocol (MCP) server implementation for Brain applications.
 
 ## Overview
 
@@ -97,7 +97,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 
 // Created internally by MCPService
 const mcpServer = new McpServer({
-  name: "personal-brain",
+  name: "brain",
   version: "1.0.0",
 });
 

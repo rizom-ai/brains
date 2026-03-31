@@ -1,6 +1,6 @@
 # @brains/content-generator
 
-Template-based content generation service for Personal Brain applications.
+Template-based content generation service for Brain applications.
 
 ## Overview
 

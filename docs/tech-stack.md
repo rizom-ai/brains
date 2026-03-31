@@ -1,8 +1,8 @@
-# Personal Brain Tech Stack
+# Brains Tech Stack
 
 ## Overview
 
-The Personal Brain project uses a modern, TypeScript-based stack optimized for building an extensible, AI-powered personal knowledge management system with multiple interfaces.
+The Brains project uses a modern, TypeScript-based stack optimized for building an extensible, AI-powered knowledge management system with multiple interfaces.
 
 ## Core Runtime & Language
 

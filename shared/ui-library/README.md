@@ -1,6 +1,6 @@
 # @brains/ui-library
 
-Shared UI components and design system for Personal Brain applications.
+Shared UI components and design system for Brain applications.
 
 ## Overview
 

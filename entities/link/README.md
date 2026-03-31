@@ -1,6 +1,6 @@
 # Link Plugin
 
-Web content capture plugin for the Personal Brain system with AI-powered extraction and structured storage.
+Web content capture plugin for the Brain system with AI-powered extraction and structured storage.
 
 ## Overview
 

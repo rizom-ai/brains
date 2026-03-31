@@ -1,6 +1,6 @@
 # @brains/mcp
 
-MCP transport layer implementation for Personal Brain applications.
+MCP transport layer implementation for Brain applications.
 
 ## Overview
 

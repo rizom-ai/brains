@@ -1,6 +1,6 @@
 # @brains/entity-service
 
-Entity management service with vector search capabilities for Personal Brain applications.
+Entity management service with vector search capabilities for Brain applications.
 
 ## Overview
 

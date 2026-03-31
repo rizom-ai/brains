@@ -1,6 +1,6 @@
 # @brains/core
 
-Core shell infrastructure for Personal Brain applications.
+Core shell infrastructure for Brain applications.
 
 ## Overview
 

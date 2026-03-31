@@ -1,6 +1,6 @@
 # @brains/messaging-service
 
-Event-driven messaging system with pub/sub pattern for Personal Brain applications.
+Event-driven messaging system with pub/sub pattern for Brain applications.
 
 ## Overview
 

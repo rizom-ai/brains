@@ -1,6 +1,6 @@
 # @brains/conversation-service
 
-Conversation and message management service for Personal Brain applications.
+Conversation and message management service for Brain applications.
 
 ## Overview
 

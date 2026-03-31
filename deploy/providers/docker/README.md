@@ -1,6 +1,6 @@
 # Docker Provider
 
-Deploy Personal Brain apps as Docker containers locally or on remote servers.
+Deploy Brain apps as Docker containers locally or on remote servers.
 
 ## Quick Start
 

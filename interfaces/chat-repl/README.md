@@ -1,6 +1,6 @@
 # @brains/cli
 
-Command-line interface for Personal Brain applications using Ink (React for CLI).
+Command-line interface for Brain applications using Ink (React for CLI).
 
 ## Overview
 

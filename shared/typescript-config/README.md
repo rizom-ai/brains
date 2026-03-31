@@ -1,6 +1,6 @@
 # @brains/typescript-config
 
-Shared TypeScript configuration for Personal Brain applications.
+Shared TypeScript configuration for Brain applications.
 
 ## Overview
 

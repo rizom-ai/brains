@@ -1,6 +1,6 @@
 # @brains/webserver
 
-HTTP/WebSocket server interface for Personal Brain applications.
+HTTP/WebSocket server interface for Brain applications.
 
 ## Overview
 

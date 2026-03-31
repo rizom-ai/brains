@@ -1,6 +1,6 @@
 # @brains/ai-service
 
-AI text and object generation service for Personal Brain applications.
+AI text and object generation service for Brain applications.
 
 ## Overview
 

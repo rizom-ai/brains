@@ -1,6 +1,6 @@
 # Summary Plugin
 
-AI-powered conversation summarization plugin for the Personal Brain system.
+AI-powered conversation summarization plugin for the Brain system.
 
 ## Overview
 

@@ -531,18 +531,19 @@
       },
     },
     "packages/brain-cli": {
-      "name": "@brains/brain-cli",
+      "name": "@rizom/brain",
       "version": "0.1.0",
       "bin": {
-        "brain": "./src/index.ts",
+        "brain": "./dist/brain.js",
       },
       "dependencies": {
-        "@brains/mcp-service": "workspace:*",
-        "@brains/utils": "workspace:*",
+        "@modelcontextprotocol/sdk": "^1.12.1",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/mcp-service": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@brains/utils": "workspace:*",
         "@types/bun": "latest",
         "typescript": "^5.3.3",
       },
@@ -1368,8 +1369,6 @@
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
 
-    "@brains/brain-cli": ["@brains/brain-cli@workspace:packages/brain-cli"],
-
     "@brains/buttondown": ["@brains/buttondown@workspace:plugins/buttondown"],
 
     "@brains/chat-repl": ["@brains/chat-repl@workspace:interfaces/chat-repl"],
@@ -1719,6 +1718,8 @@
     "@pnpm/network.ca-file": ["@pnpm/network.ca-file@1.0.2", "", { "dependencies": { "graceful-fs": "4.2.10" } }, "sha512-YcPQ8a0jwYU9bTdJDpXjMi7Brhkr1mXsXrUJvjqM2mQDgkRiz8jFaQGOdaLxgjtUfQgZhKy/O3cG/YwmgKaxLA=="],
 
     "@pnpm/npm-conf": ["@pnpm/npm-conf@3.0.2", "", { "dependencies": { "@pnpm/config.env-replace": "^1.1.0", "@pnpm/network.ca-file": "^1.0.1", "config-chain": "^1.1.11" } }, "sha512-h104Kh26rR8tm+a3Qkc5S4VLYint3FE48as7+/5oCEcKR2idC/pF1G6AhIXKI+eHPJa/3J9i5z0Al47IeGHPkA=="],
+
+    "@rizom/brain": ["@rizom/brain@workspace:packages/brain-cli"],
 
     "@rollup/rollup-android-arm-eabi": ["@rollup/rollup-android-arm-eabi@4.59.0", "", { "os": "android", "cpu": "arm" }, "sha512-upnNBkA6ZH2VKGcBj9Fyl9IGNPULcjXRlg0LLeaioQWueH30p6IXtJEbKAgvyv+mJaMxSm1l6xwDXYjpEMiLMg=="],
 

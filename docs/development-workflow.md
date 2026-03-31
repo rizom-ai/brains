@@ -1,6 +1,6 @@
 # Development Workflow
 
-This document outlines the development workflow and best practices for the Personal Brain Rebuild project.
+This document outlines the development workflow and best practices for the Brains project.
 
 ## Development Setup
 
@@ -149,7 +149,7 @@ MATRIX_DEVICE_ID=your-device-id
 
 # Deployment Configuration
 DOCKER_REGISTRY=your-registry.com
-APP_NAME=personal-brain
+APP_NAME=brain
 ```
 
 ### Managing .env Files

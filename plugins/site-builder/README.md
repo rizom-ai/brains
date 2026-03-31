@@ -1,6 +1,6 @@
 # @brains/site-builder
 
-Static site generation plugin for Personal Brain applications.
+Static site generation plugin for Brain applications.
 
 ## Overview
 

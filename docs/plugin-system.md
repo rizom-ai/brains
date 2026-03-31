@@ -1,6 +1,6 @@
 # Plugin System
 
-The plugin system provides a flexible mechanism for extending the Personal Brain application with new functionality through a tool-first architecture.
+The plugin system provides a flexible mechanism for extending the Brain application with new functionality through a tool-first architecture.
 
 ## Overview
 

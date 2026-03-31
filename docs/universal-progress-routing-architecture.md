@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This document outlines the architectural solution for progress event routing across all interfaces in the Personal Brain system. What started as a CLI progress bar fix revealed a broader need for a universal progress routing pattern that works across CLI, Matrix, and future interfaces without requiring complex context threading through service layers.
+This document outlines the architectural solution for progress event routing across all interfaces in the Brain system. What started as a CLI progress bar fix revealed a broader need for a universal progress routing pattern that works across CLI, Discord, and future interfaces without requiring complex context threading through service layers.
 
 ## Problem Statement
 

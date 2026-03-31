@@ -8,7 +8,7 @@ A Docker registry is required for Hetzner deployments. This guide will help you 
 
 1. Go to GitHub Settings: https://github.com/settings/tokens
 2. Click "Generate new token" → "Generate new token (classic)"
-3. Give it a descriptive name like "Personal Brain Deployment"
+3. Give it a descriptive name like "Brain Deployment"
 4. Select the following scopes:
    - `write:packages` - Upload packages to GitHub Package Registry
    - `read:packages` - Download packages from GitHub Package Registry
@@ -61,7 +61,7 @@ The deployment will:
 
 1. Go to Docker Hub: https://hub.docker.com/settings/security
 2. Click "New Access Token"
-3. Give it a description like "Personal Brain Deployment"
+3. Give it a description like "Brain Deployment"
 4. Select "Read, Write, Delete" permissions
 5. Click "Generate"
 6. Copy the token

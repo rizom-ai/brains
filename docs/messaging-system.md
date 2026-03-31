@@ -1,6 +1,6 @@
 # Messaging System
 
-The messaging system is a core component of the Personal Brain shell, providing a standardized way for components to communicate with each other.
+The messaging system is a core component of the Brain shell, providing a standardized way for components to communicate with each other.
 
 ## Design Goals
 

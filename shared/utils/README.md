@@ -1,6 +1,6 @@
 # @brains/utils
 
-Common utilities and helpers for Personal Brain applications.
+Common utilities and helpers for Brain applications.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Architecture Overview
 
-The Personal Brain application features a modular, plugin-based architecture built around a core shell that provides essential infrastructure for knowledge management. Each "brain" is an independently deployable instance with its own identity, capabilities, and content.
+The Brain application features a modular, plugin-based architecture built around a core shell that provides essential infrastructure for knowledge management. Each "brain" is an independently deployable instance with its own identity, capabilities, and content.
 
 ## Core Architecture Principles
 

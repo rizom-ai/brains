@@ -1,6 +1,6 @@
 # @brains/eslint-config
 
-Shared ESLint configuration for Personal Brain applications.
+Shared ESLint configuration for Brain applications.
 
 ## Overview
 

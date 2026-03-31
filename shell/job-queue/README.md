@@ -1,6 +1,6 @@
 # @brains/job-queue
 
-Background job processing system with progress tracking for Personal Brain applications.
+Background job processing system with progress tracking for Brain applications.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # @brains/blog
 
-AI-powered blog plugin for Personal Brain applications.
+AI-powered blog plugin for Brain applications.
 
 ## Overview
 

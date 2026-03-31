@@ -1,6 +1,6 @@
 # Testing Guide
 
-This guide outlines the testing approach for the Personal Brain rebuild, focusing on behavior-based testing with a minimal number of high-quality tests.
+This guide outlines the testing approach for Brains, focusing on behavior-based testing with a minimal number of high-quality tests.
 
 ## Testing Philosophy
 
@@ -227,7 +227,6 @@ describe("App Integration", () => {
     app = new App({
       debug: true,
       dbPath: ":memory:",
-      matrixEnabled: false,
     });
 
     // Start app
@@ -373,7 +372,7 @@ packages/note-context/test/
 │   └── noteEntity.test.ts
 └── plugin.test.ts
 
-apps/personal-brain/test/
+apps/professional-brain/test/
 └── integration.test.ts
 ```
 
