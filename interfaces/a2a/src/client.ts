@@ -294,6 +294,17 @@ export interface A2AClientDeps {
   fetch?: FetchFn;
   /** Map of remote agent domain → bearer token to send */
   outboundTokens?: Record<string, string>;
+  /** Entity service for agent directory resolution */
+  entityService?: {
+    getEntity(
+      type: string,
+      id: string,
+    ): Promise<{
+      id: string;
+      content: string;
+      metadata: Record<string, unknown>;
+    } | null>;
+  };
 }
 
 /**
@@ -319,11 +330,40 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
 
       const { agent, message } = parsed.data;
 
-      const card = await fetchAgentCard(agent, fetchFn);
+      // Resolve agent to a URL
+      let agentUrl = agent;
+      const isFullUrl =
+        agent.startsWith("http://") || agent.startsWith("https://");
+
+      if (!isFullUrl && deps.entityService) {
+        // Try entity lookup by ID (domain)
+        const entity = await deps.entityService.getEntity("agent", agent);
+        if (entity) {
+          // Refuse archived agents
+          if (entity.metadata["status"] === "archived") {
+            return {
+              success: false,
+              error: `Agent ${agent} is archived. Use agent_add to re-activate.`,
+            };
+          }
+          // Extract URL from entity content frontmatter
+          const urlMatch = entity.content.match(/url:\s*'?([^'\n]+)'?/);
+          if (urlMatch) {
+            agentUrl = urlMatch[1] ?? agent;
+          }
+        }
+      }
+
+      // Ensure agentUrl is a full URL for Agent Card fetch
+      if (!agentUrl.startsWith("http")) {
+        agentUrl = `https://${agentUrl}`;
+      }
+
+      const card = await fetchAgentCard(agentUrl, fetchFn);
       if (!card) {
         return {
           success: false,
-          error: `Could not fetch Agent Card from ${agent}`,
+          error: `Could not fetch Agent Card from ${agentUrl}`,
         };
       }
 
