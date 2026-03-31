@@ -168,6 +168,45 @@ if (existsSync(seedContentPath)) {
   console.log("Copied seed-content");
 }
 
+// ─── Assemble Docker build context ───────────────────────────────────────
+// Creates a self-contained directory with everything Dockerfile.model needs,
+// so `docker build` never touches the brain model's source tree.
+
+const dockerCtx = join(brainModelDir, "docker-context");
+const { rmSync } = await import("fs");
+if (existsSync(dockerCtx)) rmSync(dockerCtx, { recursive: true, force: true });
+mkdirSync(dockerCtx, { recursive: true });
+
+// dist/ — the bundle
+cpSync(outdir, join(dockerCtx, "dist"), { recursive: true });
+
+// package.json — runtime native deps (from deploy/docker/package.prod.json)
+const dockerDir = join(monorepoRoot, "deploy/docker");
+const prodPkgPath = join(dockerDir, "package.prod.json");
+if (existsSync(prodPkgPath)) {
+  cpSync(prodPkgPath, join(dockerCtx, "package.json"));
+}
+
+// Caddyfile — reverse proxy config
+const caddyfilePath = join(dockerDir, "Caddyfile");
+if (existsSync(caddyfilePath)) {
+  cpSync(caddyfilePath, join(dockerCtx, "Caddyfile"));
+}
+
+// seed-content/ (already inside dist/, symlink or copy to context root)
+const distSeedContent = join(dockerCtx, "dist", "seed-content");
+if (existsSync(distSeedContent)) {
+  cpSync(distSeedContent, join(dockerCtx, "seed-content"), { recursive: true });
+}
+
+// public/ — static assets (empty dir is fine)
+mkdirSync(join(dockerCtx, "public"), { recursive: true });
+
+console.log(`Docker context: ${dockerCtx}`);
+console.log(
+  `  docker build -f deploy/docker/Dockerfile.model -t ${modelName} ${dockerCtx}`,
+);
+
 // ─── npm output: generate package.json + make bin executable ──────────────
 
 if (isNpmOutput) {
