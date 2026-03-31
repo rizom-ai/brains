@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -137,6 +138,22 @@
       },
       "devDependencies": {
         "@brains/typescript-config": "workspace:*",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/agent-directory": {
+      "name": "@brains/agent-directory",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1358,6 +1375,8 @@
     "@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
 
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
+
+    "@brains/agent-directory": ["@brains/agent-directory@workspace:entities/agent-directory"],
 
     "@brains/ai-evaluation": ["@brains/ai-evaluation@workspace:shell/ai-evaluation"],
 
