@@ -21,7 +21,9 @@ RUN bun install --ignore-scripts
 # Layer 4: Caddy config (path-based routing to internal services)
 COPY Caddyfile /etc/caddy/Caddyfile
 
-# Layer 5: Create directories
+# Layer 5: Create directories + Caddy storage paths
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
 RUN mkdir -p /app/data /app/cache /app/brain-data && \
     chmod -R 777 /app/data /app/cache /app/brain-data
 
