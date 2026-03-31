@@ -139,13 +139,12 @@ bun test plugins/blog/    # Test a single package
 ## Deployment
 
 ```bash
-# Docker (recommended)
-./scripts/build-release.sh professional-brain
-docker build -t brain -f deploy/docker/Dockerfile.prod .
-docker run -d -p 3333:3333 --env-file .env brain
+# Build and run a brain as a single Docker container
+deploy/scripts/build-docker-image.sh mylittlephoney latest
+docker run -d -p 80:80 --env-file apps/mylittlephoney/.env personal-brain-mylittlephoney:latest
 ```
 
-Currently deployed on Hetzner Cloud with Docker + Caddy. See [Deployment Guide](docs/deployment.md) and [Roadmap](docs/roadmap.md) for the Kamal migration plan.
+Single container with built-in Caddy handles TLS, path-based routing, and static file serving. Currently deployed on Hetzner Cloud. See [deploy/README.md](deploy/README.md) and [Kamal migration plan](docs/plans/deploy-kamal.md).
 
 ## Documentation
 

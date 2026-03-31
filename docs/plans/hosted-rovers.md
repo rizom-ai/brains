@@ -41,7 +41,7 @@ Ranger Pod (always-on)
 - Turso for per-rover databases (DATABASE_URL in env)
 - brain.yaml + env var configuration (mounted as ConfigMap + Secret)
 - A2A communication between Ranger and rovers
-- The Docker image (Dockerfile.prod unchanged)
+- The Docker image (`Dockerfile.model` with built-in Caddy)
 
 ## Per-Rover K8s Resources
 
@@ -162,5 +162,5 @@ Each CX22 hosts ~6-8 active rovers at 512MB limit. With scale-to-zero, most rove
 | `plugins/rover-provisioner/src/` | New plugin: K8s client, templates, Turso client, tools      |
 | `brains/ranger/src/index.ts`     | Register rover-provisioner plugin                           |
 | `deploy/k8s/`                    | New: Terraform for Hetzner K8s, Helm values, base manifests |
-| `deploy/docker/Dockerfile.prod`  | Minor: ensure /health endpoint works for probes             |
+| `deploy/docker/Dockerfile.model` | Already includes /health via Caddy → 8080 proxy             |
 | `docs/plans/hosted-rovers.md`    | Update with K8s architecture                                |

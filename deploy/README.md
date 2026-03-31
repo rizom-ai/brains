@@ -1,86 +1,61 @@
-# Deployment Guide
+# Deployment
 
-## Quick Start
+## Architecture
 
-### Docker Deployment (Recommended)
+Single Docker container with built-in Caddy for path-based routing and TLS.
 
-The simplest way to deploy a Brain app is using Docker:
-
-```bash
-# Build and run locally
-cd deploy/docker
-docker build -t brain-app --build-arg APP_NAME=test-brain ../..
-docker run -p 3333:3333 --env-file .env.production brain-app
+```
+Internet → Caddy (inside container, ports 80/443, Let's Encrypt)
+  → /mcp*                     → localhost:3333 (MCP server)
+  → /.well-known/agent-card   → localhost:3334 (A2A)
+  → /a2a                      → localhost:3334 (A2A)
+  → /api/*                    → localhost:3335 (API routes)
+  → /*                        → localhost:8080 (production site)
+  → preview domain            → localhost:4321 (preview site)
 ```
 
-### Using Docker Compose
+## Building
 
 ```bash
-cd deploy/docker
-cp .env.production.example .env.production
-# Edit .env.production with your API keys
-docker-compose up -d
+# Build Docker image for an app
+deploy/scripts/build-docker-image.sh <app-name> [tag]
+
+# Example
+deploy/scripts/build-docker-image.sh mylittlephoney latest
 ```
 
-## Deployment Methods
+Uses `Dockerfile.model` — includes Caddy, runs as non-root via `setcap`.
 
-### 1. Local Docker
+## Deploying to Hetzner
 
 ```bash
-deploy/scripts/deploy-docker.sh test-brain local
+bun run brain:deploy <app-name> hetzner deploy
+bun run brain:deploy <app-name> hetzner update
+bun run brain:deploy <app-name> hetzner status
+bun run brain:deploy <app-name> hetzner destroy
 ```
 
-### 2. Remote Server
+Requires: `HCLOUD_TOKEN`, Docker registry credentials, Terraform.
 
-```bash
-deploy/scripts/deploy-docker.sh test-brain remote user@server.com
-```
+See `apps/<app-name>/deploy/.env.production` for runtime secrets.
 
-### 3. Hetzner Cloud
+## Future: Kamal
 
-```bash
-cd deploy/providers/hetzner
-cp config.env.example config.env
-# Edit config.env with your Hetzner API token
-terraform init
-terraform apply
-```
-
-## Environment Configuration
-
-Create `.env.production` from the example:
-
-```bash
-cp deploy/docker/.env.production.example .env.production
-```
-
-Required variables:
-
-- `ANTHROPIC_API_KEY` - For AI features
-
-Optional variables:
-
-- `PORT` - Server port (default: 3333)
+Instance-based deployment via Kamal is planned. See [deploy-kamal.md](../docs/plans/deploy-kamal.md).
 
 ## Directory Structure
 
 ```
 deploy/
-├── docker/               # Docker configuration
-│   ├── Dockerfile       # Simple Dockerfile using Bun
-│   ├── docker-compose.yml
-│   └── .env.production.example
-├── providers/           # Cloud provider setups
-│   ├── hetzner/        # Hetzner Cloud with Terraform
-│   └── docker/         # Generic Docker deployment
-└── scripts/            # Deployment scripts
-    ├── deploy-docker.sh # Docker deployment
-    └── lib/            # Shared script libraries
+├── docker/
+│   ├── Dockerfile.model     # Single-container image with built-in Caddy
+│   ├── Caddyfile            # Internal HTTP-only routing (for Kamal/dev)
+│   └── package.prod.json    # Runtime native dependencies
+├── providers/
+│   └── hetzner/             # Hetzner Cloud deployment (Terraform + SSH)
+└── scripts/
+    ├── build-docker-image.sh
+    ├── deploy-brain.sh      # Entry point for bun run brain:deploy
+    ├── deploy-docker.sh
+    └── lib/                 # Shared script libraries
 ```
-
-## Requirements
-
-- **Docker**: Version 20.10 or higher
-- **Docker Compose**: Version 2.0 or higher
-- **Bun**: For local development only
-- **Terraform**: For Hetzner deployment only

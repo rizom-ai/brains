@@ -161,14 +161,14 @@ Add to instance's deploy.yml and CI:
 
 The container runs multiple services on separate ports:
 
-| Service                  | Port | Thread        |
-| ------------------------ | ---- | ------------- |
-| Production static        | 8080 | Child process |
-| Preview static           | 4321 | Child process |
-| MCP HTTP (`/mcp`)        | 3333 | Main thread   |
-| A2A (`/a2a`, agent card) | 3334 | Main thread   |
-| API routes (`/api/*`)    | 3335 | Main thread   |
-| Health (`/health`)       | 8080 | Child process |
+| Service                  | Port | Thread      |
+| ------------------------ | ---- | ----------- |
+| Production static        | 8080 | In-process  |
+| Preview static           | 4321 | In-process  |
+| MCP HTTP (`/mcp`)        | 3333 | Main thread |
+| A2A (`/a2a`, agent card) | 3334 | Main thread |
+| API routes (`/api/*`)    | 3335 | Main thread |
+| Health (`/health`)       | 8080 | In-process  |
 
 kamal-proxy does host → port routing (no path-based routing). So it maps:
 
@@ -189,37 +189,32 @@ Caddy config is baked into the Docker image (it doesn't change per instance).
 
 ## Health endpoint ✅
 
-Implemented. IPC heartbeat between main process and webserver child:
+Implemented. The webserver runs in-process via `Bun.serve()` and exposes `/health` on port 8080. kamal-proxy health checks hit Caddy on port 80, which proxies to `/health` on 8080.
 
-- **Main process (ServerManager):** sends `{ type: "heartbeat" }` every 5s via IPC
-- **Child process (standalone-server):** `/health` returns 200 if heartbeat within 15s, 503 otherwise
-- **If main crashes:** heartbeats stop → child reports unhealthy → Kamal detects failure
+## Dockerfile.model ✅
 
-kamal-proxy health checks hit Caddy on port 80, which proxies to `/health` on 8080.
+Single Dockerfile for all brain images (`deploy/docker/Dockerfile.model`). Replaces `Dockerfile.prod`.
 
-## Dockerfile.model
-
-New Dockerfile for brain model images (`deploy/docker/Dockerfile.model`). Existing `Dockerfile.prod` is unchanged.
-
-- Entrypoint: `dist/.model-entrypoint.js` (reads brain.yaml at runtime)
+- Entrypoint: `dist/.model-entrypoint.js` or `dist/.brain-entrypoint.js` (fallback)
 - Includes Caddy for internal port routing
-- brain.yaml mounted at runtime via volume
+- `setcap` allows non-root Caddy to bind ports 80/443
+- brain.yaml copied from dist at build time, can be overridden via volume mount
 - All workspace site packages bundled (any instance can use any site)
 
-## Dockerfile.model on current Hetzner
+## Dockerfile.model on current Hetzner ✅
 
-Dockerfile.model works on the current Hetzner setup too. External Caddy proxies to container port 80 → internal Caddy routes to services. Double Caddy but functional. Once verified, Dockerfile.model replaces Dockerfile.prod and external Caddy simplifies to a pass-through (or gets removed entirely when Kamal takes over).
+Verified working. Single container with built-in Caddy handles TLS (Let's Encrypt) directly — no external Caddy container needed. The Hetzner deploy scripts (`deploy-app.sh`) use `Dockerfile.model` and mount a domain-specific Caddyfile at runtime.
 
 ## What stays from current infra
 
 - **Hetzner VPS instances** — keep existing servers
-- **Dockerfile.prod** — unchanged until Dockerfile.model is verified
 - **git-sync** — still pushes to GitHub
 - **Discord bot** — runs inside container
 - **Cloudflare account** — same account, API-managed
 
 ## What gets deleted from monorepo
 
+- `deploy/docker/Dockerfile.prod` — replaced by Dockerfile.model
 - `deploy/providers/hetzner/terraform/` — all Terraform config
 - `deploy/providers/hetzner/deploy.sh` — replaced by instance CI
 - `deploy/providers/hetzner/deploy-app.sh` — same
