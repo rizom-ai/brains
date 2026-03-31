@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-03-30 — Click any item for details</p>
+  <p>Last updated: 2026-03-31 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -221,9 +221,9 @@ const items = [
   { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 95%+ with 70+ tests. Blocks Rover 1.0." },
   { id: "documentation", name: "Documentation Phase 1", status: "short-term", desc: "Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0." },
   { id: "namingcleanup", name: "Naming Cleanup", status: "short-term", desc: "Remove 'Personal Brain' from 60+ files. System supports personal, team, and collective brains. Blocks Rover 1.0." },
-  { id: "searchquality12", name: "Search Quality Phases 1-2", status: "short-term", desc: "Tighten threshold + FTS5 hybrid search (keyword + semantic). Immediate precision improvement." },
-  { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with registry pattern. Topic distribution, publishing cadence, content health.", date: "2026-03" },
-  { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool backed by git log. List commits, retrieve content at version.", date: "2026-03" },
+  { id: "searchquality12", name: "Search Quality Phases 0-2", status: "short-term", desc: "Phase 0: baseline measurement (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search.", deps: ["evalcoverage"] },
+  { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
+  { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.", date: "2026-03" },
 
   // Medium-term
   { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
@@ -400,14 +400,19 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
+      <div class="dep-group-title">Eval → Search Quality</div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval coverage</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 0-2</span>
+        <span class="dep-label">baseline needs real content</span>
+      </div>
+    </div>
+    <div class="dep-group">
       <div class="dep-group-title">Independent (short-term)</div>
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('agentdir1')">agent-dir phase 1</span>
         <span class="dep-label">manual discovery</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 1-2</span>
-        <span class="dep-label">threshold + hybrid search</span>
       </div>
     </div>
   </div>`;
