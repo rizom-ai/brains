@@ -406,7 +406,7 @@ export async function main(): Promise<void> {
       }
     }
 
-    // Recreate bare git repo fresh each run to avoid stale data from previous evals
+    // Create bare git repo for directory-sync (enables history tool)
     const gitRemotePath = "/tmp/brain-eval-git-remote";
     if (existsSync(gitRemotePath)) {
       rmSync(gitRemotePath, { recursive: true, force: true });

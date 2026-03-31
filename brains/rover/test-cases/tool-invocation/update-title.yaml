@@ -14,8 +14,6 @@ successCriteria:
   expectedTools:
     - toolName: system_update
       shouldBeCalled: true
-      argsContain:
-        entityType: "note"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

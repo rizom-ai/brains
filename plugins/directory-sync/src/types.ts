@@ -91,8 +91,14 @@ export const directorySyncConfigSchema = z.object({
         .describe("Full git remote URL (overrides repo)"),
       branch: z.string().default("main").describe("Git branch to sync"),
       authToken: z.string().optional().describe("Auth token for private repos"),
-      authorName: z.string().optional().describe("Git commit author name"),
-      authorEmail: z.string().optional().describe("Git commit author email"),
+      authorName: z
+        .string()
+        .default("Brain")
+        .describe("Git commit author name"),
+      authorEmail: z
+        .string()
+        .default("brain@rizom.ai")
+        .describe("Git commit author email"),
     })
     .optional(),
 });

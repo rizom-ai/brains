@@ -9,7 +9,7 @@ tags:
   - proactive-behavior
 
 turns:
-  - userMessage: "What have I written about machine learning?"
+  - userMessage: "What have I written about sustainability?"
     successCriteria:
       expectedTools:
         - toolName: system_search
@@ -31,7 +31,7 @@ turns:
         - "would you like me to"
         - "Would you like me to"
 
-  - userMessage: "How do we use React in our projects?"
+  - userMessage: "How do I discuss urban technology in my writing?"
     successCriteria:
       expectedTools:
         - toolName: system_search

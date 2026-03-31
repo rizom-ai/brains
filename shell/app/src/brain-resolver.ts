@@ -93,10 +93,14 @@ function deepMerge(
 ): Record<string, unknown> {
   const result = { ...base };
   for (const key of Object.keys(override)) {
-    const baseVal = base[key];
     const overrideVal = override[key];
-    if (isPlainObject(baseVal) && isPlainObject(overrideVal)) {
-      result[key] = deepMerge(baseVal, overrideVal);
+    if (overrideVal === null) {
+      delete result[key];
+    } else if (isPlainObject(result[key]) && isPlainObject(overrideVal)) {
+      result[key] = deepMerge(
+        result[key] as Record<string, unknown>,
+        overrideVal,
+      );
     } else {
       result[key] = overrideVal;
     }

@@ -12,9 +12,9 @@ async function waitForBatch(
   context: ServicePluginContext,
   batchId: string,
   logger: Logger,
-  timeoutMs = 60000,
+  timeoutMs = 300000,
 ): Promise<void> {
-  const checkInterval = 100;
+  const checkInterval = 500;
   const startTime = Date.now();
 
   while (Date.now() - startTime < timeoutMs) {
@@ -102,13 +102,24 @@ export function setupInitialSync(
         totalFiles: batchResult.totalFiles,
       });
 
-      // Wait for import jobs to finish
-      await waitForBatch(context, batchResult.batchId, logger);
-
-      await context.messaging.send(
-        "sync:initial:completed",
-        { success: true },
-        { broadcast: true },
+      // Wait for jobs to complete, then broadcast completion
+      // This runs detached so it doesn't block the plugins:ready handler
+      // (the job queue worker starts after plugins:ready returns)
+      void waitForBatch(context, batchResult.batchId, logger).then(
+        () =>
+          context.messaging.send(
+            "sync:initial:completed",
+            { success: true },
+            { broadcast: true },
+          ),
+        (error) => {
+          logger.error("Initial sync batch failed", error);
+          void context.messaging.send(
+            "sync:initial:completed",
+            { success: false, error: getErrorMessage(error) },
+            { broadcast: true },
+          );
+        },
       );
     } catch (error) {
       logger.error("Initial sync failed", error);

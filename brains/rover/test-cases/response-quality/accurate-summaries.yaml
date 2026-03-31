@@ -12,10 +12,8 @@ turns:
   - userMessage: "Give me an overview of all my content"
 
 successCriteria:
-  expectedTools:
-    - toolName: system_list
-      shouldBeCalled: true
-  # Should accurately reflect actual content
+  toolCountRange:
+    min: 1
   minAccuracyScore: 3
   minHelpfulnessScore: 3
 

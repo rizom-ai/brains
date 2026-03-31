@@ -33,7 +33,6 @@ if (!existsSync(evalContentDir)) {
 }
 
 const dbBase = "/tmp/eval-db-build";
-const gitRemote = "/tmp/eval-db-build-git";
 
 // Clean previous build artifacts
 for (const path of [
@@ -42,10 +41,16 @@ for (const path of [
   `${dbBase}-conv.db`,
   `${dbBase}-data`,
   `${dbBase}-cache`,
-  gitRemote,
+  "/tmp/brain-eval-git-remote",
 ]) {
   if (existsSync(path)) rmSync(path, { recursive: true, force: true });
 }
+
+// Create bare git repo for directory-sync history tool
+const gitRemote = "/tmp/brain-eval-git-remote";
+if (existsSync(gitRemote)) rmSync(gitRemote, { recursive: true, force: true });
+mkdirSync(gitRemote, { recursive: true });
+execSync("git init --bare", { cwd: gitRemote, stdio: "ignore" });
 
 // Copy eval content into temp data dir
 mkdirSync(`${dbBase}-data`, { recursive: true });
@@ -53,10 +58,6 @@ cpSync(evalContentDir, `${dbBase}-data`, { recursive: true });
 // Remove stale brain.db from data dir (we're building a fresh one)
 const staleDb = join(`${dbBase}-data`, "brain.db");
 if (existsSync(staleDb)) rmSync(staleDb);
-
-// Set up bare git remote for directory-sync
-mkdirSync(gitRemote, { recursive: true });
-execSync("git init --bare", { cwd: gitRemote, stdio: "ignore" });
 
 // Load brain config from eval yaml
 const brainApp = await import("@brains/app");
@@ -88,30 +89,42 @@ const app = App.create({
 });
 
 await app.initialize();
+
 const shell = app.getShell();
+const messageBus = shell.getMessageBus();
 const jobQueue = shell.getJobQueueService();
 
-// Wait for all jobs to complete (imports + embeddings)
-const timeoutMs = 180_000;
-const start = Date.now();
-let lastLog = 0;
+// Wait for initial sync to complete (import all files from eval-content)
+console.log("Waiting for initial sync...");
+await new Promise<void>((resolve) => {
+  messageBus.subscribe("sync:initial:completed", async () => {
+    console.log("Initial sync completed.");
+    resolve();
+    return { success: true };
+  });
+});
 
-while (Date.now() - start < timeoutMs) {
+// Wait for remaining jobs (embeddings, site build)
+console.log("Waiting for remaining jobs...");
+for (;;) {
   const active = await jobQueue.getActiveJobs();
   if (active.length === 0) break;
-
-  const elapsed = Math.round((Date.now() - start) / 1000);
-  if (elapsed - lastLog >= 10) {
-    console.log(`Waiting for ${active.length} jobs... (${elapsed}s)`);
-    lastLog = elapsed;
+  const byType: Record<string, number> = {};
+  for (const job of active) {
+    byType[job.type] = (byType[job.type] ?? 0) + 1;
   }
-  await new Promise((r) => setTimeout(r, 500));
+  console.log(
+    `${active.length} jobs: ${Object.entries(byType)
+      .map(([t, n]) => `${t}(${n})`)
+      .join(" ")}`,
+  );
+  await new Promise((r) => setTimeout(r, 2000));
 }
 
-// Report what's in the database
+// Final report
 const entityService = shell.getEntityService();
 const counts: Record<string, number> = {};
-for (const type of ["post", "note", "link", "deck", "project"]) {
+for (const type of ["post", "base", "link", "deck", "project"]) {
   counts[type] = (await entityService.listEntities(type)).length;
 }
 console.log("Database contents:", counts);

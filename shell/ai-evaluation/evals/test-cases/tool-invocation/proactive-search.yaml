@@ -9,7 +9,7 @@ tags:
   - proactive-behavior
 
 turns:
-  - userMessage: "How is 'voting with your feet' used by us?"
+  - userMessage: "How have I written about resilience in distributed systems?"
 
 successCriteria:
   # Agent MUST call search tool without asking permission

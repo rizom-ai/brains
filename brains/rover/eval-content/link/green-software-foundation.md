@@ -1,10 +1,17 @@
 ---
 title: Green Software Foundation
-slug: green-software-foundation
 status: published
-description: Non-profit building a trusted ecosystem for green software development
 url: "https://greensoftware.foundation"
-publishedAt: "2025-10-10T00:00:00.000Z"
+description: Non-profit building a trusted ecosystem for green software development
+keywords:
+  - sustainability
+  - green-software
+  - carbon
+domain: greensoftware.foundation
+capturedAt: "2025-10-10T00:00:00.000Z"
+source:
+  ref: "cli:local"
+  label: CLI
 checksum: seed
 created: "2025-10-10T00:00:00.000Z"
 updated: "2025-10-10T00:00:00.000Z"

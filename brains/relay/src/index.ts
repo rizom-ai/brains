@@ -61,10 +61,6 @@ export default defineBrain({
         seedContent: true,
         seedContentPath: join(import.meta.dir, "..", "seed-content"),
         initialSync: true,
-        git: {
-          authorName: "Relay",
-          authorEmail: "relay@rizom.ai",
-        },
       },
     ],
     ["site-content", siteContentPlugin, undefined],

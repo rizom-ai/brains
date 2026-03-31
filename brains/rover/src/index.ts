@@ -151,10 +151,6 @@ export default defineBrain({
         seedContent: true,
         seedContentPath: join(import.meta.dir, "..", "seed-content"),
         initialSync: true,
-        git: {
-          authorName: "Rover",
-          authorEmail: "rover@rizom.ai",
-        },
       },
     ],
     ["analytics", analyticsPlugin, {}],

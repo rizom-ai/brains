@@ -173,8 +173,8 @@ export class DirectorySyncJobHandler extends BaseJobHandler<
     this.logger.debug(`Waiting for ${jobIds.length} import jobs to complete`);
 
     const { entityService } = this.context;
-    const maxWaitTime = 60000;
-    const pollInterval = 200;
+    const maxWaitTime = 300000;
+    const pollInterval = 500;
     const startTime = Date.now();
 
     const pollJobs = async (): Promise<void> => {

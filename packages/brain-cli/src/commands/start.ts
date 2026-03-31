@@ -138,18 +138,19 @@ export async function start(
     };
   }
 
-  const runnerType = resolveRunnerType(cwd);
+  const runner = findRunner(cwd);
 
-  if (!runnerType) {
-    return {
-      success: false,
-      message:
-        "Could not find brain runner. Are you in a monorepo, Docker container, or npm instance?",
-    };
-  }
+  // npm path: no runner found, but package.json has a start script
+  if (!runner) {
+    const runnerType = resolveRunnerType(cwd);
+    if (runnerType !== "npm") {
+      return {
+        success: false,
+        message:
+          "Could not find brain runner. Are you in a monorepo, Docker container, or npm instance?",
+      };
+    }
 
-  // npm path: auto-install + bun run start
-  if (runnerType === "npm") {
     const installError = ensureDependencies(cwd);
     if (installError) return installError;
 
@@ -173,11 +174,6 @@ export async function start(
   }
 
   // Monorepo/Docker path: bun run <runner-path>
-  const runner = findRunner(cwd);
-  if (!runner) {
-    return { success: false, message: "Runner not found." };
-  }
-
   const args = ["run", runner.path];
   if (flags.chat) args.push("--cli");
 

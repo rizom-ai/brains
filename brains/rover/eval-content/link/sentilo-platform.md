@@ -1,10 +1,18 @@
 ---
 title: "Sentilo: Barcelona's Open Source Urban Sensor Platform"
-slug: sentilo-platform
 status: published
-description: Open source platform for managing urban sensor networks, developed by Barcelona City Council
 url: "https://www.sentilo.io"
-publishedAt: "2025-09-20T00:00:00.000Z"
+description: Open source platform for managing urban sensor networks, developed by Barcelona City Council
+keywords:
+  - urban-sensing
+  - iot
+  - open-source
+  - barcelona
+domain: sentilo.io
+capturedAt: "2025-09-20T00:00:00.000Z"
+source:
+  ref: "cli:local"
+  label: CLI
 checksum: seed
 created: "2025-09-20T00:00:00.000Z"
 updated: "2025-09-20T00:00:00.000Z"
