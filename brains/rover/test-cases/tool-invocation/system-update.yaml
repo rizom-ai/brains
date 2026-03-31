@@ -8,7 +8,7 @@ tags:
   - entity-crud
 
 turns:
-  - userMessage: "Update the status of my note 'my-first-post' to published"
+  - userMessage: "Update the status of my note 'typescript-patterns' to draft"
 
 successCriteria:
   expectedTools:

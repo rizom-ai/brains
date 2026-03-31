@@ -8,7 +8,7 @@ tags:
   - cover
 
 turns:
-  - userMessage: "Set the image 'hero-banner' as the cover for blog post 'my-first-post'"
+  - userMessage: "Set the image 'hero-banner' as the cover for blog post 'resilience-in-distributed-systems'"
 
 successCriteria:
   expectedTools:
@@ -16,7 +16,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "post"
-        entityId: "my-first-post"
+        entityId: "resilience-in-distributed-systems"
         imageId: "hero-banner"
   responseNotContains:
     - "I cannot"

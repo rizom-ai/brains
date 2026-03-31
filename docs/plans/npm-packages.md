@@ -282,6 +282,19 @@ Phase 2: query npm registry — `npm search @brains/ --json` returns published b
 5. Publish `@brains/rover` to npm
 6. Test: `brain init mybrain && cd mybrain && brain start`
 
+### Phase 2b: In-process webserver
+
+The webserver currently spawns `standalone-server.ts` as a child process via `Bun.spawn`. In the npm bundle, all code is in a single file — the standalone server doesn't exist as a separate file, so the spawn fails.
+
+Fix: run the static file server (Hono) in-process instead of spawning a child process. The code is already in the bundle — it just needs to be imported and started directly rather than spawned as a separate file.
+
+This also simplifies the architecture: no child process management, no IPC heartbeat, no stdout parsing for readiness. The Hono server starts in the same process as everything else.
+
+1. Refactor ServerManager to start Hono server in-process
+2. Remove child process spawn, IPC heartbeat, stdout readiness detection
+3. Keep the same Hono routes (static files, clean URLs, cache headers)
+4. Test: `brain start` serves static site from npm package
+
 ### Phase 3: Runtime site overrides (medium-term)
 
 1. Add `site` field to instance overrides schema

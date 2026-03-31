@@ -8,7 +8,7 @@ tags:
   - core
 
 turns:
-  - userMessage: "Generate a cover image for the blog post 'the-future-of-work-is-play'"
+  - userMessage: "Generate a cover image for the blog post 'urban-sensing-networks'"
 
 successCriteria:
   expectedTools:
@@ -16,8 +16,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "image"
-        options.targetEntityType: "post"
-        options.targetEntityId: "the-future-of-work-is-play"
+        targetEntityType: "post"
+        targetEntityId: "urban-sensing-networks"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

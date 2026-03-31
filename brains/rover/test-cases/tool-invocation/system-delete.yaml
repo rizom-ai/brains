@@ -8,7 +8,7 @@ tags:
   - entity-crud
 
 turns:
-  - userMessage: "Delete the note 'my-first-post'"
+  - userMessage: "Delete the note 'green-software-principles'"
 
 successCriteria:
   expectedTools:

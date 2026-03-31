@@ -106,7 +106,8 @@ export class DaemonRegistry {
       daemonInfo.status = "error";
       daemonInfo.error =
         error instanceof Error ? error : new Error(String(error));
-      this.logger.error(`Failed to start daemon: ${name}`, error);
+      const msg = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Daemon ${name} failed to start: ${msg}`);
       throw error;
     }
   }
@@ -245,7 +246,8 @@ export class DaemonRegistry {
       try {
         await this.start(daemonInfo.name);
       } catch (error) {
-        this.logger.error(`Failed to start daemon: ${daemonInfo.name}`, error);
+        const msg = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Daemon ${daemonInfo.name} failed to start: ${msg}`);
         // Continue starting other daemons even if one fails
       }
     }

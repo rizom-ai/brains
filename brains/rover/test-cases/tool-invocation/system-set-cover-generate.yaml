@@ -8,7 +8,7 @@ tags:
   - cover
 
 turns:
-  - userMessage: "Generate a cover image for the blog post 'urging-new-institutions'"
+  - userMessage: "Generate a cover image for the blog post 'resilience-in-distributed-systems'"
 
 successCriteria:
   expectedTools:
@@ -16,8 +16,8 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "image"
-        options.targetEntityType: "post"
-        options.targetEntityId: "urging-new-institutions"
+        targetEntityType: "post"
+        targetEntityId: "resilience-in-distributed-systems"
   responseNotContains:
     - "I cannot"
     - "I don't have access"
