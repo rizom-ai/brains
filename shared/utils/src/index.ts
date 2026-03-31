@@ -1,7 +1,7 @@
 /**
- * Personal Brain Utils Package
+ * Brains Utils Package
  *
- * This package contains shared utilities used across the Personal Brain system.
+ * This package contains shared utilities used across the Brains system.
  */
 
 // Logger

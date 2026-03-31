@@ -61,7 +61,7 @@ export const siteBuilderConfigSchema = z.object({
     .describe("Working directory for builds")
     .default("./.preact-work"),
   siteInfo: siteInfoBodySchema.default({
-    title: "Personal Brain",
+    title: "Brain",
     description: "A knowledge management system",
   }),
   themeCSS: z

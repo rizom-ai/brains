@@ -83,10 +83,10 @@ describe("BrainCharacterAdapter", () => {
   describe("toMarkdown", () => {
     it("should convert character entity to frontmatter format", () => {
       const content = adapter.createCharacterContent({
-        name: "Personal Brain",
-        role: "Personal knowledge assistant",
+        name: "Brain",
+        role: "Knowledge assistant",
         purpose:
-          "Help organize, understand, and retrieve information from your personal knowledge base.",
+          "Help organize, understand, and retrieve information from your knowledge base.",
         values: ["clarity", "accuracy", "helpfulness"],
       });
 
@@ -99,8 +99,8 @@ describe("BrainCharacterAdapter", () => {
 
       // Should be frontmatter format
       expect(markdown).toContain("---");
-      expect(markdown).toContain("name: Personal Brain");
-      expect(markdown).toContain("role: Personal knowledge assistant");
+      expect(markdown).toContain("name: Brain");
+      expect(markdown).toContain("role: Knowledge assistant");
       expect(markdown).toContain("purpose:");
       expect(markdown).toContain("values:");
       expect(markdown).toContain("- clarity");
@@ -238,10 +238,10 @@ values:
   describe("roundtrip conversion", () => {
     it("should preserve data through createCharacterContent and parseCharacterBody", () => {
       const originalData = {
-        name: "Personal Brain",
-        role: "Personal knowledge assistant",
+        name: "Brain",
+        role: "Knowledge assistant",
         purpose:
-          "Help organize, understand, and retrieve information from your personal knowledge base.",
+          "Help organize, understand, and retrieve information from your knowledge base.",
         values: ["clarity", "accuracy", "helpfulness"],
       };
 

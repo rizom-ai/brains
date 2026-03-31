@@ -59,10 +59,10 @@ describe("BrainCharacterService", () => {
       const defaultCharacter = BrainCharacterService.getDefaultCharacter();
 
       expect(defaultCharacter).toEqual({
-        name: "Personal Brain",
-        role: "Personal knowledge assistant",
+        name: "Brain",
+        role: "Knowledge assistant",
         purpose:
-          "Help organize, understand, and retrieve information from your personal knowledge base",
+          "Help organize, understand, and retrieve information from your knowledge base",
         values: ["clarity", "accuracy", "helpfulness"],
       });
     });
@@ -131,7 +131,7 @@ values:
       });
 
       // Content should contain default character data
-      expect(createCall?.["content"]).toContain("Personal knowledge assistant");
+      expect(createCall?.["content"]).toContain("Knowledge assistant");
       expect(createCall?.["content"]).toContain("clarity");
     });
 
@@ -255,9 +255,7 @@ values:
 
       expect(createCall?.["content"]).toContain("Research assistant");
       expect(createCall?.["content"]).toContain("rigor");
-      expect(createCall?.["content"]).not.toContain(
-        "Personal knowledge assistant",
-      );
+      expect(createCall?.["content"]).not.toContain("Knowledge assistant");
     });
 
     it("should fall back to hardcoded default when custom character is not provided", () => {

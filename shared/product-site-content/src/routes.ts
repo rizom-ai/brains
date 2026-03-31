@@ -5,7 +5,7 @@ export const routes = [
     id: "landing",
     path: "/",
     title: "Home",
-    description: "Welcome to your Personal Brain",
+    description: "Welcome to your Brain",
     navigation: {
       show: true,
       label: "Home",

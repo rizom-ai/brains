@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import { join } from "path";
+import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
 
 /**
@@ -35,15 +36,18 @@ export async function runEval(
 
   const evalArgs = buildEvalArgs(rawArgv);
 
-  const proc = Bun.spawn(["bun", "run", "eval", ...evalArgs], {
-    cwd,
-    stdio: ["inherit", "inherit", "inherit"],
-    env: process.env,
-  });
+  return new Promise((resolve) => {
+    const proc = spawn("bun", ["run", "eval", ...evalArgs], {
+      cwd,
+      stdio: "inherit",
+      env: process.env,
+    });
 
-  const exitCode = await proc.exited;
-  return {
-    success: exitCode === 0,
-    ...(exitCode !== 0 ? { message: `Eval exited with code ${exitCode}` } : {}),
-  };
+    proc.on("close", (code) => {
+      resolve({
+        success: code === 0,
+        ...(code !== 0 ? { message: `Eval exited with code ${code}` } : {}),
+      });
+    });
+  });
 }

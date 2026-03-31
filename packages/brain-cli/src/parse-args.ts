@@ -8,6 +8,7 @@ export interface ParsedArgs {
     domain?: string | undefined;
     "content-repo"?: string | undefined;
     preview?: boolean | undefined;
+    deploy?: boolean | undefined;
     remote?: string | undefined;
     token?: string | undefined;
     help?: boolean | undefined;
@@ -20,6 +21,7 @@ const options = {
   domain: { type: "string" as const },
   "content-repo": { type: "string" as const },
   preview: { type: "boolean" as const },
+  deploy: { type: "boolean" as const },
   remote: { type: "string" as const },
   token: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
@@ -73,6 +75,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       domain: getString(values, "domain"),
       "content-repo": getString(values, "content-repo"),
       preview: getBoolean(values, "preview"),
+      deploy: getBoolean(values, "deploy"),
       remote: getString(values, "remote"),
       token: getString(values, "token"),
     },

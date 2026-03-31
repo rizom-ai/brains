@@ -5,26 +5,31 @@ export interface ScaffoldOptions {
   model: string;
   domain?: string | undefined;
   contentRepo?: string | undefined;
+  deploy?: boolean | undefined;
 }
 
 /**
  * Scaffold a new brain instance directory.
  *
- * brain.yaml is the single source of truth for instance config.
- * deploy.yml is a static Kamal template — same for all instances,
- * reads instance-specific values from env vars at deploy time.
- * CI extracts values from brain.yaml into env vars.
+ * Minimal scaffold (default): brain.yaml + package.json + .env.example + .gitignore
+ * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const { model } = options;
   const domain = options.domain ?? `${model}.rizom.ai`;
 
+  // Always created
   writeBrainYaml(dir, model, domain, options.contentRepo);
-  writeDeployYml(dir);
+  writePackageJson(dir, model);
   writeEnvExample(dir);
-  writePreDeployHook(dir);
-  writeDeployWorkflow(dir);
   writeGitignore(dir);
+
+  // Deploy files only with --deploy
+  if (options.deploy) {
+    writeDeployYml(dir);
+    writePreDeployHook(dir);
+    writeDeployWorkflow(dir);
+  }
 }
 
 function writeBrainYaml(
@@ -54,6 +59,20 @@ plugins:
 `;
 
   writeFileSync(join(dir, "brain.yaml"), content);
+}
+
+function writePackageJson(dir: string, model: string): void {
+  const pkg = {
+    private: true,
+    scripts: {
+      start: model,
+    },
+    dependencies: {
+      [`@brains/${model}`]: "latest",
+    },
+  };
+
+  writeFileSync(join(dir, "package.json"), JSON.stringify(pkg, null, 2) + "\n");
 }
 
 /**
@@ -113,7 +132,7 @@ GIT_SYNC_TOKEN=
 MCP_AUTH_TOKEN=
 DISCORD_BOT_TOKEN=
 
-# Deploy
+# Deploy (only needed with --deploy)
 KAMAL_REGISTRY_PASSWORD=
 SERVER_IP=
 CLOUDFLARE_API_TOKEN=
@@ -182,6 +201,7 @@ function writeGitignore(dir: string): void {
   const content = `.env
 .env.*
 !.env.example
+node_modules
 `;
 
   writeFileSync(join(dir, ".gitignore"), content);

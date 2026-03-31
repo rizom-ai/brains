@@ -19,7 +19,7 @@ describe("SiteInfoDataSource", () => {
 
     const result = await ds.fetch({}, outputSchema, { entityService });
 
-    expect(result["title"]).toBe("Personal Brain");
+    expect(result["title"]).toBe("Brain");
     expect(result["description"]).toBe("A knowledge management system");
     expect(result["copyright"]).toBe("Powered by Rizom");
   });

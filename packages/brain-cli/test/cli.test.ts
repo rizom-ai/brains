@@ -97,7 +97,7 @@ describe("brain init (end-to-end)", () => {
 
     expect(result.success).toBe(true);
     expect(existsSync(join(outDir, "brain.yaml"))).toBe(true);
-    expect(existsSync(join(outDir, "deploy.yml"))).toBe(true);
+    expect(existsSync(join(outDir, "package.json"))).toBe(true);
     expect(existsSync(join(outDir, ".env.example"))).toBe(true);
   });
 });

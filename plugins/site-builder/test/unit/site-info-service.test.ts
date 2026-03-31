@@ -33,7 +33,7 @@ describe("SiteInfoService", () => {
       const defaultSiteInfo = SiteInfoService.getDefaultSiteInfo();
 
       expect(defaultSiteInfo).toEqual({
-        title: "Personal Brain",
+        title: "Brain",
         description: "A knowledge management system",
       });
     });
@@ -111,7 +111,7 @@ description: A simple website
         expect.objectContaining({
           id: "site-info",
           entityType: "site-info",
-          content: expect.stringContaining("Personal Brain"),
+          content: expect.stringContaining("Brain"),
         }),
       );
       expect(mockEntityService.createEntity).toHaveBeenCalledWith(
@@ -162,7 +162,7 @@ description: Existing description
 
       // Verify service is using defaults since no entity exists yet
       let siteInfo = await siteInfoService.getSiteInfo();
-      expect(siteInfo.title).toBe("Personal Brain"); // Default title
+      expect(siteInfo.title).toBe("Brain"); // Default title
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedEntity = createMockSiteInfo({

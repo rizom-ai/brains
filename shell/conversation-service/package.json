@@ -1,7 +1,7 @@
 {
   "name": "@brains/conversation-service",
   "version": "1.0.0",
-  "description": "Conversation storage and retrieval service for Personal Brain",
+  "description": "Conversation storage and retrieval service for Brains",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

@@ -1,7 +1,7 @@
 {
   "name": "@brains/discord",
   "version": "0.0.1",
-  "description": "Discord interface for Personal Brain",
+  "description": "Discord interface for Brains",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

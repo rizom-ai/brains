@@ -17,7 +17,7 @@ export async function buildSiteInfo(
     siteInfoBody = await fetchSiteInfo(entityService);
   } catch {
     siteInfoBody = {
-      title: "Personal Brain",
+      title: "Brain",
       description: "A knowledge management system",
     };
   }

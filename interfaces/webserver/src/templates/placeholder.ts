@@ -6,7 +6,7 @@ export const placeholderHtml = `<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Personal Brain - Not Built Yet</title>
+    <title>Brain - Not Built Yet</title>
     <style>
         body {
             font-family: system-ui, -apple-system, sans-serif;
@@ -52,20 +52,20 @@ export const placeholderHtml = `<!DOCTYPE html>
 </head>
 <body>
     <div class="container">
-        <h1>🧠 Personal Brain</h1>
+        <h1>🧠 Brain</h1>
         
         <div class="status">
             <strong>⚠️ Site Not Built Yet</strong>
-            <p>The Personal Brain website hasn't been built yet. This is a placeholder page.</p>
+            <p>The website hasn't been built yet. This is a placeholder page.</p>
         </div>
         
         <div class="instructions">
             <strong>To build your site:</strong>
-            <p>Run the build command to generate your Personal Brain website:</p>
+            <p>Run the build command to generate your website:</p>
             <p><code>brain build:site</code></p>
         </div>
         
-        <p>Once built, this page will be replaced with your actual Personal Brain website.</p>
+        <p>Once built, this page will be replaced with your actual website.</p>
     </div>
 </body>
 </html>`;

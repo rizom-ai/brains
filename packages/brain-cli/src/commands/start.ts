@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import { join, dirname } from "path";
+import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
 
 /**
@@ -87,17 +88,18 @@ export async function start(
     args.push("--cli");
   }
 
-  const proc = Bun.spawn(["bun", ...args], {
-    cwd,
-    stdio: ["inherit", "inherit", "inherit"],
-    env: process.env,
-  });
+  return new Promise((resolve) => {
+    const proc = spawn("bun", args, {
+      cwd,
+      stdio: "inherit",
+      env: process.env,
+    });
 
-  const exitCode = await proc.exited;
-  return {
-    success: exitCode === 0,
-    ...(exitCode !== 0
-      ? { message: `Brain exited with code ${exitCode}` }
-      : {}),
-  };
+    proc.on("close", (code) => {
+      resolve({
+        success: code === 0,
+        ...(code !== 0 ? { message: `Brain exited with code ${code}` } : {}),
+      });
+    });
+  });
 }

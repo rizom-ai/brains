@@ -19,7 +19,7 @@ export class SiteInfoService {
    */
   public static getDefaultSiteInfo(): SiteInfoBody {
     return {
-      title: "Personal Brain",
+      title: "Brain",
       description: "A knowledge management system",
     };
   }

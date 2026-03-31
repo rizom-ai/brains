@@ -47,7 +47,7 @@ export class ExampleInterfacePlugin extends InterfacePlugin<
       {
         name: "@brains/webserver-interface-plugin",
         version: "1.0.0",
-        description: "Example webserver interface for Personal Brain",
+        description: "Example webserver interface for Brains",
       },
       config,
       webserverConfigSchema,

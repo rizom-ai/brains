@@ -33,12 +33,12 @@ export class SiteInfoDataSource implements DataSource {
       siteInfoBody = entity
         ? adapter.parseSiteInfoBody(entity.content)
         : {
-            title: "Personal Brain",
+            title: "Brain",
             description: "A knowledge management system",
           };
     } catch {
       siteInfoBody = {
-        title: "Personal Brain",
+        title: "Brain",
         description: "A knowledge management system",
       };
     }

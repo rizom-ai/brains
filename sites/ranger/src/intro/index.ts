@@ -11,7 +11,7 @@ export const introTemplate = createTemplate<IntroContent>({
   name: "intro",
   description: "Compact introduction section for the brain",
   schema: IntroContentSchema,
-  basePrompt: `Generate a welcoming introduction for a Personal Brain application.
+  basePrompt: `Generate a welcoming introduction for a Brain application.
 Include a tagline, description, and 3 key features with appropriate Lucide icon names.
 Focus on the value and capabilities of this knowledge management system.
 Valid icon names include: Brain, Search, Shield, Zap, Database, Users, etc.`,

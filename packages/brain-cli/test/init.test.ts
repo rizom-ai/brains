@@ -45,41 +45,77 @@ describe("brain init", () => {
     });
   });
 
-  describe("deploy.yml (static Kamal template)", () => {
-    it("should create deploy.yml with ERB for model", () => {
+  describe("package.json", () => {
+    it("should create package.json with brain model dependency", () => {
       scaffold(testDir, { model: "rover" });
+
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.private).toBe(true);
+      expect(pkg.dependencies["@brains/rover"]).toBeDefined();
+    });
+
+    it("should include start script pointing to model binary", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.scripts.start).toBe("rover");
+    });
+
+    it("should use model name for different models", () => {
+      scaffold(testDir, { model: "ranger" });
+
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.dependencies["@brains/ranger"]).toBeDefined();
+      expect(pkg.scripts.start).toBe("ranger");
+    });
+  });
+
+  describe("minimal scaffold (default)", () => {
+    it("should create brain.yaml", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
+    });
+
+    it("should create package.json", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, "package.json"))).toBe(true);
+    });
+
+    it("should create .env.example", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+    });
+
+    it("should create .gitignore", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
+    });
+
+    it("should NOT create deploy files by default", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, "deploy.yml"))).toBe(false);
+      expect(existsSync(join(testDir, ".kamal"))).toBe(false);
+      expect(existsSync(join(testDir, ".github"))).toBe(false);
+    });
+  });
+
+  describe("deploy scaffold (--deploy flag)", () => {
+    it("should create deploy.yml when deploy is true", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
 
       const deploy = readFileSync(join(testDir, "deploy.yml"), "utf-8");
       expect(deploy).toContain("BRAIN_MODEL");
       expect(deploy).toContain("BRAIN_DOMAIN");
     });
 
-    it("should be the same regardless of model", () => {
-      const dir1 = join(testDir, "a");
-      const dir2 = join(testDir, "b");
-      mkdirSync(dir1, { recursive: true });
-      mkdirSync(dir2, { recursive: true });
-
-      scaffold(dir1, { model: "rover" });
-      scaffold(dir2, { model: "ranger", domain: "custom.example.com" });
-
-      const deploy1 = readFileSync(join(dir1, "deploy.yml"), "utf-8");
-      const deploy2 = readFileSync(join(dir2, "deploy.yml"), "utf-8");
-      expect(deploy1).toBe(deploy2);
-    });
-  });
-
-  describe("supporting files", () => {
-    it("should create .env.example with required secrets", () => {
-      scaffold(testDir, { model: "rover" });
-
-      const env = readFileSync(join(testDir, ".env.example"), "utf-8");
-      expect(env).toContain("ANTHROPIC_API_KEY");
-      expect(env).toContain("SERVER_IP");
-    });
-
-    it("should create pre-deploy hook that uploads brain.yaml", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should create pre-deploy hook when deploy is true", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
 
       const hook = readFileSync(
         join(testDir, ".kamal", "hooks", "pre-deploy"),
@@ -89,15 +125,8 @@ describe("brain init", () => {
       expect(hook).toContain("scp");
     });
 
-    it("should make pre-deploy hook executable", () => {
-      scaffold(testDir, { model: "rover" });
-
-      const hookPath = join(testDir, ".kamal", "hooks", "pre-deploy");
-      expect(existsSync(hookPath)).toBe(true);
-    });
-
-    it("should create deploy workflow that runs kamal deploy", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should create deploy workflow when deploy is true", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -106,11 +135,32 @@ describe("brain init", () => {
       expect(workflow).toContain("kamal deploy");
     });
 
-    it("should create .gitignore excluding .env", () => {
+    it("should produce same deploy.yml regardless of model", () => {
+      const dir1 = join(testDir, "a");
+      const dir2 = join(testDir, "b");
+      mkdirSync(dir1, { recursive: true });
+      mkdirSync(dir2, { recursive: true });
+
+      scaffold(dir1, { model: "rover", deploy: true });
+      scaffold(dir2, {
+        model: "ranger",
+        domain: "custom.example.com",
+        deploy: true,
+      });
+
+      const deploy1 = readFileSync(join(dir1, "deploy.yml"), "utf-8");
+      const deploy2 = readFileSync(join(dir2, "deploy.yml"), "utf-8");
+      expect(deploy1).toBe(deploy2);
+    });
+  });
+
+  describe(".gitignore", () => {
+    it("should exclude .env and node_modules", () => {
       scaffold(testDir, { model: "rover" });
 
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain(".env");
+      expect(gitignore).toContain("node_modules");
     });
   });
 });

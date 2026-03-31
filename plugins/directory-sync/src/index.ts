@@ -1,5 +1,5 @@
 /**
- * Directory sync plugin for Personal Brain
+ * Directory sync plugin for Brains
  * Provides file-based entity synchronization
  */
 

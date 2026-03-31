@@ -1,5 +1,6 @@
 import { mkdirSync } from "fs";
 import { join } from "path";
+import { spawn, execSync } from "child_process";
 import type { ParsedArgs } from "./parse-args";
 import { scaffold } from "./commands/init";
 import { start } from "./commands/start";
@@ -71,6 +72,7 @@ function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
     model: parsed.flags.model ?? "rover",
     domain: parsed.flags.domain,
     contentRepo: parsed.flags["content-repo"],
+    deploy: parsed.flags.deploy,
   });
 
   return {
@@ -101,24 +103,27 @@ async function runRawTool(
     };
   }
 
-  const spawnArgs = ["bun", "run", runner.path, "--tool", toolName];
+  const runnerArgs = ["run", runner.path, "--tool", toolName];
   if (inputJson) {
-    spawnArgs.push("--tool-input", inputJson);
+    runnerArgs.push("--tool-input", inputJson);
   }
 
-  const proc = Bun.spawn(spawnArgs, {
-    cwd: dir,
-    stdio: ["inherit", "inherit", "inherit"],
-    env: process.env,
-  });
+  return new Promise((resolve) => {
+    const proc = spawn("bun", runnerArgs, {
+      cwd: dir,
+      stdio: "inherit",
+      env: process.env,
+    });
 
-  const exitCode = await proc.exited;
-  return {
-    success: exitCode === 0,
-    ...(exitCode !== 0
-      ? { message: `Tool failed with exit code ${exitCode}` }
-      : {}),
-  };
+    proc.on("close", (code) => {
+      resolve({
+        success: code === 0,
+        ...(code !== 0
+          ? { message: `Tool failed with exit code ${code}` }
+          : {}),
+      });
+    });
+  });
 }
 
 async function runHelp(cwd?: string): Promise<CommandResult> {
@@ -146,14 +151,13 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     const runner = (await import("./commands/start")).findRunner(dir);
     if (runner) {
       try {
-        const proc = Bun.spawn(
-          ["bun", "run", runner.path, "--list-cli-commands"],
-          { cwd: dir, stdout: "pipe", stderr: "ignore", env: process.env },
-        );
-        const output = await new Response(proc.stdout).text();
-        const exitCode = await proc.exited;
+        const output = execSync(`bun run ${runner.path} --list-cli-commands`, {
+          cwd: dir,
+          stdio: ["ignore", "pipe", "ignore"],
+          env: process.env,
+        }).toString();
 
-        if (exitCode === 0 && output.trim()) {
+        if (output.trim()) {
           lines.push("", "Brain commands:");
           for (const line of output.trim().split("\n")) {
             lines.push(`  ${line}`);
@@ -184,6 +188,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --model <name>         Brain model (default: rover)",
     "  --domain <domain>      Domain (default: {model}.rizom.ai)",
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
+    "  --deploy               Include Kamal deploy files (deploy.yml, CI, hooks)",
   );
 
   console.log(lines.join("\n"));

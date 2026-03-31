@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import { join } from "path";
+import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
 import { findRunner } from "./start";
 
@@ -32,8 +33,7 @@ export async function operate(
     };
   }
 
-  const spawnArgs = [
-    "bun",
+  const runnerArgs = [
     "run",
     runner.path,
     "--cli-command",
@@ -44,24 +44,33 @@ export async function operate(
     JSON.stringify(flags),
   ];
 
-  const proc = Bun.spawn(spawnArgs, {
-    cwd,
-    stdout: "inherit",
-    stderr: "pipe",
-    env: process.env,
+  return new Promise((resolve) => {
+    const chunks: Buffer[] = [];
+
+    const proc = spawn("bun", runnerArgs, {
+      cwd,
+      stdio: ["inherit", "inherit", "pipe"],
+      env: process.env,
+    });
+
+    proc.stderr?.on("data", (chunk: Buffer) => {
+      chunks.push(chunk);
+    });
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        const stderrText = Buffer.concat(chunks).toString().trim();
+        if (stderrText) {
+          console.error(stderrText);
+        }
+      }
+
+      resolve({
+        success: code === 0,
+        ...(code !== 0
+          ? { message: `Command failed with exit code ${code}` }
+          : {}),
+      });
+    });
   });
-
-  const stderrText = await new Response(proc.stderr).text();
-  const exitCode = await proc.exited;
-
-  if (exitCode !== 0 && stderrText.trim()) {
-    console.error(stderrText.trim());
-  }
-
-  return {
-    success: exitCode === 0,
-    ...(exitCode !== 0
-      ? { message: `Command failed with exit code ${exitCode}` }
-      : {}),
-  };
 }

@@ -28,10 +28,10 @@ export class BrainCharacterService
    */
   public static getDefaultCharacter(): BrainCharacter {
     return {
-      name: "Personal Brain",
-      role: "Personal knowledge assistant",
+      name: "Brain",
+      role: "Knowledge assistant",
       purpose:
-        "Help organize, understand, and retrieve information from your personal knowledge base",
+        "Help organize, understand, and retrieve information from your knowledge base",
       values: ["clarity", "accuracy", "helpfulness"],
     };
   }

@@ -17,7 +17,7 @@ export interface DefaultLayoutProps {
 }
 
 /**
- * Minimal default layout for Personal Brain sites
+ * Minimal default layout for Brain sites
  * Clean, content-focused design
  */
 export function DefaultLayout({
