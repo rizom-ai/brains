@@ -65,20 +65,18 @@ The codebase has 60+ references to "Personal Brain" or "personal knowledge" — 
 
 ## Steps
 
-### Phase 0: Naming cleanup (blocks 1.0)
+### Phase 0: Naming cleanup — DONE (2026-03)
 
-1. Replace "Personal Brain" / "personal brain" / "personal knowledge" across 60+ files
-2. Update package.json descriptions
-3. Update README headers and descriptions
-4. Update architecture docs, deployment docs, guides
-5. Update code comments and placeholder HTML
+Replaced "Personal Brain" across 60+ files. Updated package.json descriptions, READMEs, docs, source code, placeholder HTML. Deleted 4 obsolete deployment docs.
 
-### Phase 1: Essential docs (blocks 1.0)
+### Phase 1: Essential docs — DONE (2026-03)
+
+Docs in `packages/brain-cli/docs/`:
 
 1. Getting started guide
 2. brain.yaml reference
-3. Deployment guide (Docker + Kamal)
-4. CLI command reference
+3. CLI command reference
+4. Deployment guide (Docker + Kamal)
 
 ### Phase 2: Complete docs
 

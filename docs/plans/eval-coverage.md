@@ -2,7 +2,7 @@
 
 ## Context
 
-Rover evals pass at ~88% with 49 test cases. Target: 95%+ with 70+ test cases. The main gap: the eval brain has no content, so quality-dependent tests score low (search returns nothing, summaries have nothing to summarize, history has nothing to show).
+Rover evals pass at 85% with 60 test cases. Target: 95%+. Eval-content directory with fictional test data (12 entities) and pre-built DB now provides content for search, quality, and history tests.
 
 **This plan is also a prerequisite for [Search Quality](./search-quality.md)** — search quality Phase 0 (baseline measurement) requires a brain with real content to produce meaningful distance distributions. Phase 1 (test content repo) unblocks both eval coverage expansion and search quality tuning.
 
@@ -114,35 +114,40 @@ The test content repo has multiple commits — entities were added and modified 
 
 ## Steps
 
-### Phase 1: Test content repo
+### Phase 1: Eval content — DONE (2026-03)
 
-1. Create `rizom-ai/eval-content` GitHub repo
-2. Add ~15-20 entities across 7 types
-3. Multiple commits for history coverage
-4. Update eval brain.yaml to point to test content repo
-5. Verify: eval brain starts with content loaded
+1. Created `brains/rover/eval-content/` with 12 fictional entities (Alex Chen persona)
+2. Pre-built `brain.db` with entities + embeddings (skips sync wait)
+3. Build script: `brains/rover/scripts/build-eval-db.ts` (monitors job queue drain)
+4. Eval runner uses eval-content instead of seed-content, loads pre-built DB
 
-### Phase 2: New test cases
+### Phase 2: New test cases — DONE (2026-03)
 
-1. Add entity type resolution tests (4 cases)
-2. Add content-dependent quality tests (3 cases)
-3. Add operation tests (5 cases)
-4. Add history tests (3 cases)
-5. Run evals — measure improvement
+1. Entity type resolution: list-essays, list-case-studies (2 cases)
+2. Content-dependent quality: search-with-results, summarize-content, cross-reference (3 cases)
+3. Operations: update-title, extract-topics, delete-nonexistent, insights-topics (4 cases)
+4. History: entity-history, entity-history-blog (2 cases, existed)
+5. Entity type mapping + targetEntityType fixes in agent instructions
 
-### Phase 3: Agent instruction tuning
+### Phase 3: Agent instruction tuning — IN PROGRESS
 
-Based on Phase 2 results, update agent instructions:
+Current: 85% pass rate (51/60). Remaining failures:
 
-1. Add entity type mapping hints if agent gets types wrong
-2. Improve search behavior instructions if quality tests fail
-3. Iterate until 95%+ pass rate
+- Flaky LLM variability (search scores, verbose repetition)
+- Social media queue tool not called
+- Some create/update tests inconsistent
+
+Next:
+
+1. Stabilize flaky tests (adjust thresholds or make prompts more deterministic)
+2. Fix social media queue test (agent instruction or test prompt)
+3. Add more test cases toward 70+ total
+4. Iterate until 95%+
 
 ## Verification
 
-1. Eval brain starts with 15+ entities from test content repo
-2. 70+ test cases total (49 existing + ~15 new)
+1. Eval brain starts with 12+ entities from eval-content (pre-built DB)
+2. 60+ test cases (target 70+)
 3. Pass rate ≥ 95%
-4. Search-dependent tests score helpfulness ≥ 4 (have content to work with)
-5. History tests pass with real git history
-6. Entity type resolution tests pass without user correction
+4. Search-dependent tests score helpfulness ≥ 4
+5. Entity type resolution tests pass without user correction

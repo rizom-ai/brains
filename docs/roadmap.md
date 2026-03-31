@@ -117,19 +117,27 @@ Extensible `system_insights` tool with `InsightsRegistry` pattern. Core provides
 
 `directory-sync_history` tool backed by git log. `log()` and `show()` methods on `IGitSync`. List commit history for any entity, retrieve content at specific version. No new storage — reads from existing git commits. ([plan](./plans/entity-history.md))
 
+### Naming Cleanup (2026-03)
+
+Removed "Personal Brain" from 60+ files across source code, READMEs, package.json descriptions, and docs. Deleted 4 obsolete deployment docs (Terraform/Caddy era).
+
+### Documentation — Phase 1 (2026-03)
+
+User-facing docs in `packages/brain-cli/docs/`: getting started guide, brain.yaml reference, CLI reference, deployment guide. ([plan](./plans/documentation.md))
+
 ---
 
-## Rover 1.0 Milestone
+## Rover 0.1 — First Public Release
 
-The following items must be complete before Rover 1.0:
+The following items must be complete before the first public release:
 
 | Item                                            | Status        | Notes                                                              |
 | ----------------------------------------------- | ------------- | ------------------------------------------------------------------ |
 | npm Packages (`@rizom/brain` + `@brains/rover`) | In progress   | CLI + brain model ship together. `brain init && brain start` flow. |
 | Kamal Deploy (Phases 1-2)                       | In progress   | Deployable by non-developers                                       |
-| Eval pass rate ≥ 95%                            | 88%           | Agent reliability                                                  |
-| Naming cleanup                                  | Not started   | Remove "Personal Brain" references (60+ files)                     |
-| Documentation — Phase 1                         | Not started   | Getting started, brain.yaml ref, deploy guide, CLI ref             |
+| Eval pass rate ≥ 95%                            | 85%           | 60 test cases, eval-content with pre-built DB                      |
+| Naming cleanup                                  | Done          |                                                                    |
+| Documentation — Phase 1                         | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref             |
 | Stable API surface                              | Mostly stable | brain.yaml schema, tools, entity types                             |
 
 ---
@@ -154,15 +162,7 @@ Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card f
 
 ### Eval Coverage Expansion
 
-Add seed content to eval brain (posts, notes, links) so quality-dependent tests have data to work with. Add test cases for: system_update variations, system_search with filters, system_extract, entity history, content insights, error handling. Target: 95%+ pass rate with 70+ test cases. Blocks Rover 1.0. **Also prerequisite for Search Quality Phase 0** — search needs real content for meaningful baseline measurement. ([plan](./plans/eval-coverage.md))
-
-### Documentation — Phase 1
-
-Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0. ([plan](./plans/documentation.md))
-
-### Naming Cleanup
-
-Remove "Personal Brain" references from 60+ files across code, docs, READMEs, package descriptions. The system supports personal, team, and collective brains. Blocks Rover 1.0. ([plan](./plans/documentation.md))
+Eval-content directory with fictional test data (12 entities, pre-built DB). 60 test cases at 85%. Next: tune agent instructions, add more test cases, reach 95%+. Blocks Rover 0.1. **Also prerequisite for Search Quality Phase 0.** ([plan](./plans/eval-coverage.md))
 
 ### Search Quality — Phases 0-2
 
@@ -245,19 +245,17 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 ## Dependency Graph
 
 ```
-Rover 1.0 blockers:
+Rover 0.1 blockers:
   npm packages (@rizom/brain + @brains/rover) → kamal-deploy
-  eval-coverage (95%+ target)
-  documentation phase 1
-  naming cleanup
+  eval-coverage (95%+ target, currently 85% with 60 tests)
+  documentation phase 1 (done)
+  naming cleanup (done)
 
 Short-term (parallel):
   kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
   agent-directory phase 1 (independent)
-  eval-coverage phase 1 (test content) → search-quality phases 0-2
-  content-insights (done)
-  entity-history (done)
+  eval-coverage (agent tuning + more tests) → search-quality phases 0-2
 
 Medium-term:
   atproto phases 3-6 + agent-directory phase 2

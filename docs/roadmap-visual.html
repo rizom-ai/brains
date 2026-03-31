@@ -218,9 +218,9 @@ const items = [
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
   { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
-  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Add seed content to eval brain. More test cases (update, search filters, extract, error handling). Target 95%+ with 70+ tests. Blocks Rover 1.0." },
-  { id: "documentation", name: "Documentation Phase 1", status: "short-term", desc: "Getting started guide, brain.yaml reference, deployment guide, CLI command reference. Blocks Rover 1.0." },
-  { id: "namingcleanup", name: "Naming Cleanup", status: "short-term", desc: "Remove 'Personal Brain' from 60+ files. System supports personal, team, and collective brains. Blocks Rover 1.0." },
+  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Eval-content with pre-built DB. 60 test cases at 85%. Next: agent instruction tuning, more tests. Target 95%+. Blocks Rover 0.1." },
+  { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
+  { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
   { id: "searchquality12", name: "Search Quality Phases 0-2", status: "short-term", desc: "Phase 0: baseline measurement (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search.", deps: ["evalcoverage"] },
   { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
   { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.", date: "2026-03" },
@@ -317,7 +317,7 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Rover 1.0 Pipeline</div>
+      <div class="dep-group-title">Rover 0.1 Pipeline</div>
       <div class="dep-row">
         <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
         <span class="dep-arrow">→</span>
@@ -383,7 +383,7 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Rover 1.0 Blockers</div>
+      <div class="dep-group-title">Rover 0.1 Blockers</div>
       <div class="dep-row">
         <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
         <span class="dep-arrow">→</span>
