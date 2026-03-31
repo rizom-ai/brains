@@ -1,0 +1,242 @@
+# Plan: Memory Reduction — Registries, Templates & Eager Loading
+
+## Context
+
+The app uses ~860MB at runtime. The user identified templates-in-memory and the proliferation of registries as likely contributors. Exploration confirmed:
+
+- **14 registries**, all singleton, all populated eagerly at startup, none with eviction
+- **~30 templates** in `TemplateRegistry` — including a 735KB compiled hydration JS string on the dashboard template (bloated by bundled Zod)
+- **15 plugins** all loaded eagerly — no code splitting, no lazy imports
+- **25+ singleton services** created at startup in `shellInitializer.ts`, never freed
+- **3 SQLite connections** opened at startup (entity, job queue, conversation)
+- **AI SDK + 3 providers** (Anthropic, OpenAI, Google) all imported eagerly even though most brains only use Anthropic
+- **Zod schemas** (~510KB total) are negligible — not worth optimizing
+- **Embedding model** already lazy-loaded (good)
+
+Registry data itself is small (~150KB-3.5MB). The real cost is the code loaded to support all these registries, plugins, and services.
+
+---
+
+## Phase 0: Profile Before Optimizing (1-2 days)
+
+Add `process.memoryUsage()` logging at startup milestones to establish baselines.
+
+**Files to modify:**
+
+- `shell/core/src/initialization/shellInitializer.ts` — log after `initializeServices()` (line 224) and after `initializeAll()`
+- `shell/core/src/shell.ts` — log after `system:plugins:ready` event
+
+**Also create a standalone script** that measures per-import cost:
+
+```typescript
+// scripts/measure-imports.ts
+const before = process.memoryUsage();
+await import("ai");
+// await import("@ai-sdk/openai");
+// await import("@ai-sdk/google");
+const after = process.memoryUsage();
+```
+
+**Expected outcome:** A profile showing cost of (a) base runtime, (b) service creation, (c) plugin loading, (d) AI SDK imports, (e) idle state.
+
+---
+
+## Phase 1: Quick Wins (1 day)
+
+### 1A. Externalize Zod from hydration bundles
+
+**File:** `scripts/compile-hydration.ts` (line 34)
+
+Current `external` list only has Preact + crypto. Add `@brains/utils`, `zod`, and all `@brains/ui-library` internals so Zod doesn't get bundled into the 735KB hydration script. Also enable `minify: true`.
+
+**Expected savings:** Dashboard hydration string drops from 735KB to ~50-100KB.
+
+### 1B. Lazy-load OpenAI and Google AI providers
+
+**File:** `shell/ai-service/src/aiService.ts` (lines 1-4, 69-84)
+
+Keep `@ai-sdk/anthropic` eager (always used). Convert OpenAI + Google to dynamic `await import()` in their respective `generateImageWith*` methods. The providers are only needed for image generation and only if API keys are set.
+
+```typescript
+// Lines 2-4: Remove static imports of openai + google
+// Lines 74-84: Replace eager provider creation with lazy getters
+private async getOpenAIProvider() {
+  if (!this._openai && this.config.openaiApiKey) {
+    const { createOpenAI } = await import("@ai-sdk/openai");
+    this._openai = createOpenAI({ apiKey: this.config.openaiApiKey });
+  }
+  return this._openai;
+}
+```
+
+**Expected savings:** 5-15MB (two SDK modules + their transitive deps not parsed by V8/JSC).
+
+### 1C. Lazy-load interactive hydration strings
+
+**Files:**
+
+- `shell/templates/src/types.ts` (line 44-45) — widen `interactive` type
+- `plugins/dashboard/src/templates/dashboard/index.ts` — use lazy loader
+- `plugins/site-builder/src/hydration/hydration-manager.ts` — resolve loader
+
+Change `layout.interactive` from `string` to `string | (() => Promise<string>)`. The dashboard template stores a file-path loader instead of the imported string:
+
+```typescript
+// Instead of: import hydrationScript from "./hydration.compiled.js" with { type: "text" };
+interactive: () => Bun.file(new URL("./hydration.compiled.js", import.meta.url)).text(),
+```
+
+The `HydrationManager` already writes this async (`await fs.writeFile(...)` at line 170), so it just needs to resolve the loader before writing.
+
+**Expected savings:** 1-3MB (735KB string + V8 string overhead not held in registry).
+
+---
+
+## Phase 2: Registry Optimization (2-3 days)
+
+### 2A. Clear registries on shutdown
+
+**Files:**
+
+- `shell/core/src/shell.ts` — in `shutdown()` method (line 238+)
+- All registries that have or need a `clear()` method
+
+When `Shell.shutdown()` is called, clear all registries and null singleton references. Prevents memory leaks in test suites and long-running processes.
+
+### 2B. Evict plugin templates on disable
+
+**Files:**
+
+- `shell/plugins/src/manager/plugin-lifecycle.ts` — in `disablePlugin()`
+- `shell/templates/src/registry.ts` (already has `unregister()` and `getPluginTemplateNames()`)
+
+When a plugin is disabled, unregister its templates:
+
+```typescript
+const names = templateRegistry.getPluginTemplateNames(pluginId);
+for (const name of names) templateRegistry.unregister(name);
+```
+
+### 2C. Template metadata/payload separation (optional, larger effort)
+
+**Files:**
+
+- `shell/templates/src/types.ts` — split `Template` interface
+- `shell/templates/src/registry.ts` — store lightweight metadata, load heavy content lazily
+
+Split templates into lightweight metadata (name, description, permission, dataSourceId) stored eagerly, and heavy payload (schema, layout component, formatter, basePrompt) loaded on demand. This is the most impactful registry change but also the most invasive — it touches the `Template` interface used by all 16 entity plugins.
+
+**Defer to Phase 2 if Phase 0 profiling shows templates aren't a top consumer.**
+
+---
+
+## Phase 3: Plugin & Service Loading (3-5 days)
+
+### 3A. Lazy AI SDK core import
+
+**File:** `shell/ai-service/src/aiService.ts` (line 1)
+
+`import { generateText, generateObject, generateImage } from "ai"` loads the entire Vercel AI SDK at module load. Convert to dynamic imports inside each method — Bun caches dynamic imports so cost is paid once:
+
+```typescript
+async query(systemPrompt, userPrompt) {
+  const { generateText } = await import("ai");
+  // ...
+}
+```
+
+**Expected savings:** 10-20MB if no AI operations triggered yet.
+
+### 3B. Deferred service initialization
+
+**File:** `shell/core/src/initialization/shellInitializer.ts` (lines 224-420)
+
+Several services created eagerly at line 224+ are not needed until runtime events:
+
+- `ConversationService` — only needed when chat starts
+- `AgentService` — only needed for agent conversations
+- `BatchJobManager` + `JobProgressMonitor` — only needed for batch operations
+- `BrainCharacterService` + `AnchorProfileService` — can defer until `sync:initial:completed`
+
+Use a lazy proxy pattern:
+
+```typescript
+class LazyService<T> {
+  private instance: T | null = null;
+  constructor(private factory: () => T) {}
+  get(): T {
+    return (this.instance ??= this.factory());
+  }
+}
+```
+
+**Must keep eager:** `entityService`, `entityRegistry`, `messageBus`, `templateRegistry`, `pluginManager`, `mcpService` (needed during plugin init).
+
+**Expected savings:** 30-80MB (deferred DB connection for conversations, deferred xstate/agent machinery).
+
+### 3C. Conditional plugin module loading
+
+**Files:**
+
+- `shell/app/src/brain-definition.ts` — change `PluginFactory` to support async
+- `shell/app/src/brain-resolver.ts` — `await` factory calls
+- Brain definition files (e.g., `brains/rover/src/index.ts`)
+
+Convert plugin factories to async so unused plugins aren't even imported:
+
+```typescript
+capabilities: [
+  [
+    "blog",
+    async () => {
+      const { blogPlugin } = await import("@brains/blog");
+      return blogPlugin();
+    },
+  ],
+];
+```
+
+**Expected savings:** 20-60MB for minimal presets (skipping ~17 unused plugin module trees).
+
+---
+
+## Phase 4: Structural (5-10 days, deferred)
+
+These are larger changes to consider only after Phases 0-3 are done:
+
+- **4A. Lazy database connections** — `ConversationService` DB deferred until first chat
+- **4B. Worker isolation for site builds** — run Preact SSR in a `new Worker()`, free memory when done
+- **4C. Entity content streaming** — add `includeContent: false` option to list/search queries
+
+---
+
+## Verification
+
+After each phase:
+
+1. Run `process.memoryUsage()` at the same checkpoints as Phase 0
+2. Run `bun run typecheck` and `bun test`
+3. Run a site build to verify templates/hydration still work
+4. Compare RSS before/after with `ps aux | grep bun`
+
+## Execution Order
+
+```
+Phase 0 (profile)
+  ↓
+Phase 1A + 1B + 1C (parallel, quick wins)
+  ↓
+Phase 3A (lazy AI SDK — easy, high impact)
+  ↓
+Phase 2A + 2B (registry cleanup — easy)
+  ↓
+Phase 3B (deferred services — medium effort, high impact)
+  ↓
+Phase 3C (conditional plugins — medium effort)
+  ↓
+Phase 2C (template split — only if profiling justifies it)
+  ↓
+Phase 4 (structural — only if target not met)
+```
+
+**Estimated total savings: 100-300MB** (from ~860MB to ~560-760MB), with Phase 4 potentially bringing it under 500MB.
