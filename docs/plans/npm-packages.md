@@ -104,6 +104,15 @@ brain pin 1.2.0        # pins to specific version
 
 Merge CLI + runtime + models into one Bun build.
 
+#### Two runner paths
+
+1. **Monorepo** — detect `bun.lock` + `shell/app/src/runner.ts` → run from source. Needed for development (hot reload, source maps, workspace deps).
+2. **Everything else** — in-process boot from built-in models. Docker, npm global, standalone — all the same code path. `brain start` imports the model and calls `App.create(config).run()` directly.
+
+The current Docker path (`dist/.model-entrypoint.js`) becomes legacy. Docker images will eventually install `@rizom/brain` and run `brain start` like any other instance. During transition, the old Docker entrypoint is detected as a fallback.
+
+#### Steps
+
 1. New build script: single `bun build` targeting Bun, bundles CLI + all brain models + runtime
 2. Model registry: `brain start` reads `brain: rover` from yaml, resolves to built-in `defineBrain()` export
 3. `brain start` boots in-process — imports model, calls `App.create(config).run()`
