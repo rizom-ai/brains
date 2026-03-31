@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
     && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy \
+    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
+    && setcap cap_net_bind_service=+ep $(which caddy) \
     && rm -rf /var/lib/apt/lists/*
 
 # Layer 2: Runtime native module package.json
@@ -29,10 +30,13 @@ COPY dist ./dist
 COPY seed-content ./seed-content
 COPY public ./public
 
-# Layer 7: Create writable directories for site builder output
+# Layer 7: Copy brain.yaml to workdir if present (brain CLI reads from cwd)
+RUN test -f /app/dist/brain.yaml && cp /app/dist/brain.yaml /app/brain.yaml || true
+
+# Layer 8: Create writable directories for site builder output
 RUN mkdir -p /app/dist/site-production /app/dist/site-preview /app/dist/images && \
     chmod -R 777 /app/dist/site-production /app/dist/site-preview /app/dist/images
 
 # brain.yaml is mounted at runtime via volume
 # Start Caddy (background) then brain
-CMD caddy start --config /etc/caddy/Caddyfile && exec bun dist/.model-entrypoint.js
+CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && if [ -f dist/.model-entrypoint.js ]; then exec bun dist/.model-entrypoint.js; else exec bun dist/.brain-entrypoint.js; fi"]

@@ -6,6 +6,7 @@ services:
     container_name: personal-brain
     restart: unless-stopped
     env_file: ${APP_DIR}/.env
+    user: "${USER_ID}:${GROUP_ID}"
     volumes:
       - ${DATA_DIR}:/app/data
       - ${APP_DIR}/brain-repo:/app/brain-repo
