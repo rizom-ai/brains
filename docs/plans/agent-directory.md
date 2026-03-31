@@ -63,13 +63,16 @@ const agentFrontmatterSchema = z.object({
 });
 ```
 
-### Why EntityPlugin with tools
+### Why two packages
 
-The agent directory owns an entity type (schema, adapter, frontmatter) — that's EntityPlugin territory. But it also needs custom tools (`agent_add`, `agent_trust`, `agent_remove`) because adding an agent is a deterministic HTTP fetch, not AI generation.
+The agent directory needs both an entity type (schema, adapter) and custom tools (`agent_add`, `agent_trust`, `agent_remove`). These map to two plugin types:
 
-Currently EntityPlugin returns `tools: []` hardcoded. The fix: add `getTools()` to EntityPlugin, same pattern as `getTemplates()` and `getDataSources()`. One-line change in `register()`, removes an artificial restriction.
+- `entities/agent-directory/` — **EntityPlugin** defining the schema, adapter, and frontmatter
+- `plugins/agent-directory/` — **ServicePlugin** with tools for adding, trusting, and removing agents
 
-This is not a new base class or architectural change — it's extending an existing override point.
+This follows existing precedent: `entities/blog/` defines blog entities, while `plugins/directory-sync/` and `plugins/content-pipeline/` operate on them. The `agent_add` tool fetches Agent Cards over HTTP and creates entities — that's service behavior, not entity definition.
+
+EntityPlugin's `tools: []` is hardcoded intentionally to enforce this separation. If a combined EntityPlugin+ServicePlugin pattern becomes common, a `CompositePlugin` abstraction can emerge from real usage later.
 
 ### Tools
 
@@ -109,26 +112,19 @@ Resolution order:
 
 ## Steps
 
-### Step 0: EntityPlugin tools support
-
-1. Add `protected async getTools(): Promise<Tool[]>` to EntityPlugin base class (returns `[]` by default)
-2. Update `register()` to include `tools: await this.getTools()` in returned capabilities
-3. Update MockShell test harness if needed
-4. Tests: EntityPlugin subclass with tools returns them in capabilities
-
 ### Step 1: Agent entity type
 
-1. Create `entities/agent-directory/` package
+1. Create `entities/agent-directory/` package (EntityPlugin)
 2. Schema (`agentFrontmatterSchema`, `agentEntitySchema`)
 3. Adapter (toMarkdown, fromMarkdown, extractMetadata)
 4. Tests for adapter roundtrip
 
 ### Step 2: Agent tools
 
-1. `agent_add` — fetch Agent Card, create entity
-2. `agent_trust` — update status
-3. `agent_remove` — archive
-4. Override `getTools()` to return the three tools
+1. Create `plugins/agent-directory/` package (ServicePlugin)
+2. `agent_add` — fetch Agent Card, create entity (constructor DI for fetch)
+3. `agent_trust` — update status via `findEntityByIdentifier`
+4. `agent_remove` — archive via `findEntityByIdentifier`
 5. Tests for each tool handler (mock fetch, mock entity service)
 
 ### Step 3: A2A client patch
@@ -140,26 +136,24 @@ Resolution order:
 
 ### Step 4: Register in brain models
 
-1. Add to rover `default` or `pro` preset
+1. Add both packages to rover `minimal` preset (A2A interface is already there)
 2. Verify: `system_list agent` works, `agent_add` works, `a2a_call` resolves by name
 
 ## Files affected
 
-| Step | Files | Nature                                        |
-| ---- | ----- | --------------------------------------------- |
-| 0    | ~2    | EntityPlugin base class, test                 |
-| 1    | ~4    | Package setup, schema, adapter, adapter tests |
-| 2    | ~3    | Tools, plugin index, tool tests               |
-| 3    | ~2    | A2A client patch, client tests                |
-| 4    | ~2    | Brain model registration                      |
+| Step | Files | Nature                                                        |
+| ---- | ----- | ------------------------------------------------------------- |
+| 1    | ~4    | EntityPlugin package: schema, adapter, plugin, tests          |
+| 2    | ~4    | ServicePlugin package: tools, plugin, Agent Card fetch, tests |
+| 3    | ~2    | A2A client patch, client tests                                |
+| 4    | ~2    | Rover brain model registration                                |
 
 ## Verification
 
 1. `bun run typecheck` / `bun run lint` / `bun test` after each step
-2. EntityPlugin subclass with `getTools()` returns tools in capabilities
-3. `agent_add { url: "yeehaa.io" }` → entity created with Agent Card data
-4. `agent_trust { agent: "yeehaa.io" }` → status changes to trusted
-5. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory
-6. `a2a_call { agent: "https://unknown.io" }` → auto-creates entity after success
-7. `a2a_call { agent: "https://yeehaa.io" }` → direct URL still works
-8. Existing A2A tests still pass
+2. `agent_add { url: "yeehaa.io" }` → entity created with Agent Card data
+3. `agent_trust { agent: "yeehaa.io" }` → status changes to trusted
+4. `a2a_call { agent: "yeehaa.io" }` → resolves URL from directory
+5. `a2a_call { agent: "https://unknown.io" }` → auto-creates entity after success
+6. `a2a_call { agent: "https://yeehaa.io" }` → direct URL still works
+7. Existing A2A tests still pass

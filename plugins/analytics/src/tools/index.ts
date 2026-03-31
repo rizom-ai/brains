@@ -6,8 +6,7 @@ import {
   toISODateString,
   getYesterday,
 } from "@brains/utils";
-import { CloudflareClient } from "../lib/cloudflare-client";
-import type { CloudflareConfig } from "../config";
+import type { CloudflareClient } from "../lib/cloudflare-client";
 
 /**
  * Schema for analytics:query tool parameters
@@ -72,16 +71,13 @@ function validateParams(input: QueryAnalyticsParams): string | null {
 export function createAnalyticsTools(
   pluginId: string,
   _context: ServicePluginContext,
-  cloudflareConfig?: CloudflareConfig,
+  cloudflareClient?: CloudflareClient,
 ): Tool[] {
   const tools: Tool[] = [];
 
-  // Only add tools if Cloudflare credentials are configured
-  if (!cloudflareConfig?.apiToken || !cloudflareConfig.accountId) {
+  if (!cloudflareClient) {
     return tools;
   }
-
-  const cloudflareClient = new CloudflareClient(cloudflareConfig);
 
   tools.push(
     createTool(

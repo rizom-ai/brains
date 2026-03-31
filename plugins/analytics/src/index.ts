@@ -21,6 +21,8 @@ import packageJson from "../package.json";
  * Privacy-focused: uses Cloudflare Web Analytics (no cookies, GDPR compliant)
  */
 export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
+  private cloudflareClient: CloudflareClient | undefined;
+
   constructor(config: Partial<AnalyticsConfig> = {}) {
     super("analytics", packageJson, config, analyticsConfigSchema);
   }
@@ -28,13 +30,13 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Register traffic insight — gracefully degrades when no credentials
-    const cloudflareClient = this.config.cloudflare
+    this.cloudflareClient = this.config.cloudflare
       ? new CloudflareClient(this.config.cloudflare)
       : undefined;
+
     context.insights.register(
       "traffic-overview",
-      createTrafficOverviewInsight(cloudflareClient),
+      createTrafficOverviewInsight(this.cloudflareClient),
     );
 
     const siteTag = this.config.cloudflare?.siteTag;
@@ -54,14 +56,11 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     }
   }
 
-  /**
-   * Get plugin tools
-   */
   protected override async getTools(): Promise<Tool[]> {
     return createAnalyticsTools(
       this.id,
       this.getContext(),
-      this.config.cloudflare,
+      this.cloudflareClient,
     );
   }
 }

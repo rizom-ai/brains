@@ -1,5 +1,5 @@
 import type { InsightHandler } from "@brains/plugins";
-import { toISODateString, getYesterday } from "@brains/utils";
+import { toISODateString, getYesterday, getDaysAgo } from "@brains/utils";
 import type { CloudflareClient } from "../lib/cloudflare-client";
 
 const OVERVIEW_DAYS = 7;
@@ -22,8 +22,7 @@ export function createTrafficOverviewInsight(
     }
 
     const end = getYesterday();
-    const start = new Date(end);
-    start.setDate(start.getDate() - OVERVIEW_DAYS + 1);
+    const start = getDaysAgo(OVERVIEW_DAYS);
 
     const startDate = toISODateString(start);
     const endDate = toISODateString(end);

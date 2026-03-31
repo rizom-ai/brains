@@ -1,4 +1,11 @@
 import type { InsightHandler } from "@brains/plugins";
+import type { TopicEntity } from "../schemas/topic";
+
+export interface TopicDistributionEntry {
+  topic: string;
+  sourceCount: number;
+  sourceTypes: string[];
+}
 
 /**
  * Create the topic-distribution insight handler.
@@ -10,32 +17,14 @@ export function createTopicDistributionInsight(): InsightHandler {
       return { topics: [], orphanedTopics: [] };
     }
 
-    const topics = await entityService.listEntities("topic");
+    const topics = await entityService.listEntities<TopicEntity>("topic");
 
-    interface TopicEntry {
-      topic: string;
-      sourceCount: number;
-      sourceTypes: string[];
-    }
-
-    interface OrphanedEntry {
-      topic: string;
-    }
-
-    const distribution: TopicEntry[] = [];
-    const orphanedTopics: OrphanedEntry[] = [];
+    const distribution: TopicDistributionEntry[] = [];
+    const orphanedTopics: { topic: string }[] = [];
 
     for (const topic of topics) {
-      const sources = topic.metadata["sources"];
-      const sourceList = Array.isArray(sources) ? sources : [];
-
-      const sourceTypes = [
-        ...new Set(
-          sourceList
-            .map((s: Record<string, unknown>) => s["type"])
-            .filter((t): t is string => typeof t === "string"),
-        ),
-      ];
+      const sourceList = topic.metadata.sources ?? [];
+      const sourceTypes = [...new Set(sourceList.map((s) => s.type))];
 
       if (sourceList.length === 0) {
         orphanedTopics.push({ topic: topic.id });
