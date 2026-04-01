@@ -94,12 +94,10 @@ describe("MCPService", () => {
       mcpService.registerTool("admin-plugin", tool);
 
       // Internal registry has the tool (agent needs it)
-      const tools = mcpService.listTools();
-      expect(tools).toHaveLength(1);
-
-      // But per-call filtering respects permissions
-      const publicTools = mcpService.listToolsForPermissionLevel("public");
-      expect(publicTools).toHaveLength(0);
+      expect(mcpService.listTools()).toHaveLength(1);
+      // Per-call filtering respects permissions
+      expect(mcpService.listToolsForPermissionLevel("public")).toHaveLength(0);
+      expect(mcpService.listToolsForPermissionLevel("trusted")).toHaveLength(1);
     });
 
     it("should register multiple tools from different plugins", () => {

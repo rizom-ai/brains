@@ -166,20 +166,17 @@ export class MCPService implements IMCPService {
    * Register a resource with the MCP server
    */
   public registerResource(pluginId: string, resource: Resource): void {
-    // Resources don't have visibility, default to anchor permission
-    const resourceVisibility: UserPermissionLevel = "anchor";
+    // Always store in internal registry (same pattern as registerTool).
+    this.registeredResources.set(resource.uri, { pluginId, resource });
 
+    // Only expose on MCP protocol server if transport permission allows.
+    const resourceVisibility: UserPermissionLevel = "anchor";
     if (
-      !PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
+      PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
     ) {
-      this.logger.debug(
-        `Skipping resource ${resource.uri} from ${pluginId} - insufficient permissions`,
-      );
-      return;
+      this.registerResourceOnServer(this.mcpServer, pluginId, resource);
     }
 
-    this.registerResourceOnServer(this.mcpServer, pluginId, resource);
-    this.registeredResources.set(resource.uri, { pluginId, resource });
     this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
   }
 
