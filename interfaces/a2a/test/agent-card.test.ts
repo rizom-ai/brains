@@ -11,6 +11,7 @@ const mockCharacter: BrainCharacter = {
 
 const mockProfile: AnchorProfile = {
   name: "Jan Hein",
+  kind: "professional",
 };
 
 const mockTools = [

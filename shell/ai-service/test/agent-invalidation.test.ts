@@ -68,7 +68,11 @@ describe("AgentService invalidation", () => {
         }),
       } as IBrainCharacterService,
       {
-        getProfile: () => ({ name: "Test Anchor", description: "Test" }),
+        getProfile: () => ({
+          name: "Test Anchor",
+          kind: "professional" as const,
+          description: "Test",
+        }),
       } as IAnchorProfileService,
       createSilentLogger(),
       { agentFactory: mockAgentFactory },
@@ -97,7 +101,11 @@ describe("AgentService invalidation", () => {
   it("should pick up new profile data after invalidation", async () => {
     let profileName = "Original Name";
     const mockProfileService: IAnchorProfileService = {
-      getProfile: () => ({ name: profileName, description: "Test" }),
+      getProfile: () => ({
+        name: profileName,
+        kind: "professional" as const,
+        description: "Test",
+      }),
     };
 
     const capturedConfigs: BrainAgentConfig[] = [];

@@ -21,6 +21,13 @@ export type AnchorProfileEntity = z.infer<typeof anchorProfileSchema>;
  */
 export const anchorProfileBodySchema = z.object({
   name: z.string().describe("Name (person or organization)"),
+  kind: z
+    .enum(["professional", "team", "collective"])
+    .describe("Type of anchor: professional (individual), team, or collective"),
+  organization: z
+    .string()
+    .optional()
+    .describe("Organization the anchor belongs to"),
   description: z.string().optional().describe("Short description or biography"),
   avatar: z.string().optional().describe("URL or asset path to avatar/logo"),
   website: z.string().optional().describe("Primary website URL"),

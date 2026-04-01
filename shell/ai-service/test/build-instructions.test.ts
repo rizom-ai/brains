@@ -20,6 +20,7 @@ describe("buildInstructions", () => {
   it("should include profile when provided", () => {
     const instructions = buildInstructions(identity, "anchor", undefined, {
       name: "Jan Hein",
+      kind: "professional",
       email: "jan@yeehaa.io",
       website: "https://yeehaa.io",
       description: "Builder of brains",
@@ -39,6 +40,7 @@ describe("buildInstructions", () => {
   it("should not reference system_get-identity or system_get-profile tools", () => {
     const instructions = buildInstructions(identity, "anchor", undefined, {
       name: "Jan Hein",
+      kind: "professional" as const,
       description: "Builder",
     });
     expect(instructions).not.toContain("system_get-identity");
@@ -48,6 +50,7 @@ describe("buildInstructions", () => {
   it("should include anchor name in user context for anchor users", () => {
     const instructions = buildInstructions(identity, "anchor", undefined, {
       name: "Jan Hein",
+      kind: "professional" as const,
       description: "Builder",
     });
     expect(instructions).toContain("Jan Hein");

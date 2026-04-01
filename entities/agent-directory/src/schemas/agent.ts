@@ -1,45 +1,41 @@
 import { z } from "@brains/utils";
-import { baseEntitySchema } from "@brains/plugins";
+import { baseEntitySchema, anchorProfileBodySchema } from "@brains/plugins";
 
 /**
- * URI for the anchor-profile A2A Agent Card extension.
- * Shared between card generation (a2a interface) and card parsing (agent-directory plugin).
+ * Shared sub-schemas — used by frontmatter, adapter, and Agent Card parsing.
  */
-export const ANCHOR_EXTENSION_URI = "https://rizom.ai/ext/anchor-profile/v1";
+export const agentSkillSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()).default([]),
+});
+
+export type AgentSkill = z.infer<typeof agentSkillSchema>;
 
 /**
  * Agent frontmatter schema — structured data in YAML frontmatter.
+ * Anchor fields (name, kind, organization) come from anchorProfileBodySchema.
  * Skills live in the body as markdown sections to keep frontmatter short.
  */
-export const agentFrontmatterSchema = z.object({
-  // Anchor (who)
-  name: z.string().describe("Anchor name (person, team, or organization)"),
-  kind: z
-    .enum(["professional", "team", "collective"])
-    .describe(
-      "Type of anchor: professional (individual), team, or collective (community/network)",
-    ),
-  organization: z
-    .string()
-    .optional()
-    .describe("Organization the anchor belongs to"),
+export const agentFrontmatterSchema = anchorProfileBodySchema
+  .pick({ name: true, kind: true, organization: true })
+  .extend({
+    // Brain (what)
+    brainName: z.string().optional().describe("Name of the brain"),
+    url: z.string().url().describe("Brain endpoint URL"),
+    did: z.string().optional().describe("Decentralized identifier (public)"),
 
-  // Brain (what)
-  brainName: z.string().optional().describe("Name of the brain"),
-  url: z.string().url().describe("Brain endpoint URL"),
-  did: z.string().optional().describe("Decentralized identifier (public)"),
-
-  // Relationship
-  status: z.enum(["active", "archived"]).describe("Active or archived"),
-  discoveredAt: z
-    .string()
-    .datetime()
-    .describe("When this agent was first discovered"),
-  discoveredVia: z
-    .enum(["atproto", "manual"])
-    .default("manual")
-    .describe("How this agent was discovered"),
-});
+    // Relationship
+    status: z.enum(["active", "archived"]).describe("Active or archived"),
+    discoveredAt: z
+      .string()
+      .datetime()
+      .describe("When this agent was first discovered"),
+    discoveredVia: z
+      .enum(["atproto", "manual"])
+      .default("manual")
+      .describe("How this agent was discovered"),
+  });
 
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
 

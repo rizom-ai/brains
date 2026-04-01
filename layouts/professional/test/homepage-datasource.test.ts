@@ -21,6 +21,7 @@ describe("HomepageListDataSource", () => {
 
   const profileContent = `---
 name: Yeehaa
+kind: professional
 description: Professional developer
 tagline: Building tools for thought
 intro: Essays and presentations on technology

@@ -26,6 +26,7 @@ export class AgentDirectoryServicePlugin extends ServicePlugin {
     context: ServicePluginContext,
   ): Promise<void> {
     // Subscribe to auto-create events from a2a_call
+    const fetchFn = this.deps.fetch ?? globalThis.fetch;
     context.messaging.subscribe<A2ACallCompletedPayload>(
       "a2a:call:completed",
       async (msg) => {
@@ -33,6 +34,7 @@ export class AgentDirectoryServicePlugin extends ServicePlugin {
           await handleA2ACallCompleted(
             context.entityService,
             agentAdapter,
+            fetchFn,
             msg.payload,
           );
         } catch (error) {

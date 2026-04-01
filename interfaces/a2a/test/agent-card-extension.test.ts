@@ -13,6 +13,7 @@ const mockCharacter: BrainCharacter = {
 
 const mockProfile: AnchorProfile = {
   name: "Jan Hein",
+  kind: "professional",
   description: "Founder of Rizom, working on institutional design",
 };
 
@@ -96,7 +97,10 @@ describe("Agent Card anchor-profile extension", () => {
   });
 
   test("should omit description when profile has none", () => {
-    const minimalProfile: AnchorProfile = { name: "Test" };
+    const minimalProfile: AnchorProfile = {
+      name: "Test",
+      kind: "professional",
+    };
     const card = buildAgentCard({
       character: mockCharacter,
       profile: minimalProfile,

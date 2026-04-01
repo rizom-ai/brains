@@ -229,6 +229,18 @@ export {
 } from "@brains/identity-service";
 
 // ============================================================================
+// A2A Agent Card Schema
+// ============================================================================
+export {
+  ANCHOR_EXTENSION_URI,
+  agentCardSchema,
+  agentCardSkillSchema,
+  anchorExtensionParamsSchema,
+  parseAgentCard,
+  type ParsedAgentCard,
+} from "./a2a/agent-card-schema";
+
+// ============================================================================
 // AI Services (for MCP interface)
 // ============================================================================
 

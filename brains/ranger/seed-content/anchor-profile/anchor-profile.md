@@ -1,4 +1,5 @@
 ---
+kind: collective
 name: My Organization
 description: Tell the world what your organization is about
 website: https://example.com

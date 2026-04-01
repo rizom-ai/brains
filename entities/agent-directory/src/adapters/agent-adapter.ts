@@ -6,16 +6,8 @@ import {
   type AgentEntity,
   type AgentFrontmatter,
   type AgentMetadata,
+  type AgentSkill,
 } from "../schemas/agent";
-
-/**
- * Parsed skill from the ## Skills markdown section
- */
-export interface AgentSkill {
-  name: string;
-  description: string;
-  tags: string[];
-}
 
 /**
  * Body schema for structured content formatter

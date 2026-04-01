@@ -60,6 +60,7 @@ describe("AnchorProfileService", () => {
 
       expect(defaultProfile).toEqual({
         name: "Unknown",
+        kind: "professional",
       });
     });
   });
@@ -75,6 +76,7 @@ describe("AnchorProfileService", () => {
       // Create a mock entity with content
       const mockContent = `---
 name: Rizom
+kind: collective
 description: Open-source collective building privacy-first tools
 website: 'https://rizom.ai'
 email: contact@rizom.ai
@@ -142,6 +144,7 @@ socialLinks:
       // Mock behavior: existing entity with valid content
       const existingContent = `---
 name: Existing Profile
+kind: professional
 ---
 `;
       const mockEntity = createTestEntity<AnchorProfileEntity>(
@@ -187,6 +190,7 @@ name: Existing Profile
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedContent = `---
 name: Yeehaa
+kind: professional
 description: 'Professional developer, writer, and knowledge worker'
 email: yeehaa@rizom.ai
 socialLinks:
@@ -224,6 +228,7 @@ socialLinks:
     it("should use provided custom default profile instead of hardcoded default", async () => {
       const customProfile = {
         name: "Custom Organization",
+        kind: "collective" as const,
         description: "Custom description",
         website: "https://example.com",
       };
@@ -253,6 +258,7 @@ socialLinks:
     it("should create entity with custom default when none exists", async () => {
       const customProfile = {
         name: "Rizom",
+        kind: "collective" as const,
         description: "Open-source collective",
         socialLinks: [
           { platform: "github" as const, url: "https://github.com/rizom-ai" },

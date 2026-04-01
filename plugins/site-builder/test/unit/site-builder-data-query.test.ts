@@ -57,7 +57,7 @@ describe("SiteBuilder dataQuery handling", () => {
 
     // Create SiteBuilder instance with mock static site builder
     const mockProfileService: IAnchorProfileService = {
-      getProfile: () => ({ name: "Test" }),
+      getProfile: () => ({ name: "Test", kind: "professional" as const }),
     };
 
     siteBuilder = SiteBuilder.createFresh(

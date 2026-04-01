@@ -1,4 +1,5 @@
 ---
+kind: team
 name: Team Organization
 description: Collaborative team workspace for knowledge sharing
 website: "https://team.example.com"

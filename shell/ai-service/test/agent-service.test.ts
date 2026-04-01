@@ -82,8 +82,9 @@ describe("AgentService", () => {
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
     mockProfileService = {
-      getProfile: (): { name: string; description: string } => ({
+      getProfile: () => ({
         name: "Test Anchor",
+        kind: "professional" as const,
         description: "Test",
       }),
     };

@@ -1,38 +1,35 @@
 import { describe, it, expect } from "bun:test";
-import {
-  parseAgentCardResponse,
-  parseA2AResponse,
-  createA2ACallTool,
-} from "../src/client";
+import { parseA2AResponse, createA2ACallTool } from "../src/client";
+import { parseAgentCard } from "@brains/plugins";
 
 describe("A2A Client", () => {
-  describe("parseAgentCardResponse", () => {
+  describe("parseAgentCard", () => {
     it("should parse a valid agent card", () => {
-      const card = parseAgentCardResponse({
+      const card = parseAgentCard({
         name: "Rover",
         url: "https://yeehaa.io",
         skills: [],
       });
 
       expect(card).not.toBeNull();
-      expect(card?.name).toBe("Rover");
+      expect(card?.brainName).toBe("Rover");
       expect(card?.url).toBe("https://yeehaa.io");
     });
 
     it("should return null for missing url", () => {
-      const card = parseAgentCardResponse({ name: "Rover" });
+      const card = parseAgentCard({ name: "Rover" });
       expect(card).toBeNull();
     });
 
     it("should return null for missing name", () => {
-      const card = parseAgentCardResponse({ url: "https://yeehaa.io" });
+      const card = parseAgentCard({ url: "https://yeehaa.io" });
       expect(card).toBeNull();
     });
 
     it("should return null for non-object input", () => {
-      expect(parseAgentCardResponse("not an object")).toBeNull();
-      expect(parseAgentCardResponse(null)).toBeNull();
-      expect(parseAgentCardResponse(42)).toBeNull();
+      expect(parseAgentCard("not an object")).toBeNull();
+      expect(parseAgentCard(null)).toBeNull();
+      expect(parseAgentCard(42)).toBeNull();
     });
   });
 

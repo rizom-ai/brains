@@ -16,6 +16,7 @@ describe("AboutDataSource", () => {
 
   const profileContent = `---
 name: Yeehaa
+kind: professional
 description: Professional developer and educator
 intro: Essays and presentations on technology
 expertise:
@@ -101,6 +102,7 @@ I've been building software for many years.
   it("should handle profile with minimal fields", async () => {
     const minimalContent = `---
 name: Test User
+kind: professional
 ---
 `;
 

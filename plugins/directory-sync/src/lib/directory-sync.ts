@@ -321,7 +321,7 @@ export class DirectorySync implements IDirectorySync {
 
     this.syncInProgress = true;
     try {
-      const files = await this.fileOperations.getAllMarkdownFiles();
+      const files = await this.fileOperations.getAllSyncFiles();
 
       return await this.batchOperationsManager.queueSyncBatch(
         pluginContext,

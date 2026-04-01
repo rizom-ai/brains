@@ -1,31 +1,6 @@
 import { z } from "@brains/utils";
-import type { Tool, ToolResponse } from "@brains/plugins";
-
-/**
- * Validated agent card fields from discovery.
- * Intentionally narrow — validate only what we use.
- * Extend as more fields are needed.
- */
-const agentCardSchema = z.object({
-  name: z.string(),
-  url: z.string(),
-  skills: z
-    .array(z.object({ id: z.string(), description: z.string() }).passthrough())
-    .optional()
-    .default([]),
-});
-
-export type DiscoveredAgentCard = z.infer<typeof agentCardSchema>;
-
-/**
- * Parse a raw response into a discovered agent card, returning null if invalid.
- */
-export function parseAgentCardResponse(
-  data: unknown,
-): DiscoveredAgentCard | null {
-  const parsed = agentCardSchema.safeParse(data);
-  return parsed.success ? parsed.data : null;
-}
+import type { Tool, ToolResponse, ParsedAgentCard } from "@brains/plugins";
+import { parseAgentCard } from "@brains/plugins";
 
 interface A2ASuccess {
   success: true;
@@ -158,13 +133,13 @@ const a2aCallInputSchema = {
 async function fetchAgentCard(
   agentUrl: string,
   fetchFn: FetchFn,
-): Promise<DiscoveredAgentCard | null> {
+): Promise<ParsedAgentCard | null> {
   const cardUrl = agentUrl.replace(/\/$/, "") + "/.well-known/agent-card.json";
   try {
     const response = await fetchFn(cardUrl);
     if (!response.ok) return null;
     const data: unknown = await response.json();
-    return parseAgentCardResponse(data);
+    return parseAgentCard(data);
   } catch {
     return null;
   }
@@ -389,37 +364,15 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
       );
 
       // Auto-create: notify agent directory after successful first contact
+      // Fire-and-forget — plugin handler does the full card fetch and entity creation
       if (
         "success" in result &&
         result.success &&
         isFullUrl &&
         deps.sendMessage
       ) {
-        try {
-          const domain = new URL(endpointUrl).hostname;
-          const existing = deps.entityService
-            ? await deps.entityService.getEntity("agent", domain)
-            : null;
-          if (!existing) {
-            await deps.sendMessage("a2a:call:completed", {
-              domain,
-              card: {
-                brainName: card.name,
-                url: card.url,
-                description: "",
-                skills: card.skills.map((s) => ({
-                  id: s.id,
-                  name: s.id,
-                  description: s.description,
-                  tags: [],
-                })),
-                anchor: null,
-              },
-            });
-          }
-        } catch {
-          // Auto-create is best-effort
-        }
+        const domain = new URL(endpointUrl).hostname;
+        void deps.sendMessage("a2a:call:completed", { domain }).catch(() => {});
       }
 
       return result;

@@ -1,35 +1,29 @@
+import type { IEntityService } from "@brains/plugins";
 import type { AgentAdapter } from "@brains/agent-directory";
-import type { FetchedAgentCard } from "./fetch-agent-card";
-
-interface EntityService {
-  getEntity(type: string, id: string): Promise<{ id: string } | null>;
-  createEntity(entity: {
-    id: string;
-    entityType: string;
-    content: string;
-    metadata: Record<string, unknown>;
-  }): Promise<{ entityId: string }>;
-}
+import { fetchAgentCard, type FetchFn } from "./fetch-agent-card";
 
 export interface A2ACallCompletedPayload {
   domain: string;
-  card: FetchedAgentCard;
 }
 
 /**
  * Handle auto-creation of agent entity after a successful a2a_call.
+ * Fetches the full Agent Card and creates a rich entity.
  * Only creates if no entity exists for this domain.
  */
 export async function handleA2ACallCompleted(
-  entityService: EntityService,
+  entityService: IEntityService,
   adapter: AgentAdapter,
+  fetchFn: FetchFn,
   payload: A2ACallCompletedPayload,
 ): Promise<void> {
-  const { domain, card } = payload;
+  const { domain } = payload;
 
-  // Don't overwrite existing entities
   const existing = await entityService.getEntity("agent", domain);
   if (existing) return;
+
+  const card = await fetchAgentCard(domain, fetchFn);
+  if (!card) return;
 
   const anchorName = card.anchor?.name ?? card.brainName;
   const kind = card.anchor?.kind ?? "professional";
@@ -62,6 +56,6 @@ export async function handleA2ACallCompleted(
     id: domain,
     entityType: "agent",
     content,
-    metadata: { name: anchorName, status: "active" },
+    metadata: { name: anchorName, url: card.url, status: "active" },
   });
 }
