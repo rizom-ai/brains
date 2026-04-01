@@ -24,8 +24,7 @@ describe("model name resolution", () => {
   it("should list available models", () => {
     const models = getAvailableModels();
     expect(models).toContain("rover");
-    expect(models).toContain("ranger");
-    expect(models).toContain("relay");
+    expect(models).toHaveLength(1);
   });
 
   it("should accept both old and new yaml format", () => {

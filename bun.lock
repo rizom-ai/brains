@@ -561,8 +561,6 @@
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
         "@brains/mcp-service": "workspace:*",
-        "@brains/ranger": "workspace:*",
-        "@brains/relay": "workspace:*",
         "@brains/rover": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",

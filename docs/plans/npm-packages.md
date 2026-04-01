@@ -151,7 +151,8 @@ Requires:
 1. External plugin loading from brain.yaml (dynamic import)
 2. Library barrel export from `@rizom/brain` (EntityPlugin, ServicePlugin, types)
 3. TypeScript declarations for plugin authors
-4. `brain search` / `brain add` for discovery
+4. Composite plugin factories — one config block for entity + service pairs ([plan](./composite-plugins.md))
+5. `brain search` / `brain add` for discovery
 
 > For programmatic brain definitions (`brain.ts`, `defineBrain()`, preset composition), see [custom-brain-definitions.md](./custom-brain-definitions.md).
 
