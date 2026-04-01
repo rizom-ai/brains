@@ -12,6 +12,8 @@
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/agent-directory": "workspace:*",
+    "@brains/agent-directory-plugin": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",

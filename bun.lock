@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -109,6 +110,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/a2a": "workspace:*",
+        "@brains/agent-directory": "workspace:*",
+        "@brains/agent-directory-plugin": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/blog": "workspace:*",
