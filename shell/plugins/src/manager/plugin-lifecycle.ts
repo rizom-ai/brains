@@ -29,6 +29,7 @@ export class PluginLifecycle {
    */
   public async initializePlugin(
     pluginId: string,
+    options: { registerOnly?: boolean } | undefined,
     shell: IShell,
   ): Promise<PluginCapabilities> {
     const pluginInfo = this.plugins.get(pluginId);
@@ -54,16 +55,16 @@ export class PluginLifecycle {
       pluginInfo.status = PluginStatus.INITIALIZED;
       this.logger.debug(`Initialized plugin: ${pluginId}`);
 
-      // Start any daemons registered by this plugin
-      try {
-        await this.daemonRegistry.startPlugin(pluginId);
-        this.logger.debug(`Started daemons for plugin: ${pluginId}`);
-      } catch (error) {
-        this.logger.error(
-          `Failed to start daemons for plugin: ${pluginId}`,
-          error,
-        );
-        // Don't fail plugin initialization if daemon startup fails
+      // Start any daemons registered by this plugin (skip in registerOnly mode)
+      if (!options?.registerOnly) {
+        try {
+          await this.daemonRegistry.startPlugin(pluginId);
+          this.logger.debug(`Started daemons for plugin: ${pluginId}`);
+        } catch (error) {
+          const msg = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Daemon ${pluginId} failed to start: ${msg}`);
+          // Don't fail plugin initialization if daemon startup fails
+        }
       }
 
       // Emit initialized event

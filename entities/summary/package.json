@@ -1,5 +1,6 @@
 {
   "name": "@brains/summary",
+  "private": true,
   "version": "0.1.0",
   "description": "Plugin for generating entity summaries and digests",
   "type": "module",

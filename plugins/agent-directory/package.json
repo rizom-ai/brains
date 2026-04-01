@@ -1,5 +1,6 @@
 {
   "name": "@brains/agent-directory-plugin",
+  "private": true,
   "version": "0.1.0",
   "description": "Agent directory service — tools for managing agent contacts",
   "type": "module",

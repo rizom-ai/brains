@@ -1,5 +1,6 @@
 {
   "name": "@brains/products",
+  "private": true,
   "version": "0.1.0",
   "description": "Product entity management and overview page for marketing showcase",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/portfolio",
+  "private": true,
   "version": "0.1.0",
   "description": "Portfolio showcase for projects and case studies",
   "type": "module",

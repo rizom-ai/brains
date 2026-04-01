@@ -1,5 +1,6 @@
 {
   "name": "@brains/discord",
+  "private": true,
   "version": "0.0.1",
   "description": "Discord interface for Brains",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-content",
+  "private": true,
   "version": "0.1.0",
   "description": "Site content entity and generation orchestration",
   "type": "module",

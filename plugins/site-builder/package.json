@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-builder-plugin",
+  "private": true,
   "version": "0.0.1",
   "description": "Static site generation plugin for Brain system",
   "type": "module",

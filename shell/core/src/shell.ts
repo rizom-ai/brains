@@ -165,6 +165,7 @@ export class Shell implements IShell {
         this.services.templateRegistry,
         this.services.entityRegistry,
         this.services.pluginManager,
+        options?.registerOnly ? { registerOnly: true } : undefined,
       );
 
       // Register job handlers for content operations BEFORE emitting ready event

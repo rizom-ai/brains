@@ -1,5 +1,6 @@
 {
   "name": "@brains/identity-service",
+  "private": true,
   "version": "0.1.0",
   "description": "Identity service for managing brain character and anchor profile",
   "main": "src/index.ts",

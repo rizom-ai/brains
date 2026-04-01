@@ -1,5 +1,6 @@
 {
   "name": "@brains/directory-sync",
+  "private": true,
   "version": "1.0.0",
   "description": "Directory-based entity synchronization plugin for Brains",
   "type": "module",

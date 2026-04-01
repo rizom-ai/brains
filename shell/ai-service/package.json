@@ -1,5 +1,6 @@
 {
   "name": "@brains/ai-service",
+  "private": true,
   "version": "0.1.0",
   "description": "AI service for text/object generation and agent conversation orchestration",
   "main": "src/index.ts",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/app",
+  "private": true,
   "version": "0.1.0",
   "description": "High-level factory for creating Brain applications",
   "main": "src/index.ts",

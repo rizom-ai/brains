@@ -1,5 +1,6 @@
 {
   "name": "@brains/content-service",
+  "private": true,
   "version": "0.1.0",
   "description": "Content coordination and provider management service for the Brain system",
   "main": "src/index.ts",

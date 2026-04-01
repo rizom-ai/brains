@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-yeehaa",
+  "private": true,
   "version": "0.1.0",
   "description": "Yeehaa theme with yellow/red gradient for Professional Brain",
   "type": "module",

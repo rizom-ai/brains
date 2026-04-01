@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-default",
+  "private": true,
   "version": "0.1.0",
   "description": "Default site package — clean professional layout with default theme",
   "type": "module",

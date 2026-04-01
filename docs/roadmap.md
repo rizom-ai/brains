@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-03-31
+Last Updated: 2026-04-01
 
 ---
 
@@ -125,20 +125,25 @@ Removed "Personal Brain" from 60+ files across source code, READMEs, package.jso
 
 User-facing docs in `packages/brain-cli/docs/`: getting started guide, brain.yaml reference, CLI reference, deployment guide. ([plan](./plans/documentation.md))
 
+### Changesets + Package Versioning (2026-04)
+
+Changesets for automated versioning, changelogs, and npm publishing. Marked 62 internal `@brains/*` packages as `private: true`. GitHub Actions release workflow creates "Version Packages" PRs and publishes `@rizom/brain` to npm on merge. Packages can be flipped to public later for plugin ecosystem.
+
 ---
 
 ## Rover 0.1 — First Public Release
 
 The following items must be complete before the first public release:
 
-| Item                       | Status        | Notes                                                                |
-| -------------------------- | ------------- | -------------------------------------------------------------------- |
-| `@rizom/brain` npm publish | In progress   | Single package: CLI + runtime + models. `brain init && brain start`. |
-| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                         |
-| Eval pass rate ≥ 95%       | 85%           | 60 test cases, eval-content with pre-built DB                        |
-| Naming cleanup             | Done          |                                                                      |
-| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref               |
-| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                               |
+| Item                       | Status        | Notes                                                                                                                      |
+| -------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `@rizom/brain` npm publish | In progress   | CLI + runtime + models done. Needs: README, Bun check, API key check, E2E test. ([plan](./plans/npm-release-readiness.md)) |
+| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                        |
+| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                                                                               |
+| Eval pass rate ≥ 95%       | 85%           | 60 test cases, eval-content with pre-built DB                                                                              |
+| Naming cleanup             | Done          |                                                                                                                            |
+| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                     |
+| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                                                                                     |
 
 ---
 
@@ -148,7 +153,7 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **@rizom/brain** — Single package: CLI + runtime + all brain models. CLI done, build done, in-process webserver done. Next: merge into one package + publish. ([plan](./plans/npm-packages.md))
+- **@rizom/brain** — Single package: CLI + runtime + all brain models. CLI, build, in-process boot, models all done. Changesets configured. Next: README, Bun version check, API key validation, E2E test, then publish. ([plan](./plans/npm-packages.md), [release readiness](./plans/npm-release-readiness.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 

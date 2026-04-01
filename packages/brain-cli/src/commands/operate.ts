@@ -2,14 +2,16 @@ import { existsSync } from "fs";
 import { join } from "path";
 import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
-import { findRunner } from "./start";
+import { findRunner, resolveRunnerType } from "./start";
+import { parseBrainYaml } from "../lib/brain-yaml";
+import { getModel, getAvailableModels } from "../lib/model-registry";
 
 /**
  * Run a CLI command via the brain's tool registry.
  *
- * Spawns the runner with --cli-command, --cli-args, and --cli-flags.
- * The runner boots headless, finds the tool by cli.name, translates
- * args/flags via schema-driven mapping, invokes the handler, prints result, exits.
+ * Two paths:
+ * 1. Monorepo/Docker: spawns runner with --cli-command
+ * 2. Builtin: boots in-process, invokes tool, prints result, exits
  */
 export async function operate(
   cwd: string,
@@ -24,12 +26,124 @@ export async function operate(
     };
   }
 
+  const runnerType = resolveRunnerType(cwd);
+
+  // Builtin: in-process boot
+  if (runnerType === "builtin") {
+    return operateBuiltin(cwd, commandName, args, flags);
+  }
+
+  // Monorepo/Docker: subprocess
+  if (runnerType === "monorepo" || runnerType === "docker") {
+    return operateSubprocess(cwd, commandName, args, flags);
+  }
+
+  return {
+    success: false,
+    message:
+      "Could not find brain runner. Install @rizom/brain globally or run from the monorepo.",
+  };
+}
+
+/**
+ * In-process operate: boot brain, find tool by CLI name, invoke, print, exit.
+ */
+async function operateBuiltin(
+  cwd: string,
+  commandName: string,
+  args: string[],
+  flags: Record<string, unknown>,
+): Promise<CommandResult> {
+  const config = parseBrainYaml(cwd);
+  const definition = getModel(config.brain);
+
+  if (!definition) {
+    return {
+      success: false,
+      message: `Unknown model: ${config.brain}. Available: ${getAvailableModels().join(", ")}`,
+    };
+  }
+
+  try {
+    const { bootBrain } = await import("../lib/boot");
+
+    // Boot in registerOnly mode — no daemons, no events
+    await bootBrain(cwd, config.brain, definition, {
+      chat: false,
+      registerOnly: true,
+    });
+
+    // After boot, the shell is initialized with tools registered.
+    // Get the MCP service to find and invoke the tool.
+    const { Shell } = await import("@brains/core");
+    const shell = Shell.getInstance();
+    const mcpService = shell.getMCPService();
+    const cliTools = mcpService.getCliTools();
+    const match = cliTools.find((t) => t.tool.cli?.name === commandName);
+
+    if (!match?.tool.cli) {
+      const available = cliTools
+        .map((t) => t.tool.cli?.name)
+        .filter(Boolean)
+        .join(", ");
+      return {
+        success: false,
+        message: `Unknown command: ${commandName}. Available: ${available}`,
+      };
+    }
+
+    const { mapArgsToInput } = await import("@brains/mcp-service");
+    const toolInput = mapArgsToInput(match.tool.inputSchema, args, flags);
+
+    const result = await match.tool.handler(toolInput, {
+      interfaceType: "cli",
+      userId: "cli-anchor",
+    });
+
+    if ("needsConfirmation" in result) {
+      console.log(`Confirmation needed: ${result.description}`);
+      return { success: true };
+    }
+
+    if (!result.success) {
+      console.error(`❌ ${result.error}`);
+      return { success: false, message: result.error };
+    }
+
+    if (result.message) {
+      console.log(result.message);
+    }
+    if (result.data !== undefined) {
+      console.log(
+        typeof result.data === "string"
+          ? result.data
+          : JSON.stringify(result.data, null, 2),
+      );
+    }
+
+    return { success: true };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Operation failed",
+    };
+  }
+}
+
+/**
+ * Subprocess operate: spawn runner with --cli-command flags.
+ */
+async function operateSubprocess(
+  cwd: string,
+  commandName: string,
+  args: string[],
+  flags: Record<string, unknown>,
+): Promise<CommandResult> {
   const runner = findRunner(cwd);
   if (!runner) {
     return {
       success: false,
-      message:
-        "Could not find brain runner. Are you in a monorepo or a deployed instance?",
+      message: "Could not find brain runner.",
     };
   }
 

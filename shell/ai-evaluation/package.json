@@ -1,5 +1,6 @@
 {
   "name": "@brains/ai-evaluation",
+  "private": true,
   "version": "0.1.0",
   "description": "AI evaluation system for testing agent and plugin performance",
   "main": "src/index.ts",

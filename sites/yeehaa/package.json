@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-yeehaa",
+  "private": true,
   "version": "0.1.0",
   "description": "Yeehaa site package — brutalist theme + professional layout",
   "type": "module",

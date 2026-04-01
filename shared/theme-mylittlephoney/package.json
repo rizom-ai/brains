@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-mylittlephoney",
+  "private": true,
   "version": "0.1.0",
   "description": "mylittlephoney theme — girly pink unicorn candy",
   "type": "module",

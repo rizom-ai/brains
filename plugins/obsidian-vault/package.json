@@ -1,5 +1,6 @@
 {
   "name": "@brains/obsidian-vault",
+  "private": true,
   "version": "0.1.0",
   "description": "Obsidian vault integration — generates templates from entity schemas",
   "type": "module",

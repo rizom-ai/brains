@@ -1,5 +1,6 @@
 {
   "name": "@brains/hackmd",
+  "private": true,
   "version": "0.1.0",
   "description": "Read-only HackMD integration via MCP bridge",
   "type": "module",

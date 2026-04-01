@@ -1,5 +1,6 @@
 {
   "name": "@brains/mcp-service",
+  "private": true,
   "version": "0.1.0",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "type": "module",

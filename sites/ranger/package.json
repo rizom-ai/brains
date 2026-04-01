@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-ranger",
+  "private": true,
   "version": "0.1.0",
   "description": "Ranger site package — CTA-driven community site with default theme",
   "type": "module",

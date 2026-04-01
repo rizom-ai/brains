@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-brutalist",
+  "private": true,
   "version": "0.1.0",
   "description": "Dark brutalist theme with Space Mono and Work Sans, neon green accent",
   "type": "module",

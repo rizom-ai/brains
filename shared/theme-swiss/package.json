@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-swiss",
+  "private": true,
   "version": "0.1.0",
   "description": "Swiss International theme with Schibsted Grotesk, pure white and vermillion palette",
   "type": "module",

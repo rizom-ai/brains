@@ -43,7 +43,7 @@ const result = await Bun.build({
   target: "bun",
   format: "esm",
   minify: true,
-  sourcemap: "external",
+  sourcemap: "none",
   external: [
     // Native modules that cannot be bundled
     "@libsql/client",

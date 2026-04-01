@@ -1,5 +1,6 @@
 {
   "name": "@brains/buttondown",
+  "private": true,
   "version": "0.1.0",
   "description": "Buttondown newsletter integration — subscriber management and API routes",
   "type": "module",

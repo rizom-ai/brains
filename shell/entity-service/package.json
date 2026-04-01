@@ -1,5 +1,6 @@
 {
   "name": "@brains/entity-service",
+  "private": true,
   "version": "0.1.0",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "type": "module",

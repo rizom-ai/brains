@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-03-31 — Click any item for details</p>
+  <p>Last updated: 2026-04-01 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -209,7 +209,7 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Short-term (in progress)
-  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + @brains/rover brain model — ship together. brain init, brain start, brain list, --remote all done. npm publish next.", blocks: ["kamal"] },
+  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + runtime + models. CLI, build, in-process boot all done. Changesets configured. Remaining: README, Bun version check, API key validation, E2E test, publish.", blocks: ["kamal"] },
   { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomwork", "monitoring"] },
   { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
   // Short-term (completed)
@@ -221,6 +221,7 @@ const items = [
   { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Eval-content with pre-built DB. 60 test cases at 85%. Next: agent instruction tuning, more tests. Target 95%+. Blocks Rover 0.1." },
   { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
   { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
+  { id: "changesets", name: "Changesets + Versioning", status: "completed", desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.", date: "2026-04" },
   { id: "searchquality12", name: "Search Quality Phases 0-2", status: "short-term", desc: "Phase 0: baseline measurement (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search.", deps: ["evalcoverage"] },
   { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
   { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.", date: "2026-03" },
@@ -393,10 +394,12 @@ function render() {
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval 95%+</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-next" onclick="selectItem('documentation')">docs</span>
+        <span class="dep-node s-done" onclick="selectItem('documentation')">docs ✓</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-next" onclick="selectItem('namingcleanup')">naming</span>
-        <span class="dep-label">all block 1.0</span>
+        <span class="dep-node s-done" onclick="selectItem('namingcleanup')">naming ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('changesets')">changesets ✓</span>
+        <span class="dep-label">eval + npm publish remain</span>
       </div>
     </div>
     <div class="dep-group">

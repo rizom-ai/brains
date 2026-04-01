@@ -207,7 +207,10 @@ export class ShellInitializer {
     this.logger.debug("Anchor profile entity support registered");
   }
 
-  public async initializePlugins(pluginManager: PluginManager): Promise<void> {
+  public async initializePlugins(
+    pluginManager: PluginManager,
+    options?: { registerOnly?: boolean },
+  ): Promise<void> {
     this.logger.debug(
       `Found ${this.config.plugins.length} plugins to register`,
     );
@@ -217,7 +220,7 @@ export class ShellInitializer {
       pluginManager.registerPlugin(plugin);
     }
 
-    await pluginManager.initializePlugins();
+    await pluginManager.initializePlugins(options);
     this.logger.debug("Plugin initialization complete");
   }
 
@@ -470,6 +473,7 @@ export class ShellInitializer {
     templateRegistry: TemplateRegistry,
     entityRegistry: IEntityRegistry,
     pluginManager: PluginManager,
+    options?: { registerOnly?: boolean },
   ): Promise<void> {
     this.logger.debug("Starting Shell initialization");
 
@@ -478,7 +482,7 @@ export class ShellInitializer {
       this.registerBaseEntityDisplayTemplate(templateRegistry);
       this.registerBrainCharacterSupport(entityRegistry);
       this.registerAnchorProfileSupport(entityRegistry);
-      await this.initializePlugins(pluginManager);
+      await this.initializePlugins(pluginManager, options);
 
       // Register fallback base entity adapter only if no plugin claimed "base"
       if (!entityRegistry.hasEntityType(SHELL_ENTITY_TYPES.BASE)) {

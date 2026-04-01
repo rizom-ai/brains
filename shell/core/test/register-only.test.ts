@@ -4,8 +4,8 @@ import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
-import type { Plugin } from "@brains/plugins";
-import { PluginManager } from "@brains/plugins";
+import type { Plugin, Daemon } from "@brains/plugins";
+import { InterfacePlugin, PluginManager } from "@brains/plugins";
 import { EntityRegistry } from "@brains/entity-service";
 import {
   JobQueueWorker,
@@ -15,6 +15,7 @@ import {
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
+import { z } from "@brains/utils";
 
 const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));
 void mock.module("fastembed", () => ({
@@ -30,33 +31,36 @@ async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
   ShellInitializer.resetInstance();
   PluginManager.resetInstance();
-  MessageBus.resetInstance();
   EntityRegistry.resetInstance();
-  JobQueueWorker.resetInstance();
+  DataSourceRegistry.resetInstance();
   JobQueueService.resetInstance();
   BatchJobManager.resetInstance();
+  JobQueueWorker.resetInstance();
   JobProgressMonitor.resetInstance();
-  DataSourceRegistry.resetInstance();
+  MessageBus.resetInstance();
+}
+
+interface TestDir {
+  dir: string;
+  cleanup: () => Promise<void>;
 }
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
     plugins: [],
     database: { url: `file:${dir}/test.db` },
-    jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
-    conversationDatabase: { url: `file:${dir}/test-conv.db` },
-    embedding: {
-      cacheDir: `${dir}/embeddings`,
-      model: "fast-all-MiniLM-L6-v2",
-    },
+    jobQueueDatabase: { url: `file:${dir}/jobs.db` },
+    conversationDatabase: { url: `file:${dir}/conv.db` },
   };
 }
 
-const deps: ShellDependencies = { logger: createSilentLogger() };
-
 describe("Shell registerOnly mode", () => {
-  let testDir: { dir: string; cleanup: () => Promise<void> };
+  let testDir: TestDir;
   let shell: Shell;
+
+  const deps: Partial<ShellDependencies> = {
+    logger: createSilentLogger("test"),
+  };
 
   beforeEach(async () => {
     testDir = await createTestDirectory();
@@ -124,5 +128,38 @@ describe("Shell registerOnly mode", () => {
 
     // Shell should be marked as initialized
     expect(shell.isInitialized()).toBe(true);
+  });
+
+  it("should not start daemons in registerOnly mode", async () => {
+    let daemonStarted = false;
+
+    // Real InterfacePlugin subclass — matches how webserver/mcp/a2a work
+    class TestDaemonInterface extends InterfacePlugin {
+      constructor() {
+        super(
+          "test-daemon",
+          { version: "0.1.0", name: "@test/daemon" },
+          {},
+          z.object({}),
+        );
+      }
+
+      protected override createDaemon(): Daemon | undefined {
+        return {
+          start: async () => {
+            daemonStarted = true;
+          },
+          stop: async () => {},
+        };
+      }
+    }
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [new TestDaemonInterface()];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ registerOnly: true });
+
+    // Daemon should NOT have started
+    expect(daemonStarted).toBe(false);
   });
 });

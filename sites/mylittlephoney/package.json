@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-mylittlephoney",
+  "private": true,
   "version": "0.1.0",
   "description": "mylittlephoney site package — pink unicorn theme + personal layout",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-geometric",
+  "private": true,
   "version": "0.1.0",
   "description": "Sharp geometric theme with Syne and DM Sans, electric indigo and zinc palette",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/layout-professional",
+  "private": true,
   "version": "0.1.0",
   "description": "Professional layout — editorial composition of blog, deck, and profile content into pages",
   "type": "module",

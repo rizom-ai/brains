@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-editorial",
+  "private": true,
   "version": "0.1.0",
   "description": "Editorial theme with Instrument Serif, cream and terracotta palette",
   "type": "module",

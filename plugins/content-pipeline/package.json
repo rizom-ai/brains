@@ -1,5 +1,6 @@
 {
   "name": "@brains/content-pipeline",
+  "private": true,
   "version": "0.1.0",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "type": "module",

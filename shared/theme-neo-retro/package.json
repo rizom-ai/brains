@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-neo-retro",
+  "private": true,
   "version": "0.1.0",
   "description": "Neo-retro theme with Bricolage Grotesque and Libre Franklin, warm cream and coral palette",
   "type": "module",

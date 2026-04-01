@@ -1,5 +1,6 @@
 {
   "name": "@brains/prompt",
+  "private": true,
   "version": "0.1.0",
   "description": "Prompt entity type — AI prompts as editable markdown entities",
   "type": "module",

@@ -1,5 +1,6 @@
 {
   "name": "@brains/theme-rizom",
+  "private": true,
   "version": "0.1.0",
   "description": "Rizom brand theme — blue/orange palette with gradients, dot patterns, and animations",
   "type": "module",

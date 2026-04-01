@@ -1,5 +1,6 @@
 {
   "name": "@brains/site-info",
+  "private": true,
   "version": "0.1.0",
   "description": "Site info entity — site metadata, title, description, CTA",
   "type": "module",
