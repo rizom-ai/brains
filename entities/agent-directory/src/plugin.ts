@@ -12,7 +12,7 @@ export class AgentDirectoryPlugin extends EntityPlugin<AgentEntity> {
   readonly adapter = agentAdapter;
 
   constructor() {
-    super("agent-directory", packageJson);
+    super("agent-directory-entity", packageJson);
   }
 }
 

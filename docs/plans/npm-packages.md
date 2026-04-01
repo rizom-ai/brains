@@ -115,9 +115,10 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 1. **README.md** for npm registry page — install, quick start, links to docs
 2. **package.json metadata** — homepage, bugs, author, engines
 3. **Bun version check** — validate `Bun.version >= 1.3.3` before any command
-4. **ANTHROPIC_API_KEY pre-check** — clear error before boot, not cryptic failure on first tool call
-5. **Create `@rizom` npm org** — manual step
-6. **`npm publish`** — ship it
+4. **AI provider config in brain.yaml** — `provider: openai` (default) or `anthropic`. One API key for text + images. No more hardcoded provider selection.
+5. **API key pre-check** — validate the configured provider's key before boot, clear error message
+6. **Create `@rizom` npm org** — manual step
+7. **`npm publish`** — ship it
 
 #### Recommended for v0.1.0
 

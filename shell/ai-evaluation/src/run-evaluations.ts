@@ -246,18 +246,22 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
 
     if (!overrides.brain) {
       console.error(
-        '❌ brain.eval.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/ranger"',
+        '❌ brain.eval.yaml must contain a "brain" field, e.g.:\n  brain: rover',
       );
       process.exit(1);
     }
 
-    const mod = await import(overrides.brain);
+    // Resolve bare model names (e.g. "rover") to package names ("@brains/rover")
+    const brainPackage = overrides.brain.startsWith("@")
+      ? overrides.brain
+      : `@brains/${overrides.brain}`;
+    const mod = await import(brainPackage);
     if (!mod.default) {
       console.error(`❌ ${overrides.brain} does not have a default export`);
       process.exit(1);
     }
 
-    console.log(`Loaded eval config from brain.eval.yaml (${overrides.brain})`);
+    console.log(`Loaded eval config from brain.eval.yaml (${brainPackage})`);
 
     // Resolve test case directories: shell → brain model → app instance
     const shellTestCases = resolvePath(
@@ -269,7 +273,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
     // Resolve brain package path to find its test-cases directory
     // import.meta.resolve returns a file:// URL, convert to path
     const brainModulePath = import.meta
-      .resolve(overrides.brain)
+      .resolve(brainPackage)
       .replace("file://", "")
       .replace(/\/src\/.*$/, "");
     const brainModelTestCases = resolvePath(brainModulePath, "test-cases");
