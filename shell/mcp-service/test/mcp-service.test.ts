@@ -81,7 +81,7 @@ describe("MCPService", () => {
       });
     });
 
-    it("should skip tool registration with insufficient permissions", () => {
+    it("should always store tools in registry regardless of permission level", () => {
       const tool: Tool = {
         name: "admin_tool",
         description: "Admin tool",
@@ -93,8 +93,13 @@ describe("MCPService", () => {
       mcpService.setPermissionLevel("public");
       mcpService.registerTool("admin-plugin", tool);
 
+      // Internal registry has the tool (agent needs it)
       const tools = mcpService.listTools();
-      expect(tools).toHaveLength(0);
+      expect(tools).toHaveLength(1);
+
+      // But per-call filtering respects permissions
+      const publicTools = mcpService.listToolsForPermissionLevel("public");
+      expect(publicTools).toHaveLength(0);
     });
 
     it("should register multiple tools from different plugins", () => {
@@ -228,7 +233,7 @@ describe("MCPService", () => {
       expect(() => mcpService.setPermissionLevel("trusted")).not.toThrow();
     });
 
-    it("should filter tools based on permission level", () => {
+    it("should store all tools in registry regardless of permission level", () => {
       const publicTool: Tool = {
         name: "public_tool",
         description: "Public tool",
@@ -253,43 +258,35 @@ describe("MCPService", () => {
         handler: async () => ({ success: true, formatted: "Anchor success" }),
       };
 
-      // Register with public permission - only public tool should be registered
+      // Even with public permission, all tools are in the internal registry
       mcpService.setPermissionLevel("public");
       mcpService.registerTool("plugin", publicTool);
       mcpService.registerTool("plugin", trustedTool);
       mcpService.registerTool("plugin", anchorTool);
 
-      let tools = mcpService.listTools();
-      expect(tools.map((t) => t.tool.name)).toEqual(["public_tool"]);
-
-      // Reset and register with trusted permission
-      MCPService.resetInstance();
-      mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
-      mcpService.setPermissionLevel("trusted");
-      mcpService.registerTool("plugin", publicTool);
-      mcpService.registerTool("plugin", trustedTool);
-      mcpService.registerTool("plugin", anchorTool);
-
-      tools = mcpService.listTools();
-      expect(tools.map((t) => t.tool.name)).toEqual([
-        "public_tool",
-        "trusted_tool",
-      ]);
-
-      // Reset and register with anchor permission
-      MCPService.resetInstance();
-      mcpService = MCPService.getInstance(mockMessageBus, createSilentLogger());
-      mcpService.setPermissionLevel("anchor");
-      mcpService.registerTool("plugin", publicTool);
-      mcpService.registerTool("plugin", trustedTool);
-      mcpService.registerTool("plugin", anchorTool);
-
-      tools = mcpService.listTools();
+      const tools = mcpService.listTools();
       expect(tools.map((t) => t.tool.name)).toEqual([
         "public_tool",
         "trusted_tool",
         "anchor_tool",
       ]);
+
+      // Per-call filtering still works correctly
+      expect(
+        mcpService
+          .listToolsForPermissionLevel("public")
+          .map((t) => t.tool.name),
+      ).toEqual(["public_tool"]);
+      expect(
+        mcpService
+          .listToolsForPermissionLevel("trusted")
+          .map((t) => t.tool.name),
+      ).toEqual(["public_tool", "trusted_tool"]);
+      expect(
+        mcpService
+          .listToolsForPermissionLevel("anchor")
+          .map((t) => t.tool.name),
+      ).toEqual(["public_tool", "trusted_tool", "anchor_tool"]);
     });
   });
 
@@ -528,6 +525,51 @@ describe("MCPService", () => {
       };
 
       expect(() => mcpService.registerPrompt("system", prompt)).not.toThrow();
+    });
+  });
+
+  describe("tool registration ordering", () => {
+    it("should not drop anchor tools registered after setPermissionLevel(public)", () => {
+      // Regression: MCP interface calls setPermissionLevel("public") during daemon
+      // start (no auth token). System tools are registered after that. Anchor tools
+      // were silently dropped from the internal registry, breaking the agent.
+      const publicTool: Tool = {
+        name: "system_search",
+        description: "Search",
+        inputSchema: {},
+        visibility: "public",
+        handler: async () => ({ success: true, formatted: "ok" }),
+      };
+
+      const anchorTool: Tool = {
+        name: "system_create",
+        description: "Create entity",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async () => ({ success: true, formatted: "ok" }),
+      };
+
+      // Simulate: tools registered at anchor level during plugin init
+      mcpService.registerTool("system", publicTool);
+
+      // Simulate: MCP interface sets permission to public (no auth token)
+      mcpService.setPermissionLevel("public");
+
+      // Simulate: system tools registered after MCP interface starts
+      mcpService.registerTool("system", anchorTool);
+
+      // The internal registry should have both tools — agent needs them
+      const allTools = mcpService.listTools();
+      expect(allTools.map((t) => t.tool.name)).toContain("system_search");
+      expect(allTools.map((t) => t.tool.name)).toContain("system_create");
+
+      // Per-call filtering should still work correctly
+      const publicTools = mcpService.listToolsForPermissionLevel("public");
+      expect(publicTools.map((t) => t.tool.name)).toEqual(["system_search"]);
+
+      const anchorTools = mcpService.listToolsForPermissionLevel("anchor");
+      expect(anchorTools.map((t) => t.tool.name)).toContain("system_search");
+      expect(anchorTools.map((t) => t.tool.name)).toContain("system_create");
     });
   });
 });

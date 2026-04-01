@@ -93,13 +93,16 @@ export class MCPService implements IMCPService {
    * Create a fresh MCP server instance with all registered tools/resources.
    * Required for Streamable HTTP where each session needs its own server.
    */
-  public createMcpServer(): McpServer {
+  public createMcpServer(permissionLevel?: UserPermissionLevel): McpServer {
+    const level = permissionLevel ?? this.permissionLevel;
     const server = new McpServer({
       name: "brain-mcp",
       version: "1.0.0",
     });
 
     for (const [, { pluginId, tool }] of this.registeredTools) {
+      const toolVisibility = tool.visibility ?? "anchor";
+      if (!PermissionService.hasPermission(level, toolVisibility)) continue;
       this.registerToolOnServer(server, pluginId, tool);
     }
 
@@ -144,20 +147,18 @@ export class MCPService implements IMCPService {
    * Register a tool with the MCP server
    */
   public registerTool(pluginId: string, tool: Tool): void {
-    const toolVisibility = tool.visibility ?? "anchor";
+    // Always store in the internal registry. The agent reads from here via
+    // listToolsForPermissionLevel() which filters per-call. Without this,
+    // setPermissionLevel("public") called by an interface before system tools
+    // are registered would silently drop anchor tools from the registry.
+    this.registeredTools.set(tool.name, { pluginId, tool });
 
-    // Check permissions
-    if (
-      !PermissionService.hasPermission(this.permissionLevel, toolVisibility)
-    ) {
-      this.logger.debug(
-        `Skipping tool ${tool.name} from ${pluginId} - insufficient permissions`,
-      );
-      return;
+    // Only expose on the MCP protocol server if transport permission allows.
+    const toolVisibility = tool.visibility ?? "anchor";
+    if (PermissionService.hasPermission(this.permissionLevel, toolVisibility)) {
+      this.registerToolOnServer(this.mcpServer, pluginId, tool);
     }
 
-    this.registerToolOnServer(this.mcpServer, pluginId, tool);
-    this.registeredTools.set(tool.name, { pluginId, tool });
     this.logger.debug(`Registered tool ${tool.name} from ${pluginId}`);
   }
 

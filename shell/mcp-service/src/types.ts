@@ -179,7 +179,7 @@ export interface IMCPTransport {
    * Create a fresh MCP server instance with all registered tools/resources.
    * Required for Streamable HTTP where each session needs its own server.
    */
-  createMcpServer(): McpServer;
+  createMcpServer(permissionLevel?: UserPermissionLevel): McpServer;
 
   /**
    * Set the permission level for this transport
