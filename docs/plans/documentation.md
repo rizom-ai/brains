@@ -71,7 +71,7 @@ Replaced "Personal Brain" across 60+ files. Updated package.json descriptions, R
 
 ### Phase 1: Essential docs — DONE (2026-03)
 
-Docs in `packages/brain-cli/docs/`:
+Docs in `docs/`:
 
 1. Getting started guide
 2. brain.yaml reference

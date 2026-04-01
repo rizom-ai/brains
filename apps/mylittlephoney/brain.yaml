@@ -1,4 +1,4 @@
-brain: "@brains/rover"
+brain: rover
 site: "@brains/site-mylittlephoney"
 
 # Instance settings

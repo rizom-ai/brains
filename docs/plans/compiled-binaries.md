@@ -29,7 +29,7 @@ Fix: resolve relative to the binary's location using `process.execPath` when run
 
 No native deps, no path issues. Works today.
 
-1. `bun build --compile packages/brain-cli/src/index.ts`
+1. `bun build --compile packages/brain-cli/scripts/entrypoint.ts`
 2. Cross-compile: linux-x64, darwin-arm64, darwin-x64
 3. CI: build on release, attach to GitHub release
 4. Users download, chmod +x, use

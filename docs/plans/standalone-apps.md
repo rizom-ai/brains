@@ -41,10 +41,10 @@ brain.yaml pins the brain model version. deploy.yml derives the image tag from i
 
 ```yaml
 # brain.yaml — runs latest (default when version omitted)
-brain: "@brains/rover"
+brain: rover
 
 # brain.yaml — pinned to specific release
-brain: "@brains/rover"
+brain: rover
 version: "1.2.0"
 ```
 

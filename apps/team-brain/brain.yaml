@@ -1,4 +1,4 @@
-brain: "@brains/relay"
+brain: relay
 
 # Instance settings
 logLevel: debug

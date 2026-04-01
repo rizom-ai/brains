@@ -1,4 +1,4 @@
-brain: "@brains/ranger"
+brain: ranger
 
 # Instance settings
 logLevel: debug

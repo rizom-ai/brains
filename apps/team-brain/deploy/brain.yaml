@@ -1,4 +1,4 @@
-brain: "@brains/relay"
+brain: relay
 
 # Production instance
 domain: recall.rizom.ai

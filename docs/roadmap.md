@@ -123,7 +123,7 @@ Removed "Personal Brain" from 60+ files across source code, READMEs, package.jso
 
 ### Documentation — Phase 1 (2026-03)
 
-User-facing docs in `packages/brain-cli/docs/`: getting started guide, brain.yaml reference, CLI reference, deployment guide. ([plan](./plans/documentation.md))
+User-facing docs: getting started guide, brain.yaml reference, CLI reference, deployment guide. ([plan](./plans/documentation.md))
 
 ### Changesets + Package Versioning (2026-04)
 

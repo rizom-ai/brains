@@ -59,7 +59,7 @@ rizom-ai/eval-content/
 The eval brain.yaml points to the test content repo:
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 preset: pro
 mode: eval
 

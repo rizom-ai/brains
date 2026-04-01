@@ -81,7 +81,7 @@ All instance-specific configuration lives in `brain.yaml`. See [brain.yaml Refer
 Minimal example:
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 domain: mybrain.example.com
 
 anchors: []

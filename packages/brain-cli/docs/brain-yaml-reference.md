@@ -6,7 +6,7 @@
 
 ```yaml
 # Required — which brain model to run
-brain: "@brains/rover" # or @brains/relay, @brains/ranger
+brain: rover # or relay, ranger
 
 # Site package — overrides the brain model's default theme, layout, and routes
 site: "@brains/site-yeehaa"
@@ -73,11 +73,11 @@ permissions:
 
 The brain model package to run. Determines which entity types, plugins, and interfaces are available.
 
-| Value            | Description                                           |
-| ---------------- | ----------------------------------------------------- |
-| `@brains/rover`  | Personal brain — blog, portfolio, decks, notes, links |
-| `@brains/relay`  | Team brain — shared knowledge, summaries, decks       |
-| `@brains/ranger` | Collective brain — curated content, community         |
+| Value    | Description                                           |
+| -------- | ----------------------------------------------------- |
+| `rover`  | Personal brain — blog, portfolio, decks, notes, links |
+| `relay`  | Team brain — shared knowledge, summaries, decks       |
+| `ranger` | Collective brain — curated content, community         |
 
 ### `site`
 
@@ -224,7 +224,7 @@ If an environment variable is not set, the entire entry is removed. This means p
 ### Minimal (local development)
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 
 plugins:
   mcp:
@@ -234,7 +234,7 @@ plugins:
 ### Full Rover instance
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 site: "@brains/site-yeehaa"
 preset: pro
 domain: yeehaa.io
@@ -273,7 +273,7 @@ permissions:
 ### Team brain
 
 ```yaml
-brain: "@brains/relay"
+brain: relay
 logLevel: debug
 
 anchors:

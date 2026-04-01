@@ -55,7 +55,7 @@ apps/my-collective/
 ### 2. brain.yaml
 
 ```yaml
-brain: "@brains/ranger"
+brain: ranger
 
 logLevel: debug
 

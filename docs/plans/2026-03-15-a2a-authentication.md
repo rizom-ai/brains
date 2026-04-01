@@ -286,7 +286,7 @@ This tells callers: "I accept Bearer tokens. Send one if you have it, or you'll 
 Auth and permissions are instance-specific — they belong in `brain.yaml`, not the brain model code. Secrets are referenced via `${ENV_VAR}` interpolation, actual values stay in `.env`.
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 domain: yeehaa.io
 
 plugins:

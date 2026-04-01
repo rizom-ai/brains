@@ -1,4 +1,4 @@
-brain: "@brains/ranger"
+brain: ranger
 
 # Eval-specific config — safe subset for automated testing
 # Ranger only has default preset, so no preset override needed

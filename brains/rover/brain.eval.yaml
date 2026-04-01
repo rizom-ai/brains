@@ -1,4 +1,4 @@
-brain: "@brains/rover"
+brain: rover
 preset: pro
 mode: eval
 

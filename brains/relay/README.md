@@ -50,7 +50,7 @@ apps/my-team/
 ### 2. brain.yaml
 
 ```yaml
-brain: "@brains/relay"
+brain: relay
 
 logLevel: debug
 

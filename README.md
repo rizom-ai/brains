@@ -107,7 +107,7 @@ export default defineBrain({
 Configure the instance in `brain.yaml`:
 
 ```yaml
-brain: "@brains/rover"
+brain: rover
 site: "@brains/site-default"
 preset: default
 domain: mybrain.example.com

@@ -31,7 +31,7 @@ The instance configuration file. Declarative, no code, committable to git.
 
 ```yaml
 # Required — which brain model to use
-brain: "@brains/relay"
+brain: relay
 
 # Instance overrides (all optional)
 name: team-brain-staging
@@ -268,7 +268,7 @@ mkdir apps/my-brain-prod
 5. Add `apps/my-brain-prod/brain.yaml`:
 
 ```yaml
-brain: "@brains/my-brain"
+brain: my-brain
 domain: my-brain.example.com
 ```
 
@@ -302,7 +302,7 @@ The same brain model can power both dev and production with different `brain.yam
 ```
 apps/team-brain/              # Dev instance
 ├── brain.yaml                # Dev config
-│   brain: "@brains/relay"
+│   brain: relay
 │   logLevel: debug
 │   plugins:
 │     directory-sync:
@@ -314,7 +314,7 @@ apps/team-brain/              # Dev instance
 
 apps/team-brain/deploy/       # Production deploy artifacts
 ├── brain.yaml                # Production config
-│   brain: "@brains/relay"
+│   brain: relay
 │   domain: recall.rizom.ai
 │   plugins:
 │     webserver:
