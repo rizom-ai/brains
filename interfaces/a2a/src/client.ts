@@ -305,6 +305,8 @@ export interface A2AClientDeps {
       metadata: Record<string, unknown>;
     } | null>;
   };
+  /** Send a message to other plugins (for auto-create on first contact) */
+  sendMessage?: (channel: string, payload: unknown) => Promise<unknown>;
 }
 
 /**
@@ -379,7 +381,48 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         }
       }
 
-      return sendMessage(endpointUrl, message, fetchFn, authToken);
+      const result = await sendMessage(
+        endpointUrl,
+        message,
+        fetchFn,
+        authToken,
+      );
+
+      // Auto-create: notify agent directory after successful first contact
+      if (
+        "success" in result &&
+        result.success &&
+        isFullUrl &&
+        deps.sendMessage
+      ) {
+        try {
+          const domain = new URL(endpointUrl).hostname;
+          const existing = deps.entityService
+            ? await deps.entityService.getEntity("agent", domain)
+            : null;
+          if (!existing) {
+            await deps.sendMessage("a2a:call:completed", {
+              domain,
+              card: {
+                brainName: card.name,
+                url: card.url,
+                description: "",
+                skills: card.skills.map((s) => ({
+                  id: s.id,
+                  name: s.id,
+                  description: s.description,
+                  tags: [],
+                })),
+                anchor: null,
+              },
+            });
+          }
+        } catch {
+          // Auto-create is best-effort
+        }
+      }
+
+      return result;
     },
   };
 }

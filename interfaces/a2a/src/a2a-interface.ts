@@ -122,6 +122,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       createA2ACallTool({
         outboundTokens: this.config.outboundTokens,
         entityService: this.getContext().entityService,
+        sendMessage: (channel, payload) =>
+          this.getContext().messaging.send(channel, payload),
       }),
     ];
   }

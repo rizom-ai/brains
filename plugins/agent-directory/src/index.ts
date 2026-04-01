@@ -9,3 +9,7 @@ export {
   type FetchedAgentCard,
   type FetchFn,
 } from "./lib/fetch-agent-card";
+export {
+  handleA2ACallCompleted,
+  type A2ACallCompletedPayload,
+} from "./lib/auto-create";
