@@ -83,7 +83,7 @@ All entity types in `entities/` as EntityPlugins (14 total). Types renamed (`Too
 
 ### Blocking I/O Elimination — Phases 1–2 (2026-03)
 
-Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread for site builds evaluated and parked (Preact rendering is fast, real bottleneck is sequential route processing). See site-builder decoupling plan for the actual performance fix.
+Async FS in directory-sync and webserver. Webserver moved in-process (Hono via Bun.serve). Worker thread for site builds evaluated and parked (Preact rendering is fast, real bottleneck is sequential route processing). See site-builder decoupling plan for the actual performance fix.
 
 ### Sync Tools Simplification (2026-03)
 

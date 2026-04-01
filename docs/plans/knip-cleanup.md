@@ -76,7 +76,7 @@ False positives to exclude:
 
 - `docs/examples/**` — standalone example code
 - `scripts/*.js` — build scripts invoked via CLI, not imported
-- `interfaces/webserver/src/standalone-server.ts` — child process entry point
+- ~~`interfaces/webserver/src/standalone-server.ts`~~ — deleted (webserver now in-process)
 - `plugins/dashboard/src/templates/dashboard/hydration.tsx` — build-time compiled
 - Implicit devDependencies: `@brains/eslint-config`, `bun-types`, `@brains/typescript-config` (used by tooling, not imported)
 

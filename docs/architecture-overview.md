@@ -101,7 +101,7 @@ All content types live in `entities/` as EntityPlugins. Zero tools — entity CR
 | `interfaces/discord` | Discord bot interface  |
 
 | `interfaces/mcp` | MCP transport (stdio + HTTP) |
-| `interfaces/webserver` | Static site server (child process) + API routes (main thread) |
+| `interfaces/webserver` | Static site server (in-process Hono) + API routes |
 | `interfaces/a2a` | A2A protocol (Agent Card, JSON-RPC tasks, non-blocking) |
 
 ### Brain Definitions
