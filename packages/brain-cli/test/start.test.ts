@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { resolveRunnerType } from "../src/commands/start";
+import { registerModel, resetModels } from "../src/lib/model-registry";
 
 describe("brain start", () => {
   it("should detect brain.yaml in target directory", () => {
@@ -33,20 +34,19 @@ describe("resolveRunnerType", () => {
   beforeEach(() => {
     testDir = join(tmpdir(), `brain-start-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
+    resetModels();
   });
 
   afterEach(() => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    resetModels();
   });
 
-  it("should return 'npm' when package.json exists with start script", () => {
-    writeFileSync(
-      join(testDir, "package.json"),
-      JSON.stringify({ scripts: { start: "rover" } }),
-    );
-    expect(resolveRunnerType(testDir)).toBe("npm");
+  it("should return 'builtin' when models are registered", () => {
+    registerModel("rover", { name: "rover" });
+    expect(resolveRunnerType(testDir)).toBe("builtin");
   });
 
   it("should return 'docker' when dist/.model-entrypoint.js exists", () => {
@@ -55,13 +55,10 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(testDir)).toBe("docker");
   });
 
-  it("should prefer docker over npm when both exist", () => {
+  it("should prefer docker over builtin when both exist", () => {
+    registerModel("rover", { name: "rover" });
     mkdirSync(join(testDir, "dist"), { recursive: true });
     writeFileSync(join(testDir, "dist", ".model-entrypoint.js"), "");
-    writeFileSync(
-      join(testDir, "package.json"),
-      JSON.stringify({ scripts: { start: "rover" } }),
-    );
     expect(resolveRunnerType(testDir)).toBe("docker");
   });
 

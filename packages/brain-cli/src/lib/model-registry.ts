@@ -1,14 +1,17 @@
 /**
- * Built-in brain model registry.
+ * Brain model registry.
  *
- * Maps model names to their package imports. In the bundled @rizom/brain
- * package, these are statically imported. In the monorepo, they resolve
- * via workspace dependencies.
+ * Known model names are listed statically. Model definitions are registered
+ * at runtime by the build entrypoint (bundled package) or left empty
+ * (monorepo — falls back to subprocess runner).
  */
 
 const AVAILABLE_MODELS = ["rover", "ranger", "relay"] as const;
 
 export type ModelName = (typeof AVAILABLE_MODELS)[number];
+
+// Registered model definitions — populated by the build entrypoint
+const models = new Map<string, unknown>();
 
 /**
  * Normalize a brain model reference to a bare name.
@@ -38,15 +41,45 @@ export function resolveModelName(raw: string): string {
 }
 
 /**
- * Get the list of built-in model names.
+ * Get the list of known model names.
  */
 export function getAvailableModels(): readonly string[] {
   return AVAILABLE_MODELS;
 }
 
 /**
- * Check if a model name is a built-in model.
+ * Check if a model name is a known built-in model.
  */
 export function isBuiltinModel(name: string): name is ModelName {
   return AVAILABLE_MODELS.includes(name as ModelName);
+}
+
+/**
+ * Register a model definition.
+ * Called by the build entrypoint after bundling models.
+ */
+export function registerModel(name: string, definition: unknown): void {
+  models.set(name, definition);
+}
+
+/**
+ * Get a registered model definition.
+ * Returns undefined if the model is not registered (monorepo mode).
+ */
+export function getModel(name: string): unknown | undefined {
+  return models.get(name);
+}
+
+/**
+ * Check if any models are registered (bundled mode vs monorepo).
+ */
+export function hasRegisteredModels(): boolean {
+  return models.size > 0;
+}
+
+/**
+ * Reset registered models. For testing only.
+ */
+export function resetModels(): void {
+  models.clear();
 }

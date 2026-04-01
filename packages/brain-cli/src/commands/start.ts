@@ -1,11 +1,16 @@
-import { existsSync, readFileSync } from "fs";
+import { existsSync } from "fs";
 import { join, dirname } from "path";
-import { spawn, spawnSync } from "child_process";
+import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
+import { parseBrainYaml } from "../lib/brain-yaml";
+import {
+  getModel,
+  hasRegisteredModels,
+  isBuiltinModel,
+} from "../lib/model-registry";
 
 /**
- * Detect whether we're in a monorepo (has bun.lock above us)
- * or a standalone instance (no bun.lock).
+ * Detect monorepo root by walking up looking for bun.lock.
  */
 export function findMonorepoRoot(from: string): string | undefined {
   let dir = from;
@@ -21,10 +26,7 @@ export function findMonorepoRoot(from: string): string | undefined {
 }
 
 /**
- * Find the runner script path (monorepo or Docker only).
- *
- * In monorepo: shell/app/src/runner.ts (run from source)
- * In standalone: the .model-entrypoint.js in dist/ (run from bundle)
+ * Find the monorepo runner script.
  */
 export function findRunner(
   cwd: string,
@@ -38,7 +40,7 @@ export function findRunner(
     }
   }
 
-  // Standalone: look for dist/.model-entrypoint.js
+  // Legacy Docker path — fallback during transition
   const entrypoint = join(cwd, "dist", ".model-entrypoint.js");
   if (existsSync(entrypoint)) {
     return { path: entrypoint, type: "standalone" };
@@ -48,84 +50,26 @@ export function findRunner(
 }
 
 /**
- * Determine which runner type applies for the given directory.
- *
- * Priority: monorepo > docker > npm > undefined
+ * Determine runner type for a directory.
  */
 export function resolveRunnerType(
   cwd: string,
-): "monorepo" | "docker" | "npm" | undefined {
+): "monorepo" | "docker" | "builtin" | undefined {
   const runner = findRunner(cwd);
   if (runner) return runner.type === "monorepo" ? "monorepo" : "docker";
 
-  // npm: package.json with a start script
-  const pkgPath = join(cwd, "package.json");
-  if (existsSync(pkgPath)) {
-    try {
-      const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"));
-      if (pkg?.scripts?.start) return "npm";
-    } catch {
-      // Invalid package.json — skip
-    }
-  }
+  // Bundled mode — models registered in-process
+  if (hasRegisteredModels()) return "builtin";
 
   return undefined;
 }
 
 /**
- * Validate that brain.yaml exists and a runner is available.
- */
-export function requireRunner(
-  cwd: string,
-): { path: string; type: "monorepo" | "standalone" } | CommandResult {
-  if (!existsSync(join(cwd, "brain.yaml"))) {
-    return {
-      success: false,
-      message: `No brain.yaml found in ${cwd}. Run 'brain init <dir>' first.`,
-    };
-  }
-
-  const runner = findRunner(cwd);
-  if (!runner) {
-    return {
-      success: false,
-      message:
-        "Could not find brain runner. Are you in a monorepo or a deployed instance?",
-    };
-  }
-
-  return runner;
-}
-
-/**
- * Auto-install dependencies if node_modules is missing.
- */
-function ensureDependencies(cwd: string): CommandResult | undefined {
-  if (existsSync(join(cwd, "node_modules"))) return undefined;
-
-  console.log("Installing dependencies...");
-  const result = spawnSync("bun", ["install"], {
-    cwd,
-    stdio: "inherit",
-    env: process.env,
-  });
-
-  if (result.status !== 0) {
-    return {
-      success: false,
-      message: "Failed to install dependencies. Is Bun installed?",
-    };
-  }
-
-  return undefined;
-}
-
-/**
- * Start a brain. Detects runner type and delegates accordingly.
+ * Start a brain.
  *
- * - Monorepo: bun run shell/app/src/runner.ts
- * - Docker: bun run dist/.model-entrypoint.js
- * - npm: bun run start (uses package.json start script)
+ * Two paths:
+ * 1. Monorepo/Docker: delegate to runner subprocess
+ * 2. Bundled: boot in-process from registered model
  */
 export async function start(
   cwd: string,
@@ -138,24 +82,17 @@ export async function start(
     };
   }
 
-  const runner = findRunner(cwd);
+  const runnerType = resolveRunnerType(cwd);
 
-  // npm path: no runner found, but package.json has a start script
-  if (!runner) {
-    const runnerType = resolveRunnerType(cwd);
-    if (runnerType !== "npm") {
-      return {
-        success: false,
-        message:
-          "Could not find brain runner. Are you in a monorepo, Docker container, or npm instance?",
-      };
+  // Monorepo/Docker: subprocess
+  if (runnerType === "monorepo" || runnerType === "docker") {
+    const runner = findRunner(cwd);
+    if (!runner) {
+      return { success: false, message: "Runner not found." };
     }
 
-    const installError = ensureDependencies(cwd);
-    if (installError) return installError;
-
-    const args = ["run", "start"];
-    if (flags.chat) args.push("--", "--cli");
+    const args = ["run", runner.path];
+    if (flags.chat) args.push("--cli");
 
     return new Promise((resolve) => {
       const proc = spawn("bun", args, {
@@ -173,22 +110,42 @@ export async function start(
     });
   }
 
-  // Monorepo/Docker path: bun run <runner-path>
-  const args = ["run", runner.path];
-  if (flags.chat) args.push("--cli");
+  // Bundled: in-process boot
+  if (runnerType === "builtin") {
+    const config = parseBrainYaml(cwd);
 
-  return new Promise((resolve) => {
-    const proc = spawn("bun", args, {
-      cwd,
-      stdio: "inherit",
-      env: process.env,
-    });
+    if (!isBuiltinModel(config.brain)) {
+      return {
+        success: false,
+        message: `Unknown model: ${config.brain}. Available: rover, ranger, relay`,
+      };
+    }
 
-    proc.on("close", (code) => {
-      resolve({
-        success: code === 0,
-        ...(code !== 0 ? { message: `Brain exited with code ${code}` } : {}),
-      });
-    });
-  });
+    const definition = getModel(config.brain);
+    if (!definition) {
+      return {
+        success: false,
+        message: `Model '${config.brain}' is not registered. This is a build error.`,
+      };
+    }
+
+    // In-process boot — the build entrypoint registers a boot function
+    // alongside the model definitions. This import is resolved at bundle time.
+    try {
+      const { bootBrain } = await import("../lib/boot");
+      await bootBrain(cwd, config.brain, definition, flags);
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Boot failed",
+      };
+    }
+  }
+
+  return {
+    success: false,
+    message:
+      "Could not find brain runner. Install @rizom/brain globally or run from the monorepo.",
+  };
 }
