@@ -26,6 +26,7 @@ export function createSystemInstructions(services: SystemServices): string {
     '- "Draft a LinkedIn post" → entityType: "social-post"',
     '- "Create a newsletter" → entityType: "newsletter"',
     '- "Add a project" → entityType: "project"',
+    '- "List my contacts/agents" → entityType: "agent"',
     "",
     "Never use old tool names like blog_generate, note_create, or deck_generate.",
   ].join("\n");

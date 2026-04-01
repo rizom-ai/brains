@@ -15,7 +15,7 @@ successCriteria:
     - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
-        agent: "yeehaa"
+        agent: "https://yeehaa.io"
   responseNotContains:
     - "I need a URL"
     - "provide the full URL"
