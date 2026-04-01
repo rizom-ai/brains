@@ -209,7 +209,7 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Short-term (in progress)
-  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + runtime + models. CLI, build, in-process boot all done. Changesets configured. Remaining: README, Bun version check, API key validation, E2E test, publish.", blocks: ["kamal"] },
+  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + runtime + rover (ranger/relay deferred). CLI, build, in-process boot done. Changesets configured. Remaining: README, Bun version check, API key validation, E2E test, publish.", blocks: ["kamal"] },
   { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomwork", "monitoring"] },
   { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
   // Short-term (completed)

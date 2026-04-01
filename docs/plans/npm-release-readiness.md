@@ -2,7 +2,9 @@
 
 ## Context
 
-`@rizom/brain` is ~70% ready for a public npm release. The CLI, build system, in-process boot, and all three brain models work. But several gaps remain — from blocking issues (no README, no version check) to deferred features (external plugin API, `brain pin`). This plan categorizes everything by release phase.
+`@rizom/brain` is ~70% ready for a public npm release. The CLI, build system, in-process boot, and rover model work. But several gaps remain — from blocking issues (no README, no version check) to deferred features (external plugin API, `brain pin`). This plan categorizes everything by release phase.
+
+**v0.1.0 ships rover only.** Ranger and relay are less battle-tested and will be added in a follow-up release.
 
 ## Current State
 
@@ -15,7 +17,7 @@
 - `brain tool <name>` — raw tool invocation
 - `brain <command> --remote <url>` — remote MCP HTTP queries
 - Build produces `dist/brain.js` (~7MB) + migrations + seed content
-- All 3 models (rover, ranger, relay) with presets
+- Rover model with presets (minimal, default, pro)
 - Database auto-creation + migrations
 - Changesets configured for versioning
 

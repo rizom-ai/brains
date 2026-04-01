@@ -153,7 +153,7 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **@rizom/brain** — Single package: CLI + runtime + all brain models. CLI, build, in-process boot, models all done. Changesets configured. Next: README, Bun version check, API key validation, E2E test, then publish. ([plan](./plans/npm-packages.md), [release readiness](./plans/npm-release-readiness.md))
+- **@rizom/brain** — Single package: CLI + runtime + rover model (ranger/relay deferred). CLI, build, in-process boot all done. Changesets configured. Next: README, Bun version check, API key validation, E2E test, then publish. ([plan](./plans/npm-packages.md), [release readiness](./plans/npm-release-readiness.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
