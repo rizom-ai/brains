@@ -43,3 +43,10 @@ export async function bootBrain(
   }
   await registeredBootFn(cwd, modelName, definition, flags);
 }
+
+/**
+ * Reset the boot function. For testing only.
+ */
+export function resetBootFn(): void {
+  registeredBootFn = undefined;
+}

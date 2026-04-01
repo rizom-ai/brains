@@ -4,9 +4,9 @@ import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
+  getAvailableModels,
   getModel,
   hasRegisteredModels,
-  isBuiltinModel,
 } from "../lib/model-registry";
 
 /**
@@ -114,18 +114,11 @@ export async function start(
   if (runnerType === "builtin") {
     const config = parseBrainYaml(cwd);
 
-    if (!isBuiltinModel(config.brain)) {
-      return {
-        success: false,
-        message: `Unknown model: ${config.brain}. Available: rover, ranger, relay`,
-      };
-    }
-
     const definition = getModel(config.brain);
     if (!definition) {
       return {
         success: false,
-        message: `Model '${config.brain}' is not registered. This is a build error.`,
+        message: `Unknown model: ${config.brain}. Available: ${getAvailableModels().join(", ")}`,
       };
     }
 

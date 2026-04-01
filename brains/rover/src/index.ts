@@ -79,7 +79,7 @@ const pro = [
 ];
 export default defineBrain({
   name: "rover",
-  version: "1.0.0",
+  version: "0.1.0",
   site: defaultSite,
   presets: {
     minimal,

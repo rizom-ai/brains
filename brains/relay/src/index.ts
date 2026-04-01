@@ -29,7 +29,7 @@ import rangerSite from "@brains/site-ranger";
  */
 export default defineBrain({
   name: "relay",
-  version: "1.0.0",
+  version: "0.1.0",
   site: rangerSite,
   presets: {
     default: [

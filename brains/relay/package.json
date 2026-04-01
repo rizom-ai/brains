@@ -1,6 +1,6 @@
 {
   "name": "@brains/relay",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Relay brain model — collaborative knowledge management",
   "type": "module",
   "exports": {

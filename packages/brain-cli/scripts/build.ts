@@ -1,24 +1,62 @@
 #!/usr/bin/env bun
 /**
- * Build the brain CLI for npm publish.
+ * Build @rizom/brain — single package with CLI + runtime + all brain models.
  *
- * Bundles all source into a single dist/brain.js file.
- * MCP SDK is external (runtime dependency).
+ * Produces dist/brain.js (~7MB, Bun target) containing:
+ * - CLI commands (init, start, list, eval, --remote)
+ * - All brain model definitions (rover, ranger, relay)
+ * - Full runtime (shell, plugins, entities, sites, themes)
+ *
+ * The entrypoint (src/entrypoint.ts) registers models and the boot function,
+ * then runs the CLI. In the monorepo, src/index.ts runs instead (no models).
  */
-import { writeFileSync, mkdirSync } from "fs";
+import { writeFileSync, mkdirSync, cpSync, existsSync, readdirSync } from "fs";
 import { join } from "path";
 
 const outdir = join(import.meta.dir, "..", "dist");
 mkdirSync(outdir, { recursive: true });
 
+// ─── Find monorepo root ───────────────────────────────────────────────────
+
+function findMonorepoRoot(): string {
+  let dir = import.meta.dir;
+  while (!existsSync(join(dir, "bun.lock"))) {
+    const parent = join(dir, "..");
+    if (parent === dir) {
+      console.error("Build must run from the monorepo");
+      process.exit(1);
+    }
+    dir = parent;
+  }
+  return dir;
+}
+
+const monorepoRoot = findMonorepoRoot();
+
+// ─── Bundle ───────────────────────────────────────────────────────────────
+
+console.log("Building @rizom/brain...");
+
 const result = await Bun.build({
-  entrypoints: [join(import.meta.dir, "..", "src", "index.ts")],
+  entrypoints: [join(import.meta.dir, "entrypoint.ts")],
   outdir,
-  target: "node",
+  target: "bun",
   format: "esm",
-  external: ["@modelcontextprotocol/sdk"],
-  minify: false,
-  sourcemap: "none",
+  minify: true,
+  sourcemap: "external",
+  external: [
+    // Native modules that cannot be bundled
+    "@libsql/client",
+    "libsql",
+    "lightningcss",
+    "onnxruntime-node",
+    "fastembed",
+    "@tailwindcss/oxide",
+    // ink loads react-devtools-core unconditionally
+    "react-devtools-core",
+    // MCP SDK for --remote mode (lazy imported)
+    "@modelcontextprotocol/sdk",
+  ],
   naming: "brain.js",
 });
 
@@ -30,11 +68,56 @@ if (!result.success) {
   process.exit(1);
 }
 
-// Replace shebang with Node (Bun.build preserves the bun shebang)
+// Prepend shebang
 const outFile = join(outdir, "brain.js");
-const content = Bun.file(outFile);
-const text = await content.text();
-const stripped = text.replace(/^#!.*\n/gm, "");
-writeFileSync(outFile, `#!/usr/bin/env node\n${stripped}`);
+const content = await Bun.file(outFile).text();
+const stripped = content.replace(/^#!.*\n/gm, "");
+writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
 
-console.log(`Built dist/brain.js (${Math.round(text.length / 1024)}KB)`);
+// ─── Copy migrations ──────────────────────────────────────────────────────
+
+const migrationsDir = join(outdir, "migrations");
+mkdirSync(migrationsDir, { recursive: true });
+
+const migrationSources = [
+  {
+    name: "entity-service",
+    path: join(monorepoRoot, "shell/entity-service/drizzle"),
+  },
+  {
+    name: "conversation-service",
+    path: join(monorepoRoot, "shell/conversation-service/drizzle"),
+  },
+  { name: "job-queue", path: join(monorepoRoot, "shell/job-queue/drizzle") },
+];
+
+for (const { name, path } of migrationSources) {
+  if (existsSync(path)) {
+    cpSync(path, join(migrationsDir, name), { recursive: true });
+  }
+}
+
+// ─── Copy seed content from all brain models ──────────────────────────────
+
+const brainsDir = join(monorepoRoot, "brains");
+const seedDir = join(outdir, "seed-content");
+mkdirSync(seedDir, { recursive: true });
+
+for (const model of readdirSync(brainsDir)) {
+  const seedPath = join(brainsDir, model, "seed-content");
+  if (existsSync(seedPath)) {
+    cpSync(seedPath, join(seedDir, model), { recursive: true });
+  }
+}
+
+// ─── Report ───────────────────────────────────────────────────────────────
+
+const sizeKB = Math.round(stripped.length / 1024);
+console.log(`Built dist/brain.js (${sizeKB}KB)`);
+console.log(
+  `Migrations: ${migrationSources
+    .filter((s) => existsSync(s.path))
+    .map((s) => s.name)
+    .join(", ")}`,
+);
+console.log("Done.");

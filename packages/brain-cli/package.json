@@ -1,7 +1,7 @@
 {
   "name": "@rizom/brain",
   "version": "0.1.0",
-  "description": "CLI for managing brain instances — scaffold, run, query, deploy",
+  "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
     "brain": "./dist/brain.js"
@@ -22,9 +22,22 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.24.0"
   },
+  "optionalDependencies": {
+    "@libsql/client": "^0.15.7",
+    "@tailwindcss/oxide": "^4.1.4",
+    "better-sqlite3": "^11.8.1",
+    "fastembed": "^1.14.4",
+    "lightningcss": "^1.29.2",
+    "react-devtools-core": "^6.1.1",
+    "sharp": "^0.34.5"
+  },
   "devDependencies": {
+    "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/mcp-service": "workspace:*",
+    "@brains/ranger": "workspace:*",
+    "@brains/relay": "workspace:*",
+    "@brains/rover": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
     "@types/bun": "latest",
