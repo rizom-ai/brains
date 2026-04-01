@@ -24,8 +24,10 @@ Single Bun build. The CLI _is_ the runtime — no subprocess, no IPC, no spawn.
   dist/brain.js (~6MB, Bun target)
     ├── CLI commands (init, start, list, eval, --remote)
     ├── Runtime (shell, plugins, entities, sites, themes)
-    └── Models (rover, ranger, relay — defineBrain() configs)
+    └── Model (rover — v0.1.0 ships rover only)
 ```
+
+**v0.1.0 ships rover only.** Ranger and relay are not bundled — they'll be added in a future release once they have more eval coverage.
 
 `brain start` imports the model and calls `App.create(config).run()` directly. Same process, same event loop. This means:
 
@@ -83,7 +85,7 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 ### Build ✅
 
 - `scripts/build.ts` bundles CLI + all brain models + runtime into `dist/brain.js` (~6MB)
-- `scripts/entrypoint.ts` registers rover/ranger/relay + boot function + runs CLI
+- `scripts/entrypoint.ts` registers rover + boot function + runs CLI
 - All site packages bundled (any instance can use any site)
 - Migrations + seed content copied to dist
 - optionalDependencies for native platform binaries (sharp, libsql, fastembed, etc.)
