@@ -134,27 +134,9 @@ brain init mybrain --model rover --deploy
 
 Already implemented via `--deploy` flag.
 
-### Phase 3: External plugins
+### Phase 3: External Plugin API
 
-Plugins declared in brain.yaml, loaded from node_modules at runtime.
-
-```yaml
-brain: rover
-plugins:
-  - @rizom/brain-plugin-calendar
-  - @rizom/brain-plugin-stripe:
-      apiKey: "${STRIPE_API_KEY}"
-```
-
-Requires:
-
-1. External plugin loading from brain.yaml (dynamic import)
-2. Library barrel export from `@rizom/brain` (EntityPlugin, ServicePlugin, types)
-3. TypeScript declarations for plugin authors
-4. Composite plugin factories — one config block for entity + service pairs ([plan](./composite-plugins.md))
-5. `brain search` / `brain add` for discovery
-
-> For programmatic brain definitions (`brain.ts`, `defineBrain()`, preset composition), see [custom-brain-definitions.md](./custom-brain-definitions.md).
+Separate plan: [external-plugin-api.md](./external-plugin-api.md)
 
 ### Phase 4: Runtime site/theme overrides
 

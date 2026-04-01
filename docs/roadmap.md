@@ -157,6 +157,10 @@ Items at the same level can be done in parallel.
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 
+### External Plugin API
+
+Public plugin API for `@rizom/brain`: library exports with .d.ts, runtime loading from brain.yaml, API version contract, `brain search`/`brain add` CLI, example plugin + docs. Enables third-party plugin ecosystem. ([plan](./plans/external-plugin-api.md))
+
 ### Composite Plugins
 
 Composite factory functions that return multiple plugins from one config block. Fixes the newsletter + buttondown split: one capability ID, one brain.yaml override, two plugins registered. One-line resolver change. ([plan](./plans/composite-plugins.md))
