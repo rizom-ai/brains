@@ -4,7 +4,7 @@ mode: eval
 
 # Compare across models
 models:
-  - gpt-4o-mini
+  - gpt-4.1-mini
   - claude-haiku-4-5
 judge: claude-haiku-4-5
 

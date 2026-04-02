@@ -6,16 +6,15 @@ Multi-model evals (`brain.eval.yaml` with `models:` list) run sequentially — o
 
 Adding more models (e.g. `gemini-2.0-flash`, `gpt-4o`) makes it linearly slower. The models don't share state — each gets its own temp DB, eval content copy, and git repo. They're embarrassingly parallel.
 
-## Approach: Subprocesses, Not Workers
+## Approach: Subprocesses
 
-~~The original plan proposed Bun Workers for parallelism.~~ Workers are wrong here:
+Each model eval runs in a separate `bun` subprocess. Full OS-level isolation — own singletons, own ports, own ONNX session. No serialization boundary, no shared state, no new abstractions.
 
-- **Serialization boundary** — `AppConfig` contains class instances that can't cross `postMessage`. Requires re-booting from scratch in each worker, duplicating config resolution.
-- **ONNX in workers** — fastembed loads native binaries. No evidence it works across Bun workers without segfaults.
-- **Port conflicts** — A2A binds to port 3334. Two workers would crash.
-- **Singletons** — Shell, EntityRegistry, etc. are process-global singletons. Workers share module scope in subtle ways.
+Workers were considered and rejected:
 
-The simpler fix: `--parallel` using separate `bun` subprocesses. Each subprocess is a fully isolated OS process — its own singletons, its own ports, its own ONNX session. No serialization boundary, no shared state, no new abstractions.
+- `AppConfig` contains class instances that can't cross `postMessage`
+- fastembed loads native ONNX binaries — unverified across Bun workers
+- Shell, EntityRegistry, etc. are process-global singletons
 
 ```
 Main process                         Subprocesses
@@ -42,7 +41,7 @@ Each subprocess writes its `EvaluationSummary` as JSON to stdout. Main process c
 
 ## Implementation
 
-### Worker entry point
+### Subprocess entry point
 
 New file: `shell/ai-evaluation/src/eval-subprocess.ts`
 
@@ -51,10 +50,11 @@ Receives config via environment variables and CLI args:
 - `EVAL_MODEL` — model string (e.g. `"gpt-4o-mini"`)
 - `AI_API_KEY` — resolved provider key for this model
 - `EVAL_DB_BASE` — pre-prepared temp DB path prefix
+- `EVAL_BRAIN_YAML` — path to the brain.eval.yaml file
 - `EVAL_JUDGE_MODEL` — model string for the LLM judge
 - CLI args: `--test-cases-dir`, `--skip-llm-judge`, `--tags`, etc.
 
-Writes `EvaluationSummary` as JSON to stdout on completion. Stderr for logs.
+The subprocess resolves the brain model from `EVAL_BRAIN_YAML` (reads yaml, imports brain package, calls `resolveConfig`), overrides the AI model, boots the App, runs the test suite, and writes the `EvaluationSummary` as JSON to stdout. Stderr for logs.
 
 ### Main thread changes
 
@@ -73,6 +73,7 @@ const results = await Promise.all(
           AI_API_KEY: providerKey,
           EVAL_MODEL: model,
           EVAL_DB_BASE: evalDbBase,
+          EVAL_BRAIN_YAML: resolvePath(process.cwd(), "brain.eval.yaml"),
           EVAL_JUDGE_MODEL: judge ?? "claude-haiku-4-5",
         },
         stdio: ["ignore", "pipe", "inherit"], // stdout=JSON, stderr=logs
@@ -109,7 +110,7 @@ Subprocess stderr is inherited — logs go straight to the terminal. With 2–3 
 
 ## Steps
 
-1. Create `shell/ai-evaluation/src/eval-subprocess.ts` — reads env, boots App, runs suite, writes JSON to stdout
+1. Create `shell/ai-evaluation/src/eval-subprocess.ts` — reads env + brain.eval.yaml, resolves brain package, boots App with model override, runs suite, writes JSON to stdout
 2. Add `--parallel` flag to eval runner — spawns subprocesses instead of sequential loop
 3. Collect JSON results, feed to `writeModelComparisonReport`
 4. Per-subprocess git remote paths
@@ -117,8 +118,9 @@ Subprocess stderr is inherited — logs go straight to the terminal. With 2–3 
 ## Risks
 
 - **Memory** — Each subprocess boots a full Shell with SQLite DBs, embeddings, plugins. With 4+ models, memory spikes. Document limits.
-- **Port conflicts** — A2A binds to a fixed port. Either disable in eval mode (via `evalDisable`) or assign dynamic ports per subprocess.
 - **fastembed cold start** — Each subprocess loads the ONNX model independently. First load is ~3s. Parallel starts may contend on disk I/O.
+
+Port conflicts are not a risk — A2A and other interfaces are in `evalDisable` for brain models, so they don't bind ports during eval runs.
 
 ## Verification
 
