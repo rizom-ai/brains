@@ -242,7 +242,6 @@ describe("resolve", () => {
     );
 
     expect(config.aiModel).toBe("gpt-4o-mini");
-    expect(config.aiProvider).toBe("openai");
   });
 
   test("should apply targeted override to interface after construction", () => {

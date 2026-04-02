@@ -444,9 +444,9 @@ describe("AIService", () => {
     });
 
     describe("generateImage with Google", () => {
-      it("should use Google provider when defaultImageProvider is google", async () => {
+      it("should use Google provider when imageModel is a gemini model", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", defaultImageProvider: "google" },
+          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
@@ -460,7 +460,7 @@ describe("AIService", () => {
 
       it("should pass aspectRatio directly to Google provider", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", defaultImageProvider: "google" },
+          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
@@ -475,7 +475,7 @@ describe("AIService", () => {
 
       it("should not pass size to Google provider", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", defaultImageProvider: "google" },
+          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
@@ -487,12 +487,12 @@ describe("AIService", () => {
     });
 
     describe("provider selection", () => {
-      it("should use defaultImageProvider when set", async () => {
+      it("should use imageModel to select provider", async () => {
         const service = AIService.createFresh(
           {
             apiKey: "sk-test",
 
-            defaultImageProvider: "google",
+            imageModel: "gemini-3-pro-image-preview",
           },
           logger,
         );
@@ -510,9 +510,9 @@ describe("AIService", () => {
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
-      it("should use Google when defaultImageProvider is google", async () => {
+      it("should use Google when imageModel is gemini", async () => {
         const service = AIService.createFresh(
-          { apiKey: "sk-test", defaultImageProvider: "google" },
+          { apiKey: "sk-test", imageModel: "gemini-3-pro-image-preview" },
           logger,
         );
 
@@ -529,12 +529,11 @@ describe("AIService", () => {
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
-      it("should use Nano Banana Pro when googleImageModel is set", async () => {
+      it("should pass imageModel to Google provider", async () => {
         const service = AIService.createFresh(
           {
             apiKey: "sk-test",
-            defaultImageProvider: "google",
-            googleImageModel: "gemini-3-pro-image-preview",
+            imageModel: "gemini-3-pro-image-preview",
           },
           logger,
         );

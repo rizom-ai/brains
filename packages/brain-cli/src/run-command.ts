@@ -7,6 +7,7 @@ import { start } from "./commands/start";
 import { operate } from "./commands/operate";
 import { operateRemote } from "./commands/operate-remote";
 import { runEval } from "./commands/eval";
+import { pin } from "./commands/pin";
 import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 
 export interface CommandResult {
@@ -32,6 +33,8 @@ export async function runCommand(
       return start(dir, { chat: true });
     case "eval":
       return runEval(dir, process.argv.slice(2));
+    case "pin":
+      return pin(dir);
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -137,6 +140,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  start         Start the brain (all daemons)",
     "  chat          Start with interactive chat REPL",
     "  eval          Run AI evaluations (pass-through to brain-eval)",
+    "  pin           Pin @rizom/brain version (creates package.json, installs)",
     "  tool <name>   Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];

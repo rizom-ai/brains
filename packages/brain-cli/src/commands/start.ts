@@ -9,6 +9,7 @@ import {
   hasRegisteredModels,
 } from "../lib/model-registry";
 import { checkApiKey } from "../lib/preflight";
+import { formatBootError } from "../lib/boot-errors";
 
 /**
  * Detect monorepo root by walking up looking for bun.lock.
@@ -140,7 +141,7 @@ export async function start(
     } catch (error) {
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Boot failed",
+        message: formatBootError(error),
       };
     }
   }

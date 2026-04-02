@@ -75,7 +75,6 @@ export const shellConfigSchema = z.object({
   }),
 
   ai: z.object({
-    provider: z.string().default("anthropic"),
     apiKey: z.string(),
     imageApiKey: z.string().optional(),
     model: z.string().default("claude-haiku-4-5-20251001"),
@@ -133,7 +132,6 @@ export function createShellConfig(
     conversationDatabase:
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     ai: {
-      provider: overrides.ai?.provider ?? "anthropic",
       apiKey: overrides.ai?.apiKey ?? "",
       ...(overrides.ai?.imageApiKey
         ? { imageApiKey: overrides.ai.imageApiKey }

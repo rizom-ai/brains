@@ -43,7 +43,6 @@ export interface AIConfigFields {
   aiApiKey?: string;
   aiImageKey?: string;
   aiModel?: string;
-  aiProvider?: string;
 }
 
 export function resolveAIConfig(
@@ -63,9 +62,8 @@ export function resolveAIConfig(
   }
 
   if (overrides?.model) {
-    const { provider, modelId } = detectProvider(overrides.model);
+    const { modelId } = detectProvider(overrides.model);
     result.aiModel = modelId;
-    result.aiProvider = provider;
   }
 
   return result;

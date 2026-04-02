@@ -8,12 +8,11 @@ import type { z } from "@brains/utils";
 import type {
   AIModelConfig,
   IAIService,
-  ImageProvider,
   AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
-import { selectTextProvider } from "./provider-selection";
+import { selectTextProvider, selectImageProvider } from "./provider-selection";
 
 /**
  * Default model configuration
@@ -67,20 +66,20 @@ export class AIService implements IAIService {
     };
     this.logger = logger.child("AIService");
 
-    // Text provider uses apiKey. Image providers use imageApiKey (falls back to apiKey).
+    const provider = selectTextProvider(this.config.model);
     const imageKey = config.imageApiKey ?? config.apiKey;
 
     this.anthropicProvider = config.apiKey
       ? createAnthropic({ apiKey: config.apiKey })
       : anthropic;
 
-    if (config.provider === "openai" && config.apiKey) {
+    if (provider === "openai" && config.apiKey) {
       this.openaiProvider = createOpenAI({ apiKey: config.apiKey });
     } else if (imageKey) {
       this.openaiProvider = createOpenAI({ apiKey: imageKey });
     }
 
-    if (config.provider === "google" && config.apiKey) {
+    if (provider === "google" && config.apiKey) {
       this.googleProvider = createGoogleGenerativeAI({
         apiKey: config.apiKey,
       });
@@ -97,7 +96,7 @@ export class AIService implements IAIService {
   public getModel(): LanguageModel {
     const { model } = this.config;
     const modelId = model ?? DEFAULT_MODEL;
-    const provider = selectTextProvider(this.config);
+    const provider = selectTextProvider(modelId);
 
     if (provider === "openai" && this.openaiProvider) {
       return this.openaiProvider(modelId) as LanguageModel;
@@ -238,49 +237,45 @@ export class AIService implements IAIService {
   }
 
   /**
-   * Get the active image provider based on config or auto-detection.
-   * Prefers Google when both providers are available (better text rendering).
-   */
-  private get imageProvider(): ImageProvider | null {
-    if (this.config.defaultImageProvider) {
-      const preferred = this.config.defaultImageProvider;
-      if (preferred === "google" && this.googleProvider) return "google";
-      if (preferred === "openai" && this.openaiProvider) return "openai";
-    }
-    // Auto-detect: prefer OpenAI until Google provider issues are resolved
-    if (this.openaiProvider) return "openai";
-    if (this.googleProvider) return "google";
-    return null;
-  }
-
-  /**
    * Generate an image from a text prompt
    */
   public async generateImage(
     prompt: string,
     options?: ImageGenerationOptions,
   ): Promise<ImageGenerationResult> {
-    const provider = this.imageProvider;
-    if (!provider) {
-      throw new Error("Image generation not available: no API key configured");
+    const { provider, modelId } = selectImageProvider(this.config.imageModel);
+
+    if (provider === "openai" && !this.openaiProvider) {
+      throw new Error(
+        "Image generation not available: no OpenAI API key configured",
+      );
+    }
+    if (provider === "google" && !this.googleProvider) {
+      throw new Error(
+        "Image generation not available: no Google API key configured",
+      );
     }
 
     this.logger.debug("Generating image", {
       prompt: prompt.slice(0, 100),
       provider,
+      model: modelId,
     });
 
     try {
       const aspectRatio: AspectRatio = options?.aspectRatio ?? "16:9";
       const result =
         provider === "google"
-          ? await this.generateImageWithGoogle(prompt, aspectRatio)
-          : await this.generateImageWithOpenAI(prompt, aspectRatio);
+          ? await this.generateImageWithGoogle(prompt, aspectRatio, modelId)
+          : await this.generateImageWithOpenAI(prompt, aspectRatio, modelId);
 
       const base64 = result.image.base64;
       const dataUrl = `data:image/png;base64,${base64}`;
 
-      this.logger.debug("Image generated successfully", { provider });
+      this.logger.debug("Image generated successfully", {
+        provider,
+        model: modelId,
+      });
 
       return { base64, dataUrl };
     } catch (error) {
@@ -292,12 +287,13 @@ export class AIService implements IAIService {
   private async generateImageWithOpenAI(
     prompt: string,
     aspectRatio: AspectRatio,
+    modelId: string,
   ): Promise<{ image: { base64: string } }> {
     if (!this.openaiProvider) {
       throw new Error("OpenAI provider not configured");
     }
     return generateImage({
-      model: this.openaiProvider.image("gpt-image-1.5"),
+      model: this.openaiProvider.image(modelId),
       prompt,
       size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
       providerOptions: {
@@ -309,14 +305,13 @@ export class AIService implements IAIService {
   private async generateImageWithGoogle(
     prompt: string,
     aspectRatio: AspectRatio,
+    modelId: string,
   ): Promise<{ image: { base64: string } }> {
     if (!this.googleProvider) {
       throw new Error("Google provider not configured");
     }
     return generateImage({
-      model: this.googleProvider.image(
-        this.config.googleImageModel ?? "gemini-3-pro-image-preview",
-      ),
+      model: this.googleProvider.image(modelId),
       prompt,
       aspectRatio,
     });

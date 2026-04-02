@@ -76,8 +76,7 @@ export const appConfigSchema = z.object({
   database: z.string().optional(), // Maps to database.url in Shell
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
   aiImageKey: z.string().optional(), // Optional override for image generation
-  aiModel: z.string().optional(), // AI model (e.g. "gpt-4o-mini")
-  aiProvider: z.string().optional(), // AI provider (auto-detected from model)
+  aiModel: z.string().optional(), // AI model — determines provider (e.g. "gpt-4o-mini", "openai:gpt-4o")
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),

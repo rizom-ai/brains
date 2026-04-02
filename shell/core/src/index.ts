@@ -18,3 +18,5 @@ export {
   SHELL_ENTITY_TYPES,
   SHELL_TEMPLATE_NAMES,
 } from "./constants";
+
+export { resetAllSingletons } from "./initialization/shellInitializer";

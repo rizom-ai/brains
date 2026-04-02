@@ -69,14 +69,17 @@ export class App {
       // Set feature flags (none currently)
       shellConfig.features = {};
 
-      if (this.config.aiApiKey || this.config.aiImageKey) {
+      if (
+        this.config.aiApiKey ||
+        this.config.aiImageKey ||
+        this.config.aiModel
+      ) {
         shellConfig.ai = {
           ...shellConfig.ai,
           ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
           ...(this.config.aiImageKey && {
             imageApiKey: this.config.aiImageKey,
           }),
-          ...(this.config.aiProvider && { provider: this.config.aiProvider }),
           ...(this.config.aiModel && { model: this.config.aiModel }),
         };
       }

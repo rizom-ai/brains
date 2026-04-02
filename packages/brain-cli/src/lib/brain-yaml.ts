@@ -1,19 +1,24 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { z, fromYaml } from "@brains/utils";
 import { resolveModelName } from "./model-registry";
 
-export interface BrainYamlConfig {
-  brain: string;
-  preset?: string;
-  model?: string;
-  [key: string]: unknown;
-}
+const brainYamlSchema = z
+  .object({
+    brain: z.string(),
+    preset: z.string().optional(),
+    model: z.string().optional(),
+  })
+  .passthrough();
+
+export type BrainYamlConfig = z.infer<typeof brainYamlSchema>;
 
 /**
  * Parse brain.yaml from a directory.
  *
+ * Uses proper YAML parsing with Zod validation.
  * Normalizes the brain field (strips @brains/ prefix, quotes).
- * Throws if brain.yaml is missing or brain field is absent.
+ * Throws if brain.yaml is missing, invalid, or brain field is absent.
  */
 export function parseBrainYaml(cwd: string): BrainYamlConfig {
   const yamlPath = join(cwd, "brain.yaml");
@@ -26,20 +31,25 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
 
   const content = readFileSync(yamlPath, "utf-8");
 
-  // Simple YAML parsing for the brain field — avoid heavy deps in CLI
-  const brainMatch = content.match(/^brain:\s*(.+)$/m);
-  if (!brainMatch?.[1]) {
+  let raw: unknown;
+  try {
+    raw = fromYaml(content);
+  } catch (err) {
     throw new Error(
-      "brain.yaml is missing the 'brain' field. Expected: brain: rover",
+      `Invalid brain.yaml: ${err instanceof Error ? err.message : "parse error"}`,
     );
   }
 
-  const presetMatch = content.match(/^preset:\s*(.+)$/m);
-  const modelMatch = content.match(/^model:\s*(.+)$/m);
+  const result = brainYamlSchema.safeParse(raw);
+  if (!result.success) {
+    const missing = result.error.issues.map((i) => i.path.join(".")).join(", ");
+    throw new Error(
+      `Invalid brain.yaml: missing or invalid field(s): ${missing}. Expected at minimum:\n  brain: rover`,
+    );
+  }
 
   return {
-    brain: resolveModelName(brainMatch[1]),
-    ...(presetMatch?.[1] && { preset: presetMatch[1].trim() }),
-    ...(modelMatch?.[1] && { model: modelMatch[1].trim() }),
+    ...result.data,
+    brain: resolveModelName(result.data.brain),
   };
 }

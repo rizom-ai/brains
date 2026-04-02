@@ -29,18 +29,19 @@ A brain is a personal AI agent with persistent memory, tools, and integrations. 
 
 ## Commands
 
-| Command                 | Description                         |
-| ----------------------- | ----------------------------------- |
-| `brain init <dir>`      | Scaffold a new brain instance       |
-| `brain start`           | Start the brain server              |
-| `brain chat`            | Start in interactive chat mode      |
-| `brain list <type>`     | List entities (posts, notes, etc.)  |
-| `brain get <type> <id>` | Get a specific entity               |
-| `brain search <query>`  | Search across all content           |
-| `brain sync`            | Sync content from connected sources |
-| `brain build`           | Build the static site               |
-| `brain status`          | Show brain status                   |
-| `brain eval`            | Run evaluation suite                |
+| Command                 | Description                              |
+| ----------------------- | ---------------------------------------- |
+| `brain init <dir>`      | Scaffold a new brain instance            |
+| `brain start`           | Start the brain server                   |
+| `brain chat`            | Start in interactive chat mode           |
+| `brain list <type>`     | List entities (posts, notes, etc.)       |
+| `brain get <type> <id>` | Get a specific entity                    |
+| `brain search <query>`  | Search across all content                |
+| `brain sync`            | Sync content from connected sources      |
+| `brain build`           | Build the static site                    |
+| `brain status`          | Show brain status                        |
+| `brain eval`            | Run evaluation suite                     |
+| `brain pin`             | Pin @rizom/brain version (local install) |
 
 ### Remote Mode
 

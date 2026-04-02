@@ -2,24 +2,13 @@ import type { z } from "@brains/utils";
 import type { LanguageModel } from "ai";
 
 /**
- * Image provider for generation
- */
-export type ImageProvider = "openai" | "google";
-
-/**
- * Google image model for generation
- */
-export type GoogleImageModel =
-  | "gemini-2.5-flash-image"
-  | "gemini-3-pro-image-preview";
-
-/**
  * AI model configuration
  */
 export interface AIModelConfig {
-  /** AI provider: "anthropic" (default), "openai", "google", "ollama", etc. */
-  provider?: string;
+  /** Text model — determines provider automatically. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
   model?: string;
+  /** Image model — determines provider automatically. e.g. "gpt-image-1.5", "gemini-3-pro-image-preview" */
+  imageModel?: string;
   /** Single API key — used for whichever provider is configured */
   apiKey?: string;
   /** Optional separate key for image generation (defaults to apiKey) */
@@ -27,10 +16,6 @@ export interface AIModelConfig {
   temperature?: number;
   maxTokens?: number;
   webSearch?: boolean;
-  /** Default image provider (auto-detected from provider if not set) */
-  defaultImageProvider?: ImageProvider;
-  /** Google image model: "gemini-3-pro-image-preview" (default) or "gemini-2.5-flash-image" (free) */
-  googleImageModel?: GoogleImageModel;
 }
 
 /**

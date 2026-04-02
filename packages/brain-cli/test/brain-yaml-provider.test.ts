@@ -42,6 +42,37 @@ describe("parseBrainYaml model field", () => {
     const config = parseBrainYaml(testDir);
     expect(config.model).toBe("anthropic:claude-haiku-4-5-20251001");
   });
+
+  it("should parse quoted brain name", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      'brain: "rover"\npreset: minimal\n',
+    );
+    const config = parseBrainYaml(testDir);
+    expect(config.brain).toBe("rover");
+    expect(config.preset).toBe("minimal");
+  });
+
+  it("should handle comments in yaml", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      "brain: rover # my brain\n# model: gpt-4o-mini\npreset: pro\n",
+    );
+    const config = parseBrainYaml(testDir);
+    expect(config.brain).toBe("rover");
+    expect(config.preset).toBe("pro");
+    expect(config.model).toBeUndefined();
+  });
+
+  it("should throw for empty yaml", () => {
+    writeFileSync(join(testDir, "brain.yaml"), "");
+    expect(() => parseBrainYaml(testDir)).toThrow("brain");
+  });
+
+  it("should throw for yaml without brain field", () => {
+    writeFileSync(join(testDir, "brain.yaml"), "model: gpt-4o-mini\n");
+    expect(() => parseBrainYaml(testDir)).toThrow("brain");
+  });
 });
 
 describe("resolveProvider", () => {

@@ -254,7 +254,6 @@ export class ShellInitializer {
       temperature: this.config.ai.temperature,
       maxTokens: this.config.ai.maxTokens,
       webSearch: this.config.ai.webSearch,
-      ...(this.config.ai.provider ? { provider: this.config.ai.provider } : {}),
       ...(this.config.ai.imageApiKey
         ? { imageApiKey: this.config.ai.imageApiKey }
         : {}),
@@ -510,4 +509,32 @@ export class ShellInitializer {
       throw error;
     }
   }
+}
+
+/**
+ * Reset all service singletons. Required when creating multiple Shell
+ * instances sequentially (e.g., multi-model eval runs).
+ */
+export async function resetAllSingletons(): Promise<void> {
+  // Import Shell here to avoid circular dependency at module level
+  const { Shell } = await import("../shell");
+
+  await Shell.resetInstance();
+  ShellInitializer.resetInstance();
+  EntityRegistry.resetInstance();
+  DataSourceRegistry.resetInstance();
+  PluginManager.resetInstance();
+  MCPService.resetInstance();
+  MessageBus.resetInstance();
+  TemplateRegistry.resetInstance();
+  RenderService.resetInstance();
+  DaemonRegistry.resetInstance();
+  AIService.resetInstance();
+  AgentService.resetInstance();
+  BrainCharacterService.resetInstance();
+  AnchorProfileService.resetInstance();
+  JobQueueService.resetInstance();
+  BatchJobManager.resetInstance();
+  JobQueueWorker.resetInstance();
+  JobProgressMonitor.resetInstance();
 }

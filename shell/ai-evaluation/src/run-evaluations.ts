@@ -24,7 +24,9 @@ import {
 } from "fs";
 import { execSync } from "child_process";
 import type { IAgentService } from "@brains/ai-service";
-import type { IAIService } from "@brains/ai-service";
+import { AIService, type IAIService } from "@brains/ai-service";
+import { Logger } from "@brains/utils";
+import { resetAllSingletons } from "@brains/core";
 import {
   type AppConfig,
   resolve as resolveConfig,
@@ -40,7 +42,7 @@ import { MarkdownReporter } from "./reporters/markdown-reporter";
 import { ComparisonReporter } from "./reporters/comparison-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
-import { parseModelsField } from "./multi-model";
+import { parseModelsField, parseKeysField, resolveApiKey } from "./multi-model";
 import {
   writeModelComparisonReport,
   renderModelComparison,
@@ -266,6 +268,8 @@ interface EvalConfigResult {
   brainModelPath?: string;
   /** Models to evaluate against (from `models:` field in brain.eval.yaml) */
   models: string[];
+  /** Per-provider API keys (from `keys:` field in brain.eval.yaml) */
+  providerKeys: Record<string, string>;
 }
 
 async function loadEvalConfig(): Promise<EvalConfigResult> {
@@ -285,6 +289,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
         config,
         testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
         models: [],
+        providerKeys: {},
       };
     }
   }
@@ -307,6 +312,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       // Ignore parse errors — overrides already parsed above
     }
     const models = parseModelsField(rawYaml);
+    const providerKeys = parseKeysField(rawYaml);
 
     if (!overrides.brain) {
       console.error(
@@ -355,6 +361,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       testCasesDirs,
       brainModelPath: brainModulePath,
       models,
+      providerKeys,
     };
   }
 
@@ -382,6 +389,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
     config,
     testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
     models: [],
+    providerKeys: {},
   };
 }
 
@@ -420,7 +428,7 @@ export async function main(): Promise<void> {
   const saveBaseline = parseSingleFlag(args, "--baseline");
 
   try {
-    const { config, testCasesDirs, brainModelPath, models } =
+    const { config, testCasesDirs, brainModelPath, models, providerKeys } =
       await loadEvalConfig();
 
     // Shared eval environment setup
@@ -475,17 +483,17 @@ export async function main(): Promise<void> {
     };
 
     /**
-     * Boot an App with optional AI model/provider overrides.
+     * Boot an App with optional AI model and key overrides.
      */
     const bootEvalApp = async (
       evalDbBase: string,
-      aiOverrides?: { model?: string; provider?: string },
+      aiOverrides?: { model?: string; apiKey?: string },
     ): Promise<App> => {
       const evalConfig = {
         ...config,
         database: undefined,
         ...(aiOverrides?.model && { aiModel: aiOverrides.model }),
-        ...(aiOverrides?.provider && { aiProvider: aiOverrides.provider }),
+        ...(aiOverrides?.apiKey && { aiApiKey: aiOverrides.apiKey }),
         shellConfig: {
           ...config.shellConfig,
           database: { url: `file:${evalDbBase}.db` },
@@ -503,6 +511,17 @@ export async function main(): Promise<void> {
 
     // ── Multi-model evaluation ──────────────────────────────────────────
     if (models.length > 0) {
+      // Dedicated AI service for the LLM judge — always uses the default key
+      // so the judge stays consistent regardless of which model is being tested.
+      const judgeAiService = AIService.createFresh(
+        {
+          ...(process.env["AI_API_KEY"]
+            ? { apiKey: process.env["AI_API_KEY"] }
+            : {}),
+        },
+        Logger.getInstance(),
+      );
+
       console.log(
         `\n🔄 Multi-model evaluation: ${models.join(", ")}\n${"─".repeat(60)}`,
       );
@@ -515,17 +534,18 @@ export async function main(): Promise<void> {
       for (const model of models) {
         console.log(`\n▶ Model: ${model}\n${"─".repeat(40)}`);
 
-        // Detect provider from model name (same logic as ai-config.ts)
-        const colonIdx = model.indexOf(":");
-        const provider = colonIdx > 0 ? model.slice(0, colonIdx) : undefined;
-        const modelId = colonIdx > 0 ? model.slice(colonIdx + 1) : model;
+        const apiKey = resolveApiKey(
+          model,
+          providerKeys,
+          process.env["AI_API_KEY"],
+        );
 
         const evalDbBase = prepareEvalEnvironment(
-          modelId.replace(/[^a-z0-9-]/gi, "-"),
+          model.replace(/[^a-z0-9-]/gi, "-"),
         );
         const app = await bootEvalApp(evalDbBase, {
-          model: modelId,
-          ...(provider ? { provider } : {}),
+          model,
+          ...(apiKey ? { apiKey } : {}),
         });
 
         const shell = app.getShell();
@@ -535,7 +555,7 @@ export async function main(): Promise<void> {
 
         const runResult = await runEvaluationsCollect({
           agentService,
-          aiService: shell.getAIService(),
+          aiService: judgeAiService,
           testCasesDir: testCasesDirs,
           skipLLMJudge,
           verbose,
@@ -547,6 +567,11 @@ export async function main(): Promise<void> {
         });
 
         modelSummaries.push({ model, summary: runResult });
+
+        // Shut down background services (job queue worker, etc.) before
+        // resetting singletons so we don't poll a closed DB client.
+        await shell.shutdown();
+        await resetAllSingletons();
       }
 
       // Write comparison report (markdown + JSON)

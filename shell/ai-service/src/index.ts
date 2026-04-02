@@ -6,6 +6,7 @@
  */
 
 export { AIService } from "./aiService";
+export { selectTextProvider, selectImageProvider } from "./provider-selection";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
@@ -15,7 +16,6 @@ export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 export type {
   AIModelConfig,
   IAIService,
-  ImageProvider,
   AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,

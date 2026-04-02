@@ -139,10 +139,10 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 
 #### Recommended for v0.1.0
 
-7. **`brain pin`** — creates package.json pinning version, auto-installs
-8. **Local-over-global re-exec** — `./node_modules/@rizom/brain` takes precedence
-9. **Full brain.yaml validation** — replace regex parser with proper YAML + schema validation
-10. **Better boot error messages** — differentiate DB, plugin config, missing API key errors
+7. ~~**`brain pin`**~~ ✅ — creates package.json, auto-installs, pins version
+8. ~~**Local-over-global re-exec**~~ ✅ — `./node_modules/@rizom/brain` takes precedence
+9. ~~**Full brain.yaml validation**~~ ✅ — proper YAML + Zod schema, replaces regex
+10. ~~**Better boot error messages**~~ ✅ — classifies DB, plugin, port, permission, git errors
 
 ### Phase 2: Deploy scaffolding ✅
 
