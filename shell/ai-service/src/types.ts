@@ -17,6 +17,8 @@ export type GoogleImageModel =
  * AI model configuration
  */
 export interface AIModelConfig {
+  /** AI provider: "anthropic" (default), "openai", "google" */
+  provider?: string;
   model?: string;
   apiKey?: string;
   temperature?: number;

@@ -13,6 +13,7 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
+import { selectTextProvider } from "./provider-selection";
 
 /**
  * Default model configuration
@@ -71,25 +72,43 @@ export class AIService implements IAIService {
       ? createAnthropic({ apiKey: config.apiKey })
       : anthropic;
 
-    // Create OpenAI provider for image generation if key provided
-    if (config.openaiApiKey) {
-      this.openaiProvider = createOpenAI({ apiKey: config.openaiApiKey });
+    // Create OpenAI provider — for text (when provider=openai) or images
+    const openaiKey =
+      config.openaiApiKey ??
+      (config.provider === "openai" ? config.apiKey : undefined);
+    if (openaiKey) {
+      this.openaiProvider = createOpenAI({ apiKey: openaiKey });
     }
 
-    // Create Google provider for image generation if key provided
-    if (config.googleApiKey) {
+    // Create Google provider — for text (when provider=google) or images
+    const googleKey =
+      config.googleApiKey ??
+      (config.provider === "google" ? config.apiKey : undefined);
+    if (googleKey) {
       this.googleProvider = createGoogleGenerativeAI({
-        apiKey: config.googleApiKey,
+        apiKey: googleKey,
       });
     }
   }
 
   /**
-   * Get the Anthropic model instance
+   * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
     const { model } = this.config;
-    return this.anthropicProvider(model ?? DEFAULT_MODEL);
+    const modelId = model ?? DEFAULT_MODEL;
+    const provider = selectTextProvider(this.config);
+
+    if (provider === "openai" && this.openaiProvider) {
+      return this.openaiProvider(modelId) as LanguageModel;
+    }
+
+    if (provider === "google" && this.googleProvider) {
+      return this.googleProvider(modelId) as LanguageModel;
+    }
+
+    // Default: anthropic
+    return this.anthropicProvider(modelId);
   }
 
   /**
