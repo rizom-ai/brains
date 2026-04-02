@@ -5,6 +5,7 @@ import { resolveModelName } from "./model-registry";
 export interface BrainYamlConfig {
   brain: string;
   preset?: string;
+  model?: string;
   [key: string]: unknown;
 }
 
@@ -34,9 +35,11 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
   }
 
   const presetMatch = content.match(/^preset:\s*(.+)$/m);
+  const modelMatch = content.match(/^model:\s*(.+)$/m);
 
   return {
     brain: resolveModelName(brainMatch[1]),
     ...(presetMatch?.[1] && { preset: presetMatch[1].trim() }),
+    ...(modelMatch?.[1] && { model: modelMatch[1].trim() }),
   };
 }
