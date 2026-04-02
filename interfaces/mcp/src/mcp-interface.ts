@@ -234,4 +234,9 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     // MCP doesn't directly handle progress events - they're routed through the transport layer
     // The setupJobProgressListener in onRegister() handles MCP-specific progress reporting
   }
+
+  protected override async onShutdown(): Promise<void> {
+    StdioMCPServer.resetInstance();
+    StreamableHTTPServer.resetInstance();
+  }
 }

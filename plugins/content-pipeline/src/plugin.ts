@@ -157,6 +157,12 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   public getScheduler(): ContentScheduler {
     return this.scheduler;
   }
+
+  protected override async onShutdown(): Promise<void> {
+    QueueManager.resetInstance();
+    ProviderRegistry.resetInstance();
+    RetryTracker.resetInstance();
+  }
 }
 
 export function contentPipelinePlugin(

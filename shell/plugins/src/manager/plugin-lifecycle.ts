@@ -112,6 +112,17 @@ export class PluginLifecycle {
       // Continue with plugin disable even if daemon stop fails
     }
 
+    // Call plugin shutdown hook if defined
+    if (pluginInfo.plugin.shutdown) {
+      try {
+        await pluginInfo.plugin.shutdown();
+        this.logger.debug(`Shutdown completed for plugin: ${id}`);
+      } catch (error) {
+        this.logger.error(`Plugin shutdown failed for ${id}:`, error);
+        // Continue with disable even if shutdown fails
+      }
+    }
+
     // Update status
     pluginInfo.status = PluginStatus.DISABLED;
 
