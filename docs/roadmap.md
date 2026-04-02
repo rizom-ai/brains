@@ -171,7 +171,7 @@ Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS
 
 ### Agent Directory — Phase 1
 
-Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card fetch). `a2a_call` resolves agent by name. Works without AT Protocol. ([plan](./plans/agent-directory.md))
+Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card fetch). `a2a_call` resolves agent by name. Works without AT Protocol. ([plan](./plans/agent-discovery.md))
 
 ### Eval Coverage Expansion
 
@@ -191,7 +191,7 @@ Replace Discord + deprecated Matrix with unified ChatInterface using Vercel Chat
 
 ### AT Protocol — Phases 3-6 + Agent Directory Phase 2
 
-Inbound ingestion, decentralized discovery (replaces manual Agent Card fetch), cross-brain feeds, ambient federation. Agent directory auto-discovers peers via firehose. ([plan](./plans/atproto-integration.md), [agent directory plan](./plans/agent-directory.md))
+Inbound ingestion, decentralized discovery (replaces manual Agent Card fetch), cross-brain feeds, ambient federation. Agent directory auto-discovers peers via firehose. ([plan](./plans/atproto-integration.md), [agent directory plan](./plans/agent-discovery.md))
 
 ### A2A Authentication (Phase 2+)
 
@@ -267,11 +267,11 @@ Rover 0.1 blockers:
 Short-term (parallel):
   kamal-deploy → rizom.work
   atproto phases 1-2 (independent)
-  agent-directory phase 1 (independent)
+  agent-discovery phase 1 (independent)
   eval-coverage (agent tuning + more tests) → search-quality phases 0-2
 
 Medium-term:
-  atproto phases 3-6 + agent-directory phase 2
+  atproto phases 3-6 + agent-discovery phase 2
   multi-user (independent — enables team brains)
   chat-sdk (replaces discord)
   compiled-binaries (after npm packages)

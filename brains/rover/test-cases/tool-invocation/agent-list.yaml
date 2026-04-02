@@ -3,7 +3,7 @@ name: List Agents in Directory
 description: Tests that the agent uses system_list with entityType agent when asked about contacts
 type: tool_invocation
 tags:
-  - agent-directory
+  - agent-discovery
   - tool-invocation
 
 turns:

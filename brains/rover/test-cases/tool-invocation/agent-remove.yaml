@@ -3,7 +3,7 @@ name: Archive Agent from Directory
 description: Tests that the agent uses system_update to archive an agent
 type: tool_invocation
 tags:
-  - agent-directory
+  - agent-discovery
   - tool-invocation
 
 turns:

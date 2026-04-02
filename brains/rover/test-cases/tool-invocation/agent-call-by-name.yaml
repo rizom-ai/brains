@@ -3,7 +3,7 @@ name: Call Agent by Name
 description: Tests that the agent uses a2a_call with a domain name instead of requiring a full URL
 type: tool_invocation
 tags:
-  - agent-directory
+  - agent-discovery
   - a2a
   - tool-invocation
 

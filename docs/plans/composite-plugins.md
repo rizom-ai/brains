@@ -7,7 +7,7 @@ Several features require both an EntityPlugin (schema, adapter) and a ServicePlu
 Examples:
 
 - `entities/newsletter/` + `plugins/buttondown/` — newsletter entity + email sending service
-- `entities/agent-directory/` + `plugins/agent-directory/` (proposed) — agent entity + Agent Card fetching
+- `entities/agent-discovery/` + `plugins/agent-discovery/` (proposed) — agent entity + Agent Card fetching
 
 Not every entity + service pair qualifies. `entities/image/` is a shared entity type used by AI generation, stock-photo search, and directory-sync imports — three independent services with unrelated configs. Composites make sense when there's a 1:1 relationship with shared config.
 
@@ -82,14 +82,14 @@ capabilities: [
 
   // Composite — one config, multiple plugins
   ["newsletter", newsletter, { apiKey: "${BUTTONDOWN_API_KEY}" }],
-  ["agent-directory", agentDirectory, {}],
+  ["agent-discovery", agentDirectory, {}],
 ];
 ```
 
 Presets stay simple — one ID per composite:
 
 ```typescript
-const pro = [...standard, "newsletter", "agent-directory"];
+const pro = [...standard, "newsletter", "agent-discovery"];
 ```
 
 ### Resolver change
@@ -117,8 +117,8 @@ plugins:
   newsletter:
     apiKey: ${BUTTONDOWN_API_KEY}
     doubleOptIn: true
-  agent-directory:
-    # all agent-directory config here
+  agent-discovery:
+    # all agent-discovery config here
 ```
 
 The composite factory distributes config to its sub-plugins internally.
@@ -135,7 +135,7 @@ The composite factory distributes config to its sub-plugins internally.
 | Composite         | Entity              | Service                                        | Shared config        |
 | ----------------- | ------------------- | ---------------------------------------------- | -------------------- |
 | `newsletter`      | newsletter entity   | buttondown (API key, double opt-in)            | API key              |
-| `agent-directory` | agent entity        | agent tools (fetch deps)                       | — (no external API)  |
+| `agent-discovery` | agent entity        | agent tools (fetch deps)                       | — (no external API)  |
 | `social-media`    | social-media entity | publishing service (LinkedIn client, API keys) | Platform credentials |
 
 `social-media` is a candidate but requires a split-then-composite: the LinkedIn client and publish handlers currently live inside the EntityPlugin at `entities/social-media/`. They'd need to be extracted into a ServicePlugin first, then composited. Larger refactor than the others.
@@ -147,7 +147,7 @@ The composite factory distributes config to its sub-plugins internally.
 1. Update `CapabilityEntry` type in brain definition to accept `Plugin | Plugin[]` returns
 2. Update `brain-resolver.ts` to flatten arrays (one line)
 3. Migrate `newsletter` + `buttondown` to a composite factory as proof of concept
-4. Apply to `agent-directory` when that feature ships
+4. Apply to `agent-discovery` when that feature ships
 
 ## Files affected
 

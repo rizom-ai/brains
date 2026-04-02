@@ -16,13 +16,13 @@ import packageJson from "../package.json";
 
 const agentAdapter = new AgentAdapter();
 
-export class AgentDirectoryPlugin extends EntityPlugin<AgentEntity> {
+export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
   readonly entityType = "agent";
   readonly schema = agentEntitySchema;
   readonly adapter = agentAdapter;
 
   constructor() {
-    super("agent-directory-entity", packageJson);
+    super("agent-discovery", packageJson);
   }
 
   protected override createGenerationHandler(
@@ -49,6 +49,6 @@ export class AgentDirectoryPlugin extends EntityPlugin<AgentEntity> {
   }
 }
 
-export function agentDirectoryPlugin(): Plugin {
-  return new AgentDirectoryPlugin();
+export function agentDiscoveryPlugin(): Plugin {
+  return new AgentDiscoveryPlugin();
 }

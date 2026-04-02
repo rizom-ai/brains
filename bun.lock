@@ -110,8 +110,7 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/a2a": "workspace:*",
-        "@brains/agent-directory": "workspace:*",
-        "@brains/agent-directory-plugin": "workspace:*",
+        "@brains/agent-discovery": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/blog": "workspace:*",
@@ -145,8 +144,8 @@
         "typescript": "^5.3.3",
       },
     },
-    "entities/agent-directory": {
-      "name": "@brains/agent-directory",
+    "entities/agent-discovery": {
+      "name": "@brains/agent-discovery",
       "version": "0.1.0",
       "dependencies": {
         "@brains/plugins": "workspace:*",
@@ -581,24 +580,6 @@
         "lightningcss": "^1.29.2",
         "react-devtools-core": "^6.1.1",
         "sharp": "^0.34.5",
-      },
-    },
-    "plugins/agent-directory": {
-      "name": "@brains/agent-directory-plugin",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/agent-directory": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/utils": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/test-utils": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
       },
     },
     "plugins/analytics": {
@@ -1412,9 +1393,7 @@
 
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
 
-    "@brains/agent-directory": ["@brains/agent-directory@workspace:entities/agent-directory"],
-
-    "@brains/agent-directory-plugin": ["@brains/agent-directory-plugin@workspace:plugins/agent-directory"],
+    "@brains/agent-discovery": ["@brains/agent-discovery@workspace:entities/agent-discovery"],
 
     "@brains/ai-evaluation": ["@brains/ai-evaluation@workspace:shell/ai-evaluation"],
 

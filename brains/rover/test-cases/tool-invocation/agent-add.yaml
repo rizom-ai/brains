@@ -3,7 +3,7 @@ name: Add Agent to Directory
 description: Tests that the agent uses system_create for agent type when asked to add a contact
 type: tool_invocation
 tags:
-  - agent-directory
+  - agent-discovery
   - tool-invocation
 
 turns:

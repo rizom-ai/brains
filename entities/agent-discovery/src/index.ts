@@ -1,4 +1,4 @@
-export { AgentDirectoryPlugin, agentDirectoryPlugin } from "./plugin";
+export { AgentDiscoveryPlugin, agentDiscoveryPlugin } from "./plugin";
 
 export {
   agentEntitySchema,

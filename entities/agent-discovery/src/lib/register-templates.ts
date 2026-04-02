@@ -28,7 +28,7 @@ export function getTemplates(): Record<string, Template> {
       name: "agent-list",
       description: "Agent directory list page template",
       schema: agentListSchema,
-      dataSourceId: "agent-directory:entities",
+      dataSourceId: "agent-discovery:entities",
       requiredPermission: "public",
       layout: {
         component: AgentListTemplate,
@@ -49,7 +49,7 @@ export function getTemplates(): Record<string, Template> {
         prevAgent: enrichedAgentSchema.nullable(),
         nextAgent: enrichedAgentSchema.nullable(),
       }),
-      dataSourceId: "agent-directory:entities",
+      dataSourceId: "agent-discovery:entities",
       requiredPermission: "public",
       layout: {
         component: AgentDetailTemplate,

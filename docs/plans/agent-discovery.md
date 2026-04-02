@@ -24,7 +24,7 @@ A2A authentication Phase 1 (bearer tokens) is complete. This plan builds the **c
 
 ### Entity type: `agent`
 
-An EntityPlugin in `entities/agent-directory/`. Every agent represents a **brain + anchor pair** — a system and the person or organization behind it. The directory is a contact list, not a service registry.
+An EntityPlugin in `entities/agent-discovery/`. Every agent represents a **brain + anchor pair** — a system and the person or organization behind it. The directory is a contact list, not a service registry.
 
 Entity ID is the domain (e.g. `yeehaa.io`, `ranger.rizom.ai`) — naturally unique, subdomains work fine.
 
@@ -100,8 +100,8 @@ Skills live in the body as structured markdown — parsed by the adapter when ne
 
 The agent directory needs both an entity type (schema, adapter) and custom tools (`agent_add`, `agent_remove`). These map to two plugin types:
 
-- `entities/agent-directory/` — **EntityPlugin** defining the schema, adapter, and frontmatter
-- `plugins/agent-directory/` — **ServicePlugin** with tools for adding and removing agents
+- `entities/agent-discovery/` — **EntityPlugin** defining the schema, adapter, and frontmatter
+- `plugins/agent-discovery/` — **ServicePlugin** with tools for adding and removing agents
 
 This follows existing precedent: `entities/blog/` defines blog entities, while `plugins/directory-sync/` and `plugins/content-pipeline/` operate on them. The `agent_add` tool fetches Agent Cards over HTTP and creates entities — that's service behavior, not entity definition.
 
@@ -200,7 +200,7 @@ The `did` field stores the brain DID (the agent endpoint). Anchor DID can be add
 
 ### Step 1: Agent entity type
 
-1. Create `entities/agent-directory/` package (EntityPlugin)
+1. Create `entities/agent-discovery/` package (EntityPlugin)
 2. Schema (`agentFrontmatterSchema`, `agentEntitySchema`)
 3. Adapter with body section parsing (About, Skills, Notes)
 4. Tests for adapter roundtrip and section parsing
@@ -214,7 +214,7 @@ The `did` field stores the brain DID (the agent endpoint). Anchor DID can be add
 
 ### Step 3: Agent tools
 
-1. Create `plugins/agent-directory/` package (ServicePlugin)
+1. Create `plugins/agent-discovery/` package (ServicePlugin)
 2. `agent_add` — fetch extended Agent Card, build full entity with sections
 3. `agent_remove` — archive via `findEntityByIdentifier`
 4. Tests for each tool handler (mock fetch, mock entity service)

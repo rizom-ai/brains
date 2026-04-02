@@ -96,7 +96,7 @@ describe("AgentDataSource", () => {
 
   describe("metadata", () => {
     it("should have correct datasource ID", () => {
-      expect(datasource.id).toBe("agent-directory:entities");
+      expect(datasource.id).toBe("agent-discovery:entities");
     });
 
     it("should have descriptive name and description", () => {

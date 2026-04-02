@@ -60,7 +60,7 @@ export class AgentDataSource extends BaseEntityDataSource<
   AgentEntity,
   AgentWithData
 > {
-  readonly id = "agent-directory:entities";
+  readonly id = "agent-discovery:entities";
   readonly name = "Agent Directory DataSource";
   readonly description = "Fetches and transforms agent entities for rendering";
 
