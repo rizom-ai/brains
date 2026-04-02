@@ -1,5 +1,5 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { z, StructuredContentFormatter } from "@brains/utils";
+import { z, StructuredContentFormatter, slugifyUrl } from "@brains/utils";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
@@ -124,7 +124,19 @@ export class AgentAdapter extends BaseEntityAdapter<
   }
 
   public fromMarkdown(markdown: string): Partial<AgentEntity> {
-    return { content: markdown };
+    const frontmatter = this.parseFrontMatter(markdown, agentFrontmatterSchema);
+    const slug = slugifyUrl(frontmatter.url);
+
+    return {
+      content: markdown,
+      entityType: "agent",
+      metadata: {
+        name: frontmatter.name,
+        url: frontmatter.url,
+        status: frontmatter.status,
+        slug,
+      },
+    };
   }
 
   /**

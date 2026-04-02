@@ -15,6 +15,21 @@ export function slugify(text: string): string {
 }
 
 /**
+ * Derive a URL-safe slug from a URL by extracting the hostname
+ * and replacing dots with hyphens.
+ * e.g. "https://yeehaa.io" → "yeehaa-io"
+ *      "https://ranger.rizom.ai" → "ranger-rizom-ai"
+ */
+export function slugifyUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/\./g, "-");
+  } catch {
+    const hostname = url.split("/")[0] ?? url;
+    return hostname.replace(/\./g, "-");
+  }
+}
+
+/**
  * Generate a unique ID from text by slugifying it, with optional suffix
  */
 export function generateIdFromText(text: string, suffix?: string): string {

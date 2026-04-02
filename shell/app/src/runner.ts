@@ -86,7 +86,11 @@ async function registerPackageRefs(
 async function main(): Promise<void> {
   const overrides = loadBrainYaml();
   // brain is guaranteed to exist by loadBrainYaml validation above
-  const brainPackage = overrides.brain ?? "";
+  // Normalize short names: "rover" → "@brains/rover"
+  const rawBrain = overrides.brain ?? "";
+  const brainPackage = rawBrain.startsWith("@")
+    ? rawBrain
+    : `@brains/${rawBrain}`;
 
   // Validate env against the brain's .env.schema.
   // Uses varlock's `internal` API — no public API supports custom schema paths yet.

@@ -1,6 +1,6 @@
 id: tool-invocation-agent-add
 name: Add Agent to Directory
-description: Tests that the agent uses agent-directory_add when asked to add a contact
+description: Tests that the agent uses system_create for agent type when asked to add a contact
 type: tool_invocation
 tags:
   - agent-directory
@@ -11,10 +11,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: agent-directory_add
+    - toolName: system_create
       shouldBeCalled: true
       argsContain:
-        url: "yeehaa.io"
+        entityType: "agent"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

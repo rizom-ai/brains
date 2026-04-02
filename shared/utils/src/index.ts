@@ -50,6 +50,7 @@ export { createId, createPrefixedId, createBatchId } from "./id";
 // String utilities
 export {
   slugify,
+  slugifyUrl,
   generateIdFromText,
   pluralize,
   toDisplayName,

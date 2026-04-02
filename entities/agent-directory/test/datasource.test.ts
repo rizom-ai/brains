@@ -1,0 +1,196 @@
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { AgentDataSource } from "../src/datasources/agent-datasource";
+import type { AgentEntity } from "../src/schemas/agent";
+import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
+import type { Logger } from "@brains/utils";
+import { z, slugifyUrl } from "@brains/utils";
+import {
+  createMockLogger,
+  createMockEntityService,
+  createTestEntity,
+} from "@brains/test-utils";
+
+/** Helper to build agent markdown content */
+function agentContent(opts: {
+  name: string;
+  kind: string;
+  url: string;
+  status: string;
+  organization?: string;
+  brainName?: string;
+  did?: string;
+  discoveredAt?: string;
+  discoveredVia?: string;
+  about?: string;
+  skills?: string;
+  notes?: string;
+}): string {
+  const fm = [
+    "---",
+    `name: ${opts.name}`,
+    `kind: ${opts.kind}`,
+    ...(opts.organization ? [`organization: ${opts.organization}`] : []),
+    ...(opts.brainName ? [`brainName: ${opts.brainName}`] : []),
+    `url: ${opts.url}`,
+    ...(opts.did ? [`did: ${opts.did}`] : []),
+    `status: ${opts.status}`,
+    `discoveredAt: ${opts.discoveredAt ?? "2026-03-31T00:00:00.000Z"}`,
+    `discoveredVia: ${opts.discoveredVia ?? "manual"}`,
+    "---",
+  ].join("\n");
+
+  const body = [
+    "",
+    "## About",
+    opts.about ?? "",
+    "",
+    "## Skills",
+    opts.skills ?? "",
+    "",
+    "## Notes",
+    opts.notes ?? "",
+  ].join("\n");
+
+  return fm + body;
+}
+
+function createMockAgent(
+  id: string,
+  name: string,
+  status: "active" | "archived",
+  url = `https://${name.toLowerCase()}.io`,
+): AgentEntity {
+  const content = agentContent({
+    name,
+    kind: "professional",
+    url,
+    status,
+    organization: "Rizom",
+    brainName: `${name}'s Brain`,
+    did: `did:web:${name.toLowerCase()}.io`,
+    about: `${name} is a brain agent.`,
+    skills: `- Content Creation: Create blog posts [blog, writing]`,
+    notes: `Connected via A2A.`,
+  });
+
+  const slug = slugifyUrl(url);
+  return createTestEntity<AgentEntity>("agent", {
+    id,
+    content,
+    metadata: { name, url, status, slug },
+  });
+}
+
+describe("AgentDataSource", () => {
+  let datasource: AgentDataSource;
+  let mockEntityService: IEntityService;
+  let mockLogger: Logger;
+  let mockContext: BaseDataSourceContext;
+
+  beforeEach(() => {
+    mockLogger = createMockLogger();
+    mockEntityService = createMockEntityService();
+    mockContext = { entityService: mockEntityService };
+    datasource = new AgentDataSource(mockLogger);
+  });
+
+  describe("metadata", () => {
+    it("should have correct datasource ID", () => {
+      expect(datasource.id).toBe("agent-directory:entities");
+    });
+
+    it("should have descriptive name and description", () => {
+      expect(datasource.name).toBe("Agent Directory DataSource");
+      expect(datasource.description).toContain("agent");
+    });
+  });
+
+  describe("list", () => {
+    const listSchema = z.object({
+      agents: z.array(z.any()),
+      pagination: z.any().nullable(),
+    });
+
+    it("should return transformed agents with parsed body sections", async () => {
+      const agents = [
+        createMockAgent("agent-1", "Yeehaa", "active"),
+        createMockAgent("agent-2", "Phoney", "active"),
+      ];
+
+      spyOn(mockEntityService, "listEntities").mockResolvedValue(agents);
+
+      const result = await datasource.fetch(
+        { entityType: "agent" },
+        listSchema,
+        mockContext,
+      );
+
+      expect(result.agents).toHaveLength(2);
+      expect(result.agents[0].frontmatter.name).toBe("Yeehaa");
+      expect(result.agents[0].about).toBe("Yeehaa is a brain agent.");
+      expect(result.agents[0].skills).toHaveLength(1);
+      expect(result.agents[0].skills[0].name).toBe("Content Creation");
+    });
+
+    it("should sort by discoveredAt descending", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+
+      await datasource.fetch({ entityType: "agent" }, listSchema, mockContext);
+
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "agent",
+        expect.objectContaining({
+          sortFields: [{ field: "discoveredAt", direction: "desc" }],
+        }),
+      );
+    });
+  });
+
+  describe("detail", () => {
+    const detailSchema = z.object({
+      agent: z.any(),
+      prevAgent: z.any().nullable(),
+      nextAgent: z.any().nullable(),
+    });
+
+    it("should return single agent with parsed sections", async () => {
+      const agent = createMockAgent("agent-1", "Yeehaa", "active");
+
+      // First call: lookup by slug, second: all for navigation
+      spyOn(mockEntityService, "listEntities")
+        .mockResolvedValueOnce([agent])
+        .mockResolvedValueOnce([agent]);
+
+      const result = await datasource.fetch(
+        { query: { id: "yeehaa" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.agent.frontmatter.name).toBe("Yeehaa");
+      expect(result.agent.about).toBe("Yeehaa is a brain agent.");
+      expect(result.agent.notes).toBe("Connected via A2A.");
+    });
+
+    it("should include prev/next navigation", async () => {
+      const alpha = createMockAgent("agent-1", "Alpha", "active");
+      const beta = createMockAgent("agent-2", "Beta", "active");
+      const gamma = createMockAgent("agent-3", "Gamma", "active");
+      const agents = [alpha, beta, gamma];
+
+      spyOn(mockEntityService, "listEntities")
+        .mockResolvedValueOnce([beta])
+        .mockResolvedValueOnce(agents);
+
+      const result = await datasource.fetch(
+        { query: { id: "beta" } },
+        detailSchema,
+        mockContext,
+      );
+
+      expect(result.agent.frontmatter.name).toBe("Beta");
+      expect(result.prevAgent?.frontmatter.name).toBe("Alpha");
+      expect(result.nextAgent?.frontmatter.name).toBe("Gamma");
+    });
+  });
+});

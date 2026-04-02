@@ -7,7 +7,7 @@ import { baseEntitySchema, anchorProfileBodySchema } from "@brains/plugins";
 export const agentSkillSchema = z.object({
   name: z.string(),
   description: z.string(),
-  tags: z.array(z.string()).default([]),
+  tags: z.array(z.string()),
 });
 
 export type AgentSkill = z.infer<typeof agentSkillSchema>;
@@ -33,7 +33,6 @@ export const agentFrontmatterSchema = anchorProfileBodySchema
       .describe("When this agent was first discovered"),
     discoveredVia: z
       .enum(["atproto", "manual"])
-      .default("manual")
       .describe("How this agent was discovered"),
   });
 
@@ -42,11 +41,15 @@ export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;
 /**
  * Agent metadata schema — subset of frontmatter for DB queries.
  */
-export const agentMetadataSchema = agentFrontmatterSchema.pick({
-  name: true,
-  url: true,
-  status: true,
-});
+export const agentMetadataSchema = agentFrontmatterSchema
+  .pick({
+    name: true,
+    url: true,
+    status: true,
+  })
+  .extend({
+    slug: z.string(),
+  });
 
 export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
 
@@ -59,3 +62,35 @@ export const agentEntitySchema = baseEntitySchema.extend({
 });
 
 export type AgentEntity = z.infer<typeof agentEntitySchema>;
+
+/**
+ * Agent with parsed frontmatter and body sections.
+ * Used by the datasource to pass structured data to templates.
+ */
+export const agentWithDataSchema = agentEntitySchema.extend({
+  frontmatter: agentFrontmatterSchema,
+  about: z.string(),
+  skills: z.array(agentSkillSchema),
+  notes: z.string(),
+});
+
+export type AgentWithData = z.infer<typeof agentWithDataSchema>;
+
+/**
+ * Enriched agent schema — includes URL and display fields added by site-builder.
+ */
+export const enrichedAgentSchema = agentWithDataSchema.extend({
+  url: z.string().optional(),
+  typeLabel: z.string().optional(),
+});
+
+/**
+ * Template agent schema — all enrichment fields are required.
+ */
+export const templateAgentSchema = agentWithDataSchema.extend({
+  url: z.string(),
+  typeLabel: z.string(),
+});
+
+export type EnrichedAgent = z.infer<typeof enrichedAgentSchema>;
+export type TemplateAgent = z.infer<typeof templateAgentSchema>;

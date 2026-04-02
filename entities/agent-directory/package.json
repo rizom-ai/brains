@@ -15,7 +15,10 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

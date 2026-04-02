@@ -1,20 +1,18 @@
 id: tool-invocation-agent-remove
-name: Remove Agent from Directory
-description: Tests that the agent uses agent-directory_remove when asked to remove a contact
+name: Archive Agent from Directory
+description: Tests that the agent uses system_update to archive an agent
 type: tool_invocation
 tags:
   - agent-directory
   - tool-invocation
 
 turns:
-  - userMessage: "Remove old-agent.io from my contacts"
+  - userMessage: "Archive old-agent.io from my contacts"
 
 successCriteria:
   expectedTools:
-    - toolName: agent-directory_remove
+    - toolName: system_update
       shouldBeCalled: true
-      argsContain:
-        agent: "old-agent.io"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

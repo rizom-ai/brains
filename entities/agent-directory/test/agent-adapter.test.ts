@@ -202,12 +202,35 @@ Test agent.
           name: "Yeehaa",
           url: "https://yeehaa.io",
           status: "active" as const,
+          slug: "yeehaa-io",
         },
       };
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata.name).toBe("Yeehaa");
       expect(metadata.status).toBe("active");
+      expect(metadata.slug).toBe("yeehaa-io");
+    });
+  });
+
+  describe("fromMarkdown", () => {
+    it("should derive slug from name", () => {
+      const content = adapter.createAgentContent({
+        name: "Yeehaa",
+        kind: "professional",
+        url: "https://yeehaa.io",
+        status: "active",
+        discoveredAt: "2026-03-31T00:00:00.000Z",
+        discoveredVia: "manual",
+        about: "",
+        skills: [],
+        notes: "",
+      });
+
+      const partial = adapter.fromMarkdown(content);
+      expect(partial.metadata?.slug).toBe("yeehaa-io");
+      expect(partial.metadata?.name).toBe("Yeehaa");
+      expect(partial.metadata?.status).toBe("active");
     });
   });
 

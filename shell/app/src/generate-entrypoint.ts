@@ -91,8 +91,12 @@ export function generateEntrypoint(yamlContent: string): string | null {
   if (typeof parsed !== "object" || parsed === null) return null;
 
   const obj = parsed as Record<string, unknown>;
-  const brainPackage = obj["brain"];
-  if (typeof brainPackage !== "string") return null;
+  const rawBrain = obj["brain"];
+  if (typeof rawBrain !== "string") return null;
+  // Normalize short names: "rover" → "@brains/rover"
+  const brainPackage = rawBrain.startsWith("@")
+    ? rawBrain
+    : `@brains/${rawBrain}`;
 
   // Find all @-prefixed package refs in plugin config + top-level site.
   // TODO: Currently only supports workspace packages. Eventually site/plugin
