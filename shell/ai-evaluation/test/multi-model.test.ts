@@ -1,8 +1,8 @@
 import { describe, it, expect } from "bun:test";
 import {
   parseModelsField,
-  parseKeysField,
-  resolveApiKey,
+  parseJudgeField,
+  resolveProviderKey,
 } from "../src/multi-model";
 
 describe("parseModelsField", () => {
@@ -39,75 +39,54 @@ describe("parseModelsField", () => {
   });
 });
 
-describe("parseKeysField", () => {
-  it("should return empty map when no keys field", () => {
-    expect(parseKeysField({})).toEqual({});
+describe("parseJudgeField", () => {
+  it("should return undefined when no judge field", () => {
+    expect(parseJudgeField({})).toBeUndefined();
   });
 
-  it("should parse provider-to-key map", () => {
-    const result = parseKeysField({
-      keys: {
-        openai: "sk-openai-123",
-        anthropic: "sk-ant-456",
-      },
-    });
-    expect(result).toEqual({
-      openai: "sk-openai-123",
-      anthropic: "sk-ant-456",
-    });
+  it("should return model string", () => {
+    expect(parseJudgeField({ judge: "claude-haiku-4-5" })).toBe(
+      "claude-haiku-4-5",
+    );
   });
 
-  it("should filter out non-string values", () => {
-    const result = parseKeysField({
-      keys: {
-        openai: "sk-openai-123",
-        broken: 42,
-        empty: null,
-      },
-    });
-    expect(result).toEqual({ openai: "sk-openai-123" });
-  });
-
-  it("should return empty map for non-object keys field", () => {
-    expect(parseKeysField({ keys: "not-a-map" })).toEqual({});
-    expect(parseKeysField({ keys: ["array"] })).toEqual({});
+  it("should return undefined for non-string", () => {
+    expect(parseJudgeField({ judge: 42 })).toBeUndefined();
   });
 });
 
-describe("resolveApiKey", () => {
-  const keys = {
-    openai: "sk-openai-123",
-    anthropic: "sk-ant-456",
-  };
-
-  it("should resolve key by auto-detected provider", () => {
-    expect(resolveApiKey("gpt-4o-mini", keys, "sk-default")).toBe(
-      "sk-openai-123",
-    );
-    expect(resolveApiKey("claude-haiku-4-5", keys, "sk-default")).toBe(
-      "sk-ant-456",
-    );
+describe("resolveProviderKey", () => {
+  it("should return OPENAI_API_KEY for gpt models", () => {
+    const env = { OPENAI_API_KEY: "sk-openai", ANTHROPIC_API_KEY: "sk-ant" };
+    expect(resolveProviderKey("gpt-4o-mini", env)).toBe("sk-openai");
   });
 
-  it("should resolve key from explicit provider prefix", () => {
-    expect(resolveApiKey("openai:gpt-4o-mini", keys, "sk-default")).toBe(
-      "sk-openai-123",
-    );
+  it("should return ANTHROPIC_API_KEY for claude models", () => {
+    const env = { OPENAI_API_KEY: "sk-openai", ANTHROPIC_API_KEY: "sk-ant" };
+    expect(resolveProviderKey("claude-haiku-4-5", env)).toBe("sk-ant");
   });
 
-  it("should fall back to default key when provider not in keys map", () => {
-    expect(resolveApiKey("gemini-2.0-flash", keys, "sk-default")).toBe(
-      "sk-default",
-    );
+  it("should return GOOGLE_GENERATIVE_AI_API_KEY for gemini models", () => {
+    const env = { GOOGLE_GENERATIVE_AI_API_KEY: "goog-key" };
+    expect(resolveProviderKey("gemini-2.0-flash", env)).toBe("goog-key");
   });
 
-  it("should fall back to default key when keys map is empty", () => {
-    expect(resolveApiKey("gpt-4o-mini", {}, "sk-default")).toBe("sk-default");
+  it("should handle explicit provider prefix", () => {
+    const env = { OPENAI_API_KEY: "sk-openai" };
+    expect(resolveProviderKey("openai:gpt-4o-mini", env)).toBe("sk-openai");
   });
 
-  it("should use anthropic key for unknown model (anthropic is default provider)", () => {
-    expect(resolveApiKey("unknown-model", keys, "sk-default")).toBe(
-      "sk-ant-456",
-    );
+  it("should fall back to AI_API_KEY when provider key missing", () => {
+    const env = { AI_API_KEY: "sk-default" };
+    expect(resolveProviderKey("gpt-4o-mini", env)).toBe("sk-default");
+  });
+
+  it("should return undefined when no matching key", () => {
+    expect(resolveProviderKey("gpt-4o-mini", {})).toBeUndefined();
+  });
+
+  it("should return undefined for ollama (no key needed)", () => {
+    const env = { OPENAI_API_KEY: "sk-openai" };
+    expect(resolveProviderKey("llama-3.1", env)).toBeUndefined();
   });
 });

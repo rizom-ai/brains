@@ -161,6 +161,11 @@ export interface IJobQueueService {
    * Get registered job types
    */
   getRegisteredTypes(): string[];
+
+  /**
+   * Close the underlying database connection.
+   */
+  close(): void;
 }
 
 /**

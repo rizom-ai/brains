@@ -45,9 +45,16 @@ export class JobQueueService implements IJobQueueService {
    */
   public static resetInstance(): void {
     if (JobQueueService.instance) {
-      JobQueueService.instance.client.close();
+      JobQueueService.instance.close();
       JobQueueService.instance = null;
     }
+  }
+
+  /**
+   * Close the underlying database connection.
+   */
+  public close(): void {
+    this.client.close();
   }
 
   /**

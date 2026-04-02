@@ -5,38 +5,8 @@
  *   AI_API_KEY   — primary key for text generation (and images if no override)
  *   AI_IMAGE_KEY — optional override for image generation (different provider)
  *
- * The model field determines the text provider.
+ * The model field determines the provider (resolved by AI service at runtime).
  */
-
-/** Model name patterns → provider auto-detection */
-const MODEL_PATTERNS: Array<[RegExp, string]> = [
-  [/^claude/, "anthropic"],
-  [/^gpt-/, "openai"],
-  [/^o[13]-/, "openai"],
-  [/^gemini/, "google"],
-  [/^llama/, "ollama"],
-  [/^mistral/, "ollama"],
-  [/^phi-/, "ollama"],
-  [/^qwen/, "ollama"],
-];
-
-function detectProvider(model: string): { provider: string; modelId: string } {
-  const colonIdx = model.indexOf(":");
-  if (colonIdx > 0) {
-    return {
-      provider: model.slice(0, colonIdx),
-      modelId: model.slice(colonIdx + 1),
-    };
-  }
-
-  for (const [pattern, provider] of MODEL_PATTERNS) {
-    if (pattern.test(model)) {
-      return { provider, modelId: model };
-    }
-  }
-
-  return { provider: "openai", modelId: model };
-}
 
 /** Fields that resolveAIConfig adds to AppConfig */
 export interface AIConfigFields {
@@ -62,8 +32,11 @@ export function resolveAIConfig(
   }
 
   if (overrides?.model) {
-    const { modelId } = detectProvider(overrides.model);
-    result.aiModel = modelId;
+    // Strip explicit provider prefix ("openai:gpt-4o-mini" → "gpt-4o-mini")
+    // Provider is auto-detected by the AI service from the model name.
+    const colonIdx = overrides.model.indexOf(":");
+    result.aiModel =
+      colonIdx > 0 ? overrides.model.slice(colonIdx + 1) : overrides.model;
   }
 
   return result;

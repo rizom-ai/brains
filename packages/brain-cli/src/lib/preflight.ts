@@ -29,9 +29,9 @@ export function checkBunVersion(version: string): PreflightResult {
   const [major, minor, patch] = version.split(".").map(Number);
   const [minMajor, minMinor, minPatch] = MIN_BUN_VERSION.split(".").map(Number);
 
-  const current = (major ?? 0) * 10000 + (minor ?? 0) * 100 + (patch ?? 0);
+  const current = (major || 0) * 10000 + (minor || 0) * 100 + (patch || 0);
   const minimum =
-    (minMajor ?? 0) * 10000 + (minMinor ?? 0) * 100 + (minPatch ?? 0);
+    (minMajor || 0) * 10000 + (minMinor || 0) * 100 + (minPatch || 0);
 
   if (current < minimum) {
     return {

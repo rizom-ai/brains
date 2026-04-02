@@ -72,7 +72,17 @@ export class EntityService implements IEntityService {
   }
 
   public static resetInstance(): void {
-    EntityService.instance = null;
+    if (EntityService.instance) {
+      EntityService.instance.close();
+      EntityService.instance = null;
+    }
+  }
+
+  /**
+   * Close the underlying database connection.
+   */
+  public close(): void {
+    this.dbClient.close();
   }
 
   public static createFresh(options: EntityServiceOptions): EntityService {

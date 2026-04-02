@@ -1,5 +1,6 @@
 import { createConversationDatabase } from "./database";
 import type { ConversationDB } from "./database";
+import type { Client } from "@libsql/client";
 import type {
   IConversationService,
   ConversationServiceConfig,
@@ -29,6 +30,7 @@ export class ConversationService implements IConversationService {
   private static instance: ConversationService | null = null;
   private readonly messageBus: MessageBus;
   private readonly config: ConversationServiceConfig;
+  private dbClient: Client | null = null;
 
   constructor(
     private readonly db: ConversationDB,
@@ -55,13 +57,10 @@ export class ConversationService implements IConversationService {
   ): ConversationService {
     if (!ConversationService.instance) {
       // Create database internally
-      const { db } = createConversationDatabase(dbConfig);
-      ConversationService.instance = new ConversationService(
-        db,
-        logger,
-        messageBus,
-        config,
-      );
+      const { db, client } = createConversationDatabase(dbConfig);
+      const instance = new ConversationService(db, logger, messageBus, config);
+      instance.dbClient = client;
+      ConversationService.instance = instance;
     }
     return ConversationService.instance;
   }
@@ -70,7 +69,17 @@ export class ConversationService implements IConversationService {
    * Reset singleton instance (for testing)
    */
   public static resetInstance(): void {
-    ConversationService.instance = null;
+    if (ConversationService.instance) {
+      ConversationService.instance.close();
+      ConversationService.instance = null;
+    }
+  }
+
+  /**
+   * Close the underlying database connection.
+   */
+  public close(): void {
+    this.dbClient?.close();
   }
 
   /**

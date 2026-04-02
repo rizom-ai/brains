@@ -64,6 +64,9 @@ export interface IConversationService {
     query: string,
     sessionId?: string,
   ): Promise<Conversation[]>;
+
+  // Lifecycle
+  close(): void;
 }
 
 /**

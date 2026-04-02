@@ -56,6 +56,8 @@ export {
   toDisplayName,
   calculateReadingTime,
   truncateText,
+  interpolateEnvVar,
+  interpolateEnv,
 } from "./string-utils";
 
 // Message chunking

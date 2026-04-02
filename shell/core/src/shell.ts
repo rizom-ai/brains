@@ -60,6 +60,7 @@ import { SHELL_TEMPLATE_NAMES } from "./constants";
 import { AIContentDataSource, EntityDataSource } from "./datasources";
 import {
   ShellInitializer,
+  resetServiceSingletons,
   type ShellServices,
 } from "./initialization/shellInitializer";
 import { registerSystemCapabilities } from "./system/register";
@@ -98,6 +99,10 @@ export class Shell implements IShell {
     config?: ShellConfigInput,
     dependencies?: ShellDependencies,
   ): Shell {
+    // Reset all service singletons so this truly creates a fresh shell.
+    // The caller must shutdown() any previous shell first to stop
+    // background services; this handles the singleton references.
+    resetServiceSingletons();
     const fullConfig = createShellConfig(config);
     return new Shell(fullConfig, dependencies);
   }
@@ -246,6 +251,11 @@ export class Shell implements IShell {
     for (const [pluginId] of this.services.pluginManager.getAllPlugins()) {
       await this.services.pluginManager.disablePlugin(pluginId);
     }
+
+    // Close all database connections
+    this.services.entityService.close();
+    this.services.jobQueueService.close();
+    this.services.conversationService.close();
 
     this.initialized = false;
     this.services.logger.debug("Shell shutdown complete");

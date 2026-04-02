@@ -515,14 +515,21 @@ export class ShellInitializer {
  * Reset all service singletons. Required when creating multiple Shell
  * instances sequentially (e.g., multi-model eval runs).
  */
-export async function resetAllSingletons(): Promise<void> {
-  // Import Shell here to avoid circular dependency at module level
-  const { Shell } = await import("../shell");
-
-  await Shell.resetInstance();
+/**
+ * Reset all service singletons (sync).
+ * Closes DB connections and nulls static references so the next
+ * getInstance() / createFresh() call creates brand-new instances.
+ *
+ * Does NOT touch Shell.instance — call Shell.resetInstance() or
+ * shell.shutdown() separately when you need to stop background services.
+ */
+export function resetServiceSingletons(): void {
   ShellInitializer.resetInstance();
+  EntityService.resetInstance();
   EntityRegistry.resetInstance();
   DataSourceRegistry.resetInstance();
+  EmbeddingService.resetInstance();
+  ConversationService.resetInstance();
   PluginManager.resetInstance();
   MCPService.resetInstance();
   MessageBus.resetInstance();
@@ -537,4 +544,12 @@ export async function resetAllSingletons(): Promise<void> {
   BatchJobManager.resetInstance();
   JobQueueWorker.resetInstance();
   JobProgressMonitor.resetInstance();
+}
+
+export async function resetAllSingletons(): Promise<void> {
+  // Import Shell here to avoid circular dependency at module level
+  const { Shell } = await import("../shell");
+
+  await Shell.resetInstance();
+  resetServiceSingletons();
 }

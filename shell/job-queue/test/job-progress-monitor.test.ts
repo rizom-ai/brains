@@ -87,6 +87,7 @@ describe("JobProgressMonitor", () => {
         }),
       ),
       cleanup: mock(() => Promise.resolve(0)),
+      close: mock(() => {}),
     };
 
     mockBatchJobManager = createMockBatchJobManager();

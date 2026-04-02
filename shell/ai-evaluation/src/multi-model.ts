@@ -1,12 +1,22 @@
 /**
  * Multi-model eval support.
  *
- * Parses `models:` and `keys:` fields from brain.eval.yaml.
- * Provides utilities for running the eval suite against multiple models
- * with per-provider API key resolution.
+ * Parses `models:` from brain.eval.yaml.
+ * Resolves provider-specific API keys from env vars.
  */
 
 import { selectTextProvider } from "@brains/ai-service";
+
+/**
+ * Extract the judge model from parsed YAML content.
+ * Returns undefined if not set.
+ */
+export function parseJudgeField(
+  raw: Record<string, unknown>,
+): string | undefined {
+  const judge = raw["judge"];
+  return typeof judge === "string" ? judge : undefined;
+}
 
 /**
  * Extract the models array from parsed YAML content.
@@ -18,39 +28,28 @@ export function parseModelsField(raw: Record<string, unknown>): string[] {
   return models.filter((m): m is string => typeof m === "string");
 }
 
-/**
- * Extract the keys map from parsed YAML content.
- * Maps provider name → API key string.
- * Returns empty object if no keys field or invalid format.
- */
-export function parseKeysField(
-  raw: Record<string, unknown>,
-): Record<string, string> {
-  const keys = raw["keys"];
-  if (!keys || typeof keys !== "object" || Array.isArray(keys)) return {};
-
-  const result: Record<string, string> = {};
-  for (const [provider, value] of Object.entries(
-    keys as Record<string, unknown>,
-  )) {
-    if (typeof value === "string") {
-      result[provider] = value;
-    }
-  }
-  return result;
-}
+/** Provider → env var name */
+const PROVIDER_ENV_VARS: Record<string, string> = {
+  openai: "OPENAI_API_KEY",
+  anthropic: "ANTHROPIC_API_KEY",
+  google: "GOOGLE_GENERATIVE_AI_API_KEY",
+};
 
 /**
- * Resolve the API key for a model.
+ * Resolve the API key for a model from env vars.
  *
- * Detects the provider from the model string, looks it up in the keys map,
- * and falls back to the default key (AI_API_KEY from env) if not found.
+ * Detects provider from model name, returns the matching env var.
+ * Falls back to AI_API_KEY. Returns undefined for local providers (ollama).
  */
-export function resolveApiKey(
+export function resolveProviderKey(
   model: string,
-  keys: Record<string, string>,
-  defaultKey: string | undefined,
+  env: Record<string, string | undefined>,
 ): string | undefined {
   const provider = selectTextProvider(model);
-  return keys[provider] ?? defaultKey;
+  const envVar = PROVIDER_ENV_VARS[provider];
+
+  // Local providers don't need a key
+  if (!envVar) return undefined;
+
+  return env[envVar] ?? env["AI_API_KEY"];
 }

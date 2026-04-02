@@ -2,6 +2,61 @@
  * String utility functions
  */
 
+const ENV_VAR_PATTERN = /\$\{[^}]+\}/g;
+
+/**
+ * Interpolate ${ENV_VAR} references in a string with process.env values.
+ * Returns the original string if no references are found.
+ * Returns undefined if any referenced env var is not set.
+ */
+export function interpolateEnvVar(value: string): string | undefined {
+  const matches = value.match(ENV_VAR_PATTERN);
+  if (!matches) return value;
+
+  let result = value;
+  for (const match of matches) {
+    const varName = match.slice(2, -1); // strip ${ and }
+    const envValue = process.env[varName];
+    if (envValue === undefined) return undefined;
+    result = result.replace(match, envValue);
+  }
+  return result;
+}
+
+/**
+ * Recursively interpolate ${ENV_VAR} references in a parsed object.
+ * - String values: "${VAR}" → process.env.VAR
+ * - Object keys: "${VAR}" → process.env.VAR
+ * - Removes entries where env vars are not set
+ */
+export function interpolateEnv(data: unknown): unknown {
+  if (typeof data === "string") {
+    return interpolateEnvVar(data);
+  }
+
+  if (Array.isArray(data)) {
+    return data
+      .map((item) => interpolateEnv(item))
+      .filter((item) => item !== undefined);
+  }
+
+  if (typeof data === "object" && data !== null) {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(data)) {
+      const interpolatedKey = interpolateEnvVar(key);
+      if (interpolatedKey === undefined) continue;
+
+      const interpolatedValue = interpolateEnv(value);
+      if (interpolatedValue === undefined) continue;
+
+      result[interpolatedKey] = interpolatedValue;
+    }
+    return result;
+  }
+
+  return data;
+}
+
 /**
  * Convert a string to a URL-safe slug
  */

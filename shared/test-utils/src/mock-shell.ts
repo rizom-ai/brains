@@ -385,6 +385,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         getConversation: async () => null,
         searchConversations: async () => [],
         getMessages: async () => [],
+        close: () => {},
       }) as IConversationService,
     getMCPService: () =>
       ({

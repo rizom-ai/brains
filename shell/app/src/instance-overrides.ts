@@ -1,8 +1,7 @@
-import { z, fromYaml } from "@brains/utils";
+import { z, fromYaml, interpolateEnv } from "@brains/utils";
 import { presetNameSchema, modeSchema } from "./brain-definition";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
-const ENV_VAR_PATTERN = /\$\{([^}]+)\}/g;
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -80,61 +79,6 @@ const instanceOverridesSchema = z.object({
  * goes here (with ${ENV_VAR} interpolation for referencing secrets).
  */
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
-
-/**
- * Interpolate ${ENV_VAR} references in a string with process.env values.
- * Returns the original string if no references are found.
- * Returns undefined if an env var is not set.
- */
-function interpolateEnvVar(value: string): string | undefined {
-  const matches = value.match(ENV_VAR_PATTERN);
-  if (!matches) return value;
-
-  let result = value;
-  for (const match of matches) {
-    const varName = match.slice(2, -1); // strip ${ and }
-    const envValue = process.env[varName];
-    if (envValue === undefined) return undefined;
-    result = result.replace(match, envValue);
-  }
-  return result;
-}
-
-/**
- * Recursively interpolate env vars in a parsed YAML object.
- * - String values: "${VAR}" → process.env.VAR
- * - Object keys: "${VAR}" → process.env.VAR (for trustedTokens map)
- * - Removes entries where env vars are not set
- */
-function interpolateEnv(data: unknown): unknown {
-  if (typeof data === "string") {
-    return interpolateEnvVar(data);
-  }
-
-  if (Array.isArray(data)) {
-    return data
-      .map((item) => interpolateEnv(item))
-      .filter((item) => item !== undefined);
-  }
-
-  if (typeof data === "object" && data !== null) {
-    const result: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data)) {
-      // Interpolate the key (for trustedTokens where key is ${TOKEN})
-      const interpolatedKey = interpolateEnvVar(key);
-      if (interpolatedKey === undefined) continue;
-
-      // Interpolate the value
-      const interpolatedValue = interpolateEnv(value);
-      if (interpolatedValue === undefined) continue;
-
-      result[interpolatedKey] = interpolatedValue;
-    }
-    return result;
-  }
-
-  return data;
-}
 
 /**
  * Parse a brain.yaml string into InstanceOverrides.
