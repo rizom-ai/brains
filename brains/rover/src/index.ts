@@ -25,7 +25,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
-import { agentDiscoveryPlugin } from "@brains/agent-discovery";
+import { agentDiscoveryPlugin, skillPlugin } from "@brains/agent-discovery";
 import defaultSite from "@brains/site-default";
 import { join } from "path";
 
@@ -50,6 +50,7 @@ const minimal = [
   "wishlist",
   "directory-sync",
   "agent-discovery",
+  "skill",
   "mcp",
   "discord",
   "a2a",
@@ -140,6 +141,7 @@ export default defineBrain({
     ["wishlist", wishlistPlugin, {}],
     ["stock-photo", stockPhotoPlugin, {}],
     ["agent-discovery", agentDiscoveryPlugin, undefined],
+    ["skill", skillPlugin, undefined],
     [
       "directory-sync",
       directorySync,

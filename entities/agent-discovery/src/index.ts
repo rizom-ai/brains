@@ -19,3 +19,17 @@ export {
 
 export { AgentAdapter } from "./adapters/agent-adapter";
 export { AgentDataSource } from "./datasources/agent-datasource";
+
+// Skill entity
+export { SkillPlugin, skillPlugin } from "./plugins/skill-plugin";
+
+export {
+  skillFrontmatterSchema,
+  skillMetadataSchema,
+  skillEntitySchema,
+  type SkillFrontmatter,
+  type SkillMetadata,
+  type SkillEntity,
+} from "./schemas/skill";
+
+export { SkillAdapter } from "./adapters/skill-adapter";
