@@ -75,7 +75,8 @@ env:
   clear:
     NODE_ENV: production
   secret:
-    - ANTHROPIC_API_KEY
+    - AI_API_KEY
+    - AI_IMAGE_KEY
     - GIT_SYNC_TOKEN
     - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
@@ -95,7 +96,8 @@ Set these in `.env` (never commit this file):
 
 | Variable                  | Required | Description                             |
 | ------------------------- | -------- | --------------------------------------- |
-| `ANTHROPIC_API_KEY`       | Yes      | Anthropic API key for AI features       |
+| `AI_API_KEY`              | Yes      | AI provider API key                     |
+| `AI_IMAGE_KEY`            | No       | Separate key for image generation       |
 | `GIT_SYNC_TOKEN`          | Yes      | GitHub PAT for content sync             |
 | `MCP_AUTH_TOKEN`          | No       | Token for authenticated MCP HTTP access |
 | `DISCORD_BOT_TOKEN`       | No       | Discord bot token                       |
@@ -127,7 +129,7 @@ Secrets needed in GitHub repo settings:
 
 - `KAMAL_REGISTRY_PASSWORD`
 - `SERVER_IP`
-- `ANTHROPIC_API_KEY`
+- `AI_API_KEY`
 - `GIT_SYNC_TOKEN`
 
 ## Common Operations

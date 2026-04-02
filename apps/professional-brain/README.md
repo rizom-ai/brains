@@ -6,7 +6,7 @@ An instance of the [Rover brain model](../../brains/rover/) for personal knowled
 
 ```bash
 cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
+# Edit .env and add your AI_API_KEY
 
 bun install   # from repo root
 bun run dev   # start in dev mode

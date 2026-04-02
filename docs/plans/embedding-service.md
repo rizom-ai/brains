@@ -75,9 +75,7 @@ image_optimization:
   backend: sharp # always sharp
 
 api_keys: # only needed for cloud backends
-  anthropic: ${ANTHROPIC_API_KEY}
-  openai: ${OPENAI_API_KEY}
-  google: ${GOOGLE_API_KEY}
+  default: ${AI_API_KEY}
 ```
 
 ### Endpoints

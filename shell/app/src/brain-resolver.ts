@@ -8,6 +8,7 @@ import type {
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { SitePackage } from "./site-package";
+import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
 import { getPackage, hasPackage } from "./package-registry";
@@ -223,10 +224,11 @@ export function resolve(
     version: definition.version,
     plugins: [...capabilities, ...interfaces],
 
-    // AI keys from environment
-    aiApiKey: env["ANTHROPIC_API_KEY"],
-    openaiApiKey: env["OPENAI_API_KEY"],
-    googleApiKey: env["GOOGLE_GENERATIVE_AI_API_KEY"],
+    // AI config from environment + brain.yaml model
+    ...resolveAIConfig(
+      env,
+      overrides?.model ? { model: overrides.model } : undefined,
+    ),
 
     // Optional fields
     ...(identity && { identity }),

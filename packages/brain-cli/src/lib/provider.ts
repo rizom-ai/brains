@@ -25,11 +25,11 @@ const MODEL_PATTERNS: Array<[RegExp, string]> = [
   [/^qwen/, "ollama"],
 ];
 
-/** Known provider → required env var */
+/** Known provider → required env var (all use AI_API_KEY now) */
 const PROVIDER_ENV_VARS: Record<string, string> = {
-  openai: "OPENAI_API_KEY",
-  anthropic: "ANTHROPIC_API_KEY",
-  google: "GOOGLE_GENERATIVE_AI_API_KEY",
+  openai: "AI_API_KEY",
+  anthropic: "AI_API_KEY",
+  google: "AI_API_KEY",
 };
 
 export function resolveProvider(model: string): ResolvedProvider {

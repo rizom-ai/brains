@@ -214,7 +214,8 @@ If an environment variable is not set, the entire entry is removed. This means p
 
 | Variable            | Required for | Description                        |
 | ------------------- | ------------ | ---------------------------------- |
-| `ANTHROPIC_API_KEY` | AI features  | Anthropic API key                  |
+| `AI_API_KEY`        | AI features  | AI provider API key                |
+| `AI_IMAGE_KEY`      | Images       | Optional image generation key      |
 | `GIT_SYNC_TOKEN`    | Content sync | GitHub personal access token       |
 | `MCP_AUTH_TOKEN`    | MCP HTTP     | Token for authenticated MCP access |
 | `DISCORD_BOT_TOKEN` | Discord      | Discord bot token                  |

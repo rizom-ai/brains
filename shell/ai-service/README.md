@@ -27,7 +27,7 @@ bun add @brains/ai-service
 import { AIService } from "@brains/ai-service";
 
 const aiService = AIService.getInstance({
-  apiKey: process.env.ANTHROPIC_API_KEY,
+  apiKey: process.env.AI_API_KEY,
   // model defaults to claude-haiku-4-5-20251001
 });
 

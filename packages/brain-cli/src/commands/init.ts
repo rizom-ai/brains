@@ -91,7 +91,7 @@ env:
   clear:
     NODE_ENV: production
   secret:
-    - ANTHROPIC_API_KEY
+    - AI_API_KEY
     - GIT_SYNC_TOKEN
     - MCP_AUTH_TOKEN
     - DISCORD_BOT_TOKEN
@@ -110,7 +110,11 @@ healthcheck:
 
 function writeEnvExample(dir: string): void {
   const content = `# Required
-ANTHROPIC_API_KEY=
+AI_API_KEY=
+
+# Optional: separate key for image generation (defaults to AI_API_KEY)
+# AI_IMAGE_KEY=
+
 GIT_SYNC_TOKEN=
 
 # Optional
@@ -174,7 +178,7 @@ jobs:
         env:
           KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SERVER_IP: \${{ secrets.SERVER_IP }}
-          ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}
+          AI_API_KEY: \${{ secrets.AI_API_KEY }}
           GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
         run: kamal deploy
 `;

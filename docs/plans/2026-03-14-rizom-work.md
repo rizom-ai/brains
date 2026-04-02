@@ -63,7 +63,7 @@ rizom.ai and rizom.work should look and feel the same but playfully different â€
   - `CLOUDFLARE_ZONE_ID`
   - `CLOUDFLARE_ACCOUNT_ID`
   - `GITHUB_TOKEN` (for git-sync)
-  - `ANTHROPIC_API_KEY`
+  - `AI_API_KEY`
 - [ ] Create seed content (`seed-content/brain-character.md`, `seed-content/site-info.md`)
 
 ### 5. DNS Configuration

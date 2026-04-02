@@ -170,7 +170,8 @@ if [ ! -f "$INSTALL_PATH/.env" ]; then
 DATABASE_URL=file:/opt/personal-brain/data/brain.db
 
 # AI Provider (Required - add your key)
-ANTHROPIC_API_KEY=
+AI_API_KEY=
+# AI_IMAGE_KEY=
 
 # Server Configuration
 BRAIN_SERVER_PORT=3333

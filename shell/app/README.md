@@ -73,7 +73,7 @@ const app = App.create({
   name: "my-brain",
   version: "1.0.0",
   database: "file:./data/brain.db",
-  aiApiKey: process.env.ANTHROPIC_API_KEY,
+  aiApiKey: process.env.AI_API_KEY,
   plugins: [new DirectorySyncPlugin(), new LinkPlugin()],
 });
 
@@ -153,7 +153,7 @@ CONVERSATION_DATABASE_URL=file:./data/conversations.db
 MATRIX_ACCESS_TOKEN=your_token
 
 # AI Services
-ANTHROPIC_API_KEY=your_api_key
+AI_API_KEY=your_api_key
 ```
 
 ## Plugin Loading
@@ -264,6 +264,6 @@ defineConfig({
   version: "1.0.0",
   logLevel: "warn",
   database: process.env.DATABASE_URL,
-  aiApiKey: process.env.ANTHROPIC_API_KEY,
+  aiApiKey: process.env.AI_API_KEY,
 });
 ```

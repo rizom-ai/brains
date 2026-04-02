@@ -185,16 +185,16 @@ describe("resolveProvider", () => {
 });
 
 describe("getRequiredEnvVar", () => {
-  it("should return OPENAI_API_KEY for openai", () => {
-    expect(getRequiredEnvVar("openai")).toBe("OPENAI_API_KEY");
+  it("should return AI_API_KEY for openai", () => {
+    expect(getRequiredEnvVar("openai")).toBe("AI_API_KEY");
   });
 
-  it("should return ANTHROPIC_API_KEY for anthropic", () => {
-    expect(getRequiredEnvVar("anthropic")).toBe("ANTHROPIC_API_KEY");
+  it("should return AI_API_KEY for anthropic", () => {
+    expect(getRequiredEnvVar("anthropic")).toBe("AI_API_KEY");
   });
 
-  it("should return GOOGLE_GENERATIVE_AI_API_KEY for google", () => {
-    expect(getRequiredEnvVar("google")).toBe("GOOGLE_GENERATIVE_AI_API_KEY");
+  it("should return AI_API_KEY for google", () => {
+    expect(getRequiredEnvVar("google")).toBe("AI_API_KEY");
   });
 
   it("should return undefined for ollama (no key needed)", () => {

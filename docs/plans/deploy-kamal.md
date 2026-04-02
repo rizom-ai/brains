@@ -78,7 +78,7 @@ env:
   clear:
     NODE_ENV: production
   secret:
-    - ANTHROPIC_API_KEY
+    - AI_API_KEY
     - DISCORD_BOT_TOKEN
     - GIT_SYNC_TOKEN
 

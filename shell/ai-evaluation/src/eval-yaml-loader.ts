@@ -78,7 +78,7 @@ export async function loadPluginEvalConfig(
   return defineConfig({
     name: `${pluginId}-eval`,
     version: "0.1.0",
-    aiApiKey: process.env["ANTHROPIC_API_KEY"],
+    aiApiKey: process.env["AI_API_KEY"],
     plugins: [plugin],
     shellConfig: {
       database: { url: `file:${evalDbBase}.db` },

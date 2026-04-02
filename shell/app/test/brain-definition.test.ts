@@ -219,12 +219,12 @@ describe("resolve", () => {
     });
 
     const config = resolve(def, {
-      ANTHROPIC_API_KEY: "sk-ant-123",
-      OPENAI_API_KEY: "sk-oai-456",
+      AI_API_KEY: "sk-test-123",
+      AI_IMAGE_KEY: "sk-img-456",
     });
 
-    expect(config.aiApiKey).toBe("sk-ant-123");
-    expect(config.openaiApiKey).toBe("sk-oai-456");
+    expect(config.aiApiKey).toBe("sk-test-123");
+    expect(config.aiImageKey).toBe("sk-img-456");
   });
 
   test("should apply targeted override to interface after construction", () => {

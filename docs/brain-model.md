@@ -97,8 +97,8 @@ Common plugin IDs: `system`, `topics`, `summary`, `link`, `decks`, `directory-sy
 The `.env` file should contain **only values you'd rotate or revoke**:
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-...
-MATRIX_ACCESS_TOKEN=syt_...
+AI_API_KEY=your-api-key-here
+# AI_IMAGE_KEY=your-image-key-here  # optional, defaults to AI_API_KEY
 GIT_SYNC_TOKEN=ghp_...
 MCP_AUTH_TOKEN=...
 CLOUDFLARE_API_TOKEN=...
@@ -112,7 +112,7 @@ Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If n
 
 | Secret (`.env`)        | Config (`brain.yaml`)                |
 | ---------------------- | ------------------------------------ |
-| `ANTHROPIC_API_KEY`    | `domain: recall.rizom.ai`            |
+| `AI_API_KEY`           | `domain: recall.rizom.ai`            |
 | `GIT_SYNC_TOKEN`       | `plugins.directory-sync.git.repo`    |
 | `MCP_AUTH_TOKEN`       | `plugins.webserver.productionDomain` |
 | `DISCORD_BOT_TOKEN`    | `plugins.discord.guildId`            |
@@ -309,7 +309,7 @@ apps/team-brain/              # Dev instance
 │       git:
 │         repo: my-org/team-brain-content
 ├── .env                      # Dev secrets
-│   ANTHROPIC_API_KEY=...
+│   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
 
 apps/team-brain/deploy/       # Production deploy artifacts
@@ -320,7 +320,7 @@ apps/team-brain/deploy/       # Production deploy artifacts
 │     webserver:
 │       productionDomain: https://recall.rizom.ai
 ├── .env.production           # Production secrets
-│   ANTHROPIC_API_KEY=...
+│   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
 ```
 

@@ -478,9 +478,9 @@ if (import.meta.main) {
   const { config } = await import("dotenv");
   config({ path: join(import.meta.dir, "..", ".env") });
 
-  if (!process.env["ANTHROPIC_API_KEY"]) {
+  if (!process.env["AI_API_KEY"]) {
     console.error(
-      "ANTHROPIC_API_KEY not set. Add it to shell/ai-evaluation/.env or export it in your shell.",
+      "AI_API_KEY not set. Add it to shell/ai-evaluation/.env or export it in your shell.",
     );
     process.exit(1);
   }

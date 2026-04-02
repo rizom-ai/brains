@@ -31,6 +31,9 @@ const instanceOverridesSchema = z.object({
   /** Database URL */
   database: z.string().optional(),
 
+  /** AI model — determines provider. e.g. "gpt-4o-mini", "claude-haiku-4-5", "openai:gpt-4o" */
+  model: z.string().optional(),
+
   /** Preset name — selects a curated subset of capabilities + interfaces */
   preset: presetNameSchema.optional(),
 

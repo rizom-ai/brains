@@ -69,23 +69,15 @@ export class App {
       // Set feature flags (none currently)
       shellConfig.features = {};
 
-      if (
-        this.config.aiApiKey ||
-        this.config.openaiApiKey ||
-        this.config.googleApiKey
-      ) {
+      if (this.config.aiApiKey || this.config.aiImageKey) {
         shellConfig.ai = {
           ...shellConfig.ai,
-          ...(this.config.aiApiKey && {
-            apiKey: this.config.aiApiKey,
-            provider: "anthropic" as const,
+          ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
+          ...(this.config.aiImageKey && {
+            imageApiKey: this.config.aiImageKey,
           }),
-          ...(this.config.openaiApiKey && {
-            openaiApiKey: this.config.openaiApiKey,
-          }),
-          ...(this.config.googleApiKey && {
-            googleApiKey: this.config.googleApiKey,
-          }),
+          ...(this.config.aiProvider && { provider: this.config.aiProvider }),
+          ...(this.config.aiModel && { model: this.config.aiModel }),
         };
       }
 

@@ -67,26 +67,26 @@ export class AIService implements IAIService {
     };
     this.logger = logger.child("AIService");
 
-    // Create provider with API key if provided
+    // Text provider uses apiKey. Image providers use imageApiKey (falls back to apiKey).
+    const imageKey = config.imageApiKey ?? config.apiKey;
+
     this.anthropicProvider = config.apiKey
       ? createAnthropic({ apiKey: config.apiKey })
       : anthropic;
 
-    // Create OpenAI provider — for text (when provider=openai) or images
-    const openaiKey =
-      config.openaiApiKey ??
-      (config.provider === "openai" ? config.apiKey : undefined);
-    if (openaiKey) {
-      this.openaiProvider = createOpenAI({ apiKey: openaiKey });
+    if (config.provider === "openai" && config.apiKey) {
+      this.openaiProvider = createOpenAI({ apiKey: config.apiKey });
+    } else if (imageKey) {
+      this.openaiProvider = createOpenAI({ apiKey: imageKey });
     }
 
-    // Create Google provider — for text (when provider=google) or images
-    const googleKey =
-      config.googleApiKey ??
-      (config.provider === "google" ? config.apiKey : undefined);
-    if (googleKey) {
+    if (config.provider === "google" && config.apiKey) {
       this.googleProvider = createGoogleGenerativeAI({
-        apiKey: googleKey,
+        apiKey: config.apiKey,
+      });
+    } else if (imageKey) {
+      this.googleProvider = createGoogleGenerativeAI({
+        apiKey: imageKey,
       });
     }
   }

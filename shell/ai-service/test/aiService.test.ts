@@ -368,25 +368,14 @@ describe("AIService", () => {
         expect(service.canGenerateImages()).toBe(false);
       });
 
-      it("should return true when openaiApiKey is set", () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+      it("should return true when apiKey is set (OpenAI)", () => {
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
         expect(service.canGenerateImages()).toBe(true);
       });
 
-      it("should return true when googleApiKey is set", () => {
+      it("should return true when imageApiKey is set", () => {
         const service = AIService.createFresh(
-          { googleApiKey: "goog-test" },
-          logger,
-        );
-        expect(service.canGenerateImages()).toBe(true);
-      });
-
-      it("should return true when both keys are set", () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test", googleApiKey: "goog-test" },
+          { imageApiKey: "sk-img" },
           logger,
         );
         expect(service.canGenerateImages()).toBe(true);
@@ -395,10 +384,7 @@ describe("AIService", () => {
 
     describe("generateImage with OpenAI", () => {
       it("should generate image with default options", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         const result = await service.generateImage("A sunset");
 
@@ -409,10 +395,7 @@ describe("AIService", () => {
       });
 
       it("should map aspectRatio to DALL-E size for OpenAI provider", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset", { aspectRatio: "1:1" });
 
@@ -424,10 +407,7 @@ describe("AIService", () => {
       });
 
       it("should map 16:9 to 1536x1024", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset", { aspectRatio: "16:9" });
 
@@ -439,10 +419,7 @@ describe("AIService", () => {
       });
 
       it("should map 9:16 to 1024x1536", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset", { aspectRatio: "9:16" });
 
@@ -454,10 +431,7 @@ describe("AIService", () => {
       });
 
       it("should default to 16:9 (1536x1024) when no aspectRatio given", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset");
 
@@ -470,9 +444,9 @@ describe("AIService", () => {
     });
 
     describe("generateImage with Google", () => {
-      it("should use Google provider when only googleApiKey is set", async () => {
+      it("should use Google provider when defaultImageProvider is google", async () => {
         const service = AIService.createFresh(
-          { googleApiKey: "goog-test" },
+          { apiKey: "sk-test", defaultImageProvider: "google" },
           logger,
         );
 
@@ -486,7 +460,7 @@ describe("AIService", () => {
 
       it("should pass aspectRatio directly to Google provider", async () => {
         const service = AIService.createFresh(
-          { googleApiKey: "goog-test" },
+          { apiKey: "sk-test", defaultImageProvider: "google" },
           logger,
         );
 
@@ -501,7 +475,7 @@ describe("AIService", () => {
 
       it("should not pass size to Google provider", async () => {
         const service = AIService.createFresh(
-          { googleApiKey: "goog-test" },
+          { apiKey: "sk-test", defaultImageProvider: "google" },
           logger,
         );
 
@@ -516,8 +490,8 @@ describe("AIService", () => {
       it("should use defaultImageProvider when set", async () => {
         const service = AIService.createFresh(
           {
-            openaiApiKey: "sk-test",
-            googleApiKey: "goog-test",
+            apiKey: "sk-test",
+
             defaultImageProvider: "google",
           },
           logger,
@@ -528,20 +502,17 @@ describe("AIService", () => {
         expect(mockGoogleImage).toHaveBeenCalled();
       });
 
-      it("should auto-detect OpenAI when only openaiApiKey is set", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+      it("should auto-detect OpenAI when only apiKey is set", async () => {
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset");
 
         expect(mockOpenAIImage).toHaveBeenCalledWith("gpt-image-1.5");
       });
 
-      it("should auto-detect Google when only googleApiKey is set", async () => {
+      it("should use Google when defaultImageProvider is google", async () => {
         const service = AIService.createFresh(
-          { googleApiKey: "goog-test" },
+          { apiKey: "sk-test", defaultImageProvider: "google" },
           logger,
         );
 
@@ -551,10 +522,7 @@ describe("AIService", () => {
       });
 
       it("should prefer OpenAI when both keys are set and no default", async () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test", googleApiKey: "goog-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         await service.generateImage("A sunset");
 
@@ -564,7 +532,8 @@ describe("AIService", () => {
       it("should use Nano Banana Pro when googleImageModel is set", async () => {
         const service = AIService.createFresh(
           {
-            googleApiKey: "goog-test",
+            apiKey: "sk-test",
+            defaultImageProvider: "google",
             googleImageModel: "gemini-3-pro-image-preview",
           },
           logger,
@@ -588,10 +557,7 @@ describe("AIService", () => {
       });
 
       it("should handle generation API errors", () => {
-        const service = AIService.createFresh(
-          { openaiApiKey: "sk-test" },
-          logger,
-        );
+        const service = AIService.createFresh({ apiKey: "sk-test" }, logger);
 
         generateImageSpy.mockRejectedValueOnce(
           new Error("Rate limit exceeded"),

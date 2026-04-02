@@ -90,7 +90,7 @@ Create a `.env` file in the root directory:
 
 ```bash
 # Required: Anthropic API key for AI features
-ANTHROPIC_API_KEY=sk-ant-...
+AI_API_KEY=your-api-key-here
 
 # Database URLs (defaults to local SQLite files)
 DATABASE_URL=file:./data/brains.db

@@ -75,8 +75,9 @@ export const appConfigSchema = z.object({
   // These map directly to Shell config but with simpler names
   database: z.string().optional(), // Maps to database.url in Shell
   aiApiKey: z.string().optional(), // Maps to ai.apiKey in Shell
-  openaiApiKey: z.string().optional(), // Maps to ai.openaiApiKey in Shell
-  googleApiKey: z.string().optional(), // Maps to ai.googleApiKey in Shell
+  aiImageKey: z.string().optional(), // Optional override for image generation
+  aiModel: z.string().optional(), // AI model (e.g. "gpt-4o-mini")
+  aiProvider: z.string().optional(), // AI provider (auto-detected from model)
   logLevel: logLevelSchema.optional(), // Maps to logging.level
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),

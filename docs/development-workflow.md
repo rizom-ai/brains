@@ -25,7 +25,7 @@ bun install
 cp example.env .env
 
 # Edit .env and add your API keys
-# Minimum required: ANTHROPIC_API_KEY
+# Minimum required: AI_API_KEY
 
 # Initialize the database
 bun run --filter @brains/relay-brain init
@@ -132,7 +132,7 @@ git commit --no-verify -m "Your message"
 
 ```bash
 # AI Service Configuration
-ANTHROPIC_API_KEY=your-api-key-here
+AI_API_KEY=your-api-key-here
 
 # Database Configuration (optional, defaults to local SQLite)
 DATABASE_PATH=./data/brain.db

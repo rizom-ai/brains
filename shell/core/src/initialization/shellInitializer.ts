@@ -3,7 +3,11 @@ import {
   createBrainAgentFactory,
   type IAgentService,
 } from "@brains/ai-service";
-import { AIService, type IAIService } from "@brains/ai-service";
+import {
+  AIService,
+  type IAIService,
+  type AIModelConfig,
+} from "@brains/ai-service";
 import {
   ContentGenerationJobHandler,
   ContentService as ContentServiceClass,
@@ -244,8 +248,19 @@ export class ShellInitializer {
     const embeddingService =
       dependencies?.embeddingService ??
       EmbeddingService.getInstance(logger, this.config.embedding.cacheDir);
+    const aiConfig: AIModelConfig = {
+      apiKey: this.config.ai.apiKey,
+      model: this.config.ai.model,
+      temperature: this.config.ai.temperature,
+      maxTokens: this.config.ai.maxTokens,
+      webSearch: this.config.ai.webSearch,
+      ...(this.config.ai.provider ? { provider: this.config.ai.provider } : {}),
+      ...(this.config.ai.imageApiKey
+        ? { imageApiKey: this.config.ai.imageApiKey }
+        : {}),
+    };
     const aiService =
-      dependencies?.aiService ?? AIService.getInstance(this.config.ai, logger);
+      dependencies?.aiService ?? AIService.getInstance(aiConfig, logger);
     const entityRegistry = EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);

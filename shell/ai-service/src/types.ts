@@ -17,18 +17,17 @@ export type GoogleImageModel =
  * AI model configuration
  */
 export interface AIModelConfig {
-  /** AI provider: "anthropic" (default), "openai", "google" */
+  /** AI provider: "anthropic" (default), "openai", "google", "ollama", etc. */
   provider?: string;
   model?: string;
+  /** Single API key — used for whichever provider is configured */
   apiKey?: string;
+  /** Optional separate key for image generation (defaults to apiKey) */
+  imageApiKey?: string;
   temperature?: number;
   maxTokens?: number;
   webSearch?: boolean;
-  /** OpenAI API key for image generation */
-  openaiApiKey?: string | undefined;
-  /** Google Generative AI API key for image generation */
-  googleApiKey?: string | undefined;
-  /** Default image provider (auto-detected from available keys if not set) */
+  /** Default image provider (auto-detected from provider if not set) */
   defaultImageProvider?: ImageProvider;
   /** Google image model: "gemini-3-pro-image-preview" (default) or "gemini-2.5-flash-image" (free) */
   googleImageModel?: GoogleImageModel;

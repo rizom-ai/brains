@@ -75,14 +75,13 @@ export const shellConfigSchema = z.object({
   }),
 
   ai: z.object({
-    provider: z.enum(["anthropic"]).default("anthropic"),
+    provider: z.string().default("anthropic"),
     apiKey: z.string(),
+    imageApiKey: z.string().optional(),
     model: z.string().default("claude-haiku-4-5-20251001"),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
-    openaiApiKey: z.string().optional(),
-    googleApiKey: z.string().optional(),
   }),
 
   embedding: z.object({
@@ -134,14 +133,15 @@ export function createShellConfig(
     conversationDatabase:
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
     ai: {
-      provider: "anthropic" as const,
+      provider: overrides.ai?.provider ?? "anthropic",
       apiKey: overrides.ai?.apiKey ?? "",
+      ...(overrides.ai?.imageApiKey
+        ? { imageApiKey: overrides.ai.imageApiKey }
+        : {}),
       model: overrides.ai?.model ?? "claude-haiku-4-5-20251001",
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,
-      openaiApiKey: overrides.ai?.openaiApiKey,
-      googleApiKey: overrides.ai?.googleApiKey,
     },
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {

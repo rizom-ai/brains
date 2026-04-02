@@ -184,7 +184,7 @@ export interface IShell {
   ): Promise<{ object: T }>;
   query(prompt: string, context?: QueryContext): Promise<DefaultQueryResponse>;
 
-  // Image generation (requires OPENAI_API_KEY)
+  // Image generation (requires AI_API_KEY)
   generateImage(
     prompt: string,
     options?: ImageGenerationOptions,

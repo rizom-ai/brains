@@ -117,12 +117,21 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 3. **Bun version check** — validate `Bun.version >= 1.3.3` before any command
 4. **AI model + key simplification** — full scope:
    - `model: gpt-4o-mini` in brain.yaml, auto-detects provider from model name
-   - `AI_API_KEY` single env var (fallback to `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` for backward compat)
-   - Resolver reads model from overrides, resolves provider, passes key to AI service
-   - AI service `getModel()` selects SDK provider based on config
-   - AppConfig: `aiApiKey` + `openaiApiKey` + `googleApiKey` → single `aiApiKey`
-   - .env.example, .env.schema, docs updated
-   - `brain init` scaffolds `AI_API_KEY=` in .env.example
+   - `AI_API_KEY` single env var, no fallbacks (new product, no backward compat)
+   - One key flows through entire chain — same key for text + images
+   - **Cut list** (remove these fields entirely):
+     - `AppConfig.openaiApiKey` + `AppConfig.googleApiKey` → gone
+     - `ShellConfig.ai.openaiApiKey` + `ShellConfig.ai.googleApiKey` → gone
+     - `AIModelConfig.openaiApiKey` + `AIModelConfig.googleApiKey` → gone
+     - `OPENAI_API_KEY` + `ANTHROPIC_API_KEY` + `GOOGLE_GENERATIVE_AI_API_KEY` → `AI_API_KEY` + `AI_IMAGE_KEY`
+   - **Add list**:
+     - `AIModelConfig.provider` — already done
+     - `InstanceOverrides.model` — already done
+     - `resolveAIConfig()` in resolver — resolves model → provider + passes key
+     - `AIService.getModel()` uses provider to select SDK — already done
+   - **Update list**:
+     - `brain init` scaffolds `AI_API_KEY=` — already done
+     - .env.schema files, docs, deploy configs
 5. **API key pre-check** — validate configured provider's key before boot, clear error message
 6. **Multi-model evals** — `models:` array in brain.eval.yaml runs suite against each model, comparison report across providers
 7. **Create `@rizom` npm org** — manual step

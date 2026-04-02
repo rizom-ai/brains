@@ -72,7 +72,7 @@ export interface IEntityAINamespace {
     schema: z.ZodType<T>,
   ) => Promise<{ object: T }>;
 
-  /** Generate an image using AI (requires OPENAI_API_KEY) */
+  /** Generate an image using AI (requires AI_API_KEY) */
   generateImage: (
     prompt: string,
     options?: ImageGenerationOptions,

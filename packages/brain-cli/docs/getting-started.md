@@ -34,7 +34,7 @@ cd mybrain
 
 # Add your API key
 cp .env.example .env
-# Edit .env and add ANTHROPIC_API_KEY
+# Edit .env and add AI_API_KEY
 
 # Start the brain
 brain start
