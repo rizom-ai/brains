@@ -2,6 +2,11 @@ brain: rover
 preset: pro
 mode: eval
 
+# Compare across models
+models:
+  - gpt-4o-mini
+  - claude-haiku-4-5
+
 # Eval-specific config — safe subset for automated testing
 # mode: eval disables interfaces and side-effect plugins (defined by evalDisable in brain model)
 

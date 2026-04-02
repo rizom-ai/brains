@@ -33,12 +33,18 @@ import {
 } from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
 import type { EvaluationOptions } from "./types";
+import type { EvaluationSummary } from "./schemas";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
 import { MarkdownReporter } from "./reporters/markdown-reporter";
 import { ComparisonReporter } from "./reporters/comparison-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
+import { parseModelsField } from "./multi-model";
+import {
+  writeModelComparisonReport,
+  renderModelComparison,
+} from "./reporters/model-comparison-reporter";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -140,6 +146,48 @@ export async function runEvaluations(
 }
 
 /**
+ * Run evaluations and return the summary (for multi-model comparison).
+ * Same as runEvaluations but returns the summary instead of process.exit.
+ */
+export async function runEvaluationsCollect(
+  options: RunEvaluationsOptions,
+): Promise<EvaluationSummary> {
+  const {
+    agentService,
+    aiService,
+    testCasesDir = resolvePath(process.cwd(), "test-cases"),
+    resultsDir = resolvePath(process.cwd(), "eval-results"),
+    skipLLMJudge = false,
+    tags,
+    testCaseIds,
+    testType,
+    verbose = false,
+  } = options;
+
+  const evaluationService = EvaluationService.createFresh({
+    agentService,
+    aiService,
+    testCasesDirectory: testCasesDir,
+    reporters: [
+      ConsoleReporter.createFresh({ verbose, showFailures: true }),
+      JSONReporter.createFresh({ outputDirectory: resultsDir }),
+    ],
+    evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
+  });
+
+  const evalOptions: EvaluationOptions = {
+    skipLLMJudge,
+    ...(options.parallel && { parallel: options.parallel }),
+    ...(options.maxParallel && { maxParallel: options.maxParallel }),
+  };
+  if (tags?.length) evalOptions.tags = tags;
+  if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
+  if (testType) evalOptions.testType = testType;
+
+  return evaluationService.runEvaluations(evalOptions);
+}
+
+/**
  * Parse a comma-separated flag value from args
  */
 function parseFlag(args: string[], flag: string): string[] | undefined {
@@ -216,6 +264,8 @@ interface EvalConfigResult {
   config: AppConfig;
   testCasesDirs: string[];
   brainModelPath?: string;
+  /** Models to evaluate against (from `models:` field in brain.eval.yaml) */
+  models: string[];
 }
 
 async function loadEvalConfig(): Promise<EvalConfigResult> {
@@ -234,6 +284,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       return {
         config,
         testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
+        models: [],
       };
     }
   }
@@ -243,6 +294,19 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
   if (existsSync(yamlPath)) {
     const content = readFileSync(yamlPath, "utf-8");
     const overrides = parseInstanceOverrides(content);
+
+    // Extract models array from raw YAML (not in InstanceOverrides schema)
+    let rawYaml: Record<string, unknown> = {};
+    try {
+      const { fromYaml } = await import("@brains/utils");
+      const parsed = fromYaml(content);
+      if (parsed && typeof parsed === "object") {
+        rawYaml = parsed as Record<string, unknown>;
+      }
+    } catch {
+      // Ignore parse errors — overrides already parsed above
+    }
+    const models = parseModelsField(rawYaml);
 
     if (!overrides.brain) {
       console.error(
@@ -290,6 +354,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       config: resolveConfig(mod.default, process.env, overrides),
       testCasesDirs,
       brainModelPath: brainModulePath,
+      models,
     };
   }
 
@@ -316,6 +381,7 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
   return {
     config,
     testCasesDirs: [resolvePath(process.cwd(), "test-cases")],
+    models: [],
   };
 }
 
@@ -354,92 +420,155 @@ export async function main(): Promise<void> {
   const saveBaseline = parseSingleFlag(args, "--baseline");
 
   try {
-    const { config, testCasesDirs, brainModelPath } = await loadEvalConfig();
+    const { config, testCasesDirs, brainModelPath, models } =
+      await loadEvalConfig();
 
-    // Create and initialize the app (needed for AI service in both modes)
-    // Use a temp database and data directory for evals to avoid polluting real data
-    // Temp files are cleaned up on system reboot
-    const evalDbBase = `/tmp/brain-eval-${Date.now()}`;
-
-    // Get the eval handler registry - plugins will register their handlers here
+    // Shared eval environment setup
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
-
-    // Check if we should clone existing data (--clone-data flag)
     const cloneData = process.argv.includes("--clone-data");
 
-    if (cloneData) {
-      // Copy existing brain.db and brain-data to temp location
-      // This allows evals to use existing indexed content without re-syncing
-      // Note: jobs and conversations are NOT cloned (fresh for each eval run)
-      const sourceDataDir = resolvePath(process.cwd(), "data");
-      const sourceBrainData = resolvePath(process.cwd(), "brain-data");
+    /**
+     * Prepare temp dirs, clone data, copy eval content, create git repo.
+     * Returns the evalDbBase path prefix.
+     */
+    const prepareEvalEnvironment = (suffix?: string): string => {
+      const evalDbBase = `/tmp/brain-eval-${Date.now()}${suffix ? `-${suffix}` : ""}`;
 
-      // Copy main entity database if it exists
-      if (existsSync(`${sourceDataDir}/brain.db`)) {
-        copyFileSync(`${sourceDataDir}/brain.db`, `${evalDbBase}.db`);
-        console.log("Cloned brain.db for eval");
+      if (cloneData) {
+        const sourceDataDir = resolvePath(process.cwd(), "data");
+        const sourceBrainData = resolvePath(process.cwd(), "brain-data");
+        if (existsSync(`${sourceDataDir}/brain.db`)) {
+          copyFileSync(`${sourceDataDir}/brain.db`, `${evalDbBase}.db`);
+        }
+        if (existsSync(sourceBrainData)) {
+          mkdirSync(`${evalDbBase}-data`, { recursive: true });
+          cpSync(sourceBrainData, `${evalDbBase}-data`, { recursive: true });
+        }
       }
 
-      // Copy brain-data directory (markdown files) if it exists
-      if (existsSync(sourceBrainData)) {
-        mkdirSync(`${evalDbBase}-data`, { recursive: true });
-        cpSync(sourceBrainData, `${evalDbBase}-data`, { recursive: true });
-        console.log("Cloned brain-data for eval");
+      const evalDataDir = `${evalDbBase}-data`;
+      const candidateDirs = [
+        resolvePath(process.cwd(), "eval-content"),
+        ...(brainModelPath
+          ? [resolvePath(brainModelPath, "eval-content")]
+          : []),
+        resolvePath(process.cwd(), "seed-content"),
+      ];
+      const contentDir = candidateDirs.find((d) => existsSync(d));
+      if (contentDir) {
+        mkdirSync(evalDataDir, { recursive: true });
+        cpSync(contentDir, evalDataDir, { recursive: true });
+        const evalDb = resolvePath(contentDir, "brain.db");
+        if (existsSync(evalDb)) {
+          copyFileSync(evalDb, `${evalDbBase}.db`);
+        }
       }
-    }
 
-    // Copy eval content into eval data dir
-    // Resolution order: cwd/eval-content → brain model/eval-content → cwd/seed-content
-    const evalDataDir = `${evalDbBase}-data`;
-    const candidateDirs = [
-      resolvePath(process.cwd(), "eval-content"),
-      ...(brainModelPath ? [resolvePath(brainModelPath, "eval-content")] : []),
-      resolvePath(process.cwd(), "seed-content"),
-    ];
-    const contentDir = candidateDirs.find((d) => existsSync(d));
-    if (contentDir) {
-      mkdirSync(evalDataDir, { recursive: true });
-      cpSync(contentDir, evalDataDir, { recursive: true });
-      console.log(`Copied ${contentDir} into eval data dir`);
-
-      // Use pre-built eval database if available (skips sync + embedding wait)
-      const evalDb = resolvePath(contentDir, "brain.db");
-      if (existsSync(evalDb)) {
-        copyFileSync(evalDb, `${evalDbBase}.db`);
-        console.log("Using pre-built eval database");
+      const gitRemotePath = "/tmp/brain-eval-git-remote";
+      if (existsSync(gitRemotePath)) {
+        rmSync(gitRemotePath, { recursive: true, force: true });
       }
-    }
+      mkdirSync(gitRemotePath, { recursive: true });
+      execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
 
-    // Create bare git repo for directory-sync (enables history tool)
-    const gitRemotePath = "/tmp/brain-eval-git-remote";
-    if (existsSync(gitRemotePath)) {
-      rmSync(gitRemotePath, { recursive: true, force: true });
-    }
-    mkdirSync(gitRemotePath, { recursive: true });
-    execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
-
-    const evalConfig = {
-      ...config,
-      database: undefined, // Clear to prevent overriding shellConfig.database
-      shellConfig: {
-        ...config.shellConfig,
-        database: { url: `file:${evalDbBase}.db` },
-        jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
-        conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
-        embedding: { cacheDir: `${evalDbBase}-cache` },
-        // Inject eval handler registry so plugins can register handlers via context
-        evalHandlerRegistry,
-        // Override data directory so file-based plugins use temp directory
-        dataDir: `${evalDbBase}-data`,
-      },
+      return evalDbBase;
     };
-    const app = App.create(evalConfig);
-    await app.initialize();
+
+    /**
+     * Boot an App with optional AI model/provider overrides.
+     */
+    const bootEvalApp = async (
+      evalDbBase: string,
+      aiOverrides?: { model?: string; provider?: string },
+    ): Promise<App> => {
+      const evalConfig = {
+        ...config,
+        database: undefined,
+        ...(aiOverrides?.model && { aiModel: aiOverrides.model }),
+        ...(aiOverrides?.provider && { aiProvider: aiOverrides.provider }),
+        shellConfig: {
+          ...config.shellConfig,
+          database: { url: `file:${evalDbBase}.db` },
+          jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
+          conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
+          embedding: { cacheDir: `${evalDbBase}-cache` },
+          evalHandlerRegistry,
+          dataDir: `${evalDbBase}-data`,
+        },
+      };
+      const app = App.create(evalConfig);
+      await app.initialize();
+      return app;
+    };
+
+    // ── Multi-model evaluation ──────────────────────────────────────────
+    if (models.length > 0) {
+      console.log(
+        `\n🔄 Multi-model evaluation: ${models.join(", ")}\n${"─".repeat(60)}`,
+      );
+
+      const modelSummaries: Array<{
+        model: string;
+        summary: EvaluationSummary;
+      }> = [];
+
+      for (const model of models) {
+        console.log(`\n▶ Model: ${model}\n${"─".repeat(40)}`);
+
+        // Detect provider from model name (same logic as ai-config.ts)
+        const colonIdx = model.indexOf(":");
+        const provider = colonIdx > 0 ? model.slice(0, colonIdx) : undefined;
+        const modelId = colonIdx > 0 ? model.slice(colonIdx + 1) : model;
+
+        const evalDbBase = prepareEvalEnvironment(
+          modelId.replace(/[^a-z0-9-]/gi, "-"),
+        );
+        const app = await bootEvalApp(evalDbBase, {
+          model: modelId,
+          ...(provider ? { provider } : {}),
+        });
+
+        const shell = app.getShell();
+        const agentService = remoteUrl
+          ? RemoteAgentService.createFresh({ baseUrl: remoteUrl, authToken })
+          : shell.getAgentService();
+
+        const runResult = await runEvaluationsCollect({
+          agentService,
+          aiService: shell.getAIService(),
+          testCasesDir: testCasesDirs,
+          skipLLMJudge,
+          verbose,
+          parallel,
+          maxParallel,
+          ...(tags && { tags }),
+          ...(testCaseIds && { testCaseIds }),
+          ...(testType && { testType }),
+        });
+
+        modelSummaries.push({ model, summary: runResult });
+      }
+
+      // Write comparison report (markdown + JSON)
+      const resultsDir = resolvePath(process.cwd(), "eval-results");
+      await writeModelComparisonReport(modelSummaries, resultsDir);
+
+      // Print markdown to stdout
+      const md = renderModelComparison(modelSummaries);
+      process.stdout.write(`\n${md}`);
+
+      const anyFailed = modelSummaries.some((ms) => ms.summary.failedTests > 0);
+      process.exit(anyFailed ? 1 : 0);
+    }
+
+    // ── Single-model evaluation (default) ───────────────────────────────
+    const evalDbBase = prepareEvalEnvironment();
+    if (cloneData) console.log("Cloned data for eval");
+    const app = await bootEvalApp(evalDbBase);
 
     const shell = app.getShell();
     const aiService = shell.getAIService();
 
-    // Determine which agent service to use
     const agentService = remoteUrl
       ? RemoteAgentService.createFresh({ baseUrl: remoteUrl, authToken })
       : shell.getAgentService();

@@ -133,7 +133,7 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
      - `brain init` scaffolds `AI_API_KEY=` — already done
      - .env.schema files, docs, deploy configs
 5. ~~**API key pre-check** — validate `AI_API_KEY` before boot, clear error~~ ✅
-6. **Multi-model evals** — `models:` array in brain.eval.yaml runs suite against each model, comparison report across providers
+6. ~~**Multi-model evals**~~ ✅ — `models:` array in brain.eval.yaml, per-model eval loop, markdown + JSON comparison report
 7. **Create `@rizom` npm org** — manual step
 8. **`npm publish`** — ship it
 
