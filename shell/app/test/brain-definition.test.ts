@@ -227,6 +227,24 @@ describe("resolve", () => {
     expect(config.aiImageKey).toBe("sk-img-456");
   });
 
+  test("should resolve model and provider from overrides", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      { AI_API_KEY: "sk-test" },
+      { model: "gpt-4o-mini" },
+    );
+
+    expect(config.aiModel).toBe("gpt-4o-mini");
+    expect(config.aiProvider).toBe("openai");
+  });
+
   test("should apply targeted override to interface after construction", () => {
     let capturedConfig: PluginConfig | undefined;
 

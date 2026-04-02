@@ -50,11 +50,19 @@
     "directory": "packages/brain-cli"
   },
   "license": "MIT",
+  "author": "Rizom <hello@rizom.ai> (https://rizom.ai)",
+  "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brain-cli#readme",
+  "bugs": "https://github.com/rizom-ai/brains/issues",
+  "engines": {
+    "bun": ">=1.3.3"
+  },
   "keywords": [
     "brain",
     "ai",
     "cli",
     "mcp",
-    "agent"
+    "agent",
+    "personal-ai",
+    "knowledge-management"
   ]
 }

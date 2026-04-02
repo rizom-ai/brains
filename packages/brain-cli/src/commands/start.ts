@@ -8,6 +8,7 @@ import {
   getModel,
   hasRegisteredModels,
 } from "../lib/model-registry";
+import { checkApiKey } from "../lib/preflight";
 
 /**
  * Detect monorepo root by walking up looking for bun.lock.
@@ -112,6 +113,14 @@ export async function start(
 
   // Bundled: in-process boot
   if (runnerType === "builtin") {
+    const keyCheck = checkApiKey(process.env);
+    if (!keyCheck.ok) {
+      return {
+        success: false,
+        message: keyCheck.message ?? "AI_API_KEY is not set.",
+      };
+    }
+
     const config = parseBrainYaml(cwd);
 
     const definition = getModel(config.brain);
