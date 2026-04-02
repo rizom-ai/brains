@@ -1,64 +1,12 @@
 import type { JSX } from "preact";
 import { Head } from "@brains/ui-library";
 import type { TemplateAgent, AgentSkill } from "../schemas/agent";
+import { AgentAvatar, KindBadge, extractDomain } from "./shared";
 
 export interface AgentDetailProps {
   agent: TemplateAgent;
-  prevAgent: TemplateAgent | null;
-  nextAgent: TemplateAgent | null;
 }
 
-/**
- * Kind badge with semantic coloring
- */
-const KindBadge = ({ kind }: { kind: string }): JSX.Element => {
-  const colorMap: Record<string, string> = {
-    professional: "bg-status-success text-status-success",
-    team: "bg-status-info text-status-info",
-    collective: "bg-brand/10 text-brand",
-  };
-  const classes = colorMap[kind] ?? "bg-status-neutral text-status-neutral";
-
-  return (
-    <span
-      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[13px] font-medium ${classes}`}
-    >
-      {kind}
-    </span>
-  );
-};
-
-/**
- * Avatar circle with initial letter
- */
-const AgentAvatar = ({
-  name,
-  className = "",
-}: {
-  name: string;
-  className?: string;
-}): JSX.Element => {
-  const initial = name.charAt(0).toUpperCase();
-
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-
-  return (
-    <div
-      className={`flex items-center justify-center rounded-full text-white font-bold flex-shrink-0 ${className}`}
-      style={{ backgroundColor: `hsl(${hue}, 55%, 45%)` }}
-    >
-      {initial}
-    </div>
-  );
-};
-
-/**
- * Format a date for display
- */
 function formatDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", {
@@ -66,17 +14,6 @@ function formatDate(dateStr: string): string {
     day: "numeric",
     year: "numeric",
   });
-}
-
-/**
- * Extract domain from URL
- */
-function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
 }
 
 /**

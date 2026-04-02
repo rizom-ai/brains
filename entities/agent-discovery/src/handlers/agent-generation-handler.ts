@@ -1,11 +1,9 @@
 import type { EntityPluginContext, GeneratedContent } from "@brains/plugins";
 import { BaseGenerationJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { z, slugifyUrl, generationResultSchema } from "@brains/utils";
-import { AgentAdapter } from "../adapters/agent-adapter";
+import { z, generationResultSchema } from "@brains/utils";
 import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
-
-const agentAdapter = new AgentAdapter();
+import { buildAgentFromCard } from "../lib/build-agent-content";
 
 /**
  * Input schema for agent generation — just needs a URL/domain.
@@ -66,42 +64,13 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
       );
     }
 
-    const anchorName = card.anchor?.name ?? card.brainName;
-    const kind = card.anchor?.kind ?? "professional";
-
-    const aboutParts: string[] = [];
-    if (card.anchor?.description) aboutParts.push(card.anchor.description);
-    if (card.description) aboutParts.push(card.description);
-
-    const content = agentAdapter.createAgentContent({
-      name: anchorName,
-      kind,
-      ...(card.anchor?.organization && {
-        organization: card.anchor.organization,
-      }),
-      brainName: card.brainName,
-      url: card.url,
-      status: "active",
-      discoveredAt: new Date().toISOString(),
-      discoveredVia: "manual",
-      about: aboutParts.join("\n\n"),
-      skills: card.skills.map((s) => ({
-        name: s.name,
-        description: s.description,
-        tags: s.tags,
-      })),
-      notes: "",
-    });
+    const { content, metadata, anchorName } = buildAgentFromCard(card);
 
     return {
       id: domain,
       content,
-      metadata: {
-        name: anchorName,
-        url: card.url,
-        status: "active",
-        slug: slugifyUrl(card.url),
-      },
+      metadata,
+      title: anchorName,
     };
   }
 }

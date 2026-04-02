@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import type { PaginationInfo } from "@brains/plugins";
 import { Head, Pagination } from "@brains/ui-library";
 import type { TemplateAgent, AgentSkill } from "../schemas/agent";
+import { AgentAvatar, KindBadge, extractDomain } from "./shared";
 
 export interface AgentListProps {
   agents: TemplateAgent[];
@@ -10,58 +11,6 @@ export interface AgentListProps {
   baseUrl?: string;
 }
 
-/**
- * Kind badge with semantic coloring
- */
-const KindBadge = ({ kind }: { kind: string }): JSX.Element => {
-  const colorMap: Record<string, string> = {
-    professional: "bg-status-success text-status-success",
-    team: "bg-status-info text-status-info",
-    collective: "bg-brand/10 text-brand",
-  };
-  const classes = colorMap[kind] ?? "bg-status-neutral text-status-neutral";
-
-  return (
-    <span
-      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${classes}`}
-    >
-      {kind}
-    </span>
-  );
-};
-
-/**
- * Avatar circle with initial letter
- */
-const AgentAvatar = ({
-  name,
-  className = "",
-}: {
-  name: string;
-  className?: string;
-}): JSX.Element => {
-  const initial = name.charAt(0).toUpperCase();
-
-  // Deterministic color from name
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const hue = Math.abs(hash) % 360;
-
-  return (
-    <div
-      className={`flex items-center justify-center rounded-full text-white font-bold flex-shrink-0 ${className}`}
-      style={{ backgroundColor: `hsl(${hue}, 55%, 45%)` }}
-    >
-      {initial}
-    </div>
-  );
-};
-
-/**
- * Skill pills for list view (names only)
- */
 const SkillPills = ({
   skills,
 }: {
@@ -83,23 +32,9 @@ const SkillPills = ({
   );
 };
 
-/**
- * Format a date for display
- */
 function formatDiscoveryDate(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-}
-
-/**
- * Extract domain from URL
- */
-function extractDomain(url: string): string {
-  try {
-    return new URL(url).hostname;
-  } catch {
-    return url;
-  }
 }
 
 /**
@@ -123,7 +58,10 @@ const AgentCard = ({ agent }: { agent: TemplateAgent }): JSX.Element => {
           <span className="text-lg font-semibold text-heading">
             {frontmatter.name}
           </span>
-          <KindBadge kind={isArchived ? "archived" : frontmatter.kind} />
+          <KindBadge
+            kind={isArchived ? "archived" : frontmatter.kind}
+            size="sm"
+          />
           {frontmatter.organization && (
             <span className="text-xs text-theme-muted">
               · {frontmatter.organization}

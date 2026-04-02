@@ -12,6 +12,7 @@ The A2A Agent Card currently maps every public tool 1:1 to a skill — producing
 4. **Two EntityPlugins, one package** — the framework requires one entity type per EntityPlugin. The package exports both `agentPlugin()` and `skillPlugin()`.
 5. **Agent Card queries skill entities at build time** — no AI call at startup, just a read.
 6. **Embedding-based derivation, not AI** — entity embeddings from search indexing already encode what content is about. Cluster embeddings by similarity → each cluster = a skill domain. No LLM call needed, just vector math. Only use AI for naming/describing clusters from their member entities (titles, excerpts).
+7. **One entity per skill, max 7** — skills are individual entities (searchable, editable, linkable). Capped at 7 to force only the strongest knowledge domains. On each `deriveAll()`, delete all existing skills and replace with the new set — no diffing, no orphan cleanup needed.
 
 ## Skill Entity Design
 
@@ -42,7 +43,7 @@ const skillEntitySchema = baseEntitySchema.extend({
 - **Triggered manually** via `system_extract skill` (v1), automatic on sync completion later
 - **Embedding-based clustering**: queries all entity embeddings from the search index, clusters by cosine similarity
 - **Cluster → skill mapping**: each cluster becomes a skill entity. Name and description are derived from member entity titles/excerpts (light AI call for labeling only, not content analysis)
-- **Incremental on re-run**: compares new clusters against existing skill entities, creates/updates/removes as needed
+- **Replace-all strategy**: delete all existing skill entities, create new ones from clusters. Max 7 skills — only the strongest domains survive. No diffing, no orphan cleanup.
 - **No expensive AI scanning** — embeddings are already computed by search indexing, clustering is pure vector math
 
 ### Agent Card Integration
@@ -122,5 +123,5 @@ The A2A interface's `buildAgentCard()` queries skill entities instead of mapping
 ## Future Enhancements
 
 - **Auto-trigger on sync completion** — run `deriveAll()` after `sync:completed` events
-- **Incremental clustering** — only re-cluster changed embeddings, diff against existing skills
 - **Skill confidence scores** — weight by cluster density (tight cluster = strong skill, loose = weak)
+- **Source linking** — attach source entity references to each skill (which posts/projects contributed)
