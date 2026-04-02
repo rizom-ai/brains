@@ -274,6 +274,10 @@ interface EvalConfigResult {
   models: string[];
   /** Judge model for LLM scoring (from `judge:` field) */
   judge?: string;
+  /** Brain definition for re-resolution per model (multi-model only) */
+  brainDefinition?: unknown;
+  /** Resolve fresh config (re-reads env vars for interpolation) */
+  resolveConfig?: () => AppConfig;
 }
 
 async function loadEvalConfig(): Promise<EvalConfigResult> {
@@ -360,12 +364,19 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       appTestCases,
     ].filter((dir) => existsSync(dir));
 
+    // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE, AI_API_KEY)
+    const freshResolve = (): AppConfig => {
+      const freshOverrides = parseInstanceOverrides(content);
+      return resolveConfig(mod.default, process.env, freshOverrides);
+    };
+
     return {
-      config: resolveConfig(mod.default, process.env, overrides),
+      config: freshResolve(),
       testCasesDirs,
       brainModelPath: brainModulePath,
       models,
       ...(judge ? { judge } : {}),
+      resolveConfig: freshResolve,
     };
   }
 
@@ -431,8 +442,15 @@ export async function main(): Promise<void> {
   const saveBaseline = parseSingleFlag(args, "--baseline");
 
   try {
-    const { config, testCasesDirs, brainModelPath, models, judge } =
-      await loadEvalConfig();
+    const evalConfigResult = await loadEvalConfig();
+    const {
+      config,
+      testCasesDirs,
+      brainModelPath,
+      models,
+      judge,
+      resolveConfig: freshResolve,
+    } = evalConfigResult;
 
     // Shared eval environment setup
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
@@ -475,12 +493,15 @@ export async function main(): Promise<void> {
         }
       }
 
-      const gitRemotePath = "/tmp/brain-eval-git-remote";
+      const gitRemotePath = `${evalDbBase}-git-remote`;
       if (existsSync(gitRemotePath)) {
         rmSync(gitRemotePath, { recursive: true, force: true });
       }
       mkdirSync(gitRemotePath, { recursive: true });
       execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
+
+      // Set env so brain.eval.yaml can interpolate ${EVAL_GIT_REMOTE}
+      process.env["EVAL_GIT_REMOTE"] = gitRemotePath;
 
       return evalDbBase;
     };
@@ -491,14 +512,15 @@ export async function main(): Promise<void> {
      */
     const bootEvalApp = async (
       evalDbBase: string,
-      aiOverrides?: { model?: string },
+      aiOverrides?: { model?: string; baseConfig?: AppConfig },
     ): Promise<App> => {
+      const base = aiOverrides?.baseConfig ?? config;
       const evalConfig = {
-        ...config,
+        ...base,
         database: undefined,
         ...(aiOverrides?.model && { aiModel: aiOverrides.model }),
         shellConfig: {
-          ...config.shellConfig,
+          ...base.shellConfig,
           database: { url: `file:${evalDbBase}.db` },
           jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
           conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
@@ -546,7 +568,13 @@ export async function main(): Promise<void> {
         const evalDbBase = prepareEvalEnvironment(
           model.replace(/[^a-z0-9-]/gi, "-"),
         );
-        const app = await bootEvalApp(evalDbBase, { model });
+
+        // Re-resolve config so ${EVAL_GIT_REMOTE} and AI_API_KEY are current
+        const modelConfig = freshResolve ? freshResolve() : config;
+        const app = await bootEvalApp(evalDbBase, {
+          model,
+          baseConfig: modelConfig,
+        });
 
         const shell = app.getShell();
         const agentService = remoteUrl
