@@ -45,12 +45,12 @@ New file: `shell/ai-evaluation/src/eval-worker.ts`
 Receives via `workerData`:
 
 - `model`: model string (e.g. `"gpt-4o-mini"`)
-- `apiKey`: resolved API key for this model's provider
+- `providerEnv`: env vars for this model's provider (AI_API_KEY set to the right key)
 - `evalDbBase`: pre-prepared temp DB path prefix
 - `config`: serialized `AppConfig`
 - `testCasesDirs`: array of test case directories
 - `evalOptions`: skip LLM judge, tags, filters, etc.
-- `judgeApiKey`: API key for the LLM judge (consistent across all workers)
+- `judgeModel`: model string for the LLM judge (from `judge:` field)
 
 Posts back via `postMessage`:
 
@@ -73,18 +73,18 @@ to:
 ```ts
 const workers = models.map((model) => {
   const evalDbBase = prepareEvalEnvironment(model.replace(/[^a-z0-9-]/gi, "-"));
-  const apiKey = resolveApiKey(model, providerKeys, process.env["AI_API_KEY"]);
+  const providerKey = resolveProviderKey(model, process.env);
 
   return new Promise<ModelResult>((resolve, reject) => {
     const worker = new Worker("./eval-worker.ts", {
       workerData: {
         model,
-        apiKey,
+        providerEnv: { ...process.env, AI_API_KEY: providerKey },
         evalDbBase,
         config,
         testCasesDirs,
         evalOptions,
-        judgeApiKey,
+        judgeModel: judge ?? "claude-haiku-4-5",
       },
     });
     worker.on("message", (msg) => {
@@ -130,7 +130,7 @@ Recommendation: option 1 for now (prefixed lines). The `ConsoleReporter` in each
 
 ### LLM Judge
 
-The LLM judge uses a dedicated `AIService` instance with `AI_API_KEY`. Each worker creates its own judge instance — no shared state needed. The judge model/key is passed to the worker so all workers use the same judge for consistency.
+The LLM judge uses a dedicated `AIService` instance. Each worker creates its own judge instance — no shared state needed. The judge model (from `judge:` field in brain.eval.yaml) and its API key (resolved via `resolveProviderKey`) are passed to the worker so all workers use the same judge for consistency.
 
 ## Steps
 
