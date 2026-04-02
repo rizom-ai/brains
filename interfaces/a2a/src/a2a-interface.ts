@@ -31,6 +31,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private agentCard: AgentCard | undefined;
   private server: ReturnType<typeof Bun.serve> | undefined;
   private unsubscribeReady: (() => void) | undefined;
+  private unsubscribeSyncCompleted: (() => void) | undefined;
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
@@ -54,6 +55,17 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       () => {
         this.rebuildAgentCard(context);
         return { noop: true as const };
+      },
+    );
+
+    // Rebuild after identity/profile services initialize.
+    // Profile service loads from DB on sync:initial:completed (after plugins:ready),
+    // so the first card build has "Unknown" as the anchor name.
+    this.unsubscribeSyncCompleted = context.messaging.subscribe(
+      "sync:initial:completed",
+      () => {
+        this.rebuildAgentCard(context);
+        return { success: true };
       },
     );
 
@@ -233,6 +245,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       },
       stop: async (): Promise<void> => {
         this.unsubscribeReady?.();
+        this.unsubscribeSyncCompleted?.();
         if (this.server) {
           await this.server.stop();
           this.server = undefined;
