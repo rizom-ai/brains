@@ -48,6 +48,7 @@ const minimal = [
   "note",
   "link",
   "wishlist",
+  "topics",
   "directory-sync",
   "agent-discovery",
   "skill",
