@@ -1,5 +1,5 @@
 brain: rover
-preset: pro
+preset: full
 mode: eval
 
 # Single model eval with LLM judge

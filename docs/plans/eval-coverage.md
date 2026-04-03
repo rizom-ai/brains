@@ -60,7 +60,7 @@ The eval brain.yaml points to the test content repo:
 
 ```yaml
 brain: rover
-preset: pro
+preset: full
 mode: eval
 
 plugins:

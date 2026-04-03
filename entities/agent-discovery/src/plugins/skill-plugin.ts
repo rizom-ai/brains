@@ -1,4 +1,9 @@
-import type { Plugin, EntityPluginContext, Template } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  Template,
+  BaseEntity,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
@@ -39,6 +44,21 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
         return { success: true };
       },
     );
+
+    // Re-derive skills when topic entities change (after initial sync)
+    const handleTopicChange = async (message: {
+      payload: { entityType: string; entity?: BaseEntity };
+    }): Promise<{ success: boolean }> => {
+      if (!this.initialDerivationDone) return { success: true };
+      if (message.payload.entityType !== "topic") return { success: true };
+
+      this.logger.info("Topic changed, re-deriving skills");
+      await deriveSkills(context, this.logger);
+      return { success: true };
+    };
+
+    context.messaging.subscribe("entity:created", handleTopicChange);
+    context.messaging.subscribe("entity:updated", handleTopicChange);
 
     this.registerEvalHandlers(context);
   }
@@ -83,9 +103,14 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
    * Skills are cross-cutting — no per-entity derive().
    * Only deriveAll() makes sense (reads all topics + tools).
    */
+  /**
+   * Manual extract — replace-all. Operator reset.
+   */
   public override async deriveAll(context: EntityPluginContext): Promise<void> {
-    this.logger.info("Deriving skills from topics");
-    const result = await deriveSkills(context, this.logger);
+    this.logger.info("Deriving skills from topics (replace-all)");
+    const result = await deriveSkills(context, this.logger, {
+      replaceAll: true,
+    });
     this.logger.info("Skill derivation complete", result);
   }
 

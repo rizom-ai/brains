@@ -8,6 +8,7 @@ import { TopicService } from "./topic-service";
 /**
  * Build the prompt content for a batch of entities.
  * Each entity is numbered, typed, titled, and separated by dividers.
+ * Anchor profile is included as an entity when in includeEntityTypes.
  */
 export function buildBatchPrompt(entities: BaseEntity[]): string {
   if (entities.length === 0) return "";

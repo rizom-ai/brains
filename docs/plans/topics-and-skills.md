@@ -74,7 +74,7 @@ A topic is: **title, description, keywords.** That's it. No source tracking, no 
 
 Skills without topics would fall back to the title-only approach — which produces worse results because titles lack context. Topics provide the abstracted knowledge domains that make skills meaningful.
 
-This means topics must be in all presets, including `minimal`. For small brains, the cost is negligible (few entities = few LLM calls). The batch cost problem only hits at scale, which is exactly what the batched `deriveAll()` solves.
+This means topics must be in all presets, including `core`. For small brains, the cost is negligible (few entities = few LLM calls). The batch cost problem only hits at scale, which is exactly what the batched `deriveAll()` solves.
 
 ## Prompt Design
 
@@ -141,7 +141,7 @@ Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongsi
 
 **1e: Plugin index.** Remove `getEntitiesToExtract` contentHash tracking from `entities/topics/src/index.ts`.
 
-**1f: Add topics to minimal preset.** Update rover brain definition to include `topics` in the `minimal` preset. Skills depend on topics existing. For small brains the cost is negligible.
+**1f: Add topics to core preset.** Update rover brain definition to include `topics` in the `core` preset. Skills depend on topics existing. For small brains the cost is negligible.
 
 ### Phase 2: Batch `deriveAll()`
 

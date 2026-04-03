@@ -43,7 +43,7 @@ import { join } from "path";
  * discord token, analytics tags) goes in brain.yaml.
  * Only secrets (tokens, API keys) come from .env.
  */
-const minimal = [
+const core = [
   "prompt",
   "note",
   "link",
@@ -57,8 +57,8 @@ const minimal = [
   "a2a",
 ];
 
-const standard = [
-  ...minimal,
+const web = [
+  ...core,
   "image",
   "dashboard",
   "blog",
@@ -71,8 +71,8 @@ const standard = [
   "webserver",
 ];
 
-const pro = [
-  ...standard,
+const full = [
+  ...web,
   "portfolio",
   "topics",
   "content-pipeline",
@@ -86,9 +86,9 @@ export default defineBrain({
   version: "0.1.0",
   site: defaultSite,
   presets: {
-    minimal,
-    default: standard,
-    pro,
+    core,
+    default: web,
+    full,
   },
 
   evalDisable: ["discord", "webserver", "mcp", "analytics", "dashboard"],
@@ -106,7 +106,15 @@ export default defineBrain({
     [
       "topics",
       topicsPlugin,
-      { includeEntityTypes: ["post", "deck", "project", "link"] },
+      {
+        includeEntityTypes: [
+          "post",
+          "deck",
+          "project",
+          "link",
+          "anchor-profile",
+        ],
+      },
     ],
     [
       "content-pipeline",

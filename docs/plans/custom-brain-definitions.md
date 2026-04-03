@@ -69,13 +69,13 @@ capabilities: [["ecommerce", ecommerce, { shopifyKey: "${SHOPIFY_KEY}" }]];
 
 ## When to use brain.ts vs brain.yaml
 
-| Use case                         | brain.yaml          | brain.ts              |
-| -------------------------------- | ------------------- | --------------------- |
-| Built-in model                   | `brain: rover`      | not needed            |
-| Add npm plugins                  | `plugins:` list     | not needed            |
-| Plugin config with env vars      | `${STRIPE_API_KEY}` | not needed            |
-| Extend a preset programmatically | —                   | `...rover.pro` spread |
-| Inline custom plugin logic       | —                   | write plugin in-place |
-| Conditional capabilities         | —                   | `if (env) { ... }`    |
+| Use case                         | brain.yaml          | brain.ts               |
+| -------------------------------- | ------------------- | ---------------------- |
+| Built-in model                   | `brain: rover`      | not needed             |
+| Add npm plugins                  | `plugins:` list     | not needed             |
+| Plugin config with env vars      | `${STRIPE_API_KEY}` | not needed             |
+| Extend a preset programmatically | —                   | `...rover.full` spread |
+| Inline custom plugin logic       | —                   | write plugin in-place  |
+| Conditional capabilities         | —                   | `if (env) { ... }`     |
 
 Most users never need `brain.ts`. It's the escape hatch when YAML isn't enough.

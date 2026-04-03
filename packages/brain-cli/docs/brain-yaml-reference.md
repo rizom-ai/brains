@@ -27,7 +27,7 @@ domain: mybrain.example.com
 database: "file:./data/brain.db"
 
 # Preset — curated subset of plugins and interfaces
-preset: default # minimal | default | pro
+preset: default # core | default | full
 
 # Evaluation mode — disables plugins with side effects
 mode: eval
@@ -124,9 +124,9 @@ Selects a curated subset of plugins and interfaces. Each brain model defines its
 
 | Preset    | Includes                                                                                                       |
 | --------- | -------------------------------------------------------------------------------------------------------------- |
-| `minimal` | prompt, note, link, wishlist, directory-sync, mcp, discord, a2a                                                |
+| `core`    | prompt, note, link, wishlist, directory-sync, mcp, discord, a2a                                                |
 | `default` | minimal + image, dashboard, blog, series, decks, analytics, obsidian-vault, site-info, site-builder, webserver |
-| `pro`     | default + portfolio, topics, content-pipeline, social-media, newsletter, buttondown, stock-photo               |
+| `full`    | default + portfolio, topics, content-pipeline, social-media, newsletter, buttondown, stock-photo               |
 
 ### `mode`
 
@@ -237,7 +237,7 @@ plugins:
 ```yaml
 brain: rover
 site: "@brains/site-yeehaa"
-preset: pro
+preset: full
 domain: yeehaa.io
 
 anchors:

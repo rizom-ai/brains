@@ -956,16 +956,16 @@ describe("parseInstanceOverrides presets", () => {
   test("should parse preset field", () => {
     const yaml = `
 brain: "@brains/rover"
-preset: minimal
+preset: core
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.preset).toBe("minimal");
+    expect(result.preset).toBe("core");
   });
 
   test("should parse add list", () => {
     const yaml = `
 brain: "@brains/rover"
-preset: minimal
+preset: core
 add:
   - discord
   - obsidian-vault
@@ -1011,7 +1011,7 @@ describe("resolve with presets", () => {
       name: "test",
       version: "1.0.0",
       presets: {
-        minimal: ["system", "note"],
+        core: ["system", "note"],
       },
       capabilities: [
         ["system", systemFactory, {}],
@@ -1021,7 +1021,7 @@ describe("resolve with presets", () => {
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { preset: "minimal" });
+    const config = resolve(def, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");
@@ -1037,9 +1037,9 @@ describe("resolve with presets", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      defaultPreset: "minimal",
+      defaultPreset: "core",
       presets: {
-        minimal: ["system", "note"],
+        core: ["system", "note"],
       },
       capabilities: [
         ["system", systemFactory, {}],
@@ -1066,7 +1066,7 @@ describe("resolve with presets", () => {
       name: "test",
       version: "1.0.0",
       presets: {
-        minimal: ["system", "note"],
+        core: ["system", "note"],
       },
       capabilities: [
         ["system", systemFactory, {}],
@@ -1076,7 +1076,7 @@ describe("resolve with presets", () => {
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { preset: "minimal", add: ["blog"] });
+    const config = resolve(def, {}, { preset: "core", add: ["blog"] });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");
@@ -1118,7 +1118,7 @@ describe("resolve with presets", () => {
       name: "test",
       version: "1.0.0",
       presets: {
-        minimal: ["system", "mcp"],
+        core: ["system", "mcp"],
       },
       capabilities: [["system", systemFactory, {}]],
       interfaces: [
@@ -1135,7 +1135,7 @@ describe("resolve with presets", () => {
       ],
     });
 
-    const config = resolve(def, {}, { preset: "minimal" });
+    const config = resolve(def, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");
@@ -1150,17 +1150,13 @@ describe("resolve with presets", () => {
       name: "test",
       version: "1.0.0",
       presets: {
-        minimal: ["system"],
+        core: ["system"],
       },
       capabilities: [["system", systemFactory, {}]],
       interfaces: [],
     });
 
-    const config = resolve(
-      def,
-      {},
-      { preset: "minimal", add: ["nonexistent"] },
-    );
+    const config = resolve(def, {}, { preset: "core", add: ["nonexistent"] });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");
@@ -1200,10 +1196,10 @@ describe("resolve with presets", () => {
       version: "1.0.0",
       site,
       presets: {
-        minimal: ["system"],
+        core: ["system"],
         default: ["system", "site-builder"],
       },
-      defaultPreset: "minimal",
+      defaultPreset: "core",
       capabilities: [
         ["system", systemFactory, {}],
         ["site-builder", siteBuilderFactory, {}],
@@ -1211,7 +1207,7 @@ describe("resolve with presets", () => {
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { preset: "minimal" });
+    const config = resolve(def, {}, { preset: "core" });
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     expect(pluginIds).toContain("system");

@@ -60,7 +60,8 @@ Return 2-5 skills. Each skill needs:
 export async function deriveSkills(
   context: EntityPluginContext,
   logger: Logger,
-): Promise<{ created: number; deleted: number }> {
+  options?: { replaceAll?: boolean },
+): Promise<{ created: number; deleted: number; skipped: number }> {
   const adapter = new SkillAdapter();
 
   // Collect topic titles
@@ -78,7 +79,7 @@ export async function deriveSkills(
 
   if (topicTitles.length === 0) {
     logger.info("No topics found — skipping skill derivation");
-    return { created: 0, deleted: 0 };
+    return { created: 0, deleted: 0, skipped: 0 };
   }
 
   // Tool descriptions could be added here when EntityPluginContext
@@ -100,21 +101,34 @@ export async function deriveSkills(
     logger.error("Skill derivation LLM call failed", {
       error: getErrorMessage(error),
     });
-    return { created: 0, deleted: 0 };
+    return { created: 0, deleted: 0, skipped: 0 };
   }
 
-  // Delete all existing skills (replace-all)
-  const existingSkills = await context.entityService.listEntities("skill");
+  // Replace-all mode: delete existing skills first (manual extract)
+  // Incremental mode: create by slug, skip existing (preserves user edits)
   let deleted = 0;
-  for (const skill of existingSkills) {
-    await context.entityService.deleteEntity("skill", skill.id);
-    deleted++;
+  if (options?.replaceAll) {
+    const existingSkills = await context.entityService.listEntities("skill");
+    for (const skill of existingSkills) {
+      await context.entityService.deleteEntity("skill", skill.id);
+      deleted++;
+    }
   }
 
-  // Create new skills
+  // Create skills — skip existing by slug
   let created = 0;
+  let skipped = 0;
   for (const skill of skills) {
     const id = generateIdFromText(skill.name);
+
+    if (!options?.replaceAll) {
+      const existing = await context.entityService.getEntity("skill", id);
+      if (existing) {
+        skipped++;
+        continue;
+      }
+    }
+
     const content = adapter.createSkillContent(skill);
 
     try {
@@ -133,6 +147,6 @@ export async function deriveSkills(
     }
   }
 
-  logger.info("Skill derivation complete", { created, deleted });
-  return { created, deleted };
+  logger.info("Skill derivation complete", { created, deleted, skipped });
+  return { created, deleted, skipped };
 }

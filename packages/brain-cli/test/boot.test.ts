@@ -32,11 +32,11 @@ describe("parseBrainYaml", () => {
   it("should parse brain.yaml with @brains/ prefix (backward compat)", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      'brain: "@brains/rover"\npreset: pro\n',
+      'brain: "@brains/rover"\npreset: full\n',
     );
     const config = parseBrainYaml(testDir);
     expect(config.brain).toBe("rover");
-    expect(config.preset).toBe("pro");
+    expect(config.preset).toBe("full");
   });
 
   it("should throw when brain.yaml is missing", () => {

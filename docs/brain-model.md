@@ -44,7 +44,7 @@ database: file:./data/brain.db # database URL
 site: "@brains/site-yeehaa"
 
 # Preset — selects a curated subset of capabilities + interfaces
-preset: pro # minimal | default | pro | eval
+preset: full # core | default | full | eval
 
 # Fine-tune: add/remove individual plugins on top of the preset
 add: [decks]
@@ -64,7 +64,7 @@ plugins:
 | ---------- | -------- | ----------------------------------------------------------- |
 | `brain`    | string   | **Required.** Package name of the brain model               |
 | `site`     | string   | Site package override (e.g. `@brains/site-yeehaa`)          |
-| `preset`   | string   | Preset name from brain model (`minimal`, `default`, `pro`)  |
+| `preset`   | string   | Preset name from brain model (`core`, `default`, `full`)    |
 | `add`      | string[] | Plugin IDs to add on top of the preset                      |
 | `remove`   | string[] | Plugin IDs to remove from the preset                        |
 | `name`     | string   | Override the instance name (default: from brain model)      |

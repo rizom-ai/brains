@@ -46,21 +46,21 @@ describe("parseBrainYaml model field", () => {
   it("should parse quoted brain name", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      'brain: "rover"\npreset: minimal\n',
+      'brain: "rover"\npreset: core\n',
     );
     const config = parseBrainYaml(testDir);
     expect(config.brain).toBe("rover");
-    expect(config.preset).toBe("minimal");
+    expect(config.preset).toBe("core");
   });
 
   it("should handle comments in yaml", () => {
     writeFileSync(
       join(testDir, "brain.yaml"),
-      "brain: rover # my brain\n# model: gpt-4o-mini\npreset: pro\n",
+      "brain: rover # my brain\n# model: gpt-4o-mini\npreset: full\n",
     );
     const config = parseBrainYaml(testDir);
     expect(config.brain).toBe("rover");
-    expect(config.preset).toBe("pro");
+    expect(config.preset).toBe("full");
     expect(config.model).toBeUndefined();
   });
 

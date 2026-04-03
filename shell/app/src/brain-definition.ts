@@ -8,7 +8,7 @@ import { z } from "@brains/utils";
 /**
  * Standard preset names.
  */
-export const presetNameSchema = z.enum(["minimal", "default", "pro"]);
+export const presetNameSchema = z.enum(["core", "default", "full"]);
 export const PresetNames = presetNameSchema.options;
 export type PresetName = z.infer<typeof presetNameSchema>;
 
@@ -129,7 +129,7 @@ export interface BrainDefinition {
   /**
    * Named presets — curated subsets of capabilities + interfaces.
    * Each key maps to an array of plugin/interface IDs to enable.
-   * Standard names: "minimal", "default", "pro", "eval".
+   * Standard names: "core", "default", "full", "eval".
    * Custom names are allowed.
    */
   presets?: Partial<Record<PresetName, string[]>>;

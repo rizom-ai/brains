@@ -20,7 +20,7 @@ Extracted theme + layout + routes into reusable packages: site-default, site-yee
 
 ### Enable-Based Presets (2026-03)
 
-Replaced `disable: [list]` with `preset: minimal | default | pro` + `add`/`remove`. Brain models define curated plugin subsets. Implemented for rover, ranger, relay.
+Replaced `disable: [list]` with `preset: core | default | full` + `add`/`remove`. Brain models define curated plugin subsets. Implemented for rover, ranger, relay.
 
 ### Git-Sync Merge (2026-03)
 
@@ -103,7 +103,7 @@ Promoted `targetEntityType`/`targetEntityId` from `options` bag to first-class f
 
 ### Stock Photo Plugin (2026-03)
 
-ServicePlugin (`plugins/stock-photo/`) with provider abstraction (`StockPhotoProvider` interface). Unsplash as first provider. Two tools: `stock-photo_search` and `stock-photo_select`. Deduplication by sourceUrl, optional cover image targeting, download tracking per Unsplash ToS. Graceful degradation when API key absent. Registered in rover `pro` preset.
+ServicePlugin (`plugins/stock-photo/`) with provider abstraction (`StockPhotoProvider` interface). Unsplash as first provider. Two tools: `stock-photo_search` and `stock-photo_select`. Deduplication by sourceUrl, optional cover image targeting, download tracking per Unsplash ToS. Graceful degradation when API key absent. Registered in rover `full` preset.
 
 ### Deprecate Matrix (2026-03)
 

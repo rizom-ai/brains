@@ -332,12 +332,12 @@ describe("resolve", () => {
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      presets: { minimal: [] },
+      presets: { core: [] },
       capabilities: [],
       interfaces: [["mock-interface", MockInterface, (): PluginConfig => ({})]],
     });
 
-    const config = resolve(def, {}, { preset: "minimal" });
+    const config = resolve(def, {}, { preset: "core" });
 
     expect(
       config.plugins?.find((p) => p.id === "mock-interface"),

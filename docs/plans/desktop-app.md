@@ -29,17 +29,17 @@ Presets control **what the brain can do** (plugins). Interfaces control **how yo
 
 ```yaml
 # Desktop app — minimal brain with native UI
-preset: minimal
+preset: core
 
 # Desktop app — full brain
-preset: pro
+preset: full
 
 # Headless CLI — servers, automation
-preset: minimal
+preset: core
 # no electrobun, mcp-stdio only
 
 # Deployed web brain
-preset: pro
+preset: full
 domain: yeehaa.io
 ```
 
