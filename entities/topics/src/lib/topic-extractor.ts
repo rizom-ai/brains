@@ -1,15 +1,12 @@
 import { getErrorMessage } from "@brains/utils";
 import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { TopicSource } from "../schemas/topic";
 import type { ExtractedTopicData } from "../schemas/extraction";
 
 /**
- * Extracted topic with sources
+ * Extracted topic — title, description, keywords, relevance score.
  */
-export interface ExtractedTopic extends ExtractedTopicData {
-  sources: TopicSource[];
-}
+export type ExtractedTopic = ExtractedTopicData;
 
 /**
  * Service for extracting topics from entities using AI
@@ -27,7 +24,6 @@ export class TopicExtractor {
     entity: BaseEntity,
     minRelevanceScore: number,
   ): Promise<ExtractedTopic[]> {
-    // Return empty for empty content
     if (!entity.content || entity.content.trim() === "") {
       this.logger.debug("Skipping topic extraction for empty entity", {
         entityId: entity.id,
@@ -44,26 +40,10 @@ export class TopicExtractor {
     });
 
     try {
-      // Get entity title from metadata or use id as fallback
       const metadataTitle = entity.metadata["title"];
       const entityTitle =
         typeof metadataTitle === "string" ? metadataTitle : entity.id;
 
-      // Build source reference for this entity
-      // Get slug from metadata, fallback to id
-      const metadataSlug = entity.metadata["slug"];
-      const entitySlug =
-        typeof metadataSlug === "string" ? metadataSlug : entity.id;
-
-      const source: TopicSource = {
-        slug: entitySlug,
-        title: entityTitle,
-        type: entity.entityType,
-        entityId: entity.id,
-        contentHash: entity.contentHash,
-      };
-
-      // Use AI service to extract topics from entity content
       const prompt = `Content Title: ${entityTitle}
 Content Type: ${entity.entityType}
 
@@ -86,10 +66,7 @@ ${entity.content}`;
         if (data.relevanceScore >= minRelevanceScore) {
           const existing = topicMap.get(data.title);
           if (!existing || data.relevanceScore > existing.relevanceScore) {
-            topicMap.set(data.title, {
-              ...data,
-              sources: [source],
-            });
+            topicMap.set(data.title, data);
           }
         }
       }

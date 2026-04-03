@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
-import { topicEntitySchema, type TopicSource } from "../../src/schemas/topic";
+import { topicEntitySchema } from "../../src/schemas/topic";
 import { createMockTopicEntity } from "../fixtures/topic-entities";
 
 describe("TopicAdapter", () => {
@@ -20,28 +20,10 @@ describe("TopicAdapter", () => {
 
   describe("createTopicBody", () => {
     it("should create frontmatter+body format", () => {
-      const sources: TopicSource[] = [
-        {
-          slug: "conv-123",
-          title: "Team Standup",
-          type: "conversation",
-          entityId: "entity-1",
-          contentHash: "hash-1",
-        },
-        {
-          slug: "note-456",
-          title: "Project Notes",
-          type: "conversation",
-          entityId: "entity-2",
-          contentHash: "hash-2",
-        },
-      ];
-
       const body = adapter.createTopicBody({
         title: "Test Topic",
         content: "This is the main content",
         keywords: ["test", "example"],
-        sources,
       });
 
       expect(body).toContain("---");
@@ -50,11 +32,7 @@ describe("TopicAdapter", () => {
       expect(body).toContain("test");
       expect(body).toContain("example");
       expect(body).toContain("This is the main content");
-      expect(body).toContain("## Sources");
-      expect(body).toContain("Team Standup (conv-123)");
-      expect(body).toContain("Project Notes (note-456)");
-      expect(body).toContain("<entity-1|hash-1>");
-      expect(body).toContain("<entity-2|hash-2>");
+      expect(body).not.toContain("## Sources");
     });
 
     it("should omit keywords from frontmatter when empty", () => {
@@ -62,22 +40,10 @@ describe("TopicAdapter", () => {
         title: "Test Topic",
         content: "Content here",
         keywords: [],
-        sources: [],
       });
 
       expect(body).toContain("title: Test Topic");
       expect(body).not.toContain("keywords:");
-    });
-
-    it("should omit sources section when no sources", () => {
-      const body = adapter.createTopicBody({
-        title: "Test Topic",
-        content: "Content here",
-        keywords: ["test"],
-        sources: [],
-      });
-
-      expect(body).not.toContain("## Sources");
     });
   });
 
@@ -89,33 +55,31 @@ keywords:
   - test
   - example
 ---
-This is the main content
-
-## Sources
-- Team Standup (conv-123) [conversation] <entity-1|hash-1>
-- Project Notes (note-456) [conversation] <entity-2|hash-2>`;
+This is the main content`;
 
       const parsed = adapter.parseTopicBody(body);
 
       expect(parsed.title).toBe("Test Topic");
       expect(parsed.content).toBe("This is the main content");
       expect(parsed.keywords).toEqual(["test", "example"]);
-      expect(parsed.sources).toEqual([
-        {
-          slug: "conv-123",
-          title: "Team Standup",
-          type: "conversation",
-          entityId: "entity-1",
-          contentHash: "hash-1",
-        },
-        {
-          slug: "note-456",
-          title: "Project Notes",
-          type: "conversation",
-          entityId: "entity-2",
-          contentHash: "hash-2",
-        },
-      ]);
+    });
+
+    it("should ignore legacy ## Sources section in old entities", () => {
+      const body = `---
+title: Old Topic
+keywords:
+  - legacy
+---
+Main content here
+
+## Sources
+- Team Standup (conv-123) [conversation] <entity-1|hash-1>`;
+
+      const parsed = adapter.parseTopicBody(body);
+
+      expect(parsed.title).toBe("Old Topic");
+      expect(parsed.content).toBe("Main content here");
+      expect(parsed.keywords).toEqual(["legacy"]);
     });
   });
 
@@ -146,6 +110,29 @@ This is the main content
 
       expect(() => schema.parse(invalidTopic)).toThrow();
     });
+
+    it("should accept old entities with sources in metadata", () => {
+      const schema = adapter.schema;
+
+      const oldEntity = createMockTopicEntity({
+        id: "old-topic",
+        content: "Test body",
+        metadata: {
+          sources: [
+            {
+              slug: "s",
+              title: "t",
+              type: "post",
+              entityId: "e",
+              contentHash: "h",
+            },
+          ],
+        },
+      });
+
+      // Schema should not reject old entities — sources are just ignored
+      expect(() => schema.parse(oldEntity)).not.toThrow();
+    });
   });
 
   describe("toMarkdown", () => {
@@ -154,7 +141,6 @@ This is the main content
         title: "Test Topic",
         content: "Some content",
         keywords: ["test"],
-        sources: [],
       });
 
       const entity = createMockTopicEntity({
@@ -167,62 +153,43 @@ This is the main content
       expect(markdown).toContain("---");
       expect(markdown).toContain("title: Test Topic");
       expect(markdown).toContain("Some content");
+      expect(markdown).not.toContain("## Sources");
     });
   });
 
   describe("fromMarkdown", () => {
-    it("should pass through frontmatter format", () => {
+    it("should parse frontmatter format", () => {
       const markdown = `---
 title: Test Topic
 keywords:
   - keyword1
 ---
-Some content here.
+Some content here.`;
+
+      const result = adapter.fromMarkdown(markdown);
+
+      expect(result.entityType).toBe("topic");
+      expect(result.content).toContain("title: Test Topic");
+    });
+
+    it("should ignore legacy Sources section in markdown", () => {
+      const markdown = `---
+title: Topic
+---
+Content
 
 ## Sources
 - Title One (slug-one) [post] <entity-1|hash-1>`;
 
       const result = adapter.fromMarkdown(markdown);
-
       expect(result.entityType).toBe("topic");
-      expect(result.content).toContain("---");
-      expect(result.content).toContain("title: Test Topic");
-      expect(result.metadata?.sources).toHaveLength(1);
-      expect(result.metadata?.sources?.[0]).toEqual({
-        title: "Title One",
-        slug: "slug-one",
-        type: "post",
-        entityId: "entity-1",
-        contentHash: "hash-1",
-      });
-    });
-
-    it("should return undefined sources when no Sources section", () => {
-      const markdown = `---
-title: Topic
----
-Some content without sources section`;
-
-      const result = adapter.fromMarkdown(markdown);
-      expect(result.metadata?.sources).toBeUndefined();
-    });
-
-    it("should return undefined sources when Sources section is empty", () => {
-      const markdown = `---
-title: Topic
----
-Some content
-
-## Sources
-_No sources_`;
-
-      const result = adapter.fromMarkdown(markdown);
-      expect(result.metadata?.sources).toBeUndefined();
+      // Sources are not extracted into metadata
+      expect(result.metadata).toEqual({});
     });
   });
 
   describe("extractMetadata", () => {
-    it("should return empty metadata (topics don't use metadata)", () => {
+    it("should return empty metadata", () => {
       const entity = createMockTopicEntity({
         id: "test-topic",
         content: "# Test Topic\n\n## Content\nSome content",
@@ -239,7 +206,6 @@ _No sources_`;
         title: "Test Topic",
         content: "Some content",
         keywords: ["test", "example"],
-        sources: [],
       });
 
       const entity = createMockTopicEntity({
@@ -271,21 +237,10 @@ metadata: {}
 
   describe("roundtrip conversion", () => {
     it("should preserve data through createTopicBody and parseTopicBody", () => {
-      const sources: TopicSource[] = [
-        {
-          slug: "conv-123",
-          title: "Team Standup",
-          type: "conversation",
-          entityId: "entity-1",
-          contentHash: "hash-1",
-        },
-      ];
-
       const body = adapter.createTopicBody({
         title: "Test Topic",
         content: "Main content here",
         keywords: ["test", "example"],
-        sources,
       });
 
       const parsed = adapter.parseTopicBody(body);
@@ -293,7 +248,6 @@ metadata: {}
       expect(parsed.title).toBe("Test Topic");
       expect(parsed.content).toBe("Main content here");
       expect(parsed.keywords).toEqual(["test", "example"]);
-      expect(parsed.sources).toEqual(sources);
     });
   });
 });

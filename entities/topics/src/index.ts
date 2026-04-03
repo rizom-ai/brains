@@ -174,28 +174,11 @@ export class TopicsPlugin extends EntityPlugin<
   ): Promise<BaseEntity[]> {
     const typesToProcess = this.getExtractableEntityTypes(context);
 
-    // Get processed content hashes from existing topics
-    const processedHashes = new Set<string>();
-    const topics = await context.entityService.listEntities("topic");
-    for (const topic of topics) {
-      const metadata = topic.metadata as {
-        sources?: Array<{ contentHash?: string }>;
-      };
-      if (metadata.sources) {
-        for (const source of metadata.sources) {
-          if (source.contentHash) {
-            processedHashes.add(source.contentHash);
-          }
-        }
-      }
-    }
-
     const toExtract: BaseEntity[] = [];
     for (const type of typesToProcess) {
       const entities = await context.entityService.listEntities(type);
       for (const entity of entities) {
         if (!this.isEntityPublished(entity)) continue;
-        if (processedHashes.has(entity.contentHash)) continue;
         toExtract.push(entity);
       }
     }

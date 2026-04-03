@@ -1,10 +1,25 @@
 import { describe, it, expect } from "bun:test";
 import { createTopicDistributionInsight } from "../../src/insights/topic-distribution";
 import type { ICoreEntityService } from "@brains/entity-service";
-import { createMockTopicEntity } from "../fixtures/topic-entities";
+import { TopicAdapter } from "../../src/lib/topic-adapter";
+
+const adapter = new TopicAdapter();
+
+function makeTopicEntity(id: string, title: string, keywords: string[]) {
+  const content = adapter.createTopicBody({ title, content: "", keywords });
+  return {
+    id,
+    entityType: "topic",
+    content,
+    contentHash: "x",
+    metadata: {},
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+}
 
 function createMockEntityService(
-  topics: ReturnType<typeof createMockTopicEntity>[],
+  topics: ReturnType<typeof makeTopicEntity>[],
 ): ICoreEntityService {
   return {
     listEntities: async (type: string) => {
@@ -23,136 +38,31 @@ function createMockEntityService(
 }
 
 describe("topic-distribution insight", () => {
-  it("should return topics sorted by source count (descending)", async () => {
+  it("should return topics with titles and keywords", async () => {
     const topics = [
-      createMockTopicEntity({
-        id: "education",
-        content: "# Education",
-        metadata: {
-          sources: [
-            {
-              slug: "p1",
-              title: "P1",
-              type: "post",
-              entityId: "p1",
-              contentHash: "x",
-            },
-            {
-              slug: "p2",
-              title: "P2",
-              type: "post",
-              entityId: "p2",
-              contentHash: "x",
-            },
-            {
-              slug: "n1",
-              title: "N1",
-              type: "note",
-              entityId: "n1",
-              contentHash: "x",
-            },
-          ],
-        },
-      }),
-      createMockTopicEntity({
-        id: "typescript",
-        content: "# TypeScript",
-        metadata: {
-          sources: [
-            {
-              slug: "p3",
-              title: "P3",
-              type: "post",
-              entityId: "p3",
-              contentHash: "x",
-            },
-          ],
-        },
-      }),
+      makeTopicEntity("education", "Education", ["learning", "pedagogy"]),
+      makeTopicEntity("typescript", "TypeScript", ["programming", "types"]),
     ];
 
     const handler = createTopicDistributionInsight();
     const result = await handler(createMockEntityService(topics));
     const dist = result["topics"] as Array<{
       topic: string;
-      sourceCount: number;
+      title: string;
+      keywords: string[];
     }>;
 
     expect(dist).toHaveLength(2);
-    expect(dist[0]).toMatchObject({ topic: "education", sourceCount: 3 });
-    expect(dist[1]).toMatchObject({ topic: "typescript", sourceCount: 1 });
-  });
-
-  it("should include source types per topic", async () => {
-    const topics = [
-      createMockTopicEntity({
-        id: "education",
-        content: "# Education",
-        metadata: {
-          sources: [
-            {
-              slug: "p1",
-              title: "P1",
-              type: "post",
-              entityId: "p1",
-              contentHash: "x",
-            },
-            {
-              slug: "n1",
-              title: "N1",
-              type: "note",
-              entityId: "n1",
-              contentHash: "x",
-            },
-          ],
-        },
-      }),
-    ];
-
-    const handler = createTopicDistributionInsight();
-    const result = await handler(createMockEntityService(topics));
-    const dist = result["topics"] as Array<{ sourceTypes: string[] }>;
-
-    expect(dist[0]?.sourceTypes).toContain("post");
-    expect(dist[0]?.sourceTypes).toContain("note");
-  });
-
-  it("should include orphaned topics (no sources)", async () => {
-    const topics = [
-      createMockTopicEntity({
-        id: "active",
-        content: "# Active",
-        metadata: {
-          sources: [
-            {
-              slug: "p1",
-              title: "P1",
-              type: "post",
-              entityId: "p1",
-              contentHash: "x",
-            },
-          ],
-        },
-      }),
-      createMockTopicEntity({
-        id: "orphaned",
-        content: "# Orphaned",
-        metadata: { sources: [] },
-      }),
-      createMockTopicEntity({
-        id: "no-sources-field",
-        content: "# No sources",
-        metadata: {},
-      }),
-    ];
-
-    const handler = createTopicDistributionInsight();
-    const result = await handler(createMockEntityService(topics));
-
-    const orphaned = result["orphanedTopics"] as Array<{ topic: string }>;
-    expect(orphaned).toHaveLength(2);
-    expect(orphaned.some((t) => t.topic === "orphaned")).toBe(true);
-    expect(orphaned.some((t) => t.topic === "no-sources-field")).toBe(true);
+    expect(dist[0]).toMatchObject({
+      topic: "education",
+      title: "Education",
+      keywords: ["learning", "pedagogy"],
+    });
+    expect(dist[1]).toMatchObject({
+      topic: "typescript",
+      title: "TypeScript",
+      keywords: ["programming", "types"],
+    });
   });
 
   it("should return empty when no topics exist", async () => {

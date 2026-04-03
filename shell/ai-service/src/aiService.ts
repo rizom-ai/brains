@@ -17,7 +17,7 @@ import { selectTextProvider, selectImageProvider } from "./provider-selection";
 /**
  * Default model configuration
  */
-const DEFAULT_MODEL = "claude-haiku-4-5-20251001";
+const DEFAULT_MODEL = "gpt-4.1";
 
 /**
  * AI Service for generating responses using Vercel AI SDK

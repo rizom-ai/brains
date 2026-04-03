@@ -6,7 +6,7 @@ import type {
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { EntityUrlGenerator, truncateText } from "@brains/utils";
+import { truncateText } from "@brains/utils";
 import type { z } from "@brains/utils";
 import { TopicAdapter } from "../lib/topic-adapter";
 
@@ -21,7 +21,6 @@ interface TopicListItem {
   title: string;
   summary: string;
   keywords: string[];
-  sourceCount: number;
   created: string;
   updated: string;
 }
@@ -59,7 +58,6 @@ export class TopicsDataSource extends BaseEntityDataSource<
       title: parsed.title,
       summary: truncateText(parsed.content, 200),
       keywords: parsed.keywords,
-      sourceCount: parsed.sources.length,
       created: entity.created,
       updated: entity.updated,
     };
@@ -77,8 +75,7 @@ export class TopicsDataSource extends BaseEntityDataSource<
   }
 
   /**
-   * Override fetch to handle detail view differently — detail needs
-   * full content + source URLs, not the list summary.
+   * Override fetch to handle detail view — detail needs full content.
    */
   override async fetch<T>(
     query: unknown,
@@ -87,7 +84,6 @@ export class TopicsDataSource extends BaseEntityDataSource<
   ): Promise<T> {
     const { query: parsedQuery } = this.parseQuery(query);
 
-    // Detail view: custom transform with source URL resolution
     if (parsedQuery.id) {
       const entityService = context.entityService;
       const entity = await entityService.getEntity(
@@ -100,31 +96,17 @@ export class TopicsDataSource extends BaseEntityDataSource<
       }
 
       const parsed = this.adapter.parseTopicBody(entity.content);
-      const urlGenerator = EntityUrlGenerator.getInstance();
-      const sources = parsed.sources.map((source) => ({
-        ...source,
-        href: urlGenerator.generateUrl(source.type, source.slug),
-      }));
 
       return outputSchema.parse({
         id: entity.id,
         title: parsed.title,
         content: parsed.content,
         keywords: parsed.keywords,
-        sources,
         created: entity.created,
         updated: entity.updated,
       });
     }
 
-    // List view
-    const entityService = context.entityService;
-    const { items, pagination } = await this.fetchList(
-      parsedQuery,
-      entityService,
-    );
-    return outputSchema.parse(
-      this.buildListResult(items, pagination, parsedQuery),
-    );
+    return super.fetch(query, outputSchema, context);
   }
 }

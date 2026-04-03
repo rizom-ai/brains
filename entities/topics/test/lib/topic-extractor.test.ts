@@ -54,7 +54,7 @@ multiple layers to process complex patterns.
       expect(Array.isArray(result)).toBe(true);
     });
 
-    it("should set correct source metadata from entity", async () => {
+    it("should accept link entity types", async () => {
       const linkEntity = createMockBaseEntity({
         id: "test-link-123",
         entityType: "link",
@@ -67,17 +67,9 @@ multiple layers to process complex patterns.
 
       const result = await extractor.extractFromEntity(linkEntity, 0.3);
 
+      // Should not throw — link entities are valid input
       expect(result).toBeDefined();
       expect(Array.isArray(result)).toBe(true);
-      const firstTopic = result[0];
-      if (firstTopic && firstTopic.sources.length > 0) {
-        const firstSource = firstTopic.sources[0];
-        if (firstSource) {
-          expect(firstSource.slug).toBe("test-link-123");
-          expect(firstSource.type).toBe("link");
-          expect(firstSource.title).toBe("TypeScript Best Practices");
-        }
-      }
     });
 
     it("should return empty array for empty content", async () => {

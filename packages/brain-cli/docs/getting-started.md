@@ -14,7 +14,7 @@ Brains come in three flavors:
 
 - [Bun](https://bun.sh) v1.1+ (runtime)
 - [Git](https://git-scm.com) (for content sync)
-- An [Anthropic API key](https://console.anthropic.com) (for AI features)
+- An AI provider API key — [Anthropic](https://console.anthropic.com), [OpenAI](https://platform.openai.com), or [Google](https://aistudio.google.com) (for AI features)
 
 Optional:
 

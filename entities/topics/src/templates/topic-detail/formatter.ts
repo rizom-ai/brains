@@ -15,12 +15,6 @@ export class TopicDetailFormatter extends StructuredContentFormatter<TopicDetail
           type: "array",
           itemType: "string",
         },
-        {
-          key: "sources",
-          label: "Sources",
-          type: "array",
-          itemType: "object",
-        },
         { key: "created", label: "Created", type: "string" },
         { key: "updated", label: "Updated", type: "string" },
       ],

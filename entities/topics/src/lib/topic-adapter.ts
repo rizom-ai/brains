@@ -1,11 +1,10 @@
 import { BaseEntityAdapter } from "@brains/plugins";
-import { type z, SourceListFormatter } from "@brains/utils";
+import type { z } from "@brains/utils";
 import {
   topicEntitySchema,
   topicFrontmatterSchema,
   type TopicEntity,
   type TopicBody,
-  type TopicSource,
   type TopicMetadata,
 } from "../schemas/topic";
 
@@ -24,11 +23,6 @@ export class TopicAdapter extends BaseEntityAdapter<
     });
   }
 
-  private buildBody(content: string, sources: TopicSource[]): string {
-    if (sources.length === 0) return content;
-    return content + "\n\n## Sources\n" + SourceListFormatter.format(sources);
-  }
-
   private buildFrontmatter(
     title: string,
     keywords: string[],
@@ -41,26 +35,17 @@ export class TopicAdapter extends BaseEntityAdapter<
 
   public toMarkdown(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
-    const body = this.buildBody(parsed.content, parsed.sources);
     return this.buildMarkdown(
-      body,
+      parsed.content,
       this.buildFrontmatter(parsed.title, parsed.keywords),
     );
   }
 
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
-    const content = markdown;
-    const sourcesSection = SourceListFormatter.extractSection(content);
-    const sources = sourcesSection
-      ? SourceListFormatter.parse(sourcesSection)
-      : [];
-
     return {
-      content,
+      content: markdown,
       entityType: "topic",
-      metadata: {
-        sources: sources.length > 0 ? sources : undefined,
-      },
+      metadata: {},
     };
   }
 
@@ -74,7 +59,6 @@ export class TopicAdapter extends BaseEntityAdapter<
       "",
       this.buildFrontmatter(parsed.title, parsed.keywords),
     );
-    // Extract just the frontmatter block (between --- markers)
     const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
     return match ? match[0] : "";
   }
@@ -82,27 +66,19 @@ export class TopicAdapter extends BaseEntityAdapter<
   public parseTopicBody(
     body: string,
   ): TopicBody & { formatted: string; title: string } {
-    // Frontmatter format
     if (body.startsWith("---")) {
       try {
         const frontmatter = this.parseFrontmatter(body);
         const bodyText = this.extractBody(body);
 
-        // Extract content (everything before ## Sources)
+        // Strip legacy ## Sources section from old entities
         const contentText = bodyText
           .replace(/\n*## Sources[\s\S]*$/, "")
           .trim();
 
-        // Extract sources from body
-        const sourcesSection = SourceListFormatter.extractSection(bodyText);
-        const sources = sourcesSection
-          ? SourceListFormatter.parse(sourcesSection)
-          : [];
-
         return {
           content: contentText,
           keywords: frontmatter.keywords ?? [],
-          sources,
           formatted: body,
           title: frontmatter.title,
         };
@@ -110,18 +86,15 @@ export class TopicAdapter extends BaseEntityAdapter<
         return {
           content: body,
           keywords: [],
-          sources: [],
           formatted: body,
           title: "Unknown Topic",
         };
       }
     }
 
-    // Non-frontmatter content — return as raw content
     return {
       content: body,
       keywords: [],
-      sources: [],
       formatted: body,
       title: "Unknown Topic",
     };
@@ -131,11 +104,9 @@ export class TopicAdapter extends BaseEntityAdapter<
     title: string;
     content: string;
     keywords: string[];
-    sources: TopicSource[];
   }): string {
-    const body = this.buildBody(params.content, params.sources);
     return this.buildMarkdown(
-      body,
+      params.content,
       this.buildFrontmatter(params.title, params.keywords),
     );
   }

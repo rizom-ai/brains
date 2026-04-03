@@ -1,7 +1,7 @@
 import type { IEntityService, SearchResult } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
-import type { TopicMetadata, TopicSource } from "../schemas/topic";
+import type { TopicMetadata } from "../schemas/topic";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -19,39 +19,26 @@ export class TopicService {
   public async createTopic(params: {
     title: string;
     content: string;
-    sources: TopicSource[];
     keywords: string[];
   }): Promise<TopicEntity | null> {
-    // Generate a proper slug ID from the title
     const topicId = generateIdFromText(params.title);
 
-    // Check if topic already exists
+    // If topic exists by slug, skip (preserves user edits)
     const existing = await this.getTopic(topicId);
     if (existing) {
-      this.logger.info("Topic already exists, updating instead", {
+      this.logger.debug("Topic already exists, skipping", {
         id: topicId,
         title: params.title,
       });
-
-      // Merge new information with existing topic
-      const parsed = this.adapter.parseTopicBody(existing.content);
-      return this.updateTopic(topicId, {
-        sources: params.sources,
-        keywords: [...new Set([...parsed.keywords, ...params.keywords])],
-      });
+      return existing;
     }
 
-    // Store full sources in metadata for efficient querying (contentHash lookups)
-    const metadata: TopicMetadata = {
-      sources: params.sources,
-    };
+    const metadata: TopicMetadata = {};
 
-    // Create the structured content body with the actual title
     const body = this.adapter.createTopicBody({
       title: params.title,
       content: params.content,
       keywords: params.keywords,
-      sources: params.sources,
     });
 
     try {
@@ -62,8 +49,6 @@ export class TopicService {
         metadata,
       });
 
-      // Entity is created asynchronously, so we construct the expected entity
-      // rather than trying to fetch it immediately (it won't be in DB yet)
       const topic: TopicEntity = {
         id: entityId,
         entityType: "topic",
@@ -81,7 +66,6 @@ export class TopicService {
 
       return topic;
     } catch (error) {
-      // Handle case where another process created the topic concurrently
       if (error instanceof Error && error.message.includes("already exists")) {
         this.logger.debug("Topic was created concurrently, fetching existing", {
           id: topicId,
@@ -97,7 +81,6 @@ export class TopicService {
     id: string,
     updates: {
       content?: string;
-      sources?: TopicSource[];
       keywords?: string[];
     },
   ): Promise<TopicEntity | null> {
@@ -108,46 +91,24 @@ export class TopicService {
 
     const parsed = this.adapter.parseTopicBody(existing.content);
 
-    // Update body sections if provided
-    const title = parsed.title; // Keep the original title
+    const title = parsed.title;
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
-    // Deduplicate sources by entityId
-    const existingMetadataSources =
-      (existing.metadata as TopicMetadata).sources ?? [];
-    const sourcesMap = new Map(
-      existingMetadataSources.map((s) => [s.entityId, s]),
-    );
-    if (updates.sources) {
-      updates.sources.forEach((source) =>
-        sourcesMap.set(source.entityId, source),
-      );
-    }
-    const sources = Array.from(sourcesMap.values());
+    const metadata: TopicMetadata = {};
 
-    // Store full sources in metadata for efficient querying
-    const metadata: TopicMetadata = {
-      sources,
-    };
-
-    // Re-create the topic body using the adapter
     const newBody = this.adapter.createTopicBody({
       title,
       content,
       keywords,
-      sources,
     });
 
-    // Update the entity
     const { entityId } = await this.entityService.updateEntity({
       ...existing,
       content: newBody,
       metadata,
     });
 
-    // Entity is updated asynchronously, so we construct the expected entity
-    // rather than trying to fetch it immediately (it won't be in DB yet)
     const updatedTopic: TopicEntity = {
       ...existing,
       id: entityId,
@@ -203,7 +164,6 @@ export class TopicService {
       return null;
     }
 
-    // Use first topic as target if not specified
     const target = targetId
       ? validTopics.find((t) => t.id === targetId)
       : validTopics[0];
@@ -213,43 +173,30 @@ export class TopicService {
       return null;
     }
 
-    // Combine all sources and content
-    const allSources: TopicSource[] = [];
     const allContent: string[] = [];
     const allKeywords = new Set<string>();
 
     for (const topic of validTopics) {
       const parsed = this.adapter.parseTopicBody(topic.content);
 
-      // Collect all sources
-      allSources.push(...parsed.sources);
-
       if (topic.id !== target.id) {
         allContent.push(parsed.content);
       }
 
-      // Collect keywords from parsed body
       parsed.keywords.forEach((k) => allKeywords.add(k));
     }
 
-    // Update target topic with merged data
     const targetParsed = this.adapter.parseTopicBody(target.content);
     const mergedContent = [targetParsed.content, ...allContent].join(
       "\n\n---\n\n",
     );
 
-    // Deduplicate sources by slug using a Map
-    const sourcesMap = new Map(allSources.map((s) => [s.slug, s]));
-    const uniqueSources = Array.from(sourcesMap.values());
-
     const merged = await this.updateTopic(target.id, {
       content: mergedContent,
-      sources: uniqueSources,
       keywords: Array.from(allKeywords),
     });
 
     if (merged) {
-      // Delete other topics
       for (const topic of validTopics) {
         if (topic.id !== target.id) {
           await this.deleteTopic(topic.id);
