@@ -210,8 +210,8 @@ const items = [
 
   // Short-term (in progress)
   { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain ready to publish. CLI, runtime, rover, all polish items done. Apache-2.0 license. Default: gpt-4.1. Needs: create @rizom npm org + publish.", blocks: ["kamal"] },
-  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomwork", "monitoring"] },
-  { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
+  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomsites", "monitoring"] },
+  { id: "rizomsites", name: "Rizom Sites", status: "short-term", step: 3, desc: "Three domains: rizom.ai (product, ranger, current infra), rizom.foundation (ideology, relay, Kamal), rizom.work (commercial, ranger, Kamal). Shared theme family. Site-ranger split.", deps: ["kamal"] },
   // Short-term (completed)
   { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
   { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
@@ -329,7 +329,7 @@ function render() {
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('rizomwork')">rizom.work</span>
+        <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>

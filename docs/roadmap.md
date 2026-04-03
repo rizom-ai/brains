@@ -173,7 +173,7 @@ Items at the same level can be done in parallel.
 
 - **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done (preflight checks, error handling, port conflicts, YAML validation, embedding progress). Ready to publish. ([plan](./plans/npm-packages.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
-- **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
+- **Rizom Sites** — split into rizom.ai (product, ranger), rizom.foundation (ideology, relay), rizom.work (commercial, ranger). rizom.ai on current infra, others via Kamal. ([plan](./plans/rizom-sites.md))
 
 ### External Plugin API
 
@@ -283,7 +283,7 @@ Rover 0.1 blockers:
   naming cleanup (done)
 
 Short-term (parallel):
-  kamal-deploy → rizom.work
+  kamal-deploy → rizom sites
   atproto phases 1-2 (independent)
   agent-discovery phase 1 (independent)
   eval-coverage (agent tuning + more tests) → search-quality phases 0-2
