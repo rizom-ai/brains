@@ -6,16 +6,25 @@ The A2A Agent Card currently maps every public tool 1:1 to a skill — producing
 
 ## Design Decisions
 
-1. **Skills are derived entities** — not hand-written, not configured. They emerge from content via embedding clustering.
+1. **Skills are derived entities** — not hand-written, not configured. They emerge from content via LLM analysis of entity titles and types.
 2. **Knowledge-domain focused** — "Institutional Design", not "Blog Post Creation"
-3. **Lives in the shell-level discovery concern** — rename `entities/agent-directory` → `entities/agent-discovery`, add a `SkillPlugin` alongside the existing `AgentPlugin` in the same package.
-4. **Two EntityPlugins, one package** — the framework requires one entity type per EntityPlugin. The package exports both `agentPlugin()` and `skillPlugin()`.
+3. **Lives in `entities/agent-discovery`** — alongside the existing `AgentPlugin` in the same package.
+4. **Two EntityPlugins, one package** — the framework requires one entity type per EntityPlugin. The package exports both `agentDiscoveryPlugin()` and `skillPlugin()`.
 5. **Agent Card queries skill entities at build time** — no AI call at startup, just a read.
-6. **Embedding-based derivation, not AI** — entity embeddings from search indexing already encode what content is about. Cluster embeddings by similarity → each cluster = a skill domain. Only use AI for labeling: given a cluster’s content + brain tools, produce an action-oriented skill description.
-7. **One entity per skill, max 7, min 3** — skills are individual entities (searchable, editable, linkable). Capped at 7 to force only the strongest knowledge domains, minimum 3 even for small brains. On each `deriveAll()`, delete all existing skills and replace with the new set — no diffing, no orphan cleanup needed.
-8. **Knowledge × Capability = Skill** — a cluster alone is a knowledge domain ("Institutional Design"). Combined with brain tools, it becomes a skill ("Can write essays and newsletters about institutional design patterns"). The LLM labeling prompt receives both cluster content and registered tools.
-9. **Exclude by default: images, prompts, links** — configurable via `excludeTypes`. All other entity types contribute to clustering.
-10. **Clustering math in `@brains/utils`** — cosine distance and k-means are reusable (e.g. for future topics extraction). No external dependencies, pure Float32Array math.
+6. **Title-based derivation, one LLM call** — list all entity titles + types, ask the LLM to identify knowledge domains and write action-oriented skill descriptions. No embeddings, no clustering, no vector math. The LLM is better at abstraction than k-means on high-dimensional embeddings.
+7. **One entity per skill, no forced count** — skills are individual entities (searchable, editable, linkable). Let the data decide how many. On each `deriveAll()`, delete all existing skills and replace with the new set — no diffing, no orphan cleanup needed.
+8. **Knowledge × Capability = Skill** — a domain alone is "Institutional Design". Combined with brain tools, it becomes a skill ("Can write essays and newsletters about institutional design patterns"). The prompt receives entity titles + registered tools.
+9. **Exclude by default: images, prompts, links, skills** — configurable via `excludeTypes`. All other entity types contribute to skill derivation.
+
+## Why Not Embedding Clustering
+
+The original plan proposed k-means clustering on entity embeddings. This was rejected:
+
+- **K-means is wrong for skills.** MiniLM embeddings cluster by semantic similarity, but skills are higher-level abstractions. "TypeScript" and "React" are distant in embedding space but form one skill ("Web Development"). The LLM handles this abstraction naturally.
+- **Forced cluster counts are arbitrary.** Min 3 / max 7 produces garbage skills for small brains and caps real diversity for large ones.
+- **Custom math is a lot to own.** K-means, silhouette scores, cosine distance — ~200+ lines with edge cases, for what turns out to be the wrong algorithm.
+- **Embedding dependency.** Skills would fail if search indexing hasn't completed. Title-based approach has no such dependency.
+- **Still needs AI.** The clustering plan required 3-7 LLM calls for labeling anyway. The title-based approach uses one call and produces better results.
 
 ## Skill Entity Design
 
@@ -43,11 +52,45 @@ const skillEntitySchema = baseEntitySchema.extend({
 
 `SkillPlugin` implements `deriveAll()` (no per-entity `derive()` — skills are cross-cutting):
 
-- **Triggered manually** via `system_extract skill` (v1), automatic on sync completion later
-- **Embedding-based clustering**: queries all entity embeddings from the search index, clusters by cosine similarity
-- **Cluster → skill mapping**: each cluster becomes a skill entity. Name and description are derived from member entity titles/excerpts (light AI call for labeling only, not content analysis)
-- **Replace-all strategy**: delete all existing skill entities, create new ones from clusters. Max 7 skills — only the strongest domains survive. No diffing, no orphan cleanup.
-- **No expensive AI scanning** — embeddings are already computed by search indexing, clustering is pure vector math
+1. **Collect entity titles + types** — `entityService.listEntities()` for each registered type (excluding `excludeTypes`). Extract title and entityType from each.
+2. **Collect registered tools** — `mcpService.getTools()` to get the brain's capabilities.
+3. **One LLM call** — prompt receives:
+   - List of entity titles grouped by type (e.g. "Posts: Institutional Design Patterns, DAOs and Governance, Token Engineering Basics")
+   - List of tool capabilities (e.g. "Can create blog posts, generate social media, build website")
+   - Instruction: identify the brain's knowledge domains, write an action-oriented skill for each
+4. **Parse structured output** — LLM returns array of `{ name, description, tags, examples }` via `generateObject`
+5. **Replace-all** — delete all existing skill entities, create new ones from LLM output.
+
+### Prompt Design
+
+```
+You are analyzing a brain's content to identify its knowledge domains.
+
+The brain manages these entities:
+
+Posts (12):
+- Institutional Design Patterns for DAOs
+- Token Engineering: A Practical Guide
+- ...
+
+Projects (3):
+- Governance Dashboard
+- ...
+
+The brain has these capabilities:
+- Create and publish blog posts
+- Generate social media content
+- Build and deploy a website
+- ...
+
+Identify the brain's distinct knowledge domains. For each domain,
+write an action-oriented skill description that combines what the
+brain knows with what it can do.
+
+Return 3-12 skills. Each skill needs: name, description (one sentence,
+action-oriented), tags (3-5 keywords), examples (2-3 example prompts
+a user might send).
+```
 
 ### Agent Card Integration
 
@@ -55,47 +98,26 @@ The A2A interface's `buildAgentCard()` queries skill entities instead of mapping
 
 1. `rebuildAgentCard()` queries `entityService.listEntities("skill")`
 2. Maps skill entities → `AgentSkill[]` (id, name, description, tags, examples)
-3. Falls back to current tool mapping if no skill entities exist (backward compat during rollout)
+3. Falls back to current tool mapping if no skill entities exist (backward compat)
 
 ## Implementation Steps
 
-### Step 1: Rename package
+### Step 1: Rename package ✅
 
-- Rename `entities/agent-directory/` → `entities/agent-discovery/`
-- Update package name `@brains/agent-directory` → `@brains/agent-discovery`
-- Update all imports across the codebase
-- Rename `plugins/agent-directory/` → `plugins/agent-discovery/` (service plugin)
+Already done — `entities/agent-discovery`, `@brains/agent-discovery`.
 
-### Step 2: Skill entity type
+### Step 2: Skill entity type ✅
 
-- `entities/agent-discovery/src/schemas/skill.ts` — schema
-- `entities/agent-discovery/src/adapters/skill-adapter.ts` — adapter
-- `entities/agent-discovery/src/plugins/skill-plugin.ts` — EntityPlugin with derive()
-- Tests for adapter and schema
+Schema, adapter, plugin, tests all exist.
 
-### Step 3: Skill derivation via embedding clustering
+### Step 3: Skill derivation pipeline
 
-**3a: Clustering utilities in `@brains/utils`**
-
-- `shared/utils/src/clustering/cosine-distance.ts` — cosine distance between Float32Arrays
-- `shared/utils/src/clustering/k-means.ts` — k-means clustering with auto-k detection (3–7, best silhouette score)
-- Tests for distance, clustering, and edge cases
-
-**3b: Entity service embedding access**
-
-- `shell/entity-service/src/entity-search.ts` — add `getAllEmbeddings(options?: { excludeTypes?: string[] })` method
-- Returns `{ entityId, entityType, embedding: Float32Array }[]`
-- Expose through `IEntityService` interface
-- Tests for the new method
-
-**3c: Skill derivation pipeline**
-
-- `entities/agent-discovery/src/lib/skill-deriver.ts` — orchestrates: get embeddings → cluster → label via LLM → create skill entities
-- `entities/agent-discovery/src/templates/skill-labeling-template.ts` — prompt receives cluster content (titles/excerpts) + brain tools → produces action-oriented skill name/description/tags/examples
-- `entities/agent-discovery/src/plugins/skill-plugin.ts` — `deriveAll()` wires the pipeline, replace-all strategy
+- `entities/agent-discovery/src/lib/skill-deriver.ts` — orchestrates: collect titles → collect tools → LLM call → create skill entities
+- `entities/agent-discovery/src/templates/skill-labeling-template.ts` — prompt template for the LLM call
+- `entities/agent-discovery/src/plugins/skill-plugin.ts` — add `deriveAll()` wiring the pipeline, replace-all strategy
 - Manual trigger only (v1): `system_extract skill` runs the full pipeline
-- Default `excludeTypes`: `["image", "prompt", "link"]`
-- Tests for derivation pipeline and labeling
+- Default `excludeTypes`: `["image", "prompt", "link", "skill"]`
+- Tests for derivation pipeline (mock AI, verify entity creation)
 
 ### Step 4: Agent Card integration
 
@@ -104,49 +126,27 @@ The A2A interface's `buildAgentCard()` queries skill entities instead of mapping
 - Keep tool-based fallback for brains without skill entities
 - Tests for card generation with skills
 
-### Step 5: Registration
+### Step 5: Registration ✅
 
-- Update `entities/agent-discovery/src/index.ts` — export both `agentPlugin` and `skillPlugin`
-- Update rover brain definition to register both plugins
-- Verify Agent Card serves derived skills
+Rover already registers both `agentDiscoveryPlugin` and `skillPlugin`.
 
 ## Files Affected
 
-| Step | Files | Nature                                                       |
-| ---- | ----- | ------------------------------------------------------------ |
-| 1    | ~20+  | Rename package, update imports                               |
-| 2    | ~4    | New schema, adapter, plugin class, tests                     |
-| 3a   | ~3    | Clustering utils in @brains/utils (cosine distance, k-means) |
-| 3b   | ~3    | getAllEmbeddings() on entity service                         |
-| 3c   | ~4    | Skill deriver, labeling template, deriveAll()                |
-| 4    | ~3    | Agent card builder, A2A interface, tests                     |
-| 5    | ~3    | Index exports, rover registration                            |
-
-## Key Files to Modify
-
-- `entities/agent-discovery/src/plugins/skill-plugin.ts` (new)
-- `entities/agent-discovery/src/schemas/skill.ts` (new)
-- `entities/agent-discovery/src/adapters/skill-adapter.ts` (new)
-- `shared/utils/src/clustering/cosine-distance.ts` (new)
-- `shared/utils/src/clustering/k-means.ts` (new)
-- `shell/entity-service/src/entity-search.ts` — add `getAllEmbeddings()`
-- `shell/entity-service/src/types.ts` — add to `IEntityService` interface
-- `entities/agent-discovery/src/lib/skill-deriver.ts` (new)
-- `entities/agent-discovery/src/templates/skill-labeling-template.ts` (new)
-- `interfaces/a2a/src/agent-card.ts` — consume skill entities
-- `interfaces/a2a/src/a2a-interface.ts` — query skill entities
-- `brains/rover/src/index.ts` — register skill plugin
+| Step | Files | Nature                                             |
+| ---- | ----- | -------------------------------------------------- |
+| 3    | ~4    | Skill deriver, prompt template, deriveAll(), tests |
+| 4    | ~3    | Agent card builder, A2A interface, tests           |
 
 ## Verification
 
 1. `bun run typecheck` / `bun test` after each step
-2. After step 2: `system_list skill` returns empty, `system_create skill` works
-3. After step 3: `system_extract skill` clusters embeddings → creates skill entities with meaningful names
-4. After step 4: `GET /.well-known/agent-card.json` shows domain-based skills instead of tool names
-5. After step 5: Full integration — `system_extract skill` → Agent Card update
+2. `system_extract skill` → creates skill entities with meaningful domain names
+3. `system_list skill` → shows derived skills
+4. `GET /.well-known/agent-card.json` → shows domain-based skills instead of tool names
+5. Brains without skills → Agent Card falls back to tool mapping
 
 ## Future Enhancements
 
 - **Auto-trigger on sync completion** — run `deriveAll()` after `sync:completed` events
-- **Skill confidence scores** — weight by cluster density (tight cluster = strong skill, loose = weak)
 - **Source linking** — attach source entity references to each skill (which posts/projects contributed)
+- **Incremental updates** — diff new skills against existing, only replace if domains changed
