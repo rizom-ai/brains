@@ -1,11 +1,16 @@
 import { describe, it, expect } from "bun:test";
 import { createTopicDistributionInsight } from "../../src/insights/topic-distribution";
 import type { ICoreEntityService } from "@brains/entity-service";
+import type { BaseEntity } from "@brains/plugins";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const adapter = new TopicAdapter();
 
-function makeTopicEntity(id: string, title: string, keywords: string[]) {
+function makeTopicEntity(
+  id: string,
+  title: string,
+  keywords: string[],
+): BaseEntity {
   const content = adapter.createTopicBody({ title, content: "", keywords });
   return {
     id,

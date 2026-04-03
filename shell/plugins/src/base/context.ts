@@ -337,7 +337,7 @@ export function createBasePluginContext(
     },
 
     insights: {
-      register: (type, handler) => {
+      register: (type: string, handler: InsightHandler): void => {
         shell.getInsightsRegistry().register(type, handler);
       },
     },

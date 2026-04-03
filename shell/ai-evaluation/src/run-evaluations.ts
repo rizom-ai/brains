@@ -731,9 +731,9 @@ if (import.meta.main) {
   config({ path: join(import.meta.dir, "..", ".env") });
 
   const hasAnyKey =
-    process.env["AI_API_KEY"] ||
-    process.env["OPENAI_API_KEY"] ||
-    process.env["ANTHROPIC_API_KEY"] ||
+    process.env["AI_API_KEY"] ??
+    process.env["OPENAI_API_KEY"] ??
+    process.env["ANTHROPIC_API_KEY"] ??
     process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
   if (!hasAnyKey) {
     console.error(

@@ -5,7 +5,9 @@ import {
   DEFAULT_TOKEN_BUDGET,
 } from "../../src/lib/batch-entities";
 
-function makeEntity(id: string, content: string) {
+import type { BaseEntity } from "@brains/plugins";
+
+function makeEntity(id: string, content: string): BaseEntity {
   return {
     id,
     entityType: "post",

@@ -6,6 +6,7 @@ import type { IMCPService, Tool } from "@brains/mcp-service";
 import type {
   IBrainCharacterService,
   IAnchorProfileService,
+  AnchorProfile,
 } from "@brains/identity-service";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainAgent, BrainAgentResult } from "../src/agent-types";
@@ -82,7 +83,7 @@ describe("AgentService", () => {
     mockMCPService = createMockMCPService();
     mockCharacterService = createMockCharacterService();
     mockProfileService = {
-      getProfile: () => ({
+      getProfile: (): AnchorProfile => ({
         name: "Test Anchor",
         kind: "professional" as const,
         description: "Test",

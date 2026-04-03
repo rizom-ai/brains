@@ -146,10 +146,10 @@ describe("Shell registerOnly mode", () => {
 
       protected override createDaemon(): Daemon | undefined {
         return {
-          start: async () => {
+          start: async (): Promise<void> => {
             daemonStarted = true;
           },
-          stop: async () => {},
+          stop: async (): Promise<void> => {},
         };
       }
     }

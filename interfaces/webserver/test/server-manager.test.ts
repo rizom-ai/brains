@@ -7,18 +7,19 @@ import { ServerManager } from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {
   let testDir: string;
-  let manager: ServerManager;
+  let manager: ServerManager | null = null;
 
   afterEach(async () => {
-    if (manager !== undefined) {
+    if (manager) {
       await manager.stop();
+      manager = null;
     }
     if (testDir && existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
   });
 
-  function setup(options?: { preview?: boolean }): void {
+  function setup(options?: { preview?: boolean }): ServerManager {
     testDir = join(tmpdir(), `webserver-test-${Date.now()}`);
     const prodDir = join(testDir, "dist", "production");
     const imagesDir = join(testDir, "dist", "images");
@@ -42,13 +43,14 @@ describe("ServerManager (in-process)", () => {
     }
 
     manager = new ServerManager(opts);
+    return manager;
   }
 
   it("should start and serve production site", async () => {
-    setup();
-    await manager.start();
+    const m = setup();
+    await m.start();
 
-    const status = manager.getStatus();
+    const status = m.getStatus();
     expect(status.running).toBe(true);
     expect(status.productionUrl).toBeDefined();
 
@@ -62,26 +64,26 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should stop cleanly", async () => {
-    setup();
-    await manager.start();
-    expect(manager.getStatus().running).toBe(true);
+    const m = setup();
+    await m.start();
+    expect(m.getStatus().running).toBe(true);
 
-    await manager.stop();
-    expect(manager.getStatus().running).toBe(false);
+    await m.stop();
+    expect(m.getStatus().running).toBe(false);
   });
 
   it("should report not running before start", () => {
-    setup();
-    const status = manager.getStatus();
+    const m = setup();
+    const status = m.getStatus();
     expect(status.running).toBe(false);
     expect(status.productionUrl).toBeUndefined();
   });
 
   it("should serve 404 for missing pages", async () => {
-    setup();
-    await manager.start();
+    const m = setup();
+    await m.start();
 
-    const status = manager.getStatus();
+    const status = m.getStatus();
     const url = status.productionUrl;
     if (!url) return;
     const res = await fetch(`${url}/nonexistent`);
@@ -89,10 +91,10 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should serve preview site when configured", async () => {
-    setup({ preview: true });
-    await manager.start();
+    const m = setup({ preview: true });
+    await m.start();
 
-    const status = manager.getStatus();
+    const status = m.getStatus();
     expect(status.previewUrl).toBeDefined();
 
     const url = status.previewUrl;
@@ -105,10 +107,10 @@ describe("ServerManager (in-process)", () => {
   });
 
   it("should handle /health endpoint", async () => {
-    setup();
-    await manager.start();
+    const m = setup();
+    await m.start();
 
-    const status = manager.getStatus();
+    const status = m.getStatus();
     const url = status.productionUrl;
     if (!url) return;
     const res = await fetch(`${url}/health`);

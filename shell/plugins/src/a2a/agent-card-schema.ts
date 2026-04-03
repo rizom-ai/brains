@@ -92,7 +92,7 @@ export function parseAgentCard(data: unknown): ParsedAgentCard | null {
       id: s.id,
       name: s.name ?? s.id,
       description: s.description,
-      tags: s.tags ?? [],
+      tags: s.tags,
     })),
     anchor,
   };

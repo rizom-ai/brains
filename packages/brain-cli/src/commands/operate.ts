@@ -167,7 +167,7 @@ async function operateSubprocess(
       env: process.env,
     });
 
-    proc.stderr?.on("data", (chunk: Buffer) => {
+    proc.stderr.on("data", (chunk: Buffer) => {
       chunks.push(chunk);
     });
 

@@ -31,8 +31,8 @@ type AgentBody = z.infer<typeof agentBodySchema>;
  * Uses plain text — StructuredContentFormatter strips inline markdown.
  */
 function formatSkills(value: unknown): string {
+  if (!Array.isArray(value) || value.length === 0) return "";
   const skills = value as AgentSkill[];
-  if (!skills || skills.length === 0) return "";
 
   return skills
     .map((s) => {

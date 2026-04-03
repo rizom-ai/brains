@@ -1,6 +1,7 @@
 import { describe, it, expect, afterEach } from "bun:test";
 import { mkdirSync, rmSync, existsSync } from "fs";
 import { execSync } from "child_process";
+import { z } from "@brains/utils";
 import { join } from "path";
 import { tmpdir } from "os";
 
@@ -36,12 +37,24 @@ plugins:
       gitUrl: "file://\${EVAL_GIT_REMOTE}"
 `;
     const overrides = parseInstanceOverrides(yaml);
-    const dsConfig = overrides.plugins?.["directory-sync"] as Record<
-      string,
-      unknown
-    >;
-    const gitConfig = dsConfig?.["git"] as Record<string, unknown>;
-    expect(gitConfig?.["gitUrl"]).toBe("file:///tmp/brain-eval-42-git-remote");
+
+    const gitUrlSchema = z.object({
+      plugins: z.object({
+        "directory-sync": z.object({
+          git: z.object({
+            gitUrl: z.string(),
+          }),
+        }),
+      }),
+    });
+
+    const parsed = gitUrlSchema.safeParse(overrides);
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.plugins["directory-sync"].git.gitUrl).toBe(
+        "file:///tmp/brain-eval-42-git-remote",
+      );
+    }
   });
 
   it("should drop gitUrl when EVAL_GIT_REMOTE is not set", async () => {
@@ -56,13 +69,14 @@ plugins:
       gitUrl: "file://\${EVAL_GIT_REMOTE}"
 `;
     const overrides = parseInstanceOverrides(yaml);
-    const dsConfig = overrides.plugins?.["directory-sync"] as Record<
-      string,
-      unknown
-    >;
-    const gitConfig = dsConfig?.["git"] as Record<string, unknown>;
-    // interpolateEnv drops entries with unset env vars
-    expect(gitConfig?.["gitUrl"]).toBeUndefined();
+    // When env var is unset, interpolateEnv drops the gitUrl entry
+    const dsConfig = overrides.plugins?.["directory-sync"];
+    const gitValue = dsConfig?.["git"];
+    // git key may be dropped entirely or be an empty object
+    if (typeof gitValue === "object" && gitValue !== null) {
+      const keys = Object.keys(gitValue);
+      expect(keys).not.toContain("gitUrl");
+    }
   });
 });
 

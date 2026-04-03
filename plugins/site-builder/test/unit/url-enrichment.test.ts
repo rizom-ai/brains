@@ -7,7 +7,7 @@ import {
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { IAnchorProfileService } from "@brains/plugins";
+import type { IAnchorProfileService, AnchorProfile } from "@brains/plugins";
 import { z, EntityUrlGenerator } from "@brains/utils";
 import { createTestEntity } from "@brains/test-utils";
 
@@ -51,7 +51,7 @@ describe("SiteBuilder - URL Enrichment", () => {
     };
 
     mockProfileService = {
-      getProfile: () => ({ name: "Test", kind: "professional" as const }),
+      getProfile: (): AnchorProfile => ({ name: "Test", kind: "professional" }),
     };
 
     siteBuilder = SiteBuilder.createFresh(
