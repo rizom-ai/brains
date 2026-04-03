@@ -129,17 +129,19 @@ what it can do. Return 3-12 skills with: name, description, tags, examples.
 
 ### Phase 1: Simplify topic entity model
 
-**Remove source tracking:**
+Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongside.
 
-- `entities/topics/src/schemas/topic.ts` — remove `sources` from metadata
-- `entities/topics/src/lib/topic-service.ts` — remove merge logic, simplify create/update
-- `entities/topics/src/handlers/topic-processing-handler.ts` — remove or simplify (no merge)
-- `entities/topics/src/lib/topic-adapter.ts` — remove sources section formatting
-- `entities/topics/src/index.ts` — remove `getEntitiesToExtract` contentHash tracking
+**1a: Schema + adapter.** Remove `sources` from schema and frontmatter. Drop `## Sources` body section from adapter. Make adapter ignore `sources` in old entities on read (`.strip()` or just omit from schema — Zod drops unknown fields by default). This is the core change with the backward compat concern.
 
-**Data migration:** existing topic entities have `sources` in frontmatter. The adapter must ignore the field during parse (use `.passthrough()` or `.strip()` on the schema) so old entities don't break on read. No write migration needed — sources are simply dropped on next `deriveAll()`.
+**1b: Topic service.** Remove merge logic, source deduplication, `allSources` collection from `TopicService`. Simplify `createOrUpdateTopic` and `mergeSimilarTopics`.
 
-**Add topics to minimal preset:** update rover brain definition to include `topics` in the `minimal` preset. For small brains, the cost is negligible (few entities = few LLM calls). Skills depend on topics existing.
+**1c: Extractor + handler.** Remove `sources` from `ExtractedTopic` type and extraction output schema. Update `TopicProcessingHandler` to stop passing sources.
+
+**1d: Datasource + templates + insights.** Remove `sourceCount` from datasource, `sources` from topic-detail template schema, source-based distribution from insights. Related entities on topic pages can use search queries later (separate work).
+
+**1e: Plugin index.** Remove `getEntitiesToExtract` contentHash tracking from `entities/topics/src/index.ts`.
+
+**1f: Add topics to minimal preset.** Update rover brain definition to include `topics` in the `minimal` preset. Skills depend on topics existing. For small brains the cost is negligible.
 
 ### Phase 2: Batch `deriveAll()`
 
