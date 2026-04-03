@@ -41,6 +41,7 @@ export class TopicsPlugin extends EntityPlugin<
    * Auto-extraction starts disabled and is enabled after initial sync completes.
    */
   private autoExtractionEnabled = false;
+  private initialDerivationDone = false;
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super("topics", packageJson, config, topicsPluginConfigSchema);
@@ -87,6 +88,12 @@ export class TopicsPlugin extends EntityPlugin<
         "sync:initial:completed",
         async (): Promise<{ success: boolean }> => {
           this.enableAutoExtraction();
+
+          if (!this.initialDerivationDone) {
+            this.initialDerivationDone = true;
+            await this.deriveAll(context);
+          }
+
           return { success: true };
         },
       );
@@ -157,6 +164,10 @@ export class TopicsPlugin extends EntityPlugin<
 
   public isAutoExtractionEnabled(): boolean {
     return this.autoExtractionEnabled;
+  }
+
+  public hasRunInitialDerivation(): boolean {
+    return this.initialDerivationDone;
   }
 
   public enableAutoExtraction(): void {
