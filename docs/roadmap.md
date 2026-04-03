@@ -151,17 +151,19 @@ Single `AI_API_KEY` env var replaces `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGL
 
 The following items must be complete before the first public release:
 
-| Item                       | Status        | Notes                                                                                                            |
-| -------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
-| `@rizom/brain` npm publish | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md)) |
-| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                              |
-| License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                        |
-| Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                     |
-| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                                                                     |
-| Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                               |
-| Naming cleanup             | Done          |                                                                                                                  |
-| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                           |
-| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                                                                           |
+| Item                       | Status        | Notes                                                                                                                    |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `@rizom/brain` npm publish | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md))         |
+| Search & Embeddings        | Not started   | Separate embedding DB + online embeddings (OpenAI) + FTS5. Removes ONNX native deps. ([plan](./plans/search-quality.md)) |
+| Rizom Sites                | Not started   | rizom.ai (product), rizom.foundation (ideology), rizom.work (commercial). ([plan](./plans/rizom-sites.md))               |
+| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                      |
+| License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                |
+| Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                             |
+| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                                                                             |
+| Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                       |
+| Naming cleanup             | Done          |                                                                                                                          |
+| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                   |
+| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                                                                                   |
 
 ---
 
@@ -171,7 +173,8 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done (preflight checks, error handling, port conflicts, YAML validation, embedding progress). Ready to publish. ([plan](./plans/npm-packages.md))
+- **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done. Ready to publish after search/embeddings. ([plan](./plans/npm-packages.md))
+- **Search & Embeddings** — Separate embedding DB, online embeddings (OpenAI text-embedding-3-small), FTS5 hybrid search, threshold tuning. Removes ONNX native deps from bundle. Pre-release blocker. ([plan](./plans/search-quality.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **Rizom Sites** — split into rizom.ai (product, ranger), rizom.foundation (ideology, relay), rizom.work (commercial, ranger). rizom.ai on current infra, others via Kamal. ([plan](./plans/rizom-sites.md))
 
@@ -187,17 +190,7 @@ Composite factory functions that return multiple plugins from one config block. 
 
 Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS records), Bluesky cross-posting. Gives brains a Bluesky presence. ([plan](./plans/atproto-integration.md))
 
-### Agent Directory — Phase 1
-
-Agent contacts as entities with encrypted tokens. Manual discovery (Agent Card fetch). `a2a_call` resolves agent by name. Works without AT Protocol. ([plan](./plans/agent-discovery.md))
-
 ### Eval Coverage Expansion
-
-Eval-content directory with fictional test data (12 entities, pre-built DB). 60 test cases at 85%. Next: tune agent instructions, add more test cases, reach 95%+. Blocks Rover 0.1. **Also prerequisite for Search Quality Phase 0.** ([plan](./plans/eval-coverage.md))
-
-### Search Quality — Phases 0-2
-
-Phase 0: measure baseline on eval brain with real content (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search. ([plan](./plans/search-quality.md))
 
 ---
 
@@ -235,9 +228,9 @@ Standalone executables via `bun build --compile`. CLI binary works now (101MB, n
 
 Production monitoring for deployed brains. Health dashboard (polling `/health`), log aggregation (structured logs → central store), alerting (brain down, build failed, sync stuck). Builds on Kamal deploy — needed once instances run on subdomains.
 
-### Search Quality — Phases 3-4
+### Search Reranking
 
-Better embedding model (bge-base-en-v1.5) + cross-encoder reranking. Depends on local AI runtime. ([plan](./plans/search-quality.md))
+Cross-encoder re-scoring of top-N results. Depends on local AI runtime for cost-effective reranking. ([plan](./plans/search-quality.md))
 
 ### Monetization
 
@@ -277,25 +270,23 @@ Chat, publish, generate from inside Obsidian via MCP HTTP.
 
 ```
 Rover 0.1 blockers:
-  npm packages (@rizom/brain + @brains/rover) → kamal-deploy
-  eval-coverage (95%+ target, currently 85% with 60 tests)
+  search & embeddings → npm publish → kamal-deploy
+  eval-coverage (done, 96.6%)
   documentation phase 1 (done)
   naming cleanup (done)
 
 Short-term (parallel):
   kamal-deploy → rizom sites
   atproto phases 1-2 (independent)
-  agent-discovery phase 1 (independent)
-  eval-coverage (agent tuning + more tests) → search-quality phases 0-2
 
 Medium-term:
   atproto phases 3-6 + agent-discovery phase 2
   multi-user (independent — enables team brains)
   chat-sdk (replaces discord)
   compiled-binaries (after npm packages)
-  ai-runtime / sidecar (lightens brain model — removes fastembed)
+  ai-runtime / sidecar (lightens brain model)
   monetization (after kamal)
-  search-quality phases 3-4 (after ai-runtime)
+  search reranking (after ai-runtime)
   site-builder phases 2-4
   monitoring (after kamal)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers

@@ -209,9 +209,10 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Short-term (in progress)
-  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain ready to publish. CLI, runtime, rover, all polish items done. Apache-2.0 license. Default: gpt-4.1. Needs: create @rizom npm org + publish.", blocks: ["kamal"] },
-  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomsites", "monitoring"] },
-  { id: "rizomsites", name: "Rizom Sites", status: "short-term", step: 3, desc: "Three domains: rizom.ai (product, ranger, current infra), rizom.foundation (ideology, relay, Kamal), rizom.work (commercial, ranger, Kamal). Shared theme family. Site-ranger split.", deps: ["kamal"] },
+  { id: "searchembeddings", name: "Search & Embeddings", status: "in-progress", step: 1, desc: "Separate embedding DB, online embeddings (OpenAI text-embedding-3-small), FTS5 hybrid search, threshold tuning. Removes ONNX native deps from bundle. Pre-release blocker.", blocks: ["npmpackages"] },
+  { id: "npmpackages", name: "npm Publish", status: "short-term", step: 2, desc: "@rizom/brain ready to publish after search/embeddings. CLI, runtime, rover, all polish items done. Apache-2.0. Default: gpt-4.1.", deps: ["searchembeddings"], blocks: ["kamal"] },
+  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 3, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomsites", "monitoring"] },
+  { id: "rizomsites", name: "Rizom Sites", status: "short-term", step: 4, desc: "Three domains: rizom.ai (product, ranger, current infra), rizom.foundation (ideology, relay, Kamal), rizom.work (commercial, ranger, Kamal). Shared theme family.", deps: ["kamal"] },
   // Short-term (completed)
   { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
   { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
@@ -227,7 +228,6 @@ const items = [
   { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
   { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
   { id: "changesets", name: "Changesets + Versioning", status: "completed", desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.", date: "2026-04" },
-  { id: "searchquality12", name: "Search Quality Phases 0-2", status: "short-term", desc: "Phase 0: baseline measurement (depends on eval coverage Phase 1). Phase 1: data-driven threshold tuning. Phase 2: FTS5 hybrid search.", deps: ["evalcoverage"] },
   { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
   { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.", date: "2026-03" },
 
@@ -240,7 +240,7 @@ const items = [
   { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["npmpackages"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "searchquality34", name: "Search Quality Phases 3-4", status: "medium-term", desc: "Better embedding model + cross-encoder reranking. Depends on local AI runtime.", deps: ["mediasidecar"] },
+  { id: "searchrerank", name: "Search Reranking", status: "medium-term", desc: "Cross-encoder re-scoring of top-N results. Depends on local AI runtime.", deps: ["mediasidecar"] },
   { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["kamal"] },
   { id: "multiuser", name: "Multi-User & Permissions", status: "medium-term", desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.", blocks: [] },
   { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
@@ -325,7 +325,9 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Rover 0.1 Pipeline</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
+        <span class="dep-node s-wip" onclick="selectItem('searchembeddings')">search & embeddings</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('npmpackages')">npm publish</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
         <span class="dep-arrow">→</span>
