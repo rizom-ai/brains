@@ -22,10 +22,7 @@ import { resolve, join } from "path";
 
 const rootDir = resolve(import.meta.dir, "..");
 const evalContentDir = join(rootDir, "eval-content");
-const evalYamlPath = resolve(
-  rootDir,
-  "../../apps/professional-brain/brain.eval.yaml",
-);
+const evalYamlPath = join(rootDir, "brain.eval.yaml");
 
 if (!existsSync(evalContentDir)) {
   console.error("No eval-content directory found at", evalContentDir);
@@ -48,6 +45,7 @@ for (const path of [
 
 // Create bare git repo for directory-sync history tool
 const gitRemote = "/tmp/brain-eval-git-remote";
+process.env["EVAL_GIT_REMOTE"] = gitRemote;
 if (existsSync(gitRemote)) rmSync(gitRemote, { recursive: true, force: true });
 mkdirSync(gitRemote, { recursive: true });
 execSync("git init --bare", { cwd: gitRemote, stdio: "ignore" });
@@ -70,7 +68,10 @@ if (!overrides.brain) {
   process.exit(1);
 }
 
-const mod = await import(overrides.brain);
+const brainPackage = overrides.brain.startsWith("@")
+  ? overrides.brain
+  : `@brains/${overrides.brain}`;
+const mod = await import(brainPackage);
 const config = resolveConfig(mod.default, process.env, overrides);
 
 console.log("Booting brain to build eval database...");
@@ -124,7 +125,7 @@ for (;;) {
 // Final report
 const entityService = shell.getEntityService();
 const counts: Record<string, number> = {};
-for (const type of ["post", "base", "link", "deck", "project"]) {
+for (const type of ["post", "base", "link", "deck", "project", "agent"]) {
   counts[type] = (await entityService.listEntities(type)).length;
 }
 console.log("Database contents:", counts);

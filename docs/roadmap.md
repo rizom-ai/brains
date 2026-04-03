@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-04-01
+Last Updated: 2026-04-03
 
 ---
 
@@ -128,6 +128,22 @@ User-facing docs: getting started guide, brain.yaml reference, CLI reference, de
 ### Changesets + Package Versioning (2026-04)
 
 Changesets for automated versioning, changelogs, and npm publishing. Marked 62 internal `@brains/*` packages as `private: true`. GitHub Actions release workflow creates "Version Packages" PRs and publishes `@rizom/brain` to npm on merge. Packages can be flipped to public later for plugin ecosystem.
+
+### Agent Discovery + Skills (2026-04)
+
+Agent directory merged into single `entities/agent-discovery/` package with two EntityPlugins (agent + skill). Agent Card extension for anchor profiles. Auto-create agents on A2A call. Skill entities derived from topics, served in Agent Card instead of raw tool names. ([plan](./plans/topics-and-skills.md))
+
+### Topics Simplification (2026-04)
+
+Removed source tracking from topics (no merge logic, no contentHash bookkeeping). Batched `deriveAll()` — groups entities into batches, one LLM call per batch instead of per entity. 100 entities ≈ 5-7 calls instead of 100. Topics added to core preset. ([plan](./plans/topics-and-skills.md))
+
+### Unified AI Config (2026-04)
+
+Single `AI_API_KEY` env var replaces `ANTHROPIC_API_KEY`/`OPENAI_API_KEY`/`GOOGLE_GENERATIVE_AI_API_KEY`. Provider auto-detected from model name. Default model: gpt-4.1 (OpenAI). `AI_IMAGE_KEY` for separate image generation key. Multi-model eval support with per-provider keys.
+
+### MCP Tool Registry Fix (2026-04)
+
+`registerTool()` always stores tools in the internal registry regardless of MCP transport permission level. Prevents interface `setPermissionLevel("public")` from silently dropping anchor tools. Same fix applied to `registerResource()`. Eval pass rate: 58.6% → 96.6%.
 
 ---
 

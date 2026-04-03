@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-04-01 — Click any item for details</p>
+  <p>Last updated: 2026-04-03 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -209,18 +209,21 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Short-term (in progress)
-  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain CLI + runtime + rover (ranger/relay deferred). CLI, build, in-process boot done. Changesets configured. Remaining: README, Bun version check, API key validation, E2E test, publish.", blocks: ["kamal"] },
+  { id: "npmpackages", name: "npm Packages", status: "in-progress", step: 1, desc: "@rizom/brain ready to publish. CLI, runtime, rover, all polish items done. Apache-2.0 license. Default: gpt-4.1. Needs: create @rizom npm org + publish.", blocks: ["kamal"] },
   { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 2, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomwork", "monitoring"] },
   { id: "rizomwork", name: "rizom.work", status: "short-term", step: 3, desc: "New relay instance with Discord. Blocked on Kamal.", deps: ["kamal"] },
   // Short-term (completed)
   { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
   { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
-  { id: "pluginapi", name: "External Plugin API", status: "short-term", desc: "Public plugin API: library exports with .d.ts from @rizom/brain, runtime loading from brain.yaml, API version contract, brain search/add CLI, example plugin + docs. Enables third-party ecosystem.", deps: ["npmpackages"], blocks: [] },
-  { id: "compositeplugins", name: "Composite Plugins", status: "short-term", desc: "Composite factory functions returning multiple plugins from one config. Fixes newsletter + buttondown split. One capability ID, one brain.yaml override, two plugins. One-line resolver change.", blocks: [] },
+  { id: "agentdir1", name: "Agent Discovery", status: "completed", desc: "Agent contacts + skill entities in entities/agent-discovery/. Agent Card extension. Auto-create on A2A call. Skills derived from topics, served in Agent Card.", date: "2026-04" },
+  { id: "evalcoverage", name: "Eval Coverage", status: "completed", desc: "58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support with per-provider keys.", date: "2026-04" },
+  { id: "topicssimplify", name: "Topics Simplification", status: "completed", desc: "Removed source tracking. Batched deriveAll() — 100 entities ≈ 5-7 LLM calls instead of 100. Topics in core preset.", date: "2026-04" },
+  { id: "unifiedai", name: "Unified AI Config", status: "completed", desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.", date: "2026-04" },
+  { id: "mcpfix", name: "MCP Tool Registry Fix", status: "completed", desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.", date: "2026-04" },
+  { id: "pluginapi", name: "External Plugin API", status: "short-term", desc: "Public plugin API: library exports with .d.ts from @rizom/brain, runtime loading from brain.yaml, API version contract, brain search/add CLI, example plugin + docs.", deps: ["npmpackages"], blocks: [] },
+  { id: "compositeplugins", name: "Composite Plugins", status: "short-term", desc: "Composite factory functions returning multiple plugins from one config. Fixes newsletter + buttondown split. One capability ID, one brain.yaml override, two plugins.", blocks: [] },
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
-  { id: "agentdir1", name: "Agent Directory Phase 1", status: "short-term", desc: "Agent contacts as entities with encrypted tokens. Manual discovery. a2a_call resolves by name.", blocks: ["agentdir2"] },
-  { id: "evalcoverage", name: "Eval Coverage Expansion", status: "short-term", desc: "Eval-content with pre-built DB. 60 test cases at 85%. Next: agent instruction tuning, more tests. Target 95%+. Blocks Rover 0.1." },
   { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
   { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
   { id: "changesets", name: "Changesets + Versioning", status: "completed", desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.", date: "2026-04" },
@@ -394,30 +397,23 @@ function render() {
         <span class="dep-label">deploy pipeline</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval 95%+</span>
+        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 96.6% ✓</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('documentation')">docs ✓</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('namingcleanup')">naming ✓</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('changesets')">changesets ✓</span>
-        <span class="dep-label">eval + npm publish remain</span>
+        <span class="dep-label">npm publish remains</span>
       </div>
     </div>
     <div class="dep-group">
       <div class="dep-group-title">Eval → Search Quality</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('evalcoverage')">eval coverage</span>
+        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 96.6% ✓</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 0-2</span>
-        <span class="dep-label">baseline needs real content</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Independent (short-term)</div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('agentdir1')">agent-dir phase 1</span>
-        <span class="dep-label">manual discovery</span>
+        <span class="dep-label">unblocked</span>
       </div>
     </div>
   </div>`;

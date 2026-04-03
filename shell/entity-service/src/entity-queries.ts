@@ -158,7 +158,7 @@ export class EntityQueries {
 
     if (publishedOnly) {
       conditions.push(
-        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
+        sql`(json_extract(${entities.metadata}, '$.status') = 'published' OR json_extract(${entities.metadata}, '$.status') = 'active' OR json_extract(${entities.metadata}, '$.status') IS NULL)`,
       );
     }
 

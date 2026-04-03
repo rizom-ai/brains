@@ -153,6 +153,29 @@ describe("listEntities sortFields", () => {
     ]);
   });
 
+  test("should include entities with status 'active' when publishedOnly is true", async () => {
+    await insertTestEntity(ctx.dbConfig, {
+      id: "agent-yeehaa",
+      entityType: "post",
+      content: "An active agent entity",
+      metadata: { status: "active" },
+      created: new Date("2025-01-05T10:00:00.000Z").getTime(),
+      updated: new Date("2025-01-05T10:00:00.000Z").getTime(),
+      embedding: mockEmbedding,
+    });
+
+    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
+      publishedOnly: true,
+    });
+
+    // Should include: post-1 (published), post-2 (published), agent-yeehaa (active)
+    // Should exclude: post-3 (draft)
+    const ids = result.map((r) => r.id).sort();
+    expect(ids).toContain("agent-yeehaa");
+    expect(ids).toContain("post-1");
+    expect(ids).not.toContain("post-3");
+  });
+
   test("should return all entities when no limit is specified", async () => {
     const result = await ctx.entityService.listEntities<BaseEntity>("post");
     expect(result).toHaveLength(3);
