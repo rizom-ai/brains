@@ -11,8 +11,11 @@ The A2A Agent Card currently maps every public tool 1:1 to a skill — producing
 3. **Lives in the shell-level discovery concern** — rename `entities/agent-directory` → `entities/agent-discovery`, add a `SkillPlugin` alongside the existing `AgentPlugin` in the same package.
 4. **Two EntityPlugins, one package** — the framework requires one entity type per EntityPlugin. The package exports both `agentPlugin()` and `skillPlugin()`.
 5. **Agent Card queries skill entities at build time** — no AI call at startup, just a read.
-6. **Embedding-based derivation, not AI** — entity embeddings from search indexing already encode what content is about. Cluster embeddings by similarity → each cluster = a skill domain. No LLM call needed, just vector math. Only use AI for naming/describing clusters from their member entities (titles, excerpts).
-7. **One entity per skill, max 7** — skills are individual entities (searchable, editable, linkable). Capped at 7 to force only the strongest knowledge domains. On each `deriveAll()`, delete all existing skills and replace with the new set — no diffing, no orphan cleanup needed.
+6. **Embedding-based derivation, not AI** — entity embeddings from search indexing already encode what content is about. Cluster embeddings by similarity → each cluster = a skill domain. Only use AI for labeling: given a cluster’s content + brain tools, produce an action-oriented skill description.
+7. **One entity per skill, max 7, min 3** — skills are individual entities (searchable, editable, linkable). Capped at 7 to force only the strongest knowledge domains, minimum 3 even for small brains. On each `deriveAll()`, delete all existing skills and replace with the new set — no diffing, no orphan cleanup needed.
+8. **Knowledge × Capability = Skill** — a cluster alone is a knowledge domain ("Institutional Design"). Combined with brain tools, it becomes a skill ("Can write essays and newsletters about institutional design patterns"). The LLM labeling prompt receives both cluster content and registered tools.
+9. **Exclude by default: images, prompts, links** — configurable via `excludeTypes`. All other entity types contribute to clustering.
+10. **Clustering math in `@brains/utils`** — cosine distance and k-means are reusable (e.g. for future topics extraction). No external dependencies, pure Float32Array math.
 
 ## Skill Entity Design
 
@@ -72,11 +75,27 @@ The A2A interface's `buildAgentCard()` queries skill entities instead of mapping
 
 ### Step 3: Skill derivation via embedding clustering
 
-- `entities/agent-discovery/src/lib/skill-clusterer.ts` — fetch embeddings, cluster by cosine similarity, map clusters to skill candidates
-- `entities/agent-discovery/src/templates/skill-labeling-template.ts` — light AI prompt: given a cluster of entity titles/excerpts, produce a skill name + description + tags
-- `entities/agent-discovery/src/plugins/skill-plugin.ts` — `deriveAll()` implementation (no per-entity `derive()`)
+**3a: Clustering utilities in `@brains/utils`**
+
+- `shared/utils/src/clustering/cosine-distance.ts` — cosine distance between Float32Arrays
+- `shared/utils/src/clustering/k-means.ts` — k-means clustering with auto-k detection (3–7, best silhouette score)
+- Tests for distance, clustering, and edge cases
+
+**3b: Entity service embedding access**
+
+- `shell/entity-service/src/entity-search.ts` — add `getAllEmbeddings(options?: { excludeTypes?: string[] })` method
+- Returns `{ entityId, entityType, embedding: Float32Array }[]`
+- Expose through `IEntityService` interface
+- Tests for the new method
+
+**3c: Skill derivation pipeline**
+
+- `entities/agent-discovery/src/lib/skill-deriver.ts` — orchestrates: get embeddings → cluster → label via LLM → create skill entities
+- `entities/agent-discovery/src/templates/skill-labeling-template.ts` — prompt receives cluster content (titles/excerpts) + brain tools → produces action-oriented skill name/description/tags/examples
+- `entities/agent-discovery/src/plugins/skill-plugin.ts` — `deriveAll()` wires the pipeline, replace-all strategy
 - Manual trigger only (v1): `system_extract skill` runs the full pipeline
-- Tests for clustering logic and label generation
+- Default `excludeTypes`: `["image", "prompt", "link"]`
+- Tests for derivation pipeline and labeling
 
 ### Step 4: Agent Card integration
 
@@ -93,20 +112,26 @@ The A2A interface's `buildAgentCard()` queries skill entities instead of mapping
 
 ## Files Affected
 
-| Step | Files | Nature                                                     |
-| ---- | ----- | ---------------------------------------------------------- |
-| 1    | ~20+  | Rename package, update imports                             |
-| 2    | ~4    | New schema, adapter, plugin class, tests                   |
-| 3    | ~4    | Embedding clusterer, labeling template, deriveAll(), tests |
-| 4    | ~3    | Agent card builder, A2A interface, tests                   |
-| 5    | ~3    | Index exports, rover registration                          |
+| Step | Files | Nature                                                       |
+| ---- | ----- | ------------------------------------------------------------ |
+| 1    | ~20+  | Rename package, update imports                               |
+| 2    | ~4    | New schema, adapter, plugin class, tests                     |
+| 3a   | ~3    | Clustering utils in @brains/utils (cosine distance, k-means) |
+| 3b   | ~3    | getAllEmbeddings() on entity service                         |
+| 3c   | ~4    | Skill deriver, labeling template, deriveAll()                |
+| 4    | ~3    | Agent card builder, A2A interface, tests                     |
+| 5    | ~3    | Index exports, rover registration                            |
 
 ## Key Files to Modify
 
 - `entities/agent-discovery/src/plugins/skill-plugin.ts` (new)
 - `entities/agent-discovery/src/schemas/skill.ts` (new)
 - `entities/agent-discovery/src/adapters/skill-adapter.ts` (new)
-- `entities/agent-discovery/src/lib/skill-clusterer.ts` (new)
+- `shared/utils/src/clustering/cosine-distance.ts` (new)
+- `shared/utils/src/clustering/k-means.ts` (new)
+- `shell/entity-service/src/entity-search.ts` — add `getAllEmbeddings()`
+- `shell/entity-service/src/types.ts` — add to `IEntityService` interface
+- `entities/agent-discovery/src/lib/skill-deriver.ts` (new)
 - `entities/agent-discovery/src/templates/skill-labeling-template.ts` (new)
 - `interfaces/a2a/src/agent-card.ts` — consume skill entities
 - `interfaces/a2a/src/a2a-interface.ts` — query skill entities
