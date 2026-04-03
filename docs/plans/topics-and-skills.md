@@ -156,6 +156,8 @@ Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongsi
 
 **Keep single-entity `derive()` unchanged** — it's already one LLM call and that's fine for the incremental path.
 
+**Initial sync trigger:** On `sync:initial:completed`, run `deriveAll()` instead of just enabling auto-extraction. New brains get batch topic extraction (few LLM calls) instead of N individual `derive()` calls as entities trickle in. After initial derivation, auto-extraction handles incremental updates via per-entity `derive()`.
+
 **Verification:** unit tests for batch splitting + eval test that a 30-entity batch produces meaningful topics.
 
 ### Phase 3: Skill derivation pipeline
@@ -175,13 +177,13 @@ Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongsi
 
 ## Cost Comparison
 
-| Scenario                                   | Current       | After                           |
-| ------------------------------------------ | ------------- | ------------------------------- |
-| Single entity create                       | 1 LLM call    | 1 LLM call (same)               |
-| `deriveAll()` on 100 entities              | 100 LLM calls | 5-7 LLM calls (batched)         |
-| Cold start (0 topics, 50 entities)         | 50 LLM calls  | 3-5 LLM calls (batched)         |
-| Skill derivation                           | N/A           | 1 LLM call (reads topic titles) |
-| Total for full re-derive (topics + skills) | 100 LLM calls | 6-8 LLM calls                   |
+| Scenario                                   | Current       | After                             |
+| ------------------------------------------ | ------------- | --------------------------------- |
+| Single entity create                       | 1 LLM call    | 1 LLM call (same)                 |
+| `deriveAll()` on 100 entities              | 100 LLM calls | 5-7 LLM calls (batched)           |
+| New brain initial sync (50 entities)       | 50 LLM calls  | 2-3 LLM calls (batched deriveAll) |
+| Skill derivation                           | N/A           | 1 LLM call (reads topic titles)   |
+| Total for full re-derive (topics + skills) | 100 LLM calls | 6-8 LLM calls                     |
 
 ## What Changes
 
@@ -196,8 +198,14 @@ Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongsi
 - Per-entity `derive()` (one LLM call, same quality)
 - Topic entity type, templates, datasources, site rendering
 - Topic schema (title, description, keywords — just no sources)
-- Auto-extraction after sync (entity:created events)
+- Auto-extraction on incremental entity changes (entity:created/updated events)
 - Topic insights (topic-distribution)
+
+## What Changes for Startup
+
+- Initial sync now triggers batch `deriveAll()` instead of individual `derive()` per entity
+- New brains: topics derived in 2-3 LLM calls instead of 50-100
+- Existing brains: `deriveAll()` on first boot with new code creates topics for any unprocessed entities, skips existing by slug
 
 ## Files Affected
 
