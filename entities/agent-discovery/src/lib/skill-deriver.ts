@@ -29,19 +29,26 @@ export function buildSkillPrompt(input: SkillDeriverInput): string {
     );
   }
 
-  return `You are analyzing a brain's content to identify its capabilities.
+  return `You are analyzing a brain's content to identify its high-level capabilities.
 
 ${sections.join("\n\n")}
 
-Identify the brain's distinct skills. For each skill, write an
-action-oriented description combining what the brain knows with
-what it can do. Return 3-12 skills.
+CONSOLIDATION RULES (critical):
+- Combine related knowledge domains into broader skills
+- There should be FEWER skills than knowledge domains
+- "Event Sourcing" + "Software Architecture" → one skill about software design
+- "Urban Sensing" + "Distributed Systems" → one skill about technical infrastructure
+- Never map topics 1:1 to skills — that defeats the purpose
 
-Each skill needs:
-- name: focused title (max 50 chars)
-- description: one sentence, action-oriented
-- tags: 3-5 keywords
-- examples: 2-3 example prompts a user might send`;
+For each skill, write an action-oriented description of what the brain
+can DO (not just what it knows). Use verbs: "Create...", "Analyze...",
+"Design...", "Write about...".
+
+Return 2-5 skills. Each skill needs:
+- name: broad capability (max 50 chars, NOT a topic title copy)
+- description: one action-oriented sentence
+- tags: 3-5 keywords spanning multiple topics
+- examples: 2-3 concrete user prompts`;
 }
 
 /**
@@ -86,7 +93,7 @@ export async function deriveSkills(
       skills: SkillFrontmatter[];
     }>({
       prompt,
-      templateName: "agent-discovery:skill-derivation",
+      templateName: "skill:skill-derivation",
     });
     skills = result.skills;
   } catch (error) {

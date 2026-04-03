@@ -41,14 +41,10 @@ export class ImageAdapter implements EntityAdapter<Image, ImageMetadata> {
     const { format, base64 } = parseDataUrl(content);
     const dimensions = detectImageDimensions(base64);
 
-    const title = `Untitled ${format.toUpperCase()} image`;
-
     return {
       entityType: "image",
       content,
       metadata: {
-        title,
-        alt: title,
         format: format as ImageFormat,
         width: dimensions?.width ?? 0,
         height: dimensions?.height ?? 0,

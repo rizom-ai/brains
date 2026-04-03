@@ -1,0 +1,42 @@
+id: plugin-skill-derivation
+name: Skill derivation produces fewer skills than topics
+description: >
+  Tests that skill derivation consolidates topics into higher-level
+  capabilities, not a 1:1 mapping. 6 topics should produce 2-4 skills.
+type: plugin
+tags:
+  - skills
+  - derivation
+  - agent-card
+plugin: skill
+handler: deriveSkills
+
+input:
+  topicTitles:
+    - Event Sourcing
+    - Resilience in Distributed Systems
+    - Urban Sensing Networks
+    - Institutional Design
+    - Token Engineering
+    - Software Architecture Patterns
+
+expectedOutput:
+  assertions:
+    - type: custom
+      field: "created"
+      check: gt
+      value: 0
+      description: "Should create at least one skill"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    evaluationPrompt: |
+      Evaluate the derived skills:
+      1. Are there FEWER skills than the 6 input topics? (critical — skills should consolidate)
+      2. Are skill descriptions action-oriented? ("Can write about..." not just "Knows about...")
+      3. Do skills combine multiple related topics into broader capabilities?
+      4. Are skill names higher-level abstractions, not just topic title copies?
+      5. Do examples reflect real user prompts, not generic placeholders?
+
+      A score of 5 requires: fewer skills than topics, genuine consolidation,
+      action-oriented language, and concrete examples.

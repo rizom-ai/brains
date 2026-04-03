@@ -20,8 +20,8 @@ export type ImageFormat = z.infer<typeof imageFormatSchema>;
  * sourceUrl is optional - used for deduplication when importing from URLs
  */
 export const imageMetadataSchema = z.object({
-  title: z.string(),
-  alt: z.string(),
+  title: z.string().optional(),
+  alt: z.string().optional(),
   format: imageFormatSchema,
   width: z.number(),
   height: z.number(),

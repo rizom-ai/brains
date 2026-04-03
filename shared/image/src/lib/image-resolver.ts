@@ -29,8 +29,8 @@ export async function resolveImage(
 
   return {
     url: image.content,
-    alt: image.metadata.alt,
-    title: image.metadata.title,
+    alt: image.metadata.alt ?? "",
+    title: image.metadata.title ?? "",
     width: image.metadata.width,
     height: image.metadata.height,
   };

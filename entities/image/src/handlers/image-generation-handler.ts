@@ -87,7 +87,7 @@ export class ImageGenerationJobHandler extends BaseJobHandler<
     const { prompt, aspectRatio, targetEntityType, targetEntityId } = data;
     const title =
       data.title ??
-      (targetEntityId ? `cover-${targetEntityId}` : `image-${Date.now()}`);
+      (targetEntityId ? `cover-${targetEntityId}` : prompt.slice(0, 60).trim());
 
     this.logger.debug("Starting image generation job", {
       jobId,

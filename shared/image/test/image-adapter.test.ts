@@ -58,15 +58,10 @@ describe("ImageAdapter", () => {
       expect(result.metadata?.height).toBe(1);
     });
 
-    it("should generate title from format if not provided", () => {
+    it("should not set title or alt from binary content", () => {
       const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
-      // Title should be auto-generated
-      expect(result.metadata?.title).toMatch(/image/i);
-    });
-
-    it("should default alt to title", () => {
-      const result = imageAdapter.fromMarkdown(TINY_PNG_DATA_URL);
-      expect(result.metadata?.alt).toBe(result.metadata?.title);
+      expect(result.metadata?.title).toBeUndefined();
+      expect(result.metadata?.alt).toBeUndefined();
     });
   });
 
