@@ -13,6 +13,7 @@ import {
 } from "./schemas/config";
 import { TopicAdapter } from "./lib/topic-adapter";
 import { TopicExtractor, type ExtractedTopic } from "./lib/topic-extractor";
+import { extractTopicsBatched } from "./lib/topic-batch-extractor";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
@@ -135,12 +136,21 @@ export class TopicsPlugin extends EntityPlugin<
 
   /**
    * Batch re-extract topics from all source entities.
+   * Uses token-budget-aware batching — one LLM call per batch instead of per entity.
    */
   public override async deriveAll(context: EntityPluginContext): Promise<void> {
     const toExtract = await this.getEntitiesToExtract(context);
-    for (const entity of toExtract) {
-      await this.handleEntityChanged(context, entity);
+
+    if (toExtract.length === 0) {
+      this.logger.info("No entities to extract topics from");
+      return;
     }
+
+    this.logger.info(`Batch topic extraction: ${toExtract.length} entities`);
+
+    const result = await extractTopicsBatched(toExtract, context, this.logger);
+
+    this.logger.info("Batch topic extraction complete", result);
   }
 
   // ── Public helpers (used by tests) ──

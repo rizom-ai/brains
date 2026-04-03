@@ -49,7 +49,7 @@
     "url": "https://github.com/rizom-ai/brains.git",
     "directory": "packages/brain-cli"
   },
-  "license": "AGPL-3.0-only",
+  "license": "Apache-2.0",
   "author": "Yeehaa <yeehaa@rizom.ai> (https://rizom.ai)",
   "homepage": "https://github.com/rizom-ai/brains/tree/main/packages/brain-cli#readme",
   "bugs": "https://github.com/rizom-ai/brains/issues",
