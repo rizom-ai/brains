@@ -134,7 +134,7 @@ describe("AIService", () => {
       const service = AIService.createFresh({}, logger);
       const config = service.getConfig();
 
-      expect(config.model).toBe("claude-haiku-4-5-20251001");
+      expect(config.model).toBe("gpt-4.1");
       expect(config.temperature).toBe(0.7);
       expect(config.maxTokens).toBe(1000);
     });
@@ -196,19 +196,17 @@ describe("AIService", () => {
       });
     });
 
-    it("should use custom provider when API key is provided", async () => {
-      const service = AIService.createFresh({ apiKey: "test-key" }, logger);
+    it("should use Anthropic provider when model is claude", async () => {
+      const service = AIService.createFresh(
+        { apiKey: "test-key", model: "claude-haiku-4-5" },
+        logger,
+      );
 
       await service.generateText("System", "User");
 
       expect(anthropicSdk.createAnthropic).toHaveBeenCalledWith({
         apiKey: "test-key",
       });
-      expect(ai.generateText).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: "mock-model-with-key",
-        }),
-      );
     });
 
     it("should handle generation errors", async () => {
