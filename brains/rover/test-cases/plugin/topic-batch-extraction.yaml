@@ -1,0 +1,94 @@
+id: plugin-topic-batch-extraction
+name: Batch topic extraction produces meaningful topics from multiple entities
+description: >
+  Tests that batchExtract processes multiple entities in one LLM call
+  and creates distinct, meaningful topic entities. Verifies the batch
+  pipeline end-to-end: prompt assembly, LLM call, topic creation by slug.
+type: plugin
+tags:
+  - topics
+  - batch-extraction
+  - derivation
+plugin: topics
+handler: batchExtract
+
+input:
+  entities:
+    - entityType: post
+      content: |
+        ---
+        title: Event Sourcing for Sustainable Systems
+        status: published
+        slug: event-sourcing-sustainability
+        ---
+        Event sourcing provides a natural foundation for building sustainable software systems.
+        By storing every state change as an immutable event, we gain complete auditability.
+        This approach aligns with sustainability principles and supports CQRS patterns.
+      metadata:
+        title: Event Sourcing for Sustainable Systems
+
+    - entityType: post
+      content: |
+        ---
+        title: Resilience in Distributed Systems
+        status: published
+        slug: resilience-distributed
+        ---
+        Building resilient distributed systems requires understanding failure modes.
+        Circuit breakers, bulkheads, and retry patterns form the foundation.
+        Chaos engineering helps validate resilience before production incidents.
+      metadata:
+        title: Resilience in Distributed Systems
+
+    - entityType: post
+      content: |
+        ---
+        title: Urban Sensing Networks
+        status: published
+        slug: urban-sensing
+        ---
+        Smart cities use sensor networks to monitor air quality, traffic, and noise.
+        Edge computing enables real-time processing of sensor data at collection points.
+        Privacy-preserving aggregation techniques protect individual data while enabling insights.
+      metadata:
+        title: Urban Sensing Networks
+
+    - entityType: project
+      content: |
+        ---
+        title: Governance Dashboard
+        status: published
+        slug: governance-dashboard
+        ---
+        A dashboard for visualizing DAO governance proposals, voting patterns, and treasury flows.
+        Built with real-time event streams and interactive data visualizations.
+      metadata:
+        title: Governance Dashboard
+
+expectedOutput:
+  assertions:
+    - type: custom
+      field: "created"
+      check: gt
+      value: 0
+      description: "Should create at least one topic"
+    - type: custom
+      field: "batches"
+      check: equals
+      value: 1
+      description: "4 entities should fit in one batch"
+    - type: custom
+      field: "topics"
+      check: exists
+      description: "Should return topic details"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    evaluationPrompt: |
+      Evaluate the batch-extracted topics:
+      1. Are topic titles single focused concepts (not compound "X and Y")?
+      2. Are topics distinct from each other (not duplicates)?
+      3. Do keywords relate to the source content themes (distributed systems,
+         urban tech, event sourcing, governance)?
+      4. Is the count reasonable for 4 diverse entities (expect 3-8 topics)?
+      5. Did the batch approach capture cross-entity themes where appropriate?

@@ -39,7 +39,7 @@ export type {
 } from "./progress";
 
 // YAML utilities
-export { toYaml, fromYaml, isValidYaml } from "./yaml";
+export { toYaml, fromYaml, isValidYaml, parseYamlDocument } from "./yaml";
 
 // Formatters
 export * from "./formatters";

@@ -63,14 +63,27 @@ export class ServerManager {
       immutableExtensions: /\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/,
       healthEndpoint: true,
     });
-    this.productionServer = Bun.serve({
-      port: this.options.productionPort,
-      fetch: async (req) => {
-        const fastResponse = await this.serveImageFastPath(req);
-        if (fastResponse) return fastResponse;
-        return productionApp.fetch(req);
-      },
-    });
+    try {
+      this.productionServer = Bun.serve({
+        port: this.options.productionPort,
+        fetch: async (req) => {
+          const fastResponse = await this.serveImageFastPath(req);
+          if (fastResponse) return fastResponse;
+          return productionApp.fetch(req);
+        },
+      });
+    } catch (error) {
+      const msg = String(error);
+      if (
+        msg.includes("EADDRINUSE") ||
+        msg.includes("address already in use")
+      ) {
+        throw new Error(
+          `Port ${this.options.productionPort} is already in use. Another brain may be running — stop it first or configure a different port.`,
+        );
+      }
+      throw error;
+    }
 
     this.logger.info(
       `Production server listening on http://localhost:${this.productionServer.port}`,

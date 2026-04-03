@@ -1,7 +1,6 @@
-import { z, fromYaml, interpolateEnv } from "@brains/utils";
+import { z, parseYamlDocument, interpolateEnv } from "@brains/utils";
 import { presetNameSchema, modeSchema } from "./brain-definition";
-
-const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
+import { logLevelSchema } from "./types";
 
 /**
  * Zod schema for instance overrides parsed from brain.yaml.
@@ -19,7 +18,7 @@ const instanceOverridesSchema = z.object({
   name: z.string().optional(),
 
   /** Log level */
-  logLevel: z.enum(LOG_LEVELS).optional(),
+  logLevel: logLevelSchema.optional(),
 
   /** Production server port */
   port: z.number().optional(),
@@ -87,14 +86,10 @@ export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
  * and validates with Zod.
  */
 export function parseInstanceOverrides(yamlContent: string): InstanceOverrides {
-  let raw: unknown;
-  try {
-    raw = fromYaml(yamlContent);
-  } catch {
-    return {};
-  }
+  const yamlResult = parseYamlDocument(yamlContent);
+  if (!yamlResult.ok) return {};
 
-  const interpolated = interpolateEnv(raw);
+  const interpolated = interpolateEnv(yamlResult.data);
   const parsed = instanceOverridesSchema.safeParse(interpolated);
 
   return parsed.success ? parsed.data : {};

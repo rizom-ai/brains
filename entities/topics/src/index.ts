@@ -321,6 +321,34 @@ export class TopicsPlugin extends EntityPlugin<
         };
       },
     );
+
+    const batchInputSchema = z.object({
+      entities: z.array(entityInputSchema),
+    });
+
+    context.eval.registerHandler("batchExtract", async (input: unknown) => {
+      const parsed = batchInputSchema.parse(input);
+      const entities = parsed.entities.map((e, i) =>
+        createEntityFromInput(e, `-batch-${i}`),
+      );
+
+      const result = await extractTopicsBatched(entities, context, this.logger);
+
+      // Return created topics so the eval can inspect them
+      const topics = await context.entityService.listEntities("topic");
+      return {
+        ...result,
+        topics: topics.map((t) => {
+          const parsed = this.adapter.parseTopicBody(t.content);
+          return {
+            id: t.id,
+            title: parsed.title,
+            content: parsed.content,
+            keywords: parsed.keywords,
+          };
+        }),
+      };
+    });
   }
 }
 

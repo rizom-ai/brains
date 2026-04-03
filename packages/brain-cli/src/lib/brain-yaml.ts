@@ -1,6 +1,6 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
-import { z, fromYaml } from "@brains/utils";
+import { z, parseYamlDocument } from "@brains/utils";
 import { resolveModelName } from "./model-registry";
 
 const brainYamlSchema = z
@@ -30,21 +30,11 @@ export function parseBrainYaml(cwd: string): BrainYamlConfig {
   }
 
   const content = readFileSync(yamlPath, "utf-8");
+  const result = parseYamlDocument(content, brainYamlSchema);
 
-  let raw: unknown;
-  try {
-    raw = fromYaml(content);
-  } catch (err) {
+  if (!result.ok) {
     throw new Error(
-      `Invalid brain.yaml: ${err instanceof Error ? err.message : "parse error"}`,
-    );
-  }
-
-  const result = brainYamlSchema.safeParse(raw);
-  if (!result.success) {
-    const missing = result.error.issues.map((i) => i.path.join(".")).join(", ");
-    throw new Error(
-      `Invalid brain.yaml: missing or invalid field(s): ${missing}. Expected at minimum:\n  brain: rover`,
+      `Invalid brain.yaml: ${result.error}. Expected at minimum:\n  brain: rover`,
     );
   }
 
