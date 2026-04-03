@@ -137,6 +137,10 @@ what it can do. Return 3-12 skills with: name, description, tags, examples.
 - `entities/topics/src/lib/topic-adapter.ts` — remove sources section formatting
 - `entities/topics/src/index.ts` — remove `getEntitiesToExtract` contentHash tracking
 
+**Data migration:** existing topic entities have `sources` in frontmatter. The adapter must ignore the field during parse (use `.passthrough()` or `.strip()` on the schema) so old entities don't break on read. No write migration needed — sources are simply dropped on next `deriveAll()`.
+
+**Add topics to minimal preset:** update rover brain definition to include `topics` in the `minimal` preset. For small brains, the cost is negligible (few entities = few LLM calls). Skills depend on topics existing.
+
 ### Phase 2: Batch `deriveAll()`
 
 **New batched extraction:**
