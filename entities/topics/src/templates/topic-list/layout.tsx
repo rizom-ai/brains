@@ -41,7 +41,6 @@ export const TopicListLayout = ({
 
             <CardMetadata>
               <div className="flex justify-between text-sm text-theme-muted">
-                <span>{topic.sourceCount} sources</span>
                 <time dateTime={topic.updated}>
                   Updated {formatDate(topic.updated)}
                 </time>

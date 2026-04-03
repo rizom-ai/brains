@@ -6,7 +6,6 @@ const topicSummarySchema = z.object({
   title: z.string(),
   summary: z.string(),
   keywords: z.array(z.string()),
-  sourceCount: z.number(),
   created: z.string(),
   updated: z.string(),
 });
