@@ -148,11 +148,15 @@ Remove source tracking in 6 sub-steps. Each is one commit, tests updated alongsi
 **New batched extraction:**
 
 - `entities/topics/src/lib/topic-batch-extractor.ts` — batches entities, one LLM call per batch
+- `entities/topics/src/lib/batch-entities.ts` — token-budget-aware batch splitting (chars/4 estimate, 108K token budget for 128K context models)
 - `entities/topics/src/templates/extraction-template.ts` — update prompt for multi-entity input
 - `entities/topics/src/index.ts` — rewrite `deriveAll()` to use batch extractor
 - Topic creation: create by slug, skip if exists
+- Default batch size: 30 entities (safe for 128K context, ~45K tokens at 1,500 avg tokens/entity)
 
 **Keep single-entity `derive()` unchanged** — it's already one LLM call and that's fine for the incremental path.
+
+**Verification:** unit tests for batch splitting + eval test that a 30-entity batch produces meaningful topics.
 
 ### Phase 3: Skill derivation pipeline
 
