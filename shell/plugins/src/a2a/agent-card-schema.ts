@@ -97,3 +97,17 @@ export function parseAgentCard(data: unknown): ParsedAgentCard | null {
     anchor,
   };
 }
+
+/**
+ * Skill data for Agent Card integration.
+ * Defined here as the shared contract — entities adapt this into their schema,
+ * the A2A interface reads it from entity metadata.
+ */
+export const skillDataSchema = z.object({
+  name: z.string(),
+  description: z.string(),
+  tags: z.array(z.string()),
+  examples: z.array(z.string()),
+});
+
+export type SkillData = z.infer<typeof skillDataSchema>;

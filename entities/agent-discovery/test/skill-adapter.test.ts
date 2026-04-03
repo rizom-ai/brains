@@ -35,7 +35,12 @@ examples:
         content,
         created: "2026-04-02T00:00:00.000Z",
         updated: "2026-04-02T00:00:00.000Z",
-        metadata: { name: "Test" },
+        metadata: {
+          name: "Test",
+          description: "Test skill",
+          tags: ["test"],
+          examples: ["example"],
+        },
         contentHash: "abc",
       };
 

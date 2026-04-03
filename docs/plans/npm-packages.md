@@ -143,14 +143,14 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 10. ~~**Local-over-global re-exec**~~ ✅ — `./node_modules/@rizom/brain` takes precedence
 11. ~~**Full brain.yaml validation**~~ ✅ — proper YAML + Zod schema, replaces regex
 12. ~~**Better boot error messages**~~ ✅ — classifies DB, plugin, port, permission, git errors
-13. ~~**LICENSE file**~~ ✅ — AGPL-3.0-only. Protects hosted offering while keeping code open for self-hosters and plugin developers.
-14. ~~**Fix docs wording**~~ ✅ — getting-started.md updated to list all supported providers.
-15. **Directory creation error handling** — `getStandardConfigWithDirectories()` calls `mkdir()` with no error handling. If user can't write to `./data/`, it crashes before `formatBootError` kicks in. Wrap in try/catch with a clear "Cannot create data directory" message.
-16. **Port conflict handling** — `Bun.serve()` in the webserver has no EADDRINUSE handling. Second `brain start` crashes. Catch the error and suggest stopping the other instance or configuring a different port.
-17. **Malformed brain.yaml feedback** — invalid YAML silently returns `{}`, user won't know their config is broken. Add a warning when YAML parse produces an empty object from a non-empty file.
-18. **Embedding model download progress** — first `brain start` downloads a ~30MB embedding model with no indication. Add a log message before the download: "Downloading embedding model (first run only)..."
-19. **SQLite busy handling** — two instances on the same directory hit SQLITE_BUSY after 5s. Detect the lock on startup and exit with "Another brain is running in this directory" rather than a cryptic SQLite error.
-20. **Eval env var naming** — `brain.eval.yaml` uses `${OPENAI_API_KEY}` and `${ANTHROPIC_API_KEY}` for per-provider keys. These are intentional for multi-model evals but inconsistent with the unified `AI_API_KEY` naming. Document the convention or update the eval runner to accept both.
+13. ~~**LICENSE file**~~ ✅ — Apache-2.0. Maximum adoption for v0.1, can tighten later if needed.
+14. ~~**Fix docs wording**~~ ✅ — getting-started.md updated for OpenAI as default provider.
+15. ~~**Directory creation error handling**~~ ✅ — `getStandardConfigWithDirectories()` wraps mkdir in try/catch with clear EACCES message.
+16. ~~**Port conflict handling**~~ ✅ — webserver catches EADDRINUSE from Bun.serve() with "port already in use" message.
+17. ~~**Malformed brain.yaml feedback**~~ ✅ — shared `parseYamlDocument` in @brains/utils handles empty files, bare strings, arrays. Both brain-cli and shell/app use it.
+18. ~~**Embedding model download progress**~~ ✅ — logs "Downloading embedding model (first run only, ~30MB)..." when model cache doesn't exist.
+19. ~~**SQLite busy handling**~~ ✅ — `formatBootError` catches SQLITE_BUSY with "Another brain is running in this directory" message.
+20. ~~**Eval env var naming**~~ ✅ — per-provider keys (OPENAI_API_KEY, ANTHROPIC_API_KEY) are intentional for multi-model evals. resolveProviderKey handles the lookup correctly.
 
 ### Phase 2: Deploy scaffolding ✅
 

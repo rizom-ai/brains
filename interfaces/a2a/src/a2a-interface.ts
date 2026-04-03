@@ -9,6 +9,7 @@ import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
 import { a2aConfigSchema, type A2AConfig } from "./config";
 import { buildAgentCard } from "./agent-card";
+import { skillDataSchema, type SkillData } from "@brains/plugins";
 import { TaskManager } from "./task-manager";
 import {
   handleJsonRpc,
@@ -53,7 +54,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     this.unsubscribeReady = context.messaging.subscribe(
       "system:plugins:ready",
       () => {
-        this.rebuildAgentCard(context);
+        void this.rebuildAgentCard(context);
         return { noop: true as const };
       },
     );
@@ -64,7 +65,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     this.unsubscribeSyncCompleted = context.messaging.subscribe(
       "sync:initial:completed",
       () => {
-        this.rebuildAgentCard(context);
+        void this.rebuildAgentCard(context);
         return { success: true };
       },
     );
@@ -77,7 +78,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   /**
    * Rebuild the Agent Card from current brain identity and registered tools
    */
-  private rebuildAgentCard(context: InterfacePluginContext): void {
+  private async rebuildAgentCard(
+    context: InterfacePluginContext,
+  ): Promise<void> {
     const character = context.identity.get();
     const profile = context.identity.getProfile();
     const tools = context.tools.listForPermissionLevel("public");
@@ -86,6 +89,22 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       this.config.trustedTokens &&
       Object.keys(this.config.trustedTokens).length > 0;
 
+    // Query skill entities for Agent Card — metadata validated via schema
+    let skills: SkillData[] | undefined;
+    if (context.entityService.hasEntityType("skill")) {
+      try {
+        const entities = await context.entityService.listEntities("skill");
+        if (entities.length > 0) {
+          skills = entities
+            .map((e) => skillDataSchema.safeParse(e.metadata))
+            .filter((r) => r.success)
+            .map((r) => r.data);
+        }
+      } catch {
+        // Skill entities not available — fall back to tools
+      }
+    }
+
     this.agentCard = buildAgentCard({
       character,
       profile,
@@ -93,6 +112,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       domain: context.domain,
       organization: this.config.organization,
       tools,
+      skills,
       authEnabled: hasTrustedTokens,
     });
 

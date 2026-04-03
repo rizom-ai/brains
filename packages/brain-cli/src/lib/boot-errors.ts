@@ -4,6 +4,11 @@
 export function formatBootError(error: unknown): string {
   const msg = error instanceof Error ? error.message : String(error);
 
+  // Database lock — another instance running
+  if (msg.includes("SQLITE_BUSY") || msg.includes("database is locked")) {
+    return `Another brain is running in this directory.\nStop it first, then try again.`;
+  }
+
   // Database errors
   if (msg.includes("SQLITE") || msg.includes("database")) {
     return `Database error: ${msg}\n\nCheck that the data directory is writable and not corrupted.\nTry deleting ./data/ and restarting.`;

@@ -1,10 +1,12 @@
 import type { AgentCard, AgentSkill, AgentExtension } from "@a2a-js/sdk";
-import type { BrainCharacter, AnchorProfile, ToolInfo } from "@brains/plugins";
+import type {
+  BrainCharacter,
+  AnchorProfile,
+  ToolInfo,
+  SkillData,
+} from "@brains/plugins";
 import { ANCHOR_EXTENSION_URI } from "@brains/plugins";
 
-/**
- * Options for building an Agent Card
- */
 export interface AgentCardOptions {
   /** Brain character identity */
   character: BrainCharacter;
@@ -20,6 +22,8 @@ export interface AgentCardOptions {
   kind?: "professional" | "team" | "collective";
   /** Registered tools (filtered by public permission) */
   tools: ToolInfo[];
+  /** Derived skill data — replaces tool-based skills when present */
+  skills?: SkillData[];
   /** Whether bearer token auth is configured */
   authEnabled?: boolean;
 }
@@ -47,13 +51,23 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const baseUrl = domain ? `https://${domain}` : "http://localhost:3334";
   const url = `${baseUrl}/a2a`;
 
-  const skills: AgentSkill[] = tools.map((tool) => ({
-    id: tool.name,
-    name: tool.name,
-    description: tool.description,
-    tags: [],
-    examples: [],
-  }));
+  // Use derived skills when available, fall back to tool mapping
+  const cardSkills: AgentSkill[] =
+    options.skills && options.skills.length > 0
+      ? options.skills.map((skill) => ({
+          id: skill.name.toLowerCase().replace(/\s+/g, "-"),
+          name: skill.name,
+          description: skill.description,
+          tags: skill.tags,
+          examples: skill.examples,
+        }))
+      : tools.map((tool) => ({
+          id: tool.name,
+          name: tool.name,
+          description: tool.description,
+          tags: [],
+          examples: [],
+        }));
 
   // Build anchor-profile extension
   const anchorParams: Record<string, unknown> = {
@@ -82,7 +96,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
       pushNotifications: false,
       extensions,
     },
-    skills,
+    skills: cardSkills,
     defaultInputModes: ["text/plain"],
     defaultOutputModes: ["text/plain"],
     ...(organization && {

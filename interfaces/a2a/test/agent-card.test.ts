@@ -153,4 +153,54 @@ describe("buildAgentCard", () => {
     expect(card.securitySchemes).toBeUndefined();
     expect(card.security).toBeUndefined();
   });
+
+  test("should use skill entities instead of tools when provided", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      version: "1.0.0",
+      tools: mockTools,
+      skills: [
+        {
+          name: "Knowledge Management",
+          description:
+            "Organize, search, and surface knowledge from blog posts and notes",
+          tags: ["knowledge", "search", "blog"],
+          examples: [
+            "What do I know about TypeScript?",
+            "Find my recent posts",
+          ],
+        },
+        {
+          name: "Content Creation",
+          description:
+            "Write and publish blog posts, newsletters, and social media content",
+          tags: ["writing", "publishing", "content"],
+          examples: ["Write a post about event sourcing", "Draft a newsletter"],
+        },
+      ],
+    });
+
+    // Skill entities replace tool-based skills
+    expect(card.skills).toHaveLength(2);
+    expect(card.skills[0]?.name).toBe("Knowledge Management");
+    expect(card.skills[0]?.description).toContain("Organize");
+    expect(card.skills[0]?.tags).toContain("knowledge");
+    expect(card.skills[0]?.examples).toHaveLength(2);
+    expect(card.skills[1]?.name).toBe("Content Creation");
+  });
+
+  test("should fall back to tool-based skills when no skill entities", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      version: "1.0.0",
+      tools: mockTools,
+      skills: [],
+    });
+
+    // Empty array = no skills derived, fall back to tools
+    expect(card.skills).toHaveLength(2);
+    expect(card.skills[0]?.id).toBe("blog_generate");
+  });
 });

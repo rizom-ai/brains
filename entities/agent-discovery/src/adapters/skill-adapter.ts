@@ -33,9 +33,7 @@ export class SkillAdapter extends BaseEntityAdapter<
     return {
       content: markdown,
       entityType: "skill",
-      metadata: {
-        name: frontmatter.name,
-      },
+      metadata: frontmatter,
     };
   }
 

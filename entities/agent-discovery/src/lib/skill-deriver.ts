@@ -115,7 +115,7 @@ export async function deriveSkills(
         id,
         entityType: "skill",
         content,
-        metadata: { name: skill.name },
+        metadata: skill,
       });
       created++;
     } catch (error) {

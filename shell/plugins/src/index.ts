@@ -238,6 +238,8 @@ export {
   anchorExtensionParamsSchema,
   parseAgentCard,
   type ParsedAgentCard,
+  skillDataSchema,
+  type SkillData,
 } from "./a2a/agent-card-schema";
 
 // ============================================================================

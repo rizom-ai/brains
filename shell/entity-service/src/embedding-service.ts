@@ -84,15 +84,22 @@ export class EmbeddingService implements IEmbeddingService {
 
   private async doInitialize(): Promise<void> {
     try {
-      this.logger.info(
-        `Loading embedding model: ${EmbeddingService.MODEL_NAME}`,
-      );
-
       // Ensure cache directory exists
       const { mkdir } = await import("fs/promises");
+      const { existsSync } = await import("fs");
       await mkdir(this.cacheDir, { recursive: true });
 
-      // Create the embedding model using configured cache directory
+      // Check if this is a first-time download
+      const modelDir = `${this.cacheDir}/fast-${EmbeddingService.MODEL_NAME.replace(/\//g, "-")}`;
+      if (!existsSync(modelDir)) {
+        this.logger.info(
+          "Downloading embedding model (first run only, ~30MB)...",
+        );
+      } else {
+        this.logger.debug(
+          `Loading embedding model: ${EmbeddingService.MODEL_NAME}`,
+        );
+      }
 
       this.model = await FlagEmbedding.init({
         model: EmbeddingService.MODEL_NAME,
