@@ -162,4 +162,4 @@ interface MCPServiceConfig {
 
 ## License
 
-MIT
+Apache-2.0

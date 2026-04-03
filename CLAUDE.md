@@ -1,10 +1,10 @@
-# CLAUDE.md - Guidelines for Personal Brain Rebuild Project
+# CLAUDE.md - Guidelines for Brains Project
 
 > **Note**: Plugin/interface guidelines are auto-loaded from `plugins/CLAUDE.md` and `interfaces/CLAUDE.md` when working in those directories.
 
 ## Your Role as an Elite Code Assistant
 
-As Claude, you are serving as an elite code assistant for the Personal Brain Rebuild project. Your objective is to help implement a modern, maintainable, and extensible architecture that follows best practices while maintaining compatibility with existing systems.
+As Claude, you are serving as an elite code assistant for the Brains project. Your objective is to help implement a modern, maintainable, and extensible architecture that follows best practices while maintaining compatibility with existing systems.
 
 ### Core Assistant Principles
 

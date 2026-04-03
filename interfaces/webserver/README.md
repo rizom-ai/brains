@@ -269,4 +269,4 @@ const webserver = new WebServerInterface({
 
 ## License
 
-MIT
+Apache-2.0

@@ -223,4 +223,4 @@ const service = EntityService.createFresh({
 
 ## License
 
-MIT
+Apache-2.0

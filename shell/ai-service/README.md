@@ -28,7 +28,7 @@ import { AIService } from "@brains/ai-service";
 
 const aiService = AIService.getInstance({
   apiKey: process.env.AI_API_KEY,
-  // model defaults to claude-haiku-4-5-20251001
+  // model defaults to gpt-4.1, provider auto-detected from model name
 });
 
 // Generate text
@@ -70,11 +70,14 @@ interface AIServiceConfig {
 
 ## Models
 
-Supported Claude models:
+Provider is auto-detected from model name. Default: `gpt-4.1`.
 
-- `claude-haiku-4-5-20251001` - Fast, efficient (default)
-- `claude-sonnet-4-5-20251001` - Balanced
-- `claude-opus-4-5-20251001` - Most capable
+**OpenAI:** `gpt-4.1` (default), `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o`, `o3-mini`
+**Anthropic:** `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `claude-opus-4-6`
+**Google:** `gemini-2.0-flash`, `gemini-2.5-pro`
+**Local (Ollama):** `llama-3.1-8b`, `mistral-7b`, `gemma4`
+
+Explicit prefix supported: `openai:gpt-4o-mini`, `anthropic:claude-haiku-4-5`
 
 ## Templates
 
@@ -137,4 +140,4 @@ const service = AIService.createFresh({
 
 ## License
 
-MIT
+Apache-2.0

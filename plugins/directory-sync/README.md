@@ -247,4 +247,4 @@ await plugin.importDirectory(testDir);
 
 ## License
 
-MIT
+Apache-2.0

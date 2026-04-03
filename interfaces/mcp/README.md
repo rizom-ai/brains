@@ -243,4 +243,4 @@ The interface exposes MCP management tools:
 
 ## License
 
-MIT
+Apache-2.0

@@ -353,4 +353,4 @@ Using Husky:
 
 ## License
 
-MIT
+Apache-2.0

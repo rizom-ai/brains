@@ -386,4 +386,4 @@ For different environments:
 
 ## License
 
-MIT
+Apache-2.0

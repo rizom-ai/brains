@@ -158,4 +158,4 @@ Single container with built-in Caddy handles TLS, path-based routing, and static
 
 ## License
 
-MIT
+Apache-2.0

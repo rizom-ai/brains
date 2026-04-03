@@ -250,4 +250,4 @@ The CLI uses the MessageInterfacePlugin base class:
 
 ## License
 
-MIT
+Apache-2.0

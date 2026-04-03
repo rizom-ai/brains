@@ -205,4 +205,4 @@ const result = await generator.generateContent({
 
 ## License
 
-MIT
+Apache-2.0

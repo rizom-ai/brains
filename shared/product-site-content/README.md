@@ -406,4 +406,4 @@ const optimized = await optimizeAssets({
 
 ## License
 
-MIT
+Apache-2.0

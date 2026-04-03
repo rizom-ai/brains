@@ -135,15 +135,17 @@ Changesets for automated versioning, changelogs, and npm publishing. Marked 62 i
 
 The following items must be complete before the first public release:
 
-| Item                       | Status        | Notes                                                                                                           |
-| -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------- |
-| `@rizom/brain` npm publish | In progress   | CLI + runtime + rover done. Needs: README, Bun check, API key check, publish. ([plan](./plans/npm-packages.md)) |
-| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                             |
-| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                                                                    |
-| Eval pass rate ≥ 95%       | 85%           | 60 test cases, eval-content with pre-built DB                                                                   |
-| Naming cleanup             | Done          |                                                                                                                 |
-| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                          |
-| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                                                                          |
+| Item                       | Status        | Notes                                                                                                            |
+| -------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `@rizom/brain` npm publish | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md)) |
+| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                              |
+| License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                        |
+| Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                     |
+| Kamal Deploy (Phases 1-2)  | In progress   | Deployable by non-developers                                                                                     |
+| Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                               |
+| Naming cleanup             | Done          |                                                                                                                  |
+| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                           |
+| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types                                                                           |
 
 ---
 
@@ -153,7 +155,7 @@ Items at the same level can be done in parallel.
 
 ### In progress
 
-- **@rizom/brain** — Single package: CLI + runtime + rover model (ranger/relay deferred). CLI, build, in-process boot all done. Changesets configured. Next: README, Bun version check, API key validation, E2E test, then publish. ([plan](./plans/npm-packages.md))
+- **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done (preflight checks, error handling, port conflicts, YAML validation, embedding progress). Ready to publish. ([plan](./plans/npm-packages.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **rizom.work** — new relay instance. Blocked on Kamal. ([plan](./plans/2026-03-14-rizom-work.md))
 

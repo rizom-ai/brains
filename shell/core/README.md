@@ -131,4 +131,4 @@ const mockShell = createMockShell({
 
 ## License
 
-MIT
+Apache-2.0

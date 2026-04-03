@@ -88,4 +88,4 @@ messageBus.on("batch:progress", (event) => {
 
 ## License
 
-MIT
+Apache-2.0

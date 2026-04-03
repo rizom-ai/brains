@@ -94,4 +94,4 @@ v0.1.0 ships with **rover** — a personal knowledge management brain for indepe
 
 ## License
 
-MIT
+Apache-2.0

@@ -432,4 +432,4 @@ bun run storybook
 
 ## License
 
-MIT
+Apache-2.0

@@ -17,7 +17,7 @@ This blocks Rover 1.0. Without docs, only the developers can use the system.
 ### Configuration
 
 1. **brain.yaml reference** — every field explained with examples
-2. **Presets** — what minimal/default/pro include
+2. **Presets** — what core/default/full include
 3. **Plugin config** — how to configure individual plugins (directory-sync git URL, site-builder theme, etc.)
 4. **Secrets / .env** — which API keys are needed and where to get them
 

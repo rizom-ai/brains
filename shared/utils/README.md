@@ -262,4 +262,4 @@ const error = createErrorResponse({
 
 ## License
 
-MIT
+Apache-2.0

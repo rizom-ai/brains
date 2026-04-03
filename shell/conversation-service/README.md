@@ -62,4 +62,4 @@ const conv = await service.getConversation(conversationId);
 
 ## License
 
-MIT
+Apache-2.0

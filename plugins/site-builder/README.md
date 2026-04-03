@@ -352,4 +352,4 @@ expect(site.exists("index.html")).toBe(true);
 
 ## License
 
-MIT
+Apache-2.0
