@@ -19,6 +19,17 @@ import {
 } from "fs";
 import { execSync } from "child_process";
 import { resolve, join } from "path";
+import { config as loadEnv } from "dotenv";
+
+// Load API keys from the eval .env file (single source for eval secrets).
+// Resolve via the @brains/ai-evaluation package so the path isn't fragile.
+const evalPkgDir = resolve(
+  import.meta
+    .resolve("@brains/ai-evaluation")
+    .replace("file://", "")
+    .replace(/\/src\/.*$/, ""),
+);
+loadEnv({ path: join(evalPkgDir, ".env") });
 
 const rootDir = resolve(import.meta.dir, "..");
 const evalContentDir = join(rootDir, "eval-content");
