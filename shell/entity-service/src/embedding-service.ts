@@ -17,6 +17,8 @@ export class EmbeddingService implements IEmbeddingService {
   private static readonly MODEL_NAME = EmbeddingModel.AllMiniLML6V2;
   private static readonly EMBEDDING_DIM = 384;
 
+  public readonly dimensions = EmbeddingService.EMBEDDING_DIM;
+
   /**
    * Get the singleton instance
    * @param logger The logger instance

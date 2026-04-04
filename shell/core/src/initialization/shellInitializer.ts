@@ -20,10 +20,8 @@ import {
 } from "@brains/conversation-service";
 import { DaemonRegistry } from "../daemon-registry";
 import { DataSourceRegistry } from "@brains/entity-service";
-import {
-  EmbeddingService,
-  type IEmbeddingService,
-} from "@brains/entity-service";
+import { type IEmbeddingService } from "@brains/entity-service";
+import { OnlineEmbeddingProvider } from "@brains/ai-service";
 import {
   BaseEntityFormatter,
   EntityRegistry,
@@ -247,7 +245,10 @@ export class ShellInitializer {
 
     const embeddingService =
       dependencies?.embeddingService ??
-      EmbeddingService.getInstance(logger, this.config.embedding.cacheDir);
+      OnlineEmbeddingProvider.getInstance({
+        apiKey: this.config.ai.apiKey,
+        logger,
+      });
     const aiConfig: AIModelConfig = {
       apiKey: this.config.ai.apiKey,
       model: this.config.ai.model,
@@ -534,7 +535,7 @@ export function resetServiceSingletons(): void {
   EntityService.resetInstance();
   EntityRegistry.resetInstance();
   DataSourceRegistry.resetInstance();
-  EmbeddingService.resetInstance();
+  OnlineEmbeddingProvider.resetInstance();
   ConversationService.resetInstance();
   PluginManager.resetInstance();
   MCPService.resetInstance();

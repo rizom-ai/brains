@@ -338,7 +338,4 @@ export interface EntityRegistry {
 /**
  * Database configuration for entity service
  */
-export interface EntityDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
+export type { DbConfig as EntityDbConfig } from "@brains/utils";

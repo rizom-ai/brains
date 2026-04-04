@@ -43,15 +43,17 @@ export async function enableWALModeForEmbeddings(
 
 /**
  * Create the embeddings table in the embedding database.
- * This replaces Drizzle migrations for the embedding DB since
- * it's a single-table database with a simple schema.
+ * Dimensions come from the embedding provider (e.g. 1536 for OpenAI, 384 for fastembed).
  */
-export async function migrateEmbeddingDatabase(client: Client): Promise<void> {
+export async function migrateEmbeddingDatabase(
+  client: Client,
+  dimensions: number,
+): Promise<void> {
   await client.execute(`
     CREATE TABLE IF NOT EXISTS embeddings (
       entity_id TEXT NOT NULL,
       entity_type TEXT NOT NULL,
-      embedding F32_BLOB(384) NOT NULL,
+      embedding F32_BLOB(${dimensions}) NOT NULL,
       content_hash TEXT NOT NULL,
       PRIMARY KEY(entity_id, entity_type)
     )

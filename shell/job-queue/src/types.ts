@@ -180,10 +180,7 @@ export type EnqueueJob = (
 /**
  * Database configuration for job queue
  */
-export interface JobQueueDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
+export type { DbConfig as JobQueueDbConfig } from "@brains/utils";
 
 /**
  * Configuration for the JobQueueWorker

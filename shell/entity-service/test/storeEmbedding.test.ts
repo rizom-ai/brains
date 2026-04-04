@@ -9,6 +9,7 @@ import {
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
 import { insertTestEntity } from "./helpers/test-entity-db";
+import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("storeEmbedding", () => {
   let ctx: EntityServiceTestContext;
@@ -26,7 +27,7 @@ describe("storeEmbedding", () => {
   test("should store embedding for existing entity", async () => {
     const content = "Test content for embedding";
     const testEntity = createTestEntity("test", { content });
-    const mockEmbedding = new Float32Array(384).fill(0.1);
+    const mockEmbedding = new Float32Array(MOCK_DIMENSIONS).fill(0.1);
 
     // Create entity via service
     await ctx.entityService.createEntity({
@@ -69,7 +70,7 @@ describe("storeEmbedding", () => {
         metadata: { important: "data" },
         created: Date.now(),
         updated: Date.now(),
-        embedding: new Float32Array(384).fill(0.1),
+        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       },
       ctx.embeddingDbConfig,
     );
@@ -81,7 +82,7 @@ describe("storeEmbedding", () => {
     await ctx.entityService.storeEmbedding({
       entityId: "test-entity",
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.5),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.5),
       contentHash: updatedEntity.contentHash,
     });
 
@@ -112,7 +113,7 @@ describe("storeEmbedding", () => {
         metadata: { coverImageId: "my-cover-image", otherField: "preserved" },
         created: Date.now(),
         updated: Date.now(),
-        embedding: new Float32Array(384).fill(0.1),
+        embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       },
       ctx.embeddingDbConfig,
     );
@@ -128,7 +129,7 @@ describe("storeEmbedding", () => {
     await ctx.entityService.storeEmbedding({
       entityId: "test-entity",
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.5),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.5),
       contentHash: newEntity.contentHash,
     });
 

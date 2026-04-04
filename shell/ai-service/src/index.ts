@@ -12,6 +12,10 @@ export { selectTextProvider, selectImageProvider } from "./provider-selection";
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
 export type { LanguageModel, ToolSet, ModelMessage } from "ai";
 
+// Online embedding provider
+export { OnlineEmbeddingProvider } from "./online-embedding-provider";
+export type { OnlineEmbeddingConfig } from "./online-embedding-provider";
+
 // AI service types
 export type {
   AIModelConfig,

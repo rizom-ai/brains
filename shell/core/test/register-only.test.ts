@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
@@ -16,16 +16,6 @@ import {
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
 import { z } from "@brains/utils";
-
-const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));
-void mock.module("fastembed", () => ({
-  EmbeddingModel: class MockEmbeddingModel {
-    static async init(): Promise<MockEmbeddingModel> {
-      return new this();
-    }
-    embed = mockEmbed;
-  },
-}));
 
 async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
@@ -61,6 +51,12 @@ describe("Shell registerOnly mode", () => {
 
   const deps: Partial<ShellDependencies> = {
     logger: createSilentLogger("test"),
+    embeddingService: {
+      dimensions: 1536,
+      generateEmbedding: async () => new Float32Array(1536).fill(0.1),
+      generateEmbeddings: async (texts: string[]) =>
+        texts.map(() => new Float32Array(1536).fill(0.1)),
+    },
   };
 
   beforeEach(async () => {

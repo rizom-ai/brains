@@ -166,6 +166,10 @@ export class Shell implements IShell {
         this.config,
       );
 
+      // Initialize databases (WAL mode, migrations, indexes, ATTACH)
+      // before plugins load — they need search and embeddings to work.
+      await this.services.entityService.initialize();
+
       await shellInitializer.initializeAll(
         this.services.templateRegistry,
         this.services.entityRegistry,

@@ -13,7 +13,7 @@ import {
   createMockJobQueueService,
   createTestEntity,
 } from "@brains/test-utils";
-import { mockEmbeddingService } from "./helpers/mock-services";
+import { mockEmbeddingService, MOCK_DIMENSIONS } from "./helpers/mock-services";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
 import type { EntityDbConfig } from "../src/types";
 
@@ -39,7 +39,7 @@ describe("Separate embedding database", () => {
 
     // Run embedding DB migrations (creates embeddings table)
     const embClient = createClient({ url: embeddingDbConfig.url });
-    await migrateEmbeddingDatabase(embClient);
+    await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
     embClient.close();
     const entityRegistry = EntityRegistry.createFresh(logger);
     entityRegistry.registerEntityType(
@@ -80,7 +80,7 @@ describe("Separate embedding database", () => {
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.1),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: testEntity.contentHash,
     });
 
@@ -101,7 +101,7 @@ describe("Separate embedding database", () => {
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.1),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: testEntity.contentHash,
     });
 
@@ -125,7 +125,7 @@ describe("Separate embedding database", () => {
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.1),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: testEntity.contentHash,
     });
 
@@ -165,14 +165,14 @@ describe("Separate embedding database", () => {
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.1),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: "hash-1",
     });
 
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.5),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.5),
       contentHash: "hash-2",
     });
 
@@ -190,7 +190,7 @@ describe("Separate embedding database", () => {
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
-      embedding: new Float32Array(384).fill(0.1),
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
       contentHash: testEntity.contentHash,
     });
 

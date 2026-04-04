@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z, dbConfigSchema, type DbConfig } from "@brains/utils";
 import type { Plugin, IEvalHandlerRegistry } from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
@@ -12,22 +12,10 @@ export const STANDARD_PATHS = {
 } as const;
 
 export interface StandardConfig {
-  database: {
-    url: string;
-    authToken: string | undefined;
-  };
-  jobQueueDatabase: {
-    url: string;
-    authToken: string | undefined;
-  };
-  conversationDatabase: {
-    url: string;
-    authToken: string | undefined;
-  };
-  embeddingDatabase: {
-    url: string;
-    authToken: string | undefined;
-  };
+  database: DbConfig;
+  jobQueueDatabase: DbConfig;
+  conversationDatabase: DbConfig;
+  embeddingDatabase: DbConfig;
   embedding: {
     cacheDir: string;
   };
@@ -77,22 +65,10 @@ export const shellConfigSchema = z.object({
   name: z.string().default("brain-app"),
   version: z.string().default("1.0.0"),
 
-  database: z.object({
-    url: z.string(),
-    authToken: z.string().optional(),
-  }),
-  jobQueueDatabase: z.object({
-    url: z.string(),
-    authToken: z.string().optional(),
-  }),
-  conversationDatabase: z.object({
-    url: z.string(),
-    authToken: z.string().optional(),
-  }),
-  embeddingDatabase: z.object({
-    url: z.string(),
-    authToken: z.string().optional(),
-  }),
+  database: dbConfigSchema,
+  jobQueueDatabase: dbConfigSchema,
+  conversationDatabase: dbConfigSchema,
+  embeddingDatabase: dbConfigSchema,
 
   ai: z.object({
     apiKey: z.string(),

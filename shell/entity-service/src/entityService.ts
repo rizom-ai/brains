@@ -69,6 +69,7 @@ export class EntityService implements IEntityService {
   private dbUrl: string;
   private embeddingDb: EmbeddingDB;
   private embeddingDbClient: Client;
+  private dbInitPromise!: Promise<void>;
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -165,7 +166,11 @@ export class EntityService implements IEntityService {
       embeddingJobHandler,
     );
 
-    this.initializeDatabase(options.embeddingDbConfig).catch((error) => {
+    // Initialize databases (WAL, migrations, ATTACH) — awaited by Shell.initialize()
+    this.dbInitPromise = this.initializeDatabase(
+      options.embeddingDbConfig,
+      options.embeddingService.dimensions,
+    ).catch((error) => {
       this.logger.warn(
         "Failed to initialize database settings (non-fatal)",
         error,
@@ -173,15 +178,24 @@ export class EntityService implements IEntityService {
     });
   }
 
+  /**
+   * Wait for database initialization (WAL mode, migrations, indexes, ATTACH).
+   * Called by Shell.initialize() before plugins load.
+   */
+  public async initialize(): Promise<void> {
+    await this.dbInitPromise;
+  }
+
   private async initializeDatabase(
     embeddingDbConfig: EntityDbConfig,
+    embeddingDimensions: number,
   ): Promise<void> {
     await enableWALModeForEntities(this.dbClient, this.dbUrl);
     await enableWALModeForEmbeddings(
       this.embeddingDbClient,
       embeddingDbConfig.url,
     );
-    await migrateEmbeddingDatabase(this.embeddingDbClient);
+    await migrateEmbeddingDatabase(this.embeddingDbClient, embeddingDimensions);
     await ensureEmbeddingIndexes(this.embeddingDbClient);
     await attachEmbeddingDatabase(
       this.dbClient,

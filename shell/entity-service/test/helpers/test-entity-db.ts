@@ -10,6 +10,7 @@ import {
 import { createClient } from "@libsql/client";
 import { createSilentLogger } from "@brains/test-utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { MOCK_DIMENSIONS } from "./mock-services";
 import { entities } from "../../src/schema/entities";
 import { embeddings } from "../../src/schema/embeddings";
 import { createEntityDatabase } from "../../src/db";
@@ -37,7 +38,7 @@ export async function createTestEntityDatabase(): Promise<{
 
   // Migrate embedding DB
   const embClient = createClient({ url: embeddingConfig.url });
-  await migrateEmbeddingDatabase(embClient);
+  await migrateEmbeddingDatabase(embClient, MOCK_DIMENSIONS);
   await ensureEmbeddingIndexes(embClient);
   embClient.close();
 
@@ -65,9 +66,9 @@ export interface TestEntityData {
 export async function insertTestEntity(
   config: EntityDbConfig,
   data: TestEntityData,
-  embeddingConfig?: EntityDbConfig,
+  embeddingConfig: EntityDbConfig,
 ): Promise<void> {
-  const { db } = createEntityDatabase(config);
+  const { db, client } = createEntityDatabase(config);
   const contentHash = computeContentHash(data.content);
 
   await db.insert(entities).values({
@@ -80,10 +81,10 @@ export async function insertTestEntity(
     updated: data.updated,
   });
 
-  // Write embedding to separate embedding DB when provided, otherwise entity DB
-  const embDb = embeddingConfig
-    ? createEmbeddingDatabase(embeddingConfig).db
-    : db;
+  client.close();
+
+  const { db: embDb, client: embClient } =
+    createEmbeddingDatabase(embeddingConfig);
 
   await embDb.insert(embeddings).values({
     entityId: data.id,
@@ -91,4 +92,6 @@ export async function insertTestEntity(
     embedding: data.embedding,
     contentHash,
   });
+
+  embClient.close();
 }

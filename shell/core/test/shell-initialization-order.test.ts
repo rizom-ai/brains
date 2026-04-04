@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
@@ -15,16 +15,6 @@ import {
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
-
-const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));
-void mock.module("fastembed", () => ({
-  EmbeddingModel: class MockEmbeddingModel {
-    static async init(): Promise<MockEmbeddingModel> {
-      return new this();
-    }
-    embed = mockEmbed;
-  },
-}));
 
 async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
@@ -53,7 +43,17 @@ function createTestConfig(dir: string): ShellConfigInput {
   };
 }
 
-const deps: ShellDependencies = { logger: createSilentLogger() };
+const mockEmbeddingService = {
+  dimensions: 1536,
+  generateEmbedding: async () => new Float32Array(1536).fill(0.1),
+  generateEmbeddings: async (texts: string[]) =>
+    texts.map(() => new Float32Array(1536).fill(0.1)),
+};
+
+const deps: ShellDependencies = {
+  logger: createSilentLogger(),
+  embeddingService: mockEmbeddingService,
+};
 
 describe("Shell initialization order", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };

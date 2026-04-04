@@ -1,11 +1,14 @@
 import type { IEmbeddingService } from "../../src/embedding-types";
 
+export const MOCK_DIMENSIONS = 1536;
+
 /**
- * Mock embedding service that returns fixed 384-dim float arrays.
- * Shared across all entity-service tests that need an IEmbeddingService.
+ * Mock embedding service that returns fixed-dimension float arrays.
+ * Matches OpenAI text-embedding-3-small dimensions.
  */
 export const mockEmbeddingService: IEmbeddingService = {
-  generateEmbedding: async () => new Float32Array(384).fill(0.1),
+  dimensions: MOCK_DIMENSIONS,
+  generateEmbedding: async () => new Float32Array(MOCK_DIMENSIONS).fill(0.1),
   generateEmbeddings: async (texts: string[]) =>
-    texts.map(() => new Float32Array(384).fill(0.1)),
+    texts.map(() => new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
 };

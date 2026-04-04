@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
 import type { ShellConfigInput } from "../src/config";
 import { resetAllSingletons } from "../src/initialization/shellInitializer";
@@ -7,16 +7,6 @@ import { createTestDirectory } from "./helpers/test-db";
 import { migrateEntities } from "@brains/entity-service/migrate";
 import { migrateJobQueue } from "@brains/job-queue/migrate";
 import { migrateConversations } from "@brains/conversation-service/migrate";
-
-const mockEmbed = mock(() => Promise.resolve([[0.1, 0.2, 0.3]]));
-void mock.module("fastembed", () => ({
-  EmbeddingModel: class MockEmbeddingModel {
-    static async init(): Promise<MockEmbeddingModel> {
-      return new this();
-    }
-    embed = mockEmbed;
-  },
-}));
 
 function createTestConfig(dir: string): ShellConfigInput {
   return {
@@ -38,7 +28,17 @@ async function runMigrations(dir: string): Promise<void> {
   await migrateConversations({ url: `file:${dir}/test-conv.db` });
 }
 
-const deps: ShellDependencies = { logger: createSilentLogger() };
+const mockEmbeddingService = {
+  dimensions: 1536,
+  generateEmbedding: async () => new Float32Array(1536).fill(0.1),
+  generateEmbeddings: async (texts: string[]) =>
+    texts.map(() => new Float32Array(1536).fill(0.1)),
+};
+
+const deps: ShellDependencies = {
+  logger: createSilentLogger(),
+  embeddingService: mockEmbeddingService,
+};
 
 describe("Shell shutdown", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };

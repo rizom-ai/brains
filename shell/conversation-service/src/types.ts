@@ -106,7 +106,4 @@ export type ConversationDigestPayload = z.infer<
 /**
  * Database configuration for conversation service
  */
-export interface ConversationDbConfig {
-  url: string; // Now required - no default
-  authToken?: string;
-}
+export type { DbConfig as ConversationDbConfig } from "@brains/utils";

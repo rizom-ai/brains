@@ -6,11 +6,12 @@ import {
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
 import { insertTestEntity } from "./helpers/test-entity-db";
+import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 describe("listEntities sortFields", () => {
   let ctx: EntityServiceTestContext;
 
-  const mockEmbedding = new Float32Array(384).fill(0.1);
+  const mockEmbedding = new Float32Array(MOCK_DIMENSIONS).fill(0.1);
 
   beforeEach(async () => {
     ctx = await setupEntityService([
@@ -211,7 +212,7 @@ describe("listEntities sortFields", () => {
 
 describe("listEntities sortFields with nullsFirst", () => {
   let ctx: EntityServiceTestContext;
-  const mockEmbedding = new Float32Array(384).fill(0.1);
+  const mockEmbedding = new Float32Array(MOCK_DIMENSIONS).fill(0.1);
 
   beforeEach(async () => {
     ctx = await setupEntityService([

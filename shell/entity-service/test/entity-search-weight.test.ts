@@ -9,6 +9,7 @@ import type { EntityDB } from "../src/db";
 import { z } from "@brains/utils";
 import { baseEntitySchema } from "../src/types";
 import { BaseEntityAdapter } from "../src/adapters/base-entity-adapter";
+import { MOCK_DIMENSIONS } from "./helpers/mock-services";
 
 const testEntitySchema = baseEntitySchema.extend({
   entityType: z.string(),
@@ -95,7 +96,7 @@ describe("EntitySearch weight behavior", () => {
 
     const mockEmbeddingService = {
       generateEmbedding: mock(() =>
-        Promise.resolve(new Float32Array(384).fill(0.1)),
+        Promise.resolve(new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
       ),
       generateEmbeddings: mock(() => Promise.resolve([])),
     } as unknown as IEmbeddingService;
