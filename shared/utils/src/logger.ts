@@ -19,6 +19,15 @@ export enum LogLevel {
 /**
  * Logger implementation with Component Interface Standardization pattern
  */
+export type LogFormat = "text" | "json";
+
+export interface LoggerOptions {
+  level?: LogLevel;
+  context?: string;
+  useStderr?: boolean;
+  format?: LogFormat;
+}
+
 export class Logger {
   /** The singleton instance */
   private static instance: Logger | null = null;
@@ -26,26 +35,22 @@ export class Logger {
   private level: LogLevel;
   private context: string | undefined;
   private useStderr: boolean;
+  private format: LogFormat;
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(
-    options: { level?: LogLevel; context?: string; useStderr?: boolean } = {},
-  ) {
+  private constructor(options: LoggerOptions = {}) {
     this.level = options.level ?? LogLevel.INFO;
     this.context = options.context ?? undefined;
     this.useStderr = options.useStderr ?? false;
+    this.format = options.format ?? "text";
   }
 
   /**
    * Get the singleton instance of Logger
    */
-  public static getInstance(options?: {
-    level?: LogLevel;
-    context?: string;
-    useStderr?: boolean;
-  }): Logger {
+  public static getInstance(options?: LoggerOptions): Logger {
     if (!Logger.instance) {
       Logger.instance = new Logger(options);
     } else if (options?.useStderr !== undefined) {
@@ -65,19 +70,27 @@ export class Logger {
   /**
    * Create a fresh instance without affecting the singleton
    */
-  public static createFresh(options?: {
-    level?: LogLevel;
-    context?: string;
-    useStderr?: boolean;
-  }): Logger {
+  public static createFresh(options?: LoggerOptions): Logger {
     return new Logger(options);
   }
 
   /**
-   * Format a log message with optional context
+   * Format a log entry for output.
+   * Text: [timestamp] [context] message
+   * JSON: {"ts":"...","level":"...","ctx":"...","msg":"...","data":[...]}
    */
-  private formatMessage(message: string): string {
+  private formatEntry(level: string, message: string, args: unknown[]): string {
     const timestamp = new Date().toISOString();
+    if (this.format === "json") {
+      const entry: Record<string, unknown> = {
+        ts: timestamp,
+        level,
+        msg: message,
+      };
+      if (this.context) entry["ctx"] = this.context;
+      if (args.length > 0) entry["data"] = args;
+      return JSON.stringify(entry);
+    }
     return this.context
       ? `[${timestamp}] [${this.context}] ${message}`
       : `[${timestamp}] ${message}`;
@@ -86,58 +99,64 @@ export class Logger {
   /**
    * Log a message at the 'silly' level
    */
-  public silly(message: string, ...args: unknown[]): void {
-    if (this.level <= LogLevel.SILLY) {
-      console.debug(this.formatMessage(message), ...args);
-    }
-  }
-
   /**
-   * Log a message at the 'verbose' level
+   * Write a formatted log entry to the appropriate output stream.
+   * JSON format: single string argument (no spread).
+   * Text format: message + spread args for console formatting.
    */
-  public verbose(message: string, ...args: unknown[]): void {
-    if (this.level <= LogLevel.VERBOSE) {
-      console.debug(this.formatMessage(message), ...args);
-    }
-  }
-
-  /**
-   * Log a message at the 'debug' level
-   */
-  public debug(message: string, ...args: unknown[]): void {
-    if (this.level <= LogLevel.DEBUG) {
-      console.debug(this.formatMessage(message), ...args);
-    }
-  }
-
-  /**
-   * Log a message at the 'info' level
-   */
-  public info(message: string, ...args: unknown[]): void {
-    if (this.level <= LogLevel.INFO) {
-      if (this.useStderr) {
-        console.error(this.formatMessage(message), ...args);
+  private write(
+    consoleFn: (...data: unknown[]) => void,
+    level: string,
+    message: string,
+    args: unknown[],
+  ): void {
+    if (this.format === "json") {
+      consoleFn(this.formatEntry(level, message, args));
+    } else {
+      if (args.length > 0) {
+        consoleFn(this.formatEntry(level, message, []), ...args);
       } else {
-        console.info(this.formatMessage(message), ...args);
+        consoleFn(this.formatEntry(level, message, []));
       }
     }
   }
 
-  /**
-   * Log a message at the 'warn' level
-   */
-  public warn(message: string, ...args: unknown[]): void {
-    if (this.level <= LogLevel.WARN) {
-      console.warn(this.formatMessage(message), ...args);
+  public silly(message: string, ...args: unknown[]): void {
+    if (this.level <= LogLevel.SILLY) {
+      this.write(console.debug.bind(console), "silly", message, args);
     }
   }
 
-  /**
-   * Log a message at the 'error' level
-   */
+  public verbose(message: string, ...args: unknown[]): void {
+    if (this.level <= LogLevel.VERBOSE) {
+      this.write(console.debug.bind(console), "verbose", message, args);
+    }
+  }
+
+  public debug(message: string, ...args: unknown[]): void {
+    if (this.level <= LogLevel.DEBUG) {
+      this.write(console.debug.bind(console), "debug", message, args);
+    }
+  }
+
+  public info(message: string, ...args: unknown[]): void {
+    if (this.level <= LogLevel.INFO) {
+      const fn = this.useStderr
+        ? console.error.bind(console)
+        : console.info.bind(console);
+      this.write(fn, "info", message, args);
+    }
+  }
+
+  public warn(message: string, ...args: unknown[]): void {
+    if (this.level <= LogLevel.WARN) {
+      this.write(console.warn.bind(console), "warn", message, args);
+    }
+  }
+
   public error(message: string, ...args: unknown[]): void {
     if (this.level <= LogLevel.ERROR) {
-      console.error(this.formatMessage(message), ...args);
+      this.write(console.error.bind(console), "error", message, args);
     }
   }
 
@@ -145,12 +164,12 @@ export class Logger {
    * Create a child logger with a specific context
    */
   public child(context: string): Logger {
-    const childLogger = Logger.createFresh({
+    return Logger.createFresh({
       level: this.level,
       context,
       useStderr: this.useStderr,
+      format: this.format,
     });
-    return childLogger;
   }
 
   /**

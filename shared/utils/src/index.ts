@@ -9,6 +9,7 @@ export { dbConfigSchema, type DbConfig } from "./db-config";
 
 // Logger
 export { Logger, LogLevel } from "./logger";
+export type { LogFormat, LoggerOptions } from "./logger";
 export { default as defaultLogger } from "./logger";
 
 // Markdown utilities

@@ -198,7 +198,7 @@ export class MessageBus implements IMessageBus {
 
     // If no handlers, log warning and return null
     if (handlers.size === 0) {
-      this.logger.warn(`No handlers found for message type: ${type}`);
+      this.logger.debug(`No handlers found for message type: ${type}`);
       return null;
     }
 

@@ -87,6 +87,7 @@ export const shellConfigSchema = z.object({
   logging: z
     .object({
       level: z.enum(["debug", "info", "warn", "error"]).default("info"),
+      format: z.enum(["text", "json"]).default("text"),
       context: z.string().default("shell"),
     })
     .default({ level: "info", context: "shell" }),
@@ -142,6 +143,7 @@ export function createShellConfig(
     embedding: overrides.embedding ?? standardConfig.embedding,
     logging: {
       level: overrides.logging?.level ?? "info",
+      format: overrides.logging?.format ?? "text",
       context: overrides.logging?.context ?? "shell",
     },
     features: {},

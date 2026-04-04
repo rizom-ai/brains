@@ -241,6 +241,7 @@ export class ShellInitializer {
       Logger.createFresh({
         level: logLevel,
         context: this.config.logging.context,
+        format: this.config.logging.format === "json" ? "json" : "text",
       });
 
     const embeddingService =
