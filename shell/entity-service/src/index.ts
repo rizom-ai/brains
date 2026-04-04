@@ -9,6 +9,17 @@ export { SingletonEntityService } from "./singleton-entity-service";
 export { EmbeddingService } from "./embedding-service";
 export type { IEmbeddingService } from "./embedding-types";
 
+// Embedding database
+export {
+  createEmbeddingDatabase,
+  enableWALModeForEmbeddings,
+  migrateEmbeddingDatabase,
+  ensureEmbeddingIndexes,
+  attachEmbeddingDatabase,
+  dbUrlToPath,
+} from "./db/embedding-db";
+export type { EmbeddingDB } from "./db/embedding-db";
+
 export type {
   BaseEntity,
   EntityInput,

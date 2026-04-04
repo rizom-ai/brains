@@ -1,4 +1,5 @@
 import type { EntityDB } from "./db";
+import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   BaseEntity,
   EmbeddingJobData,
@@ -28,6 +29,8 @@ export interface EntityMutationDeps {
   jobQueueService: IJobQueueService;
   logger: Logger;
   messageBus?: MessageBus;
+  /** Separate embedding DB for writes. When absent, uses entity DB. */
+  embeddingDb?: EmbeddingDB;
 }
 
 /**
@@ -36,6 +39,7 @@ export interface EntityMutationDeps {
  */
 export class EntityMutations {
   private db: EntityDB;
+  private embeddingDb: EmbeddingDB;
   private entityRegistry: EntityRegistry;
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
@@ -45,6 +49,7 @@ export class EntityMutations {
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
+    this.embeddingDb = deps.embeddingDb ?? deps.db;
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;
@@ -270,7 +275,7 @@ export class EntityMutations {
    * Entity must already exist in entities table
    */
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
-    await this.db
+    await this.embeddingDb
       .insert(embeddings)
       .values({
         entityId: data.entityId,

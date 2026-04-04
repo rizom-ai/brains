@@ -1,4 +1,5 @@
 import type { EntityDB } from "./db";
+import type { EmbeddingDB } from "./db/embedding-db";
 import type { BaseEntity } from "./types";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
@@ -37,15 +38,25 @@ type ListOptions = z.input<typeof listOptionsSchema>;
  * EntityQueries handles database query operations for entities
  * Extracted from EntityService for single responsibility
  */
+export interface EntityQueryDeps {
+  db: EntityDB;
+  serializer: EntitySerializer;
+  logger: Logger;
+  /** Separate embedding DB for delete cascading. When absent, uses entity DB. */
+  embeddingDb?: EmbeddingDB;
+}
+
 export class EntityQueries {
   private db: EntityDB;
+  private embeddingDb: EmbeddingDB;
   private serializer: EntitySerializer;
   private logger: Logger;
 
-  constructor(db: EntityDB, serializer: EntitySerializer, logger: Logger) {
-    this.db = db;
-    this.serializer = serializer;
-    this.logger = logger.child("EntityQueries");
+  constructor(deps: EntityQueryDeps) {
+    this.db = deps.db;
+    this.embeddingDb = deps.embeddingDb ?? deps.db;
+    this.serializer = deps.serializer;
+    this.logger = deps.logger.child("EntityQueries");
   }
 
   /**
@@ -300,7 +311,8 @@ export class EntityQueries {
     }
 
     // Delete embedding first (no foreign key constraint, so manual cascade)
-    await this.db
+    // Uses embedding DB (which may be separate from entity DB)
+    await this.embeddingDb
       .delete(embeddings)
       .where(
         and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),

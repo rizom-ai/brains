@@ -3,7 +3,7 @@ import type { BaseEntity, SearchResult, SearchOptions } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { z, type Logger } from "@brains/utils";
-import { sql, eq, and, desc } from "drizzle-orm";
+import { sql, eq, and, desc, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
 
@@ -27,17 +27,21 @@ export class EntitySearch {
   private embeddingService: IEmbeddingService;
   private serializer: EntitySerializer;
   private logger: Logger;
+  /** When true, embeddings live in an attached DB aliased as "emb" */
+  private separateEmbeddingDb: boolean;
 
   constructor(
     db: EntityDB,
     embeddingService: IEmbeddingService,
     serializer: EntitySerializer,
     logger: Logger,
+    separateEmbeddingDb = false,
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
+    this.separateEmbeddingDb = separateEmbeddingDb;
   }
 
   /**
@@ -89,11 +93,24 @@ export class EntitySearch {
       );
     }
 
-    // Build the vector distance and weighted score SQL expressions
+    // When using a separate embedding DB (attached as "emb"), we must use
+    // raw SQL with the emb. prefix. When using the legacy single-DB layout,
+    // we can use Drizzle's typed schema references.
+    if (this.separateEmbeddingDb) {
+      return this.searchWithAttachedDb<T>(
+        embeddingArray,
+        weightCase,
+        typeConditions,
+        limit,
+        offset,
+        query,
+      );
+    }
+
+    // Legacy: embeddings in same DB as entities
     const distanceExpr = sql<number>`vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray}))`;
     const weightedScoreExpr = sql<number>`(1.0 - vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
 
-    // Execute query with INNER JOIN using drizzle query builder
     const results = await this.db
       .select({
         id: entities.id,
@@ -119,7 +136,85 @@ export class EntitySearch {
       .limit(limit)
       .offset(offset);
 
-    // Transform results into SearchResult format
+    return this.mapSearchResults<T>(results, query);
+  }
+
+  /**
+   * Execute search against an attached embedding database (aliased as "emb").
+   * Uses raw SQL because Drizzle doesn't know about cross-DB table references.
+   */
+  private async searchWithAttachedDb<T extends BaseEntity = BaseEntity>(
+    embeddingArray: string,
+    weightCase: string,
+    typeConditions: SQL[],
+    limit: number,
+    offset: number,
+    query: string,
+  ): Promise<SearchResult<T>[]> {
+    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
+    const weightedScoreExpr = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
+
+    const results = await this.db
+      .select({
+        id: entities.id,
+        entityType: entities.entityType,
+        content: entities.content,
+        contentHash: entities.contentHash,
+        created: entities.created,
+        updated: entities.updated,
+        metadata: entities.metadata,
+        distance: distanceExpr,
+        weighted_score: weightedScoreExpr,
+      })
+      .from(entities)
+      .innerJoin(
+        sql`emb.embeddings AS emb_e`,
+        sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .where(and(sql`${distanceExpr} < 1.0`, ...typeConditions))
+      .orderBy(desc(weightedScoreExpr))
+      .limit(limit)
+      .offset(offset);
+
+    return this.mapSearchResults<T>(results, query);
+  }
+
+  /**
+   * Search entities by type and query
+   */
+  public async searchEntities(
+    entityType: string,
+    query: string,
+    options?: { limit?: number },
+  ): Promise<SearchResult[]> {
+    // Build search options with the entity type filter
+    const searchOptions: SearchOptions = {
+      types: [entityType],
+      limit: options?.limit ?? 20,
+      offset: 0,
+      sortBy: "relevance",
+      sortDirection: "desc",
+    };
+
+    return this.search(query, searchOptions);
+  }
+
+  /**
+   * Transform raw query rows into SearchResult objects
+   */
+  private mapSearchResults<T extends BaseEntity = BaseEntity>(
+    results: Array<{
+      id: string;
+      entityType: string;
+      content: string;
+      contentHash: string;
+      created: number;
+      updated: number;
+      metadata: unknown;
+      weighted_score: number;
+    }>,
+    query: string,
+  ): SearchResult<T>[] {
     const searchResults: SearchResult<T>[] = [];
 
     for (const row of results) {
@@ -127,7 +222,7 @@ export class EntitySearch {
         const metadata: Record<string, unknown> =
           typeof row.metadata === "string"
             ? JSON.parse(row.metadata)
-            : row.metadata;
+            : (row.metadata as Record<string, unknown>);
 
         const entity = this.serializer.reconstructEntity<T>({
           id: row.id,
@@ -149,7 +244,6 @@ export class EntitySearch {
       }
     }
 
-    // Log search results count without exposing the full query
     const queryPreview =
       query.length > 50 ? query.substring(0, 50) + "..." : query;
     this.logger.debug(
@@ -157,26 +251,6 @@ export class EntitySearch {
     );
 
     return searchResults;
-  }
-
-  /**
-   * Search entities by type and query
-   */
-  public async searchEntities(
-    entityType: string,
-    query: string,
-    options?: { limit?: number },
-  ): Promise<SearchResult[]> {
-    // Build search options with the entity type filter
-    const searchOptions: SearchOptions = {
-      types: [entityType],
-      limit: options?.limit ?? 20,
-      offset: 0,
-      sortBy: "relevance",
-      sortDirection: "desc",
-    };
-
-    return this.search(query, searchOptions);
   }
 
   /**
