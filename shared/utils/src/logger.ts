@@ -1,3 +1,5 @@
+import { openSync, writeSync } from "node:fs";
+
 /**
  * Logger interface for consistent logging across the application
  * Simplified version without Winston dependency
@@ -26,6 +28,8 @@ export interface LoggerOptions {
   context?: string;
   useStderr?: boolean;
   format?: LogFormat;
+  /** Path to a log file. Always writes JSON, one line per entry. */
+  logFile?: string;
 }
 
 export class Logger {
@@ -36,15 +40,29 @@ export class Logger {
   private context: string | undefined;
   private useStderr: boolean;
   private format: LogFormat;
+  private logFile: string | undefined;
+  private fileHandle: number | undefined;
 
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(options: LoggerOptions = {}) {
+  private constructor(options: LoggerOptions = {}, fileHandle?: number) {
     this.level = options.level ?? LogLevel.INFO;
     this.context = options.context ?? undefined;
     this.useStderr = options.useStderr ?? false;
     this.format = options.format ?? "text";
+    this.logFile = options.logFile;
+
+    if (fileHandle !== undefined) {
+      // Reuse parent's file handle (child logger)
+      this.fileHandle = fileHandle;
+    } else if (this.logFile) {
+      try {
+        this.fileHandle = openSync(this.logFile, "a");
+      } catch {
+        // Silently fail — logging should never crash the app
+      }
+    }
   }
 
   /**
@@ -110,6 +128,7 @@ export class Logger {
     message: string,
     args: unknown[],
   ): void {
+    // Console output
     if (this.format === "json") {
       consoleFn(this.formatEntry(level, message, args));
     } else {
@@ -119,6 +138,34 @@ export class Logger {
         consoleFn(this.formatEntry(level, message, []));
       }
     }
+
+    // File output — always JSON
+    if (this.fileHandle !== undefined) {
+      const jsonLine = this.formatJsonEntry(level, message, args);
+      try {
+        writeSync(this.fileHandle, jsonLine + "\n");
+      } catch {
+        // Silently fail
+      }
+    }
+  }
+
+  /**
+   * Format a JSON log entry (used for file output regardless of console format).
+   */
+  private formatJsonEntry(
+    level: string,
+    message: string,
+    args: unknown[],
+  ): string {
+    const entry: Record<string, unknown> = {
+      ts: new Date().toISOString(),
+      level,
+      msg: message,
+    };
+    if (this.context) entry["ctx"] = this.context;
+    if (args.length > 0) entry["data"] = args;
+    return JSON.stringify(entry);
   }
 
   public silly(message: string, ...args: unknown[]): void {
@@ -164,12 +211,17 @@ export class Logger {
    * Create a child logger with a specific context
    */
   public child(context: string): Logger {
-    return Logger.createFresh({
-      level: this.level,
-      context,
-      useStderr: this.useStderr,
-      format: this.format,
-    });
+    // Pass file handle directly so children don't open new handles
+    const child = new Logger(
+      {
+        level: this.level,
+        context,
+        useStderr: this.useStderr,
+        format: this.format,
+      },
+      this.fileHandle,
+    );
+    return child;
   }
 
   /**

@@ -242,6 +242,9 @@ export class ShellInitializer {
         level: logLevel,
         context: this.config.logging.context,
         format: this.config.logging.format === "json" ? "json" : "text",
+        ...(this.config.logging.file
+          ? { logFile: this.config.logging.file }
+          : {}),
       });
 
     const embeddingService =
