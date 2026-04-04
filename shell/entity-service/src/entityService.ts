@@ -306,6 +306,14 @@ export class EntityService implements IEntityService {
     return this.entitySearch.searchEntities(entityType, query, options);
   }
 
+  public async searchWithDistances(
+    query: string,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    return this.entitySearch.searchWithDistances(query);
+  }
+
   // ── Serialization ─────────────────────────────────────────────────
 
   public serializeEntity(entity: BaseEntity): string {

@@ -9,6 +9,7 @@ import { operateRemote } from "./commands/operate-remote";
 import { runEval } from "./commands/eval";
 import { pin } from "./commands/pin";
 import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
+import { diagnostics } from "./commands/diagnostics";
 
 export interface CommandResult {
   success: boolean;
@@ -35,6 +36,8 @@ export async function runCommand(
       return runEval(dir, process.argv.slice(2));
     case "pin":
       return pin(dir);
+    case "diagnostics":
+      return diagnostics(dir, parsed.args[0] ?? "");
     case "tool":
       return runRawTool(parsed, dir);
     case "help":

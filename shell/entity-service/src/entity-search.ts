@@ -178,6 +178,37 @@ export class EntitySearch {
   }
 
   /**
+   * Return all embedded entities with their raw cosine distance to the query.
+   * No threshold filter — used for diagnostics and threshold tuning.
+   * Results sorted by distance ascending (closest first).
+   */
+  public async searchWithDistances(
+    query: string,
+  ): Promise<
+    Array<{ entityId: string; entityType: string; distance: number }>
+  > {
+    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+    const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
+
+    const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
+
+    const results = await this.db
+      .select({
+        entityId: entities.id,
+        entityType: entities.entityType,
+        distance: distanceExpr,
+      })
+      .from(entities)
+      .innerJoin(
+        sql`emb.embeddings AS emb_e`,
+        sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
+      )
+      .orderBy(sql`${distanceExpr} ASC`);
+
+    return results;
+  }
+
+  /**
    * Transform raw query rows into SearchResult objects
    */
   private mapSearchResults<T extends BaseEntity = BaseEntity>(

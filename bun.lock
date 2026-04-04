@@ -1,5 +1,6 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "rizom-brains",
@@ -421,7 +422,6 @@
       "version": "0.1.0",
       "dependencies": {
         "@a2a-js/sdk": "^0.3.12",
-        "@brains/agent-discovery": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "hono": "^4.7.10",

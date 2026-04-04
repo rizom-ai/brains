@@ -45,8 +45,9 @@ function createTestConfig(dir: string): ShellConfigInput {
 
 const mockEmbeddingService = {
   dimensions: 1536,
-  generateEmbedding: async () => new Float32Array(1536).fill(0.1),
-  generateEmbeddings: async (texts: string[]) =>
+  generateEmbedding: async (): Promise<Float32Array> =>
+    new Float32Array(1536).fill(0.1),
+  generateEmbeddings: async (texts: string[]): Promise<Float32Array[]> =>
     texts.map(() => new Float32Array(1536).fill(0.1)),
 };
 

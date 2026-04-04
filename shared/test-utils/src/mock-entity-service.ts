@@ -107,5 +107,7 @@ export function createMockEntityService(
     getEntityCounts: mock(() => Promise.resolve([])),
     storeEmbedding: mock(() => Promise.resolve()),
     getWeightMap: mock(() => ({})),
+    searchWithDistances: mock(() => Promise.resolve([])),
+    initialize: mock(() => Promise.resolve()),
   } as unknown as IEntityService;
 }

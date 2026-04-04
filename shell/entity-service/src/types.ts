@@ -273,6 +273,14 @@ export interface EntityService extends ICoreEntityService {
   serializeEntity(entity: BaseEntity): string;
   deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
 
+  // Diagnostics
+  searchWithDistances(
+    query: string,
+  ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
+
+  // Lifecycle
+  initialize(): Promise<void>;
+
   // Job status
   getAsyncJobStatus(jobId: string): Promise<{
     status: "pending" | "processing" | "completed" | "failed";
