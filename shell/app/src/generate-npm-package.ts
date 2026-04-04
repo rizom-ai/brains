@@ -36,7 +36,6 @@ export function generateNpmPackageJson(
       sharp: "^0.34.5",
       "@libsql/client": "^0.14.0",
       "better-sqlite3": "^11.8.1",
-      fastembed: "^1.14.4",
       lightningcss: "^1.29.2",
       "@tailwindcss/oxide": "^4.1.4",
       "react-devtools-core": "^6.1.1",

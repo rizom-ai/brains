@@ -49,8 +49,6 @@ const result = await Bun.build({
     "@libsql/client",
     "libsql",
     "lightningcss",
-    "onnxruntime-node",
-    "fastembed",
     "@tailwindcss/oxide",
     // ink loads react-devtools-core unconditionally
     "react-devtools-core",

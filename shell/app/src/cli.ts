@@ -363,8 +363,10 @@ async function runDiagnostics(
   const allEntities: Array<{ id: string; entityType: string; title: string }> =
     [];
 
-  for (const type of entityTypes) {
-    const entities = await entityService.listEntities(type, { limit: 100 });
+  const entityLists = await Promise.all(
+    entityTypes.map((type) => entityService.listEntities(type, { limit: 100 })),
+  );
+  for (const entities of entityLists) {
     for (const entity of entities) {
       const meta = entity.metadata as Record<string, unknown>;
       const title = String(meta["title"] ?? meta["name"] ?? entity.id);
@@ -373,6 +375,7 @@ async function runDiagnostics(
   }
 
   if (allEntities.length === 0) {
+    await shell.shutdown();
     console.error("No entities found");
     process.exit(1);
   }
@@ -387,9 +390,11 @@ async function runDiagnostics(
   const allDistances: number[] = [];
   const selfDistances: number[] = [];
 
-  for (const sample of samples) {
-    const results = await entityService.searchWithDistances(sample.title);
-    for (const r of results) {
+  const searchResults = await Promise.all(
+    samples.map((s) => entityService.searchWithDistances(s.title)),
+  );
+  for (const [i, sample] of samples.entries()) {
+    for (const r of searchResults[i] ?? []) {
       allDistances.push(r.distance);
       if (r.entityId === sample.id && r.entityType === sample.entityType) {
         selfDistances.push(r.distance);
@@ -426,7 +431,7 @@ async function runDiagnostics(
   const p90 = pct(allDistances, 90);
   const suggested = Number(((p75 + p90) / 2).toFixed(4));
 
-  console.log(`Current threshold: 1.0`);
+  console.log(`Current threshold: 0.82`);
   console.log(`Suggested threshold: ${suggested}`);
   console.log(
     `  (midpoint between p75=${p75.toFixed(4)} and p90=${p90.toFixed(4)})\n`,

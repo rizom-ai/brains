@@ -78,8 +78,6 @@ try {
       "@libsql/client",
       "libsql",
       "lightningcss",
-      "onnxruntime-node",
-      "fastembed",
       "@tailwindcss/oxide",
     ],
   });

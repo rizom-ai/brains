@@ -43,7 +43,7 @@ export async function enableWALModeForEmbeddings(
 
 /**
  * Create the embeddings table in the embedding database.
- * Dimensions come from the embedding provider (e.g. 1536 for OpenAI, 384 for fastembed).
+ * Dimensions come from the embedding provider (e.g. 1536 for OpenAI text-embedding-3-small).
  */
 export async function migrateEmbeddingDatabase(
   client: Client,

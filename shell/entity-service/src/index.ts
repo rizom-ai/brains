@@ -5,8 +5,7 @@ export { BaseEntityFormatter } from "./base-entity-formatter";
 export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
 
-// Embedding (merged from @brains/embedding-service)
-export { EmbeddingService } from "./embedding-service";
+// Embedding
 export type { IEmbeddingService } from "./embedding-types";
 
 // Embedding database

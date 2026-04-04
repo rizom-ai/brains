@@ -26,7 +26,6 @@
     "@libsql/client": "^0.15.7",
     "@tailwindcss/oxide": "^4.1.4",
     "better-sqlite3": "^11.8.1",
-    "fastembed": "^1.14.4",
     "lightningcss": "^1.29.2",
     "react-devtools-core": "^6.1.1",
     "sharp": "^0.34.5"

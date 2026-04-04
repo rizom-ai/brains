@@ -15,7 +15,7 @@ const DEFAULT_DIMENSIONS = 1536;
 
 /**
  * Embedding provider that uses the OpenAI embeddings API.
- * Replaces local ONNX/fastembed for production use.
+ * Uses the OpenAI embeddings API for vector generation.
  */
 export class OnlineEmbeddingProvider implements IEmbeddingService {
   private static instance: OnlineEmbeddingProvider | null = null;
