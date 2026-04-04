@@ -2,6 +2,7 @@ import type { Client } from "@libsql/client";
 import {
   createEntityDatabase,
   enableWALModeForEntities,
+  ensureFtsTable,
   type EntityDB,
 } from "./db";
 import {
@@ -191,6 +192,7 @@ export class EntityService implements IEntityService {
     embeddingDimensions: number,
   ): Promise<void> {
     await enableWALModeForEntities(this.dbClient, this.dbUrl);
+    await ensureFtsTable(this.dbClient);
     await enableWALModeForEmbeddings(
       this.embeddingDbClient,
       embeddingDbConfig.url,

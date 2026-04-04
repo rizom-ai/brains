@@ -102,6 +102,13 @@ export class EntitySearch {
    * Execute search against an attached embedding database (aliased as "emb").
    * Uses raw SQL because Drizzle doesn't know about cross-DB table references.
    */
+  /**
+   * FTS5 boost weight. When a keyword match is found, this fraction of the
+   * final score comes from FTS5 rank, the rest from vector similarity.
+   * 0.3 = 30% keyword, 70% semantic.
+   */
+  private static readonly FTS_ALPHA = 0.3;
+
   private async searchWithAttachedDb<T extends BaseEntity = BaseEntity>(
     embeddingArray: string,
     weightCase: string,
@@ -110,8 +117,20 @@ export class EntitySearch {
     offset: number,
     query: string,
   ): Promise<SearchResult<T>[]> {
+    const alpha = EntitySearch.FTS_ALPHA;
+
+    // Vector similarity score (0..1, higher is better)
+    const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
-    const weightedScoreExpr = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
+
+    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not
+    const ftsBoost = sql<number>`CASE WHEN EXISTS (
+      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${query}
+        AND entity_id = ${entities.id} AND entity_type = ${entities.entityType}
+    ) THEN 1.0 ELSE 0.0 END`;
+
+    // Combined score: (1-α)*vector + α*keyword_match
+    const combinedScore = sql<number>`(${1 - alpha} * ${vectorScore}) + (${alpha} * ${ftsBoost})`;
 
     const results = await this.db
       .select({
@@ -123,7 +142,7 @@ export class EntitySearch {
         updated: entities.updated,
         metadata: entities.metadata,
         distance: distanceExpr,
-        weighted_score: weightedScoreExpr,
+        weighted_score: combinedScore,
       })
       .from(entities)
       .innerJoin(
@@ -131,7 +150,7 @@ export class EntitySearch {
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
       .where(and(sql`${distanceExpr} < 1.0`, ...typeConditions))
-      .orderBy(desc(weightedScoreExpr))
+      .orderBy(desc(combinedScore))
       .limit(limit)
       .offset(offset);
 

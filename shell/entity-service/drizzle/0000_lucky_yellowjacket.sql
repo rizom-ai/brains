@@ -16,3 +16,4 @@ CREATE TABLE `embeddings` (
 	`content_hash` text NOT NULL,
 	PRIMARY KEY(`entity_id`, `entity_type`)
 );
+

@@ -44,6 +44,20 @@ export async function enableWALModeForEntities(
 }
 
 /**
+ * Create FTS5 virtual table for full-text keyword search on entity content.
+ * Called during entity DB initialization alongside WAL mode setup.
+ */
+export async function ensureFtsTable(client: Client): Promise<void> {
+  await client.execute(`
+    CREATE VIRTUAL TABLE IF NOT EXISTS entity_fts USING fts5(
+      entity_id UNINDEXED,
+      entity_type UNINDEXED,
+      content
+    )
+  `);
+}
+
+/**
  * Type for the entity database
  */
 export type EntityDatabase = ReturnType<typeof createEntityDatabase>;

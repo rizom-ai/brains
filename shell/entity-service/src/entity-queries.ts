@@ -318,6 +318,11 @@ export class EntityQueries {
         and(eq(embeddings.entityType, entityType), eq(embeddings.entityId, id)),
       );
 
+    // Delete FTS5 index entry
+    await this.db.run(
+      sql`DELETE FROM entity_fts WHERE entity_id = ${id} AND entity_type = ${entityType}`,
+    );
+
     // Delete entity
     await this.db
       .delete(entities)

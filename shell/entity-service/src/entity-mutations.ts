@@ -19,7 +19,7 @@ import { createId } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 import { entities } from "./schema/entities";
 import { embeddings } from "./schema/embeddings";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 export interface EntityMutationDeps {
   db: EntityDB;
@@ -117,6 +117,9 @@ export class EntityMutations {
       updated: new Date(validatedEntity.updated).getTime(),
     });
 
+    // Update FTS5 index
+    await this.upsertFtsIndex(finalId, validatedEntity.entityType, markdown);
+
     this.logger.debug(
       `Persisted entity ${validatedEntity.entityType}:${finalId} immediately`,
     );
@@ -208,6 +211,13 @@ export class EntityMutations {
         ),
       );
 
+    // Update FTS5 index
+    await this.upsertFtsIndex(
+      validatedEntity.id,
+      validatedEntity.entityType,
+      markdown,
+    );
+
     this.logger.debug(
       `Updated entity ${validatedEntity.entityType}:${validatedEntity.id} immediately`,
     );
@@ -290,6 +300,23 @@ export class EntityMutations {
           contentHash: data.contentHash,
         },
       });
+  }
+
+  /**
+   * Insert or replace FTS5 index entry for an entity.
+   */
+  private async upsertFtsIndex(
+    entityId: string,
+    entityType: string,
+    content: string,
+  ): Promise<void> {
+    // FTS5 doesn't support upsert — delete then insert
+    await this.db.run(
+      sql`DELETE FROM entity_fts WHERE entity_id = ${entityId} AND entity_type = ${entityType}`,
+    );
+    await this.db.run(
+      sql`INSERT INTO entity_fts (entity_id, entity_type, content) VALUES (${entityId}, ${entityType}, ${content})`,
+    );
   }
 
   /**

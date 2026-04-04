@@ -24,7 +24,8 @@
       "WebFetch(domain:publish-01.obsidian.md)",
       "WebFetch(domain:practicalpkm.com)",
       "WebFetch(domain:obsidian.md)",
-      "WebFetch(domain:releasebot.io)"
+      "WebFetch(domain:releasebot.io)",
+      "mcp__paper__get_screenshot"
     ],
     "deny": [],
     "ask": []
