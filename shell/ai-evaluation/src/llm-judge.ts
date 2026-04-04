@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import { z, Logger } from "@brains/utils";
 import type { IAIService } from "@brains/ai-service";
 
 import type { ILLMJudge, LLMJudgeOptions } from "./types";
@@ -117,7 +117,7 @@ Provide your evaluation scores and reasoning.`;
         reasoning: object.reasoning,
       };
     } catch (error) {
-      console.error("LLM Judge failed:", error);
+      Logger.getInstance().error("LLM Judge failed:", error);
       return null;
     }
   }
