@@ -1,6 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
 import { createTestEntity } from "@brains/test-utils";
-import { createEntityDatabase } from "../src/db";
+import { createEmbeddingDatabase } from "../src/db/embedding-db";
 import { embeddings } from "../src/schema/embeddings";
 import { and, eq } from "drizzle-orm";
 import { minimalTestSchema, minimalTestAdapter } from "./helpers/test-schemas";
@@ -28,17 +28,10 @@ describe("storeEmbedding", () => {
     const testEntity = createTestEntity("test", { content });
     const mockEmbedding = new Float32Array(384).fill(0.1);
 
-    const { db } = createEntityDatabase(ctx.dbConfig);
-    const { entities } = await import("../src/schema/entities");
-
-    await db.insert(entities).values({
+    // Create entity via service
+    await ctx.entityService.createEntity({
+      ...testEntity,
       id: "test-entity",
-      entityType: "test",
-      content,
-      contentHash: testEntity.contentHash,
-      metadata: { important: "data" },
-      created: Date.now(),
-      updated: Date.now(),
     });
 
     await ctx.entityService.storeEmbedding({
@@ -48,7 +41,9 @@ describe("storeEmbedding", () => {
       contentHash: testEntity.contentHash,
     });
 
-    const embeddingResult = await db
+    // Verify embedding is in the embedding DB
+    const { db: embDb } = createEmbeddingDatabase(ctx.embeddingDbConfig);
+    const embeddingResult = await embDb
       .select()
       .from(embeddings)
       .where(
@@ -65,15 +60,19 @@ describe("storeEmbedding", () => {
   test("should update existing embedding (upsert behavior)", async () => {
     const content = "Test content for embedding";
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "test-entity",
-      entityType: "test",
-      content,
-      metadata: { important: "data" },
-      created: Date.now(),
-      updated: Date.now(),
-      embedding: new Float32Array(384).fill(0.1),
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "test-entity",
+        entityType: "test",
+        content,
+        metadata: { important: "data" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: new Float32Array(384).fill(0.1),
+      },
+      ctx.embeddingDbConfig,
+    );
 
     const updatedEntity = createTestEntity("test", {
       content: "updated content",
@@ -86,8 +85,8 @@ describe("storeEmbedding", () => {
       contentHash: updatedEntity.contentHash,
     });
 
-    const { db } = createEntityDatabase(ctx.dbConfig);
-    const embeddingResult = await db
+    const { db: embDb } = createEmbeddingDatabase(ctx.embeddingDbConfig);
+    const embeddingResult = await embDb
       .select()
       .from(embeddings)
       .where(
@@ -104,15 +103,19 @@ describe("storeEmbedding", () => {
   test("should NOT affect entity data when storing embedding", async () => {
     const content = "Original content";
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "test-entity",
-      entityType: "test",
-      content,
-      metadata: { coverImageId: "my-cover-image", otherField: "preserved" },
-      created: Date.now(),
-      updated: Date.now(),
-      embedding: new Float32Array(384).fill(0.1),
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "test-entity",
+        entityType: "test",
+        content,
+        metadata: { coverImageId: "my-cover-image", otherField: "preserved" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: new Float32Array(384).fill(0.1),
+      },
+      ctx.embeddingDbConfig,
+    );
 
     const savedEntity = await ctx.entityService.getEntity(
       "test",

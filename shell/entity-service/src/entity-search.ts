@@ -3,9 +3,8 @@ import type { BaseEntity, SearchResult, SearchOptions } from "./types";
 import type { IEmbeddingService } from "./embedding-types";
 import type { EntitySerializer } from "./entity-serializer";
 import { z, type Logger } from "@brains/utils";
-import { sql, eq, and, desc, type SQL } from "drizzle-orm";
+import { sql, and, desc, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
-import { embeddings } from "./schema/embeddings";
 
 /**
  * Schema for search options (excluding tags)
@@ -27,21 +26,17 @@ export class EntitySearch {
   private embeddingService: IEmbeddingService;
   private serializer: EntitySerializer;
   private logger: Logger;
-  /** When true, embeddings live in an attached DB aliased as "emb" */
-  private separateEmbeddingDb: boolean;
 
   constructor(
     db: EntityDB,
     embeddingService: IEmbeddingService,
     serializer: EntitySerializer,
     logger: Logger,
-    separateEmbeddingDb = false,
   ) {
     this.db = db;
     this.embeddingService = embeddingService;
     this.serializer = serializer;
     this.logger = logger.child("EntitySearch");
-    this.separateEmbeddingDb = separateEmbeddingDb;
   }
 
   /**
@@ -93,50 +88,14 @@ export class EntitySearch {
       );
     }
 
-    // When using a separate embedding DB (attached as "emb"), we must use
-    // raw SQL with the emb. prefix. When using the legacy single-DB layout,
-    // we can use Drizzle's typed schema references.
-    if (this.separateEmbeddingDb) {
-      return this.searchWithAttachedDb<T>(
-        embeddingArray,
-        weightCase,
-        typeConditions,
-        limit,
-        offset,
-        query,
-      );
-    }
-
-    // Legacy: embeddings in same DB as entities
-    const distanceExpr = sql<number>`vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray}))`;
-    const weightedScoreExpr = sql<number>`(1.0 - vector_distance_cos(${embeddings.embedding}, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
-
-    const results = await this.db
-      .select({
-        id: entities.id,
-        entityType: entities.entityType,
-        content: entities.content,
-        contentHash: entities.contentHash,
-        created: entities.created,
-        updated: entities.updated,
-        metadata: entities.metadata,
-        distance: distanceExpr,
-        weighted_score: weightedScoreExpr,
-      })
-      .from(entities)
-      .innerJoin(
-        embeddings,
-        and(
-          eq(entities.id, embeddings.entityId),
-          eq(entities.entityType, embeddings.entityType),
-        ),
-      )
-      .where(and(sql`${distanceExpr} < 1.0`, ...typeConditions))
-      .orderBy(desc(weightedScoreExpr))
-      .limit(limit)
-      .offset(offset);
-
-    return this.mapSearchResults<T>(results, query);
+    return this.searchWithAttachedDb<T>(
+      embeddingArray,
+      weightCase,
+      typeConditions,
+      limit,
+      offset,
+      query,
+    );
   }
 
   /**

@@ -17,44 +17,56 @@ describe("listEntities sortFields", () => {
       { name: "post", schema: postSchema, adapter: postAdapter },
     ]);
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-1",
-      entityType: "post",
-      content: "Post 1 content",
-      metadata: {
-        publishedAt: "2025-01-03T00:00:00.000Z",
-        status: "published",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-1",
+        entityType: "post",
+        content: "Post 1 content",
+        metadata: {
+          publishedAt: "2025-01-03T00:00:00.000Z",
+          status: "published",
+        },
+        created: new Date("2025-01-01T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-01T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-2",
-      entityType: "post",
-      content: "Post 2 content",
-      metadata: {
-        publishedAt: "2025-01-01T00:00:00.000Z",
-        status: "published",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-2",
+        entityType: "post",
+        content: "Post 2 content",
+        metadata: {
+          publishedAt: "2025-01-01T00:00:00.000Z",
+          status: "published",
+        },
+        created: new Date("2025-01-02T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-02T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-3",
-      entityType: "post",
-      content: "Post 3 content",
-      metadata: {
-        publishedAt: "2025-01-02T00:00:00.000Z",
-        status: "draft",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-3",
+        entityType: "post",
+        content: "Post 3 content",
+        metadata: {
+          publishedAt: "2025-01-02T00:00:00.000Z",
+          status: "draft",
+        },
+        created: new Date("2025-01-03T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-03T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
   });
 
   afterEach(async () => {
@@ -131,15 +143,19 @@ describe("listEntities sortFields", () => {
   });
 
   test("should include entities WITHOUT status field when publishedOnly is true", async () => {
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-no-status",
-      entityType: "post",
-      content: "Post without status field",
-      metadata: { publishedAt: "2025-01-04T00:00:00.000Z" },
-      created: new Date("2025-01-04T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-04T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-no-status",
+        entityType: "post",
+        content: "Post without status field",
+        metadata: { publishedAt: "2025-01-04T00:00:00.000Z" },
+        created: new Date("2025-01-04T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-04T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
 
     const result = await ctx.entityService.listEntities<BaseEntity>("post", {
       publishedOnly: true,
@@ -154,15 +170,19 @@ describe("listEntities sortFields", () => {
   });
 
   test("should include entities with status 'active' when publishedOnly is true", async () => {
-    await insertTestEntity(ctx.dbConfig, {
-      id: "agent-yeehaa",
-      entityType: "post",
-      content: "An active agent entity",
-      metadata: { status: "active" },
-      created: new Date("2025-01-05T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-05T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "agent-yeehaa",
+        entityType: "post",
+        content: "An active agent entity",
+        metadata: { status: "active" },
+        created: new Date("2025-01-05T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-05T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
 
     const result = await ctx.entityService.listEntities<BaseEntity>("post", {
       publishedOnly: true,
@@ -199,56 +219,72 @@ describe("listEntities sortFields with nullsFirst", () => {
     ]);
 
     // Posts with publishedAt (published)
-    await insertTestEntity(ctx.dbConfig, {
-      id: "published-1",
-      entityType: "post",
-      content: "Published post 1",
-      metadata: {
-        publishedAt: "2025-01-03T00:00:00.000Z",
-        status: "published",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "published-1",
+        entityType: "post",
+        content: "Published post 1",
+        metadata: {
+          publishedAt: "2025-01-03T00:00:00.000Z",
+          status: "published",
+        },
+        created: new Date("2025-01-01T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-01T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-01T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "published-2",
-      entityType: "post",
-      content: "Published post 2",
-      metadata: {
-        publishedAt: "2025-01-01T00:00:00.000Z",
-        status: "published",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "published-2",
+        entityType: "post",
+        content: "Published post 2",
+        metadata: {
+          publishedAt: "2025-01-01T00:00:00.000Z",
+          status: "published",
+        },
+        created: new Date("2025-01-02T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-02T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-02T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
 
     // Posts without publishedAt (drafts)
-    await insertTestEntity(ctx.dbConfig, {
-      id: "draft-1",
-      entityType: "post",
-      content: "Draft post 1",
-      metadata: {
-        status: "draft",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "draft-1",
+        entityType: "post",
+        content: "Draft post 1",
+        metadata: {
+          status: "draft",
+        },
+        created: new Date("2025-01-03T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-03T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-03T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "draft-2",
-      entityType: "post",
-      content: "Draft post 2",
-      metadata: {
-        status: "draft",
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "draft-2",
+        entityType: "post",
+        content: "Draft post 2",
+        metadata: {
+          status: "draft",
+        },
+        created: new Date("2025-01-04T10:00:00.000Z").getTime(),
+        updated: new Date("2025-01-04T10:00:00.000Z").getTime(),
+        embedding: mockEmbedding,
       },
-      created: new Date("2025-01-04T10:00:00.000Z").getTime(),
-      updated: new Date("2025-01-04T10:00:00.000Z").getTime(),
-      embedding: mockEmbedding,
-    });
+      ctx.embeddingDbConfig,
+    );
   });
 
   afterEach(async () => {

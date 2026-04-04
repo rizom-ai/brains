@@ -29,8 +29,8 @@ export interface EntityMutationDeps {
   jobQueueService: IJobQueueService;
   logger: Logger;
   messageBus?: MessageBus;
-  /** Separate embedding DB for writes. When absent, uses entity DB. */
-  embeddingDb?: EmbeddingDB;
+  /** Embedding DB for writes (separate from entity DB). */
+  embeddingDb: EmbeddingDB;
 }
 
 /**
@@ -49,7 +49,7 @@ export class EntityMutations {
 
   constructor(deps: EntityMutationDeps) {
     this.db = deps.db;
-    this.embeddingDb = deps.embeddingDb ?? deps.db;
+    this.embeddingDb = deps.embeddingDb;
     this.entityRegistry = deps.entityRegistry;
     this.entitySerializer = deps.entitySerializer;
     this.entityQueries = deps.entityQueries;

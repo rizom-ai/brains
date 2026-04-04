@@ -2,7 +2,6 @@ import type { Client } from "@libsql/client";
 import {
   createEntityDatabase,
   enableWALModeForEntities,
-  ensureEntityIndexes,
   type EntityDB,
 } from "./db";
 import {
@@ -49,9 +48,9 @@ export interface EntityServiceOptions {
   jobQueueService?: IJobQueueService;
   messageBus?: MessageBus;
   dbConfig: EntityDbConfig;
-  /** Separate embedding database config. When provided, embeddings are stored
-   *  in a dedicated database file instead of alongside entities. */
-  embeddingDbConfig?: EntityDbConfig;
+  /** Embedding database config. Embeddings are stored in a dedicated
+   *  database file, separate from entities. */
+  embeddingDbConfig: EntityDbConfig;
 }
 
 /**
@@ -68,8 +67,8 @@ export class EntityService implements IEntityService {
   private db: EntityDB;
   private dbClient: Client;
   private dbUrl: string;
-  private embeddingDb: EmbeddingDB | null = null;
-  private embeddingDbClient: Client | null = null;
+  private embeddingDb: EmbeddingDB;
+  private embeddingDbClient: Client;
   private entityRegistry: EntityRegistry;
   private logger: Logger;
   private jobQueueService: IJobQueueService;
@@ -96,7 +95,7 @@ export class EntityService implements IEntityService {
    * Close the underlying database connections.
    */
   public close(): void {
-    this.embeddingDbClient?.close();
+    this.embeddingDbClient.close();
     this.dbClient.close();
   }
 
@@ -110,12 +109,10 @@ export class EntityService implements IEntityService {
     this.dbClient = client;
     this.dbUrl = url;
 
-    // Set up separate embedding database when configured
-    if (options.embeddingDbConfig) {
-      const emb = createEmbeddingDatabase(options.embeddingDbConfig);
-      this.embeddingDb = emb.db;
-      this.embeddingDbClient = emb.client;
-    }
+    // Set up separate embedding database
+    const emb = createEmbeddingDatabase(options.embeddingDbConfig);
+    this.embeddingDb = emb.db;
+    this.embeddingDbClient = emb.client;
 
     this.entityRegistry =
       options.entityRegistry ??
@@ -138,14 +135,13 @@ export class EntityService implements IEntityService {
       db: this.db,
       serializer: this.entitySerializer,
       logger: this.logger,
-      ...(this.embeddingDb && { embeddingDb: this.embeddingDb }),
+      embeddingDb: this.embeddingDb,
     });
     this.entitySearch = new EntitySearch(
       this.db,
       options.embeddingService,
       this.entitySerializer,
       this.logger,
-      this.embeddingDb !== null,
     );
     this.entityMutations = new EntityMutations({
       db: this.db,
@@ -155,7 +151,7 @@ export class EntityService implements IEntityService {
       jobQueueService: this.jobQueueService,
       logger: this.logger,
       ...(options.messageBus && { messageBus: options.messageBus }),
-      ...(this.embeddingDb && { embeddingDb: this.embeddingDb }),
+      embeddingDb: this.embeddingDb,
     });
     this.contentResolver = new ContentResolver(this.logger);
 
@@ -178,26 +174,19 @@ export class EntityService implements IEntityService {
   }
 
   private async initializeDatabase(
-    embeddingDbConfig?: EntityDbConfig,
+    embeddingDbConfig: EntityDbConfig,
   ): Promise<void> {
     await enableWALModeForEntities(this.dbClient, this.dbUrl);
-
-    if (this.embeddingDbClient && embeddingDbConfig) {
-      // Separate embedding DB: migrate, index, and attach
-      await enableWALModeForEmbeddings(
-        this.embeddingDbClient,
-        embeddingDbConfig.url,
-      );
-      await migrateEmbeddingDatabase(this.embeddingDbClient);
-      await ensureEmbeddingIndexes(this.embeddingDbClient);
-      await attachEmbeddingDatabase(
-        this.dbClient,
-        dbUrlToPath(embeddingDbConfig.url),
-      );
-    } else {
-      // Legacy: embeddings in entity DB
-      await ensureEntityIndexes(this.dbClient);
-    }
+    await enableWALModeForEmbeddings(
+      this.embeddingDbClient,
+      embeddingDbConfig.url,
+    );
+    await migrateEmbeddingDatabase(this.embeddingDbClient);
+    await ensureEmbeddingIndexes(this.embeddingDbClient);
+    await attachEmbeddingDatabase(
+      this.dbClient,
+      dbUrlToPath(embeddingDbConfig.url),
+    );
   }
 
   // ── Mutations ─────────────────────────────────────────────────────

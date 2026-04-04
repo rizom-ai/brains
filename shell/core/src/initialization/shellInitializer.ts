@@ -301,6 +301,12 @@ export class ShellInitializer {
           authToken: this.config.database.authToken,
         }),
       },
+      embeddingDbConfig: {
+        url: this.config.embeddingDatabase.url,
+        ...(this.config.embeddingDatabase.authToken && {
+          authToken: this.config.embeddingDatabase.authToken,
+        }),
+      },
     });
 
     const conversationService =

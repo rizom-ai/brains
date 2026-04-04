@@ -16,35 +16,47 @@ describe("countEntities", () => {
       { name: "post", schema: postSchema, adapter: postAdapter },
     ]);
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-1",
-      entityType: "post",
-      content: "Post 1",
-      metadata: { status: "published", category: "tech" },
-      created: Date.now(),
-      updated: Date.now(),
-      embedding: mockEmbedding,
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-1",
+        entityType: "post",
+        content: "Post 1",
+        metadata: { status: "published", category: "tech" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-2",
-      entityType: "post",
-      content: "Post 2",
-      metadata: { status: "published", category: "life" },
-      created: Date.now(),
-      updated: Date.now(),
-      embedding: mockEmbedding,
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-2",
+        entityType: "post",
+        content: "Post 2",
+        metadata: { status: "published", category: "life" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
 
-    await insertTestEntity(ctx.dbConfig, {
-      id: "post-3",
-      entityType: "post",
-      content: "Post 3",
-      metadata: { status: "draft", category: "tech" },
-      created: Date.now(),
-      updated: Date.now(),
-      embedding: mockEmbedding,
-    });
+    await insertTestEntity(
+      ctx.dbConfig,
+      {
+        id: "post-3",
+        entityType: "post",
+        content: "Post 3",
+        metadata: { status: "draft", category: "tech" },
+        created: Date.now(),
+        updated: Date.now(),
+        embedding: mockEmbedding,
+      },
+      ctx.embeddingDbConfig,
+    );
   });
 
   afterEach(async () => {

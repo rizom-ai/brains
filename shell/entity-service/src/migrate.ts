@@ -1,10 +1,6 @@
 #!/usr/bin/env bun
 import { migrate } from "drizzle-orm/libsql/migrator";
-import {
-  createEntityDatabase,
-  enableWALModeForEntities,
-  ensureEntityIndexes,
-} from "./db";
+import { createEntityDatabase, enableWALModeForEntities } from "./db";
 import type { EntityDbConfig } from "./types";
 import { Logger } from "@brains/utils";
 
@@ -29,9 +25,6 @@ export async function migrateEntities(
       ? new URL("./migrations/entity-service", import.meta.url).pathname
       : new URL("../drizzle", import.meta.url).pathname;
     await migrate(db, { migrationsFolder });
-
-    // Ensure indexes exist
-    await ensureEntityIndexes(client);
 
     log.debug("Entity database migrations completed successfully");
   } catch (error) {

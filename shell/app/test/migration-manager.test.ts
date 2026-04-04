@@ -23,6 +23,10 @@ describe("MigrationManager", () => {
       url: "file:conversation.db",
       authToken: "conv-token",
     },
+    embeddingDatabase: {
+      url: "file:embeddings.db",
+      authToken: "emb-token",
+    },
     embedding: {
       cacheDir: "/test/cache/embeddings",
     },
@@ -107,6 +111,10 @@ describe("MigrationManager", () => {
         },
         conversationDatabase: {
           url: "file:conversation.db",
+          authToken: undefined,
+        },
+        embeddingDatabase: {
+          url: "file:embeddings.db",
           authToken: undefined,
         },
         embedding: {

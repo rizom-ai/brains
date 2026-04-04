@@ -45,6 +45,7 @@ function createTestConfig(dir: string): ShellConfigInput {
     database: { url: `file:${dir}/test.db` },
     jobQueueDatabase: { url: `file:${dir}/test-jobs.db` },
     conversationDatabase: { url: `file:${dir}/test-conv.db` },
+    embeddingDatabase: { url: `file:${dir}/test-embeddings.db` },
     embedding: {
       cacheDir: `${dir}/embeddings`,
       model: "fast-all-MiniLM-L6-v2",

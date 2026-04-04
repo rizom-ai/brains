@@ -15,6 +15,7 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
+import { createTestEntityDatabase } from "./helpers/test-entity-db";
 import {
   noteSchema as sharedNoteSchema,
   noteAdapter as sharedNoteAdapter,
@@ -66,10 +67,14 @@ describe("EntityService", (): void => {
   let logger: Logger;
   let entityRegistry: EntityRegistry;
   let entityService: EntityService;
+  let cleanup: () => Promise<void>;
 
-  beforeEach((): void => {
+  beforeEach(async (): Promise<void> => {
     EntityService.resetInstance();
     EntityRegistry.resetInstance();
+
+    const testDb = await createTestEntityDatabase();
+    cleanup = testDb.cleanup;
 
     const mockJobQueueService = createMockJobQueueService({
       returns: { enqueue: "mock-job-id" },
@@ -82,8 +87,15 @@ describe("EntityService", (): void => {
       entityRegistry,
       logger,
       jobQueueService: mockJobQueueService,
-      dbConfig: { url: "file::memory:" },
+      dbConfig: testDb.config,
+      embeddingDbConfig: testDb.embeddingConfig,
     });
+  });
+
+  afterEach(async (): Promise<void> => {
+    EntityService.resetInstance();
+    EntityRegistry.resetInstance();
+    await cleanup();
   });
 
   test("getEntityTypes returns empty array when no types registered", (): void => {

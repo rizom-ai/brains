@@ -42,8 +42,8 @@ export interface EntityQueryDeps {
   db: EntityDB;
   serializer: EntitySerializer;
   logger: Logger;
-  /** Separate embedding DB for delete cascading. When absent, uses entity DB. */
-  embeddingDb?: EmbeddingDB;
+  /** Embedding DB for delete cascading (separate from entity DB). */
+  embeddingDb: EmbeddingDB;
 }
 
 export class EntityQueries {
@@ -54,7 +54,7 @@ export class EntityQueries {
 
   constructor(deps: EntityQueryDeps) {
     this.db = deps.db;
-    this.embeddingDb = deps.embeddingDb ?? deps.db;
+    this.embeddingDb = deps.embeddingDb;
     this.serializer = deps.serializer;
     this.logger = deps.logger.child("EntityQueries");
   }

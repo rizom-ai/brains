@@ -24,6 +24,10 @@ export interface StandardConfig {
     url: string;
     authToken: string | undefined;
   };
+  embeddingDatabase: {
+    url: string;
+    authToken: string | undefined;
+  };
   embedding: {
     cacheDir: string;
   };
@@ -42,6 +46,10 @@ export function getStandardConfig(): StandardConfig {
     conversationDatabase: {
       url: `file:${STANDARD_PATHS.dataDir}/conversations.db`,
       authToken: process.env["CONVERSATION_DATABASE_AUTH_TOKEN"],
+    },
+    embeddingDatabase: {
+      url: `file:${STANDARD_PATHS.dataDir}/embeddings.db`,
+      authToken: process.env["DATABASE_AUTH_TOKEN"],
     },
     embedding: {
       cacheDir: `${STANDARD_PATHS.cacheDir}/embeddings`,
@@ -78,6 +86,10 @@ export const shellConfigSchema = z.object({
     authToken: z.string().optional(),
   }),
   conversationDatabase: z.object({
+    url: z.string(),
+    authToken: z.string().optional(),
+  }),
+  embeddingDatabase: z.object({
     url: z.string(),
     authToken: z.string().optional(),
   }),
@@ -139,6 +151,8 @@ export function createShellConfig(
       overrides.jobQueueDatabase ?? standardConfig.jobQueueDatabase,
     conversationDatabase:
       overrides.conversationDatabase ?? standardConfig.conversationDatabase,
+    embeddingDatabase:
+      overrides.embeddingDatabase ?? standardConfig.embeddingDatabase,
     ai: {
       apiKey: overrides.ai?.apiKey ?? "",
       ...(overrides.ai?.imageApiKey

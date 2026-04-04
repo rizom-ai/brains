@@ -1,9 +1,5 @@
 import { describe, test, expect, afterEach } from "bun:test";
-import {
-  createEntityDatabase,
-  enableWALModeForEntities,
-  ensureEntityIndexes,
-} from "../src/db";
+import { createEntityDatabase, enableWALModeForEntities } from "../src/db";
 
 describe("EntityService Database", () => {
   const clients: Array<{ close: () => void }> = [];
@@ -73,33 +69,6 @@ describe("EntityService Database", () => {
     });
   });
 
-  describe("ensureEntityIndexes", () => {
-    test("creates vector index without error", async () => {
-      const { client } = createEntityDatabase({ url: "file::memory:" });
-      trackClient(client);
-
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS entities (
-          id TEXT NOT NULL,
-          entityType TEXT NOT NULL,
-          PRIMARY KEY (id, entityType)
-        )
-      `);
-
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS embeddings (
-          entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL,
-          embedding F32_BLOB(384),
-          content_hash TEXT NOT NULL,
-          PRIMARY KEY (entity_id, entity_type)
-        )
-      `);
-
-      await ensureEntityIndexes(client);
-    });
-  });
-
   describe("integration", () => {
     test("full database initialization flow", async () => {
       const config = { url: "file::memory:" };
@@ -119,18 +88,6 @@ describe("EntityService Database", () => {
           PRIMARY KEY (id, entityType)
         )
       `);
-
-      await client.execute(`
-        CREATE TABLE IF NOT EXISTS embeddings (
-          entity_id TEXT NOT NULL,
-          entity_type TEXT NOT NULL,
-          embedding F32_BLOB(384),
-          content_hash TEXT NOT NULL,
-          PRIMARY KEY (entity_id, entity_type)
-        )
-      `);
-
-      await ensureEntityIndexes(client);
 
       await client.execute(
         "INSERT INTO entities (id, entityType) VALUES (?, ?)",
