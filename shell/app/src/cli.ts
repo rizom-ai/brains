@@ -335,8 +335,10 @@ async function runDiagnostics(
   args: string[],
   App: AppFactory,
 ): Promise<void> {
-  const { Logger } = await import("@brains/utils");
-  Logger.getInstance().setUseStderr(true);
+  const { Logger, LogLevel } = await import("@brains/utils");
+  // Suppress plugin registration noise — only show warnings and errors
+  Logger.resetInstance();
+  Logger.getInstance({ level: LogLevel.WARN, useStderr: true });
 
   const subcommand = args[0] ?? "";
 
