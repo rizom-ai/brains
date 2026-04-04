@@ -149,7 +149,7 @@ export class EntitySearch {
         sql`emb.embeddings AS emb_e`,
         sql`${entities.id} = emb_e.entity_id AND ${entities.entityType} = emb_e.entity_type`,
       )
-      .where(and(sql`${distanceExpr} < 1.0`, ...typeConditions))
+      .where(and(sql`${distanceExpr} < 0.82`, ...typeConditions))
       .orderBy(desc(combinedScore))
       .limit(limit)
       .offset(offset);

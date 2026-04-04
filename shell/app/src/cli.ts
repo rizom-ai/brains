@@ -88,6 +88,9 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   } else if (args.includes("--list-cli-commands")) {
     // List CLI-enabled tools for dynamic help
     await listCliCommands(config, App);
+  } else if (args[0] === "diagnostics") {
+    // Diagnostics mode: boot brain, run diagnostics, exit
+    await runDiagnostics(config, args.slice(1), App);
   } else if (args.includes("--cli-command")) {
     // Headless mode via CLI command name: boot, find tool by cli.name, invoke, exit
     await runCliCommand(config, args, App);
@@ -321,6 +324,115 @@ async function runTool(
     process.exit(1);
   }
 
+  process.exit(0);
+}
+
+/**
+ * Run diagnostics: boot brain (full, with daemons disabled), analyze, exit.
+ */
+async function runDiagnostics(
+  config: AppConfig,
+  args: string[],
+  App: AppFactory,
+): Promise<void> {
+  const { Logger } = await import("@brains/utils");
+  Logger.getInstance().setUseStderr(true);
+
+  const subcommand = args[0] ?? "";
+
+  if (subcommand !== "search") {
+    console.error("Usage: brain diagnostics search");
+    process.exit(1);
+  }
+
+  // Boot in registerOnly mode — no daemons, no sync, no builds.
+  // We only need access to the existing entity + embedding data.
+  const headlessConfig: AppConfig = {
+    ...config,
+    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+  };
+
+  const app = App.create(headlessConfig);
+  await app.initialize({ registerOnly: true });
+
+  const shell = app.getShell();
+  const entityService = shell.getEntityService();
+  await entityService.initialize();
+
+  const entityTypes = entityService.getEntityTypes();
+  const allEntities: Array<{ id: string; entityType: string; title: string }> =
+    [];
+
+  for (const type of entityTypes) {
+    const entities = await entityService.listEntities(type, { limit: 100 });
+    for (const entity of entities) {
+      const meta = entity.metadata as Record<string, unknown>;
+      const title = String(meta["title"] ?? meta["name"] ?? entity.id);
+      allEntities.push({ id: entity.id, entityType: entity.entityType, title });
+    }
+  }
+
+  if (allEntities.length === 0) {
+    console.error("No entities found");
+    process.exit(1);
+  }
+
+  console.log(`\nAnalyzing ${allEntities.length} entities...\n`);
+
+  const sampleSize = Math.min(20, allEntities.length);
+  const samples = allEntities
+    .sort(() => Math.random() - 0.5)
+    .slice(0, sampleSize);
+
+  const allDistances: number[] = [];
+  const selfDistances: number[] = [];
+
+  for (const sample of samples) {
+    const results = await entityService.searchWithDistances(sample.title);
+    for (const r of results) {
+      allDistances.push(r.distance);
+      if (r.entityId === sample.id && r.entityType === sample.entityType) {
+        selfDistances.push(r.distance);
+      }
+    }
+  }
+
+  allDistances.sort((a, b) => a - b);
+  selfDistances.sort((a, b) => a - b);
+
+  const pct = (arr: number[], p: number): number => {
+    if (arr.length === 0) return 0;
+    const idx = Math.ceil((p / 100) * arr.length) - 1;
+    return arr[Math.max(0, idx)] ?? 0;
+  };
+
+  console.log("=== Search Distance Distribution ===\n");
+  console.log(`Queries sampled: ${samples.length}`);
+  console.log(`Total distance measurements: ${allDistances.length}`);
+  console.log(`Self-match distances: ${selfDistances.length}\n`);
+
+  console.log("All distances:");
+  for (const p of [0, 25, 50, 75, 90, 95, 100]) {
+    const label = p === 0 ? "min" : p === 100 ? "max" : `p${p}`;
+    console.log(`  ${label.padEnd(5)} ${pct(allDistances, p).toFixed(4)}`);
+  }
+
+  console.log("\nSelf-match distances (query = entity title):");
+  console.log(`  min:  ${pct(selfDistances, 0).toFixed(4)}`);
+  console.log(`  p50:  ${pct(selfDistances, 50).toFixed(4)}`);
+  console.log(`  max:  ${pct(selfDistances, 100).toFixed(4)}\n`);
+
+  const p75 = pct(allDistances, 75);
+  const p90 = pct(allDistances, 90);
+  const suggested = Number(((p75 + p90) / 2).toFixed(4));
+
+  console.log(`Current threshold: 1.0`);
+  console.log(`Suggested threshold: ${suggested}`);
+  console.log(
+    `  (midpoint between p75=${p75.toFixed(4)} and p90=${p90.toFixed(4)})\n`,
+  );
+
+  await shell.shutdown();
   process.exit(0);
 }
 
