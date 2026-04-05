@@ -273,6 +273,9 @@ export interface EntityService extends ICoreEntityService {
   serializeEntity(entity: BaseEntity): string;
   deserializeEntity(markdown: string, entityType: string): Partial<BaseEntity>;
 
+  // Counts
+  countEmbeddings(): Promise<number>;
+
   // Diagnostics
   searchWithDistances(
     query: string,

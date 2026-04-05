@@ -55,6 +55,7 @@ function createMockEntityService(): EntityService {
     getAsyncJobStatus: async () => null,
     storeEmbedding: async () => undefined,
     searchWithDistances: async () => [],
+    countEmbeddings: async () => 0,
     initialize: async () => undefined,
   };
 }

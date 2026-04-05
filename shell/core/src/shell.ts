@@ -80,6 +80,7 @@ export class Shell implements IShell {
   private readonly services: ShellServices;
   private initialized = false;
   private readonly insightsRegistry: IInsightsRegistry;
+  private readonly bootTime = Date.now();
 
   public readonly jobs: IJobsNamespace;
 
@@ -566,28 +567,22 @@ export class Shell implements IShell {
   }
 
   public async getAppInfo(): Promise<AppInfo> {
-    const interfaces = await this.services.daemonRegistry.getStatuses();
-
-    const plugins = Array.from(
-      this.services.pluginManager.getAllPlugins().values(),
-    ).map((info) => ({
-      id: info.plugin.id,
-      type: info.plugin.type,
-      version: info.plugin.version,
-      status: info.status,
-    }));
-
-    const tools = this.services.mcpService.listTools().map(({ tool }) => ({
-      name: tool.name,
-      description: tool.description,
-    }));
+    const entityCounts = await this.services.entityService.getEntityCounts();
+    const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
+    const embeddingCount = await this.services.entityService.countEmbeddings();
+    const daemons = await this.services.daemonRegistry.getStatuses();
 
     return {
       model: this.config.name || "brain-app",
       version: this.config.version || "1.0.0",
-      plugins,
-      interfaces,
-      tools,
+      uptime: Math.floor((Date.now() - this.bootTime) / 1000),
+      entities: totalEntities,
+      embeddings: embeddingCount,
+      ai: {
+        model: this.config.ai.model,
+        embeddingModel: "text-embedding-3-small",
+      },
+      daemons,
     };
   }
 
@@ -629,6 +624,7 @@ export class Shell implements IShell {
         getIdentity: () => this.services.identityService.getCharacter(),
         getProfile: () => this.services.profileService.getProfile(),
         getAppInfo: () => this.getAppInfo(),
+        getDaemonStatuses: () => this.services.daemonRegistry.getStatuses(),
         searchLimit: 10,
         insights: this.insightsRegistry,
       },

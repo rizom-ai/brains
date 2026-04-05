@@ -11,7 +11,7 @@ import {
   type UpdateEntityResponse,
 } from "@brains/utils";
 import type { IMessageBus } from "@brains/messaging-service";
-import type { Daemon } from "./manager/daemon-types";
+import { DaemonStatusInfoSchema, type Daemon } from "./manager/daemon-types";
 import type { IContentService } from "@brains/content-service";
 import type { Template } from "@brains/templates";
 import type { Logger } from "@brains/utils";
@@ -50,7 +50,6 @@ import type { PermissionService } from "@brains/templates";
 import type { DataSourceRegistry } from "@brains/entity-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
-import { DaemonStatusInfoSchema } from "./manager/daemon-types";
 import type { IAgentService } from "@brains/ai-service";
 import type {
   ImageGenerationOptions,
@@ -102,9 +101,14 @@ export const toolInfoSchema = z.object({
 export const appInfoSchema = z.object({
   model: z.string(),
   version: z.string(),
-  plugins: z.array(pluginInfoSchema),
-  interfaces: z.array(DaemonStatusInfoSchema),
-  tools: z.array(toolInfoSchema).optional(),
+  uptime: z.number(),
+  entities: z.number(),
+  embeddings: z.number(),
+  ai: z.object({
+    model: z.string(),
+    embeddingModel: z.string(),
+  }),
+  daemons: z.array(DaemonStatusInfoSchema),
 });
 
 export type AppInfo = z.infer<typeof appInfoSchema>;

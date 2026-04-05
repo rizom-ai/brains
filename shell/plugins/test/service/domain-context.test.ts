@@ -83,7 +83,7 @@ describe("Top-level context properties", () => {
       const info = await context.appInfo();
       expect(info.model).toBe("test-brain");
       expect(info.version).toBe("1.0.0");
-      expect(info.plugins).toEqual([]);
+      expect(typeof info.uptime).toBe("number");
     });
   });
 

@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils";
+import type { AppInfo } from "@brains/plugins";
 import { resolve, join } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -12,6 +13,8 @@ export interface ServerManagerOptions {
   sharedImagesDir: string;
   previewPort?: number;
   productionPort: number;
+  /** Returns app info for the /health endpoint. */
+  getHealthData?: () => Promise<AppInfo>;
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
@@ -146,7 +149,13 @@ export class ServerManager {
     const app = new Hono();
 
     if (opts.healthEndpoint) {
-      app.get("/health", (c) => c.json({ status: "healthy" }, 200));
+      app.get("/health", async (c) => {
+        if (this.options.getHealthData) {
+          const info = await this.options.getHealthData();
+          return c.json({ status: "healthy", ...info }, 200);
+        }
+        return c.json({ status: "healthy" }, 200);
+      });
     }
 
     if (opts.compress) {

@@ -81,6 +81,7 @@ export function createSystemWidgets(
       rendererName: "SystemWidget",
       dataProvider: async (): Promise<Record<string, unknown>> => {
         const appInfo = await services.getAppInfo();
+        const daemons = await services.getDaemonStatuses();
         const links: Array<{ label: string; url: string }> = [];
 
         const profile = services.getProfile();
@@ -88,15 +89,13 @@ export function createSystemWidgets(
           links.push({ label: "Site", url: profile.website });
         }
 
-        const webserver = appInfo.interfaces.find((i) =>
-          i.name.startsWith("webserver"),
-        );
+        const webserver = daemons.find((d) => d.name.startsWith("webserver"));
         const previewUrl = webserver?.health?.details?.["previewUrl"];
         if (typeof previewUrl === "string") {
           links.push({ label: "Preview", url: previewUrl });
         }
 
-        const mcp = appInfo.interfaces.find((i) => i.name.startsWith("mcp"));
+        const mcp = daemons.find((d) => d.name.startsWith("mcp"));
         const mcpUrl = mcp?.health?.details?.["url"];
         if (typeof mcpUrl === "string") {
           links.push({ label: "MCP", url: mcpUrl });
@@ -104,7 +103,7 @@ export function createSystemWidgets(
 
         return {
           version: appInfo.version,
-          plugins: `${appInfo.plugins.length} active`,
+          entities: appInfo.entities,
           rendered: new Date().toLocaleString(),
           links: links.length > 0 ? links : undefined,
         };

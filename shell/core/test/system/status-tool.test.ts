@@ -23,17 +23,36 @@ describe("system_status tool", () => {
 
   it("should return app info on success", async () => {
     const tool = findTool("system_status");
-    const result = (await tool.handler(
+    const result = await tool.handler(
       {},
-      {
-        interfaceType: "test",
-        userId: "test",
-      },
-    )) as { success: boolean; data: unknown };
+      { interfaceType: "test", userId: "test" },
+    );
 
-    expect(result.success).toBe(true);
-    expect(result.data).toHaveProperty("model", "test");
-    expect(result.data).toHaveProperty("version", "1.0.0");
+    expect("success" in result && result.success).toBe(true);
+    if (!("success" in result) || !result.success) return;
+
+    const data = result.data as Record<string, unknown>;
+    expect(data["model"]).toBe("test");
+    expect(data["version"]).toBe("1.0.0");
+    expect(typeof data["uptime"]).toBe("number");
+    expect(data["entities"]).toBeDefined();
+    expect(data["ai"]).toBeDefined();
+  });
+
+  it("should not include plugin or tool lists", async () => {
+    const tool = findTool("system_status");
+    const result = await tool.handler(
+      {},
+      { interfaceType: "test", userId: "test" },
+    );
+
+    expect("success" in result && result.success).toBe(true);
+    if (!("success" in result) || !result.success) return;
+
+    const data = result.data as Record<string, unknown>;
+    expect(data["plugins"]).toBeUndefined();
+    expect(data["tools"]).toBeUndefined();
+    expect(data["interfaces"]).toBeUndefined();
   });
 
   it("should be publicly visible", () => {

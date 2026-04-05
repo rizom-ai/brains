@@ -123,9 +123,12 @@ export class EntitySearch {
     const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
-    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not
+    // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not.
+    // Wrap in double quotes for phrase matching — prevents special characters
+    // (?, *, OR, AND, etc.) from being parsed as FTS5 operators.
+    const ftsQuery = '"' + query.replace(/"/g, '""') + '"';
     const ftsBoost = sql<number>`CASE WHEN EXISTS (
-      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${query}
+      SELECT 1 FROM entity_fts WHERE entity_fts MATCH ${ftsQuery}
         AND entity_id = ${entities.id} AND entity_type = ${entities.entityType}
     ) THEN 1.0 ELSE 0.0 END`;
 

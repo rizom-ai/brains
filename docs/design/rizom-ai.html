@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rizom.ai — Build the agent that represents you</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Chakra+Petch:wght@400;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&family=Space+Grotesk:wght@400;600;700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0A1A;--bg-subtle:#0E0B1E;--bg-card:#1A0A3E;
+  --amber:#E87722;--amber-light:#FFA366;--amber-dark:#C45A08;
+  --purple:#6B2FA0;--purple-light:#8C82C8;--purple-muted:#818CF8;
+  --text:#FFFFFF;--text-muted:rgba(255,255,255,0.6);--text-dim:rgba(255,255,255,0.4);
+  --font-head:'Chakra Petch',system-ui,sans-serif;
+  --font-body:'Barlow',system-ui,sans-serif;
+  --font-mono:'Fira Code',monospace;
+  --font-label:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-nav:'Space Grotesk',system-ui,sans-serif;
+}
+/* Light mode overrides */
+body.light{
+  --bg:#F2EEE8;--bg-subtle:#EAE5DD;--bg-card:#F0ECE5;
+  --text:#1A1625;--text-muted:rgba(26,22,37,0.55);--text-dim:rgba(26,22,37,0.38);
+  background-color:var(--bg);background-image:none;
+}
+body.light nav{background:linear-gradient(180deg,rgba(242,238,232,0.95) 0%,rgba(242,238,232,0) 100%)}
+body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
+body.light .nav-cta:hover{border-color:var(--amber)}
+body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
+body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
+body.light .product-inner.rover{background:linear-gradient(135deg,rgba(232,119,34,0.05) 0%,rgba(232,119,34,0.01) 100%);border-color:rgba(232,119,34,0.1)}
+body.light .product-inner.relay{background:linear-gradient(135deg,rgba(107,47,160,0.05) 0%,rgba(107,47,160,0.01) 100%);border-color:rgba(107,47,160,0.08)}
+body.light .product-inner.ranger{background:linear-gradient(135deg,rgba(107,47,160,0.04) 0%,rgba(232,119,34,0.02) 100%);border-color:rgba(26,22,37,0.06)}
+body.light .answer{background:linear-gradient(180deg,var(--bg-subtle) 0%,var(--bg) 100%)}
+body.light .terminal{background:#1A1625;border-color:rgba(26,22,37,0.1)}
+body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
+body.light footer{border-top-color:rgba(26,22,37,0.06)}
+body.light #themeToggle{border-color:rgba(26,22,37,0.15);color:var(--text-dim)}
+body.light .feature-icon{border-color:var(--amber)}
+body.light .badge-amber{border-color:var(--amber);color:var(--amber)}
+body.light .badge-purple{border-color:var(--purple);color:var(--purple)}
+body.light .divider,body.light .divider-line{background:linear-gradient(90deg,transparent,rgba(232,119,34,0.25),transparent)}
+body.light .hero-canvas-wrap{opacity:1}
+body.light .problem-threads path{stroke-opacity:0.25}
+body.light .problem-threads circle{fill-opacity:0.4}
+body.light .product-illust{background:transparent}
+body.light .product-tags.amber span{color:var(--amber-dark)}
+body.light .product-tags.purple span{color:var(--purple)}
+body.light .product-label.amber{color:var(--amber-dark)}
+body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber-dark);background:rgba(232,119,34,0.08)}
+body.light .mission .highlight{color:var(--amber-dark)}
+body.light .problem-num{color:var(--amber-dark)}
+
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{
+  background:var(--bg);color:var(--text);font-family:var(--font-body);
+  line-height:1.6;overflow-x:hidden;max-width:100vw;
+  /* CSS grain */
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+a{color:inherit;text-decoration:none}
+*{overflow-wrap:break-word;word-wrap:break-word;min-width:0}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(32px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:0.1s}
+.reveal-delay-2{transition-delay:0.2s}
+.reveal-delay-3{transition-delay:0.3s}
+
+/* Section container */
+.section{width:100%;max-width:1440px;margin:0 auto;padding-left:80px;padding-right:80px}
+@media(max-width:768px){.section{padding-left:24px;padding-right:24px}}
+
+/* ============= NAV ============= */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 80px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(13,10,26,0.95) 0%,rgba(13,10,26,0) 100%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+nav .logo{display:flex;align-items:center;gap:0}
+nav .logo-rizom{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--text)}
+nav .logo-dot{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--amber)}
+nav .logo-ai{font-family:var(--font-nav);font-size:20px;color:var(--text-muted)}
+nav .nav-links{display:flex;align-items:center;gap:32px}
+nav .nav-links a{font-family:var(--font-body);font-size:15px;color:var(--text-muted);transition:color 0.3s}
+nav .nav-links a:hover{color:var(--text)}
+nav .nav-cta{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 24px;transition:all 0.3s}
+nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
+
+/* ============= HERO ============= */
+.hero{position:relative;min-height:80vh;display:flex;align-items:center;overflow:hidden}
+.hero-content{position:relative;z-index:2;width:55%;padding-top:80px}
+.hero h1{font-family:var(--font-head);font-size:clamp(40px,5.5vw,72px);font-weight:400;letter-spacing:-1px;line-height:1.1;margin-bottom:24px}
+.hero .subtitle{font-family:var(--font-body);font-size:18px;line-height:1.7;color:var(--text-muted);max-width:480px;margin-bottom:40px}
+.hero .cta-row{display:flex;gap:16px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:600;color:#fff;background:var(--amber);border:none;border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,119,34,0.3)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:500;color:var(--text);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08)}
+.hero-canvas-wrap{position:absolute;top:0;right:0;width:55%;height:100%}
+#heroCanvas{width:100%;height:100%}
+
+/* ============= PROBLEM ============= */
+.problem{padding-top:80px;padding-bottom:0;position:relative}
+.problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:60px}
+.problem-num{font-family:var(--font-head);font-size:clamp(48px,5vw,64px);font-weight:700;color:var(--amber);line-height:1;margin-bottom:16px}
+.problem-title{font-family:var(--font-nav);font-size:20px;font-weight:700;margin-bottom:12px}
+.problem-text{font-size:15px;line-height:1.7;color:var(--text-muted)}
+.problem-threads{position:absolute;bottom:20px;left:80px;right:80px;height:60px;pointer-events:none}
+
+/* ============= ANSWER ============= */
+.answer{padding-top:80px;padding-bottom:64px;text-align:center;background:linear-gradient(180deg,var(--bg-subtle) 0%,var(--bg) 100%)}
+.badge{display:inline-flex;align-items:center;padding:8px 20px;border:1px solid;border-radius:20px;font-family:var(--font-label);font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
+.badge-amber{border-color:var(--amber);color:var(--amber)}
+.badge-purple{border-color:var(--purple-light);color:var(--purple-light)}
+.answer h2{font-family:var(--font-head);font-size:clamp(32px,4vw,52px);letter-spacing:-1px;line-height:1.1;max-width:900px;margin:0 auto 24px}
+.answer .answer-sub{font-size:19px;line-height:1.7;color:var(--text-muted);max-width:640px;margin:0 auto}
+.answer .divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent);margin:48px auto}
+.answer .scales{font-family:var(--font-head);font-size:clamp(24px,3vw,36px);letter-spacing:-0.5px;line-height:1.1;margin-bottom:16px}
+.answer .scales-sub{font-size:16px;color:var(--text-dim);max-width:600px;margin:0 auto}
+
+/* ============= PRODUCT CARDS ============= */
+.product-card{padding-top:16px;padding-bottom:0}
+.product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid}
+.product-inner.rover{background:linear-gradient(135deg,rgba(232,119,34,0.08) 0%,rgba(232,119,34,0.02) 100%);border-color:rgba(232,119,34,0.15)}
+.product-inner.relay{background:linear-gradient(135deg,rgba(107,47,160,0.08) 0%,rgba(107,47,160,0.02) 100%);border-color:rgba(140,130,200,0.2);flex-direction:row-reverse}
+.product-inner.ranger{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 50%,rgba(107,47,160,0.04) 100%);border-color:rgba(120,100,220,0.15)}
+.product-text{flex:1;display:flex;flex-direction:column;gap:16px}
+.product-label{font-family:var(--font-nav);font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+.product-label.amber{color:var(--amber)}
+.product-label.purple{color:var(--purple-muted)}
+.product-badge{display:inline-flex;padding:4px 10px;border-radius:12px;font-family:var(--font-label);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.product-badge.amber{border:1px solid rgba(232,119,34,0.3);color:var(--amber);background:rgba(232,119,34,0.1)}
+.product-badge.purple{border:1px solid rgba(129,140,248,0.3);color:var(--purple-muted);background:rgba(129,140,248,0.1)}
+.product-h3{font-family:var(--font-head);font-size:clamp(26px,3vw,36px);letter-spacing:-0.5px;line-height:1.2}
+.product-desc{font-size:16px;line-height:1.8;color:var(--text-muted)}
+.product-tags{display:flex;gap:24px;padding-top:8px}
+.product-tags span{font-family:var(--font-label);font-size:13px;font-weight:600}
+.product-tags.amber span{color:rgba(232,119,34,0.6)}
+.product-tags.purple span{color:rgba(129,140,248,0.55)}
+.product-illust{flex-shrink:0;width:511px;max-width:100%;height:320px;border-radius:16px;overflow:hidden;position:relative}
+
+/* ============= OWNERSHIP ============= */
+.ownership{padding-top:80px;padding-bottom:0}
+.ownership-grid{display:flex;gap:80px;align-items:flex-start}
+.ownership-left{width:45%}
+.ownership-right{width:55%;display:flex;flex-direction:column;gap:32px;padding-top:60px}
+.ownership h2{font-family:var(--font-head);font-size:clamp(32px,4vw,48px);letter-spacing:-1px;line-height:1.1;margin-top:24px}
+.feature-row{display:flex;gap:20px;align-items:flex-start}
+.feature-icon{min-width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid var(--amber);border-radius:8px;font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--amber)}
+.feature-title{font-family:var(--font-nav);font-size:20px;font-weight:700;margin-bottom:6px}
+.feature-desc{font-size:15px;line-height:1.7;color:var(--text-muted)}
+
+/* ============= QUICK START ============= */
+.quickstart{padding-top:80px;padding-bottom:0}
+.quickstart-grid{display:flex;gap:80px;align-items:flex-start}
+.quickstart-left{width:420px;flex-shrink:0;max-width:100%}
+.quickstart h2{font-family:var(--font-head);font-size:36px;letter-spacing:-0.5px;line-height:1.2;margin-top:16px}
+.quickstart .qs-desc{font-size:15px;line-height:1.7;color:var(--text-muted);margin-top:16px}
+.terminal{flex:1;background:#12101F;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:32px;font-family:var(--font-mono);font-size:14px}
+.terminal .label{color:var(--text-dim);font-size:12px;margin-bottom:4px}
+.terminal .cmd{color:var(--amber);margin-bottom:16px}
+.terminal .sep{height:1px;background:rgba(255,255,255,0.06);margin:16px 0}
+.terminal .ok{color:#4ade80}
+
+/* ============= MISSION ============= */
+.mission{padding-top:80px;padding-bottom:0;text-align:center;position:relative}
+.mission .pre{font-size:18px;line-height:1.7;color:var(--text-dim);max-width:520px;margin:0 auto 40px}
+.mission h2{font-family:var(--font-head);font-size:clamp(40px,5.5vw,72px);letter-spacing:-2px;line-height:1}
+.mission .highlight{color:var(--amber)}
+.mission .post{font-size:17px;line-height:1.7;color:var(--text-dim);max-width:500px;margin:32px auto 0}
+.mission .mission-cta{display:flex;gap:20px;justify-content:center;margin-top:40px}
+.mission .divider-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.3),transparent);margin:0 auto 48px}
+
+/* ============= ECOSYSTEM ============= */
+.ecosystem{padding-top:64px;padding-bottom:0}
+.eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px}
+.eco-brand{display:flex;align-items:center;gap:4px;font-family:var(--font-nav);font-size:16px;margin-bottom:8px}
+.eco-brand .r{font-weight:700}
+.eco-brand .d{font-weight:700;color:var(--amber)}
+.eco-brand .s{color:var(--text-muted)}
+.eco-title{font-family:var(--font-nav);font-size:22px;font-weight:700}
+.eco-desc{font-size:14px;line-height:1.7;color:var(--text-muted)}
+.eco-link{font-family:var(--font-body);font-size:14px;font-weight:500;margin-top:8px;transition:opacity 0.3s}
+.eco-link.amber{color:var(--amber)}
+.eco-link.purple{color:var(--purple-light)}
+.eco-link:hover{opacity:0.7}
+
+/* ============= FOOTER ============= */
+footer{padding:24px 80px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.04)}
+footer .foot-left{display:flex;align-items:center;gap:12px}
+footer .foot-brand{font-family:var(--font-nav);font-size:15px}
+footer .foot-copy{font-size:13px;color:var(--text-dim)}
+footer .foot-links{display:flex;gap:24px}
+footer .foot-links a{font-size:13px;color:var(--text-dim);transition:color 0.3s}
+footer .foot-links a:hover{color:var(--text)}
+
+/* Tablet — keep side-by-side but tighten */
+@media(max-width:1100px){
+  .section{padding-left:40px;padding-right:40px}
+  nav{padding:16px 40px}
+  .product-inner{gap:32px;padding:36px}
+  .product-illust{width:320px;height:240px}
+  .ownership-grid,.quickstart-grid{gap:40px}
+  .quickstart-left{width:280px}
+  footer{padding:24px 40px}
+}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  .section{padding-left:24px;padding-right:24px}
+
+  /* Nav — clean and minimal */
+  nav{padding:16px 24px}
+  nav .nav-links a:not(.nav-cta){display:none}
+  nav .nav-links{gap:12px}
+  nav .nav-cta{padding:8px 16px;font-size:13px}
+
+  /* Hero — generous vertical space, canvas as atmosphere */
+  .hero{min-height:auto;padding-top:120px;padding-bottom:72px}
+  .hero-content{width:100%;padding-top:0;position:relative;z-index:2}
+  .hero-canvas-wrap{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.25}
+  .hero h1{margin-bottom:20px}
+  .hero .subtitle{max-width:100%;font-size:16px;line-height:1.8;margin-bottom:36px}
+  .hero .cta-row{flex-direction:column;gap:12px}
+  .hero .cta-row .btn-primary,.hero .cta-row .btn-secondary{width:100%;justify-content:center;padding:16px 24px}
+
+  /* Problem — spacious stacked columns */
+  .problem{padding-top:56px;padding-bottom:0}
+  .problem-grid{grid-template-columns:1fr;gap:36px}
+  .problem-num{margin-bottom:12px}
+  .problem-threads{display:none}
+
+  /* Answer — centered with breathing room */
+  .answer{padding-top:56px;padding-bottom:48px}
+  .answer .answer-sub{font-size:16px;line-height:1.8}
+  .answer .divider{margin:36px auto}
+  .answer .scales{margin-bottom:12px}
+  .answer .scales-sub{font-size:15px}
+
+  /* Product cards — illustration as ghost behind text */
+  .product-card{padding-top:10px;padding-bottom:0}
+  .product-inner{flex-direction:column!important;gap:0;padding:28px;border-radius:16px;position:relative;overflow:hidden}
+  .product-illust{position:absolute;top:0;right:-20px;width:65%;height:100%;opacity:0.15;pointer-events:none}
+  .product-text{position:relative;z-index:1}
+  .product-label{font-size:18px;letter-spacing:2px;margin-bottom:4px}
+  .product-h3{margin-bottom:4px}
+  .product-desc{font-size:15px;line-height:1.8;margin-bottom:4px}
+  .product-tags{flex-wrap:wrap;gap:10px 20px}
+
+  /* Ownership — stacked with space */
+  .ownership{padding-top:56px;padding-bottom:0}
+  .ownership-grid{flex-direction:column;gap:32px}
+  .ownership-left,.ownership-right{width:100%}
+  .ownership-right{padding-top:0;gap:28px}
+  .feature-row{gap:16px}
+  .feature-desc{font-size:14px}
+
+  /* Quick Start */
+  .quickstart{padding-top:56px;padding-bottom:0}
+  .quickstart-grid{flex-direction:column;gap:28px}
+  .quickstart-left{width:100%}
+  .quickstart .qs-desc{font-size:14px}
+  .terminal{font-size:12px;padding:24px;overflow-x:auto}
+  .terminal .cmd{word-break:break-all}
+
+  /* Mission — the emotional center */
+  .mission{padding-top:56px;padding-bottom:0}
+  .mission .pre{font-size:15px;line-height:1.8;margin-bottom:32px}
+  .mission .post{font-size:15px;line-height:1.8}
+  .mission .divider-line{margin-bottom:36px}
+  .mission .mission-cta{flex-direction:column;align-items:stretch;gap:12px;margin-top:36px}
+  .mission .mission-cta .btn-primary,.mission .mission-cta .btn-secondary{justify-content:center;padding:16px 24px;font-size:16px}
+
+  /* Ecosystem */
+  .ecosystem{padding-top:48px;padding-bottom:0}
+  .eco-grid{grid-template-columns:1fr;gap:12px}
+  .eco-card{padding:24px}
+  .eco-title{font-size:20px}
+  .eco-desc{font-size:14px;line-height:1.7}
+
+  /* Footer */
+  footer{padding:24px;flex-direction:column;gap:16px;text-align:center}
+  footer .foot-left{flex-direction:column;gap:6px}
+  footer .foot-links{flex-wrap:wrap;justify-content:center;gap:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <span class="logo-rizom">rizom</span><span class="logo-dot">.</span><span class="logo-ai">ai</span>
+  </div>
+  <div class="nav-links">
+    <a href="#features">Platform</a>
+    <a href="#quickstart">Docs</a>
+    <a href="#ecosystem">Network</a>
+    <a href="#quickstart" class="nav-cta">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero section">
+  <div class="hero-content">
+    <h1>Build the agent that represents you</h1>
+    <p class="subtitle">Your knowledge becomes an AI agent. Your agent joins a network. The network finds the right expert for every problem — matched by what people actually know.</p>
+    <div class="cta-row">
+      <a href="#quickstart" class="btn-primary">Get Your Brain →</a>
+      <a href="#answer" class="btn-secondary">How The Network Works</a>
+    </div>
+  </div>
+  <div class="hero-canvas-wrap">
+    <canvas id="heroCanvas"></canvas>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem section reveal" id="features">
+  <div class="problem-grid">
+    <div class="reveal reveal-delay-1">
+      <div class="problem-num">01</div>
+      <div class="problem-title">Your best thinking never ships</div>
+      <p class="problem-text">You have notes, drafts, and ideas scattered everywhere. Turning them into something the world can see takes so long that most of it dies in your head.</p>
+    </div>
+    <div class="reveal reveal-delay-2">
+      <div class="problem-num">02</div>
+      <div class="problem-title">Your team forgets what it knows</div>
+      <p class="problem-text">People leave, context disappears, and hard-won expertise gets buried in chat threads no one will ever search. Your team's collective intelligence leaks out faster than it builds up.</p>
+    </div>
+    <div class="reveal reveal-delay-3">
+      <div class="problem-num">03</div>
+      <div class="problem-title">The right people never find each other</div>
+      <p class="problem-text">You match collaborators by job titles and résumés, not by what they actually know. The perfect expert for your problem might be one connection away — but you'd never know.</p>
+    </div>
+  </div>
+  <svg class="problem-threads" viewBox="0 0 1280 60" preserveAspectRatio="none">
+    <path d="M180,30 C380,25 580,22 780,25 C980,28 1080,32 1100,30" stroke="#E87722" stroke-width="1" fill="none" opacity="0.1"/>
+    <path d="M180,35 C420,30 660,28 900,32 C1020,34 1080,35 1100,34" stroke="#FFA366" stroke-width="0.6" fill="none" opacity="0.07"/>
+    <circle cx="180" cy="30" r="2" fill="#E87722" opacity="0.2"/>
+    <circle cx="640" cy="25" r="1.5" fill="#FFA366" opacity="0.15"/>
+    <circle cx="1100" cy="30" r="2" fill="#E87722" opacity="0.2"/>
+  </svg>
+</section>
+
+<!-- ANSWER -->
+<section class="answer section reveal" id="answer">
+  <span class="badge badge-amber">The Answer</span>
+  <h2>A network of AI agents, each built from real knowledge</h2>
+  <p class="answer-sub">Every professional gets an agent that knows what they know. Every team gets shared intelligence. The network connects them — matching expertise to opportunity, automatically.</p>
+  <div class="divider"></div>
+  <div class="scales">It starts with you. It scales to everyone.</div>
+  <p class="scales-sub">Three layers of intelligence — personal, team, network. Each one makes the others smarter.</p>
+</section>
+
+<!-- ROVER -->
+<section class="product-card section reveal">
+  <div class="product-inner rover">
+    <div class="product-text">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="product-label amber">Rover</span>
+        <span class="product-badge amber">Early Access</span>
+      </div>
+      <h3 class="product-h3">Your knowledge, your agent, your voice</h3>
+      <p class="product-desc">Rover is where it starts. Capture what you know — notes, links, ideas — and your brain turns it into blog posts, presentations, and social content. In your voice. It's the agent that represents you to the world.</p>
+      <div class="product-tags amber">
+        <span>AI Blogging</span><span>Social Publishing</span><span>Slide Decks</span><span>Chat Interface</span>
+      </div>
+    </div>
+    <div class="product-illust">
+      <canvas id="roverCanvas" width="511" height="320"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- RELAY -->
+<section class="product-card section reveal">
+  <div class="product-inner relay">
+    <div class="product-text">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="product-label purple">Relay</span>
+        <span class="product-badge purple">Coming Soon</span>
+      </div>
+      <h3 class="product-h3">Shared intelligence that outlasts any individual</h3>
+      <p class="product-desc">When your brain joins a team, Relay connects them. It maps who knows what, tracks expertise as it evolves, and ensures that when someone leaves, their knowledge stays. The team's collective intelligence grows with every contribution.</p>
+      <div class="product-tags purple">
+        <span>Knowledge Maps</span><span>Predictive Intel</span><span>Meeting Memory</span>
+      </div>
+    </div>
+    <div class="product-illust">
+      <canvas id="relayCanvas" width="511" height="320"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- RANGER -->
+<section class="product-card section reveal">
+  <div class="product-inner ranger">
+    <div class="product-text">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span class="product-label purple">Ranger</span>
+        <span class="product-badge purple">Coming Soon</span>
+      </div>
+      <h3 class="product-h3">The right expert, found by what they actually know</h3>
+      <p class="product-desc">Ranger reads across every brain in the network. When work comes in, it scores every brain for fit — not by job titles, but by what each brain has been thinking about. It assembles teams from complementary knowledge. The right people, matched by substance.</p>
+      <div class="product-tags purple">
+        <span>Match Scoring</span><span>Team Assembly</span><span>Gap Detection</span><span>Cross-Brain Search</span>
+      </div>
+    </div>
+    <div class="product-illust">
+      <canvas id="rangerCanvas" width="511" height="320"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- OWNERSHIP -->
+<section class="ownership section reveal" id="ownership">
+  <div class="ownership-grid">
+    <div class="ownership-left">
+      <span class="badge badge-amber">Your Data, Your Rules</span>
+      <h2>Everything is a plain text file you can read with any editor</h2>
+    </div>
+    <div class="ownership-right">
+      <div class="feature-row reveal reveal-delay-1">
+        <div class="feature-icon">M</div>
+        <div>
+          <div class="feature-title">Markdown, not databases</div>
+          <p class="feature-desc">Every entity — posts, notes, links, decks — lives as a markdown file with frontmatter. Version-controlled with git. Readable without the brain running.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-2">
+        <div class="feature-icon">S</div>
+        <div>
+          <div class="feature-title">Self-hosted, open source</div>
+          <p class="feature-desc">Deploy to your own server with one command. Or run locally. Apache-2.0 licensed. No vendor lock-in, no subscriptions, no fine print.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-3">
+        <div class="feature-icon">A</div>
+        <div>
+          <div class="feature-title">AI model agnostic</div>
+          <p class="feature-desc">Not tied to any single provider. Swap models, combine them, or bring your own. Works with the best AI available today and adapts tomorrow.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section class="quickstart section reveal" id="quickstart">
+  <div class="quickstart-grid">
+    <div class="quickstart-left">
+      <span class="badge badge-amber">Quick Start</span>
+      <h2>Running in under a minute</h2>
+      <p class="qs-desc">One package. Three commands. Your brain boots with a website, MCP server, CMS, and chat interface — all in a single process.</p>
+    </div>
+    <div class="terminal">
+      <div class="label">Install</div>
+      <div class="cmd">$ bun add -g @rizom/brain</div>
+      <div class="label">Create</div>
+      <div class="cmd">$ brain init mybrain --model rover</div>
+      <div class="label">Run</div>
+      <div class="cmd">$ cd mybrain && brain start</div>
+      <div class="sep"></div>
+      <div class="ok">✓ Web server → localhost:3000</div>
+      <div class="ok">✓ MCP server → localhost:3001</div>
+      <div class="ok">✓ A2A endpoint → localhost:3002</div>
+      <div class="ok">✓ CMS dashboard → localhost:3000/admin</div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION -->
+<section class="mission section reveal">
+  <div class="divider-line"></div>
+  <p class="pre">AI is not taking your job. It's exposing how much of your talent you've been wasting. When machines handle the busywork, what remains is the deeply human.</p>
+  <h2>The future of<br><span class="highlight">work is play.</span></h2>
+  <p class="post">Brains are the foundation. But the vision is bigger — infrastructure for a world where talent flows to opportunity, professionals own what they create, and distributed teams outperform traditional organizations.</p>
+  <div class="mission-cta">
+    <a href="#quickstart" class="btn-primary" style="font-size:18px;padding:18px 40px">Start Building →</a>
+    <a href="https://github.com" class="btn-secondary" style="font-size:18px;padding:18px 40px">View on GitHub</a>
+  </div>
+</section>
+
+<!-- ECOSYSTEM -->
+<section class="ecosystem section reveal" id="ecosystem">
+  <div class="eco-grid">
+    <div class="eco-card reveal reveal-delay-1">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">ai</span></div>
+      <div class="eco-title">The platform</div>
+      <p class="eco-desc">Open-source AI agents built from your own knowledge. The tools that make everything else possible.</p>
+      <a href="#" class="eco-link amber">You are here</a>
+    </div>
+    <div class="eco-card reveal reveal-delay-2">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">foundation</span></div>
+      <div class="eco-title">The vision</div>
+      <p class="eco-desc">Essays, principles, and community. Why we believe the future of knowledge work is distributed, owned, and play.</p>
+      <a href="#" class="eco-link purple">Read the manifesto →</a>
+    </div>
+    <div class="eco-card reveal reveal-delay-3">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">work</span></div>
+      <div class="eco-title">The network</div>
+      <p class="eco-desc">Distributed consultancy powered by brains. Specialized expertise that mobilizes in hours, not months. Teams that assemble themselves.</p>
+      <a href="#" class="eco-link purple">Work with us →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-left">
+    <span class="foot-brand"><span style="font-weight:700">rizom</span><span style="color:var(--amber);font-weight:700">.</span><span style="color:var(--text-muted)">ai</span></span>
+    <span class="foot-copy">© 2026 · Apache-2.0</span>
+  </div>
+  <div class="foot-links">
+    <a href="#">GitHub</a>
+    <a href="#">Documentation</a>
+    <a href="#">Discord</a>
+    <a href="#">LinkedIn</a>
+    <button id="themeToggle" aria-label="Toggle light mode" style="background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-dim);font-size:13px;font-family:var(--font-body);transition:all 0.3s">☀ Light</button>
+  </div>
+</footer>
+
+<script>
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+
+function createRand(seed) {
+  let s = seed;
+  return {
+    next() { s = (s * 16807) % 2147483647; return s / 2147483647; },
+    range(a, b) { return a + this.next() * (b - a); }
+  };
+}
+
+const C = {
+  AMBER:'#E87722', AMBER_LT:'#FFA366', AMBER_DK:'#C45A08',
+  PURPLE:'#6B2FA0', PURPLE_LT:'#8C82C8', PURPLE_MU:'#818CF8',
+  GLOW:'#FFD4A8', WARM:'#FFB366', CORE:'#FFF8EE', WHITE:'#FFFFFF'
+};
+const _rgbCache = {};
+function parseHex(hex) {
+  if (_rgbCache[hex]) return _rgbCache[hex];
+  const v = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  _rgbCache[hex] = v;
+  return v;
+}
+function rgba(hex, a) {
+  const [r,g,b] = parseHex(hex);
+  return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,a))})`;
+}
+function isLightMode() { return document.body.classList.contains('light'); }
+const dpr = window.devicePixelRatio || 1;
+
+function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
+  if (light) {
+    // Light mode: ink-like strokes, subtle halo
+    for (let r = glowR * 0.5; r > 0; r -= Math.max(0.5, glowR/10)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/(glowR*0.5)) * 0.04);
+      ctx.lineWidth = w + r * 1.5;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.35);
+    ctx.lineWidth = w;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  } else {
+    // Dark mode: full glow
+    for (let r = glowR; r > 0; r -= Math.max(0.5, glowR/20)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/glowR) * 0.08);
+      ctx.lineWidth = w + r * 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.8);
+    ctx.lineWidth = w;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#FFD4A8', op * 0.3);
+    ctx.lineWidth = w * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  }
+}
+
+function drawGlowNode(ctx, x, y, r, color, op, light) {
+  if (light) {
+    // Light mode: solid dots with subtle spread
+    for (let i = r * 3; i > r; i -= 0.8) {
+      ctx.fillStyle = rgba(color, op * 0.03 * (1 - (i-r)/(r*2)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba(color, op * 0.5);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba(color, op * 0.8);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI*2); ctx.fill();
+  } else {
+    // Dark mode: full glow halos
+    for (let i = r * 8; i > r; i -= 1.5) {
+      ctx.fillStyle = rgba(color, op * 0.01 * (1 - (i-r)/(r*7)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    for (let i = r * 2; i > 0; i -= 0.4) {
+      ctx.fillStyle = rgba('#FFB366', op * 0.08 * (1 - i/(r*2)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba('#FFF8EE', op * 0.85);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+(function() {
+  const canvas = document.getElementById('heroCanvas');
+  if (!canvas) return;
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  canvas.style.width = rect.width + 'px';
+  canvas.style.height = rect.height + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const W = rect.width, H = rect.height;
+  const sx = W / 680, sy = H / 800;
+  function s(x, y) { return [x * sx, y * sy]; }
+
+  const staticCanvas = document.createElement('canvas');
+  staticCanvas.width = canvas.width;
+  staticCanvas.height = canvas.height;
+
+  let nodes = [];
+  let builtTheme = null;
+
+  function buildStatic() {
+    const light = isLightMode();
+    if (builtTheme === light) return;
+    builtTheme = light;
+    nodes = [];
+    const rng = createRand(42);
+    const sctx = staticCanvas.getContext('2d');
+    sctx.setTransform(1,0,0,1,0,0);
+    sctx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
+    sctx.scale(dpr, dpr);
+
+    // Transparent canvas — page CSS handles the background
+    // Just add subtle ambient glow for depth
+    const ag = sctx.createRadialGradient(W*0.38,H*0.48,0,W*0.38,H*0.48,W*0.45);
+    if (!light) {
+      ag.addColorStop(0,'rgba(232,119,34,0.06)');ag.addColorStop(0.4,'rgba(255,163,102,0.025)');ag.addColorStop(0.7,'rgba(107,47,160,0.012)');ag.addColorStop(1,'rgba(14,0,39,0)');
+    } else {
+      ag.addColorStop(0,'rgba(196,90,8,0.05)');ag.addColorStop(1,'rgba(196,90,8,0)');
+    }
+    sctx.fillStyle = ag; sctx.fillRect(0,0,W,H);
+
+    function branch(x,y,angle,len,w,depth,color,op){
+      if(depth<=0||w<0.12||len<3)return;
+      const j=rng.range(-0.15,0.15),ex=x+Math.cos(angle+j)*len,ey=y+Math.sin(angle+j)*len;
+      const c1x=x+Math.cos(angle+rng.range(-0.4,0.4))*len*0.35,c1y=y+Math.sin(angle+rng.range(-0.4,0.4))*len*0.35;
+      const c2x=x+Math.cos(angle+rng.range(-0.25,0.25))*len*0.7,c2y=y+Math.sin(angle+rng.range(-0.25,0.25))*len*0.7;
+      drawGlowBezier(sctx,[x,y,c1x,c1y,c2x,c2y,ex,ey],color,w,Math.max(2,w*3.5),op,light);
+      if(depth<=2){const nr=Math.max(0.6,w*0.5);drawGlowNode(sctx,ex,ey,nr,color,op*0.5,light);nodes.push({x:ex,y:ey,r:nr,color,op:op*0.5,phase:rng.next()*Math.PI*2});}
+      const nb=depth>4?Math.floor(rng.range(2,4)):Math.floor(rng.range(1,3));
+      for(let i=0;i<nb;i++){const sp=depth>3?rng.range(0.25,0.7):rng.range(0.3,1.0);let nc=color;if(depth<=3&&rng.next()<0.2)nc='#6B2FA0';else if(rng.next()<0.35)nc=nc==='#E87722'?'#FFA366':'#E87722';branch(ex,ey,angle+rng.range(-sp,sp),len*rng.range(0.45,0.78),w*rng.range(0.45,0.72),depth-1,nc,op*rng.range(0.55,0.82));}
+    }
+
+    const [ax,ay]=s(268,800),[bx,by]=s(264,480),[cx,cy]=s(268,340),[dx,dy]=s(378,170);
+    drawGlowBezier(sctx,[ax,ay,...s(265,700),...s(262,600),bx,by],'#E87722',4.5*sx,18*sx,0.55,light);
+    drawGlowBezier(sctx,[bx,by,...s(264,420),...s(265,370),cx,cy],'#E87722',4*sx,16*sx,0.5,light);
+    drawGlowBezier(sctx,[cx,cy,...s(288,250),...s(328,200),dx,dy],'#FFA366',3*sx,12*sx,0.45,light);
+    drawGlowBezier(sctx,[...s(275,800),...s(265,620),...s(252,440),...s(255,310)],'#FFA366',2.5*sx,10*sx,0.3,light);
+
+    [{x:265*sx,y:385*sy,r:7*sx,color:'#FFA366',op:0.9},{x:378*sx,y:170*sy,r:5*sx,color:'#FFA366',op:0.75},{x:305*sx,y:225*sy,r:4.5*sx,color:'#E87722',op:0.65},{x:258*sx,y:500*sy,r:4*sx,color:'#FFA366',op:0.55}].forEach((h,i)=>{
+      drawGlowNode(sctx,h.x,h.y,h.r,h.color,h.op,light);h.phase=i*1.2;nodes.push(h);
+    });
+
+    branch(265*sx,385*sy,-0.3,120*sx,3*sx,6,'#E87722',0.45);
+    branch(265*sx,385*sy,-0.7,100*sx,2.5*sx,5,'#FFA366',0.4);
+    branch(265*sx,385*sy,0.2,110*sx,2.2*sx,5,'#E87722',0.35);
+    branch(265*sx,385*sy,Math.PI-0.3,90*sx,2*sx,4,'#FFA366',0.25);
+    branch(265*sx,385*sy,Math.PI+0.4,70*sx,1.5*sx,3,'#6B2FA0',0.15);
+    branch(378*sx,170*sy,-0.5,100*sx,2.2*sx,5,'#FFA366',0.4);
+    branch(378*sx,170*sy,-0.1,120*sx,2*sx,5,'#E87722',0.35);
+    branch(378*sx,170*sy,0.4,90*sx,1.8*sx,4,'#E87722',0.25);
+    branch(305*sx,225*sy,-0.4,90*sx,2*sx,4,'#E87722',0.35);
+    branch(305*sx,225*sy,0.7,70*sx,1.5*sx,3,'#FFA366',0.25);
+    branch(258*sx,500*sy,0.3,100*sx,2*sx,4,'#FFA366',0.3);
+    branch(258*sx,500*sy,Math.PI+0.2,80*sx,1.8*sx,3,'#FFA366',0.2);
+    branch(262*sx,620*sy,0.4,70*sx,1.3*sx,3,'#E87722',0.18);
+    branch(262*sx,620*sy,-0.6,60*sx,1*sx,2,'#FFA366',0.12);
+
+    // No fade needed — canvas is transparent, page bg handles blending
+  }
+
+  const particles = [];
+  const rngP = createRand(99);
+  const dustC = ['#FFA366','#E87722','#6B2FA0','#8C82C8','#FFD4A8'];
+  for(let i=0;i<300;i++){particles.push({x:rngP.range(0,W),y:rngP.range(0,H),r:rngP.range(0.3,1.5),vx:rngP.range(-0.08,0.08),vy:rngP.range(-0.12,0.04),color:dustC[Math.floor(rngP.next()*dustC.length)],alpha:rngP.range(0.04,0.18),phase:rngP.next()*Math.PI*2});}
+
+  buildStatic();
+  window._heroRebuild = function(){ builtTheme = null; buildStatic(); };
+
+  let t = 0, lastTime = 0;
+  function animate(timestamp) {
+    if (document.hidden) { requestAnimationFrame(animate); return; }
+    const dt = lastTime ? (timestamp - lastTime) / 1000 : 0.016;
+    lastTime = timestamp;
+    t += dt;
+
+    ctx.clearRect(0,0,W,H);
+    ctx.drawImage(staticCanvas,0,0,W,H);
+
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+      const fl = 0.5 + 0.5 * Math.sin(t * 1.5 + p.phase);
+      ctx.fillStyle = rgba(p.color, p.alpha * 2.5 * fl);
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r * (0.8 + 0.3 * Math.sin(t + p.phase)), 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    nodes.forEach(n => {
+      const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + n.phase);
+      const pr = n.r * (2 + Math.sin(t * 0.7 + n.phase));
+      ctx.fillStyle = rgba(n.color, n.op * 0.12 * pulse);
+      ctx.beginPath(); ctx.arc(n.x, n.y, pr * 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(C.GLOW, n.op * 0.15 * pulse);
+      ctx.beginPath(); ctx.arc(n.x, n.y, pr * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(C.WHITE, n.op * 0.08 * pulse);
+      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.5 * pulse, 0, Math.PI * 2); ctx.fill();
+    });
+
+    requestAnimationFrame(animate);
+  }
+  requestAnimationFrame(animate);
+})();
+
+
+
+function drawProductCanvas(id, type) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  const W = 511, H = 320;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  const rng = createRand(type === 'rover' ? 42 : type === 'relay' ? 99 : 173);
+  const light = isLightMode();
+
+  // Clear — let parent card bg show through in both modes
+  ctx.clearRect(0, 0, W, H);
+
+  if (type === 'rover') {
+    // Radial burst from center
+    if (!light) {
+      const ag = ctx.createRadialGradient(255,155,0,255,155,160);
+      ag.addColorStop(0,'rgba(232,119,34,0.08)');
+      ag.addColorStop(1,'rgba(13,10,26,0)');
+      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
+    } else {
+      const ag = ctx.createRadialGradient(255,155,0,255,155,160);
+      ag.addColorStop(0,'rgba(232,119,34,0.04)');
+      ag.addColorStop(1,'rgba(232,119,34,0)');
+      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
+    }
+
+    function rBranch(x,y,a,l,w,d,c,o) {
+      if(d<=0||w<0.1||l<3) return;
+      const ex=x+Math.cos(a+rng.range(-0.15,0.15))*l, ey=y+Math.sin(a+rng.range(-0.15,0.15))*l;
+      const c1x=x+Math.cos(a+rng.range(-0.3,0.3))*l*0.35, c1y=y+Math.sin(a+rng.range(-0.3,0.3))*l*0.35;
+      const c2x=x+Math.cos(a+rng.range(-0.2,0.2))*l*0.7, c2y=y+Math.sin(a+rng.range(-0.2,0.2))*l*0.7;
+      drawGlowBezier(ctx,[x,y,c1x,c1y,c2x,c2y,ex,ey],c,w,Math.max(2,w*3),o,light);
+      if(d<=2) drawGlowNode(ctx,ex,ey,Math.max(0.5,w*0.4),c,o*0.5,light);
+      const nb=d>3?Math.floor(rng.range(2,4)):Math.floor(rng.range(1,3));
+      for(let i=0;i<nb;i++){
+        let nc=c;if(d<=2&&rng.next()<0.2)nc='#6B2FA0';else if(rng.next()<0.3)nc=nc==='#E87722'?'#FFA366':'#E87722';
+        rBranch(ex,ey,a+rng.range(-0.7,0.7),l*rng.range(0.45,0.75),w*rng.range(0.45,0.7),d-1,nc,o*rng.range(0.55,0.8));
+      }
+    }
+    drawGlowNode(ctx,255,155,6,'#FFA366',0.9,light);
+    for(let i=0;i<8;i++) rBranch(255,155,i*Math.PI*2/8+rng.range(-0.3,0.3),rng.range(80,130),rng.range(2,3.5),5,'#E87722',rng.range(0.35,0.5));
+
+  } else if (type === 'relay') {
+    if (!light) {
+      const ag = ctx.createRadialGradient(255,160,0,255,160,180);
+      ag.addColorStop(0,'rgba(107,47,160,0.06)');
+      ag.addColorStop(1,'rgba(13,10,26,0)');
+      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
+    }
+    const pts = [[110,130],[380,110],[260,250]];
+    pts.forEach((p,i)=>{
+      const np = pts[(i+1)%3];
+      drawGlowBezier(ctx,[p[0],p[1],(p[0]+np[0])*0.5+rng.range(-20,20),(p[1]+np[1])*0.5+rng.range(-15,15),(p[0]+np[0])*0.5+rng.range(-10,10),(p[1]+np[1])*0.5+rng.range(-10,10),np[0],np[1]],'#8C82C8',2.8,12,0.4,light);
+    });
+    pts.forEach(p => drawGlowNode(ctx,p[0],p[1],5,'#FFA366',0.7,light));
+    drawGlowNode(ctx,250,163,3.5,'#8C82C8',0.5,light);
+    pts.forEach(p => {
+      for(let i=0;i<3;i++){
+        const a=rng.range(0,Math.PI*2),l=rng.range(40,80);
+        const ex=p[0]+Math.cos(a)*l, ey=p[1]+Math.sin(a)*l;
+        drawGlowBezier(ctx,[p[0],p[1],p[0]+Math.cos(a)*l*0.4,p[1]+Math.sin(a)*l*0.4,ex-Math.cos(a)*l*0.2,ey-Math.sin(a)*l*0.2,ex,ey],'#FFA366',rng.range(0.5,1.2),rng.range(2,5),rng.range(0.15,0.3),light);
+        drawGlowNode(ctx,ex,ey,rng.range(0.5,1.5),'#FFA366',rng.range(0.15,0.3),light);
+      }
+    });
+
+  } else { // ranger — vast constellation
+    if (!light) {
+      const ag = ctx.createRadialGradient(250,160,0,250,160,250);
+      ag.addColorStop(0,'rgba(107,47,160,0.05)');
+      ag.addColorStop(0.4,'rgba(232,119,34,0.03)');
+      ag.addColorStop(1,'rgba(13,10,26,0)');
+      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
+    }
+    const hubs = [
+      [168,95],[285,105],[188,200],[255,205],[105,138],[335,175],[65,55],[365,78],[228,278]
+    ];
+    hubs.forEach((p,i) => {
+      for(let j=i+1;j<hubs.length;j++){
+        const d=Math.hypot(p[0]-hubs[j][0],p[1]-hubs[j][1]);
+        if(d<200){
+          const c = rng.next()<0.5?'#8C82C8':'#6B2FA0';
+          drawGlowBezier(ctx,[p[0],p[1],(p[0]+hubs[j][0])*0.5+rng.range(-15,15),(p[1]+hubs[j][1])*0.5+rng.range(-10,10),(p[0]+hubs[j][0])*0.5+rng.range(-10,10),(p[1]+hubs[j][1])*0.5+rng.range(-8,8),hubs[j][0],hubs[j][1]],c,0.5,3,0.12,light);
+        }
+      }
+    });
+    hubs.forEach((p,i) => {
+      const size = i < 4 ? rng.range(2.5,4) : rng.range(1,2.5);
+      const op = i < 4 ? rng.range(0.4,0.7) : rng.range(0.15,0.35);
+      const c = rng.next()<0.5?'#FFA366':'#8C82C8';
+      drawGlowNode(ctx,p[0],p[1],size,c,op,light);
+    });
+    for(let i=0;i<40;i++){
+      const c = rng.next()<0.5?'#FFA366':rng.next()<0.5?'#8C82C8':'#6B2FA0';
+      drawGlowNode(ctx,rng.range(10,500),rng.range(10,310),rng.range(0.3,1),c,rng.range(0.05,0.15),light);
+    }
+  }
+
+  // Dust
+  for(let i=0;i<60;i++){
+    const c=['#FFA366','#E87722','#6B2FA0'][Math.floor(rng.next()*3)];
+    ctx.fillStyle=rgba(c,rng.range(0.02,0.08));
+    ctx.beginPath();ctx.arc(rng.range(0,W),rng.range(0,H),rng.range(0.2,1),0,Math.PI*2);ctx.fill();
+  }
+}
+
+const toggle = document.getElementById('themeToggle');
+// Restore preference BEFORE drawing canvases
+if (localStorage.getItem('theme') === 'light') {
+  document.body.classList.add('light');
+  toggle.textContent = '☾ Dark';
+}
+// Now draw canvases with correct theme
+drawProductCanvas('roverCanvas','rover');
+drawProductCanvas('relayCanvas','relay');
+drawProductCanvas('rangerCanvas','ranger');
+
+toggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  if (window._heroRebuild) window._heroRebuild();
+  drawProductCanvas('roverCanvas','rover');
+  drawProductCanvas('relayCanvas','relay');
+  drawProductCanvas('rangerCanvas','ranger');
+});
+</script>
+</body>
+</html>

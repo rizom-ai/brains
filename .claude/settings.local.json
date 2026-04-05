@@ -25,7 +25,18 @@
       "WebFetch(domain:practicalpkm.com)",
       "WebFetch(domain:obsidian.md)",
       "WebFetch(domain:releasebot.io)",
-      "mcp__paper__get_screenshot"
+      "mcp__paper__get_screenshot",
+      "mcp__paper__get_jsx",
+      "mcp__paper__write_html",
+      "mcp__paper__update_styles",
+      "mcp__paper__get_tree_summary",
+      "mcp__paper__delete_nodes",
+      "Bash(bun --version)",
+      "Bash(bun add:*)",
+      "Bash(npm list:*)",
+      "Bash(node -e \"require\\('canvas'\\)\")",
+      "Bash(google-chrome-stable --headless --disable-gpu --dump-dom --window-size=390,844 \"file:///tmp/diag.html\")",
+      "Bash(google-chrome-stable --headless --disable-gpu --window-size=390,844 --enable-logging=stderr \"file:///tmp/diag.html\")"
     ],
     "deny": [],
     "ask": []

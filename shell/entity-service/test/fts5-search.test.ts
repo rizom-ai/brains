@@ -94,6 +94,35 @@ describe("FTS5 full-text search", () => {
     expect(results).toHaveLength(0);
   });
 
+  test("search handles queries with special FTS5 characters", async () => {
+    const entity = createTestEntity("test", {
+      content: "What topics does this brain cover?",
+    });
+    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.storeEmbedding({
+      entityId: entity.id,
+      entityType: "test",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: entity.contentHash,
+    });
+
+    // These queries contain characters that break FTS5 if not escaped:
+    // ? is a prefix operator, * is a glob, OR/AND are boolean operators
+    const queries = [
+      "What topics does this brain cover?",
+      "search for something*",
+      'query with "quotes" inside',
+      "hello OR world",
+      "test AND other",
+    ];
+
+    for (const q of queries) {
+      // Should not throw
+      const results = await ctx.entityService.search(q);
+      expect(Array.isArray(results)).toBe(true);
+    }
+  });
+
   test("keyword search boosts exact matches over semantic similarity", async () => {
     // Entity with exact keyword
     const exact = createTestEntity("test", {

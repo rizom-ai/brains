@@ -132,9 +132,16 @@ export function createMockSystemServices(
     getAppInfo: async () => ({
       model: "test",
       version: "1.0.0",
-      plugins: [],
-      interfaces: [],
+      uptime: 42,
+      entities: 0,
+      embeddings: 0,
+      ai: {
+        model: "gpt-4.1",
+        embeddingModel: "text-embedding-3-small",
+      },
+      daemons: [],
     }),
+    getDaemonStatuses: async () => [],
     searchLimit: 10,
     insights: createInsightsRegistry(),
     ...overrides,

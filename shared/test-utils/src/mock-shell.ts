@@ -423,8 +423,14 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getAppInfo: async (): Promise<AppInfo> => ({
       model: "test-brain",
       version: "1.0.0",
-      plugins: [],
-      interfaces: [],
+      uptime: 0,
+      entities: 0,
+      embeddings: 0,
+      ai: {
+        model: "gpt-4.1",
+        embeddingModel: "text-embedding-3-small",
+      },
+      daemons: [],
     }),
 
     // High-level operations

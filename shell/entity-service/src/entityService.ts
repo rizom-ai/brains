@@ -28,6 +28,8 @@ import type {
   EntityService as IEntityService,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
+import { embeddings } from "./schema/embeddings";
+import { sql } from "drizzle-orm";
 import { Logger } from "@brains/utils";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
@@ -312,6 +314,13 @@ export class EntityService implements IEntityService {
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
     return this.entitySearch.searchWithDistances(query);
+  }
+
+  public async countEmbeddings(): Promise<number> {
+    const result = await this.embeddingDb
+      .select({ count: sql<number>`count(*)` })
+      .from(embeddings);
+    return result[0]?.count ?? 0;
   }
 
   // ── Serialization ─────────────────────────────────────────────────
