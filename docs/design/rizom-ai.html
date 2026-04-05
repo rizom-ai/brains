@@ -31,10 +31,10 @@ body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
 body.light .nav-cta:hover{border-color:var(--amber)}
 body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
 body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
-body.light .product-inner.rover{background:linear-gradient(135deg,rgba(232,119,34,0.05) 0%,rgba(232,119,34,0.01) 100%);border-color:rgba(232,119,34,0.1)}
-body.light .product-inner.relay{background:linear-gradient(135deg,rgba(107,47,160,0.05) 0%,rgba(107,47,160,0.01) 100%);border-color:rgba(107,47,160,0.08)}
-body.light .product-inner.ranger{background:linear-gradient(135deg,rgba(107,47,160,0.04) 0%,rgba(232,119,34,0.02) 100%);border-color:rgba(26,22,37,0.06)}
-body.light .answer{background:linear-gradient(180deg,var(--bg-subtle) 0%,var(--bg) 100%)}
+body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.1)}
+body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.08)}
+body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.06)}
+body.light .answer{background:rgba(14,11,30,0.7)}
 body.light .terminal{background:#1A1625;border-color:rgba(26,22,37,0.1)}
 body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
 body.light footer{border-top-color:rgba(26,22,37,0.06)}
@@ -43,7 +43,7 @@ body.light .feature-icon{border-color:var(--amber)}
 body.light .badge-amber{border-color:var(--amber);color:var(--amber)}
 body.light .badge-purple{border-color:var(--purple);color:var(--purple)}
 body.light .divider,body.light .divider-line{background:linear-gradient(90deg,transparent,rgba(232,119,34,0.25),transparent)}
-body.light .hero-canvas-wrap{opacity:1}
+body.light #bgCanvasWrap{opacity:0.4}
 body.light .problem-threads path{stroke-opacity:0.25}
 body.light .problem-threads circle{fill-opacity:0.4}
 body.light .product-illust{background:transparent}
@@ -54,9 +54,9 @@ body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber
 body.light .mission .highlight{color:var(--amber-dark)}
 body.light .problem-num{color:var(--amber-dark)}
 
-html{scroll-behavior:smooth;overflow-x:hidden}
+html{scroll-behavior:smooth;overflow-x:hidden;background:var(--bg)}
 body{
-  background:var(--bg);color:var(--text);font-family:var(--font-body);
+  background:transparent;color:var(--text);font-family:var(--font-body);
   line-height:1.6;overflow-x:hidden;max-width:100vw;
   /* CSS grain */
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
@@ -72,7 +72,7 @@ a{color:inherit;text-decoration:none}
 .reveal-delay-3{transition-delay:0.3s}
 
 /* Section container */
-.section{width:100%;max-width:1440px;margin:0 auto;padding-left:80px;padding-right:80px}
+.section{width:100%;max-width:1440px;margin:0 auto;padding-left:80px;padding-right:80px;position:relative;z-index:1}
 @media(max-width:768px){.section{padding-left:24px;padding-right:24px}}
 
 /* ============= NAV ============= */
@@ -97,7 +97,7 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,119,34,0.3)}
 .btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:500;color:var(--text);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
 .btn-secondary:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08)}
-.hero-canvas-wrap{position:absolute;top:0;right:0;width:55%;height:100%}
+#bgCanvasWrap{opacity:0.6}
 #heroCanvas{width:100%;height:100%}
 
 /* ============= PROBLEM ============= */
@@ -109,7 +109,7 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .problem-threads{position:absolute;bottom:20px;left:80px;right:80px;height:60px;pointer-events:none}
 
 /* ============= ANSWER ============= */
-.answer{padding-top:80px;padding-bottom:64px;text-align:center;background:linear-gradient(180deg,var(--bg-subtle) 0%,var(--bg) 100%)}
+.answer{padding-top:80px;padding-bottom:64px;text-align:center;background:rgba(14,11,30,0.7)}
 .badge{display:inline-flex;align-items:center;padding:8px 20px;border:1px solid;border-radius:20px;font-family:var(--font-label);font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
 .badge-amber{border-color:var(--amber);color:var(--amber)}
 .badge-purple{border-color:var(--purple-light);color:var(--purple-light)}
@@ -122,9 +122,9 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 /* ============= PRODUCT CARDS ============= */
 .product-card{padding-top:16px;padding-bottom:0}
 .product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid}
-.product-inner.rover{background:linear-gradient(135deg,rgba(232,119,34,0.08) 0%,rgba(232,119,34,0.02) 100%);border-color:rgba(232,119,34,0.15)}
-.product-inner.relay{background:linear-gradient(135deg,rgba(107,47,160,0.08) 0%,rgba(107,47,160,0.02) 100%);border-color:rgba(140,130,200,0.2);flex-direction:row-reverse}
-.product-inner.ranger{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 50%,rgba(107,47,160,0.04) 100%);border-color:rgba(120,100,220,0.15)}
+.product-inner.rover{background:linear-gradient(135deg,rgba(28,16,32,0.85) 0%,rgba(20,14,28,0.85) 100%);border-color:rgba(232,119,34,0.15)}
+.product-inner.relay{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(18,14,30,0.85) 100%);border-color:rgba(140,130,200,0.2);flex-direction:row-reverse}
+.product-inner.ranger{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(24,15,30,0.85) 50%,rgba(20,16,42,0.85) 100%);border-color:rgba(120,100,220,0.15)}
 .product-text{flex:1;display:flex;flex-direction:column;gap:16px}
 .product-label{font-family:var(--font-nav);font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
 .product-label.amber{color:var(--amber)}
@@ -157,7 +157,7 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .quickstart-left{width:420px;flex-shrink:0;max-width:100%}
 .quickstart h2{font-family:var(--font-head);font-size:36px;letter-spacing:-0.5px;line-height:1.2;margin-top:16px}
 .quickstart .qs-desc{font-size:15px;line-height:1.7;color:var(--text-muted);margin-top:16px}
-.terminal{flex:1;background:#12101F;border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:32px;font-family:var(--font-mono);font-size:14px}
+.terminal{flex:1;background:rgba(18,16,31,0.85);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:32px;font-family:var(--font-mono);font-size:14px}
 .terminal .label{color:var(--text-dim);font-size:12px;margin-bottom:4px}
 .terminal .cmd{color:var(--amber);margin-bottom:16px}
 .terminal .sep{height:1px;background:rgba(255,255,255,0.06);margin:16px 0}
@@ -209,85 +209,98 @@ footer .foot-links a:hover{color:var(--text)}
 
 /* ===== MOBILE ===== */
 @media(max-width:768px){
+  /* Base rhythm: 24px horizontal padding, 64px between sections */
   .section{padding-left:24px;padding-right:24px}
 
-  /* Nav — clean and minimal */
+  /* Nav */
   nav{padding:16px 24px}
   nav .nav-links a:not(.nav-cta){display:none}
   nav .nav-links{gap:12px}
   nav .nav-cta{padding:8px 16px;font-size:13px}
 
-  /* Hero — generous vertical space, canvas as atmosphere */
-  .hero{min-height:auto;padding-top:120px;padding-bottom:72px}
+  /* Hero — full viewport, centered */
+  .hero{min-height:100vh;min-height:100dvh;padding-top:0;padding-bottom:0}
   .hero-content{width:100%;padding-top:0;position:relative;z-index:2}
-  .hero-canvas-wrap{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.25}
+  #bgCanvasWrap{opacity:0.3}
   .hero h1{margin-bottom:20px}
   .hero .subtitle{max-width:100%;font-size:16px;line-height:1.8;margin-bottom:36px}
   .hero .cta-row{flex-direction:column;gap:12px}
   .hero .cta-row .btn-primary,.hero .cta-row .btn-secondary{width:100%;justify-content:center;padding:16px 24px}
 
-  /* Problem — spacious stacked columns */
-  .problem{padding-top:56px;padding-bottom:0}
-  .problem-grid{grid-template-columns:1fr;gap:36px}
+  /* Problem */
+  .problem{padding-top:64px;padding-bottom:64px}
+  .problem-grid{grid-template-columns:1fr;gap:40px}
   .problem-num{margin-bottom:12px}
+  .problem-title{font-size:18px;margin-bottom:10px}
+  .problem-text{font-size:14px}
   .problem-threads{display:none}
 
-  /* Answer — centered with breathing room */
-  .answer{padding-top:56px;padding-bottom:48px}
+  /* Answer */
+  .answer{padding-top:64px;padding-bottom:64px}
   .answer .answer-sub{font-size:16px;line-height:1.8}
-  .answer .divider{margin:36px auto}
-  .answer .scales{margin-bottom:12px}
-  .answer .scales-sub{font-size:15px}
+  .answer .divider{margin:40px auto}
+  .answer .scales{margin-bottom:14px}
+  .answer .scales-sub{font-size:14px;line-height:1.7}
 
-  /* Product cards — illustration as ghost behind text */
-  .product-card{padding-top:10px;padding-bottom:0}
-  .product-inner{flex-direction:column!important;gap:0;padding:28px;border-radius:16px;position:relative;overflow:hidden}
-  .product-illust{position:absolute;top:0;right:-20px;width:65%;height:100%;opacity:0.15;pointer-events:none}
-  .product-text{position:relative;z-index:1}
-  .product-label{font-size:18px;letter-spacing:2px;margin-bottom:4px}
-  .product-h3{margin-bottom:4px}
-  .product-desc{font-size:15px;line-height:1.8;margin-bottom:4px}
-  .product-tags{flex-wrap:wrap;gap:10px 20px}
+  /* Product cards */
+  .product-card{padding-top:12px;padding-bottom:12px}
+  .product-inner{flex-direction:column-reverse!important;gap:24px;padding:24px;border-radius:16px}
+  .product-illust{width:100%;height:180px;border-radius:12px}
+  .product-label{font-size:16px;letter-spacing:2px}
+  .product-h3{font-size:24px}
+  .product-desc{font-size:14px;line-height:1.8}
+  .product-tags{flex-wrap:wrap;gap:10px 18px}
+  .product-tags span{font-size:12px}
 
-  /* Ownership — stacked with space */
-  .ownership{padding-top:56px;padding-bottom:0}
-  .ownership-grid{flex-direction:column;gap:32px}
+  /* Ownership */
+  .ownership{padding-top:64px;padding-bottom:64px}
+  .ownership-grid{flex-direction:column;gap:36px}
   .ownership-left,.ownership-right{width:100%}
-  .ownership-right{padding-top:0;gap:28px}
+  .ownership-right{padding-top:0;gap:32px}
+  .ownership h2{margin-top:16px;font-size:28px}
   .feature-row{gap:16px}
-  .feature-desc{font-size:14px}
+  .feature-icon{min-width:44px;height:44px;font-size:18px}
+  .feature-title{font-size:17px}
+  .feature-desc{font-size:14px;line-height:1.7}
 
   /* Quick Start */
-  .quickstart{padding-top:56px;padding-bottom:0}
-  .quickstart-grid{flex-direction:column;gap:28px}
+  .quickstart{padding-top:64px;padding-bottom:64px}
+  .quickstart-grid{flex-direction:column;gap:32px}
   .quickstart-left{width:100%}
+  .quickstart h2{font-size:28px}
   .quickstart .qs-desc{font-size:14px}
-  .terminal{font-size:12px;padding:24px;overflow-x:auto}
+  .terminal{font-size:12px;padding:20px;overflow-x:auto;border-radius:10px;width:100%}
   .terminal .cmd{word-break:break-all}
+  .terminal .ok{font-size:12px}
 
-  /* Mission — the emotional center */
-  .mission{padding-top:56px;padding-bottom:0}
+  /* Mission */
+  .mission{padding-top:64px;padding-bottom:64px}
   .mission .pre{font-size:15px;line-height:1.8;margin-bottom:32px}
   .mission .post{font-size:15px;line-height:1.8}
-  .mission .divider-line{margin-bottom:36px}
+  .mission .divider-line{margin-bottom:40px}
   .mission .mission-cta{flex-direction:column;align-items:stretch;gap:12px;margin-top:36px}
   .mission .mission-cta .btn-primary,.mission .mission-cta .btn-secondary{justify-content:center;padding:16px 24px;font-size:16px}
 
   /* Ecosystem */
-  .ecosystem{padding-top:48px;padding-bottom:0}
-  .eco-grid{grid-template-columns:1fr;gap:12px}
-  .eco-card{padding:24px}
-  .eco-title{font-size:20px}
-  .eco-desc{font-size:14px;line-height:1.7}
+  .ecosystem{padding-top:64px;padding-bottom:48px}
+  .eco-grid{grid-template-columns:1fr;gap:16px}
+  .eco-card{padding:24px;border-radius:12px}
+  .eco-title{font-size:18px}
+  .eco-desc{font-size:13px;line-height:1.7}
 
   /* Footer */
-  footer{padding:24px;flex-direction:column;gap:16px;text-align:center}
+  footer{padding:32px 24px;flex-direction:column;gap:16px;text-align:center}
   footer .foot-left{flex-direction:column;gap:6px}
   footer .foot-links{flex-wrap:wrap;justify-content:center;gap:16px}
 }
 </style>
 </head>
 <body>
+
+<!-- FULL-PAGE CANVAS BACKGROUND -->
+<div id="bgCanvasWrap" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none">
+  <canvas id="heroCanvas"></canvas>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -312,9 +325,7 @@ footer .foot-links a:hover{color:var(--text)}
       <a href="#answer" class="btn-secondary">How The Network Works</a>
     </div>
   </div>
-  <div class="hero-canvas-wrap">
-    <canvas id="heroCanvas"></canvas>
-  </div>
+
 </section>
 
 <!-- PROBLEM -->
@@ -633,20 +644,27 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
 (function() {
   const canvas = document.getElementById('heroCanvas');
   if (!canvas) return;
-  const rect = canvas.parentElement.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  canvas.style.width = rect.width + 'px';
-  canvas.style.height = rect.height + 'px';
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width = '100%';
+  canvas.style.height = '100%';
   const ctx = canvas.getContext('2d');
   ctx.scale(dpr, dpr);
-  const W = rect.width, H = rect.height;
-  const sx = W / 680, sy = H / 800;
-  function s(x, y) { return [x * sx, y * sy]; }
 
+  // Full document height for the tree
+  const docH = Math.max(document.body.scrollHeight, 5000);
+  // Tree trunk runs along the right third of the page
+  const trunkX = W * 0.7;
+
+  // Offscreen: render the full-height static tree once
+  // We'll tile it — render at viewport size and scroll-shift
   const staticCanvas = document.createElement('canvas');
   staticCanvas.width = canvas.width;
-  staticCanvas.height = canvas.height;
+  // Render a tall strip for the tree (we'll scroll through it)
+  const stripH = Math.min(docH, 8000);
+  staticCanvas.height = stripH * dpr;
 
   let nodes = [];
   let builtTheme = null;
@@ -658,104 +676,198 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
     nodes = [];
     const rng = createRand(42);
     const sctx = staticCanvas.getContext('2d');
-    sctx.setTransform(1,0,0,1,0,0);
+    sctx.setTransform(1, 0, 0, 1, 0, 0);
     sctx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
-    sctx.scale(dpr, dpr);
+    sctx.scale(dpr, 1); // Only scale X, Y is already in document pixels
 
-    // Transparent canvas — page CSS handles the background
-    // Just add subtle ambient glow for depth
-    const ag = sctx.createRadialGradient(W*0.38,H*0.48,0,W*0.38,H*0.48,W*0.45);
-    if (!light) {
-      ag.addColorStop(0,'rgba(232,119,34,0.06)');ag.addColorStop(0.4,'rgba(255,163,102,0.025)');ag.addColorStop(0.7,'rgba(107,47,160,0.012)');ag.addColorStop(1,'rgba(14,0,39,0)');
-    } else {
-      ag.addColorStop(0,'rgba(196,90,8,0.05)');ag.addColorStop(1,'rgba(196,90,8,0)');
-    }
-    sctx.fillStyle = ag; sctx.fillRect(0,0,W,H);
-
-    function branch(x,y,angle,len,w,depth,color,op){
-      if(depth<=0||w<0.12||len<3)return;
-      const j=rng.range(-0.15,0.15),ex=x+Math.cos(angle+j)*len,ey=y+Math.sin(angle+j)*len;
-      const c1x=x+Math.cos(angle+rng.range(-0.4,0.4))*len*0.35,c1y=y+Math.sin(angle+rng.range(-0.4,0.4))*len*0.35;
-      const c2x=x+Math.cos(angle+rng.range(-0.25,0.25))*len*0.7,c2y=y+Math.sin(angle+rng.range(-0.25,0.25))*len*0.7;
-      drawGlowBezier(sctx,[x,y,c1x,c1y,c2x,c2y,ex,ey],color,w,Math.max(2,w*3.5),op,light);
-      if(depth<=2){const nr=Math.max(0.6,w*0.5);drawGlowNode(sctx,ex,ey,nr,color,op*0.5,light);nodes.push({x:ex,y:ey,r:nr,color,op:op*0.5,phase:rng.next()*Math.PI*2});}
-      const nb=depth>4?Math.floor(rng.range(2,4)):Math.floor(rng.range(1,3));
-      for(let i=0;i<nb;i++){const sp=depth>3?rng.range(0.25,0.7):rng.range(0.3,1.0);let nc=color;if(depth<=3&&rng.next()<0.2)nc='#6B2FA0';else if(rng.next()<0.35)nc=nc==='#E87722'?'#FFA366':'#E87722';branch(ex,ey,angle+rng.range(-sp,sp),len*rng.range(0.45,0.78),w*rng.range(0.45,0.72),depth-1,nc,op*rng.range(0.55,0.82));}
-    }
-
-    const [ax,ay]=s(268,800),[bx,by]=s(264,480),[cx,cy]=s(268,340),[dx,dy]=s(378,170);
-    drawGlowBezier(sctx,[ax,ay,...s(265,700),...s(262,600),bx,by],'#E87722',4.5*sx,18*sx,0.55,light);
-    drawGlowBezier(sctx,[bx,by,...s(264,420),...s(265,370),cx,cy],'#E87722',4*sx,16*sx,0.5,light);
-    drawGlowBezier(sctx,[cx,cy,...s(288,250),...s(328,200),dx,dy],'#FFA366',3*sx,12*sx,0.45,light);
-    drawGlowBezier(sctx,[...s(275,800),...s(265,620),...s(252,440),...s(255,310)],'#FFA366',2.5*sx,10*sx,0.3,light);
-
-    [{x:265*sx,y:385*sy,r:7*sx,color:'#FFA366',op:0.9},{x:378*sx,y:170*sy,r:5*sx,color:'#FFA366',op:0.75},{x:305*sx,y:225*sy,r:4.5*sx,color:'#E87722',op:0.65},{x:258*sx,y:500*sy,r:4*sx,color:'#FFA366',op:0.55}].forEach((h,i)=>{
-      drawGlowNode(sctx,h.x,h.y,h.r,h.color,h.op,light);h.phase=i*1.2;nodes.push(h);
+    // Ambient glows at different heights
+    const ambients = [
+      { y: stripH * 0.08, r: W * 0.4 },
+      { y: stripH * 0.35, r: W * 0.35 },
+      { y: stripH * 0.6, r: W * 0.3 },
+      { y: stripH * 0.85, r: W * 0.25 },
+    ];
+    ambients.forEach(a => {
+      const ag = sctx.createRadialGradient(trunkX, a.y, 0, trunkX, a.y, a.r);
+      if (!light) {
+        ag.addColorStop(0, 'rgba(232,119,34,0.04)');
+        ag.addColorStop(0.5, 'rgba(107,47,160,0.01)');
+        ag.addColorStop(1, 'rgba(14,0,39,0)');
+      } else {
+        ag.addColorStop(0, 'rgba(196,90,8,0.03)');
+        ag.addColorStop(1, 'rgba(196,90,8,0)');
+      }
+      sctx.fillStyle = ag;
+      sctx.fillRect(0, a.y - a.r, W, a.r * 2);
     });
 
-    branch(265*sx,385*sy,-0.3,120*sx,3*sx,6,'#E87722',0.45);
-    branch(265*sx,385*sy,-0.7,100*sx,2.5*sx,5,'#FFA366',0.4);
-    branch(265*sx,385*sy,0.2,110*sx,2.2*sx,5,'#E87722',0.35);
-    branch(265*sx,385*sy,Math.PI-0.3,90*sx,2*sx,4,'#FFA366',0.25);
-    branch(265*sx,385*sy,Math.PI+0.4,70*sx,1.5*sx,3,'#6B2FA0',0.15);
-    branch(378*sx,170*sy,-0.5,100*sx,2.2*sx,5,'#FFA366',0.4);
-    branch(378*sx,170*sy,-0.1,120*sx,2*sx,5,'#E87722',0.35);
-    branch(378*sx,170*sy,0.4,90*sx,1.8*sx,4,'#E87722',0.25);
-    branch(305*sx,225*sy,-0.4,90*sx,2*sx,4,'#E87722',0.35);
-    branch(305*sx,225*sy,0.7,70*sx,1.5*sx,3,'#FFA366',0.25);
-    branch(258*sx,500*sy,0.3,100*sx,2*sx,4,'#FFA366',0.3);
-    branch(258*sx,500*sy,Math.PI+0.2,80*sx,1.8*sx,3,'#FFA366',0.2);
-    branch(262*sx,620*sy,0.4,70*sx,1.3*sx,3,'#E87722',0.18);
-    branch(262*sx,620*sy,-0.6,60*sx,1*sx,2,'#FFA366',0.12);
+    // Branch helper
+    function branch(x, y, angle, len, w, depth, color, op) {
+      if (depth <= 0 || w < 0.15 || len < 4) return;
+      const j = rng.range(-0.15, 0.15);
+      const ex = x + Math.cos(angle + j) * len;
+      const ey = y + Math.sin(angle + j) * len;
+      const c1x = x + Math.cos(angle + rng.range(-0.4, 0.4)) * len * 0.35;
+      const c1y = y + Math.sin(angle + rng.range(-0.4, 0.4)) * len * 0.35;
+      const c2x = x + Math.cos(angle + rng.range(-0.25, 0.25)) * len * 0.7;
+      const c2y = y + Math.sin(angle + rng.range(-0.25, 0.25)) * len * 0.7;
+      drawGlowBezier(sctx, [x, y, c1x, c1y, c2x, c2y, ex, ey], color, w, Math.max(2, w * 3), op, light);
+      if (depth <= 2) {
+        const nr = Math.max(0.5, w * 0.4);
+        drawGlowNode(sctx, ex, ey, nr, color, op * 0.4, light);
+        nodes.push({ x: ex, y: ey, r: nr, color, op: op * 0.4, phase: rng.next() * Math.PI * 2 });
+      }
+      const nb = depth > 3 ? Math.floor(rng.range(2, 3)) : Math.floor(rng.range(1, 3));
+      for (let i = 0; i < nb; i++) {
+        const sp = depth > 3 ? rng.range(0.2, 0.6) : rng.range(0.3, 0.9);
+        let nc = color;
+        if (depth <= 3 && rng.next() < 0.2) nc = '#6B2FA0';
+        else if (rng.next() < 0.3) nc = nc === '#E87722' ? '#FFA366' : '#E87722';
+        branch(ex, ey, angle + rng.range(-sp, sp), len * rng.range(0.45, 0.75), w * rng.range(0.45, 0.7), depth - 1, nc, op * rng.range(0.5, 0.8));
+      }
+    }
 
-    // No fade needed — canvas is transparent, page bg handles blending
+    // === MAIN TRUNK — continuous line from bottom to top ===
+    const segments = 22;
+    let prevX = trunkX + rng.range(-10, 10);
+    let prevY = stripH;
+    const trunkPoints = [{ x: prevX, y: prevY }];
+
+    for (let i = 0; i < segments; i++) {
+      const t = (i + 1) / segments;
+      const nextY = stripH * (1 - t);
+      const drift = rng.range(-40, 40);
+      const nextX = trunkX + drift + Math.sin(t * Math.PI * 2) * 30;
+      trunkPoints.push({ x: nextX, y: nextY });
+
+      // Draw trunk segment
+      const w = 5 * (1 - t * 0.15); // thicker trunk
+      const op = 0.55 * (1 - t * 0.1);
+      const c = i % 2 === 0 ? '#E87722' : '#FFA366';
+      drawGlowBezier(sctx, [
+        prevX, prevY,
+        prevX + rng.range(-20, 20), prevY - (prevY - nextY) * 0.35,
+        nextX + rng.range(-15, 15), nextY + (prevY - nextY) * 0.3,
+        nextX, nextY
+      ], c, w, Math.max(3, w * 3.5), op, light);
+
+      // Hub node at each segment junction
+      const hubR = 3 + (1 - t) * 4;
+      drawGlowNode(sctx, nextX, nextY, hubR, '#FFA366', op * 0.8, light);
+      nodes.push({ x: nextX, y: nextY, r: hubR, color: '#FFA366', op: op * 0.8, phase: i * 0.9 });
+
+      // Branches at each junction — reaching left and right
+      const branchCount = Math.floor(rng.range(3, 5));
+      for (let b = 0; b < branchCount; b++) {
+        const side = rng.next() < 0.5 ? -1 : 1;
+        const bAngle = side * rng.range(0.2, 1.4) + (rng.next() < 0.4 ? Math.PI * 0.5 * side : 0);
+        const bLen = rng.range(80, 250);
+        const bW = rng.range(1.2, 3);
+        const bOp = rng.range(0.18, 0.42);
+        const bColor = rng.next() < 0.7 ? (rng.next() < 0.5 ? '#E87722' : '#FFA366') : '#6B2FA0';
+        branch(nextX, nextY, bAngle, bLen, bW, Math.floor(rng.range(3, 5)), bColor, bOp);
+      }
+
+      prevX = nextX;
+      prevY = nextY;
+    }
+
+    // Secondary strands alongside trunk
+    for (let strand = 0; strand < 3; strand++) {
+      const offset = (strand - 1) * 20 + rng.range(-5, 5);
+      let spx = trunkX + offset;
+      let spy = stripH;
+      const strandW = [2, 1.5, 1][strand];
+      const strandOp = [0.25, 0.18, 0.12][strand];
+      for (let i = 0; i < segments - 2; i++) {
+        const t = (i + 1) / segments;
+        const ref = trunkPoints[i + 1];
+        const nx = ref.x + rng.range(-25, 35);
+        const ny = ref.y + rng.range(-30, 30);
+        drawGlowBezier(sctx, [
+          spx, spy,
+          spx + rng.range(-15, 15), (spy + ny) * 0.5,
+          nx + rng.range(-15, 15), (spy + ny) * 0.5 + rng.range(-25, 25),
+          nx, ny
+        ], strand < 2 ? '#FFA366' : '#E87722', strandW * (1 - t * 0.4), 6, strandOp * (1 - t * 0.3), light);
+        // Extra small branches off secondary strands
+        if (rng.next() < 0.4) {
+          const a = rng.range(-1.5, 1.5);
+          branch(nx, ny, a, rng.range(40, 100), rng.range(0.5, 1.5), 3, '#FFA366', strandOp * 0.5, light);
+        }
+        spx = nx;
+        spy = ny;
+      }
+    }
   }
 
+  // Particles — spread across full viewport
   const particles = [];
   const rngP = createRand(99);
-  const dustC = ['#FFA366','#E87722','#6B2FA0','#8C82C8','#FFD4A8'];
-  for(let i=0;i<300;i++){particles.push({x:rngP.range(0,W),y:rngP.range(0,H),r:rngP.range(0.3,1.5),vx:rngP.range(-0.08,0.08),vy:rngP.range(-0.12,0.04),color:dustC[Math.floor(rngP.next()*dustC.length)],alpha:rngP.range(0.04,0.18),phase:rngP.next()*Math.PI*2});}
+  const dustC = ['#FFA366', '#E87722', '#6B2FA0', '#8C82C8', '#FFD4A8'];
+  for (let i = 0; i < 200; i++) {
+    particles.push({
+      x: rngP.range(0, W), y: rngP.range(0, H),
+      r: rngP.range(0.3, 1.5),
+      vx: rngP.range(-0.06, 0.06), vy: rngP.range(-0.1, 0.03),
+      color: dustC[Math.floor(rngP.next() * dustC.length)],
+      alpha: rngP.range(0.03, 0.15),
+      phase: rngP.next() * Math.PI * 2
+    });
+  }
 
   buildStatic();
-  window._heroRebuild = function(){ builtTheme = null; buildStatic(); };
+  window._heroRebuild = function () { builtTheme = null; buildStatic(); };
 
   let t = 0, lastTime = 0;
   function animate(timestamp) {
     if (document.hidden) { requestAnimationFrame(animate); return; }
-    const dt = lastTime ? (timestamp - lastTime) / 1000 : 0.016;
+    const dt = lastTime ? Math.min((timestamp - lastTime) / 1000, 0.05) : 0.016;
     lastTime = timestamp;
     t += dt;
 
-    ctx.clearRect(0,0,W,H);
-    ctx.drawImage(staticCanvas,0,0,W,H);
+    const scrollY = window.scrollY || window.pageYOffset;
+    const scrollRatio = scrollY / Math.max(1, docH - H);
 
+    ctx.clearRect(0, 0, W, H);
+
+    // Draw the visible slice of the static tree
+    // Map scroll position to the strip
+    const srcY = scrollRatio * (stripH - H);
+    // Source rect in the offscreen canvas (in device pixels)
+    ctx.drawImage(staticCanvas,
+      0, srcY * dpr, W * dpr, H * dpr,  // source
+      0, 0, W, H                         // destination
+    );
+
+    // Animated particles (viewport-local)
     particles.forEach(p => {
       p.x += p.vx; p.y += p.vy;
       if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
       if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
       const fl = 0.5 + 0.5 * Math.sin(t * 1.5 + p.phase);
-      ctx.fillStyle = rgba(p.color, p.alpha * 2.5 * fl);
+      ctx.fillStyle = rgba(p.color, p.alpha * 2 * fl);
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r * (0.8 + 0.3 * Math.sin(t + p.phase)), 0, Math.PI * 2);
       ctx.fill();
     });
 
+    // Pulsing nodes — only draw those visible in current scroll window
     nodes.forEach(n => {
+      const screenY = n.y - srcY;
+      if (screenY < -100 || screenY > H + 100) return;
       const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + n.phase);
       const pr = n.r * (2 + Math.sin(t * 0.7 + n.phase));
-      ctx.fillStyle = rgba(n.color, n.op * 0.12 * pulse);
-      ctx.beginPath(); ctx.arc(n.x, n.y, pr * 5, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = rgba(C.GLOW, n.op * 0.15 * pulse);
-      ctx.beginPath(); ctx.arc(n.x, n.y, pr * 2, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = rgba(C.WHITE, n.op * 0.08 * pulse);
-      ctx.beginPath(); ctx.arc(n.x, n.y, n.r * 0.5 * pulse, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba(n.color, n.op * 0.1 * pulse);
+      ctx.beginPath(); ctx.arc(n.x, screenY, pr * 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = rgba('#FFD4A8', n.op * 0.12 * pulse);
+      ctx.beginPath(); ctx.arc(n.x, screenY, pr * 2, 0, Math.PI * 2); ctx.fill();
     });
 
     requestAnimationFrame(animate);
   }
   requestAnimationFrame(animate);
 })();
-
 
 
 function drawProductCanvas(id, type) {
@@ -770,102 +882,39 @@ function drawProductCanvas(id, type) {
   ctx.scale(dpr, dpr);
   const rng = createRand(type === 'rover' ? 42 : type === 'relay' ? 99 : 173);
   const light = isLightMode();
-
-  // Clear — let parent card bg show through in both modes
   ctx.clearRect(0, 0, W, H);
 
   if (type === 'rover') {
-    // Radial burst from center
-    if (!light) {
-      const ag = ctx.createRadialGradient(255,155,0,255,155,160);
-      ag.addColorStop(0,'rgba(232,119,34,0.08)');
-      ag.addColorStop(1,'rgba(13,10,26,0)');
-      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
-    } else {
-      const ag = ctx.createRadialGradient(255,155,0,255,155,160);
-      ag.addColorStop(0,'rgba(232,119,34,0.04)');
-      ag.addColorStop(1,'rgba(232,119,34,0)');
-      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
-    }
-
-    function rBranch(x,y,a,l,w,d,c,o) {
-      if(d<=0||w<0.1||l<3) return;
-      const ex=x+Math.cos(a+rng.range(-0.15,0.15))*l, ey=y+Math.sin(a+rng.range(-0.15,0.15))*l;
-      const c1x=x+Math.cos(a+rng.range(-0.3,0.3))*l*0.35, c1y=y+Math.sin(a+rng.range(-0.3,0.3))*l*0.35;
-      const c2x=x+Math.cos(a+rng.range(-0.2,0.2))*l*0.7, c2y=y+Math.sin(a+rng.range(-0.2,0.2))*l*0.7;
-      drawGlowBezier(ctx,[x,y,c1x,c1y,c2x,c2y,ex,ey],c,w,Math.max(2,w*3),o,light);
-      if(d<=2) drawGlowNode(ctx,ex,ey,Math.max(0.5,w*0.4),c,o*0.5,light);
-      const nb=d>3?Math.floor(rng.range(2,4)):Math.floor(rng.range(1,3));
-      for(let i=0;i<nb;i++){
-        let nc=c;if(d<=2&&rng.next()<0.2)nc='#6B2FA0';else if(rng.next()<0.3)nc=nc==='#E87722'?'#FFA366':'#E87722';
-        rBranch(ex,ey,a+rng.range(-0.7,0.7),l*rng.range(0.45,0.75),w*rng.range(0.45,0.7),d-1,nc,o*rng.range(0.55,0.8));
-      }
-    }
+    const ag = ctx.createRadialGradient(255,155,0,255,155,160);
+    ag.addColorStop(0,light?'rgba(232,119,34,0.04)':'rgba(232,119,34,0.08)');
+    ag.addColorStop(1,'rgba(13,10,26,0)');
+    ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
+    function rBranch(x,y,a,l,w,d,c,o){if(d<=0||w<0.1||l<3)return;const ex=x+Math.cos(a+rng.range(-0.15,0.15))*l,ey=y+Math.sin(a+rng.range(-0.15,0.15))*l;const c1x=x+Math.cos(a+rng.range(-0.3,0.3))*l*0.35,c1y=y+Math.sin(a+rng.range(-0.3,0.3))*l*0.35;const c2x=x+Math.cos(a+rng.range(-0.2,0.2))*l*0.7,c2y=y+Math.sin(a+rng.range(-0.2,0.2))*l*0.7;drawGlowBezier(ctx,[x,y,c1x,c1y,c2x,c2y,ex,ey],c,w,Math.max(2,w*3),o,light);if(d<=2)drawGlowNode(ctx,ex,ey,Math.max(0.5,w*0.4),c,o*0.5,light);const nb=d>3?Math.floor(rng.range(2,4)):Math.floor(rng.range(1,3));for(let i=0;i<nb;i++){let nc=c;if(d<=2&&rng.next()<0.2)nc='#6B2FA0';else if(rng.next()<0.3)nc=nc==='#E87722'?'#FFA366':'#E87722';rBranch(ex,ey,a+rng.range(-0.7,0.7),l*rng.range(0.45,0.75),w*rng.range(0.45,0.7),d-1,nc,o*rng.range(0.55,0.8));}}
     drawGlowNode(ctx,255,155,6,'#FFA366',0.9,light);
-    for(let i=0;i<8;i++) rBranch(255,155,i*Math.PI*2/8+rng.range(-0.3,0.3),rng.range(80,130),rng.range(2,3.5),5,'#E87722',rng.range(0.35,0.5));
-
+    for(let i=0;i<8;i++)rBranch(255,155,i*Math.PI*2/8+rng.range(-0.3,0.3),rng.range(80,130),rng.range(2,3.5),5,'#E87722',rng.range(0.35,0.5));
   } else if (type === 'relay') {
-    if (!light) {
-      const ag = ctx.createRadialGradient(255,160,0,255,160,180);
-      ag.addColorStop(0,'rgba(107,47,160,0.06)');
-      ag.addColorStop(1,'rgba(13,10,26,0)');
-      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
-    }
-    const pts = [[110,130],[380,110],[260,250]];
-    pts.forEach((p,i)=>{
-      const np = pts[(i+1)%3];
-      drawGlowBezier(ctx,[p[0],p[1],(p[0]+np[0])*0.5+rng.range(-20,20),(p[1]+np[1])*0.5+rng.range(-15,15),(p[0]+np[0])*0.5+rng.range(-10,10),(p[1]+np[1])*0.5+rng.range(-10,10),np[0],np[1]],'#8C82C8',2.8,12,0.4,light);
-    });
-    pts.forEach(p => drawGlowNode(ctx,p[0],p[1],5,'#FFA366',0.7,light));
+    if(!light){const ag=ctx.createRadialGradient(255,160,0,255,160,180);ag.addColorStop(0,'rgba(107,47,160,0.06)');ag.addColorStop(1,'rgba(13,10,26,0)');ctx.fillStyle=ag;ctx.fillRect(0,0,W,H);}
+    const pts=[[110,130],[380,110],[260,250]];
+    pts.forEach((p,i)=>{const np=pts[(i+1)%3];drawGlowBezier(ctx,[p[0],p[1],(p[0]+np[0])*0.5+rng.range(-20,20),(p[1]+np[1])*0.5+rng.range(-15,15),(p[0]+np[0])*0.5+rng.range(-10,10),(p[1]+np[1])*0.5+rng.range(-10,10),np[0],np[1]],'#8C82C8',2.8,12,0.4,light);});
+    pts.forEach(p=>drawGlowNode(ctx,p[0],p[1],5,'#FFA366',0.7,light));
     drawGlowNode(ctx,250,163,3.5,'#8C82C8',0.5,light);
-    pts.forEach(p => {
-      for(let i=0;i<3;i++){
-        const a=rng.range(0,Math.PI*2),l=rng.range(40,80);
-        const ex=p[0]+Math.cos(a)*l, ey=p[1]+Math.sin(a)*l;
-        drawGlowBezier(ctx,[p[0],p[1],p[0]+Math.cos(a)*l*0.4,p[1]+Math.sin(a)*l*0.4,ex-Math.cos(a)*l*0.2,ey-Math.sin(a)*l*0.2,ex,ey],'#FFA366',rng.range(0.5,1.2),rng.range(2,5),rng.range(0.15,0.3),light);
-        drawGlowNode(ctx,ex,ey,rng.range(0.5,1.5),'#FFA366',rng.range(0.15,0.3),light);
-      }
-    });
-
-  } else { // ranger — vast constellation
-    if (!light) {
-      const ag = ctx.createRadialGradient(250,160,0,250,160,250);
-      ag.addColorStop(0,'rgba(107,47,160,0.05)');
-      ag.addColorStop(0.4,'rgba(232,119,34,0.03)');
-      ag.addColorStop(1,'rgba(13,10,26,0)');
-      ctx.fillStyle = ag; ctx.fillRect(0,0,W,H);
-    }
-    const hubs = [
-      [168,95],[285,105],[188,200],[255,205],[105,138],[335,175],[65,55],[365,78],[228,278]
-    ];
-    hubs.forEach((p,i) => {
-      for(let j=i+1;j<hubs.length;j++){
-        const d=Math.hypot(p[0]-hubs[j][0],p[1]-hubs[j][1]);
-        if(d<200){
-          const c = rng.next()<0.5?'#8C82C8':'#6B2FA0';
-          drawGlowBezier(ctx,[p[0],p[1],(p[0]+hubs[j][0])*0.5+rng.range(-15,15),(p[1]+hubs[j][1])*0.5+rng.range(-10,10),(p[0]+hubs[j][0])*0.5+rng.range(-10,10),(p[1]+hubs[j][1])*0.5+rng.range(-8,8),hubs[j][0],hubs[j][1]],c,0.5,3,0.12,light);
-        }
-      }
-    });
-    hubs.forEach((p,i) => {
-      const size = i < 4 ? rng.range(2.5,4) : rng.range(1,2.5);
-      const op = i < 4 ? rng.range(0.4,0.7) : rng.range(0.15,0.35);
-      const c = rng.next()<0.5?'#FFA366':'#8C82C8';
-      drawGlowNode(ctx,p[0],p[1],size,c,op,light);
-    });
-    for(let i=0;i<40;i++){
-      const c = rng.next()<0.5?'#FFA366':rng.next()<0.5?'#8C82C8':'#6B2FA0';
-      drawGlowNode(ctx,rng.range(10,500),rng.range(10,310),rng.range(0.3,1),c,rng.range(0.05,0.15),light);
-    }
+    pts.forEach(p=>{for(let i=0;i<3;i++){const a=rng.range(0,Math.PI*2),l=rng.range(40,80);const ex=p[0]+Math.cos(a)*l,ey=p[1]+Math.sin(a)*l;drawGlowBezier(ctx,[p[0],p[1],p[0]+Math.cos(a)*l*0.4,p[1]+Math.sin(a)*l*0.4,ex-Math.cos(a)*l*0.2,ey-Math.sin(a)*l*0.2,ex,ey],'#FFA366',rng.range(0.5,1.2),rng.range(2,5),rng.range(0.15,0.3),light);drawGlowNode(ctx,ex,ey,rng.range(0.5,1.5),'#FFA366',rng.range(0.15,0.3),light);}});
+  } else {
+    if(!light){const ag=ctx.createRadialGradient(250,160,0,250,160,250);ag.addColorStop(0,'rgba(107,47,160,0.05)');ag.addColorStop(0.4,'rgba(232,119,34,0.03)');ag.addColorStop(1,'rgba(13,10,26,0)');ctx.fillStyle=ag;ctx.fillRect(0,0,W,H);}
+    const hubs=[[168,95],[285,105],[188,200],[255,205],[105,138],[335,175],[65,55],[365,78],[228,278]];
+    hubs.forEach((p,i)=>{for(let j=i+1;j<hubs.length;j++){const d=Math.hypot(p[0]-hubs[j][0],p[1]-hubs[j][1]);if(d<200){const c=rng.next()<0.5?'#8C82C8':'#6B2FA0';drawGlowBezier(ctx,[p[0],p[1],(p[0]+hubs[j][0])*0.5+rng.range(-15,15),(p[1]+hubs[j][1])*0.5+rng.range(-10,10),(p[0]+hubs[j][0])*0.5+rng.range(-10,10),(p[1]+hubs[j][1])*0.5+rng.range(-8,8),hubs[j][0],hubs[j][1]],c,0.5,3,0.12,light);}}});
+    hubs.forEach((p,i)=>{const size=i<4?rng.range(2.5,4):rng.range(1,2.5);const op=i<4?rng.range(0.4,0.7):rng.range(0.15,0.35);const c=rng.next()<0.5?'#FFA366':'#8C82C8';drawGlowNode(ctx,p[0],p[1],size,c,op,light);});
+    for(let i=0;i<40;i++){const c=rng.next()<0.5?'#FFA366':rng.next()<0.5?'#8C82C8':'#6B2FA0';drawGlowNode(ctx,rng.range(10,500),rng.range(10,310),rng.range(0.3,1),c,rng.range(0.05,0.15),light);}
   }
-
-  // Dust
-  for(let i=0;i<60;i++){
-    const c=['#FFA366','#E87722','#6B2FA0'][Math.floor(rng.next()*3)];
-    ctx.fillStyle=rgba(c,rng.range(0.02,0.08));
-    ctx.beginPath();ctx.arc(rng.range(0,W),rng.range(0,H),rng.range(0.2,1),0,Math.PI*2);ctx.fill();
-  }
+  for(let i=0;i<60;i++){const c=['#FFA366','#E87722','#6B2FA0'][Math.floor(rng.next()*3)];ctx.fillStyle=rgba(c,rng.range(0.02,0.08));ctx.beginPath();ctx.arc(rng.range(0,W),rng.range(0,H),rng.range(0.2,1),0,Math.PI*2);ctx.fill();}
 }
+
+function redrawAllCanvases() {
+  drawProductCanvas('roverCanvas','rover');
+  drawProductCanvas('relayCanvas','relay');
+  drawProductCanvas('rangerCanvas','ranger');
+}
+redrawAllCanvases();
 
 const toggle = document.getElementById('themeToggle');
 // Restore preference BEFORE drawing canvases
@@ -874,9 +923,6 @@ if (localStorage.getItem('theme') === 'light') {
   toggle.textContent = '☾ Dark';
 }
 // Now draw canvases with correct theme
-drawProductCanvas('roverCanvas','rover');
-drawProductCanvas('relayCanvas','relay');
-drawProductCanvas('rangerCanvas','ranger');
 
 toggle.addEventListener('click', () => {
   document.body.classList.toggle('light');
@@ -884,9 +930,7 @@ toggle.addEventListener('click', () => {
   toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
   if (window._heroRebuild) window._heroRebuild();
-  drawProductCanvas('roverCanvas','rover');
-  drawProductCanvas('relayCanvas','relay');
-  drawProductCanvas('rangerCanvas','ranger');
+  redrawAllCanvases();
 });
 </script>
 </body>
