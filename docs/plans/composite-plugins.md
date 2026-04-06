@@ -1,5 +1,7 @@
 # Plan: Composite Plugins
 
+**Status:** v0.1.0 blocker. Lands a public API change before the surface stabilizes. ~1 day of work. See [roadmap](../roadmap.md) and [public-release-cleanup](./public-release-cleanup.md).
+
 ## Context
 
 Several features require both an EntityPlugin (schema, adapter) and a ServicePlugin (tools, external integrations) that are tightly coupled. Today these are registered as separate entries with separate config blocks, even though they're conceptually one unit.

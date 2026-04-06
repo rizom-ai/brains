@@ -141,14 +141,17 @@ We're discarding history, so we only need to audit the _current tree_ — but we
    git ls-files | grep -E '\.env($|\.)'
    ```
 5. **CLAUDE.md / agent files** — review for anything personal/private; rename to `AGENTS.md` if keeping (more vendor-neutral).
-6. **`.github/workflows/*.yml`** — review every secret reference. Must be `${{ secrets.X }}`, never inline.
+6. **`.github/workflows/*.yml`** — two passes:
+   - **Secret references**: must be `${{ secrets.X }}`, never inline.
+   - **Fork-safety**: any workflow that publishes to a registry, deploys, or otherwise touches infrastructure (`publish-images.yml`, anything pushing to GHCR, anything calling Hetzner) must be conditional on `if: github.repository == 'rizom-ai/brains'`. Forks running CI shouldn't try to push to your registry or deploy to your infra. Audit each `on: push` / `on: release` workflow individually.
 7. **`docs/plans/*`** — per D5, all public by default. Scan each file for PII/secrets; fix in place or exclude any individual file that fails.
 8. **`brains/rover/eval-content/`** — this gets shipped as the seed content in the default brain. Read every markdown file; confirm nothing personal.
 9. **Per-plugin README and tests** — quick read for hardcoded paths, test data with personal content, leftover TODOs that name people.
 10. **`packages/brain-cli/package.json` author field** — `"Yeehaa <yeehaa@rizom.ai>"` is legitimate npm author metadata; keep.
-11. **Commit all in-place fixes** to the live repo as small focused commits (per the pattern already established by `f5dfb6f5` and `9b7f5c4a`). After this, HEAD is the state we want preserved as the private archive.
+11. **`brain init` default preset** — confirm the generated `brain.yaml` template uses `preset: core`, not `preset: full`. Core is the on-ramp; full is the "and here's everything rover can do" demo. Fix in place if wrong.
+12. **Commit all in-place fixes** to the live repo as small focused commits (per the pattern already established by `f5dfb6f5` and `9b7f5c4a`). After this, HEAD is the state we want preserved as the private archive.
 
-**Exit criteria:** Clean gitleaks run on HEAD, no surprise PII matches, decisions made on every borderline file, all fixes committed to the live repo. Estimated time: **2–3 hours**.
+**Exit criteria:** Clean gitleaks run on HEAD, no surprise PII matches, decisions made on every borderline file, every workflow audited for fork-safety, all fixes committed to the live repo. Estimated time: **2–3 hours**.
 
 ### Phase 2 — Backup and freeze
 
@@ -227,10 +230,7 @@ Don't mutate the live repo. Work in a fresh clone.
    bun run build
    ```
    This is the critical gate. If anything breaks because we removed a private dependency, fix it now (likely culprits: cross-package imports from private apps into shared code, which would be a real bug).
-5. **Curate `docs/`**:
-   - Hand-write a v0.1.0 README focused on the open framework, not the private brand
-   - Hand-write a `CHANGELOG.md` with one `v0.1.0` entry summarizing what's in this release (per D6)
-   - Move retained roadmap items into `docs/roadmap.md`
+5. **Content and UX prep** — see Phase 3.5 below for the full detail. At minimum: README rewrite, CONTRIBUTING.md, SECURITY.md, STABILITY.md, issue/PR templates, CHANGELOG with one v0.1.0 entry, curated public roadmap.
 6. **Sanity-check the final file list:**
    ```bash
    find . -type f -not -path './node_modules/*' -not -path './.git/*' | sort > /tmp/public-files.txt
@@ -239,6 +239,57 @@ Don't mutate the live repo. Work in a fresh clone.
    Skim the list. If anything looks surprising, stop and investigate.
 
 **Exit criteria:** Clean tree in `brains-public-staging/`, builds green, tests green, file list reviewed. Estimated time: **2–3 hours** (preflight confirmed no structural cross-package leakage, so removal is mechanical — see §10).
+
+### Phase 3.5 — Content and UX prep
+
+Phase 3 produces a buildable clean tree. Phase 3.5 turns it into a framework someone can actually adopt. All of this happens in the staging tree (`brains-public-staging/`) before the orphan commit. None of it lives in the dev archive — the dev README, dev CHANGELOG, etc. stay private and are written for a different audience.
+
+1. **README rewrite** (half day). The current README is internally focused. The public version needs:
+   - Value prop in the first paragraph — what is this, who is it for, what does it replace
+   - Animated GIF or screenshot of `brain init` → `brain start` → CLI chat
+   - 3-line quickstart (`bun add -g @rizom/brain && brain init mybrain && brain start`)
+   - "What this is for / what this is not for" section — set expectations honestly
+   - Architecture diagram (one image, plugins + shell + interfaces)
+   - Links to docs, brain.yaml reference, deployment guide
+   - Compatibility matrix (Bun version, OS support)
+   - License + contributing pointer
+
+2. **CONTRIBUTING.md** (2 hours). Real content, not a stub:
+   - Dev environment setup (`bun install`, `bunx turbo typecheck`, `bun test`)
+   - Project layout overview (link to `docs/architecture/package-structure.md`)
+   - Changeset workflow (`bunx changeset` for any user-visible change)
+   - PR conventions (link to template, test plan expected)
+   - Where to file what (bug → issues, feature → discussion first, security → SECURITY.md)
+   - Code style (lint runs in CI; no eslint-disable; no `as` casts; Zod for validation)
+
+3. **SECURITY.md** (30 min). Vulnerability disclosure:
+   - How to report privately (email address, not a GitHub issue)
+   - What's in scope (the framework code, not user-deployed brains)
+   - Expected response time (be honest — "best effort, solo maintainer")
+   - PGP key if you want one (optional)
+
+4. **Issue and PR templates** (30 min). In `.github/ISSUE_TEMPLATE/`:
+   - `bug_report.md` — version, brain.yaml snippet, steps to reproduce, expected vs. actual
+   - `feature_request.md` — use case, proposed API, alternatives considered
+   - `plugin_request.md` — what integration, what tools, what entities
+   - `config.yml` — disable blank issues, link to discussions for questions
+
+   In `.github/pull_request_template.md`:
+   - Linked issue
+   - Test plan
+   - Changeset reminder
+   - Checklist (typecheck, test, lint)
+
+5. **STABILITY.md** (1 hour). What users can rely on between v0.1 → v1.0:
+   - **Stable surface**: `brain.yaml` top-level schema, system tool names (`system_create`, `system_update`, `system_delete`, `system_search`, `system_extract`, `system_status`, `system_insights`), entity frontmatter shape, MCP resource URI scheme (`entity://`, `brain://`), CLI command names
+   - **Unstable surface**: plugin context shapes (`EntityPluginContext`, `ServicePluginContext`, `InterfacePluginContext`), internal services, log schema, FTS scoring weights, embedding model choice, anything in `shell/*/src/internal/`
+   - **Versioning policy**: pre-1.0, breaking changes can land in any minor (0.1 → 0.2). After 1.0, semver applies.
+
+6. **CHANGELOG.md** (1 hour). Hand-write one `v0.1.0` entry summarizing what's in this release at high level (per D6). After v0.1.0, the `.changeset/` flow takes over.
+
+7. **Curate `docs/roadmap.md`** — the staging tree's roadmap should reflect the public-facing roadmap, not internal plan tracking. Keep done items, planned items at high level, drop internal-only context.
+
+**Exit criteria:** README is something a stranger can land on and understand in 60 seconds. CONTRIBUTING + SECURITY + templates have real content. STABILITY.md exists. CHANGELOG has a v0.1.0 entry. Estimated time: **1 day**.
 
 ### Phase 4 — Orphan commit and push to `brains-temp`
 
@@ -282,6 +333,38 @@ Per D1, we stage the public release at a fresh `rizom-ai/brains-temp` repo and o
    ```
 
 **Exit criteria:** `brains-temp` is live on GitHub, looks right in the web UI, gitleaks clean, fresh clone builds and tests pass. Estimated time: **1–2 hours**.
+
+### Phase 4.5 — End-to-end smoke test on a clean machine
+
+Phase 4 verifies the staged repo builds in a fresh clone of the source. Phase 4.5 verifies the **published artifact** works end-to-end on a machine that has never seen this codebase. This is the single most important pre-launch test and currently nobody has done it. Without this step, the launch is the first time anyone has actually followed the README.
+
+> **Order of operations**: Phase 4.5 assumes `npm publish` has happened, but the rename hasn't. The sequence is: stage `brains-temp` (Phase 4) → publish `@rizom/brain@0.1.0` to npm from the staging tree → smoke test from npm (Phase 4.5) → if smoke test passes, do the rename (Phase 5). If you want to test before publishing publicly, use `npm pack` and install the tarball locally — same shape, no public artifact.
+
+1. **Pick a clean environment**: a fresh Docker container, a borrowed laptop, a VM — anywhere that isn't your dev machine. Must not have:
+   - The repo cloned anywhere
+   - Any `@rizom/*` or `@brains/*` packages globally installed
+   - Bun pre-installed (test the install instructions too)
+   - Cached environment variables
+
+2. **Follow the README quickstart literally.** Don't paraphrase, don't shortcut, don't fix things from memory. If a step doesn't work, write it down and keep going if possible.
+
+3. **Specifically test:**
+   - `bun add -g @rizom/brain` (or install the tarball from `npm pack` if pre-publish)
+   - `brain init mynewbrain`
+   - `cd mynewbrain && cat brain.yaml` — does it look reasonable?
+   - Set `AI_API_KEY` to a real OpenAI key
+   - `brain start`
+   - Does it boot? Does the embedding DB get created? Does the entity DB get created? Does the MCP server come up?
+   - Talk to it via CLI / MCP — create a note, search for it, derive a topic
+   - `brain diagnostics search` — does it return a useful result?
+   - `brain diagnostics usage` — does it parse the log file?
+   - Stop the brain. Restart it. Does state persist?
+
+4. **Write up every paper cut**: missing env var with no helpful error, confusing CLI output, broken link in the README, anything that makes you say "hmm." Each paper cut becomes either a fix-before-launch or a known-issue entry.
+
+5. **Decide**: do the paper cuts block launch or get filed as 0.1.1 issues? Be honest — a launch where the README quickstart fails on step 3 is worse than a delayed launch.
+
+**Exit criteria:** A stranger could follow the README and get a working brain. Paper cuts triaged into fix-now or fix-later. Estimated time: **half day**, possibly more depending on what breaks.
 
 ### Phase 5 — Double-rename and go live
 
@@ -378,7 +461,9 @@ If something goes wrong at any phase:
 | 1     | Audit fix breaks something               | `git reset` or revert the offending commit. Live repo is fully git-tracked; no destructive operations have happened yet.                                                   |
 | 2     | Backup didn't take                       | Try again, do not proceed                                                                                                                                                  |
 | 3     | Tree won't build after removal           | Either fix the cross-package leakage (real bug, fix it) or add the file back to the public set                                                                             |
+| 3.5   | Content writing reveals architecture gap | If writing the README forces you to admit something doesn't work, fix it before continuing. Better to delay launch by a day than ship a misleading README.                 |
 | 4     | `brains-temp` looks wrong on GitHub      | Delete `brains-temp` repo on GitHub, delete `brains-public-staging/` locally, start Phase 3 over. **No impact on the live `rizom-ai/brains` URL**, that's the whole point. |
+| 4.5   | Smoke test fails on clean machine        | Triage paper cuts. If quickstart-blocking, fix in the staging tree and re-publish a `0.1.0-rc.N` to npm before going live. If non-blocking, file as known issues.          |
 | 5     | Rename caused issues                     | Rename back: `brains-private` → `brains`, `brains` → `brains-temp`. GitHub allows this freely.                                                                             |
 | 5     | Public repo leaked something post-rename | Rename `brains` → `brains-leaked`, rename `brains-private` → `brains` to restore the old URL, rotate ALL tokens (assume compromise), restart from Phase 3                  |
 | 6     | Token rotation breaks something          | Documented per-service rollback in deploy/scripts                                                                                                                          |
@@ -402,16 +487,20 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 
 ## 9. Estimated total time
 
-| Phase                                | Estimate           |
-| ------------------------------------ | ------------------ |
-| 0 — Decide                           | done               |
-| 1 — Audit HEAD and fix findings      | 2–3 hours          |
-| 2 — Backup                           | 15 min             |
-| 3 — Build clean tree                 | 2–3 hours          |
-| 4 — Push to `brains-temp` and verify | 1–2 hours          |
-| 5 — Double-rename and go live        | 1 hour             |
-| 6 — Post-launch                      | 2 hours            |
-| **Total**                            | **~1 working day** |
+| Phase                                | Estimate                  |
+| ------------------------------------ | ------------------------- |
+| 0 — Decide                           | done                      |
+| 1 — Audit HEAD and fix findings      | 2–3 hours                 |
+| 2 — Backup                           | 15 min                    |
+| 3 — Build clean tree                 | 2–3 hours                 |
+| 3.5 — Content and UX prep            | 1 day                     |
+| 4 — Push to `brains-temp` and verify | 1–2 hours                 |
+| 4.5 — End-to-end smoke test          | half day (more if breaks) |
+| 5 — Double-rename and go live        | 1 hour                    |
+| 6 — Post-launch                      | 2 hours                   |
+| **Total**                            | **~2–3 working days**     |
+
+Phases 3.5 and 4.5 are the additions that turn a clean code drop into an adoptable framework. Without them, v0.1.0 is technically published but the README is internal-facing, there's no contributing guide, and nobody has verified the install path works on a clean machine.
 
 Phase 3 estimate reflects the preflight finding that there is no structural cross-package coupling — removal is mechanical, not architectural surgery. Phase 1 is now the longest and most uncertain phase; it's intentionally first so we discover any blocking issues before sinking time into backup and clean-tree work.
 
