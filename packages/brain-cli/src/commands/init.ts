@@ -11,11 +11,15 @@ export interface ScaffoldOptions {
 /**
  * Scaffold a new brain instance directory.
  *
- * Minimal scaffold (default): brain.yaml + .env.example + .gitignore
+ * Minimal scaffold (default): brain.yaml + .env.example + .gitignore + tsconfig.json
  * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
  *
  * Apps are config-only directories — no package.json, no source code.
  * The `brain` CLI from `@rizom/brain` reads brain.yaml from cwd and runs.
+ *
+ * The `tsconfig.json` is the one exception to "no code config": bun needs
+ * it to know which JSX runtime to use when compiling Preact components from
+ * the brain runtime. It contains only that hint, nothing else.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const { model } = options;
@@ -25,6 +29,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeBrainYaml(dir, model, domain, options.contentRepo);
   writeEnvExample(dir);
   writeGitignore(dir);
+  writeTsConfig(dir);
 
   // Deploy files only with --deploy
   if (options.deploy) {
@@ -197,4 +202,30 @@ node_modules
 `;
 
   writeFileSync(join(dir, ".gitignore"), content);
+}
+
+/**
+ * Write a minimal tsconfig.json for bun's JSX runtime resolution.
+ *
+ * Bun looks for a tsconfig.json by walking up from the current working
+ * directory to determine how to compile JSX. The brain runtime renders
+ * Preact components for site builds, so bun needs to know:
+ * - jsx: "react-jsx"      — use the new automatic JSX runtime
+ * - jsxImportSource: "preact" — import jsx-runtime from preact, not react
+ *
+ * Without these hints, bun defaults to React's JSX runtime and Preact
+ * components silently render to nothing.
+ *
+ * This is the only build-tool config in an otherwise pure-config app dir.
+ */
+function writeTsConfig(dir: string): void {
+  const content = `{
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
+}
+`;
+
+  writeFileSync(join(dir, "tsconfig.json"), content);
 }

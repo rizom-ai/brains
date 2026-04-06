@@ -110,11 +110,11 @@ export class App {
         shellConfig.siteBaseUrl = this.config.deployment.domain;
       }
 
-      // Pass the global logger instance which has already been configured
-      // In CLI mode, it's already set to use stderr in run()
-      this.shell = Shell.createFresh(shellConfig, {
-        logger: Logger.getInstance(),
-      });
+      // Don't pass a logger as a dependency — let shellInitializer build one
+      // from shellConfig.logging so logFile, format, and level all take effect.
+      // The Logger singleton was already created earlier in the boot sequence
+      // with no options, and getInstance() won't apply new options to it.
+      this.shell = Shell.createFresh(shellConfig);
     }
 
     // Register CLI interface if --cli flag is present

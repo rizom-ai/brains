@@ -286,7 +286,7 @@
       type: "trunk",
       seg: 0,
       progress: 0,
-      speed: 0.55 + Math.random() * 0.5,
+      speed: 0.8 + Math.random() * 0.55,
       color: Math.random() < 0.6 ? "#FFA366" : "#FFD4A8",
     });
   }
@@ -297,7 +297,7 @@
       type: "branch",
       pathIdx: Math.floor(Math.random() * branchPaths.length),
       progress: 0,
-      speed: 0.65 + Math.random() * 0.7,
+      speed: 0.9 + Math.random() * 0.75,
       color: Math.random() < 0.7 ? "#FFA366" : "#E87722",
     });
   }
@@ -401,12 +401,15 @@
     });
 
     // Spawn sap pulses — trunk pulses bring life up the spine,
-    // branch pulses scatter through the limbs
-    if (timestamp - lastPulseSpawn > 280) {
+    // branch pulses scatter through the limbs.
+    // Tuned for the ai site's kinetic energy: shorter interval, higher
+    // probability, occasional triple branch spawns.
+    if (timestamp - lastPulseSpawn > 200) {
       lastPulseSpawn = timestamp;
-      if (Math.random() < 0.55) spawnTrunkPulse();
-      if (Math.random() < 0.85) spawnBranchPulse();
-      if (Math.random() < 0.4) spawnBranchPulse();
+      if (Math.random() < 0.7) spawnTrunkPulse();
+      if (Math.random() < 0.95) spawnBranchPulse();
+      if (Math.random() < 0.55) spawnBranchPulse();
+      if (Math.random() < 0.3) spawnBranchPulse();
     }
 
     // Animate + draw pulses (world-space coords, drawn relative to srcY)
@@ -418,8 +421,8 @@
         alive = true;
       if (p.type === "trunk") {
         if (p.progress >= 1) {
-          // Sometimes fork onto a branch when arriving at a junction
-          if (Math.random() < 0.35) spawnBranchPulse();
+          // Often fork onto a branch when arriving at a junction
+          if (Math.random() < 0.55) spawnBranchPulse();
           p.seg++;
           p.progress = 0;
           if (p.seg >= trunkPath.length - 1) {
@@ -466,10 +469,11 @@
     }
 
     // Spawn + animate drifting spores released from the tree
-    if (timestamp - lastSporeRelease > 280) {
+    if (timestamp - lastSporeRelease > 200) {
       lastSporeRelease = timestamp;
       releaseSpore(srcY);
-      if (Math.random() < 0.7) releaseSpore(srcY);
+      if (Math.random() < 0.85) releaseSpore(srcY);
+      if (Math.random() < 0.35) releaseSpore(srcY);
     }
     for (let i = spores.length - 1; i >= 0; i--) {
       const sp = spores[i];
@@ -498,7 +502,7 @@
     }
 
     // Trigger random flares on visible mid+large nodes
-    if (timestamp - lastFlareSpawn > 850 && Math.random() < 0.55) {
+    if (timestamp - lastFlareSpawn > 600 && Math.random() < 0.7) {
       lastFlareSpawn = timestamp;
       const candidates = [];
       for (const n of nodes) {

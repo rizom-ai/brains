@@ -2,7 +2,8 @@ brain: rover
 site: "@brains/site-mylittlephoney"
 
 # Instance settings
-logLevel: debug
+logLevel: info
+logFile: ./brain.log
 
 # Permissions
 anchors:

@@ -42,7 +42,8 @@
       "mcp__paper__create_artboard",
       "mcp__paper__get_node_info",
       "mcp__paper__get_computed_styles",
-      "mcp__paper__set_text_content"
+      "mcp__paper__set_text_content",
+      "mcp__paper__rename_nodes"
     ],
     "deny": [],
     "ask": []

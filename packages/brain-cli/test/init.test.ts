@@ -66,6 +66,15 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
     });
 
+    it("should create tsconfig.json with Preact JSX config", () => {
+      scaffold(testDir, { model: "rover" });
+      const path = join(testDir, "tsconfig.json");
+      expect(existsSync(path)).toBe(true);
+      const content = JSON.parse(readFileSync(path, "utf-8"));
+      expect(content.compilerOptions.jsx).toBe("react-jsx");
+      expect(content.compilerOptions.jsxImportSource).toBe("preact");
+    });
+
     it("should NOT create deploy files by default", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, "deploy.yml"))).toBe(false);
