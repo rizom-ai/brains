@@ -99,6 +99,19 @@ const instanceOverridesSchema = z.object({
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 
 /**
+ * Strip the `package` field from a site override, leaving only the flavor
+ * fields (variant, theme, ...) that flow into the site plugin's factory.
+ * `package` is consumed at package-resolution time and must not leak into
+ * the plugin config.
+ */
+export function stripSitePackageRef(
+  site: NonNullable<InstanceOverrides["site"]> | undefined,
+): Omit<NonNullable<InstanceOverrides["site"]>, "package"> {
+  const { package: _pkg, ...flavor } = site ?? {};
+  return flavor;
+}
+
+/**
  * Error thrown when brain.yaml fails to parse or validate.
  *
  * The message is pre-formatted for direct display to the operator

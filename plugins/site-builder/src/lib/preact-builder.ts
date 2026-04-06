@@ -411,16 +411,20 @@ export class PreactBuilder implements StaticSiteBuilder {
       `Writing ${entries.length} inline static asset(s) from SitePackage`,
     );
 
-    for (const [rawPath, content] of entries) {
-      // Strip a leading slash so `join(outputDir, rawPath)` always
-      // resolves under outputDir rather than treating `rawPath` as an
-      // absolute filesystem path.
-      const relativePath = rawPath.startsWith("/") ? rawPath.slice(1) : rawPath;
-      const destPath = join(this.outputDir, relativePath);
-      await fs.mkdir(dirname(destPath), { recursive: true });
-      await fs.writeFile(destPath, content, "utf-8");
-      this.logger.debug(`Wrote inline static asset: ${relativePath}`);
-    }
+    await Promise.all(
+      entries.map(async ([rawPath, content]) => {
+        // Strip a leading slash so `join(outputDir, rawPath)` always
+        // resolves under outputDir rather than treating `rawPath` as an
+        // absolute filesystem path.
+        const relativePath = rawPath.startsWith("/")
+          ? rawPath.slice(1)
+          : rawPath;
+        const destPath = join(this.outputDir, relativePath);
+        await fs.mkdir(dirname(destPath), { recursive: true });
+        await fs.writeFile(destPath, content, "utf-8");
+        this.logger.debug(`Wrote inline static asset: ${relativePath}`);
+      }),
+    );
   }
 
   private async copyDirectory(src: string, dest: string): Promise<void> {

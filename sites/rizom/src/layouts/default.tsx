@@ -26,10 +26,7 @@ export interface DefaultLayoutProps {
  */
 export function DefaultLayout({ sections }: DefaultLayoutProps): JSX.Element {
   return (
-    <div
-      className="bg-theme relative min-h-screen"
-      style={{ backgroundColor: "var(--color-bg)", color: "var(--color-text)" }}
-    >
+    <div className="bg-theme relative min-h-screen">
       {/* Background canvas — filled by variant-specific tree/constellation/roots script */}
       <div
         id="bgCanvasWrap"

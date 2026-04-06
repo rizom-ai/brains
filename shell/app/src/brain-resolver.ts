@@ -6,7 +6,10 @@ import type {
   PresetName,
 } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
-import type { InstanceOverrides } from "./instance-overrides";
+import {
+  stripSitePackageRef,
+  type InstanceOverrides,
+} from "./instance-overrides";
 import type { SitePackage } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
@@ -124,8 +127,12 @@ export function resolve(
     overrides,
   );
 
-  // If a site package is present, inject its config into site-builder overrides
+  // Instantiate capabilities — each plugin gets only its own
+  // matching override (by plugin ID), never other plugins' overrides.
+  const capabilities: Plugin[] = [];
+
   if (site) {
+    // Inject the site package's data into site-builder's plugin overrides.
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
     pluginOverrides["site-builder"] = deepMerge(
       {
@@ -137,23 +144,14 @@ export function resolve(
       },
       siteBuilderExplicit,
     );
-  }
 
-  // Instantiate capabilities — each plugin gets only its own
-  // matching override (by plugin ID), never other plugins' overrides.
-  const capabilities: Plugin[] = [];
-
-  // If a site package is present, register its plugin
-  if (site) {
-    // Flavor fields from brain.yaml's `site:` block (variant, theme, ...)
-    // flow through to the site plugin's Zod-validated config schema.
-    // `package` is consumed at package-resolution time above and stripped
-    // here because the plugin factory doesn't need it.
-    const { package: _pkg, ...siteFlavor } = overrides?.site ?? {};
-
+    // Construct the site package's own plugin. brain.yaml flavor fields
+    // (variant, theme, ...) flow through to the plugin's Zod-validated
+    // config schema; `package` is stripped because it was already consumed
+    // by resolveSitePackage above.
     const sitePlugin = site.plugin({
       entityDisplay: site.entityDisplay,
-      ...siteFlavor,
+      ...stripSitePackageRef(overrides?.site),
     });
     // Register site plugin when site-builder is active (site plugin
     // is part of the site package, not listed in presets directly)

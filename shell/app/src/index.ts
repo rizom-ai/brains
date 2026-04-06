@@ -23,7 +23,6 @@ export type { InstanceOverrides } from "./instance-overrides";
 export type {
   BrainDefinition,
   BrainIdentity,
-  BrainContentModel,
   BrainEnvironment,
   PluginConfig,
   CapabilityEntry,

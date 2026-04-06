@@ -1230,17 +1230,13 @@ site:
     // can ship multiple flavors (e.g. site-rizom with foundation/work/ai).
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
-    const site: SitePackage = {
-      theme: "",
-      layouts: { default: null },
-      routes: [],
-      entityDisplay: {},
+    const site = createMockSitePackage("rizom-site", {
       plugin: (config) => {
         const cfg = config ?? {};
         pluginConfigs.push(cfg);
         return createMockPlugin("rizom-site", cfg);
       },
-    };
+    });
 
     const def = defineBrain({
       name: "test",
@@ -1278,28 +1274,20 @@ site:
     // being forwarded to the plugin factory.
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
-    const defaultSite: SitePackage = {
-      theme: "",
-      layouts: { default: null },
-      routes: [],
-      entityDisplay: {},
+    const defaultSite = createMockSitePackage("default-site", {
       plugin: (config) => {
         const cfg = config ?? {};
         pluginConfigs.push(cfg);
         return createMockPlugin("default-site", cfg);
       },
-    };
-    const overrideSite: SitePackage = {
-      theme: "",
-      layouts: { default: null },
-      routes: [],
-      entityDisplay: {},
+    });
+    const overrideSite = createMockSitePackage("override-site", {
       plugin: (config) => {
         const cfg = config ?? {};
         pluginConfigs.push(cfg);
         return createMockPlugin("override-site", cfg);
       },
-    };
+    });
     registerPackage("@brains/site-leakcheck", overrideSite);
 
     const def = defineBrain({

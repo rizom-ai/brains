@@ -82,19 +82,6 @@ export interface BrainIdentity {
 }
 
 /**
- * Entity display metadata for site building.
- */
-import type { EntityDisplayEntry } from "@brains/plugins";
-
-/**
- * Content model — how this brain structures its content.
- */
-export interface BrainContentModel {
-  seedContentDir?: string;
-  entityDisplay?: Record<string, EntityDisplayEntry>;
-}
-
-/**
  * The brain definition — a reusable model that describes what a brain IS.
  *
  * Key design principles:
@@ -149,9 +136,6 @@ export interface BrainDefinition {
 
   /** Deployment infrastructure config (domain, CDN, DNS) */
   deployment?: DeploymentConfigInput;
-
-  /** Content model — seed content, entity routes */
-  contentModel?: BrainContentModel;
 
   /**
    * Plugin/interface IDs to disable when running in eval mode.

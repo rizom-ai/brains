@@ -91,12 +91,6 @@ describe("defineBrain", () => {
       deployment: {
         domain: "test.example.com",
       },
-      contentModel: {
-        seedContentDir: "./seed-content",
-        entityDisplay: {
-          post: { label: "Post" },
-        },
-      },
     });
 
     expect(def.identity?.characterName).toBe("TestBot");
