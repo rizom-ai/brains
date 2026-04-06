@@ -42,7 +42,7 @@ The theme CSS uses `[data-rizom-variant]` attribute selectors to switch the acce
 
 ## Architectural prerequisite
 
-The current site-builder cannot pass per-brain config to a site package's plugin factory. The fix is small (3 lines across 2 files) and backwards-compatible.
+The current site-builder cannot pass per-brain config to a site package's plugin factory. The fix is small and lands in a single atomic commit together with the migration of the two existing consumers.
 
 ### Current state
 
@@ -64,30 +64,22 @@ The plugin factory receives only `entityRouteConfig`. Anything else from `brain.
 
 ### Required change
 
-**`shell/app/src/instance-overrides.ts`** — accept `site:` as either a legacy string or a new object:
+Make `site:` always an object. No union, no backwards-compatibility shim — the only two in-repo consumers (`mylittlephoney`, `professional-brain`) migrate in the same commit, and there is no published `@rizom/brain` yet so no brain.yaml files exist in the wild.
+
+**`shell/app/src/instance-overrides.ts`** — object-only schema:
 
 ```ts
-site: z.union([
-  z.string(),
-  z.object({
-    package: z.string().optional(),
-    variant: z.string().optional(),
-    theme: z.string().optional(),
-  }),
-]).optional();
+site: z.object({
+  package: z.string().optional(),
+  variant: z.string().optional(),
+  theme: z.string().optional(),
+}).optional();
 ```
 
-Existing brain.yaml files using `site: "@brains/site-yeehaa"` continue to validate.
-
-**`shell/app/src/brain-resolver.ts`** — normalize and forward:
+**`shell/app/src/brain-resolver.ts`** — spread the flavor fields into the plugin config:
 
 ```ts
-const siteOverride =
-  typeof overrides?.site === "string"
-    ? { package: overrides.site }
-    : overrides?.site;
-
-const { package: _pkg, ...siteFlavor } = siteOverride ?? {};
+const { package: _pkg, ...siteFlavor } = overrides?.site ?? {};
 
 const sitePlugin = site.plugin({
   entityRouteConfig: site.entityRouteConfig,
@@ -97,14 +89,27 @@ const sitePlugin = site.plugin({
 
 `package` is stripped before passing to the plugin (it was used at resolution time to find the package — the plugin doesn't need it). Everything else (`variant`, `theme`, future fields) flows through to the plugin's Zod-validated config schema.
 
+### Rationale
+
+We briefly considered a `z.union([z.string(), z.object({...})])` form for backwards compatibility, then discarded it:
+
+- Only two in-repo apps use the string form; migration is atomic.
+- No published `@rizom/brain` — zero external brain.yaml files exist.
+- A union form would carry a `typeof === "string"` branch + deprecation comment forever; "later" never comes.
+- Single way to express a site — future readers never wonder "is this old-style or new-style?"
+
 ## Phase 0: Brain-resolver enabler
 
-**Files modified:** 2
+**Files modified:** ~6, one commit
 
-- `shell/app/src/instance-overrides.ts` — extend `site` schema to union
-- `shell/app/src/brain-resolver.ts` — normalize and spread
+- `shell/app/src/instance-overrides.ts` — object-only `site` schema
+- `shell/app/src/brain-resolver.ts` — spread the flavor fields
+- `shell/app/src/override-package-refs.ts` — read `site.package` instead of `site` as a string when collecting `@-prefixed` refs to register
+- `apps/mylittlephoney/brain.yaml` — `site: "@brains/site-mylittlephoney"` → `site: { package: "@brains/site-mylittlephoney" }`
+- `apps/professional-brain/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa" }`
+- `shell/app/test/instance-overrides.test.ts` + `shell/app/test/override-package-refs.test.ts` — update any test fixtures that pass `site:` as a string
 
-**Verification:** existing apps (`professional-brain`, `mylittlephoney`) build identically. `bun run typecheck && bun test` passes.
+**Verification:** `bun run typecheck && bun run lint && bun test` passes. `professional-brain` and `mylittlephoney` build and render identically (their active capabilities + resolved site plugin config match the pre-change snapshot byte-for-byte).
 
 ## Phase 1: Theme package
 
@@ -303,6 +308,6 @@ Once the MVP is shipping:
 ## Risk notes
 
 - **Theme rename**: Only `sites/ranger` consumes the existing `theme-rizom`. Rename should land in a single commit so workspace install order stays consistent.
-- **brain-resolver change**: Touches `shell/app/`. Backwards-compatible (new field is optional, spread of empty object is a no-op), but should be tested against existing apps before relying on it.
+- **brain-resolver change**: Touches `shell/app/`. Not backwards-compatible on purpose — the two in-repo `site:`-as-string consumers are migrated in the same commit, and there are no external brain.yaml files yet. Should be tested against existing apps in the same commit before relying on it.
 - **Canvas script loading**: The prototype loads canvases via dynamic `<script>` injection. The site package needs site-builder to expose `src/canvases/` as static assets at `/canvases/`. Confirm site-builder's static asset handling supports this path before Phase 2 — alternative is to inline the canvas JS into the page.
 - **Per-variant content**: Hero copy, taglines, and CTAs vary per variant. The plan stores variant-specific defaults in the site plugin's `buildTemplates()` method. Each app can override via `brain-data/` content files.
