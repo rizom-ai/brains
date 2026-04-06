@@ -242,6 +242,13 @@ export function resolve(
         ? { logLevel: logLevelSchema.parse(env["LOG_LEVEL"]) }
         : {}),
 
+    // Log file: yaml overrides > env > undefined
+    ...(overrides?.logFile
+      ? { logFile: overrides.logFile }
+      : env["LOG_FILE"]
+        ? { logFile: env["LOG_FILE"] }
+        : {}),
+
     // Database: yaml overrides > env > undefined
     ...(overrides?.database
       ? { database: overrides.database }

@@ -9,8 +9,8 @@ import {
   type Mock,
 } from "bun:test";
 import { AIService } from "../src/aiService";
-import { createSilentLogger } from "@brains/test-utils";
-import { z } from "@brains/utils";
+import { createSilentLogger, createTestLogger } from "@brains/test-utils";
+import { z, LogLevel } from "@brains/utils";
 import * as ai from "ai";
 import * as anthropicSdk from "@ai-sdk/anthropic";
 
@@ -194,6 +194,30 @@ describe("AIService", () => {
         maxTokens: 1000,
         webSearch: true,
       });
+    });
+
+    it("should emit ai:usage log entry with token counts", async () => {
+      const testLogger = createTestLogger(LogLevel.INFO);
+      // Spy on child so child logger calls inherit the spy
+      const childLogger = testLogger.child("AIService");
+      const childSpy = spyOn(childLogger, "info");
+      const childMock = spyOn(testLogger, "child").mockReturnValue(childLogger);
+
+      const service = AIService.createFresh({}, testLogger);
+      await service.generateText("System", "User");
+
+      const usageCall = childSpy.mock.calls.find(
+        (call) => call[0] === "ai:usage",
+      );
+      expect(usageCall).toBeDefined();
+      expect(usageCall?.[1]).toMatchObject({
+        operation: "text_generation",
+        inputTokens: 10,
+        outputTokens: 20,
+      });
+
+      childSpy.mockRestore();
+      childMock.mockRestore();
     });
 
     it("should use Anthropic provider when model is claude", async () => {

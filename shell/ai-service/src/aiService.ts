@@ -144,14 +144,21 @@ export class AIService implements IAIService {
         }),
       });
 
-      return {
-        text: result.text,
-        usage: {
-          promptTokens: result.usage.inputTokens ?? 0,
-          completionTokens: result.usage.outputTokens ?? 0,
-          totalTokens: result.usage.totalTokens ?? 0,
-        },
+      const usage = {
+        promptTokens: result.usage.inputTokens ?? 0,
+        completionTokens: result.usage.outputTokens ?? 0,
+        totalTokens: result.usage.totalTokens ?? 0,
       };
+
+      this.logger.info("ai:usage", {
+        operation: "text_generation",
+        provider: selectTextProvider(this.config.model),
+        model: this.config.model,
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.completionTokens,
+      });
+
+      return { text: result.text, usage };
     } catch (error) {
       this.logger.error("Failed to generate text", error);
       throw new Error("AI text generation failed");
@@ -198,14 +205,21 @@ export class AIService implements IAIService {
         },
       });
 
-      return {
-        object: result.object as T,
-        usage: {
-          promptTokens: result.usage.inputTokens ?? 0,
-          completionTokens: result.usage.outputTokens ?? 0,
-          totalTokens: result.usage.totalTokens ?? 0,
-        },
+      const usage = {
+        promptTokens: result.usage.inputTokens ?? 0,
+        completionTokens: result.usage.outputTokens ?? 0,
+        totalTokens: result.usage.totalTokens ?? 0,
       };
+
+      this.logger.info("ai:usage", {
+        operation: "object_generation",
+        provider: selectTextProvider(this.config.model),
+        model: this.config.model,
+        inputTokens: usage.promptTokens,
+        outputTokens: usage.completionTokens,
+      });
+
+      return { object: result.object as T, usage };
     } catch (error) {
       this.logger.error("Failed to generate object", error);
       throw new Error("AI object generation failed");

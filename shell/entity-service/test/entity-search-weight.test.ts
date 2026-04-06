@@ -95,10 +95,16 @@ describe("EntitySearch weight behavior", () => {
     );
 
     const mockEmbeddingService = {
+      dimensions: MOCK_DIMENSIONS,
       generateEmbedding: mock(() =>
-        Promise.resolve(new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
+        Promise.resolve({
+          embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+          usage: { tokens: 10 },
+        }),
       ),
-      generateEmbeddings: mock(() => Promise.resolve([])),
+      generateEmbeddings: mock(() =>
+        Promise.resolve({ embeddings: [], usage: { tokens: 0 } }),
+      ),
     } as unknown as IEmbeddingService;
 
     mockSelectFn = mock(() => Promise.resolve([]));

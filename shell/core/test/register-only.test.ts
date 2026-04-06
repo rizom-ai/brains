@@ -53,9 +53,14 @@ describe("Shell registerOnly mode", () => {
     logger: createSilentLogger("test"),
     embeddingService: {
       dimensions: 1536,
-      generateEmbedding: async () => new Float32Array(1536).fill(0.1),
-      generateEmbeddings: async (texts: string[]) =>
-        texts.map(() => new Float32Array(1536).fill(0.1)),
+      generateEmbedding: async () => ({
+        embedding: new Float32Array(1536).fill(0.1),
+        usage: { tokens: 10 },
+      }),
+      generateEmbeddings: async (texts: string[]) => ({
+        embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
+        usage: { tokens: texts.length * 10 },
+      }),
     },
   };
 

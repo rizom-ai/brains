@@ -55,7 +55,8 @@ export class EntitySearch {
     this.logger.debug(`Searching entities with query: "${query}"`);
 
     // Generate embedding for the query
-    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+    const { embedding: queryEmbedding } =
+      await this.embeddingService.generateEmbedding(query);
 
     // Convert Float32Array to JSON array for SQL
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
@@ -190,7 +191,8 @@ export class EntitySearch {
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
-    const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+    const { embedding: queryEmbedding } =
+      await this.embeddingService.generateEmbedding(query);
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;

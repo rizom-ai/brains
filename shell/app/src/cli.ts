@@ -342,8 +342,13 @@ async function runDiagnostics(
 
   const subcommand = args[0] ?? "";
 
+  if (subcommand === "usage") {
+    await runUsageDiagnostics(config);
+    return;
+  }
+
   if (subcommand !== "search") {
-    console.error("Usage: brain diagnostics search");
+    console.error("Usage: brain diagnostics <search|usage>");
     process.exit(1);
   }
 
@@ -440,6 +445,58 @@ async function runDiagnostics(
   );
 
   await shell.shutdown();
+  process.exit(0);
+}
+
+/**
+ * Run usage diagnostics: read the log file, aggregate ai:usage events.
+ */
+async function runUsageDiagnostics(config: AppConfig): Promise<void> {
+  const logFile = config.logFile;
+  if (!logFile) {
+    console.error(
+      "No log file configured. Set logFile in brain.yaml to enable usage tracking.",
+    );
+    process.exit(1);
+  }
+
+  const { existsSync, readFileSync } = await import("node:fs");
+  if (!existsSync(logFile)) {
+    console.error(`Log file not found: ${logFile}`);
+    process.exit(1);
+  }
+
+  const { aggregateUsage } = await import("./usage-aggregator");
+  const content = readFileSync(logFile, "utf-8");
+  const report = aggregateUsage(content);
+
+  if (report.events.length === 0) {
+    console.log("No ai:usage events found in log file.");
+    process.exit(0);
+  }
+
+  const total = report.totalInputTokens + report.totalOutputTokens;
+
+  console.log("=== AI Usage ===\n");
+  console.log(`Period: ${report.firstTs} → ${report.lastTs}`);
+  console.log(`Total events: ${report.events.length}`);
+  console.log(
+    `Total input tokens:  ${report.totalInputTokens.toLocaleString()}`,
+  );
+  console.log(
+    `Total output tokens: ${report.totalOutputTokens.toLocaleString()}`,
+  );
+  console.log(`Total tokens:        ${total.toLocaleString()}\n`);
+
+  console.log("By model:");
+  for (const [key, agg] of report.byModel.entries()) {
+    console.log(
+      `  ${key.padEnd(40)} ${String(agg.calls).padStart(5)} calls, ` +
+        `${agg.inputTokens.toLocaleString().padStart(12)} in, ` +
+        `${agg.outputTokens.toLocaleString().padStart(12)} out`,
+    );
+  }
+
   process.exit(0);
 }
 

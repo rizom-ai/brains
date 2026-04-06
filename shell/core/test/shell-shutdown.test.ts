@@ -30,10 +30,14 @@ async function runMigrations(dir: string): Promise<void> {
 
 const mockEmbeddingService = {
   dimensions: 1536,
-  generateEmbedding: async (): Promise<Float32Array> =>
-    new Float32Array(1536).fill(0.1),
-  generateEmbeddings: async (texts: string[]): Promise<Float32Array[]> =>
-    texts.map(() => new Float32Array(1536).fill(0.1)),
+  generateEmbedding: async () => ({
+    embedding: new Float32Array(1536).fill(0.1),
+    usage: { tokens: 10 },
+  }),
+  generateEmbeddings: async (texts: string[]) => ({
+    embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
+    usage: { tokens: texts.length * 10 },
+  }),
 };
 
 const deps: ShellDependencies = {

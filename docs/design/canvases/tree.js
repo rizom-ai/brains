@@ -22,12 +22,17 @@
 
   let nodes = [];
   let builtTheme = null;
+  // Captured at build time so the animation loop can send pulses along them
+  let trunkPath = [];
+  let branchPaths = []; // each entry: [x0,y0,c1x,c1y,c2x,c2y,x1,y1]
 
   function buildStatic() {
     const light = isLightMode();
     if (builtTheme === light) return;
     builtTheme = light;
     nodes = [];
+    trunkPath = [];
+    branchPaths = [];
     const rng = createRand(42);
     // Completely replace the static canvas — no chance of state leak
     staticCanvas = document.createElement("canvas");
@@ -76,6 +81,11 @@
         op,
         light,
       );
+      // Capture substantial branches so the animation loop can run
+      // sap pulses along their bezier curves
+      if (w >= 1.4) {
+        branchPaths.push([x, y, c1x, c1y, c2x, c2y, ex, ey]);
+      }
       if (depth <= 2) {
         const nr = Math.max(0.5, w * 0.4);
         drawGlowNode(sctx, ex, ey, nr, color, op * 0.4, light);
@@ -188,6 +198,8 @@
       prevX = nextX;
       prevY = nextY;
     }
+    // Snapshot the trunk polyline for the animation loop to traverse
+    trunkPath = trunkPoints.slice();
 
     // Secondary strands alongside trunk
     for (let strand = 0; strand < 3; strand++) {
@@ -263,6 +275,77 @@
     buildStatic();
   };
 
+  // Sap pulses traveling along trunk and branches
+  const pulses = [];
+  let lastPulseSpawn = 0;
+  let lastFlareSpawn = 0;
+
+  function spawnTrunkPulse() {
+    if (trunkPath.length < 2) return;
+    pulses.push({
+      type: "trunk",
+      seg: 0,
+      progress: 0,
+      speed: 0.55 + Math.random() * 0.5,
+      color: Math.random() < 0.6 ? "#FFA366" : "#FFD4A8",
+    });
+  }
+
+  function spawnBranchPulse() {
+    if (!branchPaths.length) return;
+    pulses.push({
+      type: "branch",
+      pathIdx: Math.floor(Math.random() * branchPaths.length),
+      progress: 0,
+      speed: 0.65 + Math.random() * 0.7,
+      color: Math.random() < 0.7 ? "#FFA366" : "#E87722",
+    });
+  }
+
+  function bezierPoint(p, u) {
+    const mu = 1 - u;
+    const mu2 = mu * mu;
+    const u2 = u * u;
+    return [
+      mu2 * mu * p[0] + 3 * mu2 * u * p[2] + 3 * mu * u2 * p[4] + u2 * u * p[6],
+      mu2 * mu * p[1] + 3 * mu2 * u * p[3] + 3 * mu * u2 * p[5] + u2 * u * p[7],
+    ];
+  }
+
+  // Released spores — bright motes that drift outward from random visible
+  // tree nodes, biased toward the empty side of the canvas so the whole
+  // viewport gets ambient motion (not just the right side where the tree lives)
+  const spores = [];
+  let lastSporeRelease = 0;
+
+  function releaseSpore(srcY) {
+    // Only spawn from nodes near the trunk axis so spores genuinely
+    // radiate from the spine, not from arbitrary branch tips
+    const trunkRange = 90;
+    const candidates = [];
+    for (const n of nodes) {
+      const sy = n.y - srcY;
+      if (sy > -50 && sy < H + 50 && Math.abs(n.x - trunkX) < trunkRange) {
+        candidates.push(n);
+      }
+    }
+    if (!candidates.length) return;
+    const n = candidates[Math.floor(Math.random() * candidates.length)];
+    // Mostly leftward drift (outward into empty space) with some up/down spread
+    const angle = Math.PI + (Math.random() - 0.5) * Math.PI * 0.75;
+    const speed = 14 + Math.random() * 18;
+    spores.push({
+      x: n.x,
+      y: n.y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      age: 0,
+      maxAge: 5 + Math.random() * 3,
+      color: Math.random() < 0.7 ? "#FFA366" : "#FFD4A8",
+      r: 0.9 + Math.random() * 0.8,
+    });
+  }
+
   let t = 0,
     lastTime = 0;
   function animate(timestamp) {
@@ -274,6 +357,7 @@
     lastTime = timestamp;
     t += dt;
 
+    const light = isLightMode();
     const scrollY = window.scrollY || window.pageYOffset;
     const scrollRatio = (scrollY * 0.7) / Math.max(1, docH - H);
 
@@ -316,20 +400,139 @@
       ctx.fill();
     });
 
-    // Pulsing nodes — only draw those visible in current scroll window
+    // Spawn sap pulses — trunk pulses bring life up the spine,
+    // branch pulses scatter through the limbs
+    if (timestamp - lastPulseSpawn > 280) {
+      lastPulseSpawn = timestamp;
+      if (Math.random() < 0.55) spawnTrunkPulse();
+      if (Math.random() < 0.85) spawnBranchPulse();
+      if (Math.random() < 0.4) spawnBranchPulse();
+    }
+
+    // Animate + draw pulses (world-space coords, drawn relative to srcY)
+    for (let i = pulses.length - 1; i >= 0; i--) {
+      const p = pulses[i];
+      p.progress += dt * p.speed;
+      let px = 0,
+        py = 0,
+        alive = true;
+      if (p.type === "trunk") {
+        if (p.progress >= 1) {
+          // Sometimes fork onto a branch when arriving at a junction
+          if (Math.random() < 0.35) spawnBranchPulse();
+          p.seg++;
+          p.progress = 0;
+          if (p.seg >= trunkPath.length - 1) {
+            alive = false;
+          }
+        }
+        if (alive) {
+          const a = trunkPath[p.seg];
+          const b = trunkPath[p.seg + 1];
+          const e = p.progress * p.progress * (3 - 2 * p.progress);
+          px = a.x + (b.x - a.x) * e;
+          py = a.y + (b.y - a.y) * e;
+        }
+      } else {
+        if (p.progress >= 1) {
+          alive = false;
+        }
+        if (alive) {
+          const path = branchPaths[p.pathIdx];
+          const pt = bezierPoint(path, p.progress);
+          px = pt[0];
+          py = pt[1];
+        }
+      }
+      if (!alive) {
+        pulses.splice(i, 1);
+        continue;
+      }
+      const screenY = py - srcY;
+      if (screenY < -20 || screenY > H + 20) continue;
+      const fade = Math.sin(p.progress * Math.PI); // fade in + out at endpoints
+      ctx.fillStyle = rgba(p.color, (light ? 0.32 : 0.42) * fade);
+      ctx.beginPath();
+      ctx.arc(px, screenY, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = rgba(p.color, (light ? 0.5 : 0.6) * fade);
+      ctx.beginPath();
+      ctx.arc(px, screenY, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = rgba(light ? "#C45A08" : "#FFF8EE", 0.85 * fade);
+      ctx.beginPath();
+      ctx.arc(px, screenY, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Spawn + animate drifting spores released from the tree
+    if (timestamp - lastSporeRelease > 280) {
+      lastSporeRelease = timestamp;
+      releaseSpore(srcY);
+      if (Math.random() < 0.7) releaseSpore(srcY);
+    }
+    for (let i = spores.length - 1; i >= 0; i--) {
+      const sp = spores[i];
+      sp.x += sp.vx * dt;
+      sp.y += sp.vy * dt;
+      sp.vy += 4 * dt; // gentle gravity
+      sp.age += dt;
+      if (sp.age > sp.maxAge) {
+        spores.splice(i, 1);
+        continue;
+      }
+      const screenY = sp.y - srcY;
+      if (screenY < -20 || screenY > H + 20 || sp.x < -20 || sp.x > W + 20)
+        continue;
+      const lr = sp.age / sp.maxAge;
+      const alpha =
+        lr < 0.1 ? lr / 0.1 : lr > 0.7 ? Math.max(0, (1 - lr) / 0.3) : 1;
+      ctx.fillStyle = rgba(sp.color, alpha * 0.18);
+      ctx.beginPath();
+      ctx.arc(sp.x, screenY, sp.r * 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = rgba(light ? "#C45A08" : sp.color, alpha * 0.85);
+      ctx.beginPath();
+      ctx.arc(sp.x, screenY, sp.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // Trigger random flares on visible mid+large nodes
+    if (timestamp - lastFlareSpawn > 850 && Math.random() < 0.55) {
+      lastFlareSpawn = timestamp;
+      const candidates = [];
+      for (const n of nodes) {
+        const sy = n.y - srcY;
+        if (sy > -50 && sy < H + 50 && n.r > 1.5) candidates.push(n);
+      }
+      if (candidates.length) {
+        const n = candidates[Math.floor(Math.random() * candidates.length)];
+        n.flare = 1.0;
+      }
+    }
+
+    // Pulsing nodes (with optional flare boost) — only visible window
     nodes.forEach((n) => {
+      if (n.flare > 0) n.flare = Math.max(0, n.flare - dt * 0.85);
       const screenY = n.y - srcY;
       if (screenY < -100 || screenY > H + 100) return;
       const pulse = 0.6 + 0.4 * Math.sin(t * 1.2 + n.phase);
-      const pr = n.r * (2 + Math.sin(t * 0.7 + n.phase));
-      ctx.fillStyle = rgba(n.color, n.op * 0.1 * pulse);
+      const flareBoost = 1 + (n.flare || 0) * 2.5;
+      const pr = n.r * (2 + Math.sin(t * 0.7 + n.phase)) * flareBoost;
+      ctx.fillStyle = rgba(n.color, n.op * 0.1 * pulse * flareBoost);
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba("#FFD4A8", n.op * 0.12 * pulse);
+      ctx.fillStyle = rgba("#FFD4A8", n.op * 0.12 * pulse * flareBoost);
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 2, 0, Math.PI * 2);
       ctx.fill();
+      if (n.flare > 0.05) {
+        ctx.fillStyle = rgba("#FFF8EE", n.flare * 0.9);
+        ctx.beginPath();
+        ctx.arc(n.x, screenY, n.r * 0.6, 0, Math.PI * 2);
+        ctx.fill();
+      }
     });
 
     requestAnimationFrame(animate);

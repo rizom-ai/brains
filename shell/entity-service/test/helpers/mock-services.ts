@@ -8,7 +8,12 @@ export const MOCK_DIMENSIONS = 1536;
  */
 export const mockEmbeddingService: IEmbeddingService = {
   dimensions: MOCK_DIMENSIONS,
-  generateEmbedding: async () => new Float32Array(MOCK_DIMENSIONS).fill(0.1),
-  generateEmbeddings: async (texts: string[]) =>
-    texts.map(() => new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
+  generateEmbedding: async () => ({
+    embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+    usage: { tokens: 10 },
+  }),
+  generateEmbeddings: async (texts: string[]) => ({
+    embeddings: texts.map(() => new Float32Array(MOCK_DIMENSIONS).fill(0.1)),
+    usage: { tokens: texts.length * 10 },
+  }),
 };

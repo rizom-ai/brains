@@ -114,13 +114,14 @@ describe("OnlineEmbeddingProvider", () => {
   });
 
   describe("generateEmbeddings edge cases", () => {
-    test("returns empty array for empty input", async () => {
+    test("returns empty result for empty input", async () => {
       const provider = OnlineEmbeddingProvider.createFresh({
         apiKey: "test-key",
         logger: createSilentLogger(),
       });
       const result = await provider.generateEmbeddings([]);
-      expect(result).toEqual([]);
+      expect(result.embeddings).toEqual([]);
+      expect(result.usage.tokens).toBe(0);
     });
   });
 });

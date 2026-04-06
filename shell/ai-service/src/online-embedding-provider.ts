@@ -1,7 +1,11 @@
 import { createOpenAI } from "@ai-sdk/openai";
 import { embedMany, embed } from "ai";
 import type { Logger } from "@brains/utils";
-import type { IEmbeddingService } from "@brains/entity-service";
+import type {
+  IEmbeddingService,
+  EmbeddingResult,
+  BatchEmbeddingResult,
+} from "@brains/entity-service";
 
 export interface OnlineEmbeddingConfig {
   apiKey: string;
@@ -54,10 +58,10 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
     this.openai = createOpenAI({ apiKey: config.apiKey });
   }
 
-  async generateEmbedding(text: string): Promise<Float32Array> {
+  async generateEmbedding(text: string): Promise<EmbeddingResult> {
     this.logger.debug(`Generating embedding for text (${text.length} chars)`);
 
-    const { embedding } = await embed({
+    const { embedding, usage } = await embed({
       model: this.openai.embedding(this.model),
       value: text,
       providerOptions: {
@@ -65,17 +69,20 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       },
     });
 
-    return new Float32Array(embedding);
+    return {
+      embedding: new Float32Array(embedding),
+      usage: { tokens: usage.tokens },
+    };
   }
 
-  async generateEmbeddings(texts: string[]): Promise<Float32Array[]> {
+  async generateEmbeddings(texts: string[]): Promise<BatchEmbeddingResult> {
     if (texts.length === 0) {
-      return [];
+      return { embeddings: [], usage: { tokens: 0 } };
     }
 
     this.logger.debug(`Generating embeddings for ${texts.length} texts`);
 
-    const { embeddings } = await embedMany({
+    const { embeddings, usage } = await embedMany({
       model: this.openai.embedding(this.model),
       values: texts,
       providerOptions: {
@@ -83,6 +90,9 @@ export class OnlineEmbeddingProvider implements IEmbeddingService {
       },
     });
 
-    return embeddings.map((e) => new Float32Array(e));
+    return {
+      embeddings: embeddings.map((e) => new Float32Array(e)),
+      usage: { tokens: usage.tokens },
+    };
   }
 }

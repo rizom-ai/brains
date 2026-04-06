@@ -138,9 +138,17 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
       }
 
       // Generate embedding using fresh content from entity
-      const embedding = await this.embeddingService.generateEmbedding(
-        currentEntity.content,
-      );
+      const { embedding, usage } =
+        await this.embeddingService.generateEmbedding(currentEntity.content);
+
+      // Log usage event for monitoring
+      this.logger.info("ai:usage", {
+        operation: "embedding",
+        provider: "openai",
+        model: "text-embedding-3-small",
+        inputTokens: usage.tokens,
+        outputTokens: 0,
+      });
 
       // Report progress after embedding generation
       await progressReporter.report({

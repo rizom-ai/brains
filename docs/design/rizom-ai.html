@@ -348,6 +348,9 @@ footer .foot-links a:hover{color:var(--text)}
   <canvas id="heroCanvas"></canvas>
 </div>
 
+<!-- FPS HUD — visible only with ?debug=1 -->
+<div id="fpsHud" style="display:none;position:fixed;top:8px;right:8px;z-index:200;padding:6px 10px;background:rgba(13,10,26,0.78);color:#FFD4A8;font-family:'Fira Code',monospace;font-size:11px;border-radius:4px;pointer-events:none;letter-spacing:0.02em">--</div>
+
 <!-- NAV -->
 <nav>
   <div class="logo">
@@ -728,14 +731,41 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
   }
 }
 
-// Background canvas — pick variant via ?canvas=tree|constellation (default: tree)
+// Background canvas — pick variant via ?canvas=tree|constellation|roots (default: tree)
 (function loadBackgroundCanvas() {
-  const allowed = ['tree', 'constellation'];
+  const allowed = ['tree', 'constellation', 'roots'];
   const param = new URLSearchParams(location.search).get('canvas');
   const name = allowed.includes(param) ? param : 'tree';
   const s = document.createElement('script');
   s.src = `canvases/${name}.js`;
   document.head.appendChild(s);
+})();
+
+// FPS HUD — runs its own RAF loop, gated on ?debug=1
+(function fpsHud() {
+  if (new URLSearchParams(location.search).get('debug') !== '1') return;
+  const hud = document.getElementById('fpsHud');
+  if (!hud) return;
+  hud.style.display = 'block';
+  let frames = 0;
+  let lastReport = performance.now();
+  let prev = lastReport;
+  let frameMsAccum = 0;
+  function tick(now) {
+    frameMsAccum += now - prev;
+    prev = now;
+    frames++;
+    if (now - lastReport >= 500) {
+      const fps = Math.round((frames * 1000) / (now - lastReport));
+      const ms = (frameMsAccum / frames).toFixed(1);
+      hud.textContent = `${fps} fps · ${ms}ms`;
+      frames = 0;
+      frameMsAccum = 0;
+      lastReport = now;
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
 })();
 
 

@@ -6,7 +6,12 @@ export { BaseEntityAdapter, FallbackEntityAdapter } from "./adapters";
 export { SingletonEntityService } from "./singleton-entity-service";
 
 // Embedding
-export type { IEmbeddingService } from "./embedding-types";
+export type {
+  IEmbeddingService,
+  EmbeddingUsage,
+  EmbeddingResult,
+  BatchEmbeddingResult,
+} from "./embedding-types";
 
 // Embedding database
 export {

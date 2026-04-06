@@ -84,10 +84,12 @@ export class App {
         };
       }
 
-      if (this.config.logLevel) {
+      if (this.config.logLevel || this.config.logFile) {
         shellConfig.logging = {
-          level: this.config.logLevel,
+          level: this.config.logLevel ?? "info",
+          format: "text",
           context: this.config.name,
+          ...(this.config.logFile && { file: this.config.logFile }),
         };
       }
 

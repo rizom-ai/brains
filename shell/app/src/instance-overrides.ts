@@ -20,6 +20,9 @@ const instanceOverridesSchema = z.object({
   /** Log level */
   logLevel: logLevelSchema.optional(),
 
+  /** Log file path (enables usage tracking) */
+  logFile: z.string().optional(),
+
   /** Production server port */
   port: z.number().optional(),
 

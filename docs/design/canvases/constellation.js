@@ -24,7 +24,10 @@
     packets = [];
     shooters = [];
     const rng = createRand(42);
-    const count = Math.floor((W * H) / 8500);
+    // Higher density on small viewports — same px-per-star formula gives
+    // too few stars on phones to form a visible network
+    const density = W < 768 ? 4500 : 8500;
+    const count = Math.floor((W * H) / density);
     for (let i = 0; i < count; i++) {
       const tier = rng.next();
       stars.push({
@@ -55,7 +58,9 @@
   function spawnPacket() {
     if (stars.length < 2) return;
     // Pick a random star, then a neighbor within connection range
-    const maxD = Math.min(W, H) * 0.13;
+    // Match the connection radius logic in frame() so packets spawn on every viewport
+    const avgSpacing = Math.sqrt((W * H) / Math.max(1, stars.length));
+    const maxD = avgSpacing * 1.7;
     const maxD2 = maxD * maxD;
     let tries = 12;
     while (tries-- > 0) {
@@ -151,9 +156,12 @@
     }
 
     // Connection lines (nearest-neighbor mesh)
-    const maxD = Math.min(W, H) * 0.13;
+    // Tie connection radius to actual star spacing so the mesh works on
+    // any viewport size, not just wide ones
+    const avgSpacing = Math.sqrt((W * H) / Math.max(1, stars.length));
+    const maxD = avgSpacing * 1.7;
     const maxD2 = maxD * maxD;
-    ctx.lineWidth = 0.6;
+    ctx.lineWidth = W < 768 ? 0.85 : 0.6;
     for (let i = 0; i < stars.length; i++) {
       const a = stars[i];
       for (let j = i + 1; j < stars.length; j++) {
