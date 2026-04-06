@@ -1,129 +1,308 @@
-# Rizom Sites — Three Domains, Three Brains
+# Rizom Sites — One Site Package, Three Brain Variants
 
 ## Overview
 
-Split Rizom's web presence into three focused sites:
+The Rizom ecosystem has three sites that share a single brand spine: **rizom.foundation** (parent / ideology), **rizom.work** (workspace / commercial), and **rizom.ai** (agent / product). All three are built from one shared site package and one shared theme package, configured per-deployment via `brain.yaml`.
 
-| Site                 | Purpose                                           | Brain  | Deploy                         | Priority                  |
-| -------------------- | ------------------------------------------------- | ------ | ------------------------------ | ------------------------- |
-| **rizom.ai**         | Product — @rizom/brain landing, docs, install CTA | Ranger | Current infra (Hetzner/Docker) | 1st                       |
-| **rizom.foundation** | Ideology — essays, vision, community              | Relay  | Kamal                          | 1st                       |
-| **rizom.work**       | Commercial — consultancy, services                | Ranger | Kamal                          | 2nd (after the other two) |
+| Site                 | Variant      | Brain  | Canvas        | Accent (dark mode)    | Status     |
+| -------------------- | ------------ | ------ | ------------- | --------------------- | ---------- |
+| **rizom.foundation** | `foundation` | Relay  | roots         | Amber Dark `#C45A08`  | MVP target |
+| **rizom.work**       | `work`       | Ranger | constellation | Amber `#E87722`       | Follow-up  |
+| **rizom.ai**         | `ai`         | Ranger | tree          | Amber Light `#FFA366` | Follow-up  |
 
-All three share a Rizom theme family — visual kinship with per-site accents.
+## Architecture
 
-## Site-Ranger Split
-
-The current `site-ranger` package has both product and community content. Split it:
-
-- **Product half** (features, pricing, install CTA, docs links) → `site-rizom-ai`
-- **Community/ideology half** (essays, vision, principles) → `site-rizom-foundation`
-
-Both new packages start from site-ranger's existing code and diverge.
-
-## Phase 1: rizom.ai (Product)
-
-### Brain: Ranger
-
-Ranger is the community/product brain — products, CTAs, onboarding. Fits the product landing page use case.
-
-### Site: `@brains/site-rizom-ai`
-
-Extract product-focused pages from site-ranger:
-
-- Product overview / features
-- Install CTA (`bun add -g @rizom/brain`)
-- Getting started quick-link
-- Documentation links
-- Blog (product updates, releases)
-
-### Theme: `@brains/theme-rizom-ai`
-
-Rizom family base with product-specific accents. Shared visual language with foundation and work.
-
-### Deploy: Current Hetzner/Docker infra
-
-rizom.ai stays on the existing deployment pipeline. No Kamal dependency.
-
-### Steps
-
-1. Create `shared/theme-rizom-ai/` — Rizom family, product accents
-2. Create `sites/rizom-ai/` — extract product half from site-ranger
-3. Create app instance (brain.yaml, .env.schema, seed content)
-4. Deploy to rizom.ai on existing infra
-5. DNS: point rizom.ai to server
-
-## Phase 2: rizom.foundation (Ideology)
-
-### Brain: Relay
-
-Relay is the team knowledge brain. Foundation shares knowledge, essays, vision.
-
-### Site: `@brains/site-rizom-foundation`
-
-Extract community/ideology pages from site-ranger:
-
-- Essays, manifestos, principles
-- Vision and mission
-- Community content
-- Knowledge base
-
-### Theme: `@brains/theme-rizom-foundation`
-
-Rizom family base with foundation-specific accents.
-
-### Deploy: Kamal
-
-First Kamal-deployed instance. Standalone instance repo.
-
-### Steps
-
-1. Create `shared/theme-rizom-foundation/` — Rizom family, foundation accents
-2. Create `sites/rizom-foundation/` — extract community half from site-ranger
-3. `brain init --model relay --deploy` → standalone instance repo
-4. DNS: add rizom.foundation to Cloudflare
-5. Deploy via Kamal
-
-## Phase 3: rizom.work (Commercial)
-
-### Brain: Ranger
-
-Product/commercial brain for consultancy services.
-
-### Deploy: Kamal
-
-Second Kamal-deployed instance.
-
-### Steps
-
-1. Create `shared/theme-rizom-work/` — Rizom family, commercial accents
-2. Create `sites/rizom-work/` — consultancy/services pages
-3. `brain init --model ranger --deploy` → standalone instance repo
-4. DNS: add rizom.work to Cloudflare
-5. Deploy via Kamal
-
-## Theme Architecture
-
-All three themes extend a shared Rizom base:
+Spine + flavors. Everything visual, structural, and editorial that the three sites have in common lives in one place. The differences (canvas variant, accent shade, density rhythm, voice register, secondary purple) are configured per brain.
 
 ```
-shared/theme-rizom/         ← shared base (palette, typography, spacing)
-  ├── theme-rizom-ai/       ← product accents
-  ├── theme-rizom-foundation/ ← foundation accents
-  └── theme-rizom-work/     ← commercial accents
+shared/theme-rizom/           # ONE theme — palette, type, motion vocabulary, variant CSS
+sites/rizom/                  # ONE site — layouts, sections, routes, canvases
+apps/rizom-foundation/        # Brain instance — declares site + variant in brain.yaml
+apps/rizom-work/              # (follow-up)
+apps/rizom-ai/                # (follow-up)
 ```
 
-## Prerequisites
+The same `@brains/site-rizom` package is loaded by all three brains. Each brain's `brain.yaml` selects its variant via a `site:` object:
 
-- Kamal deploy working (for foundation + work)
-- `brain init --deploy` scaffolding (done)
-- DNS for all three domains managed (rizom.ai existing, foundation + work via Cloudflare)
+```yaml
+brain: relay
+domain: rizom.foundation
+site:
+  package: "@brains/site-rizom"
+  variant: foundation
+```
 
-## Order
+The site plugin reads `variant` and:
 
-1. Themes (shared base + ai + foundation)
-2. site-rizom-ai (extract product half from site-ranger)
-3. site-rizom-foundation (extract community half from site-ranger)
-4. Deploy rizom.ai on current infra
-5. Deploy rizom.foundation via Kamal
-6. rizom.work (later — same pattern as foundation but with ranger)
+- Sets `data-rizom-variant="foundation"` on the document body via a head script
+- Loads the corresponding canvas (`/canvases/roots.js`)
+- Registers variant-specific template defaults (hero copy, CTA verbs, mood)
+
+The theme CSS uses `[data-rizom-variant]` attribute selectors to switch the accent shade and secondary purple. Light mode collapses all three variants to the same Amber Dark accent (per brand guide A2).
+
+## Architectural prerequisite
+
+The current site-builder cannot pass per-brain config to a site package's plugin factory. The fix is small (3 lines across 2 files) and backwards-compatible.
+
+### Current state
+
+`shell/app/src/instance-overrides.ts`:
+
+```ts
+site: z.string().optional(); // package name only
+```
+
+`shell/app/src/brain-resolver.ts` (lines 147–149):
+
+```ts
+const sitePlugin = site.plugin({
+  entityRouteConfig: site.entityRouteConfig,
+});
+```
+
+The plugin factory receives only `entityRouteConfig`. Anything else from `brain.yaml` is dropped on the floor.
+
+### Required change
+
+**`shell/app/src/instance-overrides.ts`** — accept `site:` as either a legacy string or a new object:
+
+```ts
+site: z.union([
+  z.string(),
+  z.object({
+    package: z.string().optional(),
+    variant: z.string().optional(),
+    theme: z.string().optional(),
+  }),
+]).optional();
+```
+
+Existing brain.yaml files using `site: "@brains/site-yeehaa"` continue to validate.
+
+**`shell/app/src/brain-resolver.ts`** — normalize and forward:
+
+```ts
+const siteOverride =
+  typeof overrides?.site === "string"
+    ? { package: overrides.site }
+    : overrides?.site;
+
+const { package: _pkg, ...siteFlavor } = siteOverride ?? {};
+
+const sitePlugin = site.plugin({
+  entityRouteConfig: site.entityRouteConfig,
+  ...siteFlavor,
+});
+```
+
+`package` is stripped before passing to the plugin (it was used at resolution time to find the package — the plugin doesn't need it). Everything else (`variant`, `theme`, future fields) flows through to the plugin's Zod-validated config schema.
+
+## Phase 0: Brain-resolver enabler
+
+**Files modified:** 2
+
+- `shell/app/src/instance-overrides.ts` — extend `site` schema to union
+- `shell/app/src/brain-resolver.ts` — normalize and spread
+
+**Verification:** existing apps (`professional-brain`, `mylittlephoney`) build identically. `bun run typecheck && bun test` passes.
+
+## Phase 1: Theme package
+
+The existing `shared/theme-rizom/` is misnamed — it's actually the Ranger theme, only consumed by `sites/ranger`. Rename it to free up the `theme-rizom` name for the new brand.
+
+### Step 1.1 — Rename existing
+
+- `shared/theme-rizom/` → `shared/theme-ranger/`
+- `package.json` name: `@brains/theme-rizom` → `@brains/theme-ranger`
+- `sites/ranger/package.json` dependency rename
+- `sites/ranger/src/index.ts` import path update
+- `bun install` to refresh workspace links
+
+### Step 1.2 — Create new `shared/theme-rizom/`
+
+Modeled on `shared/theme-default/` (standalone theme using `composeTheme()` from `@brains/theme-base`).
+
+**Token hierarchy** (per CLAUDE.md theming rules):
+
+Palette tokens (`@layer theme`, never used directly):
+
+- Backgrounds: `--palette-bg-deep #0D0A1A`, `--palette-bg-card #1A0A3E`
+- Amber spectrum: `--palette-amber-dark #C45A08`, `--palette-amber #E87722`, `--palette-amber-light #FFA366`, `--palette-amber-glow #FFD4A8`
+- Purple spectrum: `--palette-purple #6B2FA0`, `--palette-purple-light #8C82C8`, `--palette-purple-muted #818CF8`
+- Light mode: `--palette-bg-light #F2EEE8`, `--palette-text-light #1A1625`
+
+Semantic tokens (`@layer theme`):
+
+```css
+:root {
+  --color-bg: var(--palette-bg-deep);
+  --color-bg-card: var(--palette-bg-card);
+  --color-text: #ffffff;
+  --color-text-muted: rgba(255, 255, 255, 0.6);
+  --color-accent: var(--palette-amber); /* default = work */
+  --color-secondary: var(--palette-purple-light);
+  --font-display: "Chakra Petch", system-ui, sans-serif;
+  --font-body: "Barlow", system-ui, sans-serif;
+  --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-nav: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "Fira Code", monospace;
+}
+
+[data-theme="light"] {
+  --color-bg: var(--palette-bg-light);
+  --color-text: var(--palette-text-light);
+  --color-text-muted: rgba(26, 22, 37, 0.55);
+  --color-accent: var(--palette-amber-dark);
+  --color-secondary: var(--palette-purple);
+}
+
+[data-rizom-variant="foundation"] {
+  --color-accent: var(--palette-amber-dark);
+  --color-secondary: var(--palette-purple);
+}
+[data-rizom-variant="work"] {
+  --color-accent: var(--palette-amber);
+  --color-secondary: var(--palette-purple-light);
+}
+[data-rizom-variant="ai"] {
+  --color-accent: var(--palette-amber-light);
+  --color-secondary: var(--palette-purple-muted);
+}
+```
+
+Component utilities (`@layer theme-override`): `.btn-primary`, `.btn-secondary`, `.badge-amber`, `.badge-purple`, `.terminal-block`, `.scroll-cue`. All reference `--color-accent` so they automatically pick up the variant.
+
+Type stack: Chakra Petch (display), Barlow (body), Plus Jakarta Sans (labels), Space Grotesk (nav), Fira Code (mono). Loaded via Google Fonts `@import`.
+
+## Phase 2: Site package `sites/rizom/`
+
+Single package serving all three rizom variants. Modeled on `sites/ranger/`.
+
+```
+sites/rizom/
+├── package.json
+├── tsconfig.json
+└── src/
+    ├── index.ts                  # SitePackage export
+    ├── plugin.ts                 # RizomSitePlugin (Zod-validated config)
+    ├── routes.ts                 # Routes (same for all 3 variants)
+    ├── templates.ts              # Template registry
+    ├── layouts/
+    │   └── default.tsx           # Layout with bg canvas wrapper
+    ├── sections/
+    │   ├── hero/                 # Variant-aware hero copy
+    │   ├── problem/              # 3-up problem grid
+    │   ├── answer/               # The "answer" section
+    │   ├── products/             # Rover/Relay/Ranger cards
+    │   ├── ownership/            # Ownership feature list
+    │   ├── quickstart/           # Terminal block + steps
+    │   ├── mission/              # Mission statement
+    │   └── ecosystem/            # Ecosystem links
+    └── canvases/
+        ├── tree.js               # Copied from docs/design/canvases/
+        ├── constellation.js
+        └── roots.js
+```
+
+**`src/plugin.ts`** — `RizomSitePlugin` extends `ServicePlugin` with a Zod-validated config:
+
+```ts
+const rizomSiteConfigSchema = z.object({
+  variant: z.enum(["foundation", "work", "ai"]).default("ai"),
+  theme: z.string().optional(),
+});
+
+export class RizomSitePlugin extends ServicePlugin<
+  typeof rizomSiteConfigSchema
+> {
+  async onRegister(context: ServicePluginContext) {
+    const variant = this.config.variant;
+    context.templates.register(this.buildTemplates(variant));
+    context.headScripts?.add(
+      `document.body.setAttribute('data-rizom-variant','${variant}');`,
+    );
+    const canvasMap = {
+      foundation: "roots",
+      work: "constellation",
+      ai: "tree",
+    };
+    context.headScripts?.add(
+      `<script src="/canvases/${canvasMap[variant]}.js" defer></script>`,
+    );
+  }
+}
+```
+
+**`src/layouts/default.tsx`** — Preact layout matching `docs/design/rizom-ai.html`:
+
+- Nav with wordmark (variant suffix from `siteInfo`)
+- Side nav indicator (vertical dots)
+- Sections rendered from props
+- Footer
+- Background canvas wrapper (`<div id="bgCanvasWrap"><canvas id="heroCanvas"/></div>`)
+
+**`src/canvases/`** — straight copy of `docs/design/canvases/{tree,constellation,roots}.js`. Site-builder serves them as static assets at `/canvases/`.
+
+**`src/routes.ts`** — same routes for all three variants. Routes are static; what differs is the rendered template content (variant-specific defaults from the plugin's `buildTemplates`).
+
+## Phase 3: Wire up `apps/rizom-foundation/`
+
+`apps/rizom-foundation/brain.yaml` already exists. Add the new `site:` object:
+
+```yaml
+brain: relay
+preset: default
+logLevel: info
+domain: rizom.foundation
+site:
+  package: "@brains/site-rizom"
+  variant: foundation
+plugins:
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
+```
+
+Optionally add `apps/rizom-foundation/brain-data/home.md` with foundation-specific hero copy.
+
+## Verification
+
+After Phase 0:
+
+- `bun run typecheck && bun run lint && bun test` from root passes
+- Build an existing app (`professional-brain`) and confirm output is unchanged
+
+After Phase 1:
+
+- `bun run typecheck --filter=@brains/site-ranger` passes
+- Built ranger CSS output is identical to before the rename
+- New `theme-rizom` compiles cleanly
+
+After Phase 2:
+
+- `bun run typecheck --filter=@brains/site-rizom` passes
+
+After Phase 3 (end-to-end):
+
+- Build `apps/rizom-foundation/` and confirm:
+  - HTML body has `data-rizom-variant="foundation"`
+  - `/canvases/roots.js` is loaded
+  - CTA buttons render in `#C45A08`
+  - Hero copy matches the foundation variant from brand guide A8
+- Toggle light mode and confirm the surface flips to `#F2EEE8` and the accent collapses to `#C45A08`
+
+## Follow-up (out of scope)
+
+Once the MVP is shipping:
+
+1. Create `apps/rizom-work/brain.yaml` and `apps/rizom-ai/brain.yaml` mirroring foundation with different `variant` values
+2. Per-app content overrides in each app's `brain-data/`
+3. Deploy rizom.foundation via Kamal
+4. Deploy rizom.ai on existing Hetzner infra
+5. Deploy rizom.work (Kamal)
+
+## Risk notes
+
+- **Theme rename**: Only `sites/ranger` consumes the existing `theme-rizom`. Rename should land in a single commit so workspace install order stays consistent.
+- **brain-resolver change**: Touches `shell/app/`. Backwards-compatible (new field is optional, spread of empty object is a no-op), but should be tested against existing apps before relying on it.
+- **Canvas script loading**: The prototype loads canvases via dynamic `<script>` injection. The site package needs site-builder to expose `src/canvases/` as static assets at `/canvases/`. Confirm site-builder's static asset handling supports this path before Phase 2 — alternative is to inline the canvas JS into the page.
+- **Per-variant content**: Hero copy, taglines, and CTAs vary per variant. The plan stores variant-specific defaults in the site plugin's `buildTemplates()` method. Each app can override via `brain-data/` content files.

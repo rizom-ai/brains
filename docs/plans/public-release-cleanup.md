@@ -35,9 +35,9 @@ All decisions below are final. No open questions remain before execution.
 | --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | Public repo URL                                | **Stage at `rizom-ai/brains-temp`** (new public repo). When fully verified, do a double-rename: `rizom-ai/brains` → `rizom-ai/brains-private`, then `rizom-ai/brains-temp` → `rizom-ai/brains`. Zero downtime; the public URL never has a moment of being broken. |
 | D2  | What ships in v0.1.0 (workspace surface)       | Per §3 inventory: `shell/*`, `shared/*` (minus branded themes), `plugins/*` (most), `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/default`, `layouts/{personal,professional}`, all of `docs/plans/*`, selected top-level docs.               |
-| D3  | What stays private                             | `apps/*`, `sites/{mylittlephoney,ranger,yeehaa}`, `shared/theme-{mylittlephoney,yeehaa,rizom}`, `brains/{relay,ranger}`, agent configs (`.claude`, `.pi`, `.agents`), `.envrc`, `skills-lock.json`, any `docs/*` file that fails the Phase 2 PII scan.            |
+| D3  | What stays private                             | `apps/*`, `sites/{mylittlephoney,ranger,yeehaa}`, `shared/theme-{mylittlephoney,yeehaa,rizom}`, `brains/{relay,ranger}`, agent configs (`.claude`, `.pi`, `.agents`), `.envrc`, `skills-lock.json`, any `docs/*` file that fails the Phase 1 PII scan.            |
 | D4  | `brains/relay` and `brains/ranger`             | **Private.** Keep until they're real implementations. Only `brains/rover` ships as the reference brain model.                                                                                                                                                     |
-| D5  | `docs/plans/*`                                 | **All public.** Phase 2 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                     |
+| D5  | `docs/plans/*`                                 | **All public.** Phase 1 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                     |
 | D6  | CHANGELOG narrative                            | Hand-write a single `v0.1.0` entry summarizing pre-launch development at high level. `.changeset/` flow takes over going forward.                                                                                                                                 |
 | D7  | Dev archive lifetime                           | **Keep indefinitely.** Storage is free and bisect-on-old-bug is invaluable.                                                                                                                                                                                       |
 | D8  | First public tag                               | **`v0.1.0`** — explicitly pre-stable, signals breaking changes expected before 1.0.                                                                                                                                                                               |
@@ -110,32 +110,19 @@ interfaces/*, brains/*, apps/*, sites/*, packages/*
 
 ### Phase 0 — Decide (you, async)
 
-Read this doc, fill in §2 decisions, optionally edit §3 inventory. Estimated time: **30 minutes**.
+Read this doc, fill in §2 decisions, optionally edit §3 inventory. **Already complete** — see §2.
 
-### Phase 1 — Backup and freeze
+### Phase 1 — Audit HEAD and fix findings in place
 
-1. Create a sibling backup clone of the current repo:
-   ```bash
-   cd ~/Documents
-   git clone --mirror brains brains-backup-$(date +%Y%m%d)
-   ```
-2. Push current state to a backup branch on the remote:
-   ```bash
-   cd brains
-   git checkout main
-   git pull
-   git checkout -b archive/pre-public-release
-   git push origin archive/pre-public-release
-   ```
-3. Verify the backup is intact (`git log --oneline | wc -l` should show ~2,322).
+**This is the first execution phase, intentionally before backup.** It's purely non-destructive (reads + targeted in-place fixes against the live repo with full git safety net), and it's where the most uncertainty lives. Front-loading it means:
 
-**Exit criteria:** Two independent backups exist (local mirror + remote branch). Estimated time: **15 minutes**.
+- We discover any real problems while it's still cheap to iterate
+- The post-audit state is what gets backed up in Phase 2 (cleaner archive)
+- Findings can update the §3 inventory before Phase 3 starts removing files
 
-### Phase 2 — Per-file audit pass on what's _staying_ in HEAD
+We're discarding history, so we only need to audit the _current tree_ — but we need to audit it carefully because whatever is there becomes the public `v0.1.0`.
 
-We're discarding history, so we only need to audit the _current tree_ — but we need to audit it carefully because whatever is there becomes the public v1.0.
-
-> **Preflight has already handled the mechanical pre-work.** See §10 for what's done. Phase 2 now focuses on the remaining audit.
+> **Preflight has already handled the mechanical pre-work.** See §10 for what's done. Phase 1 now focuses on the remaining audit.
 
 1. **Secrets scan on HEAD only** (not history — we're throwing history away):
    ```bash
@@ -159,8 +146,30 @@ We're discarding history, so we only need to audit the _current tree_ — but we
 8. **`brains/rover/eval-content/`** — this gets shipped as the seed content in the default brain. Read every markdown file; confirm nothing personal.
 9. **Per-plugin README and tests** — quick read for hardcoded paths, test data with personal content, leftover TODOs that name people.
 10. **`packages/brain-cli/package.json` author field** — `"Yeehaa <yeehaa@rizom.ai>"` is legitimate npm author metadata; keep.
+11. **Commit all in-place fixes** to the live repo as small focused commits (per the pattern already established by `f5dfb6f5` and `9b7f5c4a`). After this, HEAD is the state we want preserved as the private archive.
 
-**Exit criteria:** Clean gitleaks run on HEAD, no surprise PII matches, decisions made on every borderline file. Estimated time: **2–3 hours**.
+**Exit criteria:** Clean gitleaks run on HEAD, no surprise PII matches, decisions made on every borderline file, all fixes committed to the live repo. Estimated time: **2–3 hours**.
+
+### Phase 2 — Backup and freeze
+
+Now that HEAD has been audited and fixed, snapshot it. The backup captures the state we actually want preserved as the private archive — not an intermediate pre-cleanup snapshot.
+
+1. Create a sibling backup clone of the current repo:
+   ```bash
+   cd ~/Documents
+   git clone --mirror brains brains-backup-$(date +%Y%m%d)
+   ```
+2. Push current state to a backup branch on the remote:
+   ```bash
+   cd brains
+   git checkout main
+   git pull
+   git checkout -b archive/pre-public-release
+   git push origin archive/pre-public-release
+   ```
+3. Verify the backup is intact (`git log --oneline | wc -l` should show ~2,322 plus however many audit-fix commits Phase 1 added).
+
+**Exit criteria:** Two independent backups exist (local mirror + remote branch), both reflecting the post-audit state. Estimated time: **15 minutes**.
 
 ### Phase 3 — Build the clean tree (in a sibling working dir)
 
@@ -191,7 +200,7 @@ Don't mutate the live repo. Work in a fresh clone.
    rm -rf .agents .claude .pi
    rm -f .envrc skills-lock.json
 
-   # Note: docs/plans/* is public per D5; no removal. Phase 2 handles per-file PII scan.
+   # Note: docs/plans/* is public per D5; no removal. Phase 1 already handled per-file PII scan.
    ```
 
 3. **Narrow workspace globs** in `package.json` to explicit paths (since we're excluding specific items under `sites/`, `layouts/`, `brains/`, and we're dropping `apps/` entirely):
@@ -365,49 +374,52 @@ If something goes wrong at any phase:
 
 | Phase | Failure mode                             | Rollback                                                                                                                                                                   |
 | ----- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | Backup didn't take                       | Try again, do not proceed                                                                                                                                                  |
-| 2     | Audit finds something scary              | Pause, fix in current repo, re-audit                                                                                                                                       |
+| 1     | Audit finds something scary              | Fix in place via additional commits to the live repo. Iterate until clean. No external impact — nothing has been published yet.                                            |
+| 1     | Audit fix breaks something               | `git reset` or revert the offending commit. Live repo is fully git-tracked; no destructive operations have happened yet.                                                   |
+| 2     | Backup didn't take                       | Try again, do not proceed                                                                                                                                                  |
 | 3     | Tree won't build after removal           | Either fix the cross-package leakage (real bug, fix it) or add the file back to the public set                                                                             |
 | 4     | `brains-temp` looks wrong on GitHub      | Delete `brains-temp` repo on GitHub, delete `brains-public-staging/` locally, start Phase 3 over. **No impact on the live `rizom-ai/brains` URL**, that's the whole point. |
 | 5     | Rename caused issues                     | Rename back: `brains-private` → `brains`, `brains` → `brains-temp`. GitHub allows this freely.                                                                             |
 | 5     | Public repo leaked something post-rename | Rename `brains` → `brains-leaked`, rename `brains-private` → `brains` to restore the old URL, rotate ALL tokens (assume compromise), restart from Phase 3                  |
 | 6     | Token rotation breaks something          | Documented per-service rollback in deploy/scripts                                                                                                                          |
 
-The orphan-commit step is fully reversible _until_ phase 5 push. After phase 5 push, GitHub caches and forks make recovery hard — this is why phase 4 dry-run is mandatory.
+The orphan-commit step is fully reversible _until_ Phase 5's double-rename. After the rename, GitHub caches and forks make recovery hard — this is why Phase 4's verification on `brains-temp` is mandatory.
 
 ---
 
 ## 8. Open questions / risks
 
 - ~~**Does anything in `shell/*` import from `apps/*` or `sites/*`?**~~ **Answered by preflight:** No. One resolvable dependency (`brains/rover` → `@brains/site-default`) handled by including `sites/default` and `layouts/{personal,professional}` in the public set. See §10.
-- **Are there any secrets in old tracked files that are still in HEAD?** Phase 2 catches this, but be especially careful with `deploy/**` and `.github/workflows/*`.
+- **Are there any secrets in HEAD that scanners might miss?** Phase 1 catches this, but be especially careful with `deploy/**` and `.github/workflows/*`.
 - ~~**Does `bun.lock` reference any private packages?**~~ **Answered by preflight:** Only as their own entries, not as deps of public packages. Regenerates cleanly after narrowing workspace globs.
-- **Are any of the entity test fixtures (`entities/*/test-data/`) personal content?** Should be generic fakes; verify in phase 2.
-- **`brains/rover/eval-content/` contains a real `brain.db`** with seed entities — confirm those entities are safe-for-public (they're meant to be the demo content, so should be fine, but worth one final read).
-- **Extensive `yeehaa.io` personalization** — the codebase uses this as the canonical example domain in ~40 files. See Phase 2 step 2 for the decision.
+- **Are any of the entity test fixtures (`entities/*/test-data/`) personal content?** Should be generic fakes; verify in Phase 1.
+- **`brains/rover/eval-content/` contains a real `brain.db`** with seed entities — confirm those entities are safe-for-public (they're meant to be the demo content, so should be fine, but worth one final read in Phase 1).
+- ~~**Extensive `yeehaa.io` personalization**~~ **Resolved by D11:** leave as-is. Author's own public domain.
+
+> **Note on phase ordering:** Phase 1 (Audit) intentionally precedes Phase 2 (Backup). The audit is non-destructive, so backup is not needed beforehand; running audit first means the backup snapshots the post-audit state, which is the version we actually want preserved as the private archive.
 
 ---
 
 ## 9. Estimated total time
 
-| Phase                | Original estimate    | Revised (post-preflight) |
-| -------------------- | -------------------- | ------------------------ |
-| 0 — Decide           | 30 min               | 30 min                   |
-| 1 — Backup           | 15 min               | 15 min                   |
-| 2 — Audit            | 2–4 hours            | 2–3 hours                |
-| 3 — Build clean tree | half day – 1 day     | **2–3 hours**            |
-| 4 — Dry-run          | 1 hour               | 1 hour                   |
-| 5 — Real publish     | 1–2 hours            | 1–2 hours                |
-| 6 — Post-launch      | 2 hours              | 2 hours                  |
-| **Total**            | **1–2 working days** | **~1 working day**       |
+| Phase                                | Estimate           |
+| ------------------------------------ | ------------------ |
+| 0 — Decide                           | done               |
+| 1 — Audit HEAD and fix findings      | 2–3 hours          |
+| 2 — Backup                           | 15 min             |
+| 3 — Build clean tree                 | 2–3 hours          |
+| 4 — Push to `brains-temp` and verify | 1–2 hours          |
+| 5 — Double-rename and go live        | 1 hour             |
+| 6 — Post-launch                      | 2 hours            |
+| **Total**                            | **~1 working day** |
 
-The revised Phase 3 estimate reflects the preflight finding that there is no structural cross-package coupling — removal is mechanical, not architectural surgery.
+Phase 3 estimate reflects the preflight finding that there is no structural cross-package coupling — removal is mechanical, not architectural surgery. Phase 1 is now the longest and most uncertain phase; it's intentionally first so we discover any blocking issues before sinking time into backup and clean-tree work.
 
 ---
 
 ## 10. Preflight scan results and completed pre-work
 
-A preflight scan of the current tree (HEAD, not history) validated the plan's biggest risk flag and completed the mechanical pre-work that would otherwise happen in Phase 3.
+A preflight scan of the current tree (HEAD, not history) validated the plan's biggest risk flag and completed the mechanical pre-work that would otherwise happen in Phase 1.
 
 ### 10.1 Structural cross-package coupling: clean ✅
 
@@ -423,7 +435,7 @@ The original plan listed three layout directories that don't exist (`layouts/{my
 
 ### 10.3 Mechanical rewrites completed in-place
 
-These edits were made in the current working tree so they merge into the private dev history cleanly and don't need to be redone in Phase 3. All were verified by running the affected test suites (462 tests pass, typecheck clean on all touched packages).
+These edits were made in the current working tree so they merge into the private dev history cleanly and don't need to be redone in Phase 1. All were verified by running the affected test suites (462 tests pass, typecheck clean on all touched packages).
 
 **Private package name references in public code** — replaced with real public names or generic fixtures:
 
@@ -446,11 +458,11 @@ These edits were made in the current working tree so they merge into the private
 | ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `plugins/directory-sync/src/types.ts` | `authorEmail` default: `brain@rizom.ai` → `brain@localhost`. **This was a real public-release bug**: without override, any user of the framework would commit to their git-synced content repos as `brain@rizom.ai`. |
 
-### 10.4 Remaining work for Phase 2
+### 10.4 Remaining work for Phase 1
 
-The preflight surfaced one larger cleanup category that is left for Phase 2 to decide:
+The preflight surfaced one larger cleanup category that is left for Phase 1 to handle:
 
-- **`yeehaa.io` as canonical example domain** — appears in ~40 files across JSDoc comments, test fixtures, production code examples (e.g. `shared/utils/src/string-utils.ts`, `shell/plugins/src/base/context.ts`, `interfaces/a2a/src/client.ts`). This is the author's own public domain, so it's not a leak, but it's a branding choice. See Phase 2 step 2 for the decision.
+- **`yeehaa.io` as canonical example domain** — appears in ~40 files across JSDoc comments, test fixtures, production code examples (e.g. `shared/utils/src/string-utils.ts`, `shell/plugins/src/base/context.ts`, `interfaces/a2a/src/client.ts`). **Resolved by D11: leave as-is.** It's the author's own public domain, not a leak.
 - **`plugins/directory-sync/test/git-*.test.ts`** — uses `rizom-ai/test-content` as a plausible example repo name. Not a leak (org name is public), can be left or scrubbed to `your-org/test-content`.
 - **`shell/identity-service/test/anchor-profile-adapter.test.ts`** — uses `contact@rizom.ai` in test fixtures. Fake contact email, not a leak, can be left.
 
