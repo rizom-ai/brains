@@ -24,7 +24,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
-import { agentDiscoveryPlugin, skillPlugin } from "@brains/agent-discovery";
+import { agentDiscovery } from "@brains/agent-discovery";
 import defaultSite from "@brains/site-default";
 import { join } from "path";
 
@@ -50,7 +50,6 @@ const core = [
   "topics",
   "directory-sync",
   "agent-discovery",
-  "skill",
   "mcp",
   "discord",
   "a2a",
@@ -146,8 +145,7 @@ export default defineBrain({
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
     ["stock-photo", stockPhotoPlugin, {}],
-    ["agent-discovery", agentDiscoveryPlugin, undefined],
-    ["skill", skillPlugin, undefined],
+    ["agent-discovery", agentDiscovery, undefined],
     [
       "directory-sync",
       directorySync,

@@ -17,7 +17,7 @@ import { imagePlugin } from "@brains/image-plugin";
 import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
 import { promptPlugin } from "@brains/prompt";
-import { agentDiscoveryPlugin, skillPlugin } from "@brains/agent-discovery";
+import { agentDiscovery } from "@brains/agent-discovery";
 import rangerSite from "@brains/site-ranger";
 
 /**
@@ -52,7 +52,6 @@ const core = [
   "link",
   "topics",
   "agent-discovery",
-  "skill",
   "mcp",
   "discord",
   "a2a",
@@ -96,8 +95,7 @@ export default defineBrain({
     // decks is not in core or default yet — kept registered so
     // team-brain (and others) can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
-    ["agent-discovery", agentDiscoveryPlugin, undefined],
-    ["skill", skillPlugin, undefined],
+    ["agent-discovery", agentDiscovery, undefined],
     [
       "directory-sync",
       directorySync,
