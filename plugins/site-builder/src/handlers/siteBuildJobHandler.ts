@@ -24,6 +24,8 @@ export interface SiteBuildJobHandlerConfig {
   themeCSS?: string | undefined;
   slots?: LayoutSlots | undefined;
   getHeadScripts?: (() => string[]) | undefined;
+  /** Inline static assets supplied by the SitePackage (e.g. canvas scripts) */
+  staticAssets?: Record<string, string> | undefined;
 }
 
 /**
@@ -87,6 +89,9 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           themeCSS: this.cfg.themeCSS,
           slots: this.cfg.slots,
           headScripts: this.cfg.getHeadScripts?.(),
+          ...(this.cfg.staticAssets && {
+            staticAssets: this.cfg.staticAssets,
+          }),
         },
         buildProgressReporter.toCallback(),
       );

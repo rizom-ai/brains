@@ -146,6 +146,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
           themeCSS: this.config.themeCSS,
           slots: this._slotRegistry,
           getHeadScripts: (): string[] => this.getRegisteredHeadScripts(),
+          ...(this.config.staticAssets && {
+            staticAssets: this.config.staticAssets,
+          }),
         },
       ),
     );

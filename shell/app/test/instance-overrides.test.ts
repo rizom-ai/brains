@@ -995,6 +995,62 @@ describe("resolve with site package", () => {
     expect(sbConfig["entityDisplay"]).toEqual({ post: { label: "Essay" } });
   });
 
+  test("should inject staticAssets from site package into site-builder", () => {
+    // Site packages can ship static files (canvas scripts, fonts, etc.)
+    // via a `staticAssets` map of output-path → file-contents-string.
+    // The resolver must flow that map into the site-builder plugin's
+    // config the same way it flows themeCSS, routes, and entityDisplay.
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("rizom-site", {
+      staticAssets: {
+        "/canvases/tree.js": "(function(){/* tree canvas */})();",
+        "/canvases/constellation.js":
+          "(function(){/* constellation canvas */})();",
+      },
+    });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const sbConfig = getConfig(siteBuilder);
+
+    expect(sbConfig["staticAssets"]).toEqual({
+      "/canvases/tree.js": "(function(){/* tree canvas */})();",
+      "/canvases/constellation.js":
+        "(function(){/* constellation canvas */})();",
+    });
+  });
+
+  test("should not set staticAssets when site package has none", () => {
+    // Absence of staticAssets on the SitePackage should not produce an
+    // empty `{}` in the plugin config — the field stays undefined so
+    // downstream code can treat "no custom assets" as a cheap no-op.
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+    // explicitly no staticAssets
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const sbConfig = getConfig(siteBuilder);
+
+    expect(sbConfig["staticAssets"]).toBeUndefined();
+  });
+
   test("should inject layouts into site-builder", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const mockDefault = (): null => null;

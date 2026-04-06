@@ -145,6 +145,12 @@ export const siteBuilderConfigSchema = z.object({
     .describe(
       "Display metadata per entity type — label, plural name, layout, pagination, navigation slot. Consulted when auto-generating routes for active entity plugins.",
     ),
+  staticAssets: z
+    .record(z.string())
+    .optional()
+    .describe(
+      "Static files to write to the output directory at build time. Keys are output paths (e.g. '/canvases/tree.js'), values are file contents as strings. Typically supplied by a SitePackage via text imports.",
+    ),
   cms: z
     .object({})
     .optional()

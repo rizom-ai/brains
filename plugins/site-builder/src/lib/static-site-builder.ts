@@ -37,6 +37,13 @@ export interface BuildContext {
   slots?: LayoutSlots;
   /** Head scripts registered by other plugins (e.g., analytics beacon) */
   headScripts?: string[] | undefined;
+  /**
+   * Static assets to write into the output directory at build time.
+   * Keys are output paths relative to outputDir (leading slash optional),
+   * values are file contents as strings. Supplied by a SitePackage via
+   * text imports; written alongside the rendered HTML.
+   */
+  staticAssets?: Record<string, string> | undefined;
   /** Pre-resolved optimized images for the build */
   imageBuildService?: ImageBuildService;
 }

@@ -133,6 +133,7 @@ export function resolve(
         routes: site.routes,
         entityDisplay: site.entityDisplay,
         layouts: site.layouts,
+        ...(site.staticAssets && { staticAssets: site.staticAssets }),
       },
       siteBuilderExplicit,
     );

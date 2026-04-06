@@ -17,7 +17,7 @@ import {
   type HeadProps,
 } from "@brains/ui-library";
 import type { ComponentChildren } from "preact";
-import { join } from "path";
+import { dirname, join } from "path";
 import { promises as fs } from "fs";
 import { HydrationManager } from "../hydration/hydration-manager";
 import type { CSSProcessor } from "../css/css-processor";
@@ -75,6 +75,11 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Copy static assets from public/ directory
     onProgress("Copying static assets");
     await this.copyStaticAssets();
+
+    // Write inline static assets supplied by the SitePackage (canvas
+    // scripts, fonts, etc.) — keyed by output path, values are file
+    // contents as strings.
+    await this.writeInlineStaticAssets(context.staticAssets);
 
     // Set up hydration for interactive components
     onProgress("Setting up component hydration");
@@ -382,6 +387,40 @@ export class PreactBuilder implements StaticSiteBuilder {
     }
 
     this.logger.debug("Static assets copied successfully");
+  }
+
+  /**
+   * Write in-memory static assets supplied by a SitePackage.
+   *
+   * Keys are output paths relative to the output directory (leading
+   * slash optional); values are file contents as strings. The method
+   * ensures the parent directory exists, then writes each file.
+   *
+   * Used by site packages that ship their own static files (canvas
+   * scripts, fonts, etc.) without requiring the consuming app to set
+   * up a `public/` directory.
+   */
+  private async writeInlineStaticAssets(
+    assets: Record<string, string> | undefined,
+  ): Promise<void> {
+    if (!assets) return;
+    const entries = Object.entries(assets);
+    if (entries.length === 0) return;
+
+    this.logger.debug(
+      `Writing ${entries.length} inline static asset(s) from SitePackage`,
+    );
+
+    for (const [rawPath, content] of entries) {
+      // Strip a leading slash so `join(outputDir, rawPath)` always
+      // resolves under outputDir rather than treating `rawPath` as an
+      // absolute filesystem path.
+      const relativePath = rawPath.startsWith("/") ? rawPath.slice(1) : rawPath;
+      const destPath = join(this.outputDir, relativePath);
+      await fs.mkdir(dirname(destPath), { recursive: true });
+      await fs.writeFile(destPath, content, "utf-8");
+      this.logger.debug(`Wrote inline static asset: ${relativePath}`);
+    }
   }
 
   private async copyDirectory(src: string, dest: string): Promise<void> {

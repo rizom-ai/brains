@@ -54,4 +54,19 @@ export interface SitePackage {
    * active entity plugins.
    */
   entityDisplay: Record<string, EntityDisplayEntry>;
+
+  /**
+   * Static assets to write into the site output directory at build time.
+   *
+   * Keys are output paths relative to the output directory (e.g.
+   * `/canvases/tree.js`, `/fonts/foo.woff2`). Values are file contents
+   * as strings — typically produced by text imports
+   * (`import content from "./foo.js" with { type: "text" }`).
+   *
+   * Use this to ship static files that belong to the site package
+   * itself (canvas scripts, fonts, images encoded as base64, etc.)
+   * rather than the consuming app's `public/` directory. The
+   * site-builder writes them verbatim next to the rendered HTML.
+   */
+  staticAssets?: Record<string, string>;
 }

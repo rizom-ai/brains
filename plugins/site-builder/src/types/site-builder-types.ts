@@ -31,6 +31,13 @@ export type SiteBuilderOptions = z.infer<typeof SiteBuilderOptionsSchema> & {
   slots?: LayoutSlots | undefined;
   // Head scripts registered by other plugins (e.g., analytics beacon)
   headScripts?: string[] | undefined;
+  /**
+   * Static assets to write into the output directory at build time.
+   * Keys are output paths relative to outputDir (e.g. `/canvases/tree.js`),
+   * values are file contents as strings. Supplied by a SitePackage via
+   * text imports.
+   */
+  staticAssets?: Record<string, string> | undefined;
 };
 
 /**

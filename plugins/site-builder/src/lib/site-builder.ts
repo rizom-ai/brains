@@ -232,6 +232,7 @@ export class SiteBuilder implements ISiteBuilder {
           }),
         },
         headScripts: options.headScripts,
+        ...(options.staticAssets && { staticAssets: options.staticAssets }),
         getContent: async (
           route: RouteDefinition,
           section: SectionDefinition,
