@@ -105,6 +105,46 @@ describe("brain init", () => {
       expect(content.compilerOptions.jsxImportSource).toBe("preact");
     });
 
+    it("should NOT create .env when no apiKey provided", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, ".env"))).toBe(false);
+    });
+  });
+
+  describe(".env file (when apiKey provided)", () => {
+    it("should create .env with AI_API_KEY when apiKey is provided", () => {
+      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+
+      const envPath = join(testDir, ".env");
+      expect(existsSync(envPath)).toBe(true);
+      const env = readFileSync(envPath, "utf-8");
+      expect(env).toContain("AI_API_KEY=sk-test-12345");
+    });
+
+    it("should include GIT_SYNC_TOKEN placeholder when contentRepo is set", () => {
+      scaffold(testDir, {
+        model: "rover",
+        apiKey: "sk-test-12345",
+        contentRepo: "user/brain-data",
+      });
+
+      const env = readFileSync(join(testDir, ".env"), "utf-8");
+      expect(env).toContain("AI_API_KEY=sk-test-12345");
+      expect(env).toContain("GIT_SYNC_TOKEN=");
+    });
+
+    it("should NOT include GIT_SYNC_TOKEN when contentRepo is absent", () => {
+      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+
+      const env = readFileSync(join(testDir, ".env"), "utf-8");
+      expect(env).not.toContain("GIT_SYNC_TOKEN");
+    });
+
+    it("should still create .env.example as a template", () => {
+      scaffold(testDir, { model: "rover", apiKey: "sk-test-12345" });
+      expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+    });
+
     it("should NOT create deploy files by default", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, "deploy.yml"))).toBe(false);

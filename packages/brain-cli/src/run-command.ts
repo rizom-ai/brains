@@ -2,7 +2,8 @@ import { mkdirSync } from "fs";
 import { join } from "path";
 import { spawn, execSync } from "child_process";
 import type { ParsedArgs } from "./parse-args";
-import { scaffold } from "./commands/init";
+import { scaffold, type ScaffoldOptions } from "./commands/init";
+import { promptInitOptions, isInteractive } from "./lib/init-prompts";
 import { start } from "./commands/start";
 import { operate } from "./commands/operate";
 import { operateRemote } from "./commands/operate-remote";
@@ -60,7 +61,10 @@ export async function runCommand(
   }
 }
 
-function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
+async function runInit(
+  parsed: ParsedArgs,
+  cwd: string,
+): Promise<CommandResult> {
   const target = parsed.args[0];
   if (!target) {
     return {
@@ -72,12 +76,26 @@ function runInit(parsed: ParsedArgs, cwd: string): CommandResult {
   const dir = join(cwd, target);
   mkdirSync(dir, { recursive: true });
 
-  scaffold(dir, {
+  // Build the initial options from flags. These act as defaults / pre-filled
+  // values when prompting, and as the complete config when running
+  // non-interactively.
+  const initialOptions: ScaffoldOptions = {
     model: parsed.flags.model ?? "rover",
     domain: parsed.flags.domain,
     contentRepo: parsed.flags["content-repo"],
     deploy: parsed.flags.deploy,
-  });
+    apiKey: parsed.flags["ai-api-key"],
+  };
+
+  // Prompt for missing values when running interactively. Tests and CI
+  // pass --no-interactive (or run in a non-TTY environment) to skip prompts.
+  const interactive = !parsed.flags["no-interactive"] && isInteractive();
+
+  const finalOptions = interactive
+    ? await promptInitOptions(initialOptions, dir)
+    : initialOptions;
+
+  scaffold(dir, finalOptions);
 
   return {
     success: true,

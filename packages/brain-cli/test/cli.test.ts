@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, rmSync } from "fs";
+import { mkdirSync, existsSync, rmSync, readFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
@@ -99,5 +99,67 @@ describe("brain init (end-to-end)", () => {
     expect(existsSync(join(outDir, "brain.yaml"))).toBe(true);
     expect(existsSync(join(outDir, ".env.example"))).toBe(true);
     expect(existsSync(join(outDir, "package.json"))).toBe(false);
+  });
+
+  it("should write .env when --ai-api-key is provided non-interactively", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          model: "rover",
+          "ai-api-key": "sk-test-12345",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    const env = readFileSync(join(outDir, ".env"), "utf-8");
+    expect(env).toContain("AI_API_KEY=sk-test-12345");
+  });
+
+  it("should not write .env when --ai-api-key is missing in non-interactive mode", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: { model: "rover", "no-interactive": true },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(existsSync(join(outDir, ".env"))).toBe(false);
+  });
+
+  it("should activate git block when --content-repo is provided non-interactively", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          model: "rover",
+          "content-repo": "user/brain-data",
+          "ai-api-key": "sk-test-12345",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    const yaml = readFileSync(join(outDir, "brain.yaml"), "utf-8");
+    expect(yaml).toMatch(/^\s*directory-sync:\s*$/m);
+    expect(yaml).toContain("repo: user/brain-data");
+    const env = readFileSync(join(outDir, ".env"), "utf-8");
+    expect(env).toContain("GIT_SYNC_TOKEN=");
   });
 });

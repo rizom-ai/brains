@@ -6,6 +6,12 @@ export interface ScaffoldOptions {
   domain?: string | undefined;
   contentRepo?: string | undefined;
   deploy?: boolean | undefined;
+  /**
+   * If provided, scaffold writes a real `.env` file with `AI_API_KEY=<value>`
+   * so the brain can boot immediately after init. `.env.example` is still
+   * written as a template for collaborators.
+   */
+  apiKey?: string | undefined;
 }
 
 /**
@@ -30,6 +36,11 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeEnvExample(dir);
   writeGitignore(dir);
   writeTsConfig(dir);
+
+  // Real .env only when apiKey was supplied (interactive prompt or --api-key)
+  if (options.apiKey) {
+    writeEnv(dir, options.apiKey, options.contentRepo);
+  }
 
   // Deploy files only with --deploy
   if (options.deploy) {
@@ -149,6 +160,26 @@ CLOUDFLARE_ZONE_ID=
 `;
 
   writeFileSync(join(dir, ".env.example"), content);
+}
+
+/**
+ * Write a real .env file with the user-provided AI API key.
+ *
+ * Only the values the user supplied are written. Optional secrets
+ * (MCP_AUTH_TOKEN, DISCORD_BOT_TOKEN, etc.) stay in .env.example for
+ * the user to copy over when needed. GIT_SYNC_TOKEN is included as an
+ * empty placeholder when contentRepo is set so the user knows which
+ * env var the brain.yaml git block expects.
+ */
+function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
+  const lines = [`AI_API_KEY=${apiKey}`];
+  if (contentRepo) {
+    lines.push("");
+    lines.push("# Fill in with a personal access token that has repo write");
+    lines.push("GIT_SYNC_TOKEN=");
+  }
+  lines.push("");
+  writeFileSync(join(dir, ".env"), lines.join("\n"));
 }
 
 function writePreDeployHook(dir: string): void {

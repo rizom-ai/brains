@@ -7,6 +7,8 @@ export interface ParsedArgs {
     model?: string | undefined;
     domain?: string | undefined;
     "content-repo"?: string | undefined;
+    "ai-api-key"?: string | undefined;
+    "no-interactive"?: boolean | undefined;
     preview?: boolean | undefined;
     deploy?: boolean | undefined;
     remote?: string | undefined;
@@ -20,6 +22,8 @@ const options = {
   model: { type: "string" as const },
   domain: { type: "string" as const },
   "content-repo": { type: "string" as const },
+  "ai-api-key": { type: "string" as const },
+  "no-interactive": { type: "boolean" as const },
   preview: { type: "boolean" as const },
   deploy: { type: "boolean" as const },
   remote: { type: "string" as const },
@@ -74,6 +78,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       model: getString(values, "model"),
       domain: getString(values, "domain"),
       "content-repo": getString(values, "content-repo"),
+      "ai-api-key": getString(values, "ai-api-key"),
+      "no-interactive": getBoolean(values, "no-interactive"),
       preview: getBoolean(values, "preview"),
       deploy: getBoolean(values, "deploy"),
       remote: getString(values, "remote"),
