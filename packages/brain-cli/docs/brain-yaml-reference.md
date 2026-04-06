@@ -6,10 +6,10 @@
 
 ```yaml
 # Required — which brain model to run
-brain: rover # or relay, ranger
+brain: rover # or any other brain model package
 
 # Site package — overrides the brain model's default theme, layout, and routes
-site: "@brains/site-yeehaa"
+site: "@brains/site-default"
 
 # Instance name (overrides the brain model default)
 name: "My Brain"
@@ -73,18 +73,19 @@ permissions:
 
 The brain model package to run. Determines which entity types, plugins, and interfaces are available.
 
-| Value    | Description                                           |
-| -------- | ----------------------------------------------------- |
-| `rover`  | Personal brain — blog, portfolio, decks, notes, links |
-| `relay`  | Team brain — shared knowledge, summaries, decks       |
-| `ranger` | Collective brain — curated content, community         |
+| Value   | Description                                           |
+| ------- | ----------------------------------------------------- |
+| `rover` | Personal brain — blog, portfolio, decks, notes, links |
+
+Additional brain models can be published as separate packages; reference them
+by their scoped npm name (e.g. `@my-org/my-brain`).
 
 ### `site`
 
 Overrides the brain model's default site package. A site package bundles theme CSS, layout components, routes, and site content.
 
 ```yaml
-site: "@brains/site-yeehaa"
+site: "@brains/site-default"
 ```
 
 ### `name`
@@ -150,7 +151,7 @@ List of user identifiers with full admin access. Format: `"interface:id"`.
 
 ```yaml
 anchors:
-  - "discord:1442828818493735015"
+  - "discord:000000000000000000"
 ```
 
 ### `trusted`
@@ -236,20 +237,20 @@ plugins:
 
 ```yaml
 brain: rover
-site: "@brains/site-yeehaa"
+site: "@brains/site-default"
 preset: full
-domain: yeehaa.io
+domain: mybrain.example.com
 
 anchors:
-  - "discord:1442828818493735015"
+  - "discord:000000000000000000"
 
 plugins:
   directory-sync:
     git:
-      repo: rizom-ai/professional-brain-content
+      repo: your-org/your-brain-content
       authToken: ${GIT_SYNC_TOKEN}
-      authorName: Yeehaa
-      authorEmail: yeehaa@rizom.ai
+      authorName: Your Name
+      authorEmail: you@example.com
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
   discord:
@@ -271,21 +272,22 @@ permissions:
       level: public
 ```
 
-### Team brain
+### Shared team instance
 
 ```yaml
-brain: relay
+brain: rover
+name: "team-shared"
 logLevel: debug
 
 anchors:
-  - "discord:1442828818493735015"
+  - "discord:000000000000000000"
 trusted:
-  - "discord:624315360157499422"
+  - "discord:111111111111111111"
 
 plugins:
   directory-sync:
     git:
-      repo: rizom-ai/team-brain-content
+      repo: your-org/team-brain-content
       authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}

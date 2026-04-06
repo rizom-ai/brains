@@ -30,8 +30,8 @@ describe("generateNpmPackageJson", () => {
   });
 
   test("should work for different model names", () => {
-    const pkg = generateNpmPackageJson("ranger", "1.0.0");
-    expect(pkg.name).toBe("@brains/ranger");
-    expect(pkg.bin["ranger"]).toBe("./dist/.model-entrypoint.js");
+    const pkg = generateNpmPackageJson("sentry", "1.0.0");
+    expect(pkg.name).toBe("@brains/sentry");
+    expect(pkg.bin["sentry"]).toBe("./dist/.model-entrypoint.js");
   });
 });

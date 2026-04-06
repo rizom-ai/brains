@@ -134,7 +134,7 @@ describe("per-model git remote isolation", () => {
   //      has its own push tests in plugins/directory-sync/test/git/.
   //
   //   2. GitSync has brain-level defaults (authorName: "Brain",
-  //      authorEmail: "brain@rizom.ai" in its Zod schema) that flow into
+  //      authorEmail: "brain@localhost" in its Zod schema) that flow into
   //      every commit automatically. The deleted test bypassed GitSync
   //      entirely, so none of those defaults applied — it failed on CI
   //      because clean runners have no global git identity.

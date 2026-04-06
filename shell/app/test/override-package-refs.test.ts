@@ -4,9 +4,9 @@ import { collectOverridePackageRefs } from "../src/override-package-refs";
 describe("collectOverridePackageRefs", () => {
   test("should collect site package ref from top-level site key", () => {
     const refs = collectOverridePackageRefs({
-      site: "@brains/site-mylittlephoney",
+      site: "@brains/site-default",
     });
-    expect(refs).toContain("@brains/site-mylittlephoney");
+    expect(refs).toContain("@brains/site-default");
   });
 
   test("should collect plugin config package refs", () => {
@@ -22,14 +22,14 @@ describe("collectOverridePackageRefs", () => {
 
   test("should collect both site and plugin refs", () => {
     const refs = collectOverridePackageRefs({
-      site: "@brains/site-mylittlephoney",
+      site: "@brains/site-default",
       plugins: {
         "site-builder": {
           themeCSS: "@brains/theme-override",
         },
       },
     });
-    expect(refs).toContain("@brains/site-mylittlephoney");
+    expect(refs).toContain("@brains/site-default");
     expect(refs).toContain("@brains/theme-override");
   });
 

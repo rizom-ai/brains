@@ -18,14 +18,14 @@ describe("generateEntrypoint", () => {
 brain: "@brains/rover"
 plugins:
   site-builder:
-    themeCSS: "@brains/theme-mylittlephoney"
+    themeCSS: "@brains/theme-editorial"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/theme-mylittlephoney"');
+    expect(code).toContain('import __pkg0 from "@brains/theme-editorial"');
     expect(code).toContain(
-      'registerPackage("@brains/theme-mylittlephoney", __pkg0)',
+      'registerPackage("@brains/theme-editorial", __pkg0)',
     );
   });
 
@@ -88,21 +88,19 @@ plugins:
   test("should include static import for top-level site package ref", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-mylittlephoney"
+site: "@brains/site-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/site-mylittlephoney"');
-    expect(code).toContain(
-      'registerPackage("@brains/site-mylittlephoney", __pkg0)',
-    );
+    expect(code).toContain('import __pkg0 from "@brains/site-default"');
+    expect(code).toContain('registerPackage("@brains/site-default", __pkg0)');
   });
 
   test("should include both site and plugin package refs", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-mylittlephoney"
+site: "@brains/site-default"
 plugins:
   site-builder:
     themeCSS: "@brains/theme-override"
@@ -111,7 +109,7 @@ plugins:
 
     expect(code).not.toBeNull();
     expect(code).toContain('import __pkg0 from "@brains/theme-override"');
-    expect(code).toContain('import __pkg1 from "@brains/site-mylittlephoney"');
+    expect(code).toContain('import __pkg1 from "@brains/site-default"');
   });
 
   test("should import registerPackage from @brains/app", () => {

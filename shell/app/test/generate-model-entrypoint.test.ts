@@ -19,16 +19,14 @@ describe("generateModelEntrypoint", () => {
 
   test("should register extra packages", () => {
     const code = generateModelEntrypoint("@brains/rover", [
-      "@brains/site-yeehaa",
-      "@brains/site-mylittlephoney",
+      "@example/site-alpha",
+      "@example/site-beta",
     ]);
 
-    expect(code).toContain('import __pkg0 from "@brains/site-yeehaa"');
-    expect(code).toContain('import __pkg1 from "@brains/site-mylittlephoney"');
-    expect(code).toContain('registerPackage("@brains/site-yeehaa", __pkg0)');
-    expect(code).toContain(
-      'registerPackage("@brains/site-mylittlephoney", __pkg1)',
-    );
+    expect(code).toContain('import __pkg0 from "@example/site-alpha"');
+    expect(code).toContain('import __pkg1 from "@example/site-beta"');
+    expect(code).toContain('registerPackage("@example/site-alpha", __pkg0)');
+    expect(code).toContain('registerPackage("@example/site-beta", __pkg1)');
   });
 
   test("should not include registerPackage when no extra packages", () => {
@@ -41,7 +39,7 @@ describe("generateModelEntrypoint", () => {
   test("should filter out the brain package from extras", () => {
     const code = generateModelEntrypoint("@brains/rover", [
       "@brains/rover",
-      "@brains/site-yeehaa",
+      "@example/site-alpha",
     ]);
 
     // Rover imported once as definition, not as __pkg
@@ -50,7 +48,7 @@ describe("generateModelEntrypoint", () => {
     expect(defImports).toHaveLength(1);
 
     // Only site-yeehaa as __pkg0
-    expect(code).toContain('import __pkg0 from "@brains/site-yeehaa"');
+    expect(code).toContain('import __pkg0 from "@example/site-alpha"');
     expect(code).not.toContain("__pkg1");
   });
 });

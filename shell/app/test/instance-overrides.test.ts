@@ -98,46 +98,46 @@ function getConfig(plugin: Plugin | undefined): PluginConfig {
 
 describe("parseInstanceOverrides", () => {
   test("should parse brain field", () => {
-    const result = parseInstanceOverrides('brain: "@brains/relay"');
-    expect(result.brain).toBe("@brains/relay");
+    const result = parseInstanceOverrides('brain: "@brains/rover"');
+    expect(result.brain).toBe("@brains/rover");
   });
 
   test("should parse name override", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\nname: team-staging',
+      'brain: "@brains/rover"\nname: team-staging',
     );
     expect(result.name).toBe("team-staging");
   });
 
   test("should parse logLevel", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\nlogLevel: debug',
+      'brain: "@brains/rover"\nlogLevel: debug',
     );
     expect(result.logLevel).toBe("debug");
   });
 
   test("should parse port as number", () => {
-    const result = parseInstanceOverrides('brain: "@brains/relay"\nport: 9090');
+    const result = parseInstanceOverrides('brain: "@brains/rover"\nport: 9090');
     expect(result.port).toBe(9090);
   });
 
   test("should parse domain", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\ndomain: staging.recall.ai',
+      'brain: "@brains/rover"\ndomain: staging.recall.ai',
     );
     expect(result.domain).toBe("staging.recall.ai");
   });
 
   test("should parse database", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\ndatabase: file:./data/brain.db',
+      'brain: "@brains/rover"\ndatabase: file:./data/brain.db',
     );
     expect(result.database).toBe("file:./data/brain.db");
   });
 
   test("should parse plugins section with flat config", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\nplugins:\n  webserver:\n    productionPort: 9090',
+      'brain: "@brains/rover"\nplugins:\n  webserver:\n    productionPort: 9090',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -146,7 +146,7 @@ describe("parseInstanceOverrides", () => {
 
   test("should parse plugins section with multiple plugins", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
+      'brain: "@brains/rover"\nplugins:\n  webserver:\n    productionPort: 9090\n  git-sync:\n    autoSync: false',
     );
     expect(result.plugins).toEqual({
       webserver: { productionPort: 9090 },
@@ -156,26 +156,26 @@ describe("parseInstanceOverrides", () => {
 
   test("should skip comments and empty lines", () => {
     const yaml = `# This is a comment
-brain: "@brains/relay"
+brain: "@brains/rover"
 
 # Another comment
 logLevel: debug
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/relay");
+    expect(result.brain).toBe("@brains/rover");
     expect(result.logLevel).toBe("debug");
   });
 
   test("should handle quoted string values", () => {
     const result = parseInstanceOverrides(
-      'brain: "@brains/relay"\nname: "my-brain"',
+      'brain: "@brains/rover"\nname: "my-brain"',
     );
     expect(result.name).toBe("my-brain");
   });
 
   test("should return empty overrides for minimal yaml", () => {
-    const result = parseInstanceOverrides('brain: "@brains/relay"');
-    expect(result.brain).toBe("@brains/relay");
+    const result = parseInstanceOverrides('brain: "@brains/rover"');
+    expect(result.brain).toBe("@brains/rover");
     expect(result.name).toBeUndefined();
     expect(result.logLevel).toBeUndefined();
     expect(result.port).toBeUndefined();
@@ -297,7 +297,7 @@ describe("parseInstanceOverrides null handling", () => {
     // parsed it as null, which doesn't satisfy z.array(z.string()).optional()
     // (optional means undefined, not null). Previously this silently
     // discarded ALL overrides; now it should be normalized to absent.
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 logLevel: debug
 anchors:
 plugins:
@@ -305,23 +305,23 @@ plugins:
     authToken: abc
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/relay");
+    expect(result.brain).toBe("@brains/rover");
     expect(result.logLevel).toBe("debug");
     expect(result.anchors).toBeUndefined();
     expect(result.plugins?.["mcp"]).toEqual({ authToken: "abc" });
   });
 
   test("explicit `key: null` is treated the same as empty field", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 trusted: null
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/relay");
+    expect(result.brain).toBe("@brains/rover");
     expect(result.trusted).toBeUndefined();
   });
 
   test("explicit empty array is kept (not stripped)", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 anchors: []
 `;
     const result = parseInstanceOverrides(yaml);
@@ -329,7 +329,7 @@ anchors: []
   });
 
   test("null values inside nested plugin config are stripped", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 plugins:
   mcp:
     authToken: abc
@@ -343,7 +343,7 @@ plugins:
   test("nulls inside arrays are stripped", () => {
     // Arbitrary plugin config with a mixed array — the nulls should
     // disappear, leaving only the real entries.
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 plugins:
   webserver:
     extraHosts:
@@ -359,18 +359,18 @@ plugins:
   });
 
   test("empty top-level permissions section is treated as absent", () => {
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 permissions:
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("@brains/relay");
+    expect(result.brain).toBe("@brains/rover");
     expect(result.permissions).toBeUndefined();
   });
 });
 
 describe("parseInstanceOverrides error surfacing", () => {
   test("throws InstanceOverridesParseError on invalid YAML syntax", () => {
-    const yaml = "brain: @brains/relay\n  invalid: [unclosed";
+    const yaml = "brain: @brains/rover\n  invalid: [unclosed";
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
@@ -390,7 +390,7 @@ describe("parseInstanceOverrides error surfacing", () => {
 
   test("throws InstanceOverridesParseError on type mismatch with field path", () => {
     // logLevel expects 'debug'|'info'|'warn'|'error' — 'verbose' is invalid
-    const yaml = 'brain: "@brains/relay"\nlogLevel: verbose';
+    const yaml = 'brain: "@brains/rover"\nlogLevel: verbose';
     let caught: unknown;
     try {
       parseInstanceOverrides(yaml);
@@ -404,7 +404,7 @@ describe("parseInstanceOverrides error surfacing", () => {
 
   test("throws with nested field path on nested validation failure", () => {
     // permissions.rules[0].level expects anchor/trusted/public
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 permissions:
   rules:
     - pattern: "cli:*"
@@ -422,14 +422,14 @@ permissions:
 
   test("throws on wrong type for array field", () => {
     // anchors expects array, got string
-    const yaml = 'brain: "@brains/relay"\nanchors: "cli:*"';
+    const yaml = 'brain: "@brains/rover"\nanchors: "cli:*"';
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
   });
 
   test("throws on wrong type for number field", () => {
-    const yaml = 'brain: "@brains/relay"\nport: not-a-number';
+    const yaml = 'brain: "@brains/rover"\nport: not-a-number';
     expect(() => parseInstanceOverrides(yaml)).toThrow(
       InstanceOverridesParseError,
     );
@@ -437,7 +437,7 @@ permissions:
 
   test("error message is multi-line and lists all issues", () => {
     // Multiple errors at once — both should appear in the message
-    const yaml = `brain: "@brains/relay"
+    const yaml = `brain: "@brains/rover"
 logLevel: loud
 port: "fourty-two"
 `;
@@ -454,11 +454,11 @@ port: "fourty-two"
     expect(msg.split("\n").length).toBeGreaterThan(1);
   });
 
-  test("regression: team-brain empty anchors no longer discards other overrides", () => {
-    // Exactly the team-brain brain.yaml shape that triggered the bug.
+  test("regression: empty anchors no longer discards other overrides", () => {
+    // Exactly the brain.yaml shape that triggered the bug.
     // Before the fix, this returned {} silently. Now it should parse
     // correctly with anchors absent.
-    const yaml = `brain: relay
+    const yaml = `brain: rover
 
 logLevel: debug
 
@@ -469,13 +469,13 @@ anchors:
 plugins:
   directory-sync:
     git:
-      repo: rizom-ai/team-brain-content
-      authorName: Relay
+      repo: your-org/your-content
+      authorName: Brain
   mcp:
     authToken: abc
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.brain).toBe("relay");
+    expect(result.brain).toBe("rover");
     expect(result.logLevel).toBe("debug");
     expect(result.add).toEqual(["decks"]);
     expect(result.anchors).toBeUndefined();
@@ -1107,11 +1107,11 @@ describe("resolve with site package", () => {
   test("should parse site from brain.yaml", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-mylittlephoney"
+site: "@brains/site-default"
 logLevel: debug
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.site).toBe("@brains/site-mylittlephoney");
+    expect(result.site).toBe("@brains/site-default");
   });
 
   test("should pass entityRouteConfig to site plugin", () => {

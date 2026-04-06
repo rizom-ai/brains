@@ -296,7 +296,7 @@ function buildPermissions(
   };
 }
 
-/** Matches scoped npm package names like @brains/theme-rizom (no colons, no dots) */
+/** Matches scoped npm package names like @brains/theme-default (no colons, no dots) */
 const SCOPED_PACKAGE_PATTERN = /^@[\w-]+\/[\w-]+$/;
 
 /**

@@ -44,7 +44,7 @@ function loadBrainYaml(): InstanceOverrides {
 
   if (!overrides.brain) {
     console.error(
-      '❌ brain.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/relay"',
+      '❌ brain.yaml must contain a "brain" field, e.g.:\n  brain: "@brains/rover"',
     );
     process.exit(1);
   }
