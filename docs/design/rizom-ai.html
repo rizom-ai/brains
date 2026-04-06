@@ -31,9 +31,9 @@ body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
 body.light .nav-cta:hover{border-color:var(--amber)}
 body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
 body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
-body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.1)}
-body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.08)}
-body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.06)}
+body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.2)}
+body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.2)}
+body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.12)}
 body.light .answer{background:rgba(234,229,221,0.7)}
 body.light .terminal{background:#1A1625;border-color:rgba(26,22,37,0.1)}
 body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
@@ -43,7 +43,7 @@ body.light .feature-icon{border-color:var(--amber)}
 body.light .badge-amber{border-color:var(--amber);color:var(--amber)}
 body.light .badge-purple{border-color:var(--purple);color:var(--purple)}
 body.light .divider,body.light .divider-line{background:linear-gradient(90deg,transparent,rgba(232,119,34,0.25),transparent)}
-body.light #bgCanvasWrap{opacity:0.4}
+body.light #bgCanvasWrap{opacity:0.55}
 body.light .problem-threads path{stroke-opacity:0.25}
 body.light .problem-threads circle{fill-opacity:0.4}
 body.light .product-illust{background:transparent}
@@ -54,7 +54,8 @@ body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber
 body.light .mission .highlight{color:var(--amber-dark)}
 body.light .problem-num{color:var(--amber-dark)}
 
-html{scroll-behavior:smooth;overflow-x:hidden;background:var(--bg)}
+html{scroll-behavior:smooth;overflow-x:hidden;background:#0D0A1A;transition:background 0.3s}
+body.light~html,html:has(body.light){background:#F2EEE8}
 body{
   background:transparent;color:var(--text);font-family:var(--font-body);
   line-height:1.6;overflow-x:hidden;max-width:100vw;
@@ -535,6 +536,15 @@ footer .foot-links a:hover{color:var(--text)}
 </footer>
 
 <script>
+// Apply theme preference BEFORE anything else so canvas builds with correct mode
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    document.documentElement.style.background = '#F2EEE8';
+  } else {
+    document.documentElement.style.background = '#0D0A1A';
+  }
+})();
 
 const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
@@ -571,17 +581,17 @@ const dpr = window.devicePixelRatio || 1;
 
 function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
   if (light) {
-    // Light mode: ink-like strokes, subtle halo
-    for (let r = glowR * 0.5; r > 0; r -= Math.max(0.5, glowR/10)) {
-      ctx.strokeStyle = rgba(color, op * (1 - r/(glowR*0.5)) * 0.04);
-      ctx.lineWidth = w + r * 1.5;
+    // Light mode: ink-like strokes with denser halo
+    for (let r = glowR * 0.7; r > 0; r -= Math.max(0.5, glowR/12)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/(glowR*0.7)) * 0.07);
+      ctx.lineWidth = w + r * 1.8;
       ctx.lineCap = 'round';
       ctx.beginPath();
       ctx.moveTo(pts[0], pts[1]);
       ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
       ctx.stroke();
     }
-    ctx.strokeStyle = rgba(color, op * 0.35);
+    ctx.strokeStyle = rgba(color, op * 0.65);
     ctx.lineWidth = w;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -617,15 +627,15 @@ function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
 
 function drawGlowNode(ctx, x, y, r, color, op, light) {
   if (light) {
-    // Light mode: solid dots with subtle spread
-    for (let i = r * 3; i > r; i -= 0.8) {
-      ctx.fillStyle = rgba(color, op * 0.03 * (1 - (i-r)/(r*2)));
+    // Light mode: solid dots with richer spread
+    for (let i = r * 4; i > r; i -= 0.8) {
+      ctx.fillStyle = rgba(color, op * 0.05 * (1 - (i-r)/(r*3)));
       ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
     }
-    ctx.fillStyle = rgba(color, op * 0.5);
-    ctx.beginPath(); ctx.arc(x, y, r * 0.7, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle = rgba(color, op * 0.8);
-    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba(color, op * 0.7);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba(color, op * 0.95);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, Math.PI*2); ctx.fill();
   } else {
     // Dark mode: full glow halos
     for (let i = r * 8; i > r; i -= 1.5) {
@@ -658,12 +668,9 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
   // Tree trunk runs along the right third of the page
   const trunkX = W * 0.7;
 
-  // Offscreen: render the full-height static tree once
-  // We'll tile it — render at viewport size and scroll-shift
-  const staticCanvas = document.createElement('canvas');
-  staticCanvas.width = canvas.width;
-  // Render a tall strip for the tree (we'll scroll through it)
   const stripH = Math.min(docH, 8000);
+  let staticCanvas = document.createElement('canvas');
+  staticCanvas.width = canvas.width;
   staticCanvas.height = stripH * dpr;
 
   let nodes = [];
@@ -675,10 +682,12 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
     builtTheme = light;
     nodes = [];
     const rng = createRand(42);
+    // Completely replace the static canvas — no chance of state leak
+    staticCanvas = document.createElement('canvas');
+    staticCanvas.width = canvas.width;
+    staticCanvas.height = stripH * dpr;
     const sctx = staticCanvas.getContext('2d');
-    sctx.setTransform(1, 0, 0, 1, 0, 0);
-    sctx.clearRect(0, 0, staticCanvas.width, staticCanvas.height);
-    sctx.scale(dpr, 1); // Only scale X, Y is already in document pixels
+    sctx.scale(dpr, dpr);
 
     // Ambient glows at different heights
     const ambients = [
@@ -917,18 +926,20 @@ function redrawAllCanvases() {
 redrawAllCanvases();
 
 const toggle = document.getElementById('themeToggle');
-// Restore preference BEFORE drawing canvases
-if (localStorage.getItem('theme') === 'light') {
-  document.body.classList.add('light');
+function applyThemeColors(isLight) {
+  document.documentElement.style.background = isLight ? '#F2EEE8' : '#0D0A1A';
+}
+// Theme class was applied at top of script; just update toggle label
+if (document.body.classList.contains('light')) {
   toggle.textContent = '☾ Dark';
 }
-// Now draw canvases with correct theme
 
 toggle.addEventListener('click', () => {
   document.body.classList.toggle('light');
   const isLight = document.body.classList.contains('light');
   toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  applyThemeColors(isLight);
   if (window._heroRebuild) window._heroRebuild();
   redrawAllCanvases();
 });
