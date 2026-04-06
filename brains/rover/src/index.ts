@@ -19,8 +19,7 @@ import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
 import { dashboardPlugin } from "@brains/dashboard";
-import { newsletterPlugin } from "@brains/newsletter-entity";
-import { buttondownPlugin } from "@brains/buttondown";
+import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
@@ -78,7 +77,6 @@ const full = [
   "content-pipeline",
   "social-media",
   "newsletter",
-  "buttondown",
   "stock-photo",
 ];
 export default defineBrain({
@@ -144,8 +142,7 @@ export default defineBrain({
         autoGenerateOnBlogPublish: true,
       },
     ],
-    ["newsletter", newsletterPlugin, {}],
-    ["buttondown", buttondownPlugin, { doubleOptIn: true }],
+    ["newsletter", newsletter, { doubleOptIn: true }],
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
     ["stock-photo", stockPhotoPlugin, {}],

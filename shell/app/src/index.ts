@@ -27,6 +27,10 @@ export type {
   BrainEnvironment,
   PluginConfig,
   CapabilityEntry,
+  CapabilityConfig,
+  PluginFactory,
+  CompositePluginFactory,
   InterfaceEntry,
+  InterfaceConstructor,
 } from "./brain-definition";
 export type { SitePackage } from "./site-package";

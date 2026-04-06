@@ -1,6 +1,6 @@
 # Plan: Composite Plugins
 
-**Status:** v0.1.0 blocker. Lands a public API change before the surface stabilizes. ~1 day of work. See [roadmap](../roadmap.md) and [public-release-cleanup](./public-release-cleanup.md).
+**Status:** Done. Shipped as the v0.1.0 public-API change before stabilization. `CapabilityEntry` accepts factories returning `Plugin | Plugin[]`; `brain-resolver.ts` flattens arrays. Reference composite is `@brains/newsletter`, which bundles `@brains/newsletter-entity` + `@brains/buttondown` behind a single `newsletter` capability id. Rover migrated to use it.
 
 ## Context
 

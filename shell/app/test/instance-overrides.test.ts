@@ -1584,6 +1584,152 @@ describe("resolve with mode: eval", () => {
   });
 });
 
+describe("resolve with composite plugins", () => {
+  test("factory returning a single plugin works as before", () => {
+    const [factory] = createMockFactory("single");
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["single", factory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, {});
+    const ids = config.plugins?.map((p) => p.id) ?? [];
+    expect(ids).toContain("single");
+  });
+
+  test("factory returning an array of plugins is flattened", () => {
+    const compositeFactory = (config: PluginConfig): Plugin[] => [
+      createMockPlugin("composite-entity", config),
+      createMockPlugin("composite-service", config),
+    ];
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["composite", compositeFactory, { foo: "bar" }]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, {});
+    const ids = config.plugins?.map((p) => p.id) ?? [];
+    expect(ids).toContain("composite-entity");
+    expect(ids).toContain("composite-service");
+
+    const entity = config.plugins?.find((p) => p.id === "composite-entity");
+    const service = config.plugins?.find((p) => p.id === "composite-service");
+    expect(getConfig(entity)).toMatchObject({ foo: "bar" });
+    expect(getConfig(service)).toMatchObject({ foo: "bar" });
+  });
+
+  test("composite is gated by its capability id, not sub-plugin ids", () => {
+    const compositeFactory = (config: PluginConfig): Plugin[] => [
+      createMockPlugin("sub-a", config),
+      createMockPlugin("sub-b", config),
+    ];
+    const [otherFactory] = createMockFactory("other");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["composite", compositeFactory, {}],
+        ["other", otherFactory, {}],
+      ],
+      interfaces: [],
+      presets: {
+        core: ["composite"],
+      },
+    });
+
+    const config = resolve(def, {}, { preset: "core" });
+    const ids = config.plugins?.map((p) => p.id) ?? [];
+    expect(ids).toContain("sub-a");
+    expect(ids).toContain("sub-b");
+    expect(ids).not.toContain("other");
+  });
+
+  test("brain.yaml override on composite id reaches all sub-plugins", () => {
+    const compositeFactory = (config: PluginConfig): Plugin[] => [
+      createMockPlugin("sub-a", config),
+      createMockPlugin("sub-b", config),
+    ];
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["composite", compositeFactory, { apiKey: "default", flag: true }],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        plugins: {
+          composite: { apiKey: "override" },
+        },
+      },
+    );
+
+    const subA = config.plugins?.find((p) => p.id === "sub-a");
+    const subB = config.plugins?.find((p) => p.id === "sub-b");
+    expect(getConfig(subA)).toMatchObject({
+      apiKey: "override",
+      flag: true,
+    });
+    expect(getConfig(subB)).toMatchObject({
+      apiKey: "override",
+      flag: true,
+    });
+  });
+
+  test("composite excluded by remove list does not register sub-plugins", () => {
+    const compositeFactory = (config: PluginConfig): Plugin[] => [
+      createMockPlugin("sub-a", config),
+      createMockPlugin("sub-b", config),
+    ];
+    const [otherFactory] = createMockFactory("other");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["composite", compositeFactory, {}],
+        ["other", otherFactory, {}],
+      ],
+      interfaces: [],
+      presets: {
+        core: ["composite", "other"],
+      },
+    });
+
+    const config = resolve(def, {}, { preset: "core", remove: ["composite"] });
+    const ids = config.plugins?.map((p) => p.id) ?? [];
+    expect(ids).not.toContain("sub-a");
+    expect(ids).not.toContain("sub-b");
+    expect(ids).toContain("other");
+  });
+
+  test("composite returning empty array registers nothing but does not throw", () => {
+    const emptyFactory = (): Plugin[] => [];
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["empty", emptyFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, {});
+    const ids = config.plugins?.map((p) => p.id) ?? [];
+    expect(ids).not.toContain("empty");
+  });
+});
+
 describe("parseInstanceOverrides with mode", () => {
   test("should parse mode: eval from yaml", () => {
     const yaml = `

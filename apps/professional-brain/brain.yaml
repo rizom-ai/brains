@@ -29,7 +29,7 @@ plugins:
   social-media:
     linkedin:
       accessToken: ${LINKEDIN_ACCESS_TOKEN}
-  buttondown:
+  newsletter:
     apiKey: ${BUTTONDOWN_API_KEY}
   analytics:
     cloudflare:

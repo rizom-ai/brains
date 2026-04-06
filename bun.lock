@@ -130,7 +130,6 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/blog": "workspace:*",
-        "@brains/buttondown": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -139,7 +138,7 @@
         "@brains/image-plugin": "workspace:*",
         "@brains/link": "workspace:*",
         "@brains/mcp": "workspace:*",
-        "@brains/newsletter-entity": "workspace:*",
+        "@brains/newsletter": "workspace:*",
         "@brains/note": "workspace:*",
         "@brains/obsidian-vault": "workspace:*",
         "@brains/portfolio": "workspace:*",
@@ -706,6 +705,25 @@
         "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "plugins/newsletter": {
+      "name": "@brains/newsletter",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/buttondown": "workspace:*",
+        "@brains/newsletter-entity": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1462,6 +1480,8 @@
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
 
     "@brains/mylittlephoney": ["@brains/mylittlephoney@workspace:apps/mylittlephoney"],
+
+    "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
 
     "@brains/newsletter-entity": ["@brains/newsletter-entity@workspace:entities/newsletter"],
 

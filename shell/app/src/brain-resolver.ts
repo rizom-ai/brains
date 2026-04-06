@@ -162,7 +162,14 @@ export function resolve(
     const override = pluginOverrides[id];
     const merged = override ? deepMerge(baseConfig, override) : baseConfig;
     try {
-      capabilities.push(factory(merged));
+      // Factories may return a single Plugin or an array of Plugins
+      // (composite plugins — e.g. an entity + service pair sharing one config).
+      const result = factory(merged);
+      if (Array.isArray(result)) {
+        capabilities.push(...result);
+      } else {
+        capabilities.push(result);
+      }
     } catch (error) {
       if (error instanceof ZodError) {
         logger?.warn(`Skipping capability "${id}": missing required config`);

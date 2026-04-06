@@ -163,28 +163,32 @@ All 3 phases complete. Production observability for deployed brains. Plan delete
 - **Phase 2 — Enriched health.** `/health` returns version, uptime, entity count, embedding count, AI provider/model, daemon statuses. Simplified `AppInfo` type — removed plugin/tool/interface lists (available via MCP resources).
 - **Phase 3 — Usage tracking via logs.** `IEmbeddingService.generateEmbedding()` returns `{ embedding, usage }`. `AIService` and `EmbeddingJobHandler` log `ai:usage` structured events. `brain diagnostics usage` parses the log file, aggregates by provider/model.
 
+### Composite Plugins (2026-04)
+
+Last public-API change before v0.1.0 stabilizes. `CapabilityEntry` now accepts factories that return `Plugin | Plugin[]`; `brain-resolver` flattens arrays. One brain.yaml block configures an entity+service pair sharing one set of credentials. Reference composite `@brains/newsletter` bundles `@brains/newsletter-entity` + `@brains/buttondown` behind one `newsletter` capability id; rover migrated. Sub-plugins are gated by the composite's id, so add/remove from a preset enables or disables both at once.
+
 ---
 
 ## Rover 0.1 — First Public Release
 
 The following items must be complete before the first public release:
 
-| Item                       | Status        | Notes                                                                                                                                                                                   |
-| -------------------------- | ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@rizom/brain` npm publish | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md))                                                                        |
-| Search & Embeddings        | Done          | Separate embedding DB + OpenAI online embeddings + FTS5 hybrid + threshold tuning. ONNX/fastembed removed.                                                                              |
-| Rizom Sites                | In progress   | rizom.ai homepage prototype landed (single-file mock). Next: theme/site packages + apps/rizom-ai. ([plan](./plans/rizom-sites.md))                                                      |
-| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                                                                                     |
-| License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                                                                               |
-| Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                                                                                            |
-| Kamal Deploy (Phases 1-2)  | In progress   | Dockerfile.model + Caddy internal routing + health endpoint done. Needs: publish-images CI, instance CI pipeline.                                                                       |
-| Monitoring                 | Done          | Structured logging + enriched `/health` + usage tracking via logs.                                                                                                                      |
-| Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                                                                                      |
-| Naming cleanup             | Done          |                                                                                                                                                                                         |
-| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                                                                                  |
-| Public release cleanup     | Planned       | Orphan-commit clean tree to public repo. Includes README rewrite, CONTRIBUTING/SECURITY, STABILITY statement, end-to-end smoke test. ([plan](./plans/public-release-cleanup.md))        |
-| Composite plugins          | Planned       | One brain.yaml block configures an entity+service pair (e.g. newsletter+buttondown). Lands a public API change cheaply before v0.1.0 stabilizes. ([plan](./plans/composite-plugins.md)) |
-| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types. Full surface documented in `STABILITY.md` (added during public release cleanup).                                                                |
+| Item                       | Status        | Notes                                                                                                                                                                                                                              |
+| -------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rizom/brain` npm publish | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md))                                                                                                                   |
+| Search & Embeddings        | Done          | Separate embedding DB + OpenAI online embeddings + FTS5 hybrid + threshold tuning. ONNX/fastembed removed.                                                                                                                         |
+| Rizom Sites                | In progress   | rizom.ai homepage prototype landed (single-file mock). Next: theme/site packages + apps/rizom-ai. ([plan](./plans/rizom-sites.md))                                                                                                 |
+| Changesets + versioning    | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                                                                                                                                |
+| License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                                                                                                                          |
+| Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                                                                                                                                       |
+| Kamal Deploy (Phases 1-2)  | In progress   | Dockerfile.model + Caddy internal routing + health endpoint done. Needs: publish-images CI, instance CI pipeline.                                                                                                                  |
+| Monitoring                 | Done          | Structured logging + enriched `/health` + usage tracking via logs.                                                                                                                                                                 |
+| Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                                                                                                                                 |
+| Naming cleanup             | Done          |                                                                                                                                                                                                                                    |
+| Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                                                                                                                             |
+| Public release cleanup     | Planned       | Orphan-commit clean tree to public repo. Includes README rewrite, CONTRIBUTING/SECURITY, STABILITY statement, end-to-end smoke test. ([plan](./plans/public-release-cleanup.md))                                                   |
+| Composite plugins          | Done          | `CapabilityEntry` accepts factories returning `Plugin[]`. Reference composite `@brains/newsletter` bundles newsletter entity + buttondown service behind one capability id. Rover migrated. ([plan](./plans/composite-plugins.md)) |
+| Stable API surface         | Mostly stable | brain.yaml schema, tools, entity types. Full surface documented in `STABILITY.md` (added during public release cleanup).                                                                                                           |
 
 ---
 
@@ -196,7 +200,6 @@ Items at the same level can be done in parallel.
 
 - **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done. Blocked only on creating the `@rizom` npm org and running `npm publish`. ([plan](./plans/npm-packages.md))
 - **Public release cleanup** — Orphan-commit the public-eligible subset of the monorepo into `rizom-ai/brains-temp`, double-rename to `rizom-ai/brains` once verified. Includes README rewrite, CONTRIBUTING/SECURITY/STABILITY content, fork-safe CI audit, and an end-to-end smoke test on a clean machine. ([plan](./plans/public-release-cleanup.md))
-- **Composite plugins** — One brain.yaml block configures an entity+service pair (e.g. newsletter+buttondown). Small public API change — lands before v0.1.0 stabilizes the surface. ([plan](./plans/composite-plugins.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. `Dockerfile.model` + internal Caddy routing + `/health` already shipped. Next: publish-images workflow → first standalone instance via `brain init --deploy`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **Rizom Sites** — split into rizom.ai (product, ranger), rizom.foundation (ideology, relay), rizom.work (commercial, ranger). rizom.ai homepage prototype landed (`docs/design/rizom-ai.html`), next step is theme-rizom-ai + sites/rizom-ai + apps/rizom-ai. rizom.ai on current infra, others via Kamal. ([plan](./plans/rizom-sites.md))
 
@@ -299,7 +302,6 @@ Rover 0.1 blockers:
   naming cleanup (done)
   ─────────────────────────
   REMAINING:
-    composite plugins (small public API change before stabilization)
     public release cleanup (orphan commit + content prep + smoke test)
     @rizom/brain npm publish (manual: create org + publish)
     kamal-deploy phases 1-2 → rizom-sites (rizom.ai on current infra)
