@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-04-03 — Click any item for details</p>
+  <p>Last updated: 2026-04-06 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -208,11 +208,14 @@ const items = [
 
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
-  // Short-term (in progress)
-  { id: "searchembeddings", name: "Search & Embeddings", status: "in-progress", step: 1, desc: "Separate embedding DB, online embeddings (OpenAI text-embedding-3-small), FTS5 hybrid search, threshold tuning. Removes ONNX native deps from bundle. Pre-release blocker.", blocks: ["npmpackages"] },
-  { id: "npmpackages", name: "npm Publish", status: "short-term", step: 2, desc: "@rizom/brain ready to publish after search/embeddings. CLI, runtime, rover, all polish items done. Apache-2.0. Default: gpt-4.1.", deps: ["searchembeddings"], blocks: ["kamal"] },
-  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 3, desc: "Kamal on Hetzner + standalone apps.", deps: ["npmpackages"], blocks: ["rizomsites", "monitoring"] },
-  { id: "rizomsites", name: "Rizom Sites", status: "short-term", step: 4, desc: "Three domains: rizom.ai (product, ranger, current infra), rizom.foundation (ideology, relay, Kamal), rizom.work (commercial, ranger, Kamal). Shared theme family.", deps: ["kamal"] },
+  // Rover 0.1 remaining blockers (in progress)
+  { id: "npmpackages", name: "npm Publish", status: "in-progress", desc: "@rizom/brain ready. CLI, runtime, rover, all polish items done. Apache-2.0. Default: gpt-4.1. Needs: create @rizom npm org, run npm publish.", blocks: [] },
+  { id: "kamal", name: "Kamal Deploy", status: "in-progress", desc: "Dockerfile.model + internal Caddy routing + /health endpoint shipped. Next: publish-images CI workflow → first standalone instance via brain init --deploy.", blocks: ["rizomsites"] },
+  { id: "rizomsites", name: "Rizom Sites", status: "in-progress", desc: "Homepage prototype landed (docs/design/rizom-ai.html). Next: theme-rizom-ai + sites/rizom-ai + apps/rizom-ai. rizom.ai on current infra (independent of Kamal), foundation + work via Kamal.", deps: ["kamal"] },
+  { id: "monitoring3", name: "Monitoring — Phase 3", status: "short-term", desc: "Usage tracking in a local SQLite table. AI text + embedding calls logged with token counts and cost estimates. brain status + brain diagnostics usage breakdown.", blocks: [] },
+  // Rover 0.1 blockers now complete
+  { id: "searchembeddings", name: "Search & Embeddings", status: "completed", desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.", date: "2026-04" },
+  { id: "monitoring12", name: "Monitoring — Phases 1-2", status: "completed", desc: "Structured logging (JSON mode + log file, always JSON, stderr by default, noise dropped to debug). Enriched /health with version, uptime, DB status, sync status, AI provider/model/key validity. Configurable via logging: block in brain.yaml.", date: "2026-04" },
   // Short-term (completed)
   { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
   { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
@@ -236,7 +239,7 @@ const items = [
   { id: "atproto36", name: "AT Protocol Phases 3-6", status: "medium-term", desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.", deps: ["atproto12"], blocks: ["hostedrovers"] },
   { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "monitoring", name: "Monitoring & Observability", status: "medium-term", desc: "Health dashboard, log aggregation, alerting for deployed brains. Needed once Kamal deploys are live.", deps: ["kamal"] },
+  { id: "monitoring", name: "Monitoring — Post-Release", status: "medium-term", desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.", deps: ["kamal", "monitoring3"] },
   { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["npmpackages"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
@@ -301,15 +304,17 @@ function render() {
     </div>`;
   }
 
-  // Pipeline
-  html += `<div class="section">
-    <div class="section-title">Short-term Pipeline (sequential)</div>
-    <div class="pipeline">
-      ${pipeline.map((item, i) =>
-        renderCard(item) + (i < pipeline.length - 1 ? '<span class="pipeline-arrow">→</span>' : "")
-      ).join("")}
-    </div>
-  </div>`;
+  // Pipeline (only shown if any items carry explicit step numbers)
+  if (pipeline.length) {
+    html += `<div class="section">
+      <div class="section-title">Short-term Pipeline (sequential)</div>
+      <div class="pipeline">
+        ${pipeline.map((item, i) =>
+          renderCard(item) + (i < pipeline.length - 1 ? '<span class="pipeline-arrow">→</span>' : "")
+        ).join("")}
+      </div>
+    </div>`;
+  }
 
   // Independent
   if (independent.length) {
@@ -323,23 +328,25 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Rover 0.1 Pipeline</div>
+      <div class="dep-group-title">Rover 0.1 Remaining Blockers</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('searchembeddings')">search & embeddings</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('npmpackages')">npm publish</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm publish</span>
+        <span class="dep-label">human-gated: create @rizom org</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
+        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal phases 1-2</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-mid" onclick="selectItem('monitoring')">monitoring</span>
+        <span class="dep-node s-wip" onclick="selectItem('rizomsites')">rizom.foundation + work</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
+        <span class="dep-node s-wip" onclick="selectItem('rizomsites')">rizom.ai</span>
+        <span class="dep-label">independent — current infra</span>
+      </div>
+    </div>
+    <div class="dep-group">
+      <div class="dep-group-title">Post-npm Chain</div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm publish</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-mid" onclick="selectItem('compiledbinaries')">compiled binaries</span>
       </div>
@@ -391,31 +398,22 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Rover 0.1 Blockers</div>
+      <div class="dep-group-title">Rover 0.1 — Completed Blockers</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal</span>
-        <span class="dep-label">deploy pipeline</span>
+        <span class="dep-node s-done" onclick="selectItem('searchembeddings')">search & embeddings ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('monitoring12')">monitoring 1-2 ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 96.6% ✓</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 96.6% ✓</span>
-        <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('documentation')">docs ✓</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('namingcleanup')">naming ✓</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('changesets')">changesets ✓</span>
-        <span class="dep-label">npm publish remains</span>
-      </div>
-    </div>
-    <div class="dep-group">
-      <div class="dep-group-title">Eval → Search Quality</div>
-      <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 96.6% ✓</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('searchquality12')">search quality 0-2</span>
-        <span class="dep-label">unblocked</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('unifiedai')">unified AI ✓</span>
       </div>
     </div>
   </div>`;
