@@ -6,9 +6,9 @@ The Rizom ecosystem has three sites that share a single brand spine: **rizom.fou
 
 | Site                 | Variant      | Brain  | Canvas        | Accent (dark mode)    | Status     |
 | -------------------- | ------------ | ------ | ------------- | --------------------- | ---------- |
-| **rizom.foundation** | `foundation` | Relay  | roots         | Amber Dark `#C45A08`  | MVP target |
+| **rizom.ai**         | `ai`         | Ranger | tree          | Amber Light `#FFA366` | MVP target |
+| **rizom.foundation** | `foundation` | Relay  | roots         | Amber Dark `#C45A08`  | Follow-up  |
 | **rizom.work**       | `work`       | Ranger | constellation | Amber `#E87722`       | Follow-up  |
-| **rizom.ai**         | `ai`         | Ranger | tree          | Amber Light `#FFA366` | Follow-up  |
 
 ## Architecture
 
@@ -17,19 +17,19 @@ Spine + flavors. Everything visual, structural, and editorial that the three sit
 ```
 shared/theme-rizom/           # ONE theme — palette, type, motion vocabulary, variant CSS
 sites/rizom/                  # ONE site — layouts, sections, routes, canvases
-apps/rizom-foundation/        # Brain instance — declares site + variant in brain.yaml
+apps/rizom-ai/                # Brain instance — declares site + variant in brain.yaml (MVP)
+apps/rizom-foundation/        # (follow-up — scaffold already exists, parked)
 apps/rizom-work/              # (follow-up)
-apps/rizom-ai/                # (follow-up)
 ```
 
 The same `@brains/site-rizom` package is loaded by all three brains. Each brain's `brain.yaml` selects its variant via a `site:` object:
 
 ```yaml
-brain: relay
-domain: rizom.foundation
+brain: ranger
+domain: rizom.ai
 site:
   package: "@brains/site-rizom"
-  variant: foundation
+  variant: ai
 ```
 
 The site plugin reads `variant` and:
@@ -259,24 +259,43 @@ export class RizomSitePlugin extends ServicePlugin<
 
 **`src/routes.ts`** — same routes for all three variants. Routes are static; what differs is the rendered template content (variant-specific defaults from the plugin's `buildTemplates`).
 
-## Phase 3: Wire up `apps/rizom-foundation/`
+## Phase 3: Scaffold `apps/rizom-ai/`
 
-`apps/rizom-foundation/brain.yaml` already exists. Add the new `site:` object:
+New app instance modeled on `apps/rizom-foundation/` (which stays parked as a follow-up target). The scaffold:
+
+```
+apps/rizom-ai/
+  package.json       # depends on @brains/ranger + @brains/site-rizom
+  tsconfig.json
+  brain.yaml         # brain: ranger, site.variant: ai, domain: rizom.ai
+  .env.example       # AI_API_KEY + MCP_AUTH_TOKEN
+  README.md
+```
+
+`brain.yaml`:
 
 ```yaml
-brain: relay
+brain: ranger
 preset: default
 logLevel: info
-domain: rizom.foundation
+domain: rizom.ai
 site:
   package: "@brains/site-rizom"
-  variant: foundation
+  variant: ai
 plugins:
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-Optionally add `apps/rizom-foundation/brain-data/home.md` with foundation-specific hero copy.
+No content repo yet — the homepage comes from `sites/rizom/`'s variant-specific defaults baked into the site plugin. Per-instance content overrides (hero copy, etc.) can be added later via `brain-data/`.
+
+`apps/rizom-foundation/` already exists from an earlier session but stays as-is for now. Wiring it up is a follow-up step once the shared site package is shipping for rizom.ai.
+
+### Why rizom.ai first
+
+- Colleague's reference mock (`docs/design/rizom-ai.html` + `docs/design/canvases/tree.js`) is the `ai` variant — direct port to code, no translation.
+- Ranger brain already exists and is in use today; relay's site layer (for foundation) is less proven.
+- rizom.ai deploys on existing Hetzner/Docker infra per [rizom-sites phasing](#) — no Kamal dependency on the critical path.
 
 ## Verification
 
@@ -297,22 +316,23 @@ After Phase 2:
 
 After Phase 3 (end-to-end):
 
-- Build `apps/rizom-foundation/` and confirm:
-  - HTML body has `data-rizom-variant="foundation"`
-  - `/canvases/roots.js` is loaded
-  - CTA buttons render in `#C45A08`
-  - Hero copy matches the foundation variant from brand guide A8
-- Toggle light mode and confirm the surface flips to `#F2EEE8` and the accent collapses to `#C45A08`
+- Build `apps/rizom-ai/` and confirm:
+  - HTML body has `data-rizom-variant="ai"`
+  - `/canvases/tree.js` is loaded
+  - CTA buttons render in `#FFA366` (Amber Light) in dark mode
+  - Hero copy matches the ai variant from brand guide A8
+- Toggle light mode and confirm the surface flips to `#F2EEE8` and the accent collapses to `#C45A08` (all variants share the same light-mode accent)
 
 ## Follow-up (out of scope)
 
-Once the MVP is shipping:
+Once rizom.ai is shipping:
 
-1. Create `apps/rizom-work/brain.yaml` and `apps/rizom-ai/brain.yaml` mirroring foundation with different `variant` values
-2. Per-app content overrides in each app's `brain-data/`
-3. Deploy rizom.foundation via Kamal
+1. Wire `apps/rizom-foundation/brain.yaml` to `@brains/site-rizom` with `variant: foundation` (scaffold already exists)
+2. Create `apps/rizom-work/brain.yaml` with `variant: work`
+3. Per-app content overrides in each app's `brain-data/`
 4. Deploy rizom.ai on existing Hetzner infra
-5. Deploy rizom.work (Kamal)
+5. Deploy rizom.foundation via Kamal
+6. Deploy rizom.work (Kamal)
 
 ## Risk notes
 
