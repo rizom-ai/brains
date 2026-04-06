@@ -11,8 +11,11 @@ export interface ScaffoldOptions {
 /**
  * Scaffold a new brain instance directory.
  *
- * Minimal scaffold (default): brain.yaml + package.json + .env.example + .gitignore
+ * Minimal scaffold (default): brain.yaml + .env.example + .gitignore
  * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
+ *
+ * Apps are config-only directories — no package.json, no source code.
+ * The `brain` CLI from `@rizom/brain` reads brain.yaml from cwd and runs.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const { model } = options;

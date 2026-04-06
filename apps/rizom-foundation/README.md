@@ -8,8 +8,10 @@ A deployment instance of the [@brains/relay](../../brains/relay/) brain model (u
 
 ## Setup
 
+This directory is a config-only brain instance — no `package.json`, no source code. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
+
 ```bash
-# From the monorepo root
+# From the monorepo root, once
 bun install
 
 # Copy and fill in secrets
@@ -17,7 +19,7 @@ cp apps/rizom-foundation/.env.example apps/rizom-foundation/.env
 
 # Start
 cd apps/rizom-foundation
-bun run dev
+bunx brain start
 ```
 
 ## Files
@@ -26,7 +28,6 @@ bun run dev
 | ----------------------------- | ------------------------------------------ |
 | `brain.yaml`                  | Instance config (domain, plugin overrides) |
 | `.env`                        | Secrets only (API keys, tokens)            |
-| `tsconfig.json`               | Required for Bun JSX resolution            |
 | `brain-data/HOME.md`          | The manifesto — rendered as the homepage   |
 | `brain-data/site-info/`       | Title, description, theme mode             |
 | `brain-data/anchor-profile/`  | Rizom organization identity                |

@@ -24,50 +24,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "apps/collective-brain": {
-      "name": "@brains/collective-brain",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/ai-evaluation": "workspace:*",
-        "@brains/app": "workspace:*",
-        "@brains/ranger": "workspace:*",
-        "preact": "^10.27.2",
-      },
-    },
-    "apps/mylittlephoney": {
-      "name": "@brains/mylittlephoney",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/rover": "workspace:*",
-        "@brains/site-mylittlephoney": "workspace:*",
-      },
-    },
-    "apps/professional-brain": {
-      "name": "@brains/professional-brain",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/rover": "workspace:*",
-      },
-    },
-    "apps/rizom-foundation": {
-      "name": "@brains/rizom-foundation",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/relay": "workspace:*",
-        "preact": "^10.27.2",
-      },
-    },
-    "apps/team-brain": {
-      "name": "@brains/team-brain",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/relay": "workspace:*",
-      },
-    },
     "brains/ranger": {
       "name": "@brains/ranger",
       "version": "0.1.0",
@@ -1433,8 +1389,6 @@
 
     "@brains/chat-repl": ["@brains/chat-repl@workspace:interfaces/chat-repl"],
 
-    "@brains/collective-brain": ["@brains/collective-brain@workspace:apps/collective-brain"],
-
     "@brains/content-pipeline": ["@brains/content-pipeline@workspace:plugins/content-pipeline"],
 
     "@brains/content-service": ["@brains/content-service@workspace:shell/content-service"],
@@ -1479,8 +1433,6 @@
 
     "@brains/messaging-service": ["@brains/messaging-service@workspace:shell/messaging-service"],
 
-    "@brains/mylittlephoney": ["@brains/mylittlephoney@workspace:apps/mylittlephoney"],
-
     "@brains/newsletter": ["@brains/newsletter@workspace:plugins/newsletter"],
 
     "@brains/newsletter-entity": ["@brains/newsletter-entity@workspace:entities/newsletter"],
@@ -1501,15 +1453,11 @@
 
     "@brains/products": ["@brains/products@workspace:entities/products"],
 
-    "@brains/professional-brain": ["@brains/professional-brain@workspace:apps/professional-brain"],
-
     "@brains/prompt": ["@brains/prompt@workspace:entities/prompt"],
 
     "@brains/ranger": ["@brains/ranger@workspace:brains/ranger"],
 
     "@brains/relay": ["@brains/relay@workspace:brains/relay"],
-
-    "@brains/rizom-foundation": ["@brains/rizom-foundation@workspace:apps/rizom-foundation"],
 
     "@brains/rover": ["@brains/rover@workspace:brains/rover"],
 
@@ -1534,8 +1482,6 @@
     "@brains/stock-photo": ["@brains/stock-photo@workspace:plugins/stock-photo"],
 
     "@brains/summary": ["@brains/summary@workspace:entities/summary"],
-
-    "@brains/team-brain": ["@brains/team-brain@workspace:apps/team-brain"],
 
     "@brains/templates": ["@brains/templates@workspace:shell/templates"],
 

@@ -8,11 +8,13 @@ An instance of the [Rover brain model](../../brains/rover/) for personal knowled
 cp .env.example .env
 # Edit .env and add your AI_API_KEY
 
-bun install   # from repo root
-bun run dev   # start in dev mode
+bun install        # from repo root, once
+bunx brain start   # from this directory
 ```
 
 Preview site: http://localhost:4321
+
+This directory is a config-only brain instance — no `package.json`, no source code. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ## Configuration
 

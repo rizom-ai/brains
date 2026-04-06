@@ -5,7 +5,9 @@ A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model 
 ## Setup
 
 1. Copy `.env.example` to `.env` and fill in secrets
-2. Run `bun run dev` for development
+2. From this directory, run `bunx brain start`
+
+This directory is a config-only brain instance — no `package.json`, no source code. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ## Files
 
@@ -13,7 +15,6 @@ A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model 
 | ------------------------ | ------------------------------------------------- |
 | `brain.yaml`             | Instance config (plugins, permissions, overrides) |
 | `.env`                   | Secrets only (API keys, tokens)                   |
-| `tsconfig.json`          | Required for Bun JSX resolution                   |
 | `deploy/brain.yaml`      | Production config                                 |
 | `deploy/.env.production` | Production secrets                                |
 
