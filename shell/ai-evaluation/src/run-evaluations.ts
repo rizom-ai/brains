@@ -31,6 +31,7 @@ import {
   type AppConfig,
   resolve as resolveConfig,
   parseInstanceOverrides,
+  InstanceOverridesParseError,
   App,
 } from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
@@ -306,7 +307,21 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
   const yamlPath = resolvePath(process.cwd(), "brain.eval.yaml");
   if (existsSync(yamlPath)) {
     const content = readFileSync(yamlPath, "utf-8");
-    const overrides = parseInstanceOverrides(content);
+    let overrides;
+    try {
+      overrides = parseInstanceOverrides(content);
+    } catch (err) {
+      if (err instanceof InstanceOverridesParseError) {
+        console.error(`❌ ${err.message}`);
+      } else {
+        console.error(
+          `❌ unexpected error parsing brain.eval.yaml: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+        );
+      }
+      process.exit(1);
+    }
 
     // Extract models/keys from raw YAML (not in InstanceOverrides schema)
     // Apply ${ENV_VAR} interpolation so keys can reference secrets from env.
@@ -365,7 +380,10 @@ async function loadEvalConfig(): Promise<EvalConfigResult> {
       appTestCases,
     ].filter((dir) => existsSync(dir));
 
-    // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE, AI_API_KEY)
+    // Re-resolve reads current process.env (picks up EVAL_GIT_REMOTE, AI_API_KEY).
+    // The initial parse above already threw on any parse error, so at this
+    // point we can assume the YAML is valid — if re-parsing fails later
+    // (e.g. an env var disappeared), surface the error loud.
     const freshResolve = (): AppConfig => {
       const freshOverrides = parseInstanceOverrides(content);
       return resolveConfig(mod.default, process.env, freshOverrides);

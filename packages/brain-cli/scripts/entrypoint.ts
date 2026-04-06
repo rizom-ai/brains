@@ -28,11 +28,30 @@ import { readFileSync } from "fs";
 import { join } from "path";
 
 setBootFn(async (cwd, _modelName, definition, flags) => {
-  const { resolve, parseInstanceOverrides, App, handleCLI } =
-    await import("@brains/app");
+  const {
+    resolve,
+    parseInstanceOverrides,
+    InstanceOverridesParseError,
+    App,
+    handleCLI,
+  } = await import("@brains/app");
 
   const yaml = readFileSync(join(cwd, "brain.yaml"), "utf-8");
-  const overrides = parseInstanceOverrides(yaml);
+  let overrides;
+  try {
+    overrides = parseInstanceOverrides(yaml);
+  } catch (err) {
+    if (err instanceof InstanceOverridesParseError) {
+      console.error(`❌ ${err.message}`);
+    } else {
+      console.error(
+        `❌ unexpected error parsing brain.yaml: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    process.exit(1);
+  }
   const config = resolve(definition, process.env, overrides);
 
   if (flags.registerOnly) {

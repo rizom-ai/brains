@@ -80,17 +80,95 @@ const instanceOverridesSchema = z.object({
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 
 /**
+ * Error thrown when brain.yaml fails to parse or validate.
+ *
+ * The message is pre-formatted for direct display to the operator
+ * (multi-line, includes actionable context).
+ */
+export class InstanceOverridesParseError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "InstanceOverridesParseError";
+  }
+}
+
+/**
+ * Recursively strip `null` values from an object/array structure.
+ *
+ * YAML has no way to spell "undefined", and empty mapping values
+ * (`anchors:` with nothing after the colon) parse as `null`. The
+ * Zod schema uses `.optional()` which only accepts `undefined`, so
+ * without this preprocessing an empty field would invalidate the
+ * entire overrides object.
+ *
+ * Semantics: `key: null` / `key:` in YAML is treated as "key is not
+ * set". If you want an explicit empty array or object, spell it
+ * (`key: []` or `key: {}`).
+ */
+function nullsToUndefined(value: unknown): unknown {
+  if (value === null || value === undefined) return undefined;
+  if (Array.isArray(value)) {
+    return value.map((v) => nullsToUndefined(v)).filter((v) => v !== undefined);
+  }
+  if (typeof value === "object") {
+    const result: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      const converted = nullsToUndefined(v);
+      if (converted !== undefined) {
+        result[k] = converted;
+      }
+    }
+    return result;
+  }
+  return value;
+}
+
+/**
+ * Format a Zod error's issues into an operator-readable multi-line
+ * message. Example:
+ *
+ *   invalid brain.yaml:
+ *     - anchors: Expected array, received string
+ *     - plugins.mcp.port: Expected number, received string
+ */
+function formatZodIssues(error: z.ZodError): string {
+  const lines = error.issues.map((issue) => {
+    const path = issue.path.length > 0 ? issue.path.join(".") : "(root)";
+    return `  - ${path}: ${issue.message}`;
+  });
+  return `invalid brain.yaml:\n${lines.join("\n")}`;
+}
+
+/**
  * Parse a brain.yaml string into InstanceOverrides.
  *
- * Uses js-yaml for parsing, then interpolates ${ENV_VAR} references
- * and validates with Zod.
+ * Pipeline: YAML parse → env interpolation → null-strip → Zod validate.
+ *
+ * Throws {@link InstanceOverridesParseError} with a pre-formatted
+ * message if any step fails. Callers should catch it and either
+ * surface the message to the operator or exit with a clear error.
+ *
+ * Previously this function silently returned `{}` on any failure,
+ * which meant a typo or an empty YAML field could cause _all_
+ * instance overrides to be discarded without any operator-visible
+ * signal — producing a brain that booted with completely wrong
+ * config. Failing loud is a deliberate choice.
  */
 export function parseInstanceOverrides(yamlContent: string): InstanceOverrides {
   const yamlResult = parseYamlDocument(yamlContent);
-  if (!yamlResult.ok) return {};
+  if (!yamlResult.ok) {
+    throw new InstanceOverridesParseError(
+      `failed to parse brain.yaml: ${yamlResult.error}`,
+    );
+  }
 
   const interpolated = interpolateEnv(yamlResult.data);
-  const parsed = instanceOverridesSchema.safeParse(interpolated);
+  const normalized = nullsToUndefined(interpolated);
+  const parsed = instanceOverridesSchema.safeParse(normalized);
 
-  return parsed.success ? parsed.data : {};
+  if (!parsed.success) {
+    throw new InstanceOverridesParseError(formatZodIssues(parsed.error));
+  }
+
+  return parsed.data;
 }

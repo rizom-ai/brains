@@ -8,7 +8,10 @@ import {
 import type { SitePackage } from "../src/site-package";
 import { resolve } from "../src/brain-resolver";
 import { registerPackage } from "../src/package-registry";
-import { parseInstanceOverrides } from "../src/instance-overrides";
+import {
+  parseInstanceOverrides,
+  InstanceOverridesParseError,
+} from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 
 // --- Test helpers ---
@@ -283,6 +286,201 @@ permissions:
     const result = parseInstanceOverrides(yaml);
     expect(result.permissions?.anchors).toEqual(["cli:*"]);
     expect(result.permissions?.trusted).toEqual(["discord:123456789"]);
+  });
+});
+
+// --- parseInstanceOverrides: null handling and error surfacing ---
+
+describe("parseInstanceOverrides null handling", () => {
+  test("empty YAML field (anchors:) is treated as absent, not null", () => {
+    // Regression: team-brain had `anchors:` as an empty field. YAML
+    // parsed it as null, which doesn't satisfy z.array(z.string()).optional()
+    // (optional means undefined, not null). Previously this silently
+    // discarded ALL overrides; now it should be normalized to absent.
+    const yaml = `brain: "@brains/relay"
+logLevel: debug
+anchors:
+plugins:
+  mcp:
+    authToken: abc
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.brain).toBe("@brains/relay");
+    expect(result.logLevel).toBe("debug");
+    expect(result.anchors).toBeUndefined();
+    expect(result.plugins?.["mcp"]).toEqual({ authToken: "abc" });
+  });
+
+  test("explicit `key: null` is treated the same as empty field", () => {
+    const yaml = `brain: "@brains/relay"
+trusted: null
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.brain).toBe("@brains/relay");
+    expect(result.trusted).toBeUndefined();
+  });
+
+  test("explicit empty array is kept (not stripped)", () => {
+    const yaml = `brain: "@brains/relay"
+anchors: []
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.anchors).toEqual([]);
+  });
+
+  test("null values inside nested plugin config are stripped", () => {
+    const yaml = `brain: "@brains/relay"
+plugins:
+  mcp:
+    authToken: abc
+    unusedField:
+`;
+    const result = parseInstanceOverrides(yaml);
+    // unusedField should be stripped, authToken preserved
+    expect(result.plugins?.["mcp"]).toEqual({ authToken: "abc" });
+  });
+
+  test("nulls inside arrays are stripped", () => {
+    // Arbitrary plugin config with a mixed array — the nulls should
+    // disappear, leaving only the real entries.
+    const yaml = `brain: "@brains/relay"
+plugins:
+  webserver:
+    extraHosts:
+      - first.example.com
+      -
+      - second.example.com
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.plugins?.["webserver"]?.["extraHosts"]).toEqual([
+      "first.example.com",
+      "second.example.com",
+    ]);
+  });
+
+  test("empty top-level permissions section is treated as absent", () => {
+    const yaml = `brain: "@brains/relay"
+permissions:
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.brain).toBe("@brains/relay");
+    expect(result.permissions).toBeUndefined();
+  });
+});
+
+describe("parseInstanceOverrides error surfacing", () => {
+  test("throws InstanceOverridesParseError on invalid YAML syntax", () => {
+    const yaml = "brain: @brains/relay\n  invalid: [unclosed";
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      InstanceOverridesParseError,
+    );
+  });
+
+  test("throws InstanceOverridesParseError on empty file", () => {
+    expect(() => parseInstanceOverrides("")).toThrow(
+      InstanceOverridesParseError,
+    );
+  });
+
+  test("throws InstanceOverridesParseError on non-mapping YAML (bare string)", () => {
+    expect(() => parseInstanceOverrides("just a string")).toThrow(
+      InstanceOverridesParseError,
+    );
+  });
+
+  test("throws InstanceOverridesParseError on type mismatch with field path", () => {
+    // logLevel expects 'debug'|'info'|'warn'|'error' — 'verbose' is invalid
+    const yaml = 'brain: "@brains/relay"\nlogLevel: verbose';
+    let caught: unknown;
+    try {
+      parseInstanceOverrides(yaml);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(InstanceOverridesParseError);
+    expect((caught as Error).message).toContain("invalid brain.yaml");
+    expect((caught as Error).message).toContain("logLevel");
+  });
+
+  test("throws with nested field path on nested validation failure", () => {
+    // permissions.rules[0].level expects anchor/trusted/public
+    const yaml = `brain: "@brains/relay"
+permissions:
+  rules:
+    - pattern: "cli:*"
+      level: superuser
+`;
+    let caught: unknown;
+    try {
+      parseInstanceOverrides(yaml);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(InstanceOverridesParseError);
+    expect((caught as Error).message).toContain("permissions.rules.0.level");
+  });
+
+  test("throws on wrong type for array field", () => {
+    // anchors expects array, got string
+    const yaml = 'brain: "@brains/relay"\nanchors: "cli:*"';
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      InstanceOverridesParseError,
+    );
+  });
+
+  test("throws on wrong type for number field", () => {
+    const yaml = 'brain: "@brains/relay"\nport: not-a-number';
+    expect(() => parseInstanceOverrides(yaml)).toThrow(
+      InstanceOverridesParseError,
+    );
+  });
+
+  test("error message is multi-line and lists all issues", () => {
+    // Multiple errors at once — both should appear in the message
+    const yaml = `brain: "@brains/relay"
+logLevel: loud
+port: "fourty-two"
+`;
+    let caught: unknown;
+    try {
+      parseInstanceOverrides(yaml);
+    } catch (e) {
+      caught = e;
+    }
+    expect(caught).toBeInstanceOf(InstanceOverridesParseError);
+    const msg = (caught as Error).message;
+    expect(msg).toContain("logLevel");
+    expect(msg).toContain("port");
+    expect(msg.split("\n").length).toBeGreaterThan(1);
+  });
+
+  test("regression: team-brain empty anchors no longer discards other overrides", () => {
+    // Exactly the team-brain brain.yaml shape that triggered the bug.
+    // Before the fix, this returned {} silently. Now it should parse
+    // correctly with anchors absent.
+    const yaml = `brain: relay
+
+logLevel: debug
+
+add:
+  - decks
+
+anchors:
+plugins:
+  directory-sync:
+    git:
+      repo: rizom-ai/team-brain-content
+      authorName: Relay
+  mcp:
+    authToken: abc
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.brain).toBe("relay");
+    expect(result.logLevel).toBe("debug");
+    expect(result.add).toEqual(["decks"]);
+    expect(result.anchors).toBeUndefined();
+    expect(result.plugins?.["directory-sync"]).toBeDefined();
+    expect(result.plugins?.["mcp"]).toEqual({ authToken: "abc" });
   });
 });
 

@@ -4,7 +4,10 @@ import { dirname, join } from "path";
 import { handleCLI } from "./cli";
 import { resolve } from "./brain-resolver";
 import { Logger } from "@brains/utils";
-import { parseInstanceOverrides } from "./instance-overrides";
+import {
+  parseInstanceOverrides,
+  InstanceOverridesParseError,
+} from "./instance-overrides";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerPackage } from "./package-registry";
@@ -23,7 +26,21 @@ function loadBrainYaml(): InstanceOverrides {
   }
 
   const content = readFileSync(yamlPath, "utf-8");
-  const overrides = parseInstanceOverrides(content);
+  let overrides: InstanceOverrides;
+  try {
+    overrides = parseInstanceOverrides(content);
+  } catch (err) {
+    if (err instanceof InstanceOverridesParseError) {
+      console.error(`❌ ${err.message}`);
+    } else {
+      console.error(
+        `❌ unexpected error parsing brain.yaml: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
+    process.exit(1);
+  }
 
   if (!overrides.brain) {
     console.error(
