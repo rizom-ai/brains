@@ -37,7 +37,12 @@
       "Bash(node -e \"require\\('canvas'\\)\")",
       "Bash(google-chrome-stable --headless --disable-gpu --dump-dom --window-size=390,844 \"file:///tmp/diag.html\")",
       "Bash(google-chrome-stable --headless --disable-gpu --window-size=390,844 --enable-logging=stderr \"file:///tmp/diag.html\")",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "mcp__paper__get_basic_info",
+      "mcp__paper__create_artboard",
+      "mcp__paper__get_node_info",
+      "mcp__paper__get_computed_styles",
+      "mcp__paper__set_text_content"
     ],
     "deny": [],
     "ask": []
