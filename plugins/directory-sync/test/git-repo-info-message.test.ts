@@ -37,7 +37,7 @@ describe("git-sync:get-repo-info message handler", () => {
   }
 
   it("should return repo and branch when git is configured", async () => {
-    const harness = setup({ repo: "rizom-ai/test-content", branch: "main" });
+    const harness = setup({ repo: "your-org/test-content", branch: "main" });
 
     const result = await harness.sendMessage<
       Record<string, never>,
@@ -45,7 +45,7 @@ describe("git-sync:get-repo-info message handler", () => {
     >("git-sync:get-repo-info", {});
 
     expect(result).toBeDefined();
-    expect(result?.repo).toBe("rizom-ai/test-content");
+    expect(result?.repo).toBe("your-org/test-content");
     expect(result?.branch).toBe("main");
 
     harness.reset();
@@ -65,7 +65,7 @@ describe("git-sync:get-repo-info message handler", () => {
   });
 
   it("should default branch to main when not specified", async () => {
-    const harness = setup({ repo: "rizom-ai/test-content" });
+    const harness = setup({ repo: "your-org/test-content" });
 
     const result = await harness.sendMessage<
       Record<string, never>,

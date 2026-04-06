@@ -634,7 +634,7 @@ describe("resolve with instance overrides", () => {
         plugins: {
           "directory-sync": {
             git: {
-              repo: "rizom-ai/content",
+              repo: "your-org/content",
               authToken: "secret",
             },
           },
@@ -650,7 +650,7 @@ describe("resolve with instance overrides", () => {
     expect(git["authorName"]).toBe("Rover");
     expect(git["authorEmail"]).toBe("rover@rizom.ai");
     // brain.yaml overrides merged in
-    expect(git["repo"]).toBe("rizom-ai/content");
+    expect(git["repo"]).toBe("your-org/content");
     expect(git["authToken"]).toBe("secret");
     // Other top-level config preserved
     expect(dsConfig["seedContent"]).toBe(true);

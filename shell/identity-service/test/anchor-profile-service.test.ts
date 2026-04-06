@@ -189,10 +189,10 @@ kind: professional
 
       // Step 2: Simulate git-sync importing the entity AFTER initialization
       const importedContent = `---
-name: Test User
+name: Yeehaa
 kind: professional
 description: 'Professional developer, writer, and knowledge worker'
-email: contact@example.com
+email: yeehaa@rizom.ai
 socialLinks:
   - platform: github
     url: 'https://github.com/yourusername'
@@ -217,8 +217,8 @@ socialLinks:
       profile = profileService.getProfile();
 
       // Should now have imported data
-      expect(profile.name).toBe("Test User");
-      expect(profile.email).toBe("contact@example.com");
+      expect(profile.name).toBe("Yeehaa");
+      expect(profile.email).toBe("yeehaa@rizom.ai");
       expect(profile.socialLinks).toHaveLength(1);
       expect(profile.socialLinks?.[0]?.platform).toBe("github");
     });
