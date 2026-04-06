@@ -34,7 +34,7 @@ body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba
 body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.2)}
 body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.2)}
 body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.12)}
-body.light .answer{background:rgba(234,229,221,0.7)}
+body.light .answer{background:transparent}
 body.light .terminal{background:#1A1625;border-color:rgba(26,22,37,0.1)}
 body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
 body.light footer{border-top-color:rgba(26,22,37,0.06)}
@@ -52,7 +52,7 @@ body.light .product-tags.purple span{color:var(--purple)}
 body.light .product-label.amber{color:var(--amber-dark)}
 body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber-dark);background:rgba(232,119,34,0.08)}
 body.light .mission .highlight{color:var(--amber-dark)}
-body.light .problem-num{color:var(--amber-dark)}
+body.light .problem-num{color:transparent;-webkit-text-stroke:1.5px var(--amber-dark)}
 
 html{scroll-behavior:smooth;overflow-x:hidden;background:#0D0A1A;transition:background 0.3s}
 body.light~html,html:has(body.light){background:#F2EEE8}
@@ -83,15 +83,35 @@ nav .logo-rizom{font-family:var(--font-nav);font-size:20px;font-weight:700;color
 nav .logo-dot{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--amber)}
 nav .logo-ai{font-family:var(--font-nav);font-size:20px;color:var(--text-muted)}
 nav .nav-links{display:flex;align-items:center;gap:32px}
-nav .nav-links a{font-family:var(--font-body);font-size:15px;color:var(--text-muted);transition:color 0.3s}
-nav .nav-links a:hover{color:var(--text)}
+nav .nav-links a:not(.nav-cta){font-family:var(--font-body);font-size:15px;color:var(--text-muted);transition:color 0.3s;position:relative;padding:4px 0}
+nav .nav-links a:not(.nav-cta)::after{content:'';position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--amber);transition:width 0.3s ease}
+nav .nav-links a:not(.nav-cta):hover{color:var(--text)}
+nav .nav-links a:not(.nav-cta):hover::after{width:100%}
 nav .nav-cta{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 24px;transition:all 0.3s}
 nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 
+/* Side nav indicator */
+.side-nav{position:fixed;right:32px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:18px;padding:16px 8px}
+.side-nav-dot{position:relative;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all 0.3s;display:block}
+.side-nav-dot::after{content:attr(data-label);position:absolute;right:20px;top:50%;transform:translateY(-50%);font-family:var(--font-label);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.side-nav-dot:hover{background:var(--amber);transform:scale(1.3)}
+.side-nav-dot:hover::after{opacity:1}
+.side-nav-dot.active{background:var(--amber);box-shadow:0 0 12px rgba(232,119,34,0.5)}
+body.light .side-nav-dot{background:rgba(26,22,37,0.2)}
+body.light .side-nav-dot.active{background:var(--amber-dark)}
+@media(max-width:1100px){.side-nav{display:none}}
+
 /* ============= HERO ============= */
-.hero{position:relative;min-height:80vh;display:flex;align-items:center;overflow:hidden}
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
 .hero-content{position:relative;z-index:2;width:55%;padding-top:80px}
 .hero h1{font-family:var(--font-head);font-size:clamp(40px,5.5vw,72px);font-weight:400;letter-spacing:-1px;line-height:1.1;margin-bottom:24px}
+.hero h1,.hero .subtitle,.hero .cta-row{opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) forwards}
+.hero h1{animation-delay:0.2s}
+.hero .subtitle{animation-delay:0.4s}
+.hero .cta-row{animation-delay:0.6s}
+.scroll-cue{opacity:0;animation:scrollCueRise 1s cubic-bezier(0.2,0.8,0.2,1) 1s forwards}
+@keyframes heroRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scrollCueRise{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:0.75;transform:translateX(-50%) translateY(0)}}
 .hero .subtitle{font-family:var(--font-body);font-size:18px;line-height:1.7;color:var(--text-muted);max-width:480px;margin-bottom:40px}
 .hero .cta-row{display:flex;gap:16px;flex-wrap:wrap}
 .btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:600;color:#fff;background:var(--amber);border:none;border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
@@ -101,16 +121,23 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 #bgCanvasWrap{opacity:0.6}
 #heroCanvas{width:100%;height:100%}
 
+/* Hero scroll cue */
+.scroll-cue{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-dim);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;z-index:3;transition:color 0.3s}
+.scroll-cue:hover{color:var(--amber)}
+.scroll-cue-line{width:1px;height:48px;background:linear-gradient(180deg,transparent 0%,currentColor 40%,currentColor 100%);position:relative;overflow:hidden}
+.scroll-cue-line::before{content:'';position:absolute;top:-20px;left:0;width:100%;height:20px;background:linear-gradient(180deg,transparent,currentColor);animation:scrollDrop 2.2s ease-in-out infinite}
+@keyframes scrollDrop{0%{top:-20px}60%{top:48px}100%{top:48px}}
+
 /* ============= PROBLEM ============= */
-.problem{padding-top:80px;padding-bottom:80px;position:relative}
+.problem{padding-top:120px;padding-bottom:120px;position:relative}
 .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:60px}
-.problem-num{font-family:var(--font-head);font-size:clamp(48px,5vw,64px);font-weight:700;color:var(--amber);line-height:1;margin-bottom:16px}
+.problem-num{font-family:var(--font-head);font-size:clamp(72px,8vw,120px);font-weight:400;color:transparent;-webkit-text-stroke:1.5px var(--amber);line-height:0.9;margin-bottom:32px;letter-spacing:-2px;display:block}
 .problem-title{font-family:var(--font-nav);font-size:20px;font-weight:700;margin-bottom:12px}
 .problem-text{font-size:15px;line-height:1.7;color:var(--text-muted)}
 .problem-threads{position:absolute;bottom:20px;left:80px;right:80px;height:60px;pointer-events:none}
 
 /* ============= ANSWER ============= */
-.answer{padding-top:80px;padding-bottom:64px;text-align:center;background:rgba(14,11,30,0.7)}
+.answer{padding-top:120px;padding-bottom:120px;text-align:center;background:transparent}
 .badge{display:inline-flex;align-items:center;padding:8px 20px;border:1px solid;border-radius:20px;font-family:var(--font-label);font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
 .badge-amber{border-color:var(--amber);color:var(--amber)}
 .badge-purple{border-color:var(--purple-light);color:var(--purple-light)}
@@ -121,8 +148,12 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .answer .scales-sub{font-size:16px;color:var(--text-dim);max-width:600px;margin:0 auto}
 
 /* ============= PRODUCT CARDS ============= */
-.product-card{padding-top:16px;padding-bottom:0}
-.product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid}
+.product-card{padding-top:24px;padding-bottom:24px}
+.product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid;transition:transform 0.5s cubic-bezier(0.2,0.8,0.2,1),border-color 0.5s,box-shadow 0.5s}
+.product-inner:hover{transform:translateY(-4px)}
+.product-inner.rover:hover{border-color:rgba(232,119,34,0.5);box-shadow:0 20px 60px -20px rgba(232,119,34,0.25)}
+.product-inner.relay:hover{border-color:rgba(140,130,200,0.5);box-shadow:0 20px 60px -20px rgba(107,47,160,0.25)}
+.product-inner.ranger:hover{border-color:rgba(140,130,200,0.4);box-shadow:0 20px 60px -20px rgba(107,47,160,0.2)}
 .product-inner.rover{background:linear-gradient(135deg,rgba(28,16,32,0.85) 0%,rgba(20,14,28,0.85) 100%);border-color:rgba(232,119,34,0.15)}
 .product-inner.relay{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(18,14,30,0.85) 100%);border-color:rgba(140,130,200,0.2);flex-direction:row-reverse}
 .product-inner.ranger{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(24,15,30,0.85) 50%,rgba(20,16,42,0.85) 100%);border-color:rgba(120,100,220,0.15)}
@@ -142,7 +173,7 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .product-illust{flex-shrink:0;width:511px;max-width:100%;height:320px;border-radius:16px;overflow:hidden;position:relative}
 
 /* ============= OWNERSHIP ============= */
-.ownership{padding-top:80px;padding-bottom:0}
+.ownership{padding-top:120px;padding-bottom:120px}
 .ownership-grid{display:flex;gap:80px;align-items:flex-start}
 .ownership-left{width:45%}
 .ownership-right{width:55%;display:flex;flex-direction:column;gap:32px;padding-top:60px}
@@ -153,7 +184,7 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .feature-desc{font-size:15px;line-height:1.7;color:var(--text-muted)}
 
 /* ============= QUICK START ============= */
-.quickstart{padding-top:80px;padding-bottom:0}
+.quickstart{padding-top:120px;padding-bottom:120px}
 .quickstart-grid{display:flex;gap:80px;align-items:flex-start}
 .quickstart-left{width:420px;flex-shrink:0;max-width:100%}
 .quickstart h2{font-family:var(--font-head);font-size:36px;letter-spacing:-0.5px;line-height:1.2;margin-top:16px}
@@ -165,18 +196,32 @@ nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
 .terminal .ok{color:#4ade80}
 
 /* ============= MISSION ============= */
-.mission{padding-top:80px;padding-bottom:0;text-align:center;position:relative}
+.mission{padding-top:120px;padding-bottom:120px;text-align:center;position:relative}
 .mission .pre{font-size:18px;line-height:1.7;color:var(--text-dim);max-width:520px;margin:0 auto 40px}
-.mission h2{font-family:var(--font-head);font-size:clamp(40px,5.5vw,72px);letter-spacing:-2px;line-height:1}
-.mission .highlight{color:var(--amber)}
+.mission h2{font-family:var(--font-head);font-size:clamp(52px,8vw,112px);letter-spacing:-3px;line-height:0.95;font-weight:700}
+.mission .highlight{color:var(--amber);display:inline-block;position:relative}
+.mission .highlight::before{content:'';position:absolute;left:-8%;right:-8%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4) 20%,rgba(232,119,34,0.4) 80%,transparent);opacity:0.5}
 .mission .post{font-size:17px;line-height:1.7;color:var(--text-dim);max-width:500px;margin:32px auto 0}
-.mission .mission-cta{display:flex;gap:20px;justify-content:center;margin-top:40px}
+.mission .mission-cta{display:flex;gap:20px;justify-content:center;margin-top:64px}
+.mission .mission-cta .btn-primary{font-size:18px;padding:22px 48px;box-shadow:0 0 0 0 rgba(232,119,34,0.5),0 20px 60px -15px rgba(232,119,34,0.4);transition:all 0.4s cubic-bezier(0.2,0.8,0.2,1)}
+.mission .mission-cta .btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 0 8px rgba(232,119,34,0.15),0 30px 80px -15px rgba(232,119,34,0.5)}
+.mission .mission-cta .btn-secondary{font-size:18px;padding:22px 48px}
 .mission .divider-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.3),transparent);margin:0 auto 48px}
 
 /* ============= ECOSYSTEM ============= */
-.ecosystem{padding-top:64px;padding-bottom:0}
+.ecosystem{padding-top:120px;padding-bottom:96px}
 .eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
-.eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px}
+.eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1),border-color 0.4s,box-shadow 0.4s}
+.eco-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:0.6;transition:opacity 0.4s}
+.eco-card:nth-child(1){background:linear-gradient(135deg,rgba(232,119,34,0.12) 0%,rgba(232,119,34,0.03) 100%);border-color:rgba(232,119,34,0.25)}
+.eco-card:nth-child(1)::before{background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--amber) 70%,transparent);opacity:1;height:3px}
+.eco-card:nth-child(2)::before{background:linear-gradient(90deg,transparent,var(--purple-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:nth-child(3)::before{background:linear-gradient(90deg,transparent,var(--amber-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.12)}
+.eco-card:hover::before{opacity:1}
+.eco-card:nth-child(1):hover{box-shadow:0 16px 40px -16px rgba(232,119,34,0.2)}
+.eco-card:nth-child(2):hover{box-shadow:0 16px 40px -16px rgba(140,130,200,0.2)}
+.eco-card:nth-child(3):hover{box-shadow:0 16px 40px -16px rgba(180,120,180,0.2)}
 .eco-brand{display:flex;align-items:center;gap:4px;font-family:var(--font-nav);font-size:16px;margin-bottom:8px}
 .eco-brand .r{font-weight:700}
 .eco-brand .d{font-weight:700;color:var(--amber)}
@@ -316,8 +361,18 @@ footer .foot-links a:hover{color:var(--text)}
   </div>
 </nav>
 
+<!-- SIDE NAV INDICATOR -->
+<aside class="side-nav" aria-hidden="true">
+  <a href="#hero" class="side-nav-dot" data-label="Intro"></a>
+  <a href="#features" class="side-nav-dot" data-label="Problem"></a>
+  <a href="#answer" class="side-nav-dot" data-label="Answer"></a>
+  <a href="#ownership" class="side-nav-dot" data-label="Open"></a>
+  <a href="#quickstart" class="side-nav-dot" data-label="Start"></a>
+  <a href="#mission" class="side-nav-dot" data-label="Vision"></a>
+</aside>
+
 <!-- HERO -->
-<section class="hero section">
+<section class="hero section" id="hero">
   <div class="hero-content">
     <h1>Build the agent that represents you</h1>
     <p class="subtitle">Your knowledge becomes an AI agent. Your agent joins a network. The network finds the right expert for every problem — matched by what people actually know.</p>
@@ -326,7 +381,10 @@ footer .foot-links a:hover{color:var(--text)}
       <a href="#answer" class="btn-secondary">How The Network Works</a>
     </div>
   </div>
-
+  <a class="scroll-cue" href="#features" aria-label="Scroll to content">
+    <span class="scroll-cue-label">Scroll</span>
+    <span class="scroll-cue-line"></span>
+  </a>
 </section>
 
 <!-- PROBLEM -->
@@ -485,7 +543,7 @@ footer .foot-links a:hover{color:var(--text)}
 </section>
 
 <!-- MISSION -->
-<section class="mission section reveal">
+<section class="mission section reveal" id="mission">
   <div class="divider-line"></div>
   <p class="pre">AI is not taking your job. It's exposing how much of your talent you've been wasting. When machines handle the busywork, what remains is the deeply human.</p>
   <h2>The future of<br><span class="highlight">work is play.</span></h2>
@@ -550,6 +608,25 @@ const observer = new IntersectionObserver((entries) => {
   entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
 }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
 document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Side nav active state tracker
+const sideDots = document.querySelectorAll('.side-nav-dot');
+const sectionIds = ['hero','features','answer','ownership','quickstart','mission'];
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = sectionIds.indexOf(e.target.id);
+      if (idx >= 0) {
+        sideDots.forEach(d => d.classList.remove('active'));
+        if (sideDots[idx]) sideDots[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.4 });
+sectionIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) sectionObserver.observe(el);
+});
 
 
 function createRand(seed) {
@@ -836,7 +913,7 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
     t += dt;
 
     const scrollY = window.scrollY || window.pageYOffset;
-    const scrollRatio = scrollY / Math.max(1, docH - H);
+    const scrollRatio = (scrollY * 0.7) / Math.max(1, docH - H);
 
     ctx.clearRect(0, 0, W, H);
 

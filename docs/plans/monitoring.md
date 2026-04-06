@@ -2,94 +2,131 @@
 
 ## Context
 
-The brain has a `Logger` class with levels (debug/info/warn/error) that writes to console. The `/health` endpoint returns `{ status: "healthy" }`. There's no usage tracking, no structured output, no diagnostics beyond what the operator can grep from terminal output.
+The brain had a `Logger` class with levels but no JSON output, no file support. The `/health` endpoint returned `{ status: "healthy" }`. No usage tracking, no diagnostics beyond what the operator could grep from terminal output.
 
-When a user's brain breaks, there's no log file to share. When they want to know their AI spend, there's no record. When `/health` says "healthy" but search returns nothing, there's no way to see that `embeddings.db` is empty.
+## Phases
 
-## Pre-Release Phases
+### Phase 1: Structured log output ✅
 
-### Phase 1: Structured log output
+Done. Logger gains:
 
-The `Logger` class already handles levels and child contexts. What's missing:
-
-1. **JSON mode** — `Logger` gains a `format: "json" | "text"` option. JSON mode outputs one JSON object per line: `{"ts":"...","level":"info","ctx":"EntitySearch","msg":"Found 3 results"}`. Text mode is current behavior (human-readable).
-2. **Log file** — `Logger` gains optional `logFile` path. Writes to file alongside console. File always uses JSON format. Rotated by size (10MB default).
-3. **Suppress noisy messages** — "No handlers found for message type" at info level is noise. Move to debug. Same for job-progress messages.
-4. **stderr for all log output** — Production brain should log to stderr so stdout is clean for MCP JSON-RPC. The `useStderr` flag exists but isn't default in production.
-
-**Config:**
+- `format: "text" | "json"` option (JSON is one object per line)
+- `logFile` option (always JSON, shared file handle across child loggers)
+- Configurable via `brain.yaml`:
 
 ```yaml
-# brain.yaml
 logging:
-  level: info # debug | info | warn | error
-  format: text # text | json
-  file: ./data/brain.log # optional, always JSON
+  level: debug
+  format: text
+  file: ./data/brain.log
 ```
 
-**Files:** `shared/utils/src/logger.ts`, `shell/core/src/config/shellConfig.ts`, `shell/messaging-service/` (suppress noisy messages)
+Noise suppression: "No handlers found" moved from warn to debug. `brain diagnostics` boots with `level: warn` to suppress plugin registration output.
 
-### Phase 2: Health enrichment
+### Phase 2: Health enrichment + simplified AppInfo ✅
 
-Extend `/health` from `{ status: "healthy" }` to useful diagnostics:
+Done. `AppInfo` simplified to essential diagnostics:
 
 ```json
 {
-  "status": "healthy",
+  "model": "rover",
   "version": "0.1.0",
   "uptime": 3600,
-  "databases": {
-    "entities": { "status": "ok", "entities": 230 },
-    "embeddings": { "status": "ok", "embeddings": 228 },
-    "jobs": { "status": "ok", "pending": 0, "processing": 0 }
-  },
-  "sync": {
-    "lastSync": "2026-04-04T16:00:00Z",
-    "status": "ok"
-  },
+  "entities": 230,
+  "embeddings": 228,
   "ai": {
-    "provider": "openai",
     "model": "gpt-4.1",
-    "embeddingModel": "text-embedding-3-small",
-    "keyValid": true
-  }
+    "embeddingModel": "text-embedding-3-small"
+  },
+  "daemons": [...]
 }
 ```
 
-The health endpoint already exists in `ServerManager`. Enrichment means:
+Removed plugin list, tool list, interface list (available via MCP resources). Health endpoint composes `getAppInfo()` from `Shell` via dependency injection into `WebserverInterface` → `ServerManager`.
 
-1. Shell exposes a `getHealthInfo()` method that collects from services
-2. Health route calls it instead of returning a static object
-3. Each service contributes its health status (entity count, job queue depth, sync status, AI key validity)
+### Phase 3: Usage tracking via structured logs
 
-**Files:** `shell/core/src/shell.ts`, `interfaces/webserver/src/server-manager.ts`, `shell/entity-service/`, `shell/job-queue/`, `shell/ai-service/`
+Track AI API usage through the existing logging infrastructure — no new database.
 
-### Phase 3: Usage tracking
+AI calls log structured usage events:
 
-Track AI API usage in a local SQLite table. No external service, no network — just a record of what the brain consumed.
-
-```sql
-CREATE TABLE usage_log (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  timestamp TEXT NOT NULL,
-  operation TEXT NOT NULL,      -- 'text_generation' | 'embedding' | 'image_generation'
-  provider TEXT NOT NULL,       -- 'openai' | 'anthropic' | 'google'
-  model TEXT NOT NULL,
-  input_tokens INTEGER,
-  output_tokens INTEGER,
-  cost_estimate REAL,           -- estimated USD based on published pricing
-  entity_type TEXT,             -- which entity triggered this (optional)
-  entity_id TEXT                -- which entity triggered this (optional)
-);
+```json
+{
+  "ts": "2026-04-05T10:00:00Z",
+  "level": "info",
+  "ctx": "UsageTracker",
+  "msg": "ai:usage",
+  "data": [
+    {
+      "operation": "embedding",
+      "provider": "openai",
+      "model": "text-embedding-3-small",
+      "inputTokens": 42,
+      "outputTokens": 0,
+      "costEstimate": 0.0000008
+    }
+  ]
+}
 ```
 
-1. `UsageTracker` class wraps a SQLite table in `brain.db` (or `data/usage.db`)
-2. `OnlineEmbeddingProvider` logs embedding calls (token count from API response)
-3. `AIService` logs text generation calls (input/output tokens from AI SDK)
-4. `brain status` includes a usage summary (total tokens today, estimated cost)
-5. `brain diagnostics usage` shows detailed breakdown by model/operation/day
+**Why logs, not SQLite:**
 
-**Files:** new `shell/usage-tracker/`, `shell/ai-service/src/aiService.ts`, `shell/entity-service/src/online-embedding-provider.ts`, CLI commands
+- No new schema, no migrations, no new DB file
+- Reuses the JSON log file infrastructure from Phase 1
+- Usage events are semantically operational history — they belong in logs
+- Grepable with `jq` for ad-hoc queries
+- Aggregation is O(log size) but that's fine for personal brains (~1000 calls/day)
+- If it becomes slow post-release, add a SQLite index. But start simple.
+
+**Interface changes:**
+
+`IEmbeddingService.generateEmbedding()` returns `{ embedding, usage }` instead of just `Float32Array`. Callers destructure. Every mock of `IEmbeddingService` updates.
+
+`AIService` already gets usage from the AI SDK — surface it in the return type.
+
+**Wiring:**
+
+`Shell` creates a `UsageTracker` that wraps the logger. Services log through it:
+
+```typescript
+usageTracker.record({
+  operation: "embedding",
+  provider: "openai",
+  model: "text-embedding-3-small",
+  inputTokens: result.usage.tokens,
+});
+```
+
+`record()` is a thin wrapper that emits a structured log entry with `msg: "ai:usage"`.
+
+**CLI:**
+
+- `brain status` includes today's token total (tails the log, filters for `ai:usage`, sums `inputTokens + outputTokens`)
+- `brain diagnostics usage` shows detailed breakdown by model/operation/day
+
+**Files affected:**
+
+- `shell/entity-service/src/embedding-types.ts` — interface change
+- `shell/ai-service/src/online-embedding-provider.ts` — return usage
+- `shell/entity-service/src/handlers/embeddingJobHandler.ts` — destructure
+- `shell/entity-service/src/entity-search.ts` — destructure
+- `shell/ai-service/src/aiService.ts` — surface usage from AI SDK
+- New: `shell/core/src/usage-tracker.ts` — record/query helpers
+- `shell/core/src/initialization/shellInitializer.ts` — wire tracker
+- `shell/app/src/cli.ts` — `brain status`, `brain diagnostics usage`
+- All test files that mock `IEmbeddingService` (widespread)
+
+**Cost estimation:**
+
+Pricing table maintained in `usage-tracker.ts`. Update when provider prices change. Small table, ~10 entries.
+
+```typescript
+const PRICING = {
+  "text-embedding-3-small": { input: 0.02 / 1_000_000 },
+  "gpt-4.1": { input: 5 / 1_000_000, output: 15 / 1_000_000 },
+  // ...
+};
+```
 
 ## Post-Release
 
@@ -112,22 +149,9 @@ Push health metrics to a central service for hosted brains. Heartbeat, usage agg
 
 ## Verification
 
-Phase 1:
-
-1. `brain start` with `logging.format: json` outputs JSON lines to stderr
-2. `logging.file` writes JSON to disk
-3. No "No handlers found" noise at info level
-4. Log file exists after boot, contains structured entries
-
-Phase 2:
-
-1. `GET /health` returns enriched JSON with entity count, embedding count, job queue depth
-2. Health reflects actual state (empty embeddings.db → embeddings count 0)
-3. AI key validity checked without making a generation call
-
 Phase 3:
 
-1. After boot + sync, `usage.db` contains embedding call records
-2. After a chat, `usage.db` contains text generation records
-3. `brain status` shows today's token usage
+1. After boot + sync, `brain.log` contains `ai:usage` entries for embedding calls
+2. After a chat, log contains `ai:usage` entries for text generation
+3. `brain status` shows today's token total
 4. `brain diagnostics usage` shows breakdown by model
