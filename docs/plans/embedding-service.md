@@ -2,10 +2,10 @@
 
 ## Context
 
-The brain currently bundles ONNX (embeddings) in-process and calls cloud APIs (Anthropic, OpenAI, Google) directly. This creates two problems:
+The brain currently uses OpenAI online embeddings and cloud APIs for text generation (Anthropic, OpenAI, Google). Sharp is still bundled for image optimization. This creates two problems:
 
-1. **Native deps** — ONNX and Sharp can't compile into a standalone binary
-2. **Cloud dependency** — every generation costs money and requires API keys
+1. **Cloud dependency** — every generation costs money and requires API keys
+2. **Sharp native dep** — can't compile into a standalone binary
 
 The sidecar extracts all AI/ML execution into a separate process that can run models **locally** — no cloud, no API keys, no per-token cost. Cloud APIs become one backend option, not the only one.
 
@@ -27,12 +27,12 @@ Brain process (~200MB, no native deps, no API keys)
 
 ### Backends per capability
 
-| Capability         | Local                          | Cloud                     |
-| ------------------ | ------------------------------ | ------------------------- |
-| Embeddings         | ONNX (AllMiniLML6V2) — current | OpenAI embeddings API     |
-| Text generation    | Ollama, llama.cpp              | Anthropic, OpenAI, Google |
-| Image generation   | Stable Diffusion               | DALL-E, Gemini            |
-| Image optimization | Sharp                          | — (always local)          |
+| Capability         | Local               | Cloud                               |
+| ------------------ | ------------------- | ----------------------------------- |
+| Embeddings         | ONNX (bge-small-en) | OpenAI embeddings API — current     |
+| Text generation    | Ollama, llama.cpp   | Anthropic, OpenAI, Google — current |
+| Image generation   | Stable Diffusion    | DALL-E, Gemini — current            |
+| Image optimization | Sharp — current     | — (always local)                    |
 
 Each capability has a backend configured independently. A desktop user might run local embeddings + cloud text gen. A hosted rover uses the remote gateway for everything. A fully offline setup runs all local.
 

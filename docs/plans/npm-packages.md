@@ -88,7 +88,7 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 - `scripts/entrypoint.ts` registers rover + boot function + runs CLI
 - All site packages bundled (any instance can use any site)
 - Migrations + seed content copied to dist
-- optionalDependencies for native platform binaries (sharp, libsql, fastembed, etc.)
+- optionalDependencies for native platform binaries (sharp, libsql, etc.)
 
 ### In-process webserver ✅
 

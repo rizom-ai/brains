@@ -33,6 +33,7 @@ brains/
 | `shell/messaging-service`    | Pub/sub event bus                                         |
 | `shell/job-queue`            | Background job scheduling, progress events                |
 | `shell/templates`            | Template system, permission checks                        |
+| `shell/ai-evaluation`        | Eval runner, test cases, LLM judge                        |
 
 ## Shared
 
@@ -44,42 +45,52 @@ brains/
 | `shared/theme-default`        | Rizom default theme (blue/orange)                      |
 | `shared/theme-brutalist`      | CRT/neon green theme                                   |
 | `shared/theme-*`              | Additional themes (editorial, swiss, geometric, etc.)  |
-| `shared/default-site-content` | Default layouts, templates, routes                     |
 | `shared/product-site-content` | Product page layouts and templates                     |
+| `shared/image`                | Image schema, adapter, utilities                       |
+| `shared/mcp-bridge`           | Base class for upstream MCP integration                |
+| `shared/test-utils`           | Mock factories, test harnesses                         |
 
 ## Entities (EntityPlugin — content type definitions)
 
 Entity plugins define content types with schemas, adapters, generation handlers, and datasources. They expose no tools — all CRUD goes through `system_create/update/delete`.
 
-| Package                 | Purpose                              |
-| ----------------------- | ------------------------------------ |
-| `entities/note`         | Knowledge capture (base entity type) |
-| `entities/blog`         | Essays and articles                  |
-| `entities/decks`        | Presentations                        |
-| `entities/link`         | Curated bookmarks + URL capture      |
-| `entities/portfolio`    | Case studies                         |
-| `entities/products`     | Product listings                     |
-| `entities/topics`       | AI-powered tagging                   |
-| `entities/summary`      | AI summaries                         |
-| `entities/social-media` | Social media posts                   |
-| `entities/wishlist`     | Feature request tracking             |
+| Package                    | Purpose                              |
+| -------------------------- | ------------------------------------ |
+| `entities/note`            | Knowledge capture (base entity type) |
+| `entities/blog`            | Essays and articles                  |
+| `entities/decks`           | Presentations                        |
+| `entities/link`            | Curated bookmarks + URL capture      |
+| `entities/portfolio`       | Case studies                         |
+| `entities/products`        | Product listings                     |
+| `entities/topics`          | AI-powered tagging                   |
+| `entities/summary`         | AI summaries                         |
+| `entities/social-media`    | Social media posts                   |
+| `entities/wishlist`        | Feature request tracking             |
+| `entities/newsletter`      | Email newsletters                    |
+| `entities/image`           | AI-generated images                  |
+| `entities/series`          | Derived from posts                   |
+| `entities/prompt`          | Editable AI prompts                  |
+| `entities/site-info`       | Site metadata                        |
+| `entities/agent-discovery` | Agent + skill entities (A2A)         |
 
 ## Plugins (ServicePlugin — tools + infrastructure)
 
 Plugins that provide MCP tools, orchestration, or infrastructure operations.
 
-| Package                       | Purpose                             |
-| ----------------------------- | ----------------------------------- |
-| `plugins/system`              | Entity CRUD tools + search + status |
-| `plugins/image-plugin`        | Image upload, generate, set-cover   |
-| `plugins/site-builder-plugin` | SSR static site generation, CMS     |
-| `plugins/site-content`        | Site pages and navigation           |
-| `plugins/content-pipeline`    | Publish orchestration, scheduling   |
-| `plugins/newsletter`          | Buttondown subscriber management    |
-| `plugins/analytics`           | Cloudflare analytics + query tool   |
-| `plugins/dashboard`           | Widget system                       |
-| `plugins/directory-sync`      | File + git sync                     |
-| `plugins/obsidian-vault`      | Obsidian integration                |
+| Package                    | Purpose                            |
+| -------------------------- | ---------------------------------- |
+| `plugins/site-builder`     | SSR static site generation, CMS    |
+| `plugins/content-pipeline` | Publish orchestration, scheduling  |
+| `plugins/buttondown`       | Buttondown subscriber + newsletter |
+| `plugins/analytics`        | Cloudflare analytics + query tool  |
+| `plugins/dashboard`        | Widget system                      |
+| `plugins/directory-sync`   | File + git sync                    |
+| `plugins/obsidian-vault`   | Obsidian template generation       |
+| `plugins/notion`           | MCP bridge to Notion               |
+| `plugins/hackmd`           | MCP bridge to HackMD               |
+| `plugins/stock-photo`      | Unsplash stock photo search        |
+
+Note: system tools (create/update/delete/search/status) are registered directly on the shell, not a plugin. See `shell/core/src/system/`.
 
 ## Interfaces
 
@@ -117,8 +128,8 @@ Brain models define what a brain IS — capabilities, interfaces, presets, ident
 | Package         | Purpose                                           |
 | --------------- | ------------------------------------------------- |
 | `brains/rover`  | Professional brain (blog, portfolio, newsletters) |
-| `brains/ranger` | Collective brain (community, products)            |
 | `brains/relay`  | Team brain (topics, summaries, links)             |
+| `brains/ranger` | Collective brain (community, products)            |
 
 ## Apps
 

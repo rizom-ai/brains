@@ -73,14 +73,18 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Embeddings & Similarity
 
-- **Embedding Generation** - Semantic representations
-  - Text-to-vector conversion
-  - 1536-dimensional embeddings
-  - Stored directly in SQLite database
-- **Vector Search** - Similarity matching
-  - Cosine similarity calculations
-  - K-nearest neighbor retrieval
-  - Semantic content discovery
+- **Embedding Generation** — OpenAI `text-embedding-3-small`
+  - 1536-dimensional vectors
+  - Called via Vercel AI SDK (same `AI_API_KEY` as text gen)
+  - ~$0.02/M tokens (negligible for personal brains)
+- **Vector Storage** — separate `embeddings.db`
+  - Decoupled from entity DB for model-swap flexibility
+  - libSQL F32_BLOB columns with vector index
+  - Attached to entity DB for cross-DB search joins
+- **Hybrid Search** — vector + FTS5 keyword
+  - 70% semantic + 30% keyword boost
+  - SQLite FTS5 virtual table for exact-term matching
+  - Threshold tuning via `brain diagnostics search`
 
 ## Messaging & Communication
 
@@ -252,9 +256,8 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Service Packages
 
-- `@brains/ai-service` - AI integration
-- `@brains/entity-service` - Entity management
-- `@brains/embedding-service` - Vector embedding generation
+- `@brains/ai-service` - AI integration (text/object generation, online embeddings)
+- `@brains/entity-service` - Entity management, search, embedding DB
 - `@brains/job-queue` - Async job processing
 - `@brains/messaging-service` - Event system
 
@@ -266,23 +269,25 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Shared Packages
 
-- `@brains/utils` - Common utilities
-- `@brains/db` - Database schemas and vector storage
-- `@brains/render-service` - View management
+- `@brains/utils` - Logger, markdown, permissions, progress, Zod re-export
+- `@brains/ui-library` - Preact UI components
+- `@brains/test-utils` - Mock factories, test harnesses
+- `@brains/mcp-bridge` - Base class for upstream MCP integration
+- `@brains/theme-*` - CSS themes (10 themes)
 
 ## Version Requirements
 
-- **Bun**: >=1.2.13
+- **Bun**: >=1.3.3
 - **TypeScript**: >=5.3.3
-- **Node.js**: >=20.0.0 (for compatibility)
+- **Node.js**: >=20.0.0 (runtime compatibility checks for CLI)
 
 ## Key Features
 
-- **Local-first architecture** - Data stored locally in LibSQL/SQLite
-- **Semantic search** - Vector embeddings for content similarity
-- **Multi-interface support** - CLI, Discord, MCP, A2A, Web
-- **AI-powered** - Integrated Claude AI for content generation
-- **Extensible** - Plugin system for custom functionality
+- **Local-first content** - Markdown files as source of truth, git sync
+- **Hybrid search** - Vector embeddings (OpenAI) + FTS5 keyword matching
+- **Multi-interface support** - CLI, Discord, MCP, A2A, Webserver
+- **AI-powered** - Configurable provider (OpenAI, Anthropic, Google) via `AI_API_KEY`
+- **Extensible** - Plugin system for custom entity types, services, interfaces
 - **Type-safe** - End-to-end TypeScript with Zod validation
 - **Real-time** - Event-driven messaging system
 - **Scalable** - Monorepo structure with independent packages

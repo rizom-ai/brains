@@ -6,8 +6,8 @@ This document outlines the development workflow and best practices for the Brain
 
 ### Prerequisites
 
-- **Bun**: Version 1.1.0 or later
-- **Node.js**: Version 20+ (for compatibility with some tools)
+- **Bun**: Version 1.3.3 or later
+- **Node.js**: Version 20+ (for runtime compatibility in CLI)
 - **Git**: For version control
 - **SQLite**: Included with most systems
 
@@ -27,11 +27,14 @@ cp example.env .env
 # Edit .env and add your API keys
 # Minimum required: AI_API_KEY
 
-# Initialize the database
-bun run --filter @brains/relay-brain init
+# Run a brain instance in dev mode
+cd apps/professional-brain && bun brains
 
-# Run the development server
-bun run --filter @brains/relay-brain dev
+# Or via the brain CLI from any brain instance directory
+cd apps/professional-brain && bun brain start
+
+# Run with interactive chat REPL
+cd apps/professional-brain && bun brain chat
 ```
 
 ### Development Tools
@@ -43,20 +46,20 @@ Recommended VS Code extensions:
 - **Bun for Visual Studio Code**: Bun runtime support
 - **TypeScript and JavaScript**: Enhanced language support
 
-### Local Development
+### Monorepo Commands
 
 ```bash
-# Start the CLI interface
-bun run --filter @brains/chat-repl dev
+# Typecheck everything
+bunx turbo typecheck
 
-# Start the MCP server
-bun run --filter @brains/mcp dev
+# Run all tests
+bunx turbo test
 
-# Start the web server
-bun run --filter @brains/webserver dev
+# Run tests for a specific package
+bun test shell/core/test/
 
-# Start all interfaces (using team-brain app)
-bun run --filter @brains/relay-brain dev
+# Lint everything
+bunx turbo lint
 ```
 
 ## Iteration Cycles

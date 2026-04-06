@@ -8,13 +8,13 @@ Adding more models (e.g. `gemini-2.0-flash`, `gpt-4o`) makes it linearly slower.
 
 ## Approach: Subprocesses
 
-Each model eval runs in a separate `bun` subprocess. Full OS-level isolation — own singletons, own ports, own ONNX session. No serialization boundary, no shared state, no new abstractions.
+Each model eval runs in a separate `bun` subprocess. Full OS-level isolation — own singletons, own ports, own HTTP clients. No serialization boundary, no shared state, no new abstractions.
 
 Workers were considered and rejected:
 
 - `AppConfig` contains class instances that can't cross `postMessage`
-- fastembed loads native ONNX binaries — unverified across Bun workers
 - Shell, EntityRegistry, etc. are process-global singletons
+- Each model needs its own port allocation for webserver/MCP
 
 ```
 Main process                         Subprocesses
@@ -117,8 +117,8 @@ Subprocess stderr is inherited — logs go straight to the terminal. With 2–3 
 
 ## Risks
 
-- **Memory** — Each subprocess boots a full Shell with SQLite DBs, embeddings, plugins. With 4+ models, memory spikes. Document limits.
-- **fastembed cold start** — Each subprocess loads the ONNX model independently. First load is ~3s. Parallel starts may contend on disk I/O.
+- **Memory** — Each subprocess boots a full Shell with SQLite DBs, plugins. With 4+ models, memory spikes. Document limits.
+- **OpenAI rate limits** — Each subprocess calls the OpenAI embeddings API independently. Parallel starts multiply embedding requests; may hit per-minute rate limits on large test suites.
 
 Port conflicts are not a risk — A2A and other interfaces are in `evalDisable` for brain models, so they don't bind ports during eval runs.
 

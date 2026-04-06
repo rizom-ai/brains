@@ -155,12 +155,13 @@ All 4 phases complete, removes the last native dep blocker for v0.1.0. Plan dele
 - **Phase 4** — Threshold tuning via `brain diagnostics search`.
 - **ONNX/fastembed removed** — no native embedding deps in the bundle. Online embeddings only.
 
-### Monitoring — Phases 1-2 (2026-04)
+### Monitoring (2026-04)
 
-Production observability for deployed brains. ([plan](./plans/monitoring.md))
+All 3 phases complete. Production observability for deployed brains. Plan deleted on completion.
 
-- **Phase 1 — Structured logging.** `Logger` gains JSON mode + optional log file (always JSON, rotated by size). All log output on stderr by default. Noisy "no handlers found" and job-progress messages dropped to debug. Eval judges use `Logger` instead of `console.error`. Configurable via `logging:` block in `brain.yaml`.
-- **Phase 2 — Enriched health.** `/health` returns version, uptime, DB status (entities/embeddings/jobs), sync status, AI provider/model, key validity. Simplified `AppInfo` type, top-level instead of nested in identity namespace.
+- **Phase 1 — Structured logging.** `Logger` gains JSON mode + optional log file (always JSON). All log output on stderr by default. Noisy "no handlers found" and job-progress messages dropped to debug. Eval judges use `Logger` instead of `console.error`. Configurable via `logging:` block in `brain.yaml`.
+- **Phase 2 — Enriched health.** `/health` returns version, uptime, entity count, embedding count, AI provider/model, daemon statuses. Simplified `AppInfo` type — removed plugin/tool/interface lists (available via MCP resources).
+- **Phase 3 — Usage tracking via logs.** `IEmbeddingService.generateEmbedding()` returns `{ embedding, usage }`. `AIService` and `EmbeddingJobHandler` log `ai:usage` structured events. `brain diagnostics usage` parses the log file, aggregates by provider/model.
 
 ---
 
@@ -177,7 +178,7 @@ The following items must be complete before the first public release:
 | License                    | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                          |
 | Default AI model           | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                                       |
 | Kamal Deploy (Phases 1-2)  | In progress   | Dockerfile.model + Caddy internal routing + health endpoint done. Needs: publish-images CI, instance CI pipeline.                  |
-| Monitoring — Phases 1-2    | Done          | Structured logging (JSON + log file) + enriched `/health` (DB, sync, AI status). ([plan](./plans/monitoring.md))                   |
+| Monitoring                 | Done          | Structured logging + enriched `/health` + usage tracking via logs.                                                                 |
 | Eval pass rate ≥ 95%       | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                                 |
 | Naming cleanup             | Done          |                                                                                                                                    |
 | Documentation — Phase 1    | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                             |
@@ -194,7 +195,6 @@ Items at the same level can be done in parallel.
 - **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done. Blocked only on creating the `@rizom` npm org and running `npm publish`. ([plan](./plans/npm-packages.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. `Dockerfile.model` + internal Caddy routing + `/health` already shipped. Next: publish-images workflow → first standalone instance via `brain init --deploy`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
 - **Rizom Sites** — split into rizom.ai (product, ranger), rizom.foundation (ideology, relay), rizom.work (commercial, ranger). rizom.ai homepage prototype landed (`docs/design/rizom-ai.html`), next step is theme-rizom-ai + sites/rizom-ai + apps/rizom-ai. rizom.ai on current infra, others via Kamal. ([plan](./plans/rizom-sites.md))
-- **Monitoring — Phase 3** — Usage tracking in a local SQLite table. AI text + embedding calls logged with token counts and cost estimates. `brain status` and `brain diagnostics usage` breakdown. Post-v0.1 but plan is live. ([plan](./plans/monitoring.md))
 
 ### External Plugin API
 

@@ -176,7 +176,7 @@ All content follows a unified entity pattern:
 
 - **Development**: `bun run` with hot reloading
 - **Production**: Docker containers on Hetzner Cloud (migrating to Kamal)
-- **Webserver**: Child process for static files, main thread for API routes
+- **Webserver**: In-process static file server (Hono via Bun.serve) + API routes on separate port
 - **CI/CD**: GitHub Actions
 
 ## Documentation

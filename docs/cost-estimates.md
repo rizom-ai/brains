@@ -2,7 +2,7 @@
 
 Estimated monthly API costs per brain using **gpt-4.1-mini** ($0.40/M input, $1.60/M output).
 
-Embeddings run locally (MiniLM-L6-v2 via ONNX) — zero API cost.
+Embeddings via OpenAI `text-embedding-3-small` (1536d): $0.02/M tokens. A brain with 500 entities ≈ $0.001 to embed everything. Re-embedding on model change is negligible.
 
 ## Usage Tiers
 
@@ -60,4 +60,4 @@ Measured from eval runs (58 test cases, avg tokens per test):
 
 ## Bottom Line
 
-**$1–5/month for most users.** The local embedding model eliminates the biggest recurring cost (semantic search). API costs are dominated by conversation and content generation.
+**$1–5/month for most users.** API costs are dominated by conversation and content generation. Embeddings are negligible (~$0.01/month even for heavy users). Image generation is the biggest variable — 5 images/day at gpt-image-1.5 ≈ $3–15/month.

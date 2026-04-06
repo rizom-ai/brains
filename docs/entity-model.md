@@ -469,27 +469,42 @@ type TopicEntity = z.infer<typeof topicEntitySchema>;
 
 ## Database Storage
 
-Entities are stored with core metadata in columns and content as markdown:
+Entities live in `brain.db`. Embeddings live in a separate `embeddings.db` that gets attached to the entity DB for cross-DB search joins. FTS5 full-text search runs on entity content for keyword matching.
 
 ```sql
--- Single entities table with hybrid storage
+-- brain.db: entities table
 CREATE TABLE entities (
-  id TEXT PRIMARY KEY,
-  entity_type TEXT NOT NULL,
-  title TEXT NOT NULL,           -- Core field stored in column
-  content TEXT NOT NULL,         -- Markdown content (without title)
-  tags TEXT NOT NULL DEFAULT '[]', -- JSON array of strings
-  content_weight INTEGER DEFAULT 100,
-  embedding BLOB NOT NULL,       -- Vector embedding
-  created INTEGER NOT NULL,      -- Unix timestamp
-  updated INTEGER NOT NULL,      -- Unix timestamp
-
-  INDEX idx_entity_type (entity_type),
-  INDEX idx_created (created),
-  INDEX idx_updated (updated)
+  id TEXT NOT NULL,
+  entityType TEXT NOT NULL,
+  content TEXT NOT NULL,          -- Full markdown with frontmatter
+  contentHash TEXT NOT NULL,      -- For change detection
+  metadata TEXT NOT NULL DEFAULT '{}', -- JSON, subset of frontmatter
+  created INTEGER NOT NULL,
+  updated INTEGER NOT NULL,
+  PRIMARY KEY(id, entityType)
 );
 
--- Entity relationships table
+-- brain.db: FTS5 virtual table for keyword search
+CREATE VIRTUAL TABLE entity_fts USING fts5(
+  entity_id UNINDEXED,
+  entity_type UNINDEXED,
+  content
+);
+
+-- embeddings.db: separate database for vector storage
+CREATE TABLE embeddings (
+  entity_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  embedding F32_BLOB(1536) NOT NULL,  -- OpenAI text-embedding-3-small
+  content_hash TEXT NOT NULL,
+  PRIMARY KEY(entity_id, entity_type)
+);
+```
+
+Search queries ATTACH the embedding DB and join across for hybrid vector + keyword scoring.
+
+```sql
+-- Entity relationships table (planned)
 CREATE TABLE entity_relations (
   id TEXT PRIMARY KEY,
   source_id TEXT NOT NULL,
