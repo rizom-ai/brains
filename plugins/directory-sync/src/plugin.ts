@@ -31,6 +31,14 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     return this.directorySync;
   }
 
+  /**
+   * Whether git integration is active. False when no `git` block was provided
+   * in config, or when the block is present but has no `repo`/`gitUrl`.
+   */
+  public hasGitSync(): boolean {
+    return this.gitSync !== undefined;
+  }
+
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
@@ -80,8 +88,24 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
       setupFileWatcher(context, ds, this.config.syncPath ?? context.dataDir);
     }
 
-    // Initialize git when configured
-    if (this.config.git) {
+    // Initialize git when configured AND a repo or gitUrl is set.
+    // A bare `git: {}` block (or a block with only authToken/branch but no
+    // repo/gitUrl) means "git keys are present in config but the user hasn't
+    // wired up a remote yet" — silently skip git setup instead of crashing
+    // simple-git with an undefined repo. The user gets a clean boot until they
+    // fill in the repo or remove the git block.
+    const gitConfigured =
+      this.config.git !== undefined &&
+      (this.config.git.repo !== undefined ||
+        this.config.git.gitUrl !== undefined);
+
+    if (this.config.git && !gitConfigured) {
+      this.logger.debug(
+        "Git block present but no repo/gitUrl configured \u2014 git sync disabled",
+      );
+    }
+
+    if (gitConfigured && this.config.git) {
       const gitSyncPath = this.config.syncPath ?? context.dataDir;
       this.gitSync = new GitSync({
         logger: this.logger.child("GitSync"),

@@ -147,4 +147,57 @@ describe("DirectorySyncPlugin", () => {
       }
     });
   });
+
+  describe("git config without repo or gitUrl", () => {
+    // Defaults supplied because the resolved DirectorySyncConfig type has them
+    // as required (they're zod .default() fields, so resolution always fills them).
+    const gitDefaults = {
+      branch: "main",
+      authorName: "Test",
+      authorEmail: "test@example.com",
+    } as const;
+
+    it("should not enable git when git block has no repo and no gitUrl", async () => {
+      const path = join(tmpdir(), `test-no-git-${Date.now()}`);
+      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+        dataDir: path,
+      });
+      const localPlugin = new DirectorySyncPlugin({
+        syncPath: path,
+        autoSync: false,
+        initialSync: false,
+        git: { ...gitDefaults },
+      });
+
+      // Should not throw — git is silently disabled when no repo/gitUrl provided
+      await localHarness.installPlugin(localPlugin);
+      expect(localPlugin.hasGitSync()).toBe(false);
+
+      localHarness.reset();
+      if (existsSync(path)) {
+        rmSync(path, { recursive: true, force: true });
+      }
+    });
+
+    it("should not enable git when git block has only authToken (no repo/gitUrl)", async () => {
+      const path = join(tmpdir(), `test-no-git-token-${Date.now()}`);
+      const localHarness = createPluginHarness<DirectorySyncPlugin>({
+        dataDir: path,
+      });
+      const localPlugin = new DirectorySyncPlugin({
+        syncPath: path,
+        autoSync: false,
+        initialSync: false,
+        git: { ...gitDefaults, authToken: "some-token" },
+      });
+
+      await localHarness.installPlugin(localPlugin);
+      expect(localPlugin.hasGitSync()).toBe(false);
+
+      localHarness.reset();
+      if (existsSync(path)) {
+        rmSync(path, { recursive: true, force: true });
+      }
+    });
+  });
 });

@@ -43,6 +43,36 @@ describe("brain init", () => {
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
       expect(yaml).toContain("user/mybrain-data");
     });
+
+    it("should default to preset: core", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain("preset: core");
+    });
+
+    it("should comment out git block when no contentRepo is provided", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      // The git block should be present as a comment so users can
+      // uncomment to enable, but should not be active config.
+      expect(yaml).toContain("# Uncomment to enable git");
+      expect(yaml).toMatch(/^\s*#\s*directory-sync:/m);
+      // No active (uncommented) git block
+      expect(yaml).not.toMatch(/^\s*directory-sync:\s*$/m);
+    });
+
+    it("should activate git block when contentRepo is provided", () => {
+      scaffold(testDir, {
+        model: "rover",
+        contentRepo: "github:user/brain-data",
+      });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toMatch(/^\s*directory-sync:\s*$/m);
+      expect(yaml).toContain("repo: user/brain-data");
+    });
   });
 
   describe("minimal scaffold (default)", () => {

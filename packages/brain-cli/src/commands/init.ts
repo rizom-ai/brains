@@ -45,23 +45,35 @@ function writeBrainYaml(
   domain: string,
   contentRepo?: string,
 ): void {
-  const repo = contentRepo
-    ? contentRepo.replace("github:", "")
-    : "# your-org/brain-data";
+  // When the user passed --content-repo, wire it up explicitly. Otherwise
+  // leave the entire git block commented out so the brain boots cleanly
+  // without git, and the user has a copy-paste-ready snippet to enable it.
+  const gitBlock = contentRepo
+    ? `  directory-sync:
+    git:
+      repo: ${contentRepo.replace("github:", "")}
+      authToken: \${GIT_SYNC_TOKEN}
+`
+    : `  # Uncomment to enable git-backed sync of brain content:
+  # directory-sync:
+  #   git:
+  #     repo: your-org/brain-data
+  #     authToken: \${GIT_SYNC_TOKEN}
+`;
 
   const content = `brain: ${model}
 domain: ${domain}
+
+# Plugin preset — "core" is the minimal on-ramp. Use "default" or "full"
+# for richer presets, or list capability ids in add: / remove: to fine-tune.
+preset: core
 
 # Permissions
 anchors: []
 
 # Plugin overrides
 plugins:
-  directory-sync:
-    git:
-      repo: ${repo}
-      authToken: \${GIT_SYNC_TOKEN}
-  mcp:
+${gitBlock}  mcp:
     authToken: \${MCP_AUTH_TOKEN}
 `;
 
@@ -204,20 +216,9 @@ node_modules
   writeFileSync(join(dir, ".gitignore"), content);
 }
 
-/**
- * Write a minimal tsconfig.json for bun's JSX runtime resolution.
- *
- * Bun looks for a tsconfig.json by walking up from the current working
- * directory to determine how to compile JSX. The brain runtime renders
- * Preact components for site builds, so bun needs to know:
- * - jsx: "react-jsx"      — use the new automatic JSX runtime
- * - jsxImportSource: "preact" — import jsx-runtime from preact, not react
- *
- * Without these hints, bun defaults to React's JSX runtime and Preact
- * components silently render to nothing.
- *
- * This is the only build-tool config in an otherwise pure-config app dir.
- */
+// Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime;
+// without these hints it defaults to React and Preact components render to
+// nothing.
 function writeTsConfig(dir: string): void {
   const content = `{
   "compilerOptions": {
