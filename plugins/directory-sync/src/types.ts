@@ -97,7 +97,7 @@ export const directorySyncConfigSchema = z.object({
         .describe("Git commit author name"),
       authorEmail: z
         .string()
-        .default("brain@rizom.ai")
+        .default("brain@localhost")
         .describe("Git commit author email"),
     })
     .optional(),
