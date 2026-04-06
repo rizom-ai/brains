@@ -4,7 +4,7 @@
 
 **Strategy:** Option B from the cleanup discussion — squash to a clean baseline via orphan commit, keep the existing repo as a private archive, push the clean snapshot to a fresh public repo location.
 
-**Status:** Draft. Decisions in §2 need answers before execution. Preflight scan results and in-place pre-work are in §10.
+**Status:** Decisions locked. Ready to execute starting at Phase 1. Preflight scan results and completed pre-work are in §10.
 
 ---
 
@@ -12,10 +12,10 @@
 
 ### Goals
 
-- Publish a clean v1.0 of the brains framework as open source
+- Publish a clean `v0.1.0` of the brains framework as open source (per D8)
 - Zero leakage of private content from the 2,322-commit history
 - Preserve full development history privately for `git blame` / `git bisect` / archival
-- Repo is publishable to GitHub with reasonable confidence in 1–2 working days
+- Zero downtime on the `rizom-ai/brains` URL during the transition (per D1: stage at `brains-temp`, then double-rename)
 - Set up the new public repo with sensible day-one security defaults
 
 ### Non-goals
@@ -27,22 +27,23 @@
 
 ---
 
-## 2. Open decisions
+## 2. Locked decisions
 
-These need answers before phase 3 (clean tree preparation). I've put my recommendation in **bold** but the call is yours.
+All decisions below are final. No open questions remain before execution.
 
-| #   | Decision                                                                | Options                                                                                                                                           | Recommendation                                                                                                                                                                                       |
-| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Public repo URL                                                         | (a) replace `rizom-ai/brains` in place, (b) new `rizom-ai/brains-public`, (c) new name entirely (e.g. `rizom-ai/framework`)                       | **(a)** rename current to `rizom-ai/brains-private`, then create fresh `rizom-ai/brains` with the same name                                                                                          |
-| D2  | What ships in v1.0 (workspace surface)                                  | See §3 below for full inventory                                                                                                                   | **`shell/*`, `shared/*` (minus branded themes), `plugins/*` (most), `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/default`, `layouts/{personal,professional}`** + selected docs |
-| D3  | What stays private                                                      | `apps/*`, `sites/{mylittlephoney,ranger,yeehaa}`, `shared/theme-{mylittlephoney,yeehaa,rizom}`, `brains/{relay,ranger}`, sensitive `docs/plans/*` | **Keep all private apps/branded themes private**                                                                                                                                                     |
-| D4  | `brains/relay` and `brains/ranger` — public or private?                 | They're "Coming Soon" per the website, code is presumably stub-level                                                                              | **Keep private until they're real**; keep `brains/rover` public as the reference model                                                                                                               |
-| D5  | `docs/plans/*` — which are public roadmap, which are internal strategy? | Need to grep through them                                                                                                                         | **Default to private; promote individual files to `docs/roadmap/` if explicitly safe**                                                                                                               |
-| D6  | Carry over CHANGELOG narrative?                                         | (a) start fresh, (b) hand-write a "v1.0 — first public release" entry, (c) keep `.changeset/` as-is                                               | **(b)** one paragraph summarizing pre-launch development, then `.changeset/` flow forward                                                                                                            |
-| D7  | Keep dev archive forever, or time-bomb?                                 | Keep indefinitely vs. archive then delete after N months                                                                                          | **Keep indefinitely** — storage is free and bisect-on-old-bug is invaluable                                                                                                                          |
-| D8  | Tag scheme                                                              | Start at `v1.0.0` or `v0.1.0`?                                                                                                                    | **`v1.0.0`** if you stand behind it; `v0.1.0` if you want explicit pre-1.0 stability caveat                                                                                                          |
-| D9  | License confirmation                                                    | Currently `LICENSE` (Apache-2.0 per README) — keep?                                                                                               | **Keep Apache-2.0** unless there's a reason to switch                                                                                                                                                |
-| D10 | Author identity in fresh history                                        | `yeehaa@offcourse.io` (current) or different commit identity                                                                                      | **Keep current**                                                                                                                                                                                     |
+| #   | Decision                                       | Answer                                                                                                                                                                                                                                                            |
+| --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1  | Public repo URL                                | **Stage at `rizom-ai/brains-temp`** (new public repo). When fully verified, do a double-rename: `rizom-ai/brains` → `rizom-ai/brains-private`, then `rizom-ai/brains-temp` → `rizom-ai/brains`. Zero downtime; the public URL never has a moment of being broken. |
+| D2  | What ships in v0.1.0 (workspace surface)       | Per §3 inventory: `shell/*`, `shared/*` (minus branded themes), `plugins/*` (most), `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/default`, `layouts/{personal,professional}`, all of `docs/plans/*`, selected top-level docs.               |
+| D3  | What stays private                             | `apps/*`, `sites/{mylittlephoney,ranger,yeehaa}`, `shared/theme-{mylittlephoney,yeehaa,rizom}`, `brains/{relay,ranger}`, agent configs (`.claude`, `.pi`, `.agents`), `.envrc`, `skills-lock.json`, any `docs/*` file that fails the Phase 2 PII scan.            |
+| D4  | `brains/relay` and `brains/ranger`             | **Private.** Keep until they're real implementations. Only `brains/rover` ships as the reference brain model.                                                                                                                                                     |
+| D5  | `docs/plans/*`                                 | **All public.** Phase 2 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                     |
+| D6  | CHANGELOG narrative                            | Hand-write a single `v0.1.0` entry summarizing pre-launch development at high level. `.changeset/` flow takes over going forward.                                                                                                                                 |
+| D7  | Dev archive lifetime                           | **Keep indefinitely.** Storage is free and bisect-on-old-bug is invaluable.                                                                                                                                                                                       |
+| D8  | First public tag                               | **`v0.1.0`** — explicitly pre-stable, signals breaking changes expected before 1.0.                                                                                                                                                                               |
+| D9  | License                                        | **Apache-2.0** (unchanged from current `LICENSE`).                                                                                                                                                                                                                |
+| D10 | Author identity in fresh history               | **`yeehaa@offcourse.io`** (unchanged).                                                                                                                                                                                                                            |
+| D11 | `yeehaa.io` as example domain in code and docs | **Leave as-is.** It's the author's own public domain, used as canonical example throughout ~40 files. Not a leak; no scrub.                                                                                                                                       |
 
 ---
 
@@ -141,12 +142,7 @@ We're discarding history, so we only need to audit the _current tree_ — but we
    gitleaks detect --source . --no-git
    ```
    Triage every finding. False positives → allowlist; real ones → fix.
-2. **`yeehaa.io` sweep** — the codebase uses `yeehaa.io` as the canonical example domain in ~40 files (JSDoc comments, test fixtures, production code examples). Decide:
-   - **(a)** Leave as-is — it's the author's own public domain, not a leak, comparable to how many OSS projects reference the maintainer's domain in docs
-   - **(b)** Global replace with `example.com` in docs/comments only, leave test fixtures alone (they exercise real URL parsing and changing them adds noise)
-   - **(c)** Full scrub everywhere including test fixtures
-
-   **Recommendation:** (b) — scrub in docs/comments for cleanliness, leave test fixtures since they're hermetic
+2. **`yeehaa.io` sweep** — per D11, leave as-is. No action needed. (The codebase uses `yeehaa.io` as the canonical example domain in ~40 files; it's the author's own public domain and not a leak.)
 
 3. **Personal info scan** — grep for remaining PII patterns:
    ```bash
@@ -159,12 +155,12 @@ We're discarding history, so we only need to audit the _current tree_ — but we
    ```
 5. **CLAUDE.md / agent files** — review for anything personal/private; rename to `AGENTS.md` if keeping (more vendor-neutral).
 6. **`.github/workflows/*.yml`** — review every secret reference. Must be `${{ secrets.X }}`, never inline.
-7. **`docs/plans/*`** — open each, decide public/private, move private ones to a `private/` overlay (see Phase 3).
+7. **`docs/plans/*`** — per D5, all public by default. Scan each file for PII/secrets; fix in place or exclude any individual file that fails.
 8. **`brains/rover/eval-content/`** — this gets shipped as the seed content in the default brain. Read every markdown file; confirm nothing personal.
 9. **Per-plugin README and tests** — quick read for hardcoded paths, test data with personal content, leftover TODOs that name people.
 10. **`packages/brain-cli/package.json` author field** — `"Yeehaa <yeehaa@rizom.ai>"` is legitimate npm author metadata; keep.
 
-**Exit criteria:** Clean gitleaks run on HEAD, explicit decision on every `yeehaa.io` sweep result, no surprise PII matches, decisions made on every borderline file. Estimated time: **2–3 hours**.
+**Exit criteria:** Clean gitleaks run on HEAD, no surprise PII matches, decisions made on every borderline file. Estimated time: **2–3 hours**.
 
 ### Phase 3 — Build the clean tree (in a sibling working dir)
 
@@ -177,22 +173,41 @@ Don't mutate the live repo. Work in a fresh clone.
    cd brains-public-staging
    ```
 2. **Remove private paths** based on §3 decisions:
+
    ```bash
-   rm -rf apps/collective-brain apps/mylittlephoney apps/professional-brain apps/team-brain
-   # rizom-foundation: decide per D3
-   rm -rf sites/mylittlephoney sites/ranger sites/yeehaa sites/default
-   rm -rf layouts/personal layouts/professional layouts/mylittlephoney layouts/yeehaa layouts/ranger
-   rm -rf brains/relay brains/ranger   # if D4 = private
-   rm -rf docs/plans                   # then selectively re-add public roadmap items
+   # Apps — all private per D3
+   rm -rf apps/collective-brain apps/mylittlephoney apps/professional-brain apps/team-brain apps/rizom-foundation
+
+   # Branded sites — keep sites/default
+   rm -rf sites/mylittlephoney sites/ranger sites/yeehaa
+
+   # Branded themes — keep generic ones
+   rm -rf shared/theme-mylittlephoney shared/theme-yeehaa shared/theme-rizom
+
+   # Incomplete brain models — per D4
+   rm -rf brains/relay brains/ranger
+
+   # Agent/IDE configs
    rm -rf .agents .claude .pi
    rm -f .envrc skills-lock.json
-   # ... etc per inventory
+
+   # Note: docs/plans/* is public per D5; no removal. Phase 2 handles per-file PII scan.
    ```
-3. **Narrow workspace globs** in `package.json`:
+
+3. **Narrow workspace globs** in `package.json` to explicit paths (since we're excluding specific items under `sites/`, `layouts/`, `brains/`, and we're dropping `apps/` entirely):
    ```jsonc
    "workspaces": [
-     "shell/*", "shared/*", "plugins/*", "entities/*",
-     "interfaces/*", "packages/*", "brains/rover", "layouts/default"
+     "shell/*",
+     "shared/eslint-config", "shared/typescript-config", "shared/test-utils",
+     "shared/utils", "shared/image", "shared/mcp-bridge", "shared/ui-library",
+     "shared/product-site-content",
+     "shared/theme-base", "shared/theme-default", "shared/theme-editorial",
+     "shared/theme-geometric", "shared/theme-swiss", "shared/theme-neo-retro",
+     "shared/theme-brutalist",
+     "plugins/*", "entities/*", "interfaces/*", "packages/*",
+     "brains/rover",
+     "sites/default",
+     "layouts/personal", "layouts/professional"
    ]
    ```
 4. **Verify the tree still builds and tests still pass:**
@@ -204,8 +219,8 @@ Don't mutate the live repo. Work in a fresh clone.
    ```
    This is the critical gate. If anything breaks because we removed a private dependency, fix it now (likely culprits: cross-package imports from private apps into shared code, which would be a real bug).
 5. **Curate `docs/`**:
-   - Hand-write a v1.0 README focused on the open framework, not the private brand
-   - Hand-write a `CHANGELOG.md` with one v1.0.0 entry summarizing what's in this release
+   - Hand-write a v0.1.0 README focused on the open framework, not the private brand
+   - Hand-write a `CHANGELOG.md` with one `v0.1.0` entry summarizing what's in this release (per D6)
    - Move retained roadmap items into `docs/roadmap.md`
 6. **Sanity-check the final file list:**
    ```bash
@@ -216,9 +231,11 @@ Don't mutate the live repo. Work in a fresh clone.
 
 **Exit criteria:** Clean tree in `brains-public-staging/`, builds green, tests green, file list reviewed. Estimated time: **2–3 hours** (preflight confirmed no structural cross-package leakage, so removal is mechanical — see §10).
 
-### Phase 4 — Orphan commit and dry-run push
+### Phase 4 — Orphan commit and push to `brains-temp`
 
-1. From inside `brains-public-staging/`:
+Per D1, we stage the public release at a fresh `rizom-ai/brains-temp` repo and only do the final rename once everything is verified. This gives zero downtime on the current `rizom-ai/brains` URL during the transition.
+
+1. From inside `brains-public-staging/`, create the orphan commit:
    ```bash
    rm -rf .git
    git init -b main
@@ -226,35 +243,56 @@ Don't mutate the live repo. Work in a fresh clone.
    git status   # eyeball one more time
    git commit -m "Initial public release of brains framework"
    ```
-2. **Dry-run push to a throwaway repo first.** Create `rizom-ai/brains-test` as a private temporary repo, push there, browse on GitHub, verify nothing surprising appears in the file tree, the README renders, the LICENSE is present, the workflows look right.
+2. **Create `rizom-ai/brains-temp` on GitHub as a public repo** (no README, no license, no .gitignore — we have all of those already).
+3. Push the staging tree to `brains-temp`:
    ```bash
-   git remote add test git@github.com:rizom-ai/brains-test.git
-   git push test main
+   git remote add origin git@github.com:rizom-ai/brains-temp.git
+   git push -u origin main
+   git tag v0.1.0
+   git push origin v0.1.0
    ```
-3. Review on GitHub web UI. Specifically check:
-   - File tree (no surprises)
+4. Review on GitHub web UI. Specifically check:
+   - File tree (no surprises — no `apps/`, no branded themes, no `.pi/`, no `.env*`)
    - README rendering
    - LICENSE recognized by GitHub's license detector
-   - No hidden files exposed (`.env*`, `.tfvars`, `.pi`, etc.)
+   - No hidden files exposed
    - `.gitignore` is present and correct
-4. Run `gitleaks` on the bare clone of the test repo as a final check.
-
-**Exit criteria:** Clean test repo on GitHub, looks right in the web UI, no scanner findings. Estimated time: **1 hour**.
-
-### Phase 5 — Repo rename and real publish
-
-1. On GitHub, rename `rizom-ai/brains` → `rizom-ai/brains-private`. Set it to private if not already. (GitHub auto-redirects the old URL for a while, so update the local remote.)
-2. On GitHub, create a fresh empty `rizom-ai/brains` (public, no README, no license, no .gitignore — we have all of those).
-3. Push the staging tree:
+   - CI workflows look right
+5. Run `gitleaks` against a fresh clone of `brains-temp` as a final check:
    ```bash
-   cd brains-public-staging
-   git remote remove test
-   git remote add origin git@github.com:rizom-ai/brains.git
-   git push -u origin main
-   git tag v1.0.0
-   git push origin v1.0.0
+   cd /tmp && git clone git@github.com:rizom-ai/brains-temp.git && cd brains-temp
+   gitleaks detect --source . --no-git
    ```
-4. **Configure repo settings on GitHub** (do this before announcing):
+6. **Test that the public repo builds from scratch** — the real proof it's self-contained:
+   ```bash
+   bun install
+   bun run lint
+   bun run typecheck
+   bun test
+   bun run build
+   ```
+
+**Exit criteria:** `brains-temp` is live on GitHub, looks right in the web UI, gitleaks clean, fresh clone builds and tests pass. Estimated time: **1–2 hours**.
+
+### Phase 5 — Double-rename and go live
+
+Once `brains-temp` is verified in Phase 4, we swap the names. Per D1, the old repo keeps its full history as a private archive and the new clean tree takes the canonical `rizom-ai/brains` URL.
+
+1. **Rename the current repo to the archive name.** On GitHub: Settings → General → Repository name → `rizom-ai/brains` → `rizom-ai/brains-private`. Confirm it's set to Private visibility. GitHub auto-redirects the old URL for a grace period, so external links won't break immediately.
+2. **Rename the staging repo to the canonical name.** Settings → General → Repository name → `rizom-ai/brains-temp` → `rizom-ai/brains`. Confirm Public visibility.
+3. **Update local working copy** to point at the new private archive:
+   ```bash
+   cd ~/Documents/brains
+   git remote set-url origin git@github.com:rizom-ai/brains-private.git
+   git fetch origin
+   ```
+4. **Update the public staging clone** (if you want to keep it) to point at the new public URL:
+   ```bash
+   cd ~/Documents/brains-public-staging
+   git remote set-url origin git@github.com:rizom-ai/brains.git
+   git fetch origin
+   ```
+5. **Configure repo settings on the new public `rizom-ai/brains`** (do this before announcing):
    - Branch protection on `main`: require PR reviews, require status checks, no force-push, no deletion
    - Settings → Code security: enable secret scanning, push protection, Dependabot alerts, Dependabot security updates
    - Settings → Actions → General: restrict to selected actions if relevant
@@ -262,9 +300,9 @@ Don't mutate the live repo. Work in a fresh clone.
    - Add issue templates and PR template
    - Enable Discussions if you want a community channel
    - Add repo description, topics, link to website
-5. Delete `rizom-ai/brains-test`.
+6. **Verify the rename took effect** by visiting `https://github.com/rizom-ai/brains` in an incognito window.
 
-**Exit criteria:** Public repo live, security settings on, v1.0.0 tagged. Estimated time: **1–2 hours**.
+**Exit criteria:** Public `rizom-ai/brains` live with `v0.1.0` tag, security settings on, private archive accessible at `rizom-ai/brains-private`, local dev pointed at archive. Estimated time: **1 hour**.
 
 ### Phase 6 — Post-launch hardening
 
@@ -288,17 +326,19 @@ Don't mutate the live repo. Work in a fresh clone.
 
 ## 5. Success criteria
 
-- [ ] Public repo `rizom-ai/brains` exists and is publicly accessible
-- [ ] First commit message is `Initial public release of brains framework`
-- [ ] `gitleaks detect --source .` on the public repo returns zero findings
-- [ ] `bun install && bun test && bun run build` all green on a fresh clone of the public repo
-- [ ] No file matching `apps/{collective-brain,mylittlephoney,professional-brain,team-brain}` exists in the public repo
-- [ ] No `.env*`, `.envrc`, `.tfvars`, or `.pi/` files in the public repo
+- [ ] Public repo `rizom-ai/brains` exists and is publicly accessible (post-rename)
+- [ ] Private archive `rizom-ai/brains-private` exists and contains all 2,322 commits
+- [ ] First commit message in the public repo is `Initial public release of brains framework`
+- [ ] `gitleaks detect --source .` on a fresh clone of the public repo returns zero findings
+- [ ] `bun install && bun run lint && bun run typecheck && bun test && bun run build` all green on a fresh clone of the public repo
+- [ ] No file matching `apps/{collective-brain,mylittlephoney,professional-brain,team-brain,rizom-foundation}` exists in the public repo
+- [ ] No `sites/{mylittlephoney,ranger,yeehaa}` or `shared/theme-{mylittlephoney,yeehaa,rizom}` in the public repo
+- [ ] No `brains/{relay,ranger}` in the public repo
+- [ ] No `.env*`, `.envrc`, `.tfvars`, `.pi/`, `.claude/`, or `.agents/` files in the public repo
 - [ ] LICENSE file is recognized by GitHub as Apache-2.0
 - [ ] Branch protection on `main` is enabled
 - [ ] Secret scanning + push protection enabled
-- [ ] Tag `v1.0.0` exists and points at the initial commit
-- [ ] Private archive `rizom-ai/brains-private` still has all 2,322 commits accessible
+- [ ] Tag `v0.1.0` exists and points at the initial commit
 
 ---
 
@@ -315,7 +355,7 @@ Keep `brains-private` as the dev repo. Periodically (per release) sync the publi
 **Option γ — Two-repo with subtree**
 Use `git subtree split` to extract the public subset as a separate history that gets pushed to the public repo. More complex setup, but preserves clean per-file history going forward.
 
-**Recommendation:** start with **α** (develop in public) once v1.0 is out. The private archive stays for historical bisect/blame, but new work happens in public. Drop into β only if you find yourself wanting to do messy WIP that you don't want exposed.
+**Recommendation:** start with **α** (develop in public) once `v0.1.0` is out. The private archive stays for historical bisect/blame, but new work happens in public. Drop into β only if you find yourself wanting to do messy WIP that you don't want exposed.
 
 ---
 
@@ -323,14 +363,15 @@ Use `git subtree split` to extract the public subset as a separate history that 
 
 If something goes wrong at any phase:
 
-| Phase | Failure mode                             | Rollback                                                                                        |
-| ----- | ---------------------------------------- | ----------------------------------------------------------------------------------------------- |
-| 1     | Backup didn't take                       | Try again, do not proceed                                                                       |
-| 2     | Audit finds something scary              | Pause, fix in current repo, re-audit                                                            |
-| 3     | Tree won't build after removal           | Either fix the cross-package leakage (real bug, fix it) or add the file back to the public set  |
-| 4     | Test repo looks wrong                    | Delete `brains-public-staging`, start phase 3 over                                              |
-| 5     | Pushed to wrong place / leaked something | Delete the public repo immediately, rotate ALL tokens (assume compromise), restart from phase 4 |
-| 6     | Token rotation breaks something          | Documented per-service rollback in deploy/scripts                                               |
+| Phase | Failure mode                             | Rollback                                                                                                                                                                   |
+| ----- | ---------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | Backup didn't take                       | Try again, do not proceed                                                                                                                                                  |
+| 2     | Audit finds something scary              | Pause, fix in current repo, re-audit                                                                                                                                       |
+| 3     | Tree won't build after removal           | Either fix the cross-package leakage (real bug, fix it) or add the file back to the public set                                                                             |
+| 4     | `brains-temp` looks wrong on GitHub      | Delete `brains-temp` repo on GitHub, delete `brains-public-staging/` locally, start Phase 3 over. **No impact on the live `rizom-ai/brains` URL**, that's the whole point. |
+| 5     | Rename caused issues                     | Rename back: `brains-private` → `brains`, `brains` → `brains-temp`. GitHub allows this freely.                                                                             |
+| 5     | Public repo leaked something post-rename | Rename `brains` → `brains-leaked`, rename `brains-private` → `brains` to restore the old URL, rotate ALL tokens (assume compromise), restart from Phase 3                  |
+| 6     | Token rotation breaks something          | Documented per-service rollback in deploy/scripts                                                                                                                          |
 
 The orphan-commit step is fully reversible _until_ phase 5 push. After phase 5 push, GitHub caches and forks make recovery hard — this is why phase 4 dry-run is mandatory.
 
