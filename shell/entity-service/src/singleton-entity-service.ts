@@ -9,6 +9,12 @@ import type { Logger } from "@brains/utils";
  */
 export abstract class SingletonEntityService<TBody> {
   private cache: BaseEntity | null = null;
+  /**
+   * Tracks whether the cached entity's content failed to parse. When true,
+   * `get()` returns `defaultBody` instead of attempting to re-parse on every
+   * call. Reset on successful (re)load.
+   */
+  private cacheParseError: Error | null = null;
   private logger: Logger;
   private entityService: EntityService;
   private entityType: string;
@@ -68,10 +74,15 @@ export abstract class SingletonEntityService<TBody> {
   }
 
   /**
-   * Get the parsed body data (from cache or default)
+   * Get the parsed body data (from cache or default).
+   *
+   * Never throws — if the cached entity content fails schema validation, the
+   * default body is returned and the parse error was already logged once at
+   * load time. This keeps the rendering pipeline alive when user data is
+   * malformed instead of crashing every render with a stack trace.
    */
   public get(): TBody {
-    if (this.cache) {
+    if (this.cache && !this.cacheParseError) {
       return this.parseBody(this.cache.content);
     }
     return this.defaultBody;
@@ -95,7 +106,13 @@ export abstract class SingletonEntityService<TBody> {
   }
 
   /**
-   * Load entity from database into cache
+   * Load entity from database into cache.
+   *
+   * Validates the entity content by attempting a parse. If parsing fails,
+   * the cache is kept (so `getContent()` can still return the raw content),
+   * but `cacheParseError` is set so `get()` returns the default body instead
+   * of re-throwing on every call. The parse error is logged once with the
+   * full validation message so users can fix their data.
    */
   private async load(): Promise<void> {
     try {
@@ -105,15 +122,29 @@ export abstract class SingletonEntityService<TBody> {
       );
 
       this.cache = entity;
+      this.cacheParseError = null;
 
       if (entity) {
-        this.logger.debug(`${this.entityType} loaded`);
+        try {
+          this.parseBody(entity.content);
+          this.logger.debug(`${this.entityType} loaded`);
+        } catch (parseError) {
+          this.cacheParseError =
+            parseError instanceof Error
+              ? parseError
+              : new Error(String(parseError));
+          this.logger.error(
+            `Failed to parse ${this.entityType} — using default. Fix the entity content to clear this error.`,
+            { error: this.cacheParseError.message },
+          );
+        }
       } else {
         this.logger.debug(`No ${this.entityType} found in database`);
       }
     } catch (error) {
       this.logger.warn(`Failed to load ${this.entityType}`, { error });
       this.cache = null;
+      this.cacheParseError = null;
     }
   }
 }

@@ -233,6 +233,100 @@ describe("SingletonEntityService", () => {
     });
   });
 
+  describe("parse error handling", () => {
+    class StrictParseService extends SingletonEntityService<TestBody> {
+      protected parseBody(content: string): TestBody {
+        if (!content.includes("REQUIRED_MARKER")) {
+          throw new Error("Invalid body: missing REQUIRED_MARKER");
+        }
+        return { title: content, description: "" };
+      }
+      protected createContent(body: TestBody): string {
+        return body.title;
+      }
+    }
+
+    it("get() returns default when cached entity fails to parse", async () => {
+      const strictService = new StrictParseService(
+        mockEntityService,
+        createSilentLogger(),
+        entityType,
+        defaultBody,
+      );
+      const malformedEntity = createTestEntity<BaseEntity>(entityType, {
+        id: entityType,
+        content: "this content lacks the marker",
+      });
+      getEntitySpy.mockResolvedValue(malformedEntity);
+
+      await strictService.initialize();
+
+      // Should not throw — should return default body
+      const body = strictService.get();
+      expect(body).toEqual(defaultBody);
+    });
+
+    it("get() returns parsed body when cached entity parses cleanly", async () => {
+      const strictService = new StrictParseService(
+        mockEntityService,
+        createSilentLogger(),
+        entityType,
+        defaultBody,
+      );
+      const validEntity = createTestEntity<BaseEntity>(entityType, {
+        id: entityType,
+        content: "REQUIRED_MARKER content here",
+      });
+      getEntitySpy.mockResolvedValue(validEntity);
+
+      await strictService.initialize();
+
+      const body = strictService.get();
+      expect(body.title).toBe("REQUIRED_MARKER content here");
+    });
+
+    it("get() never throws even when called many times on broken cache", async () => {
+      const strictService = new StrictParseService(
+        mockEntityService,
+        createSilentLogger(),
+        entityType,
+        defaultBody,
+      );
+      const malformedEntity = createTestEntity<BaseEntity>(entityType, {
+        id: entityType,
+        content: "bad content",
+      });
+      getEntitySpy.mockResolvedValue(malformedEntity);
+
+      await strictService.initialize();
+
+      // Multiple calls should all return defaults, never throw
+      expect(() => strictService.get()).not.toThrow();
+      expect(() => strictService.get()).not.toThrow();
+      expect(() => strictService.get()).not.toThrow();
+      expect(strictService.get()).toEqual(defaultBody);
+    });
+
+    it("refreshCache also catches parse errors", async () => {
+      const strictService = new StrictParseService(
+        mockEntityService,
+        createSilentLogger(),
+        entityType,
+        defaultBody,
+      );
+      const malformedEntity = createTestEntity<BaseEntity>(entityType, {
+        id: entityType,
+        content: "bad",
+      });
+      getEntitySpy.mockResolvedValue(malformedEntity);
+
+      await strictService.refreshCache();
+
+      expect(() => strictService.get()).not.toThrow();
+      expect(strictService.get()).toEqual(defaultBody);
+    });
+  });
+
   describe("custom default body", () => {
     it("should use provided custom default body", () => {
       const customBody: TestBody = {
