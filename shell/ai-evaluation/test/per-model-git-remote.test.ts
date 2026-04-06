@@ -124,32 +124,23 @@ describe("per-model git remote isolation", () => {
     expect(existsSync(join(remoteB, "HEAD"))).toBe(true);
   });
 
-  it("should be pushable independently", () => {
-    const remoteA = createGitRemote(join(tmpdir(), "brain-eval-789-model-a"));
-    const remoteB = createGitRemote(join(tmpdir(), "brain-eval-789-model-b"));
-
-    // Create local repos that push to each remote
-    for (const [remote, label] of [
-      [remoteA, "a"],
-      [remoteB, "b"],
-    ] as const) {
-      const local = join(tmpdir(), `brain-eval-local-${label}-${Date.now()}`);
-      mkdirSync(local, { recursive: true });
-      execSync(`git init && git commit --allow-empty -m "init ${label}"`, {
-        cwd: local,
-        stdio: "ignore",
-      });
-      execSync(`git remote add origin file://${remote}`, {
-        cwd: local,
-        stdio: "ignore",
-      });
-      execSync("git push -u origin HEAD", {
-        cwd: local,
-        stdio: "ignore",
-      });
-      rmSync(local, { recursive: true, force: true });
-    }
-  });
+  // NOTE: there used to be a `should be pushable independently` test here
+  // that created local repos with raw `execSync("git commit")` and pushed
+  // to the bare remotes. It was removed because:
+  //
+  //   1. The real eval runner never does this — `prepareEvalEnvironment`
+  //      in run-evaluations.ts only calls `git init --bare`. The actual
+  //      commits + pushes come from directory-sync's GitSync class, which
+  //      has its own push tests in plugins/directory-sync/test/git/.
+  //
+  //   2. GitSync has brain-level defaults (authorName: "Brain",
+  //      authorEmail: "brain@rizom.ai" in its Zod schema) that flow into
+  //      every commit automatically. The deleted test bypassed GitSync
+  //      entirely, so none of those defaults applied — it failed on CI
+  //      because clean runners have no global git identity.
+  //
+  // If you need an end-to-end 'multi-model eval pushes without collision'
+  // test, write it as an integration test that goes through GitSync.
 
   it("EVAL_GIT_REMOTE env var should be set per model", () => {
     const remoteA = createGitRemote(join(tmpdir(), "brain-eval-env-model-a"));
