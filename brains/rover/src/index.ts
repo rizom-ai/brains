@@ -49,7 +49,7 @@ const core = [
   "wishlist",
   "topics",
   "directory-sync",
-  "agent-discovery",
+  "agents",
   "mcp",
   "discord",
   "a2a",
@@ -145,7 +145,7 @@ export default defineBrain({
     ["obsidian-vault", obsidianVaultPlugin, { autoSync: true }],
     ["wishlist", wishlistPlugin, {}],
     ["stock-photo", stockPhotoPlugin, {}],
-    ["agent-discovery", agentDiscovery, undefined],
+    ["agents", agentDiscovery, undefined],
     [
       "directory-sync",
       directorySync,

@@ -9,10 +9,14 @@ import { resolve } from "../src/brain-resolver";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
 import { z } from "@brains/utils";
 
-// Minimal mock plugin factory
+// Minimal mock plugin factory. Narrower than PluginFactory (always returns a
+// single Plugin, never a composite array) so test callers can use the result
+// without narrowing — the narrow type is still assignable to PluginFactory.
+type SinglePluginFactory = (config: PluginConfig) => Plugin;
+
 function createMockPluginFactory(
   id = "mock-plugin",
-): PluginFactory & { lastConfig: PluginConfig | undefined } {
+): SinglePluginFactory & { lastConfig: PluginConfig | undefined } {
   const factory = ((config: PluginConfig): Plugin => {
     factory.lastConfig = config;
     return {
@@ -26,7 +30,7 @@ function createMockPluginFactory(
       }),
       config,
     } as Plugin;
-  }) as PluginFactory & { lastConfig: PluginConfig | undefined };
+  }) as SinglePluginFactory & { lastConfig: PluginConfig | undefined };
   factory.lastConfig = undefined;
   return factory;
 }

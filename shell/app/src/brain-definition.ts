@@ -41,26 +41,17 @@ export type CapabilityConfig =
   | undefined;
 
 /**
- * A plugin factory builds a single plugin from a config.
+ * A plugin factory builds one plugin or — for composite features that bundle
+ * an entity + service pair behind one shared config (e.g. newsletter +
+ * buttondown) — an array of plugins. Composite sub-plugins are gated as a
+ * unit by the capability id; add or remove the entry from a preset to
+ * enable/disable all of them.
  */
-export type PluginFactory = (config: PluginConfig) => Plugin;
-
-/**
- * A composite plugin factory builds multiple plugins from one shared config.
- *
- * Use this when an entity + service pair is conceptually one feature with one set
- * of credentials (e.g. newsletter + buttondown). The composite factory distributes
- * the shared config to its sub-plugins internally; the resolver flattens the
- * returned array into the plugin list.
- *
- * Sub-plugins are still gated by the composite's capability id — add or remove
- * the composite from a preset to enable or disable all of its sub-plugins.
- */
-export type CompositePluginFactory = (config: PluginConfig) => Plugin[];
+export type PluginFactory = (config: PluginConfig) => Plugin | Plugin[];
 
 export type CapabilityEntry = [
   id: string,
-  factory: PluginFactory | CompositePluginFactory,
+  factory: PluginFactory,
   config: CapabilityConfig,
 ];
 

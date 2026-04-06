@@ -246,13 +246,18 @@ describe("SingletonEntityService", () => {
       }
     }
 
-    it("get() returns default when cached entity fails to parse", async () => {
-      const strictService = new StrictParseService(
+    let strictService: StrictParseService;
+
+    beforeEach(() => {
+      strictService = new StrictParseService(
         mockEntityService,
         createSilentLogger(),
         entityType,
         defaultBody,
       );
+    });
+
+    it("get() returns default when cached entity fails to parse", async () => {
       const malformedEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "this content lacks the marker",
@@ -261,18 +266,11 @@ describe("SingletonEntityService", () => {
 
       await strictService.initialize();
 
-      // Should not throw — should return default body
       const body = strictService.get();
       expect(body).toEqual(defaultBody);
     });
 
     it("get() returns parsed body when cached entity parses cleanly", async () => {
-      const strictService = new StrictParseService(
-        mockEntityService,
-        createSilentLogger(),
-        entityType,
-        defaultBody,
-      );
       const validEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "REQUIRED_MARKER content here",
@@ -286,12 +284,6 @@ describe("SingletonEntityService", () => {
     });
 
     it("get() never throws even when called many times on broken cache", async () => {
-      const strictService = new StrictParseService(
-        mockEntityService,
-        createSilentLogger(),
-        entityType,
-        defaultBody,
-      );
       const malformedEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "bad content",
@@ -300,7 +292,6 @@ describe("SingletonEntityService", () => {
 
       await strictService.initialize();
 
-      // Multiple calls should all return defaults, never throw
       expect(() => strictService.get()).not.toThrow();
       expect(() => strictService.get()).not.toThrow();
       expect(() => strictService.get()).not.toThrow();
@@ -308,12 +299,6 @@ describe("SingletonEntityService", () => {
     });
 
     it("refreshCache also catches parse errors", async () => {
-      const strictService = new StrictParseService(
-        mockEntityService,
-        createSilentLogger(),
-        entityType,
-        defaultBody,
-      );
       const malformedEntity = createTestEntity<BaseEntity>(entityType, {
         id: entityType,
         content: "bad",

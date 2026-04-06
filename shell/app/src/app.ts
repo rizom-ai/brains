@@ -110,10 +110,9 @@ export class App {
         shellConfig.siteBaseUrl = this.config.deployment.domain;
       }
 
-      // Don't pass a logger as a dependency — let shellInitializer build one
-      // from shellConfig.logging so logFile, format, and level all take effect.
-      // The Logger singleton was already created earlier in the boot sequence
-      // with no options, and getInstance() won't apply new options to it.
+      // Let shellInitializer build the logger from shellConfig.logging so
+      // logFile, format, and level take effect. Logger.getInstance() ignores
+      // options on a pre-existing singleton.
       this.shell = Shell.createFresh(shellConfig);
     }
 

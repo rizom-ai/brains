@@ -51,7 +51,7 @@ const core = [
   "note",
   "link",
   "topics",
-  "agent-discovery",
+  "agents",
   "mcp",
   "discord",
   "a2a",
@@ -95,7 +95,7 @@ export default defineBrain({
     // decks is not in core or default yet — kept registered so
     // team-brain (and others) can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
-    ["agent-discovery", agentDiscovery, undefined],
+    ["agents", agentDiscovery, undefined],
     [
       "directory-sync",
       directorySync,

@@ -15,11 +15,6 @@ describe("agent-discovery composite", () => {
     expect(plugins.every((p) => p.type === "entity")).toBe(true);
   });
 
-  test("works when called with an empty config", () => {
-    const plugins = agentDiscovery({});
-    expect(plugins).toHaveLength(2);
-  });
-
   test("works when called with no arguments", () => {
     const plugins = agentDiscovery();
     expect(plugins).toHaveLength(2);

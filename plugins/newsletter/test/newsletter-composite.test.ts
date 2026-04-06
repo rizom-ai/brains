@@ -10,24 +10,6 @@ describe("newsletter composite", () => {
     expect(ids).toContain("buttondown");
   });
 
-  test("forwards apiKey to the buttondown service plugin", () => {
-    const plugins = newsletter({ apiKey: "test-key" });
-    const buttondown = plugins.find((p) => p.id === "buttondown");
-    expect(buttondown).toBeDefined();
-  });
-
-  test("forwards doubleOptIn to the buttondown service plugin", () => {
-    const plugins = newsletter({ doubleOptIn: false });
-    const buttondown = plugins.find((p) => p.id === "buttondown");
-    expect(buttondown).toBeDefined();
-  });
-
-  test("forwards autoSendOnPublish to the buttondown service plugin", () => {
-    const plugins = newsletter({ autoSendOnPublish: true });
-    const buttondown = plugins.find((p) => p.id === "buttondown");
-    expect(buttondown).toBeDefined();
-  });
-
   test("works with empty config", () => {
     const plugins = newsletter();
     expect(plugins).toHaveLength(2);

@@ -65,14 +65,10 @@ Update `CapabilityEntry` to allow factories that return arrays:
 
 ```typescript
 // Before: factory must return one Plugin
-type CapabilityEntry = [string, PluginFactory, CapabilityConfig];
+type PluginFactory = (config: PluginConfig) => Plugin;
 
 // After: factory can return one Plugin or Plugin[]
-type CapabilityEntry = [
-  string,
-  PluginFactory | CompositePluginFactory,
-  CapabilityConfig,
-];
+type PluginFactory = (config: PluginConfig) => Plugin | Plugin[];
 ```
 
 In the brain definition:

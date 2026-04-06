@@ -12,9 +12,6 @@ if (!bunCheck.ok) {
   process.exit(1);
 }
 
-// The directory the user invoked us from. When `bun run brain` resolves a
-// script in a parent package.json, bun chdirs to that package's directory and
-// stores the original in INIT_CWD. We want the original.
 const cwd = getInvocationCwd();
 
 // Local-over-global: if ./node_modules/@rizom/brain exists and isn't us, re-exec

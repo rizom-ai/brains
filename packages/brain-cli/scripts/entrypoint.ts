@@ -67,20 +67,26 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
   }
 });
 
-// ─── Run CLI ──────────────────────────────────────────────────────────────
+// ─── Run CLI ──────────────────────────────────────────────────────
 
 import { execSync } from "child_process";
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 import { findLocalBrain } from "../src/lib/local-reexec";
+import { getInvocationCwd } from "../src/lib/invocation-cwd";
+
+// Resolve the directory the user invoked us from. Mirrors src/index.ts —
+// must be passed explicitly into runCommand because the minifier may inline
+// away the `cwd ?? process.cwd()` fallback inside runCommand otherwise.
+const cwd = getInvocationCwd();
 
 // Local-over-global: if ./node_modules/@rizom/brain exists and isn't us, re-exec
 if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
-  const localBrain = findLocalBrain(process.cwd());
+  const localBrain = findLocalBrain(cwd);
   if (localBrain && localBrain !== __filename) {
     try {
       execSync(`bun ${localBrain} ${process.argv.slice(2).join(" ")}`, {
-        cwd: process.cwd(),
+        cwd,
         stdio: "inherit",
         env: { ...process.env, BRAIN_SKIP_LOCAL_REEXEC: "1" },
       });
@@ -96,7 +102,7 @@ if (!process.env["BRAIN_SKIP_LOCAL_REEXEC"]) {
 }
 
 const parsed = parseArgs(process.argv.slice(2));
-const result = await runCommand(parsed);
+const result = await runCommand(parsed, cwd);
 
 if (!result.success) {
   console.error(result.message);

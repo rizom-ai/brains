@@ -29,7 +29,6 @@ export type {
   CapabilityEntry,
   CapabilityConfig,
   PluginFactory,
-  CompositePluginFactory,
   InterfaceEntry,
   InterfaceConstructor,
 } from "./brain-definition";

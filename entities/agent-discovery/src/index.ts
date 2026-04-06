@@ -8,11 +8,12 @@ export { AgentDiscoveryPlugin, agentDiscoveryPlugin } from "./plugin";
 /**
  * Composite config for the agent-discovery feature.
  *
- * Currently no shared options — the schema is empty but exists so brain.yaml
- * can target the composite by id and so future shared config (e.g. a card
- * cache TTL or discovery toggle) lands without breaking the API.
+ * Currently no shared options — the schema is empty but strict so any
+ * unrecognized brain.yaml override surfaces as a ZodError instead of being
+ * silently dropped. Add fields here when shared config (e.g. a card cache TTL
+ * or discovery toggle) is introduced.
  */
-export const agentDiscoveryCompositeConfigSchema = z.object({}).passthrough();
+export const agentDiscoveryCompositeConfigSchema = z.object({}).strict();
 
 export type AgentDiscoveryCompositeConfig = z.infer<
   typeof agentDiscoveryCompositeConfigSchema
@@ -26,12 +27,13 @@ export type AgentDiscoveryCompositeConfig = z.infer<
  *
  * ```ts
  * capabilities: [
- *   ["agent-discovery", agentDiscovery, undefined],
+ *   ["agents", agentDiscovery, undefined],
  * ]
  * ```
  *
- * Both sub-plugins are gated by the composite's `agent-discovery` capability
- * id — add or remove the composite from a preset to enable or disable both.
+ * Both sub-plugins are gated by the composite's `agents` capability id — add
+ * or remove it from a preset to enable or disable both. The capability id is
+ * deliberately distinct from either sub-plugin id (`agent-discovery`, `skill`).
  */
 export function agentDiscovery(
   config: AgentDiscoveryCompositeConfig = {},

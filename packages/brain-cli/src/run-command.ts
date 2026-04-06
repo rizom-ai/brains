@@ -21,10 +21,8 @@ export interface CommandResult {
  */
 export async function runCommand(
   parsed: ParsedArgs,
-  cwd?: string,
+  dir: string,
 ): Promise<CommandResult> {
-  const dir = cwd ?? process.cwd();
-
   switch (parsed.command) {
     case "init":
       return runInit(parsed, dir);
