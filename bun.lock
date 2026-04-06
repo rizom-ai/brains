@@ -936,11 +936,24 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/theme-ranger": {
+      "name": "@brains/theme-ranger",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/theme-default": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/theme-rizom": {
       "name": "@brains/theme-rizom",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/theme-default": "workspace:*",
+        "@brains/theme-base": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1314,7 +1327,7 @@
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/templates": "workspace:*",
-        "@brains/theme-rizom": "workspace:*",
+        "@brains/theme-ranger": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -1500,6 +1513,8 @@
     "@brains/theme-mylittlephoney": ["@brains/theme-mylittlephoney@workspace:shared/theme-mylittlephoney"],
 
     "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
+
+    "@brains/theme-ranger": ["@brains/theme-ranger@workspace:shared/theme-ranger"],
 
     "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
 

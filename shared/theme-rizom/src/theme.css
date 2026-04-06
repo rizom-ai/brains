@@ -1,128 +1,407 @@
 /*
- * Rizom brand theme — extends theme-default with gradients,
- * dot patterns, animations, and additional palette colors.
+ * Rizom brand theme — amber + purple bioluminescent palette.
  *
- * Imported AFTER theme-default via composeTheme().
+ * Shared by rizom.ai (variant: ai), rizom.foundation (variant: foundation),
+ * and rizom.work (variant: work). The site plugin sets
+ * `data-rizom-variant="..."` on <body> at boot, and the selectors below
+ * switch accent shade + secondary purple per variant.
+ *
+ * Mode handling:
+ *   :root                      → dark mode (designed default)
+ *   [data-theme="light"]       → light mode fallback
+ *
+ * Variant handling:
+ *   [data-rizom-variant="ai"]         → amber-light accent (#FFA366)
+ *   [data-rizom-variant="foundation"] → amber-dark accent  (#C45A08)
+ *   [data-rizom-variant="work"]       → amber accent       (#E87722)
+ *
+ * Light mode collapses all variants to amber-dark for contrast, per
+ * brand guide A2.
  */
 
-/* Additional palette colors for gradients and patterns */
+/* Font imports */
+@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+
 @layer theme {
   :root {
-    --palette-indigo: #6366f1;
-    --palette-light-blue: #A8C4FF;
+    /* Layout */
+    --layout-max-width: 72rem;
+
+    /* ============================================
+       PALETTE — raw color values (never used directly)
+       ============================================ */
+
+    /* Backgrounds */
+    --palette-bg-deep: #0D0A1A;
+    --palette-bg-card: #1A0A3E;
+    --palette-bg-light: #F2EEE8;
+
+    /* Amber spectrum */
+    --palette-amber-dark: #C45A08;
+    --palette-amber: #E87722;
+    --palette-amber-light: #FFA366;
+    --palette-amber-glow: #FFD4A8;
+
+    /* Purple spectrum */
     --palette-purple: #6B2FA0;
-    --palette-warm-red: #8B3A1A;
+    --palette-purple-light: #8C82C8;
+    --palette-purple-muted: #818CF8;
 
-    /* Pattern Colors */
-    --color-pattern-dot: var(--palette-indigo);
+    /* Text */
+    --palette-text-light: #1A1625;
+    --palette-white: #FFFFFF;
 
-    /* Gradient Colors */
-    --color-gradient-start: var(--palette-warm-white);
-    --color-gradient-end: var(--palette-light-blue);
-    --color-bg-gradient: linear-gradient(
-      181deg,
-      var(--palette-white) -5.4%,
-      var(--palette-warm-white) 73.01%,
-      var(--palette-warm-beige) 89.61%,
-      var(--palette-light-blue) 150%
-    );
+    /* ============================================
+       SEMANTIC TOKENS — dark mode default
+       ============================================ */
+
+    /* Backgrounds */
+    --color-bg: var(--palette-bg-deep);
+    --color-bg-subtle: #0E0B1E;
+    --color-bg-card: var(--palette-bg-card);
+    --color-bg-muted: rgba(255, 255, 255, 0.04);
+    --color-bg-dark: #000000;
+
+    /* Text */
+    --color-text: var(--palette-white);
+    --color-text-muted: rgba(255, 255, 255, 0.6);
+    --color-text-light: rgba(255, 255, 255, 0.4);
+    --color-text-inverse: var(--palette-bg-deep);
+    --color-heading: var(--palette-white);
+
+    /* Accent + secondary — default shade, overridden per variant below */
+    --color-accent: var(--palette-amber);
+    --color-accent-dark: var(--palette-amber-dark);
+    --color-secondary: var(--palette-purple-light);
+
+    /* Brand bridges — `brand` maps to accent so ui-library components
+       (text-brand, bg-footer, etc.) pick up the variant amber automatically. */
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+    --color-brand-light: var(--palette-amber-light);
+
+    /* Logo — white in dark mode, brand amber in light mode */
+    --color-logo: var(--palette-white);
+
+    /* Border */
+    --color-border: rgba(255, 255, 255, 0.1);
+    --color-border-light: rgba(255, 255, 255, 0.04);
+
+    /* Footer */
+    --color-footer: var(--palette-bg-card);
+
+    /* Warning / Status (reused from theme-default conventions) */
+    --color-warning-bg: rgba(202, 138, 4, 0.2);
+    --color-warning-border: rgba(202, 138, 4, 0.5);
+    --color-warning-text: #fde047;
+    --color-warning-text-emphasis: #fef08a;
+
+    --color-status-neutral-bg: #374151;
+    --color-status-neutral-text: #e5e7eb;
+    --color-status-info-bg: #1e3a5f;
+    --color-status-info-text: #93c5fd;
+    --color-status-success-bg: #14532d;
+    --color-status-success-text: #86efac;
+    --color-status-danger-bg: #7f1d1d;
+    --color-status-danger-text: #fca5a5;
+    --color-status-warning-bg: #713f12;
+    --color-status-warning-text: #fde68a;
+
+    /* Typography */
+    --font-display: 'Chakra Petch', system-ui, sans-serif;
+    --font-body: 'Barlow', system-ui, sans-serif;
+    --font-label: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-nav: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    /* theme-base bridges (sans / heading / serif / mono) */
+    --font-sans: var(--font-body);
+    --font-heading: var(--font-display);
+    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+    /* Typography scale */
+    --text-h1: 5.5rem;
+    --text-h1-mobile: 3rem;
+    --text-h2: 3.5rem;
+    --text-h2-mobile: 2.25rem;
+    --text-h3: 2.25rem;
+    --text-h3-mobile: 1.75rem;
+    --text-h4: 1.5rem;
+    --text-body: 1.125rem;
+    --text-body-mobile: 1rem;
   }
 
-  [data-theme="dark"] {
-    --color-pattern-dot: var(--palette-indigo);
+  /* ============================================
+     LIGHT MODE — fallback
+     ============================================ */
+  [data-theme="light"] {
+    --color-bg: var(--palette-bg-light);
+    --color-bg-subtle: #EAE5DD;
+    --color-bg-card: #F0ECE5;
+    --color-bg-muted: rgba(26, 22, 37, 0.04);
+    --color-bg-dark: var(--palette-bg-deep);
 
-    --color-gradient-start: var(--palette-dark-bg-subtle);
-    --color-gradient-end: var(--palette-purple);
-    --color-bg-gradient: linear-gradient(
-      181deg,
-      var(--palette-brand-blue) -5.4%,
-      var(--palette-purple) 40%,
-      var(--palette-warm-red) 73.01%,
-      var(--palette-purple) 140%
-    );
+    --color-text: var(--palette-text-light);
+    --color-text-muted: rgba(26, 22, 37, 0.55);
+    --color-text-light: rgba(26, 22, 37, 0.38);
+    --color-text-inverse: var(--palette-white);
+    --color-heading: var(--palette-text-light);
+
+    /* All variants collapse to amber-dark in light mode for contrast (brand guide A2) */
+    --color-accent: var(--palette-amber-dark);
+    --color-accent-dark: #8B3A05;
+    --color-secondary: var(--palette-purple);
+
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+    --color-brand-light: var(--palette-amber);
+
+    --color-logo: var(--palette-amber-dark);
+
+    --color-border: rgba(26, 22, 37, 0.1);
+    --color-border-light: rgba(26, 22, 37, 0.04);
+
+    --color-footer: var(--palette-bg-light);
+
+    --color-warning-bg: #fefce8;
+    --color-warning-border: #fde047;
+    --color-warning-text: #854d0e;
+    --color-warning-text-emphasis: #92400e;
+  }
+
+  /* ============================================
+     VARIANT OVERRIDES — accent + secondary per site flavor.
+     Apply in dark mode; light mode collapses per above.
+     ============================================ */
+  [data-rizom-variant="ai"] {
+    --color-accent: var(--palette-amber-light);
+    --color-accent-dark: var(--palette-amber);
+    --color-secondary: var(--palette-purple-muted);
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+  }
+
+  [data-rizom-variant="foundation"] {
+    --color-accent: var(--palette-amber-dark);
+    --color-accent-dark: #8B3A05;
+    --color-secondary: var(--palette-purple);
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+  }
+
+  [data-rizom-variant="work"] {
+    --color-accent: var(--palette-amber);
+    --color-accent-dark: var(--palette-amber-dark);
+    --color-secondary: var(--palette-purple-light);
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
+  }
+
+  /* In light mode, ALL variants use amber-dark */
+  [data-theme="light"][data-rizom-variant],
+  [data-theme="light"] [data-rizom-variant] {
+    --color-accent: var(--palette-amber-dark);
+    --color-accent-dark: #8B3A05;
+    --color-brand: var(--color-accent);
+    --color-brand-dark: var(--color-accent-dark);
   }
 }
 
-/* Hero Background Components */
-@layer components {
-  .hero-bg-pattern {
-    background-image: radial-gradient(circle at 1px 1px, var(--color-pattern-dot) 1px, transparent 0);
-    background-size: 20px 20px;
-  }
-
-  .cta-bg-pattern {
-    background-image: radial-gradient(circle at 2px 2px, rgba(255, 255, 255, 0.15) 1px, transparent 0);
-    background-size: 40px 40px;
-  }
-}
-
-/* Animations */
-@keyframes blob {
-  0% { transform: translate(0px, 0px) scale(1); }
-  33% { transform: translate(30px, -50px) scale(1.1); }
-  66% { transform: translate(-20px, 20px) scale(0.9); }
-  100% { transform: translate(0px, 0px) scale(1); }
-}
-
-@keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-33.333%); }
-}
-
-@keyframes marquee-reverse {
-  from { transform: translateX(-33.333%); }
-  to { transform: translateX(0); }
-}
-
-@keyframes hero-fade-up {
-  from { opacity: 0; transform: translateY(24px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
+/* ============================================
+   Component utilities — reference semantic tokens so variants
+   automatically pick up the right accent.
+   ============================================ */
 @layer theme-override {
-  .animate-blob {
-    animation: blob 7s infinite;
+  /* Logo */
+  .text-logo { color: var(--color-logo); }
+
+  /* Navigation */
+  .text-nav { color: var(--color-text-muted); }
+  .text-nav:hover { color: var(--color-text); }
+
+  /* Header */
+  .bg-header { background-color: transparent; }
+
+  /* Footer */
+  .bg-footer { background-color: var(--color-footer); }
+
+  /* Theme toggle */
+  .bg-theme-toggle { background-color: var(--color-bg-card); }
+  .bg-theme-toggle-hover { background-color: var(--color-accent); }
+  .text-theme-toggle-icon { color: var(--color-text); }
+  [data-theme="light"] .text-theme-toggle-icon { color: var(--palette-bg-deep); }
+  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--palette-bg-deep); }
+
+  /* Warning utilities */
+  .bg-warning { background-color: var(--color-warning-bg); }
+  .border-warning { border-color: var(--color-warning-border); }
+  .text-warning { color: var(--color-warning-text); }
+  .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
+
+  /* Buttons */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--palette-white);
+    background-color: var(--color-accent);
+    border: none;
+    border-radius: 0.625rem;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
+  }
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    background-color: var(--color-accent-dark);
+    box-shadow: 0 8px 32px rgba(232, 119, 34, 0.3);
+  }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--color-text);
+    background-color: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 0.625rem;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    transition: border-color 150ms ease, background-color 150ms ease;
+  }
+  .btn-secondary:hover {
+    border-color: rgba(255, 255, 255, 0.4);
+    background-color: rgba(255, 255, 255, 0.08);
+  }
+  [data-theme="light"] .btn-secondary {
+    background-color: rgba(26, 22, 37, 0.03);
+    border-color: rgba(26, 22, 37, 0.15);
+  }
+  [data-theme="light"] .btn-secondary:hover {
+    background-color: rgba(26, 22, 37, 0.06);
+    border-color: rgba(26, 22, 37, 0.3);
   }
 
-  .animation-delay-2000 {
-    animation-delay: 2s;
+  /* Badges */
+  .badge-amber {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--color-accent);
+    color: var(--color-accent);
+    border-radius: 1.25rem;
+    font-family: var(--font-label);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.09375em;
+    text-transform: uppercase;
   }
 
-  .animation-delay-4000 {
-    animation-delay: 4s;
+  .badge-purple {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1.25rem;
+    border: 1px solid var(--color-secondary);
+    color: var(--color-secondary);
+    border-radius: 1.25rem;
+    font-family: var(--font-label);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.09375em;
+    text-transform: uppercase;
   }
 
-  .animate-marquee {
-    animation: marquee 35s linear infinite;
+  /* Terminal block (quickstart section in the mock) */
+  .terminal-block {
+    background-color: #1A1625;
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    color: var(--color-text);
+  }
+  [data-theme="light"] .terminal-block {
+    background-color: #1A1625;
+    color: var(--palette-white);
   }
 
-  .animate-marquee-reverse {
-    animation: marquee-reverse 45s linear infinite;
+  /* Divider — thin amber gradient, used between sections in the mock */
+  .divider,
+  .divider-line {
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(232, 119, 34, 0.4),
+      transparent
+    );
+    margin: 3rem auto;
+  }
+  [data-theme="light"] .divider,
+  [data-theme="light"] .divider-line {
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(232, 119, 34, 0.25),
+      transparent
+    );
   }
 
-  .hero-stagger-1 {
-    animation: hero-fade-up 0.8s ease-out 0.15s both;
+  /* Scroll cue — small hint near the hero */
+  .scroll-cue {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--color-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+}
+
+/* Prose styles — conservative, follow theme-default shape with rizom fonts */
+@layer theme-override {
+  .prose { color: var(--color-text); font-family: var(--font-body); }
+
+  .prose h1,
+  .prose h2,
+  .prose h3,
+  .prose h4,
+  .prose h5,
+  .prose h6 {
+    color: var(--color-text);
+    font-family: var(--font-display);
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
   }
 
-  .hero-stagger-2 {
-    animation: hero-fade-up 0.6s ease-out 0.4s both;
+  .prose p,
+  .prose strong { color: var(--color-text); }
+  .prose em { color: var(--color-accent); }
+
+  .prose a { color: var(--color-accent); }
+  .prose a:hover { color: var(--color-accent-dark); }
+
+  .prose code {
+    color: var(--color-text);
+    background-color: var(--color-bg-muted);
+    font-family: var(--font-mono);
   }
-
-  .hero-stagger-3 {
-    animation: hero-fade-up 0.6s ease-out 0.6s both;
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    .animate-marquee,
-    .animate-marquee-reverse {
-      animation: none;
-    }
-
-    .hero-stagger-1,
-    .hero-stagger-2,
-    .hero-stagger-3 {
-      animation: none;
-      opacity: 1;
-    }
+  .prose pre {
+    background-color: var(--color-bg-card);
+    color: var(--color-text);
+    font-family: var(--font-mono);
   }
 }

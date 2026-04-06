@@ -20,7 +20,7 @@
     "@brains/plugins": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/theme-rizom": "workspace:*",
+    "@brains/theme-ranger": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

@@ -1,6 +1,13 @@
-# Rizom Brand Style Guide
+# Ranger Theme Style Guide
 
-A comprehensive guide to the Rizom visual identity and design system.
+> **Naming note:** this package was previously `@brains/theme-rizom`. It was
+> renamed to `@brains/theme-ranger` in rizom-sites Phase 1 to free the
+> `theme-rizom` name for a new Rizom brand theme (amber/purple
+> bioluminescent palette). The content below still accurately describes
+> what `sites/ranger` looks like — blue/orange with gradients — but it is
+> no longer the Rizom brand identity.
+
+A comprehensive guide to the ranger theme's visual identity and design system.
 
 ---
 

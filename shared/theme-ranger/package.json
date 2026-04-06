@@ -1,8 +1,8 @@
 {
-  "name": "@brains/theme-rizom",
+  "name": "@brains/theme-ranger",
   "private": true,
   "version": "0.1.0",
-  "description": "Rizom brand theme — amber + purple bioluminescent palette shared by rizom.ai, rizom.foundation, and rizom.work. Per-variant accents via [data-rizom-variant] selectors.",
+  "description": "Ranger theme — blue/orange palette with gradients, dot patterns, and animations. Previously named @brains/theme-rizom; renamed to free the theme-rizom name for the new Rizom brand theme.",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -18,7 +18,7 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/theme-base": "workspace:*"
+    "@brains/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

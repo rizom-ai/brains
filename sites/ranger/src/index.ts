@@ -6,7 +6,7 @@ import {
   CTAFooterLayout,
 } from "./layouts";
 import { routes as defaultRoutes } from "./routes";
-import themeCSS from "@brains/theme-rizom";
+import themeCSS from "@brains/theme-ranger";
 import type { SitePackage } from "@brains/app";
 import { RangerSitePlugin } from "./plugin";
 

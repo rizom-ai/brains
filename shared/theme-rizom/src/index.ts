@@ -1,14 +1,21 @@
 // Types for CSS imports are defined in types.d.ts
 /// <reference types="./types.d.ts" />
 
-import defaultTheme from "@brains/theme-default";
-import rizomExtensions from "./theme.css" with { type: "text" };
+import { composeTheme } from "@brains/theme-base";
+import themeCSSOnly from "./theme.css" with { type: "text" };
 
 /**
- * Rizom brand theme — extends the default theme with gradients,
- * dot patterns, and animations.
+ * Rizom brand theme — amber + purple bioluminescent palette.
+ *
+ * Shared by rizom.ai (variant: ai), rizom.foundation (variant: foundation),
+ * and rizom.work (variant: work). Variants switch accent shade and
+ * secondary purple via `[data-rizom-variant]` attribute selectors that
+ * the site plugin sets on <body> at boot.
+ *
+ * Dark mode is the designed experience (the marketing sites are built
+ * to be read dark-first). Light mode is a supported fallback.
  */
-const themeCSS = [defaultTheme, rizomExtensions].join("\n\n");
+const themeCSS = composeTheme(themeCSSOnly);
 
 export default themeCSS;
 export { themeCSS };
