@@ -33,12 +33,17 @@ export type LayoutComponent = (props: {
 }) => JSX.Element;
 
 /**
- * Entity route configuration
- * Allows customizing auto-generated route paths and labels for entity types
+ * Entity display metadata per entity type.
+ *
+ * Keyed by entity type (e.g. "post", "link", "social-post"). Each entry
+ * describes how that entity type should present itself — label, plural
+ * name, default layout, pagination, and navigation slot. Consulted by
+ * the dynamic route generator when producing auto-generated list/detail
+ * routes for active entity plugins.
  */
-import type { EntityRouteEntry } from "@brains/plugins";
-export type { EntityRouteEntry };
-export type EntityRouteConfig = Record<string, EntityRouteEntry>;
+import type { EntityDisplayEntry } from "@brains/plugins";
+export type { EntityDisplayEntry };
+export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
 
 export const siteBuilderConfigSchema = z.object({
   previewOutputDir: z
@@ -94,7 +99,7 @@ export const siteBuilderConfigSchema = z.object({
       "Debounce time in ms before triggering site rebuild after content changes",
     )
     .default(5000),
-  entityRouteConfig: z
+  entityDisplay: z
     .record(
       z.object({
         label: z
@@ -108,7 +113,7 @@ export const siteBuilderConfigSchema = z.object({
           .string()
           .optional()
           .describe(
-            "Layout name for this entity type's routes (defaults to 'default')",
+            "Layout name for this entity type's generated routes (defaults to 'default')",
           ),
         paginate: z
           .boolean()
@@ -138,7 +143,7 @@ export const siteBuilderConfigSchema = z.object({
     )
     .optional()
     .describe(
-      "Custom route configuration for entity types (overrides auto-generated paths and labels)",
+      "Display metadata per entity type — label, plural name, layout, pagination, navigation slot. Consulted when auto-generating routes for active entity plugins.",
     ),
   cms: z
     .object({})
@@ -161,10 +166,10 @@ type SiteBuilderSchemaConfig = z.infer<typeof siteBuilderConfigSchema>;
  */
 export type SiteBuilderConfig = Omit<
   SiteBuilderSchemaConfig,
-  "templates" | "layouts" | "routes" | "entityRouteConfig"
+  "templates" | "layouts" | "routes" | "entityDisplay"
 > & {
   templates?: Record<string, Template>;
   layouts?: Record<string, LayoutComponent>;
   routes?: RouteDefinitionInput[];
-  entityRouteConfig?: EntityRouteConfig;
+  entityDisplay?: EntityDisplayMap;
 };

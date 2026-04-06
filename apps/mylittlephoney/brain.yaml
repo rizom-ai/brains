@@ -1,5 +1,6 @@
 brain: rover
-site: "@brains/site-mylittlephoney"
+site:
+  package: "@brains/site-mylittlephoney"
 
 # Instance settings
 logLevel: info

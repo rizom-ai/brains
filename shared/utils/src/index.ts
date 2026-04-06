@@ -69,7 +69,7 @@ export { chunkMessage } from "./chunk-message";
 
 // URL generation utilities
 export { EntityUrlGenerator } from "./entity-url-generator";
-export type { EntityRouteConfig } from "./entity-url-generator";
+export type { EntityDisplayMap } from "./entity-url-generator";
 
 // Hash utilities — import from "@brains/utils/hash" (uses Node crypto)
 

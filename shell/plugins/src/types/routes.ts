@@ -32,14 +32,20 @@ export const NavigationSlots = ["primary", "secondary"] as const;
 export type NavigationSlot = (typeof NavigationSlots)[number];
 
 /**
- * Configuration for how an entity type's routes are generated.
- * Used by site packages and site-builder to control URL patterns,
- * layout, pagination, and navigation for entity types.
+ * Display and behavior metadata for an entity type.
+ *
+ * Keyed by entity type on `SitePackage.entityDisplay`, these entries
+ * describe how an entity type should present itself — its human label,
+ * plural name, default layout, pagination, and navigation slot. The
+ * site-builder's dynamic route generator consults them when producing
+ * auto-generated list/detail routes for each active entity plugin, but
+ * the metadata is conceptually about the entity type itself, not about
+ * any particular route.
  */
-export interface EntityRouteEntry {
+export interface EntityDisplayEntry {
   label: string;
   pluralName?: string;
-  /** Layout name for this entity type's routes (defaults to "default") */
+  /** Layout name for this entity type's generated routes (defaults to "default") */
   layout?: string;
   /** Enable pagination for list pages */
   paginate?: boolean;

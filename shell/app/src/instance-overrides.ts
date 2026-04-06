@@ -11,8 +11,24 @@ const instanceOverridesSchema = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
 
-  /** Site package — bundles theme, layout, routes, and site plugin */
-  site: z.string().optional(),
+  /**
+   * Site package override.
+   *
+   * - `package` names the site package to load (e.g. `@brains/site-rizom`).
+   *   Overrides any `site` set by the brain definition.
+   * - `variant` and `theme` are forwarded to the site plugin's config
+   *   schema, so a single site package can ship multiple flavors
+   *   (e.g. site-rizom with variant: foundation | work | ai).
+   *
+   * The whole block is optional; any subfield is optional.
+   */
+  site: z
+    .object({
+      package: z.string().optional(),
+      variant: z.string().optional(),
+      theme: z.string().optional(),
+    })
+    .optional(),
 
   /** Override instance name */
   name: z.string().optional(),

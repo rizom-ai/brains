@@ -4,7 +4,7 @@ import type { InstanceOverrides } from "./instance-overrides";
 /**
  * Collect all @-prefixed package references from instance overrides.
  *
- * Scans top-level keys (site) and plugin config values.
+ * Scans `site.package` and plugin config values.
  * Used by both the entrypoint generator (static imports) and
  * the dev runner (dynamic imports) to ensure all referenced
  * packages are registered before resolve() runs.
@@ -14,9 +14,10 @@ export function collectOverridePackageRefs(
 ): string[] {
   const refs: string[] = [];
 
-  // Top-level site package
-  if (overrides.site && isScopedPackageRef(overrides.site)) {
-    refs.push(overrides.site);
+  // Site package from brain.yaml's `site: { package: ... }` block
+  const sitePkg = overrides.site?.package;
+  if (sitePkg && isScopedPackageRef(sitePkg)) {
+    refs.push(sitePkg);
   }
 
   // Plugin config values

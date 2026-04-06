@@ -131,7 +131,7 @@ export function resolve(
       {
         themeCSS: site.theme,
         routes: site.routes,
-        entityRouteConfig: site.entityRouteConfig,
+        entityDisplay: site.entityDisplay,
         layouts: site.layouts,
       },
       siteBuilderExplicit,
@@ -144,8 +144,15 @@ export function resolve(
 
   // If a site package is present, register its plugin
   if (site) {
+    // Flavor fields from brain.yaml's `site:` block (variant, theme, ...)
+    // flow through to the site plugin's Zod-validated config schema.
+    // `package` is consumed at package-resolution time above and stripped
+    // here because the plugin factory doesn't need it.
+    const { package: _pkg, ...siteFlavor } = overrides?.site ?? {};
+
     const sitePlugin = site.plugin({
-      entityRouteConfig: site.entityRouteConfig,
+      entityDisplay: site.entityDisplay,
+      ...siteFlavor,
     });
     // Register site plugin when site-builder is active (site plugin
     // is part of the site package, not listed in presets directly)
@@ -348,14 +355,15 @@ function resolveAllPackageRefs(
 }
 /**
  * Resolve the site package from brain.yaml override or brain definition default.
- * brain.yaml `site` (a @-prefixed package ref) takes priority.
+ * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
  */
 function resolveSitePackage(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
-  if (overrides?.site && hasPackage(overrides.site)) {
-    return getPackage(overrides.site) as SitePackage;
+  const pkgRef = overrides?.site?.package;
+  if (pkgRef && hasPackage(pkgRef)) {
+    return getPackage(pkgRef) as SitePackage;
   }
   return definition.site;
 }

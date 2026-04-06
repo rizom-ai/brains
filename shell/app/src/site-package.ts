@@ -1,16 +1,16 @@
 import type {
   Plugin,
   RouteDefinitionInput,
-  EntityRouteEntry,
+  EntityDisplayEntry,
 } from "@brains/plugins";
 
 /**
  * A site package bundles everything the site-builder needs:
  * - Visual identity (theme CSS)
- * - Page structure (layout component)
- * - URL patterns (routes)
+ * - Page structure (layout components)
+ * - Hand-written routes (home, about, etc.)
  * - Data layer (site plugin with templates + datasources)
- * - Content naming (entity route config)
+ * - Display metadata per entity type (labels, navigation, pagination)
  *
  * Site packages compose reusable layouts with a specific theme
  * to create a complete site identity.
@@ -26,7 +26,7 @@ import type {
  *   layouts: { default: PersonalLayout },
  *   routes,
  *   plugin: personalSitePlugin,
- *   entityRouteConfig: {
+ *   entityDisplay: {
  *     post: { label: "Post" },
  *   },
  * };
@@ -41,12 +41,17 @@ export interface SitePackage {
   /** Layout components keyed by name — at minimum "default" is required */
   layouts: Record<string, unknown>;
 
-  /** Route definitions for the site */
+  /** Hand-written route definitions (home, about, etc.) */
   routes: RouteDefinitionInput[];
 
   /** Site plugin factory (registers templates, datasources, schema extensions) */
   plugin: (config?: Record<string, unknown>) => Plugin;
 
-  /** Entity route config — controls what things are called and their URL patterns */
-  entityRouteConfig: Record<string, EntityRouteEntry>;
+  /**
+   * Display metadata per entity type — label, plural name, layout,
+   * pagination, navigation slot. Consulted by the dynamic route
+   * generator when producing auto-generated list/detail routes for
+   * active entity plugins.
+   */
+  entityDisplay: Record<string, EntityDisplayEntry>;
 }

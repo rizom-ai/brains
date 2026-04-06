@@ -941,7 +941,7 @@ function createMockSitePackage(
     layouts: { default: null },
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
-    entityRouteConfig: { post: { label: "Post" } },
+    entityDisplay: { post: { label: "Post" } },
     ...overrides,
   };
 }
@@ -969,14 +969,14 @@ describe("resolve with site package", () => {
     expect(getConfig(siteBuilder)["themeCSS"]).toBe("body { color: pink; }");
   });
 
-  test("should inject routes and entityRouteConfig into site-builder", () => {
+  test("should inject routes and entityDisplay into site-builder", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site", {
       routes: [
         { id: "home", path: "/", title: "Home" },
         { id: "about", path: "/about", title: "About" },
       ],
-      entityRouteConfig: { post: { label: "Essay" } },
+      entityDisplay: { post: { label: "Essay" } },
     });
 
     const def = defineBrain({
@@ -992,7 +992,7 @@ describe("resolve with site package", () => {
     const sbConfig = getConfig(siteBuilder);
 
     expect(sbConfig["routes"]).toHaveLength(2);
-    expect(sbConfig["entityRouteConfig"]).toEqual({ post: { label: "Essay" } });
+    expect(sbConfig["entityDisplay"]).toEqual({ post: { label: "Essay" } });
   });
 
   test("should inject layouts into site-builder", () => {
@@ -1042,7 +1042,11 @@ describe("resolve with site package", () => {
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { site: "@brains/site-override" });
+    const config = resolve(
+      def,
+      {},
+      { site: { package: "@brains/site-override" } },
+    );
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
     // Override site plugin should be registered, not the default
@@ -1107,14 +1111,31 @@ describe("resolve with site package", () => {
   test("should parse site from brain.yaml", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-default"
+site:
+  package: "@brains/site-default"
 logLevel: debug
 `;
     const result = parseInstanceOverrides(yaml);
-    expect(result.site).toBe("@brains/site-default");
+    expect(result.site?.package).toBe("@brains/site-default");
   });
 
-  test("should pass entityRouteConfig to site plugin", () => {
+  test("should parse site with variant + theme flavor fields", () => {
+    const yaml = `
+brain: "@brains/relay"
+site:
+  package: "@brains/site-rizom"
+  variant: foundation
+  theme: github:rizom-ai/theme-foundation
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.site).toEqual({
+      package: "@brains/site-rizom",
+      variant: "foundation",
+      theme: "github:rizom-ai/theme-foundation",
+    });
+  });
+
+  test("should pass entityDisplay to site plugin", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
@@ -1126,7 +1147,7 @@ logLevel: debug
         pluginConfigs.push(cfg);
         return createMockPlugin("personal-site", cfg);
       },
-      entityRouteConfig: { post: { label: "Article" } },
+      entityDisplay: { post: { label: "Article" } },
     };
 
     const def = defineBrain({
@@ -1142,9 +1163,107 @@ logLevel: debug
     expect(pluginConfigs).toHaveLength(1);
     const sitePlugin = config.plugins?.find((p) => p.id === "personal-site");
     expect(sitePlugin).toBeDefined();
-    expect(getConfig(sitePlugin)["entityRouteConfig"]).toEqual({
+    expect(getConfig(sitePlugin)["entityDisplay"]).toEqual({
       post: { label: "Article" },
     });
+  });
+
+  test("should spread site flavor fields (variant, theme) into the site plugin config", () => {
+    // Phase 0 enabler: brain.yaml's `site: { variant, theme, ... }`
+    // flows through to the site plugin's factory so one site package
+    // can ship multiple flavors (e.g. site-rizom with foundation/work/ai).
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const pluginConfigs: PluginConfig[] = [];
+    const site: SitePackage = {
+      theme: "",
+      layouts: { default: null },
+      routes: [],
+      entityDisplay: {},
+      plugin: (config) => {
+        const cfg = config ?? {};
+        pluginConfigs.push(cfg);
+        return createMockPlugin("rizom-site", cfg);
+      },
+    };
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        site: {
+          // package: undefined — we want the brain definition's default site,
+          // just with flavor fields layered on top
+          variant: "foundation",
+          theme: "github:rizom-ai/theme-foundation",
+        },
+      },
+    );
+
+    expect(pluginConfigs).toHaveLength(1);
+    const sitePlugin = config.plugins?.find((p) => p.id === "rizom-site");
+    expect(sitePlugin).toBeDefined();
+    const cfg = getConfig(sitePlugin);
+    expect(cfg["variant"]).toBe("foundation");
+    expect(cfg["theme"]).toBe("github:rizom-ai/theme-foundation");
+    // package should NOT leak into the plugin config
+    expect(cfg["package"]).toBeUndefined();
+  });
+
+  test("should not spread package field into site plugin config", () => {
+    // package is consumed at package-resolution time and stripped before
+    // being forwarded to the plugin factory.
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const pluginConfigs: PluginConfig[] = [];
+    const defaultSite: SitePackage = {
+      theme: "",
+      layouts: { default: null },
+      routes: [],
+      entityDisplay: {},
+      plugin: (config) => {
+        const cfg = config ?? {};
+        pluginConfigs.push(cfg);
+        return createMockPlugin("default-site", cfg);
+      },
+    };
+    const overrideSite: SitePackage = {
+      theme: "",
+      layouts: { default: null },
+      routes: [],
+      entityDisplay: {},
+      plugin: (config) => {
+        const cfg = config ?? {};
+        pluginConfigs.push(cfg);
+        return createMockPlugin("override-site", cfg);
+      },
+    };
+    registerPackage("@brains/site-leakcheck", overrideSite);
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site: defaultSite,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    resolve(
+      def,
+      {},
+      { site: { package: "@brains/site-leakcheck", variant: "x" } },
+    );
+
+    // The override-site plugin was called with { variant: "x" } — no `package`
+    const overrideConfig = pluginConfigs.find((c) => c["variant"] === "x");
+    expect(overrideConfig).toBeDefined();
+    expect(overrideConfig?.["package"]).toBeUndefined();
   });
 });
 

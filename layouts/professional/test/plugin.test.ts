@@ -12,7 +12,7 @@ describe("ProfessionalSitePlugin", () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
 
     plugin = new ProfessionalSitePlugin({
-      entityRouteConfig: {
+      entityDisplay: {
         post: { label: "Essay" },
         deck: { label: "Presentation" },
       },
@@ -46,9 +46,9 @@ describe("ProfessionalSitePlugin", () => {
   });
 
   describe("Configuration", () => {
-    it("should accept entity route config", () => {
+    it("should accept entity display config", () => {
       const customPlugin = new ProfessionalSitePlugin({
-        entityRouteConfig: {
+        entityDisplay: {
           post: { label: "Blog Post", pluralName: "blog-posts" },
           deck: { label: "Slide Deck", pluralName: "slide-decks" },
         },

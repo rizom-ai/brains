@@ -22,7 +22,7 @@ const site: SitePackage = {
   routes,
   plugin: (config?: Record<string, unknown>): Plugin =>
     professionalSitePlugin(config ?? {}),
-  entityRouteConfig: {
+  entityDisplay: {
     post: { label: "Post" },
     deck: { label: "Deck" },
     project: { label: "Project" },

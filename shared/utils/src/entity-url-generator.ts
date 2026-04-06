@@ -1,10 +1,10 @@
 import { pluralize } from "./string-utils";
 
 /**
- * Configuration for entity routes
- * Maps entity types to custom labels and plural names
+ * Display metadata per entity type used for URL generation.
+ * Maps entity types to custom labels and plural names.
  */
-export interface EntityRouteConfig {
+export interface EntityDisplayMap {
   [entityType: string]: {
     label: string;
     pluralName?: string;
@@ -12,12 +12,12 @@ export interface EntityRouteConfig {
 }
 
 /**
- * Generates URLs for entity detail pages based on entity route config
- * Singleton pattern - configured once by site-builder, used by all plugins
+ * Generates URLs for entity detail pages based on entity display metadata.
+ * Singleton pattern - configured once by site-builder, used by all plugins.
  */
 export class EntityUrlGenerator {
   private static instance: EntityUrlGenerator | null = null;
-  private entityRouteConfig: EntityRouteConfig | undefined;
+  private entityDisplay: EntityDisplayMap | undefined;
 
   private constructor() {}
 
@@ -32,8 +32,8 @@ export class EntityUrlGenerator {
   /**
    * Configure the URL generator (called by site-builder plugin)
    */
-  configure(entityRouteConfig?: EntityRouteConfig): void {
-    this.entityRouteConfig = entityRouteConfig;
+  configure(entityDisplay?: EntityDisplayMap): void {
+    this.entityDisplay = entityDisplay;
   }
 
   /**
@@ -44,12 +44,12 @@ export class EntityUrlGenerator {
   }
 
   /**
-   * Check if an entity type has a configured route (is linkable)
+   * Check if an entity type has a configured display entry (is linkable).
    * @param entityType The entity type to check
-   * @returns true if the entity type has an explicit route configuration
+   * @returns true if the entity type has an explicit display entry
    */
   hasRoute(entityType: string): boolean {
-    return this.entityRouteConfig?.[entityType] !== undefined;
+    return this.entityDisplay?.[entityType] !== undefined;
   }
 
   /**
@@ -59,7 +59,7 @@ export class EntityUrlGenerator {
    * @returns The URL path (e.g., '/essays/my-post' or '/posts/my-post')
    */
   generateUrl(entityType: string, slug: string): string {
-    const config = this.entityRouteConfig?.[entityType];
+    const config = this.entityDisplay?.[entityType];
 
     if (config) {
       // Use custom config

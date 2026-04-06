@@ -1,5 +1,5 @@
 import type { z } from "@brains/utils";
-import type { EntityRouteConfig } from "../config";
+import type { EntityDisplayMap } from "../config";
 
 /**
  * CMS field widget descriptor for Sveltia/Decap CMS config
@@ -77,7 +77,7 @@ export interface CmsConfigOptions {
         hasBody?: boolean;
       }
     | undefined;
-  entityRouteConfig?: EntityRouteConfig;
+  entityDisplay?: EntityDisplayMap;
 }
 
 /** Field names that should use the multi-line text widget */
@@ -238,7 +238,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
 
     const adapter = options.getAdapter(entityType);
     const hasBody = adapter?.hasBody !== false;
-    const routeConfig = options.entityRouteConfig?.[entityType];
+    const routeConfig = options.entityDisplay?.[entityType];
     const label = routeConfig?.label ?? formatLabel(entityType);
 
     if (adapter?.isSingleton) {

@@ -91,16 +91,16 @@ export interface BrainIdentity {
 }
 
 /**
- * Entity route configuration for site building.
+ * Entity display metadata for site building.
  */
-import type { EntityRouteEntry } from "@brains/plugins";
+import type { EntityDisplayEntry } from "@brains/plugins";
 
 /**
  * Content model — how this brain structures its content.
  */
 export interface BrainContentModel {
   seedContentDir?: string;
-  entityRoutes?: Record<string, EntityRouteEntry>;
+  entityDisplay?: Record<string, EntityDisplayEntry>;
 }
 
 /**

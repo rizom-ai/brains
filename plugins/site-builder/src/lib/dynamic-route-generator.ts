@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { RouteRegistry } from "./route-registry";
 import type { RouteDefinitionInput, NavigationSlot } from "@brains/plugins";
-import type { EntityRouteConfig } from "../config";
+import type { EntityDisplayMap } from "../config";
 import { pluralize } from "@brains/utils";
 
 /**
@@ -11,7 +11,7 @@ export class DynamicRouteGenerator {
   constructor(
     private readonly context: ServicePluginContext,
     private readonly routeRegistry: RouteRegistry,
-    private readonly entityRouteConfig?: EntityRouteConfig,
+    private readonly entityDisplay?: EntityDisplayMap,
   ) {}
 
   /**
@@ -346,7 +346,7 @@ export class DynamicRouteGenerator {
       priority: number;
     };
   } {
-    const config = this.entityRouteConfig?.[entityType];
+    const config = this.entityDisplay?.[entityType];
     const DEFAULT_PAGE_SIZE = 10;
     const DEFAULT_PAGINATE = true; // Enable pagination by default
     const DEFAULT_NAV_SHOW = true;

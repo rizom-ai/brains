@@ -17,7 +17,7 @@ import { AboutPageLayout, type AboutPageData } from "./templates/about";
 import packageJson from "../package.json";
 
 const personalSiteConfigSchema = z.object({
-  entityRouteConfig: z
+  entityDisplay: z
     .object({
       post: z
         .object({
@@ -53,7 +53,7 @@ export class PersonalSitePlugin extends ServicePlugin<PersonalSiteConfig> {
       personalProfileExtension,
     );
 
-    const postsConfig = this.config.entityRouteConfig.post;
+    const postsConfig = this.config.entityDisplay.post;
     const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
 
     // Register datasources

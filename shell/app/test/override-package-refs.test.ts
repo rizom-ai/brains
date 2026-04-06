@@ -2,9 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { collectOverridePackageRefs } from "../src/override-package-refs";
 
 describe("collectOverridePackageRefs", () => {
-  test("should collect site package ref from top-level site key", () => {
+  test("should collect site package ref from site.package", () => {
     const refs = collectOverridePackageRefs({
-      site: "@brains/site-default",
+      site: { package: "@brains/site-default" },
     });
     expect(refs).toContain("@brains/site-default");
   });
@@ -22,7 +22,7 @@ describe("collectOverridePackageRefs", () => {
 
   test("should collect both site and plugin refs", () => {
     const refs = collectOverridePackageRefs({
-      site: "@brains/site-default",
+      site: { package: "@brains/site-default" },
       plugins: {
         "site-builder": {
           themeCSS: "@brains/theme-override",
@@ -43,14 +43,21 @@ describe("collectOverridePackageRefs", () => {
     expect(refs).toEqual([]);
   });
 
-  test("should ignore non-scoped-package strings", () => {
+  test("should ignore non-scoped-package strings in site.package", () => {
     const refs = collectOverridePackageRefs({
-      site: "not-a-package",
+      site: { package: "not-a-package" },
       plugins: {
         discord: {
           botToken: "some-token",
         },
       },
+    });
+    expect(refs).toEqual([]);
+  });
+
+  test("should handle an empty site block", () => {
+    const refs = collectOverridePackageRefs({
+      site: {},
     });
     expect(refs).toEqual([]);
   });

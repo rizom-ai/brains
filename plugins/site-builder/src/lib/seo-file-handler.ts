@@ -70,8 +70,8 @@ async function generateCmsFiles(
     getFrontmatterSchema: (type) =>
       context.entities.getEffectiveFrontmatterSchema(type),
     getAdapter: (type) => context.entities.getAdapter(type),
-    ...(config.entityRouteConfig && {
-      entityRouteConfig: config.entityRouteConfig,
+    ...(config.entityDisplay && {
+      entityDisplay: config.entityDisplay,
     }),
   });
 

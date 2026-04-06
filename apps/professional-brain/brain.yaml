@@ -1,5 +1,6 @@
 brain: rover
-site: "@brains/site-yeehaa"
+site:
+  package: "@brains/site-yeehaa"
 preset: full
 
 # Instance settings

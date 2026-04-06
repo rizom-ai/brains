@@ -211,10 +211,10 @@ describe("generateCmsConfig", () => {
     expect(lastField?.widget).toBe("markdown");
   });
 
-  it("should use entityRouteConfig labels when available", () => {
+  it("should use entityDisplay labels when available", () => {
     const config = generateCmsConfig({
       ...cmsOpts({ post: postFrontmatterSchema }),
-      entityRouteConfig: { post: { label: "Essay" } },
+      entityDisplay: { post: { label: "Essay" } },
     });
 
     expect(config.collections[0]?.label).toBe("Essays");

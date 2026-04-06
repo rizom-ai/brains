@@ -89,7 +89,7 @@ describe("defineBrain", () => {
       },
       contentModel: {
         seedContentDir: "./seed-content",
-        entityRoutes: {
+        entityDisplay: {
           post: { label: "Post" },
         },
       },

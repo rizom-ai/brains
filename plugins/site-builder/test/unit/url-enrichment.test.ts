@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
 import { SiteBuilder } from "../../src/lib/site-builder";
-import type { EntityRouteConfig } from "../../src/config";
+import type { EntityDisplayMap } from "../../src/config";
 import {
   createSilentLogger,
   createMockServicePluginContext,
@@ -24,7 +24,7 @@ describe("SiteBuilder - URL Enrichment", () => {
   let mockProfileService: IAnchorProfileService;
   const logger = createSilentLogger();
 
-  const entityRouteConfig: EntityRouteConfig = {
+  const entityDisplay: EntityDisplayMap = {
     post: {
       label: "Blog Post",
       pluralName: "posts",
@@ -63,13 +63,13 @@ describe("SiteBuilder - URL Enrichment", () => {
         build: mock().mockResolvedValue({ success: true }),
         clean: mock().mockResolvedValue(undefined),
       }),
-      entityRouteConfig,
+      entityDisplay,
     );
     testableSiteBuilder = siteBuilder as unknown as SiteBuilderTestable;
   });
 
   describe("enrichWithUrls", () => {
-    // The SiteBuilder constructor configures EntityUrlGenerator with entityRouteConfig,
+    // The SiteBuilder constructor configures EntityUrlGenerator with entityDisplay,
     // so we use the singleton instance which is already configured in beforeEach
     const urlGenerator = EntityUrlGenerator.getInstance();
 
@@ -277,7 +277,7 @@ describe("SiteBuilder - URL Enrichment", () => {
       expect(result.typeLabel).toBe("Blog Post");
     });
 
-    it("should handle entity without entityRouteConfig", async () => {
+    it("should handle entity without entityDisplay", async () => {
       const builderWithoutConfig = SiteBuilder.createFresh(
         logger,
         mockContext,

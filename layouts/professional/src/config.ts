@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 
-const entityRouteItemSchema = z.object({
+const entityDisplayItemSchema = z.object({
   label: z.string().describe("Display label for entity type (e.g., 'Essay')"),
   pluralName: z
     .string()
@@ -9,13 +9,13 @@ const entityRouteItemSchema = z.object({
 });
 
 export const professionalSiteConfigSchema = z.object({
-  entityRouteConfig: z
+  entityDisplay: z
     .object({
-      post: entityRouteItemSchema,
-      deck: entityRouteItemSchema,
+      post: entityDisplayItemSchema,
+      deck: entityDisplayItemSchema,
     })
     .describe(
-      "Route configuration for post and deck entity types (required for homepage)",
+      "Display metadata for post and deck entity types (required for homepage)",
     ),
 });
 

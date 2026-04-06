@@ -21,7 +21,7 @@ const site: SitePackage = {
   routes,
   plugin: (config?: Record<string, unknown>): Plugin =>
     personalSitePlugin(config ?? {}),
-  entityRouteConfig: {
+  entityDisplay: {
     post: { label: "Post" },
     series: {
       label: "Series",

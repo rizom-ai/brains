@@ -61,8 +61,8 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
     );
 
     // Compute entity list URLs from config
-    const postsConfig = this.config.entityRouteConfig.post;
-    const decksConfig = this.config.entityRouteConfig.deck;
+    const postsConfig = this.config.entityDisplay.post;
+    const decksConfig = this.config.entityDisplay.deck;
 
     const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
     const decksListUrl = `/${decksConfig.pluralName ?? decksConfig.label.toLowerCase() + "s"}`;

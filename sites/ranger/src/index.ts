@@ -58,7 +58,7 @@ const site: SitePackage = {
   routes,
   plugin: (config?: Record<string, unknown>): Plugin =>
     new RangerSitePlugin(config ?? {}),
-  entityRouteConfig: {
+  entityDisplay: {
     "social-post": {
       label: "Social Post",
       navigation: {

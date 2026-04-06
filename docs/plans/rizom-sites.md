@@ -56,11 +56,11 @@ site: z.string().optional(); // package name only
 
 ```ts
 const sitePlugin = site.plugin({
-  entityRouteConfig: site.entityRouteConfig,
+  entityDisplay: site.entityDisplay,
 });
 ```
 
-The plugin factory receives only `entityRouteConfig`. Anything else from `brain.yaml` is dropped on the floor.
+The plugin factory receives only `entityDisplay` (formerly `entityRouteConfig` — renamed in the same commit, see below). Anything else from `brain.yaml` is dropped on the floor.
 
 ### Required change
 
@@ -82,7 +82,7 @@ site: z.object({
 const { package: _pkg, ...siteFlavor } = overrides?.site ?? {};
 
 const sitePlugin = site.plugin({
-  entityRouteConfig: site.entityRouteConfig,
+  entityDisplay: site.entityDisplay,
   ...siteFlavor,
 });
 ```
@@ -98,9 +98,18 @@ We briefly considered a `z.union([z.string(), z.object({...})])` form for backwa
 - A union form would carry a `typeof === "string"` branch + deprecation comment forever; "later" never comes.
 - Single way to express a site — future readers never wonder "is this old-style or new-style?"
 
-## Phase 0: Brain-resolver enabler
+### Naming cleanup bundled with Phase 0
 
-**Files modified:** ~6, one commit
+The pre-existing `SitePackage.entityRouteConfig` field (plus its `EntityRouteEntry`/`EntityRouteConfig` types) is renamed in the same commit to `entityDisplay` / `EntityDisplayEntry` / `EntityDisplayMap`. Reasoning:
+
+- The field contains display metadata per entity type (label, plural name, layout, pagination, navigation slot), not route configuration — none of the values are route-specific; they describe how an entity type presents itself wherever it's used.
+- Consulted by the dynamic route generator at build time, but that's an implementation detail. The field is keyed by entity type, not by route.
+- `Config` suffix is vague and the `route` prefix is inaccurate.
+- Renaming atomically with Phase 0 avoids a follow-up commit touching the same files.
+
+## Phase 0: Brain-resolver enabler + entityDisplay rename
+
+**Files modified:** ~25, one commit
 
 - `shell/app/src/instance-overrides.ts` — object-only `site` schema
 - `shell/app/src/brain-resolver.ts` — spread the flavor fields

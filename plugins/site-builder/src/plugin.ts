@@ -127,7 +127,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context,
       this.routeRegistry,
       this.profileService,
-      this.config.entityRouteConfig,
+      this.config.entityDisplay,
     );
 
     // Register site-build job handler

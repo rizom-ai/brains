@@ -189,7 +189,7 @@ export type {
   SectionDefinition,
   NavigationItem,
   NavigationSlot,
-  EntityRouteEntry,
+  EntityDisplayEntry,
 } from "./types/routes";
 export {
   RouteDefinitionSchema,

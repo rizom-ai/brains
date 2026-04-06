@@ -24,7 +24,7 @@ import { join } from "path";
 import type { RouteRegistry } from "./route-registry";
 import { DynamicRouteGenerator } from "./dynamic-route-generator";
 
-import type { EntityRouteConfig } from "../config";
+import type { EntityDisplayMap } from "../config";
 import { buildSiteInfo } from "./build-site-info";
 import type { SiteInfo } from "../types/site-info";
 import { z, pluralize, EntityUrlGenerator } from "@brains/utils";
@@ -61,7 +61,7 @@ export class SiteBuilder implements ISiteBuilder {
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
   private routeRegistry: RouteRegistry;
   private profileService: IAnchorProfileService;
-  private entityRouteConfig: EntityRouteConfig | undefined;
+  private entityDisplay: EntityDisplayMap | undefined;
   private imageBuildService: ImageBuildService | null = null;
 
   /**
@@ -78,7 +78,7 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     profileService: IAnchorProfileService,
-    entityRouteConfig?: EntityRouteConfig,
+    entityDisplay?: EntityDisplayMap,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
@@ -86,7 +86,7 @@ export class SiteBuilder implements ISiteBuilder {
       context,
       routeRegistry,
       profileService,
-      entityRouteConfig,
+      entityDisplay,
     );
     return SiteBuilder.instance;
   }
@@ -101,7 +101,7 @@ export class SiteBuilder implements ISiteBuilder {
     routeRegistry: RouteRegistry,
     profileService: IAnchorProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
-    entityRouteConfig?: EntityRouteConfig,
+    entityDisplay?: EntityDisplayMap,
   ): SiteBuilder {
     return new SiteBuilder(
       logger,
@@ -109,7 +109,7 @@ export class SiteBuilder implements ISiteBuilder {
       context,
       routeRegistry,
       profileService,
-      entityRouteConfig,
+      entityDisplay,
     );
   }
 
@@ -119,17 +119,17 @@ export class SiteBuilder implements ISiteBuilder {
     context: ServicePluginContext,
     routeRegistry: RouteRegistry,
     profileService: IAnchorProfileService,
-    entityRouteConfig?: EntityRouteConfig,
+    entityDisplay?: EntityDisplayMap,
   ) {
     this.logger = logger;
     this.context = context;
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
     this.routeRegistry = routeRegistry;
     this.profileService = profileService;
-    this.entityRouteConfig = entityRouteConfig;
+    this.entityDisplay = entityDisplay;
 
     // Configure the shared EntityUrlGenerator singleton
-    EntityUrlGenerator.getInstance().configure(entityRouteConfig);
+    EntityUrlGenerator.getInstance().configure(entityDisplay);
   }
 
   private async getSiteInfo(): Promise<SiteInfo> {
@@ -168,7 +168,7 @@ export class SiteBuilder implements ISiteBuilder {
       const dynamicRouteGenerator = new DynamicRouteGenerator(
         this.context,
         this.routeRegistry,
-        this.entityRouteConfig,
+        this.entityDisplay,
       );
       await dynamicRouteGenerator.generateEntityRoutes();
 
@@ -422,7 +422,7 @@ export class SiteBuilder implements ISiteBuilder {
     const entityType = entity.entityType;
     const slug = entity.metadata.slug;
 
-    const config = this.entityRouteConfig?.[entityType];
+    const config = this.entityDisplay?.[entityType];
 
     const typeLabel = config
       ? config.label
