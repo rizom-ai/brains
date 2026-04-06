@@ -1,0 +1,10 @@
+brain: relay
+preset: default
+
+# Instance settings
+logLevel: info
+domain: rizom.foundation
+
+plugins:
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}

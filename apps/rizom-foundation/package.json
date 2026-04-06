@@ -1,0 +1,20 @@
+{
+  "name": "@brains/rizom-foundation",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "brains dev",
+    "start": "brains start",
+    "start:cli": "brains start --cli",
+    "build": "brains build",
+    "test": "echo 'no test files'",
+    "typecheck": "echo 'no source files'",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@brains/app": "workspace:*",
+    "@brains/relay": "workspace:*",
+    "preact": "^10.27.2"
+  }
+}

@@ -75,10 +75,7 @@ export function Header({
     <header className="py-4 border-b border-theme">
       <div className="max-w-layout mx-auto px-6 md:px-8">
         <div className="flex flex-row justify-between items-center">
-          <a
-            href="/"
-            className="text-brand hover:text-brand-dark transition-colors"
-          >
+          <a href="/" className="text-logo hover:opacity-80 transition-opacity">
             {titleElement}
           </a>
 

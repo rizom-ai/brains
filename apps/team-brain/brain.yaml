@@ -3,8 +3,13 @@ brain: relay
 # Instance settings
 logLevel: debug
 
-# Permissions
-anchors:
+# Relay's default preset now ships the minimal website + capture
+# entities (note, link, topics, image). team-brain opts in to decks
+# on top of that. (Old default included decks + summary; summary is
+# deferred until it gets reworked.)
+add:
+  - decks
+
 plugins:
   directory-sync:
     git:

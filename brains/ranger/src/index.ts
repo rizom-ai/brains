@@ -9,6 +9,7 @@ import { notePlugin } from "@brains/note";
 import { linkPlugin } from "@brains/link";
 import { socialMediaPlugin } from "@brains/social-media";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
+import { siteInfoPlugin } from "@brains/site-info";
 import { analyticsPlugin } from "@brains/analytics";
 import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
@@ -46,6 +47,7 @@ export default defineBrain({
       "wishlist",
       "analytics",
       "directory-sync",
+      "site-info",
       "site-builder",
       "mcp",
       "discord",
@@ -73,6 +75,7 @@ export default defineBrain({
       },
     ],
     ["analytics", analyticsPlugin, {}],
+    ["site-info", siteInfoPlugin, undefined],
     ["site-builder", siteBuilderPlugin, {}],
   ],
 
