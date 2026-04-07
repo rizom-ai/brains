@@ -5,6 +5,7 @@ import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
+import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import { DefaultLayout } from "./layouts/default";
 import { routes } from "./routes";
 import { RizomSitePlugin } from "./plugin";
@@ -47,6 +48,7 @@ const site: SitePackage = {
     "/canvases/tree.canvas.js": withPrelude(treeCanvas),
     "/canvases/constellation.canvas.js": withPrelude(constellationCanvas),
     "/canvases/roots.canvas.js": withPrelude(rootsCanvas),
+    "/boot.js": bootScript,
   },
 };
 

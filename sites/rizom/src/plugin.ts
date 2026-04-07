@@ -66,21 +66,20 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
   /**
    * Build the head script content.
    *
-   *   - Sets `data-rizom-variant` on `<body>` as soon as the body
-   *     element exists, so the theme's variant selectors apply.
-   *   - Loads the canvas script with `defer` so it runs after
-   *     the document is parsed and the `#heroCanvas` element exists.
+   *   1. A tiny inline <script> that stashes the variant name on
+   *      window.__RIZOM_VARIANT__ so the external boot script can
+   *      read it (this is the only variant-specific code that needs
+   *      to stay inline).
+   *   2. /boot.js — the full site boot (data-rizom-variant,
+   *      data-theme, scroll reveal, side-nav tracker, theme toggle),
+   *      loaded with `defer` from staticAssets.
+   *   3. The variant-specific canvas script, also `defer`.
    */
   private buildHeadScript(variant: string, canvasPath: string): string {
+    const variantJson = JSON.stringify(variant);
     return [
-      `<script>`,
-      `(function(){`,
-      `var apply=function(){document.body&&document.body.setAttribute('data-rizom-variant',${JSON.stringify(
-        variant,
-      )});};`,
-      `if(document.body){apply();}else{document.addEventListener('DOMContentLoaded',apply);}`,
-      `})();`,
-      `</script>`,
+      `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,
+      `<script src="/boot.js" defer></script>`,
       `<script src="${canvasPath}" defer></script>`,
     ].join("");
   }

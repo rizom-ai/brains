@@ -24,11 +24,16 @@ export const routes: RouteDefinitionInput[] = [
       priority: 10,
     },
     sections: [
-      {
-        id: "hero",
-        template: "rizom-site:hero",
-        content: {},
-      },
+      { id: "hero", template: "rizom-site:hero", content: {} },
+      { id: "problem", template: "rizom-site:problem", content: {} },
+      { id: "answer", template: "rizom-site:answer", content: {} },
+      { id: "rover", template: "rizom-site:rover", content: {} },
+      { id: "relay", template: "rizom-site:relay", content: {} },
+      { id: "ranger", template: "rizom-site:ranger", content: {} },
+      { id: "ownership", template: "rizom-site:ownership", content: {} },
+      { id: "quickstart", template: "rizom-site:quickstart", content: {} },
+      { id: "mission", template: "rizom-site:mission", content: {} },
+      { id: "ecosystem", template: "rizom-site:ecosystem", content: {} },
     ],
   },
 ];

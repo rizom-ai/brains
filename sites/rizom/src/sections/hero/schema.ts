@@ -3,13 +3,11 @@ import { z } from "@brains/utils";
 /**
  * Hero content for rizom sites.
  *
- * All fields are optional — each variant provides sensible defaults in
- * the layout component. An instance can override any field via
- * `brain-data/site-content/home/hero.md` (site-content plugin) if it
- * wants a custom message.
+ * All fields are optional — variant-appropriate defaults live in the
+ * layout component. Instances can override any field via
+ * `brain-data/site-content/home/hero.md` (site-content plugin).
  */
 export const HeroContentSchema = z.object({
-  eyebrow: z.string().optional(),
   headline: z.string().optional(),
   subhead: z.string().optional(),
   primaryCtaLabel: z.string().optional(),
