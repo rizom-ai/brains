@@ -13,10 +13,14 @@
  * - When the runtime shape of `SitePackage`, `personalSitePlugin`,
  *   `PersonalLayout`, or `routes` changes, this file MUST be updated
  *   in the same commit.
- * - The opaque types (`Plugin`, `RouteDefinitionInput`,
- *   `EntityDisplayEntry`) are deliberately under-specified — they
- *   are pass-through values from the consumer's perspective. Do NOT
- *   expand them to mirror internal shapes; that's the design.
+ * - `Plugin` and `RouteDefinitionInput` are deliberately opaque
+ *   pass-throughs — consumers receive them, hand them back, and
+ *   never introspect. Do NOT expand them to mirror internal shapes.
+ * - `EntityDisplayEntry` is the exception: consumers _construct_ it
+ *   in their `SitePackage`, so its fields must mirror the canonical
+ *   `EntityDisplayEntry` in `@brains/plugins` exactly. Likewise,
+ *   `Plugin["type"]` must mirror the `PluginType` union in
+ *   `@brains/plugins`. Update both here whenever those change.
  * - The runtime side (`../entries/site.ts`) re-exports the real
  *   implementations from `@brains/*`. The .js bundle produced by
  *   `scripts/build.ts` is what consumers actually execute. This
@@ -59,9 +63,6 @@ export interface RouteDefinitionInput {
  * Per-entity-type display metadata. Used by the dynamic route
  * generator to produce auto-generated list/detail pages for
  * registered entity plugins.
- *
- * Field names mirror the canonical `EntityDisplayEntry` in
- * `@brains/plugins`; keep them in sync.
  */
 export interface EntityDisplayEntry {
   /** Human-readable singular label, e.g. "Post" */

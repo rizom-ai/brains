@@ -1,6 +1,7 @@
 import { mkdirSync } from "fs";
 import { join } from "path";
 import { spawn, execSync } from "child_process";
+import pkg from "../package.json" with { type: "json" };
 import type { ParsedArgs } from "./parse-args";
 import { scaffold, type ScaffoldOptions } from "./commands/init";
 import { promptInitOptions, isInteractive } from "./lib/init-prompts";
@@ -219,6 +220,6 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
 }
 
 function runVersion(): CommandResult {
-  console.log("brain v0.1.0");
+  console.log(`brain v${pkg.version}`);
   return { success: true };
 }
