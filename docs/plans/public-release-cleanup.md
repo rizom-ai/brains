@@ -31,76 +31,117 @@
 
 All decisions below are final. No open questions remain before execution.
 
-| #   | Decision                                       | Answer                                                                                                                                                                                                                                                            |
-| --- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| D1  | Public repo URL                                | **Stage at `rizom-ai/brains-temp`** (new public repo). When fully verified, do a double-rename: `rizom-ai/brains` → `rizom-ai/brains-private`, then `rizom-ai/brains-temp` → `rizom-ai/brains`. Zero downtime; the public URL never has a moment of being broken. |
-| D2  | What ships in v0.1.0 (workspace surface)       | Per §3 inventory: `shell/*`, `shared/*` (minus branded themes), `plugins/*` (most), `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/default`, `layouts/{personal,professional}`, all of `docs/plans/*`, selected top-level docs.               |
-| D3  | What stays private                             | `apps/*`, `sites/{mylittlephoney,ranger,yeehaa}`, `shared/theme-{mylittlephoney,yeehaa,rizom}`, `brains/{relay,ranger}`, agent configs (`.claude`, `.pi`, `.agents`), `.envrc`, `skills-lock.json`, any `docs/*` file that fails the Phase 1 PII scan.            |
-| D4  | `brains/relay` and `brains/ranger`             | **Private.** Keep until they're real implementations. Only `brains/rover` ships as the reference brain model.                                                                                                                                                     |
-| D5  | `docs/plans/*`                                 | **All public.** Phase 1 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                     |
-| D6  | CHANGELOG narrative                            | Hand-write a single `v0.1.0` entry summarizing pre-launch development at high level. `.changeset/` flow takes over going forward.                                                                                                                                 |
-| D7  | Dev archive lifetime                           | **Keep indefinitely.** Storage is free and bisect-on-old-bug is invaluable.                                                                                                                                                                                       |
-| D8  | First public tag                               | **`v0.1.0`** — explicitly pre-stable, signals breaking changes expected before 1.0.                                                                                                                                                                               |
-| D9  | License                                        | **Apache-2.0** (unchanged from current `LICENSE`).                                                                                                                                                                                                                |
-| D10 | Author identity in fresh history               | **`yeehaa@offcourse.io`** (unchanged).                                                                                                                                                                                                                            |
-| D11 | `yeehaa.io` as example domain in code and docs | **Leave as-is.** It's the author's own public domain, used as canonical example throughout ~40 files. Not a leak; no scrub.                                                                                                                                       |
+| #   | Decision                                       | Answer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| --- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| D1  | Public repo URL                                | **Stage at `rizom-ai/brains-temp`** (new public repo). When fully verified, do a double-rename: `rizom-ai/brains` → `rizom-ai/brains-private`, then `rizom-ai/brains-temp` → `rizom-ai/brains`. Zero downtime; the public URL never has a moment of being broken.                                                                                                                                                                                                                                      |
+| D2  | What ships in v0.1.0 (workspace surface)       | Per §3 inventory: `shell/*`, `shared/*` (minus extracted branded themes), `plugins/*`, `entities/*`, `interfaces/*`, `packages/*`, all three brain models (`rover`, `ranger`, `relay`), `sites/{default,rizom,yeehaa}`, `layouts/{personal,professional}`, three apps (`rizom-ai`, `rizom-foundation`, `yeehaa.io`), all of `docs/plans/*`, selected top-level docs. **Apps are config-only directories now**, so the per-app privacy decision is per-directory rather than per-file.                  |
+| D3  | App disposition (revised 2026-04)              | **Stay public**: `apps/rizom-ai`, `apps/rizom-foundation`, `apps/professional-brain` (renamed `apps/yeehaa.io`). **Delete**: `apps/team-brain`, `apps/collective-brain` (transitional, being replaced by rizom-ai/foundation). **Extract to standalone private repo**: `apps/mylittlephoney`. Original "all apps private" decision is obsolete because apps are now config-only directories with no source code, paired with the architectural decision that public-repo == dev-repo (Option α in §6). |
+| D4  | `brains/relay` and `brains/ranger` (revised)   | **Public source, no published artifacts.** Both brain models are now actively used by the public-facing rizom-ai and rizom-foundation apps, so their source must be in the public monorepo for the workspace resolver. They are NOT published as docker images (publish-images matrix stays at `[rover]`) and they carry strong README disclaimers identifying them as internal-use brain models for the framework's own marketing sites. Use `rover` for any external reference.                      |
+| D5  | `docs/plans/*`                                 | **All public.** Phase 1 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                                                                                                                                                                                                                                                          |
+| D6  | CHANGELOG narrative                            | Hand-write a single `v0.1.0` entry summarizing pre-launch development at high level. `.changeset/` flow takes over going forward.                                                                                                                                                                                                                                                                                                                                                                      |
+| D7  | Dev archive lifetime                           | **Keep indefinitely.** Storage is free and bisect-on-old-bug is invaluable.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| D8  | First public tag                               | **`v0.1.0`** — explicitly pre-stable, signals breaking changes expected before 1.0.                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| D9  | License                                        | **Apache-2.0** (unchanged from current `LICENSE`).                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| D10 | Author identity in fresh history               | **`yeehaa@offcourse.io`** (unchanged).                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| D11 | `yeehaa.io` as example domain in code and docs | **Leave as-is.** It's the author's own public domain, used as canonical example throughout ~40 files. Not a leak; no scrub.                                                                                                                                                                                                                                                                                                                                                                            |
 
 ---
 
-## 3. Workspace inventory (v1.0 surface decision)
+## 3. Workspace inventory (revised 2026-04)
 
 The current workspace globs in `package.json` are:
 
 ```
 shell/*, shared/*, plugins/*, entities/*, layouts/*,
-interfaces/*, brains/*, apps/*, sites/*, packages/*
+interfaces/*, brains/*, sites/*, packages/*
 ```
+
+(Note: `apps/*` was removed from workspace globs when apps became config-only directories. Apps are no longer workspace members at all; they're consumed by the brain CLI at runtime.)
 
 ### Default-public (ship in v1.0)
 
+**Framework code:**
+
 - `shell/*` — core framework (entity-service, ai-service, messaging-service, app, core, …)
-- `shared/*` — utilities, types, test-utils, mcp-bridge, generic themes (theme-base, theme-default, theme-editorial, theme-geometric, theme-swiss, theme-neo-retro, theme-brutalist), config packages
-- `entities/*` — entity definitions (post, link, deck, blog, note, project, social-media, topics, portfolio, …)
-- `interfaces/*` — webserver, matrix, mcp, a2a, cli
-- `packages/*` — brain-cli
-- `brains/rover` — the reference open brain model
+- `shared/*` — utilities, types, test-utils, mcp-bridge, image, config packages, plus generic themes (`theme-base`, `theme-default`, `theme-editorial`, `theme-geometric`, `theme-swiss`, `theme-neo-retro`, `theme-brutalist`)
+- `entities/*` — entity definitions (post, link, deck, blog, note, project, social-media, topics, portfolio, summary, wishlist, image, agent-discovery, prompt, site-info, newsletter, products, series, …)
+- `interfaces/*` — cli, mcp, webserver, discord, a2a, chat-repl
+- `plugins/*` — all plugins (analytics, buttondown, content-pipeline, dashboard, directory-sync, examples, hackmd, notion, obsidian-vault, site-builder, site-content, stock-photo, newsletter composite)
+- `packages/*` — brain-cli (`@rizom/brain`)
+- `layouts/{personal,professional}` — generic building blocks
+
+**Brain models (all three):**
+
+- `brains/rover` — stable reference brain model. Published as docker image.
+- `brains/ranger` — internal brain model for `apps/rizom-ai`. Public source, **not published**, strong README disclaimer.
+- `brains/relay` — internal brain model for `apps/rizom-foundation`. Public source, **not published**, strong README disclaimer.
+
+**Sites (3 of 5):**
+
 - `sites/default` — generic out-of-box site package (used by rover by default)
-- `layouts/personal` — simple blog-focused layout (generic building block)
-- `layouts/professional` — editorial layout composing blog+deck+profile (generic building block)
-- `plugins/*` — except any that are private/incomplete (audit needed; default keep)
-- `LICENSE`, `README.md`, `CONTRIBUTING.md`, `KNOWN-ISSUES.md`, `CLAUDE.md` (or rewrite as `AGENTS.md`)
-- `tsconfig.json`, `package.json` (with workspaces narrowed), `bunfig.toml`, `turbo.json`, `.changeset/`, `.dependency-cruiser.js`, `.eslintrc.cjs`, `.prettierignore`, `.gitignore`, `.dockerignore`, `.husky/` (audit hooks), `.github/workflows/` (audit secrets)
-- `scripts/` — audit for hardcoded paths
-- `deploy/` — public deploy templates only (Hetzner provider, docker recipes); audit `.tfvars` and any baked-in secrets
-- `docs/` — selected (architecture-overview, brain-model, plugin-system, plugin-development-patterns, tech-stack, theming-guide, mcp-inspector-guide, plus a curated `docs/roadmap.md`)
+- `sites/rizom` — rizom brand site (used by `apps/rizom-ai` and `apps/rizom-foundation`)
+- `sites/yeehaa` — yeehaa.io brand site (used by `apps/yeehaa.io`)
 
-### Default-private (excluded from public repo)
+**Branded themes that ship publicly (paired with public sites):**
 
-- `apps/*` — all five are personal/team brain instances:
-  - `apps/collective-brain`
-  - `apps/mylittlephoney`
-  - `apps/professional-brain`
-  - `apps/rizom-foundation` (verify — may be public-facing site, could promote)
-  - `apps/team-brain`
-- `sites/mylittlephoney`, `sites/ranger`, `sites/yeehaa` — branded site content
-- `shared/theme-mylittlephoney`, `shared/theme-yeehaa` — branded themes
-- `shared/theme-rizom` — decision needed (it's the rizom.ai marketing theme; keep private by default since it's for one specific site, not a general-purpose theme)
-- `brains/relay`, `brains/ranger` — until ready
-- `docs/plans/*` — internal roadmap/strategy (needs per-file audit)
-- `docs/cost-estimates.md`, `docs/dashboard-prototype.html`, `docs/codebase-map.html`, `docs/health-checks-plan.md`, `docs/app-package-improvements.md`, `docs/universal-progress-routing-architecture.md`, `docs/messaging-system.md` — review individually
-- `docs/design/` — keep `bioluminescent-infrastructure.md` and `rizom-ai.html` (the public brand prototype); review the rest
-- `entities/agent-directory/` — orphan from earlier cleanup (already deleted)
-- `.agents/`, `.claude/`, `.pi/` — agent-specific config
-- `KNOWN-ISSUES.md` — review whether issues are public-OK
-- `skills-lock.json` — agent skill state
-- `.changeset/` — review for any in-flight changesets that mention private packages
+- `shared/theme-rizom` — rizom brand theme (paired with `sites/rizom`)
+- `shared/theme-yeehaa` — yeehaa.io brand theme (paired with `sites/yeehaa`)
+
+**Apps (3 of 6) — config-only directories, not workspace members:**
+
+- `apps/rizom-ai` — marketing site for the framework
+- `apps/rizom-foundation` — manifesto/foundation site
+- `apps/yeehaa.io` (renamed from `apps/professional-brain`) — maintainer's personal brain instance, real production reference
+
+**Top-level files / directories:**
+
+- `LICENSE`, `README.md` (rewritten for public), `CONTRIBUTING.md`, `SECURITY.md`, `STABILITY.md`, `CHANGELOG.md` (new for v0.1.0), `KNOWN-ISSUES.md` (review)
+- `tsconfig.json`, `package.json`, `bunfig.toml`, `turbo.json`, `.changeset/`, `.dependency-cruiser.js`, `.eslintrc.cjs`, `.prettierignore`, `.gitignore`, `.dockerignore`, `.husky/`, `.github/workflows/` (now fork-safe per Phase 1)
+- `scripts/` — audited for hardcoded paths in Phase 1
+- `deploy/` — public deploy templates (docker, Hetzner Kamal templates)
+- `docs/` — selected (architecture-overview, brain-model, plugin-system, plugin-development-patterns, tech-stack, theming-guide, mcp-inspector-guide, all of `docs/plans/*` per D5, plus a curated `docs/roadmap.md`)
+
+### Default-private (excluded — will be deleted from monorepo before going public)
+
+**Apps to delete entirely:**
+
+- `apps/team-brain` — transitional, being replaced by rizom-ai/foundation
+- `apps/collective-brain` — transitional, being replaced by rizom-ai/foundation
+
+**Apps to extract to a standalone private repo:**
+
+- `apps/mylittlephoney` — maintainer's personal site, lives on its own. Extracted with its paired `sites/mylittlephoney` and `shared/theme-mylittlephoney`.
+
+**Sites to delete (paired with deleted apps):**
+
+- `sites/ranger` — only consumer was `apps/collective-brain`
+
+**Sites to extract (paired with extracted apps):**
+
+- `sites/mylittlephoney` — with `apps/mylittlephoney`
+
+**Themes to delete (paired with deleted sites):**
+
+- `shared/theme-ranger` — only consumer was `sites/ranger`
+
+**Themes to extract (paired with extracted sites):**
+
+- `shared/theme-mylittlephoney` — with `sites/mylittlephoney`
+
+**Agent / IDE config:**
+
+- `.agents/`, `.claude/`, `.pi/` — agent-specific config (working state for various AI assistants)
 - `.envrc` — direnv config, may have local paths
+- `skills-lock.json` — agent skill lock file
 
-### Needs audit before deciding
+**Docs to review individually (some may already be public-eligible):**
 
-- Per-plugin: `plugins/{analytics,buttondown,content-pipeline,dashboard,directory-sync,examples,hackmd,notion,obsidian-vault,site-builder,site-content,stock-photo}` — most likely public, but verify hardcoded credentials/personal data in tests
-- `deploy/providers/hetzner/` — verify no `terraform.tfstate` or backup leaks (already gitignored, but check tracked files)
-- `.github/workflows/*.yml` — secrets references (must be GitHub Actions secrets, not literals)
+- `docs/cost-estimates.md`, `docs/dashboard-prototype.html`, `docs/codebase-map.html`, `docs/health-checks-plan.md`, `docs/app-package-improvements.md`, `docs/universal-progress-routing-architecture.md`, `docs/messaging-system.md`
+- `docs/design/` — keep `bioluminescent-infrastructure.md` and `rizom-ai.html`; review the rest
+
+**Already deleted from the tree (no action needed):**
+
+- `entities/agent-directory/` — orphan from earlier cleanup
 
 > **Note on `"private": true`:** nearly every workspace package has this flag. It's a workspace-hygiene convention to prevent accidental `npm publish`, not a content-privacy marker. Do not use it as a signal for what to include/exclude.
 
@@ -174,75 +215,80 @@ Now that HEAD has been audited and fixed, snapshot it. The backup captures the s
 
 **Exit criteria:** Two independent backups exist (local mirror + remote branch), both reflecting the post-audit state. Estimated time: **15 minutes**.
 
-### Phase 3 — Build the clean tree (in a sibling working dir)
+### Phase 3 — Build the clean tree
 
-Don't mutate the live repo. Work in a fresh clone.
+The original plan worked in a sibling staging clone. The revised plan splits Phase 3 into two sub-phases that operate on the **live repo** instead, because most of the deletions are now also dev-tree cleanup we want regardless of the public release (transitional apps going away, theme-ranger no longer needed, etc.). This means the dev archive ALSO becomes clean, not just the public copy.
 
-1. Clone for surgery:
+#### Phase 3a — In-tree cleanup (live repo)
+
+This is mechanical deletion plus a rename. All of it lands as commits on `main` and stays in the dev history.
+
+1. **Rename `apps/professional-brain` → `apps/yeehaa.io`** (or `apps/yeehaa-io` if any tooling chokes on the dot — quick check on `deploy/scripts/lib/config.sh` and the GitHub workflows). Update any references in:
+   - `deploy/` scripts that hardcode `professional-brain`
+   - `apps/yeehaa.io/brain.yaml` `name:` field
+   - Anywhere in `docs/` that links to it
+2. **Delete transitional apps and their paired sites/themes:**
    ```bash
-   cd ~/Documents
-   git clone brains brains-public-staging
-   cd brains-public-staging
+   git rm -r apps/team-brain
+   git rm -r apps/collective-brain
+   git rm -r sites/ranger
+   git rm -r shared/theme-ranger
    ```
-2. **Remove private paths** based on §3 decisions:
-
+3. **Add strong README disclaimers** to `brains/ranger/README.md` and `brains/relay/README.md` clearly marking them as internal-use brain models, with a pointer to `brains/rover` as the public reference.
+4. **Delete agent/IDE configs and dotfiles** that don't belong in a public repo:
    ```bash
-   # Apps — all private per D3
-   rm -rf apps/collective-brain apps/mylittlephoney apps/professional-brain apps/team-brain apps/rizom-foundation
-
-   # Branded sites — keep sites/default
-   rm -rf sites/mylittlephoney sites/ranger sites/yeehaa
-
-   # Branded themes — keep generic ones
-   rm -rf shared/theme-mylittlephoney shared/theme-yeehaa shared/theme-rizom
-
-   # Incomplete brain models — per D4
-   rm -rf brains/relay brains/ranger
-
-   # Agent/IDE configs
-   rm -rf .agents .claude .pi
-   rm -f .envrc skills-lock.json
-
-   # Note: docs/plans/* is public per D5; no removal. Phase 1 already handled per-file PII scan.
+   git rm -r .agents .claude .pi 2>/dev/null || true
+   git rm .envrc skills-lock.json 2>/dev/null || true
    ```
-
-3. **Narrow workspace globs** in `package.json` to explicit paths (since we're excluding specific items under `sites/`, `layouts/`, `brains/`, and we're dropping `apps/` entirely):
-   ```jsonc
-   "workspaces": [
-     "shell/*",
-     "shared/eslint-config", "shared/typescript-config", "shared/test-utils",
-     "shared/utils", "shared/image", "shared/mcp-bridge", "shared/ui-library",
-     "shared/product-site-content",
-     "shared/theme-base", "shared/theme-default", "shared/theme-editorial",
-     "shared/theme-geometric", "shared/theme-swiss", "shared/theme-neo-retro",
-     "shared/theme-brutalist",
-     "plugins/*", "entities/*", "interfaces/*", "packages/*",
-     "brains/rover",
-     "sites/default",
-     "layouts/personal", "layouts/professional"
-   ]
-   ```
-4. **Verify the tree still builds and tests still pass:**
+   (Some of these may be gitignored; the `git rm` will be a no-op for those.)
+5. **Verify everything still builds:**
    ```bash
    bun install
-   bun run typecheck    # or whatever the project's check command is
-   bun test
-   bun run build
+   bunx turbo typecheck
+   bunx turbo test
+   bunx turbo lint
    ```
-   This is the critical gate. If anything breaks because we removed a private dependency, fix it now (likely culprits: cross-package imports from private apps into shared code, which would be a real bug).
-5. **Content and UX prep** — see Phase 3.5 below for the full detail. At minimum: README rewrite, CONTRIBUTING.md, SECURITY.md, STABILITY.md, issue/PR templates, CHANGELOG with one v0.1.0 entry, curated public roadmap.
-6. **Sanity-check the final file list:**
-   ```bash
-   find . -type f -not -path './node_modules/*' -not -path './.git/*' | sort > /tmp/public-files.txt
-   wc -l /tmp/public-files.txt
-   ```
-   Skim the list. If anything looks surprising, stop and investigate.
+6. Commit as a small set of focused commits:
+   - `chore(apps): rename professional-brain to yeehaa.io`
+   - `chore(cleanup): delete transitional team-brain + collective-brain + ranger`
+   - `docs(brains): add internal-use disclaimers to ranger and relay`
+   - `chore(cleanup): remove agent/IDE configs from tracked tree`
 
-**Exit criteria:** Clean tree in `brains-public-staging/`, builds green, tests green, file list reviewed. Estimated time: **2–3 hours** (preflight confirmed no structural cross-package leakage, so removal is mechanical — see §10).
+**Exit criteria:** Live repo no longer contains transitional apps, deleted sites/themes, or tracked agent configs. Typecheck/test/lint pass. Estimated time: **1–2 hours**.
+
+#### Phase 3b — Extract `apps/mylittlephoney` to a standalone private repo
+
+This is its own multi-step migration with real coordination cost. It's separated from Phase 3a so the live repo cleanup ships first.
+
+1. **Create a new private repo** `rizom-ai/mylittlephoney` (or chosen name) on GitHub.
+2. **Copy the relevant directories** to the new repo's working dir:
+   - `apps/mylittlephoney/*` (config, deploy, brain-data if you want history)
+   - `sites/mylittlephoney/*` (the site package code)
+   - `shared/theme-mylittlephoney/*` (the theme code)
+3. **Decide how the standalone repo consumes the framework:**
+   - **(a)** Pin to `@rizom/brain` from npm (cleanest, no source coupling)
+   - **(b)** Pin to a specific tag of `rizom-ai/brains`
+   - **(c)** Bundle the site + theme INTO the app dir as a single self-contained instance (most decoupled)
+4. **Set up CI for the new repo** (deploy hooks, test hooks if needed, content sync).
+5. **Migrate brain-data** to the new repo or keep it in its existing git-sync content repo.
+6. **Verify the standalone repo boots and deploys** end-to-end against `@rizom/brain`.
+7. **Once verified, delete from the monorepo:**
+   ```bash
+   git rm -r apps/mylittlephoney
+   git rm -r sites/mylittlephoney
+   git rm -r shared/theme-mylittlephoney
+   ```
+8. Verify monorepo still builds. Commit.
+
+**Exit criteria:** mylittlephoney runs from its own repo, monorepo no longer contains it, no broken references. Estimated time: **half day to a day**, depending on how much of (3) and (4) needs custom work.
+
+#### Phase 3c — Workspace globs (no change needed)
+
+The original plan suggested narrowing workspace globs to explicit paths. The revised plan keeps globs (`shell/*`, `shared/*`, `sites/*`, `brains/*`, etc.) because the deletions in 3a/3b naturally prune them — there's nothing private left under `sites/*` or `brains/*` to exclude. Globs are less brittle than maintaining an explicit list and need no update on every package add.
 
 ### Phase 3.5 — Content and UX prep
 
-Phase 3 produces a buildable clean tree. Phase 3.5 turns it into a framework someone can actually adopt. All of this happens in the staging tree (`brains-public-staging/`) before the orphan commit. None of it lives in the dev archive — the dev README, dev CHANGELOG, etc. stay private and are written for a different audience.
+Phase 3 produces a clean live repo. Phase 3.5 adds the public-facing content needed to turn it into a framework someone can actually adopt. Unlike the original plan, this lands directly in the live monorepo as commits on `main` (not in a separate staging tree) because the dev repo and the public repo are the same repo per Option α in §6.
 
 1. **README rewrite** (half day). The current README is internally focused. The public version needs:
    - Value prop in the first paragraph — what is this, who is it for, what does it replace
@@ -294,6 +340,15 @@ Phase 3 produces a buildable clean tree. Phase 3.5 turns it into a framework som
 ### Phase 4 — Orphan commit and push to `brains-temp`
 
 Per D1, we stage the public release at a fresh `rizom-ai/brains-temp` repo and only do the final rename once everything is verified. This gives zero downtime on the current `rizom-ai/brains` URL during the transition.
+
+> **Revised flow**: Phase 3a/3b already happened in the live monorepo, so `main` already contains the clean tree. The "staging clone" used here is just a fresh clone of the post-cleanup state, used as a working dir for the orphan commit — it doesn't do any deletions itself.
+>
+> ```bash
+> cd ~/Documents
+> git clone brains brains-public-staging
+> cd brains-public-staging
+> # Tree is already clean from Phase 3 — just orphan-commit it.
+> ```
 
 1. From inside `brains-public-staging/`, create the orphan commit:
    ```bash
@@ -487,22 +542,23 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 
 ## 9. Estimated total time
 
-| Phase                                | Estimate                  |
-| ------------------------------------ | ------------------------- |
-| 0 — Decide                           | done                      |
-| 1 — Audit HEAD and fix findings      | 2–3 hours                 |
-| 2 — Backup                           | 15 min                    |
-| 3 — Build clean tree                 | 2–3 hours                 |
-| 3.5 — Content and UX prep            | 1 day                     |
-| 4 — Push to `brains-temp` and verify | 1–2 hours                 |
-| 4.5 — End-to-end smoke test          | half day (more if breaks) |
-| 5 — Double-rename and go live        | 1 hour                    |
-| 6 — Post-launch                      | 2 hours                   |
-| **Total**                            | **~2–3 working days**     |
+| Phase                                  | Estimate                  | Status                                            |
+| -------------------------------------- | ------------------------- | ------------------------------------------------- |
+| 0 — Decide                             | done                      | ✅ done                                           |
+| 1 — Audit HEAD and fix findings        | 2–3 hours                 | ✅ done (`0bd51a87`)                              |
+| 2 — Backup                             | 15 min                    | ⏸️ pending                                        |
+| 3a — In-tree cleanup (rename + delete) | 1–2 hours                 | ⏸️ pending                                        |
+| 3b — Extract `apps/mylittlephoney`     | half day to a day         | ⏸️ pending                                        |
+| 3.5 — Content and UX prep              | 1 day                     | ⏸️ drafts in `docs/public-release/`               |
+| 4 — Push to `brains-temp` and verify   | 1–2 hours                 | ⏸️ pending                                        |
+| 4.5 — End-to-end smoke test            | half day (more if breaks) | 🟡 partial (init flow tested in `/tmp/testbrain`) |
+| 5 — Double-rename and go live          | 1 hour                    | ⏸️ pending                                        |
+| 6 — Post-launch                        | 2 hours                   | ⏸️ pending                                        |
+| **Total**                              | **~3 working days**       |                                                   |
 
 Phases 3.5 and 4.5 are the additions that turn a clean code drop into an adoptable framework. Without them, v0.1.0 is technically published but the README is internal-facing, there's no contributing guide, and nobody has verified the install path works on a clean machine.
 
-Phase 3 estimate reflects the preflight finding that there is no structural cross-package coupling — removal is mechanical, not architectural surgery. Phase 1 is now the longest and most uncertain phase; it's intentionally first so we discover any blocking issues before sinking time into backup and clean-tree work.
+Phase 3 was split into 3a (mechanical in-tree cleanup, fast) and 3b (mylittlephoney extraction, slower) so the easy part can land first without being blocked by the harder migration.
 
 ---
 
