@@ -251,7 +251,16 @@ Once Tier 1 ships, `apps/mylittlephoney` is extractable:
 
 - [x] Plan written
 - [x] Tier 1 implemented (hand-written .d.ts, runtime bundle via `Bun.build`)
-- [ ] `apps/mylittlephoney` extracted
-- [ ] Tier 2 implemented (deferred)
+- [x] `@rizom/brain/themes` (Tier 2 partial) — `composeTheme`
+      re-exported from `@brains/theme-base`. Needed by the
+      `apps/mylittlephoney` extraction which hit a tailwind
+      `Cannot apply unknown utility class` crash because the site
+      build bypassed `composeTheme` and lost the shared base
+      utilities layer that exposes `--color-brand` / `--color-bg`
+      to the tailwind JIT.
+- [ ] `apps/mylittlephoney` extracted (in progress, blocked on the
+      themes export above)
+- [ ] Rest of Tier 2 (`@rizom/brain/plugins` — base Plugin type
+      etc.) still deferred
 - [ ] Tier 3 implemented (deferred)
 - [ ] Hand-written .d.ts files replaced by auto-generation (deferred)
