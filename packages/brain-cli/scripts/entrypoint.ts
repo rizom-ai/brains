@@ -35,6 +35,8 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
     App,
     handleCLI,
   } = await import("@brains/app");
+  const { registerOverridePackages } =
+    await import("../src/lib/register-override-packages");
 
   const yaml = readFileSync(join(cwd, "brain.yaml"), "utf-8");
   let overrides;
@@ -52,6 +54,14 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
     }
     process.exit(1);
   }
+
+  // Dynamically import @-prefixed package refs from brain.yaml
+  // (site.package, plugin config values) and register them in the
+  // package registry so resolve() can find them. Without this step,
+  // brain.yaml's site.package override silently falls back to the
+  // brain definition's default site.
+  await registerOverridePackages(overrides);
+
   const config = resolve(definition, process.env, overrides);
 
   if (flags.registerOnly) {

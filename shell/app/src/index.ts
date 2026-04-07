@@ -14,7 +14,8 @@ export type { LogLevel } from "./types";
 // Brain definition / resolver API
 export { defineBrain } from "./brain-definition";
 export { resolve, isScopedPackageRef } from "./brain-resolver";
-export { registerPackage } from "./package-registry";
+export { registerPackage, getPackage, hasPackage } from "./package-registry";
+export { collectOverridePackageRefs } from "./override-package-refs";
 export {
   parseInstanceOverrides,
   InstanceOverridesParseError,
