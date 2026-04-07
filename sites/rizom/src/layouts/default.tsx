@@ -28,7 +28,7 @@ export interface DefaultLayoutProps {
  */
 export function DefaultLayout({ sections }: DefaultLayoutProps): JSX.Element {
   return (
-    <>
+    <div className="bg-theme relative min-h-screen">
       {/* Full-viewport canvas background */}
       <div
         id="bgCanvasWrap"
@@ -47,6 +47,6 @@ export function DefaultLayout({ sections }: DefaultLayoutProps): JSX.Element {
       <main>{sections}</main>
 
       <Footer />
-    </>
+    </div>
   );
 }

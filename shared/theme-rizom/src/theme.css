@@ -237,6 +237,23 @@
    automatically pick up the right accent.
    ============================================ */
 @layer theme-override {
+  /* Root background — paints the html element with the theme bg-color
+     plus the decorative SVG grain. Grain lives on html (not body) so
+     the texture spans the full viewport regardless of any body-level
+     max-width container, matching docs/design/rizom-ai.themed.html. */
+  html {
+    background-color: var(--color-bg);
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+  }
+
+  /* Default body styling — inherits the theme text color, body font,
+     and rhythm. Sections override via text-theme-muted / text-accent / etc. */
+  body {
+    color: var(--color-text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+
   /* Logo */
   .text-logo { color: var(--color-logo); }
 
