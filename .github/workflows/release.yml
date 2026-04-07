@@ -3,6 +3,12 @@ name: Release
 on:
   push:
     branches: [main]
+  # Manual trigger so operators can kick off a release run without
+  # pushing a commit — useful when the previous run's version PR
+  # was merged via GITHUB_TOKEN (which does not trigger downstream
+  # workflows by GitHub policy) and the publish step needs to be
+  # re-run against the already-bumped main.
+  workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
 
