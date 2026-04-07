@@ -1,17 +1,13 @@
 import type { JSX } from "preact";
 import { Section } from "./Section";
+import type {
+  ProductCardContent,
+  ProductVariant,
+} from "../sections/products/schema";
 
-export type ProductVariant = "rover" | "relay" | "ranger";
-
-export interface ProductCardProps {
-  variant: ProductVariant;
-  label: string;
-  badge: string;
-  headline: string;
-  description: string;
-  tags: string[];
-  canvasId: string;
-}
+// Layout component for the product section template. Takes the
+// validated ProductContent directly so site-content entities flow
+// through with no shape gymnastics.
 
 // Gradients, borders, and glow colors are driven by --color-card-*
 // tokens in theme-rizom, so both dark and light modes flow through
@@ -32,7 +28,7 @@ export const ProductCard = ({
   description,
   tags,
   canvasId,
-}: ProductCardProps): JSX.Element => {
+}: ProductCardContent): JSX.Element => {
   const amber = variant === "rover";
   const accentText = amber ? "text-accent" : "text-secondary";
   const badgeClasses = amber

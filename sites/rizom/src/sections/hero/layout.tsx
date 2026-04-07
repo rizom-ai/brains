@@ -2,24 +2,21 @@ import type { JSX } from "preact";
 import type { HeroContent } from "./schema";
 import { Section } from "../../components/Section";
 import { Button } from "../../components/Button";
-import { getVariant, HERO_DEFAULTS } from "../../variant";
 
 /**
  * Hero section — full-viewport intro with animated rise-in headline,
- * subhead, and CTA row. Matches docs/design/rizom-ai.themed.html hero.
- *
- * Typography uses the bundled text-display-lg / text-body-lg tokens
- * (font-size + line-height + letter-spacing all in one class).
+ * subhead, and CTA row. All copy is content-driven via the
+ * HeroContent schema; there are no hardcoded fallbacks. Instances
+ * ship their own copy in brain-data/site-content/home/hero.md.
  */
-export const HeroLayout = (content: HeroContent): JSX.Element => {
-  // Variant-specific defaults; content overrides win on a per-field basis.
-  const d = HERO_DEFAULTS[getVariant()];
-  const headline = content.headline ?? d.headline;
-  const subhead = content.subhead ?? d.subhead;
-  const primaryCtaLabel = content.primaryCtaLabel ?? d.primaryCtaLabel;
-  const primaryCtaHref = content.primaryCtaHref ?? d.primaryCtaHref;
-  const secondaryCtaLabel = content.secondaryCtaLabel ?? d.secondaryCtaLabel;
-  const secondaryCtaHref = content.secondaryCtaHref ?? d.secondaryCtaHref;
+export const HeroLayout = ({
+  headline,
+  subhead,
+  primaryCtaLabel,
+  primaryCtaHref,
+  secondaryCtaLabel,
+  secondaryCtaHref,
+}: HeroContent): JSX.Element => {
   return (
     <Section
       id="hero"

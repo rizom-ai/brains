@@ -1,8 +1,14 @@
 import { z } from "@brains/utils";
 
-/**
- * Problem section — currently has no dynamic content.
- * The schema is an empty object so createTemplate still has a type.
- */
-export const ProblemContentSchema = z.object({});
+export const ProblemCardSchema = z.object({
+  num: z.string(),
+  title: z.string(),
+  body: z.string(),
+});
+
+export const ProblemContentSchema = z.object({
+  cards: z.array(ProblemCardSchema).length(3),
+});
+
+export type ProblemCard = z.infer<typeof ProblemCardSchema>;
 export type ProblemContent = z.infer<typeof ProblemContentSchema>;

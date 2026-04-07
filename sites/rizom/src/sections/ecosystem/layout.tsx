@@ -1,64 +1,63 @@
 import type { JSX } from "preact";
+import type { EcosystemContent, EcosystemCard } from "./schema";
 import { Section } from "../../components/Section";
-import { EcoCard, type EcoCardProps } from "../../components/EcoCard";
-import { getVariant, type RizomVariant } from "../../variant";
 
-interface EcoCardData extends Omit<EcoCardProps, "active" | "revealDelay"> {
-  variant: RizomVariant;
-}
+const BASE_CARD_CLASS =
+  "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";
 
-const CARDS: EcoCardData[] = [
-  {
-    variant: "ai",
-    suffix: "ai",
-    title: "The platform",
-    body: "Open-source AI agents built from your own knowledge. The tools that make everything else possible.",
-    linkLabel: "Visit rizom.ai →",
-    linkHref: "https://rizom.ai",
-    linkClass: "text-accent",
-    barGradient:
-      "linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)",
-    glowVar: "--color-glow-eco-ai",
-  },
-  {
-    variant: "foundation",
-    suffix: "foundation",
-    title: "The vision",
-    body: "Essays, principles, and community. Why we believe the future of knowledge work is distributed, owned, and play.",
-    linkLabel: "Read the manifesto →",
-    linkHref: "https://rizom.foundation",
-    linkClass: "text-secondary",
-    barGradient:
-      "linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)",
-    glowVar: "--color-glow-eco-foundation",
-  },
-  {
-    variant: "work",
-    suffix: "work",
-    title: "The network",
-    body: "Distributed consultancy powered by brains. Specialized expertise that mobilizes in hours, not months. Teams that assemble themselves.",
-    linkLabel: "Work with us →",
-    linkHref: "https://rizom.work",
-    linkClass: "text-secondary",
-    barGradient:
-      "linear-gradient(90deg,transparent,var(--color-brand-light)_30%,var(--color-secondary)_70%,transparent)",
-    glowVar: "--color-glow-eco-work",
-  },
-];
+const ACTIVE_EXTRAS =
+  "border-[var(--color-card-eco-ai-border)] bg-[var(--color-card-eco-ai-bg)] before:!opacity-100 before:!h-[3px] hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-ai)]";
 
-export const EcosystemLayout = (): JSX.Element => {
-  const currentVariant = getVariant();
+const STANDARD_EXTRAS =
+  "border-[var(--color-card-eco-border)] bg-[var(--color-card-eco-bg)]";
+
+const ACCENT_GLOW: Record<EcosystemCard["accent"], string> = {
+  amber: "hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-ai)]",
+  secondary:
+    "hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-foundation)]",
+};
+
+const ACCENT_BAR: Record<EcosystemCard["accent"], string> = {
+  amber:
+    "before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]",
+  secondary:
+    "before:bg-[linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]",
+};
+
+const ACCENT_LINK: Record<EcosystemCard["accent"], string> = {
+  amber: "text-accent",
+  secondary: "text-secondary",
+};
+
+export const EcosystemLayout = ({ cards }: EcosystemContent): JSX.Element => {
   return (
     <Section id="ecosystem" className="reveal pt-section pb-16 md:pb-24">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-        {CARDS.map(({ variant, ...card }, i) => (
-          <EcoCard
-            key={variant}
-            {...card}
-            active={variant === currentVariant}
-            revealDelay={`reveal-delay-${i + 1}`}
-          />
-        ))}
+        {cards.map((card, i) => {
+          const extras = card.active ? ACTIVE_EXTRAS : STANDARD_EXTRAS;
+          return (
+            <div
+              key={card.suffix}
+              className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${extras} ${ACCENT_GLOW[card.accent]} ${ACCENT_BAR[card.accent]}`}
+            >
+              <div className="flex items-center gap-1 font-nav text-body-md mb-2">
+                <span className="font-bold">rizom</span>
+                <span className="font-bold text-accent">.</span>
+                <span className="text-theme-muted">{card.suffix}</span>
+              </div>
+              <div className="font-nav text-heading-sm md:text-heading-lg font-bold">
+                {card.title}
+              </div>
+              <p className="text-body-xs text-theme-muted">{card.body}</p>
+              <a
+                href={card.linkHref}
+                className={`font-body text-label-md font-medium mt-2 transition-opacity hover:opacity-70 ${ACCENT_LINK[card.accent]}`}
+              >
+                {card.linkLabel}
+              </a>
+            </div>
+          );
+        })}
       </div>
     </Section>
   );

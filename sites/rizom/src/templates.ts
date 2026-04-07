@@ -1,9 +1,7 @@
 import { heroTemplate } from "./sections/hero";
 import { problemTemplate } from "./sections/problem";
 import { answerTemplate } from "./sections/answer";
-import { roverTemplate } from "./sections/rover";
-import { relayTemplate } from "./sections/relay";
-import { rangerTemplate } from "./sections/ranger";
+import { productsTemplate } from "./sections/products";
 import { ownershipTemplate } from "./sections/ownership";
 import { quickstartTemplate } from "./sections/quickstart";
 import { missionTemplate } from "./sections/mission";
@@ -13,9 +11,7 @@ export const templates = {
   hero: heroTemplate,
   problem: problemTemplate,
   answer: answerTemplate,
-  rover: roverTemplate,
-  relay: relayTemplate,
-  ranger: rangerTemplate,
+  products: productsTemplate,
   ownership: ownershipTemplate,
   quickstart: quickstartTemplate,
   mission: missionTemplate,
