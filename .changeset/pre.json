@@ -81,6 +81,7 @@
     "@brains/site-yeehaa": "0.1.0"
   },
   "changesets": [
-    "rizom-brain-first-alpha"
+    "rizom-brain-first-alpha",
+    "sharp-lazy-load"
   ]
 }
