@@ -81,9 +81,14 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "brain.yaml"))).toBe(true);
     });
 
-    it("should NOT create package.json", () => {
+    it("should create package.json", () => {
       scaffold(testDir, { model: "rover" });
-      expect(existsSync(join(testDir, "package.json"))).toBe(false);
+      expect(existsSync(join(testDir, "package.json"))).toBe(true);
+    });
+
+    it("should create README.md", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, "README.md"))).toBe(true);
     });
 
     it("should create .env.example", () => {
@@ -108,6 +113,64 @@ describe("brain init", () => {
     it("should NOT create .env when no apiKey provided", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".env"))).toBe(false);
+    });
+  });
+
+  describe("package.json", () => {
+    it("should pin @rizom/brain to a version", () => {
+      scaffold(testDir, { model: "rover" });
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.dependencies["@rizom/brain"]).toMatch(/^[\^~]?\d+\.\d+\.\d+/);
+    });
+
+    it("should depend on preact for JSX runtime", () => {
+      scaffold(testDir, { model: "rover" });
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.dependencies.preact).toBeDefined();
+    });
+
+    it("should set private: true", () => {
+      scaffold(testDir, { model: "rover" });
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.private).toBe(true);
+    });
+
+    it("should set type: module", () => {
+      scaffold(testDir, { model: "rover" });
+      const pkg = JSON.parse(
+        readFileSync(join(testDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.type).toBe("module");
+    });
+
+    it("should derive name from the directory basename", () => {
+      const childDir = join(testDir, "my-cool-brain");
+      mkdirSync(childDir, { recursive: true });
+      scaffold(childDir, { model: "rover" });
+      const pkg = JSON.parse(
+        readFileSync(join(childDir, "package.json"), "utf-8"),
+      );
+      expect(pkg.name).toBe("my-cool-brain");
+    });
+  });
+
+  describe("README.md", () => {
+    it("should reference the bunx brain start command", () => {
+      scaffold(testDir, { model: "rover" });
+      const readme = readFileSync(join(testDir, "README.md"), "utf-8");
+      expect(readme).toContain("bunx brain start");
+    });
+
+    it("should reference @rizom/brain", () => {
+      scaffold(testDir, { model: "rover" });
+      const readme = readFileSync(join(testDir, "README.md"), "utf-8");
+      expect(readme).toContain("@rizom/brain");
     });
   });
 
@@ -209,6 +272,22 @@ describe("brain init", () => {
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain(".env");
       expect(gitignore).toContain("node_modules");
+    });
+
+    it("should preserve .env.example as a tracked template", () => {
+      scaffold(testDir, { model: "rover" });
+      const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
+      expect(gitignore).toContain("!.env.example");
+    });
+
+    it("should exclude runtime artifacts (brain.log, brain-data, cache, data, dist)", () => {
+      scaffold(testDir, { model: "rover" });
+      const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
+      expect(gitignore).toContain("brain.log");
+      expect(gitignore).toContain("brain-data/");
+      expect(gitignore).toContain("cache/");
+      expect(gitignore).toContain("data/");
+      expect(gitignore).toContain("dist/");
     });
   });
 });

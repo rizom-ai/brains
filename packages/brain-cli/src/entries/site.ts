@@ -1,23 +1,10 @@
 /**
- * Library export for site authoring.
+ * Library export for site authoring. Re-exports the curated runtime
+ * surface a standalone site repo needs to compose its `SitePackage`.
  *
- * Anything a standalone site repo needs to compose its `SitePackage`
- * — layouts, routes, plugin types — is re-exported here.
- *
- * Consumed via:
- *
- * ```ts
- * import {
- *   personalSitePlugin,
- *   PersonalLayout,
- *   routes,
- * } from "@rizom/brain/site";
- * import type { Plugin, SitePackage } from "@rizom/brain/site";
- * ```
- *
- * See `docs/plans/library-exports.md` for the broader plan and the
- * other tiers (themes, plugins, entities, services, etc.) deferred
- * until real consumers need them.
+ * The public type contract lives in `../types/site.d.ts` and is
+ * shipped verbatim as `dist/site.d.ts` — see that file for the
+ * sync rules and replacement plan.
  */
 
 export type { Plugin } from "@brains/plugins";

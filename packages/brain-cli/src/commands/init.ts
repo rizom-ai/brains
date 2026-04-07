@@ -1,5 +1,18 @@
 import { mkdirSync, writeFileSync, chmodSync } from "fs";
-import { join } from "path";
+import { basename, join } from "path";
+import pkg from "../../package.json" with { type: "json" };
+
+/**
+ * Pinned versions written into scaffolded package.json files.
+ *
+ * `@rizom/brain` is pinned to the same version as the CLI doing the
+ * scaffolding — a brain instance is always paired with the framework
+ * version it was generated from. `preact` is pinned to a known-good
+ * version that matches what the bundled `@rizom/brain/site` was built
+ * against; bumping it independently risks JSX runtime mismatches.
+ */
+const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
+const PREACT_VERSION = "^10.27.2";
 
 export interface ScaffoldOptions {
   model: string;
@@ -17,15 +30,18 @@ export interface ScaffoldOptions {
 /**
  * Scaffold a new brain instance directory.
  *
- * Minimal scaffold (default): brain.yaml + .env.example + .gitignore + tsconfig.json
+ * Minimal scaffold (default): brain.yaml + package.json + README.md +
+ *   .env.example + .gitignore + tsconfig.json
  * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
  *
- * Apps are config-only directories — no package.json, no source code.
- * The `brain` CLI from `@rizom/brain` reads brain.yaml from cwd and runs.
+ * The scaffolded shape is a real package: it has its own `package.json`
+ * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
+ * start` works from the new dir. Custom site/theme/plugin code lives in
+ * `src/` (created lazily by the user when they need it). See
+ * `docs/plans/harmonize-monorepo-apps.md` for the unified app shape.
  *
- * The `tsconfig.json` is the one exception to "no code config": bun needs
- * it to know which JSX runtime to use when compiling Preact components from
- * the brain runtime. It contains only that hint, nothing else.
+ * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
+ * runtime when compiling site components.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const { model } = options;
@@ -33,6 +49,8 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
 
   // Always created
   writeBrainYaml(dir, model, domain, options.contentRepo);
+  writePackageJson(dir);
+  writeReadme(dir, model);
   writeEnvExample(dir);
   writeGitignore(dir);
   writeTsConfig(dir);
@@ -242,9 +260,75 @@ function writeGitignore(dir: string): void {
 .env.*
 !.env.example
 node_modules
+brain.log
+brain-data/
+dist/
+cache/
+data/
 `;
 
   writeFileSync(join(dir, ".gitignore"), content);
+}
+
+/**
+ * Write `package.json` for the new brain. The name is derived from the
+ * directory basename so `brain init my-brain` produces a package named
+ * `my-brain`. `@rizom/brain` is pinned to the version of the CLI doing
+ * the scaffolding so the brain is always paired with the framework
+ * version it was generated against.
+ */
+function writePackageJson(dir: string): void {
+  const name = basename(dir);
+  const content = {
+    name,
+    private: true,
+    type: "module",
+    scripts: {
+      start: "bunx brain start",
+    },
+    dependencies: {
+      "@rizom/brain": RIZOM_BRAIN_VERSION,
+      preact: PREACT_VERSION,
+    },
+  };
+
+  writeFileSync(
+    join(dir, "package.json"),
+    JSON.stringify(content, null, 2) + "\n",
+  );
+}
+
+/**
+ * Write a minimal README pointing the user at the quickstart commands
+ * and explaining the scaffolded layout.
+ */
+function writeReadme(dir: string, model: string): void {
+  const name = basename(dir);
+  const content = `# ${name}
+
+A personal brain instance powered by [\`@rizom/brain\`](https://github.com/rizom-ai/brains).
+
+## Quick start
+
+\`\`\`bash
+bun install
+bunx brain start
+\`\`\`
+
+## What's here
+
+- \`brain.yaml\` — instance configuration (model, plugins, secrets, permissions)
+- \`package.json\` — pins \`@rizom/brain\` and \`preact\` for module resolution
+- \`tsconfig.json\` — JSX runtime hint (Preact)
+- \`.env\` — secrets (gitignored, copy from \`.env.example\`)
+- \`brain-data/\` — content (created on first sync, gitignored by default)
+- \`src/\` — custom site, theme, or plugin code (create when you need it)
+
+This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
+plugins, change presets, or wire up integrations like Discord and MCP.
+`;
+
+  writeFileSync(join(dir, "README.md"), content);
 }
 
 // Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime;

@@ -59,23 +59,29 @@ export interface RouteDefinitionInput {
  * Per-entity-type display metadata. Used by the dynamic route
  * generator to produce auto-generated list/detail pages for
  * registered entity plugins.
+ *
+ * Field names mirror the canonical `EntityDisplayEntry` in
+ * `@brains/plugins`; keep them in sync.
  */
 export interface EntityDisplayEntry {
   /** Human-readable singular label, e.g. "Post" */
   label: string;
-  /** Plural label override (defaults to `${label}s`) */
-  pluralLabel?: string;
-  /** Navigation slot config */
-  navigation?: {
-    /** Whether to show this entity in primary navigation */
-    show?: boolean;
-    /** Sort order in navigation (lower comes first) */
-    order?: number;
-  };
-  /** Pagination size for list views */
-  pageSize?: number;
+  /** Plural name override (defaults to `${label}s`) */
+  pluralName?: string;
   /** Layout name override (defaults to "default") */
   layout?: string;
+  /** Enable pagination for list pages */
+  paginate?: boolean;
+  /** Items per page (default: 10) */
+  pageSize?: number;
+  navigation?: {
+    /** Whether to show this entity in navigation */
+    show?: boolean;
+    /** Which navigation slot to render in */
+    slot?: "primary" | "secondary";
+    /** Sort priority within the slot (lower comes first) */
+    priority?: number;
+  };
 }
 
 /**

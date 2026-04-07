@@ -98,7 +98,8 @@ describe("brain init (end-to-end)", () => {
     expect(result.success).toBe(true);
     expect(existsSync(join(outDir, "brain.yaml"))).toBe(true);
     expect(existsSync(join(outDir, ".env.example"))).toBe(true);
-    expect(existsSync(join(outDir, "package.json"))).toBe(false);
+    expect(existsSync(join(outDir, "package.json"))).toBe(true);
+    expect(existsSync(join(outDir, "README.md"))).toBe(true);
   });
 
   it("should write .env when --ai-api-key is provided non-interactively", async () => {
