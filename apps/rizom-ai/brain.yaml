@@ -1,0 +1,18 @@
+brain: ranger
+preset: default
+
+# Instance settings
+logLevel: info
+domain: rizom.ai
+
+# Use the shared rizom site package with the `ai` variant.
+# Same package serves rizom.foundation and rizom.work via different
+# variants (foundation, work) — the variant flips the canvas, accent
+# shade, and copy register.
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+
+plugins:
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
