@@ -82,6 +82,7 @@
   },
   "changesets": [
     "brain-cli-register-override-packages",
+    "externalize-preact",
     "rizom-brain-first-alpha",
     "sharp-lazy-load",
     "tailwind-runtime-deps"
