@@ -81,6 +81,7 @@
     "@brains/site-yeehaa": "0.1.0"
   },
   "changesets": [
+    "brain-cli-register-override-packages",
     "rizom-brain-first-alpha",
     "sharp-lazy-load",
     "tailwind-runtime-deps"
