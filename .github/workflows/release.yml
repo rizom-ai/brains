@@ -35,6 +35,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          # Bypass husky commit-msg hook. The changesets bot creates
+          # multiple git commits during the version step and not all
+          # of them use the `commit` input above — some internal
+          # commits use hardcoded messages that fail the conventional
+          # commit regex. CI-authored commits don't need the hook.
+          HUSKY: "0"
 
       # Auto-merge the version PR as soon as it opens so changesets ships
       # without a manual click. Auto-merge waits for the required CI checks
