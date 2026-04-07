@@ -33,9 +33,22 @@ function findMonorepoRoot(): string {
 
 const monorepoRoot = findMonorepoRoot();
 
-// ─── Bundle ───────────────────────────────────────────────────────────────
+// ─── Bundle CLI ───────────────────────────────────────────────────────────
 
 console.log("Building @rizom/brain...");
+
+// Native modules and lazy-loaded SDKs that cannot be bundled.
+// Shared between the CLI bundle and the library export bundles below.
+const sharedExternals = [
+  "@libsql/client",
+  "libsql",
+  "lightningcss",
+  "@tailwindcss/oxide",
+  // ink loads react-devtools-core unconditionally
+  "react-devtools-core",
+  // MCP SDK for --remote mode (lazy imported)
+  "@modelcontextprotocol/sdk",
+];
 
 const result = await Bun.build({
   entrypoints: [join(import.meta.dir, "entrypoint.ts")],
@@ -44,17 +57,7 @@ const result = await Bun.build({
   format: "esm",
   minify: true,
   sourcemap: "none",
-  external: [
-    // Native modules that cannot be bundled
-    "@libsql/client",
-    "libsql",
-    "lightningcss",
-    "@tailwindcss/oxide",
-    // ink loads react-devtools-core unconditionally
-    "react-devtools-core",
-    // MCP SDK for --remote mode (lazy imported)
-    "@modelcontextprotocol/sdk",
-  ],
+  external: sharedExternals,
   naming: "brain.js",
 });
 
@@ -71,6 +74,51 @@ const outFile = join(outdir, "brain.js");
 const content = await Bun.file(outFile).text();
 const stripped = content.replace(/^#!.*\n/gm, "");
 writeFileSync(outFile, `#!/usr/bin/env bun\n${stripped}`);
+
+// ─── Bundle library exports ───────────────────────────────────────────────
+//
+// One bundle per subpath export. See docs/plans/library-exports.md for the
+// three-tier rollout. Currently shipping Tier 1: @rizom/brain/site.
+//
+// Each entry re-exports a curated surface from internal @brains/* workspace
+// packages so external consumers (standalone site repos, future external
+// plugin authors) get a stable API without the @brains/* packages being
+// published separately.
+
+const libraryEntries = [
+  {
+    name: "site",
+    source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "site.d.ts"),
+  },
+] as const;
+
+for (const entry of libraryEntries) {
+  const libResult = await Bun.build({
+    entrypoints: [entry.source],
+    outdir,
+    target: "bun",
+    format: "esm",
+    minify: true,
+    sourcemap: "linked",
+    external: sharedExternals,
+    naming: `${entry.name}.js`,
+  });
+
+  if (!libResult.success) {
+    console.error(`Library bundle '${entry.name}' failed:`);
+    for (const log of libResult.logs) {
+      console.error(log);
+    }
+    process.exit(1);
+  }
+
+  // TEMPORARY: copy the hand-written .d.ts as the public API surface.
+  // See packages/brain-cli/src/types/site.d.ts for the rationale and
+  // docs/plans/library-exports.md "Open questions" for the replacement
+  // plan (auto-bundled .d.ts via api-extractor or similar, post-v0.1.0).
+  cpSync(entry.types, join(outdir, `${entry.name}.d.ts`));
+}
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 
@@ -112,6 +160,13 @@ for (const model of readdirSync(brainsDir)) {
 
 const sizeKB = Math.round(stripped.length / 1024);
 console.log(`Built dist/brain.js (${sizeKB}KB)`);
+
+for (const entry of libraryEntries) {
+  const libFile = join(outdir, `${entry.name}.js`);
+  const libSize = Math.round((await Bun.file(libFile).text()).length / 1024);
+  console.log(`Built dist/${entry.name}.js (${libSize}KB)`);
+}
+
 console.log(
   `Migrations: ${migrationSources
     .filter((s) => existsSync(s.path))

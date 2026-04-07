@@ -105,14 +105,31 @@ For each tier, the work has the same shape:
    dep tree (no shared chunks; chunks are nice in theory but add
    complexity).
 
-3. **Generate `.d.ts` files** for each entry. Two options:
-   - **(a)** Use `tsc --emitDeclarationOnly` against the entry files
-   - **(b)** Use `bun build --compile-options.declaration` (when bun
-     supports this; check current state)
+3. **Generate `.d.ts` files** for each entry.
 
-   Option (a) is the safe path. The build script invokes tsc as a
-   sub-step, outputs to `dist/`, with declaration maps for source
-   navigation.
+   **Current approach (TEMPORARY):** hand-write a `.d.ts` next to
+   the entry file (in `src/types/<name>.d.ts`, separate dir from the
+   runtime entry in `src/entries/<name>.ts` so TypeScript doesn't
+   shadow one with the other) and copy it to `dist/` verbatim from
+   the build script. This is curated as a deliberate public API
+   contract — inline types, no internal name leakage.
+
+   **Why hand-written:** both auto-bundlers we tried failed.
+   `dts-bundle-generator` chokes on loosely-typed code in
+   `@brains/job-queue` (`Cannot find symbol for node`). `rollup-plugin-dts`
+   with `external: () => false` tries to inline 700+ source files and
+   produces `MISSING_EXPORT` errors deep in the workspace graph.
+   Forcing it to respect externals just produces a thin wrapper that
+   re-exports `@brains/*`, which doesn't help consumers because those
+   packages aren't published.
+
+   **Replacement plan:** when the type graph stabilizes (post-v0.1.0)
+   and a robust .d.ts bundling story exists — likely Microsoft
+   `api-extractor` with curated entry points, or first-party tooling
+   from bun — the hand-written files are deleted and the build script
+   generates them automatically. Until then the sync rule (update the
+   .d.ts in the same commit as a public API change) is documented at
+   the top of every hand-written .d.ts file.
 
 4. **Update `package.json` exports map** with the new subpath:
 
@@ -138,8 +155,8 @@ For each tier, the work has the same shape:
 packages/brain-cli/
 ├── src/
 │   ├── index.ts              # CLI source (existing)
-│   ├── entries/
-│   │   ├── site.ts           # Tier 1 — re-exports for sites
+│   ├── entries/              # Runtime re-export entries
+│   │   ├── site.ts           # Tier 1 — runtime re-exports
 │   │   ├── themes.ts         # Tier 2
 │   │   ├── plugins.ts        # Tier 2
 │   │   ├── entities.ts       # Tier 3
@@ -147,18 +164,30 @@ packages/brain-cli/
 │   │   ├── interfaces.ts     # Tier 3
 │   │   ├── utils.ts          # Tier 3
 │   │   └── templates.ts      # Tier 3
+│   ├── types/                # Hand-written public API contracts (TEMPORARY)
+│   │   ├── site.d.ts         # Tier 1
+│   │   ├── themes.d.ts       # Tier 2
+│   │   ├── plugins.d.ts      # Tier 2
+│   │   └── ... (one per entry)
 │   └── ... (existing)
 ├── scripts/
-│   ├── build.ts              # Updated to build all entries
+│   ├── build.ts              # Bundles entries + copies hand-written .d.ts
 │   └── entrypoint.ts         # CLI entrypoint (existing)
 └── dist/
     ├── brain.js              # CLI bundle (existing)
-    ├── site.js               # Tier 1
-    ├── site.d.ts             # Tier 1
+    ├── site.js               # Tier 1 (bundled from src/entries/site.ts)
+    ├── site.d.ts             # Tier 1 (copied from src/types/site.d.ts)
     ├── themes.js             # Tier 2
     ├── themes.d.ts           # Tier 2
     └── ... (one .js + .d.ts per tier)
 ```
+
+**Why entries/ and types/ are separate dirs:** if the runtime entry
+(`src/entries/site.ts`) and the type contract (`src/types/site.d.ts`)
+live in the same directory with the same base name, TypeScript's
+project resolution shadows the .d.ts with the .ts and ESLint can't
+find the .d.ts in any project. Splitting them by directory keeps
+both files visible to tooling.
 
 ## Bundle size impact
 
@@ -221,7 +250,8 @@ Once Tier 1 ships, `apps/mylittlephoney` is extractable:
 ## Status
 
 - [x] Plan written
-- [ ] Tier 1 implemented
+- [x] Tier 1 implemented (hand-written .d.ts, runtime bundle via `Bun.build`)
 - [ ] `apps/mylittlephoney` extracted
 - [ ] Tier 2 implemented (deferred)
 - [ ] Tier 3 implemented (deferred)
+- [ ] Hand-written .d.ts files replaced by auto-generation (deferred)
