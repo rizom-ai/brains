@@ -42,17 +42,19 @@ jobs:
           # commit regex. CI-authored commits don't need the hook.
           HUSKY: "0"
 
-      # Wait for the PR's CI to finish, then squash-merge it immediately.
-      # GitHub's `--auto` flag requires branch protection with at least one
-      # required status check, which we don't have configured. `gh pr checks
-      # --watch` polls the PR checks until they complete or time out; if any
-      # fail, the command exits non-zero and the merge step never runs, so
-      # the safety is effectively the same.
-      - name: Wait for PR checks and merge
+      # Squash-merge the version PR immediately. The PR only bumps
+      # package.json version and writes CHANGELOG.md — no source code
+      # changes — so running CI on it is redundant with the CI that
+      # already ran on main before this workflow started. Merging
+      # immediately avoids the race condition where `gh pr checks
+      # --watch` exits non-zero if no checks have been reported on
+      # the branch yet.
+      - name: Merge release PR
         if: steps.changesets.outputs.pullRequestNumber != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR=${{ steps.changesets.outputs.pullRequestNumber }}
-          gh pr checks "$PR" --repo ${{ github.repository }} --watch
-          gh pr merge "$PR" --repo ${{ github.repository }} --squash --delete-branch
+          gh pr merge ${{ steps.changesets.outputs.pullRequestNumber }} \
+            --repo ${{ github.repository }} \
+            --squash \
+            --delete-branch
