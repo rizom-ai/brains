@@ -80,5 +80,7 @@
     "@brains/site-rizom": "0.1.0",
     "@brains/site-yeehaa": "0.1.0"
   },
-  "changesets": []
+  "changesets": [
+    "rizom-brain-first-alpha"
+  ]
 }
