@@ -82,6 +82,7 @@
   },
   "changesets": [
     "rizom-brain-first-alpha",
-    "sharp-lazy-load"
+    "sharp-lazy-load",
+    "tailwind-runtime-deps"
   ]
 }
