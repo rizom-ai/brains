@@ -1,4 +1,9 @@
-export type { Template, TemplateInput, ComponentType } from "./types";
+export type {
+  Template,
+  TemplateInput,
+  ComponentType,
+  RuntimeScript,
+} from "./types";
 export { TemplateSchema, createTypedComponent, createTemplate } from "./types";
 export { TemplateRegistry } from "./registry";
 export { TemplateCapabilities } from "./capabilities";

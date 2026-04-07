@@ -39,6 +39,7 @@
         "@brains/products": "workspace:*",
         "@brains/prompt": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-content": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/site-ranger": "workspace:*",
         "@brains/social-media": "workspace:*",
@@ -526,7 +527,7 @@
     },
     "packages/brain-cli": {
       "name": "@rizom/brain",
-      "version": "0.1.0",
+      "version": "0.1.1-alpha.0",
       "bin": {
         "brain": "./dist/brain.js",
       },

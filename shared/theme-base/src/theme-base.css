@@ -51,6 +51,65 @@
      so non-brand themes don't ship broken utilities. */
   --font-mono: var(--font-mono);
 
+  /* Typography scale — each entry bundles font-size + line-height +
+     letter-spacing via Tailwind v4's --text-name--line-height /
+     --text-name--letter-spacing modifiers, so a single utility (e.g.
+     `text-display-lg`) replaces three (`text-[clamp(...)]
+     leading-[1.1] tracking-[-1px]`). Themes set the actual values
+     in their :root block. */
+
+  /* Display — fluid headlines */
+  --text-display-2xl: var(--text-display-2xl);
+  --text-display-2xl--line-height: 0.9;
+  --text-display-2xl--letter-spacing: -2px;
+
+  --text-display-xl: var(--text-display-xl);
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -3px;
+
+  --text-display-lg: var(--text-display-lg);
+  --text-display-lg--line-height: 1.1;
+  --text-display-lg--letter-spacing: -1px;
+
+  --text-display-md: var(--text-display-md);
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -1px;
+
+  --text-display-sm: var(--text-display-sm);
+  --text-display-sm--line-height: 1.2;
+  --text-display-sm--letter-spacing: -0.5px;
+
+  /* Heading — subsection labels. Deliberately NO bundled line-height:
+     in the rizom mock these elements (eco-title, feature-title,
+     problem-title) inherit the body's 1.6 line-height. They're
+     emphasized labels, not display headings. Sites that want a tight
+     leading override per use site with `leading-tight` etc. */
+  --text-heading-lg: var(--text-heading-lg);
+  --text-heading-md: var(--text-heading-md);
+  --text-heading-sm: var(--text-heading-sm);
+
+  /* Body — paragraphs */
+  --text-body-xl: var(--text-body-xl);
+  --text-body-xl--line-height: 1.7;
+  --text-body-lg: var(--text-body-lg);
+  --text-body-lg--line-height: 1.7;
+  --text-body-md: var(--text-body-md);
+  --text-body-md--line-height: 1.8;
+  --text-body-sm: var(--text-body-sm);
+  --text-body-sm--line-height: 1.7;
+  --text-body-xs: var(--text-body-xs);
+  --text-body-xs--line-height: 1.7;
+
+  /* Label — small uppercase text. Letter-spacing is applied per-use
+     (different label kinds have very different tracking). */
+  --text-label-md: var(--text-label-md);
+  --text-label-sm: var(--text-label-sm);
+  --text-label-xs: var(--text-label-xs);
+
+  /* Section spacing — single fluid token, drives `py-section`,
+     `pt-section`, `pb-section`, `gap-section`, etc. */
+  --spacing-section: var(--spacing-section);
+
   /* Footer */
   --color-footer: var(--color-footer);
   --color-footer-text: var(--color-footer-text);
@@ -164,6 +223,43 @@
   .to-theme {
     --tw-gradient-to: var(--color-bg);
   }
+}
+
+/* ============================================
+   Status colors (warning / success / danger / info) — SHARED across
+   themes. These are universal UI signals (not brand colors) so they
+   live here and every theme inherits them. A theme can still override
+   individual --color-warning-* values if it wants brand-flavored
+   variants, but the sensible defaults are right here.
+   ============================================ */
+:root {
+  --palette-warning:               #CA8A04;  /* base yellow (dark mode bg/border) */
+  --palette-warning-text:          #FDE047;  /* dark-mode text */
+  --palette-warning-text-emphasis: #FEF08A;  /* dark-mode heavy text */
+  --palette-warning-bg-light:      #FEFCE8;  /* light-mode bg */
+  --palette-warning-border-light:  #FDE047;  /* light-mode border */
+  --palette-warning-text-light:    #854D0E;  /* light-mode text */
+  --palette-warning-text-emphasis-light: #92400E;
+
+  /* Dark-mode defaults */
+  --color-warning-bg:             rgb(from var(--palette-warning) r g b / 0.2);
+  --color-warning-border:         rgb(from var(--palette-warning) r g b / 0.5);
+  --color-warning-text:           var(--palette-warning-text);
+  --color-warning-text-emphasis:  var(--palette-warning-text-emphasis);
+}
+
+[data-theme="light"] {
+  --color-warning-bg:             var(--palette-warning-bg-light);
+  --color-warning-border:         var(--palette-warning-border-light);
+  --color-warning-text:           var(--palette-warning-text-light);
+  --color-warning-text-emphasis:  var(--palette-warning-text-emphasis-light);
+}
+
+@layer theme-base {
+  .bg-warning             { background-color: var(--color-warning-bg); }
+  .border-warning         { border-color: var(--color-warning-border); }
+  .text-warning           { color: var(--color-warning-text); }
+  .text-warning-emphasis  { color: var(--color-warning-text-emphasis); }
 }
 
 /* ============================================

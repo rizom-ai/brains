@@ -34,10 +34,7 @@
     --palette-dark-bg-muted: #2d3748;
     --palette-black: #000000;
 
-    /* Warning/Status Colors */
-    --palette-warning-light: #fefce8;
-    --palette-warning-border: #fde047;
-    --palette-warning-text: #854d0e;
+    /* Warning/status palette lives in theme-base (shared across themes). */
 
     /* Dark mode text colors */
     --palette-text-light: #f7fafc;
@@ -77,11 +74,7 @@
     /* Footer */
     --color-footer: var(--palette-brand-blue);
 
-    /* Warning/Status */
-    --color-warning-bg: var(--palette-warning-light);
-    --color-warning-border: var(--palette-warning-border);
-    --color-warning-text: var(--palette-warning-text);
-    --color-warning-text-emphasis: #92400e;
+    /* Warning/status semantic tokens inherit from theme-base. */
 
     /* Status Badge Colors */
     --color-status-neutral-bg: #f3f4f6;
@@ -137,10 +130,7 @@
 
     --color-footer: var(--palette-dark-purple);
 
-    --color-warning-bg: rgba(202, 138, 4, 0.2);
-    --color-warning-border: rgba(202, 138, 4, 0.5);
-    --color-warning-text: #fde047;
-    --color-warning-text-emphasis: #fef08a;
+    /* Warning tokens inherited from theme-base. */
 
     --color-status-neutral-bg: #374151;
     --color-status-neutral-text: #e5e7eb;
@@ -157,11 +147,7 @@
 
 /* Theme utilities */
 @layer theme-override {
-  /* Warning utilities */
-  .bg-warning { background-color: var(--color-warning-bg); }
-  .border-warning { border-color: var(--color-warning-border); }
-  .text-warning { color: var(--color-warning-text); }
-  .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
+  /* Warning utilities live in theme-base. */
 
   /* Navigation text */
   .text-nav { color: var(--color-brand); }

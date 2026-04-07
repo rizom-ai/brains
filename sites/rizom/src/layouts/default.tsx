@@ -28,8 +28,9 @@ export interface DefaultLayoutProps {
  */
 export function DefaultLayout({ sections }: DefaultLayoutProps): JSX.Element {
   return (
-    <div className="bg-theme relative min-h-screen">
-      {/* Full-viewport canvas background */}
+    <>
+      {/* Full-viewport canvas background — lives outside the centered
+          container so it spans the full viewport, not just 1440px. */}
       <div
         id="bgCanvasWrap"
         className="fixed top-0 left-0 w-full h-full pointer-events-none"
@@ -41,12 +42,14 @@ export function DefaultLayout({ sections }: DefaultLayoutProps): JSX.Element {
         />
       </div>
 
-      <Header />
-      <SideNav />
-
-      <main>{sections}</main>
-
-      <Footer />
-    </div>
+      {/* Centered 1440px container for everything else. The fixed nav,
+          side-nav, and bg canvas are positioned to viewport regardless. */}
+      <div className="max-w-[1440px] mx-auto relative">
+        <Header />
+        <SideNav />
+        <main>{sections}</main>
+        <Footer />
+      </div>
+    </>
   );
 }

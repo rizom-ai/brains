@@ -1,23 +1,19 @@
 import { z } from "@brains/utils";
 
+/**
+ * Which sibling rizom site a card represents. Drives the visual
+ * identity (link color, top accent bar, hover glow) end-to-end —
+ * the layout derives everything from this single field.
+ */
+export const EcosystemSuffixSchema = z.enum(["ai", "foundation", "work"]);
+export type EcosystemSuffix = z.infer<typeof EcosystemSuffixSchema>;
+
 export const EcosystemCardSchema = z.object({
-  /** Domain suffix shown after `rizom.` (e.g. "ai", "foundation", "work"). */
-  suffix: z.string(),
+  suffix: EcosystemSuffixSchema,
   title: z.string(),
   body: z.string(),
   linkLabel: z.string(),
   linkHref: z.string(),
-  /**
-   * If true, render this card with the highlighted (amber) treatment
-   * and replace the link with "You are here". Each app's seed content
-   * marks one card as active.
-   */
-  active: z.boolean(),
-  /**
-   * Color family for the link + accent bar gradient. "amber" matches
-   * the rizom.ai card; "secondary" (purple) matches foundation/work.
-   */
-  accent: z.enum(["amber", "secondary"]),
 });
 
 export const EcosystemContentSchema = z.object({

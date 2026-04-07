@@ -10,6 +10,22 @@ import { UserPermissionLevelSchema } from "./permission-service";
 export type ComponentType<P = unknown> = (props: P) => VNode;
 
 /**
+ * A runtime script that a template depends on. Site-builder collects
+ * these per route across all templates rendered on the page, dedupes
+ * by `src`, and injects them as <script> tags.
+ *
+ * Use this for non-hydration runtime scripts (background canvases,
+ * scroll observers, decorative animations) that should ONLY load on
+ * pages where the template actually renders — unlike the plugin-level
+ * head-script registration which fires on every page.
+ */
+export interface RuntimeScript {
+  src: string;
+  defer?: boolean;
+  module?: boolean;
+}
+
+/**
  * Helper function to create a type-safe component that automatically parses props
  * using the provided Zod schema
  *
@@ -49,6 +65,13 @@ export interface Template extends Omit<
 
   // Data sourcing capability (optional)
   formatter?: ContentFormatter<unknown>; // For parsing stored content
+
+  /**
+   * Runtime script dependencies. Loaded only on routes where this
+   * template actually renders — site-builder collects from all
+   * templates on a route, dedupes by src, and injects into <head>.
+   */
+  runtimeScripts?: RuntimeScript[];
 }
 
 /**
@@ -66,6 +89,7 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
       interactive?: string;
       fullscreen?: boolean;
     };
+    runtimeScripts?: RuntimeScript[];
   },
 ): Template {
   const { layout, schema, ...rest } = template;

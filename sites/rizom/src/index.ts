@@ -5,18 +5,19 @@ import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
+import productsCanvas from "./canvases/products.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import { DefaultLayout } from "./layouts/default";
 import { routes } from "./routes";
 import { RizomSitePlugin } from "./plugin";
 
-// Variant canvases reference shared helpers (createRand, drawGlowBezier, …)
-// from prelude.canvas.js as globals — in the design mock these live in an
-// inline <script> before the canvas <script src>. We replicate that by
-// concatenating prelude + variant, which keeps the variant files byte-
-// equivalent to docs/design/canvases/ for easy re-syncs.
-const withPrelude = (variant: string): string =>
-  `${canvasPrelude}\n\n${variant}`;
+// Variant + products canvases reference shared helpers (createRand,
+// drawGlowBezier, dpr, isLightMode, C, rgba, ...) from prelude.canvas.js
+// as globals. The prelude loads ONCE as its own static asset before any
+// canvas script (see RizomSitePlugin.buildHeadScript); top-level consts
+// in classic <script> mode are visible to subsequent scripts in the
+// same document via the global lexical environment, so we don't need
+// to concatenate or wrap anything.
 
 /**
  * Rizom site package — shared by rizom.ai, rizom.foundation,
@@ -45,9 +46,11 @@ const site: SitePackage = {
     new RizomSitePlugin(config ?? {}),
   entityDisplay: {},
   staticAssets: {
-    "/canvases/tree.canvas.js": withPrelude(treeCanvas),
-    "/canvases/constellation.canvas.js": withPrelude(constellationCanvas),
-    "/canvases/roots.canvas.js": withPrelude(rootsCanvas),
+    "/canvases/prelude.canvas.js": canvasPrelude,
+    "/canvases/tree.canvas.js": treeCanvas,
+    "/canvases/constellation.canvas.js": constellationCanvas,
+    "/canvases/roots.canvas.js": rootsCanvas,
+    "/canvases/products.canvas.js": productsCanvas,
     "/boot.js": bootScript,
   },
 };

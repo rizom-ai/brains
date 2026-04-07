@@ -1,6 +1,6 @@
 import { z } from "@brains/utils";
 import type { ProgressCallback, ContentFormatter } from "@brains/utils";
-import type { ComponentType } from "./types";
+import type { ComponentType, RuntimeScript } from "./types";
 
 /**
  * Site content entity types
@@ -64,6 +64,9 @@ export interface ViewTemplate<T = unknown> {
   // Content source information (preserved from ContentTemplate)
   providerId?: string; // For provider-based data fetching
   formatter?: ContentFormatter<T>; // For parsing stored content
+
+  /** Runtime script dependencies (see Template.runtimeScripts). */
+  runtimeScripts?: RuntimeScript[];
 }
 
 /**

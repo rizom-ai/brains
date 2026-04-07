@@ -79,6 +79,12 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
     const variantJson = JSON.stringify(variant);
     return [
       `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,
+      // Prelude defines the shared canvas helpers (dpr, isLightMode, C,
+      // rgba, createRand, drawGlowBezier, drawGlowNode) as top-level
+      // bindings that any subsequent <script> in this document can read.
+      // Loaded ONCE here so the variant canvas + the products canvas
+      // (injected per-template via runtimeScripts) both see them.
+      `<script src="/canvases/prelude.canvas.js" defer></script>`,
       `<script src="/boot.js" defer></script>`,
       `<script src="${canvasPath}" defer></script>`,
     ].join("");

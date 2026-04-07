@@ -21,6 +21,7 @@
     "@brains/products": "workspace:*",
     "@brains/prompt": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/site-ranger": "workspace:*",
     "@brains/social-media": "workspace:*",

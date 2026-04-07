@@ -51,6 +51,9 @@ export class RenderService implements IViewTemplateRegistry {
     if (template.layout.fullscreen) {
       viewTemplate.fullscreen = template.layout.fullscreen;
     }
+    if (template.runtimeScripts && template.runtimeScripts.length > 0) {
+      viewTemplate.runtimeScripts = template.runtimeScripts;
+    }
 
     return viewTemplate;
   }

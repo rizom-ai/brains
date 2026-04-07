@@ -35,4 +35,8 @@ export const productsTemplate = createTemplate<ProductsContent>({
       </>
     ),
   },
+  // The product cards draw their mini canvases via a shared runtime
+  // script. It ships as a static asset from the site package and
+  // loads only on routes that actually render <products>.
+  runtimeScripts: [{ src: "/canvases/products.canvas.js", defer: true }],
 });

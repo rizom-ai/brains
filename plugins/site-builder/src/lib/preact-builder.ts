@@ -213,6 +213,13 @@ export class PreactBuilder implements StaticSiteBuilder {
       headCollector.setHeadProps(headProps);
     }
 
+    // Collect per-route runtime scripts: walk this route's sections,
+    // look up each template, accumulate runtimeScripts, dedupe by src.
+    // These get appended to the global headScripts so pages without a
+    // template that declares them never load the corresponding files.
+    const perRouteScripts = collectRouteScripts(route, context);
+    const allHeadScripts = [...(context.headScripts ?? []), ...perRouteScripts];
+
     // Create full HTML page with head data
     const html = createHTMLShell(
       layoutHtml,
@@ -220,7 +227,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       context.siteConfig.title,
       context.siteConfig.themeMode,
       context.siteConfig.analyticsScript,
-      context.headScripts,
+      allHeadScripts,
     );
 
     // Determine output path
@@ -452,4 +459,34 @@ export function createPreactBuilder(
   options: StaticSiteBuilderOptions,
 ): StaticSiteBuilder {
   return new PreactBuilder(options);
+}
+
+/**
+ * Walk a route's sections, look up each template, accumulate its
+ * `runtimeScripts` declarations, dedupe by `src`, and render them as
+ * ready-to-inject <script> tag strings. Returned strings are appended
+ * to the global `context.headScripts` so template-scoped runtime
+ * dependencies only load on pages where the template actually renders.
+ */
+export function collectRouteScripts(
+  route: RouteDefinition,
+  context: BuildContext,
+): string[] {
+  const seen = new Map<
+    string,
+    { src: string; defer?: boolean; module?: boolean }
+  >();
+  for (const section of route.sections) {
+    const template = context.getViewTemplate(section.template);
+    if (!template?.runtimeScripts) continue;
+    for (const script of template.runtimeScripts) {
+      if (!seen.has(script.src)) seen.set(script.src, script);
+    }
+  }
+  return [...seen.values()].map((s) => {
+    const attrs: string[] = [`src="${s.src}"`];
+    if (s.defer) attrs.push("defer");
+    if (s.module) attrs.push('type="module"');
+    return `<script ${attrs.join(" ")}></script>`;
+  });
 }
