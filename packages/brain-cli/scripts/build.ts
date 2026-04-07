@@ -40,6 +40,27 @@ function findMonorepoRoot(): string {
 
 const monorepoRoot = findMonorepoRoot();
 
+// ─── Compile hydration scripts ────────────────────────────────────────────
+//
+// Several plugins (dashboard, etc.) ship pre-compiled hydration scripts
+// imported via `import x from "./hydration.compiled.js" with { type: "text" }`.
+// The .compiled.js files are gitignored — turbo's build task normally
+// depends on the `precompile` task to generate them. When the build runs
+// outside turbo (e.g. CI's `npm publish` calling `prepublishOnly`), we
+// have to invoke the same compile script ourselves so the imports resolve.
+
+console.log("Compiling hydration scripts...");
+const compileScript = join(monorepoRoot, "scripts", "compile-hydration.ts");
+const compileResult = Bun.spawnSync(["bun", compileScript], {
+  cwd: monorepoRoot,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (compileResult.exitCode !== 0) {
+  console.error("Hydration compile failed");
+  process.exit(1);
+}
+
 // ─── Bundle CLI + library exports ─────────────────────────────────────────
 //
 // The CLI bundle (brain.js) and one bundle per library subpath export
