@@ -65,6 +65,30 @@ describe("GitSync (simplified)", () => {
       }).trim();
       expect(remote).toBe(remoteDir);
     });
+
+    it("should include pre-existing brain-data files in the initial commit", async () => {
+      // Simulate: brain-data already has seed content when git is first
+      // initialized (e.g. directory seed copied by copySeedContentIfNeeded,
+      // or files dropped in manually before first boot).
+      writeFileSync(join(dataDir, "existing-seed.md"), "# Seed");
+      mkdirSync(join(dataDir, "nested"), { recursive: true });
+      writeFileSync(join(dataDir, "nested", "child.md"), "# Child");
+
+      const gs = createGitSync();
+      await gs.initialize();
+
+      // First (and only) commit should contain the seed files, not just
+      // an empty .gitkeep.
+      const tracked = execSync("git ls-files", {
+        cwd: dataDir,
+        encoding: "utf-8",
+      })
+        .trim()
+        .split("\n")
+        .sort();
+      expect(tracked).toContain("existing-seed.md");
+      expect(tracked).toContain("nested/child.md");
+    });
   });
 
   describe("hasRemote", () => {
@@ -133,6 +157,39 @@ describe("GitSync (simplified)", () => {
   });
 
   describe("pull", () => {
+    it("should bootstrap an empty remote by committing and pushing", async () => {
+      // Fresh empty bare remote (no branches). Existing brain-data content
+      // should be committed + pushed on first pull attempt, creating the
+      // remote branch. Previously this case silently no-op'd and the
+      // initial content never left the local machine.
+      writeFileSync(join(dataDir, "bootstrap-seed.md"), "# Bootstrap");
+
+      const gs = createGitSync();
+      await gs.initialize();
+
+      // Sanity: remote has no branches yet
+      const refsBefore = execSync("git branch", {
+        cwd: remoteDir,
+        encoding: "utf-8",
+      }).trim();
+      expect(refsBefore).toBe("");
+
+      const result = await gs.pull();
+      expect(result.files).toEqual([]);
+
+      // Remote `main` now exists and contains the seed file
+      const remoteLog = execSync("git log --oneline main", {
+        cwd: remoteDir,
+        encoding: "utf-8",
+      }).trim();
+      expect(remoteLog.length).toBeGreaterThan(0);
+      const remoteTracked = execSync("git ls-tree -r --name-only main", {
+        cwd: remoteDir,
+        encoding: "utf-8",
+      }).trim();
+      expect(remoteTracked).toContain("bootstrap-seed.md");
+    });
+
     it("should return changed file paths", async () => {
       const gs = createGitSync();
       await gs.initialize();

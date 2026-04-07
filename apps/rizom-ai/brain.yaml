@@ -12,7 +12,10 @@ domain: rizom.ai
 site:
   package: "@brains/site-rizom"
   variant: ai
-
 plugins:
+  directory-sync:
+    git:
+      repo: rizom-ai/rizom-ai-content
+      authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}

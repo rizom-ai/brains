@@ -167,18 +167,28 @@ export class GitSync implements IGitSync {
     } catch {
       await this.git.checkoutLocalBranch(this.branch);
 
-      // Create initial commit if empty
+      // Create initial commit if empty. Stage ANY existing files in the
+      // working tree (seed content, pre-populated brain-data) so the
+      // first commit captures them — otherwise the initial commit would
+      // contain only .gitkeep and the seed files would sit uncommitted
+      // forever until the first entity change triggered auto-commit.
       const log = await this.git.log().catch(() => ({ all: [] }));
       if (log.all.length === 0) {
-        const gitkeepPath = join(this.dataDir, ".gitkeep");
-        const gitkeepExists = await access(gitkeepPath).then(
-          () => true,
-          () => false,
-        );
-        if (!gitkeepExists) {
-          await writeFile(gitkeepPath, "");
+        await this.git.add("-A");
+        const status = await this.git.status();
+        if (status.staged.length === 0 && status.created.length === 0) {
+          // Truly empty working tree — fall back to .gitkeep so we have
+          // something to commit and a branch to check out.
+          const gitkeepPath = join(this.dataDir, ".gitkeep");
+          const gitkeepExists = await access(gitkeepPath).then(
+            () => true,
+            () => false,
+          );
+          if (!gitkeepExists) {
+            await writeFile(gitkeepPath, "");
+          }
+          await this.git.add(".gitkeep");
         }
-        await this.git.add(".gitkeep");
         await this.git.commit("Initial commit");
       }
     }
@@ -349,7 +359,24 @@ export class GitSync implements IGitSync {
       }
 
       if (msg.includes("couldn't find remote ref")) {
-        this.logger.info("Remote branch doesn't exist yet, skipping pull");
+        // Remote is empty (no branches) — bootstrap it by committing any
+        // pending local changes and pushing to create the remote branch.
+        // Without this the initial brain-data content would sit locally
+        // forever, never reaching the remote.
+        this.logger.info(
+          "Remote branch doesn't exist yet, bootstrapping via push",
+        );
+        try {
+          await this.commit("Bootstrap remote branch");
+        } catch (commitError) {
+          // "nothing to commit" is fine — we still need to push the
+          // existing local history to create the remote branch.
+          const cmsg = getErrorMessage(commitError);
+          if (!cmsg.includes("nothing to commit")) {
+            throw commitError;
+          }
+        }
+        await this.push();
         return { files: [] };
       }
 
