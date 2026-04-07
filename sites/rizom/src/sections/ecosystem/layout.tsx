@@ -8,7 +8,7 @@ export const EcosystemLayout = (): JSX.Element => {
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {/* ai card (highlighted, amber) */}
-        <div className="reveal reveal-delay-1 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-accent/25 bg-[linear-gradient(135deg,rgba(232,119,34,0.12)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(232,119,34,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]">
+        <div className="reveal reveal-delay-1 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-[var(--color-card-eco-ai-border)] bg-[var(--color-card-eco-ai-bg)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-ai)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]">
           <div className="flex items-center gap-1 font-nav text-body-md mb-2">
             <span className="font-bold">rizom</span>
             <span className="font-bold text-accent">.</span>
@@ -30,7 +30,7 @@ export const EcosystemLayout = (): JSX.Element => {
         </div>
 
         {/* foundation card (purple) */}
-        <div className="reveal reveal-delay-2 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[linear-gradient(135deg,rgba(107,47,160,0.06)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(140,130,200,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]">
+        <div className="reveal reveal-delay-2 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-[var(--color-card-eco-border)] bg-[var(--color-card-eco-bg)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-foundation)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]">
           <div className="flex items-center gap-1 font-nav text-body-md mb-2">
             <span className="font-bold">rizom</span>
             <span className="font-bold text-accent">.</span>
@@ -52,7 +52,7 @@ export const EcosystemLayout = (): JSX.Element => {
         </div>
 
         {/* work card (purple/amber blend) */}
-        <div className="reveal reveal-delay-3 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[linear-gradient(135deg,rgba(107,47,160,0.06)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(180,120,180,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,#FFA366_30%,var(--color-secondary)_70%,transparent)]">
+        <div className="reveal reveal-delay-3 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-[var(--color-card-eco-border)] bg-[var(--color-card-eco-bg)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_var(--color-glow-eco-work)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,var(--palette-amber-light)_30%,var(--color-secondary)_70%,transparent)]">
           <div className="flex items-center gap-1 font-nav text-body-md mb-2">
             <span className="font-bold">rizom</span>
             <span className="font-bold text-accent">.</span>

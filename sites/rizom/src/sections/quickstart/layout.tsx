@@ -26,7 +26,7 @@ export const QuickstartLayout = (): JSX.Element => {
             server, CMS, and chat interface — all in a single process.
           </p>
         </div>
-        <div className="flex-1 w-full bg-[rgba(18,16,31,0.85)] light:bg-[#1A1625] border border-white/[0.06] light:border-black/10 rounded-[10px] md:rounded-xl p-5 md:p-8 font-mono text-label-sm md:text-body-xs overflow-x-auto">
+        <div className="flex-1 w-full bg-[var(--color-surface-terminal)] border border-[var(--color-surface-terminal-border)] rounded-[10px] md:rounded-xl p-5 md:p-8 font-mono text-label-sm md:text-body-xs overflow-x-auto">
           <div className="text-theme-light text-label-sm mb-1">Install</div>
           <div className="text-accent mb-4 break-all md:break-normal">
             $ bun add -g @rizom/brain
@@ -43,7 +43,7 @@ export const QuickstartLayout = (): JSX.Element => {
           {OK_LINES.map((line) => (
             <div
               key={line}
-              className="text-[#4ade80] text-label-sm md:text-body-xs"
+              className="text-[var(--color-success)] text-label-sm md:text-body-xs"
             >
               {line}
             </div>

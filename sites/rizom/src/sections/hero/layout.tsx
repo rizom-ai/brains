@@ -31,7 +31,7 @@ export const HeroLayout = ({
         <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:flex-wrap opacity-0 animate-hero-rise [animation-delay:0.6s]">
           <a
             href={primaryCtaHref}
-            className="inline-flex items-center gap-2 font-body text-base font-semibold text-white bg-accent hover:bg-accent-dark rounded-[10px] px-8 py-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_32px_rgba(232,119,34,0.3)] w-full md:w-auto justify-center md:justify-start"
+            className="inline-flex items-center gap-2 font-body text-base font-semibold text-[var(--color-on-accent)] bg-accent hover:bg-accent-dark rounded-[10px] px-8 py-4 cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_8px_32px_var(--color-glow-cta)] w-full md:w-auto justify-center md:justify-start"
           >
             {primaryCtaLabel}
           </a>

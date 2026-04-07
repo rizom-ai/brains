@@ -17,7 +17,7 @@ export const AnswerLayout = (): JSX.Element => {
         gets shared intelligence. The network connects them — matching expertise
         to opportunity, automatically.
       </p>
-      <div className="w-[60px] h-px bg-[linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent)] mx-auto my-10 md:my-12" />
+      <div className="w-[60px] h-px bg-[var(--color-divider)] mx-auto my-10 md:my-12" />
       <div className="font-display text-display-sm mb-3.5 md:mb-4">
         It starts with you. It scales to everyone.
       </div>

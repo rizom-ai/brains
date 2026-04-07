@@ -84,6 +84,50 @@
     --color-brand-dark: var(--color-accent-dark);
     --color-brand-light: var(--palette-amber-light);
 
+    /* Text color that sits ON an accent-colored surface (e.g. white text
+       on an amber CTA button). Stays white in both modes because the
+       accent button remains saturated amber regardless of theme. */
+    --color-on-accent: var(--palette-white);
+
+    /* Status / utility colors */
+    --color-success: #4ade80;       /* terminal OK lines, success toasts */
+
+    /* Surface gradients — product cards, ecosystem cards, terminal */
+    --color-surface-terminal: rgba(18, 16, 31, 0.85);
+    --color-surface-terminal-border: rgba(255, 255, 255, 0.06);
+
+    --color-card-rover-bg: linear-gradient(135deg, rgba(28, 16, 32, 0.85) 0%, rgba(20, 14, 28, 0.85) 100%);
+    --color-card-rover-border: rgba(232, 119, 34, 0.15);
+    --color-card-rover-border-hover: rgba(232, 119, 34, 0.5);
+    --color-glow-rover: rgba(232, 119, 34, 0.25);
+
+    --color-card-relay-bg: linear-gradient(135deg, rgba(22, 16, 42, 0.85) 0%, rgba(18, 14, 30, 0.85) 100%);
+    --color-card-relay-border: rgba(140, 130, 200, 0.2);
+    --color-card-relay-border-hover: rgba(140, 130, 200, 0.5);
+    --color-glow-relay: rgba(107, 47, 160, 0.25);
+
+    --color-card-ranger-bg: linear-gradient(135deg, rgba(22, 16, 42, 0.85) 0%, rgba(24, 15, 30, 0.85) 50%, rgba(20, 16, 42, 0.85) 100%);
+    --color-card-ranger-border: rgba(120, 100, 220, 0.15);
+    --color-card-ranger-border-hover: rgba(140, 130, 200, 0.4);
+    --color-glow-ranger: rgba(107, 47, 160, 0.2);
+
+    /* Ecosystem cards — ai is highlighted, other two are standard */
+    --color-card-eco-bg: linear-gradient(135deg, rgba(107, 47, 160, 0.06) 0%, rgba(232, 119, 34, 0.03) 100%);
+    --color-card-eco-border: rgba(255, 255, 255, 0.06);
+    --color-card-eco-ai-bg: linear-gradient(135deg, rgba(232, 119, 34, 0.12) 0%, rgba(232, 119, 34, 0.03) 100%);
+    --color-card-eco-ai-border: rgba(232, 119, 34, 0.25);
+    --color-glow-eco-ai: rgba(232, 119, 34, 0.2);
+    --color-glow-eco-foundation: rgba(140, 130, 200, 0.2);
+    --color-glow-eco-work: rgba(180, 120, 180, 0.2);
+
+    /* CTA button glow — amber drop-shadow under hover */
+    --color-glow-cta: rgba(232, 119, 34, 0.3);
+    --color-glow-cta-strong: rgba(232, 119, 34, 0.4);
+
+    /* Decorative divider + highlight-underline gradients */
+    --color-divider: linear-gradient(90deg, transparent, rgba(232, 119, 34, 0.4), transparent);
+    --color-highlight-underline: linear-gradient(90deg, transparent, rgba(232, 119, 34, 0.4) 20%, rgba(232, 119, 34, 0.4) 80%, transparent);
+
     /* Logo — white in dark mode, brand amber in light mode */
     --color-logo: var(--palette-white);
 
@@ -187,6 +231,18 @@
     --color-border-light: rgba(26, 22, 37, 0.04);
 
     --color-footer: var(--palette-bg-light);
+
+    /* Light-mode surface gradient overrides — product cards switch
+       to warm paper-ish paired colors on a light background. */
+    --color-card-rover-bg: linear-gradient(135deg, #F5EDE4 0%, #F0EBE2 100%);
+    --color-card-rover-border: rgba(232, 119, 34, 0.2);
+    --color-card-relay-bg: linear-gradient(135deg, #EEEAF4 0%, #ECE8F0 100%);
+    --color-card-relay-border: rgba(107, 47, 160, 0.2);
+    --color-card-ranger-bg: linear-gradient(135deg, #EDEAF0 0%, #F0ECE5 100%);
+    --color-card-ranger-border: rgba(26, 22, 37, 0.12);
+
+    --color-surface-terminal: #1A1625;
+    --color-surface-terminal-border: rgba(26, 22, 37, 0.1);
 
     --color-warning-bg: #fefce8;
     --color-warning-border: #fde047;

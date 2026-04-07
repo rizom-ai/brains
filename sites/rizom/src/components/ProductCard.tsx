@@ -12,15 +12,15 @@ export interface ProductCardProps {
   canvasId: string;
 }
 
-// Variant-specific wrapper classes are kept verbose because each card has
-// its own light/dark gradient pair and accent-tuned hover shadow.
+// Gradients, borders, and glow colors are driven by --color-card-*
+// tokens in theme-rizom, so both dark and light modes flow through
+// the theme variables. Only layout direction is variant-specific here.
+const INNER_BASE =
+  "flex flex-col-reverse items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1";
 const INNER_CLASS: Record<ProductVariant, string> = {
-  rover:
-    "flex flex-col-reverse md:flex-row items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(28,16,32,0.85)_0%,rgba(20,14,28,0.85)_100%)] border-accent/15 hover:border-accent/50 hover:shadow-[0_20px_60px_-20px_rgba(232,119,34,0.25)] light:bg-[linear-gradient(135deg,#F5EDE4_0%,#F0EBE2_100%)] light:border-accent/20",
-  relay:
-    "flex flex-col-reverse md:flex-row-reverse items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(22,16,42,0.85)_0%,rgba(18,14,30,0.85)_100%)] border-[rgba(140,130,200,0.2)] hover:border-[rgba(140,130,200,0.5)] hover:shadow-[0_20px_60px_-20px_rgba(107,47,160,0.25)] light:bg-[linear-gradient(135deg,#EEEAF4_0%,#ECE8F0_100%)] light:border-[rgba(107,47,160,0.2)]",
-  ranger:
-    "flex flex-col-reverse md:flex-row items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(22,16,42,0.85)_0%,rgba(24,15,30,0.85)_50%,rgba(20,16,42,0.85)_100%)] border-[rgba(120,100,220,0.15)] hover:border-[rgba(140,130,200,0.4)] hover:shadow-[0_20px_60px_-20px_rgba(107,47,160,0.2)] light:bg-[linear-gradient(135deg,#EDEAF0_0%,#F0ECE5_100%)] light:border-[rgba(26,22,37,0.12)]",
+  rover: `${INNER_BASE} md:flex-row bg-[var(--color-card-rover-bg)] border-[var(--color-card-rover-border)] hover:border-[var(--color-card-rover-border-hover)] hover:shadow-[0_20px_60px_-20px_var(--color-glow-rover)]`,
+  relay: `${INNER_BASE} md:flex-row-reverse bg-[var(--color-card-relay-bg)] border-[var(--color-card-relay-border)] hover:border-[var(--color-card-relay-border-hover)] hover:shadow-[0_20px_60px_-20px_var(--color-glow-relay)]`,
+  ranger: `${INNER_BASE} md:flex-row bg-[var(--color-card-ranger-bg)] border-[var(--color-card-ranger-border)] hover:border-[var(--color-card-ranger-border-hover)] hover:shadow-[0_20px_60px_-20px_var(--color-glow-ranger)]`,
 };
 
 export const ProductCard = ({

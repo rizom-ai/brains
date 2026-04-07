@@ -3,10 +3,11 @@
  *
  * Runs once at page load and wires up:
  *   1. `data-rizom-variant` on <body> (value substituted at load time)
- *   2. `data-theme` on <html> (from localStorage, default dark)
- *   3. Scroll-reveal IntersectionObserver → toggles `.visible` on `.reveal`
- *   4. Side-nav active-dot tracker
- *   5. #themeToggle click handler
+ *   2. Scroll-reveal IntersectionObserver → toggles `.visible` on `.reveal`
+ *   3. Side-nav active-dot tracker (home route only)
+ *   4. #themeToggle label + canvas redraw on click (delegates theme flip
+ *      to window.toggleTheme, which is defined by site-builder's inline
+ *      FOUC-prevention script — see plugins/site-builder html-generator.ts)
  *
  * Shipped as a static asset at /boot.js and loaded with <script defer>.
  * The variant name is injected by RizomSitePlugin via a tiny inline
@@ -18,10 +19,6 @@
     if (document.body) {
       document.body.setAttribute("data-rizom-variant", variant);
     }
-
-    // Apply saved theme to <html>
-    var saved = localStorage.getItem("theme") || "dark";
-    document.documentElement.setAttribute("data-theme", saved);
 
     // Scroll reveal — toggle .visible on .reveal elements as they enter view
     var io = new IntersectionObserver(
@@ -38,49 +35,51 @@
       io.observe(el);
     });
 
-    // Side nav active-dot tracker
+    // Side nav active-dot tracker (skipped on routes without SideNav)
     var dots = document.querySelectorAll(".side-nav-dot");
-    var ids = [
-      "hero",
-      "features",
-      "answer",
-      "ownership",
-      "quickstart",
-      "mission",
-    ];
-    var so = new IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (e) {
-          if (e.isIntersecting) {
+    if (dots.length > 0) {
+      var ids = [
+        "hero",
+        "features",
+        "answer",
+        "ownership",
+        "quickstart",
+        "mission",
+      ];
+      var so = new IntersectionObserver(
+        function (entries) {
+          entries.forEach(function (e) {
+            if (!e.isIntersecting) return;
             var idx = ids.indexOf(e.target.id);
-            if (idx >= 0) {
-              dots.forEach(function (d) {
-                d.classList.remove("active");
-              });
-              if (dots[idx]) dots[idx].classList.add("active");
-            }
-          }
-        });
-      },
-      { threshold: 0.4 },
-    );
-    ids.forEach(function (id) {
-      var el = document.getElementById(id);
-      if (el) so.observe(el);
-    });
+            if (idx < 0 || !dots[idx] || dots[idx].classList.contains("active"))
+              return;
+            dots.forEach(function (d) {
+              d.classList.remove("active");
+            });
+            dots[idx].classList.add("active");
+          });
+        },
+        { threshold: 0.4 },
+      );
+      ids.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) so.observe(el);
+      });
+    }
 
-    // Theme toggle
+    // Theme toggle — delegate actual flip to window.toggleTheme (injected
+    // by site-builder), we just flip the button label and redraw canvases.
     var toggle = document.getElementById("themeToggle");
     if (toggle) {
-      if (saved === "light") toggle.textContent = "\u263e Dark";
+      var syncLabel = function () {
+        var isLight =
+          document.documentElement.getAttribute("data-theme") === "light";
+        toggle.textContent = isLight ? "\u263e Dark" : "\u2600 Light";
+      };
+      syncLabel();
       toggle.addEventListener("click", function () {
-        var next =
-          document.documentElement.getAttribute("data-theme") === "light"
-            ? "dark"
-            : "light";
-        document.documentElement.setAttribute("data-theme", next);
-        localStorage.setItem("theme", next);
-        toggle.textContent = next === "light" ? "\u263e Dark" : "\u2600 Light";
+        if (typeof window.toggleTheme === "function") window.toggleTheme();
+        syncLabel();
         if (typeof window.redrawAllCanvases === "function") {
           window.redrawAllCanvases();
         }

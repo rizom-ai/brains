@@ -27,7 +27,7 @@ const CARDS: ProblemCard[] = [
 export const ProblemLayout = (): JSX.Element => {
   return (
     <section
-      id="features"
+      id="problem"
       className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section"
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-[60px]">
@@ -45,6 +45,9 @@ export const ProblemLayout = (): JSX.Element => {
           </div>
         ))}
       </div>
+      {/* Decorative thread SVG — strokes/fills use the theme accent
+          (amber) and a lighter accent variant via inline style, so
+          the colors track the current variant automatically. */}
       <svg
         className="hidden md:block absolute bottom-5 left-20 right-20 h-[60px] pointer-events-none"
         viewBox="0 0 1280 60"
@@ -52,21 +55,39 @@ export const ProblemLayout = (): JSX.Element => {
       >
         <path
           d="M180,30 C380,25 580,22 780,25 C980,28 1080,32 1100,30"
-          stroke="#E87722"
+          style={{ stroke: "var(--color-accent)" }}
           strokeWidth="1"
           fill="none"
           opacity="0.1"
         />
         <path
           d="M180,35 C420,30 660,28 900,32 C1020,34 1080,35 1100,34"
-          stroke="#FFA366"
+          style={{ stroke: "var(--palette-amber-light)" }}
           strokeWidth="0.6"
           fill="none"
           opacity="0.07"
         />
-        <circle cx="180" cy="30" r="2" fill="#E87722" opacity="0.2" />
-        <circle cx="640" cy="25" r="1.5" fill="#FFA366" opacity="0.15" />
-        <circle cx="1100" cy="30" r="2" fill="#E87722" opacity="0.2" />
+        <circle
+          cx="180"
+          cy="30"
+          r="2"
+          style={{ fill: "var(--color-accent)" }}
+          opacity="0.2"
+        />
+        <circle
+          cx="640"
+          cy="25"
+          r="1.5"
+          style={{ fill: "var(--palette-amber-light)" }}
+          opacity="0.15"
+        />
+        <circle
+          cx="1100"
+          cy="30"
+          r="2"
+          style={{ fill: "var(--color-accent)" }}
+          opacity="0.2"
+        />
       </svg>
     </section>
   );
