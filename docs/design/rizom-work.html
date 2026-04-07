@@ -136,17 +136,18 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 @keyframes scrollCueRise{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:0.75;transform:translateX(-50%) translateY(0)}}
 @keyframes scrollDrop{0%{top:-20px}60%{top:48px}100%{top:48px}}
 
-/* ============= DIAGNOSTIC WIDGET — framed as a SAMPLE output, not live OS chrome ============= */
+/* ============= DIAGNOSTIC WIDGET — TMS sample report with spider chart ============= */
 .diagnostic{
-  background:rgba(13,10,26,0.78);
-  border:1px solid rgba(232,119,34,0.22);
+  /* Near-opaque panel — gives the radar a clean surface instead of competing with the constellation canvas behind */
+  background:linear-gradient(180deg,rgba(22,16,40,0.97) 0%,rgba(14,10,26,0.97) 100%);
+  border:1px solid rgba(232,119,34,0.32);
   border-radius:10px;
-  padding:30px 30px 26px;
+  padding:28px 30px 26px;
   position:relative;
   backdrop-filter:blur(14px);
   -webkit-backdrop-filter:blur(14px);
-  box-shadow:0 32px 80px -24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.03);
-  max-width:520px;width:100%;margin-left:auto;
+  box-shadow:0 32px 80px -24px rgba(0,0,0,0.7),0 0 0 1px rgba(255,255,255,0.03) inset,0 1px 0 rgba(255,255,255,0.06) inset;
+  max-width:540px;width:100%;margin-left:auto;
   opacity:0;transform:translateY(24px);
   animation:diagRise 1.1s cubic-bezier(0.2,0.8,0.2,1) 0.75s forwards;
 }
@@ -156,35 +157,92 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
   background:linear-gradient(90deg,transparent,var(--amber) 25%,var(--amber-light) 50%,var(--amber) 75%,transparent);
   border-radius:10px 10px 0 0;
 }
-.diag-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:18px}
-.diag-title{font-family:var(--font-mono);font-size:10.5px;color:var(--amber);letter-spacing:2.5px;text-transform:uppercase;font-weight:600}
-.diag-tag{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
-.diag-row{display:grid;grid-template-columns:128px 1fr 44px;align-items:center;gap:14px;padding:9px 0}
-.diag-label{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.diag-bar{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;position:relative}
-.diag-bar-fill{height:100%;background:linear-gradient(90deg,var(--amber-dark),var(--amber));border-radius:2px;width:0;animation:diagFill 1.4s cubic-bezier(0.2,0.8,0.2,1) 1.3s forwards}
-.diag-bar-fill.warn{background:linear-gradient(90deg,var(--amber),var(--amber-light))}
-@keyframes diagFill{to{width:var(--w)}}
-.diag-value{font-family:var(--font-mono);font-size:11px;color:var(--text);text-align:right;font-weight:500}
-.diag-value.dim{color:var(--text-muted)}
-.diag-value.warn{color:var(--amber-light)}
-.diag-result{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:baseline}
-.diag-result-label{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px}
-.diag-result-value{font-family:var(--font-head);font-size:18px;color:var(--text-dim);letter-spacing:-0.2px;font-style:italic;font-variation-settings:"wght" 420}
-.diag-result-value::before{content:'—';color:var(--amber);margin-right:10px;font-style:normal;font-weight:500}
+.diag-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.12);margin-bottom:6px}
+.diag-title{font-family:var(--font-mono);font-size:10.5px;color:var(--amber-light);letter-spacing:2.5px;text-transform:uppercase;font-weight:600}
+.diag-tag{font-family:var(--font-mono);font-size:9.5px;color:rgba(255,255,255,0.48);letter-spacing:1.5px;text-transform:uppercase}
+
+/* Spider / radar chart — dark-mode tuned for visibility */
+.radar-wrap{padding:10px 0 4px}
+.radar{width:100%;height:auto;display:block;max-width:440px;margin:0 auto}
+.radar .ring{fill:none;stroke:rgba(255,255,255,0.13);stroke-width:1.2}
+.radar .ring-outer{stroke:rgba(255,255,255,0.26);stroke-width:1.5}
+.radar .axis{stroke:rgba(255,255,255,0.11);stroke-width:1.2;stroke-dasharray:2 4}
+.radar .data{
+  fill:rgba(232,119,34,0.22);
+  stroke:var(--amber);
+  stroke-width:2.5;
+  stroke-linejoin:round;
+  filter:drop-shadow(0 0 14px rgba(232,119,34,0.45));
+}
+.radar .vertex{fill:var(--amber-light);stroke:#0D0A1A;stroke-width:2}
+.radar .axis-label{
+  font-family:var(--font-mono);font-size:10.5px;font-weight:600;
+  fill:rgba(255,255,255,0.82);letter-spacing:1.4px;text-transform:uppercase;
+}
+.radar .grid-g{opacity:0;animation:radarGridFade 0.6s ease 0.9s forwards}
+@keyframes radarGridFade{to{opacity:1}}
+.radar .data-g{transform-origin:180px 150px;transform:scale(0);animation:radarFill 1.2s cubic-bezier(0.2,0.8,0.2,1) 1.15s forwards}
+@keyframes radarFill{to{transform:scale(1)}}
+.radar .labels-g{opacity:0;animation:radarLabelsFade 0.6s ease 1.5s forwards}
+@keyframes radarLabelsFade{to{opacity:1}}
+
+/* Verdict row — "Your team type — Distributed specialists" */
+.diag-verdict{
+  display:flex;justify-content:space-between;align-items:baseline;gap:16px;
+  padding:18px 0 16px;border-top:1px solid rgba(255,255,255,0.12);margin-top:6px;
+  opacity:0;animation:diagRowFade 0.6s ease 1.8s forwards;
+}
+@keyframes diagRowFade{to{opacity:1}}
+.verdict-label{font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.52);letter-spacing:1.4px;text-transform:uppercase;white-space:nowrap;font-weight:500}
+.verdict-value{
+  font-family:var(--font-head);font-size:18px;font-weight:500;font-style:italic;
+  color:#fff;letter-spacing:-0.2px;text-align:right;
+  font-variation-settings:"wght" 520;
+}
+.verdict-value::before{content:'—';color:var(--amber-light);margin-right:8px;font-style:normal;font-weight:600}
+
+/* Priority actions / recommendations */
+.diag-findings{
+  padding-top:18px;border-top:1px solid rgba(255,255,255,0.12);
+  opacity:0;animation:diagRowFade 0.6s ease 2s forwards;
+}
+.findings-label{font-family:var(--font-mono);font-size:9.5px;color:rgba(255,255,255,0.52);letter-spacing:1.8px;text-transform:uppercase;font-weight:600;display:block}
+.findings-list{list-style:none;padding:0;margin:16px 0 0;display:flex;flex-direction:column;gap:12px}
+.findings-list li{display:flex;align-items:baseline;gap:14px;font-family:var(--font-body);font-size:14px;line-height:1.5;color:rgba(255,255,255,0.84)}
+.f-num{font-family:var(--font-mono);font-size:10px;color:var(--amber-light);font-weight:600;letter-spacing:1px;min-width:18px;padding-top:1px}
+.f-text{flex:1}
+
+/* CTA button inside the widget */
 .diag-cta{
-  margin-top:18px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  margin-top:20px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
   padding:13px 16px;background:transparent;
   border:1px solid rgba(232,119,34,0.45);color:var(--amber);
   font-family:var(--font-mono);font-size:10.5px;font-weight:500;
   letter-spacing:1.8px;text-transform:uppercase;
   border-radius:6px;cursor:pointer;transition:all 0.3s;text-decoration:none;
+  opacity:0;animation:diagRowFade 0.6s ease 2.2s forwards;
 }
 .diag-cta:hover{background:rgba(232,119,34,0.1);border-color:var(--amber);box-shadow:0 0 0 3px rgba(232,119,34,0.06)}
-body.light .diagnostic{background:rgba(242,238,232,0.92);border-color:rgba(196,90,8,0.3);box-shadow:0 32px 80px -24px rgba(26,22,37,0.18),inset 0 1px 0 rgba(255,255,255,0.5)}
-body.light .diag-header,body.light .diag-result{border-color:rgba(26,22,37,0.1)}
-body.light .diag-bar{background:rgba(26,22,37,0.08)}
+
+/* Light mode overrides */
+body.light .diagnostic{
+  background:linear-gradient(180deg,rgba(248,244,236,0.97) 0%,rgba(242,238,232,0.97) 100%);
+  border-color:rgba(196,90,8,0.32);
+  box-shadow:0 32px 80px -24px rgba(26,22,37,0.2),inset 0 1px 0 rgba(255,255,255,0.6);
+}
+body.light .diag-header,body.light .diag-verdict,body.light .diag-findings{border-color:rgba(26,22,37,0.14)}
 body.light .diag-title{color:var(--amber-dark)}
+body.light .diag-tag{color:rgba(26,22,37,0.5)}
+body.light .radar .ring{stroke:rgba(26,22,37,0.1)}
+body.light .radar .ring-outer{stroke:rgba(26,22,37,0.22)}
+body.light .radar .axis{stroke:rgba(26,22,37,0.1)}
+body.light .radar .data{fill:rgba(196,90,8,0.16);stroke:var(--amber-dark);filter:drop-shadow(0 0 10px rgba(196,90,8,0.22))}
+body.light .radar .vertex{fill:var(--amber-dark);stroke:#F2EEE8}
+body.light .radar .axis-label{fill:rgba(26,22,37,0.68)}
+body.light .verdict-label,body.light .findings-label{color:rgba(26,22,37,0.55)}
+body.light .verdict-value{color:var(--text)}
+body.light .verdict-value::before,body.light .f-num{color:var(--amber-dark)}
+body.light .findings-list li{color:rgba(26,22,37,0.78)}
 body.light .diag-cta{background:rgba(196,90,8,0.05);border-color:rgba(196,90,8,0.4);color:var(--amber-dark)}
 
 @media(max-width:1100px){
@@ -531,34 +589,59 @@ footer .foot-links a:hover{color:var(--text)}
         <a href="#cta" class="btn-secondary">Book a discovery call</a>
       </div>
     </div>
-    <div class="diagnostic" aria-label="Team diagnostic sample output">
+    <div class="diagnostic" aria-label="Team diagnostic sample report">
       <div class="diag-header">
         <span class="diag-title">Team Diagnostic</span>
-        <span class="diag-tag">sample output</span>
+        <span class="diag-tag">sample report</span>
       </div>
-      <div class="diag-row">
-        <span class="diag-label">Knowledge map</span>
-        <div class="diag-bar"><div class="diag-bar-fill" style="--w:34%"></div></div>
-        <span class="diag-value dim">34%</span>
+      <div class="radar-wrap">
+        <svg viewBox="0 0 360 310" class="radar" role="img" aria-label="Six-axis TMS radar chart showing team coordination scores">
+          <g class="grid-g">
+            <!-- concentric hexagon rings at 20/40/60/80/100% -->
+            <polygon class="ring" points="180,130 197.32,140 197.32,160 180,170 162.68,160 162.68,140"/>
+            <polygon class="ring" points="180,110 214.64,130 214.64,170 180,190 145.36,170 145.36,130"/>
+            <polygon class="ring" points="180,90 231.96,120 231.96,180 180,210 128.04,180 128.04,120"/>
+            <polygon class="ring" points="180,70 249.28,110 249.28,190 180,230 110.72,190 110.72,110"/>
+            <polygon class="ring ring-outer" points="180,50 266.60,100 266.60,200 180,250 93.40,200 93.40,100"/>
+            <!-- axis lines from center to each vertex -->
+            <line class="axis" x1="180" y1="150" x2="180" y2="50"/>
+            <line class="axis" x1="180" y1="150" x2="266.60" y2="100"/>
+            <line class="axis" x1="180" y1="150" x2="266.60" y2="200"/>
+            <line class="axis" x1="180" y1="150" x2="180" y2="250"/>
+            <line class="axis" x1="180" y1="150" x2="93.40" y2="200"/>
+            <line class="axis" x1="180" y1="150" x2="93.40" y2="100"/>
+          </g>
+          <g class="data-g">
+            <!-- data polygon: Spec 55, Cred 62, Coord 34, Info 21, Auth 29, AI 42 -->
+            <polygon class="data" points="180,95 233.69,119 209.44,167 180,171 154.89,164.5 143.63,129"/>
+            <circle class="vertex" cx="180" cy="95" r="4"/>
+            <circle class="vertex" cx="233.69" cy="119" r="4"/>
+            <circle class="vertex" cx="209.44" cy="167" r="4"/>
+            <circle class="vertex" cx="180" cy="171" r="4"/>
+            <circle class="vertex" cx="154.89" cy="164.5" r="4"/>
+            <circle class="vertex" cx="143.63" cy="129" r="4"/>
+          </g>
+          <g class="labels-g">
+            <text class="axis-label" x="180" y="34" text-anchor="middle">Specialization</text>
+            <text class="axis-label" x="278" y="94" text-anchor="start">Credibility</text>
+            <text class="axis-label" x="278" y="214" text-anchor="start">Coordination</text>
+            <text class="axis-label" x="180" y="282" text-anchor="middle">Info flow</text>
+            <text class="axis-label" x="82" y="214" text-anchor="end">Authority</text>
+            <text class="axis-label" x="82" y="94" text-anchor="end">AI ready</text>
+          </g>
+        </svg>
       </div>
-      <div class="diag-row">
-        <span class="diag-label">Decision flow</span>
-        <div class="diag-bar"><div class="diag-bar-fill" style="--w:21%"></div></div>
-        <span class="diag-value dim">21%</span>
+      <div class="diag-verdict">
+        <span class="verdict-label">Your team type</span>
+        <span class="verdict-value">Distributed specialists</span>
       </div>
-      <div class="diag-row">
-        <span class="diag-label">Overlap risk</span>
-        <div class="diag-bar"><div class="diag-bar-fill warn" style="--w:78%"></div></div>
-        <span class="diag-value warn">78%</span>
-      </div>
-      <div class="diag-row">
-        <span class="diag-label">AI-readiness</span>
-        <div class="diag-bar"><div class="diag-bar-fill" style="--w:42%"></div></div>
-        <span class="diag-value dim">42%</span>
-      </div>
-      <div class="diag-result">
-        <span class="diag-result-label">Your team type</span>
-        <span class="diag-result-value">unresolved</span>
+      <div class="diag-findings">
+        <span class="findings-label">Priority actions</span>
+        <ul class="findings-list">
+          <li><span class="f-num">01</span><span class="f-text">Clarify decision authority in the 4 highest-friction roles</span></li>
+          <li><span class="f-num">02</span><span class="f-text">Surface tacit expertise via a weekly ritual</span></li>
+          <li><span class="f-num">03</span><span class="f-text">Install coordination layer before further AI pilots</span></li>
+        </ul>
       </div>
       <a href="https://typeform.com" class="diag-cta">Run the diagnostic →</a>
     </div>
