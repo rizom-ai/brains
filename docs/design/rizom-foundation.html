@@ -1,0 +1,1007 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rizom.foundation — Researching alternatives to broken institutions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Chakra+Petch:wght@400;600;700&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&family=Plus+Jakarta+Sans:wght@500;600;700&family=Space+Grotesk:wght@400;600;700&family=Fira+Code:wght@400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0A1A;--bg-subtle:#0E0B1E;--bg-card:#1A0A3E;
+  /* Foundation variant: amber collapses to amber-dark in both modes */
+  --amber:#C45A08;--amber-light:#E87722;--amber-dark:#8B3D03;
+  --purple:#6B2FA0;--purple-light:#8C82C8;--purple-muted:#818CF8;
+  /* Ink on cream is the foundation default. Dark mode inverts via body.light toggle. */
+  --text:#FFFFFF;--text-muted:rgba(255,255,255,0.6);--text-dim:rgba(255,255,255,0.4);
+  --font-head:'Fraunces',Georgia,'Times New Roman',serif;
+  --font-body:'Barlow',system-ui,sans-serif;
+  --font-read:'Fraunces',Georgia,serif;
+  --font-mono:'Fira Code',monospace;
+  --font-label:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-nav:'Space Grotesk',system-ui,sans-serif;
+  font-optical-sizing:auto;
+}
+/* Light mode overrides */
+body.light{
+  /* Foundation default: warm cream paper with deep ink. Literary journal palette. */
+  --bg:#F5EFE3;--bg-subtle:#EEE7D6;--bg-card:#F0E9D8;
+  --text:#1A1520;--text-muted:rgba(26,21,32,0.72);--text-dim:rgba(26,21,32,0.48);
+  background-color:var(--bg);
+  background-image:
+    url("data:image/svg+xml,%3Csvg viewBox='0 0 320 320' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch' seed='7'/%3E%3CfeColorMatrix values='0 0 0 0 0.1 0 0 0 0 0.08 0 0 0 0 0.12 0 0 0 0.9 0'/%3E%3C/filter%3E%3Crect width='320' height='320' filter='url(%23n)' opacity='0.07'/%3E%3C/svg%3E");
+}
+body.light nav{background:linear-gradient(180deg,rgba(242,238,232,0.95) 0%,rgba(242,238,232,0) 100%)}
+body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
+body.light .nav-cta:hover{border-color:var(--amber)}
+body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
+body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
+body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(196,90,8,0.2)}
+body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.2)}
+body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.12)}
+body.light .answer{background:transparent}
+body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
+body.light footer{border-top-color:rgba(26,22,37,0.06)}
+body.light #themeToggle{border-color:rgba(26,22,37,0.15);color:var(--text-dim)}
+body.light .feature-icon{border-color:var(--amber)}
+body.light .badge-amber{border-color:var(--amber);color:var(--amber)}
+body.light .badge-purple{border-color:var(--purple);color:var(--purple)}
+body.light .divider,body.light .divider-line{background:linear-gradient(90deg,transparent,rgba(196,90,8,0.25),transparent)}
+body.light #bgCanvasWrap{opacity:0.55}
+body.light .product-tags.amber span{color:var(--amber-dark)}
+body.light .product-tags.purple span{color:var(--purple)}
+body.light .product-label.amber{color:var(--amber-dark)}
+body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber-dark);background:rgba(196,90,8,0.08)}
+body.light .mission .highlight{color:var(--amber-dark)}
+body.light .quote{border-color:rgba(26,22,37,0.08);background:rgba(26,22,37,0.02)}
+body.light .city-card{background:rgba(26,22,37,0.02);border-color:rgba(26,22,37,0.08)}
+
+html{scroll-behavior:smooth;overflow-x:hidden;background:#F5EFE3;transition:background 0.3s}
+html:has(body:not(.light)){background:#0D0A1A}
+body{
+  background:transparent;color:var(--text);font-family:var(--font-body);
+  line-height:1.6;overflow-x:hidden;max-width:100vw;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+a{color:inherit;text-decoration:none}
+*{overflow-wrap:break-word;word-wrap:break-word;min-width:0}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(32px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:0.1s}
+.reveal-delay-2{transition-delay:0.2s}
+.reveal-delay-3{transition-delay:0.3s}
+
+/* Section container */
+.section{width:100%;max-width:1440px;margin:0 auto;padding-left:80px;padding-right:80px;position:relative;z-index:1}
+@media(max-width:768px){.section{padding-left:24px;padding-right:24px}}
+
+/* ============= NAV ============= */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 80px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(13,10,26,0.95) 0%,rgba(13,10,26,0) 100%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+nav .logo{display:flex;align-items:center;gap:0}
+nav .logo-rizom{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--text)}
+nav .logo-dot{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--amber)}
+nav .logo-ai{font-family:var(--font-nav);font-size:20px;color:var(--text-muted)}
+nav .nav-links{display:flex;align-items:center;gap:32px}
+nav .nav-links a:not(.nav-cta){font-family:var(--font-body);font-size:15px;color:var(--text-muted);transition:color 0.3s;position:relative;padding:4px 0}
+nav .nav-links a:not(.nav-cta)::after{content:'';position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--amber);transition:width 0.3s ease}
+nav .nav-links a:not(.nav-cta):hover{color:var(--text)}
+nav .nav-links a:not(.nav-cta):hover::after{width:100%}
+nav .nav-cta{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 24px;transition:all 0.3s}
+nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
+
+/* Side nav indicator */
+.side-nav{position:fixed;right:32px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:18px;padding:16px 8px}
+.side-nav-dot{position:relative;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all 0.3s;display:block}
+.side-nav-dot::after{content:attr(data-label);position:absolute;right:20px;top:50%;transform:translateY(-50%);font-family:var(--font-label);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.side-nav-dot:hover{background:var(--amber);transform:scale(1.3)}
+.side-nav-dot:hover::after{opacity:1}
+.side-nav-dot.active{background:var(--amber);box-shadow:0 0 12px rgba(196,90,8,0.5)}
+body.light .side-nav-dot{background:rgba(26,22,37,0.2)}
+body.light .side-nav-dot.active{background:var(--amber-dark)}
+@media(max-width:1100px){.side-nav{display:none}}
+
+/* ============= HERO ============= */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden}
+.hero-content{position:relative;z-index:2;width:62%;padding-top:80px}
+.hero h1{font-family:var(--font-head);font-size:clamp(36px,5vw,64px);font-weight:400;letter-spacing:-1px;line-height:1.12;margin-bottom:24px}
+.hero h1,.hero .subtitle,.hero .cta-row{opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) forwards}
+.hero h1{animation-delay:0.2s}
+.hero .subtitle{animation-delay:0.4s}
+.hero .cta-row{animation-delay:0.6s}
+.scroll-cue{opacity:0;animation:scrollCueRise 1s cubic-bezier(0.2,0.8,0.2,1) 1s forwards}
+@keyframes heroRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes scrollCueRise{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:0.75;transform:translateX(-50%) translateY(0)}}
+.hero .subtitle{font-family:var(--font-body);font-size:18px;line-height:1.7;color:var(--text-muted);max-width:540px;margin-bottom:40px}
+.hero .cta-row{display:flex;gap:16px;flex-wrap:wrap}
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:600;color:#fff;background:var(--amber);border:none;border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(196,90,8,0.35)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:500;color:var(--text);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08)}
+#bgCanvasWrap{opacity:0.6}
+#heroCanvas{width:100%;height:100%}
+
+/* Hero scroll cue */
+.scroll-cue{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-dim);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;z-index:3;transition:color 0.3s}
+.scroll-cue:hover{color:var(--amber)}
+.scroll-cue-line{width:1px;height:48px;background:linear-gradient(180deg,transparent 0%,currentColor 40%,currentColor 100%);position:relative;overflow:hidden}
+.scroll-cue-line::before{content:'';position:absolute;top:-20px;left:0;width:100%;height:20px;background:linear-gradient(180deg,transparent,currentColor);animation:scrollDrop 2.2s ease-in-out infinite}
+@keyframes scrollDrop{0%{top:-20px}60%{top:48px}100%{top:48px}}
+
+/* ============= ANSWER (centered prose) ============= */
+.answer{padding-top:120px;padding-bottom:120px;text-align:center;background:transparent}
+.badge{display:inline-flex;align-items:center;padding:8px 20px;border:1px solid;border-radius:20px;font-family:var(--font-label);font-size:13px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:28px}
+.badge-amber{border-color:var(--amber);color:var(--amber)}
+.badge-purple{border-color:var(--purple-light);color:var(--purple-light)}
+.answer h2{font-family:var(--font-head);font-size:clamp(32px,4vw,52px);letter-spacing:-1px;line-height:1.1;max-width:920px;margin:0 auto 24px}
+.answer .answer-sub{font-size:19px;line-height:1.75;color:var(--text-muted);max-width:760px;margin:0 auto}
+.answer .answer-prose{font-size:19px;line-height:1.75;color:var(--text-muted);max-width:760px;margin:0 auto;text-align:left}
+.answer .answer-prose p+p{margin-top:20px}
+.answer .divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(196,90,8,0.4),transparent);margin:48px auto}
+
+/* ============= ESSAY / PRODUCT CARDS ============= */
+.product-card{padding-top:24px;padding-bottom:24px}
+.product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid;transition:transform 0.5s cubic-bezier(0.2,0.8,0.2,1),border-color 0.5s,box-shadow 0.5s}
+.product-inner:hover{transform:translateY(-4px)}
+.product-inner.rover:hover{border-color:rgba(196,90,8,0.5);box-shadow:0 20px 60px -20px rgba(196,90,8,0.25)}
+.product-inner.relay:hover{border-color:rgba(140,130,200,0.5);box-shadow:0 20px 60px -20px rgba(107,47,160,0.25)}
+.product-inner.ranger:hover{border-color:rgba(140,130,200,0.4);box-shadow:0 20px 60px -20px rgba(107,47,160,0.2)}
+.product-inner.rover{background:linear-gradient(135deg,rgba(28,16,32,0.85) 0%,rgba(20,14,28,0.85) 100%);border-color:rgba(196,90,8,0.18)}
+.product-inner.relay{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(18,14,30,0.85) 100%);border-color:rgba(140,130,200,0.2)}
+.product-inner.ranger{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(24,15,30,0.85) 50%,rgba(20,16,42,0.85) 100%);border-color:rgba(120,100,220,0.15)}
+.product-text{flex:1;display:flex;flex-direction:column;gap:16px}
+.product-label{font-family:var(--font-nav);font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
+.product-label.amber{color:var(--amber)}
+.product-label.purple{color:var(--purple-muted)}
+.product-h3{font-family:var(--font-head);font-size:clamp(26px,3vw,36px);letter-spacing:-0.5px;line-height:1.2}
+.product-desc{font-size:16px;line-height:1.8;color:var(--text-muted)}
+.product-tags{display:flex;gap:24px;padding-top:8px;flex-wrap:wrap}
+.product-tags span{font-family:var(--font-label);font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.product-tags.amber span{color:rgba(196,90,8,0.8)}
+.product-tags.purple span{color:rgba(140,130,200,0.65)}
+.product-link{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--amber);margin-top:8px;display:inline-flex;gap:8px}
+.product-link.purple{color:var(--purple-light)}
+.product-link:hover{opacity:0.75}
+
+/* ============= EVENTS — editorial vertical listing ============= */
+.events{padding-top:120px;padding-bottom:120px}
+.event-list{max-width:920px;margin:0 auto;display:flex;flex-direction:column}
+.event-row{display:grid;grid-template-columns:110px 1fr 220px;align-items:start;gap:48px;padding:44px 4px;border-bottom:1px solid rgba(255,255,255,0.06);transition:all 0.4s ease;text-decoration:none;color:inherit;position:relative}
+.event-row:first-child{border-top:1px solid rgba(255,255,255,0.06)}
+.event-row:hover{border-color:rgba(196,90,8,0.4);padding-left:16px}
+.event-row:hover .event-city{color:var(--amber)}
+.event-row:hover .event-meta .e-action{color:var(--amber);transform:translateX(4px)}
+body.light .event-row{border-color:rgba(26,22,37,0.1)}
+body.light .event-row:first-child{border-top-color:rgba(26,22,37,0.1)}
+.event-num{font-family:var(--font-head);font-size:54px;font-weight:400;color:transparent;-webkit-text-stroke:1.2px var(--amber);line-height:0.85;letter-spacing:-1.5px}
+.event-body{display:flex;flex-direction:column;gap:12px}
+.event-city{font-family:var(--font-head);font-size:clamp(30px,3.4vw,46px);font-weight:700;letter-spacing:-1.5px;line-height:1;transition:color 0.3s}
+.event-desc{font-family:var(--font-body);font-size:16px;line-height:1.7;color:var(--text-muted);font-style:italic;max-width:560px}
+.event-meta{display:flex;flex-direction:column;gap:8px;text-align:right;padding-top:12px}
+.event-meta .e-date{font-family:var(--font-head);font-size:18px;font-weight:400;color:var(--amber);letter-spacing:-0.3px}
+.event-meta .e-anchor{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-dim)}
+.event-meta .e-action{font-family:var(--font-body);font-size:13px;font-weight:500;color:var(--text-muted);margin-top:6px;transition:all 0.3s;display:inline-block}
+@media(max-width:900px){
+  .event-row{grid-template-columns:80px 1fr;gap:24px;padding:32px 4px}
+  .event-num{font-size:40px}
+  .event-meta{grid-column:1/-1;text-align:left;padding-top:0;flex-direction:row;flex-wrap:wrap;gap:14px;align-items:baseline}
+  .event-meta .e-date{font-size:15px}
+  .event-row:hover{padding-left:12px}
+}
+
+/* ============= OWNERSHIP / FEATURE GRID ============= */
+.ownership{padding-top:120px;padding-bottom:120px}
+.ownership-grid{display:flex;gap:80px;align-items:flex-start}
+.ownership-left{width:45%}
+.ownership-right{width:55%;display:flex;flex-direction:column;gap:32px;padding-top:60px}
+.ownership h2{font-family:var(--font-head);font-size:clamp(32px,4vw,48px);letter-spacing:-1px;line-height:1.1;margin-top:24px}
+.feature-row{display:flex;gap:20px;align-items:flex-start}
+.feature-icon{min-width:48px;height:48px;display:flex;align-items:center;justify-content:center;border:1px solid var(--amber);border-radius:8px;font-family:var(--font-nav);font-size:18px;font-weight:700;color:var(--amber)}
+.feature-title{font-family:var(--font-nav);font-size:20px;font-weight:700;margin-bottom:6px}
+.feature-desc{font-size:15px;line-height:1.7;color:var(--text-muted)}
+.qs-desc{font-size:15px;line-height:1.7;color:var(--text-muted)}
+
+/* ============= 2-UP SUPPORT GRID ============= */
+.support-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:24px;margin-top:48px}
+@media(max-width:900px){.support-grid{grid-template-columns:1fr;gap:16px}}
+
+/* ============= MISSION ============= */
+.mission{padding-top:120px;padding-bottom:120px;text-align:center;position:relative}
+.mission .pre{font-size:18px;line-height:1.7;color:var(--text-dim);max-width:560px;margin:0 auto 40px}
+.mission h2{font-family:var(--font-head);font-size:clamp(44px,7vw,96px);letter-spacing:-2px;line-height:0.98;font-weight:700}
+.mission .highlight{color:var(--amber);display:inline-block;position:relative}
+.mission .highlight::before{content:'';position:absolute;left:-8%;right:-8%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(196,90,8,0.4) 20%,rgba(196,90,8,0.4) 80%,transparent);opacity:0.5}
+.mission .post{font-size:17px;line-height:1.7;color:var(--text-dim);max-width:560px;margin:32px auto 0}
+.mission .mission-cta{display:flex;gap:20px;justify-content:center;margin-top:56px;flex-wrap:wrap}
+.mission .mission-cta .btn-primary{font-size:18px;padding:22px 48px;box-shadow:0 0 0 0 rgba(196,90,8,0.5),0 20px 60px -15px rgba(196,90,8,0.4);transition:all 0.4s cubic-bezier(0.2,0.8,0.2,1)}
+.mission .mission-cta .btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 0 8px rgba(196,90,8,0.15),0 30px 80px -15px rgba(196,90,8,0.5)}
+.mission .mission-cta .btn-secondary{font-size:18px;padding:22px 48px}
+.mission .divider-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(196,90,8,0.3),transparent);margin:0 auto 48px}
+
+/* ============= ECOSYSTEM ============= */
+.ecosystem{padding-top:120px;padding-bottom:96px}
+.eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(196,90,8,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1),border-color 0.4s,box-shadow 0.4s}
+.eco-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:0.6;transition:opacity 0.4s}
+.eco-card.is-here{background:linear-gradient(135deg,rgba(196,90,8,0.12) 0%,rgba(196,90,8,0.03) 100%);border-color:rgba(196,90,8,0.3)}
+.eco-card.is-here::before{background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--amber) 70%,transparent);opacity:1;height:3px}
+.eco-card:not(.is-here):nth-of-type(1)::before{background:linear-gradient(90deg,transparent,var(--purple-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:not(.is-here):nth-of-type(3)::before{background:linear-gradient(90deg,transparent,var(--amber-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.12)}
+.eco-card:hover::before{opacity:1}
+.eco-card.is-here:hover{box-shadow:0 16px 40px -16px rgba(196,90,8,0.25)}
+.eco-brand{display:flex;align-items:center;gap:4px;font-family:var(--font-nav);font-size:16px;margin-bottom:8px}
+.eco-brand .r{font-weight:700}
+.eco-brand .d{font-weight:700;color:var(--amber)}
+.eco-brand .s{color:var(--text-muted)}
+.eco-title{font-family:var(--font-nav);font-size:22px;font-weight:700}
+.eco-desc{font-size:14px;line-height:1.7;color:var(--text-muted)}
+.eco-link{font-family:var(--font-body);font-size:14px;font-weight:500;margin-top:8px;transition:opacity 0.3s}
+.eco-link.amber{color:var(--amber)}
+.eco-link.purple{color:var(--purple-light)}
+.eco-link:hover{opacity:0.7}
+
+/* ============= FOOTER ============= */
+footer{padding:24px 80px;display:flex;align-items:flex-start;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;gap:24px}
+footer .foot-left{display:flex;flex-direction:column;gap:12px;max-width:480px}
+footer .foot-brandline{display:flex;align-items:center;gap:12px}
+footer .foot-brand{font-family:var(--font-nav);font-size:15px}
+footer .foot-copy{font-size:13px;color:var(--text-dim)}
+footer .foot-tagline{font-size:13px;color:var(--text-dim);line-height:1.6}
+footer .foot-tagline a{color:var(--amber)}
+footer .foot-links{display:flex;gap:24px;align-items:center}
+footer .foot-links a{font-size:13px;color:var(--text-dim);transition:color 0.3s}
+footer .foot-links a:hover{color:var(--text)}
+
+/* ============= FOUNDATION-SPECIFIC: EDITORIAL ACCENTS ============= */
+/* Looser section rhythm — foundation breathes more than work */
+.answer,.ownership,.events{padding-top:144px;padding-bottom:144px}
+
+/* Centered hero (foundation reads like a manifesto title page) */
+.hero-content.centered{width:100%;max-width:1040px;margin:0 auto;padding-top:60px;text-align:center;display:flex;flex-direction:column;align-items:center}
+.hero-content.centered .subtitle{margin-left:auto;margin-right:auto}
+.hero-content.centered .cta-row{justify-content:center}
+
+/* Manifesto title-page treatment — dramatic display, journal chrome */
+.vol-strip{
+  display:inline-flex;align-items:center;gap:16px;
+  font-family:var(--font-mono);font-size:11px;color:var(--text-dim);
+  letter-spacing:2.5px;text-transform:uppercase;
+  padding:11px 24px;
+  border-top:1px solid rgba(196,90,8,0.4);
+  border-bottom:1px solid rgba(196,90,8,0.4);
+  margin-bottom:56px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.1s forwards;
+}
+.vol-strip .dot{color:var(--amber);font-weight:700}
+.vol-strip .pulse{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--amber);box-shadow:0 0 10px var(--amber);animation:pulseDot 2.4s ease-in-out infinite}
+@keyframes pulseDot{0%,100%{opacity:0.5}50%{opacity:1}}
+
+.hero h1.manifesto-h1{
+  font-family:var(--font-head);
+  font-size:clamp(56px,10.5vw,148px);
+  font-weight:400;letter-spacing:-5px;line-height:0.88;
+  font-variation-settings:"opsz" 144;
+  margin-bottom:44px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.2s forwards;
+}
+.hero h1.manifesto-h1 .line2{
+  display:block;font-family:var(--font-head);font-style:italic;font-weight:400;
+  font-size:0.42em;letter-spacing:-1.5px;color:var(--text-muted);
+  margin-top:24px;line-height:1.15;
+  font-variation-settings:"opsz" 72;
+}
+
+.manifesto-tagline{
+  font-family:var(--font-head);
+  font-size:clamp(20px,2.4vw,28px);
+  font-weight:400;font-style:italic;
+  line-height:1.4;letter-spacing:-0.3px;
+  color:var(--text);
+  max-width:780px;margin:0 auto 40px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.4s forwards;
+}
+.manifesto-tagline::before,.manifesto-tagline::after{
+  content:'';display:inline-block;width:32px;height:1px;background:var(--amber);
+  vertical-align:middle;opacity:0.6;
+}
+.manifesto-tagline::before{margin-right:18px}
+.manifesto-tagline::after{margin-left:18px}
+
+.hero-content.centered .subtitle{
+  font-family:var(--font-body);font-size:16px;
+  color:var(--text-muted);max-width:560px;
+  font-style:italic;line-height:1.7;margin-bottom:44px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.5s forwards;
+}
+.hero-content.centered .cta-row{
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.6s forwards;
+}
+
+/* Editorial colophon — small hairline metadata strip below the CTAs */
+.colophon{
+  margin-top:64px;padding-top:24px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex;justify-content:center;gap:32px;flex-wrap:wrap;
+  font-family:var(--font-mono);font-size:10px;letter-spacing:1.8px;
+  text-transform:uppercase;color:var(--text-dim);
+  width:100%;max-width:680px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.8s forwards;
+}
+.colophon span{display:inline-flex;align-items:center;gap:6px}
+.colophon span::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--amber);opacity:0.6}
+body.light .colophon{border-top-color:rgba(26,22,37,0.1)}
+
+@media(max-width:768px){
+  .vol-strip{font-size:10px;letter-spacing:2px;padding:9px 18px;gap:12px;margin-bottom:40px}
+  .manifesto-h1{font-size:48px;letter-spacing:-2px;margin-bottom:32px}
+  .manifesto-h1 .line2{font-size:0.6em;margin-top:14px}
+  .manifesto-tagline{font-size:18px}
+  .manifesto-tagline::before,.manifesto-tagline::after{width:20px;margin:0 10px}
+  .colophon{gap:16px;font-size:9px;margin-top:44px}
+}
+
+/* Editorial: Fraunces serif body for longform reading, with drop cap */
+.editorial{
+  max-width:680px;margin:0 auto;text-align:left;
+  font-family:var(--font-read);font-size:21px;line-height:1.72;
+  color:var(--text);font-weight:400;
+  font-feature-settings:"liga" 1,"dlig" 1,"kern" 1;
+  font-variation-settings:"opsz" 18;
+  letter-spacing:-0.1px;
+}
+.editorial p+p{margin-top:28px;text-indent:1.4em}
+.editorial p:first-child::first-letter{
+  font-family:var(--font-head);font-size:108px;font-weight:400;line-height:0.82;float:left;
+  margin:10px 14px -10px -2px;color:var(--amber);
+  font-variation-settings:"opsz" 144;
+  letter-spacing:-4px;
+}
+.editorial em{font-style:italic;color:var(--text);font-weight:400}
+.editorial strong{font-weight:600;color:var(--text);font-style:normal}
+body.light .editorial{color:var(--text)}
+body.light .editorial p:first-child::first-letter{color:var(--amber-dark);text-shadow:0 1px 0 rgba(26,21,32,0.04)}
+@media(max-width:768px){
+  .editorial{font-size:18px;line-height:1.72}
+  .editorial p+p{text-indent:1.2em}
+  .editorial p:first-child::first-letter{font-size:82px;margin:6px 10px -8px -1px}
+}
+
+/* Pull quote — sits between sections, full bleed within section */
+.pull-quote{max-width:880px;margin:0 auto;padding:0 40px;text-align:center;position:relative}
+.pull-quote::before,.pull-quote::after{content:'';display:block;width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--amber),transparent);margin:0 auto}
+.pull-quote::before{margin-bottom:32px}
+.pull-quote::after{margin-top:32px}
+.pull-quote-text{font-family:var(--font-head);font-size:clamp(26px,3.4vw,42px);line-height:1.25;letter-spacing:-1px;font-weight:400;color:var(--text)}
+.pull-quote-text em{font-style:italic;color:var(--amber)}
+.pull-quote-attr{font-family:var(--font-label);font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--text-dim);margin-top:24px}
+@media(max-width:768px){.pull-quote{padding:0 16px}.pull-quote-text{font-size:22px}}
+
+/* Editorial essay index — replaces card-style for a more "table of contents" feel */
+.essay-index{max-width:860px;margin:0 auto;display:flex;flex-direction:column}
+.essay-row{display:grid;grid-template-columns:80px 1fr auto;align-items:baseline;gap:32px;padding:36px 0;border-bottom:1px solid rgba(255,255,255,0.06);transition:all 0.4s ease;text-decoration:none;color:inherit}
+.essay-row:first-child{border-top:1px solid rgba(255,255,255,0.06)}
+.essay-row:hover{padding-left:12px;border-color:rgba(196,90,8,0.4)}
+.essay-row:hover .essay-title{color:var(--amber)}
+body.light .essay-row{border-color:rgba(26,22,37,0.1)}
+body.light .essay-row:first-child{border-top-color:rgba(26,22,37,0.1)}
+.essay-num{font-family:var(--font-head);font-size:36px;font-weight:400;color:transparent;-webkit-text-stroke:1.2px var(--amber);line-height:0.9;letter-spacing:-1px}
+.essay-body{display:flex;flex-direction:column;gap:8px}
+.essay-series{font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--amber)}
+.essay-title{font-family:var(--font-head);font-size:clamp(22px,2.6vw,30px);font-weight:400;letter-spacing:-0.5px;line-height:1.25;transition:color 0.3s}
+.essay-teaser{font-family:var(--font-body);font-size:15px;line-height:1.7;color:var(--text-muted);margin-top:4px;font-style:italic}
+.essay-arrow{font-family:var(--font-head);font-size:24px;color:var(--amber);opacity:0.6;transition:transform 0.3s,opacity 0.3s;align-self:center}
+.essay-row:hover .essay-arrow{opacity:1;transform:translateX(6px)}
+@media(max-width:768px){
+  .essay-row{grid-template-columns:1fr;gap:8px;padding:28px 0}
+  .essay-num{font-size:28px}
+  .essay-arrow{justify-self:flex-end;margin-top:8px}
+}
+
+/* Manifesto-scale display headings — bigger than work */
+.manifesto-h2{font-family:var(--font-head);font-size:clamp(40px,5.5vw,76px);font-weight:400;letter-spacing:-2px;line-height:1.02;max-width:880px;margin:0 auto 24px}
+
+/* Editorial link-style CTAs — replaces pill buttons on foundation */
+.btn-primary, .btn-secondary{
+  background:transparent !important;
+  border:none !important;
+  border-radius:0 !important;
+  padding:10px 2px 8px !important;
+  box-shadow:none !important;
+  font-family:var(--font-head) !important;
+  font-size:18px !important;
+  font-weight:400 !important;
+  font-style:italic !important;
+  letter-spacing:-0.2px !important;
+  text-transform:none !important;
+  display:inline-flex;
+  align-items:baseline;
+  gap:8px;
+  transition:all 0.35s cubic-bezier(0.2,0.8,0.2,1);
+  position:relative;
+}
+.btn-primary{
+  color:var(--amber) !important;
+  border-bottom:1px solid var(--amber) !important;
+}
+.btn-secondary{
+  color:var(--text) !important;
+  border-bottom:1px solid rgba(196,90,8,0.35) !important;
+}
+.btn-primary:hover, .btn-secondary:hover{
+  transform:translateY(-1px) !important;
+  box-shadow:none !important;
+  padding-bottom:11px !important;
+}
+.btn-primary:hover{border-bottom-width:2px !important}
+body.light .btn-primary{color:var(--amber-dark) !important;border-bottom-color:var(--amber-dark) !important}
+body.light .btn-secondary{color:var(--text) !important;border-bottom-color:rgba(26,21,32,0.3) !important}
+/* Hero CTA row gets a little extra top breathing room since buttons have no box */
+.hero .cta-row{gap:36px !important;margin-top:8px}
+.mission .mission-cta{gap:40px !important}
+
+/* Display headings on Fraunces need lighter default weights — they have more presence */
+.ed-head h2,.answer h2,.ownership h2,.hero h1:not(.manifesto-h1){font-weight:400 !important;letter-spacing:-1.8px}
+.pull-quote-text{font-weight:300 !important;letter-spacing:-0.8px}
+.essay-title,.event-city{font-weight:400 !important}
+
+/* Editorial section header (centered, with rule above) */
+.ed-head{text-align:center;max-width:760px;margin:0 auto 64px}
+.ed-head .ed-rule{display:block;width:48px;height:1px;background:linear-gradient(90deg,transparent,var(--amber),transparent);margin:0 auto 24px}
+.ed-head .ed-kicker{font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--amber);margin-bottom:20px;display:inline-block}
+.ed-head h2{font-family:var(--font-head);font-size:clamp(34px,4.4vw,56px);font-weight:400;letter-spacing:-1.5px;line-height:1.05}
+.ed-head .ed-sub{font-family:var(--font-body);font-size:18px;line-height:1.75;color:var(--text-muted);margin-top:24px;font-style:italic}
+
+/* ===== TABLET ===== */
+@media(max-width:1100px){
+  .section{padding-left:40px;padding-right:40px}
+  nav{padding:16px 40px}
+  .product-inner{gap:32px;padding:36px}
+  .ownership-grid{gap:40px}
+  .city-grid{grid-template-columns:1fr 1fr}
+  footer{padding:24px 40px}
+  .hero-content{width:100%}
+}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  .section{padding-left:24px;padding-right:24px}
+
+  /* Nav */
+  nav{padding:16px 24px}
+  nav .nav-links a:not(.nav-cta){display:none}
+  nav .nav-links{gap:12px}
+  nav .nav-cta{padding:8px 16px;font-size:13px}
+
+  /* Hero */
+  .hero{min-height:100vh;min-height:100dvh;padding-top:0;padding-bottom:0}
+  .hero-content{width:100%;padding-top:0;position:relative;z-index:2}
+  #bgCanvasWrap{opacity:0.3}
+  .hero h1{font-size:34px;margin-bottom:24px;line-height:1.1;letter-spacing:-1px}
+  .hero .subtitle{max-width:100%;font-size:16px;line-height:1.8;margin-bottom:36px}
+  .hero .cta-row{flex-direction:column;gap:12px}
+  .hero .cta-row .btn-primary,.hero .cta-row .btn-secondary{width:100%;justify-content:center;padding:16px 24px}
+
+  /* Answer */
+  .answer{padding-top:88px;padding-bottom:88px}
+  .answer .answer-sub,.answer .answer-prose{font-size:16px;line-height:1.8}
+  .answer .divider{margin:40px auto}
+
+  /* Product cards */
+  .product-card{padding-top:16px;padding-bottom:16px}
+  .product-inner{flex-direction:column!important;gap:24px;padding:24px;border-radius:16px}
+  .product-label{font-size:16px;letter-spacing:2px}
+  .product-h3{font-size:24px}
+  .product-desc{font-size:14px;line-height:1.8}
+  .product-tags{flex-wrap:wrap;gap:10px 18px}
+  .product-tags span{font-size:11px}
+
+  /* Events */
+  .events{padding-top:88px;padding-bottom:88px}
+  .events-head{margin-bottom:48px}
+  .city-grid{grid-template-columns:1fr;gap:16px}
+  .city-card{padding:28px}
+  .city-num{font-size:40px}
+  .city-name{font-size:20px}
+
+  /* Ownership */
+  .ownership{padding-top:88px;padding-bottom:88px}
+  .ownership-grid{flex-direction:column;gap:36px}
+  .ownership-left,.ownership-right{width:100%}
+  .ownership-right{padding-top:0;gap:32px}
+  .ownership h2{margin-top:16px;font-size:28px}
+  .feature-row{gap:16px}
+  .feature-icon{min-width:44px;height:44px;font-size:16px}
+  .feature-title{font-size:17px}
+  .feature-desc{font-size:14px;line-height:1.7}
+
+  /* Mission */
+  .mission{padding-top:88px;padding-bottom:88px}
+  .mission .pre{font-size:15px;line-height:1.8;margin-bottom:32px}
+  .mission .post{font-size:15px;line-height:1.8}
+  .mission .divider-line{margin-bottom:40px}
+  .mission .mission-cta{flex-direction:column;align-items:stretch;gap:12px;margin-top:36px}
+  .mission .mission-cta .btn-primary,.mission .mission-cta .btn-secondary{justify-content:center;padding:16px 24px;font-size:16px}
+
+  /* Ecosystem */
+  .ecosystem{padding-top:88px;padding-bottom:64px}
+  .eco-grid{grid-template-columns:1fr;gap:16px}
+  .eco-card{padding:24px;border-radius:12px}
+  .eco-title{font-size:18px}
+  .eco-desc{font-size:13px;line-height:1.7}
+
+  /* Footer */
+  footer{padding:32px 24px;flex-direction:column;gap:16px;text-align:center}
+  footer .foot-left{align-items:center}
+  footer .foot-brandline{flex-direction:column;gap:6px}
+  footer .foot-links{flex-wrap:wrap;justify-content:center;gap:16px}
+}
+</style>
+</head>
+<body>
+<script>/* Foundation defaults to light (cream) theme. Run synchronously before the rest of body renders. */
+(function(){try{if(localStorage.getItem('theme')!=='dark'){document.body.classList.add('light')}}catch(e){document.body.classList.add('light')}})();</script>
+
+<!-- FULL-PAGE CANVAS BACKGROUND -->
+<div id="bgCanvasWrap" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none">
+  <canvas id="heroCanvas"></canvas>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">
+    <span class="logo-rizom">rizom</span><span class="logo-dot">.</span><span class="logo-ai">foundation</span>
+  </div>
+  <div class="nav-links">
+    <a href="#research">Research</a>
+    <a href="#events">Events</a>
+    <a href="#support">Support</a>
+    <a href="#" class="nav-cta">Join Discord</a>
+  </div>
+</nav>
+
+<!-- SIDE NAV INDICATOR -->
+<aside class="side-nav" aria-hidden="true">
+  <a href="#hero" class="side-nav-dot" data-label="Intro"></a>
+  <a href="#argument" class="side-nav-dot" data-label="Argument"></a>
+  <a href="#research" class="side-nav-dot" data-label="Research"></a>
+  <a href="#events" class="side-nav-dot" data-label="Events"></a>
+  <a href="#brains" class="side-nav-dot" data-label="Brains"></a>
+  <a href="#support" class="side-nav-dot" data-label="Support"></a>
+  <a href="#about" class="side-nav-dot" data-label="About"></a>
+</aside>
+
+<!-- HERO -->
+<section class="hero section" id="hero">
+  <div class="hero-content centered">
+    <div class="vol-strip">
+      <span>Vol. 01</span><span class="dot">·</span>
+      <span>2026</span><span class="dot">·</span>
+      <span>Essays · Events · Public Infrastructure</span>
+      <span class="pulse" aria-hidden="true"></span>
+    </div>
+    <h1 class="manifesto-h1">
+      Work is broken.
+      <span class="line2">— and the institutions organizing it<br>were built for a different century.</span>
+    </h1>
+    <p class="manifesto-tagline">A research arm for the social contracts that quietly hold both <em>work</em> and <em>technology</em> together.</p>
+    <p class="subtitle">Rizom Foundation publishes essays, runs city-by-city gatherings, and stewards the open AI infrastructure the community runs on.</p>
+    <div class="cta-row">
+      <a href="#" class="btn-primary">Join our Discord →</a>
+      <a href="#events" class="btn-secondary">Find an event near you</a>
+    </div>
+    <div class="colophon">
+      <span>Stichting Rizom</span>
+      <span>Amsterdam · Rotterdam · Berlin</span>
+      <span>Open infrastructure</span>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#argument" aria-label="Begin reading">
+    <span class="scroll-cue-label">Begin reading</span>
+    <span class="scroll-cue-line"></span>
+  </a>
+</section>
+
+<!-- THE ARGUMENT — editorial / manifesto treatment with drop cap -->
+<section class="answer section reveal" id="argument">
+  <div class="ed-head">
+    <span class="ed-rule"></span>
+    <span class="ed-kicker">The Argument</span>
+    <h2>Social contracts, not constitutions,<br>hold institutions together.</h2>
+  </div>
+  <div class="editorial">
+    <p>The frameworks organizing modern work — the firm, the org chart, the employment contract, the manager-as-conduit — are inheritances from the industrial era. They were <em>brilliant solutions</em> to problems we no longer have, and they are silently failing on problems we do.</p>
+    <p>What actually holds an institution together isn't its constitution. It's the social contract underneath — the unwritten agreements about who can ask whom for what, who decides, who's responsible when something breaks. Ours are <strong>broken</strong>. And industrial-era frameworks can't be patched into health.</p>
+    <p>We need new ones, built from different principles. That's what we're working on.</p>
+  </div>
+</section>
+
+<!-- PULL QUOTE — bridge between argument and research -->
+<section class="section reveal" style="padding:80px 80px 40px">
+  <div class="pull-quote">
+    <p class="pull-quote-text">The smartest thing in any room is rarely a person.<br>It's <em>the pattern</em> by which the people in the room are connected.</p>
+    <div class="pull-quote-attr">— from "Coordination is the unit of intelligence"</div>
+  </div>
+</section>
+
+<!-- THE RESEARCH — editorial index style (table of contents, not cards) -->
+<section class="section reveal" id="research" style="padding-top:80px;padding-bottom:120px">
+  <div class="ed-head">
+    <span class="ed-rule"></span>
+    <span class="ed-kicker">The Research</span>
+    <h2>Featured essays from the ongoing series</h2>
+    <p class="ed-sub">A working bibliography. New entries land roughly monthly.</p>
+  </div>
+  <div class="essay-index">
+    <a href="#" class="essay-row">
+      <div class="essay-num">01</div>
+      <div class="essay-body">
+        <span class="essay-series">Future of Work is Play</span>
+        <h3 class="essay-title">The future of work is play</h3>
+        <p class="essay-teaser">When machines handle the busywork, what remains is the deeply human. A sketch of what work could look like once we stop pretending the industrial frame still fits.</p>
+      </div>
+      <div class="essay-arrow">→</div>
+    </a>
+    <a href="#" class="essay-row">
+      <div class="essay-num">02</div>
+      <div class="essay-body">
+        <span class="essay-series">Urging New Institutions</span>
+        <h3 class="essay-title">Social contracts, not constitutions</h3>
+        <p class="essay-teaser">Why the documents we venerate aren't what's actually holding institutions together — and what that means for anyone trying to build new ones from inside the old ones.</p>
+      </div>
+      <div class="essay-arrow">→</div>
+    </a>
+    <a href="#" class="essay-row">
+      <div class="essay-num">03</div>
+      <div class="essay-body">
+        <span class="essay-series">Urging New Institutions</span>
+        <h3 class="essay-title">Coordination is the unit of intelligence</h3>
+        <p class="essay-teaser">The smartest thing in any room is rarely a person — it's the pattern by which the people in the room are connected. Implications for AI, for teams, and for the institutions that claim to organize both.</p>
+      </div>
+      <div class="essay-arrow">→</div>
+    </a>
+  </div>
+  <div style="text-align:center;padding-top:64px">
+    <a href="#" class="btn-secondary">Read all essays →</a>
+  </div>
+</section>
+
+<!-- THE EVENT SERIES -->
+<section class="events section reveal" id="events">
+  <div class="ed-head">
+    <span class="ed-rule"></span>
+    <span class="ed-kicker">The Series</span>
+    <h2>Small, curated gatherings — city by city.</h2>
+    <p class="ed-sub">Twenty to forty people. Jan Hein as intellectual anchor. Local organizers picking the room and the rhythm.</p>
+  </div>
+  <div class="event-list">
+    <a href="#" class="event-row reveal reveal-delay-1">
+      <div class="event-num">01</div>
+      <div class="event-body">
+        <h3 class="event-city">Amsterdam</h3>
+        <p class="event-desc">The original chapter. Quarterly gatherings on social contracts, AI, and the institutions that organize knowledge work.</p>
+      </div>
+      <div class="event-meta">
+        <span class="e-date">Spring 2026</span>
+        <span class="e-anchor">Anchor: Jan Hein</span>
+        <span class="e-action">Apply to attend →</span>
+      </div>
+    </a>
+    <a href="#" class="event-row reveal reveal-delay-2">
+      <div class="event-num">02</div>
+      <div class="event-body">
+        <h3 class="event-city">Rotterdam</h3>
+        <p class="event-desc">A working chapter focused on industry, ports, and the practical frictions of building new institutions inside old ones.</p>
+      </div>
+      <div class="event-meta">
+        <span class="e-date">Summer 2026</span>
+        <span class="e-anchor">Local: TBA</span>
+        <span class="e-action">Apply to attend →</span>
+      </div>
+    </a>
+    <a href="#" class="event-row reveal reveal-delay-3">
+      <div class="event-num">03</div>
+      <div class="event-body">
+        <h3 class="event-city">Berlin</h3>
+        <p class="event-desc">The newest chapter. Civic tech, digital rights, and the public-infrastructure question — where the foundation's research meets European policy.</p>
+      </div>
+      <div class="event-meta">
+        <span class="e-date">Autumn 2026</span>
+        <span class="e-anchor">Local: TBA</span>
+        <span class="e-action">Apply to attend →</span>
+      </div>
+    </a>
+  </div>
+  <div style="text-align:center;margin-top:56px;display:flex;gap:16px;justify-content:center;flex-wrap:wrap">
+    <a href="#" class="btn-primary">Apply to attend →</a>
+    <a href="#" class="btn-secondary">Bring this to your city</a>
+  </div>
+</section>
+
+<!-- THE BRAINS -->
+<section class="answer section reveal" id="brains">
+  <div class="ed-head">
+    <span class="ed-rule"></span>
+    <span class="ed-kicker">Public Infrastructure</span>
+    <h2>The infrastructure<br>under the community.</h2>
+  </div>
+  <div class="editorial">
+    <p>The foundation stewards the AI coordination infrastructure that the Rizom community runs on — <em>Rover</em>, the personal-knowledge agent, and <em>Recall</em>, the shared-memory layer that connects them. Both are open-source, openly governed, and deliberately designed to be operated by communities rather than owned by platforms.</p>
+    <p>We treat them as <strong>public infrastructure, not product</strong>. That framing matters — it's what makes the foundation legible to civic funders, digital-rights organizations, and the European institutions thinking about what sovereign AI actually looks like in practice.</p>
+  </div>
+</section>
+
+<!-- HOW TO SUPPORT -->
+<section id="support" style="padding-top:80px;padding-bottom:80px">
+  <div class="section">
+    <div class="ed-head">
+      <span class="ed-rule"></span>
+      <span class="ed-kicker">How to Support</span>
+      <h2>Two ways the work gets funded.</h2>
+    </div>
+    <div class="support-grid">
+      <div class="product-inner rover" style="flex-direction:column;align-items:flex-start;gap:20px;padding:40px">
+        <span class="product-label amber" style="font-size:18px">For Individuals</span>
+        <h3 class="product-h3">€1,000 – €10,000</h3>
+        <p class="product-desc">A gift in this range funds a meaningful slice of the research and event series. Contributors are acknowledged in the essays, invited to closer-circle gatherings, and get early access to new writing and infrastructure.</p>
+        <a href="#" class="product-link">Get in touch →</a>
+      </div>
+      <div class="product-inner relay" style="flex-direction:column;align-items:flex-start;gap:20px;padding:40px">
+        <span class="product-label purple" style="font-size:18px">For Institutions</span>
+        <h3 class="product-h3">Grants &amp; partnerships</h3>
+        <p class="product-desc">The foundation's work qualifies as public infrastructure under most civic and digital-rights funding frameworks. We're actively in conversation with grantmakers, NGOs, and institutional co-funders. Reach Jan Hein directly.</p>
+        <a href="#" class="product-link purple">Email Jan Hein →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WHO WE ARE -->
+<section class="ownership section reveal" id="about">
+  <div class="ownership-grid">
+    <div class="ownership-left">
+      <span class="badge badge-amber">Who We Are</span>
+      <h2>A small group, anchored by writing and stewarded by community.</h2>
+    </div>
+    <div class="ownership-right">
+      <div class="feature-row reveal reveal-delay-1">
+        <div class="feature-icon">JH</div>
+        <div>
+          <div class="feature-title">Jan Hein Hoogstad</div>
+          <p class="feature-desc">Philosopher, ecosystem architect, and public intellectual. Founder of Rizom and lead author of the research. Writes about institutions, AI, and the social contracts that quietly hold both together. <a href="https://yeehaa.io" style="color:var(--amber)">yeehaa.io →</a></p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-2">
+        <div class="feature-icon">S</div>
+        <div>
+          <div class="feature-title">Sam — community steward</div>
+          <p class="feature-desc">Holds the Discord together, runs the reading groups, and quietly does the coordination work that keeps a distributed community from becoming a mailing list.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-3">
+        <div class="feature-icon">J</div>
+        <div>
+          <div class="feature-title">Jo — events &amp; production</div>
+          <p class="feature-desc">Owns the gatherings end-to-end. Picks the rooms, sets the rhythm, makes sure the conversations that matter actually happen.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal">
+        <div class="feature-icon">+</div>
+        <div>
+          <div class="feature-title">A wider circle</div>
+          <p class="feature-desc">Researchers, organizers, and contributors across Amsterdam, Rotterdam, Berlin, and beyond. The list is public — and growing.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MISSION / NEWSLETTER -->
+<section class="mission section reveal" id="follow">
+  <div class="divider-line"></div>
+  <p class="pre">The research lands one essay at a time. The events land one city at a time. Both go better with company.</p>
+  <h2>Follow the<br><span class="highlight">research.</span></h2>
+  <div class="mission-cta">
+    <a href="#" class="btn-primary">Subscribe to the newsletter →</a>
+    <a href="#" class="btn-secondary">Follow on LinkedIn</a>
+  </div>
+</section>
+
+<!-- ECOSYSTEM -->
+<section class="ecosystem section reveal" id="ecosystem">
+  <div class="eco-grid">
+    <div class="eco-card reveal reveal-delay-1">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">work</span></div>
+      <div class="eco-title">The workshops</div>
+      <p class="eco-desc">TMS workshops and team-coordination tools — the commercial entity whose revenue funds the research arm.</p>
+      <a href="rizom-work.html" class="eco-link purple">See the workshops →</a>
+    </div>
+    <div class="eco-card is-here reveal reveal-delay-2">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">foundation</span></div>
+      <div class="eco-title">The research</div>
+      <p class="eco-desc">Essays, events, and public infrastructure. The non-profit research arm where the ideas come from.</p>
+      <a href="#" class="eco-link amber">You are here</a>
+    </div>
+    <div class="eco-card reveal reveal-delay-3">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">ai</span></div>
+      <div class="eco-title">The platform</div>
+      <p class="eco-desc">Open-source AI agents built from your own knowledge — the technical layer that the community runs on.</p>
+      <a href="rizom-ai.html" class="eco-link purple">See the platform →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="foot-left">
+    <div class="foot-brandline">
+      <span class="foot-brand"><span style="font-weight:700">rizom</span><span style="color:var(--amber);font-weight:700">.</span><span style="color:var(--text-muted)">foundation</span></span>
+      <span class="foot-copy">© 2026 · Stichting Rizom</span>
+    </div>
+    <p class="foot-tagline"><a href="rizom-work.html">Rizom.work</a> runs the TMS workshops and tools that fund this research.</p>
+  </div>
+  <div class="foot-links">
+    <a href="#">Newsletter</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">Discord</a>
+    <a href="#">Contact</a>
+    <button id="themeToggle" aria-label="Toggle light mode" style="background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-dim);font-size:13px;font-family:var(--font-body);transition:all 0.3s">☀ Light</button>
+  </div>
+</footer>
+
+<script>
+// Foundation defaults to LIGHT (cream). The head-of-body script has already
+// added the class; here we only sync the html background as a :has fallback.
+(function() {
+  if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.style.background = '#0D0A1A';
+  } else {
+    document.documentElement.style.background = '#F5EFE3';
+  }
+})();
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Side nav active state tracker
+const sideDots = document.querySelectorAll('.side-nav-dot');
+const sectionIds = ['hero','argument','research','events','brains','support','about'];
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = sectionIds.indexOf(e.target.id);
+      if (idx >= 0) {
+        sideDots.forEach(d => d.classList.remove('active'));
+        if (sideDots[idx]) sideDots[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.4 });
+sectionIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) sectionObserver.observe(el);
+});
+
+// ============= CANVAS HELPERS (consumed by canvases/*.js as globals) =============
+function createRand(seed) {
+  let s = seed;
+  return {
+    next() { s = (s * 16807) % 2147483647; return s / 2147483647; },
+    range(a, b) { return a + this.next() * (b - a); }
+  };
+}
+const C = {
+  AMBER:'#E87722', AMBER_LT:'#FFA366', AMBER_DK:'#C45A08',
+  PURPLE:'#6B2FA0', PURPLE_LT:'#8C82C8', PURPLE_MU:'#818CF8',
+  GLOW:'#FFD4A8', WARM:'#FFB366', CORE:'#FFF8EE', WHITE:'#FFFFFF'
+};
+const _rgbCache = {};
+function parseHex(hex) {
+  if (_rgbCache[hex]) return _rgbCache[hex];
+  const v = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  _rgbCache[hex] = v;
+  return v;
+}
+function rgba(hex, a) {
+  const [r,g,b] = parseHex(hex);
+  return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,a))})`;
+}
+function isLightMode() { return document.body.classList.contains('light'); }
+const dpr = window.devicePixelRatio || 1;
+
+function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
+  if (light) {
+    for (let r = glowR * 0.7; r > 0; r -= Math.max(0.5, glowR/12)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/(glowR*0.7)) * 0.07);
+      ctx.lineWidth = w + r * 1.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.65);
+    ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  } else {
+    for (let r = glowR; r > 0; r -= Math.max(0.5, glowR/20)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/glowR) * 0.08);
+      ctx.lineWidth = w + r * 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.8);
+    ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#FFD4A8', op * 0.3);
+    ctx.lineWidth = w * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  }
+}
+function drawGlowNode(ctx, x, y, r, color, op, light) {
+  if (light) {
+    for (let i = r * 4; i > r; i -= 0.8) {
+      ctx.fillStyle = rgba(color, op * 0.05 * (1 - (i-r)/(r*3)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba(color, op * 0.7);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba(color, op * 0.95);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, Math.PI*2); ctx.fill();
+  } else {
+    for (let i = r * 8; i > r; i -= 1.5) {
+      ctx.fillStyle = rgba(color, op * 0.01 * (1 - (i-r)/(r*7)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    for (let i = r * 2; i > 0; i -= 0.4) {
+      ctx.fillStyle = rgba('#FFB366', op * 0.08 * (1 - i/(r*2)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba('#FFF8EE', op * 0.85);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// Background canvas — foundation variant uses the roots canvas
+(function loadBackgroundCanvas() {
+  const allowed = ['tree', 'constellation', 'roots'];
+  const param = new URLSearchParams(location.search).get('canvas');
+  const name = allowed.includes(param) ? param : 'roots';
+  const s = document.createElement('script');
+  s.src = `canvases/${name}.js`;
+  document.head.appendChild(s);
+})();
+
+const toggle = document.getElementById('themeToggle');
+function applyThemeColors(isLight) {
+  document.documentElement.style.background = isLight ? '#F5EFE3' : '#0D0A1A';
+}
+toggle.textContent = document.body.classList.contains('light') ? '☾ Dark' : '☀ Light';
+toggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  applyThemeColors(isLight);
+  if (window._heroRebuild) window._heroRebuild();
+});
+</script>
+</body>
+</html>

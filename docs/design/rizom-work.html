@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>rizom.work — TMS workshops for teams that need to coordinate better</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,300..800;1,300..800&family=Barlow:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Plus+Jakarta+Sans:wght@500;600;700&family=Space+Grotesk:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0D0A1A;--bg-subtle:#0E0B1E;--bg-card:#1A0A3E;
+  --amber:#E87722;--amber-light:#FFA366;--amber-dark:#C45A08;
+  --purple:#6B2FA0;--purple-light:#8C82C8;--purple-muted:#818CF8;
+  --text:#FFFFFF;--text-muted:rgba(255,255,255,0.6);--text-dim:rgba(255,255,255,0.4);
+  /* Work's unique voice: Archivo for display — confident studio sans, not Chakra Petch's tech-angular feel */
+  --font-head:'Archivo',system-ui,sans-serif;
+  --font-body:'Barlow',system-ui,sans-serif;
+  --font-label:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-nav:'Space Grotesk',system-ui,sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,'Cascadia Code',monospace;
+  font-optical-sizing:auto;
+}
+/* Light mode — same cream as the Rizom family (not foundation's warmer cream) */
+body.light{
+  --bg:#F2EEE8;--bg-subtle:#EAE5DD;--bg-card:#F0ECE5;
+  --text:#1A1625;--text-muted:rgba(26,22,37,0.6);--text-dim:rgba(26,22,37,0.4);
+  background-color:var(--bg);background-image:none;
+}
+body.light nav{background:linear-gradient(180deg,rgba(242,238,232,0.95) 0%,rgba(242,238,232,0) 100%)}
+body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
+body.light .nav-cta:hover{border-color:var(--amber)}
+body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
+body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
+body.light .answer{background:transparent}
+body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
+body.light footer{border-top-color:rgba(26,22,37,0.06)}
+body.light #themeToggle{border-color:rgba(26,22,37,0.15);color:var(--text-dim)}
+body.light .kicker{color:var(--amber-dark)}
+body.light .kicker::before{background:var(--amber-dark)}
+body.light .step{border-top-color:rgba(26,22,37,0.12)}
+body.light .step:last-child{border-bottom-color:rgba(26,22,37,0.12)}
+body.light .persona{border-top-color:rgba(26,22,37,0.12)}
+body.light .testimonial p::before{color:var(--amber-dark)}
+body.light #bgCanvasWrap{opacity:0.55}
+body.light .partners-list span{color:rgba(26,22,37,0.5)}
+
+html{scroll-behavior:smooth;overflow-x:hidden;background:#0D0A1A;transition:background 0.3s}
+body.light~html,html:has(body.light){background:#F2EEE8}
+body{
+  background:transparent;color:var(--text);font-family:var(--font-body);
+  line-height:1.6;overflow-x:hidden;max-width:100vw;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+}
+a{color:inherit;text-decoration:none}
+*{overflow-wrap:break-word;word-wrap:break-word;min-width:0}
+
+/* Scroll reveal */
+.reveal{opacity:0;transform:translateY(32px);transition:opacity 0.8s ease,transform 0.8s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+.reveal-delay-1{transition-delay:0.1s}
+.reveal-delay-2{transition-delay:0.2s}
+.reveal-delay-3{transition-delay:0.3s}
+
+/* Section container */
+.section{width:100%;max-width:1440px;margin:0 auto;padding-left:80px;padding-right:80px;position:relative;z-index:1}
+@media(max-width:1100px){.section{padding-left:40px;padding-right:40px}}
+@media(max-width:768px){.section{padding-left:24px;padding-right:24px}}
+
+/* ============= NAV — byte-identical to Rizom family spec ============= */
+nav{position:fixed;top:0;left:0;right:0;z-index:100;padding:20px 80px;display:flex;align-items:center;justify-content:space-between;background:linear-gradient(180deg,rgba(13,10,26,0.95) 0%,rgba(13,10,26,0) 100%);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+nav .logo{display:flex;align-items:center;gap:0}
+nav .logo-rizom{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--text)}
+nav .logo-dot{font-family:var(--font-nav);font-size:20px;font-weight:700;color:var(--amber)}
+nav .logo-ai{font-family:var(--font-nav);font-size:20px;color:var(--text-muted)}
+nav .nav-links{display:flex;align-items:center;gap:32px}
+nav .nav-links a:not(.nav-cta){font-family:var(--font-body);font-size:15px;color:var(--text-muted);transition:color 0.3s;position:relative;padding:4px 0}
+nav .nav-links a:not(.nav-cta)::after{content:'';position:absolute;left:0;bottom:0;width:0;height:1px;background:var(--amber);transition:width 0.3s ease}
+nav .nav-links a:not(.nav-cta):hover{color:var(--text)}
+nav .nav-links a:not(.nav-cta):hover::after{width:100%}
+nav .nav-cta{font-family:var(--font-body);font-size:15px;font-weight:600;color:var(--text);border:1px solid rgba(255,255,255,0.2);border-radius:8px;padding:10px 24px;transition:all 0.3s}
+nav .nav-cta:hover{border-color:var(--amber);color:var(--amber)}
+
+/* Side nav — byte-identical to Rizom family spec */
+.side-nav{position:fixed;right:32px;top:50%;transform:translateY(-50%);z-index:90;display:flex;flex-direction:column;gap:18px;padding:16px 8px}
+.side-nav-dot{position:relative;width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.15);transition:all 0.3s;display:block}
+.side-nav-dot::after{content:attr(data-label);position:absolute;right:20px;top:50%;transform:translateY(-50%);font-family:var(--font-label);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity 0.3s}
+.side-nav-dot:hover{background:var(--amber);transform:scale(1.3)}
+.side-nav-dot:hover::after{opacity:1}
+.side-nav-dot.active{background:var(--amber);box-shadow:0 0 12px rgba(232,119,34,0.5)}
+body.light .side-nav-dot{background:rgba(26,22,37,0.2)}
+body.light .side-nav-dot.active{background:var(--amber-dark)}
+@media(max-width:1100px){.side-nav{display:none}}
+
+/* ============= KICKER — shared small-caps label with amber rule ============= */
+.kicker{display:inline-flex;align-items:center;gap:14px;font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:2.8px;text-transform:uppercase;color:var(--amber);margin-bottom:24px}
+.kicker::before{content:'';width:32px;height:1px;background:var(--amber);opacity:0.8}
+
+/* ============= BUTTONS — shared family pills ============= */
+.btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:600;color:#fff;background:var(--amber);border:none;border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,119,34,0.3)}
+.btn-secondary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:500;color:var(--text);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.15);border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
+.btn-secondary:hover{border-color:rgba(255,255,255,0.4);background:rgba(255,255,255,0.08)}
+
+/* ============= HERO — split: studio headline left, diagnostic sample right ============= */
+.hero{position:relative;min-height:100vh;display:flex;align-items:center;overflow:hidden;padding:120px 0 64px}
+#bgCanvasWrap{opacity:0.6}
+#heroCanvas{width:100%;height:100%}
+.hero-grid{display:grid;grid-template-columns:0.95fr 1.05fr;gap:64px;align-items:center;width:100%;position:relative;z-index:2}
+.hero-text{display:flex;flex-direction:column}
+.hero-text .kicker{opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.1s forwards}
+.hero h1{
+  font-family:var(--font-head);
+  font-size:clamp(36px,5.2vw,76px);
+  font-weight:500;letter-spacing:-2px;line-height:1;
+  margin-bottom:30px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.25s forwards;
+  font-variation-settings:"wght" 520;
+  max-width:14ch;
+}
+.hero h1 .em{font-style:italic;font-weight:400;color:var(--amber);font-variation-settings:"wght" 440}
+.hero .subtitle{
+  font-family:var(--font-body);font-size:18px;line-height:1.65;color:var(--text-muted);
+  max-width:500px;margin-bottom:40px;
+  opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.45s forwards;
+}
+.hero .cta-row{display:flex;gap:14px;flex-wrap:wrap;opacity:0;animation:heroRise 1s cubic-bezier(0.2,0.8,0.2,1) 0.65s forwards}
+@keyframes heroRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+
+/* Scroll cue */
+.scroll-cue{position:absolute;bottom:36px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:12px;color:var(--text-dim);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;z-index:3;transition:color 0.3s;opacity:0;animation:scrollCueRise 1s cubic-bezier(0.2,0.8,0.2,1) 1s forwards;text-decoration:none}
+.scroll-cue:hover{color:var(--amber)}
+.scroll-cue-line{width:1px;height:48px;background:linear-gradient(180deg,transparent 0%,currentColor 40%,currentColor 100%);position:relative;overflow:hidden}
+.scroll-cue-line::before{content:'';position:absolute;top:-20px;left:0;width:100%;height:20px;background:linear-gradient(180deg,transparent,currentColor);animation:scrollDrop 2.2s ease-in-out infinite}
+@keyframes scrollCueRise{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:0.75;transform:translateX(-50%) translateY(0)}}
+@keyframes scrollDrop{0%{top:-20px}60%{top:48px}100%{top:48px}}
+
+/* ============= DIAGNOSTIC WIDGET — framed as a SAMPLE output, not live OS chrome ============= */
+.diagnostic{
+  background:rgba(13,10,26,0.78);
+  border:1px solid rgba(232,119,34,0.22);
+  border-radius:10px;
+  padding:30px 30px 26px;
+  position:relative;
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  box-shadow:0 32px 80px -24px rgba(0,0,0,0.55),inset 0 1px 0 rgba(255,255,255,0.03);
+  max-width:520px;width:100%;margin-left:auto;
+  opacity:0;transform:translateY(24px);
+  animation:diagRise 1.1s cubic-bezier(0.2,0.8,0.2,1) 0.75s forwards;
+}
+@keyframes diagRise{to{opacity:1;transform:translateY(0)}}
+.diagnostic::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,transparent,var(--amber) 25%,var(--amber-light) 50%,var(--amber) 75%,transparent);
+  border-radius:10px 10px 0 0;
+}
+.diag-header{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:18px}
+.diag-title{font-family:var(--font-mono);font-size:10.5px;color:var(--amber);letter-spacing:2.5px;text-transform:uppercase;font-weight:600}
+.diag-tag{font-family:var(--font-mono);font-size:9.5px;color:var(--text-dim);letter-spacing:1.5px;text-transform:uppercase}
+.diag-row{display:grid;grid-template-columns:128px 1fr 44px;align-items:center;gap:14px;padding:9px 0}
+.diag-label{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.diag-bar{height:4px;background:rgba(255,255,255,0.05);border-radius:2px;overflow:hidden;position:relative}
+.diag-bar-fill{height:100%;background:linear-gradient(90deg,var(--amber-dark),var(--amber));border-radius:2px;width:0;animation:diagFill 1.4s cubic-bezier(0.2,0.8,0.2,1) 1.3s forwards}
+.diag-bar-fill.warn{background:linear-gradient(90deg,var(--amber),var(--amber-light))}
+@keyframes diagFill{to{width:var(--w)}}
+.diag-value{font-family:var(--font-mono);font-size:11px;color:var(--text);text-align:right;font-weight:500}
+.diag-value.dim{color:var(--text-muted)}
+.diag-value.warn{color:var(--amber-light)}
+.diag-result{margin-top:20px;padding-top:18px;border-top:1px solid rgba(255,255,255,0.08);display:flex;justify-content:space-between;align-items:baseline}
+.diag-result-label{font-family:var(--font-mono);font-size:10px;color:var(--text-dim);text-transform:uppercase;letter-spacing:1.4px}
+.diag-result-value{font-family:var(--font-head);font-size:18px;color:var(--text-dim);letter-spacing:-0.2px;font-style:italic;font-variation-settings:"wght" 420}
+.diag-result-value::before{content:'—';color:var(--amber);margin-right:10px;font-style:normal;font-weight:500}
+.diag-cta{
+  margin-top:18px;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;
+  padding:13px 16px;background:transparent;
+  border:1px solid rgba(232,119,34,0.45);color:var(--amber);
+  font-family:var(--font-mono);font-size:10.5px;font-weight:500;
+  letter-spacing:1.8px;text-transform:uppercase;
+  border-radius:6px;cursor:pointer;transition:all 0.3s;text-decoration:none;
+}
+.diag-cta:hover{background:rgba(232,119,34,0.1);border-color:var(--amber);box-shadow:0 0 0 3px rgba(232,119,34,0.06)}
+body.light .diagnostic{background:rgba(242,238,232,0.92);border-color:rgba(196,90,8,0.3);box-shadow:0 32px 80px -24px rgba(26,22,37,0.18),inset 0 1px 0 rgba(255,255,255,0.5)}
+body.light .diag-header,body.light .diag-result{border-color:rgba(26,22,37,0.1)}
+body.light .diag-bar{background:rgba(26,22,37,0.08)}
+body.light .diag-title{color:var(--amber-dark)}
+body.light .diag-cta{background:rgba(196,90,8,0.05);border-color:rgba(196,90,8,0.4);color:var(--amber-dark)}
+
+@media(max-width:1100px){
+  .hero-grid{grid-template-columns:1fr;gap:48px;padding-top:40px}
+  .diagnostic{margin:0 auto;max-width:520px}
+  .hero h1{max-width:100%}
+}
+
+/* ============= ANSWER — centered prose section (used for Problem, Proof header) ============= */
+.answer{padding:128px 0;text-align:center;background:transparent}
+.answer h2{
+  font-family:var(--font-head);
+  font-size:clamp(36px,5vw,68px);
+  font-weight:500;letter-spacing:-1.6px;line-height:1.02;
+  max-width:900px;margin:0 auto 28px;
+  font-variation-settings:"wght" 520;
+}
+.answer h2 .em{font-style:italic;font-weight:400;color:var(--amber);font-variation-settings:"wght" 440}
+.answer .answer-sub{
+  font-family:var(--font-body);font-size:19px;line-height:1.72;
+  color:var(--text-muted);max-width:720px;margin:0 auto;
+}
+.answer .kicker{margin-bottom:32px}
+
+/* ============= WORKSHOP — editorial numbered steps ============= */
+.workshop{padding:128px 0;position:relative}
+.workshop-head{max-width:820px;margin:0 auto 96px;text-align:center}
+.workshop-head h2{
+  font-family:var(--font-head);
+  font-size:clamp(36px,5vw,68px);
+  font-weight:500;letter-spacing:-1.6px;line-height:1.02;
+  margin:12px 0 28px;
+  font-variation-settings:"wght" 520;
+}
+.workshop-intro{font-family:var(--font-body);font-size:18px;line-height:1.72;color:var(--text-muted);max-width:640px;margin:0 auto}
+.workshop-steps{max-width:960px;margin:0 auto;display:flex;flex-direction:column}
+.step{
+  display:grid;grid-template-columns:240px 1fr;gap:64px;
+  padding:56px 0;border-top:1px solid rgba(255,255,255,0.1);
+  align-items:flex-start;
+}
+.step:last-child{border-bottom:1px solid rgba(255,255,255,0.1)}
+.step-mark{display:flex;align-items:baseline;gap:18px;padding-top:6px}
+.step-num{
+  font-family:var(--font-head);font-size:68px;font-weight:300;
+  color:var(--amber);line-height:0.82;letter-spacing:-3px;
+  font-variation-settings:"wght" 320;
+}
+.step-rule{display:inline-block;width:36px;height:1px;background:var(--amber);opacity:0.5;margin-bottom:14px}
+.step-label{font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-muted)}
+.step-body h3{
+  font-family:var(--font-head);font-size:28px;font-weight:500;
+  letter-spacing:-0.6px;line-height:1.2;margin-bottom:16px;
+  font-variation-settings:"wght" 520;
+}
+.step-body p{font-family:var(--font-body);font-size:17px;line-height:1.72;color:var(--text-muted);max-width:560px}
+.workshop-cta{margin-top:72px;text-align:center}
+
+/* ============= PERSONAS — soft editorial 2-up with italic pull quotes ============= */
+.personas{padding:128px 0}
+.personas-head{max-width:760px;margin:0 auto 88px;text-align:center}
+.personas-head h2{
+  font-family:var(--font-head);
+  font-size:clamp(36px,5vw,64px);
+  font-weight:500;letter-spacing:-1.5px;line-height:1.02;
+  margin-top:12px;
+  font-variation-settings:"wght" 520;
+}
+.persona-grid{display:grid;grid-template-columns:1fr 1fr;gap:72px;max-width:1160px;margin:0 auto}
+.persona{
+  display:flex;flex-direction:column;gap:22px;
+  padding:56px 0 0;
+  border-top:1px solid rgba(255,255,255,0.12);
+}
+.persona-label{font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--amber)}
+.persona-quote{
+  font-family:var(--font-head);font-size:clamp(24px,2.6vw,32px);
+  font-weight:400;font-style:italic;line-height:1.2;
+  letter-spacing:-0.6px;color:var(--text);
+  font-variation-settings:"wght" 420;
+  max-width:500px;
+}
+.persona-body{font-family:var(--font-body);font-size:17px;line-height:1.75;color:var(--text-muted);max-width:500px}
+
+/* ============= PROOF — testimonial + partners strip ============= */
+.proof{padding:128px 0;text-align:center}
+.proof-head{max-width:720px;margin:0 auto 80px}
+.proof-head h2{
+  font-family:var(--font-head);
+  font-size:clamp(32px,4.5vw,56px);
+  font-weight:500;letter-spacing:-1.4px;line-height:1.05;
+  margin-top:12px;
+  font-variation-settings:"wght" 520;
+}
+.testimonial{max-width:820px;margin:0 auto 96px;padding:0 40px;text-align:left;position:relative}
+.testimonial p{
+  font-family:var(--font-head);
+  font-size:clamp(24px,3vw,38px);
+  font-weight:400;font-style:italic;line-height:1.28;
+  letter-spacing:-0.6px;color:var(--text);
+  margin-bottom:28px;padding-left:56px;
+  font-variation-settings:"wght" 420;
+  position:relative;
+}
+.testimonial p::before{
+  content:'\201C';position:absolute;left:-6px;top:-40px;
+  font-family:var(--font-head);font-size:180px;line-height:1;
+  color:var(--amber);opacity:0.35;font-weight:500;
+  font-variation-settings:"wght" 600;
+}
+.testimonial footer{
+  font-family:var(--font-label);font-size:12px;font-weight:600;
+  letter-spacing:1.8px;text-transform:uppercase;color:var(--text-muted);
+  padding-left:56px;
+}
+.partners{max-width:900px;margin:0 auto;display:flex;flex-direction:column;align-items:center;gap:28px}
+.partners-label{font-family:var(--font-label);font-size:10px;font-weight:600;letter-spacing:2.5px;text-transform:uppercase;color:var(--text-dim)}
+.partners-list{display:flex;gap:48px;flex-wrap:wrap;justify-content:center}
+.partners-list span{
+  font-family:var(--font-head);font-size:20px;font-weight:400;
+  font-style:italic;color:var(--text-muted);
+  font-variation-settings:"wght" 420;
+  transition:color 0.3s;
+}
+.partners-list span:hover{color:var(--amber)}
+
+/* ============= BRIDGE TO FOUNDATION — small link-out section ============= */
+.bridge{padding:80px 0 96px;text-align:center}
+.bridge .rule{width:48px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent);margin:0 auto 40px}
+.bridge .kicker{justify-content:center}
+.bridge p{font-family:var(--font-head);font-size:clamp(22px,2.6vw,32px);font-weight:400;font-style:italic;line-height:1.4;color:var(--text);max-width:760px;margin:0 auto 28px;font-variation-settings:"wght" 420}
+.bridge a{font-family:var(--font-body);font-size:15px;font-weight:500;color:var(--amber);border-bottom:1px solid var(--amber);padding-bottom:3px;transition:all 0.3s}
+.bridge a:hover{padding-bottom:5px}
+
+/* ============= ABOUT — ownership grid ============= */
+.ownership{padding:128px 0}
+.ownership-grid{display:flex;gap:88px;align-items:flex-start;max-width:1160px;margin:0 auto}
+.ownership-left{width:42%}
+.ownership-left h2{
+  font-family:var(--font-head);font-size:clamp(32px,4.2vw,52px);
+  font-weight:500;letter-spacing:-1.4px;line-height:1.05;margin-top:16px;
+  font-variation-settings:"wght" 520;
+}
+.ownership-right{width:58%;display:flex;flex-direction:column;gap:40px;padding-top:64px}
+.feature-row{display:flex;gap:22px;align-items:flex-start}
+.feature-icon{
+  min-width:48px;height:48px;display:flex;align-items:center;justify-content:center;
+  border:1px solid var(--amber);border-radius:8px;
+  font-family:var(--font-head);font-size:16px;font-weight:600;
+  color:var(--amber);letter-spacing:-0.3px;
+}
+.feature-title{font-family:var(--font-head);font-size:20px;font-weight:500;margin-bottom:6px;font-variation-settings:"wght" 520}
+.feature-desc{font-family:var(--font-body);font-size:15px;line-height:1.72;color:var(--text-muted)}
+.feature-desc a{color:var(--amber);border-bottom:1px solid transparent;transition:border 0.3s}
+.feature-desc a:hover{border-bottom-color:var(--amber)}
+
+/* ============= CTA CLOSER ============= */
+.closer{padding:128px 0 144px;text-align:center;position:relative}
+.closer .rule{width:48px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent);margin:0 auto 48px}
+.closer .pre{font-family:var(--font-body);font-size:18px;line-height:1.7;color:var(--text-dim);max-width:560px;margin:0 auto 40px;font-style:italic}
+.closer h2{
+  font-family:var(--font-head);font-size:clamp(44px,7vw,96px);
+  font-weight:500;letter-spacing:-2.5px;line-height:0.98;
+  font-variation-settings:"wght" 520;
+}
+.closer h2 .em{font-style:italic;font-weight:400;color:var(--amber);font-variation-settings:"wght" 440}
+.closer .closer-cta{display:flex;gap:20px;justify-content:center;margin-top:56px;flex-wrap:wrap}
+.closer .closer-cta .btn-primary{font-size:18px;padding:20px 44px;box-shadow:0 0 0 0 rgba(232,119,34,0.5),0 20px 60px -15px rgba(232,119,34,0.4);transition:all 0.4s cubic-bezier(0.2,0.8,0.2,1)}
+.closer .closer-cta .btn-primary:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 0 0 8px rgba(232,119,34,0.15),0 30px 80px -15px rgba(232,119,34,0.5)}
+.closer .closer-cta .btn-secondary{font-size:18px;padding:20px 44px}
+
+/* ============= ECOSYSTEM — shared family 3-up ============= */
+.ecosystem{padding:120px 0 96px}
+.eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1),border-color 0.4s,box-shadow 0.4s}
+.eco-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:0.6;transition:opacity 0.4s}
+.eco-card.is-here{background:linear-gradient(135deg,rgba(232,119,34,0.12) 0%,rgba(232,119,34,0.03) 100%);border-color:rgba(232,119,34,0.25)}
+.eco-card.is-here::before{background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--amber) 70%,transparent);opacity:1;height:3px}
+.eco-card:not(.is-here):nth-of-type(2)::before{background:linear-gradient(90deg,transparent,var(--purple-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:not(.is-here):nth-of-type(3)::before{background:linear-gradient(90deg,transparent,var(--amber-light) 30%,var(--purple-light) 70%,transparent)}
+.eco-card:hover{transform:translateY(-3px);border-color:rgba(255,255,255,0.12)}
+.eco-card:hover::before{opacity:1}
+.eco-card.is-here:hover{box-shadow:0 16px 40px -16px rgba(232,119,34,0.2)}
+.eco-brand{display:flex;align-items:center;gap:4px;font-family:var(--font-nav);font-size:16px;margin-bottom:8px}
+.eco-brand .r{font-weight:700}
+.eco-brand .d{font-weight:700;color:var(--amber)}
+.eco-brand .s{color:var(--text-muted)}
+.eco-title{font-family:var(--font-nav);font-size:22px;font-weight:700}
+.eco-desc{font-family:var(--font-body);font-size:14px;line-height:1.7;color:var(--text-muted)}
+.eco-link{font-family:var(--font-body);font-size:14px;font-weight:500;margin-top:8px;transition:opacity 0.3s}
+.eco-link.amber{color:var(--amber)}
+.eco-link.purple{color:var(--purple-light)}
+.eco-link:hover{opacity:0.7}
+
+/* ============= FOOTER — shared family spec ============= */
+footer{padding:24px 80px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;gap:16px}
+footer .foot-left{display:flex;align-items:center;gap:12px}
+footer .foot-brand{font-family:var(--font-nav);font-size:15px}
+footer .foot-copy{font-size:13px;color:var(--text-dim)}
+footer .foot-links{display:flex;gap:24px;align-items:center}
+footer .foot-links a{font-family:var(--font-body);font-size:13px;color:var(--text-dim);transition:color 0.3s}
+footer .foot-links a:hover{color:var(--text)}
+
+/* ===== TABLET ===== */
+@media(max-width:1100px){
+  nav{padding:16px 40px}
+  .hero{padding-bottom:100px}
+  .hero h1{max-width:100%}
+  .ownership-grid{gap:48px}
+  .step{grid-template-columns:200px 1fr;gap:40px}
+  .step-num{font-size:56px}
+  .persona-grid{gap:48px}
+  footer{padding:24px 40px}
+}
+
+/* ===== MOBILE ===== */
+@media(max-width:768px){
+  /* Nav */
+  nav{padding:16px 24px}
+  nav .nav-links a:not(.nav-cta){display:none}
+  nav .nav-links{gap:12px}
+  nav .nav-cta{padding:8px 16px;font-size:13px}
+
+  /* Hero */
+  .hero{min-height:100vh;min-height:100dvh;padding-bottom:88px}
+  #bgCanvasWrap{opacity:0.3}
+  .hero h1{font-size:44px;letter-spacing:-1.5px;margin-bottom:28px}
+  .hero .subtitle{font-size:16px;margin-bottom:32px;max-width:100%}
+  .hero .cta-row{flex-direction:column;gap:12px}
+  .hero .cta-row .btn-primary,.hero .cta-row .btn-secondary{width:100%;justify-content:center;padding:15px 24px}
+
+  /* Answer / Problem */
+  .answer{padding:80px 0}
+  .answer h2{font-size:34px}
+  .answer .answer-sub{font-size:16px}
+
+  /* Workshop */
+  .workshop{padding:80px 0}
+  .workshop-head{margin-bottom:56px}
+  .workshop-head h2{font-size:34px}
+  .workshop-intro{font-size:16px}
+  .step{grid-template-columns:1fr;gap:20px;padding:40px 0}
+  .step-num{font-size:48px}
+  .step-body h3{font-size:22px}
+  .step-body p{font-size:15px}
+  .workshop-cta{margin-top:48px}
+
+  /* Personas */
+  .personas{padding:80px 0}
+  .personas-head{margin-bottom:56px}
+  .personas-head h2{font-size:32px}
+  .persona-grid{grid-template-columns:1fr;gap:40px}
+  .persona{padding-top:40px}
+  .persona-quote{font-size:22px}
+  .persona-body{font-size:15px}
+
+  /* Proof */
+  .proof{padding:80px 0}
+  .proof-head{margin-bottom:56px}
+  .proof-head h2{font-size:30px}
+  .testimonial{padding:0 16px;margin-bottom:64px}
+  .testimonial p{font-size:22px;padding-left:32px}
+  .testimonial p::before{font-size:120px;top:-24px;left:-4px}
+  .testimonial footer{padding-left:32px}
+  .partners-list{gap:24px}
+  .partners-list span{font-size:16px}
+
+  /* Bridge */
+  .bridge{padding:56px 0 72px}
+  .bridge p{font-size:19px}
+
+  /* About */
+  .ownership{padding:80px 0}
+  .ownership-grid{flex-direction:column;gap:40px}
+  .ownership-left,.ownership-right{width:100%}
+  .ownership-right{padding-top:0;gap:32px}
+  .ownership-left h2{font-size:30px;margin-top:12px}
+  .feature-row{gap:18px}
+  .feature-icon{min-width:44px;height:44px;font-size:15px}
+  .feature-title{font-size:18px}
+  .feature-desc{font-size:14px}
+
+  /* Closer */
+  .closer{padding:80px 0 96px}
+  .closer .pre{font-size:15px;margin-bottom:28px}
+  .closer .rule{margin-bottom:36px}
+  .closer h2{font-size:44px;letter-spacing:-1.5px}
+  .closer .closer-cta{flex-direction:column;align-items:stretch;gap:12px;margin-top:40px}
+  .closer .closer-cta .btn-primary,.closer .closer-cta .btn-secondary{justify-content:center;padding:16px 24px;font-size:16px}
+
+  /* Ecosystem */
+  .ecosystem{padding:72px 0 64px}
+  .eco-grid{grid-template-columns:1fr;gap:16px}
+  .eco-card{padding:24px;border-radius:12px}
+  .eco-title{font-size:18px}
+  .eco-desc{font-size:13px}
+
+  /* Footer */
+  footer{padding:32px 24px;flex-direction:column;gap:16px;text-align:center}
+  footer .foot-left{flex-direction:column;gap:6px}
+  footer .foot-links{flex-wrap:wrap;justify-content:center;gap:16px}
+}
+</style>
+</head>
+<body>
+
+<!-- FULL-PAGE CANVAS BACKGROUND — constellation variant per rizom-sites plan -->
+<div id="bgCanvasWrap" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none">
+  <canvas id="heroCanvas"></canvas>
+</div>
+
+<!-- NAV — shared Rizom family spec -->
+<nav>
+  <div class="logo">
+    <span class="logo-rizom">rizom</span><span class="logo-dot">.</span><span class="logo-ai">work</span>
+  </div>
+  <div class="nav-links">
+    <a href="#workshop">Methodology</a>
+    <a href="#personas">Who it's for</a>
+    <a href="#about">About</a>
+    <a href="#cta" class="nav-cta">Take the quiz</a>
+  </div>
+</nav>
+
+<!-- SIDE NAV INDICATOR — shared Rizom family spec -->
+<aside class="side-nav" aria-hidden="true">
+  <a href="#hero" class="side-nav-dot" data-label="Intro"></a>
+  <a href="#problem" class="side-nav-dot" data-label="Problem"></a>
+  <a href="#workshop" class="side-nav-dot" data-label="Workshop"></a>
+  <a href="#personas" class="side-nav-dot" data-label="For You"></a>
+  <a href="#proof" class="side-nav-dot" data-label="Proof"></a>
+  <a href="#about" class="side-nav-dot" data-label="About"></a>
+</aside>
+
+<!-- HERO — split: studio statement left, diagnostic sample right -->
+<section class="hero section" id="hero">
+  <div class="hero-grid">
+    <div class="hero-text">
+      <span class="kicker">A workshop practice · since 2023</span>
+      <h1>Your team has a knowledge problem. AI is making it <span class="em">visible</span>.</h1>
+      <p class="subtitle">TMS workshops that help teams coordinate better — so your people, and your AI tools, can actually do their best work.</p>
+      <div class="cta-row">
+        <a href="https://typeform.com" class="btn-primary">Take the Team Type quiz →</a>
+        <a href="#cta" class="btn-secondary">Book a discovery call</a>
+      </div>
+    </div>
+    <div class="diagnostic" aria-label="Team diagnostic sample output">
+      <div class="diag-header">
+        <span class="diag-title">Team Diagnostic</span>
+        <span class="diag-tag">sample output</span>
+      </div>
+      <div class="diag-row">
+        <span class="diag-label">Knowledge map</span>
+        <div class="diag-bar"><div class="diag-bar-fill" style="--w:34%"></div></div>
+        <span class="diag-value dim">34%</span>
+      </div>
+      <div class="diag-row">
+        <span class="diag-label">Decision flow</span>
+        <div class="diag-bar"><div class="diag-bar-fill" style="--w:21%"></div></div>
+        <span class="diag-value dim">21%</span>
+      </div>
+      <div class="diag-row">
+        <span class="diag-label">Overlap risk</span>
+        <div class="diag-bar"><div class="diag-bar-fill warn" style="--w:78%"></div></div>
+        <span class="diag-value warn">78%</span>
+      </div>
+      <div class="diag-row">
+        <span class="diag-label">AI-readiness</span>
+        <div class="diag-bar"><div class="diag-bar-fill" style="--w:42%"></div></div>
+        <span class="diag-value dim">42%</span>
+      </div>
+      <div class="diag-result">
+        <span class="diag-result-label">Your team type</span>
+        <span class="diag-result-value">unresolved</span>
+      </div>
+      <a href="https://typeform.com" class="diag-cta">Run the diagnostic →</a>
+    </div>
+  </div>
+  <a class="scroll-cue" href="#problem" aria-label="Scroll to content">
+    <span class="scroll-cue-label">Scroll</span>
+    <span class="scroll-cue-line"></span>
+  </a>
+</section>
+
+<!-- PROBLEM — editorial statement -->
+<section class="answer section reveal" id="problem">
+  <span class="kicker">The Problem</span>
+  <h2>Talent isn't the bottleneck. <span class="em">Coordination</span> is.</h2>
+  <p class="answer-sub">Teams don't fail because people are untalented. They fail because nobody has mapped who knows what, who decides what, and how information moves. When you add AI into that — it doesn't help, it just automates the confusion.</p>
+</section>
+
+<!-- WORKSHOP — editorial numbered steps -->
+<section class="workshop section reveal" id="workshop">
+  <div class="workshop-head">
+    <span class="kicker">TMS Workshop</span>
+    <h2>One session. Clear diagnosis.<br>Immediate team-level insight.</h2>
+    <p class="workshop-intro">Outcomes-first. We map your team's transactive memory system — who knows what, how decisions flow, where information drops on the floor — and hand you a working diagnosis you can act on the next day.</p>
+  </div>
+  <div class="workshop-steps">
+    <div class="step reveal reveal-delay-1">
+      <div class="step-mark">
+        <span class="step-num">01</span>
+        <span class="step-rule"></span>
+        <span class="step-label">Before</span>
+      </div>
+      <div class="step-body">
+        <h3>A short async survey.</h3>
+        <p>A short questionnaire maps your team's current coordination patterns. We come prepared — the workshop starts where the data leaves off.</p>
+      </div>
+    </div>
+    <div class="step reveal reveal-delay-2">
+      <div class="step-mark">
+        <span class="step-num">02</span>
+        <span class="step-rule"></span>
+        <span class="step-label">During</span>
+      </div>
+      <div class="step-body">
+        <h3>A facilitated half-day in the room.</h3>
+        <p>Your team builds a shared map of expertise, decision authority, and information flow. Everybody sees the same picture for the first time — often for the first time ever.</p>
+      </div>
+    </div>
+    <div class="step reveal reveal-delay-3">
+      <div class="step-mark">
+        <span class="step-num">03</span>
+        <span class="step-rule"></span>
+        <span class="step-label">After</span>
+      </div>
+      <div class="step-body">
+        <h3>A diagnostic report and a thirty-day playbook.</h3>
+        <p>Concrete changes to roles, rituals, and tooling — including how AI fits in without making the existing confusion worse. Something the team can act on the same week.</p>
+      </div>
+    </div>
+  </div>
+  <div class="workshop-cta">
+    <a href="https://typeform.com" class="btn-primary">Take the Team Type quiz →</a>
+  </div>
+</section>
+
+<!-- PERSONAS — soft editorial 2-up with italic pull quotes -->
+<section class="personas section reveal" id="personas">
+  <div class="personas-head">
+    <span class="kicker">Who It's For</span>
+    <h2>If this sounds like you.</h2>
+  </div>
+  <div class="persona-grid">
+    <div class="persona reveal reveal-delay-1">
+      <span class="persona-label">The Scaling Founder</span>
+      <p class="persona-quote">"Your team grew faster than your operating model."</p>
+      <p class="persona-body">You hired smart people, gave them ownership, and now nobody's quite sure who decides what. Stand-ups have gotten longer. Projects keep getting "blocked on context." You need a map — not another tool.</p>
+    </div>
+    <div class="persona reveal reveal-delay-2">
+      <span class="persona-label">The Digital Transformation Lead</span>
+      <p class="persona-quote">"You've been told to roll out AI across the org."</p>
+      <p class="persona-body">The pilots look fine, the dashboards are green, and yet the teams using the tools are quietly more frustrated than before. You suspect the problem isn't the AI — it's the coordination underneath it. You'd like proof.</p>
+    </div>
+  </div>
+</section>
+
+<!-- PROOF — testimonial + partners -->
+<section class="proof section reveal" id="proof">
+  <div class="proof-head">
+    <span class="kicker">In good company</span>
+    <h2>What teams tell us.</h2>
+  </div>
+  <blockquote class="testimonial">
+    <p>We thought we had a hiring problem. The workshop showed us we had a coordination problem — three people were quietly doing the same work, and nobody knew it. That's a week of design time back, every week.</p>
+    <footer>— Anonymized · 14-person product team</footer>
+  </blockquote>
+  <div class="partners">
+    <span class="partners-label">Partners &amp; appearances</span>
+    <div class="partners-list">
+      <span>Pinehurst Studio</span>
+      <span>Amsterdam</span>
+      <span>Rotterdam</span>
+      <span>Berlin</span>
+    </div>
+  </div>
+</section>
+
+<!-- BRIDGE TO FOUNDATION -->
+<section class="bridge section reveal">
+  <div class="rule"></div>
+  <span class="kicker">The thinking behind it</span>
+  <p>The methodology sits on top of years of ecosystem-architecture research by Jan Hein Hoogstad — published essays, public talks, and an active research arm.</p>
+  <a href="rizom-foundation.html">Read the research at rizom.foundation →</a>
+</section>
+
+<!-- ABOUT — ownership grid -->
+<section class="ownership section reveal" id="about">
+  <div class="ownership-grid">
+    <div class="ownership-left">
+      <span class="kicker">Who We Are</span>
+      <h2>A commercial practice with a non-profit research arm.</h2>
+    </div>
+    <div class="ownership-right">
+      <div class="feature-row reveal reveal-delay-1">
+        <div class="feature-icon">JH</div>
+        <div>
+          <div class="feature-title">Jan Hein Hoogstad — founder</div>
+          <p class="feature-desc">Philosopher and ecosystem architect. Founded rizom.work as the commercial face so the research at <a href="rizom-foundation.html">rizom.foundation</a> could stay independent and openly funded. The two sides feed each other.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-2">
+        <div class="feature-icon">N</div>
+        <div>
+          <div class="feature-title">Natalie — workshop lead</div>
+          <p class="feature-desc">Runs the TMS sessions, owns delivery, and makes sure every workshop produces something a team can act on the same week.</p>
+        </div>
+      </div>
+      <div class="feature-row reveal reveal-delay-3">
+        <div class="feature-icon">+</div>
+        <div>
+          <div class="feature-title">A network of practitioners</div>
+          <p class="feature-desc">Co-facilitators, researchers, and operators across Amsterdam, Rotterdam, and Berlin.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CLOSER — confident final CTA -->
+<section class="closer section reveal" id="cta">
+  <div class="rule"></div>
+  <p class="pre">The fastest way to find out what kind of coordination problem you have.</p>
+  <h2>Ready to find out<br>what <span class="em">type of team</span> you are?</h2>
+  <div class="closer-cta">
+    <a href="https://typeform.com" class="btn-primary">Take the Team Type quiz →</a>
+    <a href="#" class="btn-secondary">Book a 30-minute call</a>
+  </div>
+</section>
+
+<!-- ECOSYSTEM — shared family 3-up -->
+<section class="ecosystem section reveal" id="ecosystem">
+  <div class="eco-grid">
+    <div class="eco-card is-here reveal reveal-delay-1">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">work</span></div>
+      <div class="eco-title">The workshops</div>
+      <p class="eco-desc">TMS workshops and team-coordination practice. The commercial face that funds the research.</p>
+      <a href="#" class="eco-link amber">You are here</a>
+    </div>
+    <div class="eco-card reveal reveal-delay-2">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">foundation</span></div>
+      <div class="eco-title">The research</div>
+      <p class="eco-desc">Essays, events, and public infrastructure. The non-profit research arm where the ideas come from.</p>
+      <a href="rizom-foundation.html" class="eco-link purple">Read the manifesto →</a>
+    </div>
+    <div class="eco-card reveal reveal-delay-3">
+      <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">ai</span></div>
+      <div class="eco-title">The platform</div>
+      <p class="eco-desc">Open-source AI agents built from your own knowledge — the technical layer behind the coordination methodology.</p>
+      <a href="rizom-ai.html" class="eco-link purple">See the platform →</a>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER — shared family spec -->
+<footer>
+  <div class="foot-left">
+    <span class="foot-brand"><span style="font-weight:700">rizom</span><span style="color:var(--amber);font-weight:700">.</span><span style="color:var(--text-muted)">work</span></span>
+    <span class="foot-copy">© 2026 · Rizom Collective</span>
+  </div>
+  <div class="foot-links">
+    <a href="rizom-foundation.html">Foundation</a>
+    <a href="https://typeform.com">Team Type quiz</a>
+    <a href="#">LinkedIn</a>
+    <a href="#">Contact</a>
+    <button id="themeToggle" aria-label="Toggle light mode" style="background:none;border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:6px 10px;cursor:pointer;color:var(--text-dim);font-size:13px;font-family:var(--font-body);transition:all 0.3s">☀ Light</button>
+  </div>
+</footer>
+
+<script>
+// Theme preference applied before canvas builds
+(function() {
+  if (localStorage.getItem('theme') === 'light') {
+    document.body.classList.add('light');
+    document.documentElement.style.background = '#F2EEE8';
+  } else {
+    document.documentElement.style.background = '#0D0A1A';
+  }
+})();
+
+// Scroll reveal observer
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+// Side nav active state tracker
+const sideDots = document.querySelectorAll('.side-nav-dot');
+const sectionIds = ['hero','problem','workshop','personas','proof','about'];
+const sectionObserver = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = sectionIds.indexOf(e.target.id);
+      if (idx >= 0) {
+        sideDots.forEach(d => d.classList.remove('active'));
+        if (sideDots[idx]) sideDots[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.4 });
+sectionIds.forEach(id => {
+  const el = document.getElementById(id);
+  if (el) sectionObserver.observe(el);
+});
+
+// ============= CANVAS HELPERS (consumed by canvases/*.js as globals) =============
+function createRand(seed) {
+  let s = seed;
+  return {
+    next() { s = (s * 16807) % 2147483647; return s / 2147483647; },
+    range(a, b) { return a + this.next() * (b - a); }
+  };
+}
+const C = {
+  AMBER:'#E87722', AMBER_LT:'#FFA366', AMBER_DK:'#C45A08',
+  PURPLE:'#6B2FA0', PURPLE_LT:'#8C82C8', PURPLE_MU:'#818CF8',
+  GLOW:'#FFD4A8', WARM:'#FFB366', CORE:'#FFF8EE', WHITE:'#FFFFFF'
+};
+const _rgbCache = {};
+function parseHex(hex) {
+  if (_rgbCache[hex]) return _rgbCache[hex];
+  const v = [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+  _rgbCache[hex] = v;
+  return v;
+}
+function rgba(hex, a) {
+  const [r,g,b] = parseHex(hex);
+  return `rgba(${r},${g},${b},${Math.max(0,Math.min(1,a))})`;
+}
+function isLightMode() { return document.body.classList.contains('light'); }
+const dpr = window.devicePixelRatio || 1;
+
+function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
+  if (light) {
+    for (let r = glowR * 0.7; r > 0; r -= Math.max(0.5, glowR/12)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/(glowR*0.7)) * 0.07);
+      ctx.lineWidth = w + r * 1.8;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.65);
+    ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  } else {
+    for (let r = glowR; r > 0; r -= Math.max(0.5, glowR/20)) {
+      ctx.strokeStyle = rgba(color, op * (1 - r/glowR) * 0.08);
+      ctx.lineWidth = w + r * 2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(pts[0], pts[1]);
+      ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+      ctx.stroke();
+    }
+    ctx.strokeStyle = rgba(color, op * 0.8);
+    ctx.lineWidth = w; ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+    ctx.strokeStyle = rgba('#FFD4A8', op * 0.3);
+    ctx.lineWidth = w * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(pts[0], pts[1]);
+    ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
+    ctx.stroke();
+  }
+}
+function drawGlowNode(ctx, x, y, r, color, op, light) {
+  if (light) {
+    for (let i = r * 4; i > r; i -= 0.8) {
+      ctx.fillStyle = rgba(color, op * 0.05 * (1 - (i-r)/(r*3)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba(color, op * 0.7);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.8, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = rgba(color, op * 0.95);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.4, 0, Math.PI*2); ctx.fill();
+  } else {
+    for (let i = r * 8; i > r; i -= 1.5) {
+      ctx.fillStyle = rgba(color, op * 0.01 * (1 - (i-r)/(r*7)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    for (let i = r * 2; i > 0; i -= 0.4) {
+      ctx.fillStyle = rgba('#FFB366', op * 0.08 * (1 - i/(r*2)));
+      ctx.beginPath(); ctx.arc(x, y, i, 0, Math.PI*2); ctx.fill();
+    }
+    ctx.fillStyle = rgba('#FFF8EE', op * 0.85);
+    ctx.beginPath(); ctx.arc(x, y, r * 0.35, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+// Background canvas — work variant uses the constellation canvas
+(function loadBackgroundCanvas() {
+  const allowed = ['tree', 'constellation', 'roots'];
+  const param = new URLSearchParams(location.search).get('canvas');
+  const name = allowed.includes(param) ? param : 'constellation';
+  const s = document.createElement('script');
+  s.src = `canvases/${name}.js`;
+  document.head.appendChild(s);
+})();
+
+// Theme toggle
+const toggle = document.getElementById('themeToggle');
+function applyThemeColors(isLight) {
+  document.documentElement.style.background = isLight ? '#F2EEE8' : '#0D0A1A';
+}
+if (document.body.classList.contains('light')) {
+  toggle.textContent = '☾ Dark';
+}
+toggle.addEventListener('click', () => {
+  document.body.classList.toggle('light');
+  const isLight = document.body.classList.contains('light');
+  toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  applyThemeColors(isLight);
+  if (window._heroRebuild) window._heroRebuild();
+});
+</script>
+</body>
+</html>
