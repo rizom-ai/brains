@@ -31,46 +31,64 @@ brain.yaml (instance config)
 - **Tools** — every feature is an MCP tool, accessible to any AI assistant
 - **Resources** — read-only data exposed via MCP (identity, profile, status)
 - **Auto-sync** — entity changes automatically export to files and commit to git
-- **Brain models** — presets (`minimal`, `default`, `pro`) define which plugins load
+- **Brain models** — presets (`core`, `default`, `full`) define which plugins load
+- **Composite plugins** — a single capability id can register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
 
 ## Project Structure
 
 ```
-apps/                    Brain instances (professional, team, mylittlephoney)
-entities/                Entity plugins (15): blog, note, link, portfolio, ...
-plugins/                 Service plugins (24): site-builder, directory-sync, notion, ...
-interfaces/              Interface plugins (5): mcp, discord, a2a, chat-repl, webserver
-shell/                   Core infrastructure
-  ├── core/              Shell orchestrator, system tools, plugin management
-  ├── entity-service/    Entity CRUD, SQLite, vector search, Drizzle ORM
-  ├── ai-service/        AI generation via Vercel AI SDK (Anthropic, OpenAI)
-  ├── mcp-service/       MCP server, tool/resource registration
+shell/                   Core infrastructure (workspace)
+  ├── app/               Brain resolver, CLI entrypoint, brain.yaml parsing
+  ├── core/              Shell orchestrator, system tools, plugin lifecycle
+  ├── entity-service/    Entity CRUD, hybrid search, embedding DB
+  ├── ai-service/        AI generation via Vercel AI SDK (OpenAI / Anthropic / Google)
+  ├── mcp-service/       MCP server, tool/resource/template/prompt registration
   ├── job-queue/         Background job processing with batching
-  ├── plugins/           Plugin base classes, context hierarchy
+  ├── plugins/           Plugin base classes, three sibling contexts
   ├── messaging-service/ Event-driven pub/sub
   ├── identity-service/  Brain character + anchor profile
-  ├── templates/         Template + view registry, content resolution
-  └── ...
-shared/                  Shared packages
-  ├── utils/             Logging, markdown, Zod, pLimit, hashing
+  ├── conversation-service/  Conversation memory
+  ├── content-service/   Template-based generation
+  ├── templates/         Template registry
+  └── ai-evaluation/    Eval runner, test cases, LLM judge
+entities/                Entity plugins (16): blog, note, link, portfolio, topics, ...
+plugins/                 Service plugins (13): site-builder, directory-sync, notion, ...
+interfaces/              Interface plugins (5): mcp, discord, a2a, chat-repl, webserver
+layouts/                 Layout building blocks (personal, professional)
+sites/                   Site packages (default, rizom, yeehaa)
+brains/                  Brain model packages (rover, ranger, relay)
+packages/                Standalone npm packages (brain-cli → @rizom/brain)
+shared/                  Shared utilities + themes
+  ├── utils/             Logging (JSON mode + log file), markdown, Zod, hashing
   ├── mcp-bridge/        Base class for upstream MCP server integrations
   ├── ui-library/        Preact components for site rendering
-  ├── theme-*/           10 themes (default, yeehaa, brutalist, editorial, ...)
+  ├── image/             Image schema + adapter
+  ├── theme-*/           11 themes (base + 7 generic + 3 branded)
   └── test-utils/        Mock factories, fixtures, harnesses
+apps/                    Brain instances — config-only directories (brain.yaml + .env),
+                         NOT a workspace category. Consumed by the brain CLI at runtime.
 ```
 
 ## Getting Started
 
 ```bash
-# Clone and install
+# Clone and install (development against the monorepo)
 git clone https://github.com/rizom-ai/brains.git
 cd brains
 bun install
 
-# Run the professional brain locally
-cd apps/professional-brain
-cp example.env .env  # add your API keys
-bun run dev
+# Run an existing app instance via the in-tree brain CLI
+cd apps/yeehaa.io
+cp .env.example .env       # add AI_API_KEY at minimum
+bun --filter @rizom/brain run dev
+```
+
+Once `@rizom/brain` is published, the same flow becomes:
+
+```bash
+bun add -g @rizom/brain
+brain init mybrain         # interactive scaffold (model, domain, content repo)
+cd mybrain && brain start
 ```
 
 ### Connecting via MCP
@@ -81,9 +99,9 @@ Add to your Claude Desktop or Cursor config:
 {
   "mcpServers": {
     "brain": {
-      "command": "bun",
-      "args": ["run", "dev"],
-      "cwd": "/path/to/brains/apps/professional-brain"
+      "command": "brain",
+      "args": ["start", "--mcp-stdio"],
+      "cwd": "/path/to/your/brain-instance"
     }
   }
 }
@@ -91,31 +109,32 @@ Add to your Claude Desktop or Cursor config:
 
 ### Creating a Brain Instance
 
-Define a brain model in `apps/your-brain/brain.config.ts`:
-
-```typescript
-import { defineBrain } from "@brains/app";
-
-export default defineBrain({
-  name: "my-brain",
-  model: "@brains/rover",
-  site: "@brains/site-default",
-  preset: "default",
-});
-```
-
-Configure the instance in `brain.yaml`:
+App instances are config-only directories — no `package.json`, no source code. The simplest path is `brain init`, which writes a minimal `brain.yaml` + `.env.example`:
 
 ```yaml
+# brain.yaml
 brain: rover
-site: "@brains/site-default"
-preset: default
 domain: mybrain.example.com
+preset: core
+
+anchors: []
+
 plugins:
-  directory-sync:
-    git:
-      repo: my-org/brain-content
-      authToken: ${GIT_SYNC_TOKEN}
+  # Uncomment to enable git-backed sync of brain content:
+  # directory-sync:
+  #   git:
+  #     repo: my-org/brain-content
+  #     authToken: ${GIT_SYNC_TOKEN}
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
+```
+
+To override the bundled site or use a multi-variant site package, pass an object form:
+
+```yaml
+site:
+  package: "@brains/site-rizom"
+  variant: ai
 ```
 
 ## Development
@@ -131,29 +150,33 @@ bun test plugins/blog/    # Test a single package
 
 ### Metrics
 
-- 77 packages
-- 15 entity types, 24 service plugins, 6 interfaces, 10 themes
-- ~144k lines of TypeScript
-- 3,200 tests across 315 files
+- 79 packages
+- 16 entity types, 13 service plugins, 5 interfaces, 11 themes
+- 3 brain models (rover, ranger, relay), 3 site packages (default, rizom, yeehaa)
 
 ## Deployment
 
 ```bash
-# Build and run a brain as a single Docker container
-deploy/scripts/build-docker-image.sh mylittlephoney latest
-docker run -d -p 80:80 --env-file apps/mylittlephoney/.env personal-brain-mylittlephoney:latest
+# Build a brain model image
+deploy/scripts/build-docker-image.sh rover latest
+
+# Or, on a host with Kamal installed:
+cd apps/<your-instance>
+brain init . --deploy   # one-time scaffold of deploy.yml + Kamal hooks
+kamal deploy
 ```
 
-Single container with built-in Caddy handles TLS, path-based routing, and static file serving. Currently deployed on Hetzner Cloud. See [deploy/README.md](deploy/README.md) and [Kamal migration plan](docs/plans/deploy-kamal.md).
+Single container with built-in Caddy handles TLS, path-based routing, and static file serving on a per-host setup. Production deployments target Hetzner Cloud. See [deploy/README.md](deploy/README.md) and [Kamal migration plan](docs/plans/deploy-kamal.md).
 
 ## Documentation
 
 - [Architecture Overview](docs/architecture-overview.md)
-- [Plugin System](docs/plugin-system.md) | [Quick Reference](docs/plugin-quick-reference.md)
-- [Entity Model](docs/entity-model.md)
 - [Brain Models](docs/brain-model.md)
+- [Entity Model](docs/entity-model.md)
+- [Plugin Quick Reference](docs/plugin-quick-reference.md) | [Plugin Development Patterns](docs/plugin-development-patterns.md)
+- [Tech Stack](docs/tech-stack.md)
 - [Theming Guide](docs/theming-guide.md)
-- [Messaging System](docs/messaging-system.md)
+- [Development Workflow](docs/development-workflow.md)
 - [Roadmap](docs/roadmap.md)
 
 ## License

@@ -276,19 +276,26 @@ shared/theme-mytheme/
 }
 ```
 
-**3. Register with Turbo**:
+**3. Reference from a site package**:
 
-Add to `turbo.json` if needed, and reference in your brain config.
+Themes are consumed by site packages, not directly by brain instances. Inside `sites/<your-site>/src/index.ts`, import the theme module and pass it to the site builder via the package's plugin factory. The site package's `package.json` should depend on `@brains/theme-mytheme`.
 
-**4. Use in brain.config.ts**:
+**4. Pick the site package in `brain.yaml`**:
 
-```typescript
-import mytheme from "@brains/theme-mytheme";
+```yaml
+brain: rover
+site:
+  package: "@brains/site-mytheme"
+  # variant + theme overrides supported when the site package ships multiple
+```
 
-export default {
-  themeCSS: mytheme,
-  // ... other config
-};
+For the rare case of swapping themes within an existing multi-theme site package, use the explicit `theme:` override:
+
+```yaml
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+  theme: "@brains/theme-mytheme"
 ```
 
 ---
@@ -351,25 +358,25 @@ function toggleTheme() {
 
 ### How It Works
 
-Each brain can specify its own theme in `brain.config.ts`:
+Each brain instance picks a site package (which bundles its own theme) in `brain.yaml`:
 
-```typescript
-// apps/professional-brain/brain.config.ts
-import yeehaa from "@brains/theme-yeehaa";
-
-export default {
-  themeCSS: yeehaa,
-  // ...
-};
-
-// apps/collective-brain/brain.config.ts
-import defaultTheme from "@brains/theme-default";
-
-export default {
-  themeCSS: defaultTheme,
-  // ...
-};
+```yaml
+# apps/yeehaa.io/brain.yaml
+brain: rover
+site:
+  package: "@brains/site-yeehaa"
 ```
+
+```yaml
+# apps/rizom-ai/brain.yaml
+brain: ranger
+site:
+  package: "@brains/site-rizom"
+  variant: ai # site packages may ship multiple flavors
+  # theme: "@brains/theme-rizom"   # optional explicit theme override
+```
+
+The brain resolver instantiates the site package and passes `variant` / `theme` through to the plugin factory. The site package's bundled theme CSS is the default; an explicit `theme:` override is only needed when you want to swap themes within the same site package.
 
 ### Site Builder Integration
 

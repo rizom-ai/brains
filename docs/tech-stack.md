@@ -59,17 +59,19 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### AI Models
 
-- **[Anthropic Claude](https://www.anthropic.com/)** - Primary AI model
-  - Claude 4 Sonnet model
-  - Natural language processing
-  - Content generation
+- **Configurable** — single `AI_API_KEY` env var, provider auto-detected from model name
+  - Default text model: **`gpt-4.1`** (OpenAI)
+  - Supported providers: OpenAI, Anthropic (Claude), Google (Gemini)
+  - Default embedding model: **`text-embedding-3-small`** (OpenAI)
+  - Optional separate `AI_IMAGE_KEY` for image generation
 
 ### AI Integration
 
 - **[Vercel AI SDK](https://sdk.vercel.ai/)** - AI framework
-  - Unified API for AI providers
+  - Unified API for OpenAI / Anthropic / Google
   - Streaming support
   - Tool calling capabilities
+  - Provider auto-resolution from model id
 
 ### Embeddings & Similarity
 
@@ -90,12 +92,18 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### External Interfaces
 
+- **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
+- **MCP** — stdio + HTTP transports via `interfaces/mcp`
+- **Webserver** — in-process Hono via `Bun.serve`, static site + API routes
+- **Discord** — bot interface via `interfaces/discord` (moving to Chat SDK long-term)
+- **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
+
 ### AI Tool Integration
 
 - **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)** - AI tool standard
   - Tool registration and discovery
   - Standardized AI interactions
-  - Resource management
+  - Resources, resource templates, prompts
 
 ### Internal Messaging
 
@@ -196,32 +204,40 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### Containerization
 
 - **[Docker](https://www.docker.com/)** - Container platform
-  - Multi-stage builds
+  - Multi-stage builds via `Dockerfile.model`
+  - Multi-arch images (amd64 + arm64) published to GHCR
   - Development environments
   - Production deployment
 
 ### CI/CD
 
 - **[GitHub Actions](https://github.com/features/actions)** - Automation
-  - Continuous integration
-  - Automated testing
+  - Continuous integration (typecheck, test, lint)
+  - Multi-arch image publishing (`publish-images.yml`, fork-safe)
+  - Changesets release workflow (`@rizom/brain` to npm)
   - Deployment pipelines
 
-### Infrastructure as Code
+### Deployment
 
-- **[Terraform](https://www.terraform.io/)** - IaC tool
-  - Hetzner Cloud provider
-  - Declarative infrastructure
-  - State management
+- **[Kamal](https://kamal-deploy.org/)** — primary deploy tool (replacing Terraform + SSH + Caddy)
+  - Hetzner Cloud as the default provider
+  - Per-instance `deploy.yml` scaffolded by `brain init --deploy`
+  - Internal Caddy routing for production + preview hosts
+  - `/health` endpoint for healthchecks
+- **[Terraform](https://www.terraform.io/)** — legacy IaC for Hetzner / Cloudflare DNS / Bunny CDN
+  - Still present under `deploy/providers/hetzner/terraform/`
+  - Being replaced by Kamal piece by piece
 
 ## Architectural Patterns
 
 ### Plugin Architecture
 
-- **Extensible Core** - Plugin-based system
-  - BasePlugin → ServicePlugin → ServicePlugin/InterfacePlugin
-  - Hot-reloadable plugins
-  - Isolated plugin contexts
+- **Three sibling plugin types** with isolated contexts:
+  - **EntityPlugin** — content types (schema, adapter, generation handler, `derive()`); zero tools
+  - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
+  - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
+- **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)
+- **Brain models** declare `[id, factory, config]` capability tuples; presets (`core`/`default`/`full`) curate which capabilities are active per instance
 
 ### Data Management
 
@@ -248,32 +264,43 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ## Package Structure
 
-### Core Packages
+### Core Shell Packages (`shell/*`)
 
-- `@brains/core` - Shell orchestrator
-- `@brains/app` - Application factory
-- `@brains/plugins` - Plugin infrastructure
+- `@brains/app` — brain resolver, CLI entrypoint, `defineBrain()`, `brain.yaml` parsing
+- `@brains/core` — central shell with plugin lifecycle and registries
+- `@brains/plugins` — plugin base classes (EntityPlugin, ServicePlugin, InterfacePlugin), three sibling contexts
+- `@brains/ai-service` — AI agent + xstate conversation state machine + `ai:usage` logging
+- `@brains/entity-service` — entity CRUD, mutations, hybrid search, embedding DB
+- `@brains/identity-service` — brain character + anchor profile management
+- `@brains/conversation-service` — conversation and message memory
+- `@brains/content-service` — template-based content generation
+- `@brains/job-queue` — async job processing with progress tracking
+- `@brains/mcp-service` — tool / resource / template / prompt registration
+- `@brains/messaging-service` — event-driven pub/sub
+- `@brains/templates` — template registry
+- `@brains/ai-evaluation` — eval runner, test cases, LLM judge
 
-### Service Packages
+### Brain CLI (`packages/*`)
 
-- `@brains/ai-service` - AI integration (text/object generation, online embeddings)
-- `@brains/entity-service` - Entity management, search, embedding DB
-- `@brains/job-queue` - Async job processing
-- `@brains/messaging-service` - Event system
+- `@rizom/brain` — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime so app instances need no `package.json` of their own.
 
-### Interface Packages
+### Interface Packages (`interfaces/*`)
 
-- `@brains/chat-repl` - Interactive chat REPL
-- `@brains/mcp` - Model Context Protocol interface
-- `@brains/webserver` - Web server interface
+- `@brains/chat-repl` — interactive Ink-based REPL
+- `@brains/cli` — command-line interface plumbing
+- `@brains/mcp` — MCP transport (stdio + HTTP)
+- `@brains/webserver` — in-process Hono webserver + `/health` endpoint + API routes
+- `@brains/discord` — Discord bot interface
+- `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 
-### Shared Packages
+### Shared Packages (`shared/*`)
 
-- `@brains/utils` - Logger, markdown, permissions, progress, Zod re-export
-- `@brains/ui-library` - Preact UI components
-- `@brains/test-utils` - Mock factories, test harnesses
-- `@brains/mcp-bridge` - Base class for upstream MCP integration
-- `@brains/theme-*` - CSS themes (10 themes)
+- `@brains/utils` — Logger (JSON mode + log file), markdown, permissions, progress, Zod re-export
+- `@brains/ui-library` — Preact UI components (Header, Footer, ThemeToggle, widgets)
+- `@brains/test-utils` — mock factories, test harnesses, MockShell
+- `@brains/mcp-bridge` — base class for bridging upstream MCP servers
+- `@brains/image` — image schema, adapter, utilities
+- `@brains/theme-*` — CSS themes (11 packages: base + 7 generic + 3 branded)
 
 ## Version Requirements
 
@@ -283,11 +310,11 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ## Key Features
 
-- **Local-first content** - Markdown files as source of truth, git sync
-- **Hybrid search** - Vector embeddings (OpenAI) + FTS5 keyword matching
-- **Multi-interface support** - CLI, Discord, MCP, A2A, Webserver
-- **AI-powered** - Configurable provider (OpenAI, Anthropic, Google) via `AI_API_KEY`
-- **Extensible** - Plugin system for custom entity types, services, interfaces
-- **Type-safe** - End-to-end TypeScript with Zod validation
-- **Real-time** - Event-driven messaging system
-- **Scalable** - Monorepo structure with independent packages
+- **Local-first content** — Markdown files as source of truth, git-backed sync via `directory-sync`
+- **Hybrid search** — vector embeddings (OpenAI) + FTS5 keyword matching, threshold-tuned
+- **Multi-interface support** — CLI, Chat REPL, Discord, MCP, A2A, Webserver
+- **AI-powered** — single `AI_API_KEY`, provider auto-detected from model name (OpenAI / Anthropic / Google)
+- **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
+- **Type-safe** — end-to-end TypeScript with Zod validation
+- **Observable** — structured JSON logs, enriched `/health` endpoint, `ai:usage` tracking
+- **Config-only instances** — deployments are `brain.yaml` + `.env` directories, no per-instance code

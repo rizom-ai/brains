@@ -4,266 +4,176 @@ Application orchestration and lifecycle management for Brain applications.
 
 ## Overview
 
-The app package provides the core application framework for running Brain applications. It handles initialization, plugin loading, database setup, and interface management.
+The `@brains/app` package is the runtime engine that the `brain` CLI (`@rizom/brain`) uses to boot a brain. It exposes:
+
+- `defineBrain()` — declarative brain model definition (capabilities, interfaces, presets, identity, permissions)
+- `handleCLI()` — CLI entrypoint that resolves a `brain.yaml` against a brain model and runs it
+- The `brain-resolver` that merges `(definition, env, brain.yaml overrides)` into a runnable `AppConfig`
+- The `App` class that manages init, plugin loading, daemon startup, and graceful shutdown
+
+End users do not import `@brains/app` directly. They write a `brain.yaml` and run `brain start`.
 
 ## Architecture
-
-The app package follows a modular architecture with clear separation of concerns:
 
 ```
 App (Main orchestrator)
 ├── MigrationManager (Database migrations)
-├── SeedDataManager (Initial data setup)
+├── SeedDataManager (Initial brain-data setup)
 └── Shell (Plugin & service management)
-    ├── Plugins
-    ├── Services
-    └── Interfaces
+    ├── EntityPlugins
+    ├── ServicePlugins
+    └── InterfacePlugins
 ```
 
 ### Initialization Flow
 
-1. **Migrations**: Run database migrations for all three databases
-2. **Seed Data**: Copy seed content if brain-data is empty
-3. **Shell Creation**: Initialize the Shell with configuration
-4. **Plugin Loading**: Register and initialize plugins
-5. **Interface Startup**: Start the selected interface (CLI/Discord/MCP)
+1. **Resolve** — `brain-resolver` loads `brain.yaml`, dynamically imports the referenced brain model package, applies preset + add/remove + per-plugin overrides, and produces an `AppConfig`
+2. **Migrate** — Run database migrations for the entity DB, embedding DB, job-queue DB, and conversation DB
+3. **Seed** — Copy `seed-content/` into `brain-data/` if the directory is empty
+4. **Initialize** — Create the Shell, register plugins in dependency order, instantiate interfaces
+5. **Start** — Boot daemons (webserver, MCP transport, Discord, A2A) and install signal handlers
 
-## Features
+## Defining a Brain Model
 
-- **Astro-style Configuration**: Simple defineConfig pattern for app setup
-- **Automatic Plugin Loading**: Discovers and loads plugins based on configuration
-- **Database Management**: Handles database initialization and migrations via MigrationManager
-- **Seed Data Management**: Automatically copies seed content on first run via SeedDataManager
-- **Interface Management**: Supports multiple interfaces (CLI, Discord, MCP, A2A)
-- **Environment Configuration**: Loads configuration from .env files
-
-## Usage
-
-### Basic Application
+Brain models live in `brains/<model>/src/index.ts` and use `defineBrain()`:
 
 ```typescript
-import { defineConfig } from "@brains/app";
+import { defineBrain, type BrainEnvironment } from "@brains/app";
+import { MCPInterface } from "@brains/mcp";
+import { WebserverInterface } from "@brains/webserver";
+import { directorySync } from "@brains/directory-sync";
+// ... more capability imports
 
-export default defineConfig({
+export default defineBrain({
   name: "my-brain",
   version: "1.0.0",
-  plugins: [
-    // Your plugins here
+
+  identity: {
+    characterName: "Atlas",
+    role: "Knowledge manager",
+    purpose: "Organize and surface knowledge",
+    values: ["clarity", "accuracy"],
+  },
+
+  capabilities: [
+    // [id, factory, config | envMapper] tuples
+    [
+      "directory-sync",
+      directorySync,
+      (env: BrainEnvironment) => ({
+        authToken: env["GIT_SYNC_TOKEN"],
+        autoSync: true,
+      }),
+    ],
+    // ...
   ],
+
+  interfaces: [
+    // [id, constructor, envMapper] tuples
+    ["mcp", MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
+    ["webserver", WebserverInterface, () => ({})],
+  ],
+
+  presets: {
+    core: ["mcp", "webserver", "directory-sync"],
+    default: ["mcp", "webserver", "directory-sync", "blog", "site-builder"],
+    full: [
+      "mcp",
+      "webserver",
+      "discord",
+      "a2a",
+      "directory-sync",
+      "blog" /* ... */,
+    ],
+  },
+
+  permissions: {
+    anchors: ["discord:123456789"],
+    rules: [
+      { pattern: "cli:*", level: "anchor" },
+      { pattern: "mcp:stdio", level: "anchor" },
+    ],
+  },
 });
 ```
 
-### Running the Application
+See `brains/rover/src/index.ts` for the full reference implementation.
 
-```typescript
-import { handleCLI } from "@brains/app";
-import config from "./brain.config";
+## Running a Brain
 
-await handleCLI(config);
-```
-
-### With Custom Configuration
-
-```typescript
-import { App } from "@brains/app";
-import { DirectorySyncPlugin } from "@brains/directory-sync";
-import { LinkPlugin } from "@brains/link";
-
-const app = App.create({
-  name: "my-brain",
-  version: "1.0.0",
-  database: "file:./data/brain.db",
-  aiApiKey: process.env.AI_API_KEY,
-  plugins: [new DirectorySyncPlugin(), new LinkPlugin()],
-});
-
-await app.initialize();
-await app.start();
-```
-
-### Complete Example with Error Handling
-
-```typescript
-import { App, defineConfig } from "@brains/app";
-
-const config = defineConfig({
-  name: "my-brain",
-  version: "2.0.0",
-  logLevel: "info",
-});
-
-try {
-  await App.run(config);
-} catch (error) {
-  console.error("Failed to start:", error);
-  process.exit(1);
-}
-```
-
-## CLI Commands
-
-The app package provides built-in CLI commands:
-
-- `--cli` - Start with CLI interface
-- `--mcp` - Start as MCP server (default)
-- `--migrate` - Run database migrations
-- `--version` - Show version information
-
-## Database Migrations
-
-Migrations are handled automatically on startup via the `MigrationManager` class. It manages migrations for all three databases:
-
-- Entity database (`brain.db`)
-- Job queue database (`brain-jobs.db`)
-- Conversation database (`conversations.db`)
-
-Migrations run automatically when you start the app, but you can also run them manually:
+Brain instances are config-only directories (`brain.yaml` + `.env`) consumed at runtime by the `brain` CLI from `@rizom/brain`:
 
 ```bash
-# Run all migrations
-bun run migrate
+# Install once
+bun add -g @rizom/brain
 
-# Run specific migrations
-bun run migrate:entities
-bun run migrate:jobs
-bun run migrate:conversations
+# Run from any instance directory
+cd apps/yeehaa.io
+brain start                # MCP stdio (default)
+brain start --cli          # attach the chat REPL
+brain init mybrain         # scaffold a new instance directory
+brain init mybrain --deploy   # scaffold + Kamal deploy.yml + CI workflow
+brain diagnostics search
+brain diagnostics usage
 ```
 
-## Seed Data
-
-The `SeedDataManager` automatically initializes your brain-data directory with seed content on first run:
-
-1. Checks if `brain-data/` directory exists and is empty
-2. If empty, copies content from `seed-content/` directory
-3. Creates the directory structure if it doesn't exist
-
-This ensures new installations have example content to work with.
+The CLI resolves `brain.yaml`, dynamically imports the brain model package it references, and calls `handleCLI(config)` internally. Instances do not have a `package.json` of their own.
 
 ## Environment Variables
 
-Configure your app through environment variables:
+The brain runtime reads only secrets from `.env`. Non-secret config (domain, ports, repos, plugin overrides) belongs in `brain.yaml`.
 
 ```env
-# Database paths
-DATABASE_URL=file:./data/brain.db
-JOB_QUEUE_DATABASE_URL=file:./data/jobs.db
-CONVERSATION_DATABASE_URL=file:./data/conversations.db
+# Required
+AI_API_KEY=your-api-key-here
 
-# Interface configuration
-MATRIX_ACCESS_TOKEN=your_token
+# Optional: separate key for image generation (defaults to AI_API_KEY)
+# AI_IMAGE_KEY=
 
-# AI Services
-AI_API_KEY=your_api_key
+# Optional integrations
+GIT_SYNC_TOKEN=ghp_...
+MCP_AUTH_TOKEN=...
+DISCORD_BOT_TOKEN=...
+CLOUDFLARE_API_TOKEN=...
 ```
 
-## Plugin Loading
-
-Plugins are loaded in dependency order and initialized with the shell context:
-
-1. Core plugins (system, directory-sync, git-sync)
-2. Service plugins (link, topics, summary, site-builder)
-3. Interface plugins (mcp, cli, discord, webserver)
+The single `AI_API_KEY` works for OpenAI / Anthropic / Google — provider is auto-detected from the model name. Default model is `gpt-4.1` (OpenAI).
 
 ## API
 
-### defineConfig(config)
+### `defineBrain(definition)`
 
-Creates an application configuration object.
+Declarative brain model factory. Returns the canonical `BrainDefinition` consumed by the resolver.
 
-### handleCLI(config)
+### `handleCLI(config)`
 
-Handles command-line arguments and starts the appropriate interface.
+CLI entrypoint. Parses `process.argv`, dispatches to the requested interface, manages signal handlers and graceful shutdown.
 
-### App class
+### `brain-resolver`
 
-Main application class that manages the entire lifecycle:
+`resolveBrain(definition, env, overrides) → AppConfig`. Internal but exported for testing.
 
-- `create(config, shell?)` - Factory method to create an App instance
-- `initialize()` - Run migrations, seed data, and load plugins
-- `start()` - Start the application and set up signal handlers
-- `stop()` - Graceful shutdown
-- `run()` - Convenience method that handles full lifecycle
-- `getShell()` - Access the underlying Shell instance
+### `App` class
 
-### SeedDataManager class
+- `App.create(config)` — factory
+- `initialize()` — run migrations, seed data, register plugins
+- `start()` — boot daemons + install signal handlers
+- `stop()` — graceful shutdown
+- `getShell()` — access the underlying Shell instance
 
-Manages initial data setup for new installations:
+## Plugin Loading Order
 
-```typescript
-import { SeedDataManager } from "@brains/app";
+Plugins are loaded in dependency order:
 
-const manager = new SeedDataManager(
-  logger,
-  "/path/to/brain-data", // optional, defaults to ./brain-data
-  "/path/to/seed-content", // optional, defaults to ./seed-content
-);
+1. **EntityPlugins** — register entity types, adapters, generation handlers, derivers
+2. **ServicePlugins** — register tools, job handlers, API routes, daemons
+3. **InterfacePlugins** — start daemons (MCP transport, webserver, Discord, A2A)
 
-await manager.initialize();
-```
+System tools, resources, and prompts are registered directly by the shell, not by a plugin (since 2026-03's "system tools as framework" refactor).
 
-### MigrationManager class
+## See Also
 
-Handles database migrations:
-
-```typescript
-import { MigrationManager } from "@brains/app";
-
-const manager = new MigrationManager(logger);
-await manager.runAllMigrations();
-```
-
-## Configuration Options
-
-### AppConfig Interface
-
-```typescript
-interface AppConfig {
-  // Required
-  name: string; // Application name
-  version: string; // Application version
-
-  // Optional
-  database?: string; // Database URL or path
-  aiApiKey?: string; // Anthropic API key
-  logLevel?: "debug" | "info" | "warn" | "error";
-  plugins?: Plugin[]; // Array of plugin instances
-
-  // Advanced (usually not needed)
-  shellConfig?: ShellConfig; // Direct Shell configuration
-  permissions?: PermissionConfig;
-  cliConfig?: CLIConfig;
-}
-```
-
-### Configuration Precedence
-
-1. Explicit configuration in code
-2. Environment variables
-3. Default values
-
-### Common Configurations
-
-```typescript
-// Minimal configuration
-defineConfig({
-  name: "my-brain",
-  version: "1.0.0",
-});
-
-// Development configuration
-defineConfig({
-  name: "dev-brain",
-  version: "1.0.0",
-  logLevel: "debug",
-  database: "file:./dev-data/brain.db",
-});
-
-// Production configuration
-defineConfig({
-  name: "prod-brain",
-  version: "1.0.0",
-  logLevel: "warn",
-  database: process.env.DATABASE_URL,
-  aiApiKey: process.env.AI_API_KEY,
-});
-```
+- `docs/brain-model.md` — brain model + instance architecture
+- `docs/architecture-overview.md` — workspace structure and shell packages
+- `packages/brain-cli/` — `@rizom/brain` published CLI
+- `brains/rover/src/index.ts` — reference brain model implementation

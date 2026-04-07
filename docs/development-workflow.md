@@ -15,26 +15,22 @@ This document outlines the development workflow and best practices for the Brain
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/brains.git
+git clone https://github.com/rizom-ai/brains.git
 cd brains
 
 # Install dependencies
 bun install
 
-# Copy environment configuration
-cp example.env .env
+# Run any brain instance from its config-only directory.
+# Apps are not workspace members — they're brain.yaml + .env directories
+# consumed by the brain CLI at runtime.
+cd apps/yeehaa.io
+cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
+bun --filter @rizom/brain run dev    # uses the in-tree CLI
 
-# Edit .env and add your API keys
-# Minimum required: AI_API_KEY
-
-# Run a brain instance in dev mode
-cd apps/professional-brain && bun brains
-
-# Or via the brain CLI from any brain instance directory
-cd apps/professional-brain && bun brain start
-
-# Run with interactive chat REPL
-cd apps/professional-brain && bun brain chat
+# After publish, the same flow uses the published CLI:
+#   bun add -g @rizom/brain
+#   cd apps/yeehaa.io && brain start
 ```
 
 ### Development Tools
@@ -134,26 +130,26 @@ git commit --no-verify -m "Your message"
 ### Required Environment Variables
 
 ```bash
-# AI Service Configuration
+# AI Service — single key for all providers (auto-detected from model name)
 AI_API_KEY=your-api-key-here
 
-# Database Configuration (optional, defaults to local SQLite)
-DATABASE_PATH=./data/brain.db
+# Optional: separate key for image generation (defaults to AI_API_KEY)
+# AI_IMAGE_KEY=your-image-key-here
 
-# Server Configuration
-PORT=3000
-HOST=localhost
+# Optional: git-backed sync of brain content
+GIT_SYNC_TOKEN=ghp_...
 
-# Matrix Bot Configuration (if using Matrix interface)
-MATRIX_HOMESERVER=https://matrix.org
-MATRIX_USER_ID=@bot:matrix.org
-MATRIX_ACCESS_TOKEN=your-token
-MATRIX_DEVICE_ID=your-device-id
+# Optional: MCP HTTP transport auth
+MCP_AUTH_TOKEN=...
 
-# Deployment Configuration
-DOCKER_REGISTRY=your-registry.com
-APP_NAME=brain
+# Optional: Discord interface
+DISCORD_BOT_TOKEN=...
+
+# Optional: Cloudflare analytics
+CLOUDFLARE_API_TOKEN=...
 ```
+
+All non-secret config (domain, ports, repos, plugin overrides) belongs in `brain.yaml`, not `.env`. See `docs/brain-model.md` for the split.
 
 ### Managing .env Files
 
@@ -168,31 +164,21 @@ The project uses Turborepo with Bun workspaces for package management:
 
 ### Package Organization
 
+Workspace globs (`package.json` `workspaces`):
+
 ```
-brains/
-├── apps/                  # Application instances
-│   ├── team-brain/       # Team collaboration instance
-│   ├── collective-brain/ # Collective knowledge brain
-│   └── app/             # High-level framework
-├── interfaces/           # User interfaces
-│   ├── cli/             # Command-line interface
-│   ├── matrix/          # Matrix bot interface
-│   ├── mcp/             # MCP transport layer
-│   └── webserver/       # HTTP server
-├── plugins/             # Feature extensions
-│   ├── link/            # Web content capture
-│   ├── summary/         # AI summarization
-│   ├── topics/          # Topic extraction
-│   └── ...             # Other plugins
-├── shell/              # Core infrastructure
-│   ├── core/           # Central shell
-│   ├── entity-service/ # Entity management
-│   ├── ai-service/     # AI integration
-│   └── ...            # Other services
-└── shared/            # Cross-cutting concerns
-    ├── utils/         # Common utilities
-    └── ui-library/    # Shared UI components
+shell/*       # Core infrastructure (app, core, entity-service, ai-service, ...)
+shared/*      # Utilities, themes, UI library
+entities/*    # EntityPlugin packages (blog, decks, note, link, topics, ...)
+plugins/*     # ServicePlugin packages (directory-sync, site-builder, analytics, ...)
+layouts/*     # Layout building blocks (personal, professional)
+sites/*       # Site packages (default, rizom, yeehaa)
+interfaces/*  # Transport plugins (cli, mcp, webserver, discord, a2a, chat-repl)
+brains/*      # Brain model packages (rover, ranger, relay)
+packages/*    # Standalone npm packages (brain-cli → @rizom/brain)
 ```
+
+`apps/*` is **not** a workspace category. Each `apps/<name>/` is a config-only directory — `brain.yaml` + `.env` + optional `deploy/` — consumed by the `brain` CLI at runtime against the brain model package it references. See `docs/brain-model.md`.
 
 ### Working with Turborepo
 
@@ -260,14 +246,8 @@ describe("LinkPlugin", () => {
     await harness.installPlugin(plugin);
   });
 
-  it("should capture link content", async () => {
-    const result = await harness.executeTool("link_capture", {
-      url: "https://example.com",
-      conversationId: "test-conv",
-    });
-
-    expect(result.success).toBe(true);
-    expect(result.data).toHaveProperty("entityId");
+  it("registers the link entity type on install", async () => {
+    expect(harness.getRegisteredEntityTypes()).toContain("link");
   });
 });
 ```
@@ -360,7 +340,7 @@ When reviewing code, check for:
 
 If you encounter issues:
 
-1. Check the existing documentation
+1. Check the existing documentation under `docs/` and per-package READMEs
 2. Review test files for expected behavior
-3. Consult the old-code-reference directory
-4. Use the established communication channels for assistance
+3. Run `bunx turbo typecheck` and `bun test` to surface schema/contract drift
+4. Check the issue tracker on GitHub

@@ -9,13 +9,15 @@ brains/
 ├── shell/              # Core infrastructure & services
 ├── shared/             # Shared utilities, themes, UI components
 ├── entities/           # Content type definitions (entity plugins)
-├── plugins/            # Feature plugins with tools (service + core plugins)
+├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
 ├── layouts/            # Page layout components (professional, personal)
 ├── sites/              # Site packages (theme + layout + routes bundles)
 ├── brains/             # Brain model definitions
-└── apps/               # Deployed brain instances
+└── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
 ```
+
+`apps/` is **not** a workspace category. Each `apps/<name>/` is a config-only directory (`brain.yaml` + `.env` + optional `deploy/`) consumed by the `brain` CLI at runtime against the brain model package it references.
 
 ## Shell (Core Infrastructure)
 
@@ -94,14 +96,14 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Interfaces
 
-| Package          | Purpose                 |
-| ---------------- | ----------------------- |
-| `interfaces/cli` | Terminal REPL interface |
-
-| `interfaces/discord` | Discord chat bot |
-| `interfaces/mcp` | Model Context Protocol (stdio + HTTP) |
-| `interfaces/webserver` | Static site preview + production server |
-| `interfaces/a2a` | Agent-to-Agent protocol |
+| Package                | Purpose                                                      |
+| ---------------------- | ------------------------------------------------------------ |
+| `interfaces/cli`       | Terminal REPL interface plumbing                             |
+| `interfaces/chat-repl` | Interactive Ink-based chat REPL                              |
+| `interfaces/discord`   | Discord chat bot                                             |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                        |
+| `interfaces/webserver` | In-process Hono server: static site + API routes + `/health` |
+| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)     |
 
 ## Layouts
 
@@ -114,30 +116,38 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 Site packages bundle a theme + layout + routes + site plugin into a deployable unit.
 
-| Package                | Purpose                               |
-| ---------------------- | ------------------------------------- |
-| `sites/default`        | Default theme + default layout        |
-| `sites/yeehaa`         | Brutalist theme + professional layout |
-| `sites/ranger`         | Default theme + community CTA layout  |
-| `sites/mylittlephoney` | Pink theme + personal layout          |
+| Package         | Purpose                                                                                     |
+| --------------- | ------------------------------------------------------------------------------------------- |
+| `sites/default` | Default theme + personal layout (used by rover by default)                                  |
+| `sites/yeehaa`  | Yeehaa brand theme + professional layout (used by `apps/yeehaa.io`)                         |
+| `sites/rizom`   | Rizom brand theme + multi-variant routes (used by `apps/rizom-ai`, `apps/rizom-foundation`) |
+
+Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / styles per instance.
 
 ## Brains
 
 Brain models define what a brain IS — capabilities, interfaces, presets, identity.
 
-| Package         | Purpose                                           |
-| --------------- | ------------------------------------------------- |
-| `brains/rover`  | Professional brain (blog, portfolio, newsletters) |
-| `brains/relay`  | Team brain (topics, summaries, links)             |
-| `brains/ranger` | Collective brain (community, products)            |
+| Package         | Purpose                                                                                                      |
+| --------------- | ------------------------------------------------------------------------------------------------------------ |
+| `brains/rover`  | Reference brain model. Personal knowledge + professional content. Published as docker image and npm package. |
+| `brains/ranger` | Internal brain model used by `apps/rizom-ai`. Public source, no published artifacts.                         |
+| `brains/relay`  | Internal brain model used by `apps/rizom-foundation`. Public source, no published artifacts.                 |
 
-## Apps
+## Packages
 
-Deployed instances of brain models with instance-specific `brain.yaml` and `.env`.
+Standalone published packages.
 
-| Package                   | Purpose                           |
-| ------------------------- | --------------------------------- |
-| `apps/professional-brain` | Yeehaa's Rover instance           |
-| `apps/collective-brain`   | Rizom's Ranger instance           |
-| `apps/team-brain`         | Rizom's Relay instance            |
-| `apps/mylittlephoney`     | mylittlephoney.com Rover instance |
+| Package              | Purpose                                                                                                                                                                                    |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `packages/brain-cli` | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime so app instances need no `package.json` of their own. |
+
+## Apps (config-only, NOT a workspace category)
+
+App instances are deployment configurations, not workspace members. Each directory is a `brain.yaml` + `.env` + optional `deploy/` bundle that the `brain` CLI loads at runtime.
+
+| Directory               | Purpose                                                                     |
+| ----------------------- | --------------------------------------------------------------------------- |
+| `apps/yeehaa.io`        | Maintainer's personal brain instance (rover model). Production reference.   |
+| `apps/rizom-ai`         | Marketing site for the framework (ranger model + sites/rizom variant ai).   |
+| `apps/rizom-foundation` | Manifesto / foundation site (relay model + sites/rizom variant foundation). |

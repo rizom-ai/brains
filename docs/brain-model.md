@@ -4,25 +4,30 @@
 
 Brains follow a **model/instance** separation:
 
-- **Brain model** (`brains/`) — a reusable package that defines what a brain _is_: its capabilities, interfaces, identity, permissions, and content model.
-- **Brain instance** (`apps/`) — a deployment of a brain model with instance-specific configuration and secrets.
+- **Brain model** (`brains/`) — a reusable workspace package that defines what a brain _is_: its capabilities, interfaces, identity, permissions, and content model.
+- **Brain instance** (`apps/<name>/`) — a config-only directory (`brain.yaml` + `.env` + optional `deploy/`) that pins a brain model and overrides per-deployment settings.
 
-This means the same brain model can power multiple deployments (dev, staging, prod) with different settings.
+The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
+
+**Apps are not workspace members.** As of 2026-04, `apps/*` was removed from `package.json` workspaces. Each instance directory has no `package.json`, no source code, and no dependencies of its own — it's consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots.
 
 ## Directory Structure
 
 ```
 brains/
-  team/                     # Brain model package (@brains/relay)
+  rover/                    # Brain model package (@brains/rover)
     src/index.ts            # Brain definition (defineBrain)
     seed-content/           # Default content
-    package.json
+    package.json            # Workspace member
 
 apps/
-  team-brain/               # Brain instance (deployment)
+  yeehaa.io/                # Brain instance (config-only, NOT a workspace member)
     brain.yaml              # Instance configuration
     .env                    # Secrets only
-    package.json            # Dependencies
+    .env.example            # Template for collaborators
+    .gitignore
+    tsconfig.json           # JSX runtime hint for Bun
+    deploy.yml              # (optional, only with `brain init --deploy`)
 ```
 
 ## brain.yaml
@@ -41,7 +46,11 @@ domain: staging.recall.ai # production domain
 database: file:./data/brain.db # database URL
 
 # Site package override (optional — overrides brain model default)
-site: "@brains/site-yeehaa"
+# Object form supports variant + theme overrides for sites that ship multiple flavors
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+  # theme: "@brains/theme-rizom"  # optional
 
 # Preset — selects a curated subset of capabilities + interfaces
 preset: full # core | default | full | eval
@@ -60,21 +69,21 @@ plugins:
 
 ### Fields
 
-| Field      | Type     | Description                                                 |
-| ---------- | -------- | ----------------------------------------------------------- |
-| `brain`    | string   | **Required.** Package name of the brain model               |
-| `site`     | string   | Site package override (e.g. `@brains/site-yeehaa`)          |
-| `preset`   | string   | Preset name from brain model (`core`, `default`, `full`)    |
-| `add`      | string[] | Plugin IDs to add on top of the preset                      |
-| `remove`   | string[] | Plugin IDs to remove from the preset                        |
-| `name`     | string   | Override the instance name (default: from brain model)      |
-| `logLevel` | enum     | `debug`, `info`, `warn`, `error`                            |
-| `port`     | number   | Production server port (sets `deployment.ports.production`) |
-| `domain`   | string   | Production domain (sets `deployment.domain`)                |
-| `database` | string   | Database URL                                                |
-| `anchors`  | string[] | Anchor users (full admin access)                            |
-| `trusted`  | string[] | Trusted users (elevated access)                             |
-| `plugins`  | object   | Per-plugin config overrides (see below)                     |
+| Field      | Type     | Description                                                                                          |
+| ---------- | -------- | ---------------------------------------------------------------------------------------------------- |
+| `brain`    | string   | **Required.** Package name of the brain model                                                        |
+| `site`     | object   | Site override: `{ package?, variant?, theme? }`. Omit to use the brain model's default site package. |
+| `preset`   | string   | Preset name from brain model (`core`, `default`, `full`)                                             |
+| `add`      | string[] | Plugin IDs to add on top of the preset                                                               |
+| `remove`   | string[] | Plugin IDs to remove from the preset                                                                 |
+| `name`     | string   | Override the instance name (default: from brain model)                                               |
+| `logLevel` | enum     | `debug`, `info`, `warn`, `error`                                                                     |
+| `port`     | number   | Production server port (sets `deployment.ports.production`)                                          |
+| `domain`   | string   | Production domain (sets `deployment.domain`)                                                         |
+| `database` | string   | Database URL                                                                                         |
+| `anchors`  | string[] | Anchor users (full admin access)                                                                     |
+| `trusted`  | string[] | Trusted users (elevated access)                                                                      |
+| `plugins`  | object   | Per-plugin config overrides (see below)                                                              |
 
 ### Plugin Overrides
 
@@ -208,17 +217,24 @@ plugins:
 
 ## Running
 
-```bash
-# From an app directory with brain.yaml
-brains              # start the brain
-brains --cli        # start with CLI interface
-brains --help       # show help
-brains --version    # show version
+The `brain` CLI ships from `@rizom/brain`. Install it once globally, then run any instance directory:
 
-# Or via package.json scripts
-bun run start       # runs: brains
-bun run dev         # runs: bun --watch node_modules/.bin/brains
+```bash
+# Install once
+bun add -g @rizom/brain
+
+# From any app directory with a brain.yaml
+cd apps/yeehaa.io
+brain start            # start the brain
+brain start --cli      # start with the CLI chat interface attached
+brain init mybrain     # scaffold a new instance directory (interactive prompts)
+brain init mybrain --deploy   # scaffold + Kamal deploy.yml + CI workflow
+brain diagnostics search      # search threshold tuning
+brain diagnostics usage       # aggregate ai:usage events from the log file
+brain --help
 ```
+
+App directories have no `package.json` and no `bun run start` script. The `brain` CLI is the only entrypoint.
 
 ## Resolution Flow
 
@@ -237,91 +253,95 @@ When `brains` starts:
 
 ## Creating a New Brain
 
-1. Create the model:
+### Reusing an existing brain model (the common case)
+
+Use `brain init` from the published CLI:
 
 ```bash
-mkdir -p brains/my-brain/src
+bun add -g @rizom/brain
+brain init mybrain          # interactive prompts (model, domain, content repo, API key)
+cd mybrain
+brain start
 ```
 
-2. Define the brain in `brains/my-brain/src/index.ts` using `defineBrain()`
+`brain init` is interactive (via `@clack/prompts`) and writes:
+
+- `brain.yaml` — defaults to `brain: rover` + `preset: core` (the minimal viable brain), with a commented-out `directory-sync` block as an on-ramp
+- `.env.example` — template listing required and optional env vars
+- `.env` — only when an API key was supplied (interactive prompt or `--api-key`)
+- `.gitignore`, `tsconfig.json` (JSX runtime hint for Bun)
+- `deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml` — only with `--deploy`
+
+No `package.json` is generated. The instance is config-only.
+
+### Defining a new brain model (uncommon)
+
+Only needed when you want a different curated capability set than `rover` / `ranger` / `relay` ship with.
+
+1. Create the model package:
+
+   ```bash
+   mkdir -p brains/my-brain/src
+   ```
+
+2. Define the brain in `brains/my-brain/src/index.ts` using `defineBrain()` (see example above).
 
 3. Add `brains/my-brain/package.json`:
 
-```json
-{
-  "name": "@brains/my-brain",
-  "version": "1.0.0",
-  "type": "module",
-  "main": "src/index.ts",
-  "dependencies": {
-    "@brains/app": "workspace:*"
-  }
-}
-```
+   ```json
+   {
+     "name": "@brains/my-brain",
+     "version": "1.0.0",
+     "type": "module",
+     "main": "src/index.ts",
+     "dependencies": {
+       "@brains/app": "workspace:*"
+     }
+   }
+   ```
 
-4. Create the instance:
+4. Create an instance that pins the new model:
 
-```bash
-mkdir apps/my-brain-prod
-```
+   ```bash
+   mkdir apps/my-brain-prod
+   cat > apps/my-brain-prod/brain.yaml <<EOF
+   brain: my-brain
+   domain: my-brain.example.com
+   preset: core
+   EOF
+   ```
 
-5. Add `apps/my-brain-prod/brain.yaml`:
-
-```yaml
-brain: my-brain
-domain: my-brain.example.com
-```
-
-6. Add `apps/my-brain-prod/package.json`:
-
-```json
-{
-  "name": "@brains/my-brain-prod",
-  "version": "0.1.0",
-  "type": "module",
-  "private": true,
-  "scripts": {
-    "start": "brains",
-    "dev": "bun --watch node_modules/.bin/brains"
-  },
-  "dependencies": {
-    "@brains/app": "workspace:*",
-    "@brains/my-brain": "workspace:*"
-  }
-}
-```
-
-7. Add secrets in `apps/my-brain-prod/.env`
-
-8. Run: `cd apps/my-brain-prod && bun run start`
+5. Add secrets in `apps/my-brain-prod/.env` and run `cd apps/my-brain-prod && brain start`.
 
 ## Dev vs Production Instances
 
-The same brain model can power both dev and production with different `brain.yaml` + `.env` files:
+The same brain model can power both dev and production via separate config-only directories:
 
 ```
-apps/team-brain/              # Dev instance
+apps/yeehaa.io-dev/           # Dev instance
 ├── brain.yaml                # Dev config
-│   brain: relay
+│   brain: rover
 │   logLevel: debug
 │   plugins:
 │     directory-sync:
 │       git:
-│         repo: my-org/team-brain-content
+│         repo: my-org/brain-content
 ├── .env                      # Dev secrets
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
 
-apps/team-brain/deploy/       # Production deploy artifacts
+apps/yeehaa.io/               # Production instance
 ├── brain.yaml                # Production config
-│   brain: relay
-│   domain: recall.rizom.ai
+│   brain: rover
+│   domain: yeehaa.io
 │   plugins:
 │     webserver:
-│       productionDomain: https://recall.rizom.ai
-├── .env.production           # Production secrets
+│       productionDomain: https://yeehaa.io
+├── .env                      # Production secrets (gitignored)
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
+├── deploy.yml                # Kamal deploy config (with `brain init --deploy`)
+└── .kamal/hooks/             # Kamal lifecycle hooks
 ```
 
-The build script (`brain-build`) generates a static entrypoint from `brain.yaml`, bundles with the brain package, and copies `brain.yaml` to `dist/`.
+Both directories run via the same `brain start` command — the only difference is the `brain.yaml` they sit next to. No build step, no static entrypoint generation, no package bundling.

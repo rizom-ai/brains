@@ -24,8 +24,10 @@ layouts/        Page layout components — datasources, templates, page structur
 sites/          Site packages — theme + layout + routes bundles
 interfaces/     Interaction channels — how users talk to a brain
 brains/         Brain definitions — identity, capabilities, presets, content model
-apps/           Deployment instances — brain.yaml + .env (moving to standalone repos)
+packages/       Standalone npm packages — brain CLI (@rizom/brain)
 ```
+
+**Note**: `apps/` is no longer a workspace category. Each `apps/<name>/` directory is now a config-only deployment bundle (`brain.yaml` + `.env` + optional `deploy/`) consumed by the `brain` CLI at runtime against the brain model package it references.
 
 ### Shell Packages (Core Infrastructure)
 
@@ -106,11 +108,11 @@ All content types live in `entities/` as EntityPlugins. Zero tools — entity CR
 
 ### Brain Definitions
 
-| Package         | Brain        | Description                               |
-| --------------- | ------------ | ----------------------------------------- |
-| `brains/rover`  | Professional | Personal knowledge + professional content |
-| `brains/relay`  | Team         | Team collaboration                        |
-| `brains/ranger` | Collective   | Collective/organizational knowledge       |
+| Package         | Brain  | Description                                                                                                  |
+| --------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
+| `brains/rover`  | Rover  | Reference brain model. Personal knowledge + professional content. Published as docker image and npm package. |
+| `brains/ranger` | Ranger | Internal brain model used by `apps/rizom-ai`. Public source, not published.                                  |
+| `brains/relay`  | Relay  | Internal brain model used by `apps/rizom-foundation`. Public source, not published.                          |
 
 Each brain uses `defineBrain()` to declare identity, capabilities, interfaces, presets, and permissions.
 
