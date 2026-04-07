@@ -1,195 +1,289 @@
-# Plan: Standalone Site Authoring Ergonomics
+# Plan: Decouple Themes from Sites + Standalone Site Authoring
 
 ## Context
 
 `apps/mylittlephoney` is the first standalone brain repo built against
-published `@rizom/brain`. Getting it to boot revealed four pattern
-issues with how a standalone consumer writes a custom site. None of
-them block Phase 1 (the site works), but all four are cleanups the
-next standalone brain shouldn't have to rediscover.
+published `@rizom/brain`. Getting it to boot revealed that the current
+site/theme coupling is the wrong shape.
 
-Current mylittlephoney shape:
+**Today:** `SitePackage` has a `theme: string` field. The site owns
+its theme. A site is "personal layout + pink theme" baked together
+at site construction time. Swapping themes means forking the site
+package or hardcoding branches.
 
-```
-~/Documents/mylittlephoney/
-├── package.json                    # file:./site dep + @rizom/brain + preact
-├── brain.yaml                       # site.package: "@brains/site-mylittlephoney"
-├── site/                            # sub-package (workaround)
-│   ├── package.json                 # name: "@brains/site-mylittlephoney", peerDeps
-│   └── src/
-│       ├── index.ts                 # composes SitePackage
-│       └── theme.css
-└── ...
-```
+**What we want:** a site is structure (layouts, routes, plugin,
+entity display). A theme is styling (CSS tokens, colors, fonts).
+They are two independent inputs to the resolver, composed at resolve
+time. `brain.yaml` still colocates them under `site:` for UX (users
+think "my site looks like X", not "my site is X and my theme is Y"),
+but the internal data model keeps them separate.
 
-Two `package.json` files and a fake `@brains/*` scope for what should
-be one flat directory.
+## Core change — decouple theme from site
 
-## Priority 1 — Implicit site convention
+### SitePackage type change
 
-**Problem:** brain.yaml's `site.package` field requires an importable
-`@scope/name`. For a standalone repo with ONE custom site, the cleanest
-place for that code is a plain `src/site.ts` file at the root, not a
-second `package.json` deep in a sub-package.
-
-**Proposal:** convention-over-configuration. The brain CLI auto-loads
-`<cwd>/src/site.ts` (or `<cwd>/src/site/index.ts`) if it exists, no
-yaml field required.
-
-**Resolution order** in `resolveSitePackage`:
-
-1. brain.yaml has `site.package` → explicit override wins
-2. `<cwd>/src/site.ts` exists → import + register under a synthetic
-   key → resolver picks it up
-3. Brain definition's default site
-
-**Implementation shape:** new helper
-`packages/brain-cli/src/lib/register-conventional-site.ts` with a
-dependency-injected import function (mirror of
-`register-override-packages.ts`). Wired into `setBootFn` in the
-brain-cli entrypoint AFTER `registerOverridePackages` — so explicit
-overrides still win. Convention discovery is a CLI concern, not a
-resolver concern.
-
-**Effort:** ~1 hour (helper + tests + wiring + docs).
-
-**Unblocks:** Priority 2 (below) becomes moot — no more sub-package,
-no more fake scope.
-
-**Status:** [ ] todo
-
-## Priority 2 — Drop the `@brains/` scope from standalone sites
-
-**Problem:** mylittlephoney's sub-package is named
-`@brains/site-mylittlephoney`. Outside the brains monorepo this is
-misleading — the `@brains/*` scope implies "part of the brains
-packages on npm" but it's a local-only name. The name was picked
-because `isScopedPackageRef` in `shell/app/src/brain-resolver.ts`
-requires `@scope/name` format.
-
-**Resolution if Priority 1 ships:** moot. No more sub-package
-means no more package name, so nothing to mislabel.
-
-**Resolution if Priority 1 doesn't ship:** broaden
-`isScopedPackageRef` to accept bare package names too:
+Drop the `theme` field from `SitePackage`:
 
 ```ts
-const PACKAGE_REF_PATTERN = /^(@[\w-]+\/)?[\w-]+$/;
+// shell/app/src/site-package.ts
+export interface SitePackage {
+  layouts: Record<string, unknown>;
+  routes: RouteDefinitionInput[];
+  plugin: (config?: Record<string, unknown>) => Plugin;
+  entityDisplay: Record<string, EntityDisplayEntry>;
+  staticAssets?: Record<string, string>;
+  // theme: string  ← REMOVED
+}
 ```
 
-So `site-mylittlephoney` or `phoney-site` work as valid refs.
-Consumers can then pick a non-scoped name and drop the fake
-`@brains/` prefix.
+`staticAssets` stays on the site because favicon / hero images /
+canvas scripts are site-owned, not theme-owned. Fonts that belong
+to the theme move with the theme CSS itself.
 
-**Effort:** ~15 min (regex change + test), or **0 effort** if
-Priority 1 ships first.
+### Theme package contract
 
-**Status:** [ ] todo (deferred pending Priority 1 outcome)
-
-## Priority 3 — `brain init` scaffolds `src/site.ts` skeleton
-
-**Problem:** `brain init` today creates `brain.yaml` + `package.json` +
-`tsconfig.json` + `README.md` but NOT a place for custom site code.
-Users who want a custom site have to figure out the convention
-themselves by reading docs or copying from mylittlephoney.
-
-**Proposal:** `brain init` always scaffolds a `src/` directory with
-two starter files:
-
-- `src/site.ts` — minimal SitePackage exporting the brain's default
-  (same PersonalLayout as rover) so the user has something to edit
-- `src/theme.css` — minimal brand override file with a palette
-  comment block and one `--color-brand` override as an example
-
-Users who don't customize just never touch these files — the
-conventional `src/site.ts` still works because it's functionally
-identical to the brain definition default. Users who customize edit
-these files in place.
-
-**Trade-off:** every new brain gets two files they may never touch.
-Alternative is `--with-site` flag but that adds decision fatigue
-during `brain init`. Defaulting to "always scaffold src/" is simpler
-and the files are small.
-
-**Effort:** ~1 hour (scaffold function + two template strings + 2 tests).
-Depends on Priority 1 for the auto-discovery path to be the default.
-
-**Status:** [ ] todo
-
-## Priority 4 — `createPersonalSite()` factory
-
-**Problem:** the mylittlephoney site manually composes two paired
-symbols from `@rizom/brain/site`:
+A theme package exports the **raw** CSS string (not pre-composed):
 
 ```ts
-layouts: { default: PersonalLayout },
-plugin: (config?) => personalSitePlugin(config ?? {}),
+// shared/theme-mylittlephoney/src/index.ts
+import rawCSS from "./theme.css" with { type: "text" };
+export default rawCSS;
 ```
 
-`PersonalLayout` and `personalSitePlugin` have to match. If the user
-swaps one but forgets the other, the site boots with mismatched
-layout + plugin and fails in subtle ways (wrong templates, missing
-handlers).
+The `composeTheme()` call (which prepends `theme-base` utilities)
+moves to the **resolver**. Theme packages never call it themselves.
+Benefits:
 
-**Proposal:** add factory helpers that pair layout + plugin:
+- No "did I remember to compose?" footgun
+- No double-composition if a theme package is accidentally composed twice
+- One place to change how composition works
+- `composeTheme` becomes internal to the framework, not part of the
+  public theme-authoring contract
+
+Each existing theme in the monorepo loses its `composeTheme()` wrap
+in `index.ts`.
+
+### brain.yaml schema (unchanged UX)
+
+`brain.yaml` keeps the same nested shape. Users still write:
+
+```yaml
+site:
+  package: "@scope/site-personal" # structural
+  theme: "./src/theme.css" # or "@scope/theme-pink"
+```
+
+Both `site.package` and `site.theme` are resolved independently by
+the CLI before `resolve()` runs. The user's mental model ("I pick a
+site, I pick a theme") is preserved at the yaml level.
+
+### Resolver flow
+
+`resolveSitePackage` gets a sibling `resolveTheme`. Both are called
+from `brain-resolver.ts`:
 
 ```ts
-import { createPersonalSite } from "@rizom/brain/site";
-import type { SitePackage } from "@rizom/brain/site";
-import { composeTheme } from "@rizom/brain/themes";
-import brandTheme from "./theme.css" with { type: "text" };
+const site = resolveSitePackage(definition, overrides);
+const themeCSS = resolveTheme(definition, overrides); // NEW
 
-const site: SitePackage = createPersonalSite({
-  theme: composeTheme(brandTheme),
-  entityDisplay: {
-    post: { label: "Post" },
-    series: { label: "Series", navigation: { show: false } },
+// Inject BOTH into site-builder config
+pluginOverrides["site-builder"] = deepMerge(
+  {
+    themeCSS: composeTheme(themeCSS), // compose here, once
+    routes: site.routes,
+    entityDisplay: site.entityDisplay,
+    layouts: site.layouts,
+    staticAssets: site.staticAssets,
   },
+  pluginOverrides["site-builder"] ?? {},
+);
+```
+
+`resolveTheme` checks brain.yaml's `site.theme` field → theme
+package registry → fallback to brain definition's default theme.
+
+### Brain definition changes
+
+`BrainDefinition` gains an optional `theme: string` (the default
+theme package name). Today rover's definition only has `site:`; it
+also declares its default theme:
+
+```ts
+// brains/rover/src/index.ts
+import defaultSite from "@brains/site-default";
+import defaultTheme from "@brains/theme-default";
+
+defineBrain({
+  // ...
+  site: defaultSite,
+  theme: defaultTheme, // NEW
 });
 ```
 
-The factory internally wires `PersonalLayout`, `personalSitePlugin`,
-and `routes`. Users only pass the theme and entity display
-configuration. Same for `createProfessionalSite()`.
+Existing site packages drop their theme import and stop setting
+`theme` on the returned `SitePackage`.
 
-**Effort:** ~45 min (two factories + types + tests + docs).
+## Convention discovery for standalone repos
 
-**Status:** [ ] todo
+With themes decoupled, standalone repos get a flat two-file
+convention:
+
+```
+~/Documents/mylittlephoney/
+├── brain.yaml        # site/theme fields optional (convention picks defaults)
+├── package.json      # @rizom/brain + preact
+├── tsconfig.json
+├── src/
+│   ├── site.ts       # default export: SitePackage (no theme field)
+│   └── theme.css     # raw CSS, auto-composed at resolve time
+└── deploy/
+```
+
+Both files are discovered at runtime if present:
+
+- `src/site.ts` present → use as site package (override rover's default)
+- `src/theme.css` present → use as theme (override rover's default)
+- Neither present → use brain definition's defaults
+- Both present → use both
+
+`brain.yaml` can override either independently:
+
+```yaml
+# Use convention site but custom theme
+site:
+  theme: "@scope/theme-dark"
+
+# Use built-in personal site but local theme
+site:
+  package: "@rizom/brain/site/personal"
+  theme: "./src/theme.css"
+```
+
+## What mylittlephoney becomes
+
+```
+~/Documents/mylittlephoney/
+├── brain.yaml        # no site/theme fields (convention)
+├── package.json      # @rizom/brain + preact
+├── tsconfig.json
+├── src/
+│   ├── site.ts       # 20 lines: imports from @rizom/brain/site, exports SitePackage
+│   └── theme.css     # raw pink CSS
+└── deploy/
+```
+
+No sub-package. No `@brains/*` fake scope. No `composeTheme` call in
+user code. No `file:./site` dep. `package.json` has two real deps.
+
+## Priorities
+
+### P1 — Decouple theme from site (CORE)
+
+The architectural change that unblocks everything else.
+
+- Drop `theme` from `SitePackage` type
+- Add `theme` to `BrainDefinition` type
+- Add `resolveTheme` to brain-resolver, sibling of `resolveSitePackage`
+- Move `composeTheme()` call into the resolver
+- Update all existing site packages (`site-default`, `site-ranger`,
+  `site-rizom`, `site-yeehaa`, `site-mylittlephoney`) to drop theme
+- Update all existing theme packages to export raw CSS
+- Update brain definitions (rover, ranger, relay) to declare theme
+- Update `@rizom/brain/themes` exports if shape changes
+- Publish as alpha
+
+**Effort:** ~3 hours. Mostly touching existing workspace packages.
+
+### P2 — Convention discovery for `src/site.ts` and `src/theme.css`
+
+Once themes are decoupled, auto-discovery is trivial.
+
+- `registerConventionalSite(cwd)` — check `<cwd>/src/site.ts`, import,
+  register in package registry under synthetic key
+- `registerConventionalTheme(cwd)` — check `<cwd>/src/theme.css`,
+  read as text, register in package registry under synthetic key
+- Wire both into `setBootFn` in the brain-cli entrypoint
+- Resolver picks them up via the existing registry lookup path
+
+**Effort:** ~1 hour.
+
+### P3 — `brain init` scaffolds both convention files
+
+`brain init` scaffolds `src/site.ts` (minimal SitePackage extending
+the brain's default) + `src/theme.css` (empty scaffold with palette
+comment block).
+
+**Effort:** ~1 hour (two template strings + tests).
+
+### P4 — `createPersonalSite()` / `createProfessionalSite()` factories
+
+Convenience factories that bundle `PersonalLayout` + `personalSitePlugin`
+
+- `routes` into a single function call. Reduces the number of paired
+  symbols a site author has to get right.
+
+**Effort:** ~30 min.
+
+### Dropped
+
+- ~~Site package factory with theme config parameter~~ — obsolete
+  after P1. Themes are resolver-level, not site-level, so the factory
+  doesn't need to know about them.
+- ~~Broadening `isScopedPackageRef` to bare names~~ — moot after P2.
+  The convention gives consumers a way to ship local files without
+  needing a package name at all.
 
 ## Recommended ordering
 
-1. **Priority 1 first** (implicit site convention). Biggest ergonomic
-   win, unblocks Priority 2, simplifies Priority 3.
-2. **Priority 3** (scaffold). Makes the convention discoverable to
-   new users without them reading the docs.
-3. **Priority 4** (factories). Quality-of-life; saves users from
-   pairing two symbols correctly.
-4. **Priority 2** skipped (moot after Priority 1) or 15-minute
-   follow-up if we decide sub-packages have a legitimate use case.
+1. **P1 first** (decouple). Biggest architectural change, unblocks
+   everything.
+2. **P2** (convention). Trivial after P1.
+3. **P3** (scaffold). Trivial after P2.
+4. **P4** (factories). Quality of life.
 
-Total estimated effort: **~2.5 hours** for Priorities 1 + 3 + 4,
-plus ~10 min to retrofit mylittlephoney to the new shape.
+Total estimated effort: **~5 hours** including alpha publish cycles
+and mylittlephoney retrofit.
 
 ## Validation
 
 Each priority lands with:
 
-- Failing tests written first (TDD, per CLAUDE.md)
+- Failing tests written first (TDD)
 - `@rizom/brain` alpha bump and publish
 - mylittlephoney migrated to the new pattern
-- Boot verified end-to-end (personal-site plugin active, pink palette
-  in the compiled CSS)
+- Boot verified end-to-end (correct site plugin active, correct
+  palette in compiled CSS)
 
 Phase 1 of `docs/plans/harmonize-monorepo-apps.md` stays "in
-progress" until all three priorities land AND mylittlephoney has
-run with real content for long enough to catch edge cases not hit
-during the initial extraction.
+progress" until P1–P3 land AND mylittlephoney has run with real
+content long enough to catch edge cases not hit during the initial
+extraction.
+
+## Non-goals
+
+- **Runtime theme switching** — themes are resolved at boot, not
+  hot-swapped. A brain instance has one theme active per process.
+  Users who want multi-theme can run multiple brain instances on
+  different ports with different brain.yaml files.
+- **Theme tokens in brain.yaml** — individual token overrides
+  (`--color-brand: #ff00ff`) are not supported via yaml. Theme is
+  pick-from-list OR local-file, not composed at the token level.
+- **Per-route themes** — one theme per brain instance. Different
+  routes cannot use different themes.
 
 ## Status
 
-- [ ] Priority 1: Implicit site convention
-- [ ] Priority 3: `brain init` scaffolds `src/site.ts`
-- [ ] Priority 4: `createPersonalSite()` / `createProfessionalSite()`
-      factories
-- [ ] Priority 2: Skipped or 15-min follow-up
+- [ ] P1: Decouple theme from site
+  - [ ] Drop `theme` field from `SitePackage`
+  - [ ] Add `theme` field to `BrainDefinition`
+  - [ ] Add `resolveTheme` to brain-resolver
+  - [ ] Move `composeTheme()` into the resolver
+  - [ ] Update `site-default`, `site-ranger`, `site-rizom`,
+        `site-yeehaa`, `site-mylittlephoney`
+  - [ ] Update all theme packages to export raw CSS
+  - [ ] Update rover / ranger / relay brain definitions
+  - [ ] Publish alpha
+- [ ] P2: Convention discovery for `src/site.ts` + `src/theme.css`
+- [ ] P3: `brain init` scaffolds both files
+- [ ] P4: `createPersonalSite()` / `createProfessionalSite()` factories
 - [ ] mylittlephoney retrofit to the new shape
