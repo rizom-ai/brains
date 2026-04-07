@@ -1,5 +1,32 @@
 # @rizom/brain
 
+## 0.1.1-alpha.5
+
+### Patch Changes
+
+- [`310de17`](https://github.com/rizom-ai/brains/commit/310de174a1a1cb2e7947f8a93ae602256467506f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix: declare `preact` and `preact-render-to-string` as runtime
+  dependencies of `@rizom/brain`.
+
+  Alpha.4 externalized `preact`, `preact/hooks`, `preact/jsx-runtime`,
+  `preact/compat`, and `preact-render-to-string` in the bundle to
+  avoid the dual-instance hook crash, but forgot to add them as
+  regular `dependencies` in `package.json`. Consumers installing
+  `@rizom/brain` from npm got the bundle without the runtime modules,
+  and the CLI crashed at import time with:
+
+      Cannot find package 'preact-render-to-string' from
+      '/.../node_modules/@rizom/brain/dist/brain.js'
+
+  Adds both packages as regular `dependencies`. `preact@^10.27.2` and
+  `preact-render-to-string@^6.3.1`, matching the versions used by
+  `@brains/site-builder-plugin` in the monorepo so runtime and
+  workspace stay aligned.
+
+  Consumers scaffolded via `brain init` also declare `preact` in
+  their own `package.json`, which is fine — bun hoists the shared
+  version to the top-level `node_modules/preact` and the externalized
+  imports all resolve to the same instance.
+
 ## 0.1.1-alpha.4
 
 ### Patch Changes
