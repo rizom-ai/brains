@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 
 const DOTS: Array<{ href: string; label: string }> = [
   { href: "#hero", label: "Intro" },
-  { href: "#features", label: "Problem" },
+  { href: "#problem", label: "Problem" },
   { href: "#answer", label: "Answer" },
   { href: "#ownership", label: "Open" },
   { href: "#quickstart", label: "Start" },

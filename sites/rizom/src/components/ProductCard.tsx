@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { Section } from "./Section";
 
 export type ProductVariant = "rover" | "relay" | "ranger";
 
@@ -42,7 +43,7 @@ export const ProductCard = ({
     : "text-secondary/55 light:text-secondary";
 
   return (
-    <section className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-4 md:py-6">
+    <Section className="reveal py-4 md:py-6">
       <div className={INNER_CLASS[variant]}>
         <div className="flex-1 flex flex-col gap-4">
           <div className="flex items-center gap-3">
@@ -78,6 +79,6 @@ export const ProductCard = ({
           <canvas id={canvasId} width={511} height={320} />
         </div>
       </div>
-    </section>
+    </Section>
   );
 };

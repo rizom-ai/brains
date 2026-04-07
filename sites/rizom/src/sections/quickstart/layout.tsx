@@ -1,4 +1,6 @@
 import type { JSX } from "preact";
+import { Section } from "../../components/Section";
+import { Badge } from "../../components/Badge";
 
 const OK_LINES = [
   "✓ Web server → localhost:3000",
@@ -9,15 +11,10 @@ const OK_LINES = [
 
 export const QuickstartLayout = (): JSX.Element => {
   return (
-    <section
-      id="quickstart"
-      className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section"
-    >
+    <Section id="quickstart" className="reveal py-section">
       <div className="flex flex-col md:flex-row gap-8 md:gap-20 items-start">
         <div className="w-full md:w-[420px] shrink-0">
-          <span className="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-label-md font-semibold tracking-[0.09375em] uppercase">
-            Quick Start
-          </span>
+          <Badge>Quick Start</Badge>
           <h2 className="font-display text-[28px] md:text-[36px] tracking-[-0.5px] leading-[1.2] mt-4">
             Running in under a minute
           </h2>
@@ -50,6 +47,6 @@ export const QuickstartLayout = (): JSX.Element => {
           ))}
         </div>
       </div>
-    </section>
+    </Section>
   );
 };

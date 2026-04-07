@@ -2,6 +2,7 @@ import type { Tool, Resource, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { templates } from "./templates";
+import { setVariant } from "./variant";
 
 /**
  * Config for the Rizom site plugin.
@@ -47,6 +48,9 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
     context.templates.register(templates);
 
     const variant = this.config.variant;
+    // Stash variant in the module-level store so section components
+    // (hero, ecosystem) can pick variant-specific copy at SSR time.
+    setVariant(variant);
     const canvasPath = CANVAS_BY_VARIANT[variant];
 
     // Wait for site-builder's head-script handler to be subscribed

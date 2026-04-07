@@ -35,24 +35,20 @@
       io.observe(el);
     });
 
-    // Side nav active-dot tracker (skipped on routes without SideNav)
+    // Side nav active-dot tracker (skipped on routes without SideNav).
+    // The dot → section mapping is derived from the rendered dots'
+    // href attributes, so SideNav.tsx stays the single source of truth.
     var dots = document.querySelectorAll(".side-nav-dot");
     if (dots.length > 0) {
-      var ids = [
-        "hero",
-        "features",
-        "answer",
-        "ownership",
-        "quickstart",
-        "mission",
-      ];
+      var ids = Array.prototype.map.call(dots, function (d) {
+        return (d.getAttribute("href") || "").replace(/^#/, "");
+      });
       var so = new IntersectionObserver(
         function (entries) {
           entries.forEach(function (e) {
             if (!e.isIntersecting) return;
             var idx = ids.indexOf(e.target.id);
-            if (idx < 0 || !dots[idx] || dots[idx].classList.contains("active"))
-              return;
+            if (idx < 0 || dots[idx].classList.contains("active")) return;
             dots.forEach(function (d) {
               d.classList.remove("active");
             });
@@ -62,6 +58,7 @@
         { threshold: 0.4 },
       );
       ids.forEach(function (id) {
+        if (!id) return;
         var el = document.getElementById(id);
         if (el) so.observe(el);
       });

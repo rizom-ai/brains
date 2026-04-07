@@ -11,7 +11,7 @@ export const Header = (): JSX.Element => (
       <span className="text-theme-muted">ai</span>
     </div>
     <div className="flex items-center gap-3 md:gap-8">
-      <a href="#features" className={LINK_CLS}>
+      <a href="#problem" className={LINK_CLS}>
         Platform
       </a>
       <a href="#quickstart" className={LINK_CLS}>

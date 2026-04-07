@@ -1,4 +1,6 @@
 import type { JSX } from "preact";
+import { Section } from "../../components/Section";
+import { Badge } from "../../components/Badge";
 
 interface FeatureRow {
   icon: string;
@@ -26,15 +28,10 @@ const ROWS: FeatureRow[] = [
 
 export const OwnershipLayout = (): JSX.Element => {
   return (
-    <section
-      id="ownership"
-      className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section"
-    >
+    <Section id="ownership" className="reveal py-section">
       <div className="flex flex-col md:flex-row gap-9 md:gap-20 items-start">
         <div className="w-full md:w-[45%]">
-          <span className="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-label-md font-semibold tracking-[0.09375em] uppercase">
-            Your Data, Your Rules
-          </span>
+          <Badge>Your Data, Your Rules</Badge>
           <h2 className="font-display text-[28px] tracking-[-1px] leading-[1.1] md:text-display-md mt-4 md:mt-6">
             Everything is a plain text file you can read with any editor
           </h2>
@@ -60,6 +57,6 @@ export const OwnershipLayout = (): JSX.Element => {
           ))}
         </div>
       </div>
-    </section>
+    </Section>
   );
 };

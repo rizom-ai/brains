@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { Section } from "../../components/Section";
 
 interface ProblemCard {
   num: string;
@@ -26,10 +27,7 @@ const CARDS: ProblemCard[] = [
 
 export const ProblemLayout = (): JSX.Element => {
   return (
-    <section
-      id="problem"
-      className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section"
-    >
+    <Section id="problem" className="reveal py-section">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-[60px]">
         {CARDS.map((card, i) => (
           <div key={card.num} className={`reveal reveal-delay-${i + 1}`}>
@@ -62,7 +60,7 @@ export const ProblemLayout = (): JSX.Element => {
         />
         <path
           d="M180,35 C420,30 660,28 900,32 C1020,34 1080,35 1100,34"
-          style={{ stroke: "var(--palette-amber-light)" }}
+          style={{ stroke: "var(--color-brand-light)" }}
           strokeWidth="0.6"
           fill="none"
           opacity="0.07"
@@ -78,7 +76,7 @@ export const ProblemLayout = (): JSX.Element => {
           cx="640"
           cy="25"
           r="1.5"
-          style={{ fill: "var(--palette-amber-light)" }}
+          style={{ fill: "var(--color-brand-light)" }}
           opacity="0.15"
         />
         <circle
@@ -89,6 +87,6 @@ export const ProblemLayout = (): JSX.Element => {
           opacity="0.2"
         />
       </svg>
-    </section>
+    </Section>
   );
 };

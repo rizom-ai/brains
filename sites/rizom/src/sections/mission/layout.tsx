@@ -1,12 +1,12 @@
 import type { JSX } from "preact";
+import { Section } from "../../components/Section";
+import { Divider } from "../../components/Divider";
+import { Button } from "../../components/Button";
 
 export const MissionLayout = (): JSX.Element => {
   return (
-    <section
-      id="mission"
-      className="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section text-center"
-    >
-      <div className="w-[60px] h-px bg-[var(--color-divider)] mx-auto mb-10 md:mb-12" />
+    <Section id="mission" className="reveal py-section text-center">
+      <Divider className="mb-10 md:mb-12" />
       <p className="font-body text-body-sm md:text-body-lg text-theme-light max-w-[520px] mx-auto mb-8 md:mb-10">
         AI is not taking your job. It's exposing how much of your talent you've
         been wasting. When machines handle the busywork, what remains is the
@@ -25,19 +25,13 @@ export const MissionLayout = (): JSX.Element => {
         create, and distributed teams outperform traditional organizations.
       </p>
       <div className="flex flex-col md:flex-row gap-3 md:gap-5 md:justify-center items-stretch md:items-center mt-9 md:mt-16">
-        <a
-          href="#quickstart"
-          className="inline-flex items-center justify-center gap-2 font-body text-body-md md:text-body-lg font-semibold text-[var(--color-on-accent)] bg-accent hover:bg-accent-dark rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:scale-[1.02] shadow-[0_20px_60px_-15px_var(--color-glow-cta-strong)] hover:shadow-[0_0_0_8px_var(--color-glow-cta),0_30px_80px_-15px_var(--color-glow-cta-strong)]"
-        >
+        <Button href="#quickstart" variant="primary-strong" size="lg" block>
           Start Building →
-        </a>
-        <a
-          href="https://github.com"
-          className="inline-flex items-center justify-center gap-2 font-body text-body-md md:text-body-lg font-medium text-theme bg-white/[0.04] border border-white/15 hover:border-white/40 hover:bg-white/[0.08] rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all"
-        >
+        </Button>
+        <Button href="https://github.com" variant="secondary" size="lg" block>
           View on GitHub
-        </a>
+        </Button>
       </div>
-    </section>
+    </Section>
   );
 };

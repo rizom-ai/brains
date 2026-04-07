@@ -5,6 +5,13 @@ preset: default
 logLevel: info
 domain: rizom.foundation
 
+# Shared rizom site package with the `foundation` variant.
+# Same package serves rizom.ai and rizom.work via different variants
+# (ai, work) — the variant flips the canvas, accent shade, and copy register.
+site:
+  package: "@brains/site-rizom"
+  variant: foundation
+
 plugins:
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
