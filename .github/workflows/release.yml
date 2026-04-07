@@ -53,6 +53,12 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Version
+        env:
+          # @changesets/changelog-github hits the GitHub API to resolve
+          # PR numbers, commit authors, and link URLs for the generated
+          # changelog. Without a token, changeset version crashes before
+          # it can write package.json or CHANGELOG.md.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: bun run changeset:version
 
       - name: Commit and push version bump
