@@ -20,6 +20,11 @@
 /* Declare layer order — guarantees cascade regardless of concat order */
 @layer theme-base, theme-override;
 
+/* Custom variant: `light:*` utilities apply when [data-theme="light"]
+   is set on any ancestor (typically <html>). Dark mode is the
+   default so there's no matching `dark:` variant. */
+@custom-variant light ([data-theme="light"] &);
+
 /* ============================================
    @theme inline - Expose CSS variables to Tailwind
    Uses @theme inline for RUNTIME CSS variable resolution.
@@ -38,6 +43,22 @@
 
   /* Selection colors */
   --color-selection: var(--color-selection);
+
+  /* Secondary accent (e.g. rizom purple companion to amber).
+     bg-theme / text-theme / border-theme utilities already exist as
+     manual classes; secondary is the only new color family that needs
+     auto-generated bg/text/border utilities. */
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+
+  /* Font families — expose brand-flavored names so `font-display`,
+     `font-body`, `font-label`, `font-nav`, `font-mono` auto-generate.
+     Themes that don't set these get an empty value (browser fallback). */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-label: var(--font-label);
+  --font-nav: var(--font-nav);
+  --font-mono: var(--font-mono);
 
   /* Footer */
   --color-footer: var(--color-footer);

@@ -226,6 +226,53 @@
   /* Header */
   .bg-header { background-color: transparent; }
 
+  /* Nav — fade from theme-bg (95%) to transparent, used behind the
+     fixed top nav. Uses relative color syntax so it tracks
+     light/dark mode automatically via --color-bg. */
+  .bg-nav-fade {
+    background: linear-gradient(
+      180deg,
+      rgb(from var(--color-bg) r g b / 0.95) 0%,
+      rgb(from var(--color-bg) r g b / 0) 100%
+    );
+  }
+
+  /* Side-nav scroll-spy dot (with hover-revealed label via ::after). */
+  .side-nav-dot {
+    position: relative;
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: rgb(from var(--color-text) r g b / 0.15);
+    transition: background-color 300ms ease, transform 300ms ease, box-shadow 300ms ease;
+  }
+  .side-nav-dot::after {
+    content: attr(data-label);
+    position: absolute;
+    right: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: var(--font-label);
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 300ms ease;
+  }
+  .side-nav-dot:hover {
+    background: var(--color-accent);
+    transform: scale(1.3);
+  }
+  .side-nav-dot:hover::after { opacity: 1; }
+  .side-nav-dot.active {
+    background: var(--color-accent);
+    box-shadow: 0 0 12px rgb(from var(--color-accent) r g b / 0.5);
+  }
+
   /* Footer */
   .bg-footer { background-color: var(--color-footer); }
 
@@ -242,131 +289,69 @@
   .text-warning { color: var(--color-warning-text); }
   .text-warning-emphasis { color: var(--color-warning-text-emphasis); }
 
-  /* Buttons */
-  .btn-primary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-body);
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--palette-white);
-    background-color: var(--color-accent);
-    border: none;
-    border-radius: 0.625rem;
-    padding: 1rem 2rem;
-    cursor: pointer;
-    transition: transform 150ms ease, box-shadow 150ms ease, background-color 150ms ease;
-  }
-  .btn-primary:hover {
-    transform: translateY(-2px);
-    background-color: var(--color-accent-dark);
-    box-shadow: 0 8px 32px rgba(232, 119, 34, 0.3);
-  }
-  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  /* NOTE: .btn-primary / .btn-secondary / .badge-amber / .badge-purple /
+     .divider / .section are intentionally NOT defined here. They are
+     thin wrappers over Tailwind utilities and will live as Preact
+     components in ui-library (Button, Badge, Divider, Section). The
+     themed HTML mock uses inline Tailwind for these patterns so the
+     component API surfaces naturally during the Preact port. */
 
-  .btn-secondary {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-body);
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--color-text);
-    background-color: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 0.625rem;
-    padding: 1rem 2rem;
-    cursor: pointer;
-    transition: border-color 150ms ease, background-color 150ms ease;
+  /* Hero rise-in animation — h1, subtitle, CTA row fade up in sequence. */
+  @keyframes heroRise {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
   }
-  .btn-secondary:hover {
-    border-color: rgba(255, 255, 255, 0.4);
-    background-color: rgba(255, 255, 255, 0.08);
-  }
-  [data-theme="light"] .btn-secondary {
-    background-color: rgba(26, 22, 37, 0.03);
-    border-color: rgba(26, 22, 37, 0.15);
-  }
-  [data-theme="light"] .btn-secondary:hover {
-    background-color: rgba(26, 22, 37, 0.06);
-    border-color: rgba(26, 22, 37, 0.3);
+  .animate-hero-rise {
+    animation: heroRise 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
   }
 
-  /* Badges */
-  .badge-amber {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1.25rem;
-    border: 1px solid var(--color-accent);
-    color: var(--color-accent);
-    border-radius: 1.25rem;
-    font-family: var(--font-label);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.09375em;
-    text-transform: uppercase;
+  /* Scroll cue — drip animation at the bottom of the hero. */
+  @keyframes scrollCueRise {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to   { opacity: 0.75; transform: translateX(-50%) translateY(0); }
   }
-
-  .badge-purple {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.5rem 1.25rem;
-    border: 1px solid var(--color-secondary);
-    color: var(--color-secondary);
-    border-radius: 1.25rem;
-    font-family: var(--font-label);
-    font-size: 0.8125rem;
-    font-weight: 600;
-    letter-spacing: 0.09375em;
-    text-transform: uppercase;
+  @keyframes scrollDrop {
+    0%   { top: -20px; }
+    60%  { top: 48px; }
+    100% { top: 48px; }
   }
-
-  /* Terminal block (quickstart section in the mock) */
-  .terminal-block {
-    background-color: #1A1625;
-    border: 1px solid var(--color-border);
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    font-family: var(--font-mono);
-    font-size: 0.875rem;
-    color: var(--color-text);
-  }
-  [data-theme="light"] .terminal-block {
-    background-color: #1A1625;
-    color: var(--palette-white);
-  }
-
-  /* Divider — thin amber gradient, used between sections in the mock */
-  .divider,
-  .divider-line {
-    width: 60px;
-    height: 1px;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(232, 119, 34, 0.4),
-      transparent
-    );
-    margin: 3rem auto;
-  }
-  [data-theme="light"] .divider,
-  [data-theme="light"] .divider-line {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(232, 119, 34, 0.25),
-      transparent
-    );
-  }
-
-  /* Scroll cue — small hint near the hero */
   .scroll-cue {
-    font-family: var(--font-mono);
-    font-size: 0.75rem;
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
     color: var(--color-text-light);
+    font-family: var(--font-label);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 3px;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
+    z-index: 3;
+    opacity: 0;
+    animation: scrollCueRise 1s cubic-bezier(0.2, 0.8, 0.2, 1) 1s forwards;
+    transition: color 300ms ease;
+  }
+  .scroll-cue:hover { color: var(--color-accent); }
+  .scroll-cue-line {
+    width: 1px;
+    height: 48px;
+    background: linear-gradient(180deg, transparent 0%, currentColor 40%, currentColor 100%);
+    position: relative;
+    overflow: hidden;
+  }
+  .scroll-cue-line::before {
+    content: "";
+    position: absolute;
+    top: -20px;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    background: linear-gradient(180deg, transparent, currentColor);
+    animation: scrollDrop 2.2s ease-in-out infinite;
   }
 }
 

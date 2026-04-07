@@ -2,28 +2,20 @@ import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/app";
 import themeCSS from "@brains/theme-rizom";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
-import treeCanvasRaw from "./canvases/tree.canvas.js" with { type: "text" };
-import constellationCanvasRaw from "./canvases/constellation.canvas.js" with { type: "text" };
-import rootsCanvasRaw from "./canvases/roots.canvas.js" with { type: "text" };
+import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
+import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
+import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import { DefaultLayout } from "./layouts/default";
 import { routes } from "./routes";
 import { RizomSitePlugin } from "./plugin";
 
-/**
- * Bundle the shared prelude (createRand, C, parseHex, rgba,
- * isLightMode, dpr, drawGlowBezier, drawGlowNode) in front of each
- * variant canvas. The variant canvases reference these symbols as
- * globals — in the design mock they live in an inline <script> tag
- * before the canvas <script src> is injected. We get the same effect
- * here by concatenation, which keeps the variant canvas files
- * byte-equivalent to docs/design/canvases/ for easy re-syncs.
- */
+// Variant canvases reference shared helpers (createRand, drawGlowBezier, …)
+// from prelude.canvas.js as globals — in the design mock these live in an
+// inline <script> before the canvas <script src>. We replicate that by
+// concatenating prelude + variant, which keeps the variant files byte-
+// equivalent to docs/design/canvases/ for easy re-syncs.
 const withPrelude = (variant: string): string =>
   `${canvasPrelude}\n\n${variant}`;
-
-const treeCanvas = withPrelude(treeCanvasRaw);
-const constellationCanvas = withPrelude(constellationCanvasRaw);
-const rootsCanvas = withPrelude(rootsCanvasRaw);
 
 /**
  * Rizom site package — shared by rizom.ai, rizom.foundation,
@@ -52,9 +44,9 @@ const site: SitePackage = {
     new RizomSitePlugin(config ?? {}),
   entityDisplay: {},
   staticAssets: {
-    "/canvases/tree.canvas.js": treeCanvas,
-    "/canvases/constellation.canvas.js": constellationCanvas,
-    "/canvases/roots.canvas.js": rootsCanvas,
+    "/canvases/tree.canvas.js": withPrelude(treeCanvas),
+    "/canvases/constellation.canvas.js": withPrelude(constellationCanvas),
+    "/canvases/roots.canvas.js": withPrelude(rootsCanvas),
   },
 };
 
