@@ -30,6 +30,8 @@ jobs:
         with:
           version: bun run changeset:version
           publish: bun run changeset:publish
+          commit: "chore(release): version packages"
+          title: "chore(release): version packages"
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
