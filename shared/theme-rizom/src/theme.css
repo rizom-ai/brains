@@ -26,6 +26,78 @@
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
 
+/* Brand-specific Tailwind utilities — exposed via @theme inline so
+   `bg-secondary`, `font-display`, `text-display-lg`, `py-section` etc.
+   only generate when this theme is loaded. Other themes don't declare
+   these slots, so non-rizom builds get neither the utilities nor the
+   broken empty fallbacks. */
+@theme inline {
+  /* Secondary accent (purple companion to amber) */
+  --color-secondary: var(--color-secondary);
+  --color-secondary-dark: var(--color-secondary-dark);
+
+  /* Brand fonts */
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-label: var(--font-label);
+  --font-nav: var(--font-nav);
+
+  /* Typography scale — bundles font-size + line-height + letter-spacing
+     via Tailwind v4 modifiers, so a single utility (e.g. `text-display-lg`)
+     replaces three (`text-[clamp(...)] leading-[1.1] tracking-[-1px]`). */
+
+  /* Display — fluid headlines */
+  --text-display-2xl: var(--text-display-2xl);
+  --text-display-2xl--line-height: 0.9;
+  --text-display-2xl--letter-spacing: -2px;
+
+  --text-display-xl: var(--text-display-xl);
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -3px;
+
+  --text-display-lg: var(--text-display-lg);
+  --text-display-lg--line-height: 1.1;
+  --text-display-lg--letter-spacing: -1px;
+
+  --text-display-md: var(--text-display-md);
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -1px;
+
+  --text-display-sm: var(--text-display-sm);
+  --text-display-sm--line-height: 1.2;
+  --text-display-sm--letter-spacing: -0.5px;
+
+  /* Heading — subsection labels */
+  --text-heading-lg: var(--text-heading-lg);
+  --text-heading-lg--line-height: 1.2;
+  --text-heading-md: var(--text-heading-md);
+  --text-heading-md--line-height: 1.2;
+  --text-heading-sm: var(--text-heading-sm);
+  --text-heading-sm--line-height: 1.3;
+
+  /* Body — paragraphs */
+  --text-body-xl: var(--text-body-xl);
+  --text-body-xl--line-height: 1.7;
+  --text-body-lg: var(--text-body-lg);
+  --text-body-lg--line-height: 1.7;
+  --text-body-md: var(--text-body-md);
+  --text-body-md--line-height: 1.8;
+  --text-body-sm: var(--text-body-sm);
+  --text-body-sm--line-height: 1.7;
+  --text-body-xs: var(--text-body-xs);
+  --text-body-xs--line-height: 1.7;
+
+  /* Label — small uppercase text. Letter-spacing is applied per-use
+     (different label kinds have very different tracking). */
+  --text-label-md: var(--text-label-md);
+  --text-label-sm: var(--text-label-sm);
+  --text-label-xs: var(--text-label-xs);
+
+  /* Section vertical rhythm — single fluid token, drives `py-section`,
+     `pt-section`, etc. */
+  --spacing-section: var(--spacing-section);
+}
+
 @layer theme {
   :root {
     /* Layout */
