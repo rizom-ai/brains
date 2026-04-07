@@ -22,12 +22,11 @@ env:
 jobs:
   build:
     name: Build & Publish
-    # Fork-safety: only run on the canonical repo. Forks that run CI should
-    # not attempt to push to rizom-ai's GHCR namespace.
-    # Workflow-run trigger also requires the upstream CI to have passed.
+    # Fork-safety: only run on the canonical repo. Forks that run CI
+    # should not attempt to push to rizom-ai's GHCR namespace.
     if: |
       github.repository == 'rizom-ai/brains' &&
-      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+      (github.event_name == 'release' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -91,10 +90,8 @@ jobs:
         with:
           images: ${{ env.IMAGE_PREFIX }}/${{ matrix.model }}
           tags: |
-            # On push to main (via workflow_run): :latest + :<short-sha>
             type=raw,value=latest,enable={{is_default_branch}}
             type=sha,format=short
-            # On release: full semver + minor + major
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=semver,pattern={{major}}
@@ -114,7 +111,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # Per-model build cache scoped by matrix value so parallel
-          # builds don't fight over the same cache entries.
           cache-from: type=gha,scope=${{ matrix.model }}
           cache-to: type=gha,mode=max,scope=${{ matrix.model }}
