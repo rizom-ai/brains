@@ -44,6 +44,64 @@
   --font-nav: var(--font-nav);
   --font-mono: var(--font-mono);
 
+  /* Typography scale — each entry bundles font-size + line-height +
+     letter-spacing via Tailwind v4's --text-name--line-height /
+     --text-name--letter-spacing modifiers, so a single utility (e.g.
+     `text-display-lg`) replaces three (`text-[clamp(...)]
+     leading-[1.1] tracking-[-1px]`). Themes set the actual values
+     in their :root block. */
+
+  /* Display — fluid headlines */
+  --text-display-2xl: var(--text-display-2xl);
+  --text-display-2xl--line-height: 0.9;
+  --text-display-2xl--letter-spacing: -2px;
+
+  --text-display-xl: var(--text-display-xl);
+  --text-display-xl--line-height: 0.95;
+  --text-display-xl--letter-spacing: -3px;
+
+  --text-display-lg: var(--text-display-lg);
+  --text-display-lg--line-height: 1.1;
+  --text-display-lg--letter-spacing: -1px;
+
+  --text-display-md: var(--text-display-md);
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -1px;
+
+  --text-display-sm: var(--text-display-sm);
+  --text-display-sm--line-height: 1.2;
+  --text-display-sm--letter-spacing: -0.5px;
+
+  /* Heading — subsection labels */
+  --text-heading-lg: var(--text-heading-lg);
+  --text-heading-lg--line-height: 1.2;
+  --text-heading-md: var(--text-heading-md);
+  --text-heading-md--line-height: 1.2;
+  --text-heading-sm: var(--text-heading-sm);
+  --text-heading-sm--line-height: 1.3;
+
+  /* Body — paragraphs */
+  --text-body-xl: var(--text-body-xl);
+  --text-body-xl--line-height: 1.7;
+  --text-body-lg: var(--text-body-lg);
+  --text-body-lg--line-height: 1.7;
+  --text-body-md: var(--text-body-md);
+  --text-body-md--line-height: 1.8;
+  --text-body-sm: var(--text-body-sm);
+  --text-body-sm--line-height: 1.7;
+  --text-body-xs: var(--text-body-xs);
+  --text-body-xs--line-height: 1.7;
+
+  /* Label — small uppercase text. Letter-spacing is applied per-use
+     (different label kinds have very different tracking). */
+  --text-label-md: var(--text-label-md);
+  --text-label-sm: var(--text-label-sm);
+  --text-label-xs: var(--text-label-xs);
+
+  /* Section spacing — single fluid token, drives `py-section`,
+     `pt-section`, `pb-section`, `gap-section`, etc. */
+  --spacing-section: var(--spacing-section);
+
   /* Footer */
   --color-footer: var(--color-footer);
   --color-footer-text: var(--color-footer-text);
@@ -70,7 +128,7 @@
 </style>
 
 <style>
-/* theme-base */
+/* --- shared/theme-base/src/theme-base.css --- */
 /* ============================================
    THEME BASE - Shared utilities for all themes
    ============================================
@@ -211,7 +269,7 @@
     display: block;
   }
 
-/* theme-rizom */
+/* --- shared/theme-rizom/src/theme.css --- */
 /*
  * Rizom brand theme — amber + purple bioluminescent palette.
  *
@@ -331,16 +389,37 @@
     --font-heading: var(--font-display);
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
-    /* Typography scale */
-    --text-h1: 5.5rem;
-    --text-h1-mobile: 3rem;
-    --text-h2: 3.5rem;
-    --text-h2-mobile: 2.25rem;
-    --text-h3: 2.25rem;
-    --text-h3-mobile: 1.75rem;
-    --text-h4: 1.5rem;
-    --text-body: 1.125rem;
-    --text-body-mobile: 1rem;
+    /* Typography scale — each token bundles font-size + line-height +
+       letter-spacing via Tailwind v4 modifiers (see theme-base @theme inline).
+       Sizes derived from the rizom-ai design mock; collapsed where similar. */
+
+    /* Display — large fluid headlines (font-display, Chakra Petch) */
+    --text-display-2xl: clamp(72px, 8vw, 120px);  /* problem numbers   */
+    --text-display-xl:  clamp(52px, 8vw, 112px);  /* mission headline  */
+    --text-display-lg:  clamp(40px, 5.5vw, 72px); /* hero h1           */
+    --text-display-md:  clamp(32px, 4vw, 52px);   /* answer / ownership h2 */
+    --text-display-sm:  clamp(26px, 3vw, 36px);   /* product h3 / scales / quickstart h2 */
+
+    /* Heading — subsection labels (font-nav, Space Grotesk) */
+    --text-heading-lg: 22px;  /* eco-title              */
+    --text-heading-md: 20px;  /* feature/problem title  */
+    --text-heading-sm: 17px;  /* mobile feature/problem */
+
+    /* Body — paragraphs (font-body, Barlow) */
+    --text-body-xl: 19px;  /* answer-sub               */
+    --text-body-lg: 18px;  /* hero subtitle / mission  */
+    --text-body-md: 16px;  /* product-desc / scales-sub */
+    --text-body-sm: 15px;  /* feature/problem/quickstart desc */
+    --text-body-xs: 14px;  /* eco-desc / terminal / mobile body */
+
+    /* Label — small uppercase text (font-label, Plus Jakarta Sans) */
+    --text-label-md: 13px;  /* badges / footer links / product tags */
+    --text-label-sm: 12px;  /* terminal labels / scroll cue         */
+    --text-label-xs: 10px;  /* product badges / side nav labels     */
+
+    /* Section vertical rhythm — fluid via clamp so a single
+       `py-section` utility works on every viewport. */
+    --spacing-section: clamp(88px, 12vw, 120px);
   }
 
   /* ============================================
@@ -504,6 +583,22 @@
      themed HTML mock uses inline Tailwind for these patterns so the
      component API surfaces naturally during the Preact port. */
 
+  /* Scroll reveal — elements with .reveal start invisible + offset and
+     fade up when an IntersectionObserver toggles .visible on them. The
+     observer wiring lives in the site-rizom plugin's boot script. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
+
   /* Hero rise-in animation — h1, subtitle, CTA row fade up in sequence. */
   @keyframes heroRise {
     from { opacity: 0; transform: translateY(24px); }
@@ -598,135 +693,30 @@
     font-family: var(--font-mono);
   }
 </style>
-<style>
-/* mock's universal reset + legacy :root vars removed —
-   Tailwind preflight handles the reset, and theme-rizom owns the
-   design tokens (as --color-*, --font-*). */
-/* Light mode overrides */
-body.light{
-  --bg:#F2EEE8;--bg-subtle:#EAE5DD;--bg-card:#F0ECE5;
-  --text:#1A1625;--text-muted:rgba(26,22,37,0.55);--text-dim:rgba(26,22,37,0.38);
-  background-color:var(--bg);background-image:none;
-}
-body.light nav{background:linear-gradient(180deg,rgba(242,238,232,0.95) 0%,rgba(242,238,232,0) 100%)}
-body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
-body.light .nav-cta:hover{border-color:var(--amber)}
-body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
-body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
-body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.2)}
-body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.2)}
-body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.12)}
-body.light .answer{background:transparent}
-body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
-body.light .feature-icon{border-color:var(--amber)}
-body.light .badge-amber{border-color:var(--amber);color:var(--amber)}
-body.light .badge-purple{border-color:var(--purple);color:var(--purple)}
-body.light .divider,body.light .divider-line{background:linear-gradient(90deg,transparent,rgba(232,119,34,0.25),transparent)}
-body.light #bgCanvasWrap{opacity:0.55}
-body.light .problem-threads path{stroke-opacity:0.25}
-body.light .problem-threads circle{fill-opacity:0.4}
-body.light .product-illust{background:transparent}
-body.light .product-tags.amber span{color:var(--amber-dark)}
-body.light .product-tags.purple span{color:var(--purple)}
-body.light .product-label.amber{color:var(--amber-dark)}
-body.light .product-badge.amber{border-color:var(--amber-dark);color:var(--amber-dark);background:rgba(232,119,34,0.08)}
-body.light .mission .highlight{color:var(--amber-dark)}
-body.light .problem-num{color:transparent;-webkit-text-stroke:1.5px var(--amber-dark)}
 
-/* html/body base styles — bg-theme + text-theme utilities applied inline on <body>.
-   Keeping just the scroll-behavior and the decorative grain background. */
-html { scroll-behavior: smooth; }
-body {
+<style>
+/* Residual mock CSS — only what targets DOM that still exists.
+   Everything section-specific is now inline Tailwind on the markup. */
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--color-bg);
+  /* Decorative SVG grain on html (not body) so the texture spans the
+     full viewport rather than being clipped by body's max-w container. */
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
 }
 
-/* Scroll reveal */
-.reveal{opacity:0;transform:translateY(32px);transition:opacity 0.8s ease,transform 0.8s ease}
-.reveal.visible{opacity:1;transform:translateY(0)}
-.reveal-delay-1{transition-delay:0.1s}
-.reveal-delay-2{transition-delay:0.2s}
-.reveal-delay-3{transition-delay:0.3s}
+/* Hero background canvas wrapper */
+#heroCanvas { width: 100%; height: 100%; }
+#bgCanvasWrap { opacity: 0.6; }
+[data-theme="light"] #bgCanvasWrap { opacity: 0.55; }
+@media (max-width: 768px) { #bgCanvasWrap { opacity: 0.3; } }
 
-/* .section — migrated to theme-rizom */
-
-/* ============= NAV ============= */
-/* nav — migrated to Tailwind utilities in <body> */
-
-/* Side nav indicator */
-/* side-nav — migrated: container utilities inline, dot styling via .side-nav-dot in theme-rizom */
-
-/* hero — migrated: .hero container + .scroll-cue + .btn-primary/.btn-secondary + @keyframes all live in theme-rizom. #heroCanvas width/height set inline on the element. */
-#heroCanvas{width:100%;height:100%}
-
-/* ============= PROBLEM ============= */
-/* problem — migrated to Tailwind utilities in <body> */
-
-/* ============= ANSWER ============= */
-/* answer — migrated. .badge-amber / .divider already in theme-rizom. */
-
-/* ============= PRODUCT CARDS ============= */
-/* product cards (rover / relay / ranger) — migrated to inline Tailwind;
-   will become <ProductCard variant="rover|relay|ranger"> component */
-
-/* ============= OWNERSHIP ============= */
-/* ownership — migrated to inline Tailwind */
-
-/* ============= QUICK START ============= */
-/* quickstart — migrated to inline Tailwind */
-
-/* ============= MISSION ============= */
-/* mission — migrated to inline Tailwind */
-
-/* ============= ECOSYSTEM ============= */
-/* ecosystem — migrated to inline Tailwind */
-
-/* ============= FOOTER ============= */
-/* footer — migrated to inline Tailwind */
-
-/* Tablet — keep side-by-side but tighten */
-@media(max-width:1100px){
-  .section{padding-left:40px;padding-right:40px}
-  nav{padding:16px 40px}
-  .product-inner{gap:32px;padding:36px}
-  .product-illust{width:320px;height:240px}
-  .ownership-grid,.quickstart-grid{gap:40px}
-  .quickstart-left{width:280px}
-  footer{padding:24px 40px}
-}
-
-/* ===== MOBILE ===== */
-@media(max-width:768px){
-  /* Base rhythm: 24px horizontal padding, 64px between sections */
-  .section{padding-left:24px;padding-right:24px}
-
-  /* Nav */
-  nav{padding:16px 24px}
-  nav .nav-links a:not(.nav-cta){display:none}
-  nav .nav-links{gap:12px}
-  nav .nav-cta{padding:8px 16px;font-size:13px}
-
-  /* hero mobile overrides — migrated to responsive Tailwind utilities on the section itself */
-  #bgCanvasWrap{opacity:0.3}
-
-  /* problem mobile — migrated to responsive Tailwind utilities */
-
-  /* answer mobile — migrated to responsive Tailwind utilities */
-
-  /* product-card mobile — migrated to responsive Tailwind utilities inline */
-
-  /* ownership mobile — migrated to responsive Tailwind */
-
-  /* quickstart mobile — migrated to responsive Tailwind */
-
-  /* mission mobile — migrated to responsive Tailwind */
-
-  /* ecosystem mobile — migrated to responsive Tailwind */
-
-  /* footer mobile — migrated to responsive Tailwind */
-}
+/* .reveal scroll-reveal CSS — migrated to theme-rizom. The
+   IntersectionObserver wiring lives in the bottom <script> block. */
 </style>
 </head>
-<body class="max-w-[1440px] mx-auto bg-theme text-theme font-body leading-[1.6] overflow-x-hidden">
+<body class="max-w-[1440px] mx-auto text-theme font-body leading-[1.6] overflow-x-hidden">
 
 <!-- FULL-PAGE CANVAS BACKGROUND -->
 <div id="bgCanvasWrap" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:0;pointer-events:none">
@@ -738,14 +728,14 @@ body {
 
 <!-- NAV -->
 <nav class="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 lg:px-20 lg:py-5 bg-nav-fade backdrop-blur-[8px]">
-  <div class="flex items-center font-nav text-[20px]">
+  <div class="flex items-center font-nav text-heading-md">
     <span class="font-bold text-theme">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">ai</span>
   </div>
   <div class="flex items-center gap-3 md:gap-8">
-    <a href="#features" class="hidden md:inline-block font-body text-[15px] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Platform</a>
-    <a href="#quickstart" class="hidden md:inline-block font-body text-[15px] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Docs</a>
-    <a href="#ecosystem" class="hidden md:inline-block font-body text-[15px] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Network</a>
-    <a href="#quickstart" class="font-body text-[13px] md:text-[15px] font-semibold text-theme border border-theme rounded-lg px-4 py-2 md:px-6 md:py-2.5 transition-colors hover:border-accent hover:text-accent">Get Started</a>
+    <a href="#features" class="hidden md:inline-block font-body text-body-sm text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Platform</a>
+    <a href="#quickstart" class="hidden md:inline-block font-body text-body-sm text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Docs</a>
+    <a href="#ecosystem" class="hidden md:inline-block font-body text-body-sm text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full">Network</a>
+    <a href="#quickstart" class="font-body text-label-md md:text-body-sm font-semibold text-theme border border-theme rounded-lg px-4 py-2 md:px-6 md:py-2.5 transition-colors hover:border-accent hover:text-accent">Get Started</a>
   </div>
 </nav>
 
@@ -762,10 +752,10 @@ body {
 <!-- HERO -->
 <section id="hero" class="px-6 md:px-10 lg:px-20 relative z-[1] flex items-center overflow-hidden min-h-[100dvh]">
   <div class="relative z-[2] w-full md:w-[55%] pt-0 md:pt-20">
-    <h1 class="font-display font-normal text-[38px] md:text-[clamp(40px,5.5vw,72px)] leading-[1.05] md:leading-[1.1] tracking-[-1.5px] md:tracking-[-1px] mb-6 opacity-0 animate-hero-rise [animation-delay:0.2s]">
+    <h1 class="font-display font-normal text-[38px] tracking-[-1.5px] leading-[1.05] md:text-display-lg mb-6 opacity-0 animate-hero-rise [animation-delay:0.2s]">
       Build the agent that represents you
     </h1>
-    <p class="font-body text-[16px] md:text-[18px] leading-[1.8] md:leading-[1.7] text-theme-muted max-w-full md:max-w-[480px] mb-9 md:mb-10 opacity-0 animate-hero-rise [animation-delay:0.4s]">
+    <p class="font-body text-body-md md:text-body-lg text-theme-muted max-w-full md:max-w-[480px] mb-9 md:mb-10 opacity-0 animate-hero-rise [animation-delay:0.4s]">
       Your knowledge becomes an AI agent. Your agent joins a network. The network finds the right expert for every problem — matched by what people actually know.
     </p>
     <div class="flex flex-col md:flex-row gap-3 md:gap-4 md:flex-wrap opacity-0 animate-hero-rise [animation-delay:0.6s]">
@@ -780,22 +770,22 @@ body {
 </section>
 
 <!-- PROBLEM -->
-<section id="features" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-[88px] md:py-[120px]">
+<section id="features" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section">
   <div class="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-[60px]">
     <div class="reveal reveal-delay-1">
-      <div class="block font-display font-normal text-[64px] md:text-[clamp(72px,8vw,120px)] leading-[0.9] tracking-[-2px] mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">01</div>
-      <div class="font-nav font-bold text-[18px] md:text-[20px] mb-2.5 md:mb-3">Your best thinking never ships</div>
-      <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">You have notes, drafts, and ideas scattered everywhere. Turning them into something the world can see takes so long that most of it dies in your head.</p>
+      <div class="block font-display font-normal text-[64px] md:text-display-2xl mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">01</div>
+      <div class="font-nav font-bold text-heading-sm md:text-heading-md mb-2.5 md:mb-3">Your best thinking never ships</div>
+      <p class="text-body-xs md:text-body-sm text-theme-muted">You have notes, drafts, and ideas scattered everywhere. Turning them into something the world can see takes so long that most of it dies in your head.</p>
     </div>
     <div class="reveal reveal-delay-2">
-      <div class="block font-display font-normal text-[64px] md:text-[clamp(72px,8vw,120px)] leading-[0.9] tracking-[-2px] mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">02</div>
-      <div class="font-nav font-bold text-[18px] md:text-[20px] mb-2.5 md:mb-3">Your team forgets what it knows</div>
-      <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">People leave, context disappears, and hard-won expertise gets buried in chat threads no one will ever search. Your team's collective intelligence leaks out faster than it builds up.</p>
+      <div class="block font-display font-normal text-[64px] md:text-display-2xl mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">02</div>
+      <div class="font-nav font-bold text-heading-sm md:text-heading-md mb-2.5 md:mb-3">Your team forgets what it knows</div>
+      <p class="text-body-xs md:text-body-sm text-theme-muted">People leave, context disappears, and hard-won expertise gets buried in chat threads no one will ever search. Your team's collective intelligence leaks out faster than it builds up.</p>
     </div>
     <div class="reveal reveal-delay-3">
-      <div class="block font-display font-normal text-[64px] md:text-[clamp(72px,8vw,120px)] leading-[0.9] tracking-[-2px] mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">03</div>
-      <div class="font-nav font-bold text-[18px] md:text-[20px] mb-2.5 md:mb-3">The right people never find each other</div>
-      <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">You match collaborators by job titles and résumés, not by what they actually know. The perfect expert for your problem might be one connection away — but you'd never know.</p>
+      <div class="block font-display font-normal text-[64px] md:text-display-2xl mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">03</div>
+      <div class="font-nav font-bold text-heading-sm md:text-heading-md mb-2.5 md:mb-3">The right people never find each other</div>
+      <p class="text-body-xs md:text-body-sm text-theme-muted">You match collaborators by job titles and résumés, not by what they actually know. The perfect expert for your problem might be one connection away — but you'd never know.</p>
     </div>
   </div>
   <svg class="hidden md:block absolute bottom-5 left-20 right-20 h-[60px] pointer-events-none" viewBox="0 0 1280 60" preserveAspectRatio="none">
@@ -808,13 +798,13 @@ body {
 </section>
 
 <!-- ANSWER -->
-<section id="answer" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal text-center py-[88px] md:py-[120px]">
-  <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-[13px] font-semibold tracking-[0.09375em] uppercase mb-7">The Answer</span>
-  <h2 class="font-display text-[clamp(32px,4vw,52px)] tracking-[-1px] leading-[1.1] max-w-[900px] mx-auto mb-6 mt-7">A network of AI agents, each built from real knowledge</h2>
-  <p class="text-[16px] md:text-[19px] leading-[1.8] md:leading-[1.7] text-theme-muted max-w-[640px] mx-auto">Every professional gets an agent that knows what they know. Every team gets shared intelligence. The network connects them — matching expertise to opportunity, automatically.</p>
+<section id="answer" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal text-center py-section">
+  <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-label-md font-semibold tracking-[0.09375em] uppercase mb-7">The Answer</span>
+  <h2 class="font-display text-display-md max-w-[900px] mx-auto mb-6 mt-7">A network of AI agents, each built from real knowledge</h2>
+  <p class="text-body-md md:text-body-xl text-theme-muted max-w-[640px] mx-auto">Every professional gets an agent that knows what they know. Every team gets shared intelligence. The network connects them — matching expertise to opportunity, automatically.</p>
   <div class="w-[60px] h-px bg-[linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent)] mx-auto my-10 md:my-12"></div>
-  <div class="font-display text-[clamp(24px,3vw,36px)] tracking-[-0.5px] leading-[1.1] mb-3.5 md:mb-4">It starts with you. It scales to everyone.</div>
-  <p class="text-[14px] md:text-[16px] leading-[1.7] text-theme-light max-w-[600px] mx-auto">Three layers of intelligence — personal, team, network. Each one makes the others smarter.</p>
+  <div class="font-display text-display-sm mb-3.5 md:mb-4">It starts with you. It scales to everyone.</div>
+  <p class="text-body-xs md:text-body-md text-theme-light max-w-[600px] mx-auto">Three layers of intelligence — personal, team, network. Each one makes the others smarter.</p>
 </section>
 
 <!-- ROVER -->
@@ -822,16 +812,16 @@ body {
   <div class="flex flex-col-reverse md:flex-row items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(28,16,32,0.85)_0%,rgba(20,14,28,0.85)_100%)] border-accent/15 hover:border-accent/50 hover:shadow-[0_20px_60px_-20px_rgba(232,119,34,0.25)] light:bg-[linear-gradient(135deg,#F5EDE4_0%,#F0EBE2_100%)] light:border-accent/20">
     <div class="flex-1 flex flex-col gap-4">
       <div class="flex items-center gap-3">
-        <span class="font-nav font-bold text-[16px] md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-accent">Rover</span>
-        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-[10px] font-bold tracking-[1.5px] uppercase border border-accent/30 text-accent bg-accent/10">Early Access</span>
+        <span class="font-nav font-bold text-body-md md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-accent">Rover</span>
+        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-label-xs font-bold tracking-[1.5px] uppercase border border-accent/30 text-accent bg-accent/10">Early Access</span>
       </div>
-      <h3 class="font-display text-[24px] md:text-[clamp(26px,3vw,36px)] tracking-[-0.5px] leading-[1.2]">Your knowledge, your agent, your voice</h3>
-      <p class="text-[14px] md:text-[16px] leading-[1.8] text-theme-muted">Rover is where it starts. Capture what you know — notes, links, ideas — and your brain turns it into blog posts, presentations, and social content. In your voice. It's the agent that represents you to the world.</p>
+      <h3 class="font-display text-[24px] tracking-[-0.5px] leading-[1.2] md:text-display-sm">Your knowledge, your agent, your voice</h3>
+      <p class="text-body-xs md:text-body-md text-theme-muted">Rover is where it starts. Capture what you know — notes, links, ideas — and your brain turns it into blog posts, presentations, and social content. In your voice. It's the agent that represents you to the world.</p>
       <div class="flex flex-wrap gap-x-[18px] md:gap-x-6 gap-y-2.5 pt-2">
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-accent/60 light:text-accent-dark">AI Blogging</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-accent/60 light:text-accent-dark">Social Publishing</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-accent/60 light:text-accent-dark">Slide Decks</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-accent/60 light:text-accent-dark">Chat Interface</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-accent/60 light:text-accent-dark">AI Blogging</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-accent/60 light:text-accent-dark">Social Publishing</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-accent/60 light:text-accent-dark">Slide Decks</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-accent/60 light:text-accent-dark">Chat Interface</span>
       </div>
     </div>
     <div class="shrink-0 w-full md:w-[511px] h-[180px] md:h-[320px] rounded-xl md:rounded-2xl overflow-hidden relative">
@@ -845,15 +835,15 @@ body {
   <div class="flex flex-col-reverse md:flex-row-reverse items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(22,16,42,0.85)_0%,rgba(18,14,30,0.85)_100%)] border-[rgba(140,130,200,0.2)] hover:border-[rgba(140,130,200,0.5)] hover:shadow-[0_20px_60px_-20px_rgba(107,47,160,0.25)] light:bg-[linear-gradient(135deg,#EEEAF4_0%,#ECE8F0_100%)] light:border-[rgba(107,47,160,0.2)]">
     <div class="flex-1 flex flex-col gap-4">
       <div class="flex items-center gap-3">
-        <span class="font-nav font-bold text-[16px] md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-secondary">Relay</span>
-        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-[10px] font-bold tracking-[1.5px] uppercase border border-secondary/30 text-secondary bg-secondary/10">Coming Soon</span>
+        <span class="font-nav font-bold text-body-md md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-secondary">Relay</span>
+        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-label-xs font-bold tracking-[1.5px] uppercase border border-secondary/30 text-secondary bg-secondary/10">Coming Soon</span>
       </div>
-      <h3 class="font-display text-[24px] md:text-[clamp(26px,3vw,36px)] tracking-[-0.5px] leading-[1.2]">Shared intelligence that outlasts any individual</h3>
-      <p class="text-[14px] md:text-[16px] leading-[1.8] text-theme-muted">When your brain joins a team, Relay connects them. It maps who knows what, tracks expertise as it evolves, and ensures that when someone leaves, their knowledge stays. The team's collective intelligence grows with every contribution.</p>
+      <h3 class="font-display text-[24px] tracking-[-0.5px] leading-[1.2] md:text-display-sm">Shared intelligence that outlasts any individual</h3>
+      <p class="text-body-xs md:text-body-md text-theme-muted">When your brain joins a team, Relay connects them. It maps who knows what, tracks expertise as it evolves, and ensures that when someone leaves, their knowledge stays. The team's collective intelligence grows with every contribution.</p>
       <div class="flex flex-wrap gap-x-[18px] md:gap-x-6 gap-y-2.5 pt-2">
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Knowledge Maps</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Predictive Intel</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Meeting Memory</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Knowledge Maps</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Predictive Intel</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Meeting Memory</span>
       </div>
     </div>
     <div class="shrink-0 w-full md:w-[511px] h-[180px] md:h-[320px] rounded-xl md:rounded-2xl overflow-hidden relative">
@@ -867,16 +857,16 @@ body {
   <div class="flex flex-col-reverse md:flex-row items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1 bg-[linear-gradient(135deg,rgba(22,16,42,0.85)_0%,rgba(24,15,30,0.85)_50%,rgba(20,16,42,0.85)_100%)] border-[rgba(120,100,220,0.15)] hover:border-[rgba(140,130,200,0.4)] hover:shadow-[0_20px_60px_-20px_rgba(107,47,160,0.2)] light:bg-[linear-gradient(135deg,#EDEAF0_0%,#F0ECE5_100%)] light:border-[rgba(26,22,37,0.12)]">
     <div class="flex-1 flex flex-col gap-4">
       <div class="flex items-center gap-3">
-        <span class="font-nav font-bold text-[16px] md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-secondary">Ranger</span>
-        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-[10px] font-bold tracking-[1.5px] uppercase border border-secondary/30 text-secondary bg-secondary/10">Coming Soon</span>
+        <span class="font-nav font-bold text-body-md md:text-[24px] tracking-[2px] md:tracking-[3px] uppercase text-secondary">Ranger</span>
+        <span class="inline-flex px-2.5 py-1 rounded-xl font-label text-label-xs font-bold tracking-[1.5px] uppercase border border-secondary/30 text-secondary bg-secondary/10">Coming Soon</span>
       </div>
-      <h3 class="font-display text-[24px] md:text-[clamp(26px,3vw,36px)] tracking-[-0.5px] leading-[1.2]">The right expert, found by what they actually know</h3>
-      <p class="text-[14px] md:text-[16px] leading-[1.8] text-theme-muted">Ranger reads across every brain in the network. When work comes in, it scores every brain for fit — not by job titles, but by what each brain has been thinking about. It assembles teams from complementary knowledge. The right people, matched by substance.</p>
+      <h3 class="font-display text-[24px] tracking-[-0.5px] leading-[1.2] md:text-display-sm">The right expert, found by what they actually know</h3>
+      <p class="text-body-xs md:text-body-md text-theme-muted">Ranger reads across every brain in the network. When work comes in, it scores every brain for fit — not by job titles, but by what each brain has been thinking about. It assembles teams from complementary knowledge. The right people, matched by substance.</p>
       <div class="flex flex-wrap gap-x-[18px] md:gap-x-6 gap-y-2.5 pt-2">
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Match Scoring</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Team Assembly</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Gap Detection</span>
-        <span class="font-label text-[12px] md:text-[13px] font-semibold text-secondary/55 light:text-secondary">Cross-Brain Search</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Match Scoring</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Team Assembly</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Gap Detection</span>
+        <span class="font-label text-label-sm md:text-label-md font-semibold text-secondary/55 light:text-secondary">Cross-Brain Search</span>
       </div>
     </div>
     <div class="shrink-0 w-full md:w-[511px] h-[180px] md:h-[320px] rounded-xl md:rounded-2xl overflow-hidden relative">
@@ -886,32 +876,32 @@ body {
 </section>
 
 <!-- OWNERSHIP -->
-<section id="ownership" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-[88px] md:py-[120px]">
+<section id="ownership" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section">
   <div class="flex flex-col md:flex-row gap-9 md:gap-20 items-start">
     <div class="w-full md:w-[45%]">
-      <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-[13px] font-semibold tracking-[0.09375em] uppercase">Your Data, Your Rules</span>
-      <h2 class="font-display text-[28px] md:text-[clamp(32px,4vw,48px)] tracking-[-1px] leading-[1.1] mt-4 md:mt-6">Everything is a plain text file you can read with any editor</h2>
+      <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-label-md font-semibold tracking-[0.09375em] uppercase">Your Data, Your Rules</span>
+      <h2 class="font-display text-[28px] tracking-[-1px] leading-[1.1] md:text-display-md mt-4 md:mt-6">Everything is a plain text file you can read with any editor</h2>
     </div>
     <div class="w-full md:w-[55%] flex flex-col gap-8 md:pt-[60px]">
       <div class="reveal reveal-delay-1 flex gap-4 md:gap-5 items-start">
-        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-[18px] md:text-[20px] font-bold text-accent">M</div>
+        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-body-lg md:text-heading-md font-bold text-accent">M</div>
         <div>
-          <div class="font-nav text-[17px] md:text-[20px] font-bold mb-1.5">Markdown, not databases</div>
-          <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">Every entity — posts, notes, links, decks — lives as a markdown file with frontmatter. Version-controlled with git. Readable without the brain running.</p>
+          <div class="font-nav text-heading-sm md:text-heading-md font-bold mb-1.5">Markdown, not databases</div>
+          <p class="text-body-xs md:text-body-sm text-theme-muted">Every entity — posts, notes, links, decks — lives as a markdown file with frontmatter. Version-controlled with git. Readable without the brain running.</p>
         </div>
       </div>
       <div class="reveal reveal-delay-2 flex gap-4 md:gap-5 items-start">
-        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-[18px] md:text-[20px] font-bold text-accent">S</div>
+        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-body-lg md:text-heading-md font-bold text-accent">S</div>
         <div>
-          <div class="font-nav text-[17px] md:text-[20px] font-bold mb-1.5">Self-hosted, open source</div>
-          <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">Deploy to your own server with one command. Or run locally. Apache-2.0 licensed. No vendor lock-in, no subscriptions, no fine print.</p>
+          <div class="font-nav text-heading-sm md:text-heading-md font-bold mb-1.5">Self-hosted, open source</div>
+          <p class="text-body-xs md:text-body-sm text-theme-muted">Deploy to your own server with one command. Or run locally. Apache-2.0 licensed. No vendor lock-in, no subscriptions, no fine print.</p>
         </div>
       </div>
       <div class="reveal reveal-delay-3 flex gap-4 md:gap-5 items-start">
-        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-[18px] md:text-[20px] font-bold text-accent">A</div>
+        <div class="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-body-lg md:text-heading-md font-bold text-accent">A</div>
         <div>
-          <div class="font-nav text-[17px] md:text-[20px] font-bold mb-1.5">AI model agnostic</div>
-          <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted">Not tied to any single provider. Swap models, combine them, or bring your own. Works with the best AI available today and adapts tomorrow.</p>
+          <div class="font-nav text-heading-sm md:text-heading-md font-bold mb-1.5">AI model agnostic</div>
+          <p class="text-body-xs md:text-body-sm text-theme-muted">Not tied to any single provider. Swap models, combine them, or bring your own. Works with the best AI available today and adapts tomorrow.</p>
         </div>
       </div>
     </div>
@@ -919,64 +909,64 @@ body {
 </section>
 
 <!-- QUICK START -->
-<section id="quickstart" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-[88px] md:py-[120px]">
+<section id="quickstart" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section">
   <div class="flex flex-col md:flex-row gap-8 md:gap-20 items-start">
     <div class="w-full md:w-[420px] shrink-0">
-      <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-[13px] font-semibold tracking-[0.09375em] uppercase">Quick Start</span>
+      <span class="inline-flex items-center px-5 py-2 border border-accent text-accent rounded-[20px] font-label text-label-md font-semibold tracking-[0.09375em] uppercase">Quick Start</span>
       <h2 class="font-display text-[28px] md:text-[36px] tracking-[-0.5px] leading-[1.2] mt-4">Running in under a minute</h2>
-      <p class="text-[14px] md:text-[15px] leading-[1.7] text-theme-muted mt-4">One package. Three commands. Your brain boots with a website, MCP server, CMS, and chat interface — all in a single process.</p>
+      <p class="text-body-xs md:text-body-sm text-theme-muted mt-4">One package. Three commands. Your brain boots with a website, MCP server, CMS, and chat interface — all in a single process.</p>
     </div>
-    <div class="flex-1 w-full bg-[rgba(18,16,31,0.85)] light:bg-[#1A1625] border border-white/[0.06] light:border-black/10 rounded-[10px] md:rounded-xl p-5 md:p-8 font-mono text-[12px] md:text-[14px] overflow-x-auto">
-      <div class="text-theme-light text-[12px] mb-1">Install</div>
+    <div class="flex-1 w-full bg-[rgba(18,16,31,0.85)] light:bg-[#1A1625] border border-white/[0.06] light:border-black/10 rounded-[10px] md:rounded-xl p-5 md:p-8 font-mono text-label-sm md:text-body-xs overflow-x-auto">
+      <div class="text-theme-light text-label-sm mb-1">Install</div>
       <div class="text-accent mb-4 break-all md:break-normal">$ bun add -g @rizom/brain</div>
-      <div class="text-theme-light text-[12px] mb-1">Create</div>
+      <div class="text-theme-light text-label-sm mb-1">Create</div>
       <div class="text-accent mb-4 break-all md:break-normal">$ brain init mybrain --model rover</div>
-      <div class="text-theme-light text-[12px] mb-1">Run</div>
+      <div class="text-theme-light text-label-sm mb-1">Run</div>
       <div class="text-accent mb-4 break-all md:break-normal">$ cd mybrain && brain start</div>
       <div class="h-px bg-white/[0.06] my-4"></div>
-      <div class="text-[#4ade80] text-[12px] md:text-[14px]">✓ Web server → localhost:3000</div>
-      <div class="text-[#4ade80] text-[12px] md:text-[14px]">✓ MCP server → localhost:3001</div>
-      <div class="text-[#4ade80] text-[12px] md:text-[14px]">✓ A2A endpoint → localhost:3002</div>
-      <div class="text-[#4ade80] text-[12px] md:text-[14px]">✓ CMS dashboard → localhost:3000/admin</div>
+      <div class="text-[#4ade80] text-label-sm md:text-body-xs">✓ Web server → localhost:3000</div>
+      <div class="text-[#4ade80] text-label-sm md:text-body-xs">✓ MCP server → localhost:3001</div>
+      <div class="text-[#4ade80] text-label-sm md:text-body-xs">✓ A2A endpoint → localhost:3002</div>
+      <div class="text-[#4ade80] text-label-sm md:text-body-xs">✓ CMS dashboard → localhost:3000/admin</div>
     </div>
   </div>
 </section>
 
 <!-- MISSION -->
-<section id="mission" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-[88px] md:py-[120px] text-center">
+<section id="mission" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal py-section text-center">
   <div class="w-[60px] h-px bg-[linear-gradient(90deg,transparent,rgba(232,119,34,0.3),transparent)] mx-auto mb-10 md:mb-12"></div>
-  <p class="font-body text-[15px] md:text-[18px] leading-[1.8] md:leading-[1.7] text-theme-light max-w-[520px] mx-auto mb-8 md:mb-10">AI is not taking your job. It's exposing how much of your talent you've been wasting. When machines handle the busywork, what remains is the deeply human.</p>
-  <h2 class="font-display font-bold text-[clamp(52px,8vw,112px)] tracking-[-3px] leading-[0.95]">The future of<br><span class="inline-block relative text-accent before:content-[''] before:absolute before:left-[-8%] before:right-[-8%] before:top-1/2 before:h-px before:bg-[linear-gradient(90deg,transparent,rgba(232,119,34,0.4)_20%,rgba(232,119,34,0.4)_80%,transparent)] before:opacity-50">work is play.</span></h2>
-  <p class="font-body text-[15px] md:text-[17px] leading-[1.8] md:leading-[1.7] text-theme-light max-w-[500px] mx-auto mt-8">Brains are the foundation. But the vision is bigger — infrastructure for a world where talent flows to opportunity, professionals own what they create, and distributed teams outperform traditional organizations.</p>
+  <p class="font-body text-body-sm md:text-body-lg text-theme-light max-w-[520px] mx-auto mb-8 md:mb-10">AI is not taking your job. It's exposing how much of your talent you've been wasting. When machines handle the busywork, what remains is the deeply human.</p>
+  <h2 class="font-display font-bold text-display-xl">The future of<br><span class="inline-block relative text-accent before:content-[''] before:absolute before:left-[-8%] before:right-[-8%] before:top-1/2 before:h-px before:bg-[linear-gradient(90deg,transparent,rgba(232,119,34,0.4)_20%,rgba(232,119,34,0.4)_80%,transparent)] before:opacity-50">work is play.</span></h2>
+  <p class="font-body text-body-sm md:text-body-lg text-theme-light max-w-[500px] mx-auto mt-8">Brains are the foundation. But the vision is bigger — infrastructure for a world where talent flows to opportunity, professionals own what they create, and distributed teams outperform traditional organizations.</p>
   <div class="flex flex-col md:flex-row gap-3 md:gap-5 md:justify-center items-stretch md:items-center mt-9 md:mt-16">
-    <a href="#quickstart" class="inline-flex items-center justify-center gap-2 font-body text-[16px] md:text-[18px] font-semibold text-white bg-accent hover:bg-accent-dark rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:scale-[1.02] shadow-[0_20px_60px_-15px_rgba(232,119,34,0.4)] hover:shadow-[0_0_0_8px_rgba(232,119,34,0.15),0_30px_80px_-15px_rgba(232,119,34,0.5)]">Start Building →</a>
-    <a href="https://github.com" class="inline-flex items-center justify-center gap-2 font-body text-[16px] md:text-[18px] font-medium text-theme bg-white/[0.04] border border-white/15 hover:border-white/40 hover:bg-white/[0.08] rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all">View on GitHub</a>
+    <a href="#quickstart" class="inline-flex items-center justify-center gap-2 font-body text-body-md md:text-body-lg font-semibold text-white bg-accent hover:bg-accent-dark rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:scale-[1.02] shadow-[0_20px_60px_-15px_rgba(232,119,34,0.4)] hover:shadow-[0_0_0_8px_rgba(232,119,34,0.15),0_30px_80px_-15px_rgba(232,119,34,0.5)]">Start Building →</a>
+    <a href="https://github.com" class="inline-flex items-center justify-center gap-2 font-body text-body-md md:text-body-lg font-medium text-theme bg-white/[0.04] border border-white/15 hover:border-white/40 hover:bg-white/[0.08] rounded-[10px] px-6 md:px-12 py-4 md:py-[22px] cursor-pointer transition-all">View on GitHub</a>
   </div>
 </section>
 
 <!-- ECOSYSTEM -->
-<section id="ecosystem" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal pt-[88px] md:pt-[120px] pb-16 md:pb-24">
+<section id="ecosystem" class="px-6 md:px-10 lg:px-20 relative z-[1] reveal pt-section pb-16 md:pb-24">
   <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
     <!-- ai card (highlighted, amber) -->
     <div class="reveal reveal-delay-1 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-accent/25 bg-[linear-gradient(135deg,rgba(232,119,34,0.12)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(232,119,34,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]">
-      <div class="flex items-center gap-1 font-nav text-[16px] mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">ai</span></div>
-      <div class="font-nav text-[18px] md:text-[22px] font-bold">The platform</div>
-      <p class="text-[13px] md:text-[14px] leading-[1.7] text-theme-muted">Open-source AI agents built from your own knowledge. The tools that make everything else possible.</p>
-      <a href="#" class="font-body text-[14px] font-medium mt-2 text-accent transition-opacity hover:opacity-70">You are here</a>
+      <div class="flex items-center gap-1 font-nav text-body-md mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">ai</span></div>
+      <div class="font-nav md:text-heading-lg text-heading-sm font-bold">The platform</div>
+      <p class="text-body-xs text-theme-muted">Open-source AI agents built from your own knowledge. The tools that make everything else possible.</p>
+      <a href="#" class="font-body text-body-xs font-medium mt-2 text-accent transition-opacity hover:opacity-70">You are here</a>
     </div>
     <!-- foundation card (purple) -->
     <div class="reveal reveal-delay-2 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[linear-gradient(135deg,rgba(107,47,160,0.06)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(140,130,200,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]">
-      <div class="flex items-center gap-1 font-nav text-[16px] mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">foundation</span></div>
-      <div class="font-nav text-[18px] md:text-[22px] font-bold">The vision</div>
-      <p class="text-[13px] md:text-[14px] leading-[1.7] text-theme-muted">Essays, principles, and community. Why we believe the future of knowledge work is distributed, owned, and play.</p>
-      <a href="#" class="font-body text-[14px] font-medium mt-2 text-secondary transition-opacity hover:opacity-70">Read the manifesto →</a>
+      <div class="flex items-center gap-1 font-nav text-body-md mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">foundation</span></div>
+      <div class="font-nav md:text-heading-lg text-heading-sm font-bold">The vision</div>
+      <p class="text-body-xs text-theme-muted">Essays, principles, and community. Why we believe the future of knowledge work is distributed, owned, and play.</p>
+      <a href="#" class="font-body text-body-xs font-medium mt-2 text-secondary transition-opacity hover:opacity-70">Read the manifesto →</a>
     </div>
     <!-- work card (purple/amber blend) -->
     <div class="reveal reveal-delay-3 relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border border-white/[0.06] bg-[linear-gradient(135deg,rgba(107,47,160,0.06)_0%,rgba(232,119,34,0.03)_100%)] transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 hover:shadow-[0_16px_40px_-16px_rgba(180,120,180,0.2)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity before:bg-[linear-gradient(90deg,transparent,#FFA366_30%,var(--color-secondary)_70%,transparent)]">
-      <div class="flex items-center gap-1 font-nav text-[16px] mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">work</span></div>
-      <div class="font-nav text-[18px] md:text-[22px] font-bold">The network</div>
-      <p class="text-[13px] md:text-[14px] leading-[1.7] text-theme-muted">Distributed consultancy powered by brains. Specialized expertise that mobilizes in hours, not months. Teams that assemble themselves.</p>
-      <a href="#" class="font-body text-[14px] font-medium mt-2 text-secondary transition-opacity hover:opacity-70">Work with us →</a>
+      <div class="flex items-center gap-1 font-nav text-body-md mb-2"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">work</span></div>
+      <div class="font-nav md:text-heading-lg text-heading-sm font-bold">The network</div>
+      <p class="text-body-xs text-theme-muted">Distributed consultancy powered by brains. Specialized expertise that mobilizes in hours, not months. Teams that assemble themselves.</p>
+      <a href="#" class="font-body text-body-xs font-medium mt-2 text-secondary transition-opacity hover:opacity-70">Work with us →</a>
     </div>
   </div>
 </section>
@@ -984,15 +974,15 @@ body {
 <!-- FOOTER -->
 <footer class="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 px-6 md:px-10 lg:px-20 py-8 md:py-6 border-t border-theme-light text-center md:text-left">
   <div class="flex flex-col md:flex-row items-center gap-1.5 md:gap-3">
-    <span class="font-nav text-[15px]"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">ai</span></span>
-    <span class="text-[13px] text-theme-light">© 2026 · Apache-2.0</span>
+    <span class="font-nav text-body-sm"><span class="font-bold">rizom</span><span class="font-bold text-accent">.</span><span class="text-theme-muted">ai</span></span>
+    <span class="text-label-md text-theme-light">© 2026 · Apache-2.0</span>
   </div>
   <div class="flex flex-wrap justify-center gap-4 md:gap-6">
-    <a href="#" class="text-[13px] text-theme-light hover:text-theme transition-colors">GitHub</a>
-    <a href="#" class="text-[13px] text-theme-light hover:text-theme transition-colors">Documentation</a>
-    <a href="#" class="text-[13px] text-theme-light hover:text-theme transition-colors">Discord</a>
-    <a href="#" class="text-[13px] text-theme-light hover:text-theme transition-colors">LinkedIn</a>
-    <button id="themeToggle" aria-label="Toggle light mode" class="bg-transparent border border-theme-light rounded-md px-2.5 py-1.5 cursor-pointer text-theme-light text-[13px] font-body transition-colors hover:text-theme hover:border-theme">☀ Light</button>
+    <a href="#" class="text-label-md text-theme-light hover:text-theme transition-colors">GitHub</a>
+    <a href="#" class="text-label-md text-theme-light hover:text-theme transition-colors">Documentation</a>
+    <a href="#" class="text-label-md text-theme-light hover:text-theme transition-colors">Discord</a>
+    <a href="#" class="text-label-md text-theme-light hover:text-theme transition-colors">LinkedIn</a>
+    <button id="themeToggle" aria-label="Toggle light mode" class="bg-transparent border border-theme-light rounded-md px-2.5 py-1.5 cursor-pointer text-theme-light text-label-md font-body transition-colors hover:text-theme hover:border-theme">☀ Light</button>
   </div>
 </footer>
 
@@ -1005,8 +995,12 @@ body {
   // Tailwind `light:` custom variant). Once all CSS is migrated off body.light,
   // the class can go.
   if (isLight) document.body.classList.add('light');
-  document.body.setAttribute('data-theme', isLight ? 'light' : 'dark');
-  document.documentElement.style.background = isLight ? '#F2EEE8' : '#0D0A1A';
+  // data-theme on <html> (matches plugins/site-builder convention) so
+  // CSS variables defined under [data-theme="light"] cascade into html
+  // itself (html bg uses --color-bg) as well as all descendants.
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
+  // (no html.style.background here — the shorthand resets background-image
+  // which kills the SVG grain. Theme bg now flows via --color-bg from CSS.)
 })();
 
 const observer = new IntersectionObserver((entries) => {
@@ -1219,8 +1213,9 @@ function redrawAllCanvases() {
 redrawAllCanvases();
 
 const toggle = document.getElementById('themeToggle');
-function applyThemeColors(isLight) {
-  document.documentElement.style.background = isLight ? '#F2EEE8' : '#0D0A1A';
+function applyThemeColors(_isLight) {
+  // no-op — html background is driven by CSS via --color-bg now,
+  // which switches based on the [data-theme] attribute on <body>.
 }
 // Theme class was applied at top of script; just update toggle label
 if (document.body.classList.contains('light')) {
@@ -1230,7 +1225,7 @@ if (document.body.classList.contains('light')) {
 toggle.addEventListener('click', () => {
   document.body.classList.toggle('light');
   const isLight = document.body.classList.contains('light');
-  document.body.setAttribute('data-theme', isLight ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-theme', isLight ? 'light' : 'dark');
   toggle.textContent = isLight ? '☾ Dark' : '☀ Light';
   localStorage.setItem('theme', isLight ? 'light' : 'dark');
   applyThemeColors(isLight);

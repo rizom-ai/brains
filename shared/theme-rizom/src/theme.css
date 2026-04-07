@@ -123,16 +123,37 @@
     --font-heading: var(--font-display);
     --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
-    /* Typography scale */
-    --text-h1: 5.5rem;
-    --text-h1-mobile: 3rem;
-    --text-h2: 3.5rem;
-    --text-h2-mobile: 2.25rem;
-    --text-h3: 2.25rem;
-    --text-h3-mobile: 1.75rem;
-    --text-h4: 1.5rem;
-    --text-body: 1.125rem;
-    --text-body-mobile: 1rem;
+    /* Typography scale — each token bundles font-size + line-height +
+       letter-spacing via Tailwind v4 modifiers (see theme-base @theme inline).
+       Sizes derived from the rizom-ai design mock; collapsed where similar. */
+
+    /* Display — large fluid headlines (font-display, Chakra Petch) */
+    --text-display-2xl: clamp(72px, 8vw, 120px);  /* problem numbers   */
+    --text-display-xl:  clamp(52px, 8vw, 112px);  /* mission headline  */
+    --text-display-lg:  clamp(40px, 5.5vw, 72px); /* hero h1           */
+    --text-display-md:  clamp(32px, 4vw, 52px);   /* answer / ownership h2 */
+    --text-display-sm:  clamp(26px, 3vw, 36px);   /* product h3 / scales / quickstart h2 */
+
+    /* Heading — subsection labels (font-nav, Space Grotesk) */
+    --text-heading-lg: 22px;  /* eco-title              */
+    --text-heading-md: 20px;  /* feature/problem title  */
+    --text-heading-sm: 17px;  /* mobile feature/problem */
+
+    /* Body — paragraphs (font-body, Barlow) */
+    --text-body-xl: 19px;  /* answer-sub               */
+    --text-body-lg: 18px;  /* hero subtitle / mission  */
+    --text-body-md: 16px;  /* product-desc / scales-sub */
+    --text-body-sm: 15px;  /* feature/problem/quickstart desc */
+    --text-body-xs: 14px;  /* eco-desc / terminal / mobile body */
+
+    /* Label — small uppercase text (font-label, Plus Jakarta Sans) */
+    --text-label-md: 13px;  /* badges / footer links / product tags */
+    --text-label-sm: 12px;  /* terminal labels / scroll cue         */
+    --text-label-xs: 10px;  /* product badges / side nav labels     */
+
+    /* Section vertical rhythm — fluid via clamp so a single
+       `py-section` utility works on every viewport. */
+    --spacing-section: clamp(88px, 12vw, 120px);
   }
 
   /* ============================================
@@ -295,6 +316,22 @@
      components in ui-library (Button, Badge, Divider, Section). The
      themed HTML mock uses inline Tailwind for these patterns so the
      component API surfaces naturally during the Preact port. */
+
+  /* Scroll reveal — elements with .reveal start invisible + offset and
+     fade up when an IntersectionObserver toggles .visible on them. The
+     observer wiring lives in the site-rizom plugin's boot script. */
+  .reveal {
+    opacity: 0;
+    transform: translateY(32px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+  }
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .reveal-delay-1 { transition-delay: 0.1s; }
+  .reveal-delay-2 { transition-delay: 0.2s; }
+  .reveal-delay-3 { transition-delay: 0.3s; }
 
   /* Hero rise-in animation — h1, subtitle, CTA row fade up in sequence. */
   @keyframes heroRise {
