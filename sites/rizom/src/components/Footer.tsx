@@ -1,10 +1,13 @@
 import type { JSX } from "preact";
+import { GUTTER } from "./Section";
 
 const LINK_CLS =
   "text-label-md text-theme-light hover:text-theme transition-colors";
 
 export const Footer = (): JSX.Element => (
-  <footer className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 px-6 md:px-10 lg:px-20 py-8 md:py-6 border-t border-theme-light text-center md:text-left">
+  <footer
+    className={`flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
+  >
     <div className="flex flex-col md:flex-row items-center gap-1.5 md:gap-3">
       <span className="font-nav text-[15px]">
         <span className="font-bold">rizom</span>

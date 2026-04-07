@@ -13,13 +13,22 @@ export interface SectionProps {
 }
 
 /**
+ * Horizontal gutter shared by all top-level rizom blocks (sections,
+ * footer, etc.). Exported so non-section elements that need the same
+ * 24 / 40 / 80px responsive gutter can reuse it without wrapping
+ * in `<Section>` (which would also force `<section>` semantics and
+ * the canvas overlay positioning).
+ */
+export const GUTTER = "px-6 md:px-10 lg:px-20";
+
+/**
  * Rizom section container.
  *
- * Provides the horizontal gutter (24 / 40 / 80px responsive), relative
- * positioning, and z-index so content sits on top of the fixed canvas
- * background. Every section on a rizom site wraps its content in this.
+ * Adds the horizontal gutter plus the relative positioning and z-index
+ * so content sits on top of the fixed canvas background. Every section
+ * on a rizom site wraps its content in this.
  */
-const BASE = "px-6 md:px-10 lg:px-20 relative z-[1]";
+const BASE = `${GUTTER} relative z-[1]`;
 
 export const Section = ({
   id,
