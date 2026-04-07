@@ -42,16 +42,17 @@ jobs:
           # commit regex. CI-authored commits don't need the hook.
           HUSKY: "0"
 
-      # Auto-merge the version PR as soon as it opens so changesets ships
-      # without a manual click. Auto-merge waits for the required CI checks
-      # to pass before actually merging — the same protection a human review
-      # would enforce. Requires "Allow auto-merge" enabled in repo settings.
-      - name: Auto-merge release PR
+      # Wait for the PR's CI to finish, then squash-merge it immediately.
+      # GitHub's `--auto` flag requires branch protection with at least one
+      # required status check, which we don't have configured. `gh pr checks
+      # --watch` polls the PR checks until they complete or time out; if any
+      # fail, the command exits non-zero and the merge step never runs, so
+      # the safety is effectively the same.
+      - name: Wait for PR checks and merge
         if: steps.changesets.outputs.pullRequestNumber != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr merge ${{ steps.changesets.outputs.pullRequestNumber }} \
-            --repo ${{ github.repository }} \
-            --auto \
-            --squash
+          PR=${{ steps.changesets.outputs.pullRequestNumber }}
+          gh pr checks "$PR" --repo ${{ github.repository }} --watch
+          gh pr merge "$PR" --repo ${{ github.repository }} --squash --delete-branch
