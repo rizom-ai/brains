@@ -4,10 +4,8 @@ on:
   push:
     branches: [main]
   # Manual trigger so operators can kick off a release run without
-  # pushing a commit — useful when the previous run's version PR
-  # was merged via GITHUB_TOKEN (which does not trigger downstream
-  # workflows by GitHub policy) and the publish step needs to be
-  # re-run against the already-bumped main.
+  # pushing a commit — handy for re-running a failed publish against
+  # an already-bumped main, or for running a release out of band.
   workflow_dispatch:
 
 concurrency: ${{ github.workflow }}-${{ github.ref }}
@@ -16,51 +14,62 @@ jobs:
   release:
     name: Release
     # Fork-safety: only run on the canonical repo. Forks don't have
-    # NPM_TOKEN and shouldn't create release PRs against their own copy.
+    # NPM_TOKEN and shouldn't attempt to publish.
     if: github.repository == 'rizom-ai/brains'
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      pull-requests: write
       id-token: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
       - run: bun install --frozen-lockfile
 
-      - name: Create Release PR or Publish
-        id: changesets
-        uses: changesets/action@v1
-        with:
-          version: bun run changeset:version
-          publish: bun run changeset:publish
-          commit: "chore(release): version packages"
-          title: "chore(release): version packages"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-          # Bypass husky commit-msg hook. The changesets bot creates
-          # multiple git commits during the version step and not all
-          # of them use the `commit` input above — some internal
-          # commits use hardcoded messages that fail the conventional
-          # commit regex. CI-authored commits don't need the hook.
-          HUSKY: "0"
-
-      # Squash-merge the version PR immediately. The PR only bumps
-      # package.json version and writes CHANGELOG.md — no source code
-      # changes — so running CI on it is redundant with the CI that
-      # already ran on main before this workflow started. Merging
-      # immediately avoids the race condition where `gh pr checks
-      # --watch` exits non-zero if no checks have been reported on
-      # the branch yet.
-      - name: Merge release PR
-        if: steps.changesets.outputs.pullRequestNumber != ''
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # Single-run release flow:
+      #
+      #   1. `changeset version` consumes pending changesets and bumps
+      #      package versions + writes CHANGELOG.md. Idempotent — a no-op
+      #      when there are no pending changesets.
+      #   2. Push the version bump commit back to main (if any files
+      #      changed). Must happen BEFORE publish so the repo reflects
+      #      reality even if the npm publish step crashes later; the
+      #      retry semantics of `changeset publish` are "republish if
+      #      version not on registry" so a re-run picks up cleanly.
+      #   3. `changeset publish` runs `prepublishOnly` (compile hydration
+      #      + bundle via packages/brain-cli/scripts/build.ts) then
+      #      `npm publish`. Only publishes versions not already on npm.
+      #
+      # No version PR, no second workflow run dependency. Trade-off: no
+      # review window on auto-generated version bumps. Fine for the
+      # alpha cycle; revisit when we exit pre mode for stable releases.
+      - name: Configure git for the bot
         run: |
-          gh pr merge ${{ steps.changesets.outputs.pullRequestNumber }} \
-            --repo ${{ github.repository }} \
-            --squash \
-            --delete-branch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Version
+        run: bun run changeset:version
+
+      - name: Commit and push version bump
+        env:
+          HUSKY: "0"
+        run: |
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No version changes to commit."
+          else
+            git commit -m "chore(release): version packages"
+            git push
+          fi
+
+      - name: Publish to npm
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+          bun run changeset:publish
