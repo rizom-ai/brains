@@ -1,13 +1,18 @@
 name: Publish Brain Model Images
 
 on:
+  # Continuous publish: every successful CI run on main produces a fresh
+  # :latest tag + :<sha> tag for traceability.
   workflow_run:
     workflows: ["CI"]
     branches: ["main"]
     types: [completed]
+  # Release publish: tagged releases get semver tags (:v0.1.0, :0.1, etc.).
+  release:
+    types: [published]
 
 concurrency:
-  group: publish-images
+  group: publish-images-${{ github.ref }}
   cancel-in-progress: true
 
 env:
@@ -17,14 +22,23 @@ env:
 jobs:
   build:
     name: Build & Publish
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # Fork-safety: only run on the canonical repo. Forks that run CI should
+    # not attempt to push to rizom-ai's GHCR namespace.
+    # Workflow-run trigger also requires the upstream CI to have passed.
+    if: |
+      github.repository == 'rizom-ai/brains' &&
+      (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
+      fail-fast: false
       matrix:
-        model: [rover, ranger, relay]
+        # Only public brain models are published. ranger and relay are
+        # private until they have real content and implementations.
+        # Add them here once they're ready to ship publicly.
+        model: [rover]
 
     steps:
       - uses: actions/checkout@v4
@@ -65,6 +79,26 @@ jobs:
 
           echo "BUILD_DIR=$BUILD_DIR" >> "$GITHUB_ENV"
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGE_PREFIX }}/${{ matrix.model }}
+          tags: |
+            # On push to main (via workflow_run): :latest + :<short-sha>
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=sha,format=short
+            # On release: full semver + minor + major
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -77,6 +111,10 @@ jobs:
         with:
           context: ${{ env.BUILD_DIR }}
           push: true
-          tags: |
-            ${{ env.IMAGE_PREFIX }}/${{ matrix.model }}:latest
-            ${{ env.IMAGE_PREFIX }}/${{ matrix.model }}:${{ github.sha }}
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # Per-model build cache scoped by matrix value so parallel
+          # builds don't fight over the same cache entries.
+          cache-from: type=gha,scope=${{ matrix.model }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.model }}

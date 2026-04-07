@@ -9,6 +9,9 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     name: Release
+    # Fork-safety: only run on the canonical repo. Forks don't have
+    # NPM_TOKEN and shouldn't create release PRs against their own copy.
+    if: github.repository == 'rizom-ai/brains'
     runs-on: ubuntu-latest
     permissions:
       contents: write
