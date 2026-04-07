@@ -21,6 +21,7 @@
       "persistent": true
     },
     "test": {
+      "dependsOn": ["precompile"],
       "inputs": [
         "src/**/*.tsx",
         "src/**/*.ts",
@@ -31,7 +32,7 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck"],
+      "dependsOn": ["^typecheck", "precompile"],
       "outputs": [],
       "cache": true
     },
