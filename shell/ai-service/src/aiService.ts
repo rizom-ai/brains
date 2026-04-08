@@ -15,11 +15,6 @@ import type {
 import { selectTextProvider, selectImageProvider } from "./provider-selection";
 
 /**
- * Default model configuration
- */
-const DEFAULT_MODEL = "gpt-4.1";
-
-/**
  * AI Service for generating responses using Vercel AI SDK
  */
 export class AIService implements IAIService {
@@ -59,14 +54,15 @@ export class AIService implements IAIService {
   private constructor(config: AIModelConfig, logger: Logger) {
     this.config = {
       ...config,
-      model: config.model ?? DEFAULT_MODEL,
       temperature: config.temperature ?? 0.7,
       maxTokens: config.maxTokens ?? 1000,
       webSearch: config.webSearch ?? true, // Default to true
     };
     this.logger = logger.child("AIService");
 
-    const provider = selectTextProvider(this.config.model);
+    const provider = this.config.model
+      ? selectTextProvider(this.config.model)
+      : undefined;
     const imageKey = config.imageApiKey ?? config.apiKey;
 
     this.anthropicProvider = config.apiKey
@@ -94,8 +90,7 @@ export class AIService implements IAIService {
    * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
-    const { model } = this.config;
-    const modelId = model ?? DEFAULT_MODEL;
+    const modelId = this.requireTextModel();
     const provider = selectTextProvider(modelId);
 
     if (provider === "openai" && this.openaiProvider) {
@@ -241,6 +236,16 @@ export class AIService implements IAIService {
    */
   public getConfig(): AIModelConfig {
     return { ...this.config };
+  }
+
+  private requireTextModel(): string {
+    if (!this.config.model) {
+      throw new Error(
+        "AI text model is not configured. Set a model in the brain definition or brain.yaml.",
+      );
+    }
+
+    return this.config.model;
   }
 
   /**

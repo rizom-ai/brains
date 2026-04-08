@@ -17,6 +17,7 @@ import * as anthropicSdk from "@ai-sdk/anthropic";
 // Valid 1x1 PNG image as base64
 const VALID_PNG_BASE64 =
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+const DEFAULT_TEXT_MODEL = "claude-haiku-4-5";
 
 // Mock the ai SDK modules
 void mock.module("ai", () => ({
@@ -130,11 +131,11 @@ describe("AIService", () => {
   });
 
   describe("Configuration", () => {
-    it("should use default configuration when not provided", () => {
+    it("should not invent a default text model", () => {
       const service = AIService.createFresh({}, logger);
       const config = service.getConfig();
 
-      expect(config.model).toBe("gpt-4.1");
+      expect(config.model).toBeUndefined();
       expect(config.temperature).toBe(0.7);
       expect(config.maxTokens).toBe(1000);
     });
@@ -156,7 +157,10 @@ describe("AIService", () => {
     });
 
     it("should update configuration", () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
 
       service.updateConfig({
         model: "claude-3-haiku-20240307",
@@ -172,7 +176,10 @@ describe("AIService", () => {
 
   describe("Text Generation", () => {
     it("should generate text successfully", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const systemPrompt = "You are a helpful assistant";
       const userPrompt = "Hello, world!";
 
@@ -203,7 +210,10 @@ describe("AIService", () => {
       const childSpy = spyOn(childLogger, "info");
       const childMock = spyOn(testLogger, "child").mockReturnValue(childLogger);
 
-      const service = AIService.createFresh({}, testLogger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        testLogger,
+      );
       await service.generateText("System", "User");
 
       const usageCall = childSpy.mock.calls.find(
@@ -234,7 +244,10 @@ describe("AIService", () => {
     });
 
     it("should handle generation errors", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const error = new Error("Generation failed");
 
       generateTextSpy.mockRejectedValueOnce(error);
@@ -247,6 +260,7 @@ describe("AIService", () => {
     it("should respect custom temperature and maxTokens", async () => {
       const service = AIService.createFresh(
         {
+          model: DEFAULT_TEXT_MODEL,
           temperature: 0.3,
           maxTokens: 500,
         },
@@ -264,7 +278,10 @@ describe("AIService", () => {
     });
 
     it("should use defaults when temperature and maxTokens are not specified", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
 
       await service.generateText("System", "User");
 
@@ -283,7 +300,10 @@ describe("AIService", () => {
     });
 
     it("should generate structured object successfully", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const systemPrompt = "Generate structured data";
       const userPrompt = "Create an object";
 
@@ -316,7 +336,10 @@ describe("AIService", () => {
     });
 
     it("should handle object generation errors", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const error = new Error("Object generation failed");
 
       generateObjectSpy.mockRejectedValueOnce(error);
@@ -349,7 +372,10 @@ describe("AIService", () => {
 
   describe("Edge Cases", () => {
     it("should handle empty prompts", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
 
       const result = await service.generateText("", "");
 
@@ -363,7 +389,10 @@ describe("AIService", () => {
     });
 
     it("should handle very long prompts", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const longPrompt = "x".repeat(10000);
 
       const result = await service.generateText(longPrompt, longPrompt);
@@ -372,7 +401,10 @@ describe("AIService", () => {
     });
 
     it("should preserve original error messages", async () => {
-      const service = AIService.createFresh({}, logger);
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
       const customError = new Error("Custom API error");
 
       generateTextSpy.mockRejectedValueOnce(customError);

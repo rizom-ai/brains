@@ -50,7 +50,6 @@ export async function extractTopicsBatched(
     logger.info(`Processing batch of ${batch.length} entities`);
 
     const prompt = buildBatchPrompt(batch);
-
     try {
       const result = await context.ai.generate<{
         topics: ExtractedTopicData[];
@@ -78,6 +77,7 @@ export async function extractTopicsBatched(
     } catch (error) {
       logger.error("Batch topic extraction failed", {
         batchSize: batch.length,
+        promptChars: prompt.length,
         error: getErrorMessage(error),
       });
     }

@@ -335,6 +335,12 @@ describe("AIContentDataSource", () => {
       expect(mockEntityService.search).toHaveBeenCalled();
     });
 
+    it("should skip knowledge base search for topics extraction", async () => {
+      await generate("Huge batch prompt", "topics:extraction");
+
+      expect(mockEntityService.search).not.toHaveBeenCalled();
+    });
+
     it("should include conversation history in prompt when provided", async () => {
       await generate(
         "What was I asking about?",

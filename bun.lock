@@ -527,7 +527,7 @@
     },
     "packages/brain-cli": {
       "name": "@rizom/brain",
-      "version": "0.1.1-alpha.3",
+      "version": "0.1.1-alpha.6",
       "bin": {
         "brain": "./dist/brain.js",
       },
@@ -1302,7 +1302,6 @@
         "@brains/app": "workspace:*",
         "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-default": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1319,7 +1318,6 @@
         "@brains/app": "workspace:*",
         "@brains/layout-personal": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-mylittlephoney": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1337,7 +1335,6 @@
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/templates": "workspace:*",
-        "@brains/theme-ranger": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -1357,7 +1354,6 @@
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/templates": "workspace:*",
-        "@brains/theme-rizom": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -1376,7 +1372,6 @@
         "@brains/app": "workspace:*",
         "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
-        "@brains/theme-brutalist": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {

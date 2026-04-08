@@ -6,6 +6,7 @@ preset: full
 
 # Instance settings
 logLevel: info
+logFile: ./brain.log
 
 # Permissions
 anchors:

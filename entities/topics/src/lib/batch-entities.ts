@@ -2,10 +2,10 @@ import type { BaseEntity } from "@brains/plugins";
 
 /**
  * Token budget for batch extraction.
- * Based on 128K context window (smallest common local model):
- *   128K - 20K (prompt + response headroom) = 108K available for content.
+ * TODO: Replace this with model-dependent sizing instead of a fixed global budget.
  */
 export const DEFAULT_TOKEN_BUDGET = 108_000;
+export const PROMPT_OVERHEAD_RESERVE = 0;
 
 /**
  * Estimate token count from text.
@@ -14,6 +14,23 @@ export const DEFAULT_TOKEN_BUDGET = 108_000;
  */
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
+}
+
+function estimateEntityBatchTokens(entity: BaseEntity, index: number): number {
+  const metaTitle = entity.metadata["title"];
+  const title = typeof metaTitle === "string" ? metaTitle : entity.id;
+  const type =
+    entity.entityType.charAt(0).toUpperCase() + entity.entityType.slice(1);
+  const header = `---\n[${index}] ${type}: ${title}\n\n`;
+
+  return estimateTokens(header) + estimateTokens(entity.content) + 1;
+}
+
+export function estimateBatchPromptTokens(entities: BaseEntity[]): number {
+  return entities.reduce(
+    (sum, entity, index) => sum + estimateEntityBatchTokens(entity, index + 1),
+    0,
+  );
 }
 
 /**
@@ -30,15 +47,19 @@ export function batchEntities(
 ): BaseEntity[][] {
   if (entities.length === 0) return [];
 
+  const contentBudget = Math.max(1, tokenBudget - PROMPT_OVERHEAD_RESERVE);
   const batches: BaseEntity[][] = [];
   let currentBatch: BaseEntity[] = [];
   let currentTokens = 0;
 
   for (const entity of entities) {
-    const entityTokens = estimateTokens(entity.content);
+    const entityTokens = estimateEntityBatchTokens(
+      entity,
+      currentBatch.length + 1,
+    );
 
     // Oversized entity: flush current batch, put entity in its own batch
-    if (entityTokens > tokenBudget) {
+    if (entityTokens > contentBudget) {
       if (currentBatch.length > 0) {
         batches.push(currentBatch);
         currentBatch = [];
@@ -49,10 +70,10 @@ export function batchEntities(
     }
 
     // Would exceed budget: flush and start new batch
-    if (currentTokens + entityTokens > tokenBudget) {
+    if (currentTokens + entityTokens > contentBudget) {
       batches.push(currentBatch);
       currentBatch = [entity];
-      currentTokens = entityTokens;
+      currentTokens = estimateEntityBatchTokens(entity, 1);
       continue;
     }
 

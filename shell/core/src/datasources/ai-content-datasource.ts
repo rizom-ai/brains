@@ -51,11 +51,13 @@ export class AIContentDataSource implements DataSource {
     );
 
     const searchTerms = [basePrompt, context.prompt].filter(Boolean).join(" ");
+    const shouldSearchKnowledgeBase =
+      searchTerms.length > 0 && context.templateName !== "topics:extraction";
 
     const weightMap = this.entityService.getWeightMap();
     const hasWeights = Object.keys(weightMap).length > 0;
 
-    const relevantEntities = searchTerms
+    const relevantEntities = shouldSearchKnowledgeBase
       ? await this.entityService.search(searchTerms, {
           limit: 5,
           ...(hasWeights && { weight: weightMap }),

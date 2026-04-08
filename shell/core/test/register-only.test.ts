@@ -42,6 +42,10 @@ function createTestConfig(dir: string): ShellConfigInput {
     jobQueueDatabase: { url: `file:${dir}/jobs.db` },
     conversationDatabase: { url: `file:${dir}/conv.db` },
     embeddingDatabase: { url: `file:${dir}/embeddings.db` },
+    ai: {
+      model: "claude-haiku-4-5",
+      apiKey: "test-key",
+    },
   };
 }
 
