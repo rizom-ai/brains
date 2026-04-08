@@ -42,12 +42,12 @@
       const ar = rng.range(W * 0.25, W * 0.55);
       const ag = sctx.createRadialGradient(ax, ay, 0, ax, ay, ar);
       if (!light) {
-        ag.addColorStop(0, "rgba(107,47,160,0.06)");
-        ag.addColorStop(0.5, "rgba(232,119,34,0.018)");
-        ag.addColorStop(1, "rgba(14,0,39,0)");
+        ag.addColorStop(0, rgba(C.PURPLE, 0.06));
+        ag.addColorStop(0.5, rgba(C.AMBER, 0.018));
+        ag.addColorStop(1, rgba(C.BG_DEEP, 0));
       } else {
-        ag.addColorStop(0, "rgba(107,47,160,0.04)");
-        ag.addColorStop(1, "rgba(107,47,160,0)");
+        ag.addColorStop(0, rgba(C.PURPLE, 0.04));
+        ag.addColorStop(1, rgba(C.PURPLE, 0));
       }
       sctx.fillStyle = ag;
       sctx.fillRect(ax - ar, ay - ar, ar * 2, ar * 2);
@@ -99,9 +99,9 @@
         const spread = depth > 3 ? rng.range(0.5, 1.2) : rng.range(0.6, 1.5);
         const newAngle = angle + rng.range(-spread, spread);
         let nc = color;
-        if (depth <= 3 && rng.next() < 0.22) nc = "#FFA366";
+        if (depth <= 3 && rng.next() < 0.22) nc = C.AMBER_LT;
         else if (rng.next() < 0.3)
-          nc = nc === "#6B2FA0" ? "#8C82C8" : "#6B2FA0";
+          nc = nc === C.PURPLE ? C.PURPLE_LT : C.PURPLE;
         root(
           ex,
           ey,
@@ -137,7 +137,7 @@
           sx,
           sy,
           bulbR,
-          "#FFA366",
+          C.AMBER_LT,
           rng.range(0.55, 0.8),
           light,
         );
@@ -145,7 +145,7 @@
           x: sx,
           y: sy,
           r: bulbR,
-          color: "#FFA366",
+          color: C.AMBER_LT,
           op: 0.72,
           phase: rng.next() * Math.PI * 2,
           isSeed: true,
@@ -157,7 +157,7 @@
           const angle = rng.range(0, Math.PI * 2);
           const len = rng.range(60, 130);
           const w = rng.range(1.2, 2.2);
-          root(sx, sy, angle, len, w, 4, "#6B2FA0", rng.range(0.35, 0.55));
+          root(sx, sy, angle, len, w, 4, C.PURPLE, rng.range(0.35, 0.55));
         }
       }
     }
@@ -188,7 +188,7 @@
             b.x,
             b.y,
           ],
-          rng.next() < 0.7 ? "#6B2FA0" : "#8C82C8",
+          rng.next() < 0.7 ? C.PURPLE : C.PURPLE_LT,
           rng.range(0.5, 1.1),
           4,
           rng.range(0.14, 0.26),
@@ -212,7 +212,7 @@
         fLen,
         rng.range(0.4, 0.85),
         3,
-        rng.next() < 0.6 ? "#6B2FA0" : "#8C82C8",
+        rng.next() < 0.6 ? C.PURPLE : C.PURPLE_LT,
         rng.range(0.12, 0.22),
       );
     }
@@ -221,7 +221,7 @@
   // Drifting spore particles — gentle ambient motion
   const particles = [];
   const rngP = createRand(211);
-  const dustC = ["#8C82C8", "#6B2FA0", "#FFA366", "#FFD4A8"];
+  const dustC = [C.PURPLE_LT, C.PURPLE, C.AMBER_LT, C.GLOW];
   for (let i = 0; i < 180; i++) {
     particles.push({
       x: rngP.range(0, W),
@@ -255,7 +255,7 @@
       vx: (Math.random() - 0.5) * 30,
       life: 0,
       maxLife: 5 + Math.random() * 4,
-      color: Math.random() < 0.72 ? "#FFA366" : "#8C82C8",
+      color: Math.random() < 0.72 ? C.AMBER_LT : C.PURPLE_LT,
     });
   }
 
@@ -326,7 +326,7 @@
       ctx.beginPath();
       ctx.arc(f.x, screenY, 2.6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba(light ? "#C45A08" : "#FFF8EE", alpha * 0.9);
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : C.CORE, alpha * 0.9);
       ctx.beginPath();
       ctx.arc(f.x, screenY, 1.2, 0, Math.PI * 2);
       ctx.fill();
@@ -346,7 +346,7 @@
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba("#FFD4A8", n.op * 0.12 * pulse);
+      ctx.fillStyle = rgba(C.GLOW, n.op * 0.12 * pulse);
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 2, 0, Math.PI * 2);
       ctx.fill();

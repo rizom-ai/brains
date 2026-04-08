@@ -51,12 +51,12 @@
     ambients.forEach((a) => {
       const ag = sctx.createRadialGradient(trunkX, a.y, 0, trunkX, a.y, a.r);
       if (!light) {
-        ag.addColorStop(0, "rgba(232,119,34,0.04)");
-        ag.addColorStop(0.5, "rgba(107,47,160,0.01)");
-        ag.addColorStop(1, "rgba(14,0,39,0)");
+        ag.addColorStop(0, rgba(C.AMBER, 0.04));
+        ag.addColorStop(0.5, rgba(C.PURPLE, 0.01));
+        ag.addColorStop(1, rgba(C.BG_DEEP, 0));
       } else {
-        ag.addColorStop(0, "rgba(196,90,8,0.03)");
-        ag.addColorStop(1, "rgba(196,90,8,0)");
+        ag.addColorStop(0, rgba(C.AMBER_DK, 0.03));
+        ag.addColorStop(1, rgba(C.AMBER_DK, 0));
       }
       sctx.fillStyle = ag;
       sctx.fillRect(0, a.y - a.r, W, a.r * 2);
@@ -103,9 +103,8 @@
       for (let i = 0; i < nb; i++) {
         const sp = depth > 3 ? rng.range(0.2, 0.6) : rng.range(0.3, 0.9);
         let nc = color;
-        if (depth <= 3 && rng.next() < 0.2) nc = "#6B2FA0";
-        else if (rng.next() < 0.3)
-          nc = nc === "#E87722" ? "#FFA366" : "#E87722";
+        if (depth <= 3 && rng.next() < 0.2) nc = C.PURPLE;
+        else if (rng.next() < 0.3) nc = nc === C.AMBER ? C.AMBER_LT : C.AMBER;
         branch(
           ex,
           ey,
@@ -135,7 +134,7 @@
       // Draw trunk segment
       const w = 5 * (1 - t * 0.15); // thicker trunk
       const op = 0.55 * (1 - t * 0.1);
-      const c = i % 2 === 0 ? "#E87722" : "#FFA366";
+      const c = i % 2 === 0 ? C.AMBER : C.AMBER_LT;
       drawGlowBezier(
         sctx,
         [
@@ -157,12 +156,12 @@
 
       // Hub node at each segment junction
       const hubR = 3 + (1 - t) * 4;
-      drawGlowNode(sctx, nextX, nextY, hubR, "#FFA366", op * 0.8, light);
+      drawGlowNode(sctx, nextX, nextY, hubR, C.AMBER_LT, op * 0.8, light);
       nodes.push({
         x: nextX,
         y: nextY,
         r: hubR,
-        color: "#FFA366",
+        color: C.AMBER_LT,
         op: op * 0.8,
         phase: i * 0.9,
       });
@@ -180,9 +179,9 @@
         const bColor =
           rng.next() < 0.7
             ? rng.next() < 0.5
-              ? "#E87722"
-              : "#FFA366"
-            : "#6B2FA0";
+              ? C.AMBER
+              : C.AMBER_LT
+            : C.PURPLE;
         branch(
           nextX,
           nextY,
@@ -225,7 +224,7 @@
             nx,
             ny,
           ],
-          strand < 2 ? "#FFA366" : "#E87722",
+          strand < 2 ? C.AMBER_LT : C.AMBER,
           strandW * (1 - t * 0.4),
           6,
           strandOp * (1 - t * 0.3),
@@ -241,7 +240,7 @@
             rng.range(40, 100),
             rng.range(0.5, 1.5),
             3,
-            "#FFA366",
+            C.AMBER_LT,
             strandOp * 0.5,
             light,
           );
@@ -255,7 +254,7 @@
   // Particles — spread across full viewport
   const particles = [];
   const rngP = createRand(99);
-  const dustC = ["#FFA366", "#E87722", "#6B2FA0", "#8C82C8", "#FFD4A8"];
+  const dustC = [C.AMBER_LT, C.AMBER, C.PURPLE, C.PURPLE_LT, C.GLOW];
   for (let i = 0; i < 200; i++) {
     particles.push({
       x: rngP.range(0, W),
@@ -287,7 +286,7 @@
       seg: 0,
       progress: 0,
       speed: 0.8 + Math.random() * 0.55,
-      color: Math.random() < 0.6 ? "#FFA366" : "#FFD4A8",
+      color: Math.random() < 0.6 ? C.AMBER_LT : C.GLOW,
     });
   }
 
@@ -298,7 +297,7 @@
       pathIdx: Math.floor(Math.random() * branchPaths.length),
       progress: 0,
       speed: 0.9 + Math.random() * 0.75,
-      color: Math.random() < 0.7 ? "#FFA366" : "#E87722",
+      color: Math.random() < 0.7 ? C.AMBER_LT : C.AMBER,
     });
   }
 
@@ -341,7 +340,7 @@
       vy: Math.sin(angle) * speed,
       age: 0,
       maxAge: 5 + Math.random() * 3,
-      color: Math.random() < 0.7 ? "#FFA366" : "#FFD4A8",
+      color: Math.random() < 0.7 ? C.AMBER_LT : C.GLOW,
       r: 0.9 + Math.random() * 0.8,
     });
   }
@@ -462,7 +461,7 @@
       ctx.beginPath();
       ctx.arc(px, screenY, 2.4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba(light ? "#C45A08" : "#FFF8EE", 0.85 * fade);
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : C.CORE, 0.85 * fade);
       ctx.beginPath();
       ctx.arc(px, screenY, 1.2, 0, Math.PI * 2);
       ctx.fill();
@@ -495,7 +494,7 @@
       ctx.beginPath();
       ctx.arc(sp.x, screenY, sp.r * 4, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba(light ? "#C45A08" : sp.color, alpha * 0.85);
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : sp.color, alpha * 0.85);
       ctx.beginPath();
       ctx.arc(sp.x, screenY, sp.r, 0, Math.PI * 2);
       ctx.fill();
@@ -527,12 +526,12 @@
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 5, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba("#FFD4A8", n.op * 0.12 * pulse * flareBoost);
+      ctx.fillStyle = rgba(C.GLOW, n.op * 0.12 * pulse * flareBoost);
       ctx.beginPath();
       ctx.arc(n.x, screenY, pr * 2, 0, Math.PI * 2);
       ctx.fill();
       if (n.flare > 0.05) {
-        ctx.fillStyle = rgba("#FFF8EE", n.flare * 0.9);
+        ctx.fillStyle = rgba(C.CORE, n.flare * 0.9);
         ctx.beginPath();
         ctx.arc(n.x, screenY, n.r * 0.6, 0, Math.PI * 2);
         ctx.fill();

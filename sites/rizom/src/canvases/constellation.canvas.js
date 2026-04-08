@@ -45,10 +45,10 @@
         speed: rng.range(0.5, 1.5),
         color:
           rng.next() < 0.6
-            ? "#FFD4A8"
+            ? C.GLOW
             : rng.next() < 0.55
-              ? "#FFA366"
-              : "#8C82C8",
+              ? C.AMBER_LT
+              : C.PURPLE_LT,
         baseAlpha: rng.range(0.3, 0.78),
         flare: 0, // 0..1, decays over time when set
       });
@@ -82,7 +82,7 @@
         to,
         progress: 0,
         speed: 0.7 + Math.random() * 0.6,
-        color: Math.random() < 0.7 ? "#FFD4A8" : "#8C82C8",
+        color: Math.random() < 0.7 ? C.GLOW : C.PURPLE_LT,
       });
       return;
     }
@@ -172,7 +172,7 @@
         if (d2 < maxD2) {
           const f = 1 - d2 / maxD2;
           const op = f * f * (light ? 0.32 : 0.22);
-          ctx.strokeStyle = rgba(light ? "#C45A08" : "#FFD4A8", op);
+          ctx.strokeStyle = rgba(light ? C.AMBER_DK : C.GLOW, op);
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
@@ -212,7 +212,7 @@
       ctx.beginPath();
       ctx.arc(px, py, 6, 0, Math.PI * 2);
       ctx.fill();
-      ctx.fillStyle = rgba(light ? "#C45A08" : "#FFF8EE", 0.85 * fade);
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : C.CORE, 0.85 * fade);
       ctx.beginPath();
       ctx.arc(px, py, 1.4, 0, Math.PI * 2);
       ctx.fill();
@@ -245,8 +245,8 @@
       const ty = sh.y - Math.sin(Math.atan2(sh.vy, sh.vx)) * tailLen;
       const grad = ctx.createLinearGradient(tx, ty, sh.x, sh.y);
       const alpha = (1 - lifeRatio) * (light ? 0.85 : 0.85);
-      grad.addColorStop(0, rgba(light ? "#C45A08" : "#FFD4A8", 0));
-      grad.addColorStop(1, rgba(light ? "#C45A08" : "#FFF8EE", alpha));
+      grad.addColorStop(0, rgba(light ? C.AMBER_DK : C.GLOW, 0));
+      grad.addColorStop(1, rgba(light ? C.AMBER_DK : C.CORE, alpha));
       ctx.strokeStyle = grad;
       ctx.lineWidth = 1.6;
       ctx.lineCap = "round";
@@ -255,12 +255,12 @@
       ctx.lineTo(sh.x, sh.y);
       ctx.stroke();
       // Bright head
-      ctx.fillStyle = rgba(light ? "#C45A08" : "#FFF8EE", alpha);
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : C.CORE, alpha);
       ctx.beginPath();
       ctx.arc(sh.x, sh.y, 1.8, 0, Math.PI * 2);
       ctx.fill();
       // Soft halo
-      ctx.fillStyle = rgba(light ? "#E87722" : "#FFD4A8", alpha * 0.25);
+      ctx.fillStyle = rgba(light ? C.AMBER : C.GLOW, alpha * 0.25);
       ctx.beginPath();
       ctx.arc(sh.x, sh.y, 6, 0, Math.PI * 2);
       ctx.fill();
@@ -278,13 +278,13 @@
       ctx.arc(s.x, s.y, haloR, 0, Math.PI * 2);
       ctx.fill();
       // core
-      ctx.fillStyle = rgba(light ? "#C45A08" : s.color, Math.min(1, a));
+      ctx.fillStyle = rgba(light ? C.AMBER_DK : s.color, Math.min(1, a));
       ctx.beginPath();
       ctx.arc(s.x, s.y, s.r * (1 + s.flare * 0.6), 0, Math.PI * 2);
       ctx.fill();
       // hot center for flaring stars
       if (s.flare > 0.05) {
-        ctx.fillStyle = rgba("#FFF8EE", s.flare * 0.9);
+        ctx.fillStyle = rgba(C.CORE, s.flare * 0.9);
         ctx.beginPath();
         ctx.arc(s.x, s.y, s.r * 0.5, 0, Math.PI * 2);
         ctx.fill();

@@ -28,11 +28,8 @@ function drawProductCanvas(id, type) {
 
   if (type === "rover") {
     const ag = ctx.createRadialGradient(255, 155, 0, 255, 155, 160);
-    ag.addColorStop(
-      0,
-      light ? "rgba(232,119,34,0.04)" : "rgba(232,119,34,0.08)",
-    );
-    ag.addColorStop(1, "rgba(13,10,26,0)");
+    ag.addColorStop(0, light ? rgba(C.AMBER, 0.04) : rgba(C.AMBER, 0.08));
+    ag.addColorStop(1, rgba(C.BG_DEEP, 0));
     ctx.fillStyle = ag;
     ctx.fillRect(0, 0, W, H);
     function rBranch(x, y, a, l, w, d, c, o) {
@@ -58,9 +55,8 @@ function drawProductCanvas(id, type) {
         d > 3 ? Math.floor(rng.range(2, 4)) : Math.floor(rng.range(1, 3));
       for (let i = 0; i < nb; i++) {
         let nc = c;
-        if (d <= 2 && rng.next() < 0.2) nc = "#6B2FA0";
-        else if (rng.next() < 0.3)
-          nc = nc === "#E87722" ? "#FFA366" : "#E87722";
+        if (d <= 2 && rng.next() < 0.2) nc = C.PURPLE;
+        else if (rng.next() < 0.3) nc = nc === C.AMBER ? C.AMBER_LT : C.AMBER;
         rBranch(
           ex,
           ey,
@@ -73,7 +69,7 @@ function drawProductCanvas(id, type) {
         );
       }
     }
-    drawGlowNode(ctx, 255, 155, 6, "#FFA366", 0.9, light);
+    drawGlowNode(ctx, 255, 155, 6, C.AMBER_LT, 0.9, light);
     for (let i = 0; i < 8; i++)
       rBranch(
         255,
@@ -82,14 +78,14 @@ function drawProductCanvas(id, type) {
         rng.range(80, 130),
         rng.range(2, 3.5),
         5,
-        "#E87722",
+        C.AMBER,
         rng.range(0.35, 0.5),
       );
   } else if (type === "relay") {
     if (!light) {
       const ag = ctx.createRadialGradient(255, 160, 0, 255, 160, 180);
-      ag.addColorStop(0, "rgba(107,47,160,0.06)");
-      ag.addColorStop(1, "rgba(13,10,26,0)");
+      ag.addColorStop(0, rgba(C.PURPLE, 0.06));
+      ag.addColorStop(1, rgba(C.BG_DEEP, 0));
       ctx.fillStyle = ag;
       ctx.fillRect(0, 0, W, H);
     }
@@ -112,15 +108,17 @@ function drawProductCanvas(id, type) {
           np[0],
           np[1],
         ],
-        "#8C82C8",
+        C.PURPLE_LT,
         2.8,
         12,
         0.4,
         light,
       );
     });
-    pts.forEach((p) => drawGlowNode(ctx, p[0], p[1], 5, "#FFA366", 0.7, light));
-    drawGlowNode(ctx, 250, 163, 3.5, "#8C82C8", 0.5, light);
+    pts.forEach((p) =>
+      drawGlowNode(ctx, p[0], p[1], 5, C.AMBER_LT, 0.7, light),
+    );
+    drawGlowNode(ctx, 250, 163, 3.5, C.PURPLE_LT, 0.5, light);
     pts.forEach((p) => {
       for (let i = 0; i < 3; i++) {
         const a = rng.range(0, Math.PI * 2),
@@ -139,7 +137,7 @@ function drawProductCanvas(id, type) {
             ex,
             ey,
           ],
-          "#FFA366",
+          C.AMBER_LT,
           rng.range(0.5, 1.2),
           rng.range(2, 5),
           rng.range(0.15, 0.3),
@@ -150,7 +148,7 @@ function drawProductCanvas(id, type) {
           ex,
           ey,
           rng.range(0.5, 1.5),
-          "#FFA366",
+          C.AMBER_LT,
           rng.range(0.15, 0.3),
           light,
         );
@@ -159,9 +157,9 @@ function drawProductCanvas(id, type) {
   } else {
     if (!light) {
       const ag = ctx.createRadialGradient(250, 160, 0, 250, 160, 250);
-      ag.addColorStop(0, "rgba(107,47,160,0.05)");
-      ag.addColorStop(0.4, "rgba(232,119,34,0.03)");
-      ag.addColorStop(1, "rgba(13,10,26,0)");
+      ag.addColorStop(0, rgba(C.PURPLE, 0.05));
+      ag.addColorStop(0.4, rgba(C.AMBER, 0.03));
+      ag.addColorStop(1, rgba(C.BG_DEEP, 0));
       ctx.fillStyle = ag;
       ctx.fillRect(0, 0, W, H);
     }
@@ -180,7 +178,7 @@ function drawProductCanvas(id, type) {
       for (let j = i + 1; j < hubs.length; j++) {
         const d = Math.hypot(p[0] - hubs[j][0], p[1] - hubs[j][1]);
         if (d < 200) {
-          const c = rng.next() < 0.5 ? "#8C82C8" : "#6B2FA0";
+          const c = rng.next() < 0.5 ? C.PURPLE_LT : C.PURPLE;
           drawGlowBezier(
             ctx,
             [
@@ -205,12 +203,16 @@ function drawProductCanvas(id, type) {
     hubs.forEach((p, i) => {
       const size = i < 4 ? rng.range(2.5, 4) : rng.range(1, 2.5);
       const op = i < 4 ? rng.range(0.4, 0.7) : rng.range(0.15, 0.35);
-      const c = rng.next() < 0.5 ? "#FFA366" : "#8C82C8";
+      const c = rng.next() < 0.5 ? C.AMBER_LT : C.PURPLE_LT;
       drawGlowNode(ctx, p[0], p[1], size, c, op, light);
     });
     for (let i = 0; i < 40; i++) {
       const c =
-        rng.next() < 0.5 ? "#FFA366" : rng.next() < 0.5 ? "#8C82C8" : "#6B2FA0";
+        rng.next() < 0.5
+          ? C.AMBER_LT
+          : rng.next() < 0.5
+            ? C.PURPLE_LT
+            : C.PURPLE;
       drawGlowNode(
         ctx,
         rng.range(10, 500),
@@ -223,7 +225,7 @@ function drawProductCanvas(id, type) {
     }
   }
   for (let i = 0; i < 60; i++) {
-    const c = ["#FFA366", "#E87722", "#6B2FA0"][Math.floor(rng.next() * 3)];
+    const c = [C.AMBER_LT, C.AMBER, C.PURPLE][Math.floor(rng.next() * 3)];
     ctx.fillStyle = rgba(c, rng.range(0.02, 0.08));
     ctx.beginPath();
     ctx.arc(

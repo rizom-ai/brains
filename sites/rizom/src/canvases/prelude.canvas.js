@@ -24,18 +24,64 @@ function createRand(seed) {
   };
 }
 
-const C = {
-  AMBER: "#E87722",
-  AMBER_LT: "#FFA366",
-  AMBER_DK: "#C45A08",
-  PURPLE: "#6B2FA0",
-  PURPLE_LT: "#8C82C8",
-  PURPLE_MU: "#818CF8",
-  GLOW: "#FFD4A8",
-  WARM: "#FFB366",
-  CORE: "#FFF8EE",
-  WHITE: "#FFFFFF",
-};
+// Brand palette — resolved from CSS custom properties on :root at
+// load time so theme-rizom/src/theme.css stays the single source of
+// truth. Each slot falls back to a hardcoded default if the CSS var
+// isn't available yet (first-paint edge case, test sandbox, etc.).
+//
+// WARM + CORE are NOT brand tokens — they're canvas-only particle
+// colors (warm halo, bright core highlight) that live here because
+// they only have meaning inside the glow rendering, not in the rest
+// of the site UI.
+function readPaletteFromCSS() {
+  const defaults = {
+    AMBER: "#E87722",
+    AMBER_LT: "#FFA366",
+    AMBER_DK: "#C45A08",
+    GLOW: "#FFD4A8",
+    PURPLE: "#6B2FA0",
+    PURPLE_LT: "#8C82C8",
+    PURPLE_MU: "#818CF8",
+    WHITE: "#FFFFFF",
+    BG_DEEP: "#0D0A1A",
+  };
+  const varMap = {
+    AMBER: "--palette-amber",
+    AMBER_LT: "--palette-amber-light",
+    AMBER_DK: "--palette-amber-dark",
+    GLOW: "--palette-amber-glow",
+    PURPLE: "--palette-purple",
+    PURPLE_LT: "--palette-purple-light",
+    PURPLE_MU: "--palette-purple-muted",
+    WHITE: "--palette-white",
+    BG_DEEP: "--palette-bg-deep",
+  };
+  const out = {};
+  let cs;
+  try {
+    cs = window.getComputedStyle(document.documentElement);
+  } catch (_e) {
+    cs = null;
+  }
+  for (const key in varMap) {
+    const cssName = varMap[key];
+    let value = "";
+    if (cs) {
+      try {
+        value = (cs.getPropertyValue(cssName) || "").trim();
+      } catch (_e) {
+        value = "";
+      }
+    }
+    out[key] = value || defaults[key];
+  }
+  // Canvas-only non-brand colors — always hardcoded.
+  out.WARM = "#FFB366";
+  out.CORE = "#FFF8EE";
+  return out;
+}
+
+const C = readPaletteFromCSS();
 
 const _rgbCache = {};
 function parseHex(hex) {
@@ -99,7 +145,7 @@ function drawGlowBezier(ctx, pts, color, w, glowR, op, light) {
     ctx.moveTo(pts[0], pts[1]);
     ctx.bezierCurveTo(pts[2], pts[3], pts[4], pts[5], pts[6], pts[7]);
     ctx.stroke();
-    ctx.strokeStyle = rgba("#FFD4A8", op * 0.3);
+    ctx.strokeStyle = rgba(C.GLOW, op * 0.3);
     ctx.lineWidth = w * 0.35;
     ctx.beginPath();
     ctx.moveTo(pts[0], pts[1]);
@@ -134,12 +180,12 @@ function drawGlowNode(ctx, x, y, r, color, op, light) {
       ctx.fill();
     }
     for (let i = r * 2; i > 0; i -= 0.4) {
-      ctx.fillStyle = rgba("#FFB366", op * 0.08 * (1 - i / (r * 2)));
+      ctx.fillStyle = rgba(C.WARM, op * 0.08 * (1 - i / (r * 2)));
       ctx.beginPath();
       ctx.arc(x, y, i, 0, Math.PI * 2);
       ctx.fill();
     }
-    ctx.fillStyle = rgba("#FFF8EE", op * 0.85);
+    ctx.fillStyle = rgba(C.CORE, op * 0.85);
     ctx.beginPath();
     ctx.arc(x, y, r * 0.35, 0, Math.PI * 2);
     ctx.fill();
