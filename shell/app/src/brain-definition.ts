@@ -101,10 +101,16 @@ export interface BrainDefinition {
   identity?: BrainIdentity;
 
   /**
-   * Default site package — bundles theme, layout, routes, and site plugin.
-   * Can be overridden per-instance via `site` in brain.yaml.
+   * Default site package — layout, routes, site plugin, and display metadata.
+   * Can be overridden per-instance via `site.package` in brain.yaml.
    */
   site?: SitePackage;
+
+  /**
+   * Default composed theme CSS for the brain instance.
+   * Can be overridden per-instance via `site.theme` in brain.yaml.
+   */
+  theme?: string;
 
   /**
    * Capabilities as [id, factory, config] tuples.

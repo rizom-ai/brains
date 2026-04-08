@@ -4,7 +4,6 @@ import {
   ProfessionalLayout,
   routes,
 } from "@brains/layout-professional";
-import themeCSS from "@brains/theme-brutalist";
 import type { SitePackage } from "@brains/app";
 
 /**
@@ -15,7 +14,6 @@ import type { SitePackage } from "@brains/app";
  * (essays, presentations, projects) into a single deployable unit.
  */
 const site: SitePackage = {
-  theme: themeCSS,
   layouts: {
     default: ProfessionalLayout,
   },

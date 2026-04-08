@@ -4,7 +4,6 @@ import {
   ProfessionalLayout,
   routes,
 } from "@brains/layout-professional";
-import themeCSS from "@brains/theme-default";
 import type { SitePackage } from "@brains/app";
 
 /**
@@ -15,7 +14,6 @@ import type { SitePackage } from "@brains/app";
  * palette without decorative animations or branded styling.
  */
 const site: SitePackage = {
-  theme: themeCSS,
   layouts: {
     default: ProfessionalLayout,
   },

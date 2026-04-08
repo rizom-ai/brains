@@ -13,6 +13,7 @@ import {
   InstanceOverridesParseError,
 } from "../src/instance-overrides";
 import type { Plugin, IShell, PluginCapabilities } from "@brains/plugins";
+import { composeTheme } from "@brains/theme-base";
 
 // --- Test helpers ---
 
@@ -937,7 +938,6 @@ function createMockSitePackage(
   overrides?: Partial<SitePackage>,
 ): SitePackage {
   return {
-    theme: "body { color: pink; }",
     layouts: { default: null },
     routes: [{ id: "home", path: "/", title: "Home" }],
     plugin: (config) => createMockPlugin(pluginId, config ?? {}),
@@ -947,7 +947,7 @@ function createMockSitePackage(
 }
 
 describe("resolve with site package", () => {
-  test("should use site from brain definition as default", () => {
+  test("should use theme from brain definition as default", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site");
 
@@ -955,6 +955,7 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
+      theme: "body { color: pink; }",
       capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
@@ -962,11 +963,11 @@ describe("resolve with site package", () => {
     const config = resolve(def, {});
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
-    // Site plugin should be auto-registered
     expect(pluginIds).toContain("personal-site");
-    // Site-builder should get theme injected
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
-    expect(getConfig(siteBuilder)["themeCSS"]).toBe("body { color: pink; }");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme("body { color: pink; }"),
+    );
   });
 
   test("should inject routes and entityDisplay into site-builder", () => {
@@ -1078,22 +1079,18 @@ describe("resolve with site package", () => {
     expect(layouts["minimal"]).toBe(mockMinimal);
   });
 
-  test("should override brain definition site with brain.yaml site", () => {
+  test("should override brain definition site with brain.yaml site without changing theme", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const defaultSite = createMockSitePackage("professional-site", {
-      theme: "body { color: blue; }",
-    });
-    const overrideSite = createMockSitePackage("personal-site", {
-      theme: "body { color: pink; }",
-    });
+    const defaultSite = createMockSitePackage("professional-site");
+    const overrideSite = createMockSitePackage("personal-site");
 
-    // Register the override package
     registerPackage("@brains/site-override", overrideSite);
 
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
       site: defaultSite,
+      theme: "body { color: pink; }",
       capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
@@ -1105,25 +1102,53 @@ describe("resolve with site package", () => {
     );
     const pluginIds = config.plugins?.map((p) => p.id) ?? [];
 
-    // Override site plugin should be registered, not the default
     expect(pluginIds).toContain("personal-site");
     expect(pluginIds).not.toContain("professional-site");
 
-    // Theme should come from override
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
-    expect(getConfig(siteBuilder)["themeCSS"]).toBe("body { color: pink; }");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme("body { color: pink; }"),
+    );
   });
 
-  test("should allow brain.yaml site-builder overrides to win over site defaults", () => {
+  test("should override brain definition theme with brain.yaml site.theme", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
-    const site = createMockSitePackage("personal-site", {
-      theme: "body { color: pink; }",
-    });
+    const site = createMockSitePackage("personal-site");
+
+    registerPackage("@brains/theme-override", "body { color: purple; }");
 
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
       site,
+      theme: "body { color: pink; }",
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        site: { theme: "@brains/theme-override" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme("body { color: purple; }"),
+    );
+  });
+
+  test("should allow brain.yaml site-builder overrides to win over site defaults", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      theme: "body { color: pink; }",
       capabilities: [["site-builder", siteBuilderFactory, {}]],
       interfaces: [],
     });
@@ -1139,9 +1164,7 @@ describe("resolve with site package", () => {
     const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
     const sbConfig = getConfig(siteBuilder);
 
-    // Site defaults should still be present
-    expect(sbConfig["themeCSS"]).toBe("body { color: pink; }");
-    // Explicit overrides should also be present
+    expect(sbConfig["themeCSS"]).toBe(composeTheme("body { color: pink; }"));
     expect(sbConfig["cms"]).toEqual({ enabled: true });
   });
 
@@ -1195,7 +1218,6 @@ site:
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
     const site: SitePackage = {
-      theme: "",
       layouts: { default: null },
       routes: [],
       plugin: (config) => {
@@ -1224,10 +1246,9 @@ site:
     });
   });
 
-  test("should spread site flavor fields (variant, theme) into the site plugin config", () => {
-    // Phase 0 enabler: brain.yaml's `site: { variant, theme, ... }`
-    // flows through to the site plugin's factory so one site package
-    // can ship multiple flavors (e.g. site-rizom with foundation/work/ai).
+  test("should spread site variant into the site plugin config but keep theme separate", () => {
+    // Site selection and theme selection stay colocated in brain.yaml,
+    // but theme resolution is a resolver concern, not a site-plugin concern.
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const pluginConfigs: PluginConfig[] = [];
     const site = createMockSitePackage("rizom-site", {
@@ -1251,10 +1272,8 @@ site:
       {},
       {
         site: {
-          // package: undefined — we want the brain definition's default site,
-          // just with flavor fields layered on top
           variant: "foundation",
-          theme: "github:rizom-ai/theme-foundation",
+          theme: "@brains/theme-foundation",
         },
       },
     );
@@ -1264,8 +1283,7 @@ site:
     expect(sitePlugin).toBeDefined();
     const cfg = getConfig(sitePlugin);
     expect(cfg["variant"]).toBe("foundation");
-    expect(cfg["theme"]).toBe("github:rizom-ai/theme-foundation");
-    // package should NOT leak into the plugin config
+    expect(cfg["theme"]).toBeUndefined();
     expect(cfg["package"]).toBeUndefined();
   });
 

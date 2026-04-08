@@ -1,6 +1,5 @@
 import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/app";
-import themeCSS from "@brains/theme-rizom";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
@@ -37,7 +36,6 @@ import { RizomSitePlugin } from "./plugin";
  * the package: tree (ai), constellation (work), roots (foundation).
  */
 const site: SitePackage = {
-  theme: themeCSS,
   layouts: {
     default: DefaultLayout,
   },

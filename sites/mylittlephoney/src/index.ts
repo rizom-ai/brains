@@ -4,7 +4,6 @@ import {
   PersonalLayout,
   routes,
 } from "@brains/layout-personal";
-import themeCSS from "@brains/theme-mylittlephoney";
 import type { SitePackage } from "@brains/app";
 
 /**
@@ -14,7 +13,6 @@ import type { SitePackage } from "@brains/app";
  * blog-focused personal layout into a single deployable unit.
  */
 const site: SitePackage = {
-  theme: themeCSS,
   layouts: {
     default: PersonalLayout,
   },

@@ -18,6 +18,7 @@ import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
 import rangerSite from "@brains/site-ranger";
+import rangerTheme from "@brains/theme-ranger";
 
 /**
  * Ranger Brain Model
@@ -37,6 +38,7 @@ export default defineBrain({
   name: "ranger",
   version: "0.1.0",
   site: rangerSite,
+  theme: rangerTheme,
   presets: {
     default: [
       "prompt",

@@ -26,6 +26,7 @@ import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import { agentDiscovery } from "@brains/agent-discovery";
 import defaultSite from "@brains/site-default";
+import defaultTheme from "@brains/theme-default";
 import { join } from "path";
 
 /**
@@ -82,6 +83,7 @@ export default defineBrain({
   name: "rover",
   version: "0.1.0",
   site: defaultSite,
+  theme: defaultTheme,
   presets: {
     core,
     default: web,

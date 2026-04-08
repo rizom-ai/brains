@@ -1,4 +1,5 @@
 import type { Plugin } from "@brains/plugins";
+import { composeTheme } from "@brains/theme-base";
 import { ZodError, type Logger } from "@brains/utils";
 import type {
   BrainDefinition,
@@ -6,11 +7,12 @@ import type {
   PresetName,
 } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
+import { stripSiteConfig, type InstanceOverrides } from "./instance-overrides";
 import {
-  stripSitePackageRef,
-  type InstanceOverrides,
-} from "./instance-overrides";
-import type { SitePackage } from "./site-package";
+  sitePackageSchema,
+  themeCssSchema,
+  type SitePackage,
+} from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
 import { logLevelSchema } from "./types";
@@ -121,40 +123,39 @@ export function resolve(
   const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
 
-  // Resolve site package: brain.yaml `site` overrides brain definition default
   const site: SitePackage | undefined = resolveSitePackage(
     definition,
     overrides,
   );
+  const theme = resolveTheme(definition, overrides);
 
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [];
 
-  if (site) {
-    // Inject the site package's data into site-builder's plugin overrides.
+  if (site || theme !== undefined) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
-    pluginOverrides["site-builder"] = deepMerge(
-      {
-        themeCSS: site.theme,
+    const siteBuilderDefaults: Record<string, unknown> = {
+      ...(theme !== undefined && { themeCSS: theme }),
+      ...(site && {
         routes: site.routes,
         entityDisplay: site.entityDisplay,
         layouts: site.layouts,
-        ...(site.staticAssets && { staticAssets: site.staticAssets }),
-      },
+      }),
+      ...(site?.staticAssets && { staticAssets: site.staticAssets }),
+    };
+
+    pluginOverrides["site-builder"] = deepMerge(
+      siteBuilderDefaults,
       siteBuilderExplicit,
     );
+  }
 
-    // Construct the site package's own plugin. brain.yaml flavor fields
-    // (variant, theme, ...) flow through to the plugin's Zod-validated
-    // config schema; `package` is stripped because it was already consumed
-    // by resolveSitePackage above.
+  if (site) {
     const sitePlugin = site.plugin({
       entityDisplay: site.entityDisplay,
-      ...stripSitePackageRef(overrides?.site),
+      ...stripSiteConfig(overrides?.site),
     });
-    // Register site plugin when site-builder is active (site plugin
-    // is part of the site package, not listed in presets directly)
     if (!activeIds || activeIds.has("site-builder")) {
       capabilities.push(sitePlugin);
     }
@@ -356,9 +357,47 @@ function resolveSitePackage(
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
   if (pkgRef && hasPackage(pkgRef)) {
-    return getPackage(pkgRef) as SitePackage;
+    const pkg = getPackage(pkgRef);
+    const parsed = sitePackageSchema.safeParse(pkg);
+    if (!parsed.success) {
+      throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
+    }
+
+    return {
+      layouts: parsed.data.layouts,
+      routes: parsed.data.routes,
+      plugin: parsed.data.plugin,
+      entityDisplay: parsed.data.entityDisplay,
+      ...(parsed.data.staticAssets
+        ? { staticAssets: parsed.data.staticAssets }
+        : {}),
+    };
   }
   return definition.site;
+}
+
+function resolveTheme(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): string | undefined {
+  const overrideTheme = overrides?.site?.theme;
+  if (typeof overrideTheme === "string") {
+    if (hasPackage(overrideTheme)) {
+      const pkg = getPackage(overrideTheme);
+      const parsed = themeCssSchema.safeParse(pkg);
+      if (!parsed.success) {
+        throw new Error(`Package "${overrideTheme}" does not export theme CSS`);
+      }
+      return composeTheme(parsed.data);
+    }
+    return composeTheme(overrideTheme);
+  }
+
+  if (definition.theme) {
+    return composeTheme(definition.theme);
+  }
+
+  return undefined;
 }
 
 /**

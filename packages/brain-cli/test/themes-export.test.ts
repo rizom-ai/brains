@@ -45,11 +45,13 @@ describe("@rizom/brain/themes export", () => {
     );
   });
 
-  it("src/types/themes.d.ts declares composeTheme", () => {
+  it("src/types/themes.d.ts declares composeTheme without coupling themes to SitePackage", () => {
     const path = join(pkgDir, "src", "types", "themes.d.ts");
     expect(existsSync(path)).toBe(true);
     const src = readFileSync(path, "utf-8");
     expect(src).toMatch(/export\s+function\s+composeTheme\s*\(/);
+    expect(src).not.toContain("SitePackage.theme");
+    expect(src).not.toContain("theme: composeTheme");
   });
 
   it("package.json exports ./themes with types + import", () => {

@@ -3,26 +3,25 @@ import type {
   RouteDefinitionInput,
   EntityDisplayEntry,
 } from "@brains/plugins";
+import { z } from "@brains/utils";
 
 /**
- * A site package bundles everything the site-builder needs:
- * - Visual identity (theme CSS)
+ * A site package bundles everything the site-builder needs for
+ * site structure:
  * - Page structure (layout components)
  * - Hand-written routes (home, about, etc.)
  * - Data layer (site plugin with templates + datasources)
  * - Display metadata per entity type (labels, navigation, pagination)
  *
- * Site packages compose reusable layouts with a specific theme
- * to create a complete site identity.
+ * Themes are resolved separately by the resolver. A brain chooses a
+ * site package and a theme independently, even though both choices are
+ * colocated under `site:` in brain.yaml.
  *
  * @example
  * ```ts
  * import { personalSitePlugin, PersonalLayout, routes } from "@brains/layout-personal";
- * import { composeTheme } from "@brains/theme-base";
- * import themeCSS from "./theme.css" with { type: "text" };
  *
  * const site: SitePackage = {
- *   theme: composeTheme(themeCSS),
  *   layouts: { default: PersonalLayout },
  *   routes,
  *   plugin: personalSitePlugin,
@@ -35,9 +34,6 @@ import type {
  * ```
  */
 export interface SitePackage {
-  /** Composed theme CSS string (theme-base + site-specific overrides) */
-  theme: string;
-
   /** Layout components keyed by name — at minimum "default" is required */
   layouts: Record<string, unknown>;
 
@@ -70,3 +66,15 @@ export interface SitePackage {
    */
   staticAssets?: Record<string, string>;
 }
+
+export const themeCssSchema = z.string();
+
+export const sitePackageSchema = z.object({
+  layouts: z.record(z.unknown()),
+  routes: z.array(z.custom<RouteDefinitionInput>(() => true)),
+  plugin: z.custom<SitePackage["plugin"]>(
+    (value) => typeof value === "function",
+  ),
+  entityDisplay: z.record(z.custom<EntityDisplayEntry>(() => true)),
+  staticAssets: z.record(z.string()).optional(),
+});

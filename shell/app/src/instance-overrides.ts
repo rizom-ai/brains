@@ -12,13 +12,15 @@ const instanceOverridesSchema = z.object({
   brain: z.string().optional(),
 
   /**
-   * Site package override.
+   * Site and theme overrides.
    *
    * - `package` names the site package to load (e.g. `@brains/site-rizom`).
    *   Overrides any `site` set by the brain definition.
-   * - `variant` and `theme` are forwarded to the site plugin's config
-   *   schema, so a single site package can ship multiple flavors
+   * - `variant` is forwarded to the site plugin's config schema, so a
+   *   single site package can ship multiple structural flavors
    *   (e.g. site-rizom with variant: foundation | work | ai).
+   * - `theme` selects the theme package or inline CSS string to use for
+   *   styling. It is resolved separately from the site plugin.
    *
    * The whole block is optional; any subfield is optional.
    */
@@ -99,16 +101,20 @@ const instanceOverridesSchema = z.object({
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 
 /**
- * Strip the `package` field from a site override, leaving only the flavor
- * fields (variant, theme, ...) that flow into the site plugin's factory.
- * `package` is consumed at package-resolution time and must not leak into
- * the plugin config.
+ * Strip site fields consumed by the resolver before constructing the
+ * site plugin config.
+ *
+ * - `package` is consumed by site-package resolution
+ * - `theme` is consumed by theme resolution
+ *
+ * Remaining fields (for example `variant`) flow into the site plugin's
+ * own config schema.
  */
-export function stripSitePackageRef(
+export function stripSiteConfig(
   site: NonNullable<InstanceOverrides["site"]> | undefined,
-): Omit<NonNullable<InstanceOverrides["site"]>, "package"> {
-  const { package: _pkg, ...flavor } = site ?? {};
-  return flavor;
+): Omit<NonNullable<InstanceOverrides["site"]>, "package" | "theme"> {
+  const { package: _pkg, theme: _theme, ...config } = site ?? {};
+  return config;
 }
 
 /**

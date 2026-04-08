@@ -16,8 +16,8 @@
  */
 
 /**
- * Prepend the shared base theme utilities to a site-specific theme
- * CSS string and return the combined result.
+ * Prepend the shared base theme utilities to a raw theme CSS string
+ * and return the combined result.
  *
  * The base utilities layer contains:
  *
@@ -32,22 +32,17 @@
  * - Universal gradient, status, selection, and warning utilities
  * - Prose color slots for `@tailwindcss/typography`
  *
- * Consumers MUST call `composeTheme(myThemeCSS)` when constructing a
- * `SitePackage.theme` from their own CSS. Without it, Tailwind can't
- * resolve utilities like `bg-brand` and the site build crashes with:
- *
- *     Cannot apply unknown utility class `focus-visible:ring-brand`
+ * The framework resolver uses this helper when it loads a raw theme
+ * package or inline theme CSS. Advanced consumers can use the same
+ * helper when they need a fully composed CSS string outside the
+ * resolver.
  *
  * @example
  * ```ts
  * import { composeTheme } from "@rizom/brain/themes";
- * import type { SitePackage } from "@rizom/brain/site";
  * import themeCSS from "./theme.css" with { type: "text" };
  *
- * const site: SitePackage = {
- *   theme: composeTheme(themeCSS),
- *   // ...
- * };
+ * const fullThemeCSS = composeTheme(themeCSS);
  * ```
  */
 export function composeTheme(themeCSS: string): string;

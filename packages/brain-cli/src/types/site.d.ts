@@ -86,9 +86,11 @@ export interface EntityDisplayEntry {
 }
 
 /**
- * A site package bundles everything the site-builder needs:
- * theme CSS, layout components, hand-written routes, the site
- * plugin factory, and per-entity display metadata.
+ * A site package bundles everything the site-builder needs for site
+ * structure: layout components, hand-written routes, the site plugin
+ * factory, and per-entity display metadata.
+ *
+ * Themes are resolved separately by the framework.
  *
  * @example
  * ```ts
@@ -98,10 +100,8 @@ export interface EntityDisplayEntry {
  *   routes,
  * } from "@rizom/brain/site";
  * import type { Plugin, SitePackage } from "@rizom/brain/site";
- * import themeCSS from "./theme.css" with { type: "text" };
  *
  * const site: SitePackage = {
- *   theme: themeCSS,
  *   layouts: { default: PersonalLayout },
  *   routes,
  *   plugin: (config) => personalSitePlugin(config ?? {}),
@@ -114,8 +114,6 @@ export interface EntityDisplayEntry {
  * ```
  */
 export interface SitePackage {
-  /** Composed theme CSS string */
-  theme: string;
   /** Layout components keyed by name — at minimum "default" is required */
   layouts: Record<string, unknown>;
   /** Hand-written route definitions */

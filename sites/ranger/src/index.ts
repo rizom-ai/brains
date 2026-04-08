@@ -6,7 +6,6 @@ import {
   CTAFooterLayout,
 } from "./layouts";
 import { routes as defaultRoutes } from "./routes";
-import themeCSS from "@brains/theme-ranger";
 import type { SitePackage } from "@brains/app";
 import { RangerSitePlugin } from "./plugin";
 
@@ -48,7 +47,6 @@ const routes = defaultRoutes.map((route) => {
  * that shows a HOME entity instead of the intro section.
  */
 const site: SitePackage = {
-  theme: themeCSS,
   layouts: {
     default: DefaultLayout,
     minimal: MinimalLayout,

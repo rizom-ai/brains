@@ -1,7 +1,6 @@
 // Types for CSS imports are defined in types.d.ts
 /// <reference types="./types.d.ts" />
 
-import { composeTheme } from "@brains/theme-base";
 import themeCSSOnly from "./theme.css" with { type: "text" };
 
 /**
@@ -15,7 +14,5 @@ import themeCSSOnly from "./theme.css" with { type: "text" };
  * Dark mode is the designed experience (the marketing sites are built
  * to be read dark-first). Light mode is a supported fallback.
  */
-const themeCSS = composeTheme(themeCSSOnly);
-
-export default themeCSS;
-export { themeCSS };
+export default themeCSSOnly;
+export { themeCSSOnly };
