@@ -7,6 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/rizom-ai
     steps:
       - uses: actions/checkout@v4
 
@@ -27,4 +30,4 @@ jobs:
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
           GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}
           MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
-        run: kamal deploy
+        run: kamal deploy --skip-push

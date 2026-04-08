@@ -1,5 +1,5 @@
 service: brain
-image: ghcr.io/rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
 
 servers:
   web:
@@ -12,12 +12,17 @@ proxy:
     - <%= ENV['BRAIN_DOMAIN'] %>:80
     - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
   app_port: 80
+  healthcheck:
+    path: /health
 
 registry:
   server: ghcr.io
   username: rizom-ai
   password:
     - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
 
 env:
   clear:
@@ -31,7 +36,3 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-
-healthcheck:
-  path: /health
-  port: 80

@@ -210,7 +210,7 @@ describe("brain init", () => {
 
     it("should NOT create deploy files by default", () => {
       scaffold(testDir, { model: "rover" });
-      expect(existsSync(join(testDir, "deploy.yml"))).toBe(false);
+      expect(existsSync(join(testDir, "config", "deploy.yml"))).toBe(false);
       expect(existsSync(join(testDir, ".kamal"))).toBe(false);
       expect(existsSync(join(testDir, ".github"))).toBe(false);
     });
@@ -266,7 +266,7 @@ describe("brain init", () => {
 
       scaffold(testDir, { model: "rover", deploy: true });
 
-      expect(existsSync(join(testDir, "deploy.yml"))).toBe(true);
+      expect(existsSync(join(testDir, "config", "deploy.yml"))).toBe(true);
       expect(existsSync(join(testDir, ".kamal", "hooks", "pre-deploy"))).toBe(
         true,
       );
@@ -290,12 +290,21 @@ describe("brain init", () => {
   });
 
   describe("deploy scaffold (--deploy flag)", () => {
-    it("should create deploy.yml when deploy is true", () => {
+    it("should create config/deploy.yml when deploy is true", () => {
       scaffold(testDir, { model: "rover", deploy: true });
 
-      const deploy = readFileSync(join(testDir, "deploy.yml"), "utf-8");
+      const deploy = readFileSync(
+        join(testDir, "config", "deploy.yml"),
+        "utf-8",
+      );
       expect(deploy).toContain("BRAIN_MODEL");
       expect(deploy).toContain("BRAIN_DOMAIN");
+      expect(deploy).toContain("proxy:");
+      expect(deploy).toContain("healthcheck:");
+      expect(deploy).toContain("path: /health");
+      expect(deploy).not.toMatch(/^healthcheck:/m);
+      expect(deploy).toContain("builder:");
+      expect(deploy).toContain("arch: amd64");
     });
 
     it("should create pre-deploy hook when deploy is true", () => {
@@ -316,7 +325,7 @@ describe("brain init", () => {
         join(testDir, ".github", "workflows", "deploy.yml"),
         "utf-8",
       );
-      expect(workflow).toContain("kamal deploy");
+      expect(workflow).toContain("kamal deploy --skip-push");
     });
 
     it("should produce same deploy.yml regardless of model", () => {
@@ -332,8 +341,8 @@ describe("brain init", () => {
         deploy: true,
       });
 
-      const deploy1 = readFileSync(join(dir1, "deploy.yml"), "utf-8");
-      const deploy2 = readFileSync(join(dir2, "deploy.yml"), "utf-8");
+      const deploy1 = readFileSync(join(dir1, "config", "deploy.yml"), "utf-8");
+      const deploy2 = readFileSync(join(dir2, "config", "deploy.yml"), "utf-8");
       expect(deploy1).toBe(deploy2);
     });
   });

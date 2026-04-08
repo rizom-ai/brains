@@ -138,9 +138,9 @@ ${gitBlock}  mcp:
  * All instance-specific values come from env vars that CI
  * extracts from brain.yaml.
  */
-function writeDeployYml(dir: string): void {
+function writeDeployYml(dir: string, onlyIfMissing = false): void {
   const content = `service: brain
-image: ghcr.io/rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
 
 servers:
   web:
@@ -153,12 +153,17 @@ proxy:
     - <%= ENV['BRAIN_DOMAIN'] %>:80
     - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
   app_port: 80
+  healthcheck:
+    path: /health
 
 registry:
   server: ghcr.io
   username: rizom-ai
   password:
     - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
 
 env:
   clear:
@@ -172,13 +177,9 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-
-healthcheck:
-  path: /health
-  port: 80
 `;
 
-  writeScaffoldFile(join(dir, "deploy.yml"), content);
+  writeScaffoldFile(join(dir, "config", "deploy.yml"), content, onlyIfMissing);
 }
 
 function writeEnvExample(dir: string): void {
@@ -266,7 +267,7 @@ jobs:
           AI_API_KEY: \${{ secrets.AI_API_KEY }}
           GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
           MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
-        run: kamal deploy
+        run: kamal deploy --skip-push
 `;
 
   writeScaffoldFile(join(dir, ".github", "workflows", "deploy.yml"), content);

@@ -34,10 +34,11 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Only public brain models are published. ranger and relay are
-        # private until they have real content and implementations.
-        # Add them here once they're ready to ship publicly.
-        model: [rover]
+        # Publish all deployable brain model images. rover is the main
+        # public framework entry point; ranger and relay power the
+        # public-facing rizom.ai / rizom.foundation instances and must
+        # therefore be deployable via GHCR too.
+        model: [rover, ranger, relay]
 
     steps:
       - uses: actions/checkout@v5
