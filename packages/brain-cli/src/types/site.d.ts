@@ -11,8 +11,9 @@
  *
  * **Sync rules:**
  * - When the runtime shape of `SitePackage`, `personalSitePlugin`,
- *   `PersonalLayout`, or `routes` changes, this file MUST be updated
- *   in the same commit.
+ *   `professionalSitePlugin`, `PersonalLayout`, `ProfessionalLayout`,
+ *   or the route exports changes, this file MUST be updated in the
+ *   same commit.
  * - `Plugin` and `RouteDefinitionInput` are deliberately opaque
  *   pass-throughs — consumers receive them, hand them back, and
  *   never introspect. Do NOT expand them to mirror internal shapes.
@@ -39,8 +40,9 @@ import type { ComponentType } from "preact";
 
 /**
  * Opaque plugin marker. Consumers receive plugin instances via
- * `personalSitePlugin(config)` and pass them along to brain.yaml /
- * brain definitions; they do not introspect the shape themselves.
+ * `personalSitePlugin(config)` / `professionalSitePlugin(config)` and
+ * pass them along to brain.yaml / brain definitions; they do not
+ * introspect the shape themselves.
  */
 export interface Plugin {
   readonly id: string;
@@ -50,7 +52,7 @@ export interface Plugin {
 }
 
 /**
- * Opaque route definition. Consumers receive `routes` from
+ * Opaque route definition. Consumers receive route exports from
  * `@rizom/brain/site` and place them on the `SitePackage.routes`
  * field verbatim — they do not construct or modify the shape.
  */
@@ -145,3 +147,28 @@ export function personalSitePlugin(config?: Record<string, unknown>): Plugin;
  * (homepage, about, etc.). Place verbatim on `SitePackage.routes`.
  */
 export const routes: RouteDefinitionInput[];
+
+/**
+ * Alias for the personal site routes. Prefer this in new code when you
+ * want to be explicit about which layout family you are pairing.
+ */
+export const personalRoutes: RouteDefinitionInput[];
+
+/**
+ * Professional site layout — a Preact component used as the default
+ * layout in a `SitePackage.layouts` map for professional/editorial sites.
+ */
+export const ProfessionalLayout: ComponentType<Record<string, unknown>>;
+
+/**
+ * Professional site plugin factory. Registers templates, datasources,
+ * and schema extensions needed by the professional layout.
+ */
+export function professionalSitePlugin(
+  config?: Record<string, unknown>,
+): Plugin;
+
+/**
+ * Hand-written route definitions for the professional layout.
+ */
+export const professionalRoutes: RouteDefinitionInput[];

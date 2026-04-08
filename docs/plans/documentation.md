@@ -2,7 +2,7 @@
 
 ## Context
 
-The codebase has extensive internal documentation (CLAUDE.md, plugin guidelines, architecture docs, plans). But there's no user-facing documentation — nothing that helps someone deploy, configure, and use a brain.
+The codebase has extensive internal documentation (AGENTS.md, plugin guidelines, architecture docs, plans). But there's no user-facing documentation — nothing that helps someone deploy, configure, and use a brain.
 
 This blocks Rover 1.0. Without docs, only the developers can use the system.
 
@@ -47,7 +47,7 @@ This blocks Rover 1.0. Without docs, only the developers can use the system.
 
 1. **Themes** — how to create/customize themes
 2. **Layouts** — how to create custom layouts
-3. **Plugins** — how to write an EntityPlugin or ServicePlugin (link to existing plugin CLAUDE.md)
+3. **Plugins** — how to write an EntityPlugin or ServicePlugin (link to the existing plugin AGENTS.md files)
 
 ## Format
 

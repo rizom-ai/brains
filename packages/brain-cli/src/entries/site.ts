@@ -14,4 +14,11 @@ export {
   personalSitePlugin,
   PersonalLayout,
   routes,
+  routes as personalRoutes,
 } from "@brains/layout-personal";
+
+export {
+  professionalSitePlugin,
+  ProfessionalLayout,
+  routes as professionalRoutes,
+} from "@brains/layout-professional";

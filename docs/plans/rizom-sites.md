@@ -133,7 +133,7 @@ The existing `shared/theme-rizom/` is misnamed — it's actually the Ranger them
 
 Modeled on `shared/theme-default/` (standalone theme using `composeTheme()` from `@brains/theme-base`).
 
-**Token hierarchy** (per CLAUDE.md theming rules):
+**Token hierarchy** (per the theming guide):
 
 Palette tokens (`@layer theme`, never used directly):
 

@@ -1,9 +1,9 @@
 # Plugin Development Quick Reference
 
-This document has been consolidated into [`plugins/CLAUDE.md`](../plugins/CLAUDE.md), which is auto-loaded when working in the plugins or entities directories.
+This document has been consolidated into the repository `AGENTS.md` files, especially [`entities/AGENTS.md`](../entities/AGENTS.md) and [`plugins/AGENTS.md`](../plugins/AGENTS.md).
 
 See also:
 
-- **Entity plugins**: [`entities/README.md`](../entities/README.md)
-- **Interface plugins**: [`interfaces/CLAUDE.md`](../interfaces/CLAUDE.md)
+- **Entity plugins**: [`entities/AGENTS.md`](../entities/AGENTS.md)
+- **Interface plugins**: [`interfaces/AGENTS.md`](../interfaces/AGENTS.md)
 - **Architecture overview**: [`docs/architecture-overview.md`](./architecture-overview.md)

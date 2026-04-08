@@ -303,5 +303,7 @@ extraction.
   - [x] Apply the convention only when `site.package` / `site.theme` are omitted
   - [x] Support both bundled CLI boot and generated static entrypoints
 - [ ] P3: `brain init` scaffolds both files
-- [ ] P4: `createPersonalSite()` / `createProfessionalSite()` factories
+- [x] P4: widen `@rizom/brain/site` for standalone authoring
+  - [x] expose professional site symbols alongside the personal ones
+  - [x] keep the public API concentrated under `@rizom/brain/site`
 - [ ] mylittlephoney retrofit to the new shape

@@ -181,7 +181,7 @@ We're discarding history, so we only need to audit the _current tree_ — but we
    ```bash
    git ls-files | grep -E '\.env($|\.)'
    ```
-5. **CLAUDE.md / agent files** — review for anything personal/private; rename to `AGENTS.md` if keeping (more vendor-neutral).
+5. **AGENTS.md / agent files** — review for anything personal/private; keep them vendor-neutral.
 6. **`.github/workflows/*.yml`** — two passes:
    - **Secret references**: must be `${{ secrets.X }}`, never inline.
    - **Fork-safety**: any workflow that publishes to a registry, deploys, or otherwise touches infrastructure (`publish-images.yml`, anything pushing to GHCR, anything calling Hetzner) must be conditional on `if: github.repository == 'rizom-ai/brains'`. Forks running CI shouldn't try to push to your registry or deploy to your infra. Audit each `on: push` / `on: release` workflow individually.

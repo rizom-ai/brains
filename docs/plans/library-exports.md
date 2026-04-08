@@ -54,6 +54,8 @@ One subpath:
 | ------------------- | --------------------------------------------------------------------------------------- | ------------------------------ |
 | `@rizom/brain/site` | `personalSitePlugin`, `PersonalLayout`, `routes`, `Plugin`, `SitePackage`, layout types | mylittlephoney standalone site |
 
+Note: standalone site authoring later widened this same subpath with the professional symbols too, instead of creating a separate subpath. The public surface stays concentrated under `@rizom/brain/site`.
+
 Approximately 6 named exports. One additional bundle entry. Enough to
 make the mylittlephoney site code build outside the monorepo.
 
@@ -63,11 +65,11 @@ make the mylittlephoney site code build outside the monorepo.
 
 Two more subpaths:
 
-| Subpath                | Exports                                                                            | Consumer                                 |
-| ---------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------- |
-| `@rizom/brain/site`    | All Tier 1 exports + `professionalSitePlugin`, `ProfessionalLayout`, route helpers | Any standalone site repo                 |
-| `@rizom/brain/themes`  | `composeTheme`, `theme-base` utilities, theme primitive types                      | Custom theme authoring                   |
-| `@rizom/brain/plugins` | Base `Plugin` interface, `PluginCapabilities`, content/render types                | Site code that interacts with plugin API |
+| Subpath                | Exports                                                             | Consumer                                 |
+| ---------------------- | ------------------------------------------------------------------- | ---------------------------------------- |
+| `@rizom/brain/site`    | Tier 1 base plus named personal/professional site authoring symbols | Any standalone site repo                 |
+| `@rizom/brain/themes`  | `composeTheme`, `theme-base` utilities, theme primitive types       | Custom theme authoring                   |
+| `@rizom/brain/plugins` | Base `Plugin` interface, `PluginCapabilities`, content/render types | Site code that interacts with plugin API |
 
 **Effort:** ~half day on top of Tier 1.
 

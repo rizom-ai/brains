@@ -322,7 +322,7 @@ Recall is built on a plugin-based architecture:
 
 This is an internal tool, but we welcome contributions:
 
-1. Follow the [CLAUDE.md](../../CLAUDE.md) development guidelines
+1. Follow the repository [AGENTS.md](../../AGENTS.md) development guidelines
 2. Write tests for new features
 3. Run `bun run typecheck` and `bun run lint` before committing
 4. Keep commits focused and write clear messages

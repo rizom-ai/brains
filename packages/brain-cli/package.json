@@ -49,6 +49,7 @@
     "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/layout-personal": "workspace:*",
+    "@brains/layout-professional": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/rover": "workspace:*",

@@ -71,8 +71,8 @@ Start here:
 
 ### Plugin and interface work
 
-- [plugins/CLAUDE.md](plugins/CLAUDE.md)
-- [interfaces/CLAUDE.md](interfaces/CLAUDE.md)
+- [plugins/AGENTS.md](plugins/AGENTS.md)
+- [interfaces/AGENTS.md](interfaces/AGENTS.md)
 - [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
 - [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md)
 - `plugins/examples/`
