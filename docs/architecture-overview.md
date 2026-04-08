@@ -19,7 +19,7 @@ brain model + brain.yaml instance config = running brain
 2. **Entity-driven** — durable content lives as typed entities stored as markdown with frontmatter.
 3. **Schema-first** — Zod schemas define config, entities, tool inputs, and API contracts.
 4. **Plugin-based** — almost all product behavior is composed from EntityPlugins, ServicePlugins, and InterfacePlugins.
-5. **Brain model / instance separation** — reusable models live in `brains/`; deployable instances live in `apps/` as config-only directories.
+5. **Brain model / instance separation** — reusable models live in `brains/`; deployable instances live in `apps/` as lightweight instance packages centered on `brain.yaml`.
 6. **Stable architectural boundaries** — plugin code should flow through `@brains/plugins` and shared packages rather than reaching directly into shell internals.
 
 ## Workspace structure
@@ -38,7 +38,7 @@ brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
 ```
 
-`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is just a deployment bundle (`brain.yaml`, `.env`, optional `deploy/`) consumed by the CLI at runtime.
+`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is a lightweight instance package: `brain.yaml` plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the CLI at runtime.
 
 ## Current package map
 
@@ -237,7 +237,7 @@ Current deployment paths:
 - **Container deployment** for production brains
 - **Hetzner-hosted deployments** today, with Kamal becoming the default deploy path
 
-Each deployed instance stays lightweight at the source level: a brain model package plus a config-only app directory.
+Each deployed instance stays lightweight at the source level: a brain model package plus a lightweight instance package centered on `brain.yaml`.
 
 ## Where to read next
 

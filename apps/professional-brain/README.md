@@ -14,7 +14,7 @@ bunx brain start   # from this directory
 
 Preview site: http://localhost:4321
 
-This directory is a config-only brain instance — no `package.json`, no source code. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
+This directory is a lightweight brain instance package centered on `brain.yaml`. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ## Configuration
 

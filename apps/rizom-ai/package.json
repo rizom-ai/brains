@@ -1,0 +1,12 @@
+{
+  "name": "rizom-ai",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "bunx brain start"
+  },
+  "dependencies": {
+    "@rizom/brain": "^0.1.1-alpha.6",
+    "preact": "^10.27.2"
+  }
+}

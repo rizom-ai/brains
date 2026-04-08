@@ -21,8 +21,8 @@ cd brains
 # Install dependencies
 bun install
 
-# Run any brain instance from its config-only directory.
-# Apps are not workspace members — they're brain.yaml + .env directories
+# Run any brain instance from its lightweight instance package directory.
+# Apps are not workspace members — they're brain.yaml-centered instance packages
 # consumed by the brain CLI at runtime.
 cd apps/yeehaa.io
 cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
@@ -178,7 +178,7 @@ brains/*      # Brain model packages (rover, ranger, relay)
 packages/*    # Standalone npm packages (brain-cli → @rizom/brain)
 ```
 
-`apps/*` is **not** a workspace category. Each `apps/<name>/` is a config-only directory — `brain.yaml` + `.env` + optional `deploy/` — consumed by the `brain` CLI at runtime against the brain model package it references. See `docs/brain-model.md`.
+`apps/*` is **not** a workspace category. Each `apps/<name>/` is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references. See `docs/brain-model.md`.
 
 ### Working with Turborepo
 

@@ -17,7 +17,7 @@ brains/
 └── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
 ```
 
-`apps/` is **not** a workspace category. Each `apps/<name>/` is a config-only directory (`brain.yaml` + `.env` + optional `deploy/`) consumed by the `brain` CLI at runtime against the brain model package it references.
+`apps/` is **not** a workspace category. Each `apps/<name>/` is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references.
 
 ## Shell (Core Infrastructure)
 
@@ -142,7 +142,7 @@ Standalone published packages.
 | -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `packages/brain-cli` | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime so app instances need no `package.json` of their own. |
 
-## Apps (config-only, NOT a workspace category)
+## Apps (lightweight instance packages, NOT a workspace category)
 
 App instances are deployment configurations, not workspace members. Each directory is a `brain.yaml` + `.env` + optional `deploy/` bundle that the `brain` CLI loads at runtime.
 

@@ -1,0 +1,30 @@
+name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract config from brain.yaml
+        run: |
+          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains\///' | tr -d '"' | tr -d "'")
+          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
+          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - name: Deploy
+        env:
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SERVER_IP: ${{ secrets.SERVER_IP }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+        run: kamal deploy

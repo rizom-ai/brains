@@ -53,7 +53,7 @@ The generated `brain.yaml` defaults to `preset: core`, which is the minimal, usa
 
 ## What `brain init` creates
 
-A new brain instance is a **config-only directory**. It is not a workspace package and does not need its own source tree.
+A new brain instance is a **lightweight instance package**. It is not a workspace package and does not need its own source tree, but it does carry conventional support files for local execution and deploy scaffolding.
 
 Typical scaffold:
 

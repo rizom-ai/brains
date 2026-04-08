@@ -317,4 +317,4 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - **Extensible** — EntityPlugin / ServicePlugin / InterfacePlugin + composite factories
 - **Type-safe** — end-to-end TypeScript with Zod validation
 - **Observable** — structured JSON logs, enriched `/health` endpoint, `ai:usage` tracking
-- **Config-only instances** — deployments are `brain.yaml` + `.env` directories, no per-instance code
+- **Lightweight instance packages** — deployments are centered on `brain.yaml`, with minimal per-instance support files (`.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, optional deploy artifacts) rather than full custom apps

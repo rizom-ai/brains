@@ -8,7 +8,7 @@ A deployment instance of the [@brains/relay](../../brains/relay/) brain model (u
 
 ## Setup
 
-This directory is a config-only brain instance — no `package.json`, no source code. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
+This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ```bash
 # From the monorepo root, once

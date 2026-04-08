@@ -101,7 +101,7 @@ See `brains/rover/src/index.ts` for the full reference implementation.
 
 ## Running a Brain
 
-Brain instances are config-only directories (`brain.yaml` + `.env`) consumed at runtime by the `brain` CLI from `@rizom/brain`:
+Brain instances are lightweight instance packages centered on `brain.yaml` and consumed at runtime by the `brain` CLI from `@rizom/brain`:
 
 ```bash
 # Install once

@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Upload brain.yaml to server before deploy
+IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
+for host in "${HOSTS[@]}"; do
+  scp brain.yaml "deploy@${host}:/opt/brain.yaml"
+done

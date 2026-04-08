@@ -1,6 +1,7 @@
-import { mkdirSync, writeFileSync, chmodSync } from "fs";
-import { basename, join } from "path";
+import { mkdirSync, writeFileSync, chmodSync, existsSync } from "fs";
+import { basename, dirname, join } from "path";
 import pkg from "../../package.json" with { type: "json" };
+import { parseBrainYaml } from "../lib/brain-yaml";
 
 /**
  * Pinned versions written into scaffolded package.json files.
@@ -34,6 +35,10 @@ export interface ScaffoldOptions {
  *   .env.example + .gitignore + tsconfig.json
  * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
  *
+ * Idempotent: on an existing directory, only missing conventional
+ * artifacts are created. Existing `brain.yaml` is treated as the
+ * canonical source of truth for model/domain.
+ *
  * The scaffolded shape is a real package: it has its own `package.json`
  * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
  * start` works from the new dir. Custom site/theme/plugin code lives in
@@ -44,10 +49,12 @@ export interface ScaffoldOptions {
  * runtime when compiling site components.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
-  const { model } = options;
-  const domain = options.domain ?? `${model}.rizom.ai`;
+  const existing = existsSync(join(dir, "brain.yaml"))
+    ? parseBrainYaml(dir)
+    : undefined;
+  const model = existing?.brain ?? options.model;
+  const domain = existing?.domain ?? options.domain ?? `${model}.rizom.ai`;
 
-  // Always created
   writeBrainYaml(dir, model, domain, options.contentRepo);
   writePackageJson(dir);
   writeReadme(dir, model);
@@ -65,6 +72,23 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
     writeDeployYml(dir);
     writePreDeployHook(dir);
     writeDeployWorkflow(dir);
+  }
+}
+
+/**
+ * Write a file as part of the scaffold. Skips when the file already
+ * exists so `scaffold()` is idempotent across repeated runs.
+ */
+function writeScaffoldFile(
+  path: string,
+  content: string,
+  executable = false,
+): void {
+  if (existsSync(path)) return;
+  mkdirSync(dirname(path), { recursive: true });
+  writeFileSync(path, content);
+  if (executable) {
+    chmodSync(path, 0o755);
   }
 }
 
@@ -106,7 +130,7 @@ ${gitBlock}  mcp:
     authToken: \${MCP_AUTH_TOKEN}
 `;
 
-  writeFileSync(join(dir, "brain.yaml"), content);
+  writeScaffoldFile(join(dir, "brain.yaml"), content);
 }
 
 /**
@@ -154,7 +178,7 @@ healthcheck:
   port: 80
 `;
 
-  writeFileSync(join(dir, "deploy.yml"), content);
+  writeScaffoldFile(join(dir, "deploy.yml"), content);
 }
 
 function writeEnvExample(dir: string): void {
@@ -177,7 +201,7 @@ CLOUDFLARE_API_TOKEN=
 CLOUDFLARE_ZONE_ID=
 `;
 
-  writeFileSync(join(dir, ".env.example"), content);
+  writeScaffoldFile(join(dir, ".env.example"), content);
 }
 
 /**
@@ -197,13 +221,10 @@ function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
     lines.push("GIT_SYNC_TOKEN=");
   }
   lines.push("");
-  writeFileSync(join(dir, ".env"), lines.join("\n"));
+  writeScaffoldFile(join(dir, ".env"), lines.join("\n"));
 }
 
 function writePreDeployHook(dir: string): void {
-  const hookDir = join(dir, ".kamal", "hooks");
-  mkdirSync(hookDir, { recursive: true });
-
   const content = `#!/usr/bin/env bash
 # Upload brain.yaml to server before deploy
 IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
@@ -212,15 +233,10 @@ for host in "\${HOSTS[@]}"; do
 done
 `;
 
-  const hookPath = join(hookDir, "pre-deploy");
-  writeFileSync(hookPath, content);
-  chmodSync(hookPath, 0o755);
+  writeScaffoldFile(join(dir, ".kamal", "hooks", "pre-deploy"), content, true);
 }
 
 function writeDeployWorkflow(dir: string): void {
-  const workflowDir = join(dir, ".github", "workflows");
-  mkdirSync(workflowDir, { recursive: true });
-
   const content = `name: Deploy
 
 on:
@@ -249,10 +265,11 @@ jobs:
           SERVER_IP: \${{ secrets.SERVER_IP }}
           AI_API_KEY: \${{ secrets.AI_API_KEY }}
           GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
+          MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
         run: kamal deploy
 `;
 
-  writeFileSync(join(workflowDir, "deploy.yml"), content);
+  writeScaffoldFile(join(dir, ".github", "workflows", "deploy.yml"), content);
 }
 
 function writeGitignore(dir: string): void {
@@ -267,7 +284,7 @@ cache/
 data/
 `;
 
-  writeFileSync(join(dir, ".gitignore"), content);
+  writeScaffoldFile(join(dir, ".gitignore"), content);
 }
 
 /**
@@ -292,7 +309,7 @@ function writePackageJson(dir: string): void {
     },
   };
 
-  writeFileSync(
+  writeScaffoldFile(
     join(dir, "package.json"),
     JSON.stringify(content, null, 2) + "\n",
   );
@@ -328,7 +345,7 @@ This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
 plugins, change presets, or wire up integrations like Discord and MCP.
 `;
 
-  writeFileSync(join(dir, "README.md"), content);
+  writeScaffoldFile(join(dir, "README.md"), content);
 }
 
 // Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime;
@@ -343,5 +360,5 @@ function writeTsConfig(dir: string): void {
 }
 `;
 
-  writeFileSync(join(dir, "tsconfig.json"), content);
+  writeScaffoldFile(join(dir, "tsconfig.json"), content);
 }

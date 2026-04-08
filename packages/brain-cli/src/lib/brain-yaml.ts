@@ -6,6 +6,7 @@ import { resolveModelName } from "./model-registry";
 const brainYamlSchema = z
   .object({
     brain: z.string(),
+    domain: z.string().optional(),
     preset: z.string().optional(),
     model: z.string().optional(),
   })

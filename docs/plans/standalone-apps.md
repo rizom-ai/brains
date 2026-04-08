@@ -33,7 +33,7 @@ yeehaa-brain/             # config repo
   .env                    # secrets (not committed)
 ```
 
-No package.json, no node_modules, no build step. The Docker image contains the brain model. brain.yaml configures the instance.
+No full custom source tree or per-instance build step. The Docker image contains the brain model. The instance remains lightweight, but it may still carry conventional support files like `package.json`, `tsconfig.json`, and deploy artifacts alongside `brain.yaml`.
 
 ### Versioning
 

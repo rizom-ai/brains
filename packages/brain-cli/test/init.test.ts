@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, readFileSync, rmSync } from "fs";
+import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { scaffold } from "../src/commands/init";
@@ -213,6 +213,79 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, "deploy.yml"))).toBe(false);
       expect(existsSync(join(testDir, ".kamal"))).toBe(false);
       expect(existsSync(join(testDir, ".github"))).toBe(false);
+    });
+  });
+
+  describe("reconcile existing instance scaffolds", () => {
+    it("should create missing base artifacts when brain.yaml already exists", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        [
+          "brain: ranger",
+          "domain: rizom.ai",
+          "preset: default",
+          "plugins:",
+          "  mcp:",
+          "    authToken: ${MCP_AUTH_TOKEN}",
+          "",
+        ].join("\n"),
+      );
+
+      scaffold(testDir, { model: "rover" });
+
+      expect(existsSync(join(testDir, "README.md"))).toBe(true);
+      expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+      expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
+      expect(existsSync(join(testDir, "tsconfig.json"))).toBe(true);
+      expect(existsSync(join(testDir, "package.json"))).toBe(true);
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain("brain: ranger");
+      expect(yaml).toContain("domain: rizom.ai");
+      expect(yaml).not.toContain("brain: rover");
+    });
+
+    it("should not overwrite existing generated artifacts by default", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+      );
+      writeFileSync(join(testDir, "README.md"), "CUSTOM README\n");
+
+      scaffold(testDir, { model: "rover" });
+
+      const readme = readFileSync(join(testDir, "README.md"), "utf-8");
+      expect(readme).toBe("CUSTOM README\n");
+    });
+
+    it("should create missing deploy artifacts for an existing instance when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      expect(existsSync(join(testDir, "deploy.yml"))).toBe(true);
+      expect(existsSync(join(testDir, ".kamal", "hooks", "pre-deploy"))).toBe(
+        true,
+      );
+      expect(
+        existsSync(join(testDir, ".github", "workflows", "deploy.yml")),
+      ).toBe(true);
+    });
+
+    it("should derive generated artifact content from existing brain.yaml", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: ranger", "domain: rizom.ai", ""].join("\n"),
+      );
+
+      scaffold(testDir, { model: "rover" });
+
+      const readme = readFileSync(join(testDir, "README.md"), "utf-8");
+      expect(readme).toContain("This brain runs the **ranger** model");
+      expect(readme).not.toContain("This brain runs the **rover** model");
     });
   });
 

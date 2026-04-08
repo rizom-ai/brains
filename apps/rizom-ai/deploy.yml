@@ -1,0 +1,37 @@
+service: brain
+image: ghcr.io/rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl: true
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>:80
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
+  app_port: 80
+
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+
+healthcheck:
+  path: /health
+  port: 80

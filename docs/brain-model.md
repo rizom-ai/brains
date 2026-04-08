@@ -5,11 +5,11 @@
 Brains follow a **model/instance** separation:
 
 - **Brain model** (`brains/`) — a reusable workspace package that defines what a brain _is_: its capabilities, interfaces, identity, permissions, and content model.
-- **Brain instance** (`apps/<name>/`) — a config-only directory (`brain.yaml` + `.env` + optional `deploy/`) that pins a brain model and overrides per-deployment settings.
+- **Brain instance** (`apps/<name>/`) — a lightweight instance package centered on `brain.yaml`, with per-instance support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts.
 
 The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
 
-**Apps are not workspace members.** As of 2026-04, `apps/*` was removed from `package.json` workspaces. Each instance directory has no `package.json`, no source code, and no dependencies of its own — it's consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots.
+**Apps are not workspace members.** As of 2026-04, `apps/*` was removed from `package.json` workspaces. Each instance directory is still a small package-like boundary for local execution and deploy scaffolding, but it is consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots.
 
 ## Directory Structure
 
@@ -21,12 +21,13 @@ brains/
     package.json            # Workspace member
 
 apps/
-  yeehaa.io/                # Brain instance (config-only, NOT a workspace member)
+  yeehaa.io/                # Brain instance (lightweight package, NOT a workspace member)
     brain.yaml              # Instance configuration
     .env                    # Secrets only
     .env.example            # Template for collaborators
     .gitignore
     tsconfig.json           # JSX runtime hint for Bun
+    package.json            # Local execution boundary + dependency pinning
     deploy.yml              # (optional, only with `brain init --deploy`)
 ```
 
@@ -270,9 +271,10 @@ brain start
 - `.env.example` — template listing required and optional env vars
 - `.env` — only when an API key was supplied (interactive prompt or `--api-key`)
 - `.gitignore`, `tsconfig.json` (JSX runtime hint for Bun)
+- `package.json` — local execution boundary + dependency pinning for `@rizom/brain` and `preact`
 - `deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml` — only with `--deploy`
 
-No `package.json` is generated. The instance is config-only.
+So the instance remains lightweight, but it is not a pure config blob.
 
 ### Defining a new brain model (uncommon)
 
@@ -315,7 +317,7 @@ Only needed when you want a different curated capability set than `rover` / `ran
 
 ## Dev vs Production Instances
 
-The same brain model can power both dev and production via separate config-only directories:
+The same brain model can power both dev and production via separate lightweight instance package directories:
 
 ```
 apps/yeehaa.io-dev/           # Dev instance
