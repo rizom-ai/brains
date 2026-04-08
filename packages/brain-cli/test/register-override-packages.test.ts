@@ -57,6 +57,21 @@ describe("registerOverridePackages", () => {
     expect(getPackage(SITE_REF)).toBe(fakeSite);
   });
 
+  it("registers site.theme package refs from brain.yaml", async () => {
+    const overrides: InstanceOverrides = {
+      site: { theme: PLUGIN_REF },
+    };
+    const importFn: PackageImportFn = async (ref) => {
+      if (ref === PLUGIN_REF) return { default: fakePlugin };
+      throw new Error(`unexpected ref: ${ref}`);
+    };
+
+    await registerOverridePackages(overrides, importFn);
+
+    expect(hasPackage(PLUGIN_REF)).toBe(true);
+    expect(getPackage(PLUGIN_REF)).toBe(fakePlugin);
+  });
+
   it("registers @-prefixed plugin config values", async () => {
     const overrides: InstanceOverrides = {
       plugins: {

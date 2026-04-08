@@ -1,6 +1,7 @@
 brain: rover
 site:
   package: "@brains/site-mylittlephoney"
+  theme: "@brains/theme-mylittlephoney"
 
 # Instance settings
 logLevel: info

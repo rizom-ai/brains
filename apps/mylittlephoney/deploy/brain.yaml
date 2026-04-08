@@ -1,5 +1,7 @@
 brain: rover
-site: "@brains/site-mylittlephoney"
+site:
+  package: "@brains/site-mylittlephoney"
+  theme: "@brains/theme-mylittlephoney"
 
 # Production instance
 domain: mylittlephoney.com

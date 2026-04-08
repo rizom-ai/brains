@@ -1,10 +1,11 @@
 brain: rover
 site:
   package: "@brains/site-yeehaa"
+  theme: "@brains/theme-brutalist"
 preset: full
 
 # Instance settings
-logLevel: debug
+logLevel: info
 
 # Permissions
 anchors:

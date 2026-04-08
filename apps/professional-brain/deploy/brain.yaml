@@ -1,5 +1,7 @@
 brain: rover
-site: "@brains/site-yeehaa"
+site:
+  package: "@brains/site-yeehaa"
+  theme: "@brains/theme-brutalist"
 preset: full
 
 # Production instance

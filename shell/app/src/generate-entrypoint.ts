@@ -1,30 +1,5 @@
-import { fromYaml } from "@brains/utils";
-import { isScopedPackageRef } from "./brain-resolver";
-
-/**
- * Extract all scoped package references from a parsed yaml object.
- * Walks all values recursively and collects unique package names.
- */
-function extractPackageRefs(data: unknown): string[] {
-  const refs = new Set<string>();
-
-  function walk(value: unknown): void {
-    if (typeof value === "string" && isScopedPackageRef(value)) {
-      refs.add(value);
-    } else if (Array.isArray(value)) {
-      for (const item of value) {
-        walk(item);
-      }
-    } else if (typeof value === "object" && value !== null) {
-      for (const v of Object.values(value)) {
-        walk(v);
-      }
-    }
-  }
-
-  walk(data);
-  return [...refs];
-}
+import { collectOverridePackageRefs } from "./override-package-refs";
+import { parseInstanceOverrides } from "./instance-overrides";
 
 /**
  * Generate a static entrypoint for a brain model image (no brain.yaml at build time).
@@ -82,35 +57,27 @@ export function generateModelEntrypoint(
  * @returns Generated TypeScript code, or null if yaml is invalid
  */
 export function generateEntrypoint(yamlContent: string): string | null {
-  let parsed: unknown;
+  let overrides;
   try {
-    parsed = fromYaml(yamlContent);
+    overrides = parseInstanceOverrides(yamlContent);
   } catch {
     return null;
   }
-  if (typeof parsed !== "object" || parsed === null) return null;
 
-  const obj = parsed as Record<string, unknown>;
-  const rawBrain = obj["brain"];
+  const rawBrain = overrides.brain;
   if (typeof rawBrain !== "string") return null;
+
   // Normalize short names: "rover" → "@brains/rover"
   const brainPackage = rawBrain.startsWith("@")
     ? rawBrain
     : `@brains/${rawBrain}`;
 
-  // Find all @-prefixed package refs in plugin config + top-level site.
+  // Find all @-prefixed package refs in the validated override shape.
   // TODO: Currently only supports workspace packages. Eventually site/plugin
   // refs should resolve to git repos, npm packages, or URLs.
-  const pluginsSection = obj["plugins"];
-  const packageRefs = pluginsSection ? extractPackageRefs(pluginsSection) : [];
-
-  const sitePackage = obj["site"];
-  if (typeof sitePackage === "string" && isScopedPackageRef(sitePackage)) {
-    packageRefs.push(sitePackage);
-  }
-
-  // Filter out the brain package itself (already imported)
-  const extraImports = packageRefs.filter((ref) => ref !== brainPackage);
+  const extraImports = collectOverridePackageRefs(overrides).filter(
+    (ref) => ref !== brainPackage,
+  );
 
   // Generate static imports for package refs so the bundler includes them
   const packageImportLines = extraImports.map(

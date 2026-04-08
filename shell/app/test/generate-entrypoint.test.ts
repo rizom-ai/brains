@@ -88,7 +88,8 @@ plugins:
   test("should include static import for top-level site package ref", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-default"
+site:
+  package: "@brains/site-default"
 `;
     const code = generateEntrypoint(yaml);
 
@@ -100,7 +101,8 @@ site: "@brains/site-default"
   test("should include both site and plugin package refs", () => {
     const yaml = `
 brain: "@brains/rover"
-site: "@brains/site-default"
+site:
+  package: "@brains/site-default"
 plugins:
   site-builder:
     themeCSS: "@brains/theme-override"
@@ -108,8 +110,24 @@ plugins:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/theme-override"');
-    expect(code).toContain('import __pkg1 from "@brains/site-default"');
+    expect(code).toContain('import __pkg0 from "@brains/site-default"');
+    expect(code).toContain('import __pkg1 from "@brains/theme-override"');
+  });
+
+  test("should include a static import for site.theme package refs", () => {
+    const yaml = `
+brain: "@brains/rover"
+site:
+  package: "@brains/site-yeehaa"
+  theme: "@brains/theme-brutalist"
+`;
+    const code = generateEntrypoint(yaml);
+
+    expect(code).not.toBeNull();
+    expect(code).toContain('import __pkg1 from "@brains/theme-brutalist"');
+    expect(code).toContain(
+      'registerPackage("@brains/theme-brutalist", __pkg1)',
+    );
   });
 
   test("should import registerPackage from @brains/app", () => {
