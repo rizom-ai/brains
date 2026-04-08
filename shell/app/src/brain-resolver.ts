@@ -122,6 +122,7 @@ export function resolve(
 ): AppConfig {
   const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
+  const effectiveModel = overrides?.model ?? definition.model;
 
   const site: SitePackage | undefined = resolveSitePackage(
     definition,
@@ -232,10 +233,10 @@ export function resolve(
     version: definition.version,
     plugins: [...capabilities, ...interfaces],
 
-    // AI config from environment + brain.yaml model
+    // AI config from environment + brain/instance model
     ...resolveAIConfig(
       env,
-      overrides?.model ? { model: overrides.model } : undefined,
+      effectiveModel ? { model: effectiveModel } : undefined,
     ),
 
     // Optional fields

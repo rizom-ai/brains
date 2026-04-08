@@ -19,6 +19,9 @@ export { collectOverridePackageRefs } from "./override-package-refs";
 export {
   parseInstanceOverrides,
   InstanceOverridesParseError,
+  applyConventionalSiteRefs,
+  CONVENTIONAL_SITE_PACKAGE_REF,
+  CONVENTIONAL_THEME_PACKAGE_REF,
 } from "./instance-overrides";
 export type { InstanceOverrides } from "./instance-overrides";
 export type {

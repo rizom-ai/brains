@@ -7,11 +7,10 @@ import {
 import type { SitePackage } from "@brains/app";
 
 /**
- * Yeehaa site package — brutalist theme + professional layout.
+ * Yeehaa site package — professional layout + yeehaa content labeling.
  *
- * Bundles visual identity (CRT-style neon green brutalism),
- * page structure (professional editorial layout), and content naming
- * (essays, presentations, projects) into a single deployable unit.
+ * Provides the structure and content naming for the yeehaa site.
+ * Pair it with `@brains/theme-brutalist` for the CRT-style neon styling.
  */
 const site: SitePackage = {
   layouts: {

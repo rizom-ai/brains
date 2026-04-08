@@ -100,6 +100,40 @@ const instanceOverridesSchema = z.object({
  */
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 
+export const CONVENTIONAL_SITE_PACKAGE_REF = "@brains/local-site";
+export const CONVENTIONAL_THEME_PACKAGE_REF = "@brains/local-theme";
+
+/**
+ * Apply convention-discovered site/theme refs only when brain.yaml does not
+ * explicitly choose them.
+ */
+export function applyConventionalSiteRefs(
+  overrides: InstanceOverrides,
+  conventions: {
+    sitePackageRef?: string;
+    themeRef?: string;
+  },
+): InstanceOverrides {
+  if (!conventions.sitePackageRef && !conventions.themeRef) {
+    return overrides;
+  }
+
+  const site = { ...(overrides.site ?? {}) };
+
+  if (!site.package && conventions.sitePackageRef) {
+    site.package = conventions.sitePackageRef;
+  }
+
+  if (!site.theme && conventions.themeRef) {
+    site.theme = conventions.themeRef;
+  }
+
+  return {
+    ...overrides,
+    ...(Object.keys(site).length > 0 ? { site } : {}),
+  };
+}
+
 /**
  * Strip site fields consumed by the resolver before constructing the
  * site plugin config.

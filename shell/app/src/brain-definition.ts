@@ -97,6 +97,12 @@ export interface BrainDefinition {
   /** Semantic version */
   version: string;
 
+  /**
+   * Default text model for this brain.
+   * Can be overridden per-instance via `model` in brain.yaml.
+   */
+  model?: string;
+
   /** Brain identity — character name, role, purpose, values */
   identity?: BrainIdentity;
 

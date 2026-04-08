@@ -99,7 +99,9 @@ Everything beyond the brain model is configured per-instance via `brain.yaml`:
 
 ```yaml
 brain: rover
-site: "@brains/site-default"
+site:
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 preset: full
 domain: mybrain.example.com
 

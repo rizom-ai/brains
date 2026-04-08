@@ -43,7 +43,10 @@
       "mcp__paper__get_node_info",
       "mcp__paper__get_computed_styles",
       "mcp__paper__set_text_content",
-      "mcp__paper__rename_nodes"
+      "mcp__paper__rename_nodes",
+      "mcp__paper__get_children",
+      "mcp__paper__duplicate_nodes",
+      "mcp__paper__finish_working_on_nodes"
     ],
     "deny": [],
     "ask": []

@@ -2,7 +2,7 @@
   "name": "@brains/site-mylittlephoney",
   "private": true,
   "version": "0.1.0",
-  "description": "mylittlephoney site package — pink unicorn theme + personal layout",
+  "description": "mylittlephoney structural site package — personal layout + content labeling",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -19,7 +19,6 @@
     "@brains/app": "workspace:*",
     "@brains/layout-personal": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-mylittlephoney": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

@@ -2,115 +2,131 @@
 
 ## What is a Brain?
 
-A brain is an AI-powered knowledge management system. It stores your content as markdown files, syncs with Git, generates a static website, and exposes everything through conversational interfaces (CLI, Discord, MCP, agent-to-agent).
+A brain is an AI-powered knowledge agent built around markdown content, MCP-native tooling, and a plugin-based runtime. A brain can be personal, team-oriented, or community-oriented depending on the brain model you choose.
 
-Brains come in three flavors:
+Out of the box, a brain can:
 
-- **Rover** — personal brain for individuals (blog, portfolio, decks, notes, links)
-- **Relay** — team brain for organizations (shared knowledge, summaries, decks)
-- **Ranger** — collective brain for communities (curated content, discovery)
+- store durable content as markdown entities
+- expose tools and resources over MCP
+- serve a static site and CMS
+- sync content to git
+- talk to AI providers through one runtime
+- expose additional interfaces such as Discord or A2A
+
+Brains currently come in three model flavors:
+
+- **Rover** — personal publishing + knowledge management
+- **Relay** — team/shared knowledge workflows
+- **Ranger** — collective/discovery-oriented brains
 
 ## Prerequisites
 
-- [Bun](https://bun.sh) v1.1+ (runtime)
-- [Git](https://git-scm.com) (for content sync)
-- An [OpenAI API key](https://platform.openai.com) (default AI provider; other providers supported via `model:` in brain.yaml)
+- [Bun](https://bun.sh) `>= 1.3.3`
+- [Git](https://git-scm.com) if you want git-backed content sync
+- An AI provider key exposed as `AI_API_KEY`
 
 Optional:
 
-- A GitHub repo for content storage (directory-sync)
-- A Discord bot token (for Discord interface)
-- A Hetzner server + domain (for deployment)
+- a GitHub repo for `directory-sync`
+- a Discord bot token for the Discord interface
+- a domain + server if you want to deploy publicly
 
-## Quick Start
+## Quick start
 
 ```bash
 # Install the CLI
-bun install -g @rizom/brain
+bun add -g @rizom/brain
 
-# Scaffold a new brain instance
+# Scaffold a new brain
 brain init mybrain
 cd mybrain
 
-# Add your API key
+# Add your AI key
 cp .env.example .env
-# Edit .env and add AI_API_KEY
+# edit .env and set AI_API_KEY
 
 # Start the brain
 brain start
 ```
 
-This starts all configured daemons: webserver, MCP server, Discord bot (if configured), and A2A endpoint.
+The generated `brain.yaml` defaults to `preset: core`, which is the minimal, usable on-ramp.
 
-## What gets scaffolded
+## What `brain init` creates
 
-```
+A new brain instance is a **config-only directory**. It is not a workspace package and does not need its own source tree.
+
+Typical scaffold:
+
+```text
 mybrain/
-  brain.yaml        # Instance configuration
-  package.json      # Dependencies (brain model)
-  .env.example      # Required/optional environment variables
-  .gitignore        # Excludes .env and node_modules
+  brain.yaml        # instance configuration
+  package.json      # pins @rizom/brain + preact for local execution
+  README.md         # local quickstart notes
+  .env.example      # environment variables to fill in
+  .gitignore        # ignores .env, cache, build artifacts
+  tsconfig.json     # JSX runtime hints for Preact-based site code
 ```
 
-With `--deploy`:
+With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow.
 
-```
-mybrain/
-  ...
-  deploy.yml                    # Kamal deployment config
-  .kamal/hooks/pre-deploy       # Uploads brain.yaml to server
-  .github/workflows/deploy.yml  # CI/CD pipeline
-```
+After `brain init`, you can either:
 
-## Init Options
+- keep using the globally installed `brain` command immediately, or
+- run `bun install` in the new directory and then use `bunx brain start` / `bun run start` against the pinned local version
+
+## Init options
 
 ```bash
 brain init <directory> [options]
 
 Options:
   --model <name>         Brain model: rover (default), relay, ranger
-  --domain <domain>      Production domain (default: {model}.rizom.ai)
-  --content-repo <repo>  Git repo for content (e.g. github:user/brain-data)
-  --deploy               Include Kamal deployment files
+  --domain <domain>      Production domain
+  --content-repo <repo>  Git repo for content sync
+  --deploy               Include deployment scaffolding
 ```
 
 ## Configuration
 
-All instance-specific configuration lives in `brain.yaml`. See [brain.yaml Reference](./brain-yaml-reference.md) for the full schema.
+All instance-specific configuration lives in `brain.yaml`.
 
 Minimal example:
 
 ```yaml
 brain: rover
 domain: mybrain.example.com
+preset: core
 
 anchors: []
 
 plugins:
-  directory-sync:
-    git:
-      repo: your-org/brain-data
-      authToken: ${GIT_SYNC_TOKEN}
+  # Uncomment to enable git-backed content sync:
+  # directory-sync:
+  #   git:
+  #     repo: your-org/brain-data
+  #     authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-Secrets use `${ENV_VAR}` interpolation — define them in `.env`, reference them in `brain.yaml`.
+Secrets are referenced with `${ENV_VAR}` interpolation and loaded from `.env`.
+
+For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
 
 ## Interfaces
 
-Once running, your brain is accessible through:
+Once running, a brain can be accessed through several surfaces depending on the selected model and configured plugins.
 
-| Interface   | Access                                  | Notes                                          |
-| ----------- | --------------------------------------- | ---------------------------------------------- |
-| **Web**     | `http://localhost:4321`                 | Static site + CMS                              |
-| **MCP**     | stdio or HTTP                           | Connect to Claude Desktop or other MCP clients |
-| **CLI**     | `brain chat`                            | Interactive terminal REPL                      |
-| **Discord** | Invite bot to server                    | Requires `DISCORD_BOT_TOKEN`                   |
-| **A2A**     | `https://domain/.well-known/agent.json` | Agent-to-agent protocol                        |
+| Interface     | Access                                  | Notes                                                     |
+| ------------- | --------------------------------------- | --------------------------------------------------------- |
+| **Web**       | `http://localhost:4321`                 | Static site + CMS                                         |
+| **MCP**       | stdio or HTTP                           | Connect from Claude Desktop, Cursor, or other MCP clients |
+| **Chat REPL** | `brain chat`                            | Local terminal conversation loop                          |
+| **Discord**   | Bot in a server                         | Requires Discord credentials                              |
+| **A2A**       | `https://domain/.well-known/agent.json` | Agent-to-agent protocol                                   |
 
-## Next Steps
+## Common next steps
 
-- [brain.yaml Reference](./brain-yaml-reference.md) — configure your brain
-- [CLI Reference](./cli-reference.md) — all available commands
-- [Deployment Guide](./deployment-guide.md) — deploy to production
+- [brain.yaml Reference](./brain-yaml-reference.md)
+- [CLI Reference](./cli-reference.md)
+- [Deployment Guide](./deployment-guide.md)

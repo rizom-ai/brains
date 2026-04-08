@@ -2,7 +2,7 @@
   "name": "@brains/site-yeehaa",
   "private": true,
   "version": "0.1.0",
-  "description": "Yeehaa site package — brutalist theme + professional layout",
+  "description": "Yeehaa structural site package — professional layout + content labeling",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -19,7 +19,6 @@
     "@brains/app": "workspace:*",
     "@brains/layout-professional": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-brutalist": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

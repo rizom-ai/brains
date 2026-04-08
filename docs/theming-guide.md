@@ -276,26 +276,26 @@ shared/theme-mytheme/
 }
 ```
 
-**3. Reference from a site package**:
+**3. Reference from `brain.yaml`**:
 
-Themes are consumed by site packages, not directly by brain instances. Inside `sites/<your-site>/src/index.ts`, import the theme module and pass it to the site builder via the package's plugin factory. The site package's `package.json` should depend on `@brains/theme-mytheme`.
+Themes are resolved by brain instances, not embedded in site packages. A `SitePackage` is structural-only: layouts, routes, site plugin, entity display, and static assets. Theme packages live under `shared/theme-*` and export raw CSS; the resolver loads `site.package` and `site.theme` independently, then composes the chosen theme exactly once before handing it to site-builder.
 
-**4. Pick the site package in `brain.yaml`**:
+**4. Pick the site package and theme in `brain.yaml`**:
 
 ```yaml
 brain: rover
 site:
   package: "@brains/site-mytheme"
-  # variant + theme overrides supported when the site package ships multiple
+  theme: "@brains/theme-mytheme"
 ```
 
-For the rare case of swapping themes within an existing multi-theme site package, use the explicit `theme:` override:
+Multi-variant site packages can still add structural flavor fields alongside the theme:
 
 ```yaml
 site:
   package: "@brains/site-rizom"
   variant: ai
-  theme: "@brains/theme-mytheme"
+  theme: "@brains/theme-rizom"
 ```
 
 ---
@@ -358,13 +358,14 @@ function toggleTheme() {
 
 ### How It Works
 
-Each brain instance picks a site package (which bundles its own theme) in `brain.yaml`:
+Each brain instance picks a structural site package and a theme in `brain.yaml`:
 
 ```yaml
 # apps/yeehaa.io/brain.yaml
 brain: rover
 site:
   package: "@brains/site-yeehaa"
+  theme: "@brains/theme-brutalist"
 ```
 
 ```yaml
@@ -372,11 +373,11 @@ site:
 brain: ranger
 site:
   package: "@brains/site-rizom"
-  variant: ai # site packages may ship multiple flavors
-  # theme: "@brains/theme-rizom"   # optional explicit theme override
+  variant: ai # site packages may ship multiple structural flavors
+  theme: "@brains/theme-rizom"
 ```
 
-The brain resolver instantiates the site package and passes `variant` / `theme` through to the plugin factory. The site package's bundled theme CSS is the default; an explicit `theme:` override is only needed when you want to swap themes within the same site package.
+The brain resolver loads `site.package` and `site.theme` independently. `variant` flows to the site plugin; `theme` does not. Instead, the resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
 
 ### Site Builder Integration
 

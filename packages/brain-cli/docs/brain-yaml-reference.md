@@ -1,153 +1,201 @@
 # brain.yaml Reference
 
-`brain.yaml` is the instance-level configuration file for a brain. It controls which brain model to use, what plugins to enable, how permissions work, and where to deploy. Secrets stay in `.env`; everything else goes here.
+`brain.yaml` is the instance-level configuration file for a brain. It selects the brain model, chooses a preset, overrides deployment settings, and passes config to plugins and interfaces.
 
-## Full Schema
+Secrets should live in `.env` and be referenced with `${ENV_VAR}` interpolation.
+
+## Example
 
 ```yaml
-# Required — which brain model to run
-brain: rover # or any other brain model package
-
-# Site package — overrides the brain model's default theme, layout, and routes
-site: "@brains/site-default"
-
-# Instance name (overrides the brain model default)
-name: "My Brain"
-
-# Logging verbosity
-logLevel: debug # debug | info | warn | error
-
-# Production server port
-port: 4321
-
-# Production domain (used for canonical URLs, A2A endpoint, CMS)
+brain: rover
 domain: mybrain.example.com
+preset: core
 
-# Database connection string
-database: "file:./data/brain.db"
+anchors: []
 
-# Preset — curated subset of plugins and interfaces
-preset: default # core | default | full
+site:
+  package: "@brains/site-default"
 
-# Evaluation mode — disables plugins with side effects
-mode: eval
-
-# Add/remove plugins on top of the preset
-add:
-  - stock-photo
-  - newsletter
-remove:
-  - discord
-
-# Anchor users — full admin access
-anchors:
-  - "discord:123456789"
-
-# Trusted users — elevated access
-trusted:
-  - "discord:987654321"
-
-# Per-plugin configuration
 plugins:
-  directory-sync:
-    git:
-      repo: your-org/brain-data
-      authToken: ${GIT_SYNC_TOKEN}
+  # Uncomment to enable git-backed sync of brain content:
+  # directory-sync:
+  #   git:
+  #     repo: your-org/brain-data
+  #     authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
-  discord:
-    botToken: ${DISCORD_BOT_TOKEN}
+```
 
-# Permission rules
+## Supported top-level fields
+
+```yaml
+brain: rover
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+  theme: "@brains/theme-rizom"
+name: "My Brain"
+logLevel: info
+logFile: ./brain.log
+port: 4321
+domain: mybrain.example.com
+database: file:./data/brain.db
+model: gpt-4.1
+preset: core
+mode: eval
+add:
+  - stock-photo
+remove:
+  - discord
+anchors:
+  - "discord:123456789"
+trusted:
+  - "discord:987654321"
+plugins:
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
 permissions:
+  anchors:
+    - "cli:*"
+  trusted:
+    - "discord:123456789"
   rules:
     - pattern: "a2a:*"
       level: public
-    - pattern: "cli:*"
-      level: anchor
 ```
 
 ## Fields
 
 ### `brain` (required)
 
-The brain model package to run. Determines which entity types, plugins, and interfaces are available.
+The brain model to run.
 
-| Value   | Description                                           |
-| ------- | ----------------------------------------------------- |
-| `rover` | Personal brain — blog, portfolio, decks, notes, links |
+Accepted forms:
 
-Additional brain models can be published as separate packages; reference them
-by their scoped npm name (e.g. `@my-org/my-brain`).
+- bare built-in name, such as `rover`, `relay`, or `ranger`
+- scoped package name, such as `@my-org/my-brain`
+- legacy `@brains/rover`-style refs are still accepted for compatibility
 
 ### `site`
 
-Overrides the brain model's default site package. A site package bundles theme CSS, layout components, routes, and site content.
+Optional site override.
 
 ```yaml
-site: "@brains/site-default"
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+  theme: "@brains/theme-rizom"
 ```
+
+Fields:
+
+- `package` — site package to load
+- `variant` — site-specific variant string
+- `theme` — theme package or inline CSS string to use for styling
+
+`site.package` and `site.theme` are resolved independently. The site package stays structural-only; the theme is validated separately and injected into site-builder.
+
+Use this when the brain model's built-in site package is not the one you want, or when you want to pair the same site package with a different theme.
 
 ### `name`
 
-Override the instance name. Defaults to the brain model's name.
+Optional instance name override.
 
 ### `logLevel`
 
-Controls logging verbosity. One of: `debug`, `info`, `warn`, `error`.
+Logging verbosity.
+
+Allowed values:
+
+- `debug`
+- `info`
+- `warn`
+- `error`
+
+### `logFile`
+
+Optional log file path.
+
+When set, logs are also written to disk. This is useful for usage tracking and postmortem debugging.
 
 ### `port`
 
-Server port for the webserver. Default: `4321`.
+Optional production port override.
 
 ### `domain`
 
-Production domain. Used to derive:
+Production domain for the instance.
 
-- Canonical URLs for the static site
-- A2A endpoint (`https://domain/.well-known/agent.json`)
-- CMS base URL
-- Preview URL (`preview.domain`)
+Used for:
 
-```yaml
-domain: mybrain.example.com
-```
+- canonical site URLs
+- preview URL derivation
+- A2A endpoint discovery
+- CMS and webserver identity
 
 ### `database`
 
-SQLite database connection string. Default: `file:./data/brain.db`.
+Database URL, usually SQLite.
+
+Example:
+
+```yaml
+database: file:./data/brain.db
+```
+
+### `model`
+
+Override the default AI model.
+
+Examples:
+
+```yaml
+model: gpt-4.1
+model: claude-haiku-4-5
+model: openai:gpt-4o-mini
+```
+
+The provider is inferred from the model name unless you prefix it explicitly.
 
 ### `preset`
 
-Selects a curated subset of plugins and interfaces. Each brain model defines its own presets.
+Select a curated subset of capabilities and interfaces defined by the brain model.
 
-**Rover presets:**
+Current built-in presets:
 
-| Preset    | Includes                                                                                                       |
-| --------- | -------------------------------------------------------------------------------------------------------------- |
-| `core`    | prompt, note, link, wishlist, directory-sync, mcp, discord, a2a                                                |
-| `default` | minimal + image, dashboard, blog, series, decks, analytics, obsidian-vault, site-info, site-builder, webserver |
-| `full`    | default + portfolio, topics, content-pipeline, social-media, newsletter, buttondown, stock-photo               |
+| Brain model | Presets                   |
+| ----------- | ------------------------- |
+| `rover`     | `core`, `default`, `full` |
+| `relay`     | `core`, `default`         |
+| `ranger`    | `default`                 |
+
+If omitted, resolution falls back to the brain model's default preset behavior. In practice, it is best to set this explicitly.
 
 ### `mode`
 
-Set to `eval` to run in evaluation mode. This disables plugins that have side effects (defined by the brain model's `evalDisable` list) so evaluations don't send emails, post to social media, etc.
+Runtime mode override.
+
+Currently supported:
+
+- `eval` — disables side-effectful capabilities listed by the brain model's `evalDisable`
 
 ### `add` / `remove`
 
-Fine-tune the preset by adding or removing specific plugin/interface IDs.
+Refine the selected preset.
 
 ```yaml
 preset: default
 add:
-  - stock-photo # Add stock photo search
+  - stock-photo
 remove:
-  - discord # Don't start Discord bot
+  - discord
 ```
+
+These entries refer to capability/interface ids from the brain model.
 
 ### `anchors`
 
-List of user identifiers with full admin access. Format: `"interface:id"`.
+Top-level shorthand for full-access identities.
 
 ```yaml
 anchors:
@@ -156,11 +204,11 @@ anchors:
 
 ### `trusted`
 
-List of user identifiers with elevated (but not admin) access.
+Top-level shorthand for elevated-access identities.
 
 ### `plugins`
 
-Per-plugin configuration overrides. Keyed by plugin ID, values are arbitrary nested objects passed to the plugin.
+Per-plugin config overrides keyed by plugin/interface id.
 
 ```yaml
 plugins:
@@ -168,78 +216,103 @@ plugins:
     git:
       repo: your-org/brain-data
       authToken: ${GIT_SYNC_TOKEN}
-      authorName: Brain
-      authorEmail: brain@example.com
-  analytics:
-    cloudflare:
-      accountId: ${CLOUDFLARE_ACCOUNT_ID}
-      apiToken: ${CLOUDFLARE_API_TOKEN}
-      siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
-  a2a:
-    trustedTokens:
-      ${A2A_TOKEN_FRIEND}: friendbrain
-    outboundTokens:
-      friendbrain.com: ${A2A_OUTBOUND_TOKEN}
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
+  discord:
+    botToken: ${DISCORD_BOT_TOKEN}
 ```
+
+These values are merged into the selected capability or interface config.
 
 ### `permissions`
 
-Pattern-based permission rules. Patterns match `"interface:userId"` strings.
+Explicit permission configuration.
 
 ```yaml
 permissions:
+  anchors:
+    - "cli:*"
+  trusted:
+    - "discord:123456789"
   rules:
     - pattern: "a2a:friendbrain"
       level: trusted
     - pattern: "a2a:*"
       level: public
-    - pattern: "cli:*"
-      level: anchor
 ```
 
-Levels: `anchor` (full access), `trusted` (elevated), `public` (read-only).
+Fields:
 
-## Environment Variable Interpolation
+- `anchors` — full-access identities
+- `trusted` — elevated-access identities
+- `rules` — pattern-based permission rules
 
-String values in brain.yaml support `${ENV_VAR}` syntax. Variables are resolved from `process.env` (loaded from `.env`).
+Allowed rule levels:
+
+- `anchor`
+- `trusted`
+- `public`
+
+### Permission precedence
+
+Permission config is merged in this order:
+
+1. brain-model defaults
+2. top-level `anchors` / `trusted`
+3. nested `permissions` block
+
+So the nested `permissions` block wins over the top-level shorthand.
+
+## Environment variable interpolation
+
+String values support `${ENV_VAR}` syntax.
 
 ```yaml
 plugins:
   mcp:
-    authToken: ${MCP_AUTH_TOKEN} # Resolved at startup
+    authToken: ${MCP_AUTH_TOKEN}
 ```
 
-If an environment variable is not set, the entire entry is removed. This means plugins gracefully skip when their credentials are missing.
+Notes:
 
-## Required Environment Variables
+- values are resolved from the environment at startup
+- unset env vars are stripped out rather than left as literal strings
+- empty YAML fields like `anchors:` are treated as absent values, not errors
 
-| Variable            | Required for | Description                        |
-| ------------------- | ------------ | ---------------------------------- |
-| `AI_API_KEY`        | AI features  | AI provider API key                |
-| `AI_IMAGE_KEY`      | Images       | Optional image generation key      |
-| `GIT_SYNC_TOKEN`    | Content sync | GitHub personal access token       |
-| `MCP_AUTH_TOKEN`    | MCP HTTP     | Token for authenticated MCP access |
-| `DISCORD_BOT_TOKEN` | Discord      | Discord bot token                  |
+## Common environment variables
+
+| Variable            | Typical use                   |
+| ------------------- | ----------------------------- |
+| `AI_API_KEY`        | Main AI provider key          |
+| `AI_IMAGE_KEY`      | Separate image-generation key |
+| `GIT_SYNC_TOKEN`    | Git-backed content sync       |
+| `MCP_AUTH_TOKEN`    | MCP HTTP auth                 |
+| `DISCORD_BOT_TOKEN` | Discord bot interface         |
 
 ## Examples
 
-### Minimal (local development)
+### Minimal rover instance
 
 ```yaml
 brain: rover
+preset: core
+
+anchors: []
 
 plugins:
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-### Full Rover instance
+### Public rover instance with site + sync
 
 ```yaml
 brain: rover
-site: "@brains/site-default"
-preset: full
 domain: mybrain.example.com
+preset: full
+
+site:
+  package: "@brains/site-default"
 
 anchors:
   - "discord:000000000000000000"
@@ -247,50 +320,45 @@ anchors:
 plugins:
   directory-sync:
     git:
-      repo: your-org/your-brain-content
+      repo: your-org/brain-data
       authToken: ${GIT_SYNC_TOKEN}
-      authorName: Your Name
-      authorEmail: you@example.com
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
   discord:
     botToken: ${DISCORD_BOT_TOKEN}
-  social-media:
-    linkedin:
-      accessToken: ${LINKEDIN_ACCESS_TOKEN}
-  buttondown:
-    apiKey: ${BUTTONDOWN_API_KEY}
-  analytics:
-    cloudflare:
-      accountId: ${CLOUDFLARE_ACCOUNT_ID}
-      apiToken: ${CLOUDFLARE_API_TOKEN}
-      siteTag: ${CLOUDFLARE_ANALYTICS_SITE_TAG}
+```
+
+### Relay instance with explicit permissions
+
+```yaml
+brain: relay
+domain: team.example.com
+preset: default
 
 permissions:
+  anchors:
+    - "cli:*"
   rules:
     - pattern: "a2a:*"
       level: public
-```
-
-### Shared team instance
-
-```yaml
-brain: rover
-name: "team-shared"
-logLevel: debug
-
-anchors:
-  - "discord:000000000000000000"
-trusted:
-  - "discord:111111111111111111"
 
 plugins:
-  directory-sync:
-    git:
-      repo: your-org/team-brain-content
-      authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}
-  discord:
-    botToken: ${DISCORD_BOT_TOKEN}
+```
+
+### Ranger instance using a variant site package
+
+```yaml
+brain: ranger
+preset: default
+domain: rizom.ai
+
+site:
+  package: "@brains/site-rizom"
+  variant: ai
+
+plugins:
+  mcp:
+    authToken: ${MCP_AUTH_TOKEN}
 ```

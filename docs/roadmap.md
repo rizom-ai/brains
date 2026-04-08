@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-04-07
+Last Updated: 2026-04-08
 
 ---
 
@@ -177,7 +177,7 @@ App instances are no longer workspace members. The `apps/*` glob was removed fro
 
 ### Rizom Sites — Phases 0–3 (2026-04)
 
-Groundwork for the three rizom-branded sites (rizom.ai, rizom.foundation, rizom.work) sharing one site package and one theme. Phase 0: instance overrides accept object-form `site:` config (`{ package, variant, theme }`), `entityRouteConfig` renamed to `entityDisplay`. Phase 1: existing `theme-rizom` renamed to `theme-ranger`, fresh `theme-rizom` brand theme created. Phase 2: `sites/rizom/` site package with new `SitePackage.staticAssets` for canvas asset pipeline. Phase 3: `apps/rizom-ai` scaffold (variant `ai`, ranger brain). MVP target flipped from rizom.foundation to rizom.ai. ([plan](./plans/rizom-sites.md))
+Groundwork for the three rizom-branded sites (rizom.ai, rizom.foundation, rizom.work) sharing one structural site package and one theme package, selected independently via `site: { package, variant, theme }`. Phase 0: instance overrides accept object-form `site:` config, `entityRouteConfig` renamed to `entityDisplay`. Phase 1: existing `theme-rizom` renamed to `theme-ranger`, fresh `theme-rizom` brand theme created. Phase 2: `sites/rizom/` site package with new `SitePackage.staticAssets` for canvas asset pipeline. Phase 3: `apps/rizom-ai` scaffold (variant `ai`, ranger brain). MVP target flipped from rizom.foundation to rizom.ai. ([plan](./plans/rizom-sites.md))
 
 ### Public Release Cleanup — Phase 1 (2026-04)
 
@@ -219,7 +219,8 @@ Items at the same level can be done in parallel.
 - **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done. Blocked only on creating the `@rizom` npm org and running `npm publish`. ([plan](./plans/npm-packages.md))
 - **Public release cleanup** — Phase 1 audit + fork-safe CI + mechanical rewrites complete. Decisions revised: apps now public as config-only directories, `brains/{ranger,relay}` public source with no published artifacts, `apps/mylittlephoney` extracted to standalone private repo. Remaining: Phase 3 in-tree cleanup (delete `team-brain`/`collective-brain`/`sites/ranger`/`theme-ranger`, rename `professional-brain` → `yeehaa.io`, extract `mylittlephoney`), Phase 3.5 content prep (README/CONTRIBUTING/SECURITY/STABILITY), Phase 4 push to `brains-temp`, Phase 4.5 smoke test on clean machine, Phase 5 double-rename. ([plan](./plans/public-release-cleanup.md))
 - **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. `Dockerfile.model` + internal Caddy routing + `/health` shipped. Publish-images workflow hardened (fork-safety, release tags, multi-arch, cache). Next: first standalone instance via `brain init --deploy`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
-- **Rizom Sites** — three rizom-branded sites (rizom.ai, rizom.foundation, rizom.work) sharing one site package + theme, configured per-instance via `site: { package, variant, theme }`. Phases 0-3 done: object-form site overrides, fresh `theme-rizom` brand theme, `sites/rizom` site package with `SitePackage.staticAssets`, `apps/rizom-ai` scaffold (ranger + variant `ai`). Next: variant-specific content (hero copy, CTAs) + deploy rizom.ai on existing Hetzner infra (independent of Kamal); foundation + work via Kamal as follow-up. ([plan](./plans/rizom-sites.md))
+- **Rizom Sites** — three rizom-branded sites (rizom.ai, rizom.foundation, rizom.work) sharing one structural site package + one theme package, configured per-instance via `site: { package, variant, theme }`. Phases 0-3 done: object-form site overrides, fresh `theme-rizom` brand theme, `sites/rizom` site package with `SitePackage.staticAssets`, `apps/rizom-ai` scaffold (ranger + variant `ai`). Next: variant-specific content (hero copy, CTAs) + deploy rizom.ai on existing Hetzner infra (independent of Kamal); foundation + work via Kamal as follow-up. ([plan](./plans/rizom-sites.md))
+- **Documentation — Phase 2** — fill in the remaining user-facing gaps after the Phase 1 getting-started/reference push: entity type reference, content management guide, interface setup guides (MCP, Discord, A2A), and customization guides (themes, layouts, plugins). Goal: make the first public release understandable without reading source or plan docs. ([plan](./plans/documentation.md))
 
 ### External Plugin API
 
@@ -230,6 +231,8 @@ Public plugin API for `@rizom/brain`: library exports with .d.ts, runtime loadin
 Plugin skeleton, DID identity (`did:web`), outbound publishing (entities → PDS records), Bluesky cross-posting. Gives brains a Bluesky presence. ([plan](./plans/atproto-integration.md))
 
 ### Eval Coverage Expansion
+
+Broaden the eval suite beyond the current release gate so regressions are easier to catch before they reach users. Focus areas: richer system-tool flows, more entity-specific generation/update scenarios, multi-turn interface behaviors, and broader multi-model comparisons. The immediate goal is not a new architecture change — it is higher confidence in the architecture already shipped.
 
 ---
 
@@ -265,7 +268,7 @@ Standalone executables via `bun build --compile`. CLI binary works now (101MB, n
 
 ### Monitoring & Observability — Post-Release
 
-Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard (polling enriched `/health`), log aggregation (JSON logs → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard showing usage charts and recent errors, remote heartbeat for fleet-wide view. Needed once instances run on subdomains via Kamal. ([plan](./plans/monitoring.md))
+Builds on the completed logging/health/usage-tracking work. Next layer: health dashboard (polling enriched `/health`), log aggregation (JSON logs → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), a web dashboard showing usage charts and recent errors, and remote heartbeats for fleet-wide visibility. Needed once instances run on subdomains via Kamal.
 
 ### Search Reranking
 

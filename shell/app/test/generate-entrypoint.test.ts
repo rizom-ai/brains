@@ -139,6 +139,7 @@ plugins:
 `;
     const code = generateEntrypoint(yaml);
 
-    expect(code).toContain('import { registerPackage } from "@brains/app"');
+    expect(code).toContain("registerPackage");
+    expect(code).toContain('from "@brains/app"');
   });
 });

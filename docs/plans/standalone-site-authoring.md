@@ -209,20 +209,34 @@ Once themes are decoupled, auto-discovery is trivial.
 
 ### P3 — `brain init` scaffolds both convention files
 
-`brain init` scaffolds `src/site.ts` (minimal SitePackage extending
-the brain's default) + `src/theme.css` (empty scaffold with palette
-comment block).
+`brain init` scaffolds `src/site.ts` + `src/theme.css`, but only after the
+public site-authoring surface is broad enough to scaffold against.
+That means P4 lands first.
+
+The scaffold should emit:
+
+- `src/site.ts` built on the stable `@rizom/brain/site` authoring API
+- `src/theme.css` with an empty palette / semantic-token comment block
+- no `@brains/*` imports, no sub-package hack, no manual composition step
 
 **Effort:** ~1 hour (two template strings + tests).
 
-### P4 — `createPersonalSite()` / `createProfessionalSite()` factories
+### P4 — widen `@rizom/brain/site` for standalone authoring
 
-Convenience factories that bundle `PersonalLayout` + `personalSitePlugin`
+Before scaffolding files, the public site entry needs to cover both site
+shapes we actually ship.
 
-- `routes` into a single function call. Reduces the number of paired
-  symbols a site author has to get right.
+This priority adds:
 
-**Effort:** ~30 min.
+- `professionalSitePlugin`
+- `ProfessionalLayout`
+- any small helper/factory surface needed to make `src/site.ts`
+  concise and stable for both personal and professional sites
+
+This keeps `brain init` from generating code against an incomplete
+public API.
+
+**Effort:** ~30–60 min.
 
 ### Dropped
 
@@ -238,8 +252,9 @@ Convenience factories that bundle `PersonalLayout` + `personalSitePlugin`
 1. **P1 first** (decouple). Biggest architectural change, unblocks
    everything.
 2. **P2** (convention). Trivial after P1.
-3. **P3** (scaffold). Trivial after P2.
-4. **P4** (factories). Quality of life.
+3. **P4** (public site-authoring surface). Needed before scaffolded
+   `src/site.ts` can target a stable API.
+4. **P3** (scaffold). Emit files only after the authoring surface is ready.
 
 Total estimated effort: **~5 hours** including alpha publish cycles
 and mylittlephoney retrofit.
@@ -273,17 +288,20 @@ extraction.
 
 ## Status
 
-- [ ] P1: Decouple theme from site
-  - [ ] Drop `theme` field from `SitePackage`
-  - [ ] Add `theme` field to `BrainDefinition`
-  - [ ] Add `resolveTheme` to brain-resolver
-  - [ ] Move `composeTheme()` into the resolver
-  - [ ] Update `site-default`, `site-ranger`, `site-rizom`,
+- [x] P1: Decouple theme from site
+  - [x] Drop `theme` field from `SitePackage`
+  - [x] Add `theme` field to `BrainDefinition`
+  - [x] Add `resolveTheme` to brain-resolver
+  - [x] Move `composeTheme()` into the resolver
+  - [x] Update `site-default`, `site-ranger`, `site-rizom`,
         `site-yeehaa`, `site-mylittlephoney`
-  - [ ] Update all theme packages to export raw CSS
-  - [ ] Update rover / ranger / relay brain definitions
-  - [ ] Publish alpha
-- [ ] P2: Convention discovery for `src/site.ts` + `src/theme.css`
+  - [x] Update all theme packages to export raw CSS
+  - [x] Update rover / ranger / relay brain definitions
+  - [x] Publish alpha
+- [x] P2: Convention discovery for `src/site.ts` + `src/theme.css`
+  - [x] Register local `src/site.ts` and `src/theme.css` under synthetic package refs
+  - [x] Apply the convention only when `site.package` / `site.theme` are omitted
+  - [x] Support both bundled CLI boot and generated static entrypoints
 - [ ] P3: `brain init` scaffolds both files
 - [ ] P4: `createPersonalSite()` / `createProfessionalSite()` factories
 - [ ] mylittlephoney retrofit to the new shape

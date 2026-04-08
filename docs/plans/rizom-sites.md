@@ -22,7 +22,7 @@ apps/rizom-foundation/        # (follow-up — scaffold already exists, parked)
 apps/rizom-work/              # (follow-up)
 ```
 
-The same `@brains/site-rizom` package is loaded by all three brains. Each brain's `brain.yaml` selects its variant via a `site:` object:
+The same `@brains/site-rizom` package is loaded by all three brains. Each brain's `brain.yaml` selects its structural variant and theme via a `site:` object:
 
 ```yaml
 brain: ranger
@@ -30,6 +30,7 @@ domain: rizom.ai
 site:
   package: "@brains/site-rizom"
   variant: ai
+  theme: "@brains/theme-rizom"
 ```
 
 The site plugin reads `variant` and:
@@ -42,25 +43,11 @@ The theme CSS uses `[data-rizom-variant]` attribute selectors to switch the acce
 
 ## Architectural prerequisite
 
-The current site-builder cannot pass per-brain config to a site package's plugin factory. The fix is small and lands in a single atomic commit together with the migration of the two existing consumers.
+The key prerequisite was teaching the resolver to treat site structure and theme selection as separate concerns while keeping both under the `site:` block in `brain.yaml`.
 
 ### Current state
 
-`shell/app/src/instance-overrides.ts`:
-
-```ts
-site: z.string().optional(); // package name only
-```
-
-`shell/app/src/brain-resolver.ts` (lines 147–149):
-
-```ts
-const sitePlugin = site.plugin({
-  entityDisplay: site.entityDisplay,
-});
-```
-
-The plugin factory receives only `entityDisplay` (formerly `entityRouteConfig` — renamed in the same commit, see below). Anything else from `brain.yaml` is dropped on the floor.
+`shell/app/src/instance-overrides.ts` only accepted `site` as a package string, and theme selection was effectively bundled into the site package itself. That prevented per-instance site/theme pairing and made the resolver treat styling as a property of the site package instead of a separate input.
 
 ### Required change
 
@@ -76,18 +63,28 @@ site: z.object({
 }).optional();
 ```
 
-**`shell/app/src/brain-resolver.ts`** — spread the flavor fields into the plugin config:
+**`shell/app/src/brain-resolver.ts`** — resolve structure and styling independently:
 
 ```ts
-const { package: _pkg, ...siteFlavor } = overrides?.site ?? {};
+const site = resolveSitePackage(definition, overrides);
+const theme = resolveTheme(definition, overrides);
+
+pluginOverrides["site-builder"] = deepMerge(siteBuilderDefaults, {
+  ...(theme !== undefined && { themeCSS: theme }),
+  ...(site && {
+    routes: site.routes,
+    entityDisplay: site.entityDisplay,
+    layouts: site.layouts,
+  }),
+});
 
 const sitePlugin = site.plugin({
   entityDisplay: site.entityDisplay,
-  ...siteFlavor,
+  ...stripSiteConfig(overrides?.site),
 });
 ```
 
-`package` is stripped before passing to the plugin (it was used at resolution time to find the package — the plugin doesn't need it). Everything else (`variant`, `theme`, future fields) flows through to the plugin's Zod-validated config schema.
+`package` and `theme` are consumed during resolution and stripped before reaching the site plugin. Structural flavor fields such as `variant` still flow through to the plugin's Zod-validated config schema.
 
 ### Rationale
 
@@ -112,10 +109,10 @@ The pre-existing `SitePackage.entityRouteConfig` field (plus its `EntityRouteEnt
 **Files modified:** ~25, one commit
 
 - `shell/app/src/instance-overrides.ts` — object-only `site` schema
-- `shell/app/src/brain-resolver.ts` — spread the flavor fields
-- `shell/app/src/override-package-refs.ts` — read `site.package` instead of `site` as a string when collecting `@-prefixed` refs to register
-- `apps/mylittlephoney/brain.yaml` — `site: "@brains/site-mylittlephoney"` → `site: { package: "@brains/site-mylittlephoney" }`
-- `apps/professional-brain/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa" }`
+- `shell/app/src/brain-resolver.ts` — resolve `site.package` and `site.theme` independently
+- `shell/app/src/override-package-refs.ts` — collect both `site.package` and `site.theme` package refs for registration
+- `apps/mylittlephoney/brain.yaml` — `site: "@brains/site-mylittlephoney"` → `site: { package: "@brains/site-mylittlephoney", theme: "@brains/theme-mylittlephoney" }`
+- `apps/professional-brain/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa", theme: "@brains/theme-brutalist" }`
 - `shell/app/test/instance-overrides.test.ts` + `shell/app/test/override-package-refs.test.ts` — update any test fixtures that pass `site:` as a string
 
 **Verification:** `bun run typecheck && bun run lint && bun test` passes. `professional-brain` and `mylittlephoney` build and render identically (their active capabilities + resolved site plugin config match the pre-change snapshot byte-for-byte).

@@ -41,10 +41,11 @@ const routes = defaultRoutes.map((route) => {
 });
 
 /**
- * Ranger site package — CTA-driven community site with rizom theme.
+ * Ranger site package — CTA-driven community site.
  *
  * Extends the default site with CTA layouts and a landing page
  * that shows a HOME entity instead of the intro section.
+ * Pair it with `@brains/theme-ranger` for the default ranger styling.
  */
 const site: SitePackage = {
   layouts: {

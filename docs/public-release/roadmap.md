@@ -2,10 +2,10 @@
 
 This is a public, high-level view of where `brains` is headed. Items are roughly ordered by priority but not strictly by date — actual landing depends on maintainer availability.
 
-For what's already shipped, see [CHANGELOG.md](../CHANGELOG.md).
-For what's stable today versus what isn't, see [STABILITY.md](../STABILITY.md).
+For what's already shipped, see [CHANGELOG.md](./CHANGELOG.md).
+For what's stable today versus what isn't, see [STABILITY.md](./STABILITY.md).
 
-> **Note on planning:** this project is in maintainer-only development mode. Items below are intentions, not commitments. The roadmap can and will change. If something here is important to you, [open an issue](../../issues) to bump its visibility.
+> **Note on planning:** this project is in maintainer-only development mode. Items below are intentions, not commitments. The roadmap can and will change. If something here is important to you, open an issue in the main repository to bump its visibility.
 
 ---
 

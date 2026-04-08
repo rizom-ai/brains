@@ -7,10 +7,10 @@ import {
 import type { SitePackage } from "@brains/app";
 
 /**
- * mylittlephoney site package — pink unicorn theme + personal layout.
+ * mylittlephoney site package — personal layout + blog-focused labeling.
  *
- * Bundles a playful candy-pink visual identity with a clean
- * blog-focused personal layout into a single deployable unit.
+ * Provides the structure for the mylittlephoney site.
+ * Pair it with `@brains/theme-mylittlephoney` for the candy-pink styling.
  */
 const site: SitePackage = {
   layouts: {

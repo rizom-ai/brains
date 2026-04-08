@@ -4,7 +4,7 @@ A modular platform for building AI-powered knowledge agents. Each brain is an MC
 
 ## What is a Brain?
 
-A brain is a personal AI agent that manages your knowledge. It stores content as markdown, serves a static website, syncs with git, and talks to AI models. You interact with it through MCP (Claude Desktop, Cursor), Discord, or the CLI.
+A brain is an AI-powered knowledge agent. It stores content as markdown, serves a static website, syncs with git, and talks to AI models. Depending on the model you choose, it can be personal, team-oriented, or community-oriented. You interact with it through MCP (Claude Desktop, Cursor), Discord, local chat, the web UI, or agent-to-agent protocols.
 
 Brains are defined by a **brain model** (what plugins it includes) and configured per-instance via `brain.yaml` (credentials, domain, git repo). One model, many deployments.
 
@@ -16,7 +16,7 @@ brain.yaml (instance config)
   = running brain
     ├── Entity Plugins    content types: blog, notes, links, portfolio, ...
     ├── Service Plugins   integrations: directory-sync, site-builder, notion, ...
-    └── Interface Plugins transports: MCP, Discord, A2A, webserver, CLI
+    └── Interface Plugins transports: MCP, Discord, A2A, webserver, chat REPL
 ```
 
 ### Plugin Types
@@ -76,18 +76,20 @@ apps/                    Brain instances — config-only directories (brain.yaml
 git clone https://github.com/rizom-ai/brains.git
 cd brains
 bun install
-
-# Run an existing app instance via the in-tree brain CLI
-cd apps/yeehaa.io
-cp .env.example .env       # add AI_API_KEY at minimum
-bun --filter @rizom/brain run dev
 ```
 
-Once `@rizom/brain` is published, the same flow becomes:
+For the actual end-user setup flow, see the published CLI docs:
+
+- [Getting Started](packages/brain-cli/docs/getting-started.md)
+- [brain.yaml Reference](packages/brain-cli/docs/brain-yaml-reference.md)
+- [CLI Reference](packages/brain-cli/docs/cli-reference.md)
+- [Deployment Guide](packages/brain-cli/docs/deployment-guide.md)
+
+Quick published-CLI flow:
 
 ```bash
 bun add -g @rizom/brain
-brain init mybrain         # interactive scaffold (model, domain, content repo)
+brain init mybrain
 cd mybrain && brain start
 ```
 
@@ -151,8 +153,8 @@ bun test plugins/blog/    # Test a single package
 ### Metrics
 
 - 79 packages
-- 16 entity types, 13 service plugins, 5 interfaces, 11 themes
-- 3 brain models (rover, ranger, relay), 3 site packages (default, rizom, yeehaa)
+- 16 entity packages, 13 service plugins, 5 interfaces, 11 themes
+- 3 brain models (rover, ranger, relay), 5 site packages (default, yeehaa, ranger, rizom, mylittlephoney)
 
 ## Deployment
 
@@ -170,10 +172,20 @@ Single container with built-in Caddy handles TLS, path-based routing, and static
 
 ## Documentation
 
+### User-facing docs
+
+- [Getting Started](packages/brain-cli/docs/getting-started.md)
+- [brain.yaml Reference](packages/brain-cli/docs/brain-yaml-reference.md)
+- [CLI Reference](packages/brain-cli/docs/cli-reference.md)
+- [Deployment Guide](packages/brain-cli/docs/deployment-guide.md)
+
+### Architecture and development docs
+
 - [Architecture Overview](docs/architecture-overview.md)
 - [Brain Models](docs/brain-model.md)
 - [Entity Model](docs/entity-model.md)
-- [Plugin Quick Reference](docs/plugin-quick-reference.md) | [Plugin Development Patterns](docs/plugin-development-patterns.md)
+- [Plugin Quick Reference](docs/plugin-quick-reference.md)
+- [Plugin Development Patterns](docs/plugin-development-patterns.md)
 - [Tech Stack](docs/tech-stack.md)
 - [Theming Guide](docs/theming-guide.md)
 - [Development Workflow](docs/development-workflow.md)

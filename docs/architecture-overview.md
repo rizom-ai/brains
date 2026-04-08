@@ -1,191 +1,250 @@
 # Architecture Overview
 
-The Brain application features a modular, plugin-based architecture built around a core shell that provides essential infrastructure for knowledge management. Each "brain" is an independently deployable instance with its own identity, capabilities, and content.
+Brains is a modular, plugin-based system for running AI-powered knowledge agents. Each running brain is an independently deployable MCP server with its own identity, content, capabilities, and interfaces.
 
-## Core Architecture Principles
+At a high level:
 
-1. **MCP-First Design**: Every brain application is an MCP server, exposing all functionality through the Model Context Protocol
-2. **Tool-First Architecture**: All functionality is exposed as self-describing tools with schemas
-3. **Entity-Driven**: Content types are defined as EntityPlugins with schema, adapter, and optional derive/generate
-4. **Schema-First Design**: All data structures use Zod schemas for validation and type safety
-5. **Brain Model/Instance Separation**: Brain definitions (`brains/`) declare identity and capabilities; deployment instances provide environment config via brain.yaml
-6. **Everything through `@brains/plugins`**: Plugins never import from shell packages directly
-
-## Workspace Structure
-
-The monorepo is managed by Turborepo with 9 workspace categories:
-
-```
-shell/          Core infrastructure — runtime, services, plugin framework
-shared/         Reusable utilities, themes, UI components
-entities/       Content type EntityPlugins — schema, adapter, generation, derive
-plugins/        Integration plugins with tools — CRUD, orchestration, infrastructure
-layouts/        Page layout components — datasources, templates, page structure
-sites/          Site packages — theme + layout + routes bundles
-interfaces/     Interaction channels — how users talk to a brain
-brains/         Brain definitions — identity, capabilities, presets, content model
-packages/       Standalone npm packages — brain CLI (@rizom/brain)
+```text
+brain model + brain.yaml instance config = running brain
 ```
 
-**Note**: `apps/` is no longer a workspace category. Each `apps/<name>/` directory is now a config-only deployment bundle (`brain.yaml` + `.env` + optional `deploy/`) consumed by the `brain` CLI at runtime against the brain model package it references.
+- **Brain model** (`brains/*`) decides what capabilities exist
+- **Instance config** (`brain.yaml`) provides environment-specific settings
+- **Shell packages** provide the runtime, services, and plugin framework
+- **Plugins** add content types, integrations, and interfaces
 
-### Shell Packages (Core Infrastructure)
+## Core architecture principles
 
-| Package                      | Purpose                                                                      |
-| ---------------------------- | ---------------------------------------------------------------------------- |
-| `shell/app`                  | Brain resolver, CLI, brain.yaml parsing, `defineBrain()`                     |
-| `shell/core`                 | Central shell with plugin management and lifecycle                           |
-| `shell/ai-service`           | AI agent with xstate conversation state machine                              |
-| `shell/content-service`      | Template-based content generation                                            |
-| `shell/conversation-service` | Conversation and message management with memory                              |
-| `shell/entity-service`       | Entity CRUD, search, mutations, queries with vector support                  |
-| `shell/identity-service`     | Brain character + anchor profile management                                  |
-| `shell/job-queue`            | Background job processing with progress tracking                             |
-| `shell/mcp-service`          | MCP server — tool, resource, resource template, prompt registration          |
-| `shell/messaging-service`    | Event-driven pub/sub messaging                                               |
-| `shell/plugins`              | Plugin base classes (EntityPlugin, ServicePlugin, InterfacePlugin), contexts |
-| `shell/templates`            | Template registry and management                                             |
-| `shell/ai-evaluation`        | Eval runner, test cases, LLM judge                                           |
+1. **MCP-first** — every brain is an MCP server and exposes tools, resources, prompts, and resource templates through the same core transport model.
+2. **Entity-driven** — durable content lives as typed entities stored as markdown with frontmatter.
+3. **Schema-first** — Zod schemas define config, entities, tool inputs, and API contracts.
+4. **Plugin-based** — almost all product behavior is composed from EntityPlugins, ServicePlugins, and InterfacePlugins.
+5. **Brain model / instance separation** — reusable models live in `brains/`; deployable instances live in `apps/` as config-only directories.
+6. **Stable architectural boundaries** — plugin code should flow through `@brains/plugins` and shared packages rather than reaching directly into shell internals.
 
-### Entity Packages (Content Types)
+## Workspace structure
 
-All content types live in `entities/` as EntityPlugins. Zero tools — entity CRUD goes through system tools.
+The monorepo is organized into 9 workspace categories:
 
-| Package                 | Entity type   | Features                                 |
-| ----------------------- | ------------- | ---------------------------------------- |
-| `entities/blog`         | `post`        | Essays, RSS, generation handler          |
-| `entities/decks`        | `deck`        | Presentations, generation handler        |
-| `entities/note`         | `base`        | Knowledge capture, generation handler    |
-| `entities/link`         | `link`        | URL capture with AI extraction           |
-| `entities/portfolio`    | `project`     | Case studies, generation handler         |
-| `entities/social-media` | `social-post` | LinkedIn posts, derive() from blog posts |
-| `entities/newsletter`   | `newsletter`  | Email newsletters, publish pipeline      |
-| `entities/wishlist`     | `wish`        | Unfulfilled user requests                |
-| `entities/products`     | `product`     | Product listings                         |
-| `entities/image`        | `image`       | AI image generation                      |
-| `entities/series`       | `series`      | Derived from posts via derive()          |
-| `entities/topics`       | `topic`       | AI-extracted tags via derive()           |
-| `entities/summary`      | `summary`     | Conversation summaries via derive()      |
-| `entities/prompt`       | `prompt`      | AI prompts as editable markdown entities |
-| `entities/site-info`    | `site-info`   | Site metadata (title, description)       |
-
-### Integration Plugins (Tools + Services)
-
-| Package                    | Purpose                                                                                                        |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| `plugins/directory-sync`   | File sync + git ops                                                                                            |
-| `plugins/site-builder`     | Static site generation orchestration (tools, events, job queue). Build engine moving to `@brains/site-engine`. |
-| `plugins/content-pipeline` | Publishing queue with scheduling and retry                                                                     |
-| `plugins/dashboard`        | Extensible widget system                                                                                       |
-| `plugins/analytics`        | Cloudflare analytics integration                                                                               |
-| `plugins/buttondown`       | Buttondown subscriber management + API routes                                                                  |
-| `plugins/notion`           | MCP bridge to Notion workspace                                                                                 |
-| `plugins/hackmd`           | MCP bridge to HackMD                                                                                           |
-| `plugins/obsidian-vault`   | Obsidian template generation                                                                                   |
-
-### Shared Packages
-
-| Package              | Purpose                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------- |
-| `shared/utils`       | Logging, markdown, permissions, Zod re-export                                             |
-| `shared/ui-library`  | Preact UI components (Header, Footer, ThemeToggle)                                        |
-| `shared/mcp-bridge`  | Base class for upstream MCP server integration                                            |
-| `shared/image`       | Image schema, adapter, utilities                                                          |
-| `shared/theme-*`     | CSS themes (10 themes)                                                                    |
-| `shared/site-engine` | Static site build engine (planned) — Preact/Astro rendering, Tailwind, image optimization |
-| `shared/test-utils`  | Mock factories, harness helpers                                                           |
-
-### Interface Packages
-
-| Package              | Purpose                |
-| -------------------- | ---------------------- |
-| `interfaces/cli`     | Command-line interface |
-| `interfaces/discord` | Discord bot interface  |
-
-| `interfaces/mcp` | MCP transport (stdio + HTTP) |
-| `interfaces/webserver` | Static site server (in-process Hono) + API routes |
-| `interfaces/a2a` | A2A protocol (Agent Card, JSON-RPC tasks, non-blocking) |
-
-### Brain Definitions
-
-| Package         | Brain  | Description                                                                                                  |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------------------ |
-| `brains/rover`  | Rover  | Reference brain model. Personal knowledge + professional content. Published as docker image and npm package. |
-| `brains/ranger` | Ranger | Internal brain model used by `apps/rizom-ai`. Public source, not published.                                  |
-| `brains/relay`  | Relay  | Internal brain model used by `apps/rizom-foundation`. Public source, not published.                          |
-
-Each brain uses `defineBrain()` to declare identity, capabilities, interfaces, presets, and permissions.
-
-## Architectural Boundaries
-
-```
-brains/ ──imports──▶ entities/, plugins/, layouts/, interfaces/, shared/
-entities/ ──imports──▶ shared/, shell/plugins  (NOT other entities or plugins)
-layouts/ ──imports──▶ shared/, shell/
-plugins/ ──imports──▶ shared/, shell/          (NOT other plugins or entities)
-interfaces/ ──imports──▶ shared/, shell/       (NOT other interfaces)
-shell/ ──imports──▶ shared/, other shell/
+```text
+shell/          Core runtime, services, plugin framework
+shared/         Reusable utilities, themes, UI components, test helpers
+entities/       EntityPlugin packages for content types
+plugins/        ServicePlugin packages for tools and integrations
+layouts/        Page layout building blocks for sites
+sites/          Structural site packages (layouts + routes + site plugins)
+interfaces/     InterfacePlugin packages for transports and daemons
+brains/         Brain model packages
+packages/       Standalone distributable packages (for example @rizom/brain)
 ```
 
-## Plugin System
+`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is just a deployment bundle (`brain.yaml`, `.env`, optional `deploy/`) consumed by the CLI at runtime.
 
-**Three plugin types:**
+## Current package map
 
-- **EntityPlugin**: Content types — defines entity schema, adapter, generation handler, derive(). No tools.
-- **ServicePlugin**: Integrations — provides tools, job handlers, API routes. No entities.
-- **InterfacePlugin**: Transports — manages daemons, permissions, user interaction.
+### Shell packages
 
-**EntityPlugin** is the most common type. All content plugins (blog, decks, note, link, etc.) are EntityPlugins.
+| Package                      | Purpose                                                              |
+| ---------------------------- | -------------------------------------------------------------------- |
+| `shell/app`                  | Brain resolver, `defineBrain()`, instance loading, runtime bootstrap |
+| `shell/core`                 | Core shell, lifecycle orchestration, system tools/resources/prompts  |
+| `shell/ai-service`           | AI querying, orchestration, provider abstraction                     |
+| `shell/content-service`      | Template-based content generation support                            |
+| `shell/conversation-service` | Conversation state and message history                               |
+| `shell/entity-service`       | Entity CRUD, indexing, search, embeddings                            |
+| `shell/identity-service`     | Brain identity, anchor profile, URL derivation                       |
+| `shell/job-queue`            | Background jobs, progress events, handler registration               |
+| `shell/mcp-service`          | MCP tool/resource/prompt/template registration                       |
+| `shell/messaging-service`    | Typed event bus used across plugins                                  |
+| `shell/plugins`              | Base plugin classes, contexts, harnesses                             |
+| `shell/templates`            | Template registry and resolution                                     |
+| `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                           |
 
-**Key EntityPlugin features:**
+### Entity packages
 
-- Auto-registers entity type, generation handler, templates, datasources
-- `derive()` for event-driven derivation (topics from posts, series from posts)
-- `deriveAll()` for batch reprocessing via `system_extract`
-- Zero tools — entity CRUD goes through `system_create`, `system_update`, `system_delete`
+Entity packages live in `entities/`. Most packages define one entity type; a few define more than one.
 
-**Registration Flow:**
+| Package                    | Entity type(s)                 | Notes                                 |
+| -------------------------- | ------------------------------ | ------------------------------------- |
+| `entities/blog`            | `post`                         | Essays, long-form publishing          |
+| `entities/decks`           | `deck`                         | Presentation/deck content             |
+| `entities/image`           | `image`                        | AI image generation                   |
+| `entities/link`            | `link`                         | URL capture and extraction            |
+| `entities/newsletter`      | `newsletter`                   | Newsletter content                    |
+| `entities/note`            | `base`                         | General markdown notes / base notes   |
+| `entities/portfolio`       | `project`                      | Case studies and portfolio entries    |
+| `entities/products`        | `product`, `products-overview` | Product catalog content               |
+| `entities/prompt`          | `prompt`                       | Editable AI prompt entities           |
+| `entities/series`          | `series`                       | Derived post grouping                 |
+| `entities/site-info`       | `site-info`                    | Site metadata                         |
+| `entities/social-media`    | `social-post`                  | Social publishing content             |
+| `entities/summary`         | `summary`                      | Conversation summaries                |
+| `entities/topics`          | `topic`                        | Derived topic/tag entities            |
+| `entities/wishlist`        | `wish`                         | Unfulfilled requests / backlog        |
+| `entities/agent-discovery` | `agent`, `skill`               | Agent directory + discoverable skills |
 
-1. PluginManager initializes plugins in dependency order
-2. EntityPlugins auto-register entity types + handlers
-3. ServicePlugins register tools + job handlers
-4. InterfacePlugins register daemons
+### Service plugins
 
-## Entity Model
+Service plugins live in `plugins/` and provide tools, handlers, routes, orchestration, or external integrations.
 
-All content follows a unified entity pattern:
+| Package                    | Purpose                               |
+| -------------------------- | ------------------------------------- |
+| `plugins/analytics`        | Analytics integration and insights    |
+| `plugins/buttondown`       | Buttondown API integration            |
+| `plugins/content-pipeline` | Publishing queue, scheduling, retries |
+| `plugins/dashboard`        | Dashboard widgets and UI slots        |
+| `plugins/directory-sync`   | File sync + git operations            |
+| `plugins/hackmd`           | HackMD MCP bridge                     |
+| `plugins/newsletter`       | Composite newsletter capability       |
+| `plugins/notion`           | Notion MCP bridge                     |
+| `plugins/obsidian-vault`   | Obsidian export/templates             |
+| `plugins/site-builder`     | Static site build orchestration       |
+| `plugins/site-content`     | Site section content generation       |
+| `plugins/stock-photo`      | Stock-photo search and selection      |
+| `plugins/examples`         | Reference patterns and examples       |
 
-```typescript
+### Interface plugins
+
+Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
+
+| Package                | Purpose                                               |
+| ---------------------- | ----------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks      |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface          |
+| `interfaces/discord`   | Discord bot interface                                 |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                     |
+| `interfaces/webserver` | In-process web server for static files and API routes |
+
+### Sites, layouts, themes, and brains
+
+| Area             | Current packages                                                                                                              |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `layouts/`       | `personal`, `professional`                                                                                                    |
+| `sites/`         | `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`                                                                      |
+| `shared/theme-*` | `base`, `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`, `brutalist`, `editorial`, `geometric`, `neo-retro`, `swiss` |
+| `brains/`        | `rover`, `ranger`, `relay`                                                                                                    |
+| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                       |
+
+## Plugin model
+
+Brains uses three primary plugin categories:
+
+- **EntityPlugin** — defines an entity schema, markdown adapter, optional generation handler, optional derivation logic, templates, and datasources.
+- **ServicePlugin** — provides tools, jobs, API routes, orchestration, and external service integrations.
+- **InterfacePlugin** — provides user-facing transports and long-lived daemons.
+
+### EntityPlugin behavior
+
+Entity plugins are the default way content enters the system.
+
+They can automatically register:
+
+- entity type + schema + adapter
+- generation handlers (`{entityType}:generation`)
+- templates
+- site datasources
+- extract/derive handlers when `derive()` is implemented
+
+Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
+
+### ServicePlugin behavior
+
+Service plugins provide the system's operational surface area:
+
+- external integrations
+- background job handlers
+- publishing pipelines
+- MCP-bridged services
+- specialized tools such as sync, stock photo search, or analytics insights
+
+### InterfacePlugin behavior
+
+Interface plugins are how users or other agents interact with a brain:
+
+- MCP clients connect through `interfaces/mcp`
+- chat users connect through `interfaces/discord` or `interfaces/chat-repl`
+- browsers connect through `interfaces/webserver`
+- peer agents connect through `interfaces/a2a`
+
+## Runtime flow
+
+A typical boot sequence looks like this:
+
+1. `@rizom/brain` or the in-repo runtime loads a `brain.yaml`
+2. `shell/app` resolves the referenced brain model from `brains/*`
+3. The shell constructs core services (entities, jobs, MCP, identity, messaging, AI)
+4. Plugins are instantiated and registered in dependency order
+5. Entity types, tools, resources, prompts, datasources, and daemons are registered
+6. Interfaces start their long-lived processes
+7. The brain begins serving MCP, web, Discord, A2A, or local chat traffic
+
+## Entity model
+
+All durable content follows the same base pattern:
+
+```ts
 {
-  id: string,
-  entityType: string,           // "post", "deck", "note", etc.
-  content: string,              // Markdown with YAML frontmatter
-  metadata: { ... },            // Subset of frontmatter for fast DB queries
-  contentHash: string,          // For change detection
-  created: string,              // ISO datetime
-  updated: string,              // ISO datetime
+  id: string;
+  entityType: string;
+  content: string; // markdown, usually with YAML frontmatter
+  metadata: object; // query-friendly subset of structured data
+  contentHash: string;
+  created: string; // ISO timestamp
+  updated: string; // ISO timestamp
 }
 ```
 
-## Testing
+This makes it possible to share infrastructure across content types:
 
-- **Unit Tests**: Behavioral testing with Bun test runner
-- **Plugin Testing**: `createPluginHarness()` — unified harness for all plugin types
-- **Mock Utilities**: `createMockEntityService()`, `createSilentLogger()`, `createTestEntity()`, `createMockMessageSender()` from `@brains/test-utils`
-- **Eval System**: Agent evals (full brain) + handler evals (lightweight, no brain)
+- one entity store
+- one sync/export model
+- one search pipeline
+- one set of system CRUD tools
+- one site-generation model
 
-## Deployment
+## Architectural boundaries
 
-- **Development**: `bun run` with hot reloading
-- **Production**: Docker containers on Hetzner Cloud (migrating to Kamal)
-- **Webserver**: In-process static file server (Hono via Bun.serve) + API routes on separate port
-- **CI/CD**: GitHub Actions
+High-level dependency direction:
 
-## Documentation
+```text
+brains/      -> entities/, plugins/, interfaces/, layouts/, sites/, shared/
+entities/    -> shared/, shell/plugins
+plugins/     -> shared/, shell/plugins
+interfaces/  -> shared/, shell/plugins
+layouts/     -> shared/, shell/* (layout/rendering support)
+sites/       -> layouts/, shared/
+shell/       -> shared/, other shell/
+```
 
-- **Plugin Guidelines**: `plugins/CLAUDE.md`
-- **Interface Guidelines**: `interfaces/CLAUDE.md`
-- **Theming Guide**: `docs/theming-guide.md`
-- **Plans**: `docs/plans/`
-- **Roadmap**: `docs/roadmap.md` + `docs/roadmap-visual.html`
-- **Codebase Map**: `docs/codebase-map.html`
+Practical rule of thumb: when writing a plugin, prefer imports from `@brains/plugins` and shared packages instead of coupling directly to shell internals.
+
+## Testing and quality
+
+The project relies on:
+
+- **Unit tests** with Bun
+- **Plugin harnesses** for EntityPlugins, ServicePlugins, and InterfacePlugins
+- **Mock helpers** from `@brains/test-utils`
+- **Eval suites** for end-to-end agent behavior and multi-model comparisons
+- **Type checking + linting** across the full monorepo via Turborepo
+
+## Deployment model
+
+Current deployment paths:
+
+- **Local development** via Bun inside the monorepo
+- **Published CLI** via `@rizom/brain`
+- **Container deployment** for production brains
+- **Hetzner-hosted deployments** today, with Kamal becoming the default deploy path
+
+Each deployed instance stays lightweight at the source level: a brain model package plus a config-only app directory.
+
+## Where to read next
+
+- [Roadmap](./roadmap.md)
+- [Brain model guide](./brain-model.md)
+- [Entity model](./entity-model.md)
+- [Theming guide](./theming-guide.md)
+- [Plugin development patterns](./plugin-development-patterns.md)
+- [Plugin quick reference](./plugin-quick-reference.md)
+- [User-facing CLI docs](../packages/brain-cli/docs/getting-started.md)

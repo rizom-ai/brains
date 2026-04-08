@@ -2,7 +2,7 @@
   "name": "@brains/site-ranger",
   "private": true,
   "version": "0.1.0",
-  "description": "Ranger site package — CTA-driven community site with default theme",
+  "description": "Ranger structural site package — CTA-driven community site",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -20,7 +20,6 @@
     "@brains/plugins": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/theme-ranger": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

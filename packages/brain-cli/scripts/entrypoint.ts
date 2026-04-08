@@ -37,6 +37,8 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
   } = await import("@brains/app");
   const { registerOverridePackages } =
     await import("../src/lib/register-override-packages");
+  const { registerConventionalSiteTheme } =
+    await import("../src/lib/register-conventional-site-theme");
 
   const yaml = readFileSync(join(cwd, "brain.yaml"), "utf-8");
   let overrides;
@@ -62,7 +64,14 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
   // brain definition's default site.
   await registerOverridePackages(overrides);
 
-  const config = resolve(definition, process.env, overrides);
+  // Convention-based local authoring: if brain.yaml does not pick a site
+  // package or theme explicitly, use ./src/site.ts and ./src/theme.css.
+  const effectiveOverrides = await registerConventionalSiteTheme(
+    cwd,
+    overrides,
+  );
+
+  const config = resolve(definition, process.env, effectiveOverrides);
 
   if (flags.registerOnly) {
     const app = App.create(config);

@@ -76,6 +76,7 @@ const defaultPreset = [
 export default defineBrain({
   name: "relay",
   version: "0.1.0",
+  model: "gpt-5.4-mini",
   site: rangerSite,
   theme: rangerTheme,
   presets: {

@@ -113,40 +113,46 @@ Version control works too. Your brain is just files, so Git works exactly as you
 
 Pick a preset in your `brain.yaml` to control what Rover can do:
 
-| Plugin               | minimal | default | pro |
-| -------------------- | ------- | ------- | --- |
-| **system**           | x       | x       | x   |
-| **note**             | x       | x       | x   |
-| **link**             | x       | x       | x   |
-| **wishlist**         | x       | x       | x   |
-| **directory-sync**   | x       | x       | x   |
-| **git-sync**         | x       | x       | x   |
-| **mcp**              | x       | x       | x   |
-| **discord**          | x       | x       | x   |
-| **a2a**              | x       | x       | x   |
-| **image**            |         | x       | x   |
-| **dashboard**        |         | x       | x   |
-| **blog**             |         | x       | x   |
-| **decks**            |         | x       | x   |
-| **analytics**        |         | x       | x   |
-| **obsidian-vault**   |         | x       | x   |
-| **site-builder**     |         | x       | x   |
-| **webserver**        |         | x       | x   |
-| **portfolio**        |         |         | x   |
-| **topics**           |         |         | x   |
-| **content-pipeline** |         |         | x   |
-| **social-media**     |         |         | x   |
-| **newsletter**       |         |         | x   |
+| Capability / interface | `core` | `default` | `full` |
+| ---------------------- | ------ | --------- | ------ |
+| `prompt`               | x      | x         | x      |
+| `note`                 | x      | x         | x      |
+| `link`                 | x      | x         | x      |
+| `wishlist`             | x      | x         | x      |
+| `topics`               | x      | x         | x      |
+| `directory-sync`       | x      | x         | x      |
+| `agents`               | x      | x         | x      |
+| `mcp`                  | x      | x         | x      |
+| `discord`              | x      | x         | x      |
+| `a2a`                  | x      | x         | x      |
+| `image`                |        | x         | x      |
+| `dashboard`            |        | x         | x      |
+| `blog`                 |        | x         | x      |
+| `series`               |        | x         | x      |
+| `decks`                |        | x         | x      |
+| `analytics`            |        | x         | x      |
+| `obsidian-vault`       |        | x         | x      |
+| `site-info`            |        | x         | x      |
+| `site-builder`         |        | x         | x      |
+| `webserver`            |        | x         | x      |
+| `portfolio`            |        |           | x      |
+| `content-pipeline`     |        |           | x      |
+| `social-media`         |        |           | x      |
+| `newsletter`           |        |           | x      |
+| `stock-photo`          |        |           | x      |
 
-- **minimal** (10) — Headless. Notes, links, wishlist, sync, chat. No website.
-- **default** (18) — Personal site. Blog, decks, images, dashboard, analytics, Obsidian sync.
-- **pro** (24) — Full production. Chat bots, publishing automation, portfolios, newsletters.
+- **`core`** — minimal on-ramp: capture, sync, MCP/A2A/Discord, no site
+- **`default`** — adds the website and publishing surface
+- **`full`** — adds portfolio, automation, newsletter, and stock-photo workflows
 
 Fine-tune with `add` and `remove`:
 
 ```yaml
 preset: default
-add: [decks, portfolio]
+add:
+  - portfolio
+remove:
+  - discord
 ```
 
 ## Get Your Own Rover
@@ -155,7 +161,7 @@ Want to set up your own brain with Rover? The whole thing is open source.
 
 Check out the [Brains project on GitHub](https://github.com/rizom-ai/brains) to get started.
 
-For development details, see [DEVELOPMENT.md](./DEVELOPMENT.md).
+For development details, see the repository docs: [../../docs/architecture-overview.md](../../docs/architecture-overview.md) and [../../docs/brain-model.md](../../docs/brain-model.md).
 
 ---
 

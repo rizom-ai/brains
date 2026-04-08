@@ -28,7 +28,7 @@ let brainPackage: string | undefined;
 if (existsSync(brainYamlPath)) {
   // New brain.yaml flow — generate a static entrypoint
   const yamlContent = readFileSync(brainYamlPath, "utf-8");
-  const generatedCode = generateEntrypoint(yamlContent);
+  const generatedCode = generateEntrypoint(yamlContent, { cwd });
   if (!generatedCode) {
     console.error('❌ brain.yaml must contain a valid "brain" field');
     process.exit(1);

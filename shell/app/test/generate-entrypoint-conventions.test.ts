@@ -1,0 +1,76 @@
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { join } from "path";
+import { tmpdir } from "os";
+import { generateEntrypoint } from "../src/generate-entrypoint";
+import {
+  CONVENTIONAL_SITE_PACKAGE_REF,
+  CONVENTIONAL_THEME_PACKAGE_REF,
+} from "../src/instance-overrides";
+
+describe("generateEntrypoint conventions", () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = join(tmpdir(), `generate-entrypoint-conventions-${Date.now()}`);
+    mkdirSync(join(testDir, "src"), { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  test("bundles ./src/site.ts when brain.yaml omits site.package", () => {
+    writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
+
+    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+
+    expect(code).not.toBeNull();
+    expect(code).toContain('import __pkg0 from "./src/site.ts"');
+    expect(code).toContain(
+      `registerPackage("${CONVENTIONAL_SITE_PACKAGE_REF}", __pkg0);`,
+    );
+    expect(code).toContain(
+      `applyConventionalSiteRefs(overrides, { sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
+    );
+  });
+
+  test("bundles ./src/theme.css when brain.yaml omits site.theme", () => {
+    writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
+
+    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+
+    expect(code).not.toBeNull();
+    expect(code).toContain(
+      'import __pkg0 from "./src/theme.css" with { type: "text" };',
+    );
+    expect(code).toContain(
+      `registerPackage("${CONVENTIONAL_THEME_PACKAGE_REF}", __pkg0);`,
+    );
+    expect(code).toContain(
+      `applyConventionalSiteRefs(overrides, { themeRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+    );
+  });
+
+  test("explicit site.package and site.theme suppress convention imports", () => {
+    writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
+    writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
+
+    const code = generateEntrypoint(
+      `brain: "@brains/rover"
+site:
+  package: "@brains/site-rizom"
+  theme: "@brains/theme-rizom"
+`,
+      { cwd: testDir },
+    );
+
+    expect(code).not.toBeNull();
+    expect(code).not.toContain("./src/site.ts");
+    expect(code).not.toContain("./src/theme.css");
+    expect(code).not.toContain(CONVENTIONAL_SITE_PACKAGE_REF);
+    expect(code).not.toContain(CONVENTIONAL_THEME_PACKAGE_REF);
+  });
+});

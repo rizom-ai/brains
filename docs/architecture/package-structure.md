@@ -12,7 +12,7 @@ brains/
 ├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
 ├── layouts/            # Page layout components (professional, personal)
-├── sites/              # Site packages (theme + layout + routes bundles)
+├── sites/              # Structural site packages (layouts + routes + site plugins)
 ├── brains/             # Brain model definitions
 └── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
 ```
@@ -114,15 +114,15 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Sites
 
-Site packages bundle a theme + layout + routes + site plugin into a deployable unit.
+Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package         | Purpose                                                                                     |
-| --------------- | ------------------------------------------------------------------------------------------- |
-| `sites/default` | Default theme + personal layout (used by rover by default)                                  |
-| `sites/yeehaa`  | Yeehaa brand theme + professional layout (used by `apps/yeehaa.io`)                         |
-| `sites/rizom`   | Rizom brand theme + multi-variant routes (used by `apps/rizom-ai`, `apps/rizom-foundation`) |
+| Package         | Purpose                                                                                              |
+| --------------- | ---------------------------------------------------------------------------------------------------- |
+| `sites/default` | Default structural site for rover, typically paired with `@brains/theme-default`                     |
+| `sites/yeehaa`  | Yeehaa structural site with the professional layout, typically paired with `@brains/theme-brutalist` |
+| `sites/rizom`   | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom`                     |
 
-Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / styles per instance.
+Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / structure per instance. Theme selection remains independent via `site.theme`.
 
 ## Brains
 

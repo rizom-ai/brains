@@ -73,7 +73,7 @@ export const shellConfigSchema = z.object({
   ai: z.object({
     apiKey: z.string(),
     imageApiKey: z.string().optional(),
-    model: z.string().default("gpt-4.1"),
+    model: z.string(),
     temperature: z.number().min(0).max(2).default(0.7),
     maxTokens: z.number().positive().default(1000),
     webSearch: z.boolean().default(true),
@@ -136,7 +136,7 @@ export function createShellConfig(
       ...(overrides.ai?.imageApiKey
         ? { imageApiKey: overrides.ai.imageApiKey }
         : {}),
-      model: overrides.ai?.model ?? "gpt-4.1",
+      ...(overrides.ai?.model ? { model: overrides.ai.model } : {}),
       temperature: overrides.ai?.temperature ?? 0.7,
       maxTokens: overrides.ai?.maxTokens ?? 1000,
       webSearch: overrides.ai?.webSearch ?? true,

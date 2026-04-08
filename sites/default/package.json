@@ -2,7 +2,7 @@
   "name": "@brains/site-default",
   "private": true,
   "version": "0.1.0",
-  "description": "Default site package — clean professional layout with default theme",
+  "description": "Default structural site package — clean professional layout for rover",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -19,7 +19,6 @@
     "@brains/app": "workspace:*",
     "@brains/layout-professional": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/theme-default": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

@@ -1,14 +1,14 @@
 # CLI Reference
 
-The `brain` CLI manages brain instances — scaffolding, starting, debugging, and remote access.
+The `brain` CLI scaffolds brain instances, boots them, runs diagnostics and evals, and can proxy commands to local or remote brains.
 
 ## Installation
 
 ```bash
-bun install -g @rizom/brain
+bun add -g @rizom/brain
 ```
 
-## Commands
+## Core commands
 
 ### `brain init <directory>`
 
@@ -17,43 +17,53 @@ Scaffold a new brain instance.
 ```bash
 brain init mybrain
 brain init mybrain --model relay
-brain init mybrain --model rover --domain mybrain.com --content-repo github:user/brain-data
-brain init mybrain --deploy    # Include Kamal deployment files
+brain init mybrain --domain mybrain.example.com
+brain init mybrain --content-repo github:user/brain-data
+brain init mybrain --deploy
+brain init mybrain --ai-api-key sk-...
+brain init mybrain --no-interactive
 ```
 
-**Options:**
+**Options**
 
-| Flag                    | Default            | Description                                          |
-| ----------------------- | ------------------ | ---------------------------------------------------- |
-| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`              |
-| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                    |
-| `--content-repo <repo>` | —                  | Git repo for content (e.g. `github:user/brain-data`) |
-| `--deploy`              | `false`            | Include deploy.yml, Kamal hooks, CI workflow         |
+| Flag                    | Default            | Description                                           |
+| ----------------------- | ------------------ | ----------------------------------------------------- |
+| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`               |
+| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                     |
+| `--content-repo <repo>` | —                  | Git repo for content sync                             |
+| `--deploy`              | `false`            | Include `deploy.yml`, Kamal hook, and GitHub workflow |
+| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`               |
+| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags  |
 
-**Generated files:**
+**Generated files**
 
-| File                           | Always | With `--deploy` |
-| ------------------------------ | ------ | --------------- |
-| `brain.yaml`                   | Yes    | Yes             |
-| `package.json`                 | Yes    | Yes             |
-| `.env.example`                 | Yes    | Yes             |
-| `.gitignore`                   | Yes    | Yes             |
-| `deploy.yml`                   | —      | Yes             |
-| `.kamal/hooks/pre-deploy`      | —      | Yes             |
-| `.github/workflows/deploy.yml` | —      | Yes             |
+| File                           | Always                               | With `--deploy`                      |
+| ------------------------------ | ------------------------------------ | ------------------------------------ |
+| `brain.yaml`                   | Yes                                  | Yes                                  |
+| `package.json`                 | Yes                                  | Yes                                  |
+| `README.md`                    | Yes                                  | Yes                                  |
+| `.env.example`                 | Yes                                  | Yes                                  |
+| `.gitignore`                   | Yes                                  | Yes                                  |
+| `tsconfig.json`                | Yes                                  | Yes                                  |
+| `.env`                         | Only when `--ai-api-key` is provided | Only when `--ai-api-key` is provided |
+| `deploy.yml`                   | —                                    | Yes                                  |
+| `.kamal/hooks/pre-deploy`      | —                                    | Yes                                  |
+| `.github/workflows/deploy.yml` | —                                    | Yes                                  |
 
 ### `brain start`
 
-Start the brain with all configured daemons (webserver, MCP server, Discord bot, A2A endpoint). Runs from the directory containing `brain.yaml`.
+Start the brain from the current directory.
 
 ```bash
 cd mybrain
 brain start
 ```
 
+This boots the configured interfaces and services for the local instance.
+
 ### `brain chat`
 
-Start the brain with an interactive chat REPL in the terminal. Same as `brain start` but opens a conversational interface.
+Start the brain and open the local chat REPL.
 
 ```bash
 brain chat
@@ -61,58 +71,84 @@ brain chat
 
 ### `brain eval [args...]`
 
-Run AI evaluations. Pass-through to the brain evaluation framework.
+Run AI evaluations. Arguments are passed through to the eval runner.
 
 ```bash
 brain eval
-brain eval --compare                # Compare against baseline
-brain eval --baseline               # Set current results as baseline
+brain eval --compare
+brain eval --baseline
 ```
 
-### `brain tool <name> [input]`
+### `brain diagnostics <subcommand>`
 
-Invoke a specific tool directly. Useful for debugging.
+Run diagnostics helpers exposed by the runtime.
 
 ```bash
-brain tool system_search '{"query": "quantum computing"}'
+brain diagnostics search
+```
+
+Currently documented subcommands:
+
+- `search` — inspect search distance distribution for threshold tuning
+
+### `brain pin`
+
+Create a local `package.json` that pins `@rizom/brain` to the current version and then run `bun install`.
+
+Use this when you started with a global install and want a locally pinned runtime.
+
+```bash
+brain pin
+```
+
+### `brain tool <toolName> [inputJson]`
+
+Invoke a tool directly.
+
+```bash
 brain tool system_status
-brain tool directory-sync_sync
+brain tool system_search '{"query":"recent posts"}'
 ```
 
 ### `brain help`
 
-Show help message. When run from a directory with `brain.yaml`, also lists brain-specific commands discovered from the running brain.
+Show help. When run from a directory with `brain.yaml`, the CLI also attempts to discover brain-specific commands.
 
 ### `brain version`
 
-Show CLI version.
+Show the installed CLI version.
 
-### `brain <command> [args]`
+## Brain-specific commands
 
-Brain-specific commands. These are tools with CLI metadata, auto-discovered from the brain model. Run `brain help` from a directory with `brain.yaml` to see available commands.
+Any command that is not one of the built-ins above is treated as a brain-specific command.
+
+Examples:
 
 ```bash
-brain sync              # Trigger content sync
-brain status            # Show brain status
+brain sync
+brain status
 ```
 
-## Global Options
+These are resolved from the running brain's tool registry. Available commands depend on the selected brain model, preset, and enabled plugins.
+
+## Remote mode
+
+Use `--remote` to run brain-specific commands against a deployed brain over MCP HTTP instead of booting a local instance.
+
+```bash
+brain --remote https://mybrain.example.com status
+brain --remote https://mybrain.example.com search "topics"
+brain --remote https://mybrain.example.com --token $TOKEN sync
+```
+
+| Flag              | Description                    |
+| ----------------- | ------------------------------ |
+| `--remote <url>`  | Remote brain base URL          |
+| `--token <token>` | Auth token for remote MCP HTTP |
+
+## Global options
 
 | Flag              | Description  |
 | ----------------- | ------------ |
 | `--help`, `-h`    | Show help    |
 | `--version`, `-v` | Show version |
-
-## Remote Mode
-
-Query a deployed brain over MCP HTTP without running it locally.
-
-```bash
-brain --remote https://mybrain.example.com search '{"query": "recent posts"}'
-brain --remote https://mybrain.example.com status
-```
-
-| Flag              | Description                                      |
-| ----------------- | ------------------------------------------------ |
-| `--remote <url>`  | Deployed brain URL                               |
-| `--token <token>` | Auth token (or set `BRAIN_REMOTE_TOKEN` env var) |

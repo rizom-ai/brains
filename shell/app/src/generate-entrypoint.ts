@@ -1,5 +1,11 @@
+import { existsSync } from "fs";
+import { relative, sep } from "path";
 import { collectOverridePackageRefs } from "./override-package-refs";
-import { parseInstanceOverrides } from "./instance-overrides";
+import {
+  CONVENTIONAL_SITE_PACKAGE_REF,
+  CONVENTIONAL_THEME_PACKAGE_REF,
+  parseInstanceOverrides,
+} from "./instance-overrides";
 
 /**
  * Generate a static entrypoint for a brain model image (no brain.yaml at build time).
@@ -46,6 +52,15 @@ export function generateModelEntrypoint(
   ].join("\n");
 }
 
+export interface GenerateEntrypointOptions {
+  cwd?: string;
+}
+
+function toImportPath(fromDir: string, filePath: string): string {
+  const normalized = relative(fromDir, filePath).split(sep).join("/");
+  return normalized.startsWith(".") ? normalized : `./${normalized}`;
+}
+
 /**
  * Generate a static entrypoint for the bundler from brain.yaml content.
  *
@@ -53,10 +68,18 @@ export function generateModelEntrypoint(
  * imports so the bundler can include them. At runtime, resolvePackageRefs
  * in brain-resolver.ts will match these by package name.
  *
+ * When `cwd` is provided, conventional local authoring files are also
+ * bundled:
+ * - `./src/site.ts` if `site.package` is omitted
+ * - `./src/theme.css` if `site.theme` is omitted
+ *
  * @param yamlContent - Raw brain.yaml content
  * @returns Generated TypeScript code, or null if yaml is invalid
  */
-export function generateEntrypoint(yamlContent: string): string | null {
+export function generateEntrypoint(
+  yamlContent: string,
+  options: GenerateEntrypointOptions = {},
+): string | null {
   let overrides;
   try {
     overrides = parseInstanceOverrides(yamlContent);
@@ -79,31 +102,77 @@ export function generateEntrypoint(yamlContent: string): string | null {
     (ref) => ref !== brainPackage,
   );
 
-  // Generate static imports for package refs so the bundler includes them
   const packageImportLines = extraImports.map(
     (pkg, i) => `import __pkg${i} from "${pkg}";`,
   );
-
-  // Register them via the same package registry used in dev mode
   const registrationLines = extraImports.map(
     (pkg, i) => `registerPackage("${pkg}", __pkg${i});`,
   );
 
-  const hasRefs = extraImports.length > 0;
+  const conventionalImports: string[] = [];
+  const conventionalRegistrations: string[] = [];
+  const conventionalArgs: string[] = [];
+  let importIndex = extraImports.length;
+
+  if (options.cwd) {
+    const sitePath = `${options.cwd}/src/site.ts`;
+    if (!overrides.site?.package && existsSync(sitePath)) {
+      conventionalImports.push(
+        `import __pkg${importIndex} from "${toImportPath(options.cwd, sitePath)}";`,
+      );
+      conventionalRegistrations.push(
+        `registerPackage("${CONVENTIONAL_SITE_PACKAGE_REF}", __pkg${importIndex});`,
+      );
+      conventionalArgs.push(
+        `sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
+      );
+      importIndex += 1;
+    }
+
+    const themePath = `${options.cwd}/src/theme.css`;
+    if (!overrides.site?.theme && existsSync(themePath)) {
+      conventionalImports.push(
+        `import __pkg${importIndex} from "${toImportPath(options.cwd, themePath)}" with { type: "text" };`,
+      );
+      conventionalRegistrations.push(
+        `registerPackage("${CONVENTIONAL_THEME_PACKAGE_REF}", __pkg${importIndex});`,
+      );
+      conventionalArgs.push(`themeRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`);
+      importIndex += 1;
+    }
+  }
+
+  const hasRefs =
+    extraImports.length > 0 || conventionalRegistrations.length > 0;
+  const hasConventions = conventionalArgs.length > 0;
+  const appImports = ["resolve", "handleCLI", "parseInstanceOverrides"];
+
+  if (hasRefs) {
+    appImports.push("registerPackage");
+  }
+  if (hasConventions) {
+    appImports.push("applyConventionalSiteRefs");
+  }
 
   return [
     `import definition from "${brainPackage}";`,
-    `import { resolve, handleCLI, parseInstanceOverrides } from "@brains/app";`,
-    ...(hasRefs ? [`import { registerPackage } from "@brains/app";`] : []),
+    `import { ${appImports.join(", ")} } from "@brains/app";`,
     `import { readFileSync } from "fs";`,
     `import { join } from "path";`,
     ...packageImportLines,
+    ...conventionalImports,
     "",
     ...registrationLines,
+    ...conventionalRegistrations,
     "",
     `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
     `const overrides = parseInstanceOverrides(yaml);`,
-    `const config = resolve(definition, process.env, overrides);`,
+    ...(hasConventions
+      ? [
+          `const effectiveOverrides = applyConventionalSiteRefs(overrides, { ${conventionalArgs.join(", ")} });`,
+        ]
+      : []),
+    `const config = resolve(definition, process.env, ${hasConventions ? "effectiveOverrides" : "overrides"});`,
     `await handleCLI(config);`,
     "",
   ].join("\n");
