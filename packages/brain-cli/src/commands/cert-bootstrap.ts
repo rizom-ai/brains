@@ -1,4 +1,4 @@
-import { chmodSync, writeFileSync } from "fs";
+import { writeFileSync } from "fs";
 import { join } from "path";
 import { z } from "@brains/utils";
 import { parseBrainYaml } from "../lib/brain-yaml";
@@ -90,8 +90,12 @@ export async function bootstrapOriginCertificate(
   const privateKeyPath = join(cwd, "origin.key");
 
   writeFileSync(certificatePath, certResult.certificatePem, "utf-8");
-  writeFileSync(privateKeyPath, keyPair.privateKeyPem, "utf-8");
-  chmodSync(privateKeyPath, 0o600);
+  // Set mode at creation so the private key is never briefly world-readable
+  // between write and chmod.
+  writeFileSync(privateKeyPath, keyPair.privateKeyPem, {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 
   logger(`Wrote ${certificatePath}`);
   logger(`Wrote ${privateKeyPath}`);
