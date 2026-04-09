@@ -140,11 +140,8 @@ jobs:
             }
 
             const text = String(value);
-            if (text.includes('\n')) {
-              lines.push(name + '<<EOF', text, 'EOF');
-            } else {
-              lines.push(name + '=' + text);
-            }
+            const escaped = text.replace(/'/g, "\\'");
+            lines.push(name + "='" + escaped + "'");
           }
 
           writeFileSync('.kamal/secrets', lines.join('\n') + '\n');

@@ -95,6 +95,9 @@ describe("rizom-ai deploy workflow", () => {
       'import { readFileSync, writeFileSync } from "node:fs";',
     );
     expect(workflow).toContain('import { appendFileSync } from "node:fs";');
+    expect(workflow).toContain("text.replace(/'/g, \"\\\\'\")");
+    expect(workflow).toContain('lines.push(name + "=\'" + escaped + "\'")');
+    expect(workflow).not.toContain("lines.push(name + '<<EOF', text, 'EOF')");
     expect(workflow).not.toContain("location: 'nbg1'");
     expect(workflow).toContain(
       "const serverType = process.env.HCLOUD_SERVER_TYPE;",
