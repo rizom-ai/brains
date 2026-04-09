@@ -85,6 +85,7 @@
   },
   "changesets": [
     "brain-cli-register-override-packages",
+    "bundle-ranger-relay-models",
     "externalize-preact",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.1.1-alpha.8
+
+### Patch Changes
+
+- [`c1ffe49`](https://github.com/rizom-ai/brains/commit/c1ffe49f27bcb59935b06b64003eba266d520197) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Bundle the `ranger` and `relay` brain models into the published `@rizom/brain` runtime so app instances that declare those models in `brain.yaml` can boot on the published path instead of requiring monorepo source resolution.
+
 ## 0.1.1-alpha.7
 
 ### Patch Changes
