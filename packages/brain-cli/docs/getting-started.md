@@ -53,7 +53,7 @@ The generated `brain.yaml` defaults to `preset: core`, which is the minimal, usa
 
 ## What `brain init` creates
 
-A new brain instance is a **lightweight instance package**. It is not a workspace package and does not need its own source tree, but it does carry conventional support files for local execution and deploy scaffolding.
+A new brain instance is a **lightweight instance package**. It is not a workspace package, but it does carry conventional support files for local execution, local site/theme authoring, and deploy scaffolding.
 
 Typical scaffold:
 
@@ -65,7 +65,11 @@ mybrain/
   .env.example      # environment variables to fill in
   .gitignore        # ignores .env, cache, build artifacts
   tsconfig.json     # JSX runtime hints for Preact-based site code
+  src/site.ts       # local site scaffold built on @rizom/brain/site
+  src/theme.css     # local theme scaffold
 ```
+
+The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` / `site.theme` refs from `brain.yaml` when you want to switch to the local convention.
 
 With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow.
 

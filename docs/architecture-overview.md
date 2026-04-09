@@ -38,7 +38,7 @@ brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
 ```
 
-`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is a lightweight instance package: `brain.yaml` plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the CLI at runtime.
+`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is a lightweight instance package: `brain.yaml` plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, `src/theme.css`, and optional deploy artifacts, consumed by the CLI at runtime.
 
 ## Current package map
 
@@ -248,4 +248,6 @@ Each deployed instance stays lightweight at the source level: a brain model pack
 - [Plugin development patterns](./plugin-development-patterns.md)
 - [Plugin quick reference](./plugin-quick-reference.md)
 - [Site composition & inheritance plan](./plans/site-composition-inheritance.md)
+- [Layouts export inventory](./plans/layouts-export-inventory.md)
+- [Layouts migration map](./plans/layouts-migration-map.md)
 - [User-facing CLI docs](../packages/brain-cli/docs/getting-started.md)

@@ -41,8 +41,10 @@ export interface ScaffoldOptions {
  *
  * The scaffolded shape is a real package: it has its own `package.json`
  * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
- * start` works from the new dir. Custom site/theme/plugin code lives in
- * `src/` (created lazily by the user when they need it). See
+ * start` works from the new dir. It also ships local `src/site.ts` and
+ * `src/theme.css` convention files as editable starting points while
+ * `brain.yaml` stays pinned to the model's built-in site/theme until the
+ * operator opts into the local files. See
  * `docs/plans/harmonize-monorepo-apps.md` for the unified app shape.
  *
  * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
@@ -61,6 +63,8 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeEnvExample(dir);
   writeGitignore(dir);
   writeTsConfig(dir);
+  writeSiteSource(dir);
+  writeThemeCss(dir);
 
   // Real .env only when apiKey was supplied (interactive prompt or --api-key)
   if (options.apiKey) {
@@ -92,6 +96,26 @@ function writeScaffoldFile(
   }
 }
 
+function getPinnedSiteTheme(
+  model: string,
+): { sitePackage: string; themePackage: string } | undefined {
+  switch (model) {
+    case "rover":
+      return {
+        sitePackage: "@brains/site-default",
+        themePackage: "@brains/theme-default",
+      };
+    case "ranger":
+    case "relay":
+      return {
+        sitePackage: "@brains/site-ranger",
+        themePackage: "@brains/theme-ranger",
+      };
+    default:
+      return undefined;
+  }
+}
+
 function writeBrainYaml(
   dir: string,
   model: string,
@@ -114,6 +138,17 @@ function writeBrainYaml(
   #     authToken: \${GIT_SYNC_TOKEN}
 `;
 
+  const pinnedSiteTheme = getPinnedSiteTheme(model);
+  const siteBlock = pinnedSiteTheme
+    ? `# Start from the model's built-in site/theme. Edit src/site.ts and src/theme.css,
+# then remove these refs when you're ready to switch to the local convention.
+site:
+  package: "${pinnedSiteTheme.sitePackage}"
+  theme: "${pinnedSiteTheme.themePackage}"
+
+`
+    : "";
+
   const content = `brain: ${model}
 domain: ${domain}
 
@@ -121,7 +156,7 @@ domain: ${domain}
 # for richer presets, or list capability ids in add: / remove: to fine-tune.
 preset: core
 
-# Permissions
+${siteBlock}# Permissions
 anchors: []
 
 # Plugin overrides
@@ -316,6 +351,68 @@ function writePackageJson(dir: string): void {
   );
 }
 
+function writeSiteSource(dir: string): void {
+  const content = `import {
+  ProfessionalLayout,
+  professionalRoutes,
+  professionalSitePlugin,
+  type SitePackage,
+} from "@rizom/brain/site";
+
+/**
+ * Local site scaffold.
+ *
+ * This file is not active until you remove the explicit site.package ref
+ * from brain.yaml. Start editing here, then switch brain.yaml to the local
+ * convention when you're ready.
+ */
+const site: SitePackage = {
+  layouts: {
+    default: ProfessionalLayout,
+  },
+  routes: professionalRoutes,
+  plugin: (config) => professionalSitePlugin(config ?? {}),
+  entityDisplay: {
+    post: { label: "Post" },
+  },
+};
+
+export default site;
+`;
+
+  writeScaffoldFile(join(dir, "src", "site.ts"), content);
+}
+
+function writeThemeCss(dir: string): void {
+  const content = `/*
+ * Local theme scaffold.
+ *
+ * This file is not active until you remove the explicit site.theme ref from
+ * brain.yaml. Start editing here, then switch brain.yaml to the local
+ * convention when you're ready.
+ */
+
+:root {
+  /* Palette tokens */
+  /* --palette-brand-500: #7c3aed; */
+
+  /* Semantic tokens */
+  /* --color-brand: var(--palette-brand-500); */
+}
+
+[data-theme="dark"] {
+  /* Semantic tokens */
+  /* --color-brand: #a78bfa; */
+}
+
+@theme inline {
+  /* --color-brand: var(--color-brand); */
+}
+`;
+
+  writeScaffoldFile(join(dir, "src", "theme.css"), content);
+}
+
 /**
  * Write a minimal README pointing the user at the quickstart commands
  * and explaining the scaffolded layout.
@@ -340,7 +437,8 @@ bunx brain start
 - \`tsconfig.json\` — JSX runtime hint (Preact)
 - \`.env\` — secrets (gitignored, copy from \`.env.example\`)
 - \`brain-data/\` — content (created on first sync, gitignored by default)
-- \`src/\` — custom site, theme, or plugin code (create when you need it)
+- \`src/site.ts\` — local site scaffold built on \`@rizom/brain/site\`
+- \`src/theme.css\` — local theme scaffold
 
 This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
 plugins, change presets, or wire up integrations like Discord and MCP.

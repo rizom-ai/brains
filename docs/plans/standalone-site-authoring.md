@@ -305,7 +305,7 @@ extraction.
   - [x] Register local `src/site.ts` and `src/theme.css` under synthetic package refs
   - [x] Apply the convention only when `site.package` / `site.theme` are omitted
   - [x] Support both bundled CLI boot and generated static entrypoints
-- [ ] P3: `brain init` scaffolds both files
+- [x] P3: `brain init` scaffolds both files
 - [x] P4: widen `@rizom/brain/site` for standalone authoring
   - [x] expose professional site symbols alongside the personal ones
   - [x] keep the public API concentrated under `@rizom/brain/site`

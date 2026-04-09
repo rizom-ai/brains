@@ -73,6 +73,22 @@ describe("brain init", () => {
       expect(yaml).toMatch(/^\s*directory-sync:\s*$/m);
       expect(yaml).toContain("repo: user/brain-data");
     });
+
+    it("should pin rover to its built-in site package and theme", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain('package: "@brains/site-default"');
+      expect(yaml).toContain('theme: "@brains/theme-default"');
+    });
+
+    it("should pin ranger to its built-in site package and theme", () => {
+      scaffold(testDir, { model: "ranger" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain('package: "@brains/site-ranger"');
+      expect(yaml).toContain('theme: "@brains/theme-ranger"');
+    });
   });
 
   describe("minimal scaffold (default)", () => {
@@ -108,6 +124,26 @@ describe("brain init", () => {
       const content = JSON.parse(readFileSync(path, "utf-8"));
       expect(content.compilerOptions.jsx).toBe("react-jsx");
       expect(content.compilerOptions.jsxImportSource).toBe("preact");
+    });
+
+    it("should create src/site.ts using the public site authoring API", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const src = readFileSync(join(testDir, "src", "site.ts"), "utf-8");
+      expect(src).toContain('from "@rizom/brain/site"');
+      expect(src).toContain("professionalSitePlugin");
+      expect(src).toContain("ProfessionalLayout");
+      expect(src).toContain("professionalRoutes");
+      expect(src).toContain("export default site");
+    });
+
+    it("should create src/theme.css scaffold", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const src = readFileSync(join(testDir, "src", "theme.css"), "utf-8");
+      expect(src).toContain("Palette tokens");
+      expect(src).toContain("Semantic tokens");
+      expect(src).toContain("@theme inline");
     });
 
     it("should NOT create .env when no apiKey provided", () => {
