@@ -66,8 +66,8 @@ jobs:
         run: |
           npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
           node <<'NODE'
-          const fs = require('fs');
-          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          import { appendFileSync, readFileSync } from "node:fs";
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
           const githubEnvPath = process.env.GITHUB_ENV;
 
           if (!githubEnvPath) {
@@ -87,7 +87,7 @@ jobs:
             return [key + '=' + text];
           });
 
-          fs.appendFileSync(githubEnvPath, lines.join('\n') + '\n');
+          appendFileSync(githubEnvPath, lines.join('\n') + '\n');
           NODE
 
       - name: Write Kamal SSH key
@@ -100,9 +100,9 @@ jobs:
         run: |
           mkdir -p .kamal
           node <<'NODE'
-          const fs = require('fs');
-          const deployYaml = fs.readFileSync('config/deploy.yml', 'utf8');
-          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          import { readFileSync, writeFileSync } from "node:fs";
+          const deployYaml = readFileSync('config/deploy.yml', 'utf8');
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
           const secretNames = new Set([
             'KAMAL_REGISTRY_PASSWORD',
             'CERTIFICATE_PEM',
@@ -144,14 +144,14 @@ jobs:
             }
           }
 
-          fs.writeFileSync('.kamal/secrets', lines.join('\n') + '\n');
+          writeFileSync('.kamal/secrets', lines.join('\n') + '\n');
           NODE
 
       - name: Provision server
         id: provision
         run: |
           node <<'NODE'
-          const fs = require('fs');
+          import { appendFileSync } from "node:fs";
 
           const token = process.env.HCLOUD_TOKEN;
           const instanceName = process.env.INSTANCE_NAME;
@@ -250,9 +250,9 @@ jobs:
           }
 
           const serverIp = server.public_net.ipv4.ip;
-          fs.appendFileSync(outputPath, 'server_ip=' + serverIp + '\n');
+          appendFileSync(outputPath, 'server_ip=' + serverIp + '\n');
           if (process.env.GITHUB_ENV) {
-            fs.appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\n');
+            appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\n');
           }
           NODE
 

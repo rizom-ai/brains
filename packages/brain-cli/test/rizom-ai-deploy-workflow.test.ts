@@ -68,5 +68,13 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain(
       "PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}",
     );
+    expect(workflow).not.toContain("require('fs')");
+    expect(workflow).toContain(
+      'import { appendFileSync, readFileSync } from "node:fs";',
+    );
+    expect(workflow).toContain(
+      'import { readFileSync, writeFileSync } from "node:fs";',
+    );
+    expect(workflow).toContain('import { appendFileSync } from "node:fs";');
   });
 });
