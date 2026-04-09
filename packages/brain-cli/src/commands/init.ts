@@ -287,9 +287,10 @@ function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
 function writePreDeployHook(dir: string): void {
   const content = `#!/usr/bin/env bash
 # Upload brain.yaml to server before deploy
+SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
 IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
 for host in "\${HOSTS[@]}"; do
-  scp brain.yaml "deploy@\${host}:/opt/brain.yaml"
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null brain.yaml "\${SSH_USER}@\${host}:/opt/brain.yaml"
 done
 `;
 
@@ -598,6 +599,13 @@ jobs:
       - name: Deploy
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+          # Force kamal to use the \`:latest\` tag instead of the current
+          # git SHA. The brain model image is published by a separate
+          # workflow (publish-images.yml) which tags GHCR with \`:latest\`
+          # and \`:sha-<short>\` — neither matches kamal's default of
+          # \`:<full-git-sha>\`. Pinning VERSION=latest decouples the
+          # deploy from the publish-images run timing.
+          VERSION: latest
         # \`kamal setup\` is idempotent: on a fresh server it installs Docker
         # + kamal-proxy + deploys; on an already-set-up server it skips the
         # install steps and just deploys. Using \`setup\` instead of \`deploy\`

@@ -399,6 +399,10 @@ describe("brain init", () => {
       );
       expect(hook).toContain("brain.yaml");
       expect(hook).toContain("scp");
+      expect(hook).toContain('YAML.load_file("config/deploy.yml")');
+      expect(hook).toContain('dig("ssh", "user") || "root"');
+      expect(hook).toContain("StrictHostKeyChecking=no");
+      expect(hook).not.toContain("deploy@");
     });
 
     it("should create deploy workflow when deploy is true", () => {
