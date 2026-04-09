@@ -96,7 +96,7 @@ In all cases:
 `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` are a special case because they're **produced**, not entered by hand. The flow:
 
 1. Operator runs `brain cert:bootstrap` once per instance (see `deploy-kamal.md` → "One-time bootstrap"). The command issues a Cloudflare Origin CA cert and writes `origin.pem` + `origin.key` to the instance directory.
-2. Operator stores those files with `brain cert:bootstrap --push-to 1password` or `--push-to gh`. The env-backed secrets use `brain secrets:push --push-to 1password` (or `--push-to gh`) so the instance backend ends up with the full secret set.
+2. Operator stores those files with `brain cert:bootstrap --push-to 1password` or `--push-to gh`. The env-backed secrets use `brain secrets:push --push-to 1password` (or `--push-to gh`), and `--dry-run` can preview the upload before it lands, so the instance backend ends up with the full secret set.
 3. Operator deletes the local `origin.pem` / `origin.key` files.
 4. On deploy, varlock resolves `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` from the backend like any other secret and writes them into `.kamal/secrets` for kamal-proxy to pick up.
 

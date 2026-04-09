@@ -71,7 +71,7 @@ mybrain/
 
 The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` / `site.theme` refs from `brain.yaml` when you want to switch to the local convention.
 
-With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to a 1Password-backed varlock schema, but you can swap the backend with `--backend` if you need a different plugin. Use `brain secrets:push --push-to 1password` to sync the env-backed secrets, and `brain cert:bootstrap --push-to 1password` once after scaffolding to store the TLS cert/key directly in the vault before deploying.
+With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to a 1Password-backed varlock schema, but you can swap the backend with `--backend` if you need a different plugin. Use `brain secrets:push --push-to 1password` to sync the env-backed secrets, `brain secrets:push --dry-run` to preview them, and `brain cert:bootstrap --push-to 1password` once after scaffolding to store the TLS cert/key directly in the vault before deploying.
 
 After `brain init`, you can either:
 

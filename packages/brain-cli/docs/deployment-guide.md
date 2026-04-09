@@ -30,9 +30,11 @@ cd mybrain
 export CF_API_TOKEN=...
 export CF_ZONE_ID=...
 brain secrets:push --push-to 1password
+brain secrets:push --dry-run
 brain cert:bootstrap --push-to 1password
 # If you use GitHub-backed secrets instead, use:
 # brain secrets:push --push-to gh
+# brain secrets:push --push-to gh --dry-run
 # brain cert:bootstrap --push-to gh
 rm origin.pem origin.key
 
