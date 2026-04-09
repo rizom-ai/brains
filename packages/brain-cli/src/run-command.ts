@@ -12,6 +12,7 @@ import { runEval } from "./commands/eval";
 import { pin } from "./commands/pin";
 import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 import { diagnostics } from "./commands/diagnostics";
+import { runCertBootstrap } from "./commands/cert-bootstrap";
 
 export interface CommandResult {
   success: boolean;
@@ -25,6 +26,10 @@ export async function runCommand(
   parsed: ParsedArgs,
   dir: string,
 ): Promise<CommandResult> {
+  if (parsed.command === "cert" && parsed.args[0] === "bootstrap") {
+    return runCertBootstrap(dir);
+  }
+
   switch (parsed.command) {
     case "init":
       return runInit(parsed, dir);
@@ -38,6 +43,8 @@ export async function runCommand(
       return pin(dir);
     case "diagnostics":
       return diagnostics(dir, parsed.args[0] ?? "");
+    case "cert:bootstrap":
+      return runCertBootstrap(dir);
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -161,6 +168,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  chat          Start with interactive chat REPL",
     "  eval          Run AI evaluations (pass-through to brain-eval)",
     "  pin           Pin @rizom/brain version (creates package.json, installs)",
+    "  cert:bootstrap Issue Cloudflare Origin CA cert for brain.yaml domain",
     "  tool <name>   Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
@@ -212,7 +220,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --model <name>         Brain model (default: rover)",
     "  --domain <domain>      Domain (default: {model}.rizom.ai)",
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
-    "  --deploy               Include Kamal deploy files (deploy.yml, CI, hooks)",
+    "  --deploy               Include Kamal deploy files (config/deploy.yml, CI, hooks)",
   );
 
   console.log(lines.join("\n"));

@@ -129,8 +129,8 @@ The instance-level deploy/provision variables, injected by the brain-cli generat
 - `KAMAL_REGISTRY_PASSWORD` — sensitive. GHCR pull token.
 - `CF_API_TOKEN` — sensitive. Cloudflare API token with `Zone > DNS > Edit` and `Zone > SSL and Certificates > Edit` on the instance's zone. Used by the DNS job and by `brain cert:bootstrap`.
 - `CF_ZONE_ID` — not sensitive. Cloudflare zone ID for the instance's domain.
-- `BRAIN_MODEL` — not sensitive. Which brain model image to deploy (e.g. `ranger`, `rover`). Consumed by `deploy.yml` via ERB.
-- `BRAIN_DOMAIN` — not sensitive. Production hostname for this instance (e.g. `rizom.ai`). Consumed by `deploy.yml` via ERB.
+- `BRAIN_MODEL` — not sensitive. Which brain model image to deploy (e.g. `ranger`, `rover`). Consumed by `config/deploy.yml` via ERB.
+- `BRAIN_DOMAIN` — not sensitive. Production hostname for this instance (e.g. `rizom.ai`). Consumed by `config/deploy.yml` via ERB.
 
 Non-sensitive vars still belong in the schema (varlock validates presence and type); they simply omit the `@sensitive` marker.
 
@@ -239,10 +239,10 @@ The intended end state is:
 1. Run varlock in `apps/rizom-ai` once at the start of the job — `varlock load` (or equivalent) resolves every var in `.env.schema` from the configured backend.
 2. Export the resolved env to the job's shell so all subsequent steps inherit it via `$GITHUB_ENV` (GitHub Actions) or the equivalent mechanism in other CI systems.
 3. Write `KAMAL_SSH_PRIVATE_KEY` to `~/.ssh/id_ed25519` (`chmod 600`) so kamal can SSH into the target host.
-4. Write `.kamal/secrets` from the resolved env — only the keys kamal needs (`KAMAL_REGISTRY_PASSWORD`, the app `secret:` list from `deploy.yml`, and the two `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` values).
+4. Write `.kamal/secrets` from the resolved env — only the keys kamal needs (`KAMAL_REGISTRY_PASSWORD`, the app `secret:` list from `config/deploy.yml`, and the two `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` values).
 5. Run provision (Hetzner API using `HCLOUD_TOKEN`), capture `SERVER_IP` as step output.
 6. Run Cloudflare DNS (API using `CF_API_TOKEN`, `CF_ZONE_ID`, `BRAIN_DOMAIN`), receives `SERVER_IP` as an input from step 5.
-7. Run `kamal deploy` with `SERVER_IP` passed via env to `deploy.yml`'s ERB.
+7. Run `kamal deploy` with `SERVER_IP` passed via env to `config/deploy.yml`'s ERB.
 
 No step in the workflow file should reference individual app secret names like `AI_API_KEY` — those are resolved once by varlock and inherited through the shell env.
 

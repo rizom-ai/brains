@@ -110,6 +110,9 @@ describe("brain init", () => {
     it("should create .env.example", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+      const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
+      expect(envExample).toContain("CERTIFICATE_PEM=");
+      expect(envExample).toContain("PRIVATE_KEY_PEM=");
     });
 
     it("should create .gitignore", () => {
@@ -336,6 +339,8 @@ describe("brain init", () => {
       expect(deploy).toContain("BRAIN_MODEL");
       expect(deploy).toContain("BRAIN_DOMAIN");
       expect(deploy).toContain("proxy:");
+      expect(deploy).toContain("certificate_pem: CERTIFICATE_PEM");
+      expect(deploy).toContain("private_key_pem: PRIVATE_KEY_PEM");
       expect(deploy).toContain("healthcheck:");
       expect(deploy).toContain("path: /health");
       expect(deploy).not.toMatch(/^healthcheck:/m);
@@ -364,7 +369,7 @@ describe("brain init", () => {
       expect(workflow).toContain("kamal deploy --skip-push");
     });
 
-    it("should produce same deploy.yml regardless of model", () => {
+    it("should produce same config/deploy.yml regardless of model", () => {
       const dir1 = join(testDir, "a");
       const dir2 = join(testDir, "b");
       mkdirSync(dir1, { recursive: true });
@@ -398,7 +403,7 @@ describe("brain init", () => {
       expect(gitignore).toContain("!.env.example");
     });
 
-    it("should exclude runtime artifacts (brain.log, brain-data, cache, data, dist)", () => {
+    it("should exclude runtime artifacts (brain.log, brain-data, cache, data, dist, origin certs)", () => {
       scaffold(testDir, { model: "rover" });
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain("brain.log");
@@ -406,6 +411,9 @@ describe("brain init", () => {
       expect(gitignore).toContain("cache/");
       expect(gitignore).toContain("data/");
       expect(gitignore).toContain("dist/");
+      expect(gitignore).toContain("origin.pem");
+      expect(gitignore).toContain("origin.key");
+      expect(gitignore).toContain("origin.csr");
     });
   });
 });

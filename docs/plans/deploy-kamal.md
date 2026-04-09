@@ -25,7 +25,7 @@ Each brain instance is a standalone repo with its own deployment:
 ```
 yeehaa-brain/
   brain.yaml        # instance config
-  deploy.yml        # Kamal config (server IP, domain, secrets)
+  config/deploy.yml # Kamal config (server IP, domain, secrets)
   .env              # secrets (not committed)
 ```
 
@@ -46,7 +46,7 @@ Each brain instance declares its own production hostname in `brain.yaml`. The pl
 | SSL           | Caddy + Let's Encrypt                        | kamal-proxy + Cloudflare Origin CA |
 | Zero-downtime | No (compose down/up)                         | Yes (container swap)               |
 | Rollback      | Rebuild and redeploy                         | `kamal rollback` (instant)         |
-| Config        | Terraform .tf + compose template + Caddyfile | Single `deploy.yml`                |
+| Config        | Terraform .tf + compose template + Caddyfile | Single `config/deploy.yml`         |
 
 ## SSL strategy: Cloudflare Origin CA
 
@@ -62,7 +62,7 @@ This is a deliberate coupling to Cloudflare-as-the-CDN. If you later swap CDN ve
 
 The in-container Caddy goes back to its original job: plain HTTP path-based routing from kamal-proxy to internal service ports. No TLS in Caddy. `deploy/docker/Caddyfile` stays as-is.
 
-## Instance deploy.yml
+## Instance config/deploy.yml
 
 ```yaml
 service: brain
@@ -130,14 +130,14 @@ Every deploy needs the following secrets available on the CI runner, written int
 
 - `KAMAL_REGISTRY_PASSWORD` — GHCR pull token.
 
-**App runtime** (referenced in `env.secret` of deploy.yml):
+**App runtime** (referenced in `env.secret` of config/deploy.yml):
 
 - `AI_API_KEY`
 - `GIT_SYNC_TOKEN`
 - `MCP_AUTH_TOKEN`
 - `DISCORD_BOT_TOKEN`
 
-**TLS** (referenced in `proxy.ssl` of deploy.yml):
+**TLS** (referenced in `proxy.ssl` of config/deploy.yml):
 
 - `CERTIFICATE_PEM` — Cloudflare Origin CA certificate, PEM-encoded.
 - `PRIVATE_KEY_PEM` — corresponding private key, PEM-encoded.
@@ -293,7 +293,7 @@ The instance CI pipeline handles DNS as part of deploy:
 An instance can expose extra hostnames (alias domains, extra subdomains) by:
 
 1. Adding A records for each hostname → same server IP.
-2. Adding each hostname to `proxy.hosts` in deploy.yml so kamal-proxy routes it.
+2. Adding each hostname to `proxy.hosts` in config/deploy.yml so kamal-proxy routes it.
 3. Reissuing the Cloudflare Origin CA cert with the extended `hostnames` list — the new cert replaces the old one in secrets and kamal-proxy picks it up on the next deploy. Re-running `brain cert:bootstrap` after updating brain.yaml handles this.
 
 ## Internal port routing
@@ -382,7 +382,7 @@ Verified working on the pre-Kamal infra. There, the in-container Caddy terminate
 
 Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain cert:bootstrap`).
 
-1. `brain init --model <model>` — scaffolds instance repo with brain.yaml, deploy.yml, CI pipeline.
+1. `brain init --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
 2. `brain cert:bootstrap` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml, writes `origin.pem` + `origin.key` locally. See "One-time bootstrap" above.
 3. Push cert + key into the instance's secret store as `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM`.
 4. Push to GitHub → CI provisions server, sets DNS (proxied), deploys.

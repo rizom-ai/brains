@@ -33,7 +33,7 @@ export interface ScaffoldOptions {
  *
  * Minimal scaffold (default): brain.yaml + package.json + README.md +
  *   .env.example + .gitignore + tsconfig.json
- * Full scaffold (--deploy):   adds deploy.yml, Kamal hooks, CI workflow
+ * Full scaffold (--deploy):   adds config/deploy.yml, Kamal hooks, CI workflow
  *
  * Idempotent: on an existing directory, only missing conventional
  * artifacts are created. Existing `brain.yaml` is treated as the
@@ -183,7 +183,9 @@ servers:
       - <%= ENV['SERVER_IP'] %>
 
 proxy:
-  ssl: true
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>:80
     - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
@@ -233,8 +235,10 @@ DISCORD_BOT_TOKEN=
 # Deploy (only needed with --deploy)
 KAMAL_REGISTRY_PASSWORD=
 SERVER_IP=
-CLOUDFLARE_API_TOKEN=
-CLOUDFLARE_ZONE_ID=
+CF_API_TOKEN=
+CF_ZONE_ID=
+CERTIFICATE_PEM=
+PRIVATE_KEY_PEM=
 `;
 
   writeScaffoldFile(join(dir, ".env.example"), content);
@@ -299,6 +303,8 @@ jobs:
         env:
           KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           SERVER_IP: \${{ secrets.SERVER_IP }}
+          CERTIFICATE_PEM: \${{ secrets.CERTIFICATE_PEM }}
+          PRIVATE_KEY_PEM: \${{ secrets.PRIVATE_KEY_PEM }}
           AI_API_KEY: \${{ secrets.AI_API_KEY }}
           GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
           MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
@@ -318,6 +324,9 @@ brain-data/
 dist/
 cache/
 data/
+origin.pem
+origin.key
+origin.csr
 `;
 
   writeScaffoldFile(join(dir, ".gitignore"), content);
