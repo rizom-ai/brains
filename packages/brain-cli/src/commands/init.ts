@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, chmodSync, existsSync } from "fs";
 import { basename, dirname, join } from "path";
 import pkg from "../../package.json" with { type: "json" };
 import { parseBrainYaml } from "../lib/brain-yaml";
+import { buildInstanceEnvSchema } from "../lib/env-schema";
 
 /**
  * Pinned versions written into scaffolded package.json files.
@@ -65,6 +66,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeTsConfig(dir);
   writeSiteSource(dir);
   writeThemeCss(dir);
+  writeEnvSchema(dir, model);
 
   // Real .env only when apiKey was supplied (interactive prompt or --api-key)
   if (options.apiKey) {
@@ -108,8 +110,8 @@ function getPinnedSiteTheme(
     case "ranger":
     case "relay":
       return {
-        sitePackage: "@brains/site-ranger",
-        themePackage: "@brains/theme-ranger",
+        sitePackage: "@brains/site-rizom",
+        themePackage: "@brains/theme-rizom",
       };
     default:
       return undefined;
@@ -242,6 +244,10 @@ PRIVATE_KEY_PEM=
 `;
 
   writeScaffoldFile(join(dir, ".env.example"), content);
+}
+
+function writeEnvSchema(dir: string, model: string): void {
+  writeScaffoldFile(join(dir, ".env.schema"), buildInstanceEnvSchema(model));
 }
 
 /**

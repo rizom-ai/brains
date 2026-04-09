@@ -42,7 +42,11 @@ function loadPrelude(opts: LoadPreludeOpts = {}): Sandbox {
   const paletteVars = opts.paletteVars ?? {};
   const mockWindow = {
     devicePixelRatio: 1,
-    getComputedStyle: (_el: unknown) => ({
+    getComputedStyle: (
+      _el: unknown,
+    ): {
+      getPropertyValue: (name: string) => string;
+    } => ({
       getPropertyValue: (name: string): string => paletteVars[name] ?? "",
     }),
   };

@@ -4,16 +4,19 @@ import { join } from "node:path";
 
 const siteSources = [
   "sites/default/src/index.ts",
-  "sites/ranger/src/index.ts",
   "sites/yeehaa/src/index.ts",
   "sites/rizom/src/index.ts",
 ];
 
 const sitePackages = [
   "sites/default/package.json",
-  "sites/ranger/package.json",
   "sites/yeehaa/package.json",
   "sites/rizom/package.json",
+];
+
+const brainSources = [
+  "brains/ranger/src/index.ts",
+  "brains/relay/src/index.ts",
 ];
 
 function readProjectFile(relativePath: string): string {
@@ -35,6 +38,14 @@ describe("site package structure", () => {
     for (const path of sitePackages) {
       const source = readProjectFile(path);
       expect(source).not.toContain("@brains/theme-");
+    }
+  });
+
+  test("ranger-family brain models do not depend on deleted ranger site packages", () => {
+    for (const path of brainSources) {
+      const source = readProjectFile(path);
+      expect(source).not.toContain("@brains/site-ranger");
+      expect(source).not.toContain("@brains/theme-ranger");
     }
   });
 });

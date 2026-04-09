@@ -45,7 +45,8 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         previewDistDir: this.config.previewDistDir,
       }),
       ...(this.config.previewPort && { previewPort: this.config.previewPort }),
-      getHealthData: () => context.appInfo(),
+      getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
+        context.appInfo(),
     });
 
     // Initialize API server (runs on main thread, own port)

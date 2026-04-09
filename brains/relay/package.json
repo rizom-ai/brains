@@ -27,7 +27,7 @@
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
-    "@brains/site-ranger": "workspace:*",
+    "@brains/site-rizom": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/topics": "workspace:*",
     "@brains/webserver": "workspace:*"

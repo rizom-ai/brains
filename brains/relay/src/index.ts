@@ -18,8 +18,8 @@ import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
 import { promptPlugin } from "@brains/prompt";
 import { agentDiscovery } from "@brains/agent-discovery";
-import rangerSite from "@brains/site-ranger";
-import rangerTheme from "@brains/theme-ranger";
+import rizomSite from "@brains/site-rizom";
+import rizomTheme from "@brains/theme-rizom";
 
 /**
  * Relay Brain Model
@@ -77,8 +77,8 @@ export default defineBrain({
   name: "relay",
   version: "0.1.0",
   model: "gpt-5.4-mini",
-  site: rangerSite,
-  theme: rangerTheme,
+  site: rizomSite,
+  theme: rizomTheme,
   presets: {
     core,
     default: defaultPreset,

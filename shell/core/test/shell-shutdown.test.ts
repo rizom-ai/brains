@@ -34,11 +34,19 @@ async function runMigrations(dir: string): Promise<void> {
 
 const mockEmbeddingService = {
   dimensions: 1536,
-  generateEmbedding: async () => ({
+  generateEmbedding: async (): Promise<{
+    embedding: Float32Array;
+    usage: { tokens: number };
+  }> => ({
     embedding: new Float32Array(1536).fill(0.1),
     usage: { tokens: 10 },
   }),
-  generateEmbeddings: async (texts: string[]) => ({
+  generateEmbeddings: async (
+    texts: string[],
+  ): Promise<{
+    embeddings: Float32Array[];
+    usage: { tokens: number };
+  }> => ({
     embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
     usage: { tokens: texts.length * 10 },
   }),
@@ -52,12 +60,12 @@ const deps: ShellDependencies = {
 describe("Shell shutdown", () => {
   let testDir: { dir: string; cleanup: () => Promise<void> };
 
-  beforeEach(async () => {
+  beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
     await resetAllSingletons();
   });
 
-  afterEach(async () => {
+  afterEach(async (): Promise<void> => {
     await resetAllSingletons();
     await testDir.cleanup();
   });

@@ -20,8 +20,10 @@ export const ecosystemFormatter =
             key: "active",
             label: "Active",
             type: "string",
-            parser: (text) => text.trim().toLowerCase() === "true",
-            formatter: (value) => (value ? "true" : "false"),
+            parser: (text: string): boolean =>
+              text.trim().toLowerCase() === "true",
+            formatter: (value: unknown): string =>
+              value === true ? "true" : "false",
           },
           { key: "accent", label: "Accent", type: "string" },
         ],

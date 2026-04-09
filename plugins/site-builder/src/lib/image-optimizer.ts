@@ -22,9 +22,7 @@ import { join } from "path";
  */
 let sharpPromise: Promise<typeof SharpModule> | null = null;
 async function loadSharp(): Promise<typeof SharpModule> {
-  if (!sharpPromise) {
-    sharpPromise = import("sharp").then((mod) => mod.default);
-  }
+  sharpPromise ??= import("sharp").then((mod) => mod.default);
   return sharpPromise;
 }
 

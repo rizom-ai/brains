@@ -49,11 +49,19 @@ function createTestConfig(dir: string): ShellConfigInput {
 
 const mockEmbeddingService = {
   dimensions: 1536,
-  generateEmbedding: async () => ({
+  generateEmbedding: async (): Promise<{
+    embedding: Float32Array;
+    usage: { tokens: number };
+  }> => ({
     embedding: new Float32Array(1536).fill(0.1),
     usage: { tokens: 10 },
   }),
-  generateEmbeddings: async (texts: string[]) => ({
+  generateEmbeddings: async (
+    texts: string[],
+  ): Promise<{
+    embeddings: Float32Array[];
+    usage: { tokens: number };
+  }> => ({
     embeddings: texts.map(() => new Float32Array(1536).fill(0.1)),
     usage: { tokens: texts.length * 10 },
   }),
@@ -69,13 +77,13 @@ describe("Shell initialization order", () => {
   let shell: Shell;
   const initOrder: string[] = [];
 
-  beforeEach(async () => {
+  beforeEach(async (): Promise<void> => {
     testDir = await createTestDirectory();
     initOrder.length = 0;
     await resetAllSingletons();
   });
 
-  afterEach(async () => {
+  afterEach(async (): Promise<void> => {
     await shell.shutdown();
     await resetAllSingletons();
     await testDir.cleanup();

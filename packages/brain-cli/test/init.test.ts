@@ -82,12 +82,20 @@ describe("brain init", () => {
       expect(yaml).toContain('theme: "@brains/theme-default"');
     });
 
-    it("should pin ranger to its built-in site package and theme", () => {
+    it("should pin ranger to the kept public site package and theme", () => {
       scaffold(testDir, { model: "ranger" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@brains/site-ranger"');
-      expect(yaml).toContain('theme: "@brains/theme-ranger"');
+      expect(yaml).toContain('package: "@brains/site-rizom"');
+      expect(yaml).toContain('theme: "@brains/theme-rizom"');
+    });
+
+    it("should pin relay to the kept public site package and theme", () => {
+      scaffold(testDir, { model: "relay" });
+
+      const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
+      expect(yaml).toContain('package: "@brains/site-rizom"');
+      expect(yaml).toContain('theme: "@brains/theme-rizom"');
     });
   });
 
@@ -113,6 +121,15 @@ describe("brain init", () => {
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("CERTIFICATE_PEM=");
       expect(envExample).toContain("PRIVATE_KEY_PEM=");
+    });
+
+    it("should create .env.schema", () => {
+      scaffold(testDir, { model: "rover" });
+      expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
+      const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+      expect(envSchema).toContain("HCLOUD_TOKEN=");
+      expect(envSchema).toContain("CERTIFICATE_PEM=");
+      expect(envSchema).toContain("OP_TOKEN=");
     });
 
     it("should create .gitignore", () => {
@@ -274,6 +291,7 @@ describe("brain init", () => {
 
       expect(existsSync(join(testDir, "README.md"))).toBe(true);
       expect(existsSync(join(testDir, ".env.example"))).toBe(true);
+      expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
       expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
       expect(existsSync(join(testDir, "tsconfig.json"))).toBe(true);
       expect(existsSync(join(testDir, "package.json"))).toBe(true);
