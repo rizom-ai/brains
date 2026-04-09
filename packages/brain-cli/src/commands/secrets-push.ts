@@ -30,6 +30,11 @@ export interface SecretsPushResult {
   dryRun?: boolean | undefined;
 }
 
+interface SchemaSecretInfo {
+  key: string;
+  required: boolean;
+}
+
 const CERTIFICATE_SECRET_NAMES = new Set([
   "CERTIFICATE_PEM",
   "PRIVATE_KEY_PEM",
@@ -71,7 +76,11 @@ export async function pushSecrets(
 
   const schemaPath = resolveSchemaPath(cwd);
   const localEnvValues = readLocalEnvValues(join(cwd, ".env"));
-  const allowedKeys = readSecretKeys(schemaPath);
+  const schemaSecrets = readSecretSchema(schemaPath);
+  const allowedKeys = schemaSecrets.map((secret) => secret.key);
+  const schemaSecretInfo = new Map(
+    schemaSecrets.map((secret) => [secret.key, secret]),
+  );
   const candidateKeys = selectCandidateKeys(
     allowedKeys,
     localEnvValues,
@@ -99,18 +108,13 @@ export async function pushSecrets(
       target === "1password"
         ? `1Password vault ${vaultName}`
         : "GitHub Secrets";
-
     logger(
       `Dry run: would push ${pushedSecretNames.length} secrets to ${destination}.`,
     );
     if (pushedSecretNames.length > 0) {
       logger(`Secrets: ${pushedSecretNames.join(", ")}`);
     }
-    if (skippedKeys.length > 0) {
-      logger(
-        `Skipped ${skippedKeys.length} unset keys: ${skippedKeys.join(", ")}`,
-      );
-    }
+    logMissingSecrets(logger, skippedKeys, schemaSecretInfo);
 
     return {
       target,
@@ -129,11 +133,7 @@ export async function pushSecrets(
     logger,
   });
 
-  if (skippedKeys.length > 0) {
-    logger(
-      `Skipped ${skippedKeys.length} unset keys: ${skippedKeys.join(", ")}`,
-    );
-  }
+  logMissingSecrets(logger, skippedKeys, schemaSecretInfo);
 
   return {
     target,
@@ -159,26 +159,29 @@ function resolveSchemaPath(cwd: string): string | undefined {
   return undefined;
 }
 
-function readSecretKeys(schemaPath: string | undefined): string[] {
+function readSecretSchema(schemaPath: string | undefined): SchemaSecretInfo[] {
   if (!schemaPath) {
     return [];
   }
 
   const content = readFileSync(schemaPath, "utf-8");
-  const keys: string[] = [];
+  const keys: SchemaSecretInfo[] = [];
   const seen = new Set<string>();
   let inBootstrapSection = false;
+  let nextIsRequired = false;
 
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
 
     if (line === BOOTSTRAP_SECTION_HEADER) {
       inBootstrapSection = true;
+      nextIsRequired = false;
       continue;
     }
 
     if (line.startsWith("# ---- ") && line.endsWith(" ----")) {
       inBootstrapSection = false;
+      nextIsRequired = false;
       continue;
     }
 
@@ -186,24 +189,35 @@ function readSecretKeys(schemaPath: string | undefined): string[] {
       continue;
     }
 
+    if (line.startsWith("#")) {
+      if (line.includes("@required")) {
+        nextIsRequired = true;
+      }
+      continue;
+    }
+
     const match = line.match(/^([A-Z][A-Z0-9_]*)=/);
     if (!match) {
+      nextIsRequired = false;
       continue;
     }
 
     const key = match[1];
     if (!key) {
+      nextIsRequired = false;
       continue;
     }
 
     if (BOOTSTRAP_SECRET_NAMES.has(key) || CERTIFICATE_SECRET_NAMES.has(key)) {
+      nextIsRequired = false;
       continue;
     }
 
     if (!seen.has(key)) {
       seen.add(key);
-      keys.push(key);
+      keys.push({ key, required: nextIsRequired });
     }
+    nextIsRequired = false;
   }
 
   return keys;
@@ -287,6 +301,47 @@ function selectCandidateKeys(
 
 function isPushableKey(key: string): boolean {
   return !BOOTSTRAP_SECRET_NAMES.has(key) && !CERTIFICATE_SECRET_NAMES.has(key);
+}
+
+function splitMissingSecrets(
+  skippedKeys: string[],
+  schemaSecrets: Map<string, SchemaSecretInfo>,
+): { required: string[]; optional: string[] } {
+  const required: string[] = [];
+  const optional: string[] = [];
+
+  for (const key of skippedKeys) {
+    const schemaSecret = schemaSecrets.get(key);
+    if (schemaSecret?.required) {
+      required.push(key);
+      continue;
+    }
+    optional.push(key);
+  }
+
+  return { required, optional };
+}
+
+function logMissingSecrets(
+  logger: (message: string) => void,
+  skippedKeys: string[],
+  schemaSecrets: Map<string, SchemaSecretInfo>,
+): void {
+  const missing = splitMissingSecrets(skippedKeys, schemaSecrets);
+  logKeyGroup(logger, "Required before first deploy", missing.required);
+  logKeyGroup(logger, "Safe to ignore for now", missing.optional);
+}
+
+function logKeyGroup(
+  logger: (message: string) => void,
+  header: string,
+  keys: string[],
+): void {
+  if (keys.length === 0) return;
+  logger(`${header} (${keys.length}):`);
+  for (const key of keys) {
+    logger(`  - ${key}`);
+  }
 }
 
 function collectSecretValues(
