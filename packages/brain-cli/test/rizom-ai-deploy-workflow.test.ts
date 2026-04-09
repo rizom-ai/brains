@@ -41,9 +41,11 @@ describe("rizom-ai deploy workflow", () => {
 
     expect(workflow).toContain("varlock load");
     expect(workflow).toContain("name: Validate env via varlock");
-    expect(workflow).toContain("npx -y varlock load --show-all");
     expect(workflow).toContain(
-      "npx -y varlock load --format json --compact > /tmp/varlock-env.json",
+      "npx -y varlock load --path .env.schema --show-all",
+    );
+    expect(workflow).toContain(
+      "npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json",
     );
     expect(workflow).not.toContain("OP_TOKEN");
     expect(workflow).toContain("AI_API_KEY: ${{ secrets.AI_API_KEY }}");

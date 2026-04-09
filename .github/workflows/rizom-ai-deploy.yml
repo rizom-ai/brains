@@ -46,7 +46,7 @@ jobs:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
-        run: npx -y varlock load --show-all
+        run: npx -y varlock load --path .env.schema --show-all
 
       - name: Load env via varlock
         env:
@@ -64,7 +64,7 @@ jobs:
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
         run: |
-          npx -y varlock load --format json --compact > /tmp/varlock-env.json
+          npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
           node <<'NODE'
           const fs = require('fs');
           const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
