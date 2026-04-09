@@ -19,6 +19,8 @@ describe("rizom-ai env example", () => {
     expect(envExample).not.toContain("SERVER_IP=");
     expect(envExample).toContain("HCLOUD_TOKEN=");
     expect(envExample).toContain("HCLOUD_SSH_KEY_NAME=");
+    expect(envExample).toContain("HCLOUD_SERVER_TYPE=");
+    expect(envExample).toContain("HCLOUD_LOCATION=");
     expect(envExample).toContain("KAMAL_SSH_PRIVATE_KEY=");
   });
 });

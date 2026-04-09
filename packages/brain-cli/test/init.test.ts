@@ -121,6 +121,8 @@ describe("brain init", () => {
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("CERTIFICATE_PEM=");
       expect(envExample).toContain("PRIVATE_KEY_PEM=");
+      expect(envExample).toContain("HCLOUD_SERVER_TYPE=");
+      expect(envExample).toContain("HCLOUD_LOCATION=");
       expect(envExample).not.toContain("SERVER_IP=");
     });
 
@@ -138,6 +140,8 @@ describe("brain init", () => {
       expect(envSchema).not.toContain("OP_TOKEN=");
       expect(envSchema).not.toContain("secret backend bootstrap");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
+      expect(envSchema).toContain("HCLOUD_SERVER_TYPE=");
+      expect(envSchema).toContain("HCLOUD_LOCATION=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
       expect(envSchema).not.toContain("BRAIN_MODEL=");
       expect(envSchema).not.toContain("BRAIN_DOMAIN=");

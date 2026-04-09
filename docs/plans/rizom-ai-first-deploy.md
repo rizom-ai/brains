@@ -48,7 +48,7 @@ The current file uses the `ghcr.io/` registry prefix, `proxy.ssl.certificate_pem
 
 ### 2. `apps/rizom-ai/.env.example` now includes the deploy / bootstrap vars
 
-It contains the deploy and provisioning placeholders needed by the current Kamal flow, including `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `CERTIFICATE_PEM`, `PRIVATE_KEY_PEM`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, and `KAMAL_SSH_PRIVATE_KEY`.
+It contains the deploy and provisioning placeholders needed by the current Kamal flow, including `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `CERTIFICATE_PEM`, `PRIVATE_KEY_PEM`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, and `KAMAL_SSH_PRIVATE_KEY`.
 
 `SERVER_IP` is intentionally not part of the committed env contract because the workflow provisions or reuses the server first, then writes `SERVER_IP` into the job env after that step completes.
 
@@ -64,14 +64,14 @@ The workflow lives at the repo root so GitHub Actions can discover it, then runs
 
 The first deploy workflow now creates or reuses the Hetzner server, waits for it to become `running`, and emits `SERVER_IP` for the DNS and Kamal steps.
 
-The workflow should not pin a Hetzner location for server creation. Server type availability varies by location, so the create call should let Hetzner place the server instead of hardcoding `nbg1`.
+The workflow should use explicit operator-provided Hetzner placement inputs. Server type availability varies by location, so the create call should read `HCLOUD_SERVER_TYPE` and `HCLOUD_LOCATION` from the env contract instead of hardcoding guesses.
 
 ## One-time operator setup (account-level, can't be code)
 
 These run once per rizom-ai instance and never again.
 
 1. **Cloudflare zone activation for rizom.ai.** Per `deploy-kamal.md` §"DNS setup → Zone prerequisites" and §"Rizom instance notes": `rizom.ai` is registered at MijnDomein. Add the zone on Cloudflare, update nameservers at MijnDomein to Cloudflare's assigned NS, wait for activation.
-2. **Generate the kamal SSH keypair, register the public key in Hetzner.** `ssh-keygen -t ed25519 -N "" -f rizom-ai-kamal`. In Hetzner console: SSH keys → Add key → name it `rizom-ai-kamal` (this becomes the `HCLOUD_SSH_KEY_NAME` value). Store the private key in the chosen varlock backend as `KAMAL_SSH_PRIVATE_KEY`. Delete the local copy.
+2. **Generate the kamal SSH keypair, register the public key in Hetzner.** `ssh-keygen -t ed25519 -N "" -f rizom-ai-kamal`. In Hetzner console: SSH keys → Add key → name it `rizom-ai-kamal` (this becomes the `HCLOUD_SSH_KEY_NAME` value). Decide the exact Hetzner server type and location you want to run (`HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`). Store the private key in the chosen varlock backend as `KAMAL_SSH_PRIVATE_KEY`. Delete the local copy.
 3. **Mint API tokens** in their respective consoles:
    - `HCLOUD_TOKEN` — Hetzner Cloud → Security → API tokens. Read+Write scope.
    - `CF_API_TOKEN` — Cloudflare → My Profile → API Tokens → Create. Permissions: `Zone > DNS > Edit` and `Zone > SSL and Certificates > Edit` on the rizom.ai zone.
@@ -80,7 +80,7 @@ These run once per rizom-ai instance and never again.
 5. **Create `rizom-ai/rizom-ai-content` GitHub repo.** `gh repo create rizom-ai/rizom-ai-content --private`. Push current `apps/rizom-ai/brain-data/` into it. directory-sync clones it on first boot.
 6. **Run `brain cert:bootstrap` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues the 15-year Origin CA cert + sets zone SSL mode to Full (strict). Store `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in GitHub Actions secrets for this repo, then delete `origin.pem` and `origin.key` locally.
 7. **Store the deploy/runtime env in GitHub Actions secrets** for this repo:
-   - `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`
+   - `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`
    - `KAMAL_SSH_PRIVATE_KEY`
    - `KAMAL_REGISTRY_PASSWORD`
    - `CF_API_TOKEN`, `CF_ZONE_ID`

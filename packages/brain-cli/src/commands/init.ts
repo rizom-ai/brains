@@ -249,6 +249,8 @@ CF_API_TOKEN=
 CF_ZONE_ID=
 CERTIFICATE_PEM=
 PRIVATE_KEY_PEM=
+HCLOUD_SERVER_TYPE=
+HCLOUD_LOCATION=
 `;
 
   writeScaffoldFile(join(dir, ".env.example"), content);

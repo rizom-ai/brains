@@ -55,6 +55,12 @@ describe("rizom-ai deploy workflow", () => {
       "HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}",
     );
     expect(workflow).toContain(
+      "HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}",
+    );
+    expect(workflow).toContain(
+      "HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}",
+    );
+    expect(workflow).toContain(
       "KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}",
     );
     expect(workflow).toContain(
@@ -77,5 +83,11 @@ describe("rizom-ai deploy workflow", () => {
     );
     expect(workflow).toContain('import { appendFileSync } from "node:fs";');
     expect(workflow).not.toContain("location: 'nbg1'");
+    expect(workflow).toContain(
+      "const serverType = process.env.HCLOUD_SERVER_TYPE;",
+    );
+    expect(workflow).toContain("const location = process.env.HCLOUD_LOCATION;");
+    expect(workflow).toContain("server_type: serverType");
+    expect(workflow).toContain("location: process.env.HCLOUD_LOCATION");
   });
 });

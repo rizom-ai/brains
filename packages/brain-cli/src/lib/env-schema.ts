@@ -59,6 +59,12 @@ HCLOUD_TOKEN=
 # @required
 HCLOUD_SSH_KEY_NAME=
 
+# @required
+HCLOUD_SERVER_TYPE=
+
+# @required
+HCLOUD_LOCATION=
+
 # @required @sensitive
 KAMAL_SSH_PRIVATE_KEY=
 

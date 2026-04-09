@@ -40,6 +40,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
+          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
           KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -57,6 +59,8 @@ jobs:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
+          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
           KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
@@ -156,6 +160,8 @@ jobs:
           const token = process.env.HCLOUD_TOKEN;
           const instanceName = process.env.INSTANCE_NAME;
           const sshKeyName = process.env.HCLOUD_SSH_KEY_NAME;
+          const serverType = process.env.HCLOUD_SERVER_TYPE;
+          const location = process.env.HCLOUD_LOCATION;
           const outputPath = process.env.GITHUB_OUTPUT;
           if (!token) {
             throw new Error('Missing HCLOUD_TOKEN');
@@ -165,6 +171,12 @@ jobs:
           }
           if (!sshKeyName) {
             throw new Error('Missing HCLOUD_SSH_KEY_NAME');
+          }
+          if (!serverType) {
+            throw new Error('Missing HCLOUD_SERVER_TYPE');
+          }
+          if (!location) {
+            throw new Error('Missing HCLOUD_LOCATION');
           }
           if (!outputPath) {
             throw new Error('Missing GITHUB_OUTPUT');
@@ -214,8 +226,9 @@ jobs:
               headers,
               body: JSON.stringify({
                 name: instanceName,
-                server_type: 'cpx21',
+                server_type: serverType,
                 image: 'ubuntu-22.04',
+                location: process.env.HCLOUD_LOCATION,
                 ssh_keys: [sshKeyName],
                 labels: { brain: instanceName },
               }),
