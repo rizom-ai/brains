@@ -24,14 +24,13 @@ brain model + brain.yaml instance config = running brain
 
 ## Workspace structure
 
-The monorepo is organized into 9 workspace categories:
+The monorepo is organized into 8 workspace categories:
 
 ```text
 shell/          Core runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components, test helpers
 entities/       EntityPlugin packages for content types
 plugins/        ServicePlugin packages for tools and integrations
-layouts/        Transitional reusable site compositions (to be collapsed into sites/)
 sites/          Structural site packages (routes, plugins, inherited composition)
 interfaces/     InterfacePlugin packages for transports and daemons
 brains/         Brain model packages
@@ -115,15 +114,14 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `interfaces/mcp`       | MCP transport over stdio and HTTP                     |
 | `interfaces/webserver` | In-process web server for static files and API routes |
 
-### Sites, layouts, themes, and brains
+### Sites, themes, and brains
 
-| Area             | Current packages                                                                                                              |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `layouts/`       | `personal`, `professional` (legacy reusable site compositions; planned to move into `sites/` + `shared/`)                     |
-| `sites/`         | `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney` (site compositions; may inherit from other sites)                    |
-| `shared/theme-*` | `base`, `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`, `brutalist`, `editorial`, `geometric`, `neo-retro`, `swiss` |
-| `brains/`        | `rover`, `ranger`, `relay`                                                                                                    |
-| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                       |
+| Area             | Current packages                                                                                                                       |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `sites/`         | `default`, `personal`, `professional`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney` (site compositions; may inherit from other sites) |
+| `shared/theme-*` | `base`, `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`, `brutalist`, `editorial`, `geometric`, `neo-retro`, `swiss`          |
+| `brains/`        | `rover`, `ranger`, `relay`                                                                                                             |
+| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                                |
 
 ## Plugin model
 
@@ -207,11 +205,10 @@ This makes it possible to share infrastructure across content types:
 High-level dependency direction:
 
 ```text
-brains/      -> entities/, plugins/, interfaces/, layouts/, sites/, shared/
+brains/      -> entities/, plugins/, interfaces/, sites/, shared/
 entities/    -> shared/, shell/plugins
 plugins/     -> shared/, shell/plugins
 interfaces/  -> shared/, shell/plugins
-layouts/     -> shared/, sites/, shell/* (legacy composition support; migration target)
 sites/       -> shared/, shell/*, other sites/ (explicit site composition and inheritance)
 shell/       -> shared/, other shell/
 ```
@@ -247,7 +244,4 @@ Each deployed instance stays lightweight at the source level: a brain model pack
 - [Theming guide](./theming-guide.md)
 - [Plugin development patterns](./plugin-development-patterns.md)
 - [Plugin quick reference](./plugin-quick-reference.md)
-- [Site composition & inheritance plan](./plans/site-composition-inheritance.md)
-- [Layouts export inventory](./plans/layouts-export-inventory.md)
-- [Layouts migration map](./plans/layouts-migration-map.md)
 - [User-facing CLI docs](../packages/brain-cli/docs/getting-started.md)

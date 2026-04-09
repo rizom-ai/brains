@@ -134,6 +134,15 @@ describe("brain init", () => {
       expect(envSchema).toContain("OP_TOKEN=");
     });
 
+    it("should use the selected backend in .env.schema", () => {
+      scaffold(testDir, { model: "rover", backend: "env" });
+
+      const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+      expect(envSchema).toContain("@plugin(@varlock/env-plugin)");
+      expect(envSchema).not.toContain("@initOp(token=$OP_TOKEN)");
+      expect(envSchema).not.toContain("OP_TOKEN=");
+    });
+
     it("should create .gitignore", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".gitignore"))).toBe(true);

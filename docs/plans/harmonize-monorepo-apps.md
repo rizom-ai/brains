@@ -92,7 +92,7 @@ works end-to-end.
    - `apps/mylittlephoney/deploy/` → root
    - `apps/mylittlephoney/.env` → root
    - `sites/mylittlephoney/src/index.ts` → `src/site.ts`, rewriting
-     imports from `@brains/layout-personal` / `@brains/plugins` /
+     imports from `@brains/site-personal` / `@brains/plugins` /
      `@brains/app` to `@rizom/brain/site`
    - `shared/theme-mylittlephoney/src/theme.css` → `src/theme.css`
 4. `bun install` in the new dir (uses `file:` ref to brains monorepo

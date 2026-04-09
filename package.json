@@ -75,7 +75,6 @@
     "shared/*",
     "plugins/*",
     "entities/*",
-    "layouts/*",
     "interfaces/*",
     "brains/*",
     "sites/*",

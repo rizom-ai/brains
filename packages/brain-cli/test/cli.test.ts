@@ -33,6 +33,12 @@ describe("parseArgs", () => {
     expect(result.flags["content-repo"]).toBe("github:user/brain-data");
   });
 
+  it("should parse 'init' with --backend flag", () => {
+    const result = parseArgs(["init", "--backend", "env"]);
+    expect(result.command).toBe("init");
+    expect(result.flags.backend).toBe("env");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");
@@ -162,5 +168,28 @@ describe("brain init (end-to-end)", () => {
     expect(yaml).toContain("repo: user/brain-data");
     const env = readFileSync(join(outDir, ".env"), "utf-8");
     expect(env).toContain("GIT_SYNC_TOKEN=");
+  });
+
+  it("should pass the selected backend through to .env.schema", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const outDir = join(testDir, "mybrain");
+    const result = await runCommand(
+      {
+        command: "init",
+        flags: {
+          model: "rover",
+          backend: "env",
+          "ai-api-key": "sk-test-12345",
+          "no-interactive": true,
+        },
+        args: ["mybrain"],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    const envSchema = readFileSync(join(outDir, ".env.schema"), "utf-8");
+    expect(envSchema).toContain("@plugin(@varlock/env-plugin)");
+    expect(envSchema).not.toContain("OP_TOKEN=");
   });
 });

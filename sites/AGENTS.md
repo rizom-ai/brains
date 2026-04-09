@@ -34,5 +34,4 @@ Site packages combine layouts, routes, themes, and site-specific content into de
 - `docs/architecture-overview.md`
 - `docs/theming-guide.md`
 - `shared/AGENTS.md`
-- Layout examples under `layouts/*/src/`
 - Site examples under `sites/*/src/`

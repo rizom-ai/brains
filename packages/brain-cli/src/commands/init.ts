@@ -20,6 +20,7 @@ export interface ScaffoldOptions {
   model: string;
   domain?: string | undefined;
   contentRepo?: string | undefined;
+  backend?: string | undefined;
   deploy?: boolean | undefined;
   /**
    * If provided, scaffold writes a real `.env` file with `AI_API_KEY=<value>`
@@ -66,7 +67,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeTsConfig(dir);
   writeSiteSource(dir);
   writeThemeCss(dir);
-  writeEnvSchema(dir, model);
+  writeEnvSchema(dir, model, options.backend);
 
   // Real .env only when apiKey was supplied (interactive prompt or --api-key)
   if (options.apiKey) {
@@ -83,16 +84,24 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
 
 /**
  * Write a file as part of the scaffold. Skips when the file already
- * exists so `scaffold()` is idempotent across repeated runs.
+ * exists so `scaffold()` is idempotent across repeated runs. Uses the
+ * O_EXCL "wx" flag so the existence check and the create are atomic
+ * — no TOCTOU window where another process could race in.
  */
 function writeScaffoldFile(
   path: string,
   content: string,
   executable = false,
 ): void {
-  if (existsSync(path)) return;
   mkdirSync(dirname(path), { recursive: true });
-  writeFileSync(path, content);
+  try {
+    writeFileSync(path, content, { flag: "wx" });
+  } catch (err) {
+    if (err instanceof Error && "code" in err && err.code === "EEXIST") {
+      return;
+    }
+    throw err;
+  }
   if (executable) {
     chmodSync(path, 0o755);
   }
@@ -246,11 +255,11 @@ PRIVATE_KEY_PEM=
   writeScaffoldFile(join(dir, ".env.example"), content);
 }
 
-function writeEnvSchema(dir: string, model: string): void {
+function writeEnvSchema(dir: string, model: string, backend?: string): void {
   const instanceName = basename(pathResolve(dir));
   writeScaffoldFile(
     join(dir, ".env.schema"),
-    buildInstanceEnvSchema(model, instanceName),
+    buildInstanceEnvSchema(model, instanceName, backend),
   );
 }
 

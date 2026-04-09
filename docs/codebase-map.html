@@ -166,13 +166,13 @@ const nodes = [
   { id:'identity',     label:'Identity',     sub:'shell/identity-service',     desc:'Brain character + anchor profile.',                 x:756, y:442, w:W, h:H, layer:'shell' },
   { id:'ai-eval',      label:'AI Eval',      sub:'shell/ai-evaluation',        desc:'Eval runner, test cases, LLM judge.',              x:900, y:442, w:W, h:H, layer:'shell' },
 
-  // Sites + Layouts (row 7)
-  { id:'site-default', label:'Default',     sub:'sites/default',          desc:'Minimal rover site.',         x:36,  y:524, w:100, h:H, layer:'sites' },
-  { id:'site-yeehaa',  label:'Yeehaa',      sub:'sites/yeehaa',           desc:'Brutalist professional.',     x:146, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-ranger',  label:'Ranger',      sub:'sites/ranger',           desc:'Community CTA site.',         x:256, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-mlp',     label:'MLP',         sub:'sites/mylittlephoney',   desc:'Personal pink site.',         x:366, y:524, w:100, h:H, layer:'sites' },
-  { id:'layout-pro',   label:'Professional',sub:'layouts/professional',   desc:'Blog + decks + portfolio.',   x:500, y:524, w:140, h:H, layer:'layouts' },
-  { id:'layout-pers',  label:'Personal',    sub:'layouts/personal',       desc:'Blog + minimal footer.',      x:654, y:524, w:140, h:H, layer:'layouts' },
+  // Sites (row 7)
+  { id:'site-default',      label:'Default',       sub:'sites/default',       desc:'Minimal rover site.',                 x:36,  y:524, w:100, h:H, layer:'sites' },
+  { id:'site-personal',     label:'Personal',      sub:'sites/personal',      desc:'Blog-focused personal site.',         x:146, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-professional', label:'Professional',  sub:'sites/professional',  desc:'Blog + decks + portfolio site.',      x:256, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-yeehaa',       label:'Yeehaa',        sub:'sites/yeehaa',       desc:'Brutalist professional.',             x:366, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-ranger',       label:'Ranger',        sub:'sites/ranger',       desc:'Community CTA site.',                 x:476, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-mlp',          label:'MLP',           sub:'sites/mylittlephoney', desc:'Personal pink site.',               x:586, y:524, w:100, h:H, layer:'sites' },
 
   // Shared (row 8)
   { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, progress.', x:36,  y:596, w:100, h:H, layer:'shared' },

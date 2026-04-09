@@ -156,8 +156,7 @@ entities/             Built-in entity types: blog, link, deck, project, note, to
 plugins/              Built-in service plugins: site-builder, git sync, notion, hackmd, ...
 interfaces/           Built-in interfaces: MCP, A2A, Discord, webserver, CLI
 brains/rover          Reference brain model
-sites/default         Default site package (used by rover out of the box)
-layouts/              Layout primitives: personal, professional
+sites/                Site packages: default, personal, professional, yeehaa, rizom
 packages/brain-cli    The `brain` command-line tool
 docs/                 Architecture, plugin development, deployment, theming
 ```

@@ -91,8 +91,8 @@ The first public release of `brains`, after roughly a year of private developmen
 #### Sites and layouts
 
 - `@brains/site-default` — generic out-of-box site package
-- `@brains/layout-personal` — simple blog-focused layout
-- `@brains/layout-professional` — editorial layout composing blog, decks, and profile
+- `sites/personal` — simple blog-focused site
+- `sites/professional` — editorial site composing blog, decks, and profile
 
 #### Themes
 

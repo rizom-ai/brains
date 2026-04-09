@@ -19,6 +19,7 @@ brain init mybrain
 brain init mybrain --model relay
 brain init mybrain --domain mybrain.example.com
 brain init mybrain --content-repo github:user/brain-data
+brain init mybrain --backend 1password
 brain init mybrain --deploy
 brain init mybrain --ai-api-key sk-...
 brain init mybrain --no-interactive
@@ -31,6 +32,7 @@ brain init mybrain --no-interactive
 | `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                      |
 | `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                            |
 | `--content-repo <repo>` | —                  | Git repo for content sync                                    |
+| `--backend <name>`      | `1password`        | Secret backend plugin used to generate `.env.schema`         |
 | `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, and GitHub workflow |
 | `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                      |
 | `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags         |

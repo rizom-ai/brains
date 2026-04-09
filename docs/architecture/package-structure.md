@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Brains repository is a monorepo with 9 workspace directories. Each directory has a clear role in the architecture.
+The Brains repository is a monorepo with 8 workspace directories. Each directory has a clear role in the architecture.
 
 ```
 brains/
@@ -11,8 +11,7 @@ brains/
 ├── entities/           # Content type definitions (entity plugins)
 ├── plugins/            # Service plugins (tools + integrations)
 ├── interfaces/         # User interaction layers (chat, web, MCP)
-├── layouts/            # Page layout components (professional, personal)
-├── sites/              # Structural site packages (layouts + routes + site plugins)
+├── sites/              # Structural site packages (composition + routes + plugins)
 ├── brains/             # Brain model definitions
 └── packages/           # Standalone npm packages (brain-cli → @rizom/brain)
 ```
@@ -105,22 +104,17 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 | `interfaces/webserver` | In-process Hono server: static site + API routes + `/health` |
 | `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)     |
 
-## Layouts
-
-| Package                | Purpose                                           |
-| ---------------------- | ------------------------------------------------- |
-| `layouts/professional` | Blog + decks + profile layout, editorial homepage |
-| `layouts/personal`     | Blog + profile layout, personal homepage          |
-
 ## Sites
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package         | Purpose                                                                                              |
-| --------------- | ---------------------------------------------------------------------------------------------------- |
-| `sites/default` | Default structural site for rover, typically paired with `@brains/theme-default`                     |
-| `sites/yeehaa`  | Yeehaa structural site with the professional layout, typically paired with `@brains/theme-brutalist` |
-| `sites/rizom`   | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom`                     |
+| Package              | Purpose                                                                                                  |
+| -------------------- | -------------------------------------------------------------------------------------------------------- |
+| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default`                         |
+| `sites/personal`     | Personal site composition, blog-focused                                                                  |
+| `sites/professional` | Professional site composition, editorial + portfolio + decks                                             |
+| `sites/yeehaa`       | Yeehaa structural site built on the default composition, typically paired with `@brains/theme-brutalist` |
+| `sites/rizom`        | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom`                         |
 
 Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / structure per instance. Theme selection remains independent via `site.theme`.
 

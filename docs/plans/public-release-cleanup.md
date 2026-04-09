@@ -558,6 +558,8 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 
 Phases 3.5 and 4.5 are the additions that turn a clean code drop into an adoptable framework. Without them, v0.1.0 is technically published but the README is internal-facing, there's no contributing guide, and nobody has verified the install path works on a clean machine.
 
+**Hold status (2026-04-07):** This plan is intentionally paused after Phase 3.5. Resume only after `rizom.ai` and `mylittlephoney.com` have both been successfully deployed and validated on their intended production paths.
+
 Phase 3 was split into 3a (mechanical in-tree cleanup, fast) and 3b (mylittlephoney extraction, slower) so the easy part can land first without being blocked by the harder migration.
 
 ---

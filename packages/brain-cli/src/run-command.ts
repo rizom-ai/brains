@@ -77,7 +77,8 @@ async function runInit(
   if (!target) {
     return {
       success: false,
-      message: "Usage: brain init <directory> [--model rover]",
+      message:
+        "Usage: brain init <directory> [--model rover] [--backend 1password]",
     };
   }
 
@@ -91,6 +92,7 @@ async function runInit(
     model: parsed.flags.model ?? "rover",
     domain: parsed.flags.domain,
     contentRepo: parsed.flags["content-repo"],
+    backend: parsed.flags.backend,
     deploy: parsed.flags.deploy,
     apiKey: parsed.flags["ai-api-key"],
   };
@@ -220,6 +222,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --model <name>         Brain model (default: rover)",
     "  --domain <domain>      Domain (default: {model}.rizom.ai)",
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
+    "  --backend <name>       Secret backend (default: 1password)",
     "  --deploy               Include Kamal deploy files (config/deploy.yml, CI, hooks)",
   );
 

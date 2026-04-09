@@ -21,6 +21,8 @@ brain start
 
 If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying.
 
+`brain init` generates a 1Password-backed varlock schema by default. Pass `--backend` if you need a different secret backend plugin.
+
 ## Requirements
 
 - [Bun](https://bun.sh) 1.3.3 or later

@@ -1,12 +1,51 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
-const onePasswordBootstrapEnvSchema = (
-  instanceName: string,
-): string => `# @plugin(@varlock/1password-plugin)
+const DEFAULT_SECRET_BACKEND = "1password";
+const ONE_PASSWORD_PLUGIN = "@varlock/1password-plugin";
+
+function normalizeSecretBackend(backend?: string): string {
+  const value = backend?.trim();
+  if (!value) {
+    return DEFAULT_SECRET_BACKEND;
+  }
+
+  return value.startsWith("@") ? value : value.toLowerCase();
+}
+
+function resolvePluginName(backend: string): string {
+  if (backend.startsWith("@")) {
+    return backend;
+  }
+
+  if (backend === DEFAULT_SECRET_BACKEND) {
+    return ONE_PASSWORD_PLUGIN;
+  }
+
+  if (backend.includes("/")) {
+    return `@${backend}`;
+  }
+
+  if (backend.endsWith("-plugin")) {
+    return `@varlock/${backend}`;
+  }
+
+  return `@varlock/${backend}-plugin`;
+}
+
+function secretBackendPrelude(instanceName: string, backend: string): string {
+  const pluginName = resolvePluginName(backend);
+
+  if (backend === DEFAULT_SECRET_BACKEND) {
+    return `# @plugin(${pluginName})
 # @initOp(token=$OP_TOKEN)
 # @setValuesBulk(opLoadVault(brain-${instanceName}-prod))
 `;
+  }
+
+  return `# @plugin(${pluginName})
+`;
+}
 
 const deployProvisionEnvSchema = `# ---- deploy/provision vars (written by brain init --deploy) ----
 
@@ -44,11 +83,20 @@ CERTIFICATE_PEM=
 PRIVATE_KEY_PEM=
 `;
 
-const backendBootstrapEnvSchema = `# ---- secret backend bootstrap ----
+function backendBootstrapEnvSchema(backend: string): string {
+  if (backend === DEFAULT_SECRET_BACKEND) {
+    return `# ---- secret backend bootstrap ----
 
 # @type=opServiceAccountToken @required @sensitive
 OP_TOKEN=
 `;
+  }
+
+  return `# ---- secret backend bootstrap ----
+
+# Configure the bootstrap credential(s) for the selected backend.
+`;
+}
 
 function resolveBrainPackageDir(model: string): string {
   const brainPackage = model.startsWith("@") ? model : `@brains/${model}`;
@@ -86,13 +134,15 @@ function readModelEnvSchema(model: string): string {
 export function buildInstanceEnvSchema(
   model: string,
   instanceName = model,
+  backend?: string,
 ): string {
+  const selectedBackend = normalizeSecretBackend(backend);
   const sections = [
-    onePasswordBootstrapEnvSchema(instanceName).trimEnd(),
+    secretBackendPrelude(instanceName, selectedBackend).trimEnd(),
     readModelEnvSchema(model),
     deployProvisionEnvSchema.trimEnd(),
     tlsCertEnvSchema.trimEnd(),
-    backendBootstrapEnvSchema.trimEnd(),
+    backendBootstrapEnvSchema(selectedBackend).trimEnd(),
   ].filter((section) => section.length > 0);
 
   return `${sections.join("\n\n")}\n`;

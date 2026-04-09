@@ -14,7 +14,7 @@ This blocks two concrete use cases:
 1. **Standalone brain instances** (e.g. extracting `apps/mylittlephoney`
    to its own repo). The site code needs to import layouts, plugin
    types, and `SitePackage` from somewhere. Today those live in
-   workspace packages (`@brains/layout-personal`, `@brains/plugins`,
+   workspace packages (`@brains/site-personal`, `@brains/plugins`,
    `@brains/app`) that aren't published independently and aren't
    reachable from outside the monorepo.
 
@@ -217,7 +217,7 @@ Once Tier 1 ships, `apps/mylittlephoney` is extractable:
 2. Copy `apps/mylittlephoney/`, `sites/mylittlephoney/src/`,
    `shared/theme-mylittlephoney/src/` into the new repo, flattened
 3. Update site code to import from `@rizom/brain/site` instead of
-   `@brains/layout-personal`, `@brains/plugins`, `@brains/app`
+   `@brains/site-personal`, `@brains/plugins`, `@brains/app`
 4. New repo has one `package.json` with `@rizom/brain` as a git-ref
    dependency
 5. Verify it builds and the brain CLI can boot the brain

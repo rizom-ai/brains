@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first public `v0.1.0` release.
+`brains` is approaching its first public `v0.1.0` release, but the public-release staging plan is intentionally paused until `rizom.ai` and `mylittlephoney.com` have both been successfully deployed and validated.
 
 What already exists today:
 
@@ -36,18 +36,7 @@ These areas are effectively landed:
 
 ## Near-term priorities
 
-### 1. Public release cleanup
-
-Finish the last launch-prep work for `v0.1.0`:
-
-- top-level public docs
-- release staging to `brains-temp`
-- clean-machine smoke test from the published path
-- final rename / go-live flow
-
-Plan: [public-release-cleanup.md](./plans/public-release-cleanup.md)
-
-### 2. Deployment path polish
+### 1. Deployment path polish
 
 Keep tightening the self-hosted deployment story:
 
@@ -59,6 +48,19 @@ Plans:
 
 - [deploy-kamal.md](./plans/deploy-kamal.md)
 - [standalone-apps.md](./plans/standalone-apps.md)
+
+### 2. Public release cleanup
+
+This work is currently **on hold** until `rizom.ai` and `mylittlephoney.com` are both successfully deployed and validated.
+
+Remaining work after that:
+
+- Phase 2 backup
+- release staging to `brains-temp`
+- clean-machine smoke test from the published path
+- final rename / go-live flow
+
+Plan: [public-release-cleanup.md](./plans/public-release-cleanup.md)
 
 ### 3. Documentation phase 2
 

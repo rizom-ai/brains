@@ -35,15 +35,15 @@ brain: "@brains/rover"
 plugins:
   site-builder:
     themeCSS: "@brains/theme-pink"
-    layout: "@brains/layout-minimal"
+    layout: "@brains/site-personal"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
     expect(code).toContain('import __pkg0 from "@brains/theme-pink"');
-    expect(code).toContain('import __pkg1 from "@brains/layout-minimal"');
+    expect(code).toContain('import __pkg1 from "@brains/site-personal"');
     expect(code).toContain('registerPackage("@brains/theme-pink", __pkg0)');
-    expect(code).toContain('registerPackage("@brains/layout-minimal", __pkg1)');
+    expect(code).toContain('registerPackage("@brains/site-personal", __pkg1)');
   });
 
   test("should not duplicate brain package in imports", () => {

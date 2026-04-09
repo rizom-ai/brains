@@ -104,7 +104,7 @@ export function extendSite<TPluginConfig>(
   // Fast path: sites/default extends site-professional with {} on every boot,
   // so returning the base unchanged when no overrides are present avoids
   // per-boot object allocation on the resolver hot path.
-  if (!overrides || Object.keys(overrides).length === 0) {
+  if (Object.keys(overrides).length === 0) {
     return baseSite;
   }
 
@@ -142,40 +142,29 @@ export const themeCssSchema = z.string();
 
 // Runtime gate for site packages loaded dynamically from a package ref at
 // boot. The full structural type is enforced statically by `SitePackage`
-// for in-tree consumers; this only catches dynamic-import shapes. Defined
-// via `z.custom<SitePackage>` so `parsed.data` is typed as `SitePackage`
-// directly — no cast at the call site.
-export const sitePackageSchema = z.custom<SitePackage>((value) => {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Partial<SitePackage>;
+// for in-tree consumers; this only catches dynamic-import shapes.
+const routeDefinitionSchema = z
+  .object({
+    id: z.string().min(1),
+  })
+  .passthrough();
 
-  if (typeof candidate.layouts !== "object" || candidate.layouts === null) {
-    return false;
-  }
-  if (typeof candidate.plugin !== "function") return false;
-  if (!Array.isArray(candidate.routes)) return false;
-  if (
-    typeof candidate.entityDisplay !== "object" ||
-    candidate.entityDisplay === null
-  ) {
-    return false;
-  }
+const entityDisplayEntrySchema = z
+  .object({
+    label: z.string().min(1),
+  })
+  .passthrough();
 
-  for (const route of candidate.routes) {
-    if (typeof route?.id !== "string" || route.id.length === 0) return false;
-  }
-  for (const entry of Object.values(candidate.entityDisplay)) {
-    if (typeof entry?.label !== "string" || entry.label.length === 0) {
-      return false;
-    }
-  }
-  if (
-    candidate.staticAssets !== undefined &&
-    (typeof candidate.staticAssets !== "object" ||
-      candidate.staticAssets === null)
-  ) {
-    return false;
-  }
+const sitePackageShapeSchema = z
+  .object({
+    layouts: z.record(z.unknown()),
+    plugin: z.function(),
+    routes: z.array(routeDefinitionSchema),
+    entityDisplay: z.record(entityDisplayEntrySchema),
+    staticAssets: z.record(z.string()).optional(),
+  })
+  .passthrough();
 
-  return true;
-});
+export const sitePackageSchema = z.custom<SitePackage>(
+  (value) => sitePackageShapeSchema.safeParse(value).success,
+);

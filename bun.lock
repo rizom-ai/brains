@@ -478,53 +478,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "layouts/personal": {
-      "name": "@brains/layout-personal",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/blog": "workspace:*",
-        "@brains/identity-service": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-info": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "layouts/professional": {
-      "name": "@brains/layout-professional",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/blog": "workspace:*",
-        "@brains/decks": "workspace:*",
-        "@brains/identity-service": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-info": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "@types/bun": "latest",
-        "bun-types": "latest",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "packages/brain-cli": {
       "name": "@rizom/brain",
       "version": "0.1.1-alpha.7",
@@ -1290,7 +1243,6 @@
       "name": "@brains/site-default",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/site-composition": "workspace:*",
         "@brains/site-professional": "workspace:*",
       },
       "devDependencies": {
@@ -1457,10 +1409,6 @@
     "@brains/image-plugin": ["@brains/image-plugin@workspace:entities/image"],
 
     "@brains/job-queue": ["@brains/job-queue@workspace:shell/job-queue"],
-
-    "@brains/layout-personal": ["@brains/layout-personal@workspace:layouts/personal"],
-
-    "@brains/layout-professional": ["@brains/layout-professional@workspace:layouts/professional"],
 
     "@brains/link": ["@brains/link@workspace:entities/link"],
 
