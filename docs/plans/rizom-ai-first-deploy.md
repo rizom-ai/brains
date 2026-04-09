@@ -54,9 +54,9 @@ It contains the deploy and provisioning placeholders needed by the current Kamal
 
 The schema is generated from the ranger model template plus the deploy / provisioning / TLS / backend bootstrap sections.
 
-### 4. `apps/rizom-ai/.github/workflows/deploy.yml` now consumes env via varlock
+### 4. `.github/workflows/rizom-ai-deploy.yml` now consumes env via varlock
 
-The workflow loads the instance schema, exports env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
+The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It loads the instance schema, exports env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
 
 ### 5. Auto-provision step (already wired into the workflow)
 
