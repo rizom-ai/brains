@@ -3,10 +3,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "bunx brain start"
+    "start": "BRAIN_SKIP_LOCAL_REEXEC=1 bun ../../packages/brain-cli/dist/brain.js start",
+    "start:published": "bunx brain start"
   },
   "dependencies": {
-    "@rizom/brain": "^0.1.1-alpha.6",
+    "@rizom/brain": "^0.1.1-alpha.9",
     "preact": "^10.27.2"
   }
 }

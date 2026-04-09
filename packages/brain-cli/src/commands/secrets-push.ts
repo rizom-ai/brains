@@ -50,8 +50,8 @@ export async function runSecretsPush(
     return {
       success: true,
       message: result.dryRun
-        ? `Dry run: would push ${result.pushedKeys.length} secrets to ${result.target}`
-        : `Pushed ${result.pushedKeys.length} secrets to ${result.target}`,
+        ? `Dry run: would push ${result.pushedKeys.length} env-backed secrets to ${result.target}`
+        : `Pushed ${result.pushedKeys.length} env-backed secrets to ${result.target}`,
     };
   } catch (error) {
     return {

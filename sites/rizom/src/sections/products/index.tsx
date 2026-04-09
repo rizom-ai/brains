@@ -9,5 +9,6 @@ export const productsTemplate = createTemplate<ProductsContent>({
   schema: ProductsContentSchema,
   formatter: productsFormatter,
   requiredPermission: "public",
+  runtimeScripts: [{ src: "/canvases/products.canvas.js", defer: true }],
   layout: { component: ProductsLayout },
 });

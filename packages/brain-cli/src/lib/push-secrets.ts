@@ -27,7 +27,9 @@ export async function pushSecretsToBackend(
 
   switch (target) {
     case "gh":
-      logger(`Pushing ${secrets.length} secrets to GitHub Secrets...`);
+      logger(
+        `Pushing ${secrets.length} env-backed secrets to GitHub Secrets...`,
+      );
       await Promise.all(
         secrets.map(([name, value]) =>
           runCommand("gh", ["secret", "set", name], { stdin: value }),
@@ -43,7 +45,7 @@ export async function pushSecretsToBackend(
       }
       const vaultName = vaultNameForInstance(options.cwd);
       logger(
-        `Pushing ${secrets.length} secrets to 1Password vault ${vaultName}...`,
+        `Pushing ${secrets.length} env-backed secrets to 1Password vault ${vaultName}...`,
       );
       const opEnv = { OP_SERVICE_ACCOUNT_TOKEN: options.opToken };
       const tempDir = mkdtempSync(join(tmpdir(), "brain-push-secrets-"));

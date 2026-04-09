@@ -19,7 +19,7 @@ echo "AI_API_KEY=your-key-here" > .env
 brain start
 ```
 
-If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain secrets:push --push-to 1password` for the env-backed secrets (or `--dry-run` to preview them) and `brain cert:bootstrap --push-to 1password` for the TLS cert before deploying.
+If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain secrets:push --push-to 1password` for the env-backed secrets (or `--dry-run` to preview them with required-vs-optional grouping) and `brain cert:bootstrap --push-to 1password` for the TLS cert before deploying.
 
 `brain init` generates a 1Password-backed varlock schema by default. Pass `--backend` if you need a different secret backend plugin.
 

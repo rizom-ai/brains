@@ -8,17 +8,22 @@ A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model 
 
 ## Setup
 
-This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
+This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, `.envrc`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ```bash
 # From the monorepo root, once
 bun install
 
-# Copy and fill in secrets
+# Copy and fill in app/deploy secrets
 cp apps/rizom-ai/.env.example apps/rizom-ai/.env
+
+# Optional: keep bootstrap secrets in a local-only shell file for direnv
+touch apps/rizom-ai/.env.local
+# Add OP_TOKEN / KAMAL_SSH_PRIVATE_KEY exports to apps/rizom-ai/.env.local if you use 1Password
 
 # Start
 cd apps/rizom-ai
+direnv allow
 bunx brain start
 ```
 
@@ -28,6 +33,8 @@ bunx brain start
 | --------------- | ----------------------------------------------------- |
 | `brain.yaml`    | Instance config (brain, preset, domain, site variant) |
 | `.env`          | Secrets only (API keys, tokens)                       |
+| `.env.local`    | Local-only bootstrap secrets for direnv               |
+| `.envrc`        | Loads `.env` and sources `.env.local` for the shell   |
 | `tsconfig.json` | Bun JSX runtime resolution for Preact site components |
 
 ## Site variant

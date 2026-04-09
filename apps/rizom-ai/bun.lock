@@ -5,7 +5,7 @@
     "": {
       "name": "rizom-ai",
       "dependencies": {
-        "@rizom/brain": "^0.1.1-alpha.6",
+        "@rizom/brain": "^0.1.1-alpha.9",
         "preact": "^10.27.2",
       },
     },
@@ -113,7 +113,7 @@
 
     "@neon-rs/load": ["@neon-rs/load@0.0.4", "", {}, "sha512-kTPhdZyTQxB+2wpiRcFWrDcejc4JI6tkPuS7UZCG4l6Zvc5kU/gGQ/ozvHTh1XR5tS+UlfAfGuPajjzQjCiHCw=="],
 
-    "@rizom/brain": ["@rizom/brain@0.1.1-alpha.7", "", { "dependencies": { "@clack/prompts": "^0.11.0", "@modelcontextprotocol/sdk": "^1.24.0", "@tailwindcss/postcss": "^4.1.13", "@tailwindcss/typography": "^0.5.19", "postcss": "^8.5.6", "preact": "^10.27.2", "preact-render-to-string": "^6.3.1", "tailwindcss": "^4.1.11" }, "optionalDependencies": { "@libsql/client": "^0.15.7", "@tailwindcss/oxide": "^4.1.4", "better-sqlite3": "^11.8.1", "lightningcss": "^1.29.2", "react-devtools-core": "^6.1.1", "sharp": "^0.34.5" }, "bin": { "brain": "dist/brain.js" } }, "sha512-tysh5O8iDN0F/NX6hwtnhSe2TbepB4mikWLrJ+2kGWyeSwwNbq1xXCLVHZiMefLFHPcIe0ke/w9hdmbLgQaTTw=="],
+    "@rizom/brain": ["@rizom/brain@0.1.1-alpha.9", "", { "dependencies": { "@clack/prompts": "^0.11.0", "@modelcontextprotocol/sdk": "^1.24.0", "@tailwindcss/postcss": "^4.1.13", "@tailwindcss/typography": "^0.5.19", "postcss": "^8.5.6", "preact": "^10.27.2", "preact-render-to-string": "^6.3.1", "tailwindcss": "^4.1.11" }, "optionalDependencies": { "@libsql/client": "^0.15.7", "@tailwindcss/oxide": "^4.1.4", "better-sqlite3": "^11.8.1", "lightningcss": "^1.29.2", "react-devtools-core": "^6.1.1", "sharp": "^0.34.5" }, "bin": { "brain": "dist/brain.js" } }, "sha512-6pIjkz2a8LVEzuwtp64fUXAN4abiWUzLDznscvjmr26TNpGl6MsHgQtssapcAYUtumhN05wfrZxCe9uh2U6XMw=="],
 
     "@tailwindcss/node": ["@tailwindcss/node@4.2.2", "", { "dependencies": { "@jridgewell/remapping": "^2.3.5", "enhanced-resolve": "^5.19.0", "jiti": "^2.6.1", "lightningcss": "1.32.0", "magic-string": "^0.30.21", "source-map-js": "^1.2.1", "tailwindcss": "4.2.2" } }, "sha512-pXS+wJ2gZpVXqFaUEjojq7jzMpTGf8rU6ipJz5ovJV6PUGmlJ+jvIwGrzdHdQ80Sg+wmQxUFuoW1UAAwHNEdFA=="],
 
