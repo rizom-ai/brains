@@ -1,5 +1,7 @@
 # @brains/ranger
 
+> Internal-use brain model. This source ships publicly so the architecture stays inspectable, but `@brains/rover` is the public reference model for adoption, extension, and standalone app authoring.
+
 A community-facing brain model for collectives and organizations. Manages notes, links, social media, products, and wishlists with a public website featuring CTA-driven landing pages.
 
 ## Capabilities

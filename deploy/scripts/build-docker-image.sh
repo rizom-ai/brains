@@ -2,7 +2,7 @@
 # Build production Docker image using pre-built bundle
 #
 # Usage: ./build-docker-image.sh <app-name> [tag]
-# Example: ./build-docker-image.sh team-brain latest
+# Example: ./build-docker-image.sh rizom-ai latest
 
 set -euo pipefail
 
@@ -16,7 +16,7 @@ TAG="${2:-latest}"
 
 if [ -z "$APP_NAME" ]; then
     log_error "Usage: $0 <app-name> [tag]"
-    log_error "Example: $0 team-brain latest"
+    log_error "Example: $0 rizom-ai latest"
     exit 1
 fi
 

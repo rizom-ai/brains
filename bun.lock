@@ -41,7 +41,7 @@
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-ranger": "workspace:*",
+        "@brains/site-rizom": "workspace:*",
         "@brains/social-media": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
@@ -69,7 +69,7 @@
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-ranger": "workspace:*",
+        "@brains/site-rizom": "workspace:*",
         "@brains/summary": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
@@ -949,19 +949,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "shared/theme-ranger": {
-      "name": "@brains/theme-ranger",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-default": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shared/theme-rizom": {
       "name": "@brains/theme-rizom",
       "version": "0.1.0",
@@ -1362,25 +1349,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "sites/ranger": {
-      "name": "@brains/site-ranger",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/site-builder-plugin": "workspace:*",
-        "@brains/site-composition": "workspace:*",
-        "@brains/templates": "workspace:*",
-        "@brains/ui-library": "workspace:*",
-        "@brains/utils": "workspace:*",
-        "preact": "^10.27.2",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "sites/rizom": {
       "name": "@brains/site-rizom",
       "version": "0.1.0",
@@ -1548,8 +1516,6 @@
 
     "@brains/site-professional": ["@brains/site-professional@workspace:sites/professional"],
 
-    "@brains/site-ranger": ["@brains/site-ranger@workspace:sites/ranger"],
-
     "@brains/site-rizom": ["@brains/site-rizom@workspace:sites/rizom"],
 
     "@brains/site-yeehaa": ["@brains/site-yeehaa@workspace:sites/yeehaa"],
@@ -1575,8 +1541,6 @@
     "@brains/theme-geometric": ["@brains/theme-geometric@workspace:shared/theme-geometric"],
 
     "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
-
-    "@brains/theme-ranger": ["@brains/theme-ranger@workspace:shared/theme-ranger"],
 
     "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
 

@@ -1,5 +1,7 @@
 # @brains/relay
 
+> Internal-use brain model. This source ships publicly so the architecture stays inspectable, but `@brains/rover` is the public reference model for adoption, extension, and standalone app authoring.
+
 A collaborative knowledge management brain model for teams. Captures, organizes, and shares knowledge through topics, summaries, decks, and links.
 
 ## Capabilities

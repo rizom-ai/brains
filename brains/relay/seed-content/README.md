@@ -80,8 +80,8 @@ cd brains
 # Install dependencies
 bun install
 
-# Navigate to team-brain
-cd apps/team-brain
+# Navigate to your relay app
+cd apps/my-relay
 ```
 
 ### Configuration
@@ -173,7 +173,7 @@ bun run matrix:setup     # Interactive Matrix configuration
 ### Project Structure
 
 ```
-apps/team-brain/
+apps/my-relay/
 ├── brain.config.ts      # Main configuration
 ├── seed-content/        # Initial markdown content
 ├── scripts/             # Utility scripts
@@ -218,7 +218,7 @@ Configure Claude Desktop or another MCP client:
   "mcpServers": {
     "recall": {
       "command": "node",
-      "args": ["/path/to/brains/apps/team-brain/brain.config.ts", "--mcp"]
+      "args": ["/path/to/brains/apps/my-relay/brain.yaml", "--mcp"]
     }
   }
 }

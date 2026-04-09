@@ -40,7 +40,7 @@ The instance configuration file. Declarative, no code, committable to git.
 brain: relay
 
 # Instance overrides (all optional)
-name: team-brain-staging
+name: relay-staging
 logLevel: debug # debug | info | warn | error
 port: 9090 # production server port
 domain: staging.recall.ai # production domain

@@ -2,7 +2,6 @@ import { describe, expect, test } from "bun:test";
 
 const themeIndexFiles = [
   "../../../shared/theme-default/src/index.ts",
-  "../../../shared/theme-ranger/src/index.ts",
   "../../../shared/theme-rizom/src/index.ts",
   "../../../shared/theme-brutalist/src/index.ts",
   "../../../shared/theme-yeehaa/src/index.ts",
