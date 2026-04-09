@@ -63,6 +63,7 @@ The workflow lives at the repo root so GitHub Actions can discover it, then runs
 The deploy trigger should follow the image publish, not race it. The correct contract is:
 
 - `publish-images.yml` checks out and publishes the exact triggering commit.
+- Those published images must carry Kamal's required `service=brain` image label so `kamal setup/deploy --skip-push` accepts the prebuilt image.
 - `rizom-ai-deploy.yml` triggers after a successful `Publish Brain Model Images` run on `main`.
 - Because `Publish Brain Model Images` is itself driven by `workflow_run`, the deploy job must key off successful completion, not require the upstream event to be `push`.
 - Kamal deploys the immutable image tag for that exact commit SHA, not `latest`.

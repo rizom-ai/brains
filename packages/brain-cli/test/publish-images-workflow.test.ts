@@ -23,4 +23,10 @@ describe("publish-images workflow", () => {
       "type=raw,value=${{ github.event.workflow_run.head_sha || github.sha }}",
     );
   });
+
+  it("adds the Kamal service label expected by deploys", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toContain("service=brain");
+  });
 });
