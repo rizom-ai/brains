@@ -67,35 +67,30 @@ export interface SitePackage<TPluginConfig = Record<string, unknown>> {
   staticAssets?: Record<string, string>;
 }
 
-export interface SitePackageOverrides<TPluginConfig = Record<string, unknown>> {
-  layouts?: Record<string, unknown>;
-  routes?: RouteDefinitionInput[];
-  plugin?: SitePackage<TPluginConfig>["plugin"];
-  entityDisplay?: Record<string, EntityDisplayEntry>;
-  staticAssets?: Record<string, string>;
-}
+export type SitePackageOverrides<TPluginConfig = Record<string, unknown>> =
+  Partial<SitePackage<TPluginConfig>>;
 
 function mergeRoutes(
   baseRoutes: RouteDefinitionInput[],
-  overrideRoutes: RouteDefinitionInput[] = [],
+  overrideRoutes: RouteDefinitionInput[] | undefined,
 ): RouteDefinitionInput[] {
+  if (!overrideRoutes || overrideRoutes.length === 0) {
+    return baseRoutes;
+  }
+
   const mergedRoutes = [...baseRoutes];
   const indexByKey = new Map<string, number>();
-
   for (const [index, route] of mergedRoutes.entries()) {
     indexByKey.set(route.id, index);
   }
 
   for (const route of overrideRoutes) {
-    const key = route.id;
-    const existingIndex = indexByKey.get(key);
-
+    const existingIndex = indexByKey.get(route.id);
     if (existingIndex !== undefined) {
       mergedRoutes[existingIndex] = route;
       continue;
     }
-
-    indexByKey.set(key, mergedRoutes.length);
+    indexByKey.set(route.id, mergedRoutes.length);
     mergedRoutes.push(route);
   }
 
@@ -106,30 +101,40 @@ export function extendSite<TPluginConfig>(
   baseSite: SitePackage<TPluginConfig>,
   overrides: SitePackageOverrides<TPluginConfig> = {},
 ): SitePackage<TPluginConfig> {
+  // Fast path: sites/default extends site-professional with {} on every boot,
+  // so returning the base unchanged when no overrides are present avoids
+  // per-boot object allocation on the resolver hot path.
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return baseSite;
+  }
+
   const {
-    layouts: overrideLayouts = {},
-    entityDisplay: overrideEntityDisplay = {},
-    staticAssets: overrideStaticAssets = {},
+    layouts: overrideLayouts,
+    entityDisplay: overrideEntityDisplay,
+    staticAssets: overrideStaticAssets,
     plugin = baseSite.plugin,
   } = overrides;
 
-  const staticAssets = {
-    ...(baseSite.staticAssets ?? {}),
-    ...overrideStaticAssets,
-  };
+  const layouts = overrideLayouts
+    ? { ...baseSite.layouts, ...overrideLayouts }
+    : baseSite.layouts;
+
+  const entityDisplay = overrideEntityDisplay
+    ? { ...baseSite.entityDisplay, ...overrideEntityDisplay }
+    : baseSite.entityDisplay;
+
+  const staticAssets = overrideStaticAssets
+    ? { ...(baseSite.staticAssets ?? {}), ...overrideStaticAssets }
+    : baseSite.staticAssets;
 
   return {
-    layouts: {
-      ...baseSite.layouts,
-      ...overrideLayouts,
-    },
+    layouts,
     routes: mergeRoutes(baseSite.routes, overrides.routes),
     plugin,
-    entityDisplay: {
-      ...baseSite.entityDisplay,
-      ...overrideEntityDisplay,
-    },
-    ...(Object.keys(staticAssets).length > 0 ? { staticAssets } : {}),
+    entityDisplay,
+    ...(staticAssets && Object.keys(staticAssets).length > 0
+      ? { staticAssets }
+      : {}),
   };
 }
 

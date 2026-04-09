@@ -127,6 +127,8 @@ describe("brain init", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+      expect(envSchema).toContain("@plugin(@varlock/1password-plugin)");
+      expect(envSchema).toContain("@setValuesBulk(opLoadVault(brain-");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
       expect(envSchema).toContain("OP_TOKEN=");

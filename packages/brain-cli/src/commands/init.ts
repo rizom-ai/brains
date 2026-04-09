@@ -1,5 +1,5 @@
 import { mkdirSync, writeFileSync, chmodSync, existsSync } from "fs";
-import { basename, dirname, join } from "path";
+import { basename, dirname, join, resolve as pathResolve } from "path";
 import pkg from "../../package.json" with { type: "json" };
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { buildInstanceEnvSchema } from "../lib/env-schema";
@@ -247,7 +247,11 @@ PRIVATE_KEY_PEM=
 }
 
 function writeEnvSchema(dir: string, model: string): void {
-  writeScaffoldFile(join(dir, ".env.schema"), buildInstanceEnvSchema(model));
+  const instanceName = basename(pathResolve(dir));
+  writeScaffoldFile(
+    join(dir, ".env.schema"),
+    buildInstanceEnvSchema(model, instanceName),
+  );
 }
 
 /**

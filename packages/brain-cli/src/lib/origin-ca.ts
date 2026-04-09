@@ -25,6 +25,18 @@ export type FetchLike = (
 const CN_OID = "2.5.4.3";
 const SHA256_WITH_RSA_ENCRYPTION_OID = "1.2.840.113549.1.1.11";
 
+const CF_API_BASE = "https://api.cloudflare.com/client/v4";
+const CF_REQUEST_TYPE_ORIGIN_RSA = "origin-rsa";
+const CF_ORIGIN_CA_VALIDITY_DAYS = 5475; // 15 years, Cloudflare's max.
+const CF_API_TIMEOUT_MS = 15_000;
+
+function cfHeaders(token: string): Record<string, string> {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+}
+
 const cloudflareErrorEntrySchema = z
   .object({
     message: z.string().optional(),
@@ -58,12 +70,8 @@ const cloudflareSuccessResponseSchema = z
   })
   .passthrough();
 
-/**
- * Generate an RSA key pair for Cloudflare Origin CA bootstrap.
- *
- * The private key is PEM-encoded PKCS#8 so it can be written directly to disk.
- * The public key is SPKI DER so it can be embedded into a PKCS#10 CSR.
- */
+// Private key is PEM PKCS#8 (written to disk); public key is SPKI DER so it
+// can be embedded into the PKCS#10 CSR body below.
 export function generateOriginKeyPair(): OriginKeyPair {
   const { privateKey, publicKey } = generateKeyPairSync("rsa", {
     modulusLength: 2048,
@@ -83,9 +91,6 @@ export function generateOriginKeyPair(): OriginKeyPair {
   };
 }
 
-/**
- * Build a PKCS#10 certificate signing request for the given domain.
- */
 export function createOriginCertificateRequest(
   domain: string,
   keyPair: OriginKeyPair,
@@ -118,31 +123,23 @@ export function createOriginCertificateRequest(
   };
 }
 
-/**
- * Issue a Cloudflare Origin CA certificate from a CSR.
- */
 export async function issueCloudflareOriginCertificate(
   fetchImpl: FetchLike,
   token: string,
   csrPem: string,
   domain: string,
 ): Promise<CloudflareOriginCaResult> {
-  const response = await fetchImpl(
-    "https://api.cloudflare.com/client/v4/certificates",
-    {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        hostnames: [domain, `*.${domain}`],
-        requested_validity: 5475,
-        request_type: "origin-rsa",
-        csr: csrPem,
-      }),
-    },
-  );
+  const response = await fetchImpl(`${CF_API_BASE}/certificates`, {
+    method: "POST",
+    headers: cfHeaders(token),
+    body: JSON.stringify({
+      hostnames: [domain, `*.${domain}`],
+      requested_validity: CF_ORIGIN_CA_VALIDITY_DAYS,
+      request_type: CF_REQUEST_TYPE_ORIGIN_RSA,
+      csr: csrPem,
+    }),
+    signal: AbortSignal.timeout(CF_API_TIMEOUT_MS),
+  });
 
   const payload = await readJson(response);
   const parsed = cloudflareOriginCaResponseSchema.safeParse(payload);
@@ -165,24 +162,20 @@ export async function issueCloudflareOriginCertificate(
   return result;
 }
 
-/**
- * Switch the zone SSL mode to Full (strict) so kamal-proxy can terminate
- * TLS with the Origin CA certificate.
- */
+// Full (strict) lets kamal-proxy terminate TLS with the Origin CA cert
+// while Cloudflare's edge re-encrypts to the client.
 export async function setCloudflareZoneSslStrict(
   fetchImpl: FetchLike,
   token: string,
   zoneId: string,
 ): Promise<void> {
   const response = await fetchImpl(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/settings/ssl`,
+    `${CF_API_BASE}/zones/${zoneId}/settings/ssl`,
     {
       method: "PATCH",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: cfHeaders(token),
       body: JSON.stringify({ value: "strict" }),
+      signal: AbortSignal.timeout(CF_API_TIMEOUT_MS),
     },
   );
 

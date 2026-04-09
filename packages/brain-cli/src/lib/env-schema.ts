@@ -1,6 +1,13 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
+const onePasswordBootstrapEnvSchema = (
+  instanceName: string,
+): string => `# @plugin(@varlock/1password-plugin)
+# @initOp(token=$OP_TOKEN)
+# @setValuesBulk(opLoadVault(brain-${instanceName}-prod))
+`;
+
 const deployProvisionEnvSchema = `# ---- deploy/provision vars (written by brain init --deploy) ----
 
 # @required @sensitive
@@ -76,8 +83,12 @@ function readModelEnvSchema(model: string): string {
   return readFileSync(schemaPath, "utf-8").trimEnd();
 }
 
-export function buildInstanceEnvSchema(model: string): string {
+export function buildInstanceEnvSchema(
+  model: string,
+  instanceName = model,
+): string {
   const sections = [
+    onePasswordBootstrapEnvSchema(instanceName).trimEnd(),
     readModelEnvSchema(model),
     deployProvisionEnvSchema.trimEnd(),
     tlsCertEnvSchema.trimEnd(),
