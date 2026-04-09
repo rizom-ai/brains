@@ -45,7 +45,7 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain(
       "github.event.workflow_run.conclusion == 'success'",
     );
-    expect(workflow).toContain("github.event.workflow_run.event == 'push'");
+    expect(workflow).not.toContain("github.event.workflow_run.event == 'push'");
     expect(workflow).not.toContain("on:\n  push:");
   });
 

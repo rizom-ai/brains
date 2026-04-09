@@ -64,6 +64,7 @@ The deploy trigger should follow the image publish, not race it. The correct con
 
 - `publish-images.yml` checks out and publishes the exact triggering commit.
 - `rizom-ai-deploy.yml` triggers after a successful `Publish Brain Model Images` run on `main`.
+- Because `Publish Brain Model Images` is itself driven by `workflow_run`, the deploy job must key off successful completion, not require the upstream event to be `push`.
 - Kamal deploys the immutable image tag for that exact commit SHA, not `latest`.
 
 `latest` is a moving fallback tag, not the deploy contract.
