@@ -140,12 +140,42 @@ export function extendSite<TPluginConfig>(
 
 export const themeCssSchema = z.string();
 
-export const sitePackageSchema = z.object({
-  layouts: z.record(z.unknown()),
-  routes: z.array(z.custom<RouteDefinitionInput>(() => true)),
-  plugin: z.custom<SitePackage["plugin"]>(
-    (value) => typeof value === "function",
-  ),
-  entityDisplay: z.record(z.custom<EntityDisplayEntry>(() => true)),
-  staticAssets: z.record(z.string()).optional(),
+// Runtime gate for site packages loaded dynamically from a package ref at
+// boot. The full structural type is enforced statically by `SitePackage`
+// for in-tree consumers; this only catches dynamic-import shapes. Defined
+// via `z.custom<SitePackage>` so `parsed.data` is typed as `SitePackage`
+// directly — no cast at the call site.
+export const sitePackageSchema = z.custom<SitePackage>((value) => {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<SitePackage>;
+
+  if (typeof candidate.layouts !== "object" || candidate.layouts === null) {
+    return false;
+  }
+  if (typeof candidate.plugin !== "function") return false;
+  if (!Array.isArray(candidate.routes)) return false;
+  if (
+    typeof candidate.entityDisplay !== "object" ||
+    candidate.entityDisplay === null
+  ) {
+    return false;
+  }
+
+  for (const route of candidate.routes) {
+    if (typeof route?.id !== "string" || route.id.length === 0) return false;
+  }
+  for (const entry of Object.values(candidate.entityDisplay)) {
+    if (typeof entry?.label !== "string" || entry.label.length === 0) {
+      return false;
+    }
+  }
+  if (
+    candidate.staticAssets !== undefined &&
+    (typeof candidate.staticAssets !== "object" ||
+      candidate.staticAssets === null)
+  ) {
+    return false;
+  }
+
+  return true;
 });

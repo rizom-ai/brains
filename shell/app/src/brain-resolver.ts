@@ -358,21 +358,11 @@ function resolveSitePackage(
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
   if (pkgRef && hasPackage(pkgRef)) {
-    const pkg = getPackage(pkgRef);
-    const parsed = sitePackageSchema.safeParse(pkg);
+    const parsed = sitePackageSchema.safeParse(getPackage(pkgRef));
     if (!parsed.success) {
       throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
     }
-
-    return {
-      layouts: parsed.data.layouts,
-      routes: parsed.data.routes,
-      plugin: parsed.data.plugin,
-      entityDisplay: parsed.data.entityDisplay,
-      ...(parsed.data.staticAssets
-        ? { staticAssets: parsed.data.staticAssets }
-        : {}),
-    };
+    return parsed.data;
   }
   return definition.site;
 }
