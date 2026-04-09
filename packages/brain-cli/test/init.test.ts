@@ -415,7 +415,7 @@ describe("brain init", () => {
       expect(workflow).toContain("Provision server");
       expect(workflow).toContain("Update Cloudflare DNS");
       expect(workflow).toContain("steps.provision.outputs.server_ip");
-      expect(workflow).toContain("kamal deploy --skip-push");
+      expect(workflow).toContain("kamal setup --skip-push");
       expect(workflow).not.toContain("secrets.AI_API_KEY");
       expect(workflow).not.toContain("secrets.GIT_SYNC_TOKEN");
       expect(workflow).not.toContain("secrets.MCP_AUTH_TOKEN");

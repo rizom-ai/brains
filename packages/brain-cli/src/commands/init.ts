@@ -598,7 +598,11 @@ jobs:
       - name: Deploy
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
-        run: kamal deploy --skip-push
+        # \`kamal setup\` is idempotent: on a fresh server it installs Docker
+        # + kamal-proxy + deploys; on an already-set-up server it skips the
+        # install steps and just deploys. Using \`setup\` instead of \`deploy\`
+        # means the workflow handles first-deploy and re-runs identically.
+        run: kamal setup --skip-push
 `;
 
   writeScaffoldFile(join(dir, ".github", "workflows", "deploy.yml"), content);
