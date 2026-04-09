@@ -39,6 +39,18 @@ describe("parseArgs", () => {
     expect(result.flags.backend).toBe("env");
   });
 
+  it("should parse 'cert:bootstrap' with --push-to flag", () => {
+    const result = parseArgs(["cert:bootstrap", "--push-to", "gh"]);
+    expect(result.command).toBe("cert:bootstrap");
+    expect(result.flags["push-to"]).toBe("gh");
+  });
+
+  it("should parse 'secrets:push' with --push-to flag", () => {
+    const result = parseArgs(["secrets:push", "--push-to", "1password"]);
+    expect(result.command).toBe("secrets:push");
+    expect(result.flags["push-to"]).toBe("1password");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");

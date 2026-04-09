@@ -4,6 +4,10 @@
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
+  "files": [
+    "src",
+    "env.schema.template"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",

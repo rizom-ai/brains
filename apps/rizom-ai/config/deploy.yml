@@ -7,7 +7,9 @@ servers:
       - <%= ENV['SERVER_IP'] %>
 
 proxy:
-  ssl: true
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>:80
     - preview.<%= ENV['BRAIN_DOMAIN'] %>:81

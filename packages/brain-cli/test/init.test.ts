@@ -132,6 +132,8 @@ describe("brain init", () => {
       expect(envSchema).toContain("HCLOUD_TOKEN=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
       expect(envSchema).toContain("OP_TOKEN=");
+      expect(envSchema).not.toContain("BRAIN_MODEL=");
+      expect(envSchema).not.toContain("BRAIN_DOMAIN=");
     });
 
     it("should use the selected backend in .env.schema", () => {
@@ -395,7 +397,17 @@ describe("brain init", () => {
         join(testDir, ".github", "workflows", "deploy.yml"),
         "utf-8",
       );
+      expect(workflow).toContain("npx -y varlock load --format json --compact");
+      expect(workflow).toContain("secrets.OP_TOKEN");
+      expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");
+      expect(workflow).toContain(".kamal/secrets");
+      expect(workflow).toContain("Provision server");
+      expect(workflow).toContain("Update Cloudflare DNS");
+      expect(workflow).toContain("steps.provision.outputs.server_ip");
       expect(workflow).toContain("kamal deploy --skip-push");
+      expect(workflow).not.toContain("secrets.AI_API_KEY");
+      expect(workflow).not.toContain("secrets.GIT_SYNC_TOKEN");
+      expect(workflow).not.toContain("secrets.MCP_AUTH_TOKEN");
     });
 
     it("should produce same config/deploy.yml regardless of model", () => {

@@ -24,7 +24,7 @@ Push to brains main → rizom.ai is live at `https://rizom.ai` with a valid Clou
 ## Non-goals
 
 - **Phase 1 manual server provisioning.** We skip directly to Phase 2+ auto-provisioning per `deploy-kamal.md`. Phase 1 is throwaway plumbing if Phase 2 lands the same week.
-- **Full varlock workflow consumption** (`varlock-instance-env-schema.md` Phase 3). The schema generation half is shipped and the schema artifact lives in the instance dir, but the workflow still passes individual GH secrets named in YAML for the first deploy. Phase 3 hardening lands as a follow-up once rizom.ai is green.
+- **Full varlock workflow consumption** (`varlock-instance-env-schema.md` Phase 3). This is now in the repo state for the first deploy workflow; the remaining work is operator-side setup and verification.
 - **Extracting `apps/rizom-ai` to its own repo** (`harmonize-monorepo-apps.md` Phase 2). Path-filter the workflow trigger to only fire on relevant subtrees; extraction is post-v0.1.0.
 - **Foundation and work deploys.** Same shape, different brains; tackled after rizom.ai is green.
 - **Auto-rotating the Cloudflare Origin CA cert.** The cert is 15 years; rotation tooling is a far-future concern.
@@ -40,87 +40,49 @@ Push to brains main → rizom.ai is live at `https://rizom.ai` with a valid Clou
 
 ## Code blockers
 
-These are pure code edits in the brains repo. All can land in one or two commits.
+These were the pure code edits in the brains repo. They are now landed in the current repo state and are kept here as the implementation trail.
 
-### 1. `apps/rizom-ai/config/deploy.yml` is stale
+### 1. `apps/rizom-ai/config/deploy.yml` is now in the Kamal / Origin CA shape
 
-Three concrete bugs:
+The current file uses the `ghcr.io/` registry prefix, `proxy.ssl.certificate_pem` / `proxy.ssl.private_key_pem`, and the instance-level `BRAIN_MODEL` / `BRAIN_DOMAIN` variables.
 
-- `image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>` — missing the `ghcr.io/` registry prefix. Won't pull.
-- `proxy: { ssl: true, ... }` — Let's Encrypt path. Should be `proxy: { ssl: { certificate_pem: CERTIFICATE_PEM, private_key_pem: PRIVATE_KEY_PEM }, ... }` per `deploy-kamal.md` §"Instance deploy.yml".
-- Verify `app_port` consistency after the SSL change.
+### 2. `apps/rizom-ai/.env.example` now includes the deploy / bootstrap vars
 
-Fix: hand-edit (`brain init` reconciliation skips the existing file).
+It contains the deploy and provisioning placeholders needed by the current Kamal flow, including `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `CERTIFICATE_PEM`, `PRIVATE_KEY_PEM`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, and `KAMAL_SSH_PRIVATE_KEY`.
 
-### 2. `apps/rizom-ai/.env.example` is incomplete
+### 3. `apps/rizom-ai/.env.schema` now exists as a committed artifact
 
-Currently lists only `AI_API_KEY` and `MCP_AUTH_TOKEN`. The new `brain init` template includes the full deploy var set: `GIT_SYNC_TOKEN`, `KAMAL_REGISTRY_PASSWORD`, `CERTIFICATE_PEM`, `PRIVATE_KEY_PEM`, `CF_API_TOKEN`, `CF_ZONE_ID`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `KAMAL_SSH_PRIVATE_KEY`, `BRAIN_MODEL`, `BRAIN_DOMAIN`.
+The schema is generated from the ranger model template plus the deploy / provisioning / TLS / backend bootstrap sections.
 
-Fix: hand-edit OR delete the existing file and re-run `brain init`.
+### 4. `apps/rizom-ai/.github/workflows/deploy.yml` now consumes env via varlock
 
-### 3. `.env.schema` does not exist for `apps/rizom-ai`
+The workflow loads the instance schema, exports env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
 
-The `feat(brain-cli): generate app env schema` work landed but hasn't been run for this instance. The schema is a committed artifact in the instance dir (per `varlock-instance-env-schema.md`).
+### 5. Auto-provision step (already wired into the workflow)
 
-Fix: re-run `brain init` in the instance directory; reconciliation generates `.env.schema` from the model template.
-
-### 4. `apps/rizom-ai/.github/workflows/deploy.yml` is stale and missing steps
-
-Current state passes only `KAMAL_REGISTRY_PASSWORD`, `SERVER_IP`, `AI_API_KEY`, `GIT_SYNC_TOKEN`, `MCP_AUTH_TOKEN`. Missing:
-
-- Forward `CERTIFICATE_PEM` + `PRIVATE_KEY_PEM` to kamal so kamal-proxy can terminate TLS.
-- `.kamal/secrets` write step from resolved env (some kamal versions read secrets from disk, not env).
-- A Cloudflare DNS step that creates/updates A records for `rizom.ai` and `preview.rizom.ai` → server IP, `proxied: true`. Per `deploy-kamal.md` §"Instance CI pipeline" Phase 1: "DNS ordering matters. kamal-proxy healthchecks the hostnames listed in `proxy.hosts` during deploy; if DNS doesn't resolve yet, the healthcheck fails and the container swap aborts. Always run the DNS job before `kamal deploy`, not after."
-- Path-filter the workflow trigger to only fire on `apps/rizom-ai/**`, `brains/ranger/**`, `sites/rizom/**`, `shared/theme-rizom/**`, `shared/theme-base/**`, `shell/**`, `packages/brain-cli/**`. Avoids deploying rizom.ai on every monorepo push. (Proper fix is `harmonize-monorepo-apps.md` Phase 2 extraction; path-filter is the interim solution.)
-
-### 5. Auto-provision step (pulls deploy-kamal Phase 2+ forward)
-
-Per `deploy-kamal.md` §"Phase 2+ (auto-provisioning)":
-
-> Provision — create server via Hetzner API if it doesn't exist (labeled by brain name), wait for SSH, output IP. All automated. Push to instance repo → deployed.
-
-Add a `provision` job (or first step in the deploy job) to `.github/workflows/deploy.yml` that:
-
-1. Reads `HCLOUD_TOKEN` from secrets.
-2. `GET /v1/servers?label_selector=brain=rizom-ai` against `https://api.hetzner.cloud/v1`.
-3. If the result is empty, `POST /v1/servers` with:
-   - `name: rizom-ai`
-   - `server_type: cpx21` (matches `options.memory: 4g` in `deploy.yml`)
-   - `image: ubuntu-22.04`
-   - `location: nbg1` (or operator default)
-   - `ssh_keys: [$HCLOUD_SSH_KEY_NAME]`
-   - `labels: { brain: rizom-ai }`
-4. Polls `GET /v1/servers/{id}` until `status: running`.
-5. Outputs `SERVER_IP` to `$GITHUB_OUTPUT`.
-6. Subsequent DNS + kamal steps consume `${{ steps.provision.outputs.server_ip }}` instead of `secrets.SERVER_IP`.
-
-Idempotent — re-runs no-op when the server exists. ~50 lines of YAML using `curl` + `jq`, or cleaner with the official `hetznercloud/cli` action.
-
-Decision to make: rely on `kamal setup` (idempotent, runs apt + docker install on first deploy) vs. baking that into the provision step. Cleanest answer: rely on kamal's setup, just ensure the base image has SSH access and the registry pull works.
+The first deploy workflow now creates or reuses the Hetzner server, waits for it to become `running`, and emits `SERVER_IP` for the DNS and Kamal steps.
 
 ## One-time operator setup (account-level, can't be code)
 
 These run once per rizom-ai instance and never again.
 
 1. **Cloudflare zone activation for rizom.ai.** Per `deploy-kamal.md` §"DNS setup → Zone prerequisites" and §"Rizom instance notes": `rizom.ai` is registered at MijnDomein. Add the zone on Cloudflare, update nameservers at MijnDomein to Cloudflare's assigned NS, wait for activation.
-2. **Generate the kamal SSH keypair, register the public key in Hetzner.** `ssh-keygen -t ed25519 -N "" -f rizom-ai-kamal`. In Hetzner console: SSH keys → Add key → name it `rizom-ai-kamal` (this becomes the `HCLOUD_SSH_KEY_NAME` value). Push the private key to GH secrets as `KAMAL_SSH_PRIVATE_KEY`. Delete the local copy.
+2. **Generate the kamal SSH keypair, register the public key in Hetzner.** `ssh-keygen -t ed25519 -N "" -f rizom-ai-kamal`. In Hetzner console: SSH keys → Add key → name it `rizom-ai-kamal` (this becomes the `HCLOUD_SSH_KEY_NAME` value). Store the private key in the chosen varlock backend as `KAMAL_SSH_PRIVATE_KEY`. Delete the local copy.
 3. **Mint API tokens** in their respective consoles:
    - `HCLOUD_TOKEN` — Hetzner Cloud → Security → API tokens. Read+Write scope.
    - `CF_API_TOKEN` — Cloudflare → My Profile → API Tokens → Create. Permissions: `Zone > DNS > Edit` and `Zone > SSL and Certificates > Edit` on the rizom.ai zone.
    - `KAMAL_REGISTRY_PASSWORD` — GitHub → Settings → Developer settings → Personal access tokens. Scope `read:packages`.
 4. **Capture `CF_ZONE_ID`** from the Cloudflare dashboard (Overview tab, right column).
 5. **Create `rizom-ai/rizom-ai-content` GitHub repo.** `gh repo create rizom-ai/rizom-ai-content --private`. Push current `apps/rizom-ai/brain-data/` into it. directory-sync clones it on first boot.
-6. **Run `brain cert:bootstrap` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues 15-year Origin CA cert + sets zone SSL mode to Full (strict). Writes `origin.pem` and `origin.key` locally.
-7. **Push cert + remaining secrets to GH Actions secrets** for the brains repo:
-   - `CERTIFICATE_PEM` ← from `origin.pem`
-   - `PRIVATE_KEY_PEM` ← from `origin.key`
+6. **Run `brain cert:bootstrap --push-to 1password` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues 15-year Origin CA cert + sets zone SSL mode to Full (strict). Pushes `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` straight into the default 1Password vault.
+7. **Run `brain secrets:push --push-to 1password`** to sync the remaining env-backed deploy secrets into the brains repo vault (default `brain-rizom-ai-prod`):
    - `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`
    - `KAMAL_SSH_PRIVATE_KEY` (from step 2)
    - `KAMAL_REGISTRY_PASSWORD`
    - `CF_API_TOKEN`, `CF_ZONE_ID`
    - `AI_API_KEY`, `GIT_SYNC_TOKEN`, `MCP_AUTH_TOKEN`
 
-   Then delete `origin.pem` and `origin.key` locally.
+   Keep only the backend bootstrap credential (`OP_TOKEN`) in GitHub Actions secrets. Then delete `origin.pem` and `origin.key` locally.
 
 ## Verifications
 
@@ -128,20 +90,17 @@ Quick sanity checks before pulling the trigger:
 
 - **`ghcr.io/rizom-ai/ranger:latest` exists and is fetchable** — `crane manifest ghcr.io/rizom-ai/ranger:latest` or browse the GHCR package page.
 - **`bun shell/app/scripts/build-model.ts ranger` builds locally without errors** — confirms the model bundle hasn't bitrotted (rover gets exercised regularly, ranger less so).
-- **Variant content pass on `apps/rizom-ai/brain-data/site-content/home/*.md`** — read the 8 section files, confirm copy matches the brand guide for the `ai` variant register and that the CTA hrefs land on real anchors.
+- **Variant content pass on `apps/rizom-ai/brain-data/site-content/home/*.md`** — read the 8 section files, confirm copy matches the brand guide for the `ai` variant register and that the CTA hrefs land on real anchors. The mission section's secondary CTA must point at the real framework repo (`https://github.com/rizom-ai/brains`), not the generic `https://github.com` homepage.
 
 ## Execution order
 
 The shortest credible path to a green deploy.
 
-### Step 1 — Code (one PR)
+### Step 1 — Code (already landed)
 
-1. Edit `apps/rizom-ai/config/deploy.yml` per blocker #1.
-2. Edit `apps/rizom-ai/.env.example` per blocker #2 (or regenerate via `brain init`).
-3. Run `brain init` in `apps/rizom-ai/` to materialize `.env.schema` per blocker #3.
-4. Edit `apps/rizom-ai/.github/workflows/deploy.yml` per blockers #4 and #5: add cert vars, add `.kamal/secrets` write, add CF DNS step, add Hetzner provision step, path-filter the trigger.
-5. Run typecheck + tests + lint locally.
-6. Open PR. Don't merge yet.
+The deploy workflow, Kamal config, `.env.example`, and generated `.env.schema` are already in the repo state that accompanies this plan.
+
+If the instance is regenerated later, keep those artifacts synchronized with `brain init --deploy` output.
 
 ### Step 2 — Operator setup (parallel with step 1)
 
@@ -175,15 +134,15 @@ After the first deploy is green:
 
 - **Foundation (rizom.foundation)** — wire `apps/rizom-foundation/brain.yaml` to `@brains/site-rizom` with `variant: foundation`. Same code blockers as rizom-ai but the operator setup is faster the second time (one CF zone, one cert, one server label).
 - **Work (rizom.work)** — same shape, `variant: work`.
-- **Varlock workflow consumption** — `varlock-instance-env-schema.md` Phase 3. Replace named-secret YAML with `varlock load`. Cleaner but not blocking.
+- **Varlock backend expansion** — add additional backend templates/plugins for future external users. Not needed for the first deploy.
 - **Repo extraction** — `harmonize-monorepo-apps.md` Phase 2. Extract `apps/rizom-ai` to its own repo so the deploy workflow lives outside the monorepo. Path-filter trigger is the interim solution.
-- **`brain cert:bootstrap --push-to <backend>`** flag — currently the cert push to GH secrets is `gh secret set` by hand. A `--push-to gh` flag on the bootstrap command would round-trip the whole flow.
+- **`brain cert:bootstrap --push-to <backend>`** — landed for `1password` and `gh` push targets.
 
 ## Related
 
 - `docs/plans/rizom-sites.md` — phases 0-3 (the in-tree work)
 - `docs/plans/deploy-kamal.md` — the deploy pipeline shape this plan executes
-- `docs/plans/varlock-instance-env-schema.md` — env schema generation (done) + workflow consumption (deferred)
+- `docs/plans/varlock-instance-env-schema.md` — env schema generation + workflow consumption (done for rizom.ai)
 - `docs/plans/init-artifact-reconcile.md` — `brain init` reconciliation behavior
 - `docs/plans/standalone-apps.md` — long-term shape this plan is a step toward
 - `docs/plans/harmonize-monorepo-apps.md` — repo extraction (post-v0.1.0)

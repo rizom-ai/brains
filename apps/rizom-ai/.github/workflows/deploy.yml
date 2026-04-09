@@ -3,6 +3,14 @@ name: Deploy
 on:
   push:
     branches: ["main"]
+    paths:
+      - "apps/rizom-ai/**"
+      - "brains/ranger/**"
+      - "sites/rizom/**"
+      - "shared/theme-rizom/**"
+      - "shared/theme-base/**"
+      - "shell/**"
+      - "packages/brain-cli/**"
 
 jobs:
   deploy:
@@ -15,19 +23,291 @@ jobs:
 
       - name: Extract config from brain.yaml
         run: |
-          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains\///' | tr -d '"' | tr -d "'")
-          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
-          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
+          INSTANCE_NAME="$(basename "$PWD")"
+          BRAIN_MODEL="$(grep '^brain:' brain.yaml | sed 's/^brain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          BRAIN_DOMAIN="$(grep '^domain:' brain.yaml | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
+          echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+
+      - name: Load env via varlock
+        env:
+          OP_TOKEN: ${{ secrets.OP_TOKEN }}
+        run: |
+          npx -y varlock load --format json --compact > /tmp/varlock-env.json
+          node <<'NODE'
+          const fs = require('fs');
+          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          const githubEnvPath = process.env.GITHUB_ENV;
+
+          if (!githubEnvPath) {
+            throw new Error('Missing GITHUB_ENV');
+          }
+
+          const lines = Object.entries(env).flatMap(([key, value]) => {
+            if (value === null || value === undefined) {
+              return [];
+            }
+
+            const text = String(value);
+            if (text.includes('\n')) {
+              return [key + '<<EOF', text, 'EOF'];
+            }
+
+            return [key + '=' + text];
+          });
+
+          fs.appendFileSync(githubEnvPath, lines.join('\n') + '\n');
+          NODE
+
+      - name: Write Kamal SSH key
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "$KAMAL_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Write .kamal/secrets
+        run: |
+          mkdir -p .kamal
+          node <<'NODE'
+          const fs = require('fs');
+          const deployYaml = fs.readFileSync('config/deploy.yml', 'utf8');
+          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          const secretNames = new Set([
+            'KAMAL_REGISTRY_PASSWORD',
+            'CERTIFICATE_PEM',
+            'PRIVATE_KEY_PEM',
+          ]);
+
+          let inSecrets = false;
+          for (const line of deployYaml.split(/\r?\n/)) {
+            if (/^\s*secret:\s*$/.test(line)) {
+              inSecrets = true;
+              continue;
+            }
+
+            if (inSecrets) {
+              const match = line.match(/^\s{4}-\s*([A-Z0-9_]+)\s*$/);
+              if (match) {
+                secretNames.add(match[1]);
+                continue;
+              }
+
+              if (/^\S/.test(line)) {
+                break;
+              }
+            }
+          }
+
+          const lines = [];
+          for (const name of secretNames) {
+            const value = env[name];
+            if (value === null || value === undefined) {
+              continue;
+            }
+
+            const text = String(value);
+            if (text.includes('\n')) {
+              lines.push(name + '<<EOF', text, 'EOF');
+            } else {
+              lines.push(name + '=' + text);
+            }
+          }
+
+          fs.writeFileSync('.kamal/secrets', lines.join('\n') + '\n');
+          NODE
+
+      - name: Provision server
+        id: provision
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+
+          const token = process.env.HCLOUD_TOKEN;
+          const instanceName = process.env.INSTANCE_NAME;
+          const sshKeyName = process.env.HCLOUD_SSH_KEY_NAME;
+          const outputPath = process.env.GITHUB_OUTPUT;
+          if (!token) {
+            throw new Error('Missing HCLOUD_TOKEN');
+          }
+          if (!instanceName) {
+            throw new Error('Missing INSTANCE_NAME');
+          }
+          if (!sshKeyName) {
+            throw new Error('Missing HCLOUD_SSH_KEY_NAME');
+          }
+          if (!outputPath) {
+            throw new Error('Missing GITHUB_OUTPUT');
+          }
+
+          const headers = {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          };
+
+          const baseUrl = 'https://api.hetzner.cloud/v1';
+          const labelSelector = 'brain=' + instanceName;
+
+          async function readJson(response, label) {
+            const text = await response.text();
+            if (!text) {
+              throw new Error(label + ' returned an empty response');
+            }
+
+            try {
+              return JSON.parse(text);
+            } catch {
+              throw new Error(label + ' returned invalid JSON: ' + text);
+            }
+          }
+
+          async function sleep(ms) {
+            return new Promise((resolve) => setTimeout(resolve, ms));
+          }
+
+          async function listServers() {
+            const response = await fetch(
+              baseUrl + '/servers?label_selector=' + encodeURIComponent(labelSelector),
+              { headers },
+            );
+            const payload = await readJson(response, 'Hetzner server lookup');
+            if (!response.ok || payload.servers === undefined) {
+              throw new Error('Hetzner server lookup failed: ' + JSON.stringify(payload));
+            }
+
+            return Array.isArray(payload.servers) ? payload.servers : [];
+          }
+
+          async function createServer() {
+            const response = await fetch(baseUrl + '/servers', {
+              method: 'POST',
+              headers,
+              body: JSON.stringify({
+                name: instanceName,
+                server_type: 'cpx21',
+                image: 'ubuntu-22.04',
+                location: 'nbg1',
+                ssh_keys: [sshKeyName],
+                labels: { brain: instanceName },
+              }),
+            });
+            const payload = await readJson(response, 'Hetzner server create');
+            if (!response.ok || payload.server === undefined) {
+              throw new Error('Hetzner server create failed: ' + JSON.stringify(payload));
+            }
+
+            return payload.server;
+          }
+
+          async function getServer(id) {
+            const response = await fetch(baseUrl + '/servers/' + id, { headers });
+            const payload = await readJson(response, 'Hetzner server poll');
+            if (!response.ok || payload.server === undefined) {
+              throw new Error('Hetzner server poll failed: ' + JSON.stringify(payload));
+            }
+
+            return payload.server;
+          }
+
+          let server = (await listServers())[0];
+          if (!server) {
+            server = await createServer();
+          }
+
+          while (server.status !== 'running' || !server.public_net?.ipv4?.ip) {
+            await sleep(10000);
+            server = await getServer(server.id);
+          }
+
+          const serverIp = server.public_net.ipv4.ip;
+          fs.appendFileSync(outputPath, 'server_ip=' + serverIp + '\n');
+          if (process.env.GITHUB_ENV) {
+            fs.appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\n');
+          }
+          NODE
+
+      - name: Update Cloudflare DNS
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          node <<'NODE'
+          const token = process.env.CF_API_TOKEN;
+          const zoneId = process.env.CF_ZONE_ID;
+          const domain = process.env.BRAIN_DOMAIN;
+          const serverIp = process.env.SERVER_IP;
+          if (!token) {
+            throw new Error('Missing CF_API_TOKEN');
+          }
+          if (!zoneId) {
+            throw new Error('Missing CF_ZONE_ID');
+          }
+          if (!domain) {
+            throw new Error('Missing BRAIN_DOMAIN');
+          }
+          if (!serverIp) {
+            throw new Error('Missing SERVER_IP');
+          }
+
+          const headers = {
+            Authorization: 'Bearer ' + token,
+            'Content-Type': 'application/json',
+          };
+          const baseUrl = 'https://api.cloudflare.com/client/v4';
+
+          async function readJson(response, label) {
+            const text = await response.text();
+            if (!text) {
+              throw new Error(label + ' returned an empty response');
+            }
+
+            try {
+              return JSON.parse(text);
+            } catch {
+              throw new Error(label + ' returned invalid JSON: ' + text);
+            }
+          }
+
+          async function upsertRecord(name) {
+            const lookup = await fetch(
+              baseUrl + '/zones/' + zoneId + '/dns_records?type=A&name=' + encodeURIComponent(name),
+              { headers },
+            );
+            const payload = await readJson(lookup, 'Cloudflare DNS lookup');
+            if (!lookup.ok || !payload.success) {
+              throw new Error('Cloudflare DNS lookup failed: ' + JSON.stringify(payload));
+            }
+
+            const existing = Array.isArray(payload.result) ? payload.result[0] : undefined;
+            const response = await fetch(
+              existing
+                ? baseUrl + '/zones/' + zoneId + '/dns_records/' + existing.id
+                : baseUrl + '/zones/' + zoneId + '/dns_records',
+              {
+                method: existing ? 'PUT' : 'POST',
+                headers,
+                body: JSON.stringify({
+                  type: 'A',
+                  name,
+                  content: serverIp,
+                  ttl: 1,
+                  proxied: true,
+                }),
+              },
+            );
+            const result = await readJson(response, 'Cloudflare DNS upsert');
+            if (!response.ok || !result.success) {
+              throw new Error('Cloudflare DNS upsert failed: ' + JSON.stringify(result));
+            }
+          }
+
+          await upsertRecord(domain);
+          await upsertRecord('preview.' + domain);
+          NODE
 
       - name: Install Kamal
         run: gem install kamal
 
       - name: Deploy
         env:
-          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}
-          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
         run: kamal deploy --skip-push

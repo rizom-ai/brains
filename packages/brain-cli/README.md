@@ -19,7 +19,7 @@ echo "AI_API_KEY=your-key-here" > .env
 brain start
 ```
 
-If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying.
+If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain secrets:push --push-to 1password` for the env-backed secrets and `brain cert:bootstrap --push-to 1password` for the TLS cert before deploying.
 
 `brain init` generates a 1Password-backed varlock schema by default. Pass `--backend` if you need a different secret backend plugin.
 
@@ -33,20 +33,21 @@ A brain is a personal AI agent with persistent memory, tools, and integrations. 
 
 ## Commands
 
-| Command                 | Description                              |
-| ----------------------- | ---------------------------------------- |
-| `brain init <dir>`      | Scaffold a new brain instance            |
-| `brain cert:bootstrap`  | Issue a Cloudflare Origin CA certificate |
-| `brain start`           | Start the brain server                   |
-| `brain chat`            | Start in interactive chat mode           |
-| `brain list <type>`     | List entities (posts, notes, etc.)       |
-| `brain get <type> <id>` | Get a specific entity                    |
-| `brain search <query>`  | Search across all content                |
-| `brain sync`            | Sync content from connected sources      |
-| `brain build`           | Build the static site                    |
-| `brain status`          | Show brain status                        |
-| `brain eval`            | Run evaluation suite                     |
-| `brain pin`             | Pin @rizom/brain version (local install) |
+| Command                 | Description                                |
+| ----------------------- | ------------------------------------------ |
+| `brain init <dir>`      | Scaffold a new brain instance              |
+| `brain cert:bootstrap`  | Issue a Cloudflare Origin CA certificate   |
+| `brain secrets:push`    | Push local env-backed secrets to a backend |
+| `brain start`           | Start the brain server                     |
+| `brain chat`            | Start in interactive chat mode             |
+| `brain list <type>`     | List entities (posts, notes, etc.)         |
+| `brain get <type> <id>` | Get a specific entity                      |
+| `brain search <query>`  | Search across all content                  |
+| `brain sync`            | Sync content from connected sources        |
+| `brain build`           | Build the static site                      |
+| `brain status`          | Show brain status                          |
+| `brain eval`            | Run evaluation suite                       |
+| `brain pin`             | Pin @rizom/brain version (local install)   |
 
 ### Remote Mode
 

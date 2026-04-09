@@ -59,9 +59,23 @@ Issue a Cloudflare Origin CA certificate for the `domain:` declared in `brain.ya
 ```bash
 cd mybrain
 brain cert:bootstrap
+brain cert:bootstrap --push-to 1password
+brain cert:bootstrap --push-to gh
 ```
 
-The command writes `origin.pem` and `origin.key` into the current directory, then switches the Cloudflare zone to Full (strict).
+The command writes `origin.pem` and `origin.key` into the current directory, then switches the Cloudflare zone to Full (strict). Use `--push-to 1password` to store the cert and key directly in a 1Password vault, or `--push-to gh` to push them to GitHub Secrets.
+
+### `brain secrets:push`
+
+Sync the env-backed secrets from the current instance into your backend. It reads the local schema / `.env` values, skips `OP_TOKEN`, and leaves TLS cert artifacts to `brain cert:bootstrap`.
+
+```bash
+cd mybrain
+brain secrets:push --push-to 1password
+brain secrets:push --push-to gh
+```
+
+Use this after updating local secrets to publish them to the chosen backend.
 
 ### `brain start`
 

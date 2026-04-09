@@ -154,14 +154,14 @@ All secrets live in whatever secret store CI uses (GitHub Actions secrets, 1Pass
 
 ## One-time bootstrap: `brain cert:bootstrap`
 
-Run once per brain instance, before the first deploy. Issues a 15-year Cloudflare Origin CA certificate, writes it to the instance directory, and sets the zone to Full (strict) SSL mode. The user then pushes the resulting cert + key into whatever secret store their CI uses.
+Run once per brain instance, before the first deploy. Issues a 15-year Cloudflare Origin CA certificate, writes it to the instance directory, and sets the zone to Full (strict) SSL mode. Use `--push-to 1password` or `--push-to gh` to store the resulting cert + key in the chosen backend automatically, or push them yourself if you prefer.
 
 ```bash
 cd my-brain-instance/
 export CF_API_TOKEN=...   # Zone > SSL and Certificates > Edit on the instance's zone
 export CF_ZONE_ID=...
 
-brain cert:bootstrap
+brain cert:bootstrap --push-to 1password
 ```
 
 ### Behavior
@@ -194,7 +194,7 @@ Lives in `packages/brain-cli` as a sibling of the existing `brain init` command.
 
 ### Re-running the command
 
-If an instance later needs additional hostnames (alias domain, extra subdomain), update `brain.yaml` with the new hostnames and re-run `brain cert:bootstrap`. A new cert is issued covering the extended list; the user pushes it to the secret store, and kamal-proxy picks it up on the next deploy.
+If an instance later needs additional hostnames (alias domain, extra subdomain), update `brain.yaml` with the new hostnames and re-run `brain cert:bootstrap --push-to 1password` (or `--push-to gh`). A new cert is issued covering the extended list; the selected backend is updated, and kamal-proxy picks it up on the next deploy.
 
 ### Reference: equivalent shell pipeline
 
@@ -294,7 +294,7 @@ An instance can expose extra hostnames (alias domains, extra subdomains) by:
 
 1. Adding A records for each hostname → same server IP.
 2. Adding each hostname to `proxy.hosts` in config/deploy.yml so kamal-proxy routes it.
-3. Reissuing the Cloudflare Origin CA cert with the extended `hostnames` list — the new cert replaces the old one in secrets and kamal-proxy picks it up on the next deploy. Re-running `brain cert:bootstrap` after updating brain.yaml handles this.
+3. Reissuing the Cloudflare Origin CA cert with the extended `hostnames` list — the new cert replaces the old one in secrets and kamal-proxy picks it up on the next deploy. Re-running `brain cert:bootstrap --push-to 1password` (or `--push-to gh`) after updating brain.yaml handles this.
 
 ## Internal port routing
 
@@ -383,8 +383,8 @@ Verified working on the pre-Kamal infra. There, the in-container Caddy terminate
 Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain cert:bootstrap`).
 
 1. `brain init <dir> --deploy --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
-2. `brain cert:bootstrap` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml, writes `origin.pem` + `origin.key` locally. See "One-time bootstrap" above.
-3. Push cert + key into the instance's secret store as `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM`.
+2. `brain cert:bootstrap --push-to 1password` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml and stores `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in the chosen backend. See "One-time bootstrap" above.
+3. `brain secrets:push --push-to 1password` — sync the rest of the env-backed secrets into the backend.
 4. Push to GitHub → CI provisions server, sets DNS (proxied), deploys.
 5. Verify: `https://{BRAIN_DOMAIN}` serves the brain.
 

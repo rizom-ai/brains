@@ -66,12 +66,6 @@ CF_API_TOKEN=
 
 # @required
 CF_ZONE_ID=
-
-# @required
-BRAIN_MODEL=
-
-# @required
-BRAIN_DOMAIN=
 `;
 
 const tlsCertEnvSchema = `# ---- TLS cert vars (written by brain cert:bootstrap, consumed by kamal-proxy) ----

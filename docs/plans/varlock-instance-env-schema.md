@@ -96,13 +96,11 @@ In all cases:
 `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` are a special case because they're **produced**, not entered by hand. The flow:
 
 1. Operator runs `brain cert:bootstrap` once per instance (see `deploy-kamal.md` → "One-time bootstrap"). The command issues a Cloudflare Origin CA cert and writes `origin.pem` + `origin.key` to the instance directory.
-2. Operator pushes those files into the chosen secret backend. The `brain cert:bootstrap` output lists backend-specific commands, e.g.:
-   - **1Password:** `op document create origin.pem --vault brain-rizom-ai-prod --title CERTIFICATE_PEM`
-   - **GitHub Actions:** `gh secret set CERTIFICATE_PEM < origin.pem`
+2. Operator stores those files with `brain cert:bootstrap --push-to 1password` or `--push-to gh`. The env-backed secrets use `brain secrets:push --push-to 1password` (or `--push-to gh`) so the instance backend ends up with the full secret set.
 3. Operator deletes the local `origin.pem` / `origin.key` files.
 4. On deploy, varlock resolves `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` from the backend like any other secret and writes them into `.kamal/secrets` for kamal-proxy to pick up.
 
-Re-issuing the cert (e.g. adding a custom domain) is the same loop: re-run `brain cert:bootstrap`, push the new cert to the backend (which overwrites the previous value), next deploy picks it up.
+Re-issuing the cert (e.g. adding a custom domain) is the same loop: re-run `brain cert:bootstrap --push-to 1password` (or `--push-to gh`), update the backend, and the next deploy picks it up.
 
 ## App-local schema shape
 

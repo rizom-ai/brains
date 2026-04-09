@@ -13,6 +13,7 @@ import { pin } from "./commands/pin";
 import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 import { diagnostics } from "./commands/diagnostics";
 import { runCertBootstrap } from "./commands/cert-bootstrap";
+import { runSecretsPush } from "./commands/secrets-push";
 
 export interface CommandResult {
   success: boolean;
@@ -27,7 +28,15 @@ export async function runCommand(
   dir: string,
 ): Promise<CommandResult> {
   if (parsed.command === "cert" && parsed.args[0] === "bootstrap") {
-    return runCertBootstrap(dir);
+    return runCertBootstrap(dir, {
+      pushTo: parsed.flags["push-to"],
+    });
+  }
+
+  if (parsed.command === "secrets" && parsed.args[0] === "push") {
+    return runSecretsPush(dir, {
+      pushTo: parsed.flags["push-to"],
+    });
   }
 
   switch (parsed.command) {
@@ -44,7 +53,13 @@ export async function runCommand(
     case "diagnostics":
       return diagnostics(dir, parsed.args[0] ?? "");
     case "cert:bootstrap":
-      return runCertBootstrap(dir);
+      return runCertBootstrap(dir, {
+        pushTo: parsed.flags["push-to"],
+      });
+    case "secrets:push":
+      return runSecretsPush(dir, {
+        pushTo: parsed.flags["push-to"],
+      });
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -171,6 +186,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  eval          Run AI evaluations (pass-through to brain-eval)",
     "  pin           Pin @rizom/brain version (creates package.json, installs)",
     "  cert:bootstrap Issue Cloudflare Origin CA cert for brain.yaml domain",
+    "  secrets:push  Push env-backed local secrets to 1password or gh",
     "  tool <name>   Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
@@ -224,6 +240,9 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
     "  --backend <name>       Secret backend (default: 1password)",
     "  --deploy               Include Kamal deploy files (config/deploy.yml, CI, hooks)",
+    "",
+    "Secret push / cert bootstrap options:",
+    "  --push-to <target>     Push to 1password or gh",
   );
 
   console.log(lines.join("\n"));

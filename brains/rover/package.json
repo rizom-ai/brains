@@ -4,6 +4,11 @@
   "type": "module",
   "private": true,
   "main": "./src/index.ts",
+  "files": [
+    "src",
+    "brain.eval.yaml",
+    "env.schema.template"
+  ],
   "scripts": {
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",

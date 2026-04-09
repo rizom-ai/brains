@@ -17,31 +17,44 @@ The deployment model separates building from deploying:
 - [Kamal](https://kamal-deploy.org) installed locally (`gem install kamal`)
 - A GitHub Container Registry token
 - Cloudflare API token + zone ID if you plan to bootstrap an Origin CA certificate with `brain cert:bootstrap`
-- A secret backend for runtime/deploy secrets (`.env`, GitHub secrets, 1Password, etc.)
+- A varlock-compatible secret backend for runtime/deploy secrets (1Password by default, or another backend via `brain init --backend`)
 
 ## Quick Deploy
 
 ```bash
 # Scaffold with deploy files
-brain init mybrain --deploy --domain mybrain.example.com
+brain init mybrain --deploy --backend 1password --domain mybrain.example.com
 cd mybrain
 
 # One-time TLS bootstrap for the Cloudflare Origin CA flow
 export CF_API_TOKEN=...
 export CF_ZONE_ID=...
-brain cert:bootstrap
-# Push origin.pem + origin.key into your secret backend as
-# CERTIFICATE_PEM / PRIVATE_KEY_PEM, then delete the local files.
+brain secrets:push --push-to 1password
+brain cert:bootstrap --push-to 1password
+# If you use GitHub-backed secrets instead, use:
+# brain secrets:push --push-to gh
+# brain cert:bootstrap --push-to gh
 rm origin.pem origin.key
 
-# Configure runtime/deploy secrets
-cp .env.example .env
-# Edit .env with your secrets
-
 # Deploy
-kamal setup    # First time: provisions server
-kamal deploy   # Subsequent deploys
+# The scaffolded GitHub Actions workflow provisions the server,
+# loads secrets via varlock, updates DNS, and runs kamal deploy.
+# For manual deploys, use the same .env.schema-backed env locally.
+kamal deploy
 ```
+
+## First-time 1Password setup
+
+If you use the default 1Password backend, do this once per instance:
+
+1. Create a vault, e.g. `brain-mybrain-prod`.
+2. Create a 1Password service account with access only to that vault.
+3. Store the service account token in GitHub as `OP_TOKEN`.
+4. Run `brain secrets:push --push-to 1password` with the runtime/deploy secrets set locally.
+5. Run `brain cert:bootstrap --push-to 1password` with `CF_API_TOKEN` and `CF_ZONE_ID` set locally.
+6. Delete the local cert files.
+
+After that, the workflow can load everything else from the vault; GitHub should only need `OP_TOKEN`.
 
 ## Instance Repo Structure
 
@@ -55,7 +68,7 @@ mybrain/
   .github/workflows/deploy.yml    # CI/CD (optional)
 ```
 
-The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git and push their contents into your secret backend instead.
+The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git; `brain cert:bootstrap --push-to 1password` / `--push-to gh` can store them directly in the chosen backend, while `brain secrets:push` handles the env-backed values.
 
 ## config/deploy.yml
 
@@ -121,6 +134,7 @@ Set these in `.env` (never commit this file):
 | `SERVER_IP`               | Deploy    | Server IP address                       |
 | `CF_API_TOKEN`            | Bootstrap | Cloudflare API token for cert bootstrap |
 | `CF_ZONE_ID`              | Bootstrap | Cloudflare zone ID for cert bootstrap   |
+| `OP_TOKEN`                | Bootstrap | 1Password service account token         |
 
 ## Domain Setup
 
@@ -133,7 +147,7 @@ Every brain gets `{name}.rizom.ai` by default. Point a DNS A record to your serv
 1. Set `domain` in `brain.yaml`
 2. Update `proxy.hosts` in `config/deploy.yml`
 3. Point your domain's A record to the server IP
-4. If you're using the Cloudflare Origin CA flow, run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying
+4. If you're using the Cloudflare Origin CA flow, run `brain cert:bootstrap --push-to 1password` once to store the resulting cert/key in your vault before deploying
 5. Kamal handles SSL according to your `config/deploy.yml` / secret backend configuration
 
 ## CI/CD
@@ -141,17 +155,13 @@ Every brain gets `{name}.rizom.ai` by default. Point a DNS A record to your serv
 The scaffolded GitHub Actions workflow (`--deploy` flag) deploys on every push to `main`:
 
 1. Extracts brain model and domain from `brain.yaml`
-2. Installs Kamal
-3. Runs `kamal deploy`
+2. Loads the instance `.env.schema` via varlock
+3. Writes the Kamal SSH key and `.kamal/secrets`
+4. Provisions or reuses the Hetzner server
+5. Updates Cloudflare DNS
+6. Runs `kamal deploy --skip-push`
 
-Secrets needed in GitHub repo settings:
-
-- `KAMAL_REGISTRY_PASSWORD`
-- `SERVER_IP`
-- `AI_API_KEY`
-- `GIT_SYNC_TOKEN`
-- `CERTIFICATE_PEM`
-- `PRIVATE_KEY_PEM`
+The workflow no longer names app/runtime secrets individually in YAML. The only CI bootstrap value it expects from GitHub Secrets is `OP_TOKEN`; everything else comes from the varlock backend via `.env.schema`.
 
 ## Common Operations
 
