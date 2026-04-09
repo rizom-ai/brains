@@ -80,8 +80,8 @@ Varlock should resolve secrets from a real backend, not from a pile of GitHub se
 **Rizom's own instances** use 1Password via `@varlock/1password-plugin` as the default backend. Scoping:
 
 - One 1Password **vault per instance**: `brain-<instance>-prod` (e.g. `brain-rizom-ai-prod`).
-- One 1Password **service account per instance**, with access only to that vault. Service account token lives in GitHub secrets as `OP_TOKEN` for that instance's repo.
-- This gives per-instance blast radius — a leaked `OP_TOKEN` compromises one brain's secrets, not all of them.
+- One 1Password **service account per instance**, with access only to that vault. Service account token lives in GitHub secrets as `OP_TOKEN` for that instance's repo; local shells can export `OP_SERVICE_ACCOUNT_TOKEN` when running the CLI by hand.
+- This gives per-instance blast radius — a leaked `OP_TOKEN` in GitHub compromises one brain's secrets, not all of them.
 
 **External users** pick their own backend. The schema format is varlock-native and backend-agnostic — only the `@plugin(...)` directive at the top changes. Supported alternatives include any varlock plugin the user wires up (Doppler, HashiCorp Vault, AWS Secrets Manager, env file for local dev, etc.). `brain init --backend <name>` selects the generator's plugin line.
 
@@ -143,7 +143,7 @@ Produced by `brain cert:bootstrap`, stored in the backend, resolved on deploy (s
 
 If using the 1Password plugin:
 
-- `OP_TOKEN` — sensitive. 1Password service account token, scoped to this instance's vault only.
+- `OP_TOKEN` — sensitive. 1Password service account token for GitHub/workflow use; local CLI runs can use `OP_SERVICE_ACCOUNT_TOKEN` instead.
 
 ### Pipeline-produced values (not in schema)
 
@@ -282,13 +282,13 @@ That still leaves the workflow as the real secret contract. It is only schema va
 1. Land the 1Password plugin wiring as the default `--backend` option.
 2. Document the per-instance vault + service account pattern from the "Secret backend" section above.
 3. Document the `brain cert:bootstrap` → backend push flow for `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM`.
-4. Reduce existing GitHub Actions secrets on rizom's instance repos to just `OP_TOKEN`.
+4. Reduce existing GitHub Actions secrets on rizom's instance repos to just `OP_TOKEN` (keep `OP_SERVICE_ACCOUNT_TOKEN` for local shells only).
 5. Add at least one non-1Password backend option (e.g. env file for local dev) to validate the plugin abstraction works for external users.
 
 ### Phase 3: workflow consumption
 
 1. Update the deploy workflow to run `varlock load` from `apps/<instance>` at job start and export resolved env via `$GITHUB_ENV`.
-2. Remove every explicit `env:` or `secrets.*` reference to app/runtime secret names from the workflow YAML. Only bootstrap credentials (`OP_TOKEN`) remain named in the workflow.
+2. Remove every explicit `env:` or `secrets.*` reference to app/runtime secret names from the workflow YAML. Only bootstrap credentials (`OP_TOKEN`) remain named in the workflow; local CLI runs can still read `OP_SERVICE_ACCOUNT_TOKEN`.
 3. Add the `KAMAL_SSH_PRIVATE_KEY` → `~/.ssh/id_ed25519` step.
 4. Build `.kamal/secrets` by templating resolved env values — no hardcoded secret names in the workflow.
 5. Pass `SERVER_IP` from the provision step's output to the Cloudflare DNS step and the `kamal deploy` step as step inputs, not via the secret backend.
@@ -303,6 +303,6 @@ That still leaves the workflow as the real secret contract. It is only schema va
 - Variable names are aligned with `docs/plans/deploy-kamal.md` → "Secrets delivery" (same names on both sides of the deploy contract).
 - `brain cert:bootstrap` pushes `CERTIFICATE_PEM` + `PRIVATE_KEY_PEM` into the chosen secret backend; deploys resolve them via varlock like any other secret.
 - The deploy workflow calls `varlock load` once, exports to `$GITHUB_ENV`, and every subsequent step inherits resolved values. No individual app secret names appear in the workflow YAML.
-- GitHub secret surface on rizom's instance repos is reduced to `OP_TOKEN` only.
+- GitHub secret surface on rizom's instance repos is reduced to `OP_TOKEN` only, while local operator shells use `OP_SERVICE_ACCOUNT_TOKEN`.
 - External users can run `brain init --backend <name>` to generate the same schema against a non-1Password backend, and the rest of the flow is unchanged.
 - `SERVER_IP` is handled as pipeline output, not a schema variable — the doc makes this distinction explicit.

@@ -19,7 +19,7 @@ cp apps/rizom-ai/.env.example apps/rizom-ai/.env
 
 # Optional: keep bootstrap secrets in a local-only shell file for direnv
 touch apps/rizom-ai/.env.local
-# Add OP_TOKEN / KAMAL_SSH_PRIVATE_KEY exports to apps/rizom-ai/.env.local if you use 1Password
+# Add OP_SERVICE_ACCOUNT_TOKEN / KAMAL_SSH_PRIVATE_KEY exports to apps/rizom-ai/.env.local if you use 1Password
 
 # Start
 cd apps/rizom-ai
@@ -65,9 +65,9 @@ If you use the default 1Password backend, do this once per instance:
 
 1. Create a vault such as `brain-rizom-ai-prod`.
 2. Create a 1Password service account with access only to that vault.
-3. Store the service account token in GitHub as `OP_TOKEN`.
+3. Store the service account token in GitHub as `OP_TOKEN` (use `OP_SERVICE_ACCOUNT_TOKEN` locally).
 4. Run `brain secrets:push --push-to 1password` with the runtime and deploy secrets set locally. Use `brain secrets:push --dry-run` first if you want to preview the upload.
 5. Run `brain cert:bootstrap --push-to 1password` with `CF_API_TOKEN` and `CF_ZONE_ID` set locally.
 6. Delete the local cert files.
 
-After that, the workflow loads everything else from the vault; GitHub should only need `OP_TOKEN`.
+After that, the workflow loads everything else from the vault; GitHub should only need `OP_TOKEN`, while local shells can use `OP_SERVICE_ACCOUNT_TOKEN`.

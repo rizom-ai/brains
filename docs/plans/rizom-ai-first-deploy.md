@@ -82,7 +82,7 @@ These run once per rizom-ai instance and never again.
    - `CF_API_TOKEN`, `CF_ZONE_ID`
    - `AI_API_KEY`, `GIT_SYNC_TOKEN`, `MCP_AUTH_TOKEN`
 
-   Keep only the backend bootstrap credential (`OP_TOKEN`) in GitHub Actions secrets. Then delete `origin.pem` and `origin.key` locally.
+   Keep only the backend bootstrap credential (`OP_TOKEN`) in GitHub Actions secrets, and use `OP_SERVICE_ACCOUNT_TOKEN` locally. Then delete `origin.pem` and `origin.key` locally.
 
 ## Verifications
 

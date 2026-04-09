@@ -27,6 +27,7 @@ brain init mybrain --deploy --backend 1password --domain mybrain.example.com
 cd mybrain
 
 # One-time TLS bootstrap for the Cloudflare Origin CA flow
+export OP_SERVICE_ACCOUNT_TOKEN=...
 export CF_API_TOKEN=...
 export CF_ZONE_ID=...
 brain secrets:push --push-to 1password
@@ -51,12 +52,12 @@ If you use the default 1Password backend, do this once per instance:
 
 1. Create a vault, e.g. `brain-mybrain-prod`.
 2. Create a 1Password service account with access only to that vault.
-3. Store the service account token in GitHub as `OP_TOKEN`.
+3. Store the service account token in GitHub as `OP_TOKEN` for the workflow. Locally, export `OP_SERVICE_ACCOUNT_TOKEN` instead.
 4. Run `brain secrets:push --push-to 1password` with the runtime/deploy secrets set locally.
 5. Run `brain cert:bootstrap --push-to 1password` with `CF_API_TOKEN` and `CF_ZONE_ID` set locally.
 6. Delete the local cert files.
 
-After that, the workflow can load everything else from the vault; GitHub should only need `OP_TOKEN`.
+After that, the workflow can load everything else from the vault; GitHub should only need `OP_TOKEN`, while local shells can use `OP_SERVICE_ACCOUNT_TOKEN`.
 
 ## Instance Repo Structure
 
@@ -125,18 +126,18 @@ healthcheck:
 
 Set these in `.env` (never commit this file):
 
-| Variable                  | Required  | Description                             |
-| ------------------------- | --------- | --------------------------------------- |
-| `AI_API_KEY`              | Yes       | AI provider API key                     |
-| `AI_IMAGE_KEY`            | No        | Separate key for image generation       |
-| `GIT_SYNC_TOKEN`          | Yes       | GitHub PAT for content sync             |
-| `MCP_AUTH_TOKEN`          | No        | Token for authenticated MCP HTTP access |
-| `DISCORD_BOT_TOKEN`       | No        | Discord bot token                       |
-| `KAMAL_REGISTRY_PASSWORD` | Deploy    | GitHub Container Registry token         |
-| `SERVER_IP`               | Deploy    | Server IP address                       |
-| `CF_API_TOKEN`            | Bootstrap | Cloudflare API token for cert bootstrap |
-| `CF_ZONE_ID`              | Bootstrap | Cloudflare zone ID for cert bootstrap   |
-| `OP_TOKEN`                | Bootstrap | 1Password service account token         |
+| Variable                   | Required  | Description                                       |
+| -------------------------- | --------- | ------------------------------------------------- |
+| `AI_API_KEY`               | Yes       | AI provider API key                               |
+| `AI_IMAGE_KEY`             | No        | Separate key for image generation                 |
+| `GIT_SYNC_TOKEN`           | Yes       | GitHub PAT for content sync                       |
+| `MCP_AUTH_TOKEN`           | No        | Token for authenticated MCP HTTP access           |
+| `DISCORD_BOT_TOKEN`        | No        | Discord bot token                                 |
+| `KAMAL_REGISTRY_PASSWORD`  | Deploy    | GitHub Container Registry token                   |
+| `SERVER_IP`                | Deploy    | Server IP address                                 |
+| `CF_API_TOKEN`             | Bootstrap | Cloudflare API token for cert bootstrap           |
+| `CF_ZONE_ID`               | Bootstrap | Cloudflare zone ID for cert bootstrap             |
+| `OP_SERVICE_ACCOUNT_TOKEN` | Bootstrap | 1Password service account token for local CLI use |
 
 ## Domain Setup
 
