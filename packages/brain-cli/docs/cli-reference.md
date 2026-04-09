@@ -75,9 +75,10 @@ brain secrets:push --push-to 1password
 brain secrets:push --push-to gh
 brain secrets:push --push-to gh --all
 brain secrets:push --push-to gh --only AI_API_KEY,HCLOUD_TOKEN
+brain secrets:push --push-to gh --dry-run
 ```
 
-Use `--all` to include extra keys from the local `.env` file and `--only` to push a specific allowlist. Use this after updating local secrets to publish them to the chosen backend.
+Use `--all` to include extra keys from the local `.env` file, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Use this after updating local secrets to publish them to the chosen backend.
 
 ### `brain start`
 

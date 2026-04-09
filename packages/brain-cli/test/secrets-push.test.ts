@@ -337,4 +337,62 @@ describe("secrets push", () => {
     const lastCall = calls[5];
     expect(lastCall?.args[6]).toBe("CF_ZONE_ID");
   });
+
+  it("supports dry-run without contacting a backend or requiring OP_TOKEN", async () => {
+    writeSchema();
+    writeFileSync(
+      join(testDir, ".env"),
+      [
+        "AI_API_KEY=sk-local",
+        "GIT_SYNC_TOKEN=git-local",
+        "HCLOUD_TOKEN=hc-token",
+        "CF_API_TOKEN=cf-token",
+        "CF_ZONE_ID=zone-id",
+        "KAMAL_REGISTRY_PASSWORD=kamal-pass",
+        "EXTRA_LOCAL_SECRET=extra-local",
+        "",
+      ].join("\n"),
+    );
+
+    const logs: string[] = [];
+    const calls: Array<{ command: string; args: string[] }> = [];
+
+    const result = await pushSecrets(testDir, {
+      env: {
+        AI_API_KEY: "sk-local",
+        GIT_SYNC_TOKEN: "git-local",
+        HCLOUD_TOKEN: "hc-token",
+        CF_API_TOKEN: "cf-token",
+        CF_ZONE_ID: "zone-id",
+        KAMAL_REGISTRY_PASSWORD: "kamal-pass",
+        EXTRA_LOCAL_SECRET: "extra-local",
+      },
+      all: true,
+      dryRun: true,
+      pushTo: "1password",
+      logger: (message) => logs.push(message),
+      runCommand: async (command, args) => {
+        calls.push({ command, args });
+      },
+    });
+
+    expect(result.dryRun).toBe(true);
+    expect(result.target).toBe("1password");
+    expect(result.vaultName).toContain("brain-");
+    expect(result.pushedKeys).toEqual([
+      "AI_API_KEY",
+      "GIT_SYNC_TOKEN",
+      "HCLOUD_TOKEN",
+      "KAMAL_REGISTRY_PASSWORD",
+      "CF_API_TOKEN",
+      "CF_ZONE_ID",
+      "EXTRA_LOCAL_SECRET",
+    ]);
+    expect(result.skippedKeys).toEqual([]);
+    expect(calls).toHaveLength(0);
+    expect(logs[0]).toContain("Dry run: would push 7 secrets");
+    expect(logs[1]).toContain(
+      "Secrets: AI_API_KEY, GIT_SYNC_TOKEN, HCLOUD_TOKEN, KAMAL_REGISTRY_PASSWORD, CF_API_TOKEN, CF_ZONE_ID, EXTRA_LOCAL_SECRET",
+    );
+  });
 });

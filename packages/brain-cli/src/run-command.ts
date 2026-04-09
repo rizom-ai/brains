@@ -38,6 +38,7 @@ export async function runCommand(
       pushTo: parsed.flags["push-to"],
       all: parsed.flags.all,
       only: parsed.flags.only,
+      dryRun: parsed.flags["dry-run"],
     });
   }
 
@@ -63,6 +64,7 @@ export async function runCommand(
         pushTo: parsed.flags["push-to"],
         all: parsed.flags.all,
         only: parsed.flags.only,
+        dryRun: parsed.flags["dry-run"],
       });
     case "tool":
       return runRawTool(parsed, dir);
@@ -249,6 +251,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --push-to <target>     Push to 1password or gh",
     "  --all                  Include extra keys from the local .env file",
     "  --only <keys>          Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
+    "  --dry-run              Show what would be pushed without writing anything",
   );
 
   console.log(lines.join("\n"));

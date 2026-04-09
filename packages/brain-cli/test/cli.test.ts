@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, rmSync, readFileSync } from "fs";
+import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
@@ -61,6 +61,12 @@ describe("parseArgs", () => {
     expect(result.command).toBe("secrets:push");
     expect(result.flags.all).toBe(true);
     expect(result.flags.only).toBe("AI_API_KEY,HCLOUD_TOKEN");
+  });
+
+  it("should parse 'secrets:push' with --dry-run flag", () => {
+    const result = parseArgs(["secrets:push", "--dry-run"]);
+    expect(result.command).toBe("secrets:push");
+    expect(result.flags["dry-run"]).toBe(true);
   });
 
   it("should parse --help flag", () => {
@@ -215,5 +221,47 @@ describe("brain init (end-to-end)", () => {
     const envSchema = readFileSync(join(outDir, ".env.schema"), "utf-8");
     expect(envSchema).toContain("@plugin(@varlock/env-plugin)");
     expect(envSchema).not.toContain("OP_TOKEN=");
+  });
+});
+
+describe("secrets push (end-to-end)", () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = join(tmpdir(), `brain-cli-secrets-push-${Date.now()}`);
+    mkdirSync(testDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should dry-run secrets push without contacting a backend", async () => {
+    writeFileSync(
+      join(testDir, ".env.schema"),
+      [
+        "AI_API_KEY=",
+        "",
+        "# ---- secret backend bootstrap ----",
+        "OP_TOKEN=",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(join(testDir, ".env"), "AI_API_KEY=sk-test-12345\n");
+
+    const { runCommand } = await import("../src/run-command");
+    const result = await runCommand(
+      {
+        command: "secrets:push",
+        flags: { "push-to": "gh", "dry-run": true },
+        args: [],
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Dry run");
   });
 });
