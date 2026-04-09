@@ -64,6 +64,8 @@ The workflow lives at the repo root so GitHub Actions can discover it, then runs
 
 The first deploy workflow now creates or reuses the Hetzner server, waits for it to become `running`, and emits `SERVER_IP` for the DNS and Kamal steps.
 
+The workflow should not pin a Hetzner location for server creation. Server type availability varies by location, so the create call should let Hetzner place the server instead of hardcoding `nbg1`.
+
 ## One-time operator setup (account-level, can't be code)
 
 These run once per rizom-ai instance and never again.

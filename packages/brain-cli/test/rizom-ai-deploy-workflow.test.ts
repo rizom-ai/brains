@@ -76,5 +76,6 @@ describe("rizom-ai deploy workflow", () => {
       'import { readFileSync, writeFileSync } from "node:fs";',
     );
     expect(workflow).toContain('import { appendFileSync } from "node:fs";');
+    expect(workflow).not.toContain("location: 'nbg1'");
   });
 });

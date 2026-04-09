@@ -216,7 +216,6 @@ jobs:
                 name: instanceName,
                 server_type: 'cpx21',
                 image: 'ubuntu-22.04',
-                location: 'nbg1',
                 ssh_keys: [sshKeyName],
                 labels: { brain: instanceName },
               }),
