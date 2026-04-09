@@ -1,5 +1,18 @@
 # @rizom/brain
 
+## 0.1.1-alpha.7
+
+### Patch Changes
+
+- [`99c536e`](https://github.com/rizom-ai/brains/commit/99c536e2f66f6fc025677b549adce0a2d433b8bf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve standalone site authoring for published `@rizom/brain` consumers.
+  - auto-discover local `src/site.ts` and `src/theme.css` when `brain.yaml`
+    omits `site.package` / `site.theme`
+  - widen `@rizom/brain/site` to expose both personal and professional site
+    authoring symbols under one public subpath
+  - make `brain init` scaffold `src/site.ts` and `src/theme.css` while keeping
+    `brain.yaml` pinned to the model's built-in site/theme until the operator
+    opts into the local convention
+
 ## 0.1.1-alpha.6
 
 ### Patch Changes

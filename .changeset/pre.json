@@ -86,6 +86,7 @@
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
     "sharp-lazy-load",
+    "standalone-site-authoring-scaffold",
     "tailwind-runtime-deps",
     "themes-export"
   ]
