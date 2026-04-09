@@ -4,6 +4,11 @@ import { dirname, join } from "path";
 const DEFAULT_SECRET_BACKEND = "1password";
 const ONE_PASSWORD_PLUGIN = "@varlock/1password-plugin";
 
+// Section header consumed by `secrets-push` to identify keys that
+// belong to the secret-backend bootstrap (e.g. OP_TOKEN) and must
+// not be pushed back into the backend they unlock.
+export const BOOTSTRAP_SECTION_HEADER = "# ---- secret backend bootstrap ----";
+
 function normalizeSecretBackend(backend?: string): string {
   const value = backend?.trim();
   if (!value) {
@@ -79,14 +84,14 @@ PRIVATE_KEY_PEM=
 
 function backendBootstrapEnvSchema(backend: string): string {
   if (backend === DEFAULT_SECRET_BACKEND) {
-    return `# ---- secret backend bootstrap ----
+    return `${BOOTSTRAP_SECTION_HEADER}
 
 # @type=opServiceAccountToken @required @sensitive
 OP_TOKEN=
 `;
   }
 
-  return `# ---- secret backend bootstrap ----
+  return `${BOOTSTRAP_SECTION_HEADER}
 
 # Configure the bootstrap credential(s) for the selected backend.
 `;

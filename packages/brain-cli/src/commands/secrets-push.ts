@@ -3,10 +3,12 @@ import { basename, join } from "path";
 import {
   normalizePushTarget,
   resolveOpToken,
+  vaultNameForInstance,
   type PushTarget,
 } from "../lib/push-target";
 import { pushSecretsToBackend } from "../lib/push-secrets";
 import { type RunCommand } from "../lib/run-subprocess";
+import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -15,6 +17,7 @@ export interface SecretsPushOptions {
   pushTo?: string | undefined;
   all?: boolean | undefined;
   only?: string | undefined;
+  dryRun?: boolean | undefined;
   runCommand?: RunCommand | undefined;
 }
 
@@ -23,6 +26,7 @@ export interface SecretsPushResult {
   pushedKeys: string[];
   skippedKeys: string[];
   vaultName?: string | undefined;
+  dryRun?: boolean | undefined;
 }
 
 const CERTIFICATE_SECRET_NAMES = new Set([
@@ -39,7 +43,9 @@ export async function runSecretsPush(
     const result = await pushSecrets(cwd, options);
     return {
       success: true,
-      message: `Pushed ${result.pushedKeys.length} secrets to ${result.target}`,
+      message: result.dryRun
+        ? `Dry run: would push ${result.pushedKeys.length} secrets to ${result.target}`
+        : `Pushed ${result.pushedKeys.length} secrets to ${result.target}`,
     };
   } catch (error) {
     return {
@@ -83,6 +89,37 @@ export async function pushSecrets(
     );
   }
 
+  const pushedSecretNames = pushedKeys.map(([key]) => key);
+
+  if (options.dryRun) {
+    const vaultName =
+      target === "1password" ? vaultNameForInstance(cwd) : undefined;
+    const destination =
+      target === "1password"
+        ? `1Password vault ${vaultName}`
+        : "GitHub Secrets";
+
+    logger(
+      `Dry run: would push ${pushedSecretNames.length} secrets to ${destination}.`,
+    );
+    if (pushedSecretNames.length > 0) {
+      logger(`Secrets: ${pushedSecretNames.join(", ")}`);
+    }
+    if (skippedKeys.length > 0) {
+      logger(
+        `Skipped ${skippedKeys.length} unset keys: ${skippedKeys.join(", ")}`,
+      );
+    }
+
+    return {
+      target,
+      vaultName,
+      pushedKeys: pushedSecretNames,
+      skippedKeys,
+      dryRun: true,
+    };
+  }
+
   const opToken = resolveOpToken(env, options.opToken);
   const result = await pushSecretsToBackend(target, pushedKeys, {
     cwd,
@@ -100,7 +137,7 @@ export async function pushSecrets(
   return {
     target,
     vaultName: result.vaultName,
-    pushedKeys: pushedKeys.map(([key]) => key),
+    pushedKeys: pushedSecretNames,
     skippedKeys,
   };
 }
@@ -134,7 +171,7 @@ function readSecretKeys(schemaPath: string | undefined): string[] {
   for (const rawLine of content.split(/\r?\n/)) {
     const line = rawLine.trim();
 
-    if (line === "# ---- secret backend bootstrap ----") {
+    if (line === BOOTSTRAP_SECTION_HEADER) {
       inBootstrapSection = true;
       continue;
     }
