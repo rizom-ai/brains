@@ -384,7 +384,7 @@ Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain cert:boots
 
 1. `brain init <dir> --deploy --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
 2. `brain cert:bootstrap --push-to 1password` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml and stores `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in the chosen backend. See "One-time bootstrap" above.
-3. `brain secrets:push --push-to 1password` — sync the rest of the env-backed secrets into the backend.
+3. `brain secrets:push --push-to 1password` — sync the rest of the env-backed secrets into the backend. Use `--dry-run` first if you want to preview the upload.
 4. Push to GitHub → CI provisions server, sets DNS (proxied), deploys.
 5. Verify: `https://{BRAIN_DOMAIN}` serves the brain.
 

@@ -75,7 +75,7 @@ These run once per rizom-ai instance and never again.
 4. **Capture `CF_ZONE_ID`** from the Cloudflare dashboard (Overview tab, right column).
 5. **Create `rizom-ai/rizom-ai-content` GitHub repo.** `gh repo create rizom-ai/rizom-ai-content --private`. Push current `apps/rizom-ai/brain-data/` into it. directory-sync clones it on first boot.
 6. **Run `brain cert:bootstrap --push-to 1password` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues 15-year Origin CA cert + sets zone SSL mode to Full (strict). Pushes `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` straight into the default 1Password vault.
-7. **Run `brain secrets:push --push-to 1password`** to sync the remaining env-backed deploy secrets into the brains repo vault (default `brain-rizom-ai-prod`):
+7. **Run `brain secrets:push --push-to 1password`** to sync the remaining env-backed deploy secrets into the brains repo vault (default `brain-rizom-ai-prod`). Use `--dry-run` first if you want to preview the upload:
    - `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`
    - `KAMAL_SSH_PRIVATE_KEY` (from step 2)
    - `KAMAL_REGISTRY_PASSWORD`
