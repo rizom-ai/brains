@@ -218,6 +218,9 @@ The scaffold should emit:
 - `src/site.ts` built on the stable `@rizom/brain/site` authoring API
 - `src/theme.css` with an empty palette / semantic-token comment block
 - no `@brains/*` imports, no sub-package hack, no manual composition step
+- `brain.yaml` keeps the model's built-in `site.package` / `site.theme`
+  pinned initially so the scaffolded local files are safe to edit before the
+  operator opts into the convention by removing those explicit refs
 
 **Effort:** ~1 hour (two template strings + tests).
 

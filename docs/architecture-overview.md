@@ -31,8 +31,8 @@ shell/          Core runtime, services, plugin framework
 shared/         Reusable utilities, themes, UI components, test helpers
 entities/       EntityPlugin packages for content types
 plugins/        ServicePlugin packages for tools and integrations
-layouts/        Page layout building blocks for sites
-sites/          Structural site packages (layouts + routes + site plugins)
+layouts/        Transitional reusable site compositions (to be collapsed into sites/)
+sites/          Structural site packages (routes, plugins, inherited composition)
 interfaces/     InterfacePlugin packages for transports and daemons
 brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
@@ -119,8 +119,8 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 
 | Area             | Current packages                                                                                                              |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| `layouts/`       | `personal`, `professional`                                                                                                    |
-| `sites/`         | `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`                                                                      |
+| `layouts/`       | `personal`, `professional` (legacy reusable site compositions; planned to move into `sites/` + `shared/`)                     |
+| `sites/`         | `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney` (site compositions; may inherit from other sites)                    |
 | `shared/theme-*` | `base`, `default`, `yeehaa`, `ranger`, `rizom`, `mylittlephoney`, `brutalist`, `editorial`, `geometric`, `neo-retro`, `swiss` |
 | `brains/`        | `rover`, `ranger`, `relay`                                                                                                    |
 | `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                       |
@@ -211,8 +211,8 @@ brains/      -> entities/, plugins/, interfaces/, layouts/, sites/, shared/
 entities/    -> shared/, shell/plugins
 plugins/     -> shared/, shell/plugins
 interfaces/  -> shared/, shell/plugins
-layouts/     -> shared/, shell/* (layout/rendering support)
-sites/       -> layouts/, shared/
+layouts/     -> shared/, sites/, shell/* (legacy composition support; migration target)
+sites/       -> shared/, shell/*, other sites/ (explicit site composition and inheritance)
 shell/       -> shared/, other shell/
 ```
 
@@ -247,4 +247,5 @@ Each deployed instance stays lightweight at the source level: a brain model pack
 - [Theming guide](./theming-guide.md)
 - [Plugin development patterns](./plugin-development-patterns.md)
 - [Plugin quick reference](./plugin-quick-reference.md)
+- [Site composition & inheritance plan](./plans/site-composition-inheritance.md)
 - [User-facing CLI docs](../packages/brain-cli/docs/getting-started.md)
