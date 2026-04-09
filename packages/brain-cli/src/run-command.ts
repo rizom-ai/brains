@@ -36,6 +36,8 @@ export async function runCommand(
   if (parsed.command === "secrets" && parsed.args[0] === "push") {
     return runSecretsPush(dir, {
       pushTo: parsed.flags["push-to"],
+      all: parsed.flags.all,
+      only: parsed.flags.only,
     });
   }
 
@@ -59,6 +61,8 @@ export async function runCommand(
     case "secrets:push":
       return runSecretsPush(dir, {
         pushTo: parsed.flags["push-to"],
+        all: parsed.flags.all,
+        only: parsed.flags.only,
       });
     case "tool":
       return runRawTool(parsed, dir);
@@ -243,6 +247,8 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "",
     "Secret push / cert bootstrap options:",
     "  --push-to <target>     Push to 1password or gh",
+    "  --all                  Include extra keys from the local .env file",
+    "  --only <keys>          Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
   );
 
   console.log(lines.join("\n"));

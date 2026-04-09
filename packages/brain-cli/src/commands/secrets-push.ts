@@ -1,20 +1,20 @@
-import { existsSync, readFileSync, writeFileSync } from "fs";
+import { existsSync, readFileSync } from "fs";
 import { basename, join } from "path";
-import { mkdtempSync, rmSync } from "fs";
-import { tmpdir } from "os";
 import {
   normalizePushTarget,
   resolveOpToken,
-  vaultNameForInstance,
   type PushTarget,
 } from "../lib/push-target";
-import { runSubprocess, type RunCommand } from "../lib/run-subprocess";
+import { pushSecretsToBackend } from "../lib/push-secrets";
+import { type RunCommand } from "../lib/run-subprocess";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
   logger?: (message: string) => void;
   opToken?: string | undefined;
   pushTo?: string | undefined;
+  all?: boolean | undefined;
+  only?: string | undefined;
   runCommand?: RunCommand | undefined;
 }
 
@@ -60,14 +60,19 @@ export async function pushSecrets(
     );
   }
   const logger = options.logger ?? console.log;
-  const runCommand = options.runCommand ?? runSubprocess;
   const env = options.env ?? process.env;
 
   const schemaPath = resolveSchemaPath(cwd);
   const localEnvValues = readLocalEnvValues(join(cwd, ".env"));
   const allowedKeys = readSecretKeys(schemaPath);
-  const { pushedKeys, skippedKeys } = collectSecretValues(
+  const candidateKeys = selectCandidateKeys(
     allowedKeys,
+    localEnvValues,
+    options.all ?? false,
+    parseOnlyKeys(options.only),
+  );
+  const { pushedKeys, skippedKeys } = collectSecretValues(
+    candidateKeys,
     env,
     localEnvValues,
   );
@@ -78,62 +83,13 @@ export async function pushSecrets(
     );
   }
 
-  if (target === "gh") {
-    logger(`Pushing ${pushedKeys.length} secrets to GitHub Secrets...`);
-    await Promise.all(
-      pushedKeys.map(([key, value]) =>
-        runCommand("gh", ["secret", "set", key], { stdin: value }),
-      ),
-    );
-    if (skippedKeys.length > 0) {
-      logger(
-        `Skipped ${skippedKeys.length} unset keys: ${skippedKeys.join(", ")}`,
-      );
-    }
-    return {
-      target,
-      pushedKeys: pushedKeys.map(([key]) => key),
-      skippedKeys,
-    };
-  }
-
   const opToken = resolveOpToken(env, options.opToken);
-  if (!opToken) {
-    throw new Error(
-      "Missing OP_TOKEN (or OP_SERVICE_ACCOUNT_TOKEN) for 1Password push",
-    );
-  }
-
-  const vaultName = vaultNameForInstance(cwd);
-  const tempDir = mkdtempSync(join(tmpdir(), "brain-secrets-push-"));
-  const opEnv = { OP_SERVICE_ACCOUNT_TOKEN: opToken };
-
-  try {
-    logger(
-      `Pushing ${pushedKeys.length} secrets to 1Password vault ${vaultName}...`,
-    );
-    await Promise.all(
-      pushedKeys.map(([key, value]) => {
-        const filePath = join(tempDir, key);
-        writeFileSync(filePath, value, { encoding: "utf-8", mode: 0o600 });
-        return runCommand(
-          "op",
-          [
-            "document",
-            "create",
-            filePath,
-            "--vault",
-            vaultName,
-            "--title",
-            key,
-          ],
-          { env: opEnv },
-        );
-      }),
-    );
-  } finally {
-    rmSync(tempDir, { recursive: true, force: true });
-  }
+  const result = await pushSecretsToBackend(target, pushedKeys, {
+    cwd,
+    opToken,
+    runCommand: options.runCommand,
+    logger,
+  });
 
   if (skippedKeys.length > 0) {
     logger(
@@ -143,7 +99,7 @@ export async function pushSecrets(
 
   return {
     target,
-    vaultName,
+    vaultName: result.vaultName,
     pushedKeys: pushedKeys.map(([key]) => key),
     skippedKeys,
   };
@@ -254,6 +210,67 @@ function readLocalEnvValues(envPath: string): Record<string, string> {
   }
 
   return values;
+}
+
+function parseOnlyKeys(value?: string): string[] {
+  if (!value) {
+    return [];
+  }
+
+  const keys: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawKey of value.split(",")) {
+    const key = rawKey.trim().toUpperCase();
+    if (!key || seen.has(key)) {
+      continue;
+    }
+
+    seen.add(key);
+    keys.push(key);
+  }
+
+  return keys;
+}
+
+function selectCandidateKeys(
+  schemaKeys: string[],
+  localEnvValues: Record<string, string>,
+  includeAll: boolean,
+  onlyKeys: string[],
+): string[] {
+  const keys: string[] = [];
+  const seen = new Set<string>();
+
+  const pushKey = (key: string): void => {
+    if (isPushableKey(key) && !seen.has(key)) {
+      seen.add(key);
+      keys.push(key);
+    }
+  };
+
+  if (onlyKeys.length > 0) {
+    for (const key of onlyKeys) {
+      pushKey(key);
+    }
+    return keys;
+  }
+
+  for (const key of schemaKeys) {
+    pushKey(key);
+  }
+
+  if (includeAll) {
+    for (const key of Object.keys(localEnvValues)) {
+      pushKey(key);
+    }
+  }
+
+  return keys;
+}
+
+function isPushableKey(key: string): boolean {
+  return !BOOTSTRAP_SECRET_NAMES.has(key) && !CERTIFICATE_SECRET_NAMES.has(key);
 }
 
 function collectSecretValues(

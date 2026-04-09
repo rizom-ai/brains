@@ -55,6 +55,8 @@ describe("secrets push", () => {
         "CF_ZONE_ID=zone-id",
         "KAMAL_REGISTRY_PASSWORD=",
         "OP_TOKEN=op-token",
+        "EXTRA_LOCAL_SECRET=extra-local",
+        "CERTIFICATE_PEM=should-not-push",
         "",
       ].join("\n"),
     );
@@ -70,6 +72,8 @@ describe("secrets push", () => {
         CF_ZONE_ID: "zone-id",
         KAMAL_REGISTRY_PASSWORD: "",
         OP_TOKEN: "op-token",
+        EXTRA_LOCAL_SECRET: "extra-local",
+        CERTIFICATE_PEM: "should-not-push",
       },
       pushTo: "gh",
       runCommand: async (command, args, options) => {
@@ -103,6 +107,131 @@ describe("secrets push", () => {
       command: "gh",
       args: ["secret", "set", "CF_ZONE_ID"],
       stdin: "zone-id",
+    });
+  });
+
+  it("includes extra local env values when --all is used", async () => {
+    writeSchema();
+    writeFileSync(
+      join(testDir, ".env"),
+      [
+        "AI_API_KEY=sk-local",
+        "GIT_SYNC_TOKEN=git-local",
+        "HCLOUD_TOKEN=hc-token",
+        "CF_API_TOKEN=cf-token",
+        "CF_ZONE_ID=zone-id",
+        "KAMAL_REGISTRY_PASSWORD=kamal-pass",
+        "OP_TOKEN=op-token",
+        "EXTRA_LOCAL_SECRET=extra-local",
+        "CERTIFICATE_PEM=should-not-push",
+        "",
+      ].join("\n"),
+    );
+
+    const calls: Array<{ command: string; args: string[]; stdin?: string }> =
+      [];
+    const result = await pushSecrets(testDir, {
+      env: {
+        AI_API_KEY: "sk-local",
+        GIT_SYNC_TOKEN: "git-local",
+        HCLOUD_TOKEN: "hc-token",
+        CF_API_TOKEN: "cf-token",
+        CF_ZONE_ID: "zone-id",
+        KAMAL_REGISTRY_PASSWORD: "kamal-pass",
+        OP_TOKEN: "op-token",
+        EXTRA_LOCAL_SECRET: "extra-local",
+        CERTIFICATE_PEM: "should-not-push",
+      },
+      all: true,
+      pushTo: "gh",
+      runCommand: async (command, args, options) => {
+        const call: { command: string; args: string[]; stdin?: string } = {
+          command,
+          args,
+        };
+        if (options?.stdin !== undefined) {
+          call.stdin = options.stdin;
+        }
+        calls.push(call);
+      },
+    });
+
+    expect(result.target).toBe("gh");
+    expect(result.pushedKeys).toEqual([
+      "AI_API_KEY",
+      "GIT_SYNC_TOKEN",
+      "HCLOUD_TOKEN",
+      "KAMAL_REGISTRY_PASSWORD",
+      "CF_API_TOKEN",
+      "CF_ZONE_ID",
+      "EXTRA_LOCAL_SECRET",
+    ]);
+    expect(result.skippedKeys).toEqual([]);
+    expect(calls).toHaveLength(7);
+    expect(calls[6]).toEqual({
+      command: "gh",
+      args: ["secret", "set", "EXTRA_LOCAL_SECRET"],
+      stdin: "extra-local",
+    });
+  });
+
+  it("pushes only the requested secrets when --only is used", async () => {
+    writeSchema();
+    writeFileSync(
+      join(testDir, ".env"),
+      [
+        "AI_API_KEY=sk-local",
+        "GIT_SYNC_TOKEN=git-local",
+        "HCLOUD_TOKEN=hc-token",
+        "CF_API_TOKEN=cf-token",
+        "CF_ZONE_ID=zone-id",
+        "KAMAL_REGISTRY_PASSWORD=kamal-pass",
+        "OP_TOKEN=op-token",
+        "EXTRA_LOCAL_SECRET=extra-local",
+        "",
+      ].join("\n"),
+    );
+
+    const calls: Array<{ command: string; args: string[]; stdin?: string }> =
+      [];
+    const result = await pushSecrets(testDir, {
+      env: {
+        AI_API_KEY: "sk-local",
+        GIT_SYNC_TOKEN: "git-local",
+        HCLOUD_TOKEN: "hc-token",
+        CF_API_TOKEN: "cf-token",
+        CF_ZONE_ID: "zone-id",
+        KAMAL_REGISTRY_PASSWORD: "kamal-pass",
+        OP_TOKEN: "op-token",
+        EXTRA_LOCAL_SECRET: "extra-local",
+      },
+      only: "CF_ZONE_ID,EXTRA_LOCAL_SECRET",
+      pushTo: "gh",
+      runCommand: async (command, args, options) => {
+        const call: { command: string; args: string[]; stdin?: string } = {
+          command,
+          args,
+        };
+        if (options?.stdin !== undefined) {
+          call.stdin = options.stdin;
+        }
+        calls.push(call);
+      },
+    });
+
+    expect(result.target).toBe("gh");
+    expect(result.pushedKeys).toEqual(["CF_ZONE_ID", "EXTRA_LOCAL_SECRET"]);
+    expect(result.skippedKeys).toEqual([]);
+    expect(calls).toHaveLength(2);
+    expect(calls[0]).toEqual({
+      command: "gh",
+      args: ["secret", "set", "CF_ZONE_ID"],
+      stdin: "zone-id",
+    });
+    expect(calls[1]).toEqual({
+      command: "gh",
+      args: ["secret", "set", "EXTRA_LOCAL_SECRET"],
+      stdin: "extra-local",
     });
   });
 

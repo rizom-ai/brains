@@ -51,6 +51,18 @@ describe("parseArgs", () => {
     expect(result.flags["push-to"]).toBe("1password");
   });
 
+  it("should parse 'secrets:push' with --all and --only flags", () => {
+    const result = parseArgs([
+      "secrets:push",
+      "--all",
+      "--only",
+      "AI_API_KEY,HCLOUD_TOKEN",
+    ]);
+    expect(result.command).toBe("secrets:push");
+    expect(result.flags.all).toBe(true);
+    expect(result.flags.only).toBe("AI_API_KEY,HCLOUD_TOKEN");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");

@@ -73,9 +73,11 @@ Sync the env-backed secrets from the current instance into your backend. It read
 cd mybrain
 brain secrets:push --push-to 1password
 brain secrets:push --push-to gh
+brain secrets:push --push-to gh --all
+brain secrets:push --push-to gh --only AI_API_KEY,HCLOUD_TOKEN
 ```
 
-Use this after updating local secrets to publish them to the chosen backend.
+Use `--all` to include extra keys from the local `.env` file and `--only` to push a specific allowlist. Use this after updating local secrets to publish them to the chosen backend.
 
 ### `brain start`
 

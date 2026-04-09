@@ -13,6 +13,8 @@ export interface ParsedArgs {
     "no-interactive"?: boolean | undefined;
     preview?: boolean | undefined;
     deploy?: boolean | undefined;
+    all?: boolean | undefined;
+    only?: string | undefined;
     remote?: string | undefined;
     token?: string | undefined;
     help?: boolean | undefined;
@@ -30,6 +32,8 @@ const options = {
   "no-interactive": { type: "boolean" as const },
   preview: { type: "boolean" as const },
   deploy: { type: "boolean" as const },
+  all: { type: "boolean" as const },
+  only: { type: "string" as const },
   remote: { type: "string" as const },
   token: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
@@ -88,6 +92,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       "no-interactive": getBoolean(values, "no-interactive"),
       preview: getBoolean(values, "preview"),
       deploy: getBoolean(values, "deploy"),
+      all: getBoolean(values, "all"),
+      only: getString(values, "only"),
       remote: getString(values, "remote"),
       token: getString(values, "token"),
     },
