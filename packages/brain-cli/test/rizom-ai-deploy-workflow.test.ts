@@ -40,6 +40,7 @@ describe("rizom-ai deploy workflow", () => {
     const workflow = readFileSync(workflowPath, "utf-8");
 
     expect(workflow).toContain("varlock load");
+    expect(workflow).toContain("--show-all");
     expect(workflow).not.toContain("OP_TOKEN");
     expect(workflow).toContain("AI_API_KEY: ${{ secrets.AI_API_KEY }}");
     expect(workflow).toContain("GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}");

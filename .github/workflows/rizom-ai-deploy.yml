@@ -47,7 +47,7 @@ jobs:
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
         run: |
-          npx -y varlock load --format json --compact > /tmp/varlock-env.json
+          npx -y varlock load --format json --compact --show-all > /tmp/varlock-env.json
           node <<'NODE'
           const fs = require('fs');
           const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
