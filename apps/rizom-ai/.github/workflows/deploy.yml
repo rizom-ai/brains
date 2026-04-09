@@ -11,6 +11,7 @@ on:
       - "shared/theme-base/**"
       - "shell/**"
       - "packages/brain-cli/**"
+  workflow_dispatch:
 
 jobs:
   deploy:
