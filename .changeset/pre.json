@@ -78,7 +78,9 @@
     "@brains/site-mylittlephoney": "0.1.0",
     "@brains/site-ranger": "0.1.0",
     "@brains/site-rizom": "0.1.0",
-    "@brains/site-yeehaa": "0.1.0"
+    "@brains/site-yeehaa": "0.1.0",
+    "@brains/site-personal": "0.1.0",
+    "@brains/site-professional": "0.1.0"
   },
   "changesets": [
     "brain-cli-register-override-packages",
