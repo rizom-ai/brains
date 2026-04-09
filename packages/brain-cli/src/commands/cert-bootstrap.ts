@@ -1,4 +1,4 @@
-import { writeFileSync } from "fs";
+import { writeFile } from "fs/promises";
 import { join } from "path";
 import { z } from "@brains/utils";
 import { parseBrainYaml } from "../lib/brain-yaml";
@@ -74,8 +74,6 @@ export async function bootstrapOriginCertificate(
   const fetchImpl = options.fetchImpl ?? fetch;
   const logger = options.logger ?? console.log;
 
-  logger(`Issuing Cloudflare Origin CA certificate for ${domain}...`);
-
   const keyPair = generateOriginKeyPair();
   const { csrPem } = createOriginCertificateRequest(domain, keyPair);
 
@@ -89,23 +87,25 @@ export async function bootstrapOriginCertificate(
   const certificatePath = join(cwd, "origin.pem");
   const privateKeyPath = join(cwd, "origin.key");
 
-  writeFileSync(certificatePath, certResult.certificatePem, "utf-8");
-  // Set mode at creation so the private key is never briefly world-readable
-  // between write and chmod.
-  writeFileSync(privateKeyPath, keyPair.privateKeyPem, {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
+  await Promise.all([
+    writeFile(certificatePath, certResult.certificatePem, "utf-8"),
+    // Set mode at creation so the private key is never briefly world-readable
+    // between write and chmod.
+    writeFile(privateKeyPath, keyPair.privateKeyPem, {
+      encoding: "utf-8",
+      mode: 0o600,
+    }),
+  ]);
 
+  await setCloudflareZoneSslStrict(fetchImpl, cfApiToken, cfZoneId);
+
+  logger(`Issued Origin CA cert for ${domain}`);
   logger(`Wrote ${certificatePath}`);
   logger(`Wrote ${privateKeyPath}`);
   if (certResult.expiresOn) {
-    logger(`Certificate expires on ${certResult.expiresOn}`);
+    logger(`Expires on ${certResult.expiresOn}`);
   }
-
-  logger("Setting Cloudflare zone SSL mode to Full (strict)...");
-  await setCloudflareZoneSslStrict(fetchImpl, cfApiToken, cfZoneId);
-  logger("Cloudflare zone SSL mode set to Full (strict).");
+  logger("Cloudflare zone SSL mode set to Full (strict)");
 
   return {
     domain,

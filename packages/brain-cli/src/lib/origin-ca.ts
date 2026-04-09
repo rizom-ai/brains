@@ -8,6 +8,8 @@ export interface OriginKeyPair {
 
 export interface OriginCertificateRequest {
   csrPem: string;
+  // Exposed so the signing roundtrip can be unit-verified by re-running
+  // crypto.verify against the same buffers. Not consumed by callers.
   certificationRequestInfoDer: Buffer;
   signature: Buffer;
 }
