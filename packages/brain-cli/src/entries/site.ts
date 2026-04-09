@@ -15,10 +15,10 @@ export {
   PersonalLayout,
   routes,
   routes as personalRoutes,
-} from "@brains/layout-personal";
+} from "@brains/site-personal";
 
 export {
   professionalSitePlugin,
   ProfessionalLayout,
   routes as professionalRoutes,
-} from "@brains/layout-professional";
+} from "@brains/site-professional";

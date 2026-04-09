@@ -48,11 +48,11 @@
   "devDependencies": {
     "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
-    "@brains/layout-personal": "workspace:*",
-    "@brains/layout-professional": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/rover": "workspace:*",
+    "@brains/site-personal": "workspace:*",
+    "@brains/site-professional": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
     "@types/bun": "latest",

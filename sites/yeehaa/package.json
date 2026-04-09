@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
-    "@brains/layout-professional": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-default": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {

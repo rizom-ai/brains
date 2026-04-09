@@ -35,4 +35,5 @@ export type {
   InterfaceEntry,
   InterfaceConstructor,
 } from "./brain-definition";
-export type { SitePackage } from "./site-package";
+export type { SitePackage, SitePackageOverrides } from "./site-package";
+export { extendSite } from "./site-package";

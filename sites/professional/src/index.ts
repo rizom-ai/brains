@@ -1,18 +1,35 @@
 import type { Plugin } from "@brains/plugins";
-import {
-  professionalSitePlugin,
-  ProfessionalLayout,
-  routes,
-} from "@brains/site-professional";
 import type { SitePackage } from "@brains/app";
+import { ProfessionalSitePlugin, professionalSitePlugin } from "./plugin";
+import { routes } from "./routes";
+import {
+  HomepageListLayout,
+  type HomepageListData,
+} from "./templates/homepage-list";
+import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import {
+  SubscribeThanksLayout,
+  SubscribeErrorLayout,
+} from "./templates/subscribe-result";
+import { HomepageListDataSource } from "./datasources/homepage-datasource";
+import { AboutDataSource } from "./datasources/about-datasource";
+import { ProfessionalLayout } from "./layouts/ProfessionalLayout";
 
-/**
- * Rover default site package — clean professional layout.
- *
- * A neutral professional site identity suitable as the out-of-box
- * experience for the rover brain model. Pair it with
- * `@brains/theme-default` for the standard blue/orange styling.
- */
+export {
+  ProfessionalSitePlugin,
+  professionalSitePlugin,
+  routes,
+  HomepageListLayout,
+  type HomepageListData,
+  AboutPageLayout,
+  type AboutPageData,
+  SubscribeThanksLayout,
+  SubscribeErrorLayout,
+  HomepageListDataSource,
+  AboutDataSource,
+  ProfessionalLayout,
+};
+
 const site: SitePackage = {
   layouts: {
     default: ProfessionalLayout,

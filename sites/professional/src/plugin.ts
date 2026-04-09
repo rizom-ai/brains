@@ -1,0 +1,175 @@
+import type {
+  Plugin,
+  Tool,
+  Resource,
+  ServicePluginContext,
+} from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils";
+import { createTemplate } from "@brains/templates";
+import { enrichedBlogPostSchema } from "@brains/blog";
+import { enrichedDeckSchema } from "@brains/decks";
+import { siteInfoCTASchema } from "@brains/site-builder-plugin";
+import {
+  professionalProfileSchema,
+  professionalProfileExtension,
+} from "./schemas";
+import { HomepageListDataSource } from "./datasources/homepage-datasource";
+import { AboutDataSource } from "./datasources/about-datasource";
+import {
+  HomepageListLayout,
+  type HomepageListData,
+} from "./templates/homepage-list";
+import { AboutPageLayout, type AboutPageData } from "./templates/about";
+import {
+  SubscribeThanksLayout,
+  SubscribeErrorLayout,
+} from "./templates/subscribe-result";
+import {
+  type ProfessionalSiteConfig,
+  type ProfessionalSiteConfigInput,
+  professionalSiteConfigSchema,
+} from "./config";
+import packageJson from "../package.json";
+
+/**
+ * Professional Site Plugin
+ * Provides homepage template and datasource for professional brain
+ */
+export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig> {
+  public readonly dependencies = ["blog", "decks"];
+
+  constructor(config: ProfessionalSiteConfigInput) {
+    super(
+      "professional-site",
+      packageJson,
+      config,
+      professionalSiteConfigSchema,
+    );
+  }
+
+  /**
+   * Initialize the plugin
+   */
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    // Extend profile frontmatter schema with professional fields for CMS
+    context.entities.extendFrontmatterSchema(
+      "anchor-profile",
+      professionalProfileExtension,
+    );
+
+    // Compute entity list URLs from config
+    const postsConfig = this.config.entityDisplay.post;
+    const decksConfig = this.config.entityDisplay.deck;
+
+    const postsListUrl = `/${postsConfig.pluralName ?? postsConfig.label.toLowerCase() + "s"}`;
+    const decksListUrl = `/${decksConfig.pluralName ?? decksConfig.label.toLowerCase() + "s"}`;
+
+    // Register homepage datasource
+    const homepageDataSource = new HomepageListDataSource(
+      postsListUrl,
+      decksListUrl,
+    );
+    context.entities.registerDataSource(homepageDataSource);
+
+    // Register about page datasource
+    const aboutDataSource = new AboutDataSource();
+    context.entities.registerDataSource(aboutDataSource);
+
+    // Register homepage template
+    // Schema validates with optional url/typeLabel, site-builder enriches before rendering
+    const homepageListSchema = z.object({
+      profile: professionalProfileSchema,
+      posts: z.array(enrichedBlogPostSchema),
+      decks: z.array(enrichedDeckSchema),
+      postsListUrl: z.string(),
+      decksListUrl: z.string(),
+      cta: siteInfoCTASchema,
+    });
+
+    // About page schema
+    const aboutPageSchema = z.object({
+      profile: professionalProfileSchema,
+    });
+
+    // Empty schema for static pages
+    const emptySchema = z.object({});
+
+    context.templates.register({
+      "homepage-list": createTemplate<
+        z.infer<typeof homepageListSchema>,
+        HomepageListData
+      >({
+        name: "homepage-list",
+        description: "Professional homepage with essays and presentations",
+        schema: homepageListSchema,
+        dataSourceId: "professional:homepage-list",
+        requiredPermission: "public",
+        layout: {
+          component: HomepageListLayout,
+        },
+      }),
+      about: createTemplate<z.infer<typeof aboutPageSchema>, AboutPageData>({
+        name: "about",
+        description: "About page with full profile information",
+        schema: aboutPageSchema,
+        dataSourceId: "professional:about",
+        requiredPermission: "public",
+        layout: {
+          component: AboutPageLayout,
+        },
+      }),
+      "subscribe-thanks": createTemplate<
+        z.infer<typeof emptySchema>,
+        Record<string, never>
+      >({
+        name: "subscribe-thanks",
+        description: "Newsletter subscription success page",
+        schema: emptySchema,
+        requiredPermission: "public",
+        layout: {
+          component: SubscribeThanksLayout,
+        },
+      }),
+      "subscribe-error": createTemplate<
+        z.infer<typeof emptySchema>,
+        Record<string, never>
+      >({
+        name: "subscribe-error",
+        description: "Newsletter subscription error page",
+        schema: emptySchema,
+        requiredPermission: "public",
+        layout: {
+          component: SubscribeErrorLayout,
+        },
+      }),
+    });
+
+    this.logger.info("Professional site plugin registered successfully");
+  }
+
+  /**
+   * No tools needed for this plugin
+   */
+  protected override async getTools(): Promise<Tool[]> {
+    return [];
+  }
+
+  /**
+   * No resources needed for this plugin
+   */
+  protected override async getResources(): Promise<Resource[]> {
+    return [];
+  }
+}
+
+/**
+ * Factory function to create the plugin
+ */
+export function professionalSitePlugin(
+  config: ProfessionalSiteConfigInput,
+): Plugin {
+  return new ProfessionalSitePlugin(config);
+}

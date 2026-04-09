@@ -19,7 +19,7 @@ import { z } from "@brains/utils";
  *
  * @example
  * ```ts
- * import { personalSitePlugin, PersonalLayout, routes } from "@brains/layout-personal";
+ * import { personalSitePlugin, PersonalLayout, routes } from "@brains/site-personal";
  *
  * const site: SitePackage = {
  *   layouts: { default: PersonalLayout },
@@ -65,6 +65,72 @@ export interface SitePackage {
    * site-builder writes them verbatim next to the rendered HTML.
    */
   staticAssets?: Record<string, string>;
+}
+
+export interface SitePackageOverrides {
+  layouts?: Record<string, unknown>;
+  routes?: RouteDefinitionInput[];
+  plugin?: SitePackage["plugin"];
+  entityDisplay?: Record<string, EntityDisplayEntry>;
+  staticAssets?: Record<string, string>;
+}
+
+function mergeRoutes(
+  baseRoutes: RouteDefinitionInput[],
+  overrideRoutes: RouteDefinitionInput[] = [],
+): RouteDefinitionInput[] {
+  const mergedRoutes = [...baseRoutes];
+  const indexByKey = new Map<string, number>();
+
+  for (const [index, route] of mergedRoutes.entries()) {
+    indexByKey.set(route.id, index);
+  }
+
+  for (const route of overrideRoutes) {
+    const key = route.id;
+    const existingIndex = indexByKey.get(key);
+
+    if (existingIndex !== undefined) {
+      mergedRoutes[existingIndex] = route;
+      continue;
+    }
+
+    indexByKey.set(key, mergedRoutes.length);
+    mergedRoutes.push(route);
+  }
+
+  return mergedRoutes;
+}
+
+export function extendSite(
+  baseSite: SitePackage,
+  overrides: SitePackageOverrides = {},
+): SitePackage {
+  const {
+    layouts: overrideLayouts = {},
+    entityDisplay: overrideEntityDisplay = {},
+    staticAssets: overrideStaticAssets = {},
+    plugin = baseSite.plugin,
+  } = overrides;
+
+  const staticAssets = {
+    ...(baseSite.staticAssets ?? {}),
+    ...overrideStaticAssets,
+  };
+
+  return {
+    layouts: {
+      ...baseSite.layouts,
+      ...overrideLayouts,
+    },
+    routes: mergeRoutes(baseSite.routes, overrides.routes),
+    plugin,
+    entityDisplay: {
+      ...baseSite.entityDisplay,
+      ...overrideEntityDisplay,
+    },
+    ...(Object.keys(staticAssets).length > 0 ? { staticAssets } : {}),
+  };
 }
 
 export const themeCssSchema = z.string();

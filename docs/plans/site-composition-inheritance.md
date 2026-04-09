@@ -275,4 +275,6 @@ Reasons:
 - `docs/theming-guide.md`
 - `docs/plans/site-builder-decoupling.md`
 - `docs/plans/standalone-site-authoring.md`
+- `docs/plans/layouts-export-inventory.md`
+- `docs/plans/layouts-migration-map.md`
 - `docs/plans/harmonize-monorepo-apps.md`

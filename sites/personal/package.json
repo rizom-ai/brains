@@ -1,8 +1,8 @@
 {
-  "name": "@brains/site-default",
+  "name": "@brains/site-personal",
   "private": true,
   "version": "0.1.0",
-  "description": "Default structural site package — clean professional layout for rover",
+  "description": "Personal site composition package",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -17,13 +17,21 @@
   },
   "dependencies": {
     "@brains/app": "workspace:*",
+    "@brains/blog": "workspace:*",
+    "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/site-professional": "workspace:*",
+    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-info": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "bun-types": "latest",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"
   }

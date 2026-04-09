@@ -544,10 +544,11 @@
       "devDependencies": {
         "@brains/app": "workspace:*",
         "@brains/eslint-config": "workspace:*",
-        "@brains/layout-personal": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/rover": "workspace:*",
+        "@brains/site-personal": "workspace:*",
+        "@brains/site-professional": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "latest",
@@ -909,19 +910,6 @@
     },
     "shared/theme-geometric": {
       "name": "@brains/theme-geometric",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/theme-mylittlephoney": {
-      "name": "@brains/theme-mylittlephoney",
       "version": "0.1.0",
       "dependencies": {
         "@brains/theme-base": "workspace:*",
@@ -1300,8 +1288,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/app": "workspace:*",
-        "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-professional": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1311,18 +1299,51 @@
         "typescript": "^5.3.3",
       },
     },
-    "sites/mylittlephoney": {
-      "name": "@brains/site-mylittlephoney",
+    "sites/personal": {
+      "name": "@brains/site-personal",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/app": "workspace:*",
+        "@brains/blog": "workspace:*",
+        "@brains/identity-service": "workspace:*",
         "@brains/layout-personal": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-info": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
         "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "sites/professional": {
+      "name": "@brains/site-professional",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/blog": "workspace:*",
+        "@brains/decks": "workspace:*",
+        "@brains/identity-service": "workspace:*",
+        "@brains/layout-professional": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-info": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
         "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
@@ -1370,8 +1391,8 @@
       "version": "0.1.0",
       "dependencies": {
         "@brains/app": "workspace:*",
-        "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-professional": "workspace:*",
         "preact": "^10.27.2",
       },
       "devDependencies": {
@@ -1509,7 +1530,9 @@
 
     "@brains/site-info": ["@brains/site-info@workspace:entities/site-info"],
 
-    "@brains/site-mylittlephoney": ["@brains/site-mylittlephoney@workspace:sites/mylittlephoney"],
+    "@brains/site-personal": ["@brains/site-personal@workspace:sites/personal"],
+
+    "@brains/site-professional": ["@brains/site-professional@workspace:sites/professional"],
 
     "@brains/site-ranger": ["@brains/site-ranger@workspace:sites/ranger"],
 
@@ -1536,8 +1559,6 @@
     "@brains/theme-editorial": ["@brains/theme-editorial@workspace:shared/theme-editorial"],
 
     "@brains/theme-geometric": ["@brains/theme-geometric@workspace:shared/theme-geometric"],
-
-    "@brains/theme-mylittlephoney": ["@brains/theme-mylittlephoney@workspace:shared/theme-mylittlephoney"],
 
     "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
 

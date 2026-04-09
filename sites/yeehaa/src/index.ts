@@ -1,10 +1,5 @@
-import type { Plugin } from "@brains/plugins";
-import {
-  professionalSitePlugin,
-  ProfessionalLayout,
-  routes,
-} from "@brains/layout-professional";
-import type { SitePackage } from "@brains/app";
+import { extendSite, type SitePackage } from "@brains/app";
+import siteDefault from "@brains/site-default";
 
 /**
  * Yeehaa site package — professional layout + yeehaa content labeling.
@@ -12,13 +7,7 @@ import type { SitePackage } from "@brains/app";
  * Provides the structure and content naming for the yeehaa site.
  * Pair it with `@brains/theme-brutalist` for the CRT-style neon styling.
  */
-const site: SitePackage = {
-  layouts: {
-    default: ProfessionalLayout,
-  },
-  routes,
-  plugin: (config?: Record<string, unknown>): Plugin =>
-    professionalSitePlugin(config ?? {}),
+const site: SitePackage = extendSite(siteDefault, {
   entityDisplay: {
     post: { label: "Essay" },
     deck: { label: "Presentation" },
@@ -49,6 +38,6 @@ const site: SitePackage = {
       navigation: { slot: "secondary" },
     },
   },
-};
+});
 
 export default site;
