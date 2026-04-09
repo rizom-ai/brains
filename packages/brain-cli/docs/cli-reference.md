@@ -19,7 +19,6 @@ brain init mybrain
 brain init mybrain --model relay
 brain init mybrain --domain mybrain.example.com
 brain init mybrain --content-repo github:user/brain-data
-brain init mybrain --backend 1password   # use 1Password as the secret store
 brain init mybrain --backend none         # default: env vars only, no secret store
 brain init mybrain --deploy
 brain init mybrain --ai-api-key sk-...
@@ -28,15 +27,15 @@ brain init mybrain --no-interactive
 
 **Options**
 
-| Flag                    | Default            | Description                                                                                                                          |
-| ----------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                                                                                              |
-| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                    |
-| `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                            |
-| `--backend <name>`      | `none`             | Secret backend: `none` (env vars only, default), `1password` (varlock + 1Password Service Account), or any other varlock plugin name |
-| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, and GitHub workflow                                                                         |
-| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                              |
-| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                 |
+| Flag                    | Default            | Description                                                                                                                                                                                                                                                                                               |
+| ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                                                                                                                                                                                                                                                                   |
+| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                         |
+| `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                 |
+| `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, from GitHub Actions secrets). Pass any other name to emit a generic `@plugin(@varlock/<name>-plugin)` line you can hand-tune; no other backend is verified end-to-end today. |
+| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, and GitHub workflow                                                                                                                                                                                                                                              |
+| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                   |
+| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                      |
 
 **Generated files**
 
@@ -60,26 +59,24 @@ Issue a Cloudflare Origin CA certificate for the `domain:` declared in `brain.ya
 ```bash
 cd mybrain
 brain cert:bootstrap
-brain cert:bootstrap --push-to 1password
 brain cert:bootstrap --push-to gh
 ```
 
-The command writes `origin.pem` and `origin.key` into the current directory, then switches the Cloudflare zone to Full (strict). Use `--push-to 1password` to store the cert and key directly in a 1Password vault, or `--push-to gh` to push them to GitHub Secrets.
+The command writes `origin.pem` and `origin.key` into the current directory, then switches the Cloudflare zone to Full (strict). Use `--push-to gh` to push the cert and key into GitHub Actions secrets via the `gh` CLI; without `--push-to`, the files stay local and you handle storage yourself.
 
 ### `brain secrets:push`
 
-Sync the env-backed secrets from the current instance into your backend. It reads the local schema / `.env` values, skips `OP_TOKEN`, and leaves TLS cert artifacts to `brain cert:bootstrap`.
+Sync the env-backed secrets from the current instance into GitHub Actions secrets. Reads the local schema / `.env` values, skips any backend-bootstrap section keys, and leaves TLS cert artifacts to `brain cert:bootstrap`.
 
 ```bash
 cd mybrain
-brain secrets:push --push-to 1password
 brain secrets:push --push-to gh
 brain secrets:push --push-to gh --all
 brain secrets:push --push-to gh --only AI_API_KEY,HCLOUD_TOKEN
 brain secrets:push --push-to gh --dry-run
 ```
 
-Use `--all` to include extra keys from the local `.env` file, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs now split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy. Use this after updating local secrets to publish them to the chosen backend.
+`--push-to gh` is the only supported target today. Use `--all` to include extra keys from the local `.env` file, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy.
 
 ### `brain start`
 

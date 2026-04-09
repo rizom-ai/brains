@@ -86,27 +86,10 @@ export async function promptInitOptions(
     }
   }
 
-  // 3. Secret backend — defaults to 1Password, but can be swapped for
-  //    other varlock plugins via --backend.
-  if (!result.backend) {
-    const backend = await p.text({
-      message: "Secret backend (1password, env, etc.)",
-      defaultValue: "1password",
-      validate: (value) => {
-        if (!value || value.trim().length === 0) {
-          return "A secret backend is required.";
-        }
-        return undefined;
-      },
-    });
-
-    if (p.isCancel(backend)) {
-      p.cancel("Setup cancelled.");
-      process.exit(0);
-    }
-
-    result.backend = backend.trim();
-  }
+  // Secret backend defaults to "none" (env-vars-only resolution via
+  // varlock). Operators who want a varlock plugin pass --backend <name>
+  // explicitly; no interactive prompt because the default Just Works
+  // and exposing the choice up front adds friction for the common path.
 
   p.outro("Ready to scaffold.");
 

@@ -318,8 +318,6 @@ jobs:
           echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
 
       - name: Load env via varlock
-        env:
-          OP_TOKEN: \${{ secrets.OP_TOKEN }}
         run: |
           npx -y varlock load --format json --compact > /tmp/varlock-env.json
           node <<'NODE'

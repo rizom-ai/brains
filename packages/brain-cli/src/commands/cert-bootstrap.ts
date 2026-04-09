@@ -2,12 +2,7 @@ import { writeFile } from "fs/promises";
 import { join } from "path";
 import { z } from "@brains/utils";
 import { parseBrainYaml } from "../lib/brain-yaml";
-import {
-  normalizePushTarget,
-  resolveOpToken,
-  vaultNameForInstance,
-  type PushTarget,
-} from "../lib/push-target";
+import { normalizePushTarget } from "../lib/push-target";
 import { runSubprocess, type RunCommand } from "../lib/run-subprocess";
 import {
   createOriginCertificateRequest,
@@ -22,7 +17,6 @@ export interface CertBootstrapOptions {
   cfZoneId?: string;
   fetchImpl?: FetchLike;
   logger?: (message: string) => void;
-  opToken?: string | undefined;
   pushTo?: string | undefined;
   runCommand?: RunCommand | undefined;
 }
@@ -38,8 +32,6 @@ const certBootstrapEnvSchema = z
   .object({
     CF_API_TOKEN: z.string().min(1).optional(),
     CF_ZONE_ID: z.string().min(1).optional(),
-    OP_TOKEN: z.string().min(1).optional(),
-    OP_SERVICE_ACCOUNT_TOKEN: z.string().min(1).optional(),
   })
   .passthrough();
 
@@ -74,7 +66,6 @@ export async function bootstrapOriginCertificate(
   const env = certBootstrapEnvSchema.parse(process.env);
   const cfApiToken = options.cfApiToken ?? env.CF_API_TOKEN;
   const cfZoneId = options.cfZoneId ?? env.CF_ZONE_ID;
-  const opToken = resolveOpToken(process.env, options.opToken);
 
   if (!cfApiToken) {
     throw new Error("Missing CF_API_TOKEN");
@@ -86,7 +77,6 @@ export async function bootstrapOriginCertificate(
 
   const fetchImpl = options.fetchImpl ?? fetch;
   const logger = options.logger ?? console.log;
-  const runCommand = options.runCommand ?? runSubprocess;
 
   const keyPair = generateOriginKeyPair();
   const { csrPem } = createOriginCertificateRequest(domain, keyPair);
@@ -115,15 +105,10 @@ export async function bootstrapOriginCertificate(
 
   const pushTarget = normalizePushTarget(options.pushTo);
   if (pushTarget) {
-    await pushCertificateArtifacts({
-      cwd,
-      pushTarget,
-      certificatePath,
-      privateKeyPath,
+    await pushCertificateArtifactsToGh({
       certificatePem: certResult.certificatePem,
       privateKeyPem: keyPair.privateKeyPem,
-      opToken,
-      runCommand,
+      runCommand: options.runCommand,
       logger,
     });
   }
@@ -147,71 +132,20 @@ export async function bootstrapOriginCertificate(
   };
 }
 
-async function pushCertificateArtifacts(options: {
-  cwd: string;
-  pushTarget: PushTarget;
-  certificatePath: string;
-  privateKeyPath: string;
+async function pushCertificateArtifactsToGh(options: {
   certificatePem: string;
   privateKeyPem: string;
-  opToken?: string | undefined;
-  runCommand: RunCommand;
+  runCommand: RunCommand | undefined;
   logger: (message: string) => void;
 }): Promise<void> {
-  switch (options.pushTarget) {
-    case "gh":
-      options.logger("Pushing certificate into GitHub secrets...");
-      await Promise.all([
-        options.runCommand("gh", ["secret", "set", "CERTIFICATE_PEM"], {
-          stdin: options.certificatePem,
-        }),
-        options.runCommand("gh", ["secret", "set", "PRIVATE_KEY_PEM"], {
-          stdin: options.privateKeyPem,
-        }),
-      ]);
-      return;
-    case "1password": {
-      const token = options.opToken;
-      if (!token) {
-        throw new Error(
-          "Missing OP_TOKEN (or OP_SERVICE_ACCOUNT_TOKEN) for 1Password push",
-        );
-      }
-
-      const vaultName = vaultNameForInstance(options.cwd);
-      options.logger(
-        `Pushing certificate into 1Password vault ${vaultName}...`,
-      );
-      const opEnv = { OP_SERVICE_ACCOUNT_TOKEN: token };
-      await Promise.all([
-        options.runCommand(
-          "op",
-          [
-            "document",
-            "create",
-            options.certificatePath,
-            "--vault",
-            vaultName,
-            "--title",
-            "CERTIFICATE_PEM",
-          ],
-          { env: opEnv },
-        ),
-        options.runCommand(
-          "op",
-          [
-            "document",
-            "create",
-            options.privateKeyPath,
-            "--vault",
-            vaultName,
-            "--title",
-            "PRIVATE_KEY_PEM",
-          ],
-          { env: opEnv },
-        ),
-      ]);
-      return;
-    }
-  }
+  const runCommand = options.runCommand ?? runSubprocess;
+  options.logger("Pushing certificate into GitHub secrets...");
+  await Promise.all([
+    runCommand("gh", ["secret", "set", "CERTIFICATE_PEM"], {
+      stdin: options.certificatePem,
+    }),
+    runCommand("gh", ["secret", "set", "PRIVATE_KEY_PEM"], {
+      stdin: options.privateKeyPem,
+    }),
+  ]);
 }

@@ -3,17 +3,17 @@ import { dirname, join } from "path";
 
 // "none" means: no varlock plugin in the schema. Values resolve from
 // process.env (and therefore from CI secrets) directly. This is the
-// default so that brain init works for any operator without forcing a
-// 1Password / Bitwarden / Vault subscription. Operators who want a real
-// secret manager opt in via --backend 1password (the only varlock backend
-// today that ships a working bulk-load plugin — see
-// docs/plans/bitwarden-secret-backend.md for the rejected alternative).
+// only backend brain-cli ships with verified end-to-end support today.
+// 1Password and Bitwarden were both considered and rejected — see
+// docs/plans/secret-backends-considered.md for the verified blockers.
+// Operators who want a different varlock plugin can pass --backend
+// <name>; the schema generator emits a generic @plugin(@varlock/<name>-plugin)
+// fallthrough that they can hand-tune.
 const DEFAULT_SECRET_BACKEND = "none";
-const ONE_PASSWORD_PLUGIN = "@varlock/1password-plugin";
 
-// Section header consumed by `secrets-push` to identify keys that
-// belong to the secret-backend bootstrap (e.g. OP_TOKEN) and must
-// not be pushed back into the backend they unlock.
+// Section header reserved for future bootstrap-credential sections.
+// secrets-push uses this marker to skip backend-bootstrap secrets so a
+// CI token never gets pushed back into the backend it unlocks.
 export const BOOTSTRAP_SECTION_HEADER = "# ---- secret backend bootstrap ----";
 
 function normalizeSecretBackend(backend?: string): string {
@@ -30,10 +30,6 @@ function resolvePluginName(backend: string): string {
     return backend;
   }
 
-  if (backend === "1password") {
-    return ONE_PASSWORD_PLUGIN;
-  }
-
   if (backend.includes("/")) {
     return `@${backend}`;
   }
@@ -45,20 +41,12 @@ function resolvePluginName(backend: string): string {
   return `@varlock/${backend}-plugin`;
 }
 
-function secretBackendPrelude(instanceName: string, backend: string): string {
+function secretBackendPrelude(_instanceName: string, backend: string): string {
   if (backend === "none") {
     return "";
   }
 
   const pluginName = resolvePluginName(backend);
-
-  if (backend === "1password") {
-    return `# @plugin(${pluginName})
-# @initOp(token=$OP_TOKEN)
-# @setValuesBulk(opLoadVault(brain-${instanceName}-prod))
-`;
-  }
-
   return `# @plugin(${pluginName})
 `;
 }
@@ -96,14 +84,6 @@ PRIVATE_KEY_PEM=
 function backendBootstrapEnvSchema(backend: string): string {
   if (backend === "none") {
     return "";
-  }
-
-  if (backend === "1password") {
-    return `${BOOTSTRAP_SECTION_HEADER}
-
-# @type=opServiceAccountToken @required @sensitive
-OP_TOKEN=
-`;
   }
 
   return `${BOOTSTRAP_SECTION_HEADER}

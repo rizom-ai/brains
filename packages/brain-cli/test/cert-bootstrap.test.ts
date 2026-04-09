@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from "fs";
-import { basename, join } from "path";
+import { join } from "path";
 import { tmpdir } from "os";
 import {
   bootstrapOriginCertificate,
@@ -263,83 +263,5 @@ describe("origin CA bootstrap", () => {
       env: undefined,
     });
     expect(calls[1]?.stdin).toContain("BEGIN PRIVATE KEY");
-  });
-
-  it("should push certs to 1Password when --push-to 1password is used", async () => {
-    const calls: Array<{
-      command: string;
-      args: string[];
-      stdin?: string | undefined;
-      env?: NodeJS.ProcessEnv | undefined;
-    }> = [];
-    const vaultName = `brain-${basename(testDir)}-prod`;
-
-    const fetchImpl: FetchLike = async (input) => {
-      const url = typeof input === "string" ? input : input.toString();
-
-      if (url.endsWith("/certificates")) {
-        return new Response(
-          JSON.stringify({
-            success: true,
-            result: {
-              certificate:
-                "-----BEGIN CERTIFICATE-----\nFAKECERT\n-----END CERTIFICATE-----\n",
-            },
-          }),
-          { status: 200 },
-        );
-      }
-
-      if (url.endsWith("/settings/ssl")) {
-        return new Response(JSON.stringify({ success: true, result: {} }), {
-          status: 200,
-        });
-      }
-
-      throw new Error(`Unexpected request: ${url}`);
-    };
-
-    const result = await bootstrapOriginCertificate(testDir, {
-      cfApiToken: "cf-token",
-      cfZoneId: "zone-id",
-      fetchImpl,
-      logger: () => {},
-      opToken: "op-token",
-      pushTo: "1password",
-      runCommand: async (command, args, options) => {
-        calls.push({ command, args, stdin: options?.stdin, env: options?.env });
-      },
-    });
-
-    expect(result.domain).toBe("mybrain.example.com");
-    expect(calls).toHaveLength(2);
-    expect(calls[0]).toEqual({
-      command: "op",
-      args: [
-        "document",
-        "create",
-        join(testDir, "origin.pem"),
-        "--vault",
-        vaultName,
-        "--title",
-        "CERTIFICATE_PEM",
-      ],
-      stdin: undefined,
-      env: { OP_SERVICE_ACCOUNT_TOKEN: "op-token" },
-    });
-    expect(calls[1]).toEqual({
-      command: "op",
-      args: [
-        "document",
-        "create",
-        join(testDir, "origin.key"),
-        "--vault",
-        vaultName,
-        "--title",
-        "PRIVATE_KEY_PEM",
-      ],
-      stdin: undefined,
-      env: { OP_SERVICE_ACCOUNT_TOKEN: "op-token" },
-    });
   });
 });

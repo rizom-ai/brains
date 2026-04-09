@@ -126,8 +126,8 @@ describe("brain init", () => {
     it("should create .env.schema with no-plugin default (env-vars only)", () => {
       // Default is --backend none: no @plugin directive, no bootstrap
       // section. varlock load resolves every value from process.env, which
-      // in CI comes from GitHub Actions secrets. Operators who want a real
-      // secret manager opt in via --backend 1password.
+      // in CI comes from GitHub Actions secrets. Operators who want a
+      // varlock plugin pass --backend <name> explicitly.
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
@@ -140,15 +140,6 @@ describe("brain init", () => {
       expect(envSchema).toContain("CERTIFICATE_PEM=");
       expect(envSchema).not.toContain("BRAIN_MODEL=");
       expect(envSchema).not.toContain("BRAIN_DOMAIN=");
-    });
-
-    it("should use 1Password prelude when --backend 1password is selected", () => {
-      scaffold(testDir, { model: "rover", backend: "1password" });
-      const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
-      expect(envSchema).toContain("@plugin(@varlock/1password-plugin)");
-      expect(envSchema).toContain("@initOp(token=$OP_TOKEN)");
-      expect(envSchema).toContain("@setValuesBulk(opLoadVault(brain-");
-      expect(envSchema).toContain("OP_TOKEN=");
     });
 
     it("should fall through for an arbitrary --backend value", () => {
@@ -413,7 +404,7 @@ describe("brain init", () => {
         "utf-8",
       );
       expect(workflow).toContain("npx -y varlock load --format json --compact");
-      expect(workflow).toContain("secrets.OP_TOKEN");
+      expect(workflow).not.toContain("secrets.OP_TOKEN");
       expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");
       expect(workflow).toContain(".kamal/secrets");
       expect(workflow).toContain("Provision server");

@@ -95,8 +95,7 @@ async function runInit(
   if (!target) {
     return {
       success: false,
-      message:
-        "Usage: brain init <directory> [--model rover] [--backend 1password]",
+      message: "Usage: brain init <directory> [--model rover] [--backend none]",
     };
   }
 
@@ -189,7 +188,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  eval          Run AI evaluations (pass-through to brain-eval)",
     "  pin           Pin @rizom/brain version (creates package.json, installs)",
     "  cert:bootstrap Issue Cloudflare Origin CA cert for brain.yaml domain",
-    "  secrets:push  Push env-backed local secrets to 1password or gh",
+    "  secrets:push  Push env-backed local secrets to GitHub Secrets",
     "  tool <name>   Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
@@ -241,11 +240,11 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --model <name>         Brain model (default: rover)",
     "  --domain <domain>      Domain (default: {model}.rizom.ai)",
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
-    "  --backend <name>       Secret backend (default: 1password)",
+    "  --backend <name>       Secret backend (default: none — env vars resolved by varlock)",
     "  --deploy               Include Kamal deploy files (config/deploy.yml, CI, hooks)",
     "",
     "Secret push / cert bootstrap options:",
-    "  --push-to <target>     Push to 1password or gh",
+    "  --push-to <target>     Push target (only `gh` is supported)",
     "  --all                  Include extra keys from the local .env file",
     "  --only <keys>          Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
     "  --dry-run              Show what would be pushed without writing anything",

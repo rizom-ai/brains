@@ -46,9 +46,9 @@ describe("parseArgs", () => {
   });
 
   it("should parse 'secrets:push' with --push-to flag", () => {
-    const result = parseArgs(["secrets:push", "--push-to", "1password"]);
+    const result = parseArgs(["secrets:push", "--push-to", "gh"]);
     expect(result.command).toBe("secrets:push");
-    expect(result.flags["push-to"]).toBe("1password");
+    expect(result.flags["push-to"]).toBe("gh");
   });
 
   it("should parse 'secrets:push' with --all and --only flags", () => {

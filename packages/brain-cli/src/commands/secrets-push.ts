@@ -1,12 +1,7 @@
 import { existsSync, readFileSync } from "fs";
 import { basename, join } from "path";
 import { parseEnv } from "node:util";
-import {
-  normalizePushTarget,
-  resolveOpToken,
-  vaultNameForInstance,
-  type PushTarget,
-} from "../lib/push-target";
+import { normalizePushTarget, type PushTarget } from "../lib/push-target";
 import { pushSecretsToBackend } from "../lib/push-secrets";
 import { type RunCommand } from "../lib/run-subprocess";
 import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
@@ -14,7 +9,6 @@ import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
   logger?: (message: string) => void;
-  opToken?: string | undefined;
   pushTo?: string | undefined;
   all?: boolean | undefined;
   only?: string | undefined;
@@ -26,7 +20,6 @@ export interface SecretsPushResult {
   target: PushTarget;
   pushedKeys: string[];
   skippedKeys: string[];
-  vaultName?: string | undefined;
   dryRun?: boolean | undefined;
 }
 
@@ -35,11 +28,13 @@ interface SchemaSecretInfo {
   required: boolean;
 }
 
+// Cert PEMs are stored separately by `brain cert:bootstrap`, never via
+// secrets push. Filter them out so a stray entry in .env can't end up
+// pushed twice with stale content.
 const CERTIFICATE_SECRET_NAMES = new Set([
   "CERTIFICATE_PEM",
   "PRIVATE_KEY_PEM",
 ]);
-const BOOTSTRAP_SECRET_NAMES = new Set(["OP_TOKEN"]);
 
 export async function runSecretsPush(
   cwd: string,
@@ -67,9 +62,7 @@ export async function pushSecrets(
 ): Promise<SecretsPushResult> {
   const target = normalizePushTarget(options.pushTo);
   if (!target) {
-    throw new Error(
-      "Missing --push-to value. Use --push-to 1password or --push-to gh",
-    );
+    throw new Error("Missing --push-to value. Use --push-to gh");
   }
   const logger = options.logger ?? console.log;
   const env = options.env ?? process.env;
@@ -102,14 +95,8 @@ export async function pushSecrets(
   const pushedSecretNames = pushedKeys.map(([key]) => key);
 
   if (options.dryRun) {
-    const vaultName =
-      target === "1password" ? vaultNameForInstance(cwd) : undefined;
-    const destination =
-      target === "1password"
-        ? `1Password vault ${vaultName}`
-        : "GitHub Secrets";
     logger(
-      `Dry run: would push ${pushedSecretNames.length} secrets to ${destination}.`,
+      `Dry run: would push ${pushedSecretNames.length} secrets to GitHub Secrets.`,
     );
     if (pushedSecretNames.length > 0) {
       logger(`Secrets: ${pushedSecretNames.join(", ")}`);
@@ -118,17 +105,14 @@ export async function pushSecrets(
 
     return {
       target,
-      vaultName,
       pushedKeys: pushedSecretNames,
       skippedKeys,
       dryRun: true,
     };
   }
 
-  const opToken = resolveOpToken(env, options.opToken);
-  const result = await pushSecretsToBackend(target, pushedKeys, {
+  await pushSecretsToBackend(target, pushedKeys, {
     cwd,
-    opToken,
     runCommand: options.runCommand,
     logger,
   });
@@ -137,7 +121,6 @@ export async function pushSecrets(
 
   return {
     target,
-    vaultName: result.vaultName,
     pushedKeys: pushedSecretNames,
     skippedKeys,
   };
@@ -208,7 +191,7 @@ function readSecretSchema(schemaPath: string | undefined): SchemaSecretInfo[] {
       continue;
     }
 
-    if (BOOTSTRAP_SECRET_NAMES.has(key) || CERTIFICATE_SECRET_NAMES.has(key)) {
+    if (CERTIFICATE_SECRET_NAMES.has(key)) {
       nextIsRequired = false;
       continue;
     }
@@ -300,7 +283,7 @@ function selectCandidateKeys(
 }
 
 function isPushableKey(key: string): boolean {
-  return !BOOTSTRAP_SECRET_NAMES.has(key) && !CERTIFICATE_SECRET_NAMES.has(key);
+  return !CERTIFICATE_SECRET_NAMES.has(key);
 }
 
 function splitMissingSecrets(
