@@ -1,7 +1,14 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
 
-const DEFAULT_SECRET_BACKEND = "1password";
+// "none" means: no varlock plugin in the schema. Values resolve from
+// process.env (and therefore from CI secrets) directly. This is the
+// default so that brain init works for any operator without forcing a
+// 1Password / Bitwarden / Vault subscription. Operators who want a real
+// secret manager opt in via --backend 1password (the only varlock backend
+// today that ships a working bulk-load plugin — see
+// docs/plans/bitwarden-secret-backend.md for the rejected alternative).
+const DEFAULT_SECRET_BACKEND = "none";
 const ONE_PASSWORD_PLUGIN = "@varlock/1password-plugin";
 
 // Section header consumed by `secrets-push` to identify keys that
@@ -23,7 +30,7 @@ function resolvePluginName(backend: string): string {
     return backend;
   }
 
-  if (backend === DEFAULT_SECRET_BACKEND) {
+  if (backend === "1password") {
     return ONE_PASSWORD_PLUGIN;
   }
 
@@ -39,9 +46,13 @@ function resolvePluginName(backend: string): string {
 }
 
 function secretBackendPrelude(instanceName: string, backend: string): string {
+  if (backend === "none") {
+    return "";
+  }
+
   const pluginName = resolvePluginName(backend);
 
-  if (backend === DEFAULT_SECRET_BACKEND) {
+  if (backend === "1password") {
     return `# @plugin(${pluginName})
 # @initOp(token=$OP_TOKEN)
 # @setValuesBulk(opLoadVault(brain-${instanceName}-prod))
@@ -83,7 +94,11 @@ PRIVATE_KEY_PEM=
 `;
 
 function backendBootstrapEnvSchema(backend: string): string {
-  if (backend === DEFAULT_SECRET_BACKEND) {
+  if (backend === "none") {
+    return "";
+  }
+
+  if (backend === "1password") {
     return `${BOOTSTRAP_SECTION_HEADER}
 
 # @type=opServiceAccountToken @required @sensitive

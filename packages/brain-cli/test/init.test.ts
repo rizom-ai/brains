@@ -123,24 +123,39 @@ describe("brain init", () => {
       expect(envExample).toContain("PRIVATE_KEY_PEM=");
     });
 
-    it("should create .env.schema", () => {
+    it("should create .env.schema with no-plugin default (env-vars only)", () => {
+      // Default is --backend none: no @plugin directive, no bootstrap
+      // section. varlock load resolves every value from process.env, which
+      // in CI comes from GitHub Actions secrets. Operators who want a real
+      // secret manager opt in via --backend 1password.
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, ".env.schema"))).toBe(true);
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
-      expect(envSchema).toContain("@plugin(@varlock/1password-plugin)");
-      expect(envSchema).toContain("@setValuesBulk(opLoadVault(brain-");
+      expect(envSchema).not.toContain("@plugin(");
+      expect(envSchema).not.toContain("@initOp");
+      expect(envSchema).not.toContain("@setValuesBulk");
+      expect(envSchema).not.toContain("OP_TOKEN=");
+      expect(envSchema).not.toContain("secret backend bootstrap");
       expect(envSchema).toContain("HCLOUD_TOKEN=");
       expect(envSchema).toContain("CERTIFICATE_PEM=");
-      expect(envSchema).toContain("OP_TOKEN=");
       expect(envSchema).not.toContain("BRAIN_MODEL=");
       expect(envSchema).not.toContain("BRAIN_DOMAIN=");
     });
 
-    it("should use the selected backend in .env.schema", () => {
-      scaffold(testDir, { model: "rover", backend: "env" });
+    it("should use 1Password prelude when --backend 1password is selected", () => {
+      scaffold(testDir, { model: "rover", backend: "1password" });
+      const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+      expect(envSchema).toContain("@plugin(@varlock/1password-plugin)");
+      expect(envSchema).toContain("@initOp(token=$OP_TOKEN)");
+      expect(envSchema).toContain("@setValuesBulk(opLoadVault(brain-");
+      expect(envSchema).toContain("OP_TOKEN=");
+    });
+
+    it("should fall through for an arbitrary --backend value", () => {
+      scaffold(testDir, { model: "rover", backend: "doppler" });
 
       const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
-      expect(envSchema).toContain("@plugin(@varlock/env-plugin)");
+      expect(envSchema).toContain("@plugin(@varlock/doppler-plugin)");
       expect(envSchema).not.toContain("@initOp(token=$OP_TOKEN)");
       expect(envSchema).not.toContain("OP_TOKEN=");
     });
