@@ -7,14 +7,7 @@ import { registerModel, resetModels } from "../src/lib/model-registry";
 
 describe("brain start", () => {
   it("should detect brain.yaml in target directory", () => {
-    const appDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "apps",
-      "professional-brain",
-    );
+    const appDir = join(import.meta.dir, "..", "..", "..", "apps", "yeehaa.io");
     expect(existsSync(join(appDir, "brain.yaml"))).toBe(true);
   });
 
@@ -67,14 +60,7 @@ describe("resolveRunnerType", () => {
   });
 
   it("should return 'monorepo' for current project", () => {
-    const appDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "apps",
-      "professional-brain",
-    );
+    const appDir = join(import.meta.dir, "..", "..", "..", "apps", "yeehaa.io");
     expect(resolveRunnerType(appDir)).toBe("monorepo");
   });
 });

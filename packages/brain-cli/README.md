@@ -19,7 +19,7 @@ echo "AI_API_KEY=your-key-here" > .env
 brain start
 ```
 
-If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init --deploy`, then run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying.
+If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init mybrain --deploy`, then run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying.
 
 ## Requirements
 

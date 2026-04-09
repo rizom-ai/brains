@@ -1,8 +1,8 @@
 {
-  "name": "@brains/site-default",
+  "name": "@brains/site-composition",
   "private": true,
   "version": "0.1.0",
-  "description": "Default structural site package — clean professional layout for rover",
+  "description": "Shared site composition contract and merge helpers",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -16,8 +16,8 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/site-composition": "workspace:*",
-    "@brains/site-professional": "workspace:*"
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

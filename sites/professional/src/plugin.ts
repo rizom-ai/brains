@@ -169,7 +169,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
  * Factory function to create the plugin
  */
 export function professionalSitePlugin(
-  config: ProfessionalSiteConfigInput,
+  config?: ProfessionalSiteConfigInput,
 ): Plugin {
-  return new ProfessionalSitePlugin(config);
+  return new ProfessionalSitePlugin(config ?? {});
 }

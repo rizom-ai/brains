@@ -8,7 +8,7 @@
  */
 
 export type { Plugin } from "@brains/plugins";
-export type { SitePackage } from "@brains/app";
+export type { SitePackage } from "@brains/site-composition";
 
 export {
   personalSitePlugin,

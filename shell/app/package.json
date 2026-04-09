@@ -15,6 +15,7 @@
   "dependencies": {
     "@brains/core": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*"
   },

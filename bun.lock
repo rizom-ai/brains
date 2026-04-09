@@ -527,7 +527,7 @@
     },
     "packages/brain-cli": {
       "name": "@rizom/brain",
-      "version": "0.1.1-alpha.6",
+      "version": "0.1.1-alpha.7",
       "bin": {
         "brain": "./dist/brain.js",
       },
@@ -547,6 +547,7 @@
         "@brains/mcp-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/rover": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/site-personal": "workspace:*",
         "@brains/site-professional": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -843,6 +844,20 @@
         "typescript": "^5.3.3",
       },
     },
+    "shared/site-composition": {
+      "name": "@brains/site-composition",
+      "version": "0.1.0",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shared/test-utils": {
       "name": "@brains/test-utils",
       "version": "0.1.0",
@@ -1100,6 +1115,7 @@
       "dependencies": {
         "@brains/core": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
       },
@@ -1287,10 +1303,8 @@
       "name": "@brains/site-default",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/plugins": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/site-professional": "workspace:*",
-        "preact": "^10.27.2",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1305,9 +1319,9 @@
       "dependencies": {
         "@brains/blog": "workspace:*",
         "@brains/identity-service": "workspace:*",
-        "@brains/layout-personal": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -1330,9 +1344,9 @@
         "@brains/blog": "workspace:*",
         "@brains/decks": "workspace:*",
         "@brains/identity-service": "workspace:*",
-        "@brains/layout-professional": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/site-info": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
@@ -1352,9 +1366,9 @@
       "name": "@brains/site-ranger",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/app": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1371,9 +1385,9 @@
       "name": "@brains/site-rizom",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/app": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
+        "@brains/site-composition": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1390,10 +1404,8 @@
       "name": "@brains/site-yeehaa",
       "version": "0.1.0",
       "dependencies": {
-        "@brains/app": "workspace:*",
-        "@brains/plugins": "workspace:*",
-        "@brains/site-professional": "workspace:*",
-        "preact": "^10.27.2",
+        "@brains/site-composition": "workspace:*",
+        "@brains/site-default": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
@@ -1523,6 +1535,8 @@
     "@brains/series": ["@brains/series@workspace:entities/series"],
 
     "@brains/site-builder-plugin": ["@brains/site-builder-plugin@workspace:plugins/site-builder"],
+
+    "@brains/site-composition": ["@brains/site-composition@workspace:shared/site-composition"],
 
     "@brains/site-content": ["@brains/site-content@workspace:plugins/site-content"],
 

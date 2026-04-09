@@ -1,4 +1,4 @@
-import { extendSite, type SitePackage } from "@brains/app";
+import { extendSite } from "@brains/site-composition";
 import siteDefault from "@brains/site-default";
 
 /**
@@ -7,7 +7,7 @@ import siteDefault from "@brains/site-default";
  * Provides the structure and content naming for the yeehaa site.
  * Pair it with `@brains/theme-brutalist` for the CRT-style neon styling.
  */
-const site: SitePackage = extendSite(siteDefault, {
+const site = extendSite(siteDefault, {
   entityDisplay: {
     post: { label: "Essay" },
     deck: { label: "Presentation" },

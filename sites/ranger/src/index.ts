@@ -1,4 +1,5 @@
 import type { Plugin } from "@brains/plugins";
+import type { SitePackage } from "@brains/site-composition";
 import {
   DefaultLayout,
   DefaultCTALayout,
@@ -6,7 +7,6 @@ import {
   CTAFooterLayout,
 } from "./layouts";
 import { routes as defaultRoutes } from "./routes";
-import type { SitePackage } from "@brains/app";
 import { RangerSitePlugin } from "./plugin";
 
 /**

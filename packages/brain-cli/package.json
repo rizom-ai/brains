@@ -51,6 +51,7 @@
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/rover": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/site-personal": "workspace:*",
     "@brains/site-professional": "workspace:*",
     "@brains/typescript-config": "workspace:*",

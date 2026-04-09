@@ -33,7 +33,7 @@ export interface ScaffoldOptions {
  *
  * Minimal scaffold (default): brain.yaml + package.json + README.md +
  *   .env.example + .gitignore + tsconfig.json
- * Full scaffold (--deploy):   adds config/deploy.yml, Kamal hooks, CI workflow
+ * Full scaffold (`brain init <dir> --deploy`): adds config/deploy.yml, Kamal hooks, CI workflow
  *
  * Idempotent: on an existing directory, only missing conventional
  * artifacts are created. Existing `brain.yaml` is treated as the

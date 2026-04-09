@@ -27,9 +27,7 @@ export interface CertBootstrapResult {
 const certBootstrapEnvSchema = z
   .object({
     CF_API_TOKEN: z.string().min(1).optional(),
-    CLOUDFLARE_API_TOKEN: z.string().min(1).optional(),
     CF_ZONE_ID: z.string().min(1).optional(),
-    CLOUDFLARE_ZONE_ID: z.string().min(1).optional(),
   })
   .passthrough();
 
@@ -62,9 +60,8 @@ export async function bootstrapOriginCertificate(
   }
 
   const env = certBootstrapEnvSchema.parse(process.env);
-  const cfApiToken =
-    options.cfApiToken ?? env.CF_API_TOKEN ?? env.CLOUDFLARE_API_TOKEN;
-  const cfZoneId = options.cfZoneId ?? env.CF_ZONE_ID ?? env.CLOUDFLARE_ZONE_ID;
+  const cfApiToken = options.cfApiToken ?? env.CF_API_TOKEN;
+  const cfZoneId = options.cfZoneId ?? env.CF_ZONE_ID;
 
   if (!cfApiToken) {
     throw new Error("Missing CF_API_TOKEN");

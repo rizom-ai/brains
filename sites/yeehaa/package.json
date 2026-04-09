@@ -16,10 +16,8 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/app": "workspace:*",
-    "@brains/plugins": "workspace:*",
-    "@brains/site-default": "workspace:*",
-    "preact": "^10.27.2"
+    "@brains/site-composition": "workspace:*",
+    "@brains/site-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

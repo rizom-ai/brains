@@ -1,10 +1,5 @@
-import type { Plugin } from "@brains/plugins";
-import {
-  professionalSitePlugin,
-  ProfessionalLayout,
-  routes,
-} from "@brains/site-professional";
-import type { SitePackage } from "@brains/app";
+import { extendSite } from "@brains/site-composition";
+import siteProfessional from "@brains/site-professional";
 
 /**
  * Rover default site package — clean professional layout.
@@ -13,43 +8,6 @@ import type { SitePackage } from "@brains/app";
  * experience for the rover brain model. Pair it with
  * `@brains/theme-default` for the standard blue/orange styling.
  */
-const site: SitePackage = {
-  layouts: {
-    default: ProfessionalLayout,
-  },
-  routes,
-  plugin: (config?: Record<string, unknown>): Plugin =>
-    professionalSitePlugin(config ?? {}),
-  entityDisplay: {
-    post: { label: "Post" },
-    deck: { label: "Deck" },
-    project: { label: "Project" },
-    series: {
-      label: "Series",
-      navigation: { slot: "secondary" },
-    },
-    topic: {
-      label: "Topic",
-      navigation: { slot: "secondary" },
-    },
-    link: {
-      label: "Link",
-      navigation: { slot: "secondary" },
-    },
-    base: {
-      label: "Note",
-      navigation: { show: false },
-    },
-    "social-post": {
-      label: "Social Post",
-      pluralName: "social-posts",
-      navigation: { slot: "secondary" },
-    },
-    newsletter: {
-      label: "Newsletter",
-      navigation: { slot: "secondary" },
-    },
-  },
-};
+const site = extendSite(siteProfessional, {});
 
 export default site;

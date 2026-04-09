@@ -1,6 +1,6 @@
-import type { Plugin } from "@brains/plugins";
-import type { SitePackage } from "@brains/app";
+import type { SitePackage } from "@brains/site-composition";
 import { ProfessionalSitePlugin, professionalSitePlugin } from "./plugin";
+import type { ProfessionalSiteConfigInput } from "./config";
 import { routes } from "./routes";
 import {
   HomepageListLayout,
@@ -30,13 +30,12 @@ export {
   ProfessionalLayout,
 };
 
-const site: SitePackage = {
+const site: SitePackage<ProfessionalSiteConfigInput> = {
   layouts: {
     default: ProfessionalLayout,
   },
   routes,
-  plugin: (config?: Record<string, unknown>): Plugin =>
-    professionalSitePlugin(config ?? {}),
+  plugin: professionalSitePlugin,
   entityDisplay: {
     post: { label: "Post" },
     deck: { label: "Deck" },

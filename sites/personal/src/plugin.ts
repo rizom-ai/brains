@@ -110,8 +110,6 @@ export class PersonalSitePlugin extends ServicePlugin<PersonalSiteConfig> {
   }
 }
 
-export function personalSitePlugin(
-  config: PersonalSiteConfigInput = {},
-): Plugin {
-  return new PersonalSitePlugin(config);
+export function personalSitePlugin(config?: PersonalSiteConfigInput): Plugin {
+  return new PersonalSitePlugin(config ?? {});
 }

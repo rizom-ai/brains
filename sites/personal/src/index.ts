@@ -1,4 +1,4 @@
-import type { SitePackage } from "@brains/app";
+import type { SitePackage } from "@brains/site-composition";
 import {
   PersonalSitePlugin,
   personalSitePlugin,
@@ -25,12 +25,12 @@ export {
   PersonalLayout,
 };
 
-const site: SitePackage = {
+const site: SitePackage<PersonalSiteConfigInput> = {
   layouts: {
     default: PersonalLayout,
   },
   routes,
-  plugin: (config?: Record<string, unknown>) => personalSitePlugin(config),
+  plugin: personalSitePlugin,
   entityDisplay: {
     post: { label: "Post" },
     series: {

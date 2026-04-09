@@ -112,7 +112,7 @@ cd apps/yeehaa.io
 brain start                # MCP stdio (default)
 brain start --cli          # attach the chat REPL
 brain init mybrain         # scaffold a new instance directory
-brain init mybrain --deploy   # scaffold + Kamal deploy.yml + CI workflow
+brain init mybrain --deploy   # scaffold + config/deploy.yml + CI workflow
 brain diagnostics search
 brain diagnostics usage
 ```

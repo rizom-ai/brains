@@ -14,8 +14,8 @@ function readOverrides(
 }
 
 describe("brain.yaml site theme pairing", () => {
-  test("professional-brain keeps the yeehaa site paired with the brutalist theme", () => {
-    const overrides = readOverrides("apps/professional-brain/brain.yaml");
+  test("yeehaa.io keeps the yeehaa site paired with the brutalist theme", () => {
+    const overrides = readOverrides("apps/yeehaa.io/brain.yaml");
 
     expect(overrides.site).toEqual({
       package: "@brains/site-yeehaa",
@@ -23,10 +23,8 @@ describe("brain.yaml site theme pairing", () => {
     });
   });
 
-  test("professional-brain deploy config keeps the yeehaa site paired with the brutalist theme", () => {
-    const overrides = readOverrides(
-      "apps/professional-brain/deploy/brain.yaml",
-    );
+  test("yeehaa.io deploy config keeps the yeehaa site paired with the brutalist theme", () => {
+    const overrides = readOverrides("apps/yeehaa.io/deploy/brain.yaml");
 
     expect(overrides.site).toEqual({
       package: "@brains/site-yeehaa",

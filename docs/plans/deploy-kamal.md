@@ -382,7 +382,7 @@ Verified working on the pre-Kamal infra. There, the in-container Caddy terminate
 
 Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain cert:bootstrap`).
 
-1. `brain init --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
+1. `brain init <dir> --deploy --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
 2. `brain cert:bootstrap` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml, writes `origin.pem` + `origin.key` locally. See "One-time bootstrap" above.
 3. Push cert + key into the instance's secret store as `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM`.
 4. Push to GitHub → CI provisions server, sets DNS (proxied), deploys.

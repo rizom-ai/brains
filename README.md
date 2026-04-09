@@ -164,7 +164,7 @@ deploy/scripts/build-docker-image.sh rover latest
 
 # Or, on a host with Kamal installed:
 cd apps/<your-instance>
-brain init . --deploy   # one-time scaffold of deploy.yml + Kamal hooks
+brain init . --deploy   # one-time scaffold of config/deploy.yml + Kamal hooks
 kamal deploy
 ```
 

@@ -1,5 +1,5 @@
 import type { Plugin } from "@brains/plugins";
-import type { SitePackage } from "@brains/app";
+import type { SitePackage } from "@brains/site-composition";
 import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };

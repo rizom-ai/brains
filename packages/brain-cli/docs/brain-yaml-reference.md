@@ -291,7 +291,7 @@ Notes:
 
 ## Deploy/bootstrap environment variables
 
-These are not usually interpolated directly inside `brain.yaml`, but they show up in the deploy and bootstrap docs for `brain init --deploy` + `brain cert:bootstrap`.
+These are not usually interpolated directly inside `brain.yaml`, but they show up in the deploy and bootstrap docs for `brain init <dir> --deploy` + `brain cert:bootstrap`.
 
 | Variable                  | Typical use                                  |
 | ------------------------- | -------------------------------------------- |

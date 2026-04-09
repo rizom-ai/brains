@@ -72,7 +72,7 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 ### CLI ✅
 
 - `brain init <dir>` — scaffolds brain.yaml, .env.example, .gitignore
-- `brain init --deploy` — adds config/deploy.yml, Kamal hooks, CI workflow
+- `brain init <dir> --deploy` — adds config/deploy.yml, Kamal hooks, CI workflow
 - `brain start` — dual-path boot (monorepo subprocess + bundled in-process)
 - `brain chat` — interactive chat REPL
 - `brain eval` — evaluation pass-through

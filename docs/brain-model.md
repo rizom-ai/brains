@@ -28,7 +28,7 @@ apps/
     .gitignore
     tsconfig.json           # JSX runtime hint for Bun
     package.json            # Local execution boundary + dependency pinning
-    config/deploy.yml       # (optional, only with `brain init --deploy`)
+    config/deploy.yml       # (optional, only with `brain init <dir> --deploy`)
 ```
 
 ## brain.yaml
@@ -344,7 +344,7 @@ apps/yeehaa.io/               # Production instance
 ├── .env                      # Production secrets (gitignored)
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
-├── config/deploy.yml         # Kamal deploy config (with `brain init --deploy`)
+├── config/deploy.yml         # Kamal deploy config (with `brain init <dir> --deploy`)
 └── .kamal/hooks/             # Kamal lifecycle hooks
 ```
 

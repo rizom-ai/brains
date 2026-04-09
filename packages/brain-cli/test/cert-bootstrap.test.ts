@@ -132,6 +132,63 @@ describe("origin CA bootstrap", () => {
     expect(mode).toBe(0o600);
   });
 
+  it("should read CF_API_TOKEN and CF_ZONE_ID from the environment", async () => {
+    const originalCfApiToken = process.env["CF_API_TOKEN"];
+    const originalCfZoneId = process.env["CF_ZONE_ID"];
+
+    process.env["CF_API_TOKEN"] = "cf-token";
+    process.env["CF_ZONE_ID"] = "zone-id";
+
+    try {
+      const calls: string[] = [];
+      const fetchImpl: FetchLike = async (input) => {
+        const url = typeof input === "string" ? input : input.toString();
+        calls.push(url);
+
+        if (url.endsWith("/certificates")) {
+          return new Response(
+            JSON.stringify({
+              success: true,
+              result: {
+                certificate:
+                  "-----BEGIN CERTIFICATE-----\nFAKECERT\n-----END CERTIFICATE-----\n",
+              },
+            }),
+            { status: 200 },
+          );
+        }
+
+        if (url.endsWith("/settings/ssl")) {
+          return new Response(JSON.stringify({ success: true, result: {} }), {
+            status: 200,
+          });
+        }
+
+        throw new Error(`Unexpected request: ${url}`);
+      };
+
+      const result = await bootstrapOriginCertificate(testDir, {
+        fetchImpl,
+        logger: () => {},
+      });
+
+      expect(result.domain).toBe("mybrain.example.com");
+      expect(calls).toHaveLength(2);
+    } finally {
+      if (originalCfApiToken === undefined) {
+        delete process.env["CF_API_TOKEN"];
+      } else {
+        process.env["CF_API_TOKEN"] = originalCfApiToken;
+      }
+
+      if (originalCfZoneId === undefined) {
+        delete process.env["CF_ZONE_ID"];
+      } else {
+        process.env["CF_ZONE_ID"] = originalCfZoneId;
+      }
+    }
+  });
+
   it("should return a friendly failure result when prerequisites are missing", async () => {
     rmSync(join(testDir, "brain.yaml"));
     const missingPrereqFetch: FetchLike = async () =>
