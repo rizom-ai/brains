@@ -52,11 +52,11 @@ It contains the deploy and provisioning placeholders needed by the current Kamal
 
 ### 3. `apps/rizom-ai/.env.schema` now exists as a committed artifact
 
-The schema is generated from the ranger model template plus the deploy / provisioning / TLS / backend bootstrap sections.
+The schema is generated from the ranger model template plus the deploy / provisioning / TLS sections.
 
-### 4. `.github/workflows/rizom-ai-deploy.yml` now consumes env via varlock
+### 4. `.github/workflows/rizom-ai-deploy.yml` now validates GitHub Actions secrets through varlock
 
-The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It loads the instance schema, exports env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
+The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It passes the deploy/runtime values from GitHub Actions secrets into `varlock load`, exports the validated env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
 
 ### 5. Auto-provision step (already wired into the workflow)
 
@@ -74,15 +74,15 @@ These run once per rizom-ai instance and never again.
    - `KAMAL_REGISTRY_PASSWORD` — GitHub → Settings → Developer settings → Personal access tokens. Scope `read:packages`.
 4. **Capture `CF_ZONE_ID`** from the Cloudflare dashboard (Overview tab, right column).
 5. **Create `rizom-ai/rizom-ai-content` GitHub repo.** `gh repo create rizom-ai/rizom-ai-content --private`. Push current `apps/rizom-ai/brain-data/` into it. directory-sync clones it on first boot.
-6. **Run `brain cert:bootstrap --push-to 1password` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues 15-year Origin CA cert + sets zone SSL mode to Full (strict). Pushes `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` straight into the default 1Password vault.
-7. **Run `brain secrets:push --push-to 1password`** to sync the remaining env-backed deploy secrets into the brains repo vault (default `brain-rizom-ai-prod`). Use `--dry-run` first if you want to preview the upload:
+6. **Run `brain cert:bootstrap` in `apps/rizom-ai/`** with `CF_API_TOKEN` and `CF_ZONE_ID` set in env. Issues the 15-year Origin CA cert + sets zone SSL mode to Full (strict). Store `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in GitHub Actions secrets for this repo, then delete `origin.pem` and `origin.key` locally.
+7. **Store the deploy/runtime env in GitHub Actions secrets** for this repo:
    - `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`
-   - `KAMAL_SSH_PRIVATE_KEY` (from step 2)
+   - `KAMAL_SSH_PRIVATE_KEY`
    - `KAMAL_REGISTRY_PASSWORD`
    - `CF_API_TOKEN`, `CF_ZONE_ID`
    - `AI_API_KEY`, `GIT_SYNC_TOKEN`, `MCP_AUTH_TOKEN`
 
-   Keep only the backend bootstrap credential (`OP_TOKEN`) in GitHub Actions secrets, and use `OP_SERVICE_ACCOUNT_TOKEN` locally. Then delete `origin.pem` and `origin.key` locally.
+   The deploy workflow passes those secrets into `varlock load`, so `.env.schema` remains the contract and there is no separate backend bootstrap credential.
 
 ## Verifications
 

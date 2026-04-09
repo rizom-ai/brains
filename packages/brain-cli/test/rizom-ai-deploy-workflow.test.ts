@@ -35,4 +35,31 @@ describe("rizom-ai deploy workflow", () => {
 
     expect(workflow).toContain("workflow_dispatch:");
   });
+
+  it("passes GitHub Actions secrets into varlock without OP_TOKEN", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toContain("varlock load");
+    expect(workflow).not.toContain("OP_TOKEN");
+    expect(workflow).toContain("AI_API_KEY: ${{ secrets.AI_API_KEY }}");
+    expect(workflow).toContain("GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}");
+    expect(workflow).toContain("HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}");
+    expect(workflow).toContain(
+      "HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}",
+    );
+    expect(workflow).toContain(
+      "KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}",
+    );
+    expect(workflow).toContain(
+      "KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}",
+    );
+    expect(workflow).toContain("CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}");
+    expect(workflow).toContain("CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}");
+    expect(workflow).toContain(
+      "CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}",
+    );
+    expect(workflow).toContain(
+      "PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}",
+    );
+  });
 });

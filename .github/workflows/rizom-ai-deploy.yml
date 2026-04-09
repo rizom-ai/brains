@@ -33,7 +33,19 @@ jobs:
 
       - name: Load env via varlock
         env:
-          OP_TOKEN: ${{ secrets.OP_TOKEN }}
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}
+          AI_IMAGE_KEY: ${{ secrets.AI_IMAGE_KEY }}
+          GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}
+          MCP_AUTH_TOKEN: ${{ secrets.MCP_AUTH_TOKEN }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
+          PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
         run: |
           npx -y varlock load --format json --compact > /tmp/varlock-env.json
           node <<'NODE'
