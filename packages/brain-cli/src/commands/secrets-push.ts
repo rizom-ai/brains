@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { basename, join } from "path";
+import { parseEnv } from "node:util";
 import {
   normalizePushTarget,
   resolveOpToken,
@@ -213,39 +214,17 @@ function readLocalEnvValues(envPath: string): Record<string, string> {
     return {};
   }
 
-  const content = readFileSync(envPath, "utf-8");
+  // node:util parseEnv handles comments, blanks, single/double quotes,
+  // and the `export ` prefix. We then filter to UPPER_SNAKE_CASE so
+  // shell-style locals (e.g. `nodeEnv=...`) can't be pushed as secrets
+  // via --all.
+  const parsed = parseEnv(readFileSync(envPath, "utf-8"));
   const values: Record<string, string> = {};
-
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
+      values[key] = value;
     }
-
-    const exportedLine = line.startsWith("export ")
-      ? line.slice(7).trim()
-      : line;
-    const equalsIndex = exportedLine.indexOf("=");
-    if (equalsIndex <= 0) {
-      continue;
-    }
-
-    const key = exportedLine.slice(0, equalsIndex).trim();
-    if (!/^[A-Z][A-Z0-9_]*$/.test(key)) {
-      continue;
-    }
-
-    let value = exportedLine.slice(equalsIndex + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-
-    values[key] = value;
   }
-
   return values;
 }
 
