@@ -18,8 +18,12 @@
 import { registerModel } from "../src/lib/model-registry";
 
 import rover from "@brains/rover";
+import ranger from "@brains/ranger";
+import relay from "@brains/relay";
 
 registerModel("rover", rover);
+registerModel("ranger", ranger);
+registerModel("relay", relay);
 
 // ─── Register boot function ───────────────────────────────────────────────
 

@@ -6,7 +6,7 @@
  * (monorepo — falls back to subprocess runner).
  */
 
-const AVAILABLE_MODELS = ["rover"] as const;
+const AVAILABLE_MODELS = ["rover", "ranger", "relay"] as const;
 
 export type ModelName = (typeof AVAILABLE_MODELS)[number];
 

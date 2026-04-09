@@ -24,10 +24,10 @@ Single Bun build. The CLI _is_ the runtime — no subprocess, no IPC, no spawn.
   dist/brain.js (~6MB, Bun target)
     ├── CLI commands (init, start, list, eval, --remote)
     ├── Runtime (shell, plugins, entities, sites, themes)
-    └── Model (rover — v0.1.0 ships rover only)
+    └── Models (rover + ranger + relay bundled for runtime compatibility)
 ```
 
-**v0.1.0 ships rover only.** Ranger and relay are not bundled — they'll be added in a future release once they have more eval coverage.
+**Bundled model set:** `@rizom/brain` must bundle every in-tree brain model that a scaffolded or checked-in app instance can declare in `brain.yaml`. That currently means `rover`, `ranger`, and `relay`. `rover` remains the public reference model, but `ranger` and `relay` also ship in the runtime package so published-path app instances like `apps/rizom-ai` and `apps/rizom-foundation` can boot without depending on monorepo source resolution.
 
 `brain start` imports the model and calls `App.create(config).run()` directly. Same process, same event loop. This means:
 

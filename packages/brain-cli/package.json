@@ -50,6 +50,8 @@
     "@brains/eslint-config": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/ranger": "workspace:*",
+    "@brains/relay": "workspace:*",
     "@brains/rover": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/site-personal": "workspace:*",
