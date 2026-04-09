@@ -1,6 +1,6 @@
 # Brains Project Roadmap
 
-Last Updated: 2026-04-08
+Last Updated: 2026-04-09
 
 ---
 
@@ -16,7 +16,7 @@ Brain model/instance split (`defineBrain()` + `brain.yaml`), layouts workspace, 
 
 ### Site Packages (2026-03)
 
-Extracted theme + layout + routes into reusable packages: site-default, site-yeehaa, site-ranger, site-mylittlephoney. Brain models reference a default site; instances override via `brain.yaml`.
+Extracted theme + layout + routes into reusable packages: site-default, site-yeehaa, site-ranger. Brain models reference a default site; instances override via `brain.yaml`.
 
 ### Enable-Based Presets (2026-03)
 
@@ -169,7 +169,7 @@ Last public-API change before v0.1.0 stabilizes. `CapabilityEntry` now accepts f
 
 ### Apps as Lightweight Instance Packages (2026-04)
 
-App instances are no longer workspace members, but they are not pure config blobs either. The `apps/*` glob was removed from `package.json` workspaces; each `apps/<name>/` directory is now a lightweight instance package centered on `brain.yaml`, plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts (`deploy.yml`, `.kamal/`, GitHub workflow). The `brain` CLI consumes these directories at runtime against the brain model package they reference. This keeps instances lightweight without losing a real local execution and deploy boundary.
+App instances are no longer workspace members, but they are not pure config blobs either. The `apps/*` glob was removed from `package.json` workspaces; each `apps/<name>/` directory is now a lightweight instance package centered on `brain.yaml`, plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts (`config/deploy.yml`, `.kamal/`, GitHub workflow). The `brain` CLI consumes these directories at runtime against the brain model package they reference. This keeps instances lightweight without losing a real local execution and deploy boundary.
 
 ### Brain Init Scaffold (2026-04)
 
@@ -183,30 +183,49 @@ Groundwork for the three rizom-branded sites (rizom.ai, rizom.foundation, rizom.
 
 Non-destructive audit pass on HEAD: gitleaks scan, PII sweep, fork-safety review of `.github/workflows/*` (publish-images now gated on `github.repository`, multi-arch + release tags + cache). Mechanical rewrites to test fixtures and example references in `shell/app/` and `packages/brain-cli/docs/` to use generic placeholders instead of private package names. `directory-sync` default `authorEmail` neutralized. Decisions in `docs/plans/public-release-cleanup.md` revised: apps stay public as lightweight instance packages, `brains/{ranger,relay}` ship as public source (no published artifacts), `apps/mylittlephoney` extracted to a standalone private repo. ([plan](./plans/public-release-cleanup.md))
 
+### Theme/Site Decoupling (2026-04)
+
+`SitePackage.theme` field removed. Themes resolved independently by `brain-resolver` via a new `resolveTheme` sibling of `resolveSitePackage`. `composeTheme()` moved into the resolver — theme packages now export raw CSS. `BrainDefinition` gained a `theme` field. Convention discovery added: standalone repos with `src/site.ts` and/or `src/theme.css` auto-register under synthetic package refs when `site.package` / `site.theme` are omitted. `brain init` scaffolds both files. `@rizom/brain/site` widened to expose both personal and professional site authoring symbols under one public subpath. ([plan](./plans/standalone-site-authoring.md))
+
+### Library Exports — Tier 1 (2026-04)
+
+`@rizom/brain/site` subpath ships: `personalSitePlugin`, `professionalSitePlugin`, layout components, `SitePackage` + layout types. Separate bundle via `Bun.build`, hand-written `.d.ts` contract (auto-generation deferred pending stable type graph). `@rizom/brain/themes` (Tier 2 partial) added to re-export `composeTheme` from `@brains/theme-base` — needed to unblock the `mylittlephoney` extraction. Remaining Tier 2/3 subpaths deferred until real consumers emerge (second standalone site, external plugin loading). ([plan](./plans/library-exports.md))
+
+### mylittlephoney Standalone Extraction (2026-04)
+
+First consumer of the unified standalone-app shape (library exports Tier 1 + theme/site decoupling + convention discovery). Migrated to local `src/site.ts` + `src/theme.css`, verified boot on the published `@rizom/brain`, and removed from the monorepo. Proves the `brain init` scaffolding and convention-discovery path end-to-end, and unblocks public release cleanup Phase 3b. ([harmonize plan](./plans/harmonize-monorepo-apps.md), [standalone-site-authoring](./plans/standalone-site-authoring.md))
+
+### Brain Init Artifact Reconciliation (2026-04)
+
+`brain init` is now reconciliation-oriented: on a fresh directory it creates the full scaffold; on an existing directory with `brain.yaml` it fills in missing conventional artifacts idempotently (`README.md`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and — with `--deploy` — `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml`). Never overwrites existing files by default. `brain.yaml` is the canonical source of truth for derived context (brain name, domain). ([plan](./plans/init-artifact-reconcile.md))
+
 ---
 
 ## Rover 0.1 — First Public Release
 
 The following items must be complete before the first public release:
 
-| Item                                  | Status        | Notes                                                                                                                                                                                                                                                                                        |
-| ------------------------------------- | ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@rizom/brain` npm publish            | Ready         | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md))                                                                                                                                                                             |
-| Search & Embeddings                   | Done          | Separate embedding DB + OpenAI online embeddings + FTS5 hybrid + threshold tuning. ONNX/fastembed removed.                                                                                                                                                                                   |
-| Rizom Sites                           | In progress   | Phases 0-3 done: object-form `site:` overrides, theme-rizom brand theme, `sites/rizom` site package, `apps/rizom-ai` scaffold. Next: per-variant content + deploy rizom.ai on existing infra. ([plan](./plans/rizom-sites.md))                                                               |
-| Changesets + versioning               | Done          | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                                                                                                                                                                                          |
-| License                               | Done          | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                                                                                                                                                                                    |
-| Default AI model                      | Done          | gpt-4.1 (OpenAI). One key for text + images.                                                                                                                                                                                                                                                 |
-| Kamal Deploy (Phases 1-2)             | In progress   | Dockerfile.model + Caddy internal routing + health endpoint done. Publish-images CI hardened (fork-safety, multi-arch, release tags, cache). Next: first standalone instance via `brain init --deploy`.                                                                                      |
-| Monitoring                            | Done          | Structured logging + enriched `/health` + usage tracking via logs.                                                                                                                                                                                                                           |
-| Eval pass rate ≥ 95%                  | 96.6%         | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                                                                                                                                                                                           |
-| Naming cleanup                        | Done          |                                                                                                                                                                                                                                                                                              |
-| Documentation — Phase 1               | Done          | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                                                                                                                                                                                       |
-| Brain init scaffold                   | Done          | `brain init` interactive prompts via `@clack/prompts`, generated `brain.yaml` defaults to `preset: core` with commented directory-sync block.                                                                                                                                                |
-| Apps as lightweight instance packages | Done          | `apps/*` removed from workspace globs; each app is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the brain CLI at runtime. |
-| Public release cleanup                | Phase 1 done  | Audit + fork-safe CI + mechanical rewrites complete. Remaining: Phase 3 in-tree cleanup, Phase 3.5 content prep (README/CONTRIBUTING/STABILITY), Phase 4 push to brains-temp, Phase 4.5 smoke test, Phase 5 double-rename. ([plan](./plans/public-release-cleanup.md))                       |
-| Composite plugins                     | Done          | `CapabilityEntry` accepts factories returning `Plugin[]`. Reference composite `@brains/newsletter` bundles newsletter entity + buttondown service behind one capability id. Rover migrated. ([plan](./plans/composite-plugins.md))                                                           |
-| Stable API surface                    | Mostly stable | brain.yaml schema, tools, entity types. Full surface documented in `STABILITY.md` (added during public release cleanup).                                                                                                                                                                     |
+| Item                                  | Status             | Notes                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| ------------------------------------- | ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@rizom/brain` npm publish            | Ready              | CLI, runtime, rover, polish items done. Needs: create @rizom npm org, publish. ([plan](./plans/npm-packages.md))                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| Search & Embeddings                   | Done               | Separate embedding DB + OpenAI online embeddings + FTS5 hybrid + threshold tuning. ONNX/fastembed removed.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| Rizom Sites                           | In progress        | Phases 0-3 done: object-form `site:` overrides, theme-rizom brand theme, `sites/rizom` site package, `apps/rizom-ai` scaffold. Next: per-variant content + deploy rizom.ai on existing infra. ([plan](./plans/rizom-sites.md))                                                                                                                                                                                                                                                                                                                                                              |
+| Changesets + versioning               | Done               | Automated versioning, changelogs, npm publish workflow. 62 packages marked private.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| License                               | Done               | Apache-2.0. Maximum adoption for v0.1, can tighten later.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| Default AI model                      | Done               | gpt-4.1 (OpenAI). One key for text + images.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| Kamal Deploy (Phases 1-2)             | In progress        | Dockerfile.model + Caddy internal routing + health endpoint done. Publish-images CI hardened (fork-safety, multi-arch, release tags, cache). Deploy plan reworked around Cloudflare Origin CA (15-year cert via `brain cert:bootstrap`, kamal-proxy terminates TLS, Caddy reverts to plain-HTTP internal routing). Next: ship `brain cert:bootstrap`, stand up the first instance via `brain init --deploy`, then move deploy env resolution onto varlock per the instance-env-schema plan. ([kamal plan](./plans/deploy-kamal.md), [varlock plan](./plans/varlock-instance-env-schema.md)) |
+| Monitoring                            | Done               | Structured logging + enriched `/health` + usage tracking via logs.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Eval pass rate ≥ 95%                  | 96.6%              | 58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| Naming cleanup                        | Done               |                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| Documentation — Phase 1               | Done               | Getting started, brain.yaml ref, deploy guide, CLI ref                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| Brain init scaffold                   | Done               | `brain init` interactive prompts via `@clack/prompts`, generated `brain.yaml` defaults to `preset: core` with commented directory-sync block. Now reconciliation-oriented: existing directories get missing artifacts filled in idempotently. ([plan](./plans/init-artifact-reconcile.md))                                                                                                                                                                                                                                                                                                  |
+| Apps as lightweight instance packages | Done               | `apps/*` removed from workspace globs; each app is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the brain CLI at runtime.                                                                                                                                                                                                                                                                                                |
+| Theme/site decoupling                 | Done               | `SitePackage.theme` removed, `resolveTheme` sibling of `resolveSitePackage`, `composeTheme()` moved into the resolver, convention discovery for `src/site.ts` + `src/theme.css`, `@rizom/brain/site` widened for personal + professional authoring, and mylittlephoney verified on the published convention path. ([plan](./plans/standalone-site-authoring.md))                                                                                                                                                                                                                            |
+| Library exports — Tier 1              | Done               | `@rizom/brain/site` subpath published (personal + professional site symbols, layout types). `@rizom/brain/themes` re-exports `composeTheme`. Tier 2/3 deferred until real consumers emerge. ([plan](./plans/library-exports.md))                                                                                                                                                                                                                                                                                                                                                            |
+| mylittlephoney standalone extraction  | Done               | First consumer of the unified standalone app shape (library exports + theme/site decoupling + convention discovery). Migrated to local `src/site.ts` + `src/theme.css`, verified boot on published `@rizom/brain`, and removed from the monorepo. ([harmonize plan](./plans/harmonize-monorepo-apps.md), [cleanup plan](./plans/public-release-cleanup.md))                                                                                                                                                                                                                                 |
+| Public release cleanup                | Phases 1 + 3b done | Audit + fork-safe CI + mechanical rewrites complete (Phase 1). `apps/mylittlephoney` extraction to its own repo (Phase 3b) complete. Remaining: Phase 2 backup, Phase 3a in-tree cleanup (delete `team-brain`/`collective-brain`/`sites/ranger`/`theme-ranger`, rename `professional-brain` → `yeehaa.io`), Phase 3.5 content prep (README/CONTRIBUTING/STABILITY), Phase 4 push to `brains-temp`, Phase 4.5 smoke test, Phase 5 double-rename. ([plan](./plans/public-release-cleanup.md))                                                                                                 |
+| Composite plugins                     | Done               | `CapabilityEntry` accepts factories returning `Plugin[]`. Reference composite `@brains/newsletter` bundles newsletter entity + buttondown service behind one capability id. Rover migrated. ([plan](./plans/composite-plugins.md))                                                                                                                                                                                                                                                                                                                                                          |
+| Stable API surface                    | Mostly stable      | brain.yaml schema, tools, entity types. Full surface documented in `STABILITY.md` (added during public release cleanup).                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ---
 
@@ -217,14 +236,18 @@ Items at the same level can be done in parallel.
 ### In progress
 
 - **@rizom/brain** — Single package: CLI + runtime + rover model. All polish items done. Blocked only on creating the `@rizom` npm org and running `npm publish`. ([plan](./plans/npm-packages.md))
-- **Public release cleanup** — Phase 1 audit + fork-safe CI + mechanical rewrites complete. Decisions revised: apps now public as lightweight instance packages, `brains/{ranger,relay}` public source with no published artifacts, `apps/mylittlephoney` extracted to standalone private repo. Remaining: Phase 3 in-tree cleanup (delete `team-brain`/`collective-brain`/`sites/ranger`/`theme-ranger`, rename `professional-brain` → `yeehaa.io`, extract `mylittlephoney`), Phase 3.5 content prep (README/CONTRIBUTING/SECURITY/STABILITY), Phase 4 push to `brains-temp`, Phase 4.5 smoke test on clean machine, Phase 5 double-rename. ([plan](./plans/public-release-cleanup.md))
-- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. `Dockerfile.model` + internal Caddy routing + `/health` shipped. Publish-images workflow hardened (fork-safety, release tags, multi-arch, cache). Next: first standalone instance via `brain init --deploy`. ([plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md))
+- **Public release cleanup** — Phase 1 audit + fork-safe CI + mechanical rewrites complete; Phase 3b `apps/mylittlephoney` extraction complete. Decisions revised: apps now public as lightweight instance packages, `brains/{ranger,relay}` public source with no published artifacts. Remaining: Phase 2 backup, Phase 3a in-tree cleanup (delete `team-brain`/`collective-brain`/`sites/ranger`/`theme-ranger`, rename `professional-brain` → `yeehaa.io`), Phase 3.5 content prep (README/CONTRIBUTING/SECURITY/STABILITY), Phase 4 push to `brains-temp`, Phase 4.5 smoke test on clean machine, Phase 5 double-rename. ([plan](./plans/public-release-cleanup.md))
+- **Kamal Deploy** — replace Terraform + SSH + Caddy with Kamal on Hetzner. `Dockerfile.model` + internal Caddy routing + `/health` shipped. Publish-images workflow hardened. Plan reworked around Cloudflare Origin CA — kamal-proxy terminates TLS with a 15-year cert issued by `brain cert:bootstrap`, Caddy reverts to plain-HTTP internal routing, platform stays domain-agnostic. Next: implement `brain cert:bootstrap`, stand up the first instance via `brain init --deploy`, then migrate the deploy workflow onto the app-local varlock schema. ([kamal plan](./plans/deploy-kamal.md), [standalone plan](./plans/standalone-apps.md), [varlock plan](./plans/varlock-instance-env-schema.md))
 - **Rizom Sites** — three rizom-branded sites (rizom.ai, rizom.foundation, rizom.work) sharing one structural site package + one theme package, configured per-instance via `site: { package, variant, theme }`. Phases 0-3 done: object-form site overrides, fresh `theme-rizom` brand theme, `sites/rizom` site package with `SitePackage.staticAssets`, `apps/rizom-ai` scaffold (ranger + variant `ai`). Next: variant-specific content (hero copy, CTAs) + deploy rizom.ai on existing Hetzner infra (independent of Kamal); foundation + work via Kamal as follow-up. ([plan](./plans/rizom-sites.md))
 - **Documentation — Phase 2** — fill in the remaining user-facing gaps after the Phase 1 getting-started/reference push: entity type reference, content management guide, interface setup guides (MCP, Discord, A2A), and customization guides (themes, layouts, plugins). Goal: make the first public release understandable without reading source or plan docs. ([plan](./plans/documentation.md))
 
+### Varlock Instance Env Schema
+
+Make deploy/provision env resolution varlock-native. Each instance owns a generated `.env.schema` (runtime vars from the model package's shipped `env.schema.template` + deploy/provision vars from a `brain-cli` template + TLS cert vars + secret-backend bootstrap). Workflow runs `varlock load` once and inherits resolved env; no per-app secret names in workflow YAML. Default backend is 1Password per-instance vault; schema is backend-agnostic (`@plugin` directive switchable). Follow-on to Kamal Deploy phases 1-2. ([plan](./plans/varlock-instance-env-schema.md))
+
 ### External Plugin API
 
-Public plugin API for `@rizom/brain`: library exports with .d.ts, runtime loading from brain.yaml, API version contract, `brain search`/`brain add` CLI, example plugin + docs. Enables third-party plugin ecosystem. ([plan](./plans/external-plugin-api.md))
+Public plugin API for `@rizom/brain`: library exports with .d.ts, runtime loading from brain.yaml, API version contract, `brain search`/`brain add` CLI, example plugin + docs. Enables third-party plugin ecosystem. Consumes the Tier 3 library exports (`@rizom/brain/{entities,services,interfaces,utils,templates}`) from the library-exports plan. ([external-plugin-api](./plans/external-plugin-api.md), [library-exports](./plans/library-exports.md))
 
 ### AT Protocol — Phases 1-2
 
@@ -282,6 +305,14 @@ Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month)
 
 Extract build engine into `@brains/site-engine` with renderer-agnostic `SiteEngineServices` interface. Plugin becomes thin orchestration. ([plan](./plans/site-builder-decoupling.md))
 
+### Site Composition Inheritance
+
+Collapse `layouts/` into `sites/`, move pure primitives into `shared/`, and add explicit site extension (`extendSite(base, { routes, templates, dataSources, pluginConfig, staticAssets })`). Turns "site" into the unit of composition instead of an ambiguous layout+site split. Single-parent inheritance, deterministic merge rules, loud route/template conflicts. Migration walks the `professional → default → yeehaa` chain first as proof. ([plan](./plans/site-composition-inheritance.md))
+
+### Library Exports — Tiers 2-3
+
+Widen `@rizom/brain` subpaths as real consumers emerge. Tier 2 finishes `@rizom/brain/plugins` (base `Plugin` interface, content/render types) once a second standalone site repo lands. Tier 3 adds `@rizom/brain/{entities,services,interfaces,utils,templates}` to unblock the external plugin API. Each tier ships only when a real consumer needs it; hand-written `.d.ts` contracts replaced by auto-generation once the type graph stabilizes post-v0.1.0. ([plan](./plans/library-exports.md))
+
 ---
 
 ## Planned (Long-term)
@@ -317,16 +348,23 @@ Rover 0.1 blockers:
   eval pass rate ≥ 95% (done, 96.6%)
   documentation phase 1 (done)
   naming cleanup (done)
+  theme/site decoupling + convention discovery (done)
+  library exports tier 1 (done)
+  brain init artifact reconciliation (done)
+  mylittlephoney standalone extraction (done)
   ─────────────────────────
   REMAINING:
-    public release cleanup (orphan commit + content prep + smoke test)
     @rizom/brain npm publish (manual: create org + publish)
-    kamal-deploy phases 1-2 → rizom-sites (rizom.ai on current infra)
+    public release cleanup (Phase 3a in-tree cleanup + content prep + orphan commit + smoke test)
+    kamal-deploy phases 1-2 (brain cert:bootstrap + first instance)
+      → rizom-sites (rizom.ai on current infra)
 
 Short-term (parallel):
   kamal-deploy → rizom sites (foundation + work via Kamal)
+  kamal-deploy → varlock instance env schema (deploy workflow hardening)
   atproto phases 1-2 (independent)
-  external plugin api (after npm publish)
+  external plugin api (after npm publish + library exports tier 3)
+  documentation phase 2 (independent)
 
 Medium-term:
   atproto phases 3-6 + agent-discovery phase 2
@@ -337,10 +375,16 @@ Medium-term:
   monetization (after kamal)
   search reranking (after ai-runtime)
   site-builder phases 2-4
+  site composition inheritance (collapse layouts/ into sites/)
+  library exports tiers 2-3 (triggered by consumers)
   monitoring post-release (after kamal + phase 3)
   chat-sdk + atproto + ai-runtime ──→ hosted-rovers
 
 Long-term:
   site-builder phases 2-4 → astro-migration
   @rizom/brain + chat-sdk + ai-runtime ──→ desktop-app
+
+Deferred refactors (not on schedule):
+  unify-build-pipeline (triggered by a third build consumer or a
+    visible divergence between build.ts and build-model.ts)
 ```

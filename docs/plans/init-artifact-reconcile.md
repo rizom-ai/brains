@@ -6,7 +6,7 @@ Last updated: 2026-04-08
 
 `brain init` currently behaves like a one-shot fresh scaffold.
 
-It always writes the conventional instance artifacts (`brain.yaml`, `README.md`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`) and only adds deploy artifacts (`deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml`) when `--deploy` is passed.
+It always writes the conventional instance artifacts (`brain.yaml`, `README.md`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`) and only adds deploy artifacts (`config/deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml`) when `--deploy` is passed.
 
 That causes two issues:
 
@@ -49,7 +49,7 @@ Make `brain init` reconciliation-oriented:
 
 ### Deploy artifacts
 
-- `deploy.yml`
+- `config/deploy.yml`
 - `.kamal/hooks/pre-deploy`
 - `.github/workflows/deploy.yml`
 
@@ -110,7 +110,7 @@ No new command required in this pass.
 
 - fresh scaffold still creates all expected files
 - `--deploy` still creates deploy artifacts
-- generated deploy.yml remains model/domain-independent template
+- generated config/deploy.yml remains model/domain-independent template
 
 ### New tests
 
@@ -120,7 +120,7 @@ No new command required in this pass.
 2. **existing dir with `brain.yaml` + existing README**
    - README remains unchanged
 3. **existing dir with `brain.yaml`, `--deploy` true**
-   - adds `deploy.yml`, pre-deploy hook, workflow
+   - adds `config/deploy.yml`, pre-deploy hook, workflow
 4. **existing dir without `--deploy`**
    - does not create deploy artifacts
 5. **derives context from existing `brain.yaml`**

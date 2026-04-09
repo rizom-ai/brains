@@ -16,6 +16,8 @@ The deployment model separates building from deploying:
 - Docker installed on your server
 - [Kamal](https://kamal-deploy.org) installed locally (`gem install kamal`)
 - A GitHub Container Registry token
+- Cloudflare API token + zone ID if you plan to bootstrap an Origin CA certificate with `brain cert:bootstrap`
+- A secret backend for runtime/deploy secrets (`.env`, GitHub secrets, 1Password, etc.)
 
 ## Quick Deploy
 
@@ -24,7 +26,15 @@ The deployment model separates building from deploying:
 brain init mybrain --deploy --domain mybrain.example.com
 cd mybrain
 
-# Configure
+# One-time TLS bootstrap for the Cloudflare Origin CA flow
+export CF_API_TOKEN=...
+export CF_ZONE_ID=...
+brain cert:bootstrap
+# Push origin.pem + origin.key into your secret backend as
+# CERTIFICATE_PEM / PRIVATE_KEY_PEM, then delete the local files.
+rm origin.pem origin.key
+
+# Configure runtime/deploy secrets
 cp .env.example .env
 # Edit .env with your secrets
 
@@ -38,16 +48,20 @@ kamal deploy   # Subsequent deploys
 ```
 mybrain/
   brain.yaml                      # Brain configuration
-  deploy.yml                      # Kamal deployment config
+  config/deploy.yml               # Kamal deployment config
   .env                            # Secrets (not committed)
   .env.example                    # Template for secrets
   .kamal/hooks/pre-deploy         # Uploads brain.yaml to server
   .github/workflows/deploy.yml    # CI/CD (optional)
 ```
 
-## deploy.yml
+The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git and push their contents into your secret backend instead.
+
+## config/deploy.yml
 
 Kamal configuration for your brain instance:
+
+> The scaffolded file below is the baseline Kamal config. If you're using the Cloudflare Origin CA flow, keep the same instance layout but wire your `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` secrets into the `proxy.ssl` section according to the secret backend you use.
 
 ```yaml
 service: brain
@@ -59,7 +73,9 @@ servers:
       - 1.2.3.4 # Your server IP
 
 proxy:
-  ssl: true
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - mybrain.example.com:80 # Production site
     - preview.mybrain.example.com:81 # Preview builds
@@ -94,15 +110,17 @@ healthcheck:
 
 Set these in `.env` (never commit this file):
 
-| Variable                  | Required | Description                             |
-| ------------------------- | -------- | --------------------------------------- |
-| `AI_API_KEY`              | Yes      | AI provider API key                     |
-| `AI_IMAGE_KEY`            | No       | Separate key for image generation       |
-| `GIT_SYNC_TOKEN`          | Yes      | GitHub PAT for content sync             |
-| `MCP_AUTH_TOKEN`          | No       | Token for authenticated MCP HTTP access |
-| `DISCORD_BOT_TOKEN`       | No       | Discord bot token                       |
-| `KAMAL_REGISTRY_PASSWORD` | Deploy   | GitHub Container Registry token         |
-| `SERVER_IP`               | Deploy   | Server IP address                       |
+| Variable                  | Required  | Description                             |
+| ------------------------- | --------- | --------------------------------------- |
+| `AI_API_KEY`              | Yes       | AI provider API key                     |
+| `AI_IMAGE_KEY`            | No        | Separate key for image generation       |
+| `GIT_SYNC_TOKEN`          | Yes       | GitHub PAT for content sync             |
+| `MCP_AUTH_TOKEN`          | No        | Token for authenticated MCP HTTP access |
+| `DISCORD_BOT_TOKEN`       | No        | Discord bot token                       |
+| `KAMAL_REGISTRY_PASSWORD` | Deploy    | GitHub Container Registry token         |
+| `SERVER_IP`               | Deploy    | Server IP address                       |
+| `CF_API_TOKEN`            | Bootstrap | Cloudflare API token for cert bootstrap |
+| `CF_ZONE_ID`              | Bootstrap | Cloudflare zone ID for cert bootstrap   |
 
 ## Domain Setup
 
@@ -113,9 +131,10 @@ Every brain gets `{name}.rizom.ai` by default. Point a DNS A record to your serv
 ### Custom domain
 
 1. Set `domain` in `brain.yaml`
-2. Update `proxy.hosts` in `deploy.yml`
+2. Update `proxy.hosts` in `config/deploy.yml`
 3. Point your domain's A record to the server IP
-4. Kamal handles SSL via Let's Encrypt automatically
+4. If you're using the Cloudflare Origin CA flow, run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying
+5. Kamal handles SSL according to your `config/deploy.yml` / secret backend configuration
 
 ## CI/CD
 
@@ -131,6 +150,8 @@ Secrets needed in GitHub repo settings:
 - `SERVER_IP`
 - `AI_API_KEY`
 - `GIT_SYNC_TOKEN`
+- `CERTIFICATE_PEM`
+- `PRIVATE_KEY_PEM`
 
 ## Common Operations
 

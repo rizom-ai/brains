@@ -19,6 +19,8 @@ echo "AI_API_KEY=your-key-here" > .env
 brain start
 ```
 
+If you plan to deploy behind Kamal with Cloudflare Origin CA TLS, scaffold with `brain init --deploy`, then run `brain cert:bootstrap` once and store the resulting cert/key as secrets before deploying.
+
 ## Requirements
 
 - [Bun](https://bun.sh) 1.3.3 or later
@@ -32,6 +34,7 @@ A brain is a personal AI agent with persistent memory, tools, and integrations. 
 | Command                 | Description                              |
 | ----------------------- | ---------------------------------------- |
 | `brain init <dir>`      | Scaffold a new brain instance            |
+| `brain cert:bootstrap`  | Issue a Cloudflare Origin CA certificate |
 | `brain start`           | Start the brain server                   |
 | `brain chat`            | Start in interactive chat mode           |
 | `brain list <type>`     | List entities (posts, notes, etc.)       |
@@ -75,12 +78,16 @@ Explicit provider override: `model: openai:gpt-4o-mini`
 
 ### Environment Variables
 
-| Variable         | Required | Description                       |
-| ---------------- | -------- | --------------------------------- |
-| `AI_API_KEY`     | Yes      | API key for your AI provider      |
-| `AI_IMAGE_KEY`   | No       | Separate key for image generation |
-| `GIT_SYNC_TOKEN` | No       | GitHub PAT for content sync       |
-| `MCP_AUTH_TOKEN` | No       | Token for MCP HTTP authentication |
+| Variable         | Required | Description                             |
+| ---------------- | -------- | --------------------------------------- |
+| `AI_API_KEY`     | Yes      | API key for your AI provider            |
+| `AI_IMAGE_KEY`   | No       | Separate key for image generation       |
+| `GIT_SYNC_TOKEN` | No       | GitHub PAT for content sync             |
+| `MCP_AUTH_TOKEN` | No       | Token for MCP HTTP authentication       |
+| `CF_API_TOKEN`   | Yes\*    | Cloudflare API token for cert bootstrap |
+| `CF_ZONE_ID`     | Yes\*    | Cloudflare zone ID for cert bootstrap   |
+
+- Only required when running `brain cert:bootstrap`.
 
 ## Brain Models
 

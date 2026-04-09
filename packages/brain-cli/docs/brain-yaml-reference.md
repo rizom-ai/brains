@@ -289,6 +289,19 @@ Notes:
 | `MCP_AUTH_TOKEN`    | MCP HTTP auth                 |
 | `DISCORD_BOT_TOKEN` | Discord bot interface         |
 
+## Deploy/bootstrap environment variables
+
+These are not usually interpolated directly inside `brain.yaml`, but they show up in the deploy and bootstrap docs for `brain init --deploy` + `brain cert:bootstrap`.
+
+| Variable                  | Typical use                                  |
+| ------------------------- | -------------------------------------------- |
+| `KAMAL_REGISTRY_PASSWORD` | GHCR auth for Kamal                          |
+| `SERVER_IP`               | Instance server IP in deploy workflows       |
+| `CF_API_TOKEN`            | Cloudflare API token for Origin CA bootstrap |
+| `CF_ZONE_ID`              | Cloudflare zone ID for Origin CA bootstrap   |
+| `CERTIFICATE_PEM`         | Origin CA certificate secret                 |
+| `PRIVATE_KEY_PEM`         | Origin CA private key secret                 |
+
 ## Examples
 
 ### Minimal rover instance

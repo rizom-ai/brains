@@ -26,14 +26,14 @@ brain init mybrain --no-interactive
 
 **Options**
 
-| Flag                    | Default            | Description                                           |
-| ----------------------- | ------------------ | ----------------------------------------------------- |
-| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`               |
-| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                     |
-| `--content-repo <repo>` | —                  | Git repo for content sync                             |
-| `--deploy`              | `false`            | Include `deploy.yml`, Kamal hook, and GitHub workflow |
-| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`               |
-| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags  |
+| Flag                    | Default            | Description                                                  |
+| ----------------------- | ------------------ | ------------------------------------------------------------ |
+| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                      |
+| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                            |
+| `--content-repo <repo>` | —                  | Git repo for content sync                                    |
+| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, and GitHub workflow |
+| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                      |
+| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags         |
 
 **Generated files**
 
@@ -46,9 +46,20 @@ brain init mybrain --no-interactive
 | `.gitignore`                   | Yes                                  | Yes                                  |
 | `tsconfig.json`                | Yes                                  | Yes                                  |
 | `.env`                         | Only when `--ai-api-key` is provided | Only when `--ai-api-key` is provided |
-| `deploy.yml`                   | —                                    | Yes                                  |
+| `config/deploy.yml`            | —                                    | Yes                                  |
 | `.kamal/hooks/pre-deploy`      | —                                    | Yes                                  |
 | `.github/workflows/deploy.yml` | —                                    | Yes                                  |
+
+### `brain cert:bootstrap`
+
+Issue a Cloudflare Origin CA certificate for the `domain:` declared in `brain.yaml`.
+
+```bash
+cd mybrain
+brain cert:bootstrap
+```
+
+The command writes `origin.pem` and `origin.key` into the current directory, then switches the Cloudflare zone to Full (strict).
 
 ### `brain start`
 

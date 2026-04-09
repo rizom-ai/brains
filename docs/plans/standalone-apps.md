@@ -18,7 +18,7 @@ Depends on: published brain model images (deploy-kamal Phase 3).
 
 Config and content are separate concerns:
 
-- **Config repo** (`yeehaa-brain/`) — brain.yaml, deploy.yml, secrets. Changes rarely.
+- **Config repo** (`yeehaa-brain/`) — brain.yaml, config/deploy.yml, secrets. Changes rarely.
 - **Content repo** (`yeehaa-brain-data/`) — brain-data managed by directory-sync + git. Changes constantly (auto-commits on every entity change).
 
 Keeping them separate avoids noisy auto-commits in the config repo.
@@ -28,7 +28,7 @@ Keeping them separate avoids noisy auto-commits in the config repo.
 ```
 yeehaa-brain/             # config repo
   brain.yaml              # instance config (preset, domain, plugin overrides)
-  deploy.yml              # Kamal deploy config
+  config/deploy.yml       # Kamal deploy config
   seed-content/           # initial content (optional, for new instances)
   .env                    # secrets (not committed)
 ```
@@ -37,7 +37,7 @@ No full custom source tree or per-instance build step. The Docker image contains
 
 ### Versioning
 
-brain.yaml pins the brain model version. deploy.yml derives the image tag from it.
+brain.yaml pins the brain model version. config/deploy.yml derives the image tag from it.
 
 ```yaml
 # brain.yaml — runs latest (default when version omitted)
@@ -74,10 +74,10 @@ ghcr.io/rizom-ai/ranger:latest   # ranger brain model
 ghcr.io/rizom-ai/relay:latest    # relay brain model
 ```
 
-Self-contained — runtime + dependencies + code in one image. Used by Kamal deploys to Hetzner. deploy.yml points to the image, brain.yaml is mounted as a volume.
+Self-contained — runtime + dependencies + code in one image. Used by Kamal deploys to Hetzner. config/deploy.yml points to the image, brain.yaml is mounted as a volume.
 
 ```yaml
-# deploy.yml
+# config/deploy.yml
 service: yeehaa-brain
 image: ghcr.io/rizom-ai/rover:latest
 
@@ -150,7 +150,7 @@ During development, the monorepo can still run apps locally via a dev script tha
 
 1. CI pipeline: build + publish Docker images to GHCR on release (deploy-kamal Phase 3)
 2. Create config repos (yeehaa-brain, rizom-brain, mlp-brain)
-3. Move brain.yaml + deploy.yml into each config repo
+3. Move brain.yaml + config/deploy.yml into each config repo
 4. Content repos already exist (or create them) — mounted as volumes
 5. Verify: `kamal deploy` from config repo works
 

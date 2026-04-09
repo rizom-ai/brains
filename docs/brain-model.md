@@ -28,7 +28,7 @@ apps/
     .gitignore
     tsconfig.json           # JSX runtime hint for Bun
     package.json            # Local execution boundary + dependency pinning
-    deploy.yml              # (optional, only with `brain init --deploy`)
+    config/deploy.yml       # (optional, only with `brain init --deploy`)
 ```
 
 ## brain.yaml
@@ -111,7 +111,8 @@ AI_API_KEY=your-api-key-here
 # AI_IMAGE_KEY=your-image-key-here  # optional, defaults to AI_API_KEY
 GIT_SYNC_TOKEN=ghp_...
 MCP_AUTH_TOKEN=...
-CLOUDFLARE_API_TOKEN=...
+CF_API_TOKEN=...
+CF_ZONE_ID=...
 ```
 
 Everything else belongs in `brain.yaml`. Non-secret config like homeserver URLs, user IDs, repos, domains — all go in `brain.yaml` under `plugins:`.
@@ -120,13 +121,14 @@ Everything else belongs in `brain.yaml`. Non-secret config like homeserver URLs,
 
 Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If no → `brain.yaml`.
 
-| Secret (`.env`)        | Config (`brain.yaml`)                |
-| ---------------------- | ------------------------------------ |
-| `AI_API_KEY`           | `domain: recall.rizom.ai`            |
-| `GIT_SYNC_TOKEN`       | `plugins.directory-sync.git.repo`    |
-| `MCP_AUTH_TOKEN`       | `plugins.webserver.productionDomain` |
-| `DISCORD_BOT_TOKEN`    | `plugins.discord.guildId`            |
-| `CLOUDFLARE_API_TOKEN` | `logLevel: debug`                    |
+| Secret (`.env`)     | Config (`brain.yaml`)                |
+| ------------------- | ------------------------------------ |
+| `AI_API_KEY`        | `domain: recall.rizom.ai`            |
+| `GIT_SYNC_TOKEN`    | `plugins.directory-sync.git.repo`    |
+| `MCP_AUTH_TOKEN`    | `plugins.webserver.productionDomain` |
+| `DISCORD_BOT_TOKEN` | `plugins.discord.guildId`            |
+| `CF_API_TOKEN`      | `brain cert:bootstrap`               |
+| `CF_ZONE_ID`        | `brain cert:bootstrap`               |
 
 ## Brain Model Definition
 
@@ -229,7 +231,7 @@ cd apps/yeehaa.io
 brain start            # start the brain
 brain start --cli      # start with the CLI chat interface attached
 brain init mybrain     # scaffold a new instance directory (interactive prompts)
-brain init mybrain --deploy   # scaffold + Kamal deploy.yml + CI workflow
+brain init mybrain --deploy   # scaffold + config/deploy.yml + CI workflow
 brain diagnostics search      # search threshold tuning
 brain diagnostics usage       # aggregate ai:usage events from the log file
 brain --help
@@ -272,7 +274,7 @@ brain start
 - `.env` — only when an API key was supplied (interactive prompt or `--api-key`)
 - `.gitignore`, `tsconfig.json` (JSX runtime hint for Bun)
 - `package.json` — local execution boundary + dependency pinning for `@rizom/brain` and `preact`
-- `deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml` — only with `--deploy`
+- `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml` — only with `--deploy`
 
 So the instance remains lightweight, but it is not a pure config blob.
 
@@ -342,7 +344,7 @@ apps/yeehaa.io/               # Production instance
 ├── .env                      # Production secrets (gitignored)
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
-├── deploy.yml                # Kamal deploy config (with `brain init --deploy`)
+├── config/deploy.yml         # Kamal deploy config (with `brain init --deploy`)
 └── .kamal/hooks/             # Kamal lifecycle hooks
 ```
 
