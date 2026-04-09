@@ -548,7 +548,7 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 | 1 — Audit HEAD and fix findings        | 2–3 hours                 | ✅ done (`0bd51a87`)                              |
 | 2 — Backup                             | 15 min                    | ⏸️ pending                                        |
 | 3a — In-tree cleanup (rename + delete) | 1–2 hours                 | ⏸️ pending                                        |
-| 3b — Extract `apps/mylittlephoney`     | half day to a day         | ⏸️ pending                                        |
+| 3b — Extract `apps/mylittlephoney`     | half day to a day         | ✅ done                                           |
 | 3.5 — Content and UX prep              | 1 day                     | ⏸️ drafts in `docs/public-release/`               |
 | 4 — Push to `brains-temp` and verify   | 1–2 hours                 | ⏸️ pending                                        |
 | 4.5 — End-to-end smoke test            | half day (more if breaks) | 🟡 partial (init flow tested in `/tmp/testbrain`) |

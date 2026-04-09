@@ -260,8 +260,8 @@ Once Tier 1 ships, `apps/mylittlephoney` is extractable:
       build bypassed `composeTheme` and lost the shared base
       utilities layer that exposes `--color-brand` / `--color-bg`
       to the tailwind JIT.
-- [ ] `apps/mylittlephoney` extracted (in progress, blocked on the
-      themes export above)
+- [x] `apps/mylittlephoney` extracted and verified against the
+      published package
 - [ ] Rest of Tier 2 (`@rizom/brain/plugins` — base Plugin type
       etc.) still deferred
 - [ ] Tier 3 implemented (deferred)

@@ -6,7 +6,6 @@ const siteSources = [
   "sites/default/src/index.ts",
   "sites/ranger/src/index.ts",
   "sites/yeehaa/src/index.ts",
-  "sites/mylittlephoney/src/index.ts",
   "sites/rizom/src/index.ts",
 ];
 
@@ -14,7 +13,6 @@ const sitePackages = [
   "sites/default/package.json",
   "sites/ranger/package.json",
   "sites/yeehaa/package.json",
-  "sites/mylittlephoney/package.json",
   "sites/rizom/package.json",
 ];
 

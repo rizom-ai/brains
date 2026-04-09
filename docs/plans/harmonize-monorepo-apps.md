@@ -154,12 +154,12 @@ For each of `apps/rizom-ai`, `apps/rizom-foundation`,
 
 ## Status
 
-- [ ] **Phase 1:** Extract mylittlephoney as the first standalone
-  - [ ] Update `brain init` to scaffold unified shape
-  - [ ] Run `brain init mylittlephoney` in sibling dir
-  - [ ] Migrate config + custom code
-  - [ ] Verify boot
-  - [ ] Delete from brains monorepo
+- [x] **Phase 1:** Extract mylittlephoney as the first standalone
+  - [x] Update `brain init` to scaffold unified shape
+  - [x] Run `brain init mylittlephoney` in sibling dir
+  - [x] Migrate config + custom code
+  - [x] Verify boot
+  - [x] Delete from brains monorepo
 - [ ] **Phase 2:** Decide trigger for remaining apps (post-v0.1.0)
 - [ ] **Phase 3:** Migrate `rizom-ai`, `rizom-foundation`, `yeehaa.io`
       (only if Phase 2 says go)

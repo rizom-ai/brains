@@ -5,7 +5,6 @@ const themeIndexFiles = [
   "../../../shared/theme-ranger/src/index.ts",
   "../../../shared/theme-rizom/src/index.ts",
   "../../../shared/theme-brutalist/src/index.ts",
-  "../../../shared/theme-mylittlephoney/src/index.ts",
   "../../../shared/theme-yeehaa/src/index.ts",
   "../../../shared/theme-editorial/src/index.ts",
   "../../../shared/theme-geometric/src/index.ts",

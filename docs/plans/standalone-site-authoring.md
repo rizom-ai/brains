@@ -309,4 +309,4 @@ extraction.
 - [x] P4: widen `@rizom/brain/site` for standalone authoring
   - [x] expose professional site symbols alongside the personal ones
   - [x] keep the public API concentrated under `@rizom/brain/site`
-- [ ] mylittlephoney retrofit to the new shape
+- [x] mylittlephoney retrofit to the new shape

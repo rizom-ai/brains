@@ -33,22 +33,4 @@ describe("brain.yaml site theme pairing", () => {
       theme: "@brains/theme-brutalist",
     });
   });
-
-  test("mylittlephoney keeps the custom site paired with the pink theme", () => {
-    const overrides = readOverrides("apps/mylittlephoney/brain.yaml");
-
-    expect(overrides.site).toEqual({
-      package: "@brains/site-mylittlephoney",
-      theme: "@brains/theme-mylittlephoney",
-    });
-  });
-
-  test("mylittlephoney deploy config keeps the custom site paired with the pink theme", () => {
-    const overrides = readOverrides("apps/mylittlephoney/deploy/brain.yaml");
-
-    expect(overrides.site).toEqual({
-      package: "@brains/site-mylittlephoney",
-      theme: "@brains/theme-mylittlephoney",
-    });
-  });
 });
