@@ -1,19 +1,47 @@
-# Contributing to Brains
+# Contributing to brains
 
-Thanks for your interest in the project.
-
-## Current contribution model
-
-`brains` is currently in **maintainer-only development mode**.
+`brains` is currently in **maintainer-led development**.
 
 That means:
 
 - bug reports are welcome
-- small documentation fixes and typo fixes are welcome
-- large feature PRs are generally not accepted right now
-- if you want to build something substantial, the best path is usually a fork or a third-party plugin
+- documentation fixes are welcome
+- small, clearly scoped fixes are welcome
+- large feature PRs are usually not accepted without prior discussion
+- third-party plugins should usually live in their own repos, not this monorepo
 
-For the public-facing policy, see [docs/public-release/CONTRIBUTING.md](docs/public-release/CONTRIBUTING.md).
+If you want to build something substantial today, the fastest path is usually a fork or an external plugin package.
+
+## Before you open anything
+
+### Open an issue for
+
+- bugs with a clear reproduction
+- documentation problems
+- focused design questions
+- requests for missing extension points
+
+### Open a PR for
+
+- typo fixes
+- broken links
+- narrow bug fixes that match an existing issue or discussion
+- targeted docs improvements
+
+### Do not open a large unsolicited PR for
+
+- broad refactors
+- new official plugins
+- major architecture changes
+- new product directions
+
+Start with an issue instead.
+
+## Security
+
+Do **not** file public issues for vulnerabilities.
+
+Follow [SECURITY.md](SECURITY.md).
 
 ## Local setup
 
@@ -22,6 +50,11 @@ git clone https://github.com/rizom-ai/brains.git
 cd brains
 bun install
 ```
+
+Requirements:
+
+- **Bun** `>= 1.3.3`
+- macOS or Linux, or Windows via WSL2
 
 ## Required checks
 
@@ -41,25 +74,40 @@ bun run deps:check
 bun run workspace:check
 ```
 
+## Changesets
+
+If your change is user-visible, add a changeset:
+
+```bash
+bunx changeset
+```
+
+Examples of user-visible changes:
+
+- new CLI behavior
+- new exported APIs
+- changed config behavior
+- changed runtime behavior
+- docs announcing a new supported workflow
+
 ## Repository layout
 
 High-level structure:
 
-- `shell/` — runtime, services, plugin framework
-- `shared/` — shared utilities, themes, UI components, test helpers
-- `entities/` — EntityPlugin packages
-- `plugins/` — ServicePlugin packages
-- `interfaces/` — InterfacePlugin packages
+- `shell/` — runtime, orchestration, services, plugin framework
+- `shared/` — utilities, themes, UI components, test helpers
+- `entities/` — `EntityPlugin` packages
+- `plugins/` — `ServicePlugin` packages
+- `interfaces/` — `InterfacePlugin` packages
 - `brains/` — brain model packages
-- `sites/` / `layouts/` — site rendering packages
-- `packages/brain-cli/` — published `@rizom/brain` CLI
+- `sites/` — site composition packages
+- `packages/brain-cli/` — published `@rizom/brain` package
+- `apps/` — lightweight instance packages, not workspace members
 - `docs/` — architecture, roadmap, plans, and guides
 
-`apps/` contains instance directories and is **not** a workspace category.
+For the fuller package map, see [docs/architecture/package-structure.md](docs/architecture/package-structure.md).
 
 ## Development guidance
-
-### Documentation and architecture
 
 Start here:
 
@@ -67,17 +115,36 @@ Start here:
 - [docs/architecture-overview.md](docs/architecture-overview.md)
 - [docs/brain-model.md](docs/brain-model.md)
 - [docs/entity-model.md](docs/entity-model.md)
+- [docs/plugin-system.md](docs/plugin-system.md)
+- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
 - [docs/roadmap.md](docs/roadmap.md)
 
-### Plugin and interface work
+For example code:
 
-- [plugins/AGENTS.md](plugins/AGENTS.md)
-- [interfaces/AGENTS.md](interfaces/AGENTS.md)
-- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
-- [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md)
 - `plugins/examples/`
+- `shell/plugins/src/test/`
 
-## Commit style
+## Code conventions
+
+Follow the existing project rules:
+
+- TypeScript strict mode
+- Zod for runtime validation
+- no `eslint-disable` comments
+- no casual `as` casts; model the types properly
+- no `console.log` in production code
+- test behavior, not implementation details
+- keep changes narrow and architectural intent explicit
+
+## PR expectations
+
+A good PR has:
+
+- a clear problem statement
+- a focused diff
+- tests for behavior changes
+- updated docs when public behavior changes
+- a changeset when users will notice the change
 
 Use conventional commits when possible:
 
@@ -89,6 +156,17 @@ Use conventional commits when possible:
 - `test:`
 - `perf:`
 
-## Security
+## Plugin contributions
 
-For security issues, do **not** open a public issue. Follow [docs/public-release/SECURITY.md](docs/public-release/SECURITY.md).
+The preferred way to extend `brains` is often an external plugin package.
+
+Useful references:
+
+- [docs/plugin-system.md](docs/plugin-system.md)
+- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
+- [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md)
+- `plugins/examples/`
+
+## Response expectations
+
+This is a solo-maintained project. Expect best-effort response times, not a staffed support queue.

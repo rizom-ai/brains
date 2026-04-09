@@ -549,7 +549,7 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 | 2 — Backup                             | 15 min                    | ⏸️ pending                                        |
 | 3a — In-tree cleanup (rename + delete) | 1–2 hours                 | ✅ done                                           |
 | 3b — Extract `apps/mylittlephoney`     | half day to a day         | ✅ done                                           |
-| 3.5 — Content and UX prep              | 1 day                     | ⏸️ drafts in `docs/public-release/`               |
+| 3.5 — Content and UX prep              | 1 day                     | ✅ done                                           |
 | 4 — Push to `brains-temp` and verify   | 1–2 hours                 | ⏸️ pending                                        |
 | 4.5 — End-to-end smoke test            | half day (more if breaks) | 🟡 partial (init flow tested in `/tmp/testbrain`) |
 | 5 — Double-rename and go live          | 1 hour                    | ⏸️ pending                                        |
@@ -572,11 +572,11 @@ A preflight scan of the current tree (HEAD, not history) validated the plan's bi
 - **No tsconfig project references** crossing the public→private boundary
 - **No package.json dependencies** on actually-private packages from the public set
 - **`bun.lock`** only references private packages as their own top-level entries, never as deps of public packages
-- **One real dependency** (`brains/rover` → `@brains/site-default` → `@brains/layout-professional`) resolved by recognizing those three packages are generic building blocks that belong in the public set, not private content. Inventory updated in §3.
+- **One real dependency** (`brains/rover` → `@brains/site-default` → `@brains/site-professional`) resolved by recognizing those packages are public site compositions, not private content. Inventory updated in §3.
 
 ### 10.2 Inventory corrections to §3
 
-The original plan listed three layout directories that don't exist (`layouts/{mylittlephoney,yeehaa,ranger}`). The actual layout directories are `layouts/personal` and `layouts/professional`, both generic and promoted to public. Also discovered: `shared/theme-{mylittlephoney,yeehaa,rizom}` are branded themes that should be private.
+The original plan assumed a `layouts/` layer. The public site-composition packages are now `sites/personal` and `sites/professional`, both generic and promoted to public. Also discovered: `shared/theme-{mylittlephoney,yeehaa,rizom}` are branded themes that should be private.
 
 ### 10.3 Mechanical rewrites completed in-place
 
