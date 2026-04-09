@@ -1,26 +1,28 @@
 name: Deploy
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Publish Brain Model Images"]
     branches: ["main"]
-    paths:
-      - "apps/rizom-ai/**"
-      - "brains/ranger/**"
-      - "sites/rizom/**"
-      - "shared/theme-rizom/**"
-      - "shared/theme-base/**"
-      - "shell/**"
-      - "packages/brain-cli/**"
+    types: [completed]
   workflow_dispatch:
 
 jobs:
   deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.event == 'push'
+      )
     runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: apps/rizom-ai
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Extract config from brain.yaml
         run: |
@@ -354,6 +356,9 @@ jobs:
       - name: Deploy
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          # Deploy the immutable image for the exact commit that the
+          # publish-images workflow built and pushed.
+          VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}
         # `kamal setup` is idempotent: on a fresh server it installs Docker
         # + kamal-proxy + deploys; on an already-set-up server it skips the
         # install steps and just deploys. Using `setup` instead of `deploy`

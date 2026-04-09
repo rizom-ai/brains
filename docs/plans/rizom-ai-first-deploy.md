@@ -58,7 +58,15 @@ The schema is generated from the ranger model template plus the deploy / provisi
 
 ### 4. `.github/workflows/rizom-ai-deploy.yml` now validates GitHub Actions secrets through varlock
 
-The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It passes the deploy/runtime values from GitHub Actions secrets into `varlock load`, exports the validated env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs `kamal deploy --skip-push`.
+The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It passes the deploy/runtime values from GitHub Actions secrets into `varlock load`, exports the validated env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs Kamal.
+
+The deploy trigger should follow the image publish, not race it. The correct contract is:
+
+- `publish-images.yml` checks out and publishes the exact triggering commit.
+- `rizom-ai-deploy.yml` triggers after a successful `Publish Brain Model Images` run on `main`.
+- Kamal deploys the immutable image tag for that exact commit SHA, not `latest`.
+
+`latest` is a moving fallback tag, not the deploy contract.
 
 ### 5. Auto-provision step (already wired into the workflow)
 

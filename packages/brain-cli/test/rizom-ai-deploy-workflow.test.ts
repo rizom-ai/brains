@@ -36,6 +36,19 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain("workflow_dispatch:");
   });
 
+  it("runs after Publish Brain Model Images succeeds on main", () => {
+    const workflow = readFileSync(workflowPath, "utf-8");
+
+    expect(workflow).toContain("workflow_run:");
+    expect(workflow).toContain('workflows: ["Publish Brain Model Images"]');
+    expect(workflow).toContain('branches: ["main"]');
+    expect(workflow).toContain(
+      "github.event.workflow_run.conclusion == 'success'",
+    );
+    expect(workflow).toContain("github.event.workflow_run.event == 'push'");
+    expect(workflow).not.toContain("on:\n  push:");
+  });
+
   it("passes GitHub Actions secrets into varlock without OP_TOKEN", () => {
     const workflow = readFileSync(workflowPath, "utf-8");
 
@@ -92,5 +105,12 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain("gem install --user-install kamal");
     expect(workflow).toContain("Gem.user_dir");
     expect(workflow).not.toContain("run: gem install kamal");
+    expect(workflow).toContain(
+      "ref: ${{ github.event.workflow_run.head_sha || github.sha }}",
+    );
+    expect(workflow).toContain(
+      "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
+    );
+    expect(workflow).not.toContain("VERSION: latest");
   });
 });
