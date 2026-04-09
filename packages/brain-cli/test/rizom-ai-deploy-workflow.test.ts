@@ -89,5 +89,8 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain("const location = process.env.HCLOUD_LOCATION;");
     expect(workflow).toContain("server_type: serverType");
     expect(workflow).toContain("location: process.env.HCLOUD_LOCATION");
+    expect(workflow).toContain("gem install --user-install kamal");
+    expect(workflow).toContain("Gem.user_dir");
+    expect(workflow).not.toContain("run: gem install kamal");
   });
 });
