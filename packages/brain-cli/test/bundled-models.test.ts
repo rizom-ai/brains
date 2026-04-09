@@ -20,4 +20,44 @@ describe("bundled model set", () => {
     expect(entrypoint).toContain('registerModel("ranger", ranger);');
     expect(entrypoint).toContain('registerModel("relay", relay);');
   });
+
+  it("pre-registers built-in site and theme package refs in the bundled entrypoint", () => {
+    const entrypoint = readFileSync(entrypointPath, "utf-8");
+
+    expect(entrypoint).toContain(
+      'import defaultSite from "@brains/site-default";',
+    );
+    expect(entrypoint).toContain(
+      'import defaultTheme from "@brains/theme-default";',
+    );
+    expect(entrypoint).toContain('import rizomSite from "@brains/site-rizom";');
+    expect(entrypoint).toContain(
+      'import rizomTheme from "@brains/theme-rizom";',
+    );
+    expect(entrypoint).toContain(
+      'import yeehaaSite from "@brains/site-yeehaa";',
+    );
+    expect(entrypoint).toContain(
+      'import brutalistTheme from "@brains/theme-brutalist";',
+    );
+
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/site-default", defaultSite);',
+    );
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/theme-default", defaultTheme);',
+    );
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/site-rizom", rizomSite);',
+    );
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/theme-rizom", rizomTheme);',
+    );
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/site-yeehaa", yeehaaSite);',
+    );
+    expect(entrypoint).toContain(
+      'registerPackage("@brains/theme-brutalist", brutalistTheme);',
+    );
+  });
 });

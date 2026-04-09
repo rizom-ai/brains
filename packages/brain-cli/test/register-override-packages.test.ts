@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect } from "bun:test";
 import {
   registerOverridePackages,
   type PackageImportFn,
@@ -23,89 +23,108 @@ import { getPackage, hasPackage, registerPackage } from "@brains/app";
  * exercised by the mylittlephoney smoke test after publish.
  */
 
-const SITE_REF = "@test-scope/site-fixture";
-const PLUGIN_REF = "@test-scope/plugin-fixture";
-
 const fakeSite = Symbol("fake-site-package");
 const fakePlugin = Symbol("fake-plugin-package");
 
-function clearRegistryEntries(refs: string[]): void {
-  for (const ref of refs) {
-    // registerPackage overwrites, so we register with undefined to
-    // reset between tests. The registry has no `unregister` API today.
-    registerPackage(ref, undefined);
-  }
+let refCounter = 0;
+
+function createRef(name: string): string {
+  refCounter += 1;
+  return `@test-scope/${name}-${refCounter}`;
 }
 
 describe("registerOverridePackages", () => {
-  beforeEach(() => {
-    clearRegistryEntries([SITE_REF, PLUGIN_REF]);
-  });
-
   it("registers the site.package from brain.yaml in the package registry", async () => {
+    const siteRef = createRef("site-fixture");
     const overrides: InstanceOverrides = {
-      site: { package: SITE_REF },
+      site: { package: siteRef },
     };
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === SITE_REF) return { default: fakeSite };
+      if (ref === siteRef) return { default: fakeSite };
       throw new Error(`unexpected ref: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
-    expect(hasPackage(SITE_REF)).toBe(true);
-    expect(getPackage(SITE_REF)).toBe(fakeSite);
+    expect(hasPackage(siteRef)).toBe(true);
+    expect(getPackage(siteRef)).toBe(fakeSite);
   });
 
   it("registers site.theme package refs from brain.yaml", async () => {
+    const themeRef = createRef("plugin-fixture");
     const overrides: InstanceOverrides = {
-      site: { theme: PLUGIN_REF },
+      site: { theme: themeRef },
     };
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === PLUGIN_REF) return { default: fakePlugin };
+      if (ref === themeRef) return { default: fakePlugin };
       throw new Error(`unexpected ref: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
-    expect(hasPackage(PLUGIN_REF)).toBe(true);
-    expect(getPackage(PLUGIN_REF)).toBe(fakePlugin);
+    expect(hasPackage(themeRef)).toBe(true);
+    expect(getPackage(themeRef)).toBe(fakePlugin);
   });
 
   it("registers @-prefixed plugin config values", async () => {
+    const pluginRef = createRef("plugin-fixture");
     const overrides: InstanceOverrides = {
       plugins: {
-        "some-plugin": { extra: PLUGIN_REF },
+        "some-plugin": { extra: pluginRef },
       },
     };
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === PLUGIN_REF) return { default: fakePlugin };
+      if (ref === pluginRef) return { default: fakePlugin };
       throw new Error(`unexpected ref: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
-    expect(hasPackage(PLUGIN_REF)).toBe(true);
-    expect(getPackage(PLUGIN_REF)).toBe(fakePlugin);
+    expect(hasPackage(pluginRef)).toBe(true);
+    expect(getPackage(pluginRef)).toBe(fakePlugin);
   });
 
   it("registers both site.package and plugin refs in one pass", async () => {
+    const siteRef = createRef("site-fixture");
+    const pluginRef = createRef("plugin-fixture");
     const overrides: InstanceOverrides = {
-      site: { package: SITE_REF },
+      site: { package: siteRef },
       plugins: {
-        "some-plugin": { extra: PLUGIN_REF },
+        "some-plugin": { extra: pluginRef },
       },
     };
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === SITE_REF) return { default: fakeSite };
-      if (ref === PLUGIN_REF) return { default: fakePlugin };
+      if (ref === siteRef) return { default: fakeSite };
+      if (ref === pluginRef) return { default: fakePlugin };
       throw new Error(`unexpected ref: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
-    expect(getPackage(SITE_REF)).toBe(fakeSite);
-    expect(getPackage(PLUGIN_REF)).toBe(fakePlugin);
+    expect(getPackage(siteRef)).toBe(fakeSite);
+    expect(getPackage(pluginRef)).toBe(fakePlugin);
+  });
+
+  it("skips dynamic import for refs already registered in the package registry", async () => {
+    const siteRef = createRef("site-fixture");
+    const themeRef = createRef("plugin-fixture");
+    const overrides: InstanceOverrides = {
+      site: { package: siteRef, theme: themeRef },
+    };
+    registerPackage(siteRef, fakeSite);
+    registerPackage(themeRef, fakePlugin);
+
+    let calls = 0;
+    const importFn: PackageImportFn = async (ref) => {
+      calls += 1;
+      throw new Error(`should not import pre-registered ref: ${ref}`);
+    };
+
+    await registerOverridePackages(overrides, importFn);
+
+    expect(calls).toBe(0);
+    expect(getPackage(siteRef)).toBe(fakeSite);
+    expect(getPackage(themeRef)).toBe(fakePlugin);
   });
 
   it("is a no-op when overrides contain no @-prefixed refs", async () => {
@@ -127,25 +146,27 @@ describe("registerOverridePackages", () => {
   });
 
   it("swallows import errors and continues with remaining refs", async () => {
+    const siteRef = createRef("site-fixture");
+    const pluginRef = createRef("plugin-fixture");
     const overrides: InstanceOverrides = {
-      site: { package: SITE_REF },
+      site: { package: siteRef },
       plugins: {
-        "some-plugin": { extra: PLUGIN_REF },
+        "some-plugin": { extra: pluginRef },
       },
     };
     // First ref fails, second succeeds.
     const importFn: PackageImportFn = async (ref) => {
-      if (ref === SITE_REF) throw new Error("boom");
-      if (ref === PLUGIN_REF) return { default: fakePlugin };
+      if (ref === siteRef) throw new Error("boom");
+      if (ref === pluginRef) return { default: fakePlugin };
       throw new Error(`unexpected ref: ${ref}`);
     };
 
     await registerOverridePackages(overrides, importFn);
 
     // First ref should NOT be registered.
-    expect(hasPackage(SITE_REF)).toBe(true); // registered as undefined by beforeEach
-    expect(getPackage(SITE_REF)).toBeUndefined();
+    expect(hasPackage(siteRef)).toBe(false);
+    expect(getPackage(siteRef)).toBeUndefined();
     // Second ref SHOULD be registered despite the first failing.
-    expect(getPackage(PLUGIN_REF)).toBe(fakePlugin);
+    expect(getPackage(pluginRef)).toBe(fakePlugin);
   });
 });

@@ -1,5 +1,9 @@
 import type { InstanceOverrides } from "@brains/app";
-import { collectOverridePackageRefs, registerPackage } from "@brains/app";
+import {
+  collectOverridePackageRefs,
+  hasPackage,
+  registerPackage,
+} from "@brains/app";
 
 /**
  * Import function signature used to resolve `@-prefixed` package
@@ -31,6 +35,10 @@ export async function registerOverridePackages(
   const refs = collectOverridePackageRefs(overrides);
 
   for (const ref of refs) {
+    if (hasPackage(ref)) {
+      continue;
+    }
+
     try {
       const mod = await importFn(ref);
       registerPackage(ref, mod.default);

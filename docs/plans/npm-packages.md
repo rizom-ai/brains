@@ -29,6 +29,8 @@ Single Bun build. The CLI _is_ the runtime — no subprocess, no IPC, no spawn.
 
 **Bundled model set:** `@rizom/brain` must bundle every in-tree brain model that a scaffolded or checked-in app instance can declare in `brain.yaml`. That currently means `rover`, `ranger`, and `relay`. `rover` remains the public reference model, but `ranger` and `relay` also ship in the runtime package so published-path app instances like `apps/rizom-ai` and `apps/rizom-foundation` can boot without depending on monorepo source resolution.
 
+**Bundled package refs:** the published runtime must also pre-register the built-in site/theme package refs that checked-in and scaffolded apps use in `brain.yaml` (for example `@brains/site-default`, `@brains/theme-default`, `@brains/site-rizom`, `@brains/theme-rizom`). In bundled mode these refs must resolve from the in-memory package registry, not via runtime dynamic import, because a pure `bunx @rizom/brain ...` install does not carry separate workspace packages beside the published bundle.
+
 `brain start` imports the model and calls `App.create(config).run()` directly. Same process, same event loop. This means:
 
 - **Zero spawn overhead** — no child process for start, list, sync, build

@@ -13,17 +13,31 @@
  * src/index.ts directly (no models registered, subprocess runner path).
  */
 
-// ─── Register brain models ────────────────────────────────────────────────
+// ─── Register brain models and built-in package refs ──────────────────────
 
 import { registerModel } from "../src/lib/model-registry";
+import { registerPackage } from "@brains/app";
 
 import rover from "@brains/rover";
 import ranger from "@brains/ranger";
 import relay from "@brains/relay";
+import defaultSite from "@brains/site-default";
+import defaultTheme from "@brains/theme-default";
+import rizomSite from "@brains/site-rizom";
+import rizomTheme from "@brains/theme-rizom";
+import yeehaaSite from "@brains/site-yeehaa";
+import brutalistTheme from "@brains/theme-brutalist";
 
 registerModel("rover", rover);
 registerModel("ranger", ranger);
 registerModel("relay", relay);
+
+registerPackage("@brains/site-default", defaultSite);
+registerPackage("@brains/theme-default", defaultTheme);
+registerPackage("@brains/site-rizom", rizomSite);
+registerPackage("@brains/theme-rizom", rizomTheme);
+registerPackage("@brains/site-yeehaa", yeehaaSite);
+registerPackage("@brains/theme-brutalist", brutalistTheme);
 
 // ─── Register boot function ───────────────────────────────────────────────
 
