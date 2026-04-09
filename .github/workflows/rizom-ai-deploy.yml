@@ -358,3 +358,24 @@ jobs:
         # install steps and just deploys. Using `setup` instead of `deploy`
         # means the workflow handles first-deploy and re-runs identically.
         run: kamal setup --skip-push
+
+      - name: Verify origin TLS
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN"
+          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
+
+      - name: Dump remote proxy diagnostics
+        if: failure()
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SERVER_IP" '
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+            echo "--- kamal-proxy logs ---"
+            docker logs kamal-proxy --tail 200 || true
+            echo "--- kamal-proxy inspect ---"
+            docker inspect kamal-proxy || true
+          '

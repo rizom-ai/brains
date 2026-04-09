@@ -115,5 +115,9 @@ describe("rizom-ai deploy workflow", () => {
       "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
     );
     expect(workflow).not.toContain("VERSION: latest");
+    expect(workflow).toContain("name: Verify origin TLS");
+    expect(workflow).toContain("curl -I -k --max-time 20 --resolve");
+    expect(workflow).toContain("name: Dump remote proxy diagnostics");
+    expect(workflow).toContain("docker logs kamal-proxy --tail 200");
   });
 });
