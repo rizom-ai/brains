@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.1.1-alpha.9
+
+### Patch Changes
+
+- [`f3d6b81`](https://github.com/rizom-ai/brains/commit/f3d6b81d0a693137ce4b32a4b76e5c1fca8c1907) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Pre-register the built-in site and theme package refs used by bundled brain instances so published-path apps can resolve refs like `@brains/site-rizom`, `@brains/theme-rizom`, `@brains/site-default`, and `@brains/theme-default` from the runtime package registry instead of trying to dynamically import external workspace packages at boot.
+
 ## 0.1.1-alpha.8
 
 ### Patch Changes
