@@ -27,22 +27,13 @@ export async function runCommand(
   parsed: ParsedArgs,
   dir: string,
 ): Promise<CommandResult> {
-  if (parsed.command === "cert" && parsed.args[0] === "bootstrap") {
-    return runCertBootstrap(dir, {
-      pushTo: parsed.flags["push-to"],
-    });
-  }
+  // Both `brain cert bootstrap` and `brain cert:bootstrap` reach the same
+  // handler — collapse the space form to the colon form so the switch below
+  // (and any future flag added to the option object) only has to be touched
+  // once per subcommand.
+  const command = collapseSubcommand(parsed.command, parsed.args);
 
-  if (parsed.command === "secrets" && parsed.args[0] === "push") {
-    return runSecretsPush(dir, {
-      pushTo: parsed.flags["push-to"],
-      all: parsed.flags.all,
-      only: parsed.flags.only,
-      dryRun: parsed.flags["dry-run"],
-    });
-  }
-
-  switch (parsed.command) {
+  switch (command) {
     case "init":
       return runInit(parsed, dir);
     case "start":
@@ -88,6 +79,12 @@ export async function runCommand(
       // Local mode — boot brain, invoke tool
       return operate(dir, parsed.command, parsed.args, parsed.flags);
   }
+}
+
+function collapseSubcommand(command: string, args: string[]): string {
+  if (command === "cert" && args[0] === "bootstrap") return "cert:bootstrap";
+  if (command === "secrets" && args[0] === "push") return "secrets:push";
+  return command;
 }
 
 async function runInit(
