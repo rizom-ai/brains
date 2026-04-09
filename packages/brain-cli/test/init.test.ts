@@ -121,6 +121,7 @@ describe("brain init", () => {
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("CERTIFICATE_PEM=");
       expect(envExample).toContain("PRIVATE_KEY_PEM=");
+      expect(envExample).not.toContain("SERVER_IP=");
     });
 
     it("should create .env.schema with no-plugin default (env-vars only)", () => {

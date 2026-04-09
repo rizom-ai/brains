@@ -50,6 +50,8 @@ The current file uses the `ghcr.io/` registry prefix, `proxy.ssl.certificate_pem
 
 It contains the deploy and provisioning placeholders needed by the current Kamal flow, including `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `CERTIFICATE_PEM`, `PRIVATE_KEY_PEM`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, and `KAMAL_SSH_PRIVATE_KEY`.
 
+`SERVER_IP` is intentionally not part of the committed env contract because the workflow provisions or reuses the server first, then writes `SERVER_IP` into the job env after that step completes.
+
 ### 3. `apps/rizom-ai/.env.schema` now exists as a committed artifact
 
 The schema is generated from the ranger model template plus the deploy / provisioning / TLS sections.
