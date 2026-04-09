@@ -383,6 +383,10 @@ describe("brain init", () => {
       expect(deploy).toContain("proxy:");
       expect(deploy).toContain("certificate_pem: CERTIFICATE_PEM");
       expect(deploy).toContain("private_key_pem: PRIVATE_KEY_PEM");
+      expect(deploy).toContain("- <%= ENV['BRAIN_DOMAIN'] %>");
+      expect(deploy).toContain("- preview.<%= ENV['BRAIN_DOMAIN'] %>");
+      expect(deploy).not.toContain(":80");
+      expect(deploy).not.toContain(":81");
       expect(deploy).toContain("healthcheck:");
       expect(deploy).toContain("path: /health");
       expect(deploy).not.toMatch(/^healthcheck:/m);

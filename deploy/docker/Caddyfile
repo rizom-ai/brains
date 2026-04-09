@@ -2,8 +2,21 @@
 # kamal-proxy handles SSL + host routing externally.
 # This Caddy runs inside the container, no TLS.
 
-# Production site (port 80)
+# Shared internal HTTP entrypoint. kamal-proxy terminates TLS and forwards
+# requests here. Preview hosts are routed by Host header, not by a separate
+# external TLS port.
 :80 {
+	@preview host preview.*
+	handle @preview {
+		reverse_proxy localhost:4321
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
 	# MCP endpoint
 	handle /mcp* {
 		reverse_proxy localhost:3333
@@ -46,16 +59,5 @@
 			X-Content-Type-Options "nosniff"
 			Referrer-Policy "strict-origin-when-cross-origin"
 		}
-	}
-}
-
-# Preview site (port 81)
-:81 {
-	reverse_proxy localhost:4321
-
-	header {
-		X-Frame-Options "SAMEORIGIN"
-		X-Content-Type-Options "nosniff"
-		Referrer-Policy "strict-origin-when-cross-origin"
 	}
 }
