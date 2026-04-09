@@ -161,10 +161,21 @@ export class GitSync implements IGitSync {
     }
     await this.git.addConfig("pull.rebase", "false");
 
-    // Ensure we're on main branch
+    // Ensure we're on the configured branch. Only create it when the
+    // checkout failed because the branch does not exist yet.
     try {
       await this.git.checkout(this.branch);
-    } catch {
+    } catch (error) {
+      const message = getErrorMessage(error);
+      const branchMissing =
+        message.includes(`pathspec '${this.branch}' did not match`) ||
+        message.includes(`invalid reference: ${this.branch}`) ||
+        message.includes("did not match any file(s) known to git");
+
+      if (!branchMissing) {
+        throw error;
+      }
+
       await this.git.checkoutLocalBranch(this.branch);
 
       // Create initial commit if empty. Stage ANY existing files in the

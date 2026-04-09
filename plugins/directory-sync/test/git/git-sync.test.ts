@@ -89,6 +89,16 @@ describe("GitSync (simplified)", () => {
       expect(tracked).toContain("existing-seed.md");
       expect(tracked).toContain("nested/child.md");
     });
+
+    it("should preserve checkout errors instead of masking them as branch creation failures", async () => {
+      const gs = createGitSync();
+      await gs.initialize();
+
+      writeFileSync(join(dataDir, ".git", "index.lock"), "");
+
+      const gs2 = createGitSync();
+      expect(gs2.initialize()).rejects.toThrow(/index\.lock/);
+    });
   });
 
   describe("hasRemote", () => {
