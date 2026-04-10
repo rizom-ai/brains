@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.1.1-alpha.10
+
+### Patch Changes
+
+- [`177360d`](https://github.com/rizom-ai/brains/commit/177360dd90198c3b69143ab9a5c058d00c8379da) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve standalone deploy scaffolding for real repo usage.
+  - scaffold a repo-local `publish-image.yml` workflow for standalone repos
+  - make standalone deploy workflows trigger from `Publish Image` and deploy immutable SHA tags instead of relying on `latest`
+  - switch standalone `config/deploy.yml` image identity from hardcoded `rizom-ai/<model>` values to repo-derived placeholders
+  - scaffold repo-local deploy image assets (`deploy/Dockerfile`, `deploy/Caddyfile`)
+  - bundle built-in model env schemas into the published package so `brain init --deploy` works outside the monorepo
+  - reconcile known stale generated deploy files in existing standalone repos without overwriting custom edits
+
 ## 0.1.1-alpha.9
 
 ### Patch Changes
