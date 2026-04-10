@@ -121,8 +121,10 @@ describe("brain init", () => {
       const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
       expect(envExample).toContain("CERTIFICATE_PEM=");
       expect(envExample).toContain("PRIVATE_KEY_PEM=");
+      expect(envExample).toContain("HCLOUD_SSH_KEY_NAME=");
       expect(envExample).toContain("HCLOUD_SERVER_TYPE=");
       expect(envExample).toContain("HCLOUD_LOCATION=");
+      expect(envExample).toContain("KAMAL_SSH_PRIVATE_KEY=");
       expect(envExample).not.toContain("SERVER_IP=");
     });
 
@@ -416,17 +418,64 @@ describe("brain init", () => {
         join(testDir, ".github", "workflows", "deploy.yml"),
         "utf-8",
       );
-      expect(workflow).toContain("npx -y varlock load --format json --compact");
+      expect(workflow).toContain("workflow_dispatch:");
+      expect(workflow).toContain("Validate env via varlock");
+      expect(workflow).toContain("Load env via varlock");
+      expect(workflow).toContain(
+        "npx -y varlock load --path .env.schema --show-all",
+      );
+      expect(workflow).toContain(
+        "npx -y varlock load --path .env.schema --format json --compact",
+      );
       expect(workflow).not.toContain("secrets.OP_TOKEN");
+      expect(workflow).toContain("secrets.AI_API_KEY");
+      expect(workflow).toContain("secrets.GIT_SYNC_TOKEN");
+      expect(workflow).toContain("secrets.MCP_AUTH_TOKEN");
       expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");
+      expect(workflow).toContain("HCLOUD_SERVER_TYPE");
+      expect(workflow).toContain("HCLOUD_LOCATION");
+      expect(workflow).toContain("Missing HCLOUD_SERVER_TYPE");
+      expect(workflow).toContain("Missing HCLOUD_LOCATION");
       expect(workflow).toContain(".kamal/secrets");
+      expect(workflow).toContain(
+        'import { appendFileSync, readFileSync } from "node:fs";',
+      );
+      expect(workflow).toContain(
+        'import { readFileSync, writeFileSync } from "node:fs";',
+      );
+      expect(workflow).toContain('import { appendFileSync } from "node:fs";');
+      expect(workflow).not.toContain("require(");
+      expect(workflow).toContain("const escaped = text.replace(/'/g,");
+      expect(workflow).toContain('lines.push(name + "=\'" + escaped + "\'");');
       expect(workflow).toContain("Provision server");
       expect(workflow).toContain("Update Cloudflare DNS");
       expect(workflow).toContain("steps.provision.outputs.server_ip");
+      expect(workflow).toContain("gem install --user-install kamal");
+      expect(workflow).toContain(
+        'ruby -r rubygems -e \'puts Gem.user_dir + "/bin"\' >> "$GITHUB_PATH"',
+      );
       expect(workflow).toContain("kamal setup --skip-push");
-      expect(workflow).not.toContain("secrets.AI_API_KEY");
-      expect(workflow).not.toContain("secrets.GIT_SYNC_TOKEN");
-      expect(workflow).not.toContain("secrets.MCP_AUTH_TOKEN");
+      expect(workflow).toContain("Verify origin TLS");
+      expect(workflow).toContain("Dump remote proxy diagnostics");
+      expect(workflow).toContain("docker logs kamal-proxy --tail 200");
+      expect(workflow).toContain("curl -I -k --max-time 20 --resolve");
+    });
+
+    it("should map every generated env schema key into the deploy workflow", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const envSchema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      const envNames = (envSchema.match(/^([A-Z][A-Z0-9_]*)=/gm) ?? []).map(
+        (line) => line.slice(0, -1),
+      );
+
+      for (const name of envNames) {
+        expect(workflow).toContain(name + ": ${{ secrets." + name + " }}");
+      }
     });
 
     it("should produce same config/deploy.yml regardless of model", () => {

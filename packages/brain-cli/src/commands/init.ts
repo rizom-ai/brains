@@ -1,4 +1,10 @@
-import { mkdirSync, writeFileSync, chmodSync, existsSync } from "fs";
+import {
+  mkdirSync,
+  writeFileSync,
+  chmodSync,
+  existsSync,
+  readFileSync,
+} from "fs";
 import { basename, dirname, join, resolve as pathResolve } from "path";
 import pkg from "../../package.json" with { type: "json" };
 import { parseBrainYaml } from "../lib/brain-yaml";
@@ -249,8 +255,10 @@ CF_API_TOKEN=
 CF_ZONE_ID=
 CERTIFICATE_PEM=
 PRIVATE_KEY_PEM=
+HCLOUD_SSH_KEY_NAME=
 HCLOUD_SERVER_TYPE=
 HCLOUD_LOCATION=
+KAMAL_SSH_PRIVATE_KEY=
 `;
 
   writeScaffoldFile(join(dir, ".env.example"), content);
@@ -297,12 +305,26 @@ done
   writeScaffoldFile(join(dir, ".kamal", "hooks", "pre-deploy"), content, true);
 }
 
+function listEnvSchemaVariableNames(envSchema: string): string[] {
+  const names = envSchema.match(/^([A-Z][A-Z0-9_]*)=/gm) ?? [];
+  return names.map((line) => line.slice(0, -1));
+}
+
+function buildWorkflowSecretsEnvBlock(dir: string): string {
+  const envSchema = readFileSync(join(dir, ".env.schema"), "utf-8");
+  return listEnvSchemaVariableNames(envSchema)
+    .map((name) => `          ${name}: \${{ secrets.${name} }}`)
+    .join("\n");
+}
+
 function writeDeployWorkflow(dir: string): void {
+  const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
   const content = `name: Deploy
 
 on:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 jobs:
   deploy:
@@ -319,12 +341,19 @@ jobs:
           echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
           echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
 
+      - name: Validate env via varlock
+        env:
+${workflowSecretsEnv}
+        run: npx -y varlock load --path .env.schema --show-all
+
       - name: Load env via varlock
+        env:
+${workflowSecretsEnv}
         run: |
-          npx -y varlock load --format json --compact > /tmp/varlock-env.json
+          npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
           node <<'NODE'
-          const fs = require('fs');
-          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          import { appendFileSync, readFileSync } from "node:fs";
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
           const githubEnvPath = process.env.GITHUB_ENV;
 
           if (!githubEnvPath) {
@@ -344,7 +373,7 @@ jobs:
             return [key + '=' + text];
           });
 
-          fs.appendFileSync(githubEnvPath, lines.join('\\n') + '\\n');
+          appendFileSync(githubEnvPath, lines.join('\\n') + '\\n');
           NODE
 
       - name: Write Kamal SSH key
@@ -357,9 +386,9 @@ jobs:
         run: |
           mkdir -p .kamal
           node <<'NODE'
-          const fs = require('fs');
-          const deployYaml = fs.readFileSync('config/deploy.yml', 'utf8');
-          const env = JSON.parse(fs.readFileSync('/tmp/varlock-env.json', 'utf8'));
+          import { readFileSync, writeFileSync } from "node:fs";
+          const deployYaml = readFileSync('config/deploy.yml', 'utf8');
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
           const secretNames = new Set([
             'KAMAL_REGISTRY_PASSWORD',
             'CERTIFICATE_PEM',
@@ -394,25 +423,24 @@ jobs:
             }
 
             const text = String(value);
-            if (text.includes('\\n')) {
-              lines.push(name + '<<EOF', text, 'EOF');
-            } else {
-              lines.push(name + '=' + text);
-            }
+            const escaped = text.replace(/'/g, "\\'");
+            lines.push(name + "='" + escaped + "'");
           }
 
-          fs.writeFileSync('.kamal/secrets', lines.join('\\n') + '\\n');
+          writeFileSync('.kamal/secrets', lines.join('\\n') + '\\n');
           NODE
 
       - name: Provision server
         id: provision
         run: |
           node <<'NODE'
-          const fs = require('fs');
+          import { appendFileSync } from "node:fs";
 
           const token = process.env.HCLOUD_TOKEN;
           const instanceName = process.env.INSTANCE_NAME;
           const sshKeyName = process.env.HCLOUD_SSH_KEY_NAME;
+          const serverType = process.env.HCLOUD_SERVER_TYPE;
+          const location = process.env.HCLOUD_LOCATION;
           const outputPath = process.env.GITHUB_OUTPUT;
           if (!token) {
             throw new Error('Missing HCLOUD_TOKEN');
@@ -422,6 +450,12 @@ jobs:
           }
           if (!sshKeyName) {
             throw new Error('Missing HCLOUD_SSH_KEY_NAME');
+          }
+          if (!serverType) {
+            throw new Error('Missing HCLOUD_SERVER_TYPE');
+          }
+          if (!location) {
+            throw new Error('Missing HCLOUD_LOCATION');
           }
           if (!outputPath) {
             throw new Error('Missing GITHUB_OUTPUT');
@@ -471,9 +505,9 @@ jobs:
               headers,
               body: JSON.stringify({
                 name: instanceName,
-                server_type: 'cpx21',
+                server_type: serverType,
                 image: 'ubuntu-22.04',
-                location: 'nbg1',
+                location,
                 ssh_keys: [sshKeyName],
                 labels: { brain: instanceName },
               }),
@@ -507,9 +541,9 @@ jobs:
           }
 
           const serverIp = server.public_net.ipv4.ip;
-          fs.appendFileSync(outputPath, 'server_ip=' + serverIp + '\\n');
+          appendFileSync(outputPath, 'server_ip=' + serverIp + '\\n');
           if (process.env.GITHUB_ENV) {
-            fs.appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\\n');
+            appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\\n');
           }
           NODE
 
@@ -518,8 +552,6 @@ jobs:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           node <<'NODE'
-          const fs = require('fs');
-
           const token = process.env.CF_API_TOKEN;
           const zoneId = process.env.CF_ZONE_ID;
           const domain = process.env.BRAIN_DOMAIN;
@@ -594,23 +626,36 @@ jobs:
           NODE
 
       - name: Install Kamal
-        run: gem install kamal
+        run: |
+          gem install --user-install kamal
+          ruby -r rubygems -e 'puts Gem.user_dir + "/bin"' >> "$GITHUB_PATH"
 
       - name: Deploy
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
-          # Force kamal to use the \`:latest\` tag instead of the current
-          # git SHA. The brain model image is published by a separate
-          # workflow (publish-images.yml) which tags GHCR with \`:latest\`
-          # and \`:sha-<short>\` — neither matches kamal's default of
-          # \`:<full-git-sha>\`. Pinning VERSION=latest decouples the
-          # deploy from the publish-images run timing.
           VERSION: latest
-        # \`kamal setup\` is idempotent: on a fresh server it installs Docker
-        # + kamal-proxy + deploys; on an already-set-up server it skips the
-        # install steps and just deploys. Using \`setup\` instead of \`deploy\`
-        # means the workflow handles first-deploy and re-runs identically.
         run: kamal setup --skip-push
+
+      - name: Verify origin TLS
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+        run: |
+          curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN"
+          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
+
+      - name: Dump remote proxy diagnostics
+        if: failure()
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SERVER_IP" '
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+            echo "--- kamal-proxy logs ---"
+            docker logs kamal-proxy --tail 200 || true
+            echo "--- kamal-proxy inspect ---"
+            docker inspect kamal-proxy || true
+          '
 `;
 
   writeScaffoldFile(join(dir, ".github", "workflows", "deploy.yml"), content);

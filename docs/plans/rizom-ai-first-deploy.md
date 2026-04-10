@@ -154,6 +154,38 @@ After the first deploy is green:
 - **Repo extraction** — `harmonize-monorepo-apps.md` Phase 2. Extract `apps/rizom-ai` to its own repo so the deploy workflow lives outside the monorepo. Path-filter trigger is the interim solution.
 - **`brain cert:bootstrap --push-to <backend>`** — landed for `1password` and `gh` push targets.
 
+## Backport to `brain init --deploy`
+
+`apps/rizom-ai` is now the live proving ground for the deploy pipeline, but `packages/brain-cli/src/commands/init.ts` still scaffolds an older workflow. The backport should happen in two slices.
+
+### Slice A — port now
+
+These are generic deploy hardening changes and should be scaffolded for all new standalone repos:
+
+- split the varlock phase into **Validate env via varlock** and **Load env via varlock**
+- scope both commands to `--path .env.schema`
+- derive the scaffolded workflow's GitHub Actions `env:` block from the generated `.env.schema` so the schema stays the single source of truth for env names
+- pass GitHub Actions secrets into workflow `env:` and keep backend `none` semantics (no `OP_TOKEN`)
+- replace inline `require(...)` snippets with ESM-safe `import ... from "node:fs"`
+- write `.kamal/secrets` as dotenv-compatible single-quoted values with apostrophe escaping
+- read `HCLOUD_SERVER_TYPE` and `HCLOUD_LOCATION` from workflow env instead of hardcoded Hetzner defaults
+- install Kamal with `gem install --user-install kamal` and add `Gem.user_dir + "/bin"` to `PATH`
+- add `workflow_dispatch`
+- add post-deploy **Verify origin TLS** and failure-only **Dump remote proxy diagnostics** steps
+
+Regression coverage belongs in `packages/brain-cli/test/init.test.ts` and should assert the scaffolded workflow contains those exact contracts before the implementation lands.
+
+### Slice B — decide before porting
+
+These parts are still tied to the monorepo's image publication flow and should not be copied blindly into `brain init`:
+
+- downstream `workflow_run` trigger from `Publish Brain Model Images`
+- immutable image-tag deployment wired to upstream publish completion
+- monorepo-specific checkout `ref: ${{ github.event.workflow_run.head_sha || github.sha }}`
+- hardcoded image namespace / registry owner assumptions like `rizom-ai/<model>`
+
+That second slice needs a standalone image-publish contract first: either scaffold a companion publish workflow, or make deploy build and push its own image.
+
 ## Related
 
 - `docs/plans/rizom-sites.md` — phases 0-3 (the in-tree work)
