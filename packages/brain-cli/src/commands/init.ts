@@ -116,6 +116,47 @@ function writeScaffoldFile(
   }
 }
 
+function writeReconcilableScaffoldFile(options: {
+  path: string;
+  content: string;
+  executable?: boolean;
+  legacyContents?: string[];
+  shouldReconcile?: (current: string) => boolean;
+}): void {
+  const {
+    path,
+    content,
+    executable = false,
+    legacyContents = [],
+    shouldReconcile,
+  } = options;
+  mkdirSync(dirname(path), { recursive: true });
+
+  if (!existsSync(path)) {
+    writeFileSync(path, content, { flag: "wx" });
+    if (executable) {
+      chmodSync(path, 0o755);
+    }
+    return;
+  }
+
+  const current = readFileSync(path, "utf-8");
+  if (current === content) {
+    return;
+  }
+
+  const matchesLegacyContent = legacyContents.includes(current);
+  const matchesLegacyPredicate = shouldReconcile?.(current) ?? false;
+  if (!matchesLegacyContent && !matchesLegacyPredicate) {
+    return;
+  }
+
+  writeFileSync(path, content);
+  if (executable) {
+    chmodSync(path, 0o755);
+  }
+}
+
 function getPinnedSiteTheme(
   model: string,
 ): { sitePackage: string; themePackage: string } | undefined {
@@ -193,6 +234,103 @@ ${gitBlock}  mcp:
  * All instance-specific values come from env vars that CI
  * extracts from brain.yaml.
  */
+const legacyEnvExampleContents = [
+  `# Required
+AI_API_KEY=
+
+# Optional: separate key for image generation (defaults to AI_API_KEY)
+# AI_IMAGE_KEY=
+
+GIT_SYNC_TOKEN=
+
+# Optional
+MCP_AUTH_TOKEN=
+DISCORD_BOT_TOKEN=
+
+# Deploy (only needed with --deploy)
+KAMAL_REGISTRY_PASSWORD=
+SERVER_IP=
+CLOUDFLARE_API_TOKEN=
+CLOUDFLARE_ZONE_ID=
+`,
+];
+
+const legacyDeployYmlContents = [
+  `service: brain
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl: true
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>:80
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`,
+];
+
+const legacyDeployWorkflowContents = [
+  `name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract config from brain.yaml
+        run: |
+          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains${"\\///"}' | tr -d '"' | tr -d "'")
+          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
+          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - name: Deploy
+        env:
+          KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SERVER_IP: \${{ secrets.SERVER_IP }}
+          AI_API_KEY: \${{ secrets.AI_API_KEY }}
+          GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
+          MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
+        run: kamal deploy --skip-push
+`,
+];
+
 function writeDeployYml(dir: string, onlyIfMissing = false): void {
   const content = `service: brain
 image: <%= ENV['IMAGE_REPOSITORY'] %>
@@ -236,7 +374,20 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
-  writeScaffoldFile(join(dir, "config", "deploy.yml"), content, onlyIfMissing);
+  if (onlyIfMissing) {
+    writeScaffoldFile(
+      join(dir, "config", "deploy.yml"),
+      content,
+      onlyIfMissing,
+    );
+    return;
+  }
+
+  writeReconcilableScaffoldFile({
+    path: join(dir, "config", "deploy.yml"),
+    content,
+    legacyContents: legacyDeployYmlContents,
+  });
 }
 
 function writeEnvExample(dir: string): void {
@@ -264,7 +415,11 @@ HCLOUD_LOCATION=
 KAMAL_SSH_PRIVATE_KEY=
 `;
 
-  writeScaffoldFile(join(dir, ".env.example"), content);
+  writeReconcilableScaffoldFile({
+    path: join(dir, ".env.example"),
+    content,
+    legacyContents: legacyEnvExampleContents,
+  });
 }
 
 function writeEnvSchema(dir: string, model: string, backend?: string): void {
@@ -826,7 +981,16 @@ ${workflowSecretsEnv}
           '
 `;
 
-  writeScaffoldFile(join(dir, ".github", "workflows", "deploy.yml"), content);
+  writeReconcilableScaffoldFile({
+    path: join(dir, ".github", "workflows", "deploy.yml"),
+    content,
+    legacyContents: legacyDeployWorkflowContents,
+    shouldReconcile: (current) =>
+      current.includes("name: Deploy") &&
+      current.includes("run: kamal deploy --skip-push") &&
+      current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
+      !current.includes('workflows: ["Publish Image"]'),
+  });
 }
 
 function writeGitignore(dir: string): void {

@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
+import { bundledModelEnvSchemas } from "./generated/bundled-model-env-schemas";
 
 // "none" means: no varlock plugin in the schema. Values resolve from
 // process.env (and therefore from CI secrets) directly. This is the
@@ -121,14 +122,38 @@ function resolveModelEnvSchemaPath(
   return undefined;
 }
 
-function readModelEnvSchema(model: string): string {
-  const brainPackageDir = resolveBrainPackageDir(model);
-  const schemaPath = resolveModelEnvSchemaPath(brainPackageDir);
-  if (!schemaPath) {
-    return "";
+function normalizeModelName(model: string): string {
+  return model.startsWith("@brains/") ? model.slice("@brains/".length) : model;
+}
+
+function getBundledModelEnvSchema(model: string): string {
+  switch (normalizeModelName(model)) {
+    case "rover":
+      return bundledModelEnvSchemas.rover;
+    case "ranger":
+      return bundledModelEnvSchemas.ranger;
+    case "relay":
+      return bundledModelEnvSchemas.relay;
+    default:
+      return "";
+  }
+}
+
+export function resolveModelEnvSchema(
+  model: string,
+  resolvePackageDir: (model: string) => string = resolveBrainPackageDir,
+): string {
+  try {
+    const brainPackageDir = resolvePackageDir(model);
+    const schemaPath = resolveModelEnvSchemaPath(brainPackageDir);
+    if (schemaPath) {
+      return readFileSync(schemaPath, "utf-8").trimEnd();
+    }
+  } catch {
+    // Fall through to bundled built-in schemas for published installs.
   }
 
-  return readFileSync(schemaPath, "utf-8").trimEnd();
+  return getBundledModelEnvSchema(model);
 }
 
 export function buildInstanceEnvSchema(
@@ -139,7 +164,7 @@ export function buildInstanceEnvSchema(
   const selectedBackend = normalizeSecretBackend(backend);
   const sections = [
     secretBackendPrelude(instanceName, selectedBackend).trimEnd(),
-    readModelEnvSchema(model),
+    resolveModelEnvSchema(model),
     deployProvisionEnvSchema.trimEnd(),
     tlsCertEnvSchema.trimEnd(),
     backendBootstrapEnvSchema(selectedBackend).trimEnd(),

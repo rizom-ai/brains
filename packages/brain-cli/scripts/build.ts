@@ -61,6 +61,21 @@ if (compileResult.exitCode !== 0) {
   process.exit(1);
 }
 
+console.log("Generating bundled model env schemas...");
+const envSchemaScript = join(
+  import.meta.dir,
+  "generate-bundled-model-env-schemas.ts",
+);
+const envSchemaResult = Bun.spawnSync(["bun", envSchemaScript], {
+  cwd: monorepoRoot,
+  stdout: "inherit",
+  stderr: "inherit",
+});
+if (envSchemaResult.exitCode !== 0) {
+  console.error("Bundled model env schema generation failed");
+  process.exit(1);
+}
+
 // ─── Bundle CLI + library exports ─────────────────────────────────────────
 //
 // The CLI bundle (brain.js) and one bundle per library subpath export

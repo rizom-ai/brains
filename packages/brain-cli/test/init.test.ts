@@ -3,6 +3,98 @@ import { mkdirSync, existsSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { scaffold } from "../src/commands/init";
+import { buildInstanceEnvSchema } from "../src/lib/env-schema";
+
+const legacyEnvExample = `# Required
+AI_API_KEY=
+
+# Optional: separate key for image generation (defaults to AI_API_KEY)
+# AI_IMAGE_KEY=
+
+GIT_SYNC_TOKEN=
+
+# Optional
+MCP_AUTH_TOKEN=
+DISCORD_BOT_TOKEN=
+
+# Deploy (only needed with --deploy)
+KAMAL_REGISTRY_PASSWORD=
+SERVER_IP=
+CLOUDFLARE_API_TOKEN=
+CLOUDFLARE_ZONE_ID=
+`;
+
+const legacyDeployYml = `service: brain
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl: true
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>:80
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+
+const legacyDeployWorkflow = `name: Deploy
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract config from brain.yaml
+        run: |
+          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains${"\\///"}' | tr -d '"' | tr -d "'")
+          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
+          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
+
+      - name: Install Kamal
+        run: gem install kamal
+
+      - name: Deploy
+        env:
+          KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          SERVER_IP: \${{ secrets.SERVER_IP }}
+          AI_API_KEY: \${{ secrets.AI_API_KEY }}
+          GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
+          MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
+        run: kamal deploy --skip-push
+`;
 
 describe("brain init", () => {
   let testDir: string;
@@ -147,6 +239,14 @@ describe("brain init", () => {
       expect(envSchema).toContain("CERTIFICATE_PEM=");
       expect(envSchema).not.toContain("BRAIN_MODEL=");
       expect(envSchema).not.toContain("BRAIN_DOMAIN=");
+    });
+
+    it("should generate built-in .env.schema content without workspace model resolution", () => {
+      const envSchema = buildInstanceEnvSchema("rover", "demo");
+
+      expect(envSchema).toContain("AI_API_KEY=");
+      expect(envSchema).toContain("GIT_SYNC_TOKEN=");
+      expect(envSchema).toContain("HCLOUD_TOKEN=");
     });
 
     it("should fall through for an arbitrary --backend value", () => {
@@ -374,6 +474,82 @@ describe("brain init", () => {
       const readme = readFileSync(join(testDir, "README.md"), "utf-8");
       expect(readme).toContain("This brain runs the **ranger** model");
       expect(readme).not.toContain("This brain runs the **rover** model");
+    });
+
+    it("should update known stale generated deploy artifacts when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      writeFileSync(join(testDir, ".env.example"), legacyEnvExample);
+      mkdirSync(join(testDir, "config"), { recursive: true });
+      writeFileSync(join(testDir, "config", "deploy.yml"), legacyDeployYml);
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        legacyDeployWorkflow,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const envExample = readFileSync(join(testDir, ".env.example"), "utf-8");
+      expect(envExample).toContain("HCLOUD_SSH_KEY_NAME=");
+      expect(envExample).not.toContain("SERVER_IP=");
+      expect(envExample).not.toContain("CLOUDFLARE_API_TOKEN=");
+
+      const deploy = readFileSync(
+        join(testDir, "config", "deploy.yml"),
+        "utf-8",
+      );
+      expect(deploy).toContain("IMAGE_REPOSITORY");
+      expect(deploy).toContain("REGISTRY_USERNAME");
+      expect(deploy).not.toContain("ssl: true");
+      expect(deploy).not.toContain(":80");
+      expect(deploy).not.toContain(":81");
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain('workflows: ["Publish Image"]');
+      expect(workflow).toContain(
+        "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
+      );
+      expect(workflow).not.toContain("VERSION: latest");
+      expect(workflow).not.toContain("SERVER_IP: ${{ secrets.SERVER_IP }}");
+    });
+
+    it("should preserve custom deploy artifacts when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: custom.example.com", ""].join("\n"),
+      );
+      const customEnvExample = "AI_API_KEY=\nCUSTOM_ONLY=1\n";
+      const customDeployYml = "service: custom\nimage: custom/image\n";
+      const customWorkflow = "name: Custom Deploy\n";
+      writeFileSync(join(testDir, ".env.example"), customEnvExample);
+      mkdirSync(join(testDir, "config"), { recursive: true });
+      writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        customWorkflow,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      expect(readFileSync(join(testDir, ".env.example"), "utf-8")).toBe(
+        customEnvExample,
+      );
+      expect(readFileSync(join(testDir, "config", "deploy.yml"), "utf-8")).toBe(
+        customDeployYml,
+      );
+      expect(
+        readFileSync(
+          join(testDir, ".github", "workflows", "deploy.yml"),
+          "utf-8",
+        ),
+      ).toBe(customWorkflow);
     });
   });
 

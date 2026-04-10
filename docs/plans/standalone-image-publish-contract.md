@@ -207,6 +207,45 @@ A fresh standalone repo should be able to:
 3. run the scaffolded deploy workflow after publish completes
 4. deploy that exact immutable image tag via Kamal
 
+## Published-path blocker found during real-user test
+
+Testing the new scaffold against `~/Documents/mylittlephoney` as a real local package install surfaced one more published-path bug:
+
+- installing the locally packed `@rizom/brain` tarball worked
+- running `bunx brain init . --deploy --model rover` then failed with:
+  - `Cannot find module '@brains/rover/package.json'`
+
+Root cause:
+
+- `packages/brain-cli/src/lib/env-schema.ts` still resolves built-in model schemas from monorepo workspace packages (`@brains/<model>/package.json`)
+- that works in source/monorepo mode, but not from the published/tarball install
+
+Required fix:
+
+- bundle the built-in model env schemas (`rover`, `ranger`, `relay`) into `@rizom/brain`
+- make `.env.schema` generation prefer those bundled schemas in published mode instead of depending on workspace resolution
+
+This fix is required before the standalone publish/deploy scaffold can be considered end-to-end verified for real users.
+
+## Reconciliation follow-up for existing repos
+
+A fresh repo now gets the new deploy scaffold, but older standalone repos still keep stale generated files because `brain init` intentionally avoids overwriting existing files.
+
+That is correct for clearly user-owned files, but too conservative for known generated deploy artifacts.
+
+Follow-up contract:
+
+- `brain init --deploy` should overwrite a file only when its current contents match a known older generated scaffold variant
+- custom-edited files must still be preserved
+
+Initial reconciliation targets:
+
+- `.env.example`
+- `config/deploy.yml`
+- `.github/workflows/deploy.yml`
+
+Missing deploy files such as `.github/workflows/publish-image.yml`, `deploy/Dockerfile`, and `deploy/Caddyfile` should continue to be created when absent.
+
 ## Related
 
 - `docs/plans/rizom-ai-first-deploy.md`
