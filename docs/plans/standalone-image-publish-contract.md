@@ -1,0 +1,214 @@
+# Plan: Standalone Image Publish Contract
+
+## Context
+
+`apps/rizom-ai` now has a working publish-then-deploy pipeline, but that pipeline is still shaped around the monorepo:
+
+- monorepo publishes shared model images like `ghcr.io/rizom-ai/ranger`
+- deploy consumes immutable commit-SHA tags from that shared model namespace
+- `brain init --deploy` still scaffolds an older, partially hardcoded image contract (`rizom-ai/<model>`, `VERSION: latest`)
+
+That is the wrong long-term contract for standalone repos.
+
+A standalone repo is not just a consumer of `@rizom/brain`. It also owns:
+
+- its own `brain.yaml`
+- its own deploy config
+- its own content and local site/theme sources
+- its own Git history and rollout cadence
+
+So the deployable image for a standalone repo should belong to that repo, not to the shared monorepo model-image namespace.
+
+## Goal
+
+Define the permanent image publication and deploy contract for repos scaffolded by `brain init --deploy`.
+
+## Non-goals
+
+- Replacing the monorepo's shared model-image pipeline for `rizom-ai`, `rizom-foundation`, or other in-tree apps
+- Switching deploys to package-version tags as the primary artifact identity
+- Solving cross-registry publishing beyond GHCR in this slice
+
+## Decision
+
+Standalone repos publish **their own image**.
+
+### Repository identity
+
+For a standalone repo:
+
+- image repository: `ghcr.io/<github.repository_owner>/<github.event.repository.name>`
+
+Example:
+
+- repo: `yeehaa123/my-brain`
+- image: `ghcr.io/yeehaa123/my-brain`
+
+This is an **instance/repo-based** image contract, not a shared **model-based** contract.
+
+## Tagging contract
+
+### Published tags
+
+Each publish should produce:
+
+- `latest`
+- the exact full commit SHA
+- optional version tag(s) when the repo has a meaningful release version
+
+### Deploy tag
+
+Deploys use the **full commit SHA**.
+
+Rationale:
+
+- SHA is exact artifact identity
+- reruns are deterministic
+- multiple different deployable commits can exist under the same package version
+- standalone repo images include repo state beyond the npm package version
+
+Version tags are allowed as convenience tags, but not as the primary deploy contract.
+
+## Workflow contract
+
+### Publish workflow
+
+`brain init --deploy` should scaffold a companion workflow named `Publish Image`.
+
+That workflow should:
+
+1. trigger on pushes to `main` and manual reruns
+2. build the repo's deploy image
+3. publish to `ghcr.io/<owner>/<repo>`
+4. tag `latest` and `${{ github.sha }}`
+5. add Kamal's required image label:
+   - `service=brain`
+
+### Deploy workflow
+
+The scaffolded deploy workflow should:
+
+1. trigger from successful completion of `Publish Image`
+2. still support `workflow_dispatch`
+3. check out the exact commit that the publish workflow built
+4. deploy with:
+   - `VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}`
+5. never use `VERSION: latest` as the intended contract
+
+This preserves the same publish-then-deploy ordering that now works for `rizom-ai`, but makes it self-contained for standalone repos.
+
+## `config/deploy.yml` contract
+
+The deploy config should stop hardcoding the monorepo namespace.
+
+Instead of:
+
+- `image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>`
+- `registry.username: rizom-ai`
+
+the standalone scaffold should use env-derived identity, e.g.:
+
+- `image: <%= ENV['IMAGE_REPOSITORY'] %>`
+- `registry.server: ghcr.io`
+- `registry.username: <%= ENV['REGISTRY_USERNAME'] %>`
+
+Those values are workflow-owned deploy inputs, not values committed into `.env.example` / `.env.schema` for operators to hand-maintain.
+
+## Build contract
+
+A standalone repo needs a self-contained way to build its image.
+
+`brain init --deploy` should scaffold the minimal image-build assets the publish workflow needs, instead of depending on monorepo-only files.
+
+That means the scaffold should include repo-local copies of the runtime container assets, at minimum:
+
+- `deploy/Dockerfile`
+- `deploy/Caddyfile`
+- any other static runtime files the publish workflow needs
+
+The publish workflow must not assume access to monorepo-only paths like:
+
+- `deploy/docker/Dockerfile.model`
+- `deploy/docker/package.prod.json`
+- `shell/app/scripts/build-model.ts`
+
+## Monorepo vs standalone split
+
+### Monorepo apps
+
+Keep the existing shared model-image contract:
+
+- `ghcr.io/rizom-ai/rover`
+- `ghcr.io/rizom-ai/ranger`
+- `ghcr.io/rizom-ai/relay`
+
+That contract is still correct for in-tree apps because multiple instances can share the same model image.
+
+### Standalone repos
+
+Use the repo-owned image contract:
+
+- `ghcr.io/<owner>/<repo>`
+
+This keeps standalone repos independent from the monorepo's release cadence and image namespace.
+
+## Backport target in `brain init`
+
+The `brain init --deploy` scaffold should change in one slice:
+
+1. add a companion `publish-image.yml`
+2. make `deploy.yml` trigger from `Publish Image`
+3. deploy immutable SHA tags
+4. stop scaffolding `rizom-ai/<model>` assumptions
+5. scaffold the repo-local Docker assets required by publish
+
+### Current state vs target
+
+All five items above are still outstanding. The scaffold in `packages/brain-cli/src/commands/init.ts` has not been updated yet:
+
+| Item                      | File / location              | Current (wrong)                             | Target                                                                         |
+| ------------------------- | ---------------------------- | ------------------------------------------- | ------------------------------------------------------------------------------ |
+| 1. `writePublishWorkflow` | `init.ts` — missing entirely | no publish workflow scaffolded              | new `writePublishWorkflow()` that writes `.github/workflows/publish-image.yml` |
+| 2. deploy trigger         | `init.ts:324-327`            | `on: push: branches: ["main"]`              | `on: workflow_run: workflows: ["Publish Image"]` + `workflow_dispatch`         |
+| 3. deploy VERSION         | `init.ts:636`                | `VERSION: latest`                           | `VERSION: ${{ github.event.workflow_run.head_sha \|\| github.sha }}`           |
+| 4a. deploy.yml image      | `init.ts:195`                | `image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>` | `image: <%= ENV['IMAGE_REPOSITORY'] %>`                                        |
+| 4b. deploy.yml registry   | `init.ts:215`                | `username: rizom-ai`                        | `username: <%= ENV['REGISTRY_USERNAME'] %>`                                    |
+
+These must land together — a half-migrated scaffold (e.g. publish workflow exists but deploy still uses `VERSION: latest`) would be broken.
+
+## Regression coverage
+
+Add scaffold-level tests first in `packages/brain-cli/test/init.test.ts`:
+
+- `config/deploy.yml` uses generic image identity placeholders, not `rizom-ai/<model>`
+- `brain init --deploy` writes `.github/workflows/publish-image.yml`
+- `brain init --deploy` writes local deploy image assets
+- publish workflow pushes to `ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}`
+- publish workflow tags both `latest` and `${{ github.sha }}`
+- publish workflow adds `service=brain`
+- deploy workflow triggers from `Publish Image`
+- deploy workflow deploys `${{ github.event.workflow_run.head_sha || github.sha }}`
+- deploy workflow does not use `VERSION: latest`
+
+### Current test coverage
+
+`init.test.ts:497-510` already covers the publish workflow shape (items 2-6 above). The following assertions are still missing and need to be added:
+
+- `config/deploy.yml` uses generic image identity, not `rizom-ai/<model>` (item 1)
+- deploy workflow triggers from `Publish Image` (item 7)
+- deploy workflow uses SHA-based `VERSION`, not `latest` (items 8-9)
+
+## Verification
+
+A fresh standalone repo should be able to:
+
+1. run the scaffolded publish workflow successfully
+2. see an image at `ghcr.io/<owner>/<repo>:<sha>`
+3. run the scaffolded deploy workflow after publish completes
+4. deploy that exact immutable image tag via Kamal
+
+## Related
+
+- `docs/plans/rizom-ai-first-deploy.md`
+- `docs/plans/standalone-apps.md`
+- `docs/plans/npm-packages.md`

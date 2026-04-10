@@ -84,6 +84,9 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   if (options.deploy) {
     writeDeployYml(dir);
     writePreDeployHook(dir);
+    writeDeployDockerfile(dir);
+    writeDeployCaddyfile(dir);
+    writePublishWorkflow(dir);
     writeDeployWorkflow(dir);
   }
 }
@@ -192,7 +195,7 @@ ${gitBlock}  mcp:
  */
 function writeDeployYml(dir: string, onlyIfMissing = false): void {
   const content = `service: brain
-image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:
   web:
@@ -212,7 +215,7 @@ proxy:
 
 registry:
   server: ghcr.io
-  username: rizom-ai
+  username: <%= ENV['REGISTRY_USERNAME'] %>
   password:
     - KAMAL_REGISTRY_PASSWORD
 
@@ -317,20 +320,183 @@ function buildWorkflowSecretsEnvBlock(dir: string): string {
     .join("\n");
 }
 
-function writeDeployWorkflow(dir: string): void {
-  const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
-  const content = `name: Deploy
+function writePublishWorkflow(dir: string): void {
+  const content = `name: Publish Image
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: \${{ github.sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/\${{ github.repository_owner }}/\${{ github.event.repository.name }}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=\${{ github.sha }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: \${{ github.actor }}
+          password: \${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: \${{ steps.meta.outputs.tags }}
+          labels: |
+            \${{ steps.meta.outputs.labels }}
+            service=brain
+`;
+
+  writeScaffoldFile(
+    join(dir, ".github", "workflows", "publish-image.yml"),
+    content,
+  );
+}
+
+function writeDeployDockerfile(dir: string): void {
+  const content = `FROM oven/bun:1.3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \\
+    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \\
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \\
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \\
+    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \\
+    && setcap cap_net_bind_service=+ep $(which caddy) \\
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json ./package.json
+RUN bun install --production --ignore-scripts
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY . .
+
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
+RUN mkdir -p /app/data /app/cache /app/brain-data && \\
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
+`;
+
+  writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content);
+}
+
+function writeDeployCaddyfile(dir: string): void {
+  const content = `# Internal Caddy — path-based routing to brain services.
+# kamal-proxy handles SSL + host routing externally.
+# This Caddy runs inside the container, no TLS.
+
+# Shared internal HTTP entrypoint. kamal-proxy terminates TLS and forwards
+# requests here. Preview hosts are routed by Host header, not by a separate
+# external TLS port.
+:80 {
+	@preview host preview.*
+	handle @preview {
+		reverse_proxy localhost:4321
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
+	# MCP endpoint
+	handle /mcp* {
+		reverse_proxy localhost:3333
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+		}
+	}
+
+	# A2A endpoints
+	handle /.well-known/agent-card.json {
+		reverse_proxy localhost:3334
+	}
+
+	handle /a2a {
+		reverse_proxy localhost:3334
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization"
+		}
+	}
+
+	# Plugin API routes
+	handle /api/* {
+		reverse_proxy localhost:3335
+	}
+
+	# Static production site (catch-all)
+	handle {
+		reverse_proxy localhost:8080
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+}
+`;
+
+  writeScaffoldFile(join(dir, "deploy", "Caddyfile"), content);
+}
+
+function writeDeployWorkflow(dir: string): void {
+  const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
+  const content = `name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Publish Image"]
+    branches: ["main"]
+    types: [completed]
+  workflow_dispatch:
+
 jobs:
   deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: \${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Extract config from brain.yaml
         run: |
@@ -340,6 +506,8 @@ jobs:
           echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
           echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
           echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+          echo "IMAGE_REPOSITORY=ghcr.io/\${{ github.repository_owner }}/\${{ github.event.repository.name }}" >> "$GITHUB_ENV"
+          echo "REGISTRY_USERNAME=\${{ github.repository_owner }}" >> "$GITHUB_ENV"
 
       - name: Validate env via varlock
         env:
@@ -633,7 +801,7 @@ ${workflowSecretsEnv}
       - name: Deploy
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
-          VERSION: latest
+          VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
         run: kamal setup --skip-push
 
       - name: Verify origin TLS

@@ -175,16 +175,21 @@ These are generic deploy hardening changes and should be scaffolded for all new 
 
 Regression coverage belongs in `packages/brain-cli/test/init.test.ts` and should assert the scaffolded workflow contains those exact contracts before the implementation lands.
 
-### Slice B — decide before porting
+### Slice B — chosen standalone image contract
 
-These parts are still tied to the monorepo's image publication flow and should not be copied blindly into `brain init`:
+The standalone path should use a companion publish workflow instead of copying the monorepo's shared model-image publisher.
 
-- downstream `workflow_run` trigger from `Publish Brain Model Images`
-- immutable image-tag deployment wired to upstream publish completion
-- monorepo-specific checkout `ref: ${{ github.event.workflow_run.head_sha || github.sha }}`
-- hardcoded image namespace / registry owner assumptions like `rizom-ai/<model>`
+Chosen contract for `brain init --deploy`:
 
-That second slice needs a standalone image-publish contract first: either scaffold a companion publish workflow, or make deploy build and push its own image.
+- scaffold a repo-local **Publish Image** workflow alongside the deploy workflow
+- publish to `ghcr.io/<github.repository_owner>/<github.event.repository.name>`
+- tag images with both `latest` and the exact commit SHA
+- add Kamal's required `service=brain` image label
+- make deploy trigger from successful completion of the scaffolded publish workflow
+- deploy the immutable commit-SHA tag, not `latest`
+- use `config/deploy.yml` placeholders for image/registry identity rather than hardcoding `rizom-ai/<model>` or `rizom-ai` usernames
+
+This keeps standalone repos self-contained while preserving the same publish-then-deploy ordering and immutable artifact contract that rizom.ai now uses.
 
 ## Related
 

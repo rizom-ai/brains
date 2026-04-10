@@ -356,6 +356,11 @@ describe("brain init", () => {
       expect(
         existsSync(join(testDir, ".github", "workflows", "deploy.yml")),
       ).toBe(true);
+      expect(
+        existsSync(join(testDir, ".github", "workflows", "publish-image.yml")),
+      ).toBe(true);
+      expect(existsSync(join(testDir, "deploy", "Dockerfile"))).toBe(true);
+      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(true);
     });
 
     it("should derive generated artifact content from existing brain.yaml", () => {
@@ -380,7 +385,10 @@ describe("brain init", () => {
         join(testDir, "config", "deploy.yml"),
         "utf-8",
       );
-      expect(deploy).toContain("BRAIN_MODEL");
+      expect(deploy).toContain("IMAGE_REPOSITORY");
+      expect(deploy).toContain("REGISTRY_USERNAME");
+      expect(deploy).not.toContain("rizom-ai/<%= ENV['BRAIN_MODEL'] %>");
+      expect(deploy).not.toContain("username: rizom-ai");
       expect(deploy).toContain("BRAIN_DOMAIN");
       expect(deploy).toContain("proxy:");
       expect(deploy).toContain("certificate_pem: CERTIFICATE_PEM");
@@ -418,7 +426,11 @@ describe("brain init", () => {
         join(testDir, ".github", "workflows", "deploy.yml"),
         "utf-8",
       );
+      expect(workflow).toContain('workflows: ["Publish Image"]');
       expect(workflow).toContain("workflow_dispatch:");
+      expect(workflow).toContain(
+        "ref: ${{ github.event.workflow_run.head_sha || github.sha }}",
+      );
       expect(workflow).toContain("Validate env via varlock");
       expect(workflow).toContain("Load env via varlock");
       expect(workflow).toContain(
@@ -455,6 +467,10 @@ describe("brain init", () => {
         'ruby -r rubygems -e \'puts Gem.user_dir + "/bin"\' >> "$GITHUB_PATH"',
       );
       expect(workflow).toContain("kamal setup --skip-push");
+      expect(workflow).toContain(
+        "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
+      );
+      expect(workflow).not.toContain("VERSION: latest");
       expect(workflow).toContain("Verify origin TLS");
       expect(workflow).toContain("Dump remote proxy diagnostics");
       expect(workflow).toContain("docker logs kamal-proxy --tail 200");
@@ -476,6 +492,23 @@ describe("brain init", () => {
       for (const name of envNames) {
         expect(workflow).toContain(name + ": ${{ secrets." + name + " }}");
       }
+    });
+
+    it("should create publish workflow when deploy is true", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "publish-image.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain("name: Publish Image");
+      expect(workflow).toContain(
+        "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
+      );
+      expect(workflow).toContain("type=raw,value=latest");
+      expect(workflow).toContain("type=raw,value=${{ github.sha }}");
+      expect(workflow).toContain("service=brain");
+      expect(workflow).toContain("file: deploy/Dockerfile");
     });
 
     it("should produce same config/deploy.yml regardless of model", () => {
