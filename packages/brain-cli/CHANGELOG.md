@@ -1,5 +1,20 @@
 # @rizom/brain
 
+## 0.1.1-alpha.15
+
+### Patch Changes
+
+- [`5cd6ca2`](https://github.com/rizom-ai/brains/commit/5cd6ca2cd2188f8cd71d83f2b8829fdfa197468b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix: hide `/admin/` and `/dashboard` from public navigation.
+
+  Both routes were registered with `navigation.show: true` in the
+  secondary slot, which meant every layout that surfaces secondary nav in
+  the footer — including `PersonalLayout` — leaked operator tooling into
+  public navigation on every Brain site.
+
+  Admin and Dashboard are operator interfaces, not public pages. They
+  still render their routes and remain reachable by direct URL; they just
+  no longer appear in auto-generated navigation menus.
+
 ## 0.1.1-alpha.14
 
 ### Patch Changes

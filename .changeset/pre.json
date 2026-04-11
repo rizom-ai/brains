@@ -89,6 +89,7 @@
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
     "externalize-preact",
+    "hide-operator-routes-from-nav",
     "personal-layout-mobile-correctness",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
