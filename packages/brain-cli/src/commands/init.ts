@@ -93,6 +93,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   if (options.deploy) {
     writeDeployYml(dir);
     writePreDeployHook(dir, options.regen);
+    writeExtractBrainConfigScript(dir, options.regen);
     writeDeployDockerfile(dir, options.regen);
     writeDeployCaddyfile(dir, options.regen);
     writePublishWorkflow(dir, options.regen);
@@ -485,6 +486,50 @@ done
   );
 }
 
+function writeExtractBrainConfigScript(dir: string, regen = false): void {
+  const content = `#!/usr/bin/env ruby
+require "yaml"
+
+config = YAML.load_file("brain.yaml") || {}
+brain_model = config["brain"]
+brain_domain = config["domain"]
+
+raise "Missing brain in brain.yaml" if brain_model.nil? || brain_model.to_s.strip.empty?
+raise "Missing domain in brain.yaml" if brain_domain.nil? || brain_domain.to_s.strip.empty?
+
+github_env = ENV["GITHUB_ENV"]
+raise "Missing GITHUB_ENV" if github_env.nil? || github_env.empty?
+
+instance_name = ENV["INSTANCE_NAME"]
+if instance_name.nil? || instance_name.empty?
+  instance_name = File.basename(Dir.pwd)
+end
+
+registry_username = ENV["GITHUB_REPOSITORY_OWNER"]
+raise "Missing GITHUB_REPOSITORY_OWNER" if registry_username.nil? || registry_username.empty?
+
+repository = ENV["GITHUB_REPOSITORY"]
+raise "Missing GITHUB_REPOSITORY" if repository.nil? || repository.empty?
+repository_name = repository.split("/", 2).last
+raise "Missing repository name" if repository_name.nil? || repository_name.empty?
+
+File.open(github_env, "a") do |file|
+  file.puts("INSTANCE_NAME=#{instance_name}")
+  file.puts("BRAIN_MODEL=#{brain_model}")
+  file.puts("BRAIN_DOMAIN=#{brain_domain}")
+  file.puts("IMAGE_REPOSITORY=ghcr.io/#{registry_username}/#{repository_name}")
+  file.puts("REGISTRY_USERNAME=#{registry_username}")
+end
+`;
+
+  writeScaffoldFile(
+    join(dir, "scripts", "extract-brain-config.rb"),
+    content,
+    true,
+    regen,
+  );
+}
+
 function listEnvSchemaVariableNames(envSchema: string): string[] {
   const names = envSchema.match(/^([A-Z][A-Z0-9_]*)=/gm) ?? [];
   return names.map((line) => line.slice(0, -1));
@@ -678,15 +723,9 @@ jobs:
           ref: \${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Extract config from brain.yaml
-        run: |
-          INSTANCE_NAME="$(basename "$PWD")"
-          BRAIN_MODEL="$(grep '^brain:' brain.yaml | sed 's/^brain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
-          BRAIN_DOMAIN="$(grep '^domain:' brain.yaml | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
-          echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
-          echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
-          echo "IMAGE_REPOSITORY=ghcr.io/\${{ github.repository_owner }}/\${{ github.event.repository.name }}" >> "$GITHUB_ENV"
-          echo "REGISTRY_USERNAME=\${{ github.repository_owner }}" >> "$GITHUB_ENV"
+        run: ./scripts/extract-brain-config.rb
+        env:
+          INSTANCE_NAME: \${{ github.event.repository.name }}
 
       - name: Validate env via varlock
         env:
@@ -707,20 +746,24 @@ ${workflowSecretsEnv}
             throw new Error('Missing GITHUB_ENV');
           }
 
+          const newline = String.fromCharCode(10);
+          const carriageReturn = String.fromCharCode(13);
           const lines = Object.entries(env).flatMap(([key, value]) => {
             if (value === null || value === undefined) {
               return [];
             }
 
-            const text = String(value).replace(/\r\n/g, '\n');
-            if (text.includes('\n')) {
+            const text = String(value)
+              .split(carriageReturn + newline)
+              .join(newline);
+            if (text.includes(newline)) {
               return [];
             }
 
             return [key + '=' + text];
           });
 
-          appendFileSync(githubEnvPath, lines.join('\n') + '\n');
+          appendFileSync(githubEnvPath, lines.join(newline) + newline);
           NODE
 
       - name: Write Kamal SSH key
@@ -733,9 +776,15 @@ ${workflowSecretsEnv}
             throw new Error('Missing KAMAL_SSH_PRIVATE_KEY');
           }
 
-          let privateKeyText = String(privateKey).replace(/\r\n/g, '\n').replace(/\\n/g, '\n');
-          if (!privateKeyText.endsWith('\n')) {
-            privateKeyText += '\n';
+          const newline = String.fromCharCode(10);
+          const carriageReturn = String.fromCharCode(13);
+          let privateKeyText = String(privateKey)
+            .split(carriageReturn + newline)
+            .join(newline)
+            .split('\\n')
+            .join(newline);
+          if (!privateKeyText.endsWith(newline)) {
+            privateKeyText += newline;
           }
 
           const sshDir = process.env.HOME + '/.ssh';

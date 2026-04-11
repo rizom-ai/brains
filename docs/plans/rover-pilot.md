@@ -75,17 +75,16 @@ These are the locked decisions for cohort 1. Later cohorts may revisit them base
 
 A separate `rover-pilot` repo is created. It is **operator coordination plus lightweight batch input**, not a hosted-rover control plane. Kamal configs, GitHub workflows, deploy secrets, and live `brain.yaml` still live in each user's repo.
 
-Any helper automation for this flow lives in **private repo-local code inside `rover-pilot`**, not as new public `brain` CLI commands.
+Any helper automation for this flow should live in a **separate operator CLI in the monorepo named `brains-ops`**, not as new public `brain` CLI commands.
 
 Human-editable source of truth should be YAML, not CSV. Operators can review status in a generated Markdown table, but table is derived output, not thing people edit.
 
-Implementation shape should mirror `brain-cli` structurally, but stay private and repo-local:
+Implementation shape should mirror `brain-cli` structurally, but remain a separate operator tool:
 
-- thin `scripts/*` entrypoints
-- one private repo-local package/library that holds registry loading, validation, reconcile logic, and provider adapters
-- no long-term pilot ops code inside `brains`
-
-If a prototype starts inside `brains`, treat it as disposable incubator code to extract into `rover-pilot`, not permanent architecture.
+- package/bin name: `brains-ops`
+- private data repo stays `rover-pilot`
+- `brains-ops` commands take the private repo path as input
+- no pilot ops surface added to public `brain` CLI
 
 ```
 rover-pilot/
@@ -101,19 +100,16 @@ rover-pilot/
 │   └── bob.yaml
 ├── views/
 │   └── users.md                 # generated table for operator review
-├── packages/
-│   └── rover-pilot-ops/
-│       ├── src/                 # registry loader, reconcile logic, provider adapters
-│       └── test/
-├── scripts/
-│   ├── render-users-table.ts    # thin wrapper into private package
-│   ├── onboard-user.ts          # thin wrapper into private package
-│   ├── reconcile-all.ts         # thin wrapper into private package
-│   └── reconcile-cohort.ts      # thin wrapper into private package
 ├── docs/
 │   ├── onboarding-checklist.md  # step-by-step operator flow
 │   └── operator-playbook.md     # known gotchas, recovery procedures
 └── README.md
+
+brains/
+└── packages/
+    └── brains-ops/
+        ├── src/                 # registry loader, reconcile logic, provider adapters
+        └── test/
 ```
 
 Example `pilot.yaml`:
@@ -288,30 +284,30 @@ Derived-but-checked files:
   - human notes only
   - ignored by config resolution
 
-### Script/package contract
+### Tool/package contract
 
-Repo-local scripts are thin wrappers around one private repo-local package. That package owns this YAML truth:
+`brains-ops` owns the machine logic for this YAML truth. The private `rover-pilot` repo owns the data.
 
-- `scripts/render-users-table.ts`
+- `brains-ops render <repo>`
   - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
   - validates via Zod before rendering anything
   - writes only `views/users.md`
   - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence, expected Discord secret presence)
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
-- `scripts/onboard-user.ts <handle>`
+- `brains-ops onboard <repo> <handle>`
   - input: one existing handle from `users/<handle>.yaml`
   - resolves effective version and effective preset from cohort override or pilot default
   - creates or reconciles the user repo and content repo toward desired state
   - runs the per-user init/deploy bootstrap flow idempotently
   - updates generated artifacts for that user only: `users/<handle>/brain.yaml` and `views/users.md`
   - exits non-zero if required observable prerequisites are missing after reconcile
-- `scripts/reconcile-cohort.ts <cohort>`
+- `brains-ops reconcile-cohort <repo> <cohort>`
   - input: one existing cohort id from file name
   - resolves that cohort's members plus effective version and preset
-  - runs `onboard-user` semantics for each member in the cohort
+  - runs `onboard` semantics for each member in the cohort
   - updates affected snapshots plus `views/users.md`
   - exits non-zero if any member fails reconciliation
-- `scripts/reconcile-all.ts`
+- `brains-ops reconcile-all <repo>`
   - inputs: whole repo config set
   - walks all users exactly once
   - reconciles each repo to its effective desired version, model, and preset
@@ -325,9 +321,10 @@ Why this shape:
 - YAML easy for humans to edit and diff
 - per-user files avoid one giant merge-conflict magnet
 - generated Markdown gives "table" view without making Markdown or CSV source of truth
-- private repo-local package gives brain-cli-like structure without expanding public product surface
+- separate `brains-ops` package gives brain-cli-like structure without expanding public product surface
+- private pilot data stays in its own repo
 - future operator tooling can read same files without turning them into live deploy state
-- helper automation stays private to pilot operations instead of expanding product CLI surface
+- helper automation stays out of public `brain` CLI while still shipping from monorepo
 
 The repo exists so that:
 

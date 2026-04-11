@@ -683,6 +683,12 @@ describe("brain init", () => {
       expect(workflow).toContain(
         "ref: ${{ github.event.workflow_run.head_sha || github.sha }}",
       );
+      expect(workflow).toContain("run: ./scripts/extract-brain-config.rb");
+      expect(workflow).toContain(
+        "INSTANCE_NAME: ${{ github.event.repository.name }}",
+      );
+      expect(workflow).not.toContain("grep '^brain:' brain.yaml");
+      expect(workflow).not.toContain("grep '^domain:' brain.yaml");
       expect(workflow).toContain("Validate env via varlock");
       expect(workflow).toContain("Load env via varlock");
       expect(workflow).toContain(
@@ -760,6 +766,17 @@ describe("brain init", () => {
       expect(workflow).toContain("Dump remote proxy diagnostics");
       expect(workflow).toContain("docker logs kamal-proxy --tail 200");
       expect(workflow).toContain("curl -I -k --max-time 20 --resolve");
+
+      const script = readFileSync(
+        join(testDir, "scripts", "extract-brain-config.rb"),
+        "utf-8",
+      );
+      expect(script).toContain('require "yaml"');
+      expect(script).toContain('YAML.load_file("brain.yaml")');
+      expect(script).toContain('ENV["GITHUB_ENV"]');
+      expect(script).toContain('ENV["GITHUB_REPOSITORY_OWNER"]');
+      expect(script).toContain('ENV["GITHUB_REPOSITORY"]');
+      expect(script).toContain("INSTANCE_NAME");
     });
 
     it("should map every generated env schema key into the deploy workflow", () => {
