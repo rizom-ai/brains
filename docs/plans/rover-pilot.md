@@ -38,9 +38,11 @@ Each pilot user gets:
 
 - An operator-owned GitHub repo under a shared org (pilot users are added as Maintainers so they can file issues and view workflow runs, but cannot merge or manage secrets)
 - Their own Hetzner CX22 box (~€4-5/month)
-- Their own GitHub Actions secrets and Kamal deployment
+- Their own GitHub Actions secrets plus the scaffolded publish-then-deploy workflows
 - Their own subdomain under the operator's shared DNS zone
 - Their own `brain.yaml` with `preset: core`
+
+This is an operator-run pilot, not a change to the default standalone product contract. The normal public path remains: bring your own repo, bring your own domain, push secrets to GitHub, and deploy your own instance.
 
 Interfaces enabled:
 
@@ -104,16 +106,17 @@ Fits on one page of `onboarding-checklist.md`. If it doesn't fit, the scaffold a
 2. Operator creates a new repo in the pilot org (`<org>/rover-<handle>`)
 3. Operator creates a content repo in the pilot org (`<org>/rover-<handle>-content`) for directory-sync
 4. Adds the pilot user as Maintainer on both repos
-5. Runs `brain init --deploy --model rover` with `preset: core` and directory-sync configured to the content repo
-6. Configures secrets: `AI_API_KEY` (shared operator key), `GIT_SYNC_TOKEN`, plus `DISCORD_BOT_TOKEN` if the user opted in
-7. Runs `brain ssh-key:bootstrap --push-to gh`
-8. Runs `brain secrets:push --push-to gh`
-9. Upserts `<handle>.rover.example.com` DNS record against the operator's Cloudflare zone (automated by the scaffold workflow — see "Scaffold changes required")
-10. Merges the scaffolded workflows to `main`; deploy workflow runs
-11. Verifies MCP endpoint reachable + a basic tool call works
-12. Hands over MCP connection details to the user
-13. Copies `brain.yaml` into `rover-pilot/users/<handle>/` as a snapshot and writes `notes.md`
-14. Adds user to the current cohort doc with status `onboarded`
+5. Runs `brain init --deploy --model rover --domain <handle>.rover.example.com`
+6. Configures `brain.yaml` with `preset: core` and directory-sync pointed at the content repo
+7. Fills `.env.local` with the local operator inputs the CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` / `DISCORD_BOT_TOKEN`
+8. Runs `brain ssh-key:bootstrap --push-to gh`
+9. Runs `brain secrets:push --push-to gh`
+10. Runs `brain cert:bootstrap --push-to gh`, then deletes local `origin.pem` / `origin.key`
+11. Merges to `main`; `Publish Image` then `Deploy` run
+12. Verifies the MCP endpoint is reachable and a basic tool call works
+13. Hands over MCP connection details to the user
+14. Copies `brain.yaml` into `rover-pilot/users/<handle>/` as a snapshot and writes `notes.md`
+15. Adds user to the current cohort doc with status `onboarded`
 
 ### Cohort structure
 
@@ -125,16 +128,19 @@ Cohorts are **temporal batches**, not infrastructure batches. All cohorts share 
 
 Pause between cohorts. A cohort is not "done" until its members have been running rover for at least two weeks without operator intervention. Use the pause to integrate feedback, fix scaffold bugs, and update the playbook.
 
-## Scaffold changes required
+## Shared-zone contract
 
-The existing `brain init --deploy` scaffold assumes the user supplies their own top-level domain and owns the Cloudflare zone. For the pilot, subdomains live under the operator's shared zone. Concrete changes:
+The current deploy scaffold already matches the pilot's operator-managed DNS model. No pilot-specific DNS or cert rewiring is required.
 
-- The deploy workflow's Cloudflare DNS upsert step needs to target the operator's shared zone (`rover.example.com`) and upsert `<handle>.rover.example.com` as an A record pointing at the provisioned Hetzner box
-- `brain.yaml`'s domain field stores the full FQDN (`<handle>.rover.example.com`), same as today
-- Cloudflare Origin CA cert issuance needs to issue for the full hostname under the shared zone — same flow as today, just a different zone
-- `CF_ZONE_ID` becomes a pilot-wide secret (the operator's shared zone) rather than a per-user value
+Concrete contract:
 
-These are minor adjustments to existing scaffold steps, not new infrastructure. Scope them into the first onboarding run for cohort 1 and keep the changes in the main scaffold so later cohorts benefit.
+- `brain.yaml` stores the full FQDN: `<handle>.rover.example.com`
+- `CF_ZONE_ID` and `CF_API_TOKEN` point at the operator's shared Cloudflare zone, not a per-user zone
+- the scaffolded deploy workflow upserts both `<handle>.rover.example.com` and `preview.<handle>.rover.example.com` in that zone
+- `brain cert:bootstrap --push-to gh` issues an Origin CA cert for `[domain, *.domain]`, so `preview.<domain>` is covered automatically
+- per-user repos still publish their own image and deploy their own server; only DNS zone ownership is shared
+
+The one thing to prove before cohort 1 is a live throwaway rover repo using the shared zone. If that fails, fix the scaffold in `brain init`. If it succeeds, treat the shared-zone path as already productized enough for the pilot.
 
 ## Known pilot-scale risks
 
@@ -176,7 +182,7 @@ Until one of those fires: stay on per-user deploys.
 
 - [ ] Register the pilot DNS zone (`rover.example.com` or chosen name) in Cloudflare
 - [ ] Create a pilot GitHub org to hold per-user repos (or pick an existing one)
-- [ ] Apply the scaffold changes in "Scaffold changes required" (DNS zone rewiring)
+- [ ] Validate one throwaway rover repo end-to-end against the shared-zone contract
 - [ ] Create the `rover-pilot` registry repo with the structure defined in Design
 - [ ] Write `docs/onboarding-checklist.md` — the per-user step list
 - [ ] Write `docs/operator-playbook.md` — known gotchas (TLS, secrets, sharp/libstdc++, `/opt/brain-dist` volume, scaffold quirks)
@@ -189,7 +195,7 @@ Until one of those fires: stay on per-user deploys.
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan **depends on** `docs/plans/standalone-image-publish-contract.md` being implemented, because pilot users will hit the standalone image publish path as soon as the scaffold is the source of truth for their repo. Unresolved items in that plan become pilot blockers.
+This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; the remaining pilot-specific proof is a real shared-zone rover onboarding run.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 
