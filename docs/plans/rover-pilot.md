@@ -81,11 +81,12 @@ Human-editable source of truth should be YAML, not CSV. Operators can review sta
 
 ```
 rover-pilot/
+├── pilot.yaml                   # org + naming conventions
 ├── cohorts/
 │   ├── cohort-1.yaml            # cohort metadata + member handles
 │   └── cohort-2.yaml
 ├── users/
-│   ├── alice.yaml               # onboarding input + status
+│   ├── alice.yaml               # desired onboarding input
 │   ├── alice/
 │   │   ├── brain.yaml           # snapshot of deployed config
 │   │   └── notes.md             # contact, interfaces enabled, known issues
@@ -101,14 +102,22 @@ rover-pilot/
 └── README.md
 ```
 
+Example `pilot.yaml`:
+
+```yaml
+schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+```
+
 Example `users/alice.yaml`:
 
 ```yaml
 handle: alice
-repo: rover-alice
-contentRepo: rover-alice-content
-domain: alice.rover.example.com
-preset: core
 discord:
   enabled: false
 notes: close collaborator
@@ -118,6 +127,7 @@ Example `cohorts/cohort-1.yaml`:
 
 ```yaml
 title: Cohort 1
+brainVersionOverride: 0.1.1-alpha.13
 members:
   - alice
   - bob
@@ -125,29 +135,50 @@ members:
 
 ### Data contract
 
+`pilot.yaml` defines shared naming, fleet defaults, and schema versioning. Minimum fields:
+
+- `schemaVersion` — registry schema version
+- `brainVersion` — default `@rizom/brain` version for whole pilot
+- `githubOrg` — pilot GitHub org / owner
+- `repoPrefix` — prepended to each handle for rover repo names
+- `contentRepoSuffix` — appended to `${repoPrefix}${handle}` for content repo names
+- `domainSuffix` — appended to handle for public FQDN
+- `preset` — locked to `core` for cohort 1
+
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
 - `handle` — lowercase slug, unique across pilot
-- `repo` — target rover repo name
-- `contentRepo` — target content repo name
-- `domain` — full FQDN
-- `preset` — locked to `core` for cohort 1
 - `discord.enabled` — boolean
 - `notes` — optional freeform operator note
 
+Derived fields, not stored per user:
+
+- `repo = ${repoPrefix}${handle}`
+- `contentRepo = ${repoPrefix}${handle}${contentRepoSuffix}`
+- `domain = ${handle}${domainSuffix}`
+- `preset = pilot.yaml.preset`
+
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
-`cohorts/*.yaml` is batch grouping metadata. Minimum fields:
+`cohorts/*.yaml` is batch grouping metadata plus optional rollout override. Minimum fields:
 
 - `members` — list of user handles
 - optional `title`
+- optional `brainVersionOverride`
+
+Effective version resolution:
+
+1. `cohort.brainVersionOverride`
+2. else `pilot.yaml.brainVersion`
 
 Validation rules:
 
 - file name must match `handle` (`users/alice.yaml` -> `handle: alice`)
 - cohort members must reference existing user files
 - duplicate handles are invalid
-- one user may appear in multiple cohorts historically, but only one active cohort at a time should be normal operator practice
+- derived `repo`, `contentRepo`, and `domain` must be deterministic from `pilot.yaml` + `handle`
+- one user may appear in multiple cohorts historically
+- but a user may be targeted by **at most one active cohort with a `brainVersionOverride`**
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Script contract
@@ -155,16 +186,22 @@ Validation rules:
 Repo-local scripts are thin wrappers around this YAML truth:
 
 - `scripts/render-users-table.ts`
-  - reads `users/*.yaml` and `cohorts/*.yaml`
+  - reads `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
   - validates via Zod
   - writes `views/users.md`
   - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence)
   - fails loudly on missing users / duplicate handles / invalid schema
 - `scripts/onboard-user.ts <handle>`
-  - reads one `users/<handle>.yaml`
+  - reads `pilot.yaml` plus one `users/<handle>.yaml`
+  - resolves effective version from cohort override or pilot default
   - runs per-user repo/init flow idempotently
   - converges existing repos toward desired config instead of relying on stored mutable state
   - copies deployed `brain.yaml` snapshot into `users/<handle>/brain.yaml`
+- `scripts/reconcile-all.ts`
+  - walks all users
+  - reconciles each repo to its effective desired version
+  - supports fleet-wide update when `pilot.yaml.brainVersion` changes
+  - still respects cohort overrides when present
 
 Why this shape:
 
