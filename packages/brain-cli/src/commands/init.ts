@@ -293,6 +293,7 @@ env:
 
 volumes:
   - /opt/brain-data:/app/brain-data
+  - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml
 `,
 ];
@@ -688,22 +689,39 @@ ${workflowSecretsEnv}
               return [];
             }
 
-            const text = String(value);
-            if (text.includes('\\n')) {
-              return [key + '<<EOF', text, 'EOF'];
+            const text = String(value).replace(/\r\n/g, '\n');
+            if (text.includes('\n')) {
+              return [];
             }
 
             return [key + '=' + text];
           });
 
-          appendFileSync(githubEnvPath, lines.join('\\n') + '\\n');
+          appendFileSync(githubEnvPath, lines.join('\n') + '\n');
           NODE
 
       - name: Write Kamal SSH key
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\\n' "$KAMAL_SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
+          node <<'NODE'
+          import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+          const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
+          const privateKey = env.KAMAL_SSH_PRIVATE_KEY;
+          if (privateKey === null || privateKey === undefined) {
+            throw new Error('Missing KAMAL_SSH_PRIVATE_KEY');
+          }
+
+          let privateKeyText = String(privateKey).replace(/\r\n/g, '\n').replace(/\\n/g, '\n');
+          if (!privateKeyText.endsWith('\n')) {
+            privateKeyText += '\n';
+          }
+
+          const sshDir = process.env.HOME + '/.ssh';
+          mkdirSync(sshDir, { recursive: true });
+          writeFileSync(sshDir + '/id_ed25519', privateKeyText, {
+            encoding: 'utf8',
+            mode: 0o600,
+          });
+          NODE
 
       - name: Write .kamal/secrets
         run: |
@@ -755,6 +773,11 @@ ${workflowSecretsEnv}
 
       - name: Provision server
         id: provision
+        env:
+          HCLOUD_TOKEN: \${{ secrets.HCLOUD_TOKEN }}
+          HCLOUD_SSH_KEY_NAME: \${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          HCLOUD_SERVER_TYPE: \${{ secrets.HCLOUD_SERVER_TYPE }}
+          HCLOUD_LOCATION: \${{ secrets.HCLOUD_LOCATION }}
         run: |
           node <<'NODE'
           import { appendFileSync } from "node:fs";
@@ -872,6 +895,8 @@ ${workflowSecretsEnv}
 
       - name: Update Cloudflare DNS
         env:
+          CF_API_TOKEN: \${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: \${{ secrets.CF_ZONE_ID }}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           node <<'NODE'
@@ -952,6 +977,9 @@ ${workflowSecretsEnv}
         run: |
           gem install --user-install kamal
           ruby -r rubygems -e 'puts Gem.user_dir + "/bin"' >> "$GITHUB_PATH"
+
+      - name: Validate SSH key
+        run: ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
 
       - name: Deploy
         env:

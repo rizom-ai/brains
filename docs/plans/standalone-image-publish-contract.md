@@ -246,6 +246,46 @@ Initial reconciliation targets:
 
 Missing deploy files such as `.github/workflows/publish-image.yml`, `deploy/Dockerfile`, and `deploy/Caddyfile` should continue to be created when absent.
 
+## Live workflow bug found during first standalone GitHub deploy
+
+The first real GitHub deploy attempt for `rizom-ai/mylittlephoney` surfaced one more standalone-specific workflow bug:
+
+- `Publish Image` succeeded
+- chained `Deploy` failed in `Load env via varlock`
+- GitHub rejected the generated `$GITHUB_ENV` payload with:
+  - `Unable to process file command 'env' successfully`
+  - `Invalid format '***'`
+
+Root cause:
+
+- the standalone scaffold still tried to forward multiline secrets from `/tmp/varlock-env.json` into `$GITHUB_ENV`
+- that is too fragile for secrets like:
+  - `KAMAL_SSH_PRIVATE_KEY`
+  - `CERTIFICATE_PEM`
+  - `PRIVATE_KEY_PEM`
+
+Required fix:
+
+- only write single-line values into `$GITHUB_ENV`
+- keep multiline secrets in `/tmp/varlock-env.json`
+- make later steps such as `Write Kamal SSH key` read multiline values directly from that JSON file
+
+This fix must land in the scaffold before the standalone deploy workflow can be considered production-ready.
+
+A second live workflow issue surfaced immediately after that fix:
+
+- the standalone deploy got past varlock loading and SSH key setup
+- `Provision server` then failed with `Missing HCLOUD_TOKEN`
+
+Follow-up fix:
+
+- steps that call external providers should receive their required secrets directly via step `env:`
+- specifically:
+  - `Provision server` should get `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION` directly
+  - `Update Cloudflare DNS` should get `CF_API_TOKEN` and `CF_ZONE_ID` directly
+
+That keeps `$GITHUB_ENV` focused on derived runtime values like `INSTANCE_NAME`, `BRAIN_DOMAIN`, and `SERVER_IP`, instead of treating it as the transport for every secret.
+
 ## Related
 
 - `docs/plans/rizom-ai-first-deploy.md`
