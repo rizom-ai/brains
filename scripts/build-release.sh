@@ -39,9 +39,9 @@ Options:
   --help      Show this help message
 
 Examples:
-  $0 team-brain                    # Build for current platform
-  $0 team-brain linux-x64          # Build for Linux x64
-  $0 team-brain linux-x64 --docker # Build using Docker
+  $0 rizom-ai                    # Build for current platform
+  $0 rizom-ai linux-x64          # Build for Linux x64
+  $0 rizom-ai linux-x64 --docker # Build using Docker
 
 EOF
     exit 1

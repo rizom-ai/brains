@@ -27,8 +27,8 @@ each tier is a strict superset of the one below it.
   sweet spot for instances like `rizom-foundation` where you want to
   publish a small public site (e.g. a manifesto) from the brain's data.
 - **`full`** — _(deferred)_ `default` plus the rich publishing stack. The
-  sweet spot for instances like `team-brain` with essays, presentations,
-  admin dashboards, and analytics.
+  sweet spot for presentation-heavy relay instances with essays,
+  presentations, admin dashboards, and analytics.
 
 ## Shipping now
 
@@ -63,7 +63,7 @@ Plugins that are compiled into relay's capability list but not in any
 preset. Instances opt in per their needs.
 
 ```
-decks              ─ presentations (team-brain uses this)
+decks              ─ presentations (presentation-heavy instances use this)
 summary            ─ content summarization (needs work — see below)
 ```
 
@@ -83,9 +83,9 @@ summary            ─ content summarization (needs work — see below)
    it's the feature that makes relay _relay_. `summary` deferred — needs
    rework before it joins a preset.
 6. **`a2a` + `agent-discovery` + `skill` in `core`?** Yes. The whole
-   "brains that talk to peer brains" story is a team-brain story.
+   "brains that talk to peer brains" story is fundamentally team-oriented.
 7. **Define `full` now?** No, defer. Only ship `core` + `default`; let
-   `team-brain` opt into extras explicitly via `add:` for now.
+   presentation-heavy relay instances opt into extras explicitly via `add:` for now.
 
 ## Deferred — design later
 
@@ -174,10 +174,10 @@ scoping as separate plans before we lock in a `full` preset.
 
 ## Consumer app impact — snapshot
 
-| app                     | brain | preset    | `add:`    | result                                                                       |
-| ----------------------- | ----- | --------- | --------- | ---------------------------------------------------------------------------- |
-| `apps/rizom-foundation` | relay | `default` | —         | minimal public site for the manifesto                                        |
-| `apps/team-brain`       | relay | `default` | `[decks]` | minimal site + decks (lost `summary` until rework, lost old implicit extras) |
+| app                      | brain | preset    | `add:`    | result                                                                       |
+| ------------------------ | ----- | --------- | --------- | ---------------------------------------------------------------------------- |
+| `apps/rizom-foundation`  | relay | `default` | —         | minimal public site for the manifesto                                        |
+| `example relay instance` | relay | `default` | `[decks]` | minimal site + decks (lost `summary` until rework, lost old implicit extras) |
 
 ## Known latent bugs surfaced this round
 
@@ -185,7 +185,7 @@ scoping as separate plans before we lock in a `full` preset.
   An empty YAML field like `anchors:` parses as `null`, which doesn't
   satisfy `z.array(z.string()).optional()` (optional means `undefined`,
   not `null`). The entire overrides object is discarded silently instead
-  of surfacing an error. team-brain had this bug and was running with
+  of surfacing an error. A relay instance had this bug and was running with
   _zero_ overrides until this round's cleanup removed the empty
   `anchors:` field. Fix later: either coerce `null → undefined` in the
   pre-validation step, or surface parse errors instead of falling back

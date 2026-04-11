@@ -115,6 +115,55 @@ discord:
 notes: close collaborator
 ```
 
+Example `cohorts/cohort-1.yaml`:
+
+```yaml
+title: Cohort 1
+members:
+  - alice
+  - bob
+```
+
+### Data contract
+
+`users/*.yaml` is the human-edited operator input. Minimum fields:
+
+- `handle` — lowercase slug, unique across pilot
+- `status` — one of: `pending`, `scaffolded`, `ready-for-secrets`, `deployed`, `onboarded`, `paused`, `error`
+- `repo` — target rover repo name
+- `contentRepo` — target content repo name
+- `domain` — full FQDN
+- `preset` — locked to `core` for cohort 1
+- `discord.enabled` — boolean
+- `notes` — optional freeform operator note
+
+`cohorts/*.yaml` is batch grouping metadata. Minimum fields:
+
+- `members` — list of user handles
+- optional `title`
+
+Validation rules:
+
+- file name must match `handle` (`users/alice.yaml` -> `handle: alice`)
+- cohort members must reference existing user files
+- duplicate handles are invalid
+- one user may appear in multiple cohorts historically, but only one active cohort at a time should be normal operator practice
+
+### Script contract
+
+Repo-local scripts are thin wrappers around this YAML truth:
+
+- `scripts/render-users-table.ts`
+  - reads `users/*.yaml` and `cohorts/*.yaml`
+  - validates via Zod
+  - writes `views/users.md`
+  - fails loudly on missing users / duplicate handles / invalid schema
+- `scripts/onboard-user.ts <handle>`
+  - reads one `users/<handle>.yaml`
+  - runs per-user repo/init flow
+  - updates `status` as operator checkpoints complete
+  - copies deployed `brain.yaml` snapshot into `users/<handle>/brain.yaml`
+
 Why this shape:
 
 - YAML easy for humans to edit and diff

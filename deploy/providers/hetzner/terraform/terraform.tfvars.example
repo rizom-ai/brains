@@ -1,14 +1,14 @@
-# Example terraform.tfvars for professional-brain
+# Example terraform.tfvars for a brain instance
 # Copy to terraform.tfvars and fill in your values
 
 # Required: Hetzner Cloud API token
 hcloud_token = "your-hetzner-api-token"
 
 # Required: Application name (used for server naming)
-app_name = "professional-brain"
+app_name = "brain-instance"
 
 # Required: Domain for the application
-domain = "yeehaa.io"
+domain = "example.com"
 
 # Optional: Bunny.net CDN (leave empty to disable)
 bunny_api_key = "your-bunny-api-key"
@@ -24,4 +24,4 @@ dns_enabled = true
 # server_type = "cx33"
 # location = "fsn1"
 # server_image = "ubuntu-22.04"
-# ssh_key_name = "personal-brain-deploy"
+# ssh_key_name = "brain-deploy"

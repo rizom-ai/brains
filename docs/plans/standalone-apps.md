@@ -2,7 +2,7 @@
 
 ## Context
 
-Apps (`apps/professional-brain`, `apps/mylittlephoney`, etc.) are monorepo workspace packages. They should be standalone repos — each is just brain.yaml + deploy config + secrets. The brain model is the code, the app is the config.
+Apps (`apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`, `apps/yeehaa.io`, etc.) are lightweight monorepo app directories, not workspace packages. Long-term they should be standalone repos — each is just brain.yaml + deploy config + secrets. The brain model is the code, the app is the config.
 
 Depends on: published brain model images (deploy-kamal Phase 3).
 

@@ -5,37 +5,44 @@
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$LIB_DIR/common.sh"
 
+# Determine the deploy/image name prefix.
+get_docker_name_prefix() {
+    echo "${BRAIN_DOCKER_PREFIX:-personal-brain}"
+}
+
 # Determine Docker image name based on registry
 get_docker_image_name() {
     local app_name="$1"
     local registry="${2:-}"
     local tag="${3:-latest}"
     local user="${REGISTRY_USER:-$USER}"
+    local prefix
+    prefix=$(get_docker_name_prefix)
     
     if [ -z "$registry" ]; then
-        echo "personal-brain-$app_name:$tag"
+        echo "$prefix-$app_name:$tag"
         return
     fi
     
     # Handle different registry formats
     case "$registry" in
         ghcr.io)
-            echo "$registry/$user/personal-brain-$app_name:$tag"
+            echo "$registry/$user/$prefix-$app_name:$tag"
             ;;
         docker.io)
-            echo "$user/personal-brain-$app_name:$tag"
+            echo "$user/$prefix-$app_name:$tag"
             ;;
         ghcr.io/*)
             # Already includes username
-            echo "$registry/personal-brain-$app_name:$tag"
+            echo "$registry/$prefix-$app_name:$tag"
             ;;
         */*)
             # Other registries with namespace
-            echo "$registry/personal-brain-$app_name:$tag"
+            echo "$registry/$prefix-$app_name:$tag"
             ;;
         *)
             # Just registry URL
-            echo "$registry/personal-brain-$app_name:$tag"
+            echo "$registry/$prefix-$app_name:$tag"
             ;;
     esac
 }

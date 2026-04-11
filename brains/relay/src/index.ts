@@ -96,7 +96,7 @@ export default defineBrain({
     // so instances can opt in via `add: [summary]` once it's ready.
     ["summary", summaryPlugin, {}],
     // decks is not in core or default yet — kept registered so
-    // team-brain (and others) can opt in via `add: [decks]`.
+    // presentation-heavy relay instances can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     [

@@ -294,7 +294,7 @@ permissions:
 
 describe("parseInstanceOverrides null handling", () => {
   test("empty YAML field (anchors:) is treated as absent, not null", () => {
-    // Regression: team-brain had `anchors:` as an empty field. YAML
+    // Regression: a legacy instance had `anchors:` as an empty field. YAML
     // parsed it as null, which doesn't satisfy z.array(z.string()).optional()
     // (optional means undefined, not null). Previously this silently
     // discarded ALL overrides; now it should be normalized to absent.
@@ -490,14 +490,14 @@ plugins:
 describe("resolve with instance overrides", () => {
   test("should override name", () => {
     const def = defineBrain({
-      name: "team-brain",
+      name: "example-brain",
       version: "1.0.0",
       capabilities: [],
       interfaces: [],
     });
 
-    const config = resolve(def, {}, { name: "team-brain-staging" });
-    expect(config.name).toBe("team-brain-staging");
+    const config = resolve(def, {}, { name: "example-brain-staging" });
+    expect(config.name).toBe("example-brain-staging");
   });
 
   test("should override logLevel", () => {

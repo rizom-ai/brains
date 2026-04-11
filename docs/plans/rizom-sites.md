@@ -51,7 +51,7 @@ The key prerequisite was teaching the resolver to treat site structure and theme
 
 ### Required change
 
-Make `site:` always an object. No union, no backwards-compatibility shim — the only two in-repo consumers (`mylittlephoney`, `professional-brain`) migrate in the same commit, and there is no published `@rizom/brain` yet so no brain.yaml files exist in the wild.
+Make `site:` always an object. No union, no backwards-compatibility shim — the only two in-repo consumers (`mylittlephoney`, `yeehaa.io`) migrate in the same commit, and there is no published `@rizom/brain` yet so no brain.yaml files exist in the wild.
 
 **`shell/app/src/instance-overrides.ts`** — object-only schema:
 
@@ -112,10 +112,10 @@ The pre-existing `SitePackage.entityRouteConfig` field (plus its `EntityRouteEnt
 - `shell/app/src/brain-resolver.ts` — resolve `site.package` and `site.theme` independently
 - `shell/app/src/override-package-refs.ts` — collect both `site.package` and `site.theme` package refs for registration
 - `apps/mylittlephoney/brain.yaml` — `site: "@brains/site-mylittlephoney"` → `site: { package: "@brains/site-mylittlephoney", theme: "@brains/theme-mylittlephoney" }`
-- `apps/professional-brain/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa", theme: "@brains/theme-brutalist" }`
+- `apps/yeehaa.io/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa", theme: "@brains/theme-brutalist" }`
 - `shell/app/test/instance-overrides.test.ts` + `shell/app/test/override-package-refs.test.ts` — update any test fixtures that pass `site:` as a string
 
-**Verification:** `bun run typecheck && bun run lint && bun test` passes. `professional-brain` and `mylittlephoney` build and render identically (their active capabilities + resolved site plugin config match the pre-change snapshot byte-for-byte).
+**Verification:** `bun run typecheck && bun run lint && bun test` passes. `yeehaa.io` and `mylittlephoney` build and render identically (their active capabilities + resolved site plugin config match the pre-change snapshot byte-for-byte).
 
 ## Phase 1: Theme package
 
@@ -299,7 +299,7 @@ No content repo yet — the homepage comes from `sites/rizom/`'s variant-specifi
 After Phase 0:
 
 - `bun run typecheck && bun run lint && bun test` from root passes
-- Build an existing app (`professional-brain`) and confirm output is unchanged
+- Build an existing app (`yeehaa.io`) and confirm output is unchanged
 
 After Phase 1:
 

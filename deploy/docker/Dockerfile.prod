@@ -32,5 +32,5 @@ RUN mkdir -p /app/dist/site-production /app/dist/site-preview /app/dist/images &
 
 EXPOSE 3333
 
-# TODO: Remove brain.config.js fallback after professional-brain migrates to brain.yaml
+# TODO: Remove this legacy brain.config.js fallback once no supported app depends on it.
 CMD ["sh", "-c", "if [ -f dist/.brain-entrypoint.js ]; then exec bun dist/.brain-entrypoint.js; else exec bun dist/brain.config.js; fi"]

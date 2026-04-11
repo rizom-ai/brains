@@ -12,7 +12,7 @@ extract_deploy_config() {
     local app_name="$1"
     local app_dir="apps/$app_name"
 
-    # TODO: Remove brain.config.ts fallback after professional-brain migrates to brain.yaml
+    # TODO: Remove this legacy brain.config.ts fallback once no supported app depends on it.
     # Legacy path: brain.config.ts
     if [ -f "$app_dir/brain.config.ts" ]; then
         local config_json
@@ -65,7 +65,7 @@ extract_deploy_config() {
 }
 
 # Validate app exists and has brain.yaml or brain.config.ts
-# TODO: Remove brain.config.ts check after professional-brain migrates
+# TODO: Remove the legacy brain.config.ts check once no supported app depends on it.
 validate_app() {
     local app_name="$1"
     local app_dir="apps/$app_name"
@@ -158,7 +158,7 @@ get_available_apps() {
     fi
 
     # List directories that have brain.yaml or brain.config.ts
-    # TODO: Remove brain.config.ts check after professional-brain migrates
+    # TODO: Remove the legacy brain.config.ts check once no supported app depends on it.
     for app_dir in "$apps_dir"/*; do
         if [ -d "$app_dir" ] && { [ -f "$app_dir/brain.yaml" ] || [ -f "$app_dir/deploy/brain.yaml" ] || [ -f "$app_dir/brain.config.ts" ]; }; then
             basename "$app_dir"

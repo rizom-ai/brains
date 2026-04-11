@@ -17,7 +17,7 @@ my-brain/
 └── src/             # custom site/theme/plugin code
 ```
 
-**Monorepo apps** (`apps/rizom-ai`, `apps/professional-brain`, etc.)
+**Monorepo apps** (`apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`, `apps/yeehaa.io`, etc.)
 are config-only directories with no `package.json`:
 
 ```

@@ -189,7 +189,7 @@ Ask Claude to search team knowledge
 - Website: [https://recall.rizom.ai](https://recall.rizom.ai)
 - API: [https://recall.rizom.ai/mcp](https://recall.rizom.ai/mcp)
 
-- Recall Content: [https://github.com/rizom-ai/team-brain-content](https://github.com/rizom-ai/team-brain-content)
+- Recall Content: [https://github.com/your-org/your-content](https://github.com/your-org/your-content)
 - Brains Code: [https://github.com/rizom-ai/brains](https://github.com/rizom-ai/brains)
 
 ---

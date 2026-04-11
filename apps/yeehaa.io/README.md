@@ -1,6 +1,6 @@
-# Professional Brain
+# yeehaa.io
 
-An instance of the [Rover brain model](../../brains/rover/) for personal knowledge management and professional publishing.
+An instance of the [Rover brain model](../../brains/rover/) for personal knowledge management and publishing.
 
 ## Setup
 
