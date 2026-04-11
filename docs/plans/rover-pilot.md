@@ -75,6 +75,8 @@ These are the locked decisions for cohort 1. Later cohorts may revisit them base
 
 A separate `rover-pilot` repo is created. It is **operator coordination plus lightweight batch input**, not a hosted-rover control plane. Kamal configs, GitHub workflows, deploy secrets, and live `brain.yaml` still live in each user's repo.
 
+Any helper automation for this flow lives as **repo-local scripts inside `rover-pilot`**, not as new public `brain` CLI commands.
+
 Human-editable source of truth should be YAML, not CSV. Operators can review status in a generated Markdown table, but table is derived output, not thing people edit.
 
 ```
@@ -119,6 +121,7 @@ Why this shape:
 - per-user files avoid one giant merge-conflict magnet
 - generated Markdown gives "table" view without making Markdown or CSV source of truth
 - future operator tooling can read same files without turning them into live deploy state
+- helper automation stays private to pilot operations instead of expanding product CLI surface
 
 The repo exists so that:
 
@@ -222,8 +225,8 @@ Until one of those fires: stay on per-user deploys.
 - [ ] Validate one throwaway rover repo end-to-end against the shared-zone contract
 - [ ] Create the `rover-pilot` registry repo with the structure defined in Design
 - [ ] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
-- [ ] Add `render-users-table` script so operators get table view from YAML truth
-- [ ] Add thin `onboard-user` wrapper around per-user init flow
+- [ ] Add repo-local `render-users-table` script so operators get table view from YAML truth
+- [ ] Add repo-local `onboard-user` wrapper around per-user init flow
 - [ ] Write `docs/onboarding-checklist.md` — the per-user step list
 - [ ] Write `docs/operator-playbook.md` — known gotchas (TLS, secrets, sharp/libstdc++, `/opt/brain-dist` volume, scaffold quirks)
 - [ ] Set the shared AI provider spend cap and document the ceiling
@@ -235,7 +238,7 @@ Until one of those fires: stay on per-user deploys.
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; the remaining pilot-specific proof is a real shared-zone rover onboarding run.
+This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real shared-zone rover onboarding run plus the repo-local operator tooling around the YAML registry.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 
