@@ -40,7 +40,7 @@ Each pilot user gets:
 - Their own Hetzner CX22 box (~€4-5/month)
 - Their own GitHub Actions secrets plus the scaffolded publish-then-deploy workflows
 - Their own subdomain under the operator's shared DNS zone
-- Their own `brain.yaml` with `preset: core`
+- Their own `brain.yaml` with the effective preset resolved from `pilot.yaml` plus any cohort preset override
 
 This is an operator-run pilot, not a change to the default standalone product contract. The normal public path remains: bring your own repo, bring your own domain, push secrets to GitHub, and deploy your own instance.
 
@@ -109,6 +109,7 @@ Example `pilot.yaml`:
 ```yaml
 schemaVersion: 1
 brainVersion: 0.1.1-alpha.12
+model: rover
 githubOrg: rizom-ai-pilot
 repoPrefix: rover-
 contentRepoSuffix: -content
@@ -128,6 +129,7 @@ Example `cohorts/cohort-1.yaml`:
 
 ```yaml
 brainVersionOverride: 0.1.1-alpha.13
+presetOverride: pro
 members:
   - alice
   - bob
@@ -139,11 +141,12 @@ members:
 
 - `schemaVersion` — registry schema version
 - `brainVersion` — exact pinned `@rizom/brain` version for whole pilot
+- `model` — fleet-wide brain model, initially `rover`
 - `githubOrg` — pilot GitHub org / owner
 - `repoPrefix` — prepended to each handle for rover repo names
 - `contentRepoSuffix` — appended to `${repoPrefix}${handle}` for content repo names
 - `domainSuffix` — appended to handle for public FQDN
-- `preset` — locked to `core` for cohort 1
+- `preset` — default fleet preset, initially `core`
 
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
@@ -157,7 +160,8 @@ Derived fields, not stored per user:
 - `repo = ${repoPrefix}${handle}`
 - `contentRepo = ${repoPrefix}${handle}${contentRepoSuffix}`
 - `domain = ${handle}${domainSuffix}`
-- `preset = pilot.yaml.preset`
+- `model = pilot.yaml.model`
+- `preset = cohort.presetOverride ?? pilot.yaml.preset`
 - Discord secret name, when enabled: `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
 
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
@@ -166,6 +170,7 @@ No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be
 
 - `members` — non-empty set of user handles
 - optional `brainVersionOverride` — exact pinned version
+- optional `presetOverride` — preset lane override such as `core` or `pro`
 
 Cohorts are always active rollout groups. Historical rollout reporting lives somewhere else; it is not part of this config resolution schema.
 
@@ -173,6 +178,11 @@ Effective version resolution:
 
 1. `cohort.brainVersionOverride`
 2. else `pilot.yaml.brainVersion`
+
+Effective preset resolution:
+
+1. `cohort.presetOverride`
+2. else `pilot.yaml.preset`
 
 Validation rules:
 
@@ -188,6 +198,8 @@ Validation rules:
 - duplicate members in a cohort are invalid
 - member order is not semantically meaningful
 - `brainVersion` and `brainVersionOverride` must be exact pinned versions, not ranges or moving tags
+- `model` is fleet-wide and comes only from `pilot.yaml`
+- `preset` may come from `pilot.yaml` or `cohort.presetOverride`, never from `users/*.yaml`
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Exact file contract
@@ -199,6 +211,7 @@ The future `rover-pilot` repo should validate these files with Zod and treat the
 ```yaml
 schemaVersion: 1
 brainVersion: 0.1.1-alpha.12
+model: rover
 githubOrg: rizom-ai-pilot
 repoPrefix: rover-
 contentRepoSuffix: -content
@@ -211,8 +224,9 @@ Rules:
 - exactly one file at repo root
 - `schemaVersion` is an integer, initially locked to `1`
 - `brainVersion` is an exact pinned `@rizom/brain` version string
+- `model` is a required fleet-wide model string, initially locked to `rover`
 - `repoPrefix`, `contentRepoSuffix`, and `domainSuffix` are non-empty strings
-- `preset` is locked to `core` for cohort 1
+- `preset` is a required fleet default preset, initially `core`
 
 `users/<handle>.yaml`
 
@@ -236,6 +250,7 @@ members:
   - alice
   - bob
 brainVersionOverride: 0.1.1-alpha.13
+presetOverride: pro
 ```
 
 Rules:
@@ -243,6 +258,7 @@ Rules:
 - file path is authoritative for cohort id
 - `members` is required, non-empty, unique, and references existing users
 - `brainVersionOverride` is optional and, when present, is an exact pinned version
+- `presetOverride` is optional and, when present, overrides `pilot.yaml.preset` for the whole cohort
 - no other override fields are allowed
 
 Derived-but-checked files:
@@ -250,7 +266,7 @@ Derived-but-checked files:
 - `views/users.md`
   - generated only; never hand-edited
   - one row per user
-  - minimum columns: `handle`, `cohort`, `brainVersion`, `domain`, `repo`, `contentRepo`, `discord`, `repoStatus`, `deployStatus`, `dnsStatus`, `mcpStatus`, `snapshotStatus`
+  - minimum columns: `handle`, `cohort`, `model`, `preset`, `brainVersion`, `domain`, `repo`, `contentRepo`, `discord`, `repoStatus`, `deployStatus`, `dnsStatus`, `mcpStatus`, `snapshotStatus`
 - `users/<handle>/brain.yaml`
   - generated snapshot of deployed config
   - overwritten on successful onboarding/reconcile
@@ -270,22 +286,22 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
 - `scripts/onboard-user.ts <handle>`
   - input: one existing handle from `users/<handle>.yaml`
-  - resolves effective version from cohort override or pilot default
+  - resolves effective version and effective preset from cohort override or pilot default
   - creates or reconciles the user repo and content repo toward desired state
   - runs the per-user init/deploy bootstrap flow idempotently
   - updates generated artifacts for that user only: `users/<handle>/brain.yaml` and `views/users.md`
   - exits non-zero if required observable prerequisites are missing after reconcile
 - `scripts/reconcile-cohort.ts <cohort>`
   - input: one existing cohort id from file name
-  - resolves that cohort's members and effective versions
+  - resolves that cohort's members plus effective version and preset
   - runs `onboard-user` semantics for each member in the cohort
   - updates affected snapshots plus `views/users.md`
   - exits non-zero if any member fails reconciliation
 - `scripts/reconcile-all.ts`
   - inputs: whole repo config set
   - walks all users exactly once
-  - reconciles each repo to its effective desired version
-  - supports fleet-wide update when `pilot.yaml.brainVersion` changes
+  - reconciles each repo to its effective desired version, model, and preset
+  - supports fleet-wide update when `pilot.yaml.brainVersion`, `pilot.yaml.model`, or `pilot.yaml.preset` changes
   - still respects cohort overrides when present
   - updates all affected snapshots plus `views/users.md`
   - exits non-zero if any user fails reconciliation
@@ -321,8 +337,8 @@ Per-user repo/deploy flow after that:
 5. Operator creates new repo in pilot org (`<org>/rover-<handle>`)
 6. Operator creates content repo in pilot org (`<org>/rover-<handle>-content`) for directory-sync
 7. Adds pilot user as Maintainer on both repos
-8. Runs `brain init --deploy --model rover --domain <handle>.rover.example.com`
-9. Configures `brain.yaml` with `preset: core` and directory-sync pointed at content repo
+8. Runs `brain init --deploy --model <pilot.yaml.model> --domain <handle>.rover.example.com`
+9. Configures `brain.yaml` with the effective preset for that user's cohort and directory-sync pointed at content repo
 10. Fills `.env.local` with local operator inputs CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` and the per-user Discord token under the derived secret name `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when `discord.enabled: true`
 11. Runs `brain ssh-key:bootstrap --push-to gh`
 12. Runs `brain secrets:push --push-to gh`
