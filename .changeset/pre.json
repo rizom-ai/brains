@@ -91,7 +91,9 @@
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
     "sharp-lazy-load",
+    "ssh-key-bootstrap-and-local-secret-paths",
     "standalone-deploy-publish-workflow",
+    "standalone-deploy-ssh-readiness",
     "standalone-site-authoring-scaffold",
     "tailwind-runtime-deps",
     "themes-export"
