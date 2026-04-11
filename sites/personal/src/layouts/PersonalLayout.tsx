@@ -27,7 +27,7 @@ export function PersonalLayout({
   ].filter((item) => item.label !== "Home");
 
   return (
-    <div className="flex flex-col min-h-screen bg-theme">
+    <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
       <Header
         title={siteInfo.title}
         titleClassName="font-heading font-bold text-2xl"
@@ -51,7 +51,7 @@ export function PersonalLayout({
               </span>
             )}
           </div>
-          <nav className="flex gap-6 mb-4 md:mb-0">
+          <nav className="flex flex-wrap justify-center gap-x-6 gap-y-2 mb-4 md:mb-0">
             {footerNav.map((item) => (
               <a
                 key={item.href}

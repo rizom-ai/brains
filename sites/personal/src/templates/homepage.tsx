@@ -37,10 +37,10 @@ export const HomepageLayout = ({
       />
 
       {/* Hero — gradient bg, centered, generous vertical padding */}
-      <header className="flex flex-col items-center pt-20 pb-[60px] px-6 md:px-12 gap-5 bg-theme-gradient">
-        <div className="max-w-[700px] mx-auto text-center">
+      <header className="hero-bg-pattern relative flex flex-col items-center pt-20 pb-[60px] px-6 md:px-12 gap-5 bg-theme-gradient overflow-hidden">
+        <div className="relative z-10 w-full max-w-[700px] mx-auto text-center">
           {tagline && (
-            <h1 className="text-4xl md:text-[56px] md:leading-[1.1] font-bold text-brand mb-5 font-heading tracking-[-0.03em]">
+            <h1 className="text-2xl sm:text-4xl md:text-[56px] md:leading-[1.15] font-bold text-brand mb-5 font-heading tracking-[-0.03em] text-balance">
               {tagline}
             </h1>
           )}
@@ -49,7 +49,7 @@ export const HomepageLayout = ({
               {profile.description}
             </p>
           )}
-          <div className="flex justify-center gap-3">
+          <div className="flex flex-wrap justify-center gap-3">
             <a
               href={postsListUrl}
               className="rounded-full py-3.5 px-8 bg-brand text-theme-inverse font-bold text-[15px] hover:bg-brand-dark transition-colors"
@@ -80,7 +80,7 @@ export const HomepageLayout = ({
               View all →
             </a>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-layout mx-auto w-full">
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),360px))] justify-center gap-6 max-w-layout mx-auto w-full">
             {posts.map((post) => (
               <a
                 key={post.id}
@@ -91,7 +91,7 @@ export const HomepageLayout = ({
                   <img
                     src={post.coverImageUrl}
                     alt={post.metadata.title}
-                    className="w-full h-40 rounded-[14px] object-cover shrink-0"
+                    className="card-cover-gradient w-full h-40 rounded-[14px] object-cover shrink-0 text-transparent"
                   />
                 ) : (
                   <div className="w-full h-40 rounded-[14px] shrink-0 card-cover-gradient" />
@@ -121,7 +121,7 @@ export const HomepageLayout = ({
       )}
 
       {/* CTA — brand bg with subtitle and pill button */}
-      <section className="flex flex-col items-center py-[60px] px-6 md:px-12 gap-4 bg-brand">
+      <section className="cta-bg-pattern relative flex flex-col items-center py-[60px] px-6 md:px-12 gap-4 bg-brand overflow-hidden">
         <h2 className="text-center text-theme-inverse font-heading font-bold text-2xl md:text-[28px]">
           {cta.heading}
         </h2>

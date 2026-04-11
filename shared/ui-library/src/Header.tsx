@@ -119,8 +119,9 @@ export function Header({
             ssrOnClick="toggleMobileMenu()"
             type="button"
             className={cn(
-              "md:hidden p-2 h-auto",
-              "text-theme hover:text-brand hover:bg-transparent",
+              "md:hidden p-2 h-auto rounded-lg",
+              "text-brand border border-brand/40 bg-brand/10",
+              "hover:bg-brand hover:text-theme-inverse hover:border-brand",
             )}
             aria-label="Toggle navigation menu"
             aria-expanded="false"

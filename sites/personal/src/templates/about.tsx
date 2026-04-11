@@ -15,9 +15,9 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
       <Head title={title} description={description} ogType="profile" />
       <div className="about-page bg-theme">
         {/* Hero — gradient, matching homepage style */}
-        <section className="flex flex-col pt-20 pb-[60px] px-6 md:px-12 bg-theme-gradient">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-3xl md:text-[48px] md:leading-[1.1] font-bold text-brand mb-4 font-heading tracking-[-0.03em]">
+        <section className="hero-bg-pattern relative flex flex-col pt-20 pb-[60px] px-6 md:px-12 bg-theme-gradient overflow-hidden">
+          <div className="relative z-10 w-full max-w-3xl mx-auto">
+            <h1 className="text-2xl sm:text-3xl md:text-[48px] md:leading-[1.15] font-bold text-brand mb-4 font-heading tracking-[-0.03em] text-balance">
               {profile.name}
             </h1>
             {profile.description && (
