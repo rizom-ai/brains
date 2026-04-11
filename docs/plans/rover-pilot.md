@@ -56,6 +56,7 @@ Because there is no website, the deploy topology is simpler than the `rizom.ai` 
 - One subdomain → one rover → one MCP endpoint
 - No site-production / site-preview volumes
 - No site-builder startup build, no lazy rebuild complications
+- `brain init --model rover` for pilot/core instances should not scaffold dormant `site.package` / `site.theme` refs into `brain.yaml`
 
 ### Baseline choices
 
@@ -70,53 +71,89 @@ These are the locked decisions for cohort 1. Later cohorts may revisit them base
 | User identity             | Short operator-assigned handle                            | Clean directory names, secrets names, subdomains; decoupled from GitHub identity         |
 | Domain pattern            | `<handle>.rover.example.com` under operator wildcard zone | Future-proof — URL survives the hosted-rover migration, one DNS zone, one wildcard story |
 
-### Registry repo (coordination only)
+### Registry repo (YAML truth, generated table)
 
-A separate `rover-pilot` repo is created, but it is **documentation and tracking, not orchestration**. No Kamal configs, no workflows, no deploy logic. The `brain.yaml` files in it are _snapshots_ of what was deployed, not live inputs.
+A separate `rover-pilot` repo is created. It is **operator coordination plus lightweight batch input**, not a hosted-rover control plane. Kamal configs, GitHub workflows, deploy secrets, and live `brain.yaml` still live in each user's repo.
+
+Human-editable source of truth should be YAML, not CSV. Operators can review status in a generated Markdown table, but table is derived output, not thing people edit.
 
 ```
 rover-pilot/
 ├── cohorts/
-│   ├── cohort-1.md              # target size, members, status, open issues
-│   └── cohort-2.md
+│   ├── cohort-1.yaml            # cohort metadata + member handles
+│   └── cohort-2.yaml
 ├── users/
+│   ├── alice.yaml               # onboarding input + status
 │   ├── alice/
 │   │   ├── brain.yaml           # snapshot of deployed config
 │   │   └── notes.md             # contact, interfaces enabled, known issues
-│   └── bob/
-│       └── ...
+│   └── bob.yaml
+├── views/
+│   └── users.md                 # generated table for operator review
+├── scripts/
+│   ├── render-users-table.ts    # YAML -> Markdown table
+│   └── onboard-user.ts          # thin wrapper around per-user init steps
 ├── docs/
 │   ├── onboarding-checklist.md  # step-by-step operator flow
 │   └── operator-playbook.md     # known gotchas, recovery procedures
 └── README.md
 ```
 
+Example `users/alice.yaml`:
+
+```yaml
+handle: alice
+status: pending
+repo: rover-alice
+contentRepo: rover-alice-content
+domain: alice.rover.example.com
+preset: core
+discord:
+  enabled: false
+notes: close collaborator
+```
+
+Why this shape:
+
+- YAML easy for humans to edit and diff
+- per-user files avoid one giant merge-conflict magnet
+- generated Markdown gives "table" view without making Markdown or CSV source of truth
+- future operator tooling can read same files without turning them into live deploy state
+
 The repo exists so that:
 
-- Audit is possible — "what was this user's config when we deployed them"
-- Drift is detectable — compare the snapshot to the live repo if something breaks
-- Cohorts can be reviewed as a whole
+- Audit is possible — "what was this user's onboarding input and deployed config"
+- Drift is detectable — compare snapshot to live repo if something breaks
+- Cohorts can be reviewed as whole
 - Future hosted-rover can import real configs as test cases
 
 ### Per-user onboarding flow
 
-Fits on one page of `onboarding-checklist.md`. If it doesn't fit, the scaffold absorbed something it shouldn't have.
+Fits on one page of `onboarding-checklist.md`. If it doesn't fit, scaffold absorbed something it shouldn't have.
 
-1. Operator agrees a short handle with the new user (e.g. `alice`)
-2. Operator creates a new repo in the pilot org (`<org>/rover-<handle>`)
-3. Operator creates a content repo in the pilot org (`<org>/rover-<handle>-content`) for directory-sync
-4. Adds the pilot user as Maintainer on both repos
-5. Runs `brain init --deploy --model rover --domain <handle>.rover.example.com`
-6. Configures `brain.yaml` with `preset: core` and directory-sync pointed at the content repo
-7. Fills `.env.local` with the local operator inputs the CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` / `DISCORD_BOT_TOKEN`
-8. Runs `brain ssh-key:bootstrap --push-to gh`
-9. Runs `brain secrets:push --push-to gh`
-10. Runs `brain cert:bootstrap --push-to gh`, then deletes local `origin.pem` / `origin.key`
-11. Merges to `main`; `Publish Image` then `Deploy` run
-12. Verifies the MCP endpoint is reachable and a basic tool call works
-13. Hands over MCP connection details to the user
-14. Copies `brain.yaml` into `rover-pilot/users/<handle>/` as a snapshot and writes `notes.md`
-15. Adds user to the current cohort doc with status `onboarded`
+Manual truth entry first:
+
+1. Operator agrees a short handle with new user (e.g. `alice`)
+2. Operator creates `rover-pilot/users/<handle>.yaml`
+3. Operator adds handle to active cohort YAML
+4. Operator regenerates `views/users.md` so batch state is visible as table
+
+Per-user repo/deploy flow after that:
+
+5. Operator creates new repo in pilot org (`<org>/rover-<handle>`)
+6. Operator creates content repo in pilot org (`<org>/rover-<handle>-content`) for directory-sync
+7. Adds pilot user as Maintainer on both repos
+8. Runs `brain init --deploy --model rover --domain <handle>.rover.example.com`
+9. Configures `brain.yaml` with `preset: core` and directory-sync pointed at content repo
+10. Fills `.env.local` with local operator inputs CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` / `DISCORD_BOT_TOKEN`
+11. Runs `brain ssh-key:bootstrap --push-to gh`
+12. Runs `brain secrets:push --push-to gh`
+13. Runs `brain cert:bootstrap --push-to gh`, then deletes local `origin.pem` / `origin.key`
+14. Merges to `main`; `Publish Image` then `Deploy` run
+15. Verifies MCP endpoint reachable and basic tool call works
+16. Hands over MCP connection details to user
+17. Copies deployed `brain.yaml` into `rover-pilot/users/<handle>/` as snapshot and writes `notes.md`
+18. Updates `users/<handle>.yaml` status to `onboarded` and regenerates `views/users.md`
 
 ### Cohort structure
 
@@ -184,6 +221,9 @@ Until one of those fires: stay on per-user deploys.
 - [ ] Create a pilot GitHub org to hold per-user repos (or pick an existing one)
 - [ ] Validate one throwaway rover repo end-to-end against the shared-zone contract
 - [ ] Create the `rover-pilot` registry repo with the structure defined in Design
+- [ ] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
+- [ ] Add `render-users-table` script so operators get table view from YAML truth
+- [ ] Add thin `onboard-user` wrapper around per-user init flow
 - [ ] Write `docs/onboarding-checklist.md` — the per-user step list
 - [ ] Write `docs/operator-playbook.md` — known gotchas (TLS, secrets, sharp/libstdc++, `/opt/brain-dist` volume, scaffold quirks)
 - [ ] Set the shared AI provider spend cap and document the ceiling
