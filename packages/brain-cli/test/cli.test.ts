@@ -69,6 +69,12 @@ describe("parseArgs", () => {
     expect(result.flags["dry-run"]).toBe(true);
   });
 
+  it("should parse 'ssh-key:bootstrap' with --push-to flag", () => {
+    const result = parseArgs(["ssh-key:bootstrap", "--push-to", "gh"]);
+    expect(result.command).toBe("ssh-key:bootstrap");
+    expect(result.flags["push-to"]).toBe("gh");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");

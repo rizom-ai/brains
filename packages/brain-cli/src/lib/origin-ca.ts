@@ -1,5 +1,6 @@
 import { createSign, generateKeyPairSync } from "crypto";
 import { z } from "@brains/utils";
+import { parseJsonResponse } from "./http-response";
 
 export interface OriginKeyPair {
   privateKeyPem: string;
@@ -143,22 +144,22 @@ export async function issueCloudflareOriginCertificate(
     signal: AbortSignal.timeout(CF_API_TIMEOUT_MS),
   });
 
-  const payload = await readJson(response);
-  const parsed = cloudflareOriginCaResponseSchema.safeParse(payload);
+  const parsed = await parseJsonResponse(
+    response,
+    cloudflareOriginCaResponseSchema,
+    {
+      label: "Cloudflare Origin CA request failed",
+      formatError: formatResponseError,
+    },
+  );
 
-  if (!response.ok || !parsed.success) {
-    throw new Error(
-      `Cloudflare Origin CA request failed${formatResponseError(response, payload)}`,
-    );
-  }
-
-  const certificatePem = parsed.data.result.certificate.trim();
+  const certificatePem = parsed.result.certificate.trim();
   const result: CloudflareOriginCaResult = {
     certificatePem: `${certificatePem}\n`,
   };
 
-  if (parsed.data.result.expires_on) {
-    result.expiresOn = parsed.data.result.expires_on;
+  if (parsed.result.expires_on) {
+    result.expiresOn = parsed.result.expires_on;
   }
 
   return result;
@@ -181,14 +182,10 @@ export async function setCloudflareZoneSslStrict(
     },
   );
 
-  const payload = await readJson(response);
-  const parsed = cloudflareSuccessResponseSchema.safeParse(payload);
-
-  if (!response.ok || !parsed.success) {
-    throw new Error(
-      `Cloudflare zone SSL update failed${formatResponseError(response, payload)}`,
-    );
-  }
+  await parseJsonResponse(response, cloudflareSuccessResponseSchema, {
+    label: "Cloudflare zone SSL update failed",
+    formatError: formatResponseError,
+  });
 }
 
 export function wrapPem(label: string, der: Buffer): string {
@@ -301,19 +298,6 @@ function encodeBase128(value: number): number[] {
   }
 
   return bytes;
-}
-
-async function readJson(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (!text.trim()) {
-    return undefined;
-  }
-
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return text;
-  }
 }
 
 function formatResponseError(response: Response, payload: unknown): string {

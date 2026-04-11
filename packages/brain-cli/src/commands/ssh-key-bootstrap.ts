@@ -93,7 +93,8 @@ export async function runSshKeyBootstrap(
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "SSH key bootstrap failed",
+      message:
+        error instanceof Error ? error.message : "SSH key bootstrap failed",
     };
   }
 }
@@ -171,7 +172,9 @@ export async function bootstrapSshKey(
     );
   }
 
-  logger(createdLocalKey ? `Created ${privateKeyPath}` : `Reusing ${privateKeyPath}`);
+  logger(
+    createdLocalKey ? `Created ${privateKeyPath}` : `Reusing ${privateKeyPath}`,
+  );
   logger(
     createdHetznerKey
       ? `Registered Hetzner SSH key ${sshKeyName}`
@@ -206,7 +209,9 @@ async function ensureHetznerSshKey(options: {
     },
   });
   const existingKeys = await parseHetznerSshKeysResponse(listResponse);
-  const existingKey = existingKeys.find((sshKey) => sshKey.name === options.sshKeyName);
+  const existingKey = existingKeys.find(
+    (sshKey) => sshKey.name === options.sshKeyName,
+  );
 
   if (existingKey) {
     if (existingKey.public_key.trim() !== options.publicKey) {
@@ -241,9 +246,9 @@ async function ensureHetznerSshKey(options: {
   return true;
 }
 
-async function parseHetznerSshKeysResponse(response: Response): Promise<
-  Array<z.infer<typeof hetznerSshKeySchema>>
-> {
+async function parseHetznerSshKeysResponse(
+  response: Response,
+): Promise<Array<z.infer<typeof hetznerSshKeySchema>>> {
   if (!response.ok) {
     throw new Error(`Hetzner SSH key lookup failed: ${await response.text()}`);
   }
