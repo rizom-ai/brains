@@ -85,6 +85,7 @@
   },
   "changesets": [
     "brain-cli-register-override-packages",
+    "brain-init-regen-derived-deploy-artifacts",
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
     "externalize-preact",

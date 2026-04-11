@@ -1,5 +1,14 @@
 # @rizom/brain
 
+## 0.1.1-alpha.13
+
+### Patch Changes
+
+- [`dbdbee7`](https://github.com/rizom-ai/brains/commit/dbdbee7816a474c1317cc92ac331fc59d434dc7f) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add an explicit `brain init --deploy --regen` path for standalone deploy scaffolds.
+  - regenerate derived deploy artifacts like `.github/workflows/deploy.yml`, `.github/workflows/publish-image.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, and `deploy/Caddyfile`
+  - keep canonical instance files such as `brain.yaml`, `.env`, `.env.schema`, and `config/deploy.yml` untouched during regen
+  - re-derive the deploy workflow secret bridge from the current `.env.schema`, fixing drift after post-init schema changes
+
 ## 0.1.1-alpha.12
 
 ### Patch Changes
