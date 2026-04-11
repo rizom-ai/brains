@@ -1,17 +1,21 @@
 # @rizom/brain
 
+## 0.1.1-alpha.12
+
+### Patch Changes
+
+- [`37a2f97`](https://github.com/rizom-ai/brains/commit/37a2f976816e451dc2f81c28862cfa2b3dd71aaf) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden standalone deploy workflows for fresh servers.
+  - write an explicit SSH client config for Actions deploy runs so Kamal and plain `ssh` use the intended key noninteractively
+  - wait for SSH access after provisioning before starting Kamal on a newly created Hetzner server
+
 ## 0.1.1-alpha.11
 
 ### Patch Changes
 
-- [`9775a23`](https://github.com/rizom-ai/brains/commit/9775a236b5f0fe89fd29ebba5e9110716469bfe0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve deploy secret bootstrap ergonomics for standalone repos.
+- [`dc252f2`](https://github.com/rizom-ai/brains/commit/dc252f204f980154b8cfc23cea17b8e50ea0ae82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve deploy secret bootstrap ergonomics for standalone repos.
   - add `brain ssh-key:bootstrap` to create or reuse a local deploy key, register the matching public key in Hetzner, and optionally push `KAMAL_SSH_PRIVATE_KEY` to GitHub
   - make `brain secrets:push` read file-backed secrets from `.env.local` and `.env`, including `~/...` home-directory paths
   - document the preferred reproducible contract for `KAMAL_SSH_PRIVATE_KEY_FILE`
-
-- [`9775a23`](https://github.com/rizom-ai/brains/commit/9775a236b5f0fe89fd29ebba5e9110716469bfe0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Harden standalone deploy workflows for fresh servers.
-  - write an explicit SSH client config for Actions deploy runs so Kamal and plain `ssh` use the intended key noninteractively
-  - wait for SSH access after provisioning before starting Kamal on a newly created Hetzner server
 
 ## 0.1.1-alpha.10
 
