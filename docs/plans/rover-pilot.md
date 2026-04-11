@@ -402,6 +402,8 @@ Until one of those fires: stay on per-user deploys.
 - [ ] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
 - [ ] Add repo-local `render-users-table` script so operators get table view from YAML truth
 - [ ] Add repo-local `onboard-user` wrapper around per-user init flow
+- [ ] Add repo-local `reconcile-cohort` script for staged rollout of one active cohort
+- [ ] Add repo-local `reconcile-all` script for fleet-wide convergence
 - [ ] Write `docs/onboarding-checklist.md` — the per-user step list
 - [ ] Write `docs/operator-playbook.md` — known gotchas (TLS, secrets, sharp/libstdc++, `/opt/brain-dist` volume, scaffold quirks)
 - [ ] Set the shared AI provider spend cap and document the ceiling
