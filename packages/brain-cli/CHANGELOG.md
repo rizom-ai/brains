@@ -1,5 +1,14 @@
 # @rizom/brain
 
+## 0.1.1-alpha.11
+
+### Patch Changes
+
+- [`dc252f2`](https://github.com/rizom-ai/brains/commit/dc252f204f980154b8cfc23cea17b8e50ea0ae82) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve deploy secret bootstrap ergonomics for standalone repos.
+  - add `brain ssh-key:bootstrap` to create or reuse a local deploy key, register the matching public key in Hetzner, and optionally push `KAMAL_SSH_PRIVATE_KEY` to GitHub
+  - make `brain secrets:push` read file-backed secrets from `.env.local` and `.env`, including `~/...` home-directory paths
+  - document the preferred reproducible contract for `KAMAL_SSH_PRIVATE_KEY_FILE`
+
 ## 0.1.1-alpha.10
 
 ### Patch Changes
