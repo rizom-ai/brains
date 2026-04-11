@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.1.1-alpha.16
+
+### Patch Changes
+
+- [`2461872`](https://github.com/rizom-ai/brains/commit/24618720d35f9081a6aa3279b2007396961a08e5) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix `brain init --deploy` to scaffold a checked-in `scripts/extract-brain-config.rb` helper and use it from the deploy workflow instead of shell-grepping `brain.yaml`. This also avoids broken newline escaping in the generated workflow's inline Node snippets.
+
 ## 0.1.1-alpha.15
 
 ### Patch Changes
