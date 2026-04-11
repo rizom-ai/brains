@@ -32,6 +32,18 @@ function createRunner(calls: string[]) {
   };
 }
 
+function createSnapshotRunner(calls: string[]) {
+  return async (user: ResolvedUser) => {
+    calls.push(
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}`,
+    );
+
+    return {
+      brainYaml: `brain: ${user.model}\npreset: ${user.preset}\ndomain: ${user.domain}\n`,
+    };
+  };
+}
+
 const baseFiles = {
   "pilot.yaml": `schemaVersion: 1
 brainVersion: 0.1.1-alpha.12
@@ -114,6 +126,28 @@ describe("reconcile scripts", () => {
     } catch (error) {
       expect(getErrorMessage(error)).toContain("Unknown user handle: zoe");
     }
+  });
+
+  it("writes brain.yaml snapshot when runner returns one", async () => {
+    const root = await createPilotRepo(baseFiles);
+    const calls: string[] = [];
+
+    await onboardUser(root, "cara", createSnapshotRunner(calls));
+
+    expect(calls).toEqual(["cara:steady:core:0.1.1-alpha.12"]);
+
+    const snapshot = await readFile(
+      join(root, "users/cara/brain.yaml"),
+      "utf8",
+    );
+    expect(snapshot).toBe(
+      "brain: rover\npreset: core\ndomain: cara.rover.example.com\n",
+    );
+
+    const table = await readFile(join(root, "views/users.md"), "utf8");
+    expect(table).toContain(
+      "| cara | steady | rover | core | 0.1.1-alpha.12 | cara.rover.example.com | rover-cara | rover-cara-content | off | unknown | unknown | unknown | unknown | present |",
+    );
   });
 
   it("reconcileCohort fails for unknown cohort", async () => {

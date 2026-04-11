@@ -80,8 +80,10 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           title: "System Dashboard",
           description: "Monitor your Brain system statistics and activity",
           layout: "default",
+          // Operator-only — suppressed from public navigation;
+          // reachable via direct URL.
           navigation: {
-            show: true,
+            show: false,
             label: "Dashboard",
             slot: "secondary",
             priority: 100,

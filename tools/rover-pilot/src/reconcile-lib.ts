@@ -1,7 +1,14 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, join } from "node:path";
+
 import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
 
-export type UserRunner = (user: ResolvedUser) => Promise<void>;
+export interface UserRunResult {
+  brainYaml?: string;
+}
+
+export type UserRunner = (user: ResolvedUser) => Promise<UserRunResult | void>;
 
 export async function runUsers(
   rootDir: string,
@@ -9,10 +16,24 @@ export async function runUsers(
   runner: UserRunner = async () => {},
 ): Promise<void> {
   for (const user of users) {
-    await runner(user);
+    const result = await runner(user);
+
+    if (result?.brainYaml) {
+      await writeUserSnapshot(rootDir, user.handle, result.brainYaml);
+    }
   }
 
   await writeUsersTable(rootDir);
+}
+
+async function writeUserSnapshot(
+  rootDir: string,
+  handle: string,
+  brainYaml: string,
+): Promise<void> {
+  const snapshotPath = join(rootDir, "users", handle, "brain.yaml");
+  await mkdir(dirname(snapshotPath), { recursive: true });
+  await writeFile(snapshotPath, brainYaml);
 }
 
 export async function findUser(

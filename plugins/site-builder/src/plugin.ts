@@ -166,7 +166,8 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.rebuildManager.setupAutoRebuild();
     }
 
-    // Register CMS admin nav link if CMS is enabled
+    // Register CMS admin route if CMS is enabled. Operator-only —
+    // suppressed from public navigation; reachable via direct URL.
     if (this.config.cms) {
       this._routeRegistry.register({
         id: "cms-admin",
@@ -174,7 +175,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         title: "Admin",
         external: true,
         navigation: {
-          show: true,
+          show: false,
           slot: "secondary",
           label: "Admin",
           priority: 100,
