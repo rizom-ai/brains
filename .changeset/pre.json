@@ -89,6 +89,7 @@
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
     "externalize-preact",
+    "personal-layout-mobile-correctness",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
     "sharp-lazy-load",
