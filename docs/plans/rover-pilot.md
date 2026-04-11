@@ -120,7 +120,6 @@ Example `users/alice.yaml`:
 handle: alice
 discord:
   enabled: false
-notes: close collaborator
 ```
 
 Example `cohorts/cohort-1.yaml`:
@@ -148,8 +147,9 @@ members:
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
 - `handle` — lowercase slug, unique across pilot
-- `discord.enabled` — boolean
-- `notes` — optional freeform operator note
+- optional `discord.enabled` — boolean intent flag
+
+Non-secret integration intent belongs in YAML. Secret material does not.
 
 Derived fields, not stored per user:
 
@@ -157,6 +157,7 @@ Derived fields, not stored per user:
 - `contentRepo = ${repoPrefix}${handle}${contentRepoSuffix}`
 - `domain = ${handle}${domainSuffix}`
 - `preset = pilot.yaml.preset`
+- Discord secret name, when enabled: `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
 
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
@@ -179,6 +180,7 @@ Validation rules:
 - cohort members must reference existing user files
 - duplicate handles are invalid
 - derived `repo`, `contentRepo`, and `domain` must be deterministic from `pilot.yaml` + `handle`
+- if `discord.enabled: true`, operator tooling expects a secret named `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
 - a user may belong to **at most one cohort total**
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
@@ -190,7 +192,7 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - reads `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
   - validates via Zod
   - writes `views/users.md`
-  - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence)
+  - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence, expected Discord secret presence)
   - fails loudly on missing users / duplicate handles / multi-cohort membership / invalid schema
 - `scripts/onboard-user.ts <handle>`
   - reads `pilot.yaml` plus one `users/<handle>.yaml`
