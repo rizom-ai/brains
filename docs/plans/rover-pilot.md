@@ -190,30 +190,105 @@ Validation rules:
 - `brainVersion` and `brainVersionOverride` must be exact pinned versions, not ranges or moving tags
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
+### Exact file contract
+
+The future `rover-pilot` repo should validate these files with Zod and treat them as the only human-edited machine inputs:
+
+`pilot.yaml`
+
+```yaml
+schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+```
+
+Rules:
+
+- exactly one file at repo root
+- `schemaVersion` is an integer, initially locked to `1`
+- `brainVersion` is an exact pinned `@rizom/brain` version string
+- `repoPrefix`, `contentRepoSuffix`, and `domainSuffix` are non-empty strings
+- `preset` is locked to `core` for cohort 1
+
+`users/<handle>.yaml`
+
+```yaml
+handle: alice
+discord:
+  enabled: false
+```
+
+Rules:
+
+- file path is authoritative for `handle`
+- body must not contain derived fields like `repo`, `contentRepo`, `domain`, or `cohort`
+- body must not contain secrets or secret names
+- `discord.enabled` is required for every user
+
+`cohorts/<cohort>.yaml`
+
+```yaml
+members:
+  - alice
+  - bob
+brainVersionOverride: 0.1.1-alpha.13
+```
+
+Rules:
+
+- file path is authoritative for cohort id
+- `members` is required, non-empty, unique, and references existing users
+- `brainVersionOverride` is optional and, when present, is an exact pinned version
+- no other override fields are allowed
+
+Derived-but-checked files:
+
+- `views/users.md`
+  - generated only; never hand-edited
+  - one row per user
+  - minimum columns: `handle`, `cohort`, `brainVersion`, `domain`, `repo`, `contentRepo`, `discord`, `repoStatus`, `deployStatus`, `dnsStatus`, `mcpStatus`, `snapshotStatus`
+- `users/<handle>/brain.yaml`
+  - generated snapshot of deployed config
+  - overwritten on successful onboarding/reconcile
+- `users/<handle>/notes.md`
+  - human notes only
+  - ignored by config resolution
+
 ### Script contract
 
 Repo-local scripts are thin wrappers around this YAML truth:
 
 - `scripts/render-users-table.ts`
-  - reads `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
-  - validates via Zod
-  - writes `views/users.md`
+  - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
+  - validates via Zod before rendering anything
+  - writes only `views/users.md`
   - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence, expected Discord secret presence)
-  - fails loudly on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
+  - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
 - `scripts/onboard-user.ts <handle>`
-  - reads `pilot.yaml` plus one `users/<handle>.yaml`
+  - input: one existing handle from `users/<handle>.yaml`
   - resolves effective version from cohort override or pilot default
-  - runs per-user repo/init flow idempotently
-  - converges existing repos toward desired config instead of relying on stored mutable state
-  - copies deployed `brain.yaml` snapshot into `users/<handle>/brain.yaml`
+  - creates or reconciles the user repo and content repo toward desired state
+  - runs the per-user init/deploy bootstrap flow idempotently
+  - updates generated artifacts for that user only: `users/<handle>/brain.yaml` and `views/users.md`
+  - exits non-zero if required observable prerequisites are missing after reconcile
+- `scripts/reconcile-cohort.ts <cohort>`
+  - input: one existing cohort id from file name
+  - resolves that cohort's members and effective versions
+  - runs `onboard-user` semantics for each member in the cohort
+  - updates affected snapshots plus `views/users.md`
+  - exits non-zero if any member fails reconciliation
 - `scripts/reconcile-all.ts`
-  - walks all users
+  - inputs: whole repo config set
+  - walks all users exactly once
   - reconciles each repo to its effective desired version
   - supports fleet-wide update when `pilot.yaml.brainVersion` changes
   - still respects cohort overrides when present
-- `scripts/reconcile-cohort.ts <cohort>`
-  - reconciles only members of one active rollout group
-  - used for staged rollout before fleet-wide reconciliation
+  - updates all affected snapshots plus `views/users.md`
+  - exits non-zero if any user fails reconciliation
 
 Why this shape:
 
