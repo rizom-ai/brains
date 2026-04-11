@@ -89,8 +89,12 @@ export async function loadPilotRegistry(
     .map((cohortFile) => ({
       id: cohortFile.id,
       members: [...cohortFile.data.members].sort(),
-      brainVersionOverride: cohortFile.data.brainVersionOverride,
-      presetOverride: cohortFile.data.presetOverride,
+      ...(cohortFile.data.brainVersionOverride
+        ? { brainVersionOverride: cohortFile.data.brainVersionOverride }
+        : {}),
+      ...(cohortFile.data.presetOverride
+        ? { presetOverride: cohortFile.data.presetOverride }
+        : {}),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 

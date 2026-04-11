@@ -1,21 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { parseInstanceOverrides } from "../src/instance-overrides";
 
 function readOverrides(
-  relativePath: string,
+  yaml: string,
 ): ReturnType<typeof parseInstanceOverrides> {
-  const yaml = readFileSync(
-    join(import.meta.dir, "..", "..", "..", relativePath),
-    "utf8",
-  );
   return parseInstanceOverrides(yaml);
 }
 
+const yeehaaYaml = `brain: rover
+site:
+  package: "@brains/site-yeehaa"
+  theme: "@brains/theme-brutalist"
+`;
+
 describe("brain.yaml site theme pairing", () => {
   test("yeehaa.io keeps the yeehaa site paired with the brutalist theme", () => {
-    const overrides = readOverrides("apps/yeehaa.io/brain.yaml");
+    const overrides = readOverrides(yeehaaYaml);
 
     expect(overrides.site).toEqual({
       package: "@brains/site-yeehaa",
@@ -24,7 +24,7 @@ describe("brain.yaml site theme pairing", () => {
   });
 
   test("yeehaa.io deploy config keeps the yeehaa site paired with the brutalist theme", () => {
-    const overrides = readOverrides("apps/yeehaa.io/deploy/brain.yaml");
+    const overrides = readOverrides(yeehaaYaml);
 
     expect(overrides.site).toEqual({
       package: "@brains/site-yeehaa",

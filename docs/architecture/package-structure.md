@@ -142,6 +142,5 @@ App instances are deployment configurations, not workspace members. Each directo
 
 | Directory               | Purpose                                                                     |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `apps/yeehaa.io`        | Maintainer's personal brain instance (rover model). Production reference.   |
 | `apps/rizom-ai`         | Marketing site for the framework (ranger model + sites/rizom variant ai).   |
 | `apps/rizom-foundation` | Manifesto / foundation site (relay model + sites/rizom variant foundation). |

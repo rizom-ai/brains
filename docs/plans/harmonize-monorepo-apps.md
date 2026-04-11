@@ -17,7 +17,7 @@ my-brain/
 └── src/             # custom site/theme/plugin code
 ```
 
-**Monorepo apps** (`apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`, `apps/yeehaa.io`, etc.)
+**Monorepo apps** (`apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`, etc.)
 are config-only directories with no `package.json`:
 
 ```
@@ -111,8 +111,8 @@ ref dep flips to git ref / npm version at the same time.
 
 ### Phase 2: Decide trigger for remaining monorepo apps (post-v0.1.0)
 
-Three apps stay in the public monorepo with the config-only shape:
-`rizom-ai`, `rizom-foundation`, `yeehaa.io`. Phase 2 is the
+Two apps stay in the public monorepo with the config-only shape:
+`rizom-ai`, `rizom-foundation`. (`yeehaa.io` has already been extracted to a standalone repo.) Phase 2 is the
 decision moment, not work:
 
 - If `standalone-apps.md` extraction is imminent (weeks), skip
@@ -127,8 +127,7 @@ decision moment, not work:
 
 ### Phase 3: Migrate remaining apps to unified shape (LATER)
 
-For each of `apps/rizom-ai`, `apps/rizom-foundation`,
-`apps/yeehaa.io`:
+For each of `apps/rizom-ai`, `apps/rizom-foundation`:
 
 1. Add `package.json` with the chosen workspace dep strategy
    (decided in Phase 2):
@@ -161,7 +160,7 @@ For each of `apps/rizom-ai`, `apps/rizom-foundation`,
   - [x] Verify boot
   - [x] Delete from brains monorepo
 - [ ] **Phase 2:** Decide trigger for remaining apps (post-v0.1.0)
-- [ ] **Phase 3:** Migrate `rizom-ai`, `rizom-foundation`, `yeehaa.io`
+- [ ] **Phase 3:** Migrate `rizom-ai`, `rizom-foundation`
       (only if Phase 2 says go)
 - [ ] Document unified shape in `docs/architecture/package-structure.md`
 

@@ -361,7 +361,7 @@ function toggleTheme() {
 Each brain instance picks a structural site package and a theme in `brain.yaml`:
 
 ```yaml
-# apps/yeehaa.io/brain.yaml
+# brain.yaml
 brain: rover
 site:
   package: "@brains/site-yeehaa"

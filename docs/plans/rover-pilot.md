@@ -288,6 +288,11 @@ Derived-but-checked files:
 
 `brains-ops` owns the machine logic for this YAML truth. The private `rover-pilot` repo owns the data.
 
+- `brains-ops init <repo>`
+  - creates the private `rover-pilot` repo skeleton when missing
+  - writes starter files for `pilot.yaml`, `cohorts/`, `users/`, `views/`, and operator docs
+  - preserves existing human-edited files on rerun
+  - exits non-zero if the target path cannot be prepared
 - `brains-ops render <repo>`
   - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
   - validates via Zod before rendering anything
@@ -342,7 +347,7 @@ Manual truth entry first:
 1. Operator agrees a short handle with new user (e.g. `alice`)
 2. Operator creates `rover-pilot/users/<handle>.yaml`
 3. Operator adds handle to active cohort YAML
-4. Operator regenerates `views/users.md` so batch state is visible as table
+4. Operator runs `brains-ops render <repo>` so batch state is visible as table
 
 Per-user repo/deploy flow after that:
 

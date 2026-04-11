@@ -226,8 +226,8 @@ The `brain` CLI ships from `@rizom/brain`. Install it once globally, then run an
 # Install once
 bun add -g @rizom/brain
 
-# From any app directory with a brain.yaml
-cd apps/yeehaa.io
+# From any instance directory with a brain.yaml
+cd ~/Documents/yeehaa-io
 brain start            # start the brain
 brain start --cli      # start with the CLI chat interface attached
 brain init mybrain     # scaffold a new instance directory (interactive prompts)
@@ -237,7 +237,7 @@ brain diagnostics usage       # aggregate ai:usage events from the log file
 brain --help
 ```
 
-App directories have no `package.json` and no `bun run start` script. The `brain` CLI is the only entrypoint.
+Instance directories can live outside the monorepo. The `brain` CLI is the primary entrypoint.
 
 ## Resolution Flow
 
@@ -322,7 +322,7 @@ Only needed when you want a different curated capability set than `rover` / `ran
 The same brain model can power both dev and production via separate lightweight instance package directories:
 
 ```
-apps/yeehaa.io-dev/           # Dev instance
+~/Documents/yeehaa-io-dev/    # Dev instance
 ├── brain.yaml                # Dev config
 │   brain: rover
 │   logLevel: debug
@@ -334,13 +334,10 @@ apps/yeehaa.io-dev/           # Dev instance
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...
 
-apps/yeehaa.io/               # Production instance
+~/Documents/yeehaa-io/        # Production instance
 ├── brain.yaml                # Production config
 │   brain: rover
 │   domain: yeehaa.io
-│   plugins:
-│     webserver:
-│       productionDomain: https://yeehaa.io
 ├── .env                      # Production secrets (gitignored)
 │   AI_API_KEY=...
 │   GIT_SYNC_TOKEN=...

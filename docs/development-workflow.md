@@ -21,16 +21,13 @@ cd brains
 # Install dependencies
 bun install
 
-# Run any brain instance from its lightweight instance package directory.
-# Apps are not workspace members — they're brain.yaml-centered instance packages
-# consumed by the brain CLI at runtime.
-cd apps/yeehaa.io
+# Run any brain instance from its instance directory.
+# Instances are brain.yaml-centered packages consumed by the brain CLI at runtime.
+cd ~/Documents/yeehaa-io
 cp .env.example .env   # then edit .env and add AI_API_KEY at minimum
-bun --filter @rizom/brain run dev    # uses the in-tree CLI
+bunx brain start
 
-# After publish, the same flow uses the published CLI:
-#   bun add -g @rizom/brain
-#   cd apps/yeehaa.io && brain start
+# During framework development you can still run the in-tree CLI from another instance dir.
 ```
 
 ### Development Tools
