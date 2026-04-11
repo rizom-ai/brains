@@ -664,14 +664,6 @@ describe("brain init", () => {
       expect(workflow).toContain(
         'ruby -r rubygems -e \'puts Gem.user_dir + "/bin"\' >> "$GITHUB_PATH"',
       );
-      expect(workflow).toContain("Configure SSH client");
-      expect(workflow).toContain("IdentityFile ~/.ssh/id_ed25519");
-      expect(workflow).toContain("IdentitiesOnly yes");
-      expect(workflow).toContain("BatchMode yes");
-      expect(workflow).toContain("Wait for SSH access");
-      expect(workflow).toContain(
-        'ssh "$SSH_USER@$SERVER_IP" true >/dev/null 2>&1',
-      );
       expect(workflow).toContain("Validate SSH key");
       expect(workflow).toContain(
         "ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null",

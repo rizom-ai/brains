@@ -85,36 +85,7 @@ KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/id_ed25519
 brain secrets:push --push-to gh
 ```
 
-`brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. `.env.local` takes precedence over `.env`, and `~/...` paths resolve against the operator home directory. That is the preferred reproducible path for multiline keys.
-
-### `brain ssh-key:bootstrap`
-
-Create or reuse a deploy SSH key locally, ensure the matching public key exists in Hetzner, and optionally push the private key into GitHub Actions secrets.
-
-```bash
-cd mybrain
-brain ssh-key:bootstrap
-brain ssh-key:bootstrap --push-to gh
-```
-
-The command reads `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, and optionally `KAMAL_SSH_PRIVATE_KEY_FILE` from `.env.local`, `.env`, or `process.env`.
-
-Behavior:
-
-- creates an ed25519 keypair when the configured private key file does not exist
-- derives and validates the public key from the private key
-- creates the Hetzner SSH key when `HCLOUD_SSH_KEY_NAME` is missing there
-- refuses to continue if Hetzner already has that key name with different public key bytes
-- with `--push-to gh`, pushes the private key contents to GitHub as `KAMAL_SSH_PRIVATE_KEY`
-
-Recommended local contract:
-
-```bash
-HCLOUD_SSH_KEY_NAME=mylittlephoney-deploy
-KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/mylittlephoney_deploy_ed25519
-```
-
-After the first bootstrap, `brain secrets:push --push-to gh` remains the generic resync path.
+`brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. That is the preferred reproducible path for multiline keys.
 
 ### `brain start`
 

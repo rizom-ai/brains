@@ -94,20 +94,46 @@ describe("rizom-ai deploy workflow", () => {
     expect(workflow).toContain(
       'import { readFileSync, writeFileSync } from "node:fs";',
     );
+    expect(workflow).toContain(
+      'import { mkdirSync, readFileSync, writeFileSync } from "node:fs";',
+    );
     expect(workflow).toContain('import { appendFileSync } from "node:fs";');
     expect(workflow).toContain("text.replace(/'/g, \"\\\\'\")");
     expect(workflow).toContain('lines.push(name + "=\'" + escaped + "\'")');
     expect(workflow).not.toContain("lines.push(name + '<<EOF', text, 'EOF')");
+    expect(workflow).not.toContain("printf '%s\\n' \"$KAMAL_SSH_PRIVATE_KEY\"");
+    expect(workflow).toContain("const privateKey = env.KAMAL_SSH_PRIVATE_KEY;");
+    expect(workflow).toContain("let privateKeyText = String(privateKey)");
+    expect(workflow).toContain(
+      "writeFileSync(sshDir + '/id_ed25519', privateKeyText",
+    );
+    expect(workflow).toContain("const sshDir = process.env.HOME + '/.ssh';");
     expect(workflow).not.toContain("location: 'nbg1'");
     expect(workflow).toContain(
       "const serverType = process.env.HCLOUD_SERVER_TYPE;",
     );
     expect(workflow).toContain("const location = process.env.HCLOUD_LOCATION;");
     expect(workflow).toContain("server_type: serverType");
-    expect(workflow).toContain("location: process.env.HCLOUD_LOCATION");
+    expect(workflow).toContain("location,");
+    expect(workflow).toMatch(
+      /- name: Provision server\n\s+id: provision\n\s+env:\n\s+HCLOUD_TOKEN: \$\{\{ secrets\.HCLOUD_TOKEN \}\}\n\s+HCLOUD_SSH_KEY_NAME: \$\{\{ secrets\.HCLOUD_SSH_KEY_NAME \}\}\n\s+HCLOUD_SERVER_TYPE: \$\{\{ secrets\.HCLOUD_SERVER_TYPE \}\}\n\s+HCLOUD_LOCATION: \$\{\{ secrets\.HCLOUD_LOCATION \}\}\n\s+run:/,
+    );
+    expect(workflow).toMatch(
+      /- name: Update Cloudflare DNS\n\s+env:\n\s+CF_API_TOKEN: \$\{\{ secrets\.CF_API_TOKEN \}\}\n\s+CF_ZONE_ID: \$\{\{ secrets\.CF_ZONE_ID \}\}\n\s+SERVER_IP: \$\{\{ steps\.provision\.outputs\.server_ip \}\}\n\s+run:/,
+    );
     expect(workflow).toContain("gem install --user-install kamal");
     expect(workflow).toContain("Gem.user_dir");
     expect(workflow).not.toContain("run: gem install kamal");
+    expect(workflow).toContain("name: Configure SSH client");
+    expect(workflow).toContain("IdentityFile ~/.ssh/id_ed25519");
+    expect(workflow).toContain("IdentitiesOnly yes");
+    expect(workflow).toContain("BatchMode yes");
+    expect(workflow).toContain("name: Validate SSH key");
+    expect(workflow).toContain("ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null");
+    expect(workflow).toContain("name: Wait for SSH access");
+    expect(workflow).toContain(
+      'ssh "$SSH_USER@$SERVER_IP" true >/dev/null 2>&1',
+    );
     expect(workflow).toContain(
       "ref: ${{ github.event.workflow_run.head_sha || github.sha }}",
     );

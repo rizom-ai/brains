@@ -14,7 +14,7 @@ For what's stable today versus what isn't, see [STABILITY.md](./STABILITY.md).
 These are actively being worked on and likely to land in the next minor release.
 
 - **External plugin API** — public, documented plugin API with `.d.ts` exports, runtime loading from `brain.yaml`, an API version contract, and a `brain add <plugin>` CLI. Enables building plugins without forking the framework.
-- **Kamal deployment** — replace the current Terraform + SSH + Caddy recipe with a Kamal-based deploy flow. Aim is to make `brain deploy` a one-command experience for new users.
+- **Kamal deployment** — the core pieces are now in place and real instances are live: `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, repo-local image publishing, and the standalone Kamal workflow shape have all been exercised in production. Remaining work is polish and convergence so the generic scaffold and app-local workflows stay aligned and `brain deploy` becomes a reliable one-command path for new users.
 
 ## Planned — short term
 

@@ -298,34 +298,6 @@ Permanent fix:
 
 That avoids shell-heredoc parsing differences and pushes the exact file contents to GitHub Secrets.
 
-Follow-up automation contract:
-
-- the SSH deploy identity bootstrap should be a first-class CLI flow, not an operator-only checklist
-- add `brain ssh-key:bootstrap` to:
-  - create an ed25519 keypair locally when missing
-  - derive and validate the public key from the private key
-  - register the public key in Hetzner under `HCLOUD_SSH_KEY_NAME` when missing
-  - refuse silent drift when the existing Hetzner key with that name has different public key bytes
-  - optionally push the private key to GitHub as `KAMAL_SSH_PRIVATE_KEY` via `--push-to gh`
-- local config remains:
-  - `.env.local` can hold `KAMAL_SSH_PRIVATE_KEY_FILE=...`
-  - `brain secrets:push` remains the generic resync path after bootstrap
-- `_FILE` path resolution should treat `~/...` as the operator home directory, not a repo-relative path
-
-A fourth live issue appeared after the SSH key bytes themselves were fixed:
-
-- a fresh Hetzner server could be provisioned successfully
-- but immediate SSH login still failed at the first Kamal step with password prompts / `Permission denied (publickey,password)`
-
-Permanent workflow fix:
-
-- write an explicit `~/.ssh/config` in Actions so both plain `ssh` and Kamal use:
-  - `IdentityFile ~/.ssh/id_ed25519`
-  - `IdentitiesOnly yes`
-  - `BatchMode yes`
-  - noninteractive host-key options already used elsewhere in the workflow
-- add a short SSH readiness wait after provisioning so a just-created server is not handed to Kamal before key-based login is actually usable
-
 ## Related
 
 - `docs/plans/rizom-ai-first-deploy.md`

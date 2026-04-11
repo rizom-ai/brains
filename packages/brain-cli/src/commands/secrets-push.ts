@@ -1,14 +1,10 @@
 import { existsSync, readFileSync } from "fs";
-import { basename, join } from "path";
-import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
-import {
-  readLocalEnvValues,
-  resolveLocalEnvValue,
-  resolveLocalPath,
-} from "../lib/local-env";
-import { pushSecretsToBackend } from "../lib/push-secrets";
+import { basename, isAbsolute, join, resolve } from "path";
+import { parseEnv } from "node:util";
 import { normalizePushTarget, type PushTarget } from "../lib/push-target";
+import { pushSecretsToBackend } from "../lib/push-secrets";
 import { type RunCommand } from "../lib/run-subprocess";
+import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
 
 export interface SecretsPushOptions {
   env?: NodeJS.ProcessEnv | undefined;
@@ -211,6 +207,27 @@ function readSecretSchema(schemaPath: string | undefined): SchemaSecretInfo[] {
   return keys;
 }
 
+function readLocalEnvValues(cwd: string): Record<string, string> {
+  const values: Record<string, string> = {};
+  for (const envPath of [join(cwd, ".env"), join(cwd, ".env.local")]) {
+    if (!existsSync(envPath)) {
+      continue;
+    }
+
+    // node:util parseEnv handles comments, blanks, single/double quotes,
+    // and the `export ` prefix. We then filter to UPPER_SNAKE_CASE so
+    // shell-style locals (e.g. `nodeEnv=...`) can't be pushed as secrets
+    // via --all.
+    const parsed = parseEnv(readFileSync(envPath, "utf-8"));
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
+        values[key] = value;
+      }
+    }
+  }
+  return values;
+}
+
 function parseOnlyKeys(value?: string): string[] {
   if (!value) {
     return [];
@@ -324,10 +341,9 @@ function collectSecretValues(
 
   for (const key of keys) {
     const fileKey = `${key}_FILE`;
-    const filePath = resolveLocalEnvValue(fileKey, env, localEnvValues);
+    const filePath = env[fileKey] ?? localEnvValues[fileKey];
     const value =
-      resolveSecretFileValue(filePath, cwd) ??
-      resolveLocalEnvValue(key, env, localEnvValues);
+      resolveSecretFileValue(filePath, cwd) ?? env[key] ?? localEnvValues[key];
 
     if (value === undefined || value.trim().length === 0) {
       skippedKeys.push(key);
@@ -348,5 +364,6 @@ function resolveSecretFileValue(
     return undefined;
   }
 
-  return readFileSync(resolveLocalPath(filePath, cwd), "utf-8");
+  const resolvedPath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
+  return readFileSync(resolvedPath, "utf-8");
 }

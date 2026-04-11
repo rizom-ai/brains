@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-07
+Last updated: 2026-04-11
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,18 +8,18 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first public `v0.1.0` release, but the public-release staging plan is intentionally paused until `rizom.ai` and `mylittlephoney.com` have both been successfully deployed and validated.
+`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has now been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths, so the public-release staging work can resume.
 
 What already exists today:
 
-- a Bun-based CLI and runtime via `@rizom/brain`
+- an alpha-published Bun-based CLI and runtime via `@rizom/brain`
 - markdown-backed entities with typed frontmatter
 - MCP-native tools and resources
 - built-in webserver, A2A, Discord, and chat REPL interfaces
 - static-site generation with reusable site + theme packages
 - rover as the public reference brain model
-- deploy recipes for self-hosted operation
-- published-path support for standalone site authoring
+- Kamal-based self-hosted deploy scaffolding, including app-local deploy artifacts, env-schema generation, and Cloudflare Origin CA bootstrap support
+- published-path support for standalone brain authoring
 
 ## Recently completed
 
@@ -30,8 +30,11 @@ These areas are effectively landed:
 - **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
 - **Eval overhaul** — app/model/shell eval layering and comparison reporting
 - **Theme/site decoupling** — site packages are structural-only; themes resolve independently
-- **Standalone authoring** — local `src/site.ts` and `src/theme.css` conventions, scaffolded by `brain init`
+- **Standalone authoring** — local `src/site.ts`, `src/theme.css`, and deploy scaffolding conventions, scaffolded by `brain init`
+- **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
 - **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
+- **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
+- **Production deploy validation** — `rizom.ai` and `mylittlephoney.com` are live on their intended production paths
 - **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` extracted
 
 ## Near-term priorities
@@ -40,20 +43,21 @@ These areas are effectively landed:
 
 Keep tightening the self-hosted deployment story:
 
-- Cloudflare Origin CA bootstrap flow
-- first full `brain init --deploy` path on the current Kamal setup
-- app-local env/schema handling
+- converge app-local deploy workflows with the newer `brain init --deploy` scaffold where they have drifted
+- operator-facing verification and troubleshooting guidance drawn from the now-live instances
+- polish the first-run deploy path for new external users
 
 Plans:
 
 - [deploy-kamal.md](./plans/deploy-kamal.md)
 - [standalone-apps.md](./plans/standalone-apps.md)
+- [rizom-ai-first-deploy.md](./plans/rizom-ai-first-deploy.md)
 
-### 2. Public release cleanup
+### 2. Public release cleanup and stable release path
 
-This work is currently **on hold** until `rizom.ai` and `mylittlephoney.com` are both successfully deployed and validated.
+This work is now **unblocked** and ready to resume.
 
-Remaining work after that:
+Remaining work:
 
 - Phase 2 backup
 - release staging to `brains-temp`

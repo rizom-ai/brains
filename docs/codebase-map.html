@@ -103,7 +103,6 @@ const layers = {
   interfaces: { label: 'Interfaces',      color: '#a855f7', on: true },
   shell:      { label: 'Shell Services',  color: '#eab308', on: true },
   sites:      { label: 'Sites',           color: '#ec4899', on: true },
-  layouts:    { label: 'Layouts',          color: '#f43f5e', on: true },
   shared:     { label: 'Shared',           color: '#6b7280', on: true },
 };
 
@@ -132,7 +131,7 @@ const nodes = [
   { id:'products',     label:'Products',     sub:'entities/products',     desc:'Product listings. EntityPlugin.',                            x:324, y:166, w:W, h:H, layer:'entities' },
   { id:'image',        label:'Image',        sub:'entities/image',        desc:'Image entities. EntityPlugin with AI generation.',            x:468, y:166, w:W, h:H, layer:'entities' },
   { id:'series',       label:'Series',       sub:'entities/series',       desc:'Derived from posts. EntityPlugin with derive().',             x:612, y:166, w:W, h:H, layer:'entities' },
-  { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'Knowledge domains, batch-derived. EntityPlugin with derive().',x:756, y:166, w:W, h:H, layer:'entities' },
+  { id:'topics',       label:'Topics',       sub:'entities/topics',       desc:'Derived topics with batched extraction, canonicalization, merge, and rebuild support.',x:756, y:166, w:W, h:H, layer:'entities' },
   { id:'summary',      label:'Summary',      sub:'entities/summary',      desc:'Conversation summaries. EntityPlugin with derive().',         x:900, y:166, w:W, h:H, layer:'entities' },
   { id:'prompt',       label:'Prompt',       sub:'entities/prompt',       desc:'AI prompts as editable markdown entities. EntityPlugin.',    x:900, y:110, w:W, h:H, layer:'entities' },
   { id:'site-info',    label:'Site Info',    sub:'entities/site-info',    desc:'Site metadata (title, description). EntityPlugin.',           x:1044,y:110, w:W, h:H, layer:'entities' },
@@ -170,9 +169,8 @@ const nodes = [
   { id:'site-default',      label:'Default',       sub:'sites/default',       desc:'Minimal rover site.',                 x:36,  y:524, w:100, h:H, layer:'sites' },
   { id:'site-personal',     label:'Personal',      sub:'sites/personal',      desc:'Blog-focused personal site.',         x:146, y:524, w:100, h:H, layer:'sites' },
   { id:'site-professional', label:'Professional',  sub:'sites/professional',  desc:'Blog + decks + portfolio site.',      x:256, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-yeehaa',       label:'Yeehaa',        sub:'sites/yeehaa',       desc:'Brutalist professional.',             x:366, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-ranger',       label:'Ranger',        sub:'sites/ranger',       desc:'Community CTA site.',                 x:476, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-mlp',          label:'MLP',           sub:'sites/mylittlephoney', desc:'Personal pink site.',               x:586, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-yeehaa',       label:'Yeehaa',        sub:'sites/yeehaa',        desc:'Brutalist professional site.',        x:366, y:524, w:100, h:H, layer:'sites' },
+  { id:'site-rizom',        label:'Rizom',         sub:'sites/rizom',         desc:'Rizom brand site for ai/foundation/work variants.', x:476, y:524, w:150, h:H, layer:'sites' },
 
   // Shared (row 8)
   { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, progress.', x:36,  y:596, w:100, h:H, layer:'shared' },
@@ -220,11 +218,7 @@ const connections = [
   { from:'topics', to:'blog', type:'event', label:'derive' },
   { from:'social-media', to:'blog', type:'event', label:'derive' },
 
-  // Sites → layouts
-  { from:'site-default', to:'layout-pro', type:'dep' },
-  { from:'site-yeehaa', to:'layout-pro', type:'dep' },
-  { from:'site-ranger', to:'layout-pro', type:'dep' },
-  { from:'site-mlp', to:'layout-pers', type:'dep' },
+  // Sites are structural packages used by brain models and instances.
 ];
 
 const connStyles = {

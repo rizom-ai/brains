@@ -1,5 +1,7 @@
 # Plan: First End-to-End Deploy of rizom.ai
 
+**Status update (2026-04-11):** This milestone has now been achieved. `rizom.ai` is live on the intended Kamal + Cloudflare Origin CA path, so this document should now be read primarily as the execution record and backport source for `brain init --deploy` follow-up work.
+
 ## Context
 
 rizom.ai is the MVP target instance from `rizom-sites.md` — the marketing site for the brains framework. Phases 0-3 of `rizom-sites.md` have landed: object-form site overrides, the rizom brand theme, the `sites/rizom` site package, and the `apps/rizom-ai` instance scaffold. Per-variant content for the `ai` variant exists in `apps/rizom-ai/brain-data/site-content/home/` (8 home sections including the rizom-specific hero copy).
@@ -59,6 +61,15 @@ The schema is generated from the ranger model template plus the deploy / provisi
 ### 4. `.github/workflows/rizom-ai-deploy.yml` now validates GitHub Actions secrets through varlock
 
 The workflow lives at the repo root so GitHub Actions can discover it, then runs app-locally via `working-directory: apps/rizom-ai`. It passes the deploy/runtime values from GitHub Actions secrets into `varlock load`, exports the validated env to `$GITHUB_ENV`, writes `.kamal/secrets`, provisions Hetzner, updates Cloudflare DNS, and then runs Kamal.
+
+Follow-up hardening still needed after the standalone proof:
+
+- do not write multiline values into `$GITHUB_ENV`; keep them in `/tmp/varlock-env.json`
+- make `Write Kamal SSH key` read from that JSON file, normalize newlines, and ensure a trailing newline
+- pass provider secrets into `Provision server` / `Update Cloudflare DNS` via step-local `env:` instead of assuming they arrive through `$GITHUB_ENV`
+- add `Configure SSH client`, `Validate SSH key`, and `Wait for SSH access` before `kamal setup --skip-push`
+
+`mylittlephoney` is now the proving ground for those exact contracts and `rizom-ai-deploy.yml` should match them.
 
 The deploy trigger should follow the image publish, not race it. The correct contract is:
 
@@ -137,7 +148,7 @@ The first deploy will probably fail somewhere — likely the DNS step (timing), 
 
 ## Roadmap and plan updates after this lands
 
-Once rizom.ai is live:
+Now that rizom.ai is live:
 
 - **`docs/roadmap.md`** — Rizom Sites entry: drop "(independent of Kamal)". Merge with the Kamal Deploy entry as "rizom.ai is the first Kamal instance." Move both to a new "Completed (2026-04)" entry.
 - **`docs/plans/rizom-sites.md`** — "Why rizom.ai first" rationale gets retired (the "no Kamal dependency on the critical path" line is no longer accurate). Phase 4 of the follow-up section becomes "done — see `rizom-ai-first-deploy.md`."

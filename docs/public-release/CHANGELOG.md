@@ -36,7 +36,7 @@ The first public release of `brains`, after roughly a year of private developmen
 - `@brains/products` — product catalog entries
 - `@brains/wishlist` — wishlist items
 - `@brains/social-media` — multi-platform social posts
-- `@brains/topics` — topic taxonomy with parent-child structure
+- `@brains/topics` — derived topic entities with AI extraction, canonicalization, merge support, and operator rebuilds
 - `@brains/series` — content groupings derived from blog posts
 - `@brains/summary` — AI-generated content summaries
 - `@brains/site-info` — singleton site identity
@@ -85,7 +85,7 @@ The first public release of `brains`, after roughly a year of private developmen
 - `system_update` — modify an entity with confirmation flow
 - `system_delete` — delete an entity with confirmation flow
 - `system_get` / `system_list` / `system_search` — read access
-- `system_extract` — derive entities from existing content
+- `system_extract` — derive entities from existing content; batch extraction also supports a confirmed topic rebuild mode
 - `system_status` / `system_insights` — runtime introspection
 
 #### Sites and layouts
@@ -100,8 +100,8 @@ The first public release of `brains`, after roughly a year of private developmen
 
 #### Deployment
 
-- Hetzner Cloud reference recipe (Terraform + Kamal-style deploy script)
-- Single-process Docker image with bundled Caddy reverse proxy
+- Kamal-based self-hosted deploy recipe with app-local deploy artifacts and workflow scaffolding
+- Cloudflare Origin CA bootstrap for kamal-proxy TLS, plus internal Caddy routing inside the app image
 - ARM64 and x64 builds
 
 ### Known limitations

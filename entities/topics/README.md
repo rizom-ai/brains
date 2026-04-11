@@ -1,155 +1,163 @@
 # Topics Plugin
 
-AI-powered topic extraction and management for Brain conversations.
+Derived topic extraction and canonicalization for markdown-backed brain content.
 
 ## Overview
 
-The Topics plugin analyzes conversations to automatically extract and track key topics being discussed. It uses AI to identify relevant themes, create summaries, and maintain a searchable knowledge base of topics.
+`@brains/topics` maintains `topic` entities derived from other entity types such as posts, notes, links, or decks. It extracts candidate topics with AI, canonicalizes them against existing topics, and can automatically merge near-duplicates into a single topic entity.
 
-## Features
+Topics are normal entities:
 
-- **AI-powered extraction**: Uses OpenAI/Claude to analyze conversations and extract topics
-- **Topic deduplication**: Automatically merges similar topics to avoid redundancy
-- **Relevance scoring**: Rates topics by importance (0-1 scale)
-- **Keyword extraction**: Identifies key terms for each topic
-- **Source tracking**: Links topics back to their conversation origins
-- **Background processing**: Extraction runs as async jobs to avoid blocking
+- durable content lives in markdown
+- editable fields live in frontmatter/body
+- system-maintained aliases live in metadata only
 
-## Installation
+## What it does
 
-The plugin is included in the Brain shell. Register it in your app configuration:
-
-```typescript
-import { TopicsPlugin } from "@brains/topics";
-
-const plugin = new TopicsPlugin({
-  windowSize: 50, // Messages to analyze per extraction
-  minRelevanceScore: 0.5, // Minimum score to keep a topic
-});
-```
+- **Batch topic extraction** from configured source entity types
+- **Auto-extraction on entity changes** after initial sync completes
+- **Token-budget-aware batching** to reduce one-call-per-entity extraction overhead
+- **Canonicalization against existing topics** so new extractions reuse established titles
+- **Configurable auto-merge** with similarity scoring and merge synthesis
+- **Bounded aliases** stored in metadata only (`max 5`)
+- **Replace-all rebuilds** for operators who want to delete and regenerate all topics from current source content
 
 ## Configuration
 
-```typescript
+```ts
 interface TopicsPluginConfig {
-  windowSize?: number; // Number of recent messages to analyze (default: 50)
-  minRelevanceScore?: number; // Minimum relevance score 0-1 (default: 0.5)
+  includeEntityTypes?: string[]; // Entity types to extract from
+  minRelevanceScore?: number; // Default: 0.5
+  mergeSimilarityThreshold?: number; // Default: 0.85
+  autoMerge?: boolean; // Default: true
+  enableAutoExtraction?: boolean; // Default: true
 }
 ```
 
-## Commands
+### Notes
 
-### Extract Topics
+- Only entity types listed in `includeEntityTypes` are processed.
+- Topic entities themselves are never reprocessed as sources.
+- Only published entities are considered extractable.
+- `autoMerge` stays configurable; rebuilds do not force it on globally.
 
-```bash
-/topics:extract [--window <size>] [--min-score <score>]
-```
+## Runtime behavior
 
-Analyzes recent conversations and extracts topics. Runs as a background job.
+### Incremental extraction
 
-### List Topics
+When `enableAutoExtraction` is enabled, the plugin waits until initial sync finishes, then subscribes to entity create/update events for configured source types.
 
-```bash
-/topics:list [--limit <n>] [--days <n>]
-```
+Each qualifying entity queues a topic extraction job with the configured relevance threshold and merge settings.
 
-Lists all extracted topics, optionally filtered by time period.
+### Batch derive
 
-### View Topic
+`deriveAll()` re-extracts topics from all configured published source entities using batched prompts.
 
-```bash
-/topics:view <topic-id>
-```
+This is what normal batch `system_extract` uses:
 
-Shows detailed information about a specific topic.
-
-### Search Topics
-
-```bash
-/topics:search <query> [--limit <n>]
-```
-
-Searches topics by keywords or content.
-
-### Merge Topics
-
-```bash
-/topics:merge <id1,id2,...> [--target <id>]
-```
-
-Merges duplicate topics into a single topic.
-
-## MCP Tools
-
-The plugin provides MCP tools for external clients:
-
-- `topics:extract` - Queue topic extraction job
-- `topics:list` - List all topics
-- `topics:get` - Get specific topic details
-- `topics:search` - Search topics
-- `topics:merge` - Merge duplicate topics
-
-## How It Works
-
-1. **Extraction Process**:
-   - Retrieves recent messages from all active conversations
-   - Groups messages by conversation in sliding windows
-   - Sends each window to AI for analysis
-   - AI extracts topics with title, summary, keywords, and relevance score
-
-2. **Topic Storage**:
-   - Topics are stored as entities with type "topic"
-   - Uses title as the unique ID for deduplication
-   - Maintains metadata: keywords, relevance score, first/last seen, mention count
-
-3. **Deduplication**:
-   - When creating a topic, checks if one with the same title exists
-   - If exists, merges new information (keywords, sources)
-   - Updates relevance score to the maximum value
-
-## Topic Entity Schema
-
-Topics are stored as entities with this structure:
-
-```typescript
-interface TopicEntity extends BaseEntity {
-  entityType: "topic";
-  metadata: {
-    keywords: string[];
-    relevanceScore: number;
-    firstSeen: Date;
-    lastSeen: Date;
-    mentionCount: number;
-  };
+```json
+{
+  "entityType": "topic"
 }
 ```
 
-The content body contains:
+### Replace-all rebuild
 
-- Summary (2-3 sentences)
-- Main content points
-- Source references (conversation IDs and timestamps)
+`rebuildAll()` deletes all existing topics, then re-derives them from the current source entities.
 
-## Templates
+Use the shared system tool:
 
-The plugin uses the `topics:extraction` template to format AI prompts for consistent topic extraction. The template ensures structured output with all required fields.
-
-## Background Jobs
-
-Topic extraction runs as a background job (`topics:extraction`) to avoid blocking the UI. Jobs can be monitored through the job queue system.
-
-## Development
-
-### Testing
-
-```bash
-bun test plugins/topics
+```json
+{
+  "entityType": "topic",
+  "mode": "rebuild"
+}
 ```
 
-### Key Files
+This requires explicit confirmation.
 
-- `src/lib/topic-extractor.ts` - AI extraction logic
-- `src/lib/topic-service.ts` - Topic CRUD operations
-- `src/handlers/topic-extraction-handler.ts` - Background job handler
-- `src/tools/index.ts` - MCP tool definitions
-- `src/commands/index.ts` - CLI command handlers
+## Shared system tool surface
+
+The topics package does **not** expose its own CRUD or extract tools.
+
+Use the shared system tools instead:
+
+- `system_extract` — derive or rebuild topics
+- `system_get` / `system_list` / `system_search` — read topics
+- `system_update` / `system_delete` — edit or remove topics
+- `system_create` — manual topic creation if you really want it
+
+## Merge behavior
+
+When `autoMerge` is enabled, each extracted topic is checked against existing topics.
+
+If a strong candidate is found:
+
+1. similarity heuristics identify the likely canonical topic
+2. a merge synthesis step produces the merged title/content/keywords
+3. alias candidates are merged into metadata-only `aliases`
+4. aliases are deduped, canonical title is excluded, and the list is capped at 5
+
+If no candidate clears the threshold, a new topic entity is created.
+
+## Topic entity shape
+
+### Frontmatter / authored fields
+
+```yaml
+---
+title: Human-AI Collaboration
+keywords:
+  - human-ai
+  - collaboration
+---
+```
+
+The markdown body contains the topic summary/content.
+
+### Metadata
+
+```ts
+{
+  aliases?: string[];
+}
+```
+
+Aliases are:
+
+- system-maintained
+- metadata-only
+- not part of authored frontmatter/content
+- used for canonicalization and merge reuse
+
+## Implementation notes
+
+- Existing topic titles are fed back into extraction prompts to reduce noisy near-duplicates.
+- Merge detection uses title/keyword similarity heuristics before synthesis.
+- Metadata roundtripping preserves aliases; markdown reconstruction does not overwrite persisted metadata.
+
+## Key files
+
+- `src/index.ts` — plugin registration, derive/rebuild flow, eval handlers
+- `src/lib/topic-extractor.ts` — single-entity extraction
+- `src/lib/topic-batch-extractor.ts` — token-budget-aware batch extraction
+- `src/lib/topic-merge.ts` — similarity and normalization heuristics
+- `src/lib/topic-merge-synthesizer.ts` — AI synthesis for merges
+- `src/lib/topic-service.ts` — topic CRUD + merge helpers
+- `src/handlers/topic-extraction-handler.ts` — extraction job handler
+- `src/handlers/topic-processing-handler.ts` — per-topic create/merge handler
+
+## Validation
+
+```bash
+cd entities/topics
+bun test
+bun run typecheck
+```
+
+For evals:
+
+```bash
+cd entities/topics
+bun run eval
+```

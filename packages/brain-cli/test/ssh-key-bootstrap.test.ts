@@ -46,7 +46,8 @@ describe("ssh key bootstrap", () => {
       "-----END OPENSSH PRIVATE KEY-----",
       "",
     ].join("\n");
-    const publicKey = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMylittlephoney mylittlephoney-deploy";
+    const publicKey =
+      "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMylittlephoney mylittlephoney-deploy";
     const fetchCalls: Array<{ url: string; init: RequestInit | undefined }> =
       [];
     const ghCalls: Array<{
@@ -54,7 +55,8 @@ describe("ssh key bootstrap", () => {
       args: string[];
       stdin: string | undefined;
     }> = [];
-    const sshKeygenCalls: Array<{ privateKeyPath: string; comment: string }> = [];
+    const sshKeygenCalls: Array<{ privateKeyPath: string; comment: string }> =
+      [];
 
     const sshKeygen: SshKeygen = {
       createEd25519KeyPair: (privateKeyPath, comment) => {
@@ -72,7 +74,9 @@ describe("ssh key bootstrap", () => {
         fetchCalls.push({ url, init });
 
         if (url.includes("/ssh_keys?") && init?.method === undefined) {
-          return new Response(JSON.stringify({ ssh_keys: [] }), { status: 200 });
+          return new Response(JSON.stringify({ ssh_keys: [] }), {
+            status: 200,
+          });
         }
 
         if (url.endsWith("/ssh_keys") && init?.method === "POST") {
@@ -200,8 +204,8 @@ describe("ssh key bootstrap", () => {
       mode: 0o600,
     });
 
-    await expect(
-      bootstrapSshKey(testDir, {
+    try {
+      await bootstrapSshKey(testDir, {
         fetchImpl: async (input) => {
           const url = typeof input === "string" ? input : input.toString();
           if (url.includes("/ssh_keys?")) {
@@ -227,10 +231,16 @@ describe("ssh key bootstrap", () => {
           derivePublicKey: () =>
             "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMylittlephoney mylittlephoney-deploy",
         },
-      }),
-    ).rejects.toThrow(
-      "Existing Hetzner SSH key mylittlephoney-deploy does not match the local public key",
-    );
+      });
+      expect.unreachable("Expected bootstrapSshKey to reject");
+    } catch (error) {
+      expect(error).toBeInstanceOf(Error);
+      if (error instanceof Error) {
+        expect(error.message).toBe(
+          "Existing Hetzner SSH key mylittlephoney-deploy does not match the local public key",
+        );
+      }
+    }
   });
 
   it("returns a friendly failure result when required env is missing", async () => {

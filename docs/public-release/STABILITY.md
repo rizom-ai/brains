@@ -40,7 +40,7 @@ The system-level tools registered by `shell/core/src/system/` form the canonical
 - `system_get` — retrieve by type and ID/slug/title
 - `system_list` — list by type with filters
 - `system_search` — semantic search across entities
-- `system_extract` — derive entities from existing content
+- `system_extract` — derive entities from existing content; batch extraction also supports a confirmed topic rebuild mode
 - `system_status` — runtime status snapshot
 - `system_insights` — aggregate insights
 
