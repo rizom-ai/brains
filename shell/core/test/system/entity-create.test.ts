@@ -3,6 +3,12 @@ import { createSystemTools } from "../../src/system/tools";
 import { createOutputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool } from "@brains/mcp-service";
+import { z } from "@brains/utils";
+
+const enqueuedCreateJobSchema = z.object({
+  targetEntityType: z.string(),
+  targetEntityId: z.string(),
+});
 
 describe("system_create tool", () => {
   let tools: Tool[];
@@ -88,8 +94,9 @@ describe("system_create tool", () => {
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.data.targetEntityType).toBe("post");
-    expect(enqueuedJob.data.targetEntityId).toBe("my-blog-post");
+    const jobData = enqueuedCreateJobSchema.parse(enqueuedJob.data);
+    expect(jobData.targetEntityType).toBe("post");
+    expect(jobData.targetEntityId).toBe("my-blog-post");
   });
 
   it("should not include options field in schema", () => {
@@ -110,7 +117,9 @@ describe("system_create tool", () => {
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.data).not.toHaveProperty("options");
-    expect(enqueuedJob.data.targetEntityType).toBe("post");
+    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(rawJobData).not.toHaveProperty("options");
+    const jobData = enqueuedCreateJobSchema.parse(rawJobData);
+    expect(jobData.targetEntityType).toBe("post");
   });
 });

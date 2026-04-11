@@ -66,7 +66,7 @@ The command writes `origin.pem` and `origin.key` into the current directory, the
 
 ### `brain secrets:push`
 
-Sync the env-backed secrets from the current instance into GitHub Actions secrets. Reads the local schema / `.env` values, skips any backend-bootstrap section keys, and leaves TLS cert artifacts to `brain cert:bootstrap`.
+Sync the local secrets from the current instance into GitHub Actions secrets. Reads the local schema plus values from `.env`, `.env.local`, and `process.env`, skips any backend-bootstrap section keys, and leaves TLS cert artifacts to `brain cert:bootstrap`.
 
 ```bash
 cd mybrain
@@ -76,7 +76,16 @@ brain secrets:push --push-to gh --only AI_API_KEY,HCLOUD_TOKEN
 brain secrets:push --push-to gh --dry-run
 ```
 
-`--push-to gh` is the only supported target today. Use `--all` to include extra keys from the local `.env` file, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy.
+`--push-to gh` is the only supported target today. Use `--all` to include extra keys from the local `.env` / `.env.local` files, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy.
+
+For multiline secrets such as `KAMAL_SSH_PRIVATE_KEY`, prefer file-backed values instead of shell heredocs:
+
+```bash
+KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/id_ed25519
+brain secrets:push --push-to gh
+```
+
+`brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. That is the preferred reproducible path for multiline keys.
 
 ### `brain start`
 

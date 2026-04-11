@@ -286,6 +286,18 @@ Follow-up fix:
 
 That keeps `$GITHUB_ENV` focused on derived runtime values like `INSTANCE_NAME`, `BRAIN_DOMAIN`, and `SERVER_IP`, instead of treating it as the transport for every secret.
 
+A third live issue then became clear: the remaining SSH failure was no longer workflow transport, but the reproducibility of how multiline secrets are sourced locally before `brain secrets:push` sends them to GitHub.
+
+Permanent fix:
+
+- `brain secrets:push` should read both `.env` and `.env.local`
+- it should support file-backed secret inputs via `<SECRET>_FILE`
+- for multiline secrets like `KAMAL_SSH_PRIVATE_KEY`, the stable operator contract should be:
+  - `KAMAL_SSH_PRIVATE_KEY_FILE=/path/to/private/key`
+  - `brain secrets:push --push-to gh`
+
+That avoids shell-heredoc parsing differences and pushes the exact file contents to GitHub Secrets.
+
 ## Related
 
 - `docs/plans/rizom-ai-first-deploy.md`

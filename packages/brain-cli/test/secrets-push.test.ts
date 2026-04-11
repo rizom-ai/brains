@@ -290,4 +290,51 @@ describe("secrets push", () => {
     expect(logs).toContain("  - AI_IMAGE_KEY");
     expect(logs).toContain("  - LINKEDIN_ACCESS_TOKEN");
   });
+
+  it("pushes multiline secrets from .env.local file-backed values", async () => {
+    writeFileSync(
+      join(testDir, ".env.schema"),
+      ["# @required @sensitive", "KAMAL_SSH_PRIVATE_KEY=", ""].join("\n"),
+    );
+    const keyPath = join(testDir, "deploy-key.pem");
+    const keyPem = [
+      "-----BEGIN OPENSSH PRIVATE KEY-----",
+      "line-one",
+      "line-two",
+      "-----END OPENSSH PRIVATE KEY-----",
+      "",
+    ].join("\n");
+    writeFileSync(keyPath, keyPem);
+    writeFileSync(
+      join(testDir, ".env.local"),
+      `KAMAL_SSH_PRIVATE_KEY_FILE=${keyPath}\n`,
+    );
+
+    const calls: Array<{ command: string; args: string[]; stdin?: string }> =
+      [];
+    const result = await pushSecrets(testDir, {
+      env: {},
+      pushTo: "gh",
+      runCommand: async (command, args, options) => {
+        const call: { command: string; args: string[]; stdin?: string } = {
+          command,
+          args,
+        };
+        if (options?.stdin !== undefined) {
+          call.stdin = options.stdin;
+        }
+        calls.push(call);
+      },
+    });
+
+    expect(result.pushedKeys).toEqual(["KAMAL_SSH_PRIVATE_KEY"]);
+    expect(result.skippedKeys).toEqual([]);
+    expect(calls).toEqual([
+      {
+        command: "gh",
+        args: ["secret", "set", "KAMAL_SSH_PRIVATE_KEY"],
+        stdin: keyPem,
+      },
+    ]);
+  });
 });

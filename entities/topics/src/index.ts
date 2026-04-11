@@ -6,7 +6,7 @@ import {
   type Template,
   type BaseEntity,
 } from "@brains/plugins";
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage, ProgressReporter, z } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -14,9 +14,11 @@ import {
 import { TopicAdapter } from "./lib/topic-adapter";
 import { TopicExtractor, type ExtractedTopic } from "./lib/topic-extractor";
 import { extractTopicsBatched } from "./lib/topic-batch-extractor";
+import { TopicService } from "./lib/topic-service";
 import { TopicProcessingHandler } from "./handlers/topic-processing-handler";
 import { TopicExtractionHandler } from "./handlers/topic-extraction-handler";
 import { topicExtractionTemplate } from "./templates/extraction-template";
+import { topicMergeSynthesisTemplate } from "./templates/merge-synthesis-template";
 import { topicListTemplate } from "./templates/topic-list";
 import { topicDetailTemplate } from "./templates/topic-detail";
 import { TopicsDataSource } from "./datasources/topics-datasource";
@@ -54,6 +56,7 @@ export class TopicsPlugin extends EntityPlugin<
   protected override getTemplates(): Record<string, Template> {
     return {
       extraction: topicExtractionTemplate,
+      "merge-synthesis": topicMergeSynthesisTemplate,
       "topic-list": topicListTemplate,
       "topic-detail": topicDetailTemplate,
     };
@@ -160,6 +163,17 @@ export class TopicsPlugin extends EntityPlugin<
     this.logger.info("Batch topic extraction complete", result);
   }
 
+  /**
+   * Operator reset — delete all topics and rebuild from current source entities.
+   */
+  public override async rebuildAll(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    const toExtract = await this.getEntitiesToExtract(context);
+    const result = await this.replaceAllTopics(toExtract, context);
+    this.logger.info("Topic rebuild complete", result);
+  }
+
   // ── Public helpers (used by tests) ──
 
   public isAutoExtractionEnabled(): boolean {
@@ -189,6 +203,38 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   // ── Private helpers ──
+
+  private async replaceAllTopics(
+    entities: BaseEntity[],
+    context: EntityPluginContext,
+  ): Promise<{
+    deleted: number;
+    created: number;
+    skipped: number;
+    batches: number;
+  }> {
+    const topicService = new TopicService(context.entityService, this.logger);
+    const existingTopics = await topicService.listTopics();
+
+    for (const topic of existingTopics) {
+      await topicService.deleteTopic(topic.id);
+    }
+
+    if (entities.length === 0) {
+      return {
+        deleted: existingTopics.length,
+        created: 0,
+        skipped: 0,
+        batches: 0,
+      };
+    }
+
+    const result = await extractTopicsBatched(entities, context, this.logger);
+    return {
+      deleted: existingTopics.length,
+      ...result,
+    };
+  }
 
   private async getEntitiesToExtract(
     context: EntityPluginContext,
@@ -329,6 +375,232 @@ export class TopicsPlugin extends EntityPlugin<
           })),
           matchingTitles,
           wouldMerge: matchingTitles.length > 0,
+        };
+      },
+    );
+
+    const detectionTopicSchema = z.object({
+      title: z.string(),
+      content: z.string(),
+      keywords: z.array(z.string()),
+    });
+
+    const detectMergeCandidateSchema = z.object({
+      existingTopics: z.array(detectionTopicSchema),
+      incomingTopic: detectionTopicSchema,
+      threshold: z.number().optional(),
+    });
+
+    context.eval.registerHandler(
+      "detectMergeCandidate",
+      async (input: unknown) => {
+        const parsed = detectMergeCandidateSchema.parse(input);
+        const threshold =
+          parsed.threshold ?? this.config.mergeSimilarityThreshold;
+        const topicService = new TopicService(
+          context.entityService,
+          this.logger,
+        );
+
+        for (const existingTopic of parsed.existingTopics) {
+          await topicService.createTopic(existingTopic);
+        }
+
+        const candidate = await topicService.findMergeCandidate(
+          {
+            title: parsed.incomingTopic.title,
+            keywords: parsed.incomingTopic.keywords,
+          },
+          threshold,
+        );
+
+        return {
+          found: candidate !== null,
+          candidateTitle: candidate?.title,
+          candidateScore: candidate?.score,
+        };
+      },
+    );
+
+    const aliasMergeSchema = z.object({
+      existingAliases: z.array(z.string()).optional(),
+      canonicalTitle: z.string(),
+      candidateAliases: z.array(z.string()),
+    });
+
+    context.eval.registerHandler("mergeAliases", async (input: unknown) => {
+      const parsed = aliasMergeSchema.parse(input);
+      const topicService = new TopicService(context.entityService, this.logger);
+
+      return {
+        aliases: topicService.mergeAliases(
+          parsed.existingAliases,
+          parsed.canonicalTitle,
+          parsed.candidateAliases,
+        ),
+      };
+    });
+
+    const mergeProcessingSchema = z.object({
+      existingTopics: z
+        .array(
+          detectionTopicSchema.extend({
+            aliases: z.array(z.string()).optional(),
+          }),
+        )
+        .default([]),
+      incomingTopic: detectionTopicSchema.extend({
+        relevanceScore: z.number().min(0).max(1).optional(),
+      }),
+      threshold: z.number().optional(),
+    });
+
+    context.eval.registerHandler(
+      "processTopicWithAutoMerge",
+      async (input: unknown) => {
+        const parsed = mergeProcessingSchema.parse(input);
+        const topicService = new TopicService(
+          context.entityService,
+          this.logger,
+        );
+
+        for (const existingTopic of parsed.existingTopics) {
+          await topicService.createTopic({
+            title: existingTopic.title,
+            content: existingTopic.content,
+            keywords: existingTopic.keywords,
+            metadata: { aliases: existingTopic.aliases ?? [] },
+          });
+        }
+
+        const handler = new TopicProcessingHandler(context, this.logger);
+        const progressReporter = ProgressReporter.from(async () => {});
+        if (!progressReporter) {
+          throw new Error("Failed to create progress reporter");
+        }
+
+        const result = await handler.process(
+          {
+            topic: {
+              title: parsed.incomingTopic.title,
+              content: parsed.incomingTopic.content,
+              keywords: parsed.incomingTopic.keywords,
+              relevanceScore: parsed.incomingTopic.relevanceScore ?? 0.9,
+            },
+            sourceEntityId: "eval-source",
+            sourceEntityType: "post",
+            autoMerge: true,
+            mergeSimilarityThreshold:
+              parsed.threshold ?? this.config.mergeSimilarityThreshold,
+          },
+          `eval-job-${Date.now()}`,
+          progressReporter,
+        );
+
+        const topics = await context.entityService.listEntities("topic");
+        return {
+          ...result,
+          topicCount: topics.length,
+          topics: topics.map((t) => {
+            const parsed = this.adapter.parseTopicBody(t.content);
+            return {
+              id: t.id,
+              title: parsed.title,
+              content: parsed.content,
+              keywords: parsed.keywords,
+              metadata: t.metadata,
+            };
+          }),
+        };
+      },
+    );
+
+    const sequentialInputSchema = z.object({
+      entities: z.array(entityInputSchema).min(1),
+      minRelevanceScore: z.number().optional(),
+    });
+
+    const rebuildTopicsSchema = z.object({
+      existingTopics: z.array(detectionTopicSchema).optional(),
+      entities: z.array(entityInputSchema),
+    });
+
+    context.eval.registerHandler("rebuildTopics", async (input: unknown) => {
+      const parsed = rebuildTopicsSchema.parse(input);
+      const topicService = new TopicService(context.entityService, this.logger);
+
+      for (const existingTopic of parsed.existingTopics ?? []) {
+        await topicService.createTopic(existingTopic);
+      }
+
+      const entities = parsed.entities.map((e, i) =>
+        createEntityFromInput(e, `-rebuild-${i}`),
+      );
+
+      const result = await this.replaceAllTopics(entities, context);
+      const topics = await context.entityService.listEntities("topic");
+
+      return {
+        ...result,
+        topicCount: topics.length,
+        topics: topics.map((t) => {
+          const parsed = this.adapter.parseTopicBody(t.content);
+          return {
+            id: t.id,
+            title: parsed.title,
+            content: parsed.content,
+            keywords: parsed.keywords,
+            metadata: t.metadata,
+          };
+        }),
+      };
+    });
+
+    context.eval.registerHandler(
+      "extractSequentially",
+      async (input: unknown) => {
+        const parsed = sequentialInputSchema.parse(input);
+        const minScore =
+          parsed.minRelevanceScore ?? this.config.minRelevanceScore;
+        const topicService = new TopicService(
+          context.entityService,
+          this.logger,
+        );
+        const perEntity: Array<{ extractedTitles: string[] }> = [];
+
+        for (const [index, entityInput] of parsed.entities.entries()) {
+          const entity = createEntityFromInput(
+            entityInput,
+            `-sequential-${index}`,
+          );
+          const extracted = await extractor.extractFromEntity(entity, minScore);
+
+          for (const topic of extracted) {
+            await topicService.createTopic({
+              title: topic.title,
+              content: topic.content,
+              keywords: topic.keywords,
+            });
+          }
+
+          perEntity.push({
+            extractedTitles: extracted.map((topic) => topic.title),
+          });
+        }
+
+        const topics = await context.entityService.listEntities("topic");
+        return {
+          totalTopics: topics.length,
+          perEntity,
+          topics: topics.map((t) => {
+            const parsed = this.adapter.parseTopicBody(t.content);
+            return {
+              id: t.id,
+              title: parsed.title,
+              content: parsed.content,
+              keywords: parsed.keywords,
+            };
+          }),
         };
       },
     );

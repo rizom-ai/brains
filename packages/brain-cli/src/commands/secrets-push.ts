@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "fs";
-import { basename, join } from "path";
+import { basename, isAbsolute, join, resolve } from "path";
 import { parseEnv } from "node:util";
 import { normalizePushTarget, type PushTarget } from "../lib/push-target";
 import { pushSecretsToBackend } from "../lib/push-secrets";
@@ -68,7 +68,7 @@ export async function pushSecrets(
   const env = options.env ?? process.env;
 
   const schemaPath = resolveSchemaPath(cwd);
-  const localEnvValues = readLocalEnvValues(join(cwd, ".env"));
+  const localEnvValues = readLocalEnvValues(cwd);
   const schemaSecrets = readSecretSchema(schemaPath);
   const allowedKeys = schemaSecrets.map((secret) => secret.key);
   const schemaSecretInfo = new Map(
@@ -84,6 +84,7 @@ export async function pushSecrets(
     candidateKeys,
     env,
     localEnvValues,
+    cwd,
   );
 
   if (pushedKeys.length === 0) {
@@ -206,20 +207,22 @@ function readSecretSchema(schemaPath: string | undefined): SchemaSecretInfo[] {
   return keys;
 }
 
-function readLocalEnvValues(envPath: string): Record<string, string> {
-  if (!existsSync(envPath)) {
-    return {};
-  }
-
-  // node:util parseEnv handles comments, blanks, single/double quotes,
-  // and the `export ` prefix. We then filter to UPPER_SNAKE_CASE so
-  // shell-style locals (e.g. `nodeEnv=...`) can't be pushed as secrets
-  // via --all.
-  const parsed = parseEnv(readFileSync(envPath, "utf-8"));
+function readLocalEnvValues(cwd: string): Record<string, string> {
   const values: Record<string, string> = {};
-  for (const [key, value] of Object.entries(parsed)) {
-    if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
-      values[key] = value;
+  for (const envPath of [join(cwd, ".env"), join(cwd, ".env.local")]) {
+    if (!existsSync(envPath)) {
+      continue;
+    }
+
+    // node:util parseEnv handles comments, blanks, single/double quotes,
+    // and the `export ` prefix. We then filter to UPPER_SNAKE_CASE so
+    // shell-style locals (e.g. `nodeEnv=...`) can't be pushed as secrets
+    // via --all.
+    const parsed = parseEnv(readFileSync(envPath, "utf-8"));
+    for (const [key, value] of Object.entries(parsed)) {
+      if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
+        values[key] = value;
+      }
     }
   }
   return values;
@@ -331,14 +334,16 @@ function collectSecretValues(
   keys: string[],
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
+  cwd: string,
 ): { pushedKeys: Array<[string, string]>; skippedKeys: string[] } {
   const pushedKeys: Array<[string, string]> = [];
   const skippedKeys: string[] = [];
 
   for (const key of keys) {
-    const envValue = env[key];
-    const localValue = localEnvValues[key];
-    const value = envValue ?? localValue;
+    const fileKey = `${key}_FILE`;
+    const filePath = env[fileKey] ?? localEnvValues[fileKey];
+    const value =
+      resolveSecretFileValue(filePath, cwd) ?? env[key] ?? localEnvValues[key];
 
     if (value === undefined || value.trim().length === 0) {
       skippedKeys.push(key);
@@ -349,4 +354,16 @@ function collectSecretValues(
   }
 
   return { pushedKeys, skippedKeys };
+}
+
+function resolveSecretFileValue(
+  filePath: string | undefined,
+  cwd: string,
+): string | undefined {
+  if (!filePath || filePath.trim().length === 0) {
+    return undefined;
+  }
+
+  const resolvedPath = isAbsolute(filePath) ? filePath : resolve(cwd, filePath);
+  return readFileSync(resolvedPath, "utf-8");
 }
