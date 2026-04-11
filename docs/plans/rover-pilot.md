@@ -105,7 +105,6 @@ Example `users/alice.yaml`:
 
 ```yaml
 handle: alice
-status: pending
 repo: rover-alice
 contentRepo: rover-alice-content
 domain: alice.rover.example.com
@@ -126,16 +125,17 @@ members:
 
 ### Data contract
 
-`users/*.yaml` is the human-edited operator input. Minimum fields:
+`users/*.yaml` is the human-edited desired state. Minimum fields:
 
 - `handle` — lowercase slug, unique across pilot
-- `status` — one of: `pending`, `scaffolded`, `ready-for-secrets`, `deployed`, `onboarded`, `paused`, `error`
 - `repo` — target rover repo name
 - `contentRepo` — target content repo name
 - `domain` — full FQDN
 - `preset` — locked to `core` for cohort 1
 - `discord.enabled` — boolean
 - `notes` — optional freeform operator note
+
+No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
 `cohorts/*.yaml` is batch grouping metadata. Minimum fields:
 
@@ -148,6 +148,7 @@ Validation rules:
 - cohort members must reference existing user files
 - duplicate handles are invalid
 - one user may appear in multiple cohorts historically, but only one active cohort at a time should be normal operator practice
+- desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Script contract
 
@@ -157,11 +158,12 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - reads `users/*.yaml` and `cohorts/*.yaml`
   - validates via Zod
   - writes `views/users.md`
+  - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence)
   - fails loudly on missing users / duplicate handles / invalid schema
 - `scripts/onboard-user.ts <handle>`
   - reads one `users/<handle>.yaml`
-  - runs per-user repo/init flow
-  - updates `status` as operator checkpoints complete
+  - runs per-user repo/init flow idempotently
+  - converges existing repos toward desired config instead of relying on stored mutable state
   - copies deployed `brain.yaml` snapshot into `users/<handle>/brain.yaml`
 
 Why this shape:
@@ -205,7 +207,7 @@ Per-user repo/deploy flow after that:
 15. Verifies MCP endpoint reachable and basic tool call works
 16. Hands over MCP connection details to user
 17. Copies deployed `brain.yaml` into `rover-pilot/users/<handle>/` as snapshot and writes `notes.md`
-18. Updates `users/<handle>.yaml` status to `onboarded` and regenerates `views/users.md`
+18. Regenerates `views/users.md` so derived status reflects current reality
 
 ### Cohort structure
 
