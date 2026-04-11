@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import type { TopicMetadata } from "../../src/schemas/topic";
 import { TopicService } from "../../src/lib/topic-service";
 import { createSilentLogger } from "@brains/test-utils";
 import {
@@ -44,5 +45,39 @@ describe("TopicService", () => {
 
     const result = await service.searchTopics("");
     expect(result).toEqual([]);
+  });
+
+  it("should merge aliases with dedupe and canonical exclusion", () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const service = new TopicService(context.entityService, logger);
+
+    const aliases = service.mergeAliases(
+      ["AI Collaboration"],
+      "Human-AI Collaboration",
+      [
+        "Human-Agent Collaboration",
+        "human-agent collaboration",
+        "Human-AI Collaboration",
+      ],
+    );
+
+    expect(aliases).toEqual(["AI Collaboration", "Human-Agent Collaboration"]);
+  });
+
+  it("defaults created topic metadata aliases to empty array", async () => {
+    const logger = createSilentLogger();
+    const mockShell = createMockShell({ logger });
+    const context = createEntityPluginContext(mockShell, "topics");
+    const service = new TopicService(context.entityService, logger);
+
+    const created = await service.createTopic({
+      title: "Test Topic",
+      content: "Topic content",
+      keywords: ["test"],
+    });
+
+    expect(created?.metadata).toEqual({ aliases: [] } satisfies TopicMetadata);
   });
 });

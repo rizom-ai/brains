@@ -1,0 +1,47 @@
+id: topics-rebuild-topics-replace-all
+name: Topic rebuild replaces the existing topic set
+description: >
+  Tests the explicit rebuild path: seed an old topic, rebuild from current
+  source entities, and verify the stale topic is removed and replaced by the
+  newly derived canonical topic set.
+type: plugin
+tags:
+  - topics
+  - rebuild
+  - replace-all
+plugin: topics
+handler: rebuildTopics
+
+input:
+  existingTopics:
+    - title: Biomimicry
+      content: |
+        Biomimicry studies how nature can inspire design and innovation.
+      keywords:
+        - biomimicry
+        - nature-inspired design
+        - innovation
+  entities:
+    - entityType: post
+      content: |
+        # Human-Agent Collaboration
+
+        Software agents participate alongside humans as active contributors in
+        shared systems. They coordinate knowledge, automate routine work, and
+        support collective action in distributed teams.
+      metadata:
+        title: Human-Agent Collaboration
+
+expectedOutput:
+  validateEach:
+    - path: deleted
+      equals: 1
+    - path: topicCount
+      equals: 1
+    - path: topics[0].id
+      equals: human-agent-collaboration
+    - path: topics[0].title
+      equals: Human-Agent Collaboration
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4

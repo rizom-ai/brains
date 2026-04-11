@@ -2,9 +2,19 @@ import type { IEntityService, SearchResult } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { TopicEntity } from "../types";
 import type { TopicMetadata } from "../schemas/topic";
+import type { ExtractedTopicData } from "../schemas/extraction";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { scoreTopicSimilarity } from "./topic-merge";
+
+const MAX_ALIASES = 5;
+
+export interface TopicMergeCandidate {
+  topic: TopicEntity;
+  title: string;
+  score: number;
+}
 
 export class TopicService {
   private adapter: TopicAdapter;
@@ -20,6 +30,7 @@ export class TopicService {
     title: string;
     content: string;
     keywords: string[];
+    metadata?: TopicMetadata;
   }): Promise<TopicEntity | null> {
     const topicId = generateIdFromText(params.title);
 
@@ -33,7 +44,7 @@ export class TopicService {
       return existing;
     }
 
-    const metadata: TopicMetadata = {};
+    const metadata: TopicMetadata = params.metadata ?? { aliases: [] };
 
     const body = this.adapter.createTopicBody({
       title: params.title,
@@ -80,8 +91,10 @@ export class TopicService {
   public async updateTopic(
     id: string,
     updates: {
+      title?: string;
       content?: string;
       keywords?: string[];
+      metadata?: TopicMetadata;
     },
   ): Promise<TopicEntity | null> {
     const existing = await this.getTopic(id);
@@ -91,11 +104,11 @@ export class TopicService {
 
     const parsed = this.adapter.parseTopicBody(existing.content);
 
-    const title = parsed.title;
+    const title = updates.title ?? parsed.title;
     const content = updates.content ?? parsed.content;
     const keywords = updates.keywords ?? parsed.keywords;
 
-    const metadata: TopicMetadata = {};
+    const metadata: TopicMetadata = updates.metadata ?? existing.metadata;
 
     const newBody = this.adapter.createTopicBody({
       title,
@@ -141,6 +154,82 @@ export class TopicService {
     return this.entityService.search<TopicEntity>(query, {
       types: ["topic"],
       limit,
+    });
+  }
+
+  public async findMergeCandidate(
+    incoming: Pick<ExtractedTopicData, "title" | "keywords">,
+    threshold: number,
+  ): Promise<TopicMergeCandidate | null> {
+    const topics = await this.listTopics();
+    let bestCandidate: TopicMergeCandidate | null = null;
+
+    for (const topic of topics) {
+      const parsed = this.adapter.parseTopicBody(topic.content);
+      const score = scoreTopicSimilarity(incoming, {
+        title: parsed.title,
+        keywords: parsed.keywords,
+      });
+
+      if (score < threshold) continue;
+      if (!bestCandidate || score > bestCandidate.score) {
+        bestCandidate = {
+          topic,
+          title: parsed.title,
+          score,
+        };
+      }
+    }
+
+    return bestCandidate;
+  }
+
+  public mergeAliases(
+    existingAliases: string[] | undefined,
+    canonicalTitle: string,
+    candidateAliases: string[],
+  ): string[] {
+    const normalizedCanonical = canonicalTitle.trim().toLowerCase();
+    const seen = new Set<string>();
+    const merged: string[] = [];
+
+    for (const alias of [...(existingAliases ?? []), ...candidateAliases]) {
+      const trimmed = alias.trim();
+      if (trimmed.length === 0) continue;
+      if (trimmed.toLowerCase() === normalizedCanonical) continue;
+      const key = trimmed.toLowerCase();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      merged.push(trimmed);
+      if (merged.length >= MAX_ALIASES) break;
+    }
+
+    return merged;
+  }
+
+  public async applySynthesizedMerge(params: {
+    existingId: string;
+    synthesized: {
+      title: string;
+      content: string;
+      keywords: string[];
+    };
+    aliasCandidates: string[];
+  }): Promise<TopicEntity | null> {
+    const existing = await this.getTopic(params.existingId);
+    if (!existing) return null;
+
+    const aliases = this.mergeAliases(
+      existing.metadata.aliases,
+      params.synthesized.title,
+      params.aliasCandidates,
+    );
+
+    return this.updateTopic(params.existingId, {
+      title: params.synthesized.title,
+      content: params.synthesized.content,
+      keywords: params.synthesized.keywords,
+      metadata: { aliases },
     });
   }
 

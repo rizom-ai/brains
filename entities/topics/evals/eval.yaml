@@ -1,1 +1,2 @@
 plugin: "@brains/topics"
+model: gpt-5.4-mini

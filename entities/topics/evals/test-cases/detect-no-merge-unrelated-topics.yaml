@@ -1,0 +1,38 @@
+id: topics-detect-no-merge-unrelated-topics
+name: Detection service rejects unrelated topics
+description: >
+  Tests the Phase 1 detection path directly by seeding an existing topic and
+  verifying that an unrelated incoming topic does not produce a merge candidate.
+type: plugin
+tags:
+  - topics
+  - merge
+  - detection
+  - edge-case
+plugin: topics
+handler: detectMergeCandidate
+
+input:
+  threshold: 0.85
+  existingTopics:
+    - title: Biomimicry
+      content: |
+        Biomimicry studies how nature can inspire design, systems, and
+        innovation.
+      keywords:
+        - nature-inspired design
+        - innovation
+        - natural systems
+  incomingTopic:
+    title: Educational Technology
+    content: |
+      Digital platforms reshape teaching and learning in classrooms and online.
+    keywords:
+      - pedagogy
+      - learning platforms
+      - teaching tools
+
+expectedOutput:
+  validateEach:
+    - path: found
+      equals: false

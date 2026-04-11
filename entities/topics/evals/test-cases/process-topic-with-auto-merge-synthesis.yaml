@@ -1,0 +1,60 @@
+id: topics-process-topic-with-auto-merge-synthesis
+name: Auto-merge synthesizes canonical topic and alias
+description: >
+  Tests the end-to-end auto-merge path: seed an existing canonical topic,
+  process a new mergeable topic through TopicProcessingHandler, and verify
+  that the result is still one topic with the incoming title preserved as an alias.
+type: plugin
+tags:
+  - topics
+  - merge
+  - synthesis
+  - end-to-end
+plugin: topics
+handler: processTopicWithAutoMerge
+
+input:
+  threshold: 0.85
+  existingTopics:
+    - title: Human-AI Collaboration
+      content: |
+        AI agents collaborate with humans in shared knowledge systems.
+        The core concern is how hybrid teams coordinate meaningful work.
+      keywords:
+        - AI collaboration
+        - agency
+        - distributed teams
+  incomingTopic:
+    title: Human-Agent Collaboration
+    content: |
+      Software agents participate alongside humans as active contributors.
+      They help coordinate knowledge, automate routine tasks, and support
+      collective action in distributed teams.
+    keywords:
+      - AI agents
+      - collaborative systems
+      - knowledge coordination
+    relevanceScore: 0.92
+
+expectedOutput:
+  validateEach:
+    - path: action
+      equals: merged
+    - path: topicCount
+      equals: 1
+    - path: topics[0].id
+      equals: human-ai-collaboration
+    - path: topics[0].title
+      matches: "Human.*Collaboration"
+    - path: topics[0].metadata.aliases[0]
+      equals: Human-Agent Collaboration
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate the merged topic:
+      1. Does the merged title stay a stable canonical topic rather than a rhetorical variant?
+      2. Does the merged content preserve core ideas from both the existing and incoming topic?
+      3. Is the incoming title preserved as an alias rather than replacing the canonical topic?
+      4. Is the result a single coherent topic rather than a concatenation artifact?

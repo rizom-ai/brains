@@ -2,6 +2,10 @@ import { getErrorMessage } from "@brains/utils";
 import type { EntityPluginContext, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
+import {
+  buildTopicExtractionPrompt,
+  listExistingTopicTitles,
+} from "./extraction-prompt";
 
 /**
  * Extracted topic — title, description, keywords, relevance score.
@@ -43,12 +47,16 @@ export class TopicExtractor {
       const metadataTitle = entity.metadata["title"];
       const entityTitle =
         typeof metadataTitle === "string" ? metadataTitle : entity.id;
+      const existingTopicTitles = await listExistingTopicTitles(
+        this.context.entityService,
+      );
 
-      const prompt = `Content Title: ${entityTitle}
-Content Type: ${entity.entityType}
-
-Content:
-${entity.content}`;
+      const prompt = buildTopicExtractionPrompt({
+        entityTitle,
+        entityType: entity.entityType,
+        content: entity.content,
+        existingTopicTitles,
+      });
 
       const result = await this.context.ai.generate<{
         topics: ExtractedTopicData[];

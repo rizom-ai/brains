@@ -3,11 +3,13 @@ import { baseEntitySchema } from "@brains/plugins";
 
 /**
  * Topic metadata schema.
- * Empty — topics are knowledge domains, not citation trackers.
- * Old entities may have `sources` in metadata; the schema accepts
- * and strips unknown fields via Zod's default behavior.
+ * Aliases are system-maintained canonicalization state used for
+ * search and merge reuse. Old entities may have `sources` in metadata;
+ * the schema accepts and strips unknown fields via Zod's default behavior.
  */
-export const topicMetadataSchema = z.object({});
+export const topicMetadataSchema = z.object({
+  aliases: z.array(z.string()).optional(),
+});
 
 export type TopicMetadata = z.infer<typeof topicMetadataSchema>;
 

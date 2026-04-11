@@ -3,6 +3,10 @@ import type { Logger } from "@brains/utils";
 import { getErrorMessage, generateIdFromText } from "@brains/utils";
 import type { ExtractedTopicData } from "../schemas/extraction";
 import { batchEntities } from "./batch-entities";
+import {
+  buildTopicExtractionPrompt,
+  listExistingTopicTitles,
+} from "./extraction-prompt";
 import { TopicService } from "./topic-service";
 
 /**
@@ -49,7 +53,17 @@ export async function extractTopicsBatched(
   for (const batch of batches) {
     logger.info(`Processing batch of ${batch.length} entities`);
 
-    const prompt = buildBatchPrompt(batch);
+    const batchContent = buildBatchPrompt(batch);
+    const existingTopicTitles = await listExistingTopicTitles(
+      context.entityService,
+    );
+    const prompt = buildTopicExtractionPrompt({
+      entityTitle: `Batch of ${batch.length} entities`,
+      entityType: "batch",
+      content: batchContent,
+      existingTopicTitles,
+    });
+
     try {
       const result = await context.ai.generate<{
         topics: ExtractedTopicData[];

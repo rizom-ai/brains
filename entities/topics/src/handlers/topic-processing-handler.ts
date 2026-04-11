@@ -2,6 +2,10 @@ import type { EntityPluginContext } from "@brains/plugins";
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { getErrorMessage, z, PROGRESS_STEPS, JobResult } from "@brains/utils";
+import {
+  TopicMergeSynthesizer,
+  type ITopicMergeSynthesizer,
+} from "../lib/topic-merge-synthesizer";
 import { TopicService } from "../lib/topic-service";
 
 const topicProcessingJobDataSchema = z.object({
@@ -21,7 +25,7 @@ type TopicProcessingJobData = z.infer<typeof topicProcessingJobDataSchema>;
 
 interface TopicProcessingResult {
   success: boolean;
-  action: "created" | "skipped" | "failed";
+  action: "created" | "merged" | "skipped" | "failed";
   topicId?: string;
   topicTitle: string;
   message?: string;
@@ -38,13 +42,20 @@ export class TopicProcessingHandler extends BaseJobHandler<
   TopicProcessingResult
 > {
   private topicService: TopicService;
+  private topicMergeSynthesizer: ITopicMergeSynthesizer;
 
-  constructor(context: EntityPluginContext, logger: Logger) {
+  constructor(
+    context: EntityPluginContext,
+    logger: Logger,
+    topicMergeSynthesizer?: ITopicMergeSynthesizer,
+  ) {
     super(logger, {
       schema: topicProcessingJobDataSchema,
       jobTypeName: "topic-processing",
     });
     this.topicService = new TopicService(context.entityService, logger);
+    this.topicMergeSynthesizer =
+      topicMergeSynthesizer ?? new TopicMergeSynthesizer(context, logger);
   }
 
   async process(
@@ -52,7 +63,7 @@ export class TopicProcessingHandler extends BaseJobHandler<
     jobId: string,
     progressReporter: ProgressReporter,
   ): Promise<TopicProcessingResult> {
-    const { topic } = data;
+    const { topic, autoMerge = false, mergeSimilarityThreshold = 0.85 } = data;
 
     this.logger.debug("Processing extracted topic", {
       jobId,
@@ -66,6 +77,43 @@ export class TopicProcessingHandler extends BaseJobHandler<
         progress: PROGRESS_STEPS.GENERATE,
         message: `Creating topic: ${topic.title}`,
       });
+
+      if (autoMerge) {
+        const candidate = await this.topicService.findMergeCandidate(
+          topic,
+          mergeSimilarityThreshold,
+        );
+
+        if (candidate) {
+          const synthesized = await this.topicMergeSynthesizer.synthesize({
+            existingTopic: candidate.topic,
+            incomingTopic: topic,
+          });
+
+          const merged = await this.topicService.applySynthesizedMerge({
+            existingId: candidate.topic.id,
+            synthesized,
+            aliasCandidates: [candidate.title, topic.title],
+          });
+
+          if (!merged) {
+            throw new Error(`Failed to merge topic: ${topic.title}`);
+          }
+
+          await progressReporter.report({
+            progress: PROGRESS_STEPS.COMPLETE,
+            message: `Topic merged into: ${synthesized.title}`,
+          });
+
+          return {
+            success: true,
+            action: "merged",
+            topicId: merged.id,
+            topicTitle: synthesized.title,
+            message: `Successfully merged topic into: ${synthesized.title}`,
+          };
+        }
+      }
 
       // createTopic skips if topic with same slug already exists
       const created = await this.topicService.createTopic({

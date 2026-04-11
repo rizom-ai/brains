@@ -93,6 +93,7 @@ Main content here
       });
 
       expect(() => schema.parse(validTopic)).not.toThrow();
+      expect(schema.parse(validTopic).metadata.aliases).toBeUndefined();
     });
 
     it("should reject invalid topic type", () => {
@@ -118,15 +119,17 @@ Main content here
         id: "old-topic",
         content: "Test body",
         metadata: {
-          sources: [
-            {
-              slug: "s",
-              title: "t",
-              type: "post",
-              entityId: "e",
-              contentHash: "h",
-            },
-          ],
+          ...({
+            sources: [
+              {
+                slug: "s",
+                title: "t",
+                type: "post",
+                entityId: "e",
+                contentHash: "h",
+              },
+            ],
+          } as Record<string, unknown>),
         },
       });
 
@@ -170,6 +173,7 @@ Some content here.`;
 
       expect(result.entityType).toBe("topic");
       expect(result.content).toContain("title: Test Topic");
+      expect(result).not.toHaveProperty("metadata");
     });
 
     it("should ignore legacy Sources section in markdown", () => {
@@ -184,7 +188,7 @@ Content
       const result = adapter.fromMarkdown(markdown);
       expect(result.entityType).toBe("topic");
       // Sources are not extracted into metadata
-      expect(result.metadata).toEqual({});
+      expect(result).not.toHaveProperty("metadata");
     });
   });
 
@@ -196,7 +200,7 @@ Content
       });
 
       const metadata = adapter.extractMetadata(entity);
-      expect(metadata).toEqual({});
+      expect(metadata).toEqual({ aliases: [] });
     });
   });
 

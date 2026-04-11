@@ -1,0 +1,50 @@
+id: topics-sequential-fragmentation-grouping
+name: Sequential extraction collapses fragmentation angle variants
+description: >
+  Tests that different rhetorical framings around fragmentation map to the same
+  canonical umbrella topic instead of producing multiple near-duplicates.
+type: plugin
+tags:
+  - topics
+  - grouping
+  - canonicalization
+  - fragmentation
+plugin: topics
+handler: extractSequentially
+
+input:
+  minRelevanceScore: 0.3
+  entities:
+    - entityType: post
+      content: |
+        # Fragmentation as Opportunity
+
+        Internet fragmentation is often framed as a crisis, but it can also be
+        a source of diversity and resilience. Multiple smaller ecosystems allow
+        people to organize around different values, leave unhealthy spaces, and
+        build more adaptive communities.
+      metadata:
+        title: "Fragmentation as Opportunity"
+
+    - entityType: post
+      content: |
+        # Fragmentation and Multiplicity
+
+        A fragmented network landscape enables multiplicity instead of forcing
+        everyone into one universal model. Distinct digital ecosystems can
+        coexist, each with their own norms and forms of coordination. The core
+        topic is still fragmentation itself, not a separate topic just because
+        this essay emphasizes multiplicity.
+      metadata:
+        title: "Fragmentation and Multiplicity"
+
+expectedOutput:
+  validateEach:
+    - path: totalTopics
+      equals: 1
+    - path: topics[0].title
+      equals: Fragmentation
+    - path: perEntity[0].extractedTitles[0]
+      equals: Fragmentation
+    - path: perEntity[1].extractedTitles[0]
+      equals: Fragmentation

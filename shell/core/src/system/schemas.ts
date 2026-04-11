@@ -63,6 +63,11 @@ export const deleteInputSchema = z.object({
 export const extractInputSchema = z.object({
   entityType: z.string().describe("Entity type to extract"),
   source: z.string().optional().describe("Source entity ID — omit for batch"),
+  mode: z
+    .enum(["derive", "rebuild"])
+    .optional()
+    .describe("Batch mode: derive incrementally or rebuild from scratch"),
+  confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 
 export const setCoverInputSchema = z.object({
@@ -111,6 +116,7 @@ export const extractOutputSchema = z.object({
   jobId: z.string(),
   entityType: z.string(),
   source: z.string().optional(),
+  mode: z.enum(["derive", "rebuild"]).optional(),
 });
 
 export const setCoverOutputSchema = z.object({

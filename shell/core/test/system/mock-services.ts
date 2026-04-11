@@ -1,8 +1,6 @@
 import type { SystemServices } from "../../src/system/types";
-import type { createInputSchema } from "../../src/system/schemas";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/entity-service";
-import type { z } from "@brains/utils";
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -17,9 +15,7 @@ export function createMockSystemServices(
   /** Seed entities for testing */
   addEntities: (entities: BaseEntity[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
-  getLastEnqueuedJob: () =>
-    | { type: string; data: z.infer<typeof createInputSchema> }
-    | undefined;
+  getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
 } {
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
@@ -84,13 +80,13 @@ export function createMockSystemServices(
 
   const enqueuedJobs: Array<{
     type: string;
-    data: z.infer<typeof createInputSchema>;
+    data: unknown;
   }> = [];
   const jobs = {
     enqueue: async (type: string, data: unknown) => {
       enqueuedJobs.push({
         type,
-        data: data as z.infer<typeof createInputSchema>,
+        data,
       });
       return `job-${Date.now()}`;
     },

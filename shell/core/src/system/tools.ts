@@ -559,18 +559,42 @@ export function createSystemTools(services: SystemServices): Tool[] {
     // ── Extract ──
     createSystemTool(
       "extract",
-      "Extract derived entities from source content. Provide source for single, omit for batch.",
+      'Extract derived entities from source content. Provide source for single, omit for batch. `mode: "rebuild"` is currently only supported for `entityType: "topic"` and requires confirmation; other entity types fall back to normal derive mode.',
       extractInputSchema,
       async (input, toolContext) => {
         const { entityType, source } = input;
+        const requestedMode = input.mode ?? "derive";
+        const rebuildRequested = requestedMode === "rebuild";
+        const rebuildSupported = entityType === "topic" && !source;
+        const appliedMode =
+          rebuildRequested && rebuildSupported ? "rebuild" : "derive";
+
         if (!entityService.getEntityTypes().includes(entityType)) {
           return {
             success: false,
             error: `Unknown entity type: ${entityType}. Available types: ${entityService.getEntityTypes().join(", ")}`,
           };
         }
+
+        if (rebuildRequested && rebuildSupported && !input.confirmed) {
+          return {
+            needsConfirmation: true,
+            toolName: "system_extract",
+            description:
+              "Rebuild all derived topic entities from current source content?\n\nThis will delete existing topics and regenerate them from scratch.",
+            args: {
+              ...input,
+              confirmed: true,
+            },
+          };
+        }
+
         try {
-          const data: { sourceId?: string; sourceType?: string } = {};
+          const data: {
+            sourceId?: string;
+            sourceType?: string;
+            mode?: "derive" | "rebuild";
+          } = {};
           if (source) {
             for (const type of entityService.getEntityTypes()) {
               const found = await entityService.getEntity(type, source);
@@ -586,6 +610,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
                 error: `Source entity not found: ${source}`,
               };
           }
+
+          if (appliedMode === "rebuild") {
+            data.mode = "rebuild";
+          }
+
           const jobId = await jobs.enqueue(
             `${entityType}:extract`,
             data,
@@ -597,8 +626,17 @@ export function createSystemTools(services: SystemServices): Tool[] {
               status: "extracting",
               jobId,
               entityType,
+              mode: appliedMode,
               ...(source && { source }),
             },
+            ...(rebuildRequested && !rebuildSupported
+              ? {
+                  message:
+                    source || entityType !== "topic"
+                      ? `Rebuild is currently only supported for batch topic extraction. Ran normal derive mode for ${entityType} instead.`
+                      : undefined,
+                }
+              : {}),
           };
         } catch (error) {
           return {

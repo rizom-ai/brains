@@ -1,0 +1,50 @@
+id: topics-sequential-human-ai-collaboration-grouping
+name: Sequential extraction groups human/agent/bot collaboration variants
+description: >
+  Tests that closely related collaboration content reuses one canonical topic
+  title instead of creating separate variants like "AI Collaboration",
+  "Human-Agent Collaboration", or "Human-Bot Collaboration".
+type: plugin
+tags:
+  - topics
+  - grouping
+  - canonicalization
+  - collaboration
+plugin: topics
+handler: extractSequentially
+
+input:
+  minRelevanceScore: 0.3
+  entities:
+    - entityType: post
+      content: |
+        # Human-AI Collaboration
+
+        Teams work better when AI agents are treated as collaborators rather than
+        disposable tools. The important question is not whether a participant is
+        human, but whether it can contribute meaningfully to shared goals.
+        Hybrid teams need shared context, trust, and clear protocols so humans
+        and AI systems can coordinate work side by side.
+      metadata:
+        title: "Human-AI Collaboration"
+
+    - entityType: post
+      content: |
+        # Human-Agent Collaboration
+
+        In distributed organizations, software agents can participate alongside
+        people as real contributors. These agents help coordinate knowledge,
+        automate routine work, and support collective decision making. The core
+        idea is still collaboration between humans and capable AI participants,
+        not a separate topic about bots or automation in isolation.
+      metadata:
+        title: "Human-Agent Collaboration"
+
+expectedOutput:
+  validateEach:
+    - path: totalTopics
+      equals: 1
+    - path: topics[0].title
+      equals: Human-AI Collaboration
+    - path: perEntity[1].extractedTitles[0]
+      equals: Human-AI Collaboration

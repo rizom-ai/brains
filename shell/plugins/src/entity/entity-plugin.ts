@@ -142,6 +142,7 @@ export abstract class EntityPlugin<
     const extractDataSchema = z.object({
       sourceId: z.string().optional(),
       sourceType: z.string().optional(),
+      mode: z.enum(["derive", "rebuild"]).optional(),
     });
 
     return {
@@ -159,8 +160,12 @@ export abstract class EntityPlugin<
           }
           return { extracted: 0 };
         }
-        // Batch mode — no source specified, call deriveAll()
-        await this.deriveAll(context);
+        // Batch mode — no source specified
+        if (data.mode === "rebuild") {
+          await this.rebuildAll(context);
+        } else {
+          await this.deriveAll(context);
+        }
         return { extracted: 0 };
       },
       validateAndParse(
@@ -198,6 +203,14 @@ export abstract class EntityPlugin<
    */
   public async deriveAll(_context: EntityPluginContext): Promise<void> {
     // No-op by default — subclasses override for batch derivation
+  }
+
+  /**
+   * Override to fully rebuild derived entities from source entities.
+   * Default implementation falls back to deriveAll().
+   */
+  public async rebuildAll(context: EntityPluginContext): Promise<void> {
+    await this.deriveAll(context);
   }
 
   /**

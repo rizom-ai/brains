@@ -1,9 +1,11 @@
 import { z, fromYaml } from "@brains/utils";
 import { defineConfig, type AppConfig } from "@brains/app";
 import type { Plugin } from "@brains/plugins";
+import { resolveProviderKey } from "./multi-model";
 
 const evalYamlSchema = z.object({
   plugin: z.string(),
+  model: z.string().optional(),
   config: z.record(z.unknown()).optional(),
 });
 
@@ -74,11 +76,16 @@ export async function loadPluginEvalConfig(
 
   const pluginId = plugin.id;
   const evalDbBase = `/tmp/${pluginId}-eval-${Date.now()}`;
+  const resolvedModel = evalConfig.model ?? process.env["AI_MODEL"];
+  const resolvedApiKey = resolvedModel
+    ? resolveProviderKey(resolvedModel, process.env)
+    : process.env["AI_API_KEY"];
 
   return defineConfig({
     name: `${pluginId}-eval`,
     version: "0.1.0",
-    aiApiKey: process.env["AI_API_KEY"],
+    ...(resolvedApiKey ? { aiApiKey: resolvedApiKey } : {}),
+    ...(resolvedModel ? { aiModel: resolvedModel } : {}),
     plugins: [plugin],
     shellConfig: {
       database: { url: `file:${evalDbBase}.db` },

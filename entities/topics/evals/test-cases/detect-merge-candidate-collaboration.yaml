@@ -1,0 +1,42 @@
+id: topics-detect-merge-candidate-collaboration
+name: Detection service finds collaboration merge candidate
+description: >
+  Tests the Phase 1 detection path directly by seeding an existing canonical
+  topic and asking the plugin whether an incoming collaboration variant should
+  merge into it.
+type: plugin
+tags:
+  - topics
+  - merge
+  - detection
+  - collaboration
+plugin: topics
+handler: detectMergeCandidate
+
+input:
+  threshold: 0.85
+  existingTopics:
+    - title: Human-AI Collaboration
+      content: |
+        AI agents and humans collaborate as peers inside shared knowledge
+        systems and distributed teams.
+      keywords:
+        - AI collaboration
+        - agency
+        - distributed teams
+  incomingTopic:
+    title: Human-Agent Collaboration
+    content: |
+      Software agents participate alongside humans in collaborative work and
+      contribute meaningfully to shared goals.
+    keywords:
+      - AI agents
+      - agency
+      - collaborative systems
+
+expectedOutput:
+  validateEach:
+    - path: found
+      equals: true
+    - path: candidateTitle
+      equals: Human-AI Collaboration
