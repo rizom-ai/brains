@@ -14,6 +14,7 @@ import { resolveRemoteUrl, resolveToken } from "./lib/remote-config";
 import { diagnostics } from "./commands/diagnostics";
 import { runCertBootstrap } from "./commands/cert-bootstrap";
 import { runSecretsPush } from "./commands/secrets-push";
+import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
 
 export interface CommandResult {
   success: boolean;
@@ -57,6 +58,10 @@ export async function runCommand(
         only: parsed.flags.only,
         dryRun: parsed.flags["dry-run"],
       });
+    case "ssh-key:bootstrap":
+      return runSshKeyBootstrap(dir, {
+        pushTo: parsed.flags["push-to"],
+      });
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -84,6 +89,9 @@ export async function runCommand(
 function collapseSubcommand(command: string, args: string[]): string {
   if (command === "cert" && args[0] === "bootstrap") return "cert:bootstrap";
   if (command === "secrets" && args[0] === "push") return "secrets:push";
+  if (command === "ssh-key" && args[0] === "bootstrap") {
+    return "ssh-key:bootstrap";
+  }
   return command;
 }
 
@@ -187,9 +195,10 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  chat          Start with interactive chat REPL",
     "  eval          Run AI evaluations (pass-through to brain-eval)",
     "  pin           Pin @rizom/brain version (creates package.json, installs)",
-    "  cert:bootstrap Issue Cloudflare Origin CA cert for brain.yaml domain",
-    "  secrets:push  Push env-backed local secrets to GitHub Secrets",
-    "  tool <name>   Invoke a tool directly (for debugging)",
+    "  cert:bootstrap   Issue Cloudflare Origin CA cert for brain.yaml domain",
+    "  secrets:push    Push env-backed local secrets to GitHub Secrets",
+    "  ssh-key:bootstrap Bootstrap a Hetzner deploy SSH key and optional GitHub secret",
+    "  tool <name>     Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
 
