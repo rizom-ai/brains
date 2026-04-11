@@ -71,7 +71,17 @@ mybrain/
 
 The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` / `site.theme` refs from `brain.yaml` when you want to switch to the local convention.
 
-With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to a 1Password-backed varlock schema, but you can swap the backend with `--backend` if you need a different plugin. Use `brain secrets:push --push-to 1password` to sync the env-backed secrets, `brain secrets:push --dry-run` to preview them with required-vs-optional grouping, and `brain cert:bootstrap --push-to 1password` once after scaffolding to store the TLS cert/key directly in the vault before deploying.
+With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `deploy/Caddyfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to `--backend none`, which means varlock validates and normalizes values supplied directly from local env files or GitHub Actions secrets.
+
+The proven operator flow is:
+
+1. set local deploy values in `.env.local`
+2. set `KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/<site>_deploy_ed25519`
+3. run `brain ssh-key:bootstrap --push-to gh`
+4. run `brain secrets:push --push-to gh --dry-run`
+5. run `brain secrets:push --push-to gh`
+6. run `brain cert:bootstrap --push-to gh`
+7. push to `main` so `Publish Image` and then `Deploy` run in GitHub Actions
 
 After `brain init`, you can either:
 
@@ -87,7 +97,7 @@ Options:
   --model <name>         Brain model: rover (default), relay, ranger
   --domain <domain>      Production domain
   --content-repo <repo>  Git repo for content sync
-  --backend <name>       Secret backend plugin (default: 1password)
+  --backend <name>       Secret backend plugin (default: none)
   --deploy               Include deployment scaffolding
 ```
 

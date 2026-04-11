@@ -39,18 +39,22 @@ brain init mybrain --no-interactive
 
 **Generated files**
 
-| File                           | Always                               | With `--deploy`                      |
-| ------------------------------ | ------------------------------------ | ------------------------------------ |
-| `brain.yaml`                   | Yes                                  | Yes                                  |
-| `package.json`                 | Yes                                  | Yes                                  |
-| `README.md`                    | Yes                                  | Yes                                  |
-| `.env.example`                 | Yes                                  | Yes                                  |
-| `.gitignore`                   | Yes                                  | Yes                                  |
-| `tsconfig.json`                | Yes                                  | Yes                                  |
-| `.env`                         | Only when `--ai-api-key` is provided | Only when `--ai-api-key` is provided |
-| `config/deploy.yml`            | —                                    | Yes                                  |
-| `.kamal/hooks/pre-deploy`      | —                                    | Yes                                  |
-| `.github/workflows/deploy.yml` | —                                    | Yes                                  |
+| File                                  | Always                               | With `--deploy`                      |
+| ------------------------------------- | ------------------------------------ | ------------------------------------ |
+| `brain.yaml`                          | Yes                                  | Yes                                  |
+| `package.json`                        | Yes                                  | Yes                                  |
+| `README.md`                           | Yes                                  | Yes                                  |
+| `.env.example`                        | Yes                                  | Yes                                  |
+| `.env.schema`                         | Yes                                  | Yes                                  |
+| `.gitignore`                          | Yes                                  | Yes                                  |
+| `tsconfig.json`                       | Yes                                  | Yes                                  |
+| `.env`                                | Only when `--ai-api-key` is provided | Only when `--ai-api-key` is provided |
+| `config/deploy.yml`                   | —                                    | Yes                                  |
+| `.kamal/hooks/pre-deploy`             | —                                    | Yes                                  |
+| `deploy/Dockerfile`                   | —                                    | Yes                                  |
+| `deploy/Caddyfile`                    | —                                    | Yes                                  |
+| `.github/workflows/publish-image.yml` | —                                    | Yes                                  |
+| `.github/workflows/deploy.yml`        | —                                    | Yes                                  |
 
 ### `brain cert:bootstrap`
 
