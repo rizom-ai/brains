@@ -83,19 +83,21 @@ Human-editable source of truth should be YAML, not CSV. Operators can review sta
 rover-pilot/
 ├── pilot.yaml                   # org + naming conventions
 ├── cohorts/
-│   ├── cohort-1.yaml            # cohort metadata + member handles
+│   ├── cohort-1.yaml            # active rollout group membership
 │   └── cohort-2.yaml
 ├── users/
 │   ├── alice.yaml               # desired onboarding input
 │   ├── alice/
 │   │   ├── brain.yaml           # snapshot of deployed config
-│   │   └── notes.md             # contact, interfaces enabled, known issues
+│   │   └── notes.md             # human operator notes
 │   └── bob.yaml
 ├── views/
 │   └── users.md                 # generated table for operator review
 ├── scripts/
 │   ├── render-users-table.ts    # YAML -> Markdown table
-│   └── onboard-user.ts          # thin wrapper around per-user init steps
+│   ├── onboard-user.ts          # thin wrapper around per-user init steps
+│   ├── reconcile-all.ts         # fleet-wide reconcile
+│   └── reconcile-cohort.ts      # one rollout group at a time
 ├── docs/
 │   ├── onboarding-checklist.md  # step-by-step operator flow
 │   └── operator-playbook.md     # known gotchas, recovery procedures
@@ -125,7 +127,6 @@ discord:
 Example `cohorts/cohort-1.yaml`:
 
 ```yaml
-title: Cohort 1
 brainVersionOverride: 0.1.1-alpha.13
 members:
   - alice
@@ -137,7 +138,7 @@ members:
 `pilot.yaml` defines shared naming, fleet defaults, and schema versioning. Minimum fields:
 
 - `schemaVersion` — registry schema version
-- `brainVersion` — default `@rizom/brain` version for whole pilot
+- `brainVersion` — exact pinned `@rizom/brain` version for whole pilot
 - `githubOrg` — pilot GitHub org / owner
 - `repoPrefix` — prepended to each handle for rover repo names
 - `contentRepoSuffix` — appended to `${repoPrefix}${handle}` for content repo names
@@ -147,7 +148,7 @@ members:
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
 - `handle` — lowercase slug, unique across pilot
-- optional `discord.enabled` — boolean intent flag
+- required `discord.enabled` — boolean intent flag
 
 Non-secret integration intent belongs in YAML. Secret material does not.
 
@@ -161,11 +162,10 @@ Derived fields, not stored per user:
 
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
-`cohorts/*.yaml` is the set of active rollout groups plus optional rollout override. Minimum fields:
+`cohorts/*.yaml` is the set of active rollout groups plus optional rollout override. The cohort id is the file name only; there is no `id` or `title` field in the YAML body. Minimum fields:
 
-- `members` — list of user handles
-- optional `title`
-- optional `brainVersionOverride`
+- `members` — non-empty set of user handles
+- optional `brainVersionOverride` — exact pinned version
 
 Cohorts are always active rollout groups. Historical rollout reporting lives somewhere else; it is not part of this config resolution schema.
 
@@ -176,12 +176,18 @@ Effective version resolution:
 
 Validation rules:
 
-- file name must match `handle` (`users/alice.yaml` -> `handle: alice`)
+- user file name must match `handle` (`users/alice.yaml` -> `handle: alice`)
+- cohort identity comes from the cohort file name only (`cohorts/cohort-1.yaml` -> `cohort-1`)
 - cohort members must reference existing user files
 - duplicate handles are invalid
 - derived `repo`, `contentRepo`, and `domain` must be deterministic from `pilot.yaml` + `handle`
 - if `discord.enabled: true`, operator tooling expects a secret named `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
-- a user may belong to **at most one cohort total**
+- every user must belong to **exactly one** cohort
+- cohort membership lives only in `cohorts/*.yaml`, never duplicated on user files
+- each cohort must contain at least one member
+- duplicate members in a cohort are invalid
+- member order is not semantically meaningful
+- `brainVersion` and `brainVersionOverride` must be exact pinned versions, not ranges or moving tags
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Script contract
@@ -193,7 +199,7 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - validates via Zod
   - writes `views/users.md`
   - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence, expected Discord secret presence)
-  - fails loudly on missing users / duplicate handles / multi-cohort membership / invalid schema
+  - fails loudly on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
 - `scripts/onboard-user.ts <handle>`
   - reads `pilot.yaml` plus one `users/<handle>.yaml`
   - resolves effective version from cohort override or pilot default
@@ -242,7 +248,7 @@ Per-user repo/deploy flow after that:
 7. Adds pilot user as Maintainer on both repos
 8. Runs `brain init --deploy --model rover --domain <handle>.rover.example.com`
 9. Configures `brain.yaml` with `preset: core` and directory-sync pointed at content repo
-10. Fills `.env.local` with local operator inputs CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` / `DISCORD_BOT_TOKEN`
+10. Fills `.env.local` with local operator inputs CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` and the per-user Discord token under the derived secret name `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when `discord.enabled: true`
 11. Runs `brain ssh-key:bootstrap --push-to gh`
 12. Runs `brain secrets:push --push-to gh`
 13. Runs `brain cert:bootstrap --push-to gh`, then deletes local `origin.pem` / `origin.key`
