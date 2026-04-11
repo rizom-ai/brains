@@ -160,11 +160,13 @@ Derived fields, not stored per user:
 
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
-`cohorts/*.yaml` is batch grouping metadata plus optional rollout override. Minimum fields:
+`cohorts/*.yaml` is the set of active rollout groups plus optional rollout override. Minimum fields:
 
 - `members` — list of user handles
 - optional `title`
 - optional `brainVersionOverride`
+
+Cohorts are always active rollout groups. Historical rollout reporting lives somewhere else; it is not part of this config resolution schema.
 
 Effective version resolution:
 
@@ -177,8 +179,7 @@ Validation rules:
 - cohort members must reference existing user files
 - duplicate handles are invalid
 - derived `repo`, `contentRepo`, and `domain` must be deterministic from `pilot.yaml` + `handle`
-- one user may appear in multiple cohorts historically
-- but a user may be targeted by **at most one active cohort with a `brainVersionOverride`**
+- a user may belong to **at most one cohort total**
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Script contract
@@ -190,7 +191,7 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - validates via Zod
   - writes `views/users.md`
   - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence)
-  - fails loudly on missing users / duplicate handles / invalid schema
+  - fails loudly on missing users / duplicate handles / multi-cohort membership / invalid schema
 - `scripts/onboard-user.ts <handle>`
   - reads `pilot.yaml` plus one `users/<handle>.yaml`
   - resolves effective version from cohort override or pilot default
@@ -202,6 +203,9 @@ Repo-local scripts are thin wrappers around this YAML truth:
   - reconciles each repo to its effective desired version
   - supports fleet-wide update when `pilot.yaml.brainVersion` changes
   - still respects cohort overrides when present
+- `scripts/reconcile-cohort.ts <cohort>`
+  - reconciles only members of one active rollout group
+  - used for staged rollout before fleet-wide reconciliation
 
 Why this shape:
 
