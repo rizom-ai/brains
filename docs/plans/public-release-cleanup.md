@@ -4,7 +4,7 @@
 
 **Strategy:** Option B from the cleanup discussion — squash to a clean baseline via orphan commit, keep the existing repo as a private archive, push the clean snapshot to a fresh public repo location.
 
-**Status:** Decisions locked. Ready to execute starting at Phase 1. Preflight scan results and completed pre-work are in §10.
+**Status:** On hold pending completion of the public plugin feature. Several earlier phases are already complete, but no further execution should continue until that short-term product work is finished. Preflight scan results and completed pre-work are in §10.
 
 ---
 
@@ -558,7 +558,7 @@ The orphan-commit step is fully reversible _until_ Phase 5's double-rename. Afte
 
 Phases 3.5 and 4.5 are the additions that turn a clean code drop into an adoptable framework. Without them, v0.1.0 is technically published but the README is internal-facing, there's no contributing guide, and nobody has verified the install path works on a clean machine.
 
-**Status update (2026-04-11):** The deploy-validation gate has been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths. This plan is no longer paused and should resume from the remaining release-staging work (Phase 4 onward).
+**Status update (2026-04-11):** The deploy-validation gate has been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths. Even so, this plan is paused again because public plugin feature work takes priority. Resume only after that feature is complete, then continue from the remaining release-staging work (Phase 4 onward).
 
 Phase 3 was split into 3a (mechanical in-tree cleanup, fast) and 3b (mylittlephoney extraction, slower) so the easy part can land first without being blocked by the harder migration.
 

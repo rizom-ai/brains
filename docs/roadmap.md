@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has now been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths, so the public-release staging work can resume.
+`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths. Even so, public-release staging is paused while nearer-term product work takes priority.
 
 What already exists today:
 
@@ -41,7 +41,9 @@ These areas are effectively landed:
 
 ### 1. Deployment path polish
 
-Keep tightening the self-hosted deployment story:
+Keep tightening the self-hosted deployment story first, because it most directly affects whether new users can get a brain running reliably.
+
+Focus areas:
 
 - converge app-local deploy workflows with the newer `brain init --deploy` scaffold where they have drifted
 - operator-facing verification and troubleshooting guidance drawn from the now-live instances
@@ -53,20 +55,52 @@ Plans:
 - [standalone-apps.md](./plans/standalone-apps.md)
 - [rizom-ai-first-deploy.md](./plans/rizom-ai-first-deploy.md)
 
-### 2. Public release cleanup and stable release path
+### 2. Rizom site variants
 
-This work is now **unblocked** and ready to resume.
+Continue the shared-site work across the Rizom family once the deploy path is in a good place.
 
-Remaining work:
+Focus areas:
+
+- keep `sites/rizom` as the shared structural spine
+- finish the intended variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work`
+- keep brand/theme decisions cleanly separated from per-instance configuration
+
+Plan:
+
+- [rizom-sites.md](./plans/rizom-sites.md)
+
+### 3. Public plugin surface
+
+Open a cleaner public extension story after the more immediate user-facing work above.
+
+Focus areas:
+
+- more library subpaths
+- clearer plugin authoring contract
+- runtime loading for external plugins
+- external plugin examples and docs
+
+Plans:
+
+- [library-exports.md](./plans/library-exports.md)
+- [external-plugin-api.md](./plans/external-plugin-api.md)
+
+### 4. Public release cleanup and stable release path
+
+This work is intentionally on hold until the nearer-term product work above is complete.
+
+Remaining work after that:
 
 - Phase 2 backup
 - release staging to `brains-temp`
 - clean-machine smoke test from the published path
 - final rename / go-live flow
 
-Plan: [public-release-cleanup.md](./plans/public-release-cleanup.md)
+Plan:
 
-### 3. Documentation phase 2
+- [public-release-cleanup.md](./plans/public-release-cleanup.md)
+
+### 5. Documentation phase 2
 
 After the public release baseline is in place, fill the remaining user-facing docs:
 
@@ -75,20 +109,9 @@ After the public release baseline is in place, fill the remaining user-facing do
 - interface setup guides
 - deeper customization docs for themes, layouts, and plugins
 
-Plan: [documentation.md](./plans/documentation.md)
+Plan:
 
-### 4. External plugin surface
-
-Open a cleaner public extension story beyond the current Tier 1 exports:
-
-- more library subpaths
-- clearer plugin authoring contract
-- external plugin examples and docs
-
-Plans:
-
-- [library-exports.md](./plans/library-exports.md)
-- [external-plugin-api.md](./plans/external-plugin-api.md)
+- [documentation.md](./plans/documentation.md)
 
 ## Product direction
 

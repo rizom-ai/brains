@@ -163,7 +163,7 @@
 
 <div class="header">
   <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-04-07 — Click any item for details</p>
+  <p>Last updated: 2026-04-11 — Click any item for details</p>
 </div>
 
 <div class="legend">
@@ -209,10 +209,10 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Rover 0.1 remaining blockers (in progress)
-  { id: "npmpackages", name: "npm Publish", status: "in-progress", desc: "Public alpha publishing is already live for @rizom/brain via the release workflow and Changesets. Remaining work is the stable-release path: release staging, clean-machine smoke test against the published artifact, and the final v0.1.0 go-live flow.", blocks: [] },
-  { id: "kamal", name: "Kamal Deploy", status: "in-progress", desc: "Core deploy pieces are now in place and exercised on live instances: internal Caddy routing, /health, brain cert:bootstrap, app-local .env.schema generation, repo-local image publishing, init artifact reconciliation, and the standalone Kamal workflow shape. Remaining: keep the generic scaffold and app-local workflows converged, then smooth the first-run operator path.", blocks: [] },
-  { id: "rizomsites", name: "Rizom Sites", status: "in-progress", desc: "sites/rizom and the rizom-ai/foundation/work instance scaffolds are in the repo, and rizom.ai is live on the Kamal path. Next: carry the validated pattern forward to the remaining rizom instances.", deps: ["kamal"] },
-  { id: "publicrelease", name: "Public Release Cleanup", status: "in-progress", desc: "Phase 1 audit + fork-safe CI + mechanical rewrites are done. apps are now lightweight instance packages, ranger/relay stay public as source models, and mylittlephoney has been extracted and deployed. The deploy-validation gate is now cleared, so the remaining work is release staging, clean-machine smoke test, and the final go-live rename flow.", blocks: [] },
+  { id: "npmpackages", name: "npm Packages", status: "in-progress", desc: "Public alpha publishing is already live for @rizom/brain via the release workflow and Changesets. Remaining package work is mostly the stable-release path, which now moves with the paused public-release cleanup rather than acting as the top short-term priority.", blocks: [] },
+  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 1, desc: "Keep tightening the self-hosted deploy path first. The core pieces are already proven on live instances; the remaining work is workflow convergence, better operator-facing diagnostics, and a smoother first-run path for external users.", blocks: [] },
+  { id: "rizomsites", name: "Rizom Sites", status: "short-term", step: 2, desc: "Continue the shared-site work across the Rizom family once the deploy path is in a good place. Keep sites/rizom as the shared spine while carrying the validated pattern forward to rizom.foundation and rizom.work.", deps: ["kamal"] },
+  { id: "publicrelease", name: "Public Release Cleanup", status: "short-term", step: 4, desc: "Phase 1 audit + fork-safe CI + mechanical rewrites are done. apps are now lightweight instance packages, ranger/relay stay public as source models, and mylittlephoney has been extracted and deployed. This work is intentionally paused behind the nearer-term product work, then resumes with release staging, clean-machine smoke test, and the final go-live rename flow.", blocks: [] },
   { id: "monitoring3", name: "Monitoring — Phase 3", status: "completed", desc: "Usage tracking via structured logs. IEmbeddingService.generateEmbedding() returns {embedding, usage}. AIService and EmbeddingJobHandler log ai:usage events. brain diagnostics usage parses log file, aggregates by provider/model.", date: "2026-04" },
   // Rover 0.1 blockers now complete
   { id: "searchembeddings", name: "Search & Embeddings", status: "completed", desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.", date: "2026-04" },
@@ -225,13 +225,14 @@ const items = [
   { id: "topicssimplify", name: "Topics Simplification", status: "completed", desc: "Removed source tracking, added batched deriveAll(), then followed up with stronger canonicalization, heuristic + synthesized auto-merge, bounded metadata-only aliases, and confirmed replace-all topic rebuilds via system_extract.", date: "2026-04" },
   { id: "unifiedai", name: "Unified AI Config", status: "completed", desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.", date: "2026-04" },
   { id: "mcpfix", name: "MCP Tool Registry Fix", status: "completed", desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.", date: "2026-04" },
-  { id: "pluginapi", name: "External Plugin API", status: "short-term", desc: "Public plugin API: library exports with .d.ts from @rizom/brain, runtime loading from brain.yaml, API version contract, brain search/add CLI, example plugin + docs.", deps: ["npmpackages"], blocks: [] },
+  { id: "pluginapi", name: "External Plugin API", status: "short-term", step: 3, desc: "Open a cleaner public extension story after the more immediate user-facing work above: better library subpaths, a clearer plugin authoring contract, runtime loading from brain.yaml, and external examples/docs.", deps: ["npmpackages"], blocks: [] },
   { id: "compositeplugins", name: "Composite Plugins", status: "completed", desc: "CapabilityEntry accepts factories returning Plugin | Plugin[]. brain-resolver flattens arrays. Reference composite @brains/newsletter bundles newsletter-entity + buttondown behind one capability id. Rover migrated. Sub-plugins gated by composite id.", date: "2026-04" },
   { id: "appsconfigonly", name: "Apps as Lightweight Instance Packages", status: "completed", desc: "apps/* removed from workspace globs. Each apps/<name>/ is now a lightweight instance package centered on brain.yaml, with conventional support files like .env, .env.example, .gitignore, tsconfig.json, package.json, and optional deploy artifacts, consumed by the brain CLI at runtime against the brain model package it references.", date: "2026-04" },
   { id: "braininit", name: "Brain Init Scaffold", status: "completed", desc: "brain init becomes a real on-ramp: interactive prompts via @clack/prompts, generated brain.yaml defaults to preset: core (minimal viable brain), commented-out directory-sync block users can enable in two lines.", date: "2026-04" },
   { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
   { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
   { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
+  { id: "documentation2", name: "Documentation Phase 2", status: "short-term", step: 5, desc: "After the public release baseline is in place, fill the remaining user-facing docs: entity type reference, content-management guidance, interface setup guides, and deeper customization docs for themes, layouts, and plugins." },
   { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
   { id: "changesets", name: "Changesets + Versioning", status: "completed", desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.", date: "2026-04" },
   { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
@@ -331,19 +332,23 @@ function render() {
   html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
-      <div class="dep-group-title">Rover 0.1 Remaining Blockers</div>
+      <div class="dep-group-title">Near-term priorities</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm publish</span>
-        <span class="dep-label">human-gated: create @rizom org</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('kamal')">kamal phases 1-2</span>
+        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal deploy</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-wip" onclick="selectItem('rizomsites')">rizom.foundation + work</span>
+        <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('rizomsites')">rizom.ai</span>
-        <span class="dep-label">independent — current infra</span>
+        <span class="dep-node s-next" onclick="selectItem('pluginapi')">public plugin surface</span>
+        <span class="dep-label">important, but after the more immediate user-facing work</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('publicrelease')">public release cleanup</span>
+        <span class="dep-label">paused until the nearer-term product work is done</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
+        <span class="dep-label">alpha shipping already works; stable release path follows public release</span>
       </div>
     </div>
     <div class="dep-group">
