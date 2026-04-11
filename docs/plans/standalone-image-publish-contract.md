@@ -328,6 +328,6 @@ Permanent workflow fix:
 
 ## Related
 
-- `docs/plans/rizom-ai-first-deploy.md`
+- `docs/plans/deploy-kamal.md`
 - `docs/plans/standalone-apps.md`
 - `docs/plans/npm-packages.md`

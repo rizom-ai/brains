@@ -104,6 +104,5 @@ The bootstrap-section detection in `secrets-push.ts`'s schema parser stays as de
 
 ## Related plans
 
-- `docs/plans/varlock-instance-env-schema.md` — the schema-generation framework. This doc is the "what we tried, what we kept, what we rejected" companion.
-- `docs/plans/rizom-ai-first-deploy.md` — the operator setup for rizom-ai's first deploy, now using `--push-to gh` only.
 - `docs/plans/deploy-kamal.md` — the deploy pipeline shape; the secret delivery section now describes the GitHub Actions secrets path, not 1Password.
+- `docs/plans/standalone-image-publish-contract.md` — the standalone deploy/image contract that the shipped GitHub-secrets flow had to satisfy.

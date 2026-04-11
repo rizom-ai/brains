@@ -53,7 +53,6 @@ Plans:
 
 - [deploy-kamal.md](./plans/deploy-kamal.md)
 - [standalone-apps.md](./plans/standalone-apps.md)
-- [rizom-ai-first-deploy.md](./plans/rizom-ai-first-deploy.md)
 
 ### 2. Rizom site variants
 
