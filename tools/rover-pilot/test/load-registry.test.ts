@@ -1,0 +1,191 @@
+import { describe, expect, it } from "bun:test";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+
+import { loadPilotRegistry } from "../src/load-registry";
+
+async function createPilotRepo(files: Record<string, string>) {
+  const root = await mkdtemp(join(tmpdir(), "rover-pilot-"));
+
+  for (const [relativePath, content] of Object.entries(files)) {
+    const filePath = join(root, relativePath);
+    await mkdir(dirname(filePath), { recursive: true });
+    await writeFile(filePath, content);
+  }
+
+  return root;
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+describe("loadPilotRegistry", () => {
+  it("loads pilot config and derives effective values per user", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+model: rover
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "users/bob.yaml": `handle: bob
+discord:
+  enabled: true
+`,
+      "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.13
+presetOverride: pro
+members:
+  - alice
+`,
+      "cohorts/steady.yaml": `members:
+  - bob
+`,
+      "users/alice/brain.yaml": "brain: rover\npreset: pro\n",
+    });
+
+    const registry = await loadPilotRegistry(root);
+
+    expect(registry.pilot.model).toBe("rover");
+    expect(registry.users).toHaveLength(2);
+    expect(registry.users).toEqual([
+      {
+        brainVersion: "0.1.1-alpha.13",
+        cohort: "canary",
+        contentRepo: "rover-alice-content",
+        deployStatus: "unknown",
+        discordEnabled: false,
+        dnsStatus: "unknown",
+        domain: "alice.rover.example.com",
+        handle: "alice",
+        mcpStatus: "unknown",
+        model: "rover",
+        preset: "pro",
+        repo: "rover-alice",
+        repoStatus: "unknown",
+        snapshotStatus: "present",
+      },
+      {
+        brainVersion: "0.1.1-alpha.12",
+        cohort: "steady",
+        contentRepo: "rover-bob-content",
+        deployStatus: "unknown",
+        discordEnabled: true,
+        dnsStatus: "unknown",
+        domain: "bob.rover.example.com",
+        handle: "bob",
+        mcpStatus: "unknown",
+        model: "rover",
+        preset: "core",
+        repo: "rover-bob",
+        repoStatus: "unknown",
+        snapshotStatus: "missing",
+      },
+    ]);
+  });
+
+  it("fails when user belongs to no cohort", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+model: rover
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "users/bob.yaml": `handle: bob
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - bob
+`,
+    });
+
+    try {
+      await loadPilotRegistry(root);
+      expect.unreachable("expected loadPilotRegistry to fail");
+    } catch (error) {
+      expect(getErrorMessage(error)).toContain(
+        "User alice must belong to exactly one cohort",
+      );
+    }
+  });
+
+  it("fails when user belongs to multiple cohorts", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+model: rover
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+      "cohorts/steady.yaml": `members:
+  - alice
+`,
+    });
+
+    try {
+      await loadPilotRegistry(root);
+      expect.unreachable("expected loadPilotRegistry to fail");
+    } catch (error) {
+      expect(getErrorMessage(error)).toContain(
+        "User alice must belong to exactly one cohort",
+      );
+    }
+  });
+
+  it("fails when user file name and handle disagree", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+model: rover
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+`,
+      "users/alice.yaml": `handle: bob
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - bob
+`,
+    });
+
+    try {
+      await loadPilotRegistry(root);
+      expect.unreachable("expected loadPilotRegistry to fail");
+    } catch (error) {
+      expect(getErrorMessage(error)).toContain(
+        "users/alice.yaml must declare handle: alice",
+      );
+    }
+  });
+});
