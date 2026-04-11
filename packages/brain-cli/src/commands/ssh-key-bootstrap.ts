@@ -18,16 +18,14 @@ import { pushSecretsToBackend } from "../lib/push-secrets";
 import { normalizePushTarget } from "../lib/push-target";
 import { runSubprocess, type RunCommand } from "../lib/run-subprocess";
 import { type FetchLike } from "../lib/origin-ca";
+import { parseJsonResponse } from "../lib/http-response";
 
 export interface SshKeyBootstrapOptions {
   env?: NodeJS.ProcessEnv | undefined;
   fetchImpl?: FetchLike | undefined;
-  hcloudToken?: string | undefined;
   logger?: (message: string) => void;
-  privateKeyPath?: string | undefined;
   pushTo?: string | undefined;
   runCommand?: RunCommand | undefined;
-  sshKeyName?: string | undefined;
   sshKeygen?: SshKeygen | undefined;
 }
 
@@ -43,14 +41,6 @@ export interface SshKeygen {
   createEd25519KeyPair: (privateKeyPath: string, comment: string) => void;
   derivePublicKey: (privateKeyPath: string) => string;
 }
-
-const sshKeyBootstrapEnvSchema = z
-  .object({
-    HCLOUD_TOKEN: z.string().min(1).optional(),
-    HCLOUD_SSH_KEY_NAME: z.string().min(1).optional(),
-    KAMAL_SSH_PRIVATE_KEY_FILE: z.string().min(1).optional(),
-  })
-  .passthrough();
 
 const hetznerSshKeySchema = z.object({
   id: z.number(),
@@ -104,32 +94,30 @@ export async function bootstrapSshKey(
   options: SshKeyBootstrapOptions = {},
 ): Promise<SshKeyBootstrapResult> {
   const env = options.env ?? process.env;
-  const parsedEnv = sshKeyBootstrapEnvSchema.parse(env);
   const localEnvValues = readLocalEnvValues(cwd);
   const logger = options.logger ?? console.log;
   const fetchImpl = options.fetchImpl ?? fetch;
   const sshKeygen = options.sshKeygen ?? defaultSshKeygen;
 
-  const hcloudToken =
-    options.hcloudToken ??
-    parsedEnv.HCLOUD_TOKEN ??
-    resolveLocalEnvValue("HCLOUD_TOKEN", env, localEnvValues);
+  const hcloudToken = resolveLocalEnvValue("HCLOUD_TOKEN", env, localEnvValues);
   if (!hcloudToken) {
     throw new Error("Missing HCLOUD_TOKEN");
   }
 
-  const sshKeyName =
-    options.sshKeyName ??
-    parsedEnv.HCLOUD_SSH_KEY_NAME ??
-    resolveLocalEnvValue("HCLOUD_SSH_KEY_NAME", env, localEnvValues);
+  const sshKeyName = resolveLocalEnvValue(
+    "HCLOUD_SSH_KEY_NAME",
+    env,
+    localEnvValues,
+  );
   if (!sshKeyName) {
     throw new Error("Missing HCLOUD_SSH_KEY_NAME");
   }
 
-  const configuredKeyPath =
-    options.privateKeyPath ??
-    parsedEnv.KAMAL_SSH_PRIVATE_KEY_FILE ??
-    resolveLocalEnvValue("KAMAL_SSH_PRIVATE_KEY_FILE", env, localEnvValues);
+  const configuredKeyPath = resolveLocalEnvValue(
+    "KAMAL_SSH_PRIVATE_KEY_FILE",
+    env,
+    localEnvValues,
+  );
   const privateKeyPath = configuredKeyPath
     ? resolveLocalPath(configuredKeyPath, cwd)
     : join(homedir(), ".ssh", `${sanitizeSshKeyName(sshKeyName)}_ed25519`);
@@ -143,13 +131,19 @@ export async function bootstrapSshKey(
   }
   chmodSync(privateKeyPath, 0o600);
 
-  const publicKey = sshKeygen.derivePublicKey(privateKeyPath).trim();
-  if (publicKey.length === 0) {
-    throw new Error(`Unable to derive a public key from ${privateKeyPath}`);
+  let publicKey: string;
+  if (createdLocalKey) {
+    // ssh-keygen writes .pub alongside the private key during creation
+    publicKey = readFileSync(publicKeyPath, "utf-8").trim();
+  } else {
+    // Rewrite .pub from the private key to prevent drift between the
+    // local sidecar and what we register with Hetzner
+    publicKey = sshKeygen.derivePublicKey(privateKeyPath);
+    writeFileSync(publicKeyPath, `${publicKey}\n`, "utf-8");
   }
 
-  if (!existsSync(publicKeyPath)) {
-    writeFileSync(publicKeyPath, `${publicKey}\n`, "utf-8");
+  if (publicKey.length === 0) {
+    throw new Error(`Unable to derive a public key from ${privateKeyPath}`);
   }
 
   const createdHetznerKey = await ensureHetznerSshKey({
@@ -208,10 +202,13 @@ async function ensureHetznerSshKey(options: {
       "Content-Type": "application/json",
     },
   });
-  const existingKeys = await parseHetznerSshKeysResponse(listResponse);
-  const existingKey = existingKeys.find(
-    (sshKey) => sshKey.name === options.sshKeyName,
+  const { ssh_keys } = await parseJsonResponse(
+    listResponse,
+    hetznerSshKeysResponseSchema,
+    { label: "Hetzner SSH key lookup failed" },
   );
+  // Hetzner filters server-side by ?name=, which is an exact match
+  const [existingKey] = ssh_keys;
 
   if (existingKey) {
     if (existingKey.public_key.trim() !== options.publicKey) {
@@ -236,30 +233,13 @@ async function ensureHetznerSshKey(options: {
       }),
     },
   );
-
-  if (!createResponse.ok) {
-    throw new Error(
-      `Hetzner SSH key create failed: ${await createResponse.text()}`,
-    );
-  }
+  await parseJsonResponse(
+    createResponse,
+    z.object({ ssh_key: hetznerSshKeySchema }),
+    { label: "Hetzner SSH key create failed" },
+  );
 
   return true;
-}
-
-async function parseHetznerSshKeysResponse(
-  response: Response,
-): Promise<Array<z.infer<typeof hetznerSshKeySchema>>> {
-  if (!response.ok) {
-    throw new Error(`Hetzner SSH key lookup failed: ${await response.text()}`);
-  }
-
-  const body = await response.json();
-  const parsed = hetznerSshKeysResponseSchema.safeParse(body);
-  if (!parsed.success) {
-    throw new Error("Hetzner SSH key lookup returned an invalid response");
-  }
-
-  return parsed.data.ssh_keys;
 }
 
 function sanitizeSshKeyName(sshKeyName: string): string {

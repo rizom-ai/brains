@@ -30,6 +30,8 @@ export function resolveLocalEnvValue(
 
 export function resolveLocalPath(filePath: string, cwd: string): string {
   if (filePath.startsWith("~/")) {
+    // Bun's os.homedir() does not honor runtime HOME overrides, which
+    // breaks tests and any user who customizes HOME at invocation time.
     return join(process.env["HOME"] ?? homedir(), filePath.slice(2));
   }
 
