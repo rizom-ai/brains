@@ -3,7 +3,10 @@ import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { loadPilotRegistry } from "../src/load-registry";
+import {
+  loadPilotRegistry,
+  type ObservedUserStatus,
+} from "../src/load-registry";
 
 async function createPilotRepo(files: Record<string, string>) {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-"));
@@ -157,6 +160,49 @@ discord:
         "User alice must belong to exactly one cohort",
       );
     }
+  });
+
+  it("merges observed status from resolver", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.12
+model: rover
+githubOrg: rizom-ai-pilot
+repoPrefix: rover-
+contentRepoSuffix: -content
+domainSuffix: .rover.example.com
+preset: core
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: false
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+    });
+
+    const statusByHandle: Record<string, ObservedUserStatus> = {
+      alice: {
+        repoStatus: "ready",
+        deployStatus: "ready",
+        dnsStatus: "ready",
+        mcpStatus: "failed",
+      },
+    };
+
+    const registry = await loadPilotRegistry(root, {
+      resolveStatus(user) {
+        return Promise.resolve(statusByHandle[user.handle]);
+      },
+    });
+
+    expect(registry.users[0]).toMatchObject({
+      repoStatus: "ready",
+      deployStatus: "ready",
+      dnsStatus: "ready",
+      mcpStatus: "failed",
+    });
   });
 
   it("fails when user file name and handle disagree", async () => {

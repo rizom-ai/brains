@@ -15,8 +15,15 @@ import {
   userSchema,
 } from "./schema";
 
-export type ExternalStatus = "unknown";
+export type ExternalStatus = "unknown" | "ready" | "failed";
 export type SnapshotStatus = "present" | "missing";
+
+export interface ObservedUserStatus {
+  repoStatus?: ExternalStatus;
+  deployStatus?: ExternalStatus;
+  dnsStatus?: ExternalStatus;
+  mcpStatus?: ExternalStatus;
+}
 
 export interface ResolvedCohort {
   id: string;
@@ -25,7 +32,7 @@ export interface ResolvedCohort {
   presetOverride?: PilotPreset;
 }
 
-export interface ResolvedUser {
+export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
   brainVersion: string;
@@ -35,11 +42,20 @@ export interface ResolvedUser {
   repo: string;
   contentRepo: string;
   discordEnabled: boolean;
+  snapshotStatus: SnapshotStatus;
+}
+
+export interface ResolvedUser extends ResolvedUserIdentity {
   repoStatus: ExternalStatus;
   deployStatus: ExternalStatus;
   dnsStatus: ExternalStatus;
   mcpStatus: ExternalStatus;
-  snapshotStatus: SnapshotStatus;
+}
+
+export interface LoadPilotRegistryOptions {
+  resolveStatus?: (
+    user: ResolvedUserIdentity,
+  ) => Promise<ObservedUserStatus | undefined>;
 }
 
 export interface PilotRegistry {
@@ -62,6 +78,7 @@ interface LoadedCohortFile {
 
 export async function loadPilotRegistry(
   rootDir: string,
+  options: LoadPilotRegistryOptions = {},
 ): Promise<PilotRegistry> {
   const pilot = await readYamlFile(join(rootDir, "pilot.yaml"), pilotSchema);
   const userFiles = await loadUserFiles(rootDir);
@@ -87,7 +104,7 @@ export async function loadPilotRegistry(
       );
     }
 
-    users.push({
+    const identity: ResolvedUserIdentity = {
       handle: userFile.data.handle,
       cohort: cohort.id,
       brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
@@ -97,14 +114,19 @@ export async function loadPilotRegistry(
       repo: `${pilot.repoPrefix}${userFile.data.handle}`,
       contentRepo: `${pilot.repoPrefix}${userFile.data.handle}${pilot.contentRepoSuffix}`,
       discordEnabled: userFile.data.discord.enabled,
-      repoStatus: "unknown",
-      deployStatus: "unknown",
-      dnsStatus: "unknown",
-      mcpStatus: "unknown",
       snapshotStatus: await resolveSnapshotStatus(
         rootDir,
         userFile.data.handle,
       ),
+    };
+    const observedStatus = await options.resolveStatus?.(identity);
+
+    users.push({
+      ...identity,
+      repoStatus: observedStatus?.repoStatus ?? "unknown",
+      deployStatus: observedStatus?.deployStatus ?? "unknown",
+      dnsStatus: observedStatus?.dnsStatus ?? "unknown",
+      mcpStatus: observedStatus?.mcpStatus ?? "unknown",
     });
   }
 

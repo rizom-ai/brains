@@ -2,15 +2,21 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { loadPilotRegistry } from "./load-registry";
+import {
+  loadPilotRegistry,
+  type LoadPilotRegistryOptions,
+} from "./load-registry";
 
 const header =
   "| handle | cohort | model | preset | brainVersion | domain | repo | contentRepo | discord | repoStatus | deployStatus | dnsStatus | mcpStatus | snapshotStatus |";
 const separator =
   "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |";
 
-export async function writeUsersTable(rootDir: string): Promise<void> {
-  const registry = await loadPilotRegistry(rootDir);
+export async function writeUsersTable(
+  rootDir: string,
+  options: LoadPilotRegistryOptions = {},
+): Promise<void> {
+  const registry = await loadPilotRegistry(rootDir, options);
   const rows = registry.users.map((user) => {
     const discord = user.discordEnabled ? "on" : "off";
 
