@@ -150,18 +150,18 @@ Every deploy needs the following secrets available on the CI runner, written int
 - `BRAIN_MODEL` — which brain model image to deploy (e.g. `ranger`, `rover`).
 - `BRAIN_DOMAIN` — the production hostname for this instance (e.g. `rizom.ai`, `mybrain.example.com`).
 
-All secrets live in whatever secret store CI uses (GitHub Actions secrets, 1Password, etc.). Nothing in source control.
+In the shipped path, deploy/runtime values live in GitHub Actions secrets and are validated/normalized through the instance `.env.schema`. Nothing belongs in source control.
 
 ## One-time bootstrap: `brain cert:bootstrap`
 
-Run once per brain instance, before the first deploy. Issues a 15-year Cloudflare Origin CA certificate, writes it to the instance directory, and sets the zone to Full (strict) SSL mode. Use `--push-to 1password` or `--push-to gh` to store the resulting cert + key in the chosen backend automatically, or push them yourself if you prefer.
+Run once per brain instance, before the first deploy. It issues a 15-year Cloudflare Origin CA certificate, writes it to the instance directory, and sets the zone to Full (strict) SSL mode. The shipped CLI supports `--push-to gh`, which stores the resulting cert + key in GitHub Actions secrets.
 
 ```bash
 cd my-brain-instance/
 export CF_API_TOKEN=...   # Zone > SSL and Certificates > Edit on the instance's zone
 export CF_ZONE_ID=...
 
-brain cert:bootstrap --push-to 1password
+brain cert:bootstrap --push-to gh
 ```
 
 ### Behavior
@@ -171,22 +171,9 @@ brain cert:bootstrap --push-to 1password
 3. POSTs the CSR to the Cloudflare Origin CA API with `hostnames: [{BRAIN_DOMAIN}, *.{BRAIN_DOMAIN}]`, `requested_validity: 5475` (15 years), `request_type: "origin-rsa"`.
 4. Writes `origin.pem` and `origin.key` to the current directory (both gitignored).
 5. Sets the zone's SSL mode to Full (strict) via the Cloudflare settings API.
-6. Prints next-step instructions tailored to common secret stores, e.g.:
+6. Pushes `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` to GitHub Actions secrets when `--push-to gh` is used, then prints the next-step reminder to delete local copies.
 
-   ```
-   ✓ Certificate issued (valid until 2041-04-09)
-   ✓ Zone SSL mode set to Full (strict)
-
-   Push the cert to your secret store. Examples:
-     GitHub Actions:   gh secret set CERTIFICATE_PEM < origin.pem
-                       gh secret set PRIVATE_KEY_PEM  < origin.key
-     1Password:        op document create origin.pem --title "<domain> origin cert"
-     Env file:         cat origin.pem origin.key >> .kamal/secrets
-
-   Then delete local copies: rm origin.pem origin.key
-   ```
-
-The CLI stays agnostic about _which_ secret store the user picks. That's the right seam — GitHub Actions, GitLab CI, 1Password, env files, and self-hosted runners all exist and we shouldn't pick for the user.
+The shipped product path is opinionated here: GitHub Actions secrets are the supported delivery target, while `.env.schema` remains the contract and varlock remains the validator/normalizer.
 
 ### Implementation
 
@@ -194,7 +181,7 @@ Lives in `packages/brain-cli` as a sibling of the existing `brain init` command.
 
 ### Re-running the command
 
-If an instance later needs additional hostnames (alias domain, extra subdomain), update `brain.yaml` with the new hostnames and re-run `brain cert:bootstrap --push-to 1password` (or `--push-to gh`). A new cert is issued covering the extended list; the selected backend is updated, and kamal-proxy picks it up on the next deploy.
+If an instance later needs additional hostnames (alias domain, extra subdomain), update `brain.yaml` with the new hostnames and re-run `brain cert:bootstrap --push-to gh`. A new cert is issued covering the extended list, GitHub Actions secrets are updated, and kamal-proxy picks it up on the next deploy.
 
 ### Reference: equivalent shell pipeline
 
@@ -230,7 +217,7 @@ curl -sf -X PATCH "https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/sett
   -d '{"value": "strict"}' > /dev/null
 
 rm origin.csr
-# origin.pem + origin.key are now in cwd; push to secret store and delete.
+# origin.pem + origin.key are now in cwd; push them to GitHub Actions secrets and delete.
 ```
 
 > **Auth caveat:** The Origin CA endpoint historically used an `X-Auth-User-Service-Key` header with a dedicated Origin CA Key rather than scoped API tokens. The current documented path is `Authorization: Bearer` with an API token. If that fails on an older zone, mint an Origin CA Key from the Cloudflare dashboard once and swap the header — same overall shape.
@@ -294,7 +281,7 @@ An instance can expose extra hostnames (alias domains, extra subdomains) by:
 
 1. Adding A records for each hostname → same server IP.
 2. Adding each hostname to `proxy.hosts` in config/deploy.yml so kamal-proxy routes it.
-3. Reissuing the Cloudflare Origin CA cert with the extended `hostnames` list — the new cert replaces the old one in secrets and kamal-proxy picks it up on the next deploy. Re-running `brain cert:bootstrap --push-to 1password` (or `--push-to gh`) after updating brain.yaml handles this.
+3. Reissuing the Cloudflare Origin CA cert with the extended `hostnames` list — the new cert replaces the old one in GitHub Actions secrets and kamal-proxy picks it up on the next deploy. Re-running `brain cert:bootstrap --push-to gh` after updating brain.yaml handles this.
 
 ## Internal port routing
 
@@ -380,13 +367,14 @@ Verified working on the pre-Kamal infra. There, the in-container Caddy terminate
 
 ### Phase 2: First standalone instance
 
-Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain cert:bootstrap`).
+Depends on: [`@rizom/brain`](./npm-packages.md) (`brain init`, `brain ssh-key:bootstrap`, `brain cert:bootstrap`, `brain secrets:push`).
 
-1. `brain init <dir> --deploy --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, CI pipeline.
-2. `brain cert:bootstrap --push-to 1password` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml and stores `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in the chosen backend. See "One-time bootstrap" above.
-3. `brain secrets:push --push-to 1password` — sync the rest of the env-backed secrets into the backend. Use `--dry-run` first if you want to preview the upload.
-4. Push to GitHub → CI provisions server, sets DNS (proxied), deploys.
-5. Verify: `https://{BRAIN_DOMAIN}` serves the brain.
+1. `brain init <dir> --deploy --model <model>` — scaffolds instance repo with brain.yaml, config/deploy.yml, repo-local Docker assets, and the publish/deploy workflows.
+2. `brain ssh-key:bootstrap --push-to gh` — creates or reuses the deploy SSH key locally, ensures the matching Hetzner SSH key exists, and pushes `KAMAL_SSH_PRIVATE_KEY` to GitHub Actions secrets.
+3. `brain secrets:push --push-to gh --dry-run` and then `brain secrets:push --push-to gh` — sync the env-backed deploy/runtime values from `.env`, `.env.local`, and `process.env` into GitHub Actions secrets.
+4. `brain cert:bootstrap --push-to gh` — issues the Cloudflare Origin CA cert for the domain declared in brain.yaml and stores `CERTIFICATE_PEM` / `PRIVATE_KEY_PEM` in GitHub Actions secrets.
+5. Push to GitHub → `Publish Image` and then `Deploy` run, provision the server, set DNS (proxied), and deploy.
+6. Verify: `https://{BRAIN_DOMAIN}` serves the brain.
 
 ### Phase 3: Migrate remaining instances
 
