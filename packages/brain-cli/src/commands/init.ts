@@ -49,10 +49,10 @@ export interface ScaffoldOptions {
  *
  * The scaffolded shape is a real package: it has its own `package.json`
  * with `@rizom/brain` and `preact` as deps so `bun install && bunx brain
- * start` works from the new dir. It also ships local `src/site.ts` and
- * `src/theme.css` convention files as editable starting points while
- * `brain.yaml` stays pinned to the model's built-in site/theme until the
- * operator opts into the local files. See
+ * start` works from the new dir. Models with an active website surface
+ * also ship local `src/site.ts` and `src/theme.css` convention files as
+ * editable starting points while `brain.yaml` stays pinned to the model's
+ * built-in site/theme until the operator opts into the local files. See
  * `docs/plans/harmonize-monorepo-apps.md` for the unified app shape.
  *
  * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
@@ -71,8 +71,10 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   writeEnvExample(dir);
   writeGitignore(dir);
   writeTsConfig(dir);
-  writeSiteSource(dir);
-  writeThemeCss(dir);
+  if (shouldScaffoldLocalSiteTheme(model)) {
+    writeSiteSource(dir);
+    writeThemeCss(dir);
+  }
   writeEnvSchema(dir, model, options.backend);
 
   // Real .env only when apiKey was supplied (interactive prompt or --api-key)
@@ -157,15 +159,14 @@ function writeReconcilableScaffoldFile(options: {
   }
 }
 
+function shouldScaffoldLocalSiteTheme(model: string): boolean {
+  return model !== "rover";
+}
+
 function getPinnedSiteTheme(
   model: string,
 ): { sitePackage: string; themePackage: string } | undefined {
   switch (model) {
-    case "rover":
-      return {
-        sitePackage: "@brains/site-default",
-        themePackage: "@brains/theme-default",
-      };
     case "ranger":
     case "relay":
       return {
@@ -1165,6 +1166,9 @@ function writeThemeCss(dir: string): void {
  */
 function writeReadme(dir: string, model: string): void {
   const name = basename(dir);
+  const siteAuthoringLines = shouldScaffoldLocalSiteTheme(model)
+    ? "- `src/site.ts` — local site scaffold built on `@rizom/brain/site`\n- `src/theme.css` — local theme scaffold\n"
+    : "";
   const content = `# ${name}
 
 A personal brain instance powered by [\`@rizom/brain\`](https://github.com/rizom-ai/brains).
@@ -1183,9 +1187,7 @@ bunx brain start
 - \`tsconfig.json\` — JSX runtime hint (Preact)
 - \`.env\` — secrets (gitignored, copy from \`.env.example\`)
 - \`brain-data/\` — content (created on first sync, gitignored by default)
-- \`src/site.ts\` — local site scaffold built on \`@rizom/brain/site\`
-- \`src/theme.css\` — local theme scaffold
-
+${siteAuthoringLines}
 This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
 plugins, change presets, or wire up integrations like Discord and MCP.
 `;

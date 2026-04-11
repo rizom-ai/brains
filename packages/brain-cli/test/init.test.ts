@@ -167,12 +167,13 @@ describe("brain init", () => {
       expect(yaml).toContain("repo: user/brain-data");
     });
 
-    it("should pin rover to its built-in site package and theme", () => {
+    it("should not scaffold dormant site refs for rover core", () => {
       scaffold(testDir, { model: "rover" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@brains/site-default"');
-      expect(yaml).toContain('theme: "@brains/theme-default"');
+      expect(yaml).not.toMatch(/^site:/m);
+      expect(yaml).not.toContain("@brains/site-default");
+      expect(yaml).not.toContain("@brains/theme-default");
     });
 
     it("should pin ranger to the kept public site package and theme", () => {
@@ -206,6 +207,14 @@ describe("brain init", () => {
     it("should create README.md", () => {
       scaffold(testDir, { model: "rover" });
       expect(existsSync(join(testDir, "README.md"))).toBe(true);
+    });
+
+    it("should not mention local site/theme files in rover README", () => {
+      scaffold(testDir, { model: "rover" });
+
+      const readme = readFileSync(join(testDir, "README.md"), "utf-8");
+      expect(readme).not.toContain("`src/site.ts`");
+      expect(readme).not.toContain("`src/theme.css`");
     });
 
     it("should create .env.example", () => {
@@ -273,24 +282,30 @@ describe("brain init", () => {
       expect(content.compilerOptions.jsxImportSource).toBe("preact");
     });
 
-    it("should create src/site.ts using the public site authoring API", () => {
+    it("should not create local site/theme scaffold for rover core", () => {
       scaffold(testDir, { model: "rover" });
 
-      const src = readFileSync(join(testDir, "src", "site.ts"), "utf-8");
-      expect(src).toContain('from "@rizom/brain/site"');
-      expect(src).toContain("professionalSitePlugin");
-      expect(src).toContain("ProfessionalLayout");
-      expect(src).toContain("professionalRoutes");
-      expect(src).toContain("export default site");
+      expect(existsSync(join(testDir, "src", "site.ts"))).toBe(false);
+      expect(existsSync(join(testDir, "src", "theme.css"))).toBe(false);
     });
 
-    it("should create src/theme.css scaffold", () => {
-      scaffold(testDir, { model: "rover" });
+    it("should create src/site.ts and src/theme.css for ranger", () => {
+      scaffold(testDir, { model: "ranger" });
 
-      const src = readFileSync(join(testDir, "src", "theme.css"), "utf-8");
-      expect(src).toContain("Palette tokens");
-      expect(src).toContain("Semantic tokens");
-      expect(src).toContain("@theme inline");
+      const siteSource = readFileSync(join(testDir, "src", "site.ts"), "utf-8");
+      expect(siteSource).toContain('from "@rizom/brain/site"');
+      expect(siteSource).toContain("professionalSitePlugin");
+      expect(siteSource).toContain("ProfessionalLayout");
+      expect(siteSource).toContain("professionalRoutes");
+      expect(siteSource).toContain("export default site");
+
+      const themeSource = readFileSync(
+        join(testDir, "src", "theme.css"),
+        "utf-8",
+      );
+      expect(themeSource).toContain("Palette tokens");
+      expect(themeSource).toContain("Semantic tokens");
+      expect(themeSource).toContain("@theme inline");
     });
 
     it("should NOT create .env when no apiKey provided", () => {
