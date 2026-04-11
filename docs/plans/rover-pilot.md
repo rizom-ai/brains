@@ -146,7 +146,7 @@ members:
 - `repoPrefix` — prepended to each handle for rover repo names
 - `contentRepoSuffix` — appended to `${repoPrefix}${handle}` for content repo names
 - `domainSuffix` — appended to handle for public FQDN
-- `preset` — default fleet preset, initially `core`
+- `preset` — default fleet preset, from enum `core | pro`, initially `core`
 
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
@@ -170,7 +170,7 @@ No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be
 
 - `members` — non-empty set of user handles
 - optional `brainVersionOverride` — exact pinned version
-- optional `presetOverride` — preset lane override such as `core` or `pro`
+- optional `presetOverride` — preset lane override from enum `core | pro`
 
 Cohorts are always active rollout groups. Historical rollout reporting lives somewhere else; it is not part of this config resolution schema.
 
@@ -200,6 +200,7 @@ Validation rules:
 - `brainVersion` and `brainVersionOverride` must be exact pinned versions, not ranges or moving tags
 - `model` is fleet-wide and comes only from `pilot.yaml`
 - `preset` may come from `pilot.yaml` or `cohort.presetOverride`, never from `users/*.yaml`
+- `preset` and `presetOverride` must be one of `core` or `pro`
 - desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
 
 ### Exact file contract
@@ -226,7 +227,7 @@ Rules:
 - `brainVersion` is an exact pinned `@rizom/brain` version string
 - `model` is a required fleet-wide model string, initially locked to `rover`
 - `repoPrefix`, `contentRepoSuffix`, and `domainSuffix` are non-empty strings
-- `preset` is a required fleet default preset, initially `core`
+- `preset` is a required fleet default preset from enum `core | pro`, initially `core`
 
 `users/<handle>.yaml`
 
@@ -259,6 +260,7 @@ Rules:
 - `members` is required, non-empty, unique, and references existing users
 - `brainVersionOverride` is optional and, when present, is an exact pinned version
 - `presetOverride` is optional and, when present, overrides `pilot.yaml.preset` for the whole cohort
+- `presetOverride` must be from enum `core | pro`
 - no other override fields are allowed
 
 Derived-but-checked files:
