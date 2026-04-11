@@ -731,6 +731,7 @@ ${workflowSecretsEnv}
             IdentityFile ~/.ssh/id_ed25519
             IdentitiesOnly yes
             BatchMode yes
+            ConnectTimeout 5
             StrictHostKeyChecking no
             UserKnownHostsFile /dev/null
           EOF
@@ -1006,7 +1007,8 @@ ${workflowSecretsEnv}
             echo "SSH not ready yet (attempt $attempt/18); retrying in 5s..."
             sleep 5
           done
-          echo "SSH never became ready for $SSH_USER@$SERVER_IP" >&2
+          echo "SSH never became ready for $SSH_USER@$SERVER_IP; last attempt output:" >&2
+          ssh "$SSH_USER@$SERVER_IP" true >&2 || true
           exit 1
 
       - name: Deploy
@@ -1028,7 +1030,7 @@ ${workflowSecretsEnv}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
-          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SERVER_IP" '
+          ssh "$SSH_USER@$SERVER_IP" '
             docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
             echo "--- kamal-proxy logs ---"
             docker logs kamal-proxy --tail 200 || true
