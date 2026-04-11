@@ -39,6 +39,13 @@ describe("parseArgs", () => {
     expect(result.flags.backend).toBe("env");
   });
 
+  it("should parse 'init' with --regen flag", () => {
+    const result = parseArgs(["init", "mybrain", "--deploy", "--regen"]);
+    expect(result.command).toBe("init");
+    expect(result.flags.deploy).toBe(true);
+    expect(result.flags.regen).toBe(true);
+  });
+
   it("should parse 'cert:bootstrap' with --push-to flag", () => {
     const result = parseArgs(["cert:bootstrap", "--push-to", "gh"]);
     expect(result.command).toBe("cert:bootstrap");

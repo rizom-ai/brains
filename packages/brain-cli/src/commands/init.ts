@@ -29,6 +29,13 @@ export interface ScaffoldOptions {
   backend?: string | undefined;
   deploy?: boolean | undefined;
   /**
+   * Regenerate derived deploy artifacts from the current instance sources
+   * (for example `.env.schema` → deploy workflow) without rewriting
+   * canonical instance config like `brain.yaml`, `.env.schema`, or
+   * `config/deploy.yml`.
+   */
+  regen?: boolean | undefined;
+  /**
    * If provided, scaffold writes a real `.env` file with `AI_API_KEY=<value>`
    * so the brain can boot immediately after init. `.env.example` is still
    * written as a template for collaborators.
@@ -85,11 +92,11 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
   // Deploy files only with --deploy
   if (options.deploy) {
     writeDeployYml(dir);
-    writePreDeployHook(dir);
-    writeDeployDockerfile(dir);
-    writeDeployCaddyfile(dir);
-    writePublishWorkflow(dir);
-    writeDeployWorkflow(dir);
+    writePreDeployHook(dir, options.regen);
+    writeDeployDockerfile(dir, options.regen);
+    writeDeployCaddyfile(dir, options.regen);
+    writePublishWorkflow(dir, options.regen);
+    writeDeployWorkflow(dir, options.regen);
   }
 }
 
@@ -103,8 +110,16 @@ function writeScaffoldFile(
   path: string,
   content: string,
   executable = false,
+  overwrite = false,
 ): void {
   mkdirSync(dirname(path), { recursive: true });
+  if (overwrite) {
+    writeFileSync(path, content);
+    if (executable) {
+      chmodSync(path, 0o755);
+    }
+    return;
+  }
   try {
     writeFileSync(path, content, { flag: "wx" });
   } catch (err) {
@@ -452,7 +467,7 @@ function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
   writeScaffoldFile(join(dir, ".env"), lines.join("\n"));
 }
 
-function writePreDeployHook(dir: string): void {
+function writePreDeployHook(dir: string, regen = false): void {
   const content = `#!/usr/bin/env bash
 # Upload brain.yaml to server before deploy
 SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
@@ -462,7 +477,12 @@ for host in "\${HOSTS[@]}"; do
 done
 `;
 
-  writeScaffoldFile(join(dir, ".kamal", "hooks", "pre-deploy"), content, true);
+  writeScaffoldFile(
+    join(dir, ".kamal", "hooks", "pre-deploy"),
+    content,
+    true,
+    regen,
+  );
 }
 
 function listEnvSchemaVariableNames(envSchema: string): string[] {
@@ -477,7 +497,7 @@ function buildWorkflowSecretsEnvBlock(dir: string): string {
     .join("\n");
 }
 
-function writePublishWorkflow(dir: string): void {
+function writePublishWorkflow(dir: string, regen = false): void {
   const content = `name: Publish Image
 
 on:
@@ -531,10 +551,12 @@ jobs:
   writeScaffoldFile(
     join(dir, ".github", "workflows", "publish-image.yml"),
     content,
+    false,
+    regen,
   );
 }
 
-function writeDeployDockerfile(dir: string): void {
+function writeDeployDockerfile(dir: string, regen = false): void {
   const content = `FROM oven/bun:1.3.10-slim
 
 WORKDIR /app
@@ -561,10 +583,10 @@ RUN mkdir -p /app/data /app/cache /app/brain-data && \\
 CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
 `;
 
-  writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content);
+  writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content, false, regen);
 }
 
-function writeDeployCaddyfile(dir: string): void {
+function writeDeployCaddyfile(dir: string, regen = false): void {
   const content = `# Internal Caddy — path-based routing to brain services.
 # kamal-proxy handles SSL + host routing externally.
 # This Caddy runs inside the container, no TLS.
@@ -630,10 +652,10 @@ function writeDeployCaddyfile(dir: string): void {
 }
 `;
 
-  writeScaffoldFile(join(dir, "deploy", "Caddyfile"), content);
+  writeScaffoldFile(join(dir, "deploy", "Caddyfile"), content, false, regen);
 }
 
-function writeDeployWorkflow(dir: string): void {
+function writeDeployWorkflow(dir: string, regen = false): void {
   const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
   const content = `name: Deploy
 
@@ -1039,6 +1061,16 @@ ${workflowSecretsEnv}
             docker inspect kamal-proxy || true
           '
 `;
+
+  if (regen) {
+    writeScaffoldFile(
+      join(dir, ".github", "workflows", "deploy.yml"),
+      content,
+      false,
+      true,
+    );
+    return;
+  }
 
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "deploy.yml"),

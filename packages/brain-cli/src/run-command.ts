@@ -103,7 +103,8 @@ async function runInit(
   if (!target) {
     return {
       success: false,
-      message: "Usage: brain init <directory> [--model rover] [--backend none]",
+      message:
+        "Usage: brain init <directory> [--model rover] [--backend none] [--deploy] [--regen]",
     };
   }
 
@@ -119,6 +120,7 @@ async function runInit(
     contentRepo: parsed.flags["content-repo"],
     backend: parsed.flags.backend,
     deploy: parsed.flags.deploy,
+    regen: parsed.flags.regen,
     apiKey: parsed.flags["ai-api-key"],
   };
 
@@ -251,6 +253,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --content-repo <repo>  Content repo (e.g. github:user/brain-data)",
     "  --backend <name>       Secret backend (default: none — env vars resolved by varlock)",
     "  --deploy               Include Kamal deploy files (config/deploy.yml, CI, hooks)",
+    "  --regen                Regenerate derived deploy artifacts from current scaffold sources",
     "",
     "Secret push / cert bootstrap options:",
     "  --push-to <target>     Push target (only `gh` is supported)",

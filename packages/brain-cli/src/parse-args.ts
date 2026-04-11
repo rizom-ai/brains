@@ -13,6 +13,7 @@ export interface ParsedArgs {
     "no-interactive"?: boolean | undefined;
     preview?: boolean | undefined;
     deploy?: boolean | undefined;
+    regen?: boolean | undefined;
     all?: boolean | undefined;
     only?: string | undefined;
     "dry-run"?: boolean | undefined;
@@ -33,6 +34,7 @@ const options = {
   "no-interactive": { type: "boolean" as const },
   preview: { type: "boolean" as const },
   deploy: { type: "boolean" as const },
+  regen: { type: "boolean" as const },
   all: { type: "boolean" as const },
   only: { type: "string" as const },
   "dry-run": { type: "boolean" as const },
@@ -94,6 +96,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       "no-interactive": getBoolean(values, "no-interactive"),
       preview: getBoolean(values, "preview"),
       deploy: getBoolean(values, "deploy"),
+      regen: getBoolean(values, "regen"),
       all: getBoolean(values, "all"),
       only: getString(values, "only"),
       "dry-run": getBoolean(values, "dry-run"),

@@ -567,6 +567,66 @@ describe("brain init", () => {
         ),
       ).toBe(customWorkflow);
     });
+
+    it("should regenerate derived deploy artifacts when --deploy --regen is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: custom.example.com", ""].join("\n"),
+      );
+      writeFileSync(
+        join(testDir, ".env.schema"),
+        [
+          "# @required @sensitive",
+          "AI_API_KEY=",
+          "# @required @sensitive",
+          "EXTRA_SECRET=",
+          "# @required @sensitive",
+          "KAMAL_SSH_PRIVATE_KEY=",
+          "# @required @sensitive",
+          "KAMAL_REGISTRY_PASSWORD=",
+          "# @required @sensitive",
+          "CF_API_TOKEN=",
+          "# @required",
+          "CF_ZONE_ID=",
+          "# @required @sensitive",
+          "CERTIFICATE_PEM=",
+          "# @required @sensitive",
+          "PRIVATE_KEY_PEM=",
+          "# @required @sensitive",
+          "HCLOUD_TOKEN=",
+          "# @required",
+          "HCLOUD_SSH_KEY_NAME=",
+          "# @required",
+          "HCLOUD_SERVER_TYPE=",
+          "# @required",
+          "HCLOUD_LOCATION=",
+          "",
+        ].join("\n"),
+      );
+      const customDeployYml = "service: custom\nimage: custom/image\n";
+      mkdirSync(join(testDir, "config"), { recursive: true });
+      writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "name: Custom Deploy\n",
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true, regen: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain("name: Deploy");
+      expect(workflow).toContain("EXTRA_SECRET: ${{ secrets.EXTRA_SECRET }}");
+      expect(readFileSync(join(testDir, "config", "deploy.yml"), "utf-8")).toBe(
+        customDeployYml,
+      );
+      expect(readFileSync(join(testDir, ".env.schema"), "utf-8")).toContain(
+        "EXTRA_SECRET=",
+      );
+    });
   });
 
   describe("deploy scaffold (--deploy flag)", () => {
