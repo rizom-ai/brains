@@ -723,6 +723,19 @@ ${workflowSecretsEnv}
           });
           NODE
 
+      - name: Configure SSH client
+        run: |
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
+
       - name: Write .kamal/secrets
         run: |
           mkdir -p .kamal
@@ -980,6 +993,21 @@ ${workflowSecretsEnv}
 
       - name: Validate SSH key
         run: ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+
+      - name: Wait for SSH access
+        env:
+          SERVER_IP: \${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+          for attempt in $(seq 1 18); do
+            if ssh "$SSH_USER@$SERVER_IP" true >/dev/null 2>&1; then
+              exit 0
+            fi
+            echo "SSH not ready yet (attempt $attempt/18); retrying in 5s..."
+            sleep 5
+          done
+          echo "SSH never became ready for $SSH_USER@$SERVER_IP" >&2
+          exit 1
 
       - name: Deploy
         env:

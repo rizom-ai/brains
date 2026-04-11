@@ -312,6 +312,20 @@ Follow-up automation contract:
   - `brain secrets:push` remains the generic resync path after bootstrap
 - `_FILE` path resolution should treat `~/...` as the operator home directory, not a repo-relative path
 
+A fourth live issue appeared after the SSH key bytes themselves were fixed:
+
+- a fresh Hetzner server could be provisioned successfully
+- but immediate SSH login still failed at the first Kamal step with password prompts / `Permission denied (publickey,password)`
+
+Permanent workflow fix:
+
+- write an explicit `~/.ssh/config` in Actions so both plain `ssh` and Kamal use:
+  - `IdentityFile ~/.ssh/id_ed25519`
+  - `IdentitiesOnly yes`
+  - `BatchMode yes`
+  - noninteractive host-key options already used elsewhere in the workflow
+- add a short SSH readiness wait after provisioning so a just-created server is not handed to Kamal before key-based login is actually usable
+
 ## Related
 
 - `docs/plans/rizom-ai-first-deploy.md`
