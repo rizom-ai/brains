@@ -75,9 +75,17 @@ These are the locked decisions for cohort 1. Later cohorts may revisit them base
 
 A separate `rover-pilot` repo is created. It is **operator coordination plus lightweight batch input**, not a hosted-rover control plane. Kamal configs, GitHub workflows, deploy secrets, and live `brain.yaml` still live in each user's repo.
 
-Any helper automation for this flow lives as **repo-local scripts inside `rover-pilot`**, not as new public `brain` CLI commands.
+Any helper automation for this flow lives in **private repo-local code inside `rover-pilot`**, not as new public `brain` CLI commands.
 
 Human-editable source of truth should be YAML, not CSV. Operators can review status in a generated Markdown table, but table is derived output, not thing people edit.
+
+Implementation shape should mirror `brain-cli` structurally, but stay private and repo-local:
+
+- thin `scripts/*` entrypoints
+- one private repo-local package/library that holds registry loading, validation, reconcile logic, and provider adapters
+- no long-term pilot ops code inside `brains`
+
+If a prototype starts inside `brains`, treat it as disposable incubator code to extract into `rover-pilot`, not permanent architecture.
 
 ```
 rover-pilot/
@@ -93,11 +101,15 @@ rover-pilot/
 │   └── bob.yaml
 ├── views/
 │   └── users.md                 # generated table for operator review
+├── packages/
+│   └── rover-pilot-ops/
+│       ├── src/                 # registry loader, reconcile logic, provider adapters
+│       └── test/
 ├── scripts/
-│   ├── render-users-table.ts    # YAML -> Markdown table
-│   ├── onboard-user.ts          # thin wrapper around per-user init steps
-│   ├── reconcile-all.ts         # fleet-wide reconcile
-│   └── reconcile-cohort.ts      # one rollout group at a time
+│   ├── render-users-table.ts    # thin wrapper into private package
+│   ├── onboard-user.ts          # thin wrapper into private package
+│   ├── reconcile-all.ts         # thin wrapper into private package
+│   └── reconcile-cohort.ts      # thin wrapper into private package
 ├── docs/
 │   ├── onboarding-checklist.md  # step-by-step operator flow
 │   └── operator-playbook.md     # known gotchas, recovery procedures
@@ -276,9 +288,9 @@ Derived-but-checked files:
   - human notes only
   - ignored by config resolution
 
-### Script contract
+### Script/package contract
 
-Repo-local scripts are thin wrappers around this YAML truth:
+Repo-local scripts are thin wrappers around one private repo-local package. That package owns this YAML truth:
 
 - `scripts/render-users-table.ts`
   - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
@@ -313,6 +325,7 @@ Why this shape:
 - YAML easy for humans to edit and diff
 - per-user files avoid one giant merge-conflict magnet
 - generated Markdown gives "table" view without making Markdown or CSV source of truth
+- private repo-local package gives brain-cli-like structure without expanding public product surface
 - future operator tooling can read same files without turning them into live deploy state
 - helper automation stays private to pilot operations instead of expanding product CLI surface
 
