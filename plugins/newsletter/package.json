@@ -1,7 +1,7 @@
 {
   "name": "@brains/newsletter",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1-alpha.17",
   "description": "Newsletter composite — bundles the newsletter entity with the buttondown service plugin",
   "type": "module",
   "exports": {

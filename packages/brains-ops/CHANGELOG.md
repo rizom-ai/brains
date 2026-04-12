@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 1.0.1-alpha.17
+
+### Patch Changes
+
+- [`9040ba0`](https://github.com/rizom-ai/brains/commit/9040ba04d1c0604314d6138bb292231347387464) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the published `@rizom/ops` package so the installed CLI can scaffold deploy helpers without monorepo-only imports, and the `@rizom/ops/deploy` export resolves correctly from npm.
+
 ## 0.2.0-alpha.0
 
 ### Minor Changes

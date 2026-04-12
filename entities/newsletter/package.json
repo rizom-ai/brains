@@ -1,7 +1,7 @@
 {
   "name": "@brains/newsletter-entity",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.1-alpha.17",
   "description": "Newsletter entity type with AI generation and publish pipeline",
   "type": "module",
   "exports": {
