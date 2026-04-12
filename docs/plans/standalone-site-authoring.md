@@ -1,312 +1,215 @@
-# Plan: Decouple Themes from Sites + Standalone Site Authoring
+# Plan: Final Site/Theme Placement
 
 ## Context
 
-`apps/mylittlephoney` is the first standalone brain repo built against
-published `@rizom/brain`. Getting it to boot revealed that the current
-site/theme coupling is the wrong shape.
+Foundation already done:
 
-**Today:** `SitePackage` has a `theme: string` field. The site owns
-its theme. A site is "personal layout + pink theme" baked together
-at site construction time. Swapping themes means forking the site
-package or hardcoding branches.
+- themes decoupled from sites
+- `brain.yaml` can resolve site and theme independently
+- standalone repos can use local `src/site.ts` and `src/theme.css`
+- `brain init` scaffolds local convention files
+- `mylittlephoney` already proved standalone pattern
+- `yeehaa.io` already lives in standalone repo and deploys successfully
 
-**What we want:** a site is structure (layouts, routes, plugin,
-entity display). A theme is styling (CSS tokens, colors, fonts).
-They are two independent inputs to the resolver, composed at resolve
-time. `brain.yaml` still colocates them under `site:` for UX (users
-think "my site looks like X", not "my site is X and my theme is Y"),
-but the internal data model keeps them separate.
+So next question not architecture. Next question is ownership:
 
-## Core change — decouple theme from site
+- which sites stay in monorepo
+- which themes stay in monorepo
+- which packages should be deleted first
+- which branded code should later move into standalone repos
 
-### SitePackage type change
+## Inventory: actual theme usage now
 
-Drop the `theme` field from `SitePackage`:
+Based on current code references in repo:
 
-```ts
-// shell/app/src/site-package.ts
-export interface SitePackage {
-  layouts: Record<string, unknown>;
-  routes: RouteDefinitionInput[];
-  plugin: (config?: Record<string, unknown>) => Plugin;
-  entityDisplay: Record<string, EntityDisplayEntry>;
-  staticAssets?: Record<string, string>;
-  // theme: string  ← REMOVED
-}
-```
+### Active runtime themes
 
-`staticAssets` stays on the site because favicon / hero images /
-canvas scripts are site-owned, not theme-owned. Fonts that belong
-to the theme move with the theme CSS itself.
+These still have real runtime consumers in code paths, not just docs/tests:
 
-### Theme package contract
+- `shared/theme-base`
+- `shared/theme-default`
+- `shared/theme-rizom`
+- `shared/theme-brutalist`
 
-A theme package exports the **raw** CSS string (not pre-composed):
+### Deleted unused themes
 
-```ts
-// shared/theme-mylittlephoney/src/index.ts
-import rawCSS from "./theme.css" with { type: "text" };
-export default rawCSS;
-```
+These had no active runtime consumer and were removed from monorepo:
 
-The `composeTheme()` call (which prepends `theme-base` utilities)
-moves to the **resolver**. Theme packages never call it themselves.
-Benefits:
+- `shared/theme-editorial`
+- `shared/theme-geometric`
+- `shared/theme-neo-retro`
+- `shared/theme-swiss`
+- `shared/theme-yeehaa`
 
-- No "did I remember to compose?" footgun
-- No double-composition if a theme package is accidentally composed twice
-- One place to change how composition works
-- `composeTheme` becomes internal to the framework, not part of the
-  public theme-authoring contract
+That leaves only active/shared themes in repo before any yeehaa-local cut.
 
-Each existing theme in the monorepo loses its `composeTheme()` wrap
-in `index.ts`.
+## Decision summary
 
-### brain.yaml schema (unchanged UX)
+### Rule 1 — keep only active or shared themes in monorepo
 
-`brain.yaml` keeps the same nested shape. Users still write:
+Theme stays in `brains` only if at least one of these is true:
 
-```yaml
-site:
-  package: "@scope/site-personal" # structural
-  theme: "./src/theme.css" # or "@scope/theme-pink"
-```
+- active runtime consumer exists
+- shared by more than one app/brain
+- part of public/default framework surface
 
-Both `site.package` and `site.theme` are resolved independently by
-the CLI before `resolve()` runs. The user's mental model ("I pick a
-site, I pick a theme") is preserved at the yaml level.
+### Rule 2 — delete dead themes before moving branded active themes
 
-### Resolver flow
+If theme has no active runtime consumer, delete it first.
+Do not keep dead themes around because they might maybe be useful later.
 
-`resolveSitePackage` gets a sibling `resolveTheme`. Both are called
-from `brain-resolver.ts`:
+### Rule 3 — single-instance branding can move later
 
-```ts
-const site = resolveSitePackage(definition, overrides);
-const themeCSS = resolveTheme(definition, overrides); // NEW
+For extracted standalone apps like `yeehaa.io`, local `src/site.ts` and `src/theme.css`
+are still preferred end state. But that comes **after** dead-package cleanup, not before.
 
-// Inject BOTH into site-builder config
-pluginOverrides["site-builder"] = deepMerge(
-  {
-    themeCSS: composeTheme(themeCSS), // compose here, once
-    routes: site.routes,
-    entityDisplay: site.entityDisplay,
-    layouts: site.layouts,
-    staticAssets: site.staticAssets,
-  },
-  pluginOverrides["site-builder"] ?? {},
-);
-```
+## Final placement map
 
-`resolveTheme` checks brain.yaml's `site.theme` field → theme
-package registry → fallback to brain definition's default theme.
+## Themes
 
-### Brain definition changes
+### Keep in monorepo
 
-`BrainDefinition` gains an optional `theme: string` (the default
-theme package name). Today rover's definition only has `site:`; it
-also declares its default theme:
+| Theme                    | Why                                                                                |
+| ------------------------ | ---------------------------------------------------------------------------------- |
+| `shared/theme-base`      | framework base layer                                                               |
+| `shared/theme-default`   | active default runtime theme                                                       |
+| `shared/theme-rizom`     | active shared Rizom theme                                                          |
+| `shared/theme-brutalist` | still active via yeehaa package refs; delete later only after yeehaa local cutover |
 
-```ts
-// brains/rover/src/index.ts
-import defaultSite from "@brains/site-default";
-import defaultTheme from "@brains/theme-default";
+### Deleted
 
-defineBrain({
-  // ...
-  site: defaultSite,
-  theme: defaultTheme, // NEW
-});
-```
+| Theme                    | Why                                            |
+| ------------------------ | ---------------------------------------------- |
+| `shared/theme-editorial` | no active runtime consumer found               |
+| `shared/theme-geometric` | no active runtime consumer found               |
+| `shared/theme-neo-retro` | no active runtime consumer found               |
+| `shared/theme-swiss`     | no active runtime consumer found               |
+| `shared/theme-yeehaa`    | legacy/orphaned; not current live yeehaa theme |
 
-Existing site packages drop their theme import and stop setting
-`theme` on the returned `SitePackage`.
+## Sites
 
-## Convention discovery for standalone repos
+### Keep in monorepo
 
-With themes decoupled, standalone repos get a flat two-file
-convention:
+| Site                 | Why                                           |
+| -------------------- | --------------------------------------------- |
+| `sites/default`      | core reusable site                            |
+| `sites/personal`     | public authoring surface / reusable structure |
+| `sites/professional` | public authoring surface / reusable structure |
+| `sites/rizom`        | shared Rizom site package                     |
 
-```
-~/Documents/mylittlephoney/
-├── brain.yaml        # site/theme fields optional (convention picks defaults)
-├── package.json      # @rizom/brain + preact
-├── tsconfig.json
-├── src/
-│   ├── site.ts       # default export: SitePackage (no theme field)
-│   └── theme.css     # raw CSS, auto-composed at resolve time
-└── deploy/
-```
+### Keep for now, decide later
 
-Both files are discovered at runtime if present:
+| Site           | Why                                                                                            |
+| -------------- | ---------------------------------------------------------------------------------------------- |
+| `sites/yeehaa` | still backs current yeehaa package ref path; local cutover can happen after dead theme cleanup |
 
-- `src/site.ts` present → use as site package (override rover's default)
-- `src/theme.css` present → use as theme (override rover's default)
-- Neither present → use brain definition's defaults
-- Both present → use both
+## Order of work
 
-`brain.yaml` can override either independently:
+### Phase 1 — delete all unused themes
 
-```yaml
-# Use convention site but custom theme
-site:
-  theme: "@scope/theme-dark"
+Deleted:
 
-# Use built-in personal site but local theme
-site:
-  package: "@rizom/brain/site/personal"
-  theme: "./src/theme.css"
-```
+- `shared/theme-editorial`
+- `shared/theme-geometric`
+- `shared/theme-neo-retro`
+- `shared/theme-swiss`
+- `shared/theme-yeehaa`
 
-## What mylittlephoney becomes
+Also clean references in:
 
-```
-~/Documents/mylittlephoney/
-├── brain.yaml        # no site/theme fields (convention)
-├── package.json      # @rizom/brain + preact
-├── tsconfig.json
-├── src/
-│   ├── site.ts       # 20 lines: imports from @rizom/brain/site, exports SitePackage
-│   └── theme.css     # raw pink CSS
-└── deploy/
-```
+- docs
+- package inventory docs
+- export tests
+- `bun.lock`
+- any package manifests or examples that still mention them
 
-No sub-package. No `@brains/*` fake scope. No `composeTheme` call in
-user code. No `file:./site` dep. `package.json` has two real deps.
+Goal:
 
-## Priorities
+- monorepo contains only active/shared themes
+- no dead branded or stock themes remain
 
-### P1 — Decouple theme from site (CORE)
+### Phase 2 — verify surviving theme set
 
-The architectural change that unblocks everything else.
+After Phase 1, surviving monorepo theme set should be:
 
-- Drop `theme` from `SitePackage` type
-- Add `theme` to `BrainDefinition` type
-- Add `resolveTheme` to brain-resolver, sibling of `resolveSitePackage`
-- Move `composeTheme()` call into the resolver
-- Update all existing site packages (`site-default`, `site-ranger`,
-  `site-rizom`, `site-yeehaa`, `site-mylittlephoney`) to drop theme
-- Update all existing theme packages to export raw CSS
-- Update brain definitions (rover, ranger, relay) to declare theme
-- Update `@rizom/brain/themes` exports if shape changes
-- Publish as alpha
+- `theme-base`
+- `theme-default`
+- `theme-rizom`
+- `theme-brutalist`
 
-**Effort:** ~3 hours. Mostly touching existing workspace packages.
+At that point theme inventory becomes small and intentional.
 
-### P2 — Convention discovery for `src/site.ts` and `src/theme.css`
+### Phase 3 — handle yeehaa final cut
 
-Once themes are decoupled, auto-discovery is trivial.
+Only after dead-theme cleanup:
 
-- `registerConventionalSite(cwd)` — check `<cwd>/src/site.ts`, import,
-  register in package registry under synthetic key
-- `registerConventionalTheme(cwd)` — check `<cwd>/src/theme.css`,
-  read as text, register in package registry under synthetic key
-- Wire both into `setBootFn` in the brain-cli entrypoint
-- Resolver picks them up via the existing registry lookup path
+Option A:
 
-**Effort:** ~1 hour.
+- keep `sites/yeehaa` + `theme-brutalist` in monorepo longer
 
-### P3 — `brain init` scaffolds both convention files
+Option B:
 
-`brain init` scaffolds `src/site.ts` + `src/theme.css`, but only after the
-public site-authoring surface is broad enough to scaffold against.
-That means P4 lands first.
+- move yeehaa structure and styling into `rizom-ai/yeehaa-io`
+  - `src/site.ts`
+  - `src/theme.css`
+- then delete:
+  - `sites/yeehaa`
+  - `shared/theme-brutalist`
 
-The scaffold should emit:
+Current preference remains local convention for standalone repos, but this is second step, not first.
 
-- `src/site.ts` built on the stable `@rizom/brain/site` authoring API
-- `src/theme.css` with an empty palette / semantic-token comment block
-- no `@brains/*` imports, no sub-package hack, no manual composition step
-- `brain.yaml` keeps the model's built-in `site.package` / `site.theme`
-  pinned initially so the scaffolded local files are safe to edit before the
-  operator opts into the convention by removing those explicit refs
+## Why this order
 
-**Effort:** ~1 hour (two template strings + tests).
+Because right now biggest source of confusion is dead theme inventory.
 
-### P4 — widen `@rizom/brain/site` for standalone authoring
+If we first localize yeehaa while dead themes still sit in monorepo, package inventory stays muddy.
+If we first remove dead themes, remaining decisions become obvious:
 
-Before scaffolding files, the public site entry needs to cover both site
-shapes we actually ship.
-
-This priority adds:
-
-- `professionalSitePlugin`
-- `ProfessionalLayout`
-- any small helper/factory surface needed to make `src/site.ts`
-  concise and stable for both personal and professional sites
-
-This keeps `brain init` from generating code against an incomplete
-public API.
-
-**Effort:** ~30–60 min.
-
-### Dropped
-
-- ~~Site package factory with theme config parameter~~ — obsolete
-  after P1. Themes are resolver-level, not site-level, so the factory
-  doesn't need to know about them.
-- ~~Broadening `isScopedPackageRef` to bare names~~ — moot after P2.
-  The convention gives consumers a way to ship local files without
-  needing a package name at all.
-
-## Recommended ordering
-
-1. **P1 first** (decouple). Biggest architectural change, unblocks
-   everything.
-2. **P2** (convention). Trivial after P1.
-3. **P4** (public site-authoring surface). Needed before scaffolded
-   `src/site.ts` can target a stable API.
-4. **P3** (scaffold). Emit files only after the authoring surface is ready.
-
-Total estimated effort: **~5 hours** including alpha publish cycles
-and mylittlephoney retrofit.
+- framework/shared themes stay
+- active yeehaa theme stays temporarily
+- later yeehaa cut can be done cleanly
 
 ## Validation
 
-Each priority lands with:
+### Phase 1 validation
 
-- Failing tests written first (TDD)
-- `@rizom/brain` alpha bump and publish
-- mylittlephoney migrated to the new pattern
-- Boot verified end-to-end (correct site plugin active, correct
-  palette in compiled CSS)
+After deleted-theme cleanup:
 
-Phase 1 of `docs/plans/harmonize-monorepo-apps.md` stays "in
-progress" until P1–P3 land AND mylittlephoney has run with real
-content long enough to catch edge cases not hit during the initial
-extraction.
+- theme export tests updated or reduced appropriately
+- docs no longer advertise deleted themes
+- package inventory docs match reality
+- root install / lockfile consistent
+- targeted tests pass for touched areas
+
+### Phase 3 validation
+
+If/when yeehaa local cut happens later:
+
+- `bunx brain start` in standalone repo uses local convention correctly
+- deploy still passes
+- `yeehaa.io` still returns `200`
 
 ## Non-goals
 
-- **Runtime theme switching** — themes are resolved at boot, not
-  hot-swapped. A brain instance has one theme active per process.
-  Users who want multi-theme can run multiple brain instances on
-  different ports with different brain.yaml files.
-- **Theme tokens in brain.yaml** — individual token overrides
-  (`--color-brand: #ff00ff`) are not supported via yaml. Theme is
-  pick-from-list OR local-file, not composed at the token level.
-- **Per-route themes** — one theme per brain instance. Different
-  routes cannot use different themes.
+- redesign yeehaa now
+- move yeehaa site/theme now as part of same cleanup
+- preserve dead themes for hypothetical future reuse
+- expand public theme catalog before real consumers exist
 
 ## Status
 
-- [x] P1: Decouple theme from site
-  - [x] Drop `theme` field from `SitePackage`
-  - [x] Add `theme` field to `BrainDefinition`
-  - [x] Add `resolveTheme` to brain-resolver
-  - [x] Move `composeTheme()` into the resolver
-  - [x] Update `site-default`, `site-ranger`, `site-rizom`,
-        `site-yeehaa`, `site-mylittlephoney`
-  - [x] Update all theme packages to export raw CSS
-  - [x] Update rover / ranger / relay brain definitions
-  - [x] Publish alpha
-- [x] P2: Convention discovery for `src/site.ts` + `src/theme.css`
-  - [x] Register local `src/site.ts` and `src/theme.css` under synthetic package refs
-  - [x] Apply the convention only when `site.package` / `site.theme` are omitted
-  - [x] Support both bundled CLI boot and generated static entrypoints
-- [x] P3: `brain init` scaffolds both files
-- [x] P4: widen `@rizom/brain/site` for standalone authoring
-  - [x] expose professional site symbols alongside the personal ones
-  - [x] keep the public API concentrated under `@rizom/brain/site`
-- [x] mylittlephoney retrofit to the new shape
+- [x] decouple themes from sites
+- [x] support standalone `src/site.ts` and `src/theme.css`
+- [x] make `brain init` scaffold local convention files
+- [x] extract and deploy `yeehaa.io` as standalone repo
+- [x] delete unused themes from monorepo
+- [x] clean docs/tests/manifests after deletion
+- [ ] decide final yeehaa local cut after dead-theme cleanup
+
+## Related
+
+- `docs/plans/standalone-apps.md`
+- `docs/plans/harmonize-monorepo-apps.md`
+- `docs/plans/public-release-cleanup.md`
+- `docs/architecture/package-structure.md`
+- `docs/theming-guide.md`

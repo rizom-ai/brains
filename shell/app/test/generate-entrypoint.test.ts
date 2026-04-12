@@ -18,15 +18,13 @@ describe("generateEntrypoint", () => {
 brain: "@brains/rover"
 plugins:
   site-builder:
-    themeCSS: "@brains/theme-editorial"
+    themeCSS: "@brains/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/theme-editorial"');
-    expect(code).toContain(
-      'registerPackage("@brains/theme-editorial", __pkg0)',
-    );
+    expect(code).toContain('import __pkg0 from "@brains/theme-default"');
+    expect(code).toContain('registerPackage("@brains/theme-default", __pkg0)');
   });
 
   test("should handle multiple package refs across plugins", () => {

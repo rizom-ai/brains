@@ -63,7 +63,7 @@ interfaces/*, brains/*, sites/*, packages/*
 **Framework code:**
 
 - `shell/*` — core framework (entity-service, ai-service, messaging-service, app, core, …)
-- `shared/*` — utilities, types, test-utils, mcp-bridge, image, config packages, plus generic themes (`theme-base`, `theme-default`, `theme-editorial`, `theme-geometric`, `theme-swiss`, `theme-neo-retro`, `theme-brutalist`)
+- `shared/*` — utilities, types, test-utils, mcp-bridge, image, config packages, plus active themes (`theme-base`, `theme-default`, `theme-rizom`, `theme-brutalist`)
 - `entities/*` — entity definitions (post, link, deck, blog, note, project, social-media, topics, portfolio, summary, wishlist, image, agent-discovery, prompt, site-info, newsletter, products, series, …)
 - `interfaces/*` — cli, mcp, webserver, discord, a2a, chat-repl
 - `plugins/*` — all plugins (analytics, buttondown, content-pipeline, dashboard, directory-sync, examples, hackmd, notion, obsidian-vault, site-builder, site-content, stock-photo, newsletter composite)
@@ -85,7 +85,7 @@ interfaces/*, brains/*, sites/*, packages/*
 **Branded themes that ship publicly (paired with public sites):**
 
 - `shared/theme-rizom` — rizom brand theme (paired with `sites/rizom`)
-- `shared/theme-yeehaa` — yeehaa.io brand theme (paired with `sites/yeehaa`)
+- `shared/theme-brutalist` — yeehaa.io live theme (currently paired with `sites/yeehaa`)
 
 **Apps (4 current) — lightweight instance packages, not workspace members:**
 
@@ -589,7 +589,7 @@ These edits were made in the current working tree so they merge into the private
 | File                                                         | Change                                                                                                                                                                                           |
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `shell/app/test/instance-overrides.test.ts`                  | `@brains/relay` → `@brains/rover` (29×), `@brains/site-mylittlephoney` → `@brains/site-default` (2×), `rizom-ai/team-brain-content` → `your-org/your-content`, test name "team-brain" → neutral  |
-| `shell/app/test/generate-entrypoint.test.ts`                 | `@brains/theme-mylittlephoney` → `@brains/theme-editorial` (3×), `@brains/site-mylittlephoney` → `@brains/site-default` (5×)                                                                     |
+| `shell/app/test/generate-entrypoint.test.ts`                 | `@brains/theme-mylittlephoney` → `@brains/theme-default` (3×), `@brains/site-mylittlephoney` → `@brains/site-default` (5×)                                                                       |
 | `shell/app/test/generate-model-entrypoint.test.ts`           | `@brains/site-yeehaa` → `@example/site-alpha` (4×), `@brains/site-mylittlephoney` → `@example/site-beta` (4×)                                                                                    |
 | `shell/app/test/override-package-refs.test.ts`               | `@brains/site-mylittlephoney` → `@brains/site-default` (4×)                                                                                                                                      |
 | `shell/app/test/build-model-npm.test.ts`                     | `ranger` → `sentry` model name (forward-looking fictional placeholder)                                                                                                                           |

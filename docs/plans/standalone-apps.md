@@ -110,7 +110,7 @@ Themes (CSS) are decoupled from the brain model image. An instance can point to 
 
 ```yaml
 # brain.yaml
-theme: github:rizom-ai/theme-yeehaa
+theme: github:your-org/theme-your-brain
 ```
 
 At startup, the brain fetches the theme CSS from the repo. No rebuild needed — styling is fully configurable per instance.

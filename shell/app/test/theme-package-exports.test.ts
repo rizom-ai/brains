@@ -4,11 +4,6 @@ const themeIndexFiles = [
   "../../../shared/theme-default/src/index.ts",
   "../../../shared/theme-rizom/src/index.ts",
   "../../../shared/theme-brutalist/src/index.ts",
-  "../../../shared/theme-yeehaa/src/index.ts",
-  "../../../shared/theme-editorial/src/index.ts",
-  "../../../shared/theme-geometric/src/index.ts",
-  "../../../shared/theme-neo-retro/src/index.ts",
-  "../../../shared/theme-swiss/src/index.ts",
 ] as const;
 
 describe("theme package exports", () => {

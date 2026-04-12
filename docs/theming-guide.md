@@ -524,7 +524,7 @@ Or create a component variant with the right specificity built-in.
 - [CSS Custom Properties (MDN)](https://developer.mozilla.org/en-US/docs/Web/CSS/--*)
 - Theme Examples:
   - [theme-default](../shared/theme-default/src/theme.css)
-  - [theme-yeehaa](../shared/theme-yeehaa/src/theme.css)
+  - [theme-rizom](../shared/theme-rizom/src/theme.css)
 
 ---
 

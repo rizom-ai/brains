@@ -480,7 +480,7 @@
     },
     "packages/brain-cli": {
       "name": "@rizom/brain",
-      "version": "0.1.1-alpha.9",
+      "version": "0.1.1-alpha.16",
       "bin": {
         "brain": "./dist/brain.js",
       },
@@ -523,6 +523,23 @@
         "lightningcss": "^1.29.2",
         "react-devtools-core": "^6.1.1",
         "sharp": "^0.34.5",
+      },
+    },
+    "packages/brains-ops": {
+      "name": "@brains/ops",
+      "version": "0.1.0",
+      "bin": {
+        "brains-ops": "./src/entrypoint.ts",
+      },
+      "dependencies": {
+        "@brains/utils": "workspace:*",
+        "zod": "^3.23.8",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "typescript": "^5.3.3",
       },
     },
     "plugins/analytics": {
@@ -871,73 +888,8 @@
         "typescript": "^5.3.3",
       },
     },
-    "shared/theme-editorial": {
-      "name": "@brains/theme-editorial",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/theme-geometric": {
-      "name": "@brains/theme-geometric",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/theme-neo-retro": {
-      "name": "@brains/theme-neo-retro",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "shared/theme-rizom": {
       "name": "@brains/theme-rizom",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/theme-swiss": {
-      "name": "@brains/theme-swiss",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/theme-base": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
-    "shared/theme-yeehaa": {
-      "name": "@brains/theme-yeehaa",
       "version": "0.1.0",
       "dependencies": {
         "@brains/theme-base": "workspace:*",
@@ -1438,6 +1390,8 @@
 
     "@brains/obsidian-vault": ["@brains/obsidian-vault@workspace:plugins/obsidian-vault"],
 
+    "@brains/ops": ["@brains/ops@workspace:packages/brains-ops"],
+
     "@brains/plugin-examples": ["@brains/plugin-examples@workspace:plugins/examples"],
 
     "@brains/plugins": ["@brains/plugins@workspace:shell/plugins"],
@@ -1492,17 +1446,7 @@
 
     "@brains/theme-default": ["@brains/theme-default@workspace:shared/theme-default"],
 
-    "@brains/theme-editorial": ["@brains/theme-editorial@workspace:shared/theme-editorial"],
-
-    "@brains/theme-geometric": ["@brains/theme-geometric@workspace:shared/theme-geometric"],
-
-    "@brains/theme-neo-retro": ["@brains/theme-neo-retro@workspace:shared/theme-neo-retro"],
-
     "@brains/theme-rizom": ["@brains/theme-rizom@workspace:shared/theme-rizom"],
-
-    "@brains/theme-swiss": ["@brains/theme-swiss@workspace:shared/theme-swiss"],
-
-    "@brains/theme-yeehaa": ["@brains/theme-yeehaa@workspace:shared/theme-yeehaa"],
 
     "@brains/topics": ["@brains/topics@workspace:entities/topics"],
 
@@ -3049,6 +2993,8 @@
     "zod-to-json-schema": ["zod-to-json-schema@3.25.1", "", { "peerDependencies": { "zod": "^3.25 || ^4" } }, "sha512-pM/SU9d3YAggzi6MtR4h7ruuQlqKtad8e9S0fmxcMi+ueAK5Korys/aWcV9LIIHTVbj01NdzxcnXSN+O74ZIVA=="],
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
+
+    "@brains/ops/@types/bun": ["@types/bun@1.3.12", "", { "dependencies": { "bun-types": "1.3.12" } }, "sha512-DBv81elK+/VSwXHDlnH3Qduw+KxkTIWi7TXkAeh24zpi5l0B2kUg9Ga3tb4nJaPcOFswflgi/yAvMVBPrxMB+A=="],
 
     "@changesets/apply-release-plan/detect-indent": ["detect-indent@6.1.0", "", {}, "sha512-reYkTUJAZb9gUuZ2RvVCNhVHdg62RHnJ7WJl8ftMi4diZ6NWlciOzQN88pUhSELEwflJht4oQDv0F0BMlwaYtA=="],
 
