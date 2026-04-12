@@ -1,7 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
-import { parseEnv } from "node:util";
 
 export function readLocalEnvValues(cwd: string): Record<string, string> {
   const values: Record<string, string> = {};
@@ -11,7 +10,7 @@ export function readLocalEnvValues(cwd: string): Record<string, string> {
       continue;
     }
 
-    const parsed = parseEnv(readFileSync(envPath, "utf8"));
+    const parsed = parseLocalEnv(readFileSync(envPath, "utf8"));
     for (const [key, value] of Object.entries(parsed)) {
       if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
         values[key] = value;
@@ -40,4 +39,37 @@ export function resolveLocalPath(filePath: string, cwd: string): string {
   }
 
   return resolve(cwd, filePath);
+}
+
+function parseLocalEnv(content: string): Record<string, string> {
+  const values: Record<string, string> = {};
+
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+
+    const separatorIndex = line.indexOf("=");
+    if (separatorIndex <= 0) {
+      continue;
+    }
+
+    const key = line.slice(0, separatorIndex).trim();
+    const rawValue = line.slice(separatorIndex + 1).trim();
+    values[key] = unquoteEnvValue(rawValue);
+  }
+
+  return values;
+}
+
+function unquoteEnvValue(value: string): string {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
+    return value.slice(1, -1);
+  }
+
+  return value;
 }
