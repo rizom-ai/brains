@@ -11,12 +11,12 @@ import the types, base classes, or runtime helpers they need.
 
 This blocks two concrete use cases:
 
-1. **Standalone brain instances** (e.g. extracting `apps/mylittlephoney`
-   to its own repo). The site code needs to import layouts, plugin
+1. **Standalone brain instances** with local site/theme code. The site code needs to import layouts, plugin
    types, and `SitePackage` from somewhere. Today those live in
    workspace packages (`@brains/site-personal`, `@brains/plugins`,
    `@brains/app`) that aren't published independently and aren't
-   reachable from outside the monorepo.
+   reachable from outside the monorepo unless `@rizom/brain` re-exports
+   the needed surface.
 
 2. **External plugins** (the `external-plugin-api` plan). Plugin
    authors need access to `EntityPlugin`, `ServicePlugin`,
@@ -209,20 +209,17 @@ Rough estimates per subpath bundle:
 Total dist/ growth at full tier: ~1-2 MB on top of the existing
 6 MB CLI bundle. Acceptable.
 
-## Migration consumer for Tier 1
+## Tier 1 proof
 
-Once Tier 1 ships, `apps/mylittlephoney` is extractable:
+Tier 1 already proved its immediate consumer.
 
-1. Create new repo `rizom-ai/mylittlephoney` (private)
-2. Copy `apps/mylittlephoney/`, `sites/mylittlephoney/src/`,
-   `shared/theme-mylittlephoney/src/` into the new repo, flattened
-3. Update site code to import from `@rizom/brain/site` instead of
-   `@brains/site-personal`, `@brains/plugins`, `@brains/app`
-4. New repo has one `package.json` with `@rizom/brain` as a git-ref
-   dependency
-5. Verify it builds and the brain CLI can boot the brain
-6. Delete the three directories from the brains monorepo
-7. Verify the brains monorepo still builds without them
+`mylittlephoney` was extracted successfully using the `@rizom/brain/site`
+export surface, with its local site code importing from the published
+umbrella package instead of private workspace packages.
+
+That means this doc is no longer about unblocking the first extraction.
+It is now about deciding how far to continue the export surface for later
+standalone authoring and external-plugin work.
 
 ## Open questions
 
@@ -242,12 +239,12 @@ Once Tier 1 ships, `apps/mylittlephoney` is extractable:
 
 ## Timeline
 
-| Phase                                      | Effort     | When                                |
-| ------------------------------------------ | ---------- | ----------------------------------- |
-| Tier 1 implementation                      | ~1.5 hours | Now                                 |
-| Extract `apps/mylittlephoney` using Tier 1 | ~half day  | Right after Tier 1                  |
-| Tier 2 implementation                      | ~half day  | When 2nd standalone site repo lands |
-| Tier 3 implementation                      | ~1-2 days  | When external plugin loading lands  |
+| Phase                                        | Effort     | When                               |
+| -------------------------------------------- | ---------- | ---------------------------------- |
+| Tier 1 implementation                        | ~1.5 hours | Done                               |
+| Tier 1 proof via `mylittlephoney` extraction | ~half day  | Done                               |
+| Tier 2 implementation                        | ~half day  | When next consumer appears         |
+| Tier 3 implementation                        | ~1-2 days  | When external plugin loading lands |
 
 ## Status
 

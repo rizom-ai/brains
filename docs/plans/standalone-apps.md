@@ -80,10 +80,7 @@ ghcr.io/<owner>/<repo>
 
 Deploys use the image built from the same commit SHA that triggered `Publish Image`.
 
-See:
-
-- [deploy-kamal.md](./deploy-kamal.md)
-- [standalone-image-publish-contract.md](./standalone-image-publish-contract.md)
+This repo-level publish/deploy contract is part of the standard standalone app shape.
 
 ## Remaining monorepo apps
 
@@ -119,6 +116,4 @@ An extracted app repo is correct when:
 
 ## Related
 
-- `docs/plans/deploy-kamal.md`
-- `docs/plans/standalone-image-publish-contract.md`
 - `docs/plans/public-release-cleanup.md`

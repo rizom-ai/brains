@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
+import packageJson from "../package.json";
 import { initPilotRepo } from "../src/init";
 
 describe("initPilotRepo", () => {
@@ -21,6 +22,7 @@ describe("initPilotRepo", () => {
       true,
     );
     expect(existsSync(join(repo, "docs", "operator-playbook.md"))).toBe(true);
+    expect(existsSync(join(repo, "package.json"))).toBe(true);
     expect(existsSync(join(repo, ".github", "workflows", "build.yml"))).toBe(
       true,
     );
@@ -49,6 +51,12 @@ describe("initPilotRepo", () => {
     expect(usersTable).toContain("| alice | cohort-1 | rover | core |");
     expect(usersTable).toContain("| handle | cohort | model | preset |");
 
+    const repoPackageJson = await readFile(join(repo, "package.json"), "utf8");
+    expect(repoPackageJson).toContain(
+      `"@brains/ops": "${packageJson.version}"`,
+    );
+    expect(repoPackageJson).toContain('"private": true');
+
     const buildWorkflow = await readFile(
       join(repo, ".github", "workflows", "build.yml"),
       "utf8",
@@ -66,10 +74,10 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain("workflow_dispatch:");
     expect(deployWorkflow).toContain("handle:");
-    expect(deployWorkflow).toContain("repository: rizom-ai/brains");
-    expect(deployWorkflow).toContain(
-      "bun .brains/packages/brains-ops/src/entrypoint.ts onboard",
-    );
+    expect(deployWorkflow).toContain("bun install");
+    expect(deployWorkflow).toContain("bunx brains-ops onboard");
+    expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
+    expect(deployWorkflow).not.toContain(".brains/packages/brains-ops");
     expect(deployWorkflow).toContain("BRAIN_YAML_PATH");
     expect(deployWorkflow).not.toContain("TODO:");
 
@@ -80,9 +88,9 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).toContain("pilot.yaml");
     expect(reconcileWorkflow).toContain("cohorts/**");
     expect(reconcileWorkflow).toContain("users/*.yaml");
-    expect(reconcileWorkflow).toContain(
-      "bun .brains/packages/brains-ops/src/entrypoint.ts reconcile-all",
-    );
+    expect(reconcileWorkflow).toContain("bun install");
+    expect(reconcileWorkflow).toContain("bunx brains-ops reconcile-all");
+    expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(reconcileWorkflow).toContain("git push");
     expect(reconcileWorkflow).not.toContain("TODO:");
 

@@ -27,4 +27,4 @@ Variant-specific bits:
 - **Hero copy**: "Distributed expertise, on demand" register, pitched at team-assembly / network scenarios
 - **Ecosystem highlight**: the `rizom.work` card is "You are here"
 
-See [`apps/rizom-ai/README.md`](../rizom-ai/README.md) for the variant story and [`docs/plans/rizom-sites.md`](../../docs/plans/rizom-sites.md) for the full phasing.
+See [`apps/rizom-ai/README.md`](../rizom-ai/README.md) for the shared variant story.

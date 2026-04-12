@@ -1,6 +1,6 @@
 # brains-ops
 
-Private operator CLI for managing pilot brain fleet registry repos.
+Operator CLI package for managing pilot brain fleet registry repos.
 
 ## Commands
 
@@ -12,7 +12,7 @@ Private operator CLI for managing pilot brain fleet registry repos.
 
 ## Scope
 
-`brains-ops` lives in the `brains` monorepo.
+`brains-ops` lives in the `brains` monorepo and is consumed as a separate package.
 
 It operates on a separate private data repo, such as `rover-pilot/`, which stores:
 

@@ -22,7 +22,7 @@ import { join } from "path";
  * instance via the consumer's hoisted `node_modules/preact`.
  *
  * This was discovered booting the first standalone mylittlephoney
- * extraction (Phase 1 of harmonize-monorepo-apps.md). The dual
+ * extraction. The dual
  * preact crashed the site build after `@-prefixed` package ref
  * resolution was fixed, revealing the next layer of the bug.
  *

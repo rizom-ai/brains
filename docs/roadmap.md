@@ -49,9 +49,8 @@ Focus areas:
 - operator-facing verification and troubleshooting guidance drawn from the now-live instances
 - polish the first-run deploy path for new external users
 
-Plans:
+Plan:
 
-- [deploy-kamal.md](./plans/deploy-kamal.md)
 - [standalone-apps.md](./plans/standalone-apps.md)
 
 ### 2. Rizom site variants
@@ -64,9 +63,7 @@ Focus areas:
 - finish the intended variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work`
 - keep brand/theme decisions cleanly separated from per-instance configuration
 
-Plan:
-
-- [rizom-sites.md](./plans/rizom-sites.md)
+This work now lives directly in the shared `sites/rizom` + `shared/theme-rizom` packages.
 
 ### 3. Public plugin surface
 

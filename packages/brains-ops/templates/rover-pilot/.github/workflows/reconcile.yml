@@ -13,31 +13,25 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: reconcile
+  cancel-in-progress: true
+
 jobs:
   reconcile:
     runs-on: ubuntu-latest
-    env:
-      BRAINS_REPO: rizom-ai/brains
-      BRAINS_REF: main
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/checkout@v5
-        with:
-          repository: rizom-ai/brains
-          ref: main
-          path: .brains
-          token: ${{ secrets.BRAINS_REPO_TOKEN }}
-
       - uses: oven-sh/setup-bun@v2
 
-      - name: Install brains workspace dependencies
-        run: bun install --cwd .brains --frozen-lockfile
+      - name: Install operator tooling
+        run: bun install
 
       - name: Reconcile generated pilot outputs
-        run: bun .brains/packages/brains-ops/src/entrypoint.ts reconcile-all "$GITHUB_WORKSPACE"
+        run: bunx brains-ops reconcile-all "$GITHUB_WORKSPACE"
 
       - name: Commit generated outputs
         run: |

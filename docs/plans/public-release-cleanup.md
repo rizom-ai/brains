@@ -35,7 +35,7 @@ All decisions below are final. No open questions remain before execution.
 | --- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | D1  | Public repo URL                                | **Stage at `rizom-ai/brains-temp`** (new public repo). When fully verified, do a double-rename: `rizom-ai/brains` → `rizom-ai/brains-private`, then `rizom-ai/brains-temp` → `rizom-ai/brains`. Zero downtime; the public URL never has a moment of being broken.                                                                                                                                                                                                                 |
 | D2  | What ships in v0.1.0 (workspace surface)       | Per §3 inventory: `shell/*`, `shared/*` (minus extracted branded themes), `plugins/*`, `entities/*`, `interfaces/*`, `packages/*`, all three brain models (`rover`, `ranger`, `relay`), `sites/{default,rizom}`, `layouts/{personal,professional}`, three monorepo apps (`rizom-ai`, `rizom-work`, `rizom-foundation`), all of `docs/plans/*`, selected top-level docs. `yeehaa.io` has been extracted to its own standalone repo.                                                |
-| D3  | App disposition (revised 2026-04)              | **Stay public in monorepo**: `apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`. **Already extracted to standalone public repo**: `apps/yeehaa.io`. **Delete**: `apps/team-brain`, `apps/collective-brain` (transitional, being replaced by the rizom public sites). **Extract to standalone private repo**: `apps/mylittlephoney`.                                                                                                                                      |
+| D3  | App disposition (revised 2026-04)              | **Stay public in monorepo for now**: `apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`. **Already extracted to standalone repos**: `apps/yeehaa.io`, `apps/mylittlephoney`. **Delete**: `apps/team-brain`, `apps/collective-brain` (transitional, being replaced by the rizom public sites).                                                                                                                                                                            |
 | D4  | `brains/relay` and `brains/ranger` (revised)   | **Public source, no published artifacts.** Both brain models are now actively used by the public-facing rizom-ai and rizom-foundation apps, so their source must be in the public monorepo for the workspace resolver. They are NOT published as docker images (publish-images matrix stays at `[rover]`) and they carry strong README disclaimers identifying them as internal-use brain models for the framework's own marketing sites. Use `rover` for any external reference. |
 | D5  | `docs/plans/*`                                 | **All public.** Phase 1 still scans each file for PII/secrets; any flagged file gets fixed or excluded individually, but the default is ship.                                                                                                                                                                                                                                                                                                                                     |
 | D6  | CHANGELOG narrative                            | Hand-write a single `v0.1.0` entry summarizing pre-launch development at high level. `.changeset/` flow takes over going forward.                                                                                                                                                                                                                                                                                                                                                 |
@@ -220,63 +220,33 @@ The original plan worked in a sibling staging clone. The revised plan splits Pha
 
 #### Phase 3a — In-tree cleanup (live repo)
 
-This is mechanical deletion plus a rename. All of it lands as commits on `main` and stays in the dev history.
+This phase is effectively complete.
 
-1. **Finish the lingering `apps/professional-brain` → `yeehaa-io` cleanup**. The monorepo directory has now been extracted, and the branded yeehaa app/theme/site packages are gone from the monorepo; clean any remaining historical references in docs and examples as they surface.
-2. **Delete transitional apps and their paired sites/themes:**
-   ```bash
-   git rm -r apps/team-brain
-   git rm -r apps/collective-brain
-   git rm -r sites/ranger
-   git rm -r shared/theme-ranger
-   ```
-3. **Add strong README disclaimers** to `brains/ranger/README.md` and `brains/relay/README.md` clearly marking them as internal-use brain models, with a pointer to `brains/rover` as the public reference.
-4. **Delete agent/IDE configs and dotfiles** that don't belong in a public repo:
-   ```bash
-   git rm -r .agents .claude .pi 2>/dev/null || true
-   git rm .envrc skills-lock.json 2>/dev/null || true
-   ```
-   (Some of these may be gitignored; the `git rm` will be a no-op for those.)
-5. **Verify everything still builds:**
-   ```bash
-   bun install
-   bunx turbo typecheck
-   bunx turbo test
-   bunx turbo lint
-   ```
-6. Commit as a small set of focused commits:
-   - `chore(apps): finish professional-brain → yeehaa.io cleanup`
-   - `chore(cleanup): delete transitional team-brain + collective-brain + ranger`
-   - `docs(brains): add internal-use disclaimers to ranger and relay`
-   - `chore(cleanup): remove agent/IDE configs from tracked tree`
+Completed outcomes:
 
-**Exit criteria:** Live repo no longer contains transitional apps, deleted sites/themes, or tracked agent configs. Typecheck/test/lint pass. Estimated time: **1–2 hours**.
+1. `apps/yeehaa.io` was extracted to its own standalone repo.
+2. yeehaa one-off theme/site packages were removed from the monorepo.
+3. unused theme packages were deleted.
+4. tracked agent/IDE files that should not live in the public repo were cleaned up.
+5. docs and tests were updated to match the post-extraction tree.
+
+Remaining work in this area is opportunistic only:
+
+- fix stray historical references when they surface
+- keep inventory docs aligned with the current tree
 
 #### Phase 3b — Extract `apps/mylittlephoney` to a standalone private repo
 
-This is its own multi-step migration with real coordination cost. It's separated from Phase 3a so the live repo cleanup ships first.
+This phase is complete.
 
-1. **Create a new private repo** `rizom-ai/mylittlephoney` (or chosen name) on GitHub.
-2. **Copy the relevant directories** to the new repo's working dir:
-   - `apps/mylittlephoney/*` (config, deploy, brain-data if you want history)
-   - `sites/mylittlephoney/*` (the site package code)
-   - `shared/theme-mylittlephoney/*` (the theme code)
-3. **Decide how the standalone repo consumes the framework:**
-   - **(a)** Pin to `@rizom/brain` from npm (cleanest, no source coupling)
-   - **(b)** Pin to a specific tag of `rizom-ai/brains`
-   - **(c)** Bundle the site + theme INTO the app dir as a single self-contained instance (most decoupled)
-4. **Set up CI for the new repo** (deploy hooks, test hooks if needed, content sync).
-5. **Migrate brain-data** to the new repo or keep it in its existing git-sync content repo.
-6. **Verify the standalone repo boots and deploys** end-to-end against `@rizom/brain`.
-7. **Once verified, delete from the monorepo:**
-   ```bash
-   git rm -r apps/mylittlephoney
-   git rm -r sites/mylittlephoney
-   git rm -r shared/theme-mylittlephoney
-   ```
-8. Verify monorepo still builds. Commit.
+Completed outcomes:
 
-**Exit criteria:** mylittlephoney runs from its own repo, monorepo no longer contains it, no broken references. Estimated time: **half day to a day**, depending on how much of (3) and (4) needs custom work.
+1. `apps/mylittlephoney` was extracted out of the monorepo.
+2. its paired site/theme code left the public tree with it.
+3. the standalone repo was verified against the published `@rizom/brain` path.
+4. monorepo references were cleaned up enough for the public-release path to continue.
+
+No further app-extraction work remains here except deciding if/when the remaining Rizom apps should also move to standalone repos.
 
 #### Phase 3c — Workspace globs (no change needed)
 
@@ -474,7 +444,7 @@ Once `brains-temp` is verified in Phase 4, we swap the names. Per D1, the old re
 - [ ] First commit message in the public repo is `Initial public release of brains framework`
 - [ ] `gitleaks detect --source .` on a fresh clone of the public repo returns zero findings
 - [ ] `bun install && bun run lint && bun run typecheck && bun test && bun run build` all green on a fresh clone of the public repo
-- [ ] No file matching `apps/{collective-brain,mylittlephoney,professional-brain,team-brain}` exists in the public repo
+- [x] No file matching `apps/{collective-brain,mylittlephoney,professional-brain,team-brain}` exists in the public repo
 - [ ] Public monorepo apps `apps/{rizom-ai,rizom-work,rizom-foundation}` remain in the public repo
 - [x] `yeehaa.io` extracted to its own public standalone repo
 - [ ] No `sites/{mylittlephoney,ranger}` or `shared/theme-{mylittlephoney,ranger}` remain in the public repo

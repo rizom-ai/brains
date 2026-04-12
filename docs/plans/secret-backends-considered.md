@@ -104,5 +104,4 @@ The bootstrap-section detection in `secrets-push.ts`'s schema parser stays as de
 
 ## Related plans
 
-- `docs/plans/deploy-kamal.md` — the deploy pipeline shape; the secret delivery section now describes the GitHub Actions secrets path, not 1Password.
-- `docs/plans/standalone-image-publish-contract.md` — the standalone deploy/image contract that the shipped GitHub-secrets flow had to satisfy.
+- `docs/plans/standalone-apps.md` — the current standalone repo/operator model that the shipped GitHub-secrets flow supports.

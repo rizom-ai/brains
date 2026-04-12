@@ -118,7 +118,7 @@ rizom-ai/ (GitHub org)
 └── ...
 ```
 
-Any helper automation for this flow lives in **`brains-ops`** in the monorepo, not as new public `brain` CLI commands.
+Any helper automation for this flow lives in **`brains-ops`** as a separate operator CLI/package, not as new public `brain` CLI commands.
 
 ### Data contract
 
@@ -278,6 +278,14 @@ Derived-but-checked files:
 
 `brains-ops` owns the machine logic for the YAML truth and the deploy lifecycle. The `rover-pilot` repo owns the data.
 
+Delivery contract:
+
+- `brains-ops` is delivered as a published package artifact: `@brains/ops`
+- it remains separate from the public `brain` CLI surface
+- `rover-pilot` CI installs an exact pinned `@brains/ops` version before running reconcile/onboard flows
+- operator laptops may run the same pinned package locally
+- workflow reproducibility comes from the pinned package version, not from checking out `rizom-ai/brains` at runtime
+
 - `brains-ops init <repo>`
   - creates the `rover-pilot` repo skeleton when missing
   - writes starter files for `pilot.yaml`, `cohorts/`, `users/`, `deploy/`, `views/`, and operator docs
@@ -388,8 +396,22 @@ Concrete contract:
 One set of GitHub Actions workflows in `rover-pilot/.github/workflows/` manages all users.
 
 - **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged by version, not by user. All users on the same version share the same image.
-- **Deploy workflow** — dispatched per user (or per cohort via matrix). Reads the user's `brain.yaml` and secrets, deploys to their server via Kamal.
-- **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Runs `brains-ops reconcile-all` to converge all users to desired state.
+- **Deploy workflow** — dispatched per user (or per cohort via matrix). Installs pinned `@brains/ops`, reads the user's `brain.yaml` and secrets, and deploys to their server via Kamal.
+- **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Installs pinned `@brains/ops` and runs `brains-ops reconcile-all` to converge all users to desired state.
+
+Operator tool delivery in CI:
+
+- `rover-pilot` declares an exact `@brains/ops` version in its package metadata
+- workflows install dependencies normally with Bun
+- workflows invoke `brains-ops` via the installed package, not by checking out the `brains` monorepo
+- upgrading operator behavior in `rover-pilot` is a normal dependency bump PR/commit
+
+Why this is the contract:
+
+- published artifact is a clean delivery mechanism for CI
+- exact package version gives reproducibility without bespoke monorepo checkout logic
+- `brains-ops` remains a separate operator tool instead of leaking into `brain`
+- the private repo stays focused on data, generated outputs, and deploy state
 
 Kamal config uses per-user destinations derived from the registry YAML. Each destination targets a different server with the user's brain.yaml and env.
 
@@ -442,6 +464,7 @@ Until one of those fires: stay on per-user deploys.
 - [x] Write `docs/onboarding-checklist.md` in the pilot repo scaffold
 - [x] Write `docs/operator-playbook.md` in the pilot repo scaffold
 - [ ] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
+- [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@brains/ops`
 - [ ] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
@@ -452,7 +475,7 @@ Until one of those fires: stay on per-user deploys.
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
+This plan depends on the now-working standalone repo deploy model described in `docs/plans/standalone-apps.md`. Remaining pilot-specific proof is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 
@@ -460,4 +483,3 @@ This plan **does not block** hosted-rover work from starting; it runs in paralle
 
 - `docs/plans/hosted-rovers.md` — long-term destination
 - `docs/plans/standalone-apps.md` — the per-user standalone deploy model this plan builds on
-- `docs/plans/standalone-image-publish-contract.md` — image contract the deploy needs to respect

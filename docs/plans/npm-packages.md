@@ -52,17 +52,26 @@ The current Docker path (`dist/.model-entrypoint.js`) becomes legacy. Docker ima
 
 ## What's in an instance
 
+A fresh instance scaffold is now a lightweight package boundary, not only a bare config dir.
+
 ```
 mybrain/
-  brain.yaml        # model + config
-  .env              # secrets
+  brain.yaml
+  .env.example
   .gitignore
+  README.md
+  tsconfig.json
+  package.json
+  src/
+    site.ts
+    theme.css
   brain-data/       # entities as markdown (managed by directory-sync)
   data/             # SQLite databases (auto-created)
-  package.json      # optional — only when version is pinned or external plugins added
 ```
 
-By default, no `package.json`. Uses the globally installed `@rizom/brain`. For production or reproducibility, `brain pin` creates a `package.json` that locks to a specific version.
+Deploy scaffolds add repo-local deploy assets on top of that.
+
+`brain pin` still matters for already-existing dirs or for explicitly re-pinning a local install, but the standard `brain init` path now writes `package.json` up front.
 
 **Implementation details:**
 
@@ -73,8 +82,8 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 
 ### CLI ✅
 
-- `brain init <dir>` — scaffolds brain.yaml, .env.example, .gitignore
-- `brain init <dir> --deploy` — adds config/deploy.yml, Kamal hooks, CI workflow
+- `brain init <dir>` — scaffolds `brain.yaml`, `.env.example`, `.gitignore`, `README.md`, `tsconfig.json`, `package.json`, and local `src/site.ts` / `src/theme.css` convention files
+- `brain init <dir> --deploy` — adds `config/deploy.yml`, Kamal hook, repo-local deploy assets, and publish/deploy CI workflows
 - `brain start` — dual-path boot (monorepo subprocess + bundled in-process)
 - `brain chat` — interactive chat REPL
 - `brain eval` — evaluation pass-through
@@ -110,63 +119,31 @@ By default, no `package.json`. Uses the globally installed `@rizom/brain`. For p
 
 ## What's left
 
-### Phase 1: Publish v0.1.0
+Public alpha publishing is already live. The remaining work here is no longer "can we publish `@rizom/brain` at all?" It is finishing the path from alpha to stable, while keeping the published package aligned with the standalone operator contract.
 
-#### Release blockers
+### Remaining work
 
-1. ~~**README.md** for npm registry page~~ ✅
-2. ~~**package.json metadata** — homepage, bugs, author, engines~~ ✅
-3. ~~**Bun version check** — validate `Bun.version >= 1.3.3` before any command~~ ✅
-4. ~~**AI model + key simplification**~~ ✅ — full scope:
-   - `model: gpt-4o-mini` in brain.yaml, auto-detects provider from model name
-   - `AI_API_KEY` single env var, no fallbacks (new product, no backward compat)
-   - One key flows through entire chain — same key for text + images
-   - **Cut list** (remove these fields entirely):
-     - `AppConfig.openaiApiKey` + `AppConfig.googleApiKey` → gone
-     - `ShellConfig.ai.openaiApiKey` + `ShellConfig.ai.googleApiKey` → gone
-     - `AIModelConfig.openaiApiKey` + `AIModelConfig.googleApiKey` → gone
-     - `OPENAI_API_KEY` + `ANTHROPIC_API_KEY` + `GOOGLE_GENERATIVE_AI_API_KEY` → `AI_API_KEY` + `AI_IMAGE_KEY`
-   - **Add list**:
-     - `AIModelConfig.provider` — already done
-     - `InstanceOverrides.model` — already done
-     - `resolveAIConfig()` in resolver — resolves model → provider + passes key
-     - `AIService.getModel()` uses provider to select SDK — already done
-   - **Update list**:
-     - `brain init` scaffolds `AI_API_KEY=` — already done
-     - .env.schema files, docs, deploy configs
-5. ~~**API key pre-check** — validate `AI_API_KEY` before boot, clear error~~ ✅
-6. ~~**Multi-model evals**~~ ✅ — `models:` array in brain.eval.yaml, per-model eval loop, markdown + JSON comparison report
-7. **Create `@rizom` npm org** — manual step
-8. **`npm publish`** — ship it
+1. keep the published CLI/docs/examples aligned with the shipped standalone scaffold shape
+2. keep bundled model/package-ref coverage correct for all supported in-tree app definitions
+3. continue expanding library exports needed by external-plugin and standalone authoring work
+4. carry the current alpha path through clean-machine smoke testing and stable `v0.1.0` release staging
 
-#### Polish before release
+### Shipped milestones
 
-9. ~~**`brain pin`**~~ ✅ — creates package.json, auto-installs, pins version
-10. ~~**Local-over-global re-exec**~~ ✅ — `./node_modules/@rizom/brain` takes precedence
-11. ~~**Full brain.yaml validation**~~ ✅ — proper YAML + Zod schema, replaces regex
-12. ~~**Better boot error messages**~~ ✅ — classifies DB, plugin, port, permission, git errors
-13. ~~**LICENSE file**~~ ✅ — Apache-2.0. Maximum adoption for v0.1, can tighten later if needed.
-14. ~~**Fix docs wording**~~ ✅ — getting-started.md updated for OpenAI as default provider.
-15. ~~**Directory creation error handling**~~ ✅ — `getStandardConfigWithDirectories()` wraps mkdir in try/catch with clear EACCES message.
-16. ~~**Port conflict handling**~~ ✅ — webserver catches EADDRINUSE from Bun.serve() with "port already in use" message.
-17. ~~**Malformed brain.yaml feedback**~~ ✅ — shared `parseYamlDocument` in @brains/utils handles empty files, bare strings, arrays. Both brain-cli and shell/app use it.
-18. ~~**Embedding model download progress**~~ ✅ — logs "Downloading embedding model (first run only, ~30MB)..." when model cache doesn't exist.
-19. ~~**SQLite busy handling**~~ ✅ — `formatBootError` catches SQLITE_BUSY with "Another brain is running in this directory" message.
-20. ~~**Eval env var naming**~~ ✅ — per-provider keys (OPENAI_API_KEY, ANTHROPIC_API_KEY) are intentional for multi-model evals. resolveProviderKey handles the lookup correctly.
+- public alpha publishing for `@rizom/brain`
+- in-process runtime boot from published package
+- `brain init` full lightweight-instance scaffold
+- `brain init --deploy` publish/deploy scaffold
+- `brain pin` and local-over-global re-exec
+- standalone site/theme authoring exports under `@rizom/brain/site`
+- theme helpers under `@rizom/brain/themes`
 
-### Phase 2: Deploy scaffolding ✅
+### Still split into separate plans
 
-```bash
-brain init mybrain --model rover --deploy
-```
+- external plugin API: [external-plugin-api.md](./external-plugin-api.md)
+- broader release staging / public launch cleanup: [public-release-cleanup.md](./public-release-cleanup.md)
 
-Already implemented via `--deploy` flag.
-
-### Phase 3: External Plugin API
-
-Separate plan: [external-plugin-api.md](./external-plugin-api.md)
-
-### Phase 4: Runtime site/theme overrides
+### Runtime site/theme overrides
 
 ```yaml
 brain: rover

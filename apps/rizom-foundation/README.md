@@ -39,4 +39,4 @@ Identity defaults come from `@brains/ranger` seed content; the files under `brai
 
 ## Deployment
 
-Deployment lands with [Kamal Phase 2](../../docs/plans/deploy-kamal.md). Until then this instance runs locally for content iteration.
+This instance currently stays in-repo for local content iteration. When deployment ownership moves out of the monorepo, it should follow the standard standalone app shape.

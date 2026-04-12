@@ -57,7 +57,7 @@ Light mode collapses all variants to amber-dark for contrast (per brand guide A2
 
 ## Deployment
 
-rizom.ai deploys through the Hetzner + Kamal workflow in this repo. See [`docs/plans/rizom-sites.md`](../../docs/plans/rizom-sites.md) for the broader site phasing.
+rizom.ai deploys through this repo's current workflow. Variant architecture now lives directly in `sites/rizom` + `shared/theme-rizom`.
 
 ### First-time 1Password setup
 

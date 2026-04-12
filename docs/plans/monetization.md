@@ -98,15 +98,15 @@ With scale (multiple brains per VPS), per-brain cost drops to ~$3-5.
 
 Most of the infrastructure already exists or is planned:
 
-| Capability        | Status      | Plan                  |
-| ----------------- | ----------- | --------------------- |
-| Docker images     | In progress | deploy-kamal Phase 1  |
-| Standalone apps   | Planned     | standalone-apps.md    |
-| Kamal deploys     | In progress | deploy-kamal.md       |
-| Custom domains    | Planned     | deploy-kamal Phase 3  |
-| Multi-user        | Planned     | multi-user.md         |
-| Monitoring        | Planned     | roadmap (medium-term) |
-| Auto-provisioning | Planned     | deploy-kamal Phase 2+ |
+| Capability        | Status                         | Plan                  |
+| ----------------- | ------------------------------ | --------------------- |
+| Docker images     | Working in standalone flow     | standalone-apps.md    |
+| Standalone apps   | Proven by extracted repos      | standalone-apps.md    |
+| Kamal deploys     | Working in standalone flow     | standalone-apps.md    |
+| Custom domains    | Proven in standalone flow      | standalone-apps.md    |
+| Multi-user        | Planned                        | multi-user.md         |
+| Monitoring        | Planned                        | roadmap (medium-term) |
+| Auto-provisioning | Planned / follow-on automation | standalone-apps.md    |
 
 ### New (monetization-specific)
 

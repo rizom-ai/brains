@@ -1,0 +1,9 @@
+{
+  "name": "rover-pilot",
+  "private": true,
+  "type": "module",
+  "packageManager": "bun@1.3.10",
+  "devDependencies": {
+    "@brains/ops": "__BRAINS_OPS_VERSION__"
+  }
+}

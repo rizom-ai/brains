@@ -11,32 +11,27 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: deploy-${{ inputs.handle }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
       HANDLE: ${{ inputs.handle }}
-      BRAINS_REPO: rizom-ai/brains
-      BRAINS_REF: main
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/checkout@v5
-        with:
-          repository: rizom-ai/brains
-          ref: main
-          path: .brains
-          token: ${{ secrets.BRAINS_REPO_TOKEN }}
-
       - uses: oven-sh/setup-bun@v2
 
-      - name: Install brains workspace dependencies
-        run: bun install --cwd .brains --frozen-lockfile
+      - name: Install operator tooling
+        run: bun install
 
       - name: Reconcile selected user config
-        run: bun .brains/packages/brains-ops/src/entrypoint.ts onboard "$GITHUB_WORKSPACE" "$HANDLE"
+        run: bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
 
       - name: Prepare selected brain.yaml for Kamal
         run: |

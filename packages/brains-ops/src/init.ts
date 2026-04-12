@@ -2,10 +2,12 @@ import { access, chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import packageJson from "../package.json";
 import { writeUsersTable } from "./render-users-table";
 
 const starterFilePaths = [
   "pilot.yaml",
+  "package.json",
   "cohorts/cohort-1.yaml",
   "users/alice.yaml",
   ".github/workflows/build.yml",
@@ -52,15 +54,37 @@ async function writeStarterFileIfMissing(
   targetPath: string,
 ): Promise<void> {
   const templatePath = join(templateRootDir, relativePath);
-  const content = await readFile(templatePath, "utf8");
+  const templateContent = await readFile(templatePath, "utf8");
+  const content = renderTemplate(templateContent);
   try {
     await writeFile(targetPath, content, { flag: "wx" });
   } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code === "EEXIST") return;
+    if (isErrnoExceptionWithCode(err, "EEXIST")) {
+      return;
+    }
     throw err;
   }
 
   if (executableStarterFilePaths.has(relativePath)) {
     await chmod(targetPath, 0o755);
   }
+}
+
+function renderTemplate(templateContent: string): string {
+  return templateContent.replaceAll(
+    "__BRAINS_OPS_VERSION__",
+    packageJson.version,
+  );
+}
+
+function isErrnoExceptionWithCode(
+  err: unknown,
+  code: string,
+): err is NodeJS.ErrnoException {
+  return (
+    typeof err === "object" &&
+    err !== null &&
+    "code" in err &&
+    err.code === code
+  );
 }

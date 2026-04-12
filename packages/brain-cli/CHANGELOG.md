@@ -263,7 +263,7 @@
   only the published path was missing it.
 
   Discovered booting `apps/mylittlephoney` as the first standalone
-  extraction (Phase 1 of `docs/plans/harmonize-monorepo-apps.md`). The
+  extraction. The
   brain booted cleanly and rendered the site successfully, but the site
   was rover's default professional layout with the blue/orange palette,
   not mylittlephoney's `personalSitePlugin` with the pink theme. The

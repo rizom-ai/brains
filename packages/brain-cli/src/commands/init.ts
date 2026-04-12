@@ -21,6 +21,7 @@ import { buildInstanceEnvSchema } from "../lib/env-schema";
  */
 const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
 const PREACT_VERSION = "^10.27.2";
+const BUN_DOCKER_TAG = "oven/bun:1.3.10-slim";
 
 export interface ScaffoldOptions {
   model: string;
@@ -59,8 +60,7 @@ export interface ScaffoldOptions {
  * start` works from the new dir. Models with an active website surface
  * also ship local `src/site.ts` and `src/theme.css` convention files as
  * editable starting points while `brain.yaml` stays pinned to the model's
- * built-in site/theme until the operator opts into the local files. See
- * `docs/plans/harmonize-monorepo-apps.md` for the unified app shape.
+ * built-in site/theme until the operator opts into the local files.
  *
  * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
  * runtime when compiling site components.
@@ -470,7 +470,8 @@ function writeEnv(dir: string, apiKey: string, contentRepo?: string): void {
 
 function writePreDeployHook(dir: string, regen = false): void {
   const content = `#!/usr/bin/env bash
-# Upload brain.yaml to server before deploy
+set -euo pipefail
+
 SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
 IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
 for host in "\${HOSTS[@]}"; do
@@ -602,7 +603,7 @@ jobs:
 }
 
 function writeDeployDockerfile(dir: string, regen = false): void {
-  const content = `FROM oven/bun:1.3.10-slim
+  const content = `FROM ${BUN_DOCKER_TAG}
 
 WORKDIR /app
 

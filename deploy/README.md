@@ -39,10 +39,6 @@ Requires: `HCLOUD_TOKEN`, Docker registry credentials, Terraform.
 
 See `apps/<app-name>/deploy/.env.production` for runtime secrets.
 
-## Future: Kamal
-
-Instance-based deployment via Kamal is planned. See [deploy-kamal.md](../docs/plans/deploy-kamal.md).
-
 ## Directory Structure
 
 ```

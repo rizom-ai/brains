@@ -1,4 +1,5 @@
-FROM oven/bun:1.3.10-slim
+ARG BUN_VERSION=1.3.10
+FROM oven/bun:${BUN_VERSION}-slim
 
 ARG BRAIN_VERSION
 WORKDIR /app
