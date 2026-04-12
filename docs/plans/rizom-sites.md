@@ -112,7 +112,7 @@ The pre-existing `SitePackage.entityRouteConfig` field (plus its `EntityRouteEnt
 - `shell/app/src/brain-resolver.ts` — resolve `site.package` and `site.theme` independently
 - `shell/app/src/override-package-refs.ts` — collect both `site.package` and `site.theme` package refs for registration
 - `apps/mylittlephoney/brain.yaml` — `site: "@brains/site-mylittlephoney"` → `site: { package: "@brains/site-mylittlephoney", theme: "@brains/theme-mylittlephoney" }`
-- `yeehaa-io/brain.yaml` — `site: "@brains/site-yeehaa"` → `site: { package: "@brains/site-yeehaa", theme: "@brains/theme-brutalist" }`
+- `yeehaa-io/brain.yaml` — originally migrated to `site: { package: "@brains/site-yeehaa", theme: "@brains/theme-brutalist" }`; standalone repo now uses local `src/theme.css`
 - `shell/app/test/instance-overrides.test.ts` + `shell/app/test/override-package-refs.test.ts` — update any test fixtures that pass `site:` as a string
 
 **Verification:** `bun run typecheck && bun run lint && bun test` passes. `yeehaa.io` and `mylittlephoney` build and render identically (their active capabilities + resolved site plugin config match the pre-change snapshot byte-for-byte).

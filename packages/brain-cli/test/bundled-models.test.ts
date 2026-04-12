@@ -37,9 +37,6 @@ describe("bundled model set", () => {
     expect(entrypoint).toContain(
       'import yeehaaSite from "@brains/site-yeehaa";',
     );
-    expect(entrypoint).toContain(
-      'import brutalistTheme from "@brains/theme-brutalist";',
-    );
 
     expect(entrypoint).toContain(
       'registerPackage("@brains/site-default", defaultSite);',
@@ -55,9 +52,6 @@ describe("bundled model set", () => {
     );
     expect(entrypoint).toContain(
       'registerPackage("@brains/site-yeehaa", yeehaaSite);',
-    );
-    expect(entrypoint).toContain(
-      'registerPackage("@brains/theme-brutalist", brutalistTheme);',
     );
   });
 });

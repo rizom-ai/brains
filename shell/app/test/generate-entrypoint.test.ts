@@ -116,16 +116,14 @@ plugins:
     const yaml = `
 brain: "@brains/rover"
 site:
-  package: "@brains/site-yeehaa"
-  theme: "@brains/theme-brutalist"
+  package: "@brains/site-rizom"
+  theme: "@brains/theme-rizom"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg1 from "@brains/theme-brutalist"');
-    expect(code).toContain(
-      'registerPackage("@brains/theme-brutalist", __pkg1)',
-    );
+    expect(code).toContain('import __pkg1 from "@brains/theme-rizom"');
+    expect(code).toContain('registerPackage("@brains/theme-rizom", __pkg1)');
   });
 
   test("should import registerPackage from @brains/app", () => {

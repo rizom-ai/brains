@@ -364,8 +364,8 @@ Each brain instance picks a structural site package and a theme in `brain.yaml`:
 # brain.yaml
 brain: rover
 site:
-  package: "@brains/site-yeehaa"
-  theme: "@brains/theme-brutalist"
+  package: "@brains/site-rizom"
+  theme: "@brains/theme-rizom"
 ```
 
 ```yaml

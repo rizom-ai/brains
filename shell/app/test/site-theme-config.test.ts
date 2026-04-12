@@ -7,28 +7,32 @@ function readOverrides(
   return parseInstanceOverrides(yaml);
 }
 
+const rizomYaml = `brain: rover
+site:
+  package: "@brains/site-rizom"
+  theme: "@brains/theme-rizom"
+`;
+
 const yeehaaYaml = `brain: rover
 site:
   package: "@brains/site-yeehaa"
-  theme: "@brains/theme-brutalist"
 `;
 
 describe("brain.yaml site theme pairing", () => {
-  test("yeehaa.io keeps the yeehaa site paired with the brutalist theme", () => {
-    const overrides = readOverrides(yeehaaYaml);
+  test("keeps explicit site and theme package refs when both are present", () => {
+    const overrides = readOverrides(rizomYaml);
 
     expect(overrides.site).toEqual({
-      package: "@brains/site-yeehaa",
-      theme: "@brains/theme-brutalist",
+      package: "@brains/site-rizom",
+      theme: "@brains/theme-rizom",
     });
   });
 
-  test("yeehaa.io deploy config keeps the yeehaa site paired with the brutalist theme", () => {
+  test("allows a site package without an explicit theme package", () => {
     const overrides = readOverrides(yeehaaYaml);
 
     expect(overrides.site).toEqual({
       package: "@brains/site-yeehaa",
-      theme: "@brains/theme-brutalist",
     });
   });
 });

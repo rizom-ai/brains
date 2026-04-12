@@ -29,7 +29,6 @@ These still have real runtime consumers in code paths, not just docs/tests:
 - `shared/theme-base`
 - `shared/theme-default`
 - `shared/theme-rizom`
-- `shared/theme-brutalist`
 
 ### Deleted unused themes
 
@@ -40,8 +39,9 @@ These had no active runtime consumer and were removed from monorepo:
 - `shared/theme-neo-retro`
 - `shared/theme-swiss`
 - `shared/theme-yeehaa`
+- `shared/theme-brutalist`
 
-That leaves only active/shared themes in repo before any yeehaa-local cut.
+That leaves only active/shared themes in repo before any yeehaa site-local cut.
 
 ## Decision summary
 
@@ -69,22 +69,22 @@ are still preferred end state. But that comes **after** dead-package cleanup, no
 
 ### Keep in monorepo
 
-| Theme                    | Why                                                                                |
-| ------------------------ | ---------------------------------------------------------------------------------- |
-| `shared/theme-base`      | framework base layer                                                               |
-| `shared/theme-default`   | active default runtime theme                                                       |
-| `shared/theme-rizom`     | active shared Rizom theme                                                          |
-| `shared/theme-brutalist` | still active via yeehaa package refs; delete later only after yeehaa local cutover |
+| Theme                  | Why                          |
+| ---------------------- | ---------------------------- |
+| `shared/theme-base`    | framework base layer         |
+| `shared/theme-default` | active default runtime theme |
+| `shared/theme-rizom`   | active shared Rizom theme    |
 
 ### Deleted
 
-| Theme                    | Why                                            |
-| ------------------------ | ---------------------------------------------- |
-| `shared/theme-editorial` | no active runtime consumer found               |
-| `shared/theme-geometric` | no active runtime consumer found               |
-| `shared/theme-neo-retro` | no active runtime consumer found               |
-| `shared/theme-swiss`     | no active runtime consumer found               |
-| `shared/theme-yeehaa`    | legacy/orphaned; not current live yeehaa theme |
+| Theme                    | Why                                             |
+| ------------------------ | ----------------------------------------------- |
+| `shared/theme-editorial` | no active runtime consumer found                |
+| `shared/theme-geometric` | no active runtime consumer found                |
+| `shared/theme-neo-retro` | no active runtime consumer found                |
+| `shared/theme-swiss`     | no active runtime consumer found                |
+| `shared/theme-yeehaa`    | legacy/orphaned; not current live yeehaa theme  |
+| `shared/theme-brutalist` | moved into standalone `yeehaa-io/src/theme.css` |
 
 ## Sites
 
@@ -114,6 +114,7 @@ Deleted:
 - `shared/theme-neo-retro`
 - `shared/theme-swiss`
 - `shared/theme-yeehaa`
+- `shared/theme-brutalist`
 
 Also clean references in:
 
@@ -135,28 +136,18 @@ After Phase 1, surviving monorepo theme set should be:
 - `theme-base`
 - `theme-default`
 - `theme-rizom`
-- `theme-brutalist`
 
 At that point theme inventory becomes small and intentional.
 
 ### Phase 3 — handle yeehaa final cut
 
-Only after dead-theme cleanup:
+After dead-theme cleanup, yeehaa theme cut is done.
 
-Option A:
+Next cut is site only:
 
-- keep `sites/yeehaa` + `theme-brutalist` in monorepo longer
-
-Option B:
-
-- move yeehaa structure and styling into `rizom-ai/yeehaa-io`
-  - `src/site.ts`
-  - `src/theme.css`
-- then delete:
-  - `sites/yeehaa`
-  - `shared/theme-brutalist`
-
-Current preference remains local convention for standalone repos, but this is second step, not first.
+- keep `sites/yeehaa` in monorepo for moment
+- later move yeehaa structure into `rizom-ai/yeehaa-io/src/site.ts`
+- then delete `sites/yeehaa`
 
 ## Why this order
 
@@ -166,8 +157,8 @@ If we first localize yeehaa while dead themes still sit in monorepo, package inv
 If we first remove dead themes, remaining decisions become obvious:
 
 - framework/shared themes stay
-- active yeehaa theme stays temporarily
-- later yeehaa cut can be done cleanly
+- yeehaa theme already local
+- later yeehaa site cut can be done cleanly
 
 ## Validation
 
@@ -192,7 +183,7 @@ If/when yeehaa local cut happens later:
 ## Non-goals
 
 - redesign yeehaa now
-- move yeehaa site/theme now as part of same cleanup
+- move yeehaa site now as part of same cleanup
 - preserve dead themes for hypothetical future reuse
 - expand public theme catalog before real consumers exist
 
@@ -204,7 +195,8 @@ If/when yeehaa local cut happens later:
 - [x] extract and deploy `yeehaa.io` as standalone repo
 - [x] delete unused themes from monorepo
 - [x] clean docs/tests/manifests after deletion
-- [ ] decide final yeehaa local cut after dead-theme cleanup
+- [x] move yeehaa theme to local convention and delete `shared/theme-brutalist`
+- [ ] move `sites/yeehaa` to local convention and delete it from monorepo
 
 ## Related
 

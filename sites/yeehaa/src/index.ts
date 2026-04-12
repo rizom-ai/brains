@@ -5,7 +5,8 @@ import siteDefault from "@brains/site-default";
  * Yeehaa site package — professional layout + yeehaa content labeling.
  *
  * Provides the structure and content naming for the yeehaa site.
- * Pair it with `@brains/theme-brutalist` for the CRT-style neon styling.
+ * The standalone `yeehaa-io` repo now supplies its theme locally via
+ * `src/theme.css`.
  */
 const site = extendSite(siteDefault, {
   entityDisplay: {

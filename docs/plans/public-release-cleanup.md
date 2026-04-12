@@ -63,7 +63,7 @@ interfaces/*, brains/*, sites/*, packages/*
 **Framework code:**
 
 - `shell/*` — core framework (entity-service, ai-service, messaging-service, app, core, …)
-- `shared/*` — utilities, types, test-utils, mcp-bridge, image, config packages, plus active themes (`theme-base`, `theme-default`, `theme-rizom`, `theme-brutalist`)
+- `shared/*` — utilities, types, test-utils, mcp-bridge, image, config packages, plus active themes (`theme-base`, `theme-default`, `theme-rizom`)
 - `entities/*` — entity definitions (post, link, deck, blog, note, project, social-media, topics, portfolio, summary, wishlist, image, agent-discovery, prompt, site-info, newsletter, products, series, …)
 - `interfaces/*` — cli, mcp, webserver, discord, a2a, chat-repl
 - `plugins/*` — all plugins (analytics, buttondown, content-pipeline, dashboard, directory-sync, examples, hackmd, notion, obsidian-vault, site-builder, site-content, stock-photo, newsletter composite)
@@ -85,7 +85,6 @@ interfaces/*, brains/*, sites/*, packages/*
 **Branded themes that ship publicly (paired with public sites):**
 
 - `shared/theme-rizom` — rizom brand theme (paired with `sites/rizom`)
-- `shared/theme-brutalist` — yeehaa.io live theme (currently paired with `sites/yeehaa`)
 
 **Apps (4 current) — lightweight instance packages, not workspace members:**
 
