@@ -5,6 +5,7 @@ import type { Tool, ToolResponse } from "@brains/plugins";
 import { expectSuccess, expectError } from "@brains/plugins/test";
 import { z } from "@brains/utils";
 import { AnalyticsPlugin } from "../src/index";
+import packageJson from "../package.json";
 
 const analyticsDataSchema = z.object({
   range: z.object({ startDate: z.string(), endDate: z.string() }),
@@ -101,7 +102,7 @@ describe("AnalyticsPlugin Integration", () => {
     it("should register plugin with correct metadata", () => {
       expect(plugin.id).toBe("analytics");
       expect(plugin.type).toBe("service");
-      expect(plugin.version).toBe("0.1.0");
+      expect(plugin.version).toBe(packageJson.version);
     });
 
     it("should provide query tool when Cloudflare is configured", () => {

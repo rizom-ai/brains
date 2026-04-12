@@ -5,6 +5,7 @@ import { BlogPostAdapter } from "../src/adapters/blog-post-adapter";
 import type { BlogPost } from "../src/schemas/blog-post";
 import { createMockBlogPost } from "./fixtures/blog-entities";
 import { createTestEntity } from "@brains/test-utils";
+import packageJson from "../package.json";
 
 describe("BlogPlugin", () => {
   let plugin: BlogPlugin;
@@ -19,7 +20,7 @@ describe("BlogPlugin", () => {
     it("should have correct plugin metadata", () => {
       expect(plugin.id).toBe("blog");
       expect(plugin.description).toContain("AI-powered blog post generation");
-      expect(plugin.version).toBe("0.1.0");
+      expect(plugin.version).toBe(packageJson.version);
     });
 
     it("should use default configuration when not provided", () => {
@@ -27,7 +28,7 @@ describe("BlogPlugin", () => {
         defaultPrompt: "Write a blog post about my recent work and insights",
       }) as BlogPlugin;
       expect(defaultPlugin.id).toBe("blog");
-      expect(defaultPlugin.version).toBe("0.1.0");
+      expect(defaultPlugin.version).toBe(packageJson.version);
     });
 
     it("should accept custom configuration", () => {
@@ -36,7 +37,7 @@ describe("BlogPlugin", () => {
       }) as BlogPlugin;
 
       expect(customPlugin.id).toBe("blog");
-      expect(customPlugin.version).toBe("0.1.0");
+      expect(customPlugin.version).toBe(packageJson.version);
     });
   });
 

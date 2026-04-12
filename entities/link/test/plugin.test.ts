@@ -4,6 +4,7 @@ import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginCapabilities } from "@brains/plugins/test";
+import packageJson from "../package.json";
 import {
   createMockLinkEntity,
   mockLinkContent,
@@ -23,14 +24,14 @@ describe("LinkPlugin", () => {
     it("should have correct plugin metadata", () => {
       expect(plugin.id).toBe("link");
       expect(plugin.description).toContain("Web content capture");
-      expect(plugin.version).toBe("0.1.0");
+      expect(plugin.version).toBe(packageJson.version);
     });
 
     it("should use default configuration when not provided", () => {
       const defaultPlugin = createLinkPlugin() as LinkPlugin;
       // Note: config is protected, so we test through behavior instead
       expect(defaultPlugin.id).toBe("link");
-      expect(defaultPlugin.version).toBe("0.1.0");
+      expect(defaultPlugin.version).toBe(packageJson.version);
     });
 
     it("should accept custom configuration", () => {
@@ -41,7 +42,7 @@ describe("LinkPlugin", () => {
 
       // Note: config is protected, so we test through behavior instead
       expect(customPlugin.id).toBe("link");
-      expect(customPlugin.version).toBe("0.1.0");
+      expect(customPlugin.version).toBe(packageJson.version);
     });
   });
 

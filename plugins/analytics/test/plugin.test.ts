@@ -5,6 +5,7 @@ import {
   AnalyticsPlugin as AnalyticsPluginClass,
 } from "../src/index";
 import { createPluginHarness } from "@brains/plugins/test";
+import packageJson from "../package.json";
 
 describe("AnalyticsPlugin", () => {
   let plugin: AnalyticsPlugin;
@@ -23,13 +24,13 @@ describe("AnalyticsPlugin", () => {
     it("should have correct plugin metadata", () => {
       expect(plugin.id).toBe("analytics");
       expect(plugin.description).toContain("Analytics");
-      expect(plugin.version).toBe("0.1.0");
+      expect(plugin.version).toBe(packageJson.version);
     });
 
     it("should use default configuration when not provided", () => {
       const defaultPlugin = createAnalyticsPlugin() as AnalyticsPlugin;
       expect(defaultPlugin.id).toBe("analytics");
-      expect(defaultPlugin.version).toBe("0.1.0");
+      expect(defaultPlugin.version).toBe(packageJson.version);
     });
 
     it("should accept custom configuration", () => {
@@ -42,7 +43,7 @@ describe("AnalyticsPlugin", () => {
       }) as AnalyticsPlugin;
 
       expect(customPlugin.id).toBe("analytics");
-      expect(customPlugin.version).toBe("0.1.0");
+      expect(customPlugin.version).toBe(packageJson.version);
     });
   });
 
