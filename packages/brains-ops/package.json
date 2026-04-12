@@ -12,7 +12,7 @@
       "import": "./dist/index.js"
     },
     "./deploy": {
-      "bun": "./src/entries/deploy.ts",
+      "bun": "./dist/deploy.js",
       "types": "./dist/deploy.d.ts",
       "import": "./dist/deploy.js"
     }

@@ -17,6 +17,11 @@ const starterFilePaths = [
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",
   "deploy/scripts/helpers.ts",
+  "deploy/scripts/provision-server.ts",
+  "deploy/scripts/update-dns.ts",
+  "deploy/scripts/write-ssh-key.ts",
+  "deploy/scripts/validate-secrets.ts",
+  "deploy/scripts/write-kamal-secrets.ts",
   "deploy/scripts/resolve-user-config.ts",
   "deploy/scripts/resolve-deploy-handles.ts",
   ".kamal/hooks/pre-deploy",
@@ -25,22 +30,9 @@ const starterFilePaths = [
   "README.md",
 ] as const;
 
-const sharedDeployScripts = [
-  "provision-server.ts",
-  "update-dns.ts",
-  "write-ssh-key.ts",
-  "validate-secrets.ts",
-  "write-kamal-secrets.ts",
-] as const;
-
 const executableStarterFilePaths = new Set<string>([".kamal/hooks/pre-deploy"]);
 const templateRootDir = fileURLToPath(
   new URL("../templates/rover-pilot/", import.meta.url),
-);
-const sharedDeployScriptsDir = dirname(
-  fileURLToPath(
-    import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
-  ),
 );
 
 export async function initPilotRepo(rootDir: string): Promise<void> {
@@ -61,22 +53,7 @@ export async function initPilotRepo(rootDir: string): Promise<void> {
     await writeStarterFileIfMissing(relativePath, targetPath);
   });
 
-  const sharedWrites = sharedDeployScripts.map(async (script) => {
-    const targetPath = join(rootDir, "deploy", "scripts", script);
-    await mkdir(dirname(targetPath), { recursive: true });
-    const content = await readFile(
-      join(sharedDeployScriptsDir, script),
-      "utf8",
-    );
-    try {
-      await writeFile(targetPath, content, { flag: "wx" });
-    } catch (err: unknown) {
-      if (isErrnoExceptionWithCode(err, "EEXIST")) return;
-      throw err;
-    }
-  });
-
-  await Promise.all([...templateWrites, ...sharedWrites]);
+  await Promise.all(templateWrites);
 
   if (!usersTableExists) {
     await writeUsersTable(rootDir);

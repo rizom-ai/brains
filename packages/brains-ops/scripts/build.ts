@@ -1,5 +1,11 @@
 #!/usr/bin/env bun
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { join } from "node:path";
 
 const packageDir = join(import.meta.dir, "..");
@@ -68,5 +74,11 @@ if (dts.exitCode !== 0) {
   process.exit(1);
 }
 
+cpSync(
+  join(packageDir, "src", "types", "deploy.d.ts"),
+  join(outdir, "deploy.d.ts"),
+);
+
 console.log("Built dist/brains-ops.js");
 console.log("Built dist/index.js");
+console.log("Built dist/deploy.js");
