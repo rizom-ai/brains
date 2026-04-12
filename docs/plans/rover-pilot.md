@@ -432,13 +432,14 @@ Until one of those fires: stay on per-user deploys.
 - [ ] Create a pilot GitHub org to hold per-user repos (or pick an existing one)
 - [ ] Validate one throwaway rover repo end-to-end against the shared-zone contract
 - [ ] Create the `rover-pilot` registry repo with the structure defined in Design
-- [ ] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
-- [ ] Add repo-local `render-users-table` script so operators get table view from YAML truth
-- [ ] Add repo-local `onboard-user` wrapper around per-user init flow
-- [ ] Add repo-local `reconcile-cohort` script for staged rollout of one active cohort
-- [ ] Add repo-local `reconcile-all` script for fleet-wide convergence
-- [ ] Write `docs/onboarding-checklist.md` — the per-user step list
-- [ ] Write `docs/operator-playbook.md` — known gotchas (TLS, secrets, sharp/libstdc++, `/opt/brain-dist` volume, scaffold quirks)
+- [x] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
+- [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the private registry repo
+- [x] Add monorepo-owned `brains-ops render <repo>` so operators get table view from YAML truth
+- [x] Add monorepo-owned `brains-ops onboard <repo> <handle>` wrapper around per-user init flow
+- [x] Add monorepo-owned `brains-ops reconcile-cohort <repo> <cohort>` for staged rollout of one active cohort
+- [x] Add monorepo-owned `brains-ops reconcile-all <repo>` for fleet-wide convergence
+- [x] Write `docs/onboarding-checklist.md` in the private repo scaffold
+- [x] Write `docs/operator-playbook.md` in the private repo scaffold
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users
 - [ ] Provision cohort 1
@@ -448,7 +449,7 @@ Until one of those fires: stay on per-user deploys.
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real shared-zone rover onboarding run plus the repo-local operator tooling around the YAML registry.
+This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real shared-zone rover onboarding run plus live operator use of the monorepo-owned `brains-ops` workflow around the YAML registry.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 

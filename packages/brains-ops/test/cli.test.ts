@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
 import { parseArgs } from "../src/parse-args";
+import type { ResolvedUser } from "../src/load-registry";
 import { runCommand } from "../src/run-command";
 
 async function createPilotRepo(files: Record<string, string>) {
@@ -58,8 +59,13 @@ preset: core
 discord:
   enabled: false
 `,
+    "users/bob.yaml": `handle: bob
+discord:
+  enabled: true
+`,
     "cohorts/canary.yaml": `members:
   - alice
+  - bob
 `,
   } satisfies Record<string, string>;
 
@@ -93,6 +99,38 @@ discord:
     expect(table).toContain("| alice | canary | rover | core |");
   });
 
+  it("renders table with injected observed status", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "render",
+        args: [root],
+        flags: {},
+      },
+      {
+        resolveStatus(user) {
+          return Promise.resolve(
+            user.handle === "alice"
+              ? {
+                  repoStatus: "ready",
+                  deployStatus: "ready",
+                  dnsStatus: "ready",
+                  mcpStatus: "failed",
+                }
+              : undefined,
+          );
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    const table = await readFile(join(root, "views/users.md"), "utf8");
+    expect(table).toContain(
+      "| alice | canary | rover | core | 0.1.1-alpha.12 | alice.rover.example.com | rover-alice | rover-alice-content | off | ready | ready | ready | failed | missing |",
+    );
+  });
+
   it("returns usage error when onboard missing handle", async () => {
     const result = await runCommand({
       command: "onboard",
@@ -117,5 +155,100 @@ discord:
     expect(result.message).toContain(
       "Usage: brains-ops reconcile-cohort <repo> <cohort>",
     );
+  });
+
+  it("requires an operator runner for onboard", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand({
+      command: "onboard",
+      args: [root, "alice"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("requires an operator runner");
+  });
+
+  it("uses injected operator runner for onboard", async () => {
+    const root = await createPilotRepo(baseFiles);
+    const calls: string[] = [];
+
+    const runner = async (user: ResolvedUser) => {
+      calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
+      return {
+        brainYaml: `brain: ${user.model}\npreset: ${user.preset}\ndomain: ${user.domain}\n`,
+      };
+    };
+
+    const result = await runCommand(
+      {
+        command: "onboard",
+        args: [root, "alice"],
+        flags: {},
+      },
+      { runner },
+    );
+
+    expect(result.success).toBe(true);
+    expect(calls).toEqual(["alice:canary:core"]);
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\npreset: core\ndomain: alice.rover.example.com\n",
+    );
+  });
+
+  it("requires an operator runner for reconcile-all", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand({
+      command: "reconcile-all",
+      args: [root],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("requires an operator runner");
+  });
+
+  it("uses injected operator runner for reconcile-all", async () => {
+    const root = await createPilotRepo(baseFiles);
+    const calls: string[] = [];
+
+    const runner = async (user: ResolvedUser) => {
+      calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
+    };
+
+    const result = await runCommand(
+      {
+        command: "reconcile-all",
+        args: [root],
+        flags: {},
+      },
+      { runner },
+    );
+
+    expect(result.success).toBe(true);
+    expect(calls).toEqual(["alice:canary:core", "bob:canary:core"]);
+  });
+
+  it("shows help with init included", async () => {
+    const result = await runCommand({ command: "help", args: [], flags: {} });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("brains-ops — operator CLI");
+    expect(result.message).toContain("init <repo>");
+    expect(result.message).toContain("render <repo>");
+    expect(result.message).toContain("requires operator runner");
+  });
+
+  it("shows package version", async () => {
+    const result = await runCommand({
+      command: "version",
+      args: [],
+      flags: {},
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe("brains-ops 0.1.0");
   });
 });

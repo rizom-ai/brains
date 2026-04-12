@@ -1,10 +1,12 @@
 import packageJson from "../package.json";
 
 import { initPilotRepo } from "./init";
+import type { LoadPilotRegistryOptions } from "./load-registry";
 import { onboardUser } from "./onboard-user";
 import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
+import type { UserRunner } from "./reconcile-lib";
 import { writeUsersTable } from "./render-users-table";
 
 export interface CommandResult {
@@ -12,7 +14,14 @@ export interface CommandResult {
   message?: string;
 }
 
-export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
+export interface CommandDependencies extends LoadPilotRegistryOptions {
+  runner?: UserRunner;
+}
+
+export async function runCommand(
+  parsed: ParsedArgs,
+  dependencies: CommandDependencies = {},
+): Promise<CommandResult> {
   switch (parsed.command) {
     case "init": {
       const repo = parsed.args[0];
@@ -39,7 +48,11 @@ export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
         };
       }
 
-      await writeUsersTable(repo);
+      await writeUsersTable(repo, {
+        ...(dependencies.resolveStatus
+          ? { resolveStatus: dependencies.resolveStatus }
+          : {}),
+      });
       return {
         success: true,
         message: `Rendered ${repo}/views/users.md`,
@@ -56,7 +69,15 @@ export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
         };
       }
 
-      await onboardUser(repo, handle);
+      if (!dependencies.runner) {
+        return {
+          success: false,
+          message:
+            "brains-ops onboard requires an operator runner to perform repo and deploy reconciliation",
+        };
+      }
+
+      await onboardUser(repo, handle, dependencies.runner);
       return {
         success: true,
         message: `Onboarded ${handle}`,
@@ -73,7 +94,15 @@ export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
         };
       }
 
-      await reconcileCohort(repo, cohort);
+      if (!dependencies.runner) {
+        return {
+          success: false,
+          message:
+            "brains-ops reconcile-cohort requires an operator runner to perform repo and deploy reconciliation",
+        };
+      }
+
+      await reconcileCohort(repo, cohort, dependencies.runner);
       return {
         success: true,
         message: `Reconciled cohort ${cohort}`,
@@ -89,7 +118,15 @@ export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
         };
       }
 
-      await reconcileAll(repo);
+      if (!dependencies.runner) {
+        return {
+          success: false,
+          message:
+            "brains-ops reconcile-all requires an operator runner to perform repo and deploy reconciliation",
+        };
+      }
+
+      await reconcileAll(repo, dependencies.runner);
       return {
         success: true,
         message: "Reconciled all cohorts",
@@ -107,9 +144,9 @@ export async function runCommand(parsed: ParsedArgs): Promise<CommandResult> {
           "Commands:",
           "  init <repo>",
           "  render <repo>",
-          "  onboard <repo> <handle>",
-          "  reconcile-cohort <repo> <cohort>",
-          "  reconcile-all <repo>",
+          "  onboard <repo> <handle>          requires operator runner",
+          "  reconcile-cohort <repo> <cohort> requires operator runner",
+          "  reconcile-all <repo>            requires operator runner",
           "  help",
         ].join("\n"),
       };

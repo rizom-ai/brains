@@ -80,9 +80,11 @@ export async function loadPilotRegistry(
   rootDir: string,
   options: LoadPilotRegistryOptions = {},
 ): Promise<PilotRegistry> {
-  const pilot = await readYamlFile(join(rootDir, "pilot.yaml"), pilotSchema);
-  const userFiles = await loadUserFiles(rootDir);
-  const cohortFiles = await loadCohortFiles(rootDir);
+  const [pilot, userFiles, cohortFiles] = await Promise.all([
+    readYamlFile(join(rootDir, "pilot.yaml"), pilotSchema),
+    loadUserFiles(rootDir),
+    loadCohortFiles(rootDir),
+  ]);
 
   const cohortMembership = resolveMemberships(userFiles, cohortFiles);
   const cohorts = cohortFiles
@@ -98,41 +100,41 @@ export async function loadPilotRegistry(
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
-  const users: ResolvedUser[] = [];
+  const users = await Promise.all(
+    userFiles.map(async (userFile): Promise<ResolvedUser> => {
+      const cohort = cohortMembership.get(userFile.data.handle);
+      if (!cohort) {
+        throw new PilotRegistryError(
+          `User ${userFile.data.handle} must belong to exactly one cohort`,
+        );
+      }
 
-  for (const userFile of userFiles) {
-    const cohort = cohortMembership.get(userFile.data.handle);
-    if (!cohort) {
-      throw new PilotRegistryError(
-        `User ${userFile.data.handle} must belong to exactly one cohort`,
-      );
-    }
+      const identity: ResolvedUserIdentity = {
+        handle: userFile.data.handle,
+        cohort: cohort.id,
+        brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
+        model: pilot.model,
+        preset: cohort.data.presetOverride ?? pilot.preset,
+        domain: `${userFile.data.handle}${pilot.domainSuffix}`,
+        repo: `${pilot.repoPrefix}${userFile.data.handle}`,
+        contentRepo: `${pilot.repoPrefix}${userFile.data.handle}${pilot.contentRepoSuffix}`,
+        discordEnabled: userFile.data.discord.enabled,
+        snapshotStatus: await resolveSnapshotStatus(
+          rootDir,
+          userFile.data.handle,
+        ),
+      };
+      const observedStatus = await options.resolveStatus?.(identity);
 
-    const identity: ResolvedUserIdentity = {
-      handle: userFile.data.handle,
-      cohort: cohort.id,
-      brainVersion: cohort.data.brainVersionOverride ?? pilot.brainVersion,
-      model: pilot.model,
-      preset: cohort.data.presetOverride ?? pilot.preset,
-      domain: `${userFile.data.handle}${pilot.domainSuffix}`,
-      repo: `${pilot.repoPrefix}${userFile.data.handle}`,
-      contentRepo: `${pilot.repoPrefix}${userFile.data.handle}${pilot.contentRepoSuffix}`,
-      discordEnabled: userFile.data.discord.enabled,
-      snapshotStatus: await resolveSnapshotStatus(
-        rootDir,
-        userFile.data.handle,
-      ),
-    };
-    const observedStatus = await options.resolveStatus?.(identity);
-
-    users.push({
-      ...identity,
-      repoStatus: observedStatus?.repoStatus ?? "unknown",
-      deployStatus: observedStatus?.deployStatus ?? "unknown",
-      dnsStatus: observedStatus?.dnsStatus ?? "unknown",
-      mcpStatus: observedStatus?.mcpStatus ?? "unknown",
-    });
-  }
+      return {
+        ...identity,
+        repoStatus: observedStatus?.repoStatus ?? "unknown",
+        deployStatus: observedStatus?.deployStatus ?? "unknown",
+        dnsStatus: observedStatus?.dnsStatus ?? "unknown",
+        mcpStatus: observedStatus?.mcpStatus ?? "unknown",
+      };
+    }),
+  );
 
   users.sort((left, right) => left.handle.localeCompare(right.handle));
 
@@ -146,19 +148,22 @@ export async function loadPilotRegistry(
 async function loadUserFiles(rootDir: string): Promise<LoadedUserFile[]> {
   const userDir = join(rootDir, "users");
   const userFiles = await listYamlFiles(userDir);
-  const loaded: LoadedUserFile[] = [];
 
-  for (const filePath of userFiles) {
-    const id = stripYamlExtension(basename(filePath));
-    const data = await readYamlFile(filePath, userSchema);
-    const displayPath = normalizePath(relative(rootDir, filePath));
+  const loaded = await Promise.all(
+    userFiles.map(async (filePath): Promise<LoadedUserFile> => {
+      const id = stripYamlExtension(basename(filePath));
+      const data = await readYamlFile(filePath, userSchema);
 
-    if (data.handle !== id) {
-      throw new PilotRegistryError(`${displayPath} must declare handle: ${id}`);
-    }
+      if (data.handle !== id) {
+        const displayPath = normalizePath(relative(rootDir, filePath));
+        throw new PilotRegistryError(
+          `${displayPath} must declare handle: ${id}`,
+        );
+      }
 
-    loaded.push({ id, data });
-  }
+      return { id, data };
+    }),
+  );
 
   return loaded.sort((left, right) => left.id.localeCompare(right.id));
 }
@@ -166,14 +171,15 @@ async function loadUserFiles(rootDir: string): Promise<LoadedUserFile[]> {
 async function loadCohortFiles(rootDir: string): Promise<LoadedCohortFile[]> {
   const cohortDir = join(rootDir, "cohorts");
   const cohortFiles = await listYamlFiles(cohortDir);
-  const loaded: LoadedCohortFile[] = [];
 
-  for (const filePath of cohortFiles) {
-    loaded.push({
-      id: stripYamlExtension(basename(filePath)),
-      data: await readYamlFile(filePath, cohortSchema),
-    });
-  }
+  const loaded = await Promise.all(
+    cohortFiles.map(
+      async (filePath): Promise<LoadedCohortFile> => ({
+        id: stripYamlExtension(basename(filePath)),
+        data: await readYamlFile(filePath, cohortSchema),
+      }),
+    ),
+  );
 
   return loaded.sort((left, right) => left.id.localeCompare(right.id));
 }

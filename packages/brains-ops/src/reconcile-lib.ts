@@ -1,7 +1,11 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
-import { loadPilotRegistry, type ResolvedUser } from "./load-registry";
+import {
+  loadPilotRegistry,
+  type PilotRegistry,
+  type ResolvedUser,
+} from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
 
 export interface UserRunResult {
@@ -12,18 +16,34 @@ export type UserRunner = (user: ResolvedUser) => Promise<UserRunResult | void>;
 
 export async function runUsers(
   rootDir: string,
+  registry: PilotRegistry,
   users: ResolvedUser[],
   runner: UserRunner = async () => {},
 ): Promise<void> {
+  const snapshotWritten = new Set<string>();
+
   for (const user of users) {
     const result = await runner(user);
 
     if (result?.brainYaml) {
       await writeUserSnapshot(rootDir, user.handle, result.brainYaml);
+      snapshotWritten.add(user.handle);
     }
   }
 
-  await writeUsersTable(rootDir);
+  const refreshedRegistry: PilotRegistry =
+    snapshotWritten.size === 0
+      ? registry
+      : {
+          ...registry,
+          users: registry.users.map((entry) =>
+            snapshotWritten.has(entry.handle)
+              ? { ...entry, snapshotStatus: "present" as const }
+              : entry,
+          ),
+        };
+
+  await writeUsersTable(rootDir, { registry: refreshedRegistry });
 }
 
 async function writeUserSnapshot(
@@ -39,7 +59,7 @@ async function writeUserSnapshot(
 export async function findUser(
   rootDir: string,
   handle: string,
-): Promise<ResolvedUser> {
+): Promise<{ registry: PilotRegistry; user: ResolvedUser }> {
   const registry = await loadPilotRegistry(rootDir);
   const user = registry.users.find((entry) => entry.handle === handle);
 
@@ -47,13 +67,13 @@ export async function findUser(
     throw new Error(`Unknown user handle: ${handle}`);
   }
 
-  return user;
+  return { registry, user };
 }
 
 export async function findCohortUsers(
   rootDir: string,
   cohortId: string,
-): Promise<ResolvedUser[]> {
+): Promise<{ registry: PilotRegistry; users: ResolvedUser[] }> {
   const registry = await loadPilotRegistry(rootDir);
   const cohort = registry.cohorts.find((entry) => entry.id === cohortId);
 
@@ -61,10 +81,15 @@ export async function findCohortUsers(
     throw new Error(`Unknown cohort: ${cohortId}`);
   }
 
-  return registry.users.filter((user) => user.cohort === cohort.id);
+  return {
+    registry,
+    users: registry.users.filter((user) => user.cohort === cohort.id),
+  };
 }
 
-export async function findAllUsers(rootDir: string): Promise<ResolvedUser[]> {
+export async function findAllUsers(
+  rootDir: string,
+): Promise<{ registry: PilotRegistry; users: ResolvedUser[] }> {
   const registry = await loadPilotRegistry(rootDir);
-  return registry.users;
+  return { registry, users: registry.users };
 }
