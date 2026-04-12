@@ -147,6 +147,11 @@ const libraryEntries = [
     source: join(import.meta.dir, "..", "src", "entries", "themes.ts"),
     types: join(import.meta.dir, "..", "src", "types", "themes.d.ts"),
   },
+  {
+    name: "deploy",
+    source: join(import.meta.dir, "..", "src", "entries", "deploy.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "deploy.d.ts"),
+  },
 ] as const;
 
 const cliBuild = bundle({

@@ -6,7 +6,7 @@ import { bundledModelEnvSchemas } from "./generated/bundled-model-env-schemas";
 // process.env (and therefore from CI secrets) directly. This is the
 // only backend brain-cli ships with verified end-to-end support today.
 // 1Password and Bitwarden were both considered and rejected — see
-// docs/plans/secret-backends-considered.md for the verified blockers.
+// Verified secret-backend blockers are documented in repo docs; keep defaults conservative until an end-to-end backend path is proven.
 // Operators who want a different varlock plugin can pass --backend
 // <name>; the schema generator emits a generic @plugin(@varlock/<name>-plugin)
 // fallthrough that they can hand-tune.

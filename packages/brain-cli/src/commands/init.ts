@@ -953,16 +953,33 @@ ${workflowSecretsEnv}
 }
 
 const SHARED_DEPLOY_SCRIPTS = [
-  "helpers.ts",
   "provision-server.ts",
   "update-dns.ts",
   "write-ssh-key.ts",
 ];
 
+const DEPLOY_HELPERS_SHIM = `export {
+  readJsonResponse,
+  parseEnvFile,
+  parseEnvSchema,
+  requireEnv,
+  writeGitHubOutput,
+  writeGitHubEnv,
+} from "@rizom/brain/deploy";
+export type { EnvSchemaEntry } from "@rizom/brain/deploy";
+`;
+
 function writeSharedDeployScripts(dir: string): void {
-  const scriptsDir = fileURLToPath(
-    new URL(import.meta.resolve("@brains/utils/deploy-scripts/helpers.ts")),
-  ).replace(/helpers\.ts$/, "");
+  const scriptsDir = dirname(
+    fileURLToPath(
+      import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
+    ),
+  );
+
+  writeScaffoldFile(
+    join(dir, "deploy", "scripts", "helpers.ts"),
+    DEPLOY_HELPERS_SHIM,
+  );
 
   for (const script of SHARED_DEPLOY_SCRIPTS) {
     const content = readFileSync(join(scriptsDir, script), "utf-8");

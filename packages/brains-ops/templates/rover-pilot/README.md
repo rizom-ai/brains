@@ -21,6 +21,18 @@ Then run commands with:
 bunx brains-ops <command>
 ```
 
+The repo also checks in its deploy contract:
+
+- `.env.schema`
+- `deploy/kamal/deploy.yml`
+- `deploy/scripts/`
+- `.github/workflows/*`
+
+`.env.schema` is the single source of truth for required and sensitive deploy vars.
+The shared pilot image tag is `brain-${brainVersion}` end to end.
+When `pilot.yaml.brainVersion` changes and you push, CI rebuilds the shared tag, refreshes generated user env files, and redeploys affected users.
+When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
+
 ## Commands
 
 - `brains-ops init <repo>`

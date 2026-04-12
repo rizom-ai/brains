@@ -16,29 +16,24 @@ const starterFilePaths = [
   ".github/workflows/reconcile.yml",
   "deploy/Dockerfile",
   "deploy/kamal/deploy.yml",
-  "deploy/scripts/resolve-user-config.ts",
-  ".kamal/hooks/pre-deploy",
-  "docs/onboarding-checklist.md",
-  "docs/operator-playbook.md",
-  "README.md",
-] as const;
-
-const sharedDeployScripts = [
   "deploy/scripts/helpers.ts",
   "deploy/scripts/provision-server.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
   "deploy/scripts/write-kamal-secrets.ts",
   "deploy/scripts/validate-secrets.ts",
+  "deploy/scripts/resolve-user-config.ts",
+  "deploy/scripts/resolve-deploy-handles.ts",
+  ".kamal/hooks/pre-deploy",
+  "docs/onboarding-checklist.md",
+  "docs/operator-playbook.md",
+  "README.md",
 ] as const;
 
 const executableStarterFilePaths = new Set<string>([".kamal/hooks/pre-deploy"]);
 const templateRootDir = fileURLToPath(
   new URL("../templates/rover-pilot/", import.meta.url),
 );
-const sharedDeployScriptsDir = fileURLToPath(
-  new URL(import.meta.resolve("@brains/utils/deploy-scripts/helpers.ts")),
-).replace(/helpers\.ts$/, "");
 
 export async function initPilotRepo(rootDir: string): Promise<void> {
   await mkdir(rootDir, { recursive: true });
@@ -52,21 +47,13 @@ export async function initPilotRepo(rootDir: string): Promise<void> {
     usersTableExists = false;
   }
 
-  for (const relativePath of starterFilePaths) {
+  const writes = starterFilePaths.map(async (relativePath) => {
     const targetPath = join(rootDir, relativePath);
     await mkdir(dirname(targetPath), { recursive: true });
     await writeStarterFileIfMissing(relativePath, targetPath);
-  }
+  });
 
-  for (const relativePath of sharedDeployScripts) {
-    const targetPath = join(rootDir, relativePath);
-    const sourcePath = join(
-      sharedDeployScriptsDir,
-      relativePath.replace("deploy/scripts/", ""),
-    );
-    await mkdir(dirname(targetPath), { recursive: true });
-    await writeFileIfMissing(sourcePath, targetPath);
-  }
+  await Promise.all(writes);
 
   if (!usersTableExists) {
     await writeUsersTable(rootDir);
@@ -91,19 +78,6 @@ async function writeStarterFileIfMissing(
 
   if (executableStarterFilePaths.has(relativePath)) {
     await chmod(targetPath, 0o755);
-  }
-}
-
-async function writeFileIfMissing(
-  sourcePath: string,
-  targetPath: string,
-): Promise<void> {
-  const content = await readFile(sourcePath, "utf8");
-  try {
-    await writeFile(targetPath, content, { flag: "wx" });
-  } catch (err: unknown) {
-    if (isErrnoExceptionWithCode(err, "EEXIST")) return;
-    throw err;
   }
 }
 

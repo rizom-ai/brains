@@ -96,4 +96,46 @@ CLOUDFLARE_ANALYTICS_SITE_TAG=
       "DISCORD_BOT_TOKEN",
     ]);
   });
+
+  it("skips sections listed in skipSections", () => {
+    const content = `# @required @sensitive
+AI_API_KEY=
+
+# ---- secret backend bootstrap ----
+
+# @required @sensitive
+BOOTSTRAP_TOKEN=
+
+# ---- deploy/provision vars ----
+
+# @required
+HCLOUD_SSH_KEY_NAME=
+`;
+    const entries = parseEnvSchema(content, {
+      skipSections: new Set(["# ---- secret backend bootstrap ----"]),
+    });
+    expect(entries.map((e) => e.key)).toEqual([
+      "AI_API_KEY",
+      "HCLOUD_SSH_KEY_NAME",
+    ]);
+  });
+
+  it("includes all sections when skipSections is empty", () => {
+    const content = `# ---- section one ----
+
+# @required
+FOO=
+
+# ---- section two ----
+
+BAR=
+`;
+    const entries = parseEnvSchema(content);
+    expect(entries.map((e) => e.key)).toEqual(["FOO", "BAR"]);
+  });
+
+  it("handles empty input", () => {
+    expect(parseEnvSchema("")).toEqual([]);
+    expect(parseEnvSchema("  \n\n  ")).toEqual([]);
+  });
 });

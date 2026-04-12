@@ -1,11 +1,27 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import {
+  mkdtemp,
+  mkdir,
+  readFile,
+  stat,
+  symlink,
+  writeFile,
+} from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 
 import packageJson from "../package.json";
 import { initPilotRepo } from "../src/init";
+
+const opsPackageDir = join(dirname(import.meta.dir));
+
+async function linkOpsPackage(repoDir: string): Promise<void> {
+  const target = join(repoDir, "node_modules", "@brains", "ops");
+  await mkdir(dirname(target), { recursive: true });
+  await symlink(opsPackageDir, target, "dir");
+}
 
 describe("initPilotRepo", () => {
   it("creates the private rover-pilot repo skeleton", async () => {
@@ -59,6 +75,9 @@ describe("initPilotRepo", () => {
     expect(
       existsSync(join(repo, "deploy", "scripts", "resolve-user-config.ts")),
     ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "resolve-deploy-handles.ts")),
+    ).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).toContain("schemaVersion: 1");
@@ -66,6 +85,13 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
+
+    const envSchema = await readFile(join(repo, ".env.schema"), "utf8");
+    expect(envSchema).toContain("# Rover pilot instance env schema");
+    expect(envSchema).toContain("single source of truth");
+    expect(envSchema).toContain("AI_API_KEY=");
+    expect(envSchema).toContain("HCLOUD_TOKEN=");
+    expect(envSchema).toContain("PRIVATE_KEY_PEM=");
 
     const usersTable = await readFile(join(repo, "views", "users.md"), "utf8");
     expect(usersTable).toContain(
@@ -89,6 +115,12 @@ describe("initPilotRepo", () => {
     expect(buildWorkflow).toContain(
       "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
     );
+    expect(buildWorkflow).toContain(
+      "type=raw,value=brain-${{ env.BRAIN_VERSION }}",
+    );
+    expect(buildWorkflow).not.toContain(
+      "type=raw,value=brain-${{ env.BRAIN_VERSION }}-${{ github.sha }}",
+    );
     expect(buildWorkflow).not.toContain("TODO:");
 
     const deployWorkflow = await readFile(
@@ -96,8 +128,23 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(deployWorkflow).toContain("workflow_dispatch:");
+    expect(deployWorkflow).toContain("push:");
+    expect(deployWorkflow).toContain("users/*/brain.yaml");
+    expect(deployWorkflow).toContain("users/*/.env");
     expect(deployWorkflow).toContain("handle:");
+    expect(deployWorkflow).toContain("strategy:");
+    expect(deployWorkflow).toContain("matrix.handle");
+    expect(deployWorkflow).toContain(
+      "No affected user configs; skipping deploy.",
+    );
+    expect(deployWorkflow).toContain("Finalize generated config");
+    expect(deployWorkflow).toContain("actions/download-artifact@v4");
+    expect(deployWorkflow).toContain("pattern: generated-*-config");
+    expect(deployWorkflow).toContain("merge-multiple: true");
     expect(deployWorkflow).toContain("bun install");
+    expect(deployWorkflow).toContain(
+      "bun deploy/scripts/resolve-deploy-handles.ts",
+    );
     expect(deployWorkflow).toContain("bunx brains-ops onboard");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-user-config.ts",
@@ -109,11 +156,21 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
+    expect(deployWorkflow).toContain("Wait for shared image tag");
+    expect(deployWorkflow).toContain(
+      "VERSION: brain-${{ steps.user_config.outputs.brain_version }}",
+    );
+    expect(deployWorkflow).toContain(
+      'bunx brains-ops render "$GITHUB_WORKSPACE"',
+    );
     expect(deployWorkflow).toContain(
       "kamal setup --skip-push -c deploy/kamal/deploy.yml",
     );
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(deployWorkflow).not.toContain(".brains/packages/brains-ops");
+    expect(deployWorkflow).not.toContain(
+      'git commit -m "chore(ops): reconcile $HANDLE"',
+    );
     expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
 
@@ -169,11 +226,27 @@ describe("initPilotRepo", () => {
     const preDeployHookStat = await stat(preDeployHookPath);
     expect(preDeployHookStat.mode & 0o111).toBeGreaterThan(0);
 
+    const operatorPlaybook = await readFile(
+      join(repo, "docs", "operator-playbook.md"),
+      "utf8",
+    );
+    expect(operatorPlaybook).toContain(".env.schema");
+    expect(operatorPlaybook).toContain("single source of truth");
+    expect(operatorPlaybook).toContain("pilot.yaml.brainVersion");
+    expect(operatorPlaybook).toContain("users/<handle>/.env");
+    expect(operatorPlaybook).toContain("final aggregation step");
+    expect(operatorPlaybook).toContain("deploy/scripts/");
+    expect(operatorPlaybook).toContain("`@brains/ops` in `package.json`");
+
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");
     expect(readme).toContain("brains-ops render");
     expect(readme).toContain("bun install");
     expect(readme).toContain("@brains/ops");
+    expect(readme).toContain(".env.schema");
+    expect(readme).toContain("single source of truth");
+    expect(readme).toContain("brain-${brainVersion}");
+    expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
   });
 
@@ -195,4 +268,169 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).not.toContain("<github-org>");
     expect(existsSync(join(repo, "views", "users.md"))).toBe(true);
   });
+
+  it("resolve-deploy-handles returns the dispatched handle", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "workflow_dispatch",
+          HANDLE_INPUT: "alice",
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles returns changed user handles for push events", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    const beforeSha = commitAll(repo, "initial");
+
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(
+      join(repo, "users", "alice", ".env"),
+      "BRAIN_VERSION=0.1.1-alpha.14\n",
+    );
+    const currentSha = commitAll(repo, "add alice env");
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles returns no handles for contract-only push events", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    const beforeSha = commitAll(repo, "initial");
+
+    await writeFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      "service: rover\nimage: contract-only-change\n",
+    );
+    const currentSha = commitAll(repo, "contract-only change");
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain("handles_json=[]");
+  });
+
+  it("resolve-deploy-handles handles first-push zero before sha", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    commitAll(repo, "initial");
+
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: "0000000000000000000000000000000000000000",
+          GITHUB_SHA: execFileSync("git", ["rev-parse", "HEAD"], {
+            cwd: repo,
+            encoding: "utf8",
+          }).trim(),
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain("handles_json=[]");
+  });
 });
+
+function initializeGitRepo(repo: string): void {
+  execFileSync("git", ["init", "-b", "main"], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+  execFileSync("git", ["config", "user.name", "Test User"], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+  execFileSync("git", ["config", "user.email", "test@example.com"], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+}
+
+function commitAll(repo: string, message: string): string {
+  execFileSync("git", ["add", "."], { cwd: repo, encoding: "utf8" });
+  execFileSync("git", ["commit", "-m", message], {
+    cwd: repo,
+    encoding: "utf8",
+  });
+  return execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: repo,
+    encoding: "utf8",
+  }).trim();
+}

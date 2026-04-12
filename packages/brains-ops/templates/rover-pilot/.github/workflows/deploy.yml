@@ -7,19 +7,61 @@ on:
         description: User handle
         required: true
         type: string
+  push:
+    branches: ["main"]
+    paths:
+      - users/*/.env
+      - users/*/brain.yaml
+      - deploy/**
+      - .github/workflows/deploy.yml
 
 permissions:
   contents: write
-
-concurrency:
-  group: deploy-${{ inputs.handle }}
-  cancel-in-progress: false
+  packages: read
 
 jobs:
-  deploy:
+  resolve_handles:
     runs-on: ubuntu-latest
+    outputs:
+      handles_json: ${{ steps.resolve.outputs.handles_json }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Resolve deploy handles
+        id: resolve
+        env:
+          HANDLE_INPUT: ${{ inputs.handle || '' }}
+          BEFORE_SHA: ${{ github.event.before || '' }}
+        run: bun deploy/scripts/resolve-deploy-handles.ts
+
+  no_changes:
+    needs: resolve_handles
+    if: needs.resolve_handles.outputs.handles_json == '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip when no user configs changed
+        run: echo "No affected user configs; skipping deploy."
+
+  deploy:
+    needs: resolve_handles
+    if: needs.resolve_handles.outputs.handles_json != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        handle: ${{ fromJson(needs.resolve_handles.outputs.handles_json) }}
+    concurrency:
+      group: deploy-${{ matrix.handle }}
+      cancel-in-progress: false
     env:
-      HANDLE: ${{ inputs.handle }}
+      HANDLE: ${{ matrix.handle }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -54,6 +96,26 @@ jobs:
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
         run: bun deploy/scripts/validate-secrets.ts
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Wait for shared image tag
+        run: |
+          IMAGE_TAG="${{ steps.user_config.outputs.image_repository }}:brain-${{ steps.user_config.outputs.brain_version }}"
+          for attempt in $(seq 1 24); do
+            if docker manifest inspect "$IMAGE_TAG" >/dev/null 2>&1; then
+              exit 0
+            fi
+            echo "Shared image tag not ready yet ($attempt/24): $IMAGE_TAG"
+            sleep 10
+          done
+          echo "Timed out waiting for $IMAGE_TAG" >&2
+          exit 1
 
       - name: Install Kamal
         run: |
@@ -140,22 +202,10 @@ jobs:
       - name: Upload generated config
         uses: actions/upload-artifact@v4
         with:
-          name: generated-${{ inputs.handle }}-config
+          name: generated-${{ matrix.handle }}-config
           path: |
-            users/${{ inputs.handle }}/brain.yaml
-            users/${{ inputs.handle }}/.env
-            views/users.md
-
-      - name: Commit generated config
-        run: |
-          if git diff --quiet -- "users/$HANDLE/brain.yaml" "users/$HANDLE/.env" views/users.md; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add "users/$HANDLE/brain.yaml" "users/$HANDLE/.env" views/users.md
-          git commit -m "chore(ops): reconcile $HANDLE"
-          git push
+            users/${{ matrix.handle }}/brain.yaml
+            users/${{ matrix.handle }}/.env
 
       - name: Dump remote proxy diagnostics
         if: failure()
@@ -174,3 +224,38 @@ jobs:
             echo "--- kamal-proxy inspect ---"
             docker inspect kamal-proxy || true
           '
+
+  finalize_generated_config:
+    needs: [resolve_handles, deploy]
+    if: needs.resolve_handles.outputs.handles_json != '[]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install operator tooling
+        run: bun install
+
+      - name: Finalize generated config
+        uses: actions/download-artifact@v4
+        with:
+          pattern: generated-*-config
+          merge-multiple: true
+          path: .
+
+      - name: Regenerate users table
+        run: bunx brains-ops render "$GITHUB_WORKSPACE"
+
+      - name: Commit generated config
+        run: |
+          if git diff --quiet -- users views; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add users views
+          git commit -m "chore(ops): reconcile generated config"
+          git push
