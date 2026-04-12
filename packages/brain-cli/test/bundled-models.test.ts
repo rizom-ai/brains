@@ -34,9 +34,6 @@ describe("bundled model set", () => {
     expect(entrypoint).toContain(
       'import rizomTheme from "@brains/theme-rizom";',
     );
-    expect(entrypoint).toContain(
-      'import yeehaaSite from "@brains/site-yeehaa";',
-    );
 
     expect(entrypoint).toContain(
       'registerPackage("@brains/site-default", defaultSite);',
@@ -49,9 +46,6 @@ describe("bundled model set", () => {
     );
     expect(entrypoint).toContain(
       'registerPackage("@brains/theme-rizom", rizomTheme);',
-    );
-    expect(entrypoint).toContain(
-      'registerPackage("@brains/site-yeehaa", yeehaaSite);',
     );
   });
 });

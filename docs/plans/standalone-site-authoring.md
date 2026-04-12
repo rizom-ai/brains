@@ -97,11 +97,11 @@ are still preferred end state. But that comes **after** dead-package cleanup, no
 | `sites/professional` | public authoring surface / reusable structure |
 | `sites/rizom`        | shared Rizom site package                     |
 
-### Keep for now, decide later
+### Deleted from monorepo after standalone cutover
 
-| Site           | Why                                                                                            |
-| -------------- | ---------------------------------------------------------------------------------------------- |
-| `sites/yeehaa` | still backs current yeehaa package ref path; local cutover can happen after dead theme cleanup |
+| Site                   | Why                                  |
+| ---------------------- | ------------------------------------ |
+| yeehaa standalone site | now lives in `yeehaa-io/src/site.ts` |
 
 ## Order of work
 
@@ -143,11 +143,10 @@ At that point theme inventory becomes small and intentional.
 
 After dead-theme cleanup, yeehaa theme cut is done.
 
-Next cut is site only:
+Yeehaa site cut is now done:
 
-- keep `sites/yeehaa` in monorepo for moment
-- later move yeehaa structure into `rizom-ai/yeehaa-io/src/site.ts`
-- then delete `sites/yeehaa`
+- yeehaa structure lives in `rizom-ai/yeehaa-io/src/site.ts`
+- yeehaa site package can be deleted from monorepo
 
 ## Why this order
 
@@ -196,7 +195,7 @@ If/when yeehaa local cut happens later:
 - [x] delete unused themes from monorepo
 - [x] clean docs/tests/manifests after deletion
 - [x] move yeehaa theme to local convention and delete `shared/theme-brutalist`
-- [ ] move `sites/yeehaa` to local convention and delete it from monorepo
+- [x] move yeehaa site to local convention and delete it from monorepo
 
 ## Related
 

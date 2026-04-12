@@ -58,7 +58,6 @@
     "@brains/site-personal": "workspace:*",
     "@brains/site-professional": "workspace:*",
     "@brains/site-rizom": "workspace:*",
-    "@brains/site-yeehaa": "workspace:*",
     "@brains/theme-default": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/typescript-config": "workspace:*",

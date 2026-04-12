@@ -507,7 +507,6 @@
         "@brains/site-personal": "workspace:*",
         "@brains/site-professional": "workspace:*",
         "@brains/site-rizom": "workspace:*",
-        "@brains/site-yeehaa": "workspace:*",
         "@brains/theme-default": "workspace:*",
         "@brains/theme-rizom": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -1266,20 +1265,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "sites/yeehaa": {
-      "name": "@brains/site-yeehaa",
-      "version": "0.1.0",
-      "dependencies": {
-        "@brains/site-composition": "workspace:*",
-        "@brains/site-default": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
   },
   "packages": {
     "@a2a-js/sdk": ["@a2a-js/sdk@0.3.12", "", { "dependencies": { "uuid": "^11.1.0" }, "peerDependencies": { "@bufbuild/protobuf": "^2.10.2", "@grpc/grpc-js": "^1.11.0", "express": "^4.21.2 || ^5.1.0" }, "optionalPeers": ["@bufbuild/protobuf", "@grpc/grpc-js", "express"] }, "sha512-iYV4rkOrAiGGN0ID54NiszHmgtBI0zJwgY3ZfsGOxwfz5CC8ERSSG1te5pwXApyqlZM+GxENad9gvmTk9oS1vQ=="],
@@ -1413,8 +1398,6 @@
     "@brains/site-professional": ["@brains/site-professional@workspace:sites/professional"],
 
     "@brains/site-rizom": ["@brains/site-rizom@workspace:sites/rizom"],
-
-    "@brains/site-yeehaa": ["@brains/site-yeehaa@workspace:sites/yeehaa"],
 
     "@brains/social-media": ["@brains/social-media@workspace:entities/social-media"],
 

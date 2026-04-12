@@ -76,11 +76,10 @@ interfaces/*, brains/*, sites/*, packages/*
 - `brains/ranger` — internal brain model for `apps/rizom-ai`. Public source, **not published**, strong README disclaimer.
 - `brains/relay` — internal brain model for `apps/rizom-foundation`. Public source, **not published**, strong README disclaimer.
 
-**Sites (3 of 5):**
+**Sites (2 current shared packages):**
 
 - `sites/default` — generic out-of-box site package (used by rover by default)
 - `sites/rizom` — rizom brand site (used by `apps/rizom-ai` and `apps/rizom-foundation`)
-- `sites/yeehaa` — yeehaa.io brand site (used by the standalone `yeehaa-io` repo)
 
 **Branded themes that ship publicly (paired with public sites):**
 
@@ -589,7 +588,7 @@ These edits were made in the current working tree so they merge into the private
 | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `shell/app/test/instance-overrides.test.ts`                  | `@brains/relay` → `@brains/rover` (29×), `@brains/site-mylittlephoney` → `@brains/site-default` (2×), `rizom-ai/team-brain-content` → `your-org/your-content`, test name "team-brain" → neutral  |
 | `shell/app/test/generate-entrypoint.test.ts`                 | `@brains/theme-mylittlephoney` → `@brains/theme-default` (3×), `@brains/site-mylittlephoney` → `@brains/site-default` (5×)                                                                       |
-| `shell/app/test/generate-model-entrypoint.test.ts`           | `@brains/site-yeehaa` → `@example/site-alpha` (4×), `@brains/site-mylittlephoney` → `@example/site-beta` (4×)                                                                                    |
+| `shell/app/test/generate-model-entrypoint.test.ts`           | example site package refs only (`@example/site-alpha`, `@example/site-beta`)                                                                                                                     |
 | `shell/app/test/override-package-refs.test.ts`               | `@brains/site-mylittlephoney` → `@brains/site-default` (4×)                                                                                                                                      |
 | `shell/app/test/build-model-npm.test.ts`                     | `ranger` → `sentry` model name (forward-looking fictional placeholder)                                                                                                                           |
 | `shell/app/src/runner.ts`                                    | Error message example: `@brains/relay` → `@brains/rover`                                                                                                                                         |

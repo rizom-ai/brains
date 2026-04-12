@@ -13,9 +13,9 @@ site:
   theme: "@brains/theme-rizom"
 `;
 
-const yeehaaYaml = `brain: rover
+const siteOnlyYaml = `brain: rover
 site:
-  package: "@brains/site-yeehaa"
+  package: "@brains/site-default"
 `;
 
 describe("brain.yaml site theme pairing", () => {
@@ -29,10 +29,10 @@ describe("brain.yaml site theme pairing", () => {
   });
 
   test("allows a site package without an explicit theme package", () => {
-    const overrides = readOverrides(yeehaaYaml);
+    const overrides = readOverrides(siteOnlyYaml);
 
     expect(overrides.site).toEqual({
-      package: "@brains/site-yeehaa",
+      package: "@brains/site-default",
     });
   });
 });

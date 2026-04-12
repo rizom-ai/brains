@@ -47,7 +47,7 @@ describe("generateModelEntrypoint", () => {
       code.match(/import definition from "@brains\/rover"/g) ?? [];
     expect(defImports).toHaveLength(1);
 
-    // Only site-yeehaa as __pkg0
+    // Only example site as __pkg0
     expect(code).toContain('import __pkg0 from "@example/site-alpha"');
     expect(code).not.toContain("__pkg1");
   });

@@ -25,7 +25,6 @@ import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import rizomSite from "@brains/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
-import yeehaaSite from "@brains/site-yeehaa";
 
 registerModel("rover", rover);
 registerModel("ranger", ranger);
@@ -35,7 +34,6 @@ registerPackage("@brains/site-default", defaultSite);
 registerPackage("@brains/theme-default", defaultTheme);
 registerPackage("@brains/site-rizom", rizomSite);
 registerPackage("@brains/theme-rizom", rizomTheme);
-registerPackage("@brains/site-yeehaa", yeehaaSite);
 
 // ─── Register boot function ───────────────────────────────────────────────
 

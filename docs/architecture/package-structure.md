@@ -108,13 +108,12 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package              | Purpose                                                                                                     |
-| -------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default`                            |
-| `sites/personal`     | Personal site composition, blog-focused                                                                     |
-| `sites/professional` | Professional site composition, editorial + portfolio + decks                                                |
-| `sites/yeehaa`       | Yeehaa structural site built on the default composition; the standalone repo now supplies its theme locally |
-| `sites/rizom`        | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom`                            |
+| Package              | Purpose                                                                          |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default` |
+| `sites/personal`     | Personal site composition, blog-focused                                          |
+| `sites/professional` | Professional site composition, editorial + portfolio + decks                     |
+| `sites/rizom`        | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom` |
 
 Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / structure per instance. Theme selection remains independent via `site.theme`.
 
