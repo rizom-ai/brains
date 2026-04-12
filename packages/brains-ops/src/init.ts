@@ -9,6 +9,7 @@ const starterFilePaths = [
   "pilot.yaml",
   "package.json",
   ".env.schema",
+  ".gitignore",
   "cohorts/cohort-1.yaml",
   "users/alice.yaml",
   ".github/workflows/build.yml",
@@ -64,9 +65,7 @@ async function writeStarterFileIfMissing(
   relativePath: string,
   targetPath: string,
 ): Promise<void> {
-  const templatePath = join(templateRootDir, relativePath);
-  const templateContent = await readFile(templatePath, "utf8");
-  const content = renderTemplate(templateContent);
+  const content = await renderStarterFile(relativePath);
   try {
     await writeFile(targetPath, content, { flag: "wx" });
   } catch (err: unknown) {
@@ -79,6 +78,16 @@ async function writeStarterFileIfMissing(
   if (executableStarterFilePaths.has(relativePath)) {
     await chmod(targetPath, 0o755);
   }
+}
+
+async function renderStarterFile(relativePath: string): Promise<string> {
+  if (relativePath === ".gitignore") {
+    return "node_modules/\n";
+  }
+
+  const templatePath = join(templateRootDir, relativePath);
+  const templateContent = await readFile(templatePath, "utf8");
+  return renderTemplate(templateContent);
 }
 
 function renderTemplate(templateContent: string): string {

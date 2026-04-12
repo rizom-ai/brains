@@ -295,11 +295,11 @@ Derived-but-checked files:
 
 Delivery contract:
 
-- `brains-ops` is delivered as a published package artifact: `@brains/ops`
+- `brains-ops` is delivered as a published package artifact: `@rizom/ops`
 - it remains separate from the public `brain` CLI surface
 - the published package should follow the same packaging posture as `@rizom/brain`: built JS in `dist/`, published from build output, not from monorepo-only source entrypoints
 - the published package must not rely on private workspace runtime dependencies
-- `rover-pilot` CI installs an exact pinned `@brains/ops` version before running reconcile/onboard flows
+- `rover-pilot` CI installs an exact pinned `@rizom/ops` version before running reconcile/onboard flows
 - operator laptops may run the same pinned package locally
 - workflow reproducibility comes from the pinned package version, not from checking out `rizom-ai/brains` at runtime
 
@@ -414,12 +414,12 @@ Concrete contract:
 One set of GitHub Actions workflows in `rover-pilot/.github/workflows/` manages all users.
 
 - **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged as `brain-${brainVersion}`, not by user. All users on the same version share the same image.
-- **Deploy workflow** — runs per affected user. It supports manual dispatch for one handle, and automatic push-triggered deploys when generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files change. It installs pinned `@brains/ops`, reconciles or resolves the selected user config, validates secrets against `.env.schema` as the checked-in single source of truth, waits for the shared image tag to exist when needed, and deploys to the user's server via Kamal. Generated config commits happen once in a final aggregation step after the matrix finishes; matrix jobs do not race to push.
-- **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Installs pinned `@brains/ops` and runs `brains-ops reconcile-all` to converge all users to desired state.
+- **Deploy workflow** — runs per affected user. It supports manual dispatch for one handle, and automatic push-triggered deploys when generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files change. It installs pinned `@rizom/ops`, reconciles or resolves the selected user config, validates secrets against `.env.schema` as the checked-in single source of truth, waits for the shared image tag to exist when needed, and deploys to the user's server via Kamal. Generated config commits happen once in a final aggregation step after the matrix finishes; matrix jobs do not race to push.
+- **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Installs pinned `@rizom/ops` and runs `brains-ops reconcile-all` to converge all users to desired state.
 
 Operator tool delivery in CI:
 
-- `rover-pilot` declares an exact `@brains/ops` version in its package metadata
+- `rover-pilot` declares an exact `@rizom/ops` version in its package metadata
 - workflows install dependencies normally with Bun
 - workflows invoke `brains-ops` via the installed package, not by checking out the `brains` monorepo
 - upgrading operator behavior in `rover-pilot` is a normal dependency bump PR/commit
@@ -493,13 +493,29 @@ Until one of those fires: stay on per-user deploys.
 - [x] Write `docs/onboarding-checklist.md` in the pilot repo scaffold
 - [x] Write `docs/operator-playbook.md` in the pilot repo scaffold
 - [x] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
-- [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@brains/ops`
+- [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@rizom/ops`
 - [x] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [x] Scaffold shared pilot deploy env contract and helper scripts in `brains-ops init`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
 - [ ] Provision cohort 1 gradually
 - [ ] After 2 weeks, review cohort 1; update playbook; decide whether to proceed to cohort 2
+
+## Immediate next execution order
+
+1. Create the private `rizom-ai/rover-pilot` repo from the published `brains-ops` scaffold.
+2. Commit the scaffolded repo with pinned `@rizom/ops` package metadata and the generated baseline files.
+3. Run one throwaway user through the full shared-zone path under `<handle>.rizom.ai`.
+4. Verify the whole chain end to end:
+   - content repo creation
+   - generated `users/<handle>/brain.yaml`
+   - generated `users/<handle>/.env`
+   - Hetzner server provisioning
+   - Cloudflare DNS upsert in the `rizom.ai` zone
+   - shared image build and per-user deploy
+   - MCP reachability on the final subdomain
+5. Set the shared AI spend cap before onboarding any non-throwaway user.
+6. Pick cohort 1 only after the throwaway deploy and spend-cap decision are both complete.
 
 ## Relationship to other plans
 
