@@ -162,6 +162,36 @@ describe("reconcile scripts", () => {
     );
   });
 
+  it("normalizes hyphenated handles in generated secret selector names", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.1.1-alpha.14
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY
+`,
+      "users/mary-jane.yaml": `handle: mary-jane
+discord:
+  enabled: true
+`,
+      "cohorts/canary.yaml": `members:
+  - mary-jane
+`,
+    });
+
+    await onboardUser(root, "mary-jane");
+
+    expect(
+      await readFile(join(root, "users/mary-jane/brain.yaml"), "utf8"),
+    ).toContain("repo: rizom-ai/rover-mary-jane-content");
+    expect(await readFile(join(root, "users/mary-jane/.env"), "utf8")).toBe(
+      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_MARY_JANE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_MARY_JANE\nDISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_MARY_JANE\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
+    );
+  });
+
   it("reconcileCohort fails for unknown cohort", async () => {
     const root = await createPilotRepo(baseFiles);
 
