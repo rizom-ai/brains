@@ -3,8 +3,8 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
-import { parseArgs } from "../src/parse-args";
 import type { ResolvedUser } from "../src/load-registry";
+import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 
 async function createPilotRepo(files: Record<string, string>) {
@@ -158,7 +158,7 @@ discord:
     );
   });
 
-  it("requires an operator runner for onboard", async () => {
+  it("uses the default runner for onboard", async () => {
     const root = await createPilotRepo(baseFiles);
 
     const result = await runCommand({
@@ -167,8 +167,13 @@ discord:
       flags: {},
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("requires an operator runner");
+    expect(result.success).toBe(true);
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
+    );
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
+      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+    );
   });
 
   it("uses injected operator runner for onboard", async () => {
@@ -196,9 +201,12 @@ discord:
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
       "brain: rover\npreset: core\ndomain: alice.rizom.ai\n",
     );
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
+      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+    );
   });
 
-  it("requires an operator runner for reconcile-all", async () => {
+  it("uses the default runner for reconcile-all", async () => {
     const root = await createPilotRepo(baseFiles);
 
     const result = await runCommand({
@@ -207,8 +215,13 @@ discord:
       flags: {},
     });
 
-    expect(result.success).toBe(false);
-    expect(result.message).toContain("requires an operator runner");
+    expect(result.success).toBe(true);
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
+      "MCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE",
+    );
+    expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
+      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+    );
   });
 
   it("uses injected operator runner for reconcile-all", async () => {
@@ -230,6 +243,9 @@ discord:
 
     expect(result.success).toBe(true);
     expect(calls).toEqual(["alice:canary:core", "bob:canary:core"]);
+    expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
+      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+    );
   });
 
   it("shows help with init included", async () => {
@@ -239,7 +255,7 @@ discord:
     expect(result.message).toContain("brains-ops — operator CLI");
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
-    expect(result.message).toContain("requires operator runner");
+    expect(result.message).not.toContain("requires operator runner");
   });
 
   it("shows package version", async () => {

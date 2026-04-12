@@ -80,15 +80,17 @@ members:
 } satisfies Record<string, string>;
 
 describe("reconcile scripts", () => {
-  it("onboardUser resolves one user and refreshes users table", async () => {
+  it("onboardUser uses the default runner and refreshes users table", async () => {
     const root = await createPilotRepo(baseFiles);
-    const calls: string[] = [];
 
-    await onboardUser(root, "alice", createRunner(calls));
+    await onboardUser(root, "alice");
 
-    expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
-    ]);
+    expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
+      "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
+    );
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
+      "AI_API_KEY_SECRET=CANARY_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+    );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
@@ -108,17 +110,20 @@ describe("reconcile scripts", () => {
     ]);
   });
 
-  it("reconcileAll runs all users once, sorted by handle", async () => {
+  it("reconcileAll uses the default runner for every user", async () => {
     const root = await createPilotRepo(baseFiles);
-    const calls: string[] = [];
 
-    await reconcileAll(root, createRunner(calls));
+    await reconcileAll(root);
 
-    expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
-      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
-      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY",
-    ]);
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
+      "AI_API_KEY_SECRET=CANARY_AI_API_KEY",
+    );
+    expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
+      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+    );
+    expect(await readFile(join(root, "users/cara/.env"), "utf8")).toContain(
+      "AI_API_KEY_SECRET=CARA_AI_API_KEY",
+    );
   });
 
   it("onboardUser fails for unknown handle", async () => {
@@ -146,6 +151,9 @@ describe("reconcile scripts", () => {
     );
     expect(snapshot).toBe(
       "brain: rover\npreset: core\ndomain: cara.rizom.ai\n",
+    );
+    expect(await readFile(join(root, "users/cara/.env"), "utf8")).toBe(
+      "AI_API_KEY_SECRET=CARA_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_CARA\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_CARA\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");

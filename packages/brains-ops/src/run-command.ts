@@ -6,7 +6,7 @@ import { onboardUser } from "./onboard-user";
 import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
-import type { UserRunner } from "./reconcile-lib";
+import type { UserRunner } from "./user-runner";
 import { writeUsersTable } from "./render-users-table";
 
 export interface CommandResult {
@@ -69,14 +69,6 @@ export async function runCommand(
         };
       }
 
-      if (!dependencies.runner) {
-        return {
-          success: false,
-          message:
-            "brains-ops onboard requires an operator runner to perform repo and deploy reconciliation",
-        };
-      }
-
       await onboardUser(repo, handle, dependencies.runner);
       return {
         success: true,
@@ -94,14 +86,6 @@ export async function runCommand(
         };
       }
 
-      if (!dependencies.runner) {
-        return {
-          success: false,
-          message:
-            "brains-ops reconcile-cohort requires an operator runner to perform repo and deploy reconciliation",
-        };
-      }
-
       await reconcileCohort(repo, cohort, dependencies.runner);
       return {
         success: true,
@@ -115,14 +99,6 @@ export async function runCommand(
         return {
           success: false,
           message: "Usage: brains-ops reconcile-all <repo>",
-        };
-      }
-
-      if (!dependencies.runner) {
-        return {
-          success: false,
-          message:
-            "brains-ops reconcile-all requires an operator runner to perform repo and deploy reconciliation",
         };
       }
 
@@ -144,9 +120,9 @@ export async function runCommand(
           "Commands:",
           "  init <repo>",
           "  render <repo>",
-          "  onboard <repo> <handle>          requires operator runner",
-          "  reconcile-cohort <repo> <cohort> requires operator runner",
-          "  reconcile-all <repo>            requires operator runner",
+          "  onboard <repo> <handle>",
+          "  reconcile-cohort <repo> <cohort>",
+          "  reconcile-all <repo>",
           "  help",
         ].join("\n"),
       };

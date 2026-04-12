@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import { createDefaultUserRunner } from "./default-user-runner";
 import {
   loadPilotRegistry,
   type PilotRegistry,
@@ -8,25 +9,36 @@ import {
   type SnapshotStatus,
 } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
+import type { UserRunResult, UserRunner } from "./user-runner";
 
-export interface UserRunResult {
-  brainYaml?: string;
-}
-
-export type UserRunner = (user: ResolvedUser) => Promise<UserRunResult | void>;
+export type { UserRunResult, UserRunner } from "./user-runner";
 
 export async function runUsers(
   rootDir: string,
   registry: PilotRegistry,
   users: ResolvedUser[],
-  runner: UserRunner = async () => {},
+  runner?: UserRunner,
 ): Promise<void> {
   const snapshotWritten = new Set<string>();
+  const defaultRunner = createDefaultUserRunner(registry.pilot.githubOrg);
 
   for (const user of users) {
-    const result = await runner(user);
+    const defaultResult = await defaultRunner(user);
+    const runnerResult = normalizeUserRunResult(
+      runner ? await runner(user) : undefined,
+    );
+    const brainYaml = runnerResult.brainYaml ?? defaultResult.brainYaml;
+    const envFile = runnerResult.envFile ?? defaultResult.envFile;
+    const result: UserRunResult = {
+      ...(brainYaml ? { brainYaml } : {}),
+      ...(envFile ? { envFile } : {}),
+    };
 
-    if (result?.brainYaml) {
+    if (result.envFile) {
+      await writeUserEnvFile(rootDir, user.handle, result.envFile);
+    }
+
+    if (result.brainYaml) {
       await writeUserSnapshot(rootDir, user.handle, result.brainYaml);
       snapshotWritten.add(user.handle);
     }
@@ -48,6 +60,10 @@ export async function runUsers(
   await writeUsersTable(rootDir, { registry: refreshedRegistry });
 }
 
+function normalizeUserRunResult(result: UserRunResult | void): UserRunResult {
+  return result && typeof result === "object" ? result : {};
+}
+
 async function writeUserSnapshot(
   rootDir: string,
   handle: string,
@@ -56,6 +72,16 @@ async function writeUserSnapshot(
   const snapshotPath = join(rootDir, "users", handle, "brain.yaml");
   await mkdir(dirname(snapshotPath), { recursive: true });
   await writeFile(snapshotPath, brainYaml);
+}
+
+async function writeUserEnvFile(
+  rootDir: string,
+  handle: string,
+  envFile: string,
+): Promise<void> {
+  const envPath = join(rootDir, "users", handle, ".env");
+  await mkdir(dirname(envPath), { recursive: true });
+  await writeFile(envPath, envFile);
 }
 
 export async function findUser(
