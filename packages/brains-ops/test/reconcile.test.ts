@@ -3,10 +3,10 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import type { ResolvedUser } from "../src/load-registry";
 import { onboardUser } from "../src/onboard-user";
 import { reconcileAll } from "../src/reconcile-all";
 import { reconcileCohort } from "../src/reconcile-cohort";
-import type { ResolvedUser } from "../src/load-registry";
 
 async function createPilotRepo(files: Record<string, string>) {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-reconcile-"));
@@ -27,7 +27,7 @@ function getErrorMessage(error: unknown): string {
 function createRunner(calls: string[]) {
   return async (user: ResolvedUser) => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
     );
   };
 }
@@ -35,7 +35,7 @@ function createRunner(calls: string[]) {
 function createSnapshotRunner(calls: string[]) {
   return async (user: ResolvedUser) => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
     );
 
     return {
@@ -46,13 +46,13 @@ function createSnapshotRunner(calls: string[]) {
 
 const baseFiles = {
   "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
   "users/alice.yaml": `handle: alice
 discord:
@@ -65,9 +65,11 @@ discord:
   "users/cara.yaml": `handle: cara
 discord:
   enabled: false
+aiApiKeyOverride: CARA_AI_API_KEY
 `,
-  "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.13
-presetOverride: pro
+  "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
+presetOverride: default
+aiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - bob
   - alice
@@ -84,11 +86,13 @@ describe("reconcile scripts", () => {
 
     await onboardUser(root, "alice", createRunner(calls));
 
-    expect(calls).toEqual(["alice:canary:pro:0.1.1-alpha.13"]);
+    expect(calls).toEqual([
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
+    ]);
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| alice | canary | rover | pro | 0.1.1-alpha.13 |",
+      "| alice | canary | rover | default | 0.1.1-alpha.15 |",
     );
   });
 
@@ -99,8 +103,8 @@ describe("reconcile scripts", () => {
     await reconcileCohort(root, "canary", createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:pro:0.1.1-alpha.13",
-      "bob:canary:pro:0.1.1-alpha.13",
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
+      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
     ]);
   });
 
@@ -111,9 +115,9 @@ describe("reconcile scripts", () => {
     await reconcileAll(root, createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:pro:0.1.1-alpha.13",
-      "bob:canary:pro:0.1.1-alpha.13",
-      "cara:steady:core:0.1.1-alpha.12",
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
+      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
+      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY",
     ]);
   });
 
@@ -134,19 +138,19 @@ describe("reconcile scripts", () => {
 
     await onboardUser(root, "cara", createSnapshotRunner(calls));
 
-    expect(calls).toEqual(["cara:steady:core:0.1.1-alpha.12"]);
+    expect(calls).toEqual(["cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY"]);
 
     const snapshot = await readFile(
       join(root, "users/cara/brain.yaml"),
       "utf8",
     );
     expect(snapshot).toBe(
-      "brain: rover\npreset: core\ndomain: cara.rover.example.com\n",
+      "brain: rover\npreset: core\ndomain: cara.rizom.ai\n",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| cara | steady | rover | core | 0.1.1-alpha.12 | cara.rover.example.com | rover-cara | rover-cara-content | off | unknown | unknown | unknown | unknown | present |",
+      "| cara | steady | rover | core | 0.1.1-alpha.14 | cara.rizom.ai | rover-cara-content | off | unknown | unknown | unknown | unknown |",
     );
   });
 

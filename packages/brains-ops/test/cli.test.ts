@@ -47,13 +47,13 @@ describe("brains-ops parseArgs", () => {
 describe("brains-ops runCommand", () => {
   const baseFiles = {
     "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
     "users/alice.yaml": `handle: alice
 discord:
@@ -97,6 +97,7 @@ discord:
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain("| alice | canary | rover | core |");
+    expect(table).toContain("| alice.rizom.ai | rover-alice-content |");
   });
 
   it("renders table with injected observed status", async () => {
@@ -113,7 +114,7 @@ discord:
           return Promise.resolve(
             user.handle === "alice"
               ? {
-                  repoStatus: "ready",
+                  serverStatus: "ready",
                   deployStatus: "ready",
                   dnsStatus: "ready",
                   mcpStatus: "failed",
@@ -127,7 +128,7 @@ discord:
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain(
-      "| alice | canary | rover | core | 0.1.1-alpha.12 | alice.rover.example.com | rover-alice | rover-alice-content | off | ready | ready | ready | failed | missing |",
+      "| alice | canary | rover | core | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | failed |",
     );
   });
 
@@ -193,7 +194,7 @@ discord:
     expect(result.success).toBe(true);
     expect(calls).toEqual(["alice:canary:core"]);
     expect(await readFile(join(root, "users/alice/brain.yaml"), "utf8")).toBe(
-      "brain: rover\npreset: core\ndomain: alice.rover.example.com\n",
+      "brain: rover\npreset: core\ndomain: alice.rizom.ai\n",
     );
   });
 

@@ -19,7 +19,7 @@ export type ExternalStatus = "unknown" | "ready" | "failed";
 export type SnapshotStatus = "present" | "missing";
 
 export interface ObservedUserStatus {
-  repoStatus?: ExternalStatus;
+  serverStatus?: ExternalStatus;
   deployStatus?: ExternalStatus;
   dnsStatus?: ExternalStatus;
   mcpStatus?: ExternalStatus;
@@ -30,6 +30,7 @@ export interface ResolvedCohort {
   members: string[];
   brainVersionOverride?: string;
   presetOverride?: PilotPreset;
+  aiApiKeyOverride?: string;
 }
 
 export interface ResolvedUserIdentity {
@@ -39,14 +40,14 @@ export interface ResolvedUserIdentity {
   model: "rover";
   preset: PilotPreset;
   domain: string;
-  repo: string;
   contentRepo: string;
   discordEnabled: boolean;
+  effectiveAiApiKey: string;
   snapshotStatus: SnapshotStatus;
 }
 
 export interface ResolvedUser extends ResolvedUserIdentity {
-  repoStatus: ExternalStatus;
+  serverStatus: ExternalStatus;
   deployStatus: ExternalStatus;
   dnsStatus: ExternalStatus;
   mcpStatus: ExternalStatus;
@@ -97,6 +98,9 @@ export async function loadPilotRegistry(
       ...(cohortFile.data.presetOverride
         ? { presetOverride: cohortFile.data.presetOverride }
         : {}),
+      ...(cohortFile.data.aiApiKeyOverride
+        ? { aiApiKeyOverride: cohortFile.data.aiApiKeyOverride }
+        : {}),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -116,9 +120,12 @@ export async function loadPilotRegistry(
         model: pilot.model,
         preset: cohort.data.presetOverride ?? pilot.preset,
         domain: `${userFile.data.handle}${pilot.domainSuffix}`,
-        repo: `${pilot.repoPrefix}${userFile.data.handle}`,
-        contentRepo: `${pilot.repoPrefix}${userFile.data.handle}${pilot.contentRepoSuffix}`,
+        contentRepo: `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
         discordEnabled: userFile.data.discord.enabled,
+        effectiveAiApiKey:
+          userFile.data.aiApiKeyOverride ??
+          cohort.data.aiApiKeyOverride ??
+          pilot.aiApiKey,
         snapshotStatus: await resolveSnapshotStatus(
           rootDir,
           userFile.data.handle,
@@ -128,7 +135,7 @@ export async function loadPilotRegistry(
 
       return {
         ...identity,
-        repoStatus: observedStatus?.repoStatus ?? "unknown",
+        serverStatus: observedStatus?.serverStatus ?? "unknown",
         deployStatus: observedStatus?.deployStatus ?? "unknown",
         dnsStatus: observedStatus?.dnsStatus ?? "unknown",
         mcpStatus: observedStatus?.mcpStatus ?? "unknown",

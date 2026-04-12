@@ -4,13 +4,14 @@ const exactVersionPattern =
   /^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/;
 const handlePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export const presetSchema = z.enum(["core", "pro"]);
+export const presetSchema = z.enum(["core", "default", "pro"]);
 export const exactVersionSchema = z
   .string()
   .regex(exactVersionPattern, "expected exact pinned version");
 export const handleSchema = z
   .string()
   .regex(handlePattern, "expected lowercase handle slug");
+export const secretNameSchema = z.string().min(1);
 
 export const pilotSchema = z
   .object({
@@ -18,10 +19,10 @@ export const pilotSchema = z
     brainVersion: exactVersionSchema,
     model: z.literal("rover"),
     githubOrg: z.string().min(1),
-    repoPrefix: z.string().min(1),
-    contentRepoSuffix: z.string().min(1),
+    contentRepoPrefix: z.string().min(1),
     domainSuffix: z.string().min(1),
     preset: presetSchema,
+    aiApiKey: secretNameSchema,
   })
   .strict();
 
@@ -33,6 +34,7 @@ export const userSchema = z
         enabled: z.boolean(),
       })
       .strict(),
+    aiApiKeyOverride: secretNameSchema.optional(),
   })
   .strict();
 
@@ -41,6 +43,7 @@ export const cohortSchema = z
     members: z.array(handleSchema).min(1),
     brainVersionOverride: exactVersionSchema.optional(),
     presetOverride: presetSchema.optional(),
+    aiApiKeyOverride: secretNameSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

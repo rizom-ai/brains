@@ -5,6 +5,7 @@ import {
   loadPilotRegistry,
   type PilotRegistry,
   type ResolvedUser,
+  type SnapshotStatus,
 } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
 
@@ -31,6 +32,7 @@ export async function runUsers(
     }
   }
 
+  const presentSnapshotStatus: SnapshotStatus = "present";
   const refreshedRegistry: PilotRegistry =
     snapshotWritten.size === 0
       ? registry
@@ -38,7 +40,7 @@ export async function runUsers(
           ...registry,
           users: registry.users.map((entry) =>
             snapshotWritten.has(entry.handle)
-              ? { ...entry, snapshotStatus: "present" as const }
+              ? { ...entry, snapshotStatus: presentSnapshotStatus }
               : entry,
           ),
         };

@@ -28,13 +28,13 @@ describe("loadPilotRegistry", () => {
   it("loads pilot config and derives effective values per user", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -43,16 +43,18 @@ discord:
       "users/bob.yaml": `handle: bob
 discord:
   enabled: true
+aiApiKeyOverride: BOB_AI_API_KEY
 `,
-      "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.13
-presetOverride: pro
+      "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
+presetOverride: default
+aiApiKeyOverride: CANARY_AI_API_KEY
 members:
   - alice
 `,
       "cohorts/steady.yaml": `members:
   - bob
 `,
-      "users/alice/brain.yaml": "brain: rover\npreset: pro\n",
+      "users/alice/brain.yaml": "brain: rover\npreset: default\n",
     });
 
     const registry = await loadPilotRegistry(root);
@@ -61,35 +63,35 @@ members:
     expect(registry.users).toHaveLength(2);
     expect(registry.users).toEqual([
       {
-        brainVersion: "0.1.1-alpha.13",
+        brainVersion: "0.1.1-alpha.15",
         cohort: "canary",
         contentRepo: "rover-alice-content",
         deployStatus: "unknown",
         discordEnabled: false,
         dnsStatus: "unknown",
-        domain: "alice.rover.example.com",
+        domain: "alice.rizom.ai",
+        effectiveAiApiKey: "CANARY_AI_API_KEY",
         handle: "alice",
         mcpStatus: "unknown",
         model: "rover",
-        preset: "pro",
-        repo: "rover-alice",
-        repoStatus: "unknown",
+        preset: "default",
+        serverStatus: "unknown",
         snapshotStatus: "present",
       },
       {
-        brainVersion: "0.1.1-alpha.12",
+        brainVersion: "0.1.1-alpha.14",
         cohort: "steady",
         contentRepo: "rover-bob-content",
         deployStatus: "unknown",
         discordEnabled: true,
         dnsStatus: "unknown",
-        domain: "bob.rover.example.com",
+        domain: "bob.rizom.ai",
+        effectiveAiApiKey: "BOB_AI_API_KEY",
         handle: "bob",
         mcpStatus: "unknown",
         model: "rover",
         preset: "core",
-        repo: "rover-bob",
-        repoStatus: "unknown",
+        serverStatus: "unknown",
         snapshotStatus: "missing",
       },
     ]);
@@ -98,13 +100,13 @@ members:
   it("fails when user belongs to no cohort", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -132,13 +134,13 @@ discord:
   it("fails when user belongs to multiple cohorts", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -165,13 +167,13 @@ discord:
   it("merges observed status from resolver", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -184,7 +186,7 @@ discord:
 
     const statusByHandle: Record<string, ObservedUserStatus> = {
       alice: {
-        repoStatus: "ready",
+        serverStatus: "ready",
         deployStatus: "ready",
         dnsStatus: "ready",
         mcpStatus: "failed",
@@ -198,7 +200,7 @@ discord:
     });
 
     expect(registry.users[0]).toMatchObject({
-      repoStatus: "ready",
+      serverStatus: "ready",
       deployStatus: "ready",
       dnsStatus: "ready",
       mcpStatus: "failed",
@@ -208,13 +210,13 @@ discord:
   it("fails when user file name and handle disagree", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: bob
 discord:
