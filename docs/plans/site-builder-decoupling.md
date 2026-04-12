@@ -9,7 +9,7 @@ Additionally, routes render sequentially — each waits for content resolution a
 ## Goals
 
 1. **Decouple** — extract the build engine into `@brains/site-engine`, zero plugin dependencies
-2. **Parallelize** — render routes concurrently using `pLimit` (already in `@brains/utils`)
+2. **Parallelize** — render routes concurrently using `pLimit` from `@brains/utils`
 
 ## Current Architecture
 
@@ -24,7 +24,7 @@ SiteBuilderPlugin (plugin.ts)
   │   ├── ImageBuildService  — fetch + optimize images (needs entityService)
   │   └── PreactBuilder      — render routes to HTML, run Tailwind, write files
   │       ├── HydrationManager
-  │       ├── TailwindCSSProcessor (PostCSS — already async)
+  │       ├── TailwindCSSProcessor (PostCSS — async)
   │       └── HeadCollector, HTML generator
   └── SEO file handler       — robots.txt, sitemap, CMS config
 ```
@@ -127,7 +127,7 @@ Do this first — immediate performance win, minimal risk.
 
 1. Create `shared/site-engine/` with package.json, tsconfig
 2. Define `SiteEngineServices` interface
-3. Move already-decoupled files: RouteRegistry, UISlotRegistry, NavigationDataSource, PreactBuilder, HydrationManager, TailwindCSSProcessor, ImageOptimizer, image utils, HTML generator, HeadCollector
+3. Move the already-independent files first: RouteRegistry, UISlotRegistry, NavigationDataSource, PreactBuilder, HydrationManager, TailwindCSSProcessor, ImageOptimizer, image utils, HTML generator, HeadCollector
 4. Update imports in plugin
 5. Tests pass
 

@@ -7,7 +7,7 @@ There are two parallel build pipelines for shipping brain artifacts:
 - **`shell/app/scripts/build-model.ts`** — produces a per-model
   Bun bundle for the docker model image. Called from
   `.github/workflows/publish-images.yml` for each entry in the
-  matrix (currently `[rover]`).
+  matrix (`[rover]` today).
 - **`packages/brain-cli/scripts/build.ts`** — produces the
   multi-model `@rizom/brain` umbrella bundle plus library exports.
   Called from `prepublishOnly` when `npm publish` runs in
@@ -16,7 +16,7 @@ There are two parallel build pipelines for shipping brain artifacts:
 Both scripts do nearly the same shape of work. The immediate
 trigger for documenting this is the alpha publish unblocking
 work where the hydration compile step had to be added to
-`build.ts` even though `publish-images.yml` already had its
+`build.ts` even though `publish-images.yml` had its
 own copy of the same step.
 
 ## Current overlap
@@ -217,10 +217,10 @@ Triggered by either:
   the npm package).
 
 If neither happens, refactor stays deferred. The duplication is
-real but not currently expensive — two scripts, one occasional
+real but still limited in scope — two scripts, one occasional
 sync needed.
 
-## Status
+## Open checklist
 
 - [ ] Extract `shell/app/src/build/` helpers
 - [ ] Update `packages/brain-cli/scripts/build.ts` to use them

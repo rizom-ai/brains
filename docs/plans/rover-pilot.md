@@ -264,6 +264,7 @@ Scaffolded-but-operator-owned files:
 
 - `.env.schema`
   - shared secret/env contract for the pilot deploy workflow
+  - the single source of truth for required and sensitive deploy vars
   - checked in once at repo root
   - consumed by deploy helpers and workflow validation
 - `deploy/scripts/*`
@@ -296,6 +297,8 @@ Delivery contract:
 
 - `brains-ops` is delivered as a published package artifact: `@brains/ops`
 - it remains separate from the public `brain` CLI surface
+- the published package should follow the same packaging posture as `@rizom/brain`: built JS in `dist/`, published from build output, not from monorepo-only source entrypoints
+- the published package must not rely on private workspace runtime dependencies
 - `rover-pilot` CI installs an exact pinned `@brains/ops` version before running reconcile/onboard flows
 - operator laptops may run the same pinned package locally
 - workflow reproducibility comes from the pinned package version, not from checking out `rizom-ai/brains` at runtime
@@ -380,8 +383,9 @@ Automated per-user provisioning after that:
    - Deploys via Kamal to the user's server
    - Verifies MCP endpoint reachable
    - Regenerates `views/users.md`
-6. Operator writes `users/<handle>/notes.md` with any onboarding context
-7. Operator hands over MCP connection details to user
+6. For fleet version bumps, operator edits `pilot.yaml.brainVersion` and pushes once; CI rebuilds the shared image, refreshes generated user env files, and redeploys affected users.
+7. Operator writes `users/<handle>/notes.md` with any onboarding context
+8. Operator hands over MCP connection details to user
 
 ### Cohort structure
 
@@ -409,8 +413,8 @@ Concrete contract:
 
 One set of GitHub Actions workflows in `rover-pilot/.github/workflows/` manages all users.
 
-- **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged by version, not by user. All users on the same version share the same image.
-- **Deploy workflow** — dispatched per user (or per cohort via matrix). Installs pinned `@brains/ops`, reconciles the selected user, resolves the generated selector file, validates secrets against the checked-in env contract, and deploys to their server via Kamal.
+- **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged as `brain-${brainVersion}`, not by user. All users on the same version share the same image.
+- **Deploy workflow** — runs per affected user. It supports manual dispatch for one handle, and automatic push-triggered deploys when generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files change. It installs pinned `@brains/ops`, reconciles or resolves the selected user config, validates secrets against `.env.schema` as the checked-in single source of truth, waits for the shared image tag to exist when needed, and deploys to the user's server via Kamal. Generated config commits happen once in a final aggregation step after the matrix finishes; matrix jobs do not race to push.
 - **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Installs pinned `@brains/ops` and runs `brains-ops reconcile-all` to converge all users to desired state.
 
 Operator tool delivery in CI:
@@ -426,6 +430,17 @@ Why this is the contract:
 - exact package version gives reproducibility without bespoke monorepo checkout logic
 - `brains-ops` remains a separate operator tool instead of leaking into `brain`
 - the private repo stays focused on data, generated outputs, and deploy state
+
+Shared image tag contract:
+
+- build publishes `ghcr.io/<owner>/<repo>:brain-${brainVersion}`
+- generated `users/<handle>/.env` carries `BRAIN_VERSION=<brainVersion>`
+- deploy sets `VERSION=brain-${brainVersion}`
+- pilot deploys do not introduce a second per-user or per-commit image identity
+- when `pilot.yaml.brainVersion` changes, the intended chain is:
+  1. build publishes the new shared image tag
+  2. reconcile refreshes generated `users/<handle>/.env`
+  3. deploy runs for users whose generated config changed and converges them to the new shared tag
 
 Kamal config uses per-user destinations derived from the registry YAML. Each destination targets a different server with the user's brain.yaml and env.
 
@@ -490,7 +505,7 @@ Until one of those fires: stay on per-user deploys.
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the now-working standalone repo deploy model described in `docs/plans/standalone-apps.md`. Remaining pilot-specific proof is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
+This plan depends on the standalone repo deploy model described in `docs/plans/standalone-apps.md`. Remaining pilot-specific work is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 

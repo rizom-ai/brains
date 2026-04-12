@@ -1,94 +1,32 @@
-# Plan: Content Insights
+# Plan: Content Insights Follow-on
 
-## Context
+## Open work
 
-This is no longer a speculative plan. The core content-insights system already shipped.
-
-Brains now have a structured `system_insights` tool for aggregate content and analytics views, and plugins can register additional insight types through the shared insights registry.
-
-## What is already true
-
-Shipped capabilities:
-
-- `InsightsRegistry` exists in core
-- `system_insights` dispatches through that registry
-- core built-in insights exist:
-  - `overview`
-  - `publishing-cadence`
-  - `content-health`
-- plugins can register domain-specific insights via `context.insights.register()`
-- topics plugin registers `topic-distribution`
-- analytics plugin registers `traffic-overview`
-
-## Current architecture
-
-### Core
-
-Core owns:
-
-- the registry
-- the system tool
-- built-in generic insight types
-- shell wiring so plugins can register additional insight handlers
-
-Key files:
-
-- `shell/core/src/system/insights.ts`
-- `shell/core/src/system/tools.ts`
-- `shell/core/src/shell.ts`
-- `shell/plugins/src/base/context.ts`
-- `shell/plugins/src/interfaces.ts`
-
-### Plugin insights
-
-Current plugin-provided insights:
-
-- `topic-distribution`
-  - registered by `entities/topics`
-  - implemented in `entities/topics/src/insights/topic-distribution.ts`
-- `traffic-overview`
-  - registered by `plugins/analytics`
-  - implemented in `plugins/analytics/src/insights/traffic-overview.ts`
-
-## Proof in repo
-
-Tests exist for the core and plugin registration path:
-
-- `shell/core/test/system/insights-tool.test.ts`
-- `shell/plugins/test/insights-registration.test.ts`
-- `entities/topics/test/insights/topic-distribution.test.ts`
-- `plugins/analytics/test/insights/traffic-overview.test.ts`
-
-Roadmap visual already treats this work as completed at the system-tool level.
-
-## What remains
-
-Only optional follow-on work remains.
+The only remaining work in scope here is optional UI follow-on.
 
 ### Dashboard widget
 
-The original Phase 3 proposed a dashboard widget for content insights.
+If operators still want it, add lightweight dashboard widget(s) that surface existing insight outputs such as:
 
-That is not needed for the base content-insights system to be considered complete. If still desired, it should be treated as a separate dashboard enhancement, not as unfinished core infrastructure.
+- `overview`
+- `content-health`
+- `topic-distribution`
 
-Potential future work:
+Constraints:
 
-1. add dashboard widget(s) that surface `overview`, `content-health`, or `topic-distribution`
-2. keep widget implementation lightweight and use existing dashboard registration patterns
-3. avoid inventing a new insights-only renderer unless there is a clear UI need
+- use existing dashboard registration patterns
+- avoid inventing a new insights-only rendering system
+- keep the widget as a thin presentation layer over existing `system_insights` output
 
 ## Non-goals
 
-- no rewrite of the shipped `system_insights` architecture
-- no splitting the single tool into many tool names unless a real user need appears
-- no mandatory dashboard UI before the insights system counts as complete
+- rewriting the current `system_insights` architecture
+- splitting `system_insights` into multiple tool names without a real need
+- treating dashboard UI as a prerequisite for the insights system itself
 
-## Verification
+## Done when
 
-This doc is accurate when all of these remain true:
+One of these is true:
 
-1. `system_insights` exists and returns built-in core insight types.
-2. plugins can register additional insight handlers through plugin context.
-3. topics still provide `topic-distribution`.
-4. analytics still provides `traffic-overview`.
-5. the dashboard widget remains optional follow-on work, not a missing prerequisite.
+1. a dashboard widget ships for the existing insight outputs, or
+2. we explicitly decide the widget is not worth building and delete this plan

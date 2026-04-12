@@ -1,156 +1,82 @@
 # Plan: Monetization
 
-## Context
+## Goal
 
-The brain system is open source. Anyone can run a brain on their own infrastructure. But hosted rovers (brains we run for users) need a business model.
+Define and validate a business model for hosted rovers while keeping the framework itself open source and self-hostable.
 
-## Model: Open Core + Managed Hosting
+## Working model
 
-**Free**: the brain software. Docker images, npm packages, monorepo — all open source. Self-host on your own Hetzner, AWS, laptop. No artificial limits.
+Use an open-core / managed-hosting model:
 
-**Paid**: hosted rovers. We run your brain for you at `{name}.rover.rizom.ai`. You get: zero-ops deployment, automatic updates, managed backups, monitoring, CDN, SSL, custom domains.
+- free: the software, self-hosted
+- paid: hosted rovers operated by Rizom
 
-This is the Supabase/PostHog/GitLab model — open source core, managed service for those who don't want to operate infrastructure.
+The hosted offer should sell convenience, operations, and managed lifecycle work — not artificial feature limits in the core product.
 
-## Why this works for brains
+## Open work
 
-- **AI costs are the user's** — bring your own Anthropic/OpenAI API key. We don't pay for tokens, users do. Our cost is just compute + storage.
-- **Per-brain cost is low** — a brain is a single Bun process + SQLite database. No Kubernetes per user (initially). Hetzner VPS at ~$5-10/month per brain.
-- **The value is in the product, not the hosting** — site builder, AI generation, entity management, publishing pipeline. Users pay because the brain does useful work, not because servers are hard.
-- **Self-hosting is a feature, not a leak** — self-hosters validate the product, contribute to the ecosystem, and some convert to hosted when they don't want to maintain it.
+### 1. Validate willingness to pay
 
-## Tiers
+Before building billing/product infrastructure, confirm that people will actually pay for a manually hosted rover.
 
-### Free (self-hosted)
+Gate:
 
-Everything. No limits. Run your own brain on your own infra.
+1. get 5 paying customers
+2. keep them for at least 3 months
+3. use retention and support load to judge whether the offer is real
 
-- Docker image / npm package
-- All plugins, all interfaces
-- Full AI capabilities (your API keys)
-- Community support (GitHub, Discord)
+### 2. Define the initial hosted offer
 
-### Starter ($15/month per brain)
+The first offer needs a simple, testable scope:
 
-Hosted rover with basics.
+- hosted rover under a Rizom-managed subdomain
+- managed deploys, updates, backups, SSL, and monitoring
+- bring-your-own AI API keys by default
+- clear storage and support expectations
 
-- Brain running at `{name}.rover.rizom.ai`
-- 1 GB storage (brain-data)
-- Daily git backups
-- SSL + CDN
-- Bring your own API keys
-- Email support
+Pricing can stay simple at first, but it needs to be explicit enough to sell manually.
 
-### Pro ($30/month per brain)
+### 3. Decide what must exist before charging
 
-Everything in Starter plus:
+Hosted monetization depends on adjacent platform work landing to a usable degree.
 
-- Custom domain
-- 10 GB storage
-- Priority builds
-- Analytics dashboard
-- Discord/Bluesky interfaces included
-- Priority support
+Most important dependencies:
 
-### Team ($50/month per brain)
+- hosted rover provisioning path
+- stable standalone deploy/operator path
+- enough monitoring/admin visibility to operate customer instances safely
+- multi-user only if team-tier hosting is actually offered
 
-Everything in Pro plus:
+### 4. Keep billing/admin work scoped to the proven offer
 
-- Multi-user (up to 5 anchors)
-- Audit trail
-- Team brain features (shared content, role-based access)
-- API access
+Do not build self-serve billing, signup funnels, or usage-based complexity until the manual-hosting phase proves demand.
 
-### Add-ons
+Only after validation should follow-on work be scoped for:
 
-- **Extra storage**: $2/GB/month
-- **Extra users**: $10/user/month (beyond 5)
-- **AI tokens included**: $20/month for bundled Anthropic tokens (so users don't need their own key)
+- signup flow
+- Stripe subscriptions
+- usage tracking
+- admin dashboard
+- automated provisioning
 
-## Cost structure
+### 5. Revisit pricing after real operator data exists
 
-Per hosted brain (our cost):
+The current pricing ideas are placeholders. They should be revised only after there is real data on:
 
-| Item                               | Monthly cost |
-| ---------------------------------- | ------------ |
-| Hetzner VPS (shared, 2 vCPU, 4 GB) | ~$5-8        |
-| Storage (1 GB brain-data)          | ~$0.10       |
-| CDN (Cloudflare free tier)         | $0           |
-| Git backup (GitHub private repo)   | $0           |
-| DNS (Cloudflare)                   | $0           |
-| Monitoring                         | ~$1-2        |
-| **Total**                          | **~$7-10**   |
+- support burden
+- infra cost per brain
+- average storage/build usage
+- churn and retention
 
-At $15/month Starter, margin is ~$5-8/brain. At $30/month Pro, margin is ~$20+/brain.
+## Non-goals
 
-With scale (multiple brains per VPS), per-brain cost drops to ~$3-5.
+- plugin/theme marketplace work
+- AI token resale as a default offer
+- enterprise packaging before real demand exists
+- building self-serve SaaS before manual hosting is validated
 
-## Revenue targets
+## Done when
 
-| Milestone | Brains | MRR      | Notes                            |
-| --------- | ------ | -------- | -------------------------------- |
-| Launch    | 5-10   | $150-300 | Friends, early adopters          |
-| Traction  | 50     | $1,500   | Word of mouth, content marketing |
-| Growth    | 200    | $6,000   | Self-serve signup, team brains   |
-| Scale     | 1,000  | $30,000  | K8s hosting, auto-provisioning   |
-
-## What needs to be built
-
-Most of the infrastructure already exists or is planned:
-
-| Capability        | Status                         | Plan                  |
-| ----------------- | ------------------------------ | --------------------- |
-| Docker images     | Working in standalone flow     | standalone-apps.md    |
-| Standalone apps   | Proven by extracted repos      | standalone-apps.md    |
-| Kamal deploys     | Working in standalone flow     | standalone-apps.md    |
-| Custom domains    | Proven in standalone flow      | standalone-apps.md    |
-| Multi-user        | Planned                        | multi-user.md         |
-| Monitoring        | Planned                        | roadmap (medium-term) |
-| Auto-provisioning | Planned / follow-on automation | standalone-apps.md    |
-
-### New (monetization-specific)
-
-| Capability          | What                                                                |
-| ------------------- | ------------------------------------------------------------------- |
-| **Signup flow**     | Landing page → select model → configure → deploy                    |
-| **Billing**         | Stripe integration — subscription management, invoices              |
-| **Usage tracking**  | Storage, build minutes, entity count per brain                      |
-| **Admin dashboard** | Ranger manages hosted rovers — provision, monitor, bill             |
-| **Onboarding**      | `brain init` with hosted option — scaffolds and deploys in one step |
-
-## Phasing
-
-### Phase 1: Manual hosting (now → launch)
-
-- Accept customers manually (email/Discord)
-- Provision via `brain init` + Kamal deploy
-- Billing via Stripe manually
-- 5-10 customers
-
-### Phase 2: Self-serve (after launch)
-
-- Signup page at rizom.ai
-- Automated provisioning (Hetzner API)
-- Stripe subscription integration
-- Auto-deploy on signup
-
-### Phase 3: Scale (with hosted rovers plan)
-
-- K8s-based hosting (scale-to-zero)
-- Multi-brain per cluster
-- Usage-based billing refinements
-- Team features
-
-## Not now
-
-- **Marketplace** — plugins/themes for sale. Too early.
-- **AI token resale** — bundling Anthropic tokens adds complexity and margin risk. Bring-your-own-key is simpler.
-- **Enterprise** — SSO, SLA, dedicated infrastructure. Not until there's demand.
-
-## Pricing validation
-
-Before building billing:
-
-1. Get 5 people to pay $15/month for a manually hosted brain
-2. If they stay for 3+ months, the value is real
-3. Then build self-serve
+1. manual hosted rovers have paying users
+2. pricing is informed by real support/cost data
+3. there is a clear yes/no decision on whether to invest in self-serve billing and provisioning

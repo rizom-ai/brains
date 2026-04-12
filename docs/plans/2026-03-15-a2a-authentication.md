@@ -1,101 +1,38 @@
-# A2A Authentication & Permission Elevation
+# Plan: A2A Authentication Follow-on
 
-## Context
+## Open work
 
-This is no longer a pure draft. The bearer-token phase already shipped for the A2A interface.
+Remaining work is limited to follow-on auth options and docs cleanup around the current bearer-token model.
 
-Remote A2A callers no longer have to be treated as public-only when a trusted token is configured. The interface can now resolve caller identity from a bearer token and elevate permission level accordingly.
+### 1. Decide whether stronger auth is worth adding
 
-## What is already true
+Current follow-on candidates:
 
-Shipped behavior:
+- OAuth client-credentials style auth
+- mTLS / Cloudflare-backed origin authentication
 
-- A2A config supports `trustedTokens` and `outboundTokens`
-- inbound bearer token resolution exists in the A2A interface
-- resolved caller permission level is passed through JSON-RPC handling
-- outbound A2A client calls can attach configured bearer tokens
-- Agent Card advertises bearer auth through `securitySchemes` / `security` when enabled
-- instance override parsing supports the relevant nested A2A token maps
+This should only move forward if bearer tokens prove insufficient in real operator use.
 
-Core files:
+### 2. Keep config/docs aligned with the current token flow
 
-- `interfaces/a2a/src/config.ts`
-- `interfaces/a2a/src/a2a-interface.ts`
-- `interfaces/a2a/src/jsonrpc-handler.ts`
-- `interfaces/a2a/src/client.ts`
-- `interfaces/a2a/src/agent-card.ts`
+Examples and bootstrap docs should continue to reflect the current model:
 
-Tests exist for:
+- `trustedTokens`
+- `outboundTokens`
+- permission rules for trusted A2A callers
+- Agent Card bearer-auth advertisement
 
-- outbound token sending
-- caller permission resolution
-- Agent Card auth advertisement
-- instance-override parsing
+### 3. Remove dead alternative-design text when it stops helping
 
-## Current model
+Older callback-verification ideas should not keep hanging around as if they are pending roadmap items.
 
-### Inbound auth
+## Non-goals
 
-A trusted remote agent sends:
+- replacing the existing bearer-token model as the default
+- inventing a second auth layer without operator demand
+- mixing authentication and permission policy into one mechanism
 
-```http
-Authorization: Bearer <shared-secret>
-```
+## Done when
 
-The A2A interface looks up that token in `trustedTokens`, resolves the configured identity, and asks the permission system for that caller's level.
-
-### Outbound auth
-
-For trusted remote agents, outbound calls can attach a token chosen by remote domain from `outboundTokens`.
-
-### Agent Card
-
-When trusted-token auth is configured, the Agent Card advertises bearer auth so remote agents know auth is available.
-
-## Current recommended config shape
-
-```yaml
-plugins:
-  a2a:
-    trustedTokens:
-      ${A2A_TOKEN_MLP}: mylittlephoney
-      ${A2A_TOKEN_RELAY}: relay
-    outboundTokens:
-      mylittlephoney.com: ${A2A_OUTBOUND_TOKEN_MLP}
-      relay.rizom.ai: ${A2A_OUTBOUND_TOKEN_RELAY}
-
-permissions:
-  rules:
-    - pattern: "a2a:mylittlephoney"
-      level: trusted
-    - pattern: "a2a:relay"
-      level: trusted
-    - pattern: "a2a:*"
-      level: public
-```
-
-## What remains
-
-Only follow-on work remains.
-
-### 1. Broader auth evolution
-
-Bearer tokens are the shipped baseline. Future phases such as OAuth client credentials or Cloudflare mTLS remain optional enhancements, not missing prerequisites.
-
-### 2. Config/docs rollout
-
-Instance docs and examples should stay aligned with the current token-based flow, including `.env` naming and permission-rule examples.
-
-### 3. Evaluate whether dead design text should survive
-
-The old callback-verification idea is intentionally not part of the shipped direction. Keep the doc focused on the token-based phase unless there is concrete demand for another auth layer.
-
-## Verification
-
-This doc is accurate when all of these remain true:
-
-1. `trustedTokens` and `outboundTokens` are live config fields.
-2. inbound A2A bearer tokens can elevate permission level.
-3. outbound A2A calls can send configured bearer tokens.
-4. Agent Card advertises bearer auth when configured.
-5. permission mapping still flows through the normal permission system.
+1. docs/examples consistently describe the current bearer-token model
+2. we either choose and scope a stronger auth follow-on, or explicitly decide bearer tokens are enough for now

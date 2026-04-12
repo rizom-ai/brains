@@ -2,7 +2,7 @@
 
 ## Context
 
-Entities change over time but there's no way to see previous versions. Git already tracks every change — directory-sync commits on every entity create/update/delete. The history exists, it's just not accessible through the brain's tools.
+Entities change over time but there's no way to see previous versions. Git tracks every change — directory-sync commits on every entity create/update/delete. The history exists, it's just not accessible through the brain's tools.
 
 ## Design
 
@@ -10,7 +10,7 @@ A `directory-sync_history` tool in the directory-sync plugin. No new storage —
 
 ### Why directory-sync, not system tools?
 
-- `GitSync` class already has `simple-git` and knows the data directory
+- `GitSync` class has `simple-git` and knows the data directory
 - `IGitSync` interface is the clean seam to add `log()` and `show()`
 - Same pattern as existing `directory-sync_sync` and `directory-sync_status`
 - No new cross-plugin dependencies — system tools don't know about git

@@ -1,7 +1,5 @@
 # Plan: Custom Brain Definitions (brain.ts)
 
-> **Status:** Long-term. Requires YAML-based plugin system (npm-packages Phase 3) to ship first.
-
 ## Goal
 
 For power users who need full programmatic control — custom plugin logic, preset composition, inline plugins — beyond what YAML config supports.
@@ -46,7 +44,7 @@ export default defineBrain({
 
 ## Composites
 
-Composite plugin factories that return multiple plugins from one capability entry are already supported. This works identically for external plugins:
+Composite plugin factories that return multiple plugins from one capability entry should work identically for external plugins too:
 
 ```typescript
 // @rizom/brain-plugin-ecommerce
@@ -78,4 +76,9 @@ capabilities: [["ecommerce", ecommerce, { shopifyKey: "${SHOPIFY_KEY}" }]];
 | Inline custom plugin logic       | —                   | write plugin in-place  |
 | Conditional capabilities         | —                   | `if (env) { ... }`     |
 
-Most users never need `brain.ts`. It's the escape hatch when YAML isn't enough.
+Most users should never need `brain.ts`. It is the escape hatch when YAML is not enough.
+
+## Dependencies
+
+- `docs/plans/npm-packages.md`
+- `docs/plans/external-plugin-api.md`

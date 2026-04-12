@@ -11,7 +11,7 @@ The app uses ~860MB at runtime. The user identified templates-in-memory and the 
 - **3 SQLite connections** opened at startup (entity, job queue, conversation)
 - **AI SDK + 3 providers** (Anthropic, OpenAI, Google) all imported eagerly even though most brains only use Anthropic
 - **Zod schemas** (~510KB total) are negligible — not worth optimizing
-- **Embedding model** already lazy-loaded (good)
+- **Embedding model** is already deferred enough that it is not the first optimization target
 
 Registry data itself is small (~150KB-3.5MB). The real cost is the code loaded to support all these registries, plugins, and services.
 
@@ -86,7 +86,7 @@ Change `layout.interactive` from `string` to `string | (() => Promise<string>)`.
 interactive: () => Bun.file(new URL("./hydration.compiled.js", import.meta.url)).text(),
 ```
 
-The `HydrationManager` already writes this async (`await fs.writeFile(...)` at line 170), so it just needs to resolve the loader before writing.
+`HydrationManager` writes this async (`await fs.writeFile(...)` at line 170), so it just needs to resolve the loader before writing.
 
 **Expected savings:** 1-3MB (735KB string + V8 string overhead not held in registry).
 
@@ -108,7 +108,7 @@ When `Shell.shutdown()` is called, clear all registries and null singleton refer
 **Files:**
 
 - `shell/plugins/src/manager/plugin-lifecycle.ts` — in `disablePlugin()`
-- `shell/templates/src/registry.ts` (already has `unregister()` and `getPluginTemplateNames()`)
+- `shell/templates/src/registry.ts` (has `unregister()` and `getPluginTemplateNames()`)
 
 When a plugin is disabled, unregister its templates:
 
