@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.1
+
+### Patch Changes
+
+- [`8e39eb7`](https://github.com/rizom-ai/brains/commit/8e39eb78a6927246326262a5ebf1628f8b14e546) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Republish the fixed public package set on the corrected 0.2.x alpha line so installed `@rizom/ops` and `@rizom/ops/deploy` match the repaired artifact.
+
 ## 1.0.1-alpha.17
 
 ### Patch Changes

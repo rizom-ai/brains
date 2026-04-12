@@ -1,6 +1,6 @@
 {
   "name": "@brains/plugin-examples",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "private": true,
   "description": "Example plugin implementations for reference",
   "main": "src/index.ts",
