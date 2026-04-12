@@ -463,9 +463,9 @@ Until one of those fires: stay on per-user deploys.
 - [x] Add monorepo-owned `brains-ops reconcile-all <repo>` for fleet-wide convergence
 - [x] Write `docs/onboarding-checklist.md` in the pilot repo scaffold
 - [x] Write `docs/operator-playbook.md` in the pilot repo scaffold
-- [ ] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
+- [x] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
 - [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@brains/ops`
-- [ ] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
+- [x] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
 - [ ] Provision cohort 1 gradually
