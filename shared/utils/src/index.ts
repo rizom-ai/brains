@@ -145,6 +145,11 @@ export {
   writeGitHubEnv,
 } from "./ci";
 export type { EnvSchemaEntry } from "./ci";
+export {
+  readLocalEnvValues,
+  resolveLocalEnvValue,
+  resolveLocalPath,
+} from "./local-env";
 
 // Presentation utilities
 export {

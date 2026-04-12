@@ -6,8 +6,12 @@ import { onboardUser } from "./onboard-user";
 import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
-import type { UserRunner } from "./user-runner";
 import { writeUsersTable } from "./render-users-table";
+import {
+  pushPilotSecrets,
+  type RunCommand as SecretRunCommand,
+} from "./secrets-push";
+import type { UserRunner } from "./user-runner";
 
 export interface CommandResult {
   success: boolean;
@@ -16,6 +20,9 @@ export interface CommandResult {
 
 export interface CommandDependencies extends LoadPilotRegistryOptions {
   runner?: UserRunner;
+  env?: NodeJS.ProcessEnv | undefined;
+  logger?: ((message: string) => void) | undefined;
+  secretRunCommand?: SecretRunCommand | undefined;
 }
 
 export async function runCommand(
@@ -76,6 +83,30 @@ export async function runCommand(
       };
     }
 
+    case "secrets:push": {
+      const repo = parsed.args[0];
+      const handle = parsed.args[1];
+      if (!repo || !handle) {
+        return {
+          success: false,
+          message: "Usage: brains-ops secrets:push <repo> <handle>",
+        };
+      }
+
+      const result = await pushPilotSecrets(repo, handle, {
+        env: dependencies.env,
+        logger: dependencies.logger,
+        dryRun: parsed.flags.dryRun,
+        runCommand: dependencies.secretRunCommand,
+      });
+      return {
+        success: true,
+        message: result.dryRun
+          ? `Dry run: would push ${result.pushedKeys.length} secrets`
+          : `Pushed ${result.pushedKeys.length} secrets for ${handle}`,
+      };
+    }
+
     case "reconcile-cohort": {
       const repo = parsed.args[0];
       const cohort = parsed.args[1];
@@ -121,6 +152,7 @@ export async function runCommand(
           "  init <repo>",
           "  render <repo>",
           "  onboard <repo> <handle>",
+          "  secrets:push <repo> <handle>",
           "  reconcile-cohort <repo> <cohort>",
           "  reconcile-all <repo>",
           "  help",

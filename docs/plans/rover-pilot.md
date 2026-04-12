@@ -315,6 +315,14 @@ Delivery contract:
   - writes only `views/users.md`
   - derives status columns from observable facts (server existence, deploy state, DNS, MCP reachability, expected Discord secret presence)
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
+- `brains-ops secrets:push <repo> <handle>`
+  - resolves the selected user's effective secret names from `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
+  - pushes shared repo secrets plus the selected user's namespaced secrets to GitHub Secrets
+  - reads local `.env` and `.env.local`
+  - supports `<SECRET>_FILE` and `~/...` path expansion for multiline values like SSH keys and certs
+  - uses plain local keys as ergonomic fallbacks when the destination secret name is namespaced (for example `GIT_SYNC_TOKEN` -> `GIT_SYNC_TOKEN_SMOKE`)
+  - supports `--dry-run` for operator verification before mutating GitHub
+  - exits non-zero when no pushable local secrets are found
 - `brains-ops onboard <repo> <handle>`
   - input: one existing handle from `users/<handle>.yaml`
   - resolves effective version, preset, and AI key from user/cohort/pilot config
@@ -373,19 +381,20 @@ Manual truth entry first:
 
 Automated per-user provisioning after that:
 
-5. Operator runs `brains-ops onboard <repo> <handle>`, which:
+5. Operator runs `brains-ops secrets:push <repo> <handle>` to push the shared repo secrets plus that user's namespaced secrets into GitHub.
+6. Operator runs `brains-ops onboard <repo> <handle>`, which:
    - Creates content repo `rover-<handle>-content` in `rizom-ai` (if missing)
    - Provisions Hetzner CX22 server (if missing)
    - Configures DNS: `<handle>.rizom.ai` → server IP in existing Cloudflare zone
    - Generates `users/<handle>/brain.yaml` with effective preset, model, directory-sync config
-   - Pushes secrets to monorepo GitHub secrets: `AI_API_KEY` (shared or overridden), `GIT_SYNC_TOKEN_<HANDLE_UPPER>`, `MCP_AUTH_TOKEN_<HANDLE_UPPER>`, plus `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when enabled
+   - Relies on the already-pushed GitHub secrets: `AI_API_KEY` (shared or overridden), `GIT_SYNC_TOKEN_<HANDLE_UPPER>`, `MCP_AUTH_TOKEN_<HANDLE_UPPER>`, plus `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when enabled
    - Bootstraps SSH key and origin cert for the server
    - Deploys via Kamal to the user's server
    - Verifies MCP endpoint reachable
    - Regenerates `views/users.md`
-6. For fleet version bumps, operator edits `pilot.yaml.brainVersion` and pushes once; CI rebuilds the shared image, refreshes generated user env files, and redeploys affected users.
-7. Operator writes `users/<handle>/notes.md` with any onboarding context
-8. Operator hands over MCP connection details to user
+7. For fleet version bumps, operator edits `pilot.yaml.brainVersion` and pushes once; CI rebuilds the shared image, refreshes generated user env files, and redeploys affected users.
+8. Operator writes `users/<handle>/notes.md` with any onboarding context
+9. Operator hands over MCP connection details to user
 
 ### Cohort structure
 
@@ -488,6 +497,7 @@ Until one of those fires: stay on per-user deploys.
 - [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the pilot repo
 - [x] Add monorepo-owned `brains-ops render <repo>` so operators get table view from YAML truth
 - [x] Add monorepo-owned `brains-ops onboard <repo> <handle>` wrapper around per-user provisioning
+- [x] Add monorepo-owned `brains-ops secrets:push <repo> <handle>` for pilot GitHub secret delivery
 - [x] Add monorepo-owned `brains-ops reconcile-cohort <repo> <cohort>` for staged rollout of one active cohort
 - [x] Add monorepo-owned `brains-ops reconcile-all <repo>` for fleet-wide convergence
 - [x] Write `docs/onboarding-checklist.md` in the pilot repo scaffold

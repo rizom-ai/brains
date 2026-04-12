@@ -38,5 +38,6 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 - `brains-ops init <repo>`
 - `brains-ops render <repo>`
 - `brains-ops onboard <repo> <handle>`
+- `brains-ops secrets:push <repo> <handle>`
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`

@@ -7,6 +7,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops init <repo>`
 - `brains-ops render <repo>`
 - `brains-ops onboard <repo> <handle>`
+- `brains-ops secrets:push <repo> <handle>`
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
 

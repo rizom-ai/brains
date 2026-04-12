@@ -6,12 +6,14 @@ export interface ParsedArgs {
   flags: {
     help?: boolean | undefined;
     version?: boolean | undefined;
+    dryRun?: boolean | undefined;
   };
 }
 
 const options = {
   help: { type: "boolean" as const, short: "h" },
   version: { type: "boolean" as const, short: "v" },
+  "dry-run": { type: "boolean" as const },
 };
 
 function getBoolean(
@@ -43,6 +45,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
     flags: {
       help: getBoolean(values, "help"),
       version: getBoolean(values, "version"),
+      dryRun: getBoolean(values, "dry-run"),
     },
   };
 }
