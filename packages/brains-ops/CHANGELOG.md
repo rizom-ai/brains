@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.2
+
+### Patch Changes
+
+- [`335dd77`](https://github.com/rizom-ai/brains/commit/335dd770538c84f289c96ea4cf33f218b214bcb4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brains-ops secrets:push <repo> <handle>` for pilot GitHub secret delivery, reusing the CLI-style local env and file-backed secret resolution contract.
+
 ## 0.2.0-alpha.1
 
 ### Patch Changes

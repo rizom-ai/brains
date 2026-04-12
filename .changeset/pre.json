@@ -97,6 +97,7 @@
     "personal-layout-mobile-correctness",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
+    "rizom-ops-pilot-secrets-push",
     "rizom-ops-publish-fix",
     "sharp-lazy-load",
     "ssh-key-bootstrap-and-local-secret-paths",
