@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 
 import packageJson from "../package.json";
 
-describe("@brains/ops package metadata", () => {
+describe("@rizom/ops package metadata", () => {
   it("publishes built dist entrypoints and templates", () => {
     expect(packageJson.main).toBe("./dist/index.js");
     expect(packageJson.types).toBe("./dist/index.d.ts");

@@ -1,11 +1,22 @@
 {
-  "name": "@brains/ops",
+  "name": "@rizom/ops",
   "description": "Operator CLI for managing private brain fleet registry repos",
   "publishConfig": {
     "access": "public"
   },
   "version": "0.2.0-alpha.0",
   "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./deploy": {
+      "bun": "./src/entries/deploy.ts",
+      "types": "./dist/deploy.d.ts",
+      "import": "./dist/deploy.js"
+    }
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {

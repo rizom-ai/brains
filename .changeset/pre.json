@@ -82,7 +82,7 @@
     "@brains/site-personal": "0.1.0",
     "@brains/site-professional": "0.1.0",
     "@brains/site-composition": "0.1.0",
-    "@brains/ops": "0.1.0"
+    "@rizom/ops": "0.1.0"
   },
   "changesets": [
     "brain-cli-register-override-packages",

@@ -7,7 +7,7 @@ Per-user deploy config lives under `users/<handle>/`, while content stays in per
 
 ## Operator tooling
 
-This repo pins `@brains/ops` in `package.json`.
+This repo pins `@rizom/ops` in `package.json`.
 
 Install it with:
 

@@ -32,20 +32,26 @@ async function bundle(opts: {
   }
 }
 
-await bundle({
-  name: "brains-ops",
-  source: join(packageDir, "src", "entrypoint.ts"),
-  sourcemap: "none",
-});
-
-await bundle({
-  name: "index",
-  source: join(packageDir, "src", "index.ts"),
-  sourcemap: "none",
-});
+await Promise.all([
+  bundle({
+    name: "brains-ops",
+    source: join(packageDir, "src", "entrypoint.ts"),
+    sourcemap: "none",
+  }),
+  bundle({
+    name: "index",
+    source: join(packageDir, "src", "index.ts"),
+    sourcemap: "none",
+  }),
+  bundle({
+    name: "deploy",
+    source: join(packageDir, "src", "entries", "deploy.ts"),
+    sourcemap: "none",
+  }),
+]);
 
 const binPath = join(outdir, "brains-ops.js");
-const stripped = readFileSync(binPath, "utf8").replace(/^#!.*\n/gm, "");
+const stripped = readFileSync(binPath, "utf8").replace(/^#!.*\n/, "");
 writeFileSync(binPath, `#!/usr/bin/env bun\n${stripped}`);
 
 const dts = Bun.spawnSync(

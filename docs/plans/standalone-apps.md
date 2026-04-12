@@ -94,8 +94,9 @@ The target end state is simple:
 - each app lives in its own standalone repo
 - each repo follows the standard `brain init` shape
 - each repo deploys from the published `@rizom/brain` path
-- app-specific site/theme code lives locally in `src/site.ts` and `src/theme.css`
 - the monorepo ends with no `apps/*` directories
+
+That does **not** mean every app should move immediately. Unfinished app mockups should be implemented first, so extraction happens after site ownership is clear enough to avoid double churn.
 
 ### Preflight for each app
 
@@ -112,15 +113,15 @@ Before extraction, capture:
 
 Current preflight snapshot:
 
-| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                  | Monorepo-only site/theme coupling                          | Notes                    |
-| ----------------------- | ----------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------ |
-| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `work`       | simplest starting point  |
-| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `foundation` | likely second move       |
-| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml` | `site.package: "@brains/site-rizom"`, variant `ai`         | flagship site; move last |
+| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                  | Monorepo-only site/theme coupling                          | Notes                     |
+| ----------------------- | ----------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------- |
+| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `work`       | mockup still unfinished   |
+| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `foundation` | mockup still unfinished   |
+| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml` | `site.package: "@brains/site-rizom"`, variant `ai`         | most complete current app |
 
 ### Shared Rizom packages can stay
 
-This migration does **not** require removing `sites/rizom` or `shared/theme-rizom` from the monorepo.
+This migration does **not** require removing shared Rizom packages from the monorepo.
 
 Today those packages are still referenced by framework-owned code:
 
@@ -132,47 +133,79 @@ That is acceptable.
 
 Current recommendation:
 
-- move the remaining `apps/*` repos out first
-- keep `sites/rizom` and `shared/theme-rizom` in the monorepo as shared public packages
-- revisit their ownership only later if they become maintenance drag or stop being useful as public examples
+- keep shared Rizom theme tokens and shared site building blocks in the monorepo
+- stop treating `sites/rizom` as the one final site package for all three branded apps
+- move app repos out only after each app's site composition is clear enough to own directly
+- revisit package ownership later only if the shared pieces become maintenance drag or stop being useful as public examples
+
+### Rizom site strategy: shared base, app-owned composition
+
+`rizom.ai`, `rizom.foundation`, and `rizom.work` now differ enough that they should not keep growing behind one shared `variant` switch.
+
+Working rule:
+
+- shared packages keep reusable primitives
+- each app owns its final site composition
+- extraction moves that composition into app-local `src/site.ts`
+
+Detailed cut plan lives in `docs/plans/rizom-site-composition.md`.
+
+### Gating rule for unfinished apps
+
+Do not extract an app while its site mockup is still obviously unfinished.
+
+Instead:
+
+1. split shared base pieces from app-specific site composition
+2. implement the missing mockup with app-owned composition while shared primitives stay reusable
+3. only then extract the app repo
+
+This avoids doing the repo move and the site redesign at the same time, and avoids growing `sites/rizom` into a hard-to-maintain variant switchboard.
 
 ### Standard extraction procedure
 
-For each app:
+For each app that has cleared that gate:
 
 1. scaffold a fresh repo with the published CLI
 2. copy in app-specific config (`brain.yaml`, `.env.schema`, `.env.example`, deploy config)
-3. move app-specific site/theme ownership into local `src/site.ts` and `src/theme.css`
-4. run `brain init . --deploy --regen`
-5. boot locally from the repo itself
-6. create and push the standalone repo
-7. run the standard bootstrap flow for SSH/secrets/certs
-8. deploy from the published package path
-9. verify the live site
-10. remove the old monorepo app
-11. update docs/tests
+3. move the app's final site composition into local `src/site.ts`
+4. keep shared Rizom theme/base primitives only where they are still genuinely reusable
+5. move app-only styling into local `src/theme.css` when needed
+6. run `brain init . --deploy --regen`
+7. boot locally from the repo itself
+8. create and push the standalone repo
+9. run the standard bootstrap flow for SSH/secrets/certs
+10. deploy from the published package path
+11. verify the live site
+12. remove the old monorepo app
+13. update docs/tests
 
 ### Extraction order
 
-Use the lowest-risk order first:
+Implement unfinished mockups first, then extract whichever app is stable enough.
 
-1. `apps/rizom-work`
-2. `apps/rizom-foundation`
-3. `apps/rizom-ai`
+Current recommendation:
 
-`rizom-ai` should move last because it is the flagship public site and the most likely to rely on monorepo assumptions.
+1. carve shared base pieces out of the current Rizom site code
+2. implement `rizom.foundation` with app-owned composition first
+3. implement `rizom.work` the same way after the pattern is proven
+4. move `rizom.ai` on its own track once that repo/ownership decision is desirable
+5. extract each app only after its own composition is stable
+
+The key rule is readiness and ownership clarity, not doctrinal ordering.
 
 ### Shared branded code policy
 
-Do not invent a new cross-repo abstraction during extraction.
+Do not invent a new deep abstraction or inheritance system during extraction.
 
 Default rule:
 
-- standalone apps may continue using the existing shared `sites/rizom` and `shared/theme-rizom` packages
-- if an extracted app later needs one-off ownership, it can move to local `src/site.ts` / `src/theme.css`
-- do not force local duplication as part of the extraction itself
+- keep only genuinely reusable Rizom primitives shared
+- let each extracted app own its final `src/site.ts`
+- let each extracted app own `src/theme.css` whenever styling stops being broadly reusable
+- do not keep app-specific route trees trapped behind a single shared `variant` package
 
-This keeps the extraction focused on repo ownership and deploy ownership instead of bundling in a branding refactor.
+This keeps ownership explicit and prevents branding differences from turning into framework-level complexity.
 
 ## Explicit non-goals
 
@@ -193,11 +226,13 @@ An extracted app repo is correct when:
 
 The overall plan is done when:
 
-1. `rizom-work`, `rizom-foundation`, and `rizom-ai` each live in their own repo.
-2. each deploys successfully from the published `@rizom/brain` path.
-3. the monorepo has no remaining `apps/*` directories.
-4. shared Rizom site/theme packages remain only if they are still useful shared public packages.
+1. each extracted app lives in its own repo.
+2. each extracted app deploys successfully from the published `@rizom/brain` path.
+3. unfinished apps are not extracted until their mockup/site ownership is clear enough to avoid double churn.
+4. when the migration is fully complete, the monorepo has no remaining `apps/*` directories.
+5. shared Rizom site/theme packages remain only if they are still useful shared public packages.
 
 ## Related
 
 - `docs/plans/public-release-cleanup.md`
+- `docs/plans/rizom-site-composition.md`

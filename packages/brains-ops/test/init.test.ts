@@ -18,7 +18,7 @@ import { initPilotRepo } from "../src/init";
 const opsPackageDir = join(dirname(import.meta.dir));
 
 async function linkOpsPackage(repoDir: string): Promise<void> {
-  const target = join(repoDir, "node_modules", "@brains", "ops");
+  const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
   await symlink(opsPackageDir, target, "dir");
 }
@@ -101,9 +101,7 @@ describe("initPilotRepo", () => {
     expect(usersTable).toContain("| handle | cohort | model | preset |");
 
     const repoPackageJson = await readFile(join(repo, "package.json"), "utf8");
-    expect(repoPackageJson).toContain(
-      `"@brains/ops": "${packageJson.version}"`,
-    );
+    expect(repoPackageJson).toContain(`"@rizom/ops": "${packageJson.version}"`);
     expect(repoPackageJson).toContain('"private": true');
 
     const buildWorkflow = await readFile(
@@ -236,13 +234,13 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("users/<handle>/.env");
     expect(operatorPlaybook).toContain("final aggregation step");
     expect(operatorPlaybook).toContain("deploy/scripts/");
-    expect(operatorPlaybook).toContain("`@brains/ops` in `package.json`");
+    expect(operatorPlaybook).toContain("`@rizom/ops` in `package.json`");
 
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");
     expect(readme).toContain("brains-ops render");
     expect(readme).toContain("bun install");
-    expect(readme).toContain("@brains/ops");
+    expect(readme).toContain("@rizom/ops");
     expect(readme).toContain(".env.schema");
     expect(readme).toContain("single source of truth");
     expect(readme).toContain("brain-${brainVersion}");

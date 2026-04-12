@@ -962,6 +962,7 @@ const DEPLOY_HELPERS_SHIM = `export {
   readJsonResponse,
   parseEnvFile,
   parseEnvSchema,
+  parseEnvSchemaFile,
   requireEnv,
   writeGitHubOutput,
   writeGitHubEnv,

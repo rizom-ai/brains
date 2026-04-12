@@ -1,6 +1,6 @@
 # Onboarding Checklist
 
-1. Run `bun install` so the repo uses its pinned `@brains/ops` version.
+1. Run `bun install` so the repo uses its pinned `@rizom/ops` version.
 2. Fill in `pilot.yaml`.
 3. Add or edit `users/<handle>.yaml`.
 4. Add the user to a cohort in `cohorts/*.yaml`.

@@ -31,13 +31,13 @@ When `pilot.yaml.brainVersion` changes and you push:
 
 When a push changes only deploy contract files and no generated `users/<handle>/.env` or `users/<handle>/brain.yaml` files, the deploy workflow exits through its explicit no-op path and prints `No affected user configs; skipping deploy.`
 
-They are scaffolded from `@brains/ops`, then versioned in this repo like any other deploy contract.
+They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
 
 ## Upgrading operator behavior
 
-When `@brains/ops` changes the scaffolded deploy contract:
+When `@rizom/ops` changes the scaffolded deploy contract:
 
-1. bump `@brains/ops` in `package.json`
+1. bump `@rizom/ops` in `package.json`
 2. rerun the relevant scaffold/reconcile flow
 3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
 4. commit the updated deploy artifacts together
