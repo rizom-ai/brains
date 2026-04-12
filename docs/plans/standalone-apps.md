@@ -2,177 +2,123 @@
 
 ## Context
 
-Apps (`apps/rizom-ai`, `apps/rizom-work`, `apps/rizom-foundation`, etc.) are lightweight monorepo app directories, not workspace packages. Long-term they should be standalone repos — each is just brain.yaml + deploy config + secrets. The brain model is the code, the app is the config. `yeehaa.io` has now been extracted and serves as the first live example of that shape.
+Apps are instance config, not framework code. Standard instance shape now comes from `brain init` and works both for local development and standalone deploys.
 
-Depends on: published brain model images (deploy-kamal Phase 3).
+That shape is no longer just `brain.yaml` + deploy config. A fresh standalone repo now typically contains:
+
+```text
+my-brain/
+├── brain.yaml
+├── .env.example
+├── .env.schema
+├── .gitignore
+├── README.md
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── site.ts
+│   └── theme.css
+├── config/
+│   └── deploy.yml            # with --deploy
+├── deploy/
+│   ├── Dockerfile            # with --deploy
+│   └── Caddyfile             # with --deploy
+├── .kamal/hooks/pre-deploy   # with --deploy
+├── .github/workflows/
+│   ├── publish-image.yml     # with --deploy
+│   └── deploy.yml            # with --deploy
+└── scripts/
+    └── extract-brain-config.rb # with --deploy
+```
+
+Current proof points:
+
+- `yeehaa.io` has been extracted to its own public standalone repo and deploys successfully from the published `@rizom/brain` path.
+- `mylittlephoney` has also been extracted out of the monorepo.
+- Remaining in-repo apps are `apps/rizom-ai`, `apps/rizom-work`, and `apps/rizom-foundation`.
+
+## Decision
+
+Prefer **extraction over harmonization**.
+
+We are not trying to make in-repo apps imitate the full standalone shape first. When an app wants independent ownership, deploy cadence, or repo history, extract it directly into the standard standalone shape scaffolded by `brain init`.
 
 ## Why
 
-- Apps are instances, not code — they don't belong in the code repo
-- Aligns with hosted rovers (ranger creates a repo with brain.yaml)
-- Aligns with desktop app (Electrobun creates brain.yaml on first run)
-- Docker image becomes generic (`ghcr.io/rizom-ai/rover`), brain.yaml is mounted
-- Simplifies the monorepo (fewer workspaces, faster installs)
+- App repos own instance-specific code: `brain.yaml`, local site/theme code, deploy config, repo-local workflows.
+- Standalone repos now own their own GHCR image namespace and rollout cadence.
+- Content can still live in a separate git-synced content repo when desired.
+- The user-facing operator story should match the standalone path, not an internal monorepo convenience shape.
 
-## Two repos per app
+## Repository split
 
-Config and content are separate concerns:
+### Standalone app repo
 
-- **Config repo** (`yeehaa-brain/`) — brain.yaml, config/deploy.yml, secrets. Changes rarely.
-- **Content repo** (`yeehaa-brain-data/`) — brain-data managed by directory-sync + git. Changes constantly (auto-commits on every entity change).
+Owns instance-specific config and code:
 
-Keeping them separate avoids noisy auto-commits in the config repo.
+- `brain.yaml`
+- local `src/site.ts` and `src/theme.css` when customized
+- deploy config and workflows
+- bootstrap files such as `.env.schema`
+- repo-local image publication and deploy history
 
-### Config repo structure
+### Content repo
 
-```
-yeehaa-brain/             # config repo
-  brain.yaml              # instance config (preset, domain, plugin overrides)
-  config/deploy.yml       # Kamal deploy config
-  seed-content/           # initial content (optional, for new instances)
-  .env                    # secrets (not committed)
-```
+Still separate when directory-sync is used against a dedicated content repository.
 
-No full custom source tree or per-instance build step. The Docker image contains the brain model. The instance remains lightweight, but it may still carry conventional support files like `package.json`, `tsconfig.json`, and deploy artifacts alongside `brain.yaml`.
+That split remains useful because content changes are high-churn while app config changes are low-churn.
 
-### Versioning
+## Deploy contract
 
-brain.yaml pins the brain model version. config/deploy.yml derives the image tag from it.
+Standalone repos do **not** deploy shared model images like `ghcr.io/rizom-ai/rover`.
 
-```yaml
-# brain.yaml — runs latest (default when version omitted)
-brain: rover
+They publish and deploy their own repo image:
 
-# brain.yaml — pinned to specific release
-brain: rover
-version: "1.2.0"
+```text
+ghcr.io/<owner>/<repo>
 ```
 
-No `version` field = `latest` tag. Explicit version = that tag. Upgrading is a one-line change + `kamal deploy`.
+Deploys use the image built from the same commit SHA that triggered `Publish Image`.
 
-### Content repo structure
+See:
 
-```
-yeehaa-brain-data/        # content repo (managed by directory-sync)
-  note/
-  post/
-  link/
-  ...
-```
+- [deploy-kamal.md](./deploy-kamal.md)
+- [standalone-image-publish-contract.md](./standalone-image-publish-contract.md)
 
-Mounted as a volume. directory-sync handles import/export/git ops.
+## Remaining monorepo apps
 
-## Distribution
+Current monorepo apps stay lightweight instance directories until there is a reason to extract them:
 
-Two channels, same brain model, different consumers:
+- `apps/rizom-ai`
+- `apps/rizom-work`
+- `apps/rizom-foundation`
 
-### Docker images (production deploys)
+Extraction trigger is practical, not doctrinal. Extract when one or more are true:
 
-```
-ghcr.io/rizom-ai/rover:latest    # rover brain model
-ghcr.io/rizom-ai/ranger:latest   # ranger brain model
-ghcr.io/rizom-ai/relay:latest    # relay brain model
-```
+- app needs its own deploy cadence
+- app has one-off local site/theme code better owned beside the instance
+- app ownership or access control differs from framework repo ownership
+- app changes create too much noise in framework repo review flow
 
-Self-contained — runtime + dependencies + code in one image. Used by Kamal deploys to Hetzner. config/deploy.yml points to the image, brain.yaml is mounted as a volume.
+## Explicit non-goals
 
-```yaml
-# config/deploy.yml
-service: yeehaa-brain
-image: ghcr.io/rizom-ai/rover:latest
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain.yaml:/app/brain.yaml
-```
-
-### npm packages (desktop, hosted rovers, development)
-
-```
-@brains/rover    # rover brain model
-@brains/ranger   # ranger brain model
-@brains/relay    # relay brain model
-```
-
-Bundled packages — single artifact with all dependencies included. No transitive workspace deps. Used by:
-
-- **Desktop app** — Electrobun bundles the npm package
-- **Hosted rovers** — K8s base image has Bun, installs the brain model package
-- **Development** — `bun install @brains/rover && bun run start`
-
-**The tough part:** bundling a monorepo workspace with native deps (Sharp, libsql) into a single npm package. Docker sidesteps this (everything is in the container). npm requires solving the bundling problem.
-
-**Approach:** Docker first (Kamal deploys work today), npm second (needed for desktop app and hosted rovers). The Docker image is built FROM the npm package once bundling works.
-
-## Runtime themes from GitHub
-
-Themes (CSS) are decoupled from the brain model image. An instance can point to a GitHub repo for its theme:
-
-```yaml
-# brain.yaml
-theme: github:your-org/theme-your-brain
-```
-
-At startup, the brain fetches the theme CSS from the repo. No rebuild needed — styling is fully configurable per instance.
-
-- **Theme** = CSS file (variables, colors, fonts, spacing). Fetched at runtime.
-- **Layout** = Preact components (page structure, datasources, routes). Bundled in the model image.
-
-This separation means:
-
-- All instances of rover share the same layout components
-- Each instance can have a unique visual identity via theme
-- Theme changes are a brain.yaml edit + restart, not an image rebuild
-- Theme repos can be public (community themes) or private
-
-### How it works
-
-1. brain.yaml has `theme: github:org/repo` (or `theme: github:org/repo#branch`)
-2. On startup, site-builder fetches the CSS from the repo (raw GitHub URL or API)
-3. Theme CSS is passed to the Tailwind/PostCSS pipeline as before
-4. Cached locally — only re-fetched on restart or explicit refresh
-
-### Fallback
-
-No `theme` field in brain.yaml → brain model's default theme (bundled in image).
-
-## Evals
-
-Evals stay in the monorepo — they test brain models and presets, not individual app instances. Standalone app repos don't need eval support.
-
-## Dev mode
-
-During development, the monorepo can still run apps locally via a dev script that loads brain.yaml and starts the brain model from source. No published image or npm package needed.
-
-## Steps
-
-### Phase 1: Docker images + standalone repos
-
-1. CI pipeline: build + publish Docker images to GHCR on release (deploy-kamal Phase 3)
-2. Create config repos (yeehaa-brain, rizom-brain, mlp-brain)
-3. Move brain.yaml + config/deploy.yml into each config repo
-4. Content repos already exist (or create them) — mounted as volumes
-5. Verify: `kamal deploy` from config repo works
-
-### Phase 2: Remove apps from monorepo
-
-1. Delete `apps/` directory
-2. Update CI — monorepo builds packages and publishes images, doesn't deploy
-3. Deploy happens from config repos via `kamal deploy`
-
-### Phase 3: npm packages (future — needed for desktop + hosted rovers)
-
-1. Solve bundling: brain model + all workspace deps into single package
-2. Handle native deps (Sharp, libsql) — platform-specific optional deps or WASM alternatives
-3. Publish to npm registry
-4. Docker images build FROM npm packages (single source of truth)
-5. Desktop app and hosted rovers consume npm packages directly
+- Do not force current monorepo apps into a fake standalone shape inside the monorepo first.
+- Do not collapse content repos back into app repos just for symmetry.
+- Do not require all apps to leave the monorepo at once.
 
 ## Verification
 
-1. Standalone config repos deploy independently from the monorepo
-2. Published brain model images run correctly with mounted brain.yaml
-3. Content repos mounted correctly, directory-sync operates normally
-4. `apps/` directory deleted from monorepo
-5. CI builds packages + publishes images only
-6. (Phase 3) npm packages install and run with `bun install @brains/rover && bun run start`
+An extracted app repo is correct when:
+
+1. `bun install && bunx brain start` works from the repo itself.
+2. `brain init . --deploy --regen` can regenerate derived deploy artifacts safely.
+3. `Publish Image` publishes to `ghcr.io/<owner>/<repo>`.
+4. `Deploy` consumes the matching commit-SHA image.
+5. app-specific site/theme code lives with the app, not in one-off monorepo packages.
+6. content sync still works against the chosen content repo.
+
+## Related
+
+- `docs/plans/deploy-kamal.md`
+- `docs/plans/standalone-image-publish-contract.md`
+- `docs/plans/public-release-cleanup.md`

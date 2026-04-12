@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -31,6 +31,8 @@ describe("initPilotRepo", () => {
       existsSync(join(repo, ".github", "workflows", "reconcile.yml")),
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
+    expect(existsSync(join(repo, "deploy", "Dockerfile"))).toBe(true);
+    expect(existsSync(join(repo, ".kamal", "hooks", "pre-deploy"))).toBe(true);
     expect(existsSync(join(repo, "README.md"))).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
@@ -46,6 +48,67 @@ describe("initPilotRepo", () => {
     );
     expect(usersTable).toContain("| alice | cohort-1 | rover | core |");
     expect(usersTable).toContain("| handle | cohort | model | preset |");
+
+    const buildWorkflow = await readFile(
+      join(repo, ".github", "workflows", "build.yml"),
+      "utf8",
+    );
+    expect(buildWorkflow).toContain("docker/build-push-action@v6");
+    expect(buildWorkflow).toContain("brainVersion");
+    expect(buildWorkflow).toContain(
+      "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
+    );
+    expect(buildWorkflow).not.toContain("TODO:");
+
+    const deployWorkflow = await readFile(
+      join(repo, ".github", "workflows", "deploy.yml"),
+      "utf8",
+    );
+    expect(deployWorkflow).toContain("workflow_dispatch:");
+    expect(deployWorkflow).toContain("handle:");
+    expect(deployWorkflow).toContain("repository: rizom-ai/brains");
+    expect(deployWorkflow).toContain(
+      "bun .brains/packages/brains-ops/src/entrypoint.ts onboard",
+    );
+    expect(deployWorkflow).toContain("BRAIN_YAML_PATH");
+    expect(deployWorkflow).not.toContain("TODO:");
+
+    const reconcileWorkflow = await readFile(
+      join(repo, ".github", "workflows", "reconcile.yml"),
+      "utf8",
+    );
+    expect(reconcileWorkflow).toContain("pilot.yaml");
+    expect(reconcileWorkflow).toContain("cohorts/**");
+    expect(reconcileWorkflow).toContain("users/*.yaml");
+    expect(reconcileWorkflow).toContain(
+      "bun .brains/packages/brains-ops/src/entrypoint.ts reconcile-all",
+    );
+    expect(reconcileWorkflow).toContain("git push");
+    expect(reconcileWorkflow).not.toContain("TODO:");
+
+    const dockerfile = await readFile(
+      join(repo, "deploy", "Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain("ARG BRAIN_VERSION");
+    expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
+    expect(dockerfile).toContain("brain start");
+
+    const deployConfig = await readFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      "utf8",
+    );
+    expect(deployConfig).toContain("service: rover");
+    expect(deployConfig).toContain("app_port: 3333");
+    expect(deployConfig).toContain("path: /health");
+    expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
+
+    const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");
+    const preDeployHook = await readFile(preDeployHookPath, "utf8");
+    expect(preDeployHook).toContain("BRAIN_YAML_PATH");
+    expect(preDeployHook).toContain("/opt/brain.yaml");
+    const preDeployHookStat = await stat(preDeployHookPath);
+    expect(preDeployHookStat.mode & 0o111).toBeGreaterThan(0);
 
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");

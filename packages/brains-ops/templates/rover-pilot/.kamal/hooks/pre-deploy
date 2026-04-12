@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+BRAIN_FILE="${BRAIN_YAML_PATH:-brain.yaml}"
+SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("deploy/kamal/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
+for host in "${HOSTS[@]}"; do
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$BRAIN_FILE" "${SSH_USER}@${host}:/opt/brain.yaml"
+done

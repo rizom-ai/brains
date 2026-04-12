@@ -1,0 +1,8 @@
+schemaVersion: 1
+brainVersion: 0.1.1-alpha.14
+model: rover
+githubOrg: <github-org>
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: AI_API_KEY

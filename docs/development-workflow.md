@@ -170,7 +170,7 @@ shared/*      # Utilities, themes, UI library
 entities/*    # EntityPlugin packages (blog, decks, note, link, topics, ...)
 plugins/*     # ServicePlugin packages (directory-sync, site-builder, analytics, ...)
 layouts/*     # Layout building blocks (personal, professional)
-sites/*       # Site packages (default, rizom, yeehaa)
+sites/*       # Site packages (default, rizom)
 interfaces/*  # Transport plugins (cli, mcp, webserver, discord, a2a, chat-repl)
 brains/*      # Brain model packages (rover, ranger, relay)
 packages/*    # Standalone npm packages (brain-cli → @rizom/brain)

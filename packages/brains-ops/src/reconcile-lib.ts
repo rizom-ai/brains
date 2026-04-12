@@ -9,7 +9,7 @@ import {
   type SnapshotStatus,
 } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
-import type { UserRunResult, UserRunner } from "./user-runner";
+import type { UserRunner } from "./user-runner";
 
 export type { UserRunResult, UserRunner } from "./user-runner";
 
@@ -23,28 +23,21 @@ export async function runUsers(
   const defaultRunner = createDefaultUserRunner(registry.pilot.githubOrg);
 
   for (const user of users) {
+    const runnerResult = (runner ? await runner(user) : undefined) ?? {};
     const defaultResult = await defaultRunner(user);
-    const runnerResult = normalizeUserRunResult(
-      runner ? await runner(user) : undefined,
-    );
     const brainYaml = runnerResult.brainYaml ?? defaultResult.brainYaml;
     const envFile = runnerResult.envFile ?? defaultResult.envFile;
-    const result: UserRunResult = {
-      ...(brainYaml ? { brainYaml } : {}),
-      ...(envFile ? { envFile } : {}),
-    };
 
-    if (result.envFile) {
-      await writeUserEnvFile(rootDir, user.handle, result.envFile);
+    if (envFile) {
+      await writeUserFile(rootDir, user.handle, ".env", envFile);
     }
 
-    if (result.brainYaml) {
-      await writeUserSnapshot(rootDir, user.handle, result.brainYaml);
+    if (brainYaml) {
+      await writeUserFile(rootDir, user.handle, "brain.yaml", brainYaml);
       snapshotWritten.add(user.handle);
     }
   }
 
-  const presentSnapshotStatus: SnapshotStatus = "present";
   const refreshedRegistry: PilotRegistry =
     snapshotWritten.size === 0
       ? registry
@@ -52,7 +45,7 @@ export async function runUsers(
           ...registry,
           users: registry.users.map((entry) =>
             snapshotWritten.has(entry.handle)
-              ? { ...entry, snapshotStatus: presentSnapshotStatus }
+              ? { ...entry, snapshotStatus: "present" as SnapshotStatus }
               : entry,
           ),
         };
@@ -60,28 +53,15 @@ export async function runUsers(
   await writeUsersTable(rootDir, { registry: refreshedRegistry });
 }
 
-function normalizeUserRunResult(result: UserRunResult | void): UserRunResult {
-  return result && typeof result === "object" ? result : {};
-}
-
-async function writeUserSnapshot(
+async function writeUserFile(
   rootDir: string,
   handle: string,
-  brainYaml: string,
+  fileName: string,
+  content: string,
 ): Promise<void> {
-  const snapshotPath = join(rootDir, "users", handle, "brain.yaml");
-  await mkdir(dirname(snapshotPath), { recursive: true });
-  await writeFile(snapshotPath, brainYaml);
-}
-
-async function writeUserEnvFile(
-  rootDir: string,
-  handle: string,
-  envFile: string,
-): Promise<void> {
-  const envPath = join(rootDir, "users", handle, ".env");
-  await mkdir(dirname(envPath), { recursive: true });
-  await writeFile(envPath, envFile);
+  const filePath = join(rootDir, "users", handle, fileName);
+  await mkdir(dirname(filePath), { recursive: true });
+  await writeFile(filePath, content);
 }
 
 export async function findUser(

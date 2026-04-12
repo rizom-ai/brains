@@ -179,7 +179,7 @@ Custom sites need `package.json` + `node_modules`. Theme-only overrides work wit
 ## Verification
 
 1. `bun add -g @rizom/brain` installs on any machine with Bun >= 1.3.3
-2. `brain init mybrain` creates brain.yaml + .env.example (no package.json)
+2. `brain init mybrain` creates `brain.yaml`, `.env.example`, and the local support files for a lightweight instance package (including `package.json`)
 3. `brain start` boots rover in-process from built-in bundle
 4. `brain list posts` runs headless in-process without starting daemons
 5. `brain list posts --remote rover.rizom.ai` queries deployed brain

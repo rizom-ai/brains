@@ -19,7 +19,7 @@ If you don't get an acknowledgement within 7 days, please ping again on the same
 
 **In scope:**
 
-- Code in this repository (`shell/*`, `shared/*`, `plugins/*`, `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/default`, `layouts/*`)
+- Code in this repository (`shell/*`, `shared/*`, `plugins/*`, `entities/*`, `interfaces/*`, `packages/*`, `brains/rover`, `sites/{default,personal,professional,rizom}`)
 - Default behavior of plugins shipped in this repository
 - Documentation that recommends insecure patterns
 

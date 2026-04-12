@@ -9,7 +9,8 @@
     "brains-ops": "./src/entrypoint.ts"
   },
   "files": [
-    "src"
+    "src",
+    "templates"
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",

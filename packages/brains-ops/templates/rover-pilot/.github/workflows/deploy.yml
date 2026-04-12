@@ -1,0 +1,70 @@
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      handle:
+        description: User handle
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      HANDLE: ${{ inputs.handle }}
+      BRAINS_REPO: rizom-ai/brains
+      BRAINS_REF: main
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/checkout@v5
+        with:
+          repository: rizom-ai/brains
+          ref: main
+          path: .brains
+          token: ${{ secrets.BRAINS_REPO_TOKEN }}
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install brains workspace dependencies
+        run: bun install --cwd .brains --frozen-lockfile
+
+      - name: Reconcile selected user config
+        run: bun .brains/packages/brains-ops/src/entrypoint.ts onboard "$GITHUB_WORKSPACE" "$HANDLE"
+
+      - name: Prepare selected brain.yaml for Kamal
+        run: |
+          cp "users/$HANDLE/brain.yaml" brain.yaml
+          echo "BRAIN_YAML_PATH=users/$HANDLE/brain.yaml" >> "$GITHUB_ENV"
+          BRAIN_DOMAIN="$(grep '^domain:' "users/$HANDLE/brain.yaml" | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          if [ -z "$BRAIN_DOMAIN" ]; then
+            echo "Missing domain in users/$HANDLE/brain.yaml" >&2
+            exit 1
+          fi
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+
+      - name: Upload generated config
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-${{ inputs.handle }}-config
+          path: |
+            users/${{ inputs.handle }}/brain.yaml
+            users/${{ inputs.handle }}/.env
+            views/users.md
+
+      - name: Commit generated config
+        run: |
+          if git diff --quiet -- "users/$HANDLE/brain.yaml" "users/$HANDLE/.env" views/users.md; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "users/$HANDLE/brain.yaml" "users/$HANDLE/.env" views/users.md
+          git commit -m "chore(ops): reconcile $HANDLE"
+          git push

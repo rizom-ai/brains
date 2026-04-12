@@ -114,8 +114,8 @@ Behavior:
 Recommended local contract:
 
 ```bash
-HCLOUD_SSH_KEY_NAME=mylittlephoney-deploy
-KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/mylittlephoney_deploy_ed25519
+HCLOUD_SSH_KEY_NAME=mybrain-deploy
+KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/mybrain_deploy_ed25519
 ```
 
 After the first bootstrap, `brain secrets:push --push-to gh` remains the generic resync path.

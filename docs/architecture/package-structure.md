@@ -131,9 +131,9 @@ Brain models define what a brain IS — capabilities, interfaces, presets, ident
 
 Standalone published packages.
 
-| Package              | Purpose                                                                                                                                                                                    |
-| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `packages/brain-cli` | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime so app instances need no `package.json` of their own. |
+| Package              | Purpose                                                                                                                                                                                                          |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/brain-cli` | `@rizom/brain` — the published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds the instance-local support files an app needs. |
 
 ## Apps (lightweight instance packages, NOT a workspace category)
 

@@ -37,7 +37,7 @@ brains/         Brain model packages
 packages/       Standalone distributable packages (for example @rizom/brain)
 ```
 
-`apps/` is intentionally **not** a workspace category anymore. Each `apps/<name>/` directory is a lightweight instance package: `brain.yaml` plus conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, `src/theme.css`, and optional deploy artifacts, consumed by the CLI at runtime.
+`apps/` is intentionally **not** a workspace category anymore. In-repo `apps/<name>/` directories are lightweight instance directories centered on `brain.yaml` and optional deploy/config files, consumed by the CLI at runtime. The fuller standalone shape scaffolded by `brain init` outside the monorepo may also include support files such as `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, `src/site.ts`, and `src/theme.css`.
 
 ## Current package map
 

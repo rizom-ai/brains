@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-11
+Last updated: 2026-04-12
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has been cleared: `rizom.ai` and `mylittlephoney.com` are both live on their intended production paths. Even so, public-release staging is paused while nearer-term product work takes priority.
+`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths. Even so, public-release staging is paused while nearer-term product work takes priority.
 
 What already exists today:
 
@@ -34,8 +34,8 @@ These areas are effectively landed:
 - **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
 - **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
-- **Production deploy validation** — `rizom.ai` and `mylittlephoney.com` are live on their intended production paths
-- **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` extracted
+- **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
+- **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
 
 ## Near-term priorities
 

@@ -282,7 +282,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Brain CLI (`packages/*`)
 
-- `@rizom/brain` — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime so app instances need no `package.json` of their own.
+- `@rizom/brain` — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds instance-local support files such as `package.json`, `tsconfig.json`, and optional deploy artifacts.
 
 ### Interface Packages (`interfaces/*`)
 
@@ -300,7 +300,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/test-utils` — mock factories, test harnesses, MockShell
 - `@brains/mcp-bridge` — base class for bridging upstream MCP servers
 - `@brains/image` — image schema, adapter, utilities
-- `@brains/theme-*` — CSS themes (11 packages: base + 7 generic + 3 branded)
+- `@brains/theme-*` — shared CSS themes (`theme-base`, `theme-default`, `theme-rizom`)
 
 ## Version Requirements
 
