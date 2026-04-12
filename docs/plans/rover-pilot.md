@@ -21,32 +21,32 @@ Specifically:
 
 - Building new deployment infrastructure
 - Running multiple rovers on shared hardware (that's hosted-rover)
-- Automating cohort provisioning from a central repo
 - Building a shared MCP gateway or shared Discord
 - Solving scale-to-zero, idle hibernation, or per-user cost optimization
 - Cross-brain features (shared discovery, group chats, fleet analytics)
 - Perfect operator ergonomics — a checklist is enough for pilot scale
 - Self-service onboarding — pilot users do not touch GitHub or CI
+- Per-user brain repos — all deploy config lives in one operator repo
 
 ## Design
 
 ### Deployment model
 
-**Per-user standalone deploys**, using the existing `brain init --deploy` scaffold and nothing else.
+**Monorepo with per-user deploys.** One operator-owned `rover-pilot` repo in `rizom-ai` contains all user configs, deploy infrastructure, and CI workflows. Each pilot user gets their own Hetzner box, but everything is managed from this single repo.
 
 Each pilot user gets:
 
-- An operator-owned GitHub repo under a shared org (pilot users are added as Maintainers so they can file issues and view workflow runs, but cannot merge or manage secrets)
-- Their own Hetzner CX22 box (~€4-5/month)
-- Their own GitHub Actions secrets plus the scaffolded publish-then-deploy workflows
-- Their own subdomain under the operator's shared DNS zone
-- Their own `brain.yaml` with the effective preset resolved from `pilot.yaml` plus any cohort preset override
+- Their own Hetzner CX22 box (~€4/month)
+- Their own content repo (`rover-<handle>-content`) in `rizom-ai` for directory-sync
+- Their own subdomain under `rizom.ai` (`<handle>.rizom.ai`)
+- Their own `brain.yaml` inside the monorepo at `users/<handle>/brain.yaml`
+- Their own GitHub secrets in the monorepo (namespaced by handle)
 
-This is an operator-run pilot, not a change to the default standalone product contract. The normal public path remains: bring your own repo, bring your own domain, push secrets to GitHub, and deploy your own instance.
+Users do not get access to `rover-pilot`. This is an operator-managed repo. Users interact with their rover via MCP and optionally Discord.
 
 Interfaces enabled:
 
-- **MCP over HTTP** — mandatory, this is how the user actually connects their Claude Desktop / Cursor / other MCP client
+- **MCP over HTTP** — mandatory, this is how the user connects their Claude Desktop / Cursor / other MCP client
 - **Discord** — optional, off by default; opt-in per user who supplies a bot token
 - **A2A** — enabled (rover ships with it) but not surfaced to the user
 
@@ -58,46 +58,52 @@ Because there is no website, the deploy topology is simpler than the `rizom.ai` 
 - No site-builder startup build, no lazy rebuild complications
 - `brain init --model rover` for pilot/core instances should not scaffold dormant `site.package` / `site.theme` refs into `brain.yaml`
 
+### Monorepo rationale
+
+Per-user repos were considered and rejected. At pilot scale the operational overhead of syncing CI workflows, Kamal configs, and version bumps across 10-20 repos outweighs the isolation benefit. Specifically:
+
+- **CI drift** — a workflow bug fix must be pushed to every repo individually; with a monorepo it's one commit
+- **Fleet operations** — version bumps, config changes, and reconciliation are single-repo operations
+- **Onboarding** — adding a user is "add files + push", not "create repo, scaffold, push secrets, configure"
+
+Tradeoffs accepted:
+
+- All user secrets live in one repo's GitHub secrets namespace (namespaced by handle, e.g. `ALICE_DISCORD_TOKEN`). GitHub caps at 100 repo secrets; fine for 20 users.
+- No clean repo handoff if a user graduates to self-hosted. At pilot scale this is extraction, not transfer. Acceptable — pilot users are not self-hosting.
+- Deploy workflows need per-user dispatch or matrix strategy. Solvable with Kamal's multi-destination support.
+
 ### Baseline choices
 
 These are the locked decisions for cohort 1. Later cohorts may revisit them based on pilot evidence.
 
-| Choice                    | Decision                                                  | Why                                                                                      |
-| ------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Discord                   | Off by default, opt-in per user                           | Faster onboarding; users who want it supply their own bot token                          |
-| Git sync (directory-sync) | Required for every user                                   | Content persistence is not optional; we learn sync UX from day one                       |
-| AI API key                | Shared operator key                                       | Pilot users don't need an AI provider account; operator eats cost under a spend cap      |
-| Repo ownership            | Operator-owned, user added as Maintainer                  | Operator controls deploys and secrets; user gets visibility and a handoff path           |
-| User identity             | Short operator-assigned handle                            | Clean directory names, secrets names, subdomains; decoupled from GitHub identity         |
-| Domain pattern            | `<handle>.rover.example.com` under operator wildcard zone | Future-proof — URL survives the hosted-rover migration, one DNS zone, one wildcard story |
+| Choice                    | Decision                                            | Why                                                                                 |
+| ------------------------- | --------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| Discord                   | Off by default, opt-in per user                     | Faster onboarding; users who want it supply their own bot token                     |
+| Git sync (directory-sync) | Required for every user                             | Content persistence is not optional; we learn sync UX from day one                  |
+| AI API key                | Shared operator key, overridable per cohort or user | Pilot users don't need an AI provider account; operator eats cost under a spend cap |
+| Repo model                | Single monorepo, per-user content repos only        | Operator controls deploys and CI centrally; no workflow drift                       |
+| User identity             | Short operator-assigned handle                      | Clean directory names, secret names, subdomains; decoupled from GitHub identity     |
+| Domain pattern            | `<handle>.rizom.ai` under existing Cloudflare zone  | No new DNS zone needed; clean URL; survives hosted-rover migration                  |
 
-### Registry repo (YAML truth, generated table)
-
-A separate `rover-pilot` repo is created. It is **operator coordination plus lightweight batch input**, not a hosted-rover control plane. Kamal configs, GitHub workflows, deploy secrets, and live `brain.yaml` still live in each user's repo.
-
-Any helper automation for this flow should live in a **separate operator CLI in the monorepo named `brains-ops`**, not as new public `brain` CLI commands.
-
-Human-editable source of truth should be YAML, not CSV. Operators can review status in a generated Markdown table, but table is derived output, not thing people edit.
-
-Implementation shape should mirror `brain-cli` structurally, but remain a separate operator tool:
-
-- package/bin name: `brains-ops`
-- private data repo stays `rover-pilot`
-- `brains-ops` commands take the private repo path as input
-- no pilot ops surface added to public `brain` CLI
+### Monorepo structure
 
 ```
 rover-pilot/
-├── pilot.yaml                   # org + naming conventions
+├── pilot.yaml                   # fleet defaults + naming conventions
 ├── cohorts/
 │   ├── cohort-1.yaml            # active rollout group membership
 │   └── cohort-2.yaml
 ├── users/
 │   ├── alice.yaml               # desired onboarding input
 │   ├── alice/
-│   │   ├── brain.yaml           # snapshot of deployed config
+│   │   ├── brain.yaml           # deployed config (generated, not hand-edited)
+│   │   ├── .env                 # non-secret env vars (generated)
 │   │   └── notes.md             # human operator notes
 │   └── bob.yaml
+├── deploy/
+│   └── kamal/                   # shared Kamal config with per-user destinations
+├── .github/
+│   └── workflows/               # shared CI: build image, deploy per-user
 ├── views/
 │   └── users.md                 # generated table for operator review
 ├── docs/
@@ -105,43 +111,14 @@ rover-pilot/
 │   └── operator-playbook.md     # known gotchas, recovery procedures
 └── README.md
 
-brains/
-└── packages/
-    └── brains-ops/
-        ├── src/                 # registry loader, reconcile logic, provider adapters
-        └── test/
+rizom-ai/ (GitHub org)
+├── rover-pilot                  # this repo
+├── rover-alice-content          # per-user content repo for directory-sync
+├── rover-bob-content
+└── ...
 ```
 
-Example `pilot.yaml`:
-
-```yaml
-schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
-model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
-preset: core
-```
-
-Example `users/alice.yaml`:
-
-```yaml
-handle: alice
-discord:
-  enabled: false
-```
-
-Example `cohorts/cohort-1.yaml`:
-
-```yaml
-brainVersionOverride: 0.1.1-alpha.13
-presetOverride: pro
-members:
-  - alice
-  - bob
-```
+Any helper automation for this flow lives in **`brains-ops`** in the monorepo, not as new public `brain` CLI commands.
 
 ### Data contract
 
@@ -150,35 +127,37 @@ members:
 - `schemaVersion` — registry schema version
 - `brainVersion` — exact pinned `@rizom/brain` version for whole pilot
 - `model` — fleet-wide brain model, initially `rover`
-- `githubOrg` — pilot GitHub org / owner
-- `repoPrefix` — prepended to each handle for rover repo names
-- `contentRepoSuffix` — appended to `${repoPrefix}${handle}` for content repo names
+- `githubOrg` — GitHub org (initially `rizom-ai`)
+- `contentRepoPrefix` — prepended to each handle for content repo names
 - `domainSuffix` — appended to handle for public FQDN
-- `preset` — default fleet preset, from enum `core | pro`, initially `core`
+- `preset` — default fleet preset, from enum `core | default | pro`
+- `aiApiKey` — secret name for the shared AI key (not the key itself)
 
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
 - `handle` — lowercase slug, unique across pilot
 - required `discord.enabled` — boolean intent flag
+- optional `aiApiKeyOverride` — secret name for a per-user AI key override
 
 Non-secret integration intent belongs in YAML. Secret material does not.
 
 Derived fields, not stored per user:
 
-- `repo = ${repoPrefix}${handle}`
-- `contentRepo = ${repoPrefix}${handle}${contentRepoSuffix}`
+- `contentRepo = ${contentRepoPrefix}${handle}-content`
 - `domain = ${handle}${domainSuffix}`
 - `model = pilot.yaml.model`
 - `preset = cohort.presetOverride ?? pilot.yaml.preset`
+- `effectiveAiApiKey = user.aiApiKeyOverride ?? cohort.aiApiKeyOverride ?? pilot.yaml.aiApiKey`
 - Discord secret name, when enabled: `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
 
 No separate `state/*.yaml` is introduced in cohort 1. Operator tooling should be idempotent enough that current state can be derived from the world instead of persisted as another mutable file.
 
-`cohorts/*.yaml` is the set of active rollout groups plus optional rollout override. The cohort id is the file name only; there is no `id` or `title` field in the YAML body. Minimum fields:
+`cohorts/*.yaml` is the set of active rollout groups plus optional rollout overrides. The cohort id is the file name only; there is no `id` or `title` field in the YAML body. Minimum fields:
 
 - `members` — non-empty set of user handles
 - optional `brainVersionOverride` — exact pinned version
-- optional `presetOverride` — preset lane override from enum `core | pro`
+- optional `presetOverride` — preset lane override from enum `core | default | pro`
+- optional `aiApiKeyOverride` — secret name for a cohort-level AI key override
 
 Cohorts are always active rollout groups. Historical rollout reporting lives somewhere else; it is not part of this config resolution schema.
 
@@ -192,13 +171,19 @@ Effective preset resolution:
 1. `cohort.presetOverride`
 2. else `pilot.yaml.preset`
 
+Effective AI key resolution:
+
+1. `user.aiApiKeyOverride`
+2. else `cohort.aiApiKeyOverride`
+3. else `pilot.yaml.aiApiKey`
+
 Validation rules:
 
 - user file name must match `handle` (`users/alice.yaml` -> `handle: alice`)
 - cohort identity comes from the cohort file name only (`cohorts/cohort-1.yaml` -> `cohort-1`)
 - cohort members must reference existing user files
 - duplicate handles are invalid
-- derived `repo`, `contentRepo`, and `domain` must be deterministic from `pilot.yaml` + `handle`
+- derived `contentRepo` and `domain` must be deterministic from `pilot.yaml` + `handle`
 - if `discord.enabled: true`, operator tooling expects a secret named `DISCORD_BOT_TOKEN_${HANDLE_UPPER}`
 - every user must belong to **exactly one** cohort
 - cohort membership lives only in `cohorts/*.yaml`, never duplicated on user files
@@ -208,24 +193,24 @@ Validation rules:
 - `brainVersion` and `brainVersionOverride` must be exact pinned versions, not ranges or moving tags
 - `model` is fleet-wide and comes only from `pilot.yaml`
 - `preset` may come from `pilot.yaml` or `cohort.presetOverride`, never from `users/*.yaml`
-- `preset` and `presetOverride` must be one of `core` or `pro`
-- desired state must be replay-safe: rerunning onboarding for an existing user should converge on same repo/deploy shape instead of requiring a handwritten checkpoint file
+- `preset` and `presetOverride` must be one of `core`, `default`, or `pro`
+- desired state must be replay-safe: rerunning onboarding for an existing user should converge on same deploy shape instead of requiring a handwritten checkpoint file
 
 ### Exact file contract
 
-The future `rover-pilot` repo should validate these files with Zod and treat them as the only human-edited machine inputs:
+The `rover-pilot` repo validates these files with Zod and treats them as the only human-edited machine inputs:
 
 `pilot.yaml`
 
 ```yaml
 schemaVersion: 1
-brainVersion: 0.1.1-alpha.12
+brainVersion: 0.1.1-alpha.14
 model: rover
-githubOrg: rizom-ai-pilot
-repoPrefix: rover-
-contentRepoSuffix: -content
-domainSuffix: .rover.example.com
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
 preset: core
+aiApiKey: AI_API_KEY
 ```
 
 Rules:
@@ -234,8 +219,9 @@ Rules:
 - `schemaVersion` is an integer, initially locked to `1`
 - `brainVersion` is an exact pinned `@rizom/brain` version string
 - `model` is a required fleet-wide model string, initially locked to `rover`
-- `repoPrefix`, `contentRepoSuffix`, and `domainSuffix` are non-empty strings
-- `preset` is a required fleet default preset from enum `core | pro`, initially `core`
+- `contentRepoPrefix` and `domainSuffix` are non-empty strings
+- `preset` is a required fleet default preset from enum `core | default | pro`
+- `aiApiKey` is a required secret name (not the secret itself)
 
 `users/<handle>.yaml`
 
@@ -248,8 +234,8 @@ discord:
 Rules:
 
 - file path is authoritative for `handle`
-- body must not contain derived fields like `repo`, `contentRepo`, `domain`, or `cohort`
-- body must not contain secrets or secret names
+- body must not contain derived fields like `contentRepo`, `domain`, or `cohort`
+- body must not contain secrets or secret names (except `aiApiKeyOverride` which is a secret name reference)
 - `discord.enabled` is required for every user
 
 `cohorts/<cohort>.yaml`
@@ -258,8 +244,8 @@ Rules:
 members:
   - alice
   - bob
-brainVersionOverride: 0.1.1-alpha.13
-presetOverride: pro
+brainVersionOverride: 0.1.1-alpha.14
+presetOverride: default
 ```
 
 Rules:
@@ -268,7 +254,8 @@ Rules:
 - `members` is required, non-empty, unique, and references existing users
 - `brainVersionOverride` is optional and, when present, is an exact pinned version
 - `presetOverride` is optional and, when present, overrides `pilot.yaml.preset` for the whole cohort
-- `presetOverride` must be from enum `core | pro`
+- `presetOverride` must be from enum `core | default | pro`
+- `aiApiKeyOverride` is optional and, when present, overrides the AI key for the whole cohort
 - no other override fields are allowed
 
 Derived-but-checked files:
@@ -276,9 +263,12 @@ Derived-but-checked files:
 - `views/users.md`
   - generated only; never hand-edited
   - one row per user
-  - minimum columns: `handle`, `cohort`, `model`, `preset`, `brainVersion`, `domain`, `repo`, `contentRepo`, `discord`, `repoStatus`, `deployStatus`, `dnsStatus`, `mcpStatus`, `snapshotStatus`
+  - minimum columns: `handle`, `cohort`, `model`, `preset`, `brainVersion`, `domain`, `contentRepo`, `discord`, `serverStatus`, `deployStatus`, `dnsStatus`, `mcpStatus`
 - `users/<handle>/brain.yaml`
-  - generated snapshot of deployed config
+  - generated deployed config
+  - overwritten on successful onboarding/reconcile
+- `users/<handle>/.env`
+  - generated non-secret env vars
   - overwritten on successful onboarding/reconcile
 - `users/<handle>/notes.md`
   - human notes only
@@ -286,39 +276,45 @@ Derived-but-checked files:
 
 ### Tool/package contract
 
-`brains-ops` owns the machine logic for this YAML truth. The private `rover-pilot` repo owns the data.
+`brains-ops` owns the machine logic for the YAML truth and the deploy lifecycle. The `rover-pilot` repo owns the data.
 
 - `brains-ops init <repo>`
-  - creates the private `rover-pilot` repo skeleton when missing
-  - writes starter files for `pilot.yaml`, `cohorts/`, `users/`, `views/`, and operator docs
+  - creates the `rover-pilot` repo skeleton when missing
+  - writes starter files for `pilot.yaml`, `cohorts/`, `users/`, `deploy/`, `views/`, and operator docs
+  - scaffolds shared GitHub Actions workflows and Kamal config
   - preserves existing human-edited files on rerun
   - exits non-zero if the target path cannot be prepared
 - `brains-ops render <repo>`
   - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
   - validates via Zod before rendering anything
   - writes only `views/users.md`
-  - derives status columns from observable facts (repo existence, workflow state, DNS, MCP reachability, snapshot presence, expected Discord secret presence)
+  - derives status columns from observable facts (server existence, deploy state, DNS, MCP reachability, expected Discord secret presence)
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
 - `brains-ops onboard <repo> <handle>`
   - input: one existing handle from `users/<handle>.yaml`
-  - resolves effective version and effective preset from cohort override or pilot default
-  - creates or reconciles the user repo and content repo toward desired state
-  - runs the per-user init/deploy bootstrap flow idempotently
-  - updates generated artifacts for that user only: `users/<handle>/brain.yaml` and `views/users.md`
+  - resolves effective version, preset, and AI key from user/cohort/pilot config
+  - creates content repo in GitHub org if missing
+  - provisions Hetzner server if missing
+  - configures DNS (`<handle>.rizom.ai`) in existing Cloudflare zone
+  - generates `users/<handle>/brain.yaml` and `users/<handle>/.env`
+  - pushes per-user secrets to monorepo's GitHub secrets (namespaced by handle)
+  - deploys to the user's server via Kamal
+  - verifies MCP endpoint is reachable
+  - regenerates `views/users.md`
   - exits non-zero if required observable prerequisites are missing after reconcile
 - `brains-ops reconcile-cohort <repo> <cohort>`
   - input: one existing cohort id from file name
-  - resolves that cohort's members plus effective version and preset
+  - resolves that cohort's members plus effective version, preset, and AI key
   - runs `onboard` semantics for each member in the cohort
-  - updates affected snapshots plus `views/users.md`
+  - updates affected generated files plus `views/users.md`
   - exits non-zero if any member fails reconciliation
 - `brains-ops reconcile-all <repo>`
   - inputs: whole repo config set
   - walks all users exactly once
-  - reconciles each repo to its effective desired version, model, and preset
+  - reconciles each user to their effective desired version, model, preset, and AI key
   - supports fleet-wide update when `pilot.yaml.brainVersion`, `pilot.yaml.model`, or `pilot.yaml.preset` changes
-  - still respects cohort overrides when present
-  - updates all affected snapshots plus `views/users.md`
+  - still respects cohort and user overrides when present
+  - updates all affected generated files plus `views/users.md`
   - exits non-zero if any user fails reconciliation
 
 Why this shape:
@@ -327,76 +323,83 @@ Why this shape:
 - per-user files avoid one giant merge-conflict magnet
 - generated Markdown gives "table" view without making Markdown or CSV source of truth
 - separate `brains-ops` package gives brain-cli-like structure without expanding public product surface
-- private pilot data stays in its own repo
+- monorepo keeps all deploy config, CI, and Kamal in one place — no workflow drift
+- content repos stay per-user because directory-sync needs them
 - future operator tooling can read same files without turning them into live deploy state
-- helper automation stays out of public `brain` CLI while still shipping from monorepo
 
 The repo exists so that:
 
 - Audit is possible — "what was this user's onboarding input and deployed config"
-- Drift is detectable — compare snapshot to live repo if something breaks
-- Cohorts can be reviewed as whole
+- Drift is detectable — compare generated brain.yaml to live deploy
+- Cohorts can be reviewed as a whole
+- CI and deploy changes apply to all users atomically
 - Future hosted-rover can import real configs as test cases
 
 ### Per-user onboarding flow
 
-Fits on one page of `onboarding-checklist.md`. If it doesn't fit, scaffold absorbed something it shouldn't have.
+Fits on one page of `onboarding-checklist.md`. If it doesn't fit, the monorepo absorbed something it shouldn't have.
 
 Manual truth entry first:
 
 1. Operator agrees a short handle with new user (e.g. `alice`)
 2. Operator creates `rover-pilot/users/<handle>.yaml`
 3. Operator adds handle to active cohort YAML
-4. Operator runs `brains-ops render <repo>` so batch state is visible as table
+4. Operator runs `brains-ops render <repo>` so fleet state is visible as table
 
-Per-user repo/deploy flow after that:
+Automated per-user provisioning after that:
 
-5. Operator creates new repo in pilot org (`<org>/rover-<handle>`)
-6. Operator creates content repo in pilot org (`<org>/rover-<handle>-content`) for directory-sync
-7. Adds pilot user as Maintainer on both repos
-8. Runs `brain init --deploy --model <pilot.yaml.model> --domain <handle>.rover.example.com`
-9. Configures `brain.yaml` with the effective preset for that user's cohort and directory-sync pointed at content repo
-10. Fills `.env.local` with local operator inputs CLI expects: `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `HCLOUD_SSH_KEY_NAME`, `HCLOUD_SERVER_TYPE`, `HCLOUD_LOCATION`, `KAMAL_REGISTRY_PASSWORD`, `CF_API_TOKEN`, `CF_ZONE_ID`, `KAMAL_SSH_PRIVATE_KEY_FILE`, plus optional `MCP_AUTH_TOKEN` and the per-user Discord token under the derived secret name `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when `discord.enabled: true`
-11. Runs `brain ssh-key:bootstrap --push-to gh`
-12. Runs `brain secrets:push --push-to gh`
-13. Runs `brain cert:bootstrap --push-to gh`, then deletes local `origin.pem` / `origin.key`
-14. Merges to `main`; `Publish Image` then `Deploy` run
-15. Verifies MCP endpoint reachable and basic tool call works
-16. Hands over MCP connection details to user
-17. Copies deployed `brain.yaml` into `rover-pilot/users/<handle>/` as snapshot and writes `notes.md`
-18. Regenerates `views/users.md` so derived status reflects current reality
+5. Operator runs `brains-ops onboard <repo> <handle>`, which:
+   - Creates content repo `rover-<handle>-content` in `rizom-ai` (if missing)
+   - Provisions Hetzner CX22 server (if missing)
+   - Configures DNS: `<handle>.rizom.ai` → server IP in existing Cloudflare zone
+   - Generates `users/<handle>/brain.yaml` with effective preset, model, directory-sync config
+   - Pushes secrets to monorepo GitHub secrets: `AI_API_KEY` (shared or overridden), `GIT_SYNC_TOKEN_<HANDLE_UPPER>`, `MCP_AUTH_TOKEN_<HANDLE_UPPER>`, plus `DISCORD_BOT_TOKEN_<HANDLE_UPPER>` when enabled
+   - Bootstraps SSH key and origin cert for the server
+   - Deploys via Kamal to the user's server
+   - Verifies MCP endpoint reachable
+   - Regenerates `views/users.md`
+6. Operator writes `users/<handle>/notes.md` with any onboarding context
+7. Operator hands over MCP connection details to user
 
 ### Cohort structure
 
-Cohorts are **temporal batches**, not infrastructure batches. All cohorts share the same per-user-deploy model; they differ only in pacing.
+Cohorts are **temporal batches**, not infrastructure batches. All cohorts share the same monorepo deploy model; they differ only in pacing and optional config overrides.
 
-- **Cohort 1** — 2-3 users, preferably the operator plus 1-2 close collaborators who can tolerate rough edges. Goal: shake out the onboarding flow and the scaffold itself.
+- **Cohort 1** — up to 5 users, added gradually. Preferably the operator plus close collaborators who can tolerate rough edges. Goal: shake out the onboarding flow and the monorepo deploy model.
 - **Cohort 2** — 5-7 users, only after cohort 1 is stable and the operator playbook has been updated with whatever cohort 1 surfaced.
 - **Cohort 3** — 10+ users, only if cohort 2 did not surface structural problems.
 
 Pause between cohorts. A cohort is not "done" until its members have been running rover for at least two weeks without operator intervention. Use the pause to integrate feedback, fix scaffold bugs, and update the playbook.
 
-## Shared-zone contract
+## DNS contract
 
-The current deploy scaffold already matches the pilot's operator-managed DNS model. No pilot-specific DNS or cert rewiring is required.
+The pilot uses the existing `rizom.ai` Cloudflare zone. No new DNS zone is needed.
 
 Concrete contract:
 
-- `brain.yaml` stores the full FQDN: `<handle>.rover.example.com`
-- `CF_ZONE_ID` and `CF_API_TOKEN` point at the operator's shared Cloudflare zone, not a per-user zone
-- the scaffolded deploy workflow upserts both `<handle>.rover.example.com` and `preview.<handle>.rover.example.com` in that zone
-- `brain cert:bootstrap --push-to gh` issues an Origin CA cert for `[domain, *.domain]`, so `preview.<domain>` is covered automatically
-- per-user repos still publish their own image and deploy their own server; only DNS zone ownership is shared
+- `brain.yaml` stores the full FQDN: `<handle>.rizom.ai`
+- `CF_ZONE_ID` and `CF_API_TOKEN` point at the existing `rizom.ai` Cloudflare zone
+- the deploy workflow upserts `<handle>.rizom.ai` in that zone
+- origin cert covers `[<handle>.rizom.ai, *.<handle>.rizom.ai]`
+- per-user servers still run their own rover instance; only DNS zone ownership is shared
 
-The one thing to prove before cohort 1 is a live throwaway rover repo using the shared zone. If that fails, fix the scaffold in `brain init`. If it succeeds, treat the shared-zone path as already productized enough for the pilot.
+## CI/deploy contract
+
+One set of GitHub Actions workflows in `rover-pilot/.github/workflows/` manages all users.
+
+- **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged by version, not by user. All users on the same version share the same image.
+- **Deploy workflow** — dispatched per user (or per cohort via matrix). Reads the user's `brain.yaml` and secrets, deploys to their server via Kamal.
+- **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Runs `brains-ops reconcile-all` to converge all users to desired state.
+
+Kamal config uses per-user destinations derived from the registry YAML. Each destination targets a different server with the user's brain.yaml and env.
 
 ## Known pilot-scale risks
 
 The pilot deliberately centralizes several things that do not scale past the pilot. Call them out so they don't become load-bearing assumptions:
 
-- **Shared AI key** — one abusive or runaway user can burn the shared budget. Mitigations: upstream provider spend cap, monthly cost review, ceiling decision on when shared stops working (probably around cohort 3).
-- **Shared DNS zone** — all pilot users depend on the operator's zone being healthy. Mitigations: Cloudflare SLA is fine; document the zone ownership in the registry repo.
-- **Operator-owned repos** — all pilot state is concentrated in the operator's GitHub org. Mitigations: none needed at pilot scale; this is the whole point of "operator manages pilot".
+- **Shared AI key** — one abusive or runaway user can burn the shared budget. Mitigations: upstream provider spend cap, monthly cost review, ceiling decision on when shared stops working. Per-cohort and per-user override available when needed.
+- **Shared DNS zone** — all pilot users depend on the `rizom.ai` zone being healthy. Mitigations: Cloudflare SLA is fine; operator already manages this zone.
+- **Monorepo secrets density** — all user secrets in one repo's GitHub secrets namespace. Mitigations: namespaced by handle; GitHub allows 100 repo secrets, sufficient for 20 users.
 - **Shared operator bottleneck** — only the operator can onboard new users, fix broken deploys, or rotate secrets. Mitigations: none; pilot is not trying to scale operator effort.
 
 None of these are problems for cohort scale. They become problems when the pilot starts competing with hosted rover for the same users, which is what the exit criteria below address.
@@ -406,7 +409,7 @@ None of these are problems for cohort scale. They become problems when the pilot
 Per cohort, track in the cohort doc:
 
 - **Setup time** — wall-clock from "let's onboard them" to "they're using it"
-- **Breakages** — scaffold bugs, deploy failures, MCP/Discord misconfigs, cert issues, sharp/native-module surprises
+- **Breakages** — deploy failures, MCP/Discord misconfigs, cert issues, sharp/native-module surprises
 - **User pain points** — what do they complain about; what do they actually use
 - **Operator pain points** — what's tedious to repeat, what needs automation
 - **Cost** — real Hetzner + DNS spend per user, plus the shared AI bill total
@@ -428,33 +431,33 @@ Until one of those fires: stay on per-user deploys.
 
 ## Implementation checklist (one-time setup)
 
-- [ ] Register the pilot DNS zone (`rover.example.com` or chosen name) in Cloudflare
-- [ ] Create a pilot GitHub org to hold per-user repos (or pick an existing one)
-- [ ] Validate one throwaway rover repo end-to-end against the shared-zone contract
-- [ ] Create the `rover-pilot` registry repo with the structure defined in Design
+- [ ] Validate one throwaway rover deploy against `rizom.ai` zone using existing Cloudflare config
+- [ ] Create the `rover-pilot` monorepo in `rizom-ai` with the structure defined in Design
 - [x] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
-- [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the private registry repo
+- [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the pilot repo
 - [x] Add monorepo-owned `brains-ops render <repo>` so operators get table view from YAML truth
-- [x] Add monorepo-owned `brains-ops onboard <repo> <handle>` wrapper around per-user init flow
+- [x] Add monorepo-owned `brains-ops onboard <repo> <handle>` wrapper around per-user provisioning
 - [x] Add monorepo-owned `brains-ops reconcile-cohort <repo> <cohort>` for staged rollout of one active cohort
 - [x] Add monorepo-owned `brains-ops reconcile-all <repo>` for fleet-wide convergence
-- [x] Write `docs/onboarding-checklist.md` in the private repo scaffold
-- [x] Write `docs/operator-playbook.md` in the private repo scaffold
+- [x] Write `docs/onboarding-checklist.md` in the pilot repo scaffold
+- [x] Write `docs/operator-playbook.md` in the pilot repo scaffold
+- [ ] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
+- [ ] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [ ] Set the shared AI provider spend cap and document the ceiling
-- [ ] Pick cohort 1 users
-- [ ] Provision cohort 1
+- [ ] Pick cohort 1 users (up to 5)
+- [ ] Provision cohort 1 gradually
 - [ ] After 2 weeks, review cohort 1; update playbook; decide whether to proceed to cohort 2
 
 ## Relationship to other plans
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real shared-zone rover onboarding run plus live operator use of the monorepo-owned `brains-ops` workflow around the YAML registry.
+This plan depends on the standalone publish/deploy contract from `docs/plans/standalone-image-publish-contract.md`. That contract is now in place; remaining pilot-specific proof is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 
 ## Related
 
 - `docs/plans/hosted-rovers.md` — long-term destination
-- `docs/plans/standalone-apps.md` — the per-user standalone deploy model this plan relies on
-- `docs/plans/standalone-image-publish-contract.md` — image contract the scaffold needs to respect
+- `docs/plans/standalone-apps.md` — the per-user standalone deploy model this plan builds on
+- `docs/plans/standalone-image-publish-contract.md` — image contract the deploy needs to respect
