@@ -92,6 +92,7 @@
     "bundled-site-package-registry",
     "externalize-preact",
     "fix-deploy-workflow-config-script",
+    "fix-shared-local-env-browser-build",
     "fixed-group-alpha-republish",
     "hide-operator-routes-from-nav",
     "personal-layout-mobile-correctness",

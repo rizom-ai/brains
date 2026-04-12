@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.3
+
+### Patch Changes
+
+- [`9871933`](https://github.com/rizom-ai/brains/commit/9871933e813940ffa9628a55ee5892e538d17f1c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the shared local env helper so browser-targeted `@rizom/brain` builds do not depend on `node:util.parseEnv`.
+
 ## 0.2.0-alpha.2
 
 ## 0.2.0-alpha.1
