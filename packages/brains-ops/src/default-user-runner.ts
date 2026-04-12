@@ -41,6 +41,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {
   const secretNames = deriveUserSecretNames(user.handle);
   const lines = [
+    `BRAIN_VERSION=${user.brainVersion}`,
     `AI_API_KEY_SECRET=${user.effectiveAiApiKey}`,
     `GIT_SYNC_TOKEN_SECRET=${secretNames.gitSyncTokenSecretName}`,
     `MCP_AUTH_TOKEN_SECRET=${secretNames.mcpAuthTokenSecretName}`,

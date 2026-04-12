@@ -76,9 +76,8 @@ Focus areas:
 - runtime loading for external plugins
 - external plugin examples and docs
 
-Plans:
+Plan:
 
-- [library-exports.md](./plans/library-exports.md)
 - [external-plugin-api.md](./plans/external-plugin-api.md)
 
 ### 4. Public release cleanup and stable release path

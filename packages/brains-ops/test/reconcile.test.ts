@@ -89,7 +89,7 @@ describe("reconcile scripts", () => {
       "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "AI_API_KEY_SECRET=CANARY_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.15\nAI_API_KEY_SECRET=CANARY_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
@@ -115,6 +115,9 @@ describe("reconcile scripts", () => {
 
     await reconcileAll(root);
 
+    expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
+      "BRAIN_VERSION=0.1.1-alpha.15",
+    );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
       "AI_API_KEY_SECRET=CANARY_AI_API_KEY",
     );
@@ -153,7 +156,7 @@ describe("reconcile scripts", () => {
       "brain: rover\npreset: core\ndomain: cara.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/cara/.env"), "utf8")).toBe(
-      "AI_API_KEY_SECRET=CARA_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_CARA\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_CARA\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=CARA_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_CARA\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_CARA\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
@@ -188,7 +191,7 @@ discord:
       await readFile(join(root, "users/mary-jane/brain.yaml"), "utf8"),
     ).toContain("repo: rizom-ai/rover-mary-jane-content");
     expect(await readFile(join(root, "users/mary-jane/.env"), "utf8")).toBe(
-      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_MARY_JANE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_MARY_JANE\nDISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_MARY_JANE\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_MARY_JANE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_MARY_JANE\nDISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_MARY_JANE\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
     );
   });
 

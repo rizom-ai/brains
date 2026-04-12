@@ -46,7 +46,7 @@ export default defineBrain({
 
 ## Composites
 
-A composite plugin returns multiple plugins from one factory (see `docs/plans/composite-plugins.md`). This works identically for external plugins:
+Composite plugin factories that return multiple plugins from one capability entry are already supported. This works identically for external plugins:
 
 ```typescript
 // @rizom/brain-plugin-ecommerce

@@ -35,7 +35,30 @@ describe("initPilotRepo", () => {
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
     expect(existsSync(join(repo, "deploy", "Dockerfile"))).toBe(true);
     expect(existsSync(join(repo, ".kamal", "hooks", "pre-deploy"))).toBe(true);
+    expect(existsSync(join(repo, ".env.schema"))).toBe(true);
     expect(existsSync(join(repo, "README.md"))).toBe(true);
+
+    expect(existsSync(join(repo, "deploy", "scripts", "helpers.ts"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "provision-server.ts")),
+    ).toBe(true);
+    expect(existsSync(join(repo, "deploy", "scripts", "update-dns.ts"))).toBe(
+      true,
+    );
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "write-ssh-key.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "write-kamal-secrets.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "validate-secrets.ts")),
+    ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "resolve-user-config.ts")),
+    ).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).toContain("schemaVersion: 1");
@@ -76,10 +99,38 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("handle:");
     expect(deployWorkflow).toContain("bun install");
     expect(deployWorkflow).toContain("bunx brains-ops onboard");
+    expect(deployWorkflow).toContain(
+      "bun deploy/scripts/resolve-user-config.ts",
+    );
+    expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
+    expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
+    expect(deployWorkflow).toContain(
+      "bun deploy/scripts/write-kamal-secrets.ts",
+    );
+    expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
+    expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
+    expect(deployWorkflow).toContain(
+      "kamal setup --skip-push -c deploy/kamal/deploy.yml",
+    );
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
     expect(deployWorkflow).not.toContain(".brains/packages/brains-ops");
-    expect(deployWorkflow).toContain("BRAIN_YAML_PATH");
+    expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
+
+    const resolveScript = await readFile(
+      join(repo, "deploy", "scripts", "resolve-user-config.ts"),
+      "utf8",
+    );
+    expect(resolveScript).toContain("brain_yaml_path");
+    expect(resolveScript).toContain('from "./helpers"');
+
+    const helpersScript = await readFile(
+      join(repo, "deploy", "scripts", "helpers.ts"),
+      "utf8",
+    );
+    expect(helpersScript).toContain("readJsonResponse");
+    expect(helpersScript).toContain("parseEnvFile");
+    expect(helpersScript).toContain("requireEnv");
 
     const reconcileWorkflow = await readFile(
       join(repo, ".github", "workflows", "reconcile.yml"),
@@ -121,6 +172,8 @@ describe("initPilotRepo", () => {
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");
     expect(readme).toContain("brains-ops render");
+    expect(readme).toContain("bun install");
+    expect(readme).toContain("@brains/ops");
     expect(readme).toContain("single operator-owned repo");
   });
 

@@ -100,8 +100,10 @@ rover-pilot/
 │   │   ├── .env                 # non-secret env vars (generated)
 │   │   └── notes.md             # human operator notes
 │   └── bob.yaml
+├── .env.schema                  # shared instance env contract for deploy workflow
 ├── deploy/
-│   └── kamal/                   # shared Kamal config with per-user destinations
+│   ├── kamal/                   # shared Kamal config with per-user destinations
+│   └── scripts/                 # shared deploy helpers consumed by CI
 ├── .github/
 │   └── workflows/               # shared CI: build image, deploy per-user
 ├── views/
@@ -258,6 +260,17 @@ Rules:
 - `aiApiKeyOverride` is optional and, when present, overrides the AI key for the whole cohort
 - no other override fields are allowed
 
+Scaffolded-but-operator-owned files:
+
+- `.env.schema`
+  - shared secret/env contract for the pilot deploy workflow
+  - checked in once at repo root
+  - consumed by deploy helpers and workflow validation
+- `deploy/scripts/*`
+  - checked-in helper scripts used by the scaffolded deploy workflow
+  - includes config resolution plus shared Hetzner / Cloudflare / Kamal helper entrypoints
+  - copied from the monorepo scaffold, then versioned in the pilot repo like the rest of the deploy contract
+
 Derived-but-checked files:
 
 - `views/users.md`
@@ -269,6 +282,7 @@ Derived-but-checked files:
   - overwritten on successful onboarding/reconcile
 - `users/<handle>/.env`
   - generated non-secret env vars
+  - includes at least `BRAIN_VERSION`, secret selector names, and `CONTENT_REPO`
   - overwritten on successful onboarding/reconcile
 - `users/<handle>/notes.md`
   - human notes only
@@ -288,8 +302,8 @@ Delivery contract:
 
 - `brains-ops init <repo>`
   - creates the `rover-pilot` repo skeleton when missing
-  - writes starter files for `pilot.yaml`, `cohorts/`, `users/`, `deploy/`, `views/`, and operator docs
-  - scaffolds shared GitHub Actions workflows and Kamal config
+  - writes starter files for `pilot.yaml`, `.env.schema`, `cohorts/`, `users/`, `deploy/`, `views/`, and operator docs
+  - scaffolds shared GitHub Actions workflows, Kamal config, and deploy helper scripts
   - preserves existing human-edited files on rerun
   - exits non-zero if the target path cannot be prepared
 - `brains-ops render <repo>`
@@ -396,7 +410,7 @@ Concrete contract:
 One set of GitHub Actions workflows in `rover-pilot/.github/workflows/` manages all users.
 
 - **Build workflow** — builds one Docker image per `@rizom/brain` version. Tagged by version, not by user. All users on the same version share the same image.
-- **Deploy workflow** — dispatched per user (or per cohort via matrix). Installs pinned `@brains/ops`, reads the user's `brain.yaml` and secrets, and deploys to their server via Kamal.
+- **Deploy workflow** — dispatched per user (or per cohort via matrix). Installs pinned `@brains/ops`, reconciles the selected user, resolves the generated selector file, validates secrets against the checked-in env contract, and deploys to their server via Kamal.
 - **Reconcile workflow** — triggered on push to `pilot.yaml` or `cohorts/*.yaml`. Installs pinned `@brains/ops` and runs `brains-ops reconcile-all` to converge all users to desired state.
 
 Operator tool delivery in CI:
@@ -466,6 +480,7 @@ Until one of those fires: stay on per-user deploys.
 - [x] Scaffold shared GitHub Actions workflows (build, deploy, reconcile) in `brains-ops init`
 - [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@brains/ops`
 - [x] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
+- [x] Scaffold shared pilot deploy env contract and helper scripts in `brains-ops init`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
 - [ ] Provision cohort 1 gradually

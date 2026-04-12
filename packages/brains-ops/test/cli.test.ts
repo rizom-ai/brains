@@ -3,6 +3,7 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
+import packageJson from "../package.json";
 import type { ResolvedUser } from "../src/load-registry";
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
@@ -172,7 +173,7 @@ discord:
       "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
   });
 
@@ -202,7 +203,7 @@ discord:
       "brain: rover\npreset: core\ndomain: alice.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "AI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
   });
 
@@ -266,6 +267,6 @@ discord:
     });
 
     expect(result.success).toBe(true);
-    expect(result.message).toBe("brains-ops 0.1.0");
+    expect(result.message).toBe(`brains-ops ${packageJson.version}`);
   });
 });

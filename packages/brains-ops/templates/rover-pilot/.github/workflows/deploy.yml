@@ -33,16 +33,109 @@ jobs:
       - name: Reconcile selected user config
         run: bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
 
-      - name: Prepare selected brain.yaml for Kamal
+      - name: Resolve generated user config
+        id: user_config
+        run: bun deploy/scripts/resolve-user-config.ts
+
+      - name: Validate selected secrets
+        env:
+          AI_API_KEY: ${{ secrets[steps.user_config.outputs.ai_api_key_secret_name] }}
+          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
+          MCP_AUTH_TOKEN: ${{ secrets[steps.user_config.outputs.mcp_auth_token_secret_name] }}
+          DISCORD_BOT_TOKEN: ${{ steps.user_config.outputs.discord_bot_token_secret_name != '' && secrets[steps.user_config.outputs.discord_bot_token_secret_name] || '' }}
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
+          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
+          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
+          PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
+        run: bun deploy/scripts/validate-secrets.ts
+
+      - name: Install Kamal
         run: |
-          cp "users/$HANDLE/brain.yaml" brain.yaml
-          echo "BRAIN_YAML_PATH=users/$HANDLE/brain.yaml" >> "$GITHUB_ENV"
-          BRAIN_DOMAIN="$(grep '^domain:' "users/$HANDLE/brain.yaml" | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
-          if [ -z "$BRAIN_DOMAIN" ]; then
-            echo "Missing domain in users/$HANDLE/brain.yaml" >&2
-            exit 1
-          fi
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+          gem install --user-install kamal
+          ruby -r rubygems -e 'puts Gem.user_dir + "/bin"' >> "$GITHUB_PATH"
+
+      - name: Write Kamal SSH key
+        env:
+          KAMAL_SSH_PRIVATE_KEY: ${{ secrets.KAMAL_SSH_PRIVATE_KEY }}
+        run: bun deploy/scripts/write-ssh-key.ts
+
+      - name: Configure SSH client
+        run: |
+          mkdir -p ~/.ssh
+          cat > ~/.ssh/config <<'EOF'
+          Host *
+            IdentityFile ~/.ssh/id_ed25519
+            IdentitiesOnly yes
+            BatchMode yes
+            StrictHostKeyChecking no
+            UserKnownHostsFile /dev/null
+          EOF
+          chmod 600 ~/.ssh/config
+
+      - name: Write .kamal/secrets
+        env:
+          AI_API_KEY: ${{ secrets[steps.user_config.outputs.ai_api_key_secret_name] }}
+          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
+          MCP_AUTH_TOKEN: ${{ secrets[steps.user_config.outputs.mcp_auth_token_secret_name] }}
+          DISCORD_BOT_TOKEN: ${{ steps.user_config.outputs.discord_bot_token_secret_name != '' && secrets[steps.user_config.outputs.discord_bot_token_secret_name] || '' }}
+          KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
+          CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
+          PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
+        run: bun deploy/scripts/write-kamal-secrets.ts
+
+      - name: Provision server
+        id: provision
+        env:
+          HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
+          HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
+          HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
+          HCLOUD_LOCATION: ${{ secrets.HCLOUD_LOCATION }}
+          INSTANCE_NAME: ${{ steps.user_config.outputs.instance_name }}
+        run: bun deploy/scripts/provision-server.ts
+
+      - name: Update Cloudflare DNS
+        env:
+          CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
+          CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
+          BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: bun deploy/scripts/update-dns.ts
+
+      - name: Validate SSH key
+        run: ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+
+      - name: Wait for SSH access
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("deploy/kamal/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+          for attempt in $(seq 1 18); do
+            if ssh "$SSH_USER@$SERVER_IP" true >/dev/null 2>&1; then
+              exit 0
+            fi
+            echo "SSH not ready yet (attempt $attempt/18); retrying in 5s..."
+            sleep 5
+          done
+          echo "SSH never became ready for $SSH_USER@$SERVER_IP" >&2
+          exit 1
+
+      - name: Deploy
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          VERSION: brain-${{ steps.user_config.outputs.brain_version }}
+        run: kamal setup --skip-push -c deploy/kamal/deploy.yml
+
+      - name: Verify origin TLS
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+          BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+        run: curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health"
 
       - name: Upload generated config
         uses: actions/upload-artifact@v4
@@ -63,3 +156,21 @@ jobs:
           git add "users/$HANDLE/brain.yaml" "users/$HANDLE/.env" views/users.md
           git commit -m "chore(ops): reconcile $HANDLE"
           git push
+
+      - name: Dump remote proxy diagnostics
+        if: failure()
+        env:
+          SERVER_IP: ${{ steps.provision.outputs.server_ip }}
+        run: |
+          if [ -z "$SERVER_IP" ]; then
+            echo "No server IP; skipping diagnostics"
+            exit 0
+          fi
+          SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("deploy/kamal/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+          ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$SSH_USER@$SERVER_IP" '
+            docker ps --format "table {{.Names}}\t{{.Image}}\t{{.Status}}"
+            echo "--- kamal-proxy logs ---"
+            docker logs kamal-proxy --tail 200 || true
+            echo "--- kamal-proxy inspect ---"
+            docker inspect kamal-proxy || true
+          '

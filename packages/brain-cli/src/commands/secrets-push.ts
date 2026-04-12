@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from "fs";
 import { basename, join } from "path";
+import { parseEnvSchemaFile, type EnvSchemaEntry } from "@brains/utils";
 import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
 import {
   readLocalEnvValues,
@@ -25,11 +26,6 @@ export interface SecretsPushResult {
   pushedKeys: string[];
   skippedKeys: string[];
   dryRun?: boolean | undefined;
-}
-
-interface SchemaSecretInfo {
-  key: string;
-  required: boolean;
 }
 
 // Cert PEMs are stored separately by `brain cert:bootstrap`, never via
@@ -147,68 +143,14 @@ function resolveSchemaPath(cwd: string): string | undefined {
   return undefined;
 }
 
-function readSecretSchema(schemaPath: string | undefined): SchemaSecretInfo[] {
+function readSecretSchema(schemaPath: string | undefined): EnvSchemaEntry[] {
   if (!schemaPath) {
     return [];
   }
 
-  const content = readFileSync(schemaPath, "utf-8");
-  const keys: SchemaSecretInfo[] = [];
-  const seen = new Set<string>();
-  let inBootstrapSection = false;
-  let nextIsRequired = false;
-
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-
-    if (line === BOOTSTRAP_SECTION_HEADER) {
-      inBootstrapSection = true;
-      nextIsRequired = false;
-      continue;
-    }
-
-    if (line.startsWith("# ---- ") && line.endsWith(" ----")) {
-      inBootstrapSection = false;
-      nextIsRequired = false;
-      continue;
-    }
-
-    if (inBootstrapSection) {
-      continue;
-    }
-
-    if (line.startsWith("#")) {
-      if (line.includes("@required")) {
-        nextIsRequired = true;
-      }
-      continue;
-    }
-
-    const match = line.match(/^([A-Z][A-Z0-9_]*)=/);
-    if (!match) {
-      nextIsRequired = false;
-      continue;
-    }
-
-    const key = match[1];
-    if (!key) {
-      nextIsRequired = false;
-      continue;
-    }
-
-    if (CERTIFICATE_SECRET_NAMES.has(key)) {
-      nextIsRequired = false;
-      continue;
-    }
-
-    if (!seen.has(key)) {
-      seen.add(key);
-      keys.push({ key, required: nextIsRequired });
-    }
-    nextIsRequired = false;
-  }
-
-  return keys;
+  return parseEnvSchemaFile(schemaPath, {
+    skipSections: new Set([BOOTSTRAP_SECTION_HEADER]),
+  }).filter((entry) => !CERTIFICATE_SECRET_NAMES.has(entry.key));
 }
 
 function parseOnlyKeys(value?: string): string[] {
@@ -274,7 +216,7 @@ function isPushableKey(key: string): boolean {
 
 function splitMissingSecrets(
   skippedKeys: string[],
-  schemaSecrets: Map<string, SchemaSecretInfo>,
+  schemaSecrets: Map<string, EnvSchemaEntry>,
 ): { required: string[]; optional: string[] } {
   const required: string[] = [];
   const optional: string[] = [];
@@ -294,7 +236,7 @@ function splitMissingSecrets(
 function logMissingSecrets(
   logger: (message: string) => void,
   skippedKeys: string[],
-  schemaSecrets: Map<string, SchemaSecretInfo>,
+  schemaSecrets: Map<string, EnvSchemaEntry>,
 ): void {
   const missing = splitMissingSecrets(skippedKeys, schemaSecrets);
   logKeyGroup(logger, "Required before first deploy", missing.required);

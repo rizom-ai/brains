@@ -1,8 +1,9 @@
 # Onboarding Checklist
 
-1. Fill in `pilot.yaml`.
-2. Add or edit `users/<handle>.yaml`.
-3. Add the user to a cohort in `cohorts/*.yaml`.
-4. Run `brains-ops render <repo>`.
-5. Run `brains-ops onboard <repo> <handle>`.
-6. Hand the MCP connection details to the user.
+1. Run `bun install` so the repo uses its pinned `@brains/ops` version.
+2. Fill in `pilot.yaml`.
+3. Add or edit `users/<handle>.yaml`.
+4. Add the user to a cohort in `cohorts/*.yaml`.
+5. Run `bunx brains-ops render <repo>`.
+6. Run `bunx brains-ops onboard <repo> <handle>`.
+7. Hand the MCP connection details to the user.

@@ -232,7 +232,6 @@ sync needed.
 
 ## Related
 
-- `docs/plans/library-exports.md` — Tier 1 added the library
-  bundle path that lives in `build.ts`
+- `docs/plans/external-plugin-api.md` — public library subpaths live in `build.ts`
 - `docs/plans/desktop-app.md` — potential third consumer
 - `docs/plans/standalone-apps.md` — potential fourth consumer

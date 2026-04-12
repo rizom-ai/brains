@@ -134,6 +134,18 @@ export { getErrorMessage } from "./error";
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";
 
+// CI / workflow helpers
+export {
+  readJsonResponse,
+  parseEnvFile,
+  parseEnvSchema,
+  parseEnvSchemaFile,
+  requireEnv,
+  writeGitHubOutput,
+  writeGitHubEnv,
+} from "./ci";
+export type { EnvSchemaEntry } from "./ci";
+
 // Presentation utilities
 export {
   parseSlideDirectives,

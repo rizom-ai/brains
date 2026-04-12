@@ -155,7 +155,7 @@
         // ...
       };
 
-  Part of Tier 2 of `docs/plans/library-exports.md`, shipping early
+  Part of the public library-export surface now tracked in `docs/plans/external-plugin-api.md`, shipping early
   because `apps/mylittlephoney` hit the missing-utility crash during
   Phase 1 of the standalone extraction. The rest of Tier 2
   (`@rizom/brain/plugins`) is still deferred.
@@ -356,7 +356,7 @@
     `personalSitePlugin`, `PersonalLayout`, `routes`, plus the `Plugin`
     and `SitePackage` types — enough to compose a custom site package
     in a standalone brain repo. Hand-written `.d.ts` for now; see
-    `docs/plans/library-exports.md` for the replacement plan.
+    `docs/plans/external-plugin-api.md` for the replacement plan.
   - **Built-in brain models**: rover (general personal brain), ranger
     (collaborative — public source, no published artifact), relay
     (Rizom internal — public source, no published artifact).

@@ -5,6 +5,22 @@ Private desired-state repo for the rover pilot.
 This is a single operator-owned repo. Pilot users do not get their own brain repos.
 Per-user deploy config lives under `users/<handle>/`, while content stays in per-user content repos.
 
+## Operator tooling
+
+This repo pins `@brains/ops` in `package.json`.
+
+Install it with:
+
+```sh
+bun install
+```
+
+Then run commands with:
+
+```sh
+bunx brains-ops <command>
+```
+
 ## Commands
 
 - `brains-ops init <repo>`

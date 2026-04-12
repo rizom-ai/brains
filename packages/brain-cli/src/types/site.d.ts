@@ -6,7 +6,7 @@
  * It is hand-maintained as a stopgap because both auto-bundlers we
  * tried (`dts-bundle-generator` and `rollup-plugin-dts`) choke on the
  * size and edge cases of the internal `@brains/*` workspace type
- * graph. See `docs/plans/library-exports.md` "Open questions" for
+ * graph. See `docs/plans/external-plugin-api.md` for
  * the longer story.
  *
  * **Sync rules:**
@@ -33,7 +33,7 @@
  * curated entry points, or first-party tooling), this file is
  * deleted and the build script generates it from `site.ts` instead.
  *
- * Tracked in `docs/plans/library-exports.md` Tier 1.
+ * Tracked in `docs/plans/external-plugin-api.md` Phase 1.
  */
 
 import type { ComponentType } from "preact";

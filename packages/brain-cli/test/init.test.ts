@@ -704,34 +704,13 @@ describe("brain init", () => {
       expect(workflow).toContain("KAMAL_SSH_PRIVATE_KEY");
       expect(workflow).toContain("HCLOUD_SERVER_TYPE");
       expect(workflow).toContain("HCLOUD_LOCATION");
-      expect(workflow).toContain("Missing HCLOUD_SERVER_TYPE");
-      expect(workflow).toContain("Missing HCLOUD_LOCATION");
       expect(workflow).toContain(".kamal/secrets");
-      expect(workflow).toContain(
-        'import { appendFileSync, readFileSync } from "node:fs";',
-      );
-      expect(workflow).toContain(
-        'import { readFileSync, writeFileSync } from "node:fs";',
-      );
-      expect(workflow).toContain(
-        'import { mkdirSync, readFileSync, writeFileSync } from "node:fs";',
-      );
-      expect(workflow).toContain('import { appendFileSync } from "node:fs";');
-      expect(workflow).not.toContain("require(");
+      expect(workflow).toContain("bun deploy/scripts/provision-server.ts");
+      expect(workflow).toContain("bun deploy/scripts/update-dns.ts");
       expect(workflow).not.toContain("<<EOF");
       expect(workflow).not.toContain(
         "printf '%s\\n' \"$KAMAL_SSH_PRIVATE_KEY\"",
       );
-      expect(workflow).toContain(
-        "const privateKey = env.KAMAL_SSH_PRIVATE_KEY;",
-      );
-      expect(workflow).toContain("let privateKeyText = String(privateKey)");
-      expect(workflow).toContain(
-        "writeFileSync(sshDir + '/id_ed25519', privateKeyText",
-      );
-      expect(workflow).toContain("const sshDir = process.env.HOME + '/.ssh';");
-      expect(workflow).toContain("const escaped = text.replace(/'/g,");
-      expect(workflow).toContain('lines.push(name + "=\'" + escaped + "\'");');
       expect(workflow).toContain("Provision server");
       expect(workflow).toContain("Update Cloudflare DNS");
       expect(workflow).toContain("steps.provision.outputs.server_ip");
@@ -777,6 +756,19 @@ describe("brain init", () => {
       expect(script).toContain('ENV["GITHUB_REPOSITORY_OWNER"]');
       expect(script).toContain('ENV["GITHUB_REPOSITORY"]');
       expect(script).toContain("INSTANCE_NAME");
+
+      expect(existsSync(join(testDir, "deploy", "scripts", "helpers.ts"))).toBe(
+        true,
+      );
+      expect(
+        existsSync(join(testDir, "deploy", "scripts", "provision-server.ts")),
+      ).toBe(true);
+      expect(
+        existsSync(join(testDir, "deploy", "scripts", "update-dns.ts")),
+      ).toBe(true);
+      expect(
+        existsSync(join(testDir, "deploy", "scripts", "write-ssh-key.ts")),
+      ).toBe(true);
     });
 
     it("should map every generated env schema key into the deploy workflow", () => {

@@ -6,6 +6,7 @@ import {
   readFileSync,
 } from "fs";
 import { basename, dirname, join, resolve as pathResolve } from "path";
+import { fileURLToPath } from "url";
 import pkg from "../../package.json" with { type: "json" };
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { buildInstanceEnvSchema } from "../lib/env-schema";
@@ -98,6 +99,7 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
     writeDeployCaddyfile(dir, options.regen);
     writePublishWorkflow(dir, options.regen);
     writeDeployWorkflow(dir, options.regen);
+    writeSharedDeployScripts(dir);
   }
 }
 
@@ -865,120 +867,7 @@ ${workflowSecretsEnv}
           HCLOUD_SSH_KEY_NAME: \${{ secrets.HCLOUD_SSH_KEY_NAME }}
           HCLOUD_SERVER_TYPE: \${{ secrets.HCLOUD_SERVER_TYPE }}
           HCLOUD_LOCATION: \${{ secrets.HCLOUD_LOCATION }}
-        run: |
-          node <<'NODE'
-          import { appendFileSync } from "node:fs";
-
-          const token = process.env.HCLOUD_TOKEN;
-          const instanceName = process.env.INSTANCE_NAME;
-          const sshKeyName = process.env.HCLOUD_SSH_KEY_NAME;
-          const serverType = process.env.HCLOUD_SERVER_TYPE;
-          const location = process.env.HCLOUD_LOCATION;
-          const outputPath = process.env.GITHUB_OUTPUT;
-          if (!token) {
-            throw new Error('Missing HCLOUD_TOKEN');
-          }
-          if (!instanceName) {
-            throw new Error('Missing INSTANCE_NAME');
-          }
-          if (!sshKeyName) {
-            throw new Error('Missing HCLOUD_SSH_KEY_NAME');
-          }
-          if (!serverType) {
-            throw new Error('Missing HCLOUD_SERVER_TYPE');
-          }
-          if (!location) {
-            throw new Error('Missing HCLOUD_LOCATION');
-          }
-          if (!outputPath) {
-            throw new Error('Missing GITHUB_OUTPUT');
-          }
-
-          const headers = {
-            Authorization: 'Bearer ' + token,
-            'Content-Type': 'application/json',
-          };
-
-          const baseUrl = 'https://api.hetzner.cloud/v1';
-          const labelSelector = 'brain=' + instanceName;
-
-          async function readJson(response, label) {
-            const text = await response.text();
-            if (!text) {
-              throw new Error(label + ' returned an empty response');
-            }
-
-            try {
-              return JSON.parse(text);
-            } catch {
-              throw new Error(label + ' returned invalid JSON: ' + text);
-            }
-          }
-
-          async function sleep(ms) {
-            return new Promise((resolve) => setTimeout(resolve, ms));
-          }
-
-          async function listServers() {
-            const response = await fetch(
-              baseUrl + '/servers?label_selector=' + encodeURIComponent(labelSelector),
-              { headers },
-            );
-            const payload = await readJson(response, 'Hetzner server lookup');
-            if (!response.ok || payload.servers === undefined) {
-              throw new Error('Hetzner server lookup failed: ' + JSON.stringify(payload));
-            }
-
-            return Array.isArray(payload.servers) ? payload.servers : [];
-          }
-
-          async function createServer() {
-            const response = await fetch(baseUrl + '/servers', {
-              method: 'POST',
-              headers,
-              body: JSON.stringify({
-                name: instanceName,
-                server_type: serverType,
-                image: 'ubuntu-22.04',
-                location,
-                ssh_keys: [sshKeyName],
-                labels: { brain: instanceName },
-              }),
-            });
-            const payload = await readJson(response, 'Hetzner server create');
-            if (!response.ok || payload.server === undefined) {
-              throw new Error('Hetzner server create failed: ' + JSON.stringify(payload));
-            }
-
-            return payload.server;
-          }
-
-          async function getServer(id) {
-            const response = await fetch(baseUrl + '/servers/' + id, { headers });
-            const payload = await readJson(response, 'Hetzner server poll');
-            if (!response.ok || payload.server === undefined) {
-              throw new Error('Hetzner server poll failed: ' + JSON.stringify(payload));
-            }
-
-            return payload.server;
-          }
-
-          let server = (await listServers())[0];
-          if (!server) {
-            server = await createServer();
-          }
-
-          while (server.status !== 'running' || !server.public_net?.ipv4?.ip) {
-            await sleep(10000);
-            server = await getServer(server.id);
-          }
-
-          const serverIp = server.public_net.ipv4.ip;
-          appendFileSync(outputPath, 'server_ip=' + serverIp + '\\n');
-          if (process.env.GITHUB_ENV) {
-            appendFileSync(process.env.GITHUB_ENV, 'SERVER_IP=' + serverIp + '\\n');
-          }
-          NODE
+        run: bun deploy/scripts/provision-server.ts
 
       - name: Update Cloudflare DNS
         env:
@@ -986,79 +875,8 @@ ${workflowSecretsEnv}
           CF_ZONE_ID: \${{ secrets.CF_ZONE_ID }}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
-          node <<'NODE'
-          const token = process.env.CF_API_TOKEN;
-          const zoneId = process.env.CF_ZONE_ID;
-          const domain = process.env.BRAIN_DOMAIN;
-          const serverIp = process.env.SERVER_IP;
-          if (!token) {
-            throw new Error('Missing CF_API_TOKEN');
-          }
-          if (!zoneId) {
-            throw new Error('Missing CF_ZONE_ID');
-          }
-          if (!domain) {
-            throw new Error('Missing BRAIN_DOMAIN');
-          }
-          if (!serverIp) {
-            throw new Error('Missing SERVER_IP');
-          }
-
-          const headers = {
-            Authorization: 'Bearer ' + token,
-            'Content-Type': 'application/json',
-          };
-          const baseUrl = 'https://api.cloudflare.com/client/v4';
-
-          async function readJson(response, label) {
-            const text = await response.text();
-            if (!text) {
-              throw new Error(label + ' returned an empty response');
-            }
-
-            try {
-              return JSON.parse(text);
-            } catch {
-              throw new Error(label + ' returned invalid JSON: ' + text);
-            }
-          }
-
-          async function upsertRecord(name) {
-            const lookup = await fetch(
-              baseUrl + '/zones/' + zoneId + '/dns_records?type=A&name=' + encodeURIComponent(name),
-              { headers },
-            );
-            const payload = await readJson(lookup, 'Cloudflare DNS lookup');
-            if (!lookup.ok || !payload.success) {
-              throw new Error('Cloudflare DNS lookup failed: ' + JSON.stringify(payload));
-            }
-
-            const existing = Array.isArray(payload.result) ? payload.result[0] : undefined;
-            const response = await fetch(
-              existing
-                ? baseUrl + '/zones/' + zoneId + '/dns_records/' + existing.id
-                : baseUrl + '/zones/' + zoneId + '/dns_records',
-              {
-                method: existing ? 'PUT' : 'POST',
-                headers,
-                body: JSON.stringify({
-                  type: 'A',
-                  name,
-                  content: serverIp,
-                  ttl: 1,
-                  proxied: true,
-                }),
-              },
-            );
-            const result = await readJson(response, 'Cloudflare DNS upsert');
-            if (!response.ok || !result.success) {
-              throw new Error('Cloudflare DNS upsert failed: ' + JSON.stringify(result));
-            }
-          }
-
-          await upsertRecord(domain);
-          await upsertRecord('preview.' + domain);
-          NODE
+          BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
+          BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Install Kamal
         run: |
@@ -1132,6 +950,24 @@ ${workflowSecretsEnv}
       current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
       !current.includes('workflows: ["Publish Image"]'),
   });
+}
+
+const SHARED_DEPLOY_SCRIPTS = [
+  "helpers.ts",
+  "provision-server.ts",
+  "update-dns.ts",
+  "write-ssh-key.ts",
+];
+
+function writeSharedDeployScripts(dir: string): void {
+  const scriptsDir = fileURLToPath(
+    new URL(import.meta.resolve("@brains/utils/deploy-scripts/helpers.ts")),
+  ).replace(/helpers\.ts$/, "");
+
+  for (const script of SHARED_DEPLOY_SCRIPTS) {
+    const content = readFileSync(join(scriptsDir, script), "utf-8");
+    writeScaffoldFile(join(dir, "deploy", "scripts", script), content);
+  }
 }
 
 function writeGitignore(dir: string): void {

@@ -79,7 +79,7 @@ if (envSchemaResult.exitCode !== 0) {
 // ─── Bundle CLI + library exports ─────────────────────────────────────────
 //
 // The CLI bundle (brain.js) and one bundle per library subpath export
-// (currently just `site` for Tier 1; see docs/plans/library-exports.md)
+// (currently site/themes public subpaths; see docs/plans/external-plugin-api.md)
 // are built in parallel — they're independent and write to different
 // filenames in the same outdir.
 
@@ -167,7 +167,7 @@ const libraryBuilds = libraryEntries.map((entry) =>
     sourcemap: "linked",
   }).then(() => {
     // TEMPORARY: copy hand-written .d.ts. See entry.types and
-    // docs/plans/library-exports.md "Open questions" for the replacement plan.
+    // docs/plans/external-plugin-api.md for the replacement plan.
     cpSync(entry.types, join(outdir, `${entry.name}.d.ts`));
   }),
 );

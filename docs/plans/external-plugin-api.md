@@ -2,10 +2,10 @@
 
 ## Context
 
-The internal plugin framework is mature — 15 plugins across three types (EntityPlugin, ServicePlugin, InterfacePlugin), clean sibling contexts, type-safe tool system, comprehensive test harness. But it's only consumable within the monorepo via `@brains/plugins`. External developers can't build plugins yet because:
+The internal plugin framework is mature — 15 plugins across three types (EntityPlugin, ServicePlugin, InterfacePlugin), clean sibling contexts, type-safe tool system, comprehensive test harness. Some public library surface now exists through `@rizom/brain/site` and `@rizom/brain/themes`, but external developers still cannot build full plugins yet because:
 
-1. `@rizom/brain` only exports the CLI binary, not the plugin API
-2. No TypeScript declarations for plugin authors
+1. `@rizom/brain` does not yet expose the full plugin API surface
+2. No complete TypeScript declaration surface for plugin authors
 3. No runtime loading of plugins from `node_modules`
 4. No API version contract — no way to detect compatibility
 5. No example external plugin to validate the DX
@@ -49,122 +49,61 @@ plugins:
 
 ---
 
-## Phase 1: Library exports from `@rizom/brain`
+## Phase 1: Public library exports from `@rizom/brain`
 
-### 1A. Barrel export file
+This phase is partly shipped already.
 
-Create `packages/brain-cli/src/lib.ts` that re-exports from `@brains/plugins` and `@brains/utils`:
+### Current shipped subpaths
 
-```typescript
-// Plugin base classes
-export { EntityPlugin, ServicePlugin, InterfacePlugin } from "@brains/plugins";
+`@rizom/brain` already exposes public subpaths for standalone site/theme authoring:
 
-// Context types (read-only view for plugin authors)
-export type {
-  EntityPluginContext,
-  ServicePluginContext,
-  InterfacePluginContext,
-  BasePluginContext,
-} from "@brains/plugins";
+| Subpath               | Current role                                                      |
+| --------------------- | ----------------------------------------------------------------- |
+| `@rizom/brain/site`   | standalone site authoring surface                                 |
+| `@rizom/brain/themes` | theme helpers such as `composeTheme` plus theme-authoring support |
 
-// Tool system
-export {
-  createTool,
-  toolSuccess,
-  toolError,
-  toolResultSchema,
-} from "@brains/plugins";
-export type {
-  Tool,
-  ToolResult,
-  ToolResponse,
-  ToolContext,
-} from "@brains/plugins";
+This was enough to unblock the first standalone site extraction (`mylittlephoney`) and the later standalone site/theme authoring work.
 
-// Entity system
-export {
-  BaseEntityAdapter,
-  baseEntitySchema,
-  BaseEntityDataSource,
-  BaseGenerationJobHandler,
-} from "@brains/plugins";
-export type {
-  BaseEntity,
-  EntityAdapter,
-  EntityTypeConfig,
-  DataSource,
-} from "@brains/plugins";
+### Remaining export tiers
 
-// Templates
-export { createTemplate } from "@brains/plugins";
-export type { Template, ViewTemplate } from "@brains/plugins";
+#### Tier 2 — broaden site/theme-adjacent public surface
 
-// Messaging
-export type { IMessageBus, MessageResponse } from "@brains/plugins";
+| Subpath                | Exports                                                       | Consumer                      |
+| ---------------------- | ------------------------------------------------------------- | ----------------------------- |
+| `@rizom/brain/site`    | keep widening as needed for real standalone site repos        | standalone site repos         |
+| `@rizom/brain/themes`  | theme helpers and theme primitive types                       | custom theme authoring        |
+| `@rizom/brain/plugins` | base `Plugin` interface, plugin-adjacent content/render types | site code touching plugin API |
 
-// Config
-export { basePluginConfigSchema } from "@brains/plugins";
+#### Tier 3 — full external plugin authoring surface
 
-// Utilities
-export { createId } from "@brains/plugins";
-export { z } from "@brains/utils";
-export type { Logger, ProgressReporter } from "@brains/utils";
-```
+| Subpath                   | Exports                                                                                          | Consumer                 |
+| ------------------------- | ------------------------------------------------------------------------------------------------ | ------------------------ |
+| `@rizom/brain/entities`   | `EntityPlugin` base class, `EntityPluginContext`, `IEntityService`, `BaseEntity`, schema helpers | Entity plugin authors    |
+| `@rizom/brain/services`   | `ServicePlugin` base class, `ServicePluginContext`, `IJobsNamespace`, job handler base           | Service plugin authors   |
+| `@rizom/brain/interfaces` | `InterfacePlugin` base class, `InterfacePluginContext`, message handling helpers                 | Interface plugin authors |
+| `@rizom/brain/utils`      | `Logger`, `z`, frontmatter helpers, error helpers                                                | All authors              |
+| `@rizom/brain/templates`  | `Template` interface, `RenderContext`, datasource helpers                                        | Site / template authors  |
 
-This is a curated subset — not everything from `shell/plugins/src/index.ts` belongs in the public API. Internal types like `PluginManager`, `IShell`, `IDaemonRegistry` stay internal.
+### Implementation shape
 
-**Files:** `packages/brain-cli/src/lib.ts`
+The shipped and future library-export surface uses the same pattern:
 
-### 1B. Dual build target
+1. add entrypoints under `packages/brain-cli/src/entries/`
+2. bundle one `dist/<name>.js` per subpath from `packages/brain-cli/scripts/build.ts`
+3. ship matching public `.d.ts` contracts
+4. expose each subpath in `packages/brain-cli/package.json`
 
-Update `packages/brain-cli/scripts/build.ts` to produce two outputs:
+### Type declarations
 
-```typescript
-// Existing: CLI executable
-await Bun.build({ entrypoints: ["scripts/entrypoint.ts"], ... });
+Current declaration strategy is still curated hand-written `.d.ts` files in `packages/brain-cli/src/types/`, copied into `dist/` during build.
 
-// New: library for plugin authors
-await Bun.build({
-  entrypoints: ["src/lib.ts"],
-  outdir, naming: "index.js",
-  target: "bun", format: "esm",
-  minify: false, // readable for debugging
-  external: [...], // same native externals
-});
-```
+That remains acceptable for now because it gives a deliberate public API contract and avoids leaking unstable internal type names. Replacing the hand-written contracts with robust auto-generation is still later work.
 
-**Files:** `packages/brain-cli/scripts/build.ts`
+### Scope rule
 
-### 1C. TypeScript declarations
+This public surface stays curated. We are not publishing every internal `@brains/*` package directly.
 
-Generate `.d.ts` files for the library export:
-
-```bash
-tsc --emitDeclarationOnly --declaration --outDir dist/types src/lib.ts
-```
-
-Add to build script as a post-build step. This gives plugin authors full IDE support (autocomplete, type checking, go-to-definition).
-
-**Files:** `packages/brain-cli/scripts/build.ts`, `packages/brain-cli/tsconfig.build.json` (new, for declaration emit only)
-
-### 1D. Update package.json exports
-
-```json
-{
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/types/lib.d.ts"
-    },
-    "./cli": "./dist/brain.js"
-  }
-}
-```
-
-Plugin authors: `import { EntityPlugin } from "@rizom/brain"`
-CLI users: `brain start` (unchanged)
-
-**Files:** `packages/brain-cli/package.json`
+The umbrella package remains the stable public contract. Internal types like `PluginManager`, `IShell`, daemon registries, and other shell internals stay private unless a real external consumer proves they belong in the public API.
 
 ---
 
@@ -336,7 +275,7 @@ Documentation covering:
 - **Plugin sandboxing** — plugins run in the same process with full access (trust model)
 - **Hot reload** — plugins load at startup, restart required for changes
 - **Plugin-to-plugin dependencies** — declared but not validated yet (future work)
-- **Composite plugins** — separate plan ([composite-plugins.md](./composite-plugins.md)), complements this
+- **Composite plugins** — already supported at the capability-entry level; this plan is about making that support available to external plugins too
 
 ---
 

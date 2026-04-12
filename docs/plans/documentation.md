@@ -2,9 +2,11 @@
 
 ## Context
 
-The codebase has extensive internal documentation (AGENTS.md, plugin guidelines, architecture docs, plans). But there's no user-facing documentation — nothing that helps someone deploy, configure, and use a brain.
+The repo now has a real base layer of user-facing documentation: getting started, CLI reference, brain.yaml reference, deployment guidance, theming docs, and architecture docs all exist.
 
-This blocks Rover 1.0. Without docs, only the developers can use the system.
+What is still missing is a more complete and better-organized user-facing docs set for people who are not already familiar with the repo.
+
+That means this is no longer about creating docs from zero. It is about closing the remaining gaps before and after Rover 1.0.
 
 ## What's needed
 
@@ -30,9 +32,9 @@ This blocks Rover 1.0. Without docs, only the developers can use the system.
 
 ### Deployment
 
-1. **Local development** — `brain start` from monorepo
-2. **Docker** — build and run with Docker
-3. **Kamal** — deploy to Hetzner with Kamal (link to deploy plan)
+1. **Local development** — `brain start` from monorepo and from standalone instance dirs
+2. **Docker** — build and run with Docker where still relevant
+3. **Standalone deploy flow** — `brain init --deploy`, bootstrap commands, publish/deploy workflows
 4. **Custom domain** — how to add your own domain
 
 ### Interfaces

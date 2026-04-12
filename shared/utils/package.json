@@ -12,6 +12,10 @@
     "./hash": {
       "types": "./src/hash.ts",
       "default": "./src/hash.ts"
+    },
+    "./deploy-scripts/*": {
+      "types": "./src/deploy-scripts/*",
+      "default": "./src/deploy-scripts/*"
     }
   },
   "scripts": {

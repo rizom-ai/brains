@@ -4,7 +4,7 @@
  * Public API contract for `@rizom/brain/themes`. Hand-maintained
  * as a stopgap because the auto-bundlers choke on the size and
  * edge cases of the `@brains/*` type graph. See
- * `docs/plans/library-exports.md` for the replacement plan.
+ * `docs/plans/external-plugin-api.md` for the replacement plan.
  *
  * **Sync rules:**
  * - When `composeTheme`'s signature changes in `@brains/theme-base`,
