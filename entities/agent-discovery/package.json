@@ -1,7 +1,7 @@
 {
   "name": "@brains/agent-discovery",
   "private": true,
-  "version": "1.0.1-alpha.17",
+  "version": "0.2.0-alpha.0",
   "description": "Agent discovery — brain+anchor contacts and skills",
   "type": "module",
   "exports": {

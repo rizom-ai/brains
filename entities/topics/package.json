@@ -1,7 +1,7 @@
 {
   "name": "@brains/topics",
   "private": true,
-  "version": "1.0.1-alpha.17",
+  "version": "0.2.0-alpha.0",
   "description": "Extract and manage topics from conversations",
   "type": "module",
   "main": "./src/index.ts",

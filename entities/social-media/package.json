@@ -1,7 +1,7 @@
 {
   "name": "@brains/social-media",
   "private": true,
-  "version": "1.0.1-alpha.17",
+  "version": "0.2.0-alpha.0",
   "description": "Multi-provider social media posting with queue-based publishing",
   "type": "module",
   "exports": {

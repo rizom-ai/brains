@@ -1,7 +1,7 @@
 {
   "name": "@brains/webserver",
   "private": true,
-  "version": "1.0.1-alpha.17",
+  "version": "0.2.0-alpha.0",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
