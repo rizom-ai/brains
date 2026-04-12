@@ -1,20 +1,16 @@
 import type { JSX } from "preact";
+import type { RizomShellModel } from "../compositions/types";
 
-const DOTS: Array<{ href: string; label: string }> = [
-  { href: "#hero", label: "Intro" },
-  { href: "#problem", label: "Problem" },
-  { href: "#answer", label: "Answer" },
-  { href: "#ownership", label: "Open" },
-  { href: "#quickstart", label: "Start" },
-  { href: "#mission", label: "Vision" },
-];
+interface SideNavProps {
+  shell: RizomShellModel;
+}
 
-export const SideNav = (): JSX.Element => (
+export const SideNav = ({ shell }: SideNavProps): JSX.Element => (
   <aside
     aria-hidden="true"
     className="hidden lg:flex fixed right-8 top-1/2 -translate-y-1/2 z-[90] flex-col gap-[18px] px-2 py-4"
   >
-    {DOTS.map((dot) => (
+    {shell.sideNav.map((dot) => (
       <a
         key={dot.href}
         href={dot.href}

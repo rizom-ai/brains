@@ -113,11 +113,11 @@ Before extraction, capture:
 
 Current preflight snapshot:
 
-| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                  | Monorepo-only site/theme coupling                          | Notes                     |
-| ----------------------- | ----------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------- | ------------------------- |
-| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `work`       | mockup still unfinished   |
-| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `foundation` | mockup still unfinished   |
-| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml` | `site.package: "@brains/site-rizom"`, variant `ai`         | most complete current app |
+| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                  | Monorepo-only site/theme coupling                                                   | Notes                                  |
+| ----------------------- | ----------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------- |
+| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `work`                                | mockup still unfinished                |
+| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base | wrapper added; mockup still unfinished |
+| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml` | `site.package: "@brains/site-rizom"`, variant `ai`                                  | most complete current app              |
 
 ### Shared Rizom packages can stay
 

@@ -7,6 +7,7 @@ import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import productsCanvas from "./canvases/products.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import { DefaultLayout } from "./layouts/default";
+import { createRizomLayout } from "./layouts/create-rizom-layout";
 import { routes } from "./routes";
 import { RizomSitePlugin } from "./plugin";
 
@@ -35,6 +36,10 @@ import { RizomSitePlugin } from "./plugin";
  * switch variant via `site.variant` in brain.yaml without touching
  * the package: tree (ai), constellation (work), roots (foundation).
  */
+export { routes, createRizomLayout };
+export { createEcosystemContent } from "./compositions/ecosystem";
+export type { RizomShellModel } from "./compositions/types";
+
 const site: SitePackage = {
   layouts: {
     default: DefaultLayout,

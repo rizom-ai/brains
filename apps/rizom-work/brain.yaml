@@ -5,13 +5,11 @@ preset: default
 logLevel: info
 domain: rizom.work
 
-# Shared rizom site package with the `work` variant.
-# Same package serves rizom.ai and rizom.foundation via different
-# variants (ai, foundation) — the variant flips the canvas, accent
-# shade, and copy register.
+# Thin work site wrapper over shared Rizom base primitives.
+# Owns the first work-specific composition seam while the broader
+# Rizom site split is still happening inside the monorepo.
 site:
-  package: "@brains/site-rizom"
-  variant: work
+  package: "@brains/site-rizom-work"
 
 plugins:
   mcp:

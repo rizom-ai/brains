@@ -1,17 +1,14 @@
 import type { RouteDefinitionInput } from "@brains/plugins";
+import { createEcosystemContent } from "./compositions/ecosystem";
 
 /**
  * Routes for all rizom site variants (ai / foundation / work).
  *
  * Variants share the same routes; what differs is the section
- * copy (each app ships its own site-content entities under
- * `brain-data/site-content/home/`) and the canvas script
- * (injected via the site plugin's head script hook).
- *
- * Each section passes `content: {}` because the section's content
- * is supplied by the matching site-content entity at build time —
- * site-builder pairs each section by routeId+sectionId. There are
- * no inline content overrides at the route level.
+ * copy and the canvas script (injected via the site plugin's head
+ * script hook). Some sections still resolve authored content via
+ * site-content entities; others, like the shared ecosystem block,
+ * are now supplied directly from shared composition helpers.
  */
 export const routes: RouteDefinitionInput[] = [
   {
@@ -33,7 +30,11 @@ export const routes: RouteDefinitionInput[] = [
       { id: "ownership", template: "rizom-site:ownership", content: {} },
       { id: "quickstart", template: "rizom-site:quickstart", content: {} },
       { id: "mission", template: "rizom-site:mission", content: {} },
-      { id: "ecosystem", template: "rizom-site:ecosystem", content: {} },
+      {
+        id: "ecosystem",
+        template: "rizom-site:ecosystem",
+        content: createEcosystemContent("ai"),
+      },
     ],
   },
 ];

@@ -1,10 +1,10 @@
 # rizom.foundation
 
-A deployment instance of the [@brains/relay](../../brains/relay/) brain model (using the lean `core` preset) — the ideology site for Rizom, serving the manifesto and (eventually) essays, vision, and community content.
+A deployment instance of the [@brains/relay](../../brains/relay/) brain model — the ideology site for Rizom, serving the manifesto and the first app-owned foundation composition over shared Rizom base primitives.
 
 ## Status
 
-**Minimal bootstrap.** Currently ships a single homepage containing _The Future of Work is Play_ manifesto. Essays, vision, and community pages will follow once the site needs them.
+**Composition seam in progress.** This app now points at a thin `@brains/site-rizom-foundation` wrapper so foundation-specific site structure can diverge from the shared `rizom.ai` baseline without growing more `variant` conditionals inside one final site package.
 
 ## Setup
 
@@ -22,20 +22,15 @@ cd apps/rizom-foundation
 bunx brain start
 ```
 
-## Files
+## Site package
 
-| File                          | Purpose                                    |
-| ----------------------------- | ------------------------------------------ |
-| `brain.yaml`                  | Instance config (domain, plugin overrides) |
-| `.env`                        | Secrets only (API keys, tokens)            |
-| `brain-data/HOME.md`          | The manifesto — rendered as the homepage   |
-| `brain-data/site-info/`       | Title, description, theme mode             |
-| `brain-data/anchor-profile/`  | Rizom organization identity                |
-| `brain-data/brain-character/` | Brain persona                              |
+`brain.yaml` now points at `@brains/site-rizom-foundation`, a thin site-package wrapper over `@brains/site-rizom`.
 
-## Instance Identity
+That wrapper currently does three things:
 
-Identity defaults come from `@brains/ranger` seed content; the files under `brain-data/` override them with rizom.foundation branding. The `HOME.md` base entity drives the homepage via site-ranger's home route.
+- injects the `foundation` canvas/plugin config
+- owns the foundation shell model (nav/footer/side-nav labels)
+- adds the first foundation-only section seams (`pull-quote`, `research`) while reusing the shared Rizom base site
 
 ## Deployment
 

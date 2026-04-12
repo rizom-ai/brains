@@ -92,7 +92,9 @@ Open work for `rizom.ai` still exists, but it is lower urgency:
 
 ### `rizom.foundation`
 
-Needs composition closer to its mockup, including likely sections such as:
+First seam now exists: the app points at a thin `@brains/site-rizom-foundation` wrapper and has its first foundation-only section hook (`pull-quote`).
+
+Remaining open work is still substantial. Foundation still needs composition closer to its mockup, including likely sections such as:
 
 - editorial hero
 - argument block
@@ -127,6 +129,309 @@ Current shared Rizom shell still has hardcoded AI-shaped pieces that must stop b
 - `routes.ts`
 
 Those should either become neutral shared primitives or move under app-owned composition.
+
+## Concrete cut list
+
+### Keep shared/base
+
+These look broadly reusable and should stay shared if kept small and explicit:
+
+- `sites/rizom/src/components/Section.tsx`
+  - layout primitive only
+- `sites/rizom/src/components/Button.tsx`
+  - reusable CTA primitive if variants stay generic
+- `sites/rizom/src/components/Badge.tsx`
+  - reusable label primitive
+- `sites/rizom/src/components/Divider.tsx`
+  - reusable separator primitive
+- `sites/rizom/src/components/ProductCard.tsx`
+  - reusable only if treated as a generic card primitive, not as `rizom.ai` page structure
+- `sites/rizom/src/sections/answer/*`
+  - likely reusable as centered prose block
+- `sites/rizom/src/sections/ownership/*`
+  - likely reusable as feature-grid/about block
+- `sites/rizom/src/sections/ecosystem/*`
+  - clearly shared across all three apps
+- `sites/rizom/src/canvases/prelude.canvas.js`
+  - shared canvas helpers
+- `sites/rizom/src/boot/boot.boot.js`
+  - shared boot behavior if it stops assuming one fixed route structure
+- `shared/theme-rizom/*`
+  - shared brand tokens and common styling primitives
+
+### Likely `rizom.ai`-specific
+
+These are current baseline pieces, but they should not remain implicit shared defaults forever:
+
+- `sites/rizom/src/routes.ts`
+  - current full route stack is effectively `rizom.ai` composition
+- `sites/rizom/src/components/Header.tsx`
+  - hardcoded `rizom.ai` branding + AI-shaped nav labels
+- `sites/rizom/src/components/Footer.tsx`
+  - hardcoded `rizom.ai` branding + links
+- `sites/rizom/src/components/SideNav.tsx`
+  - hardcoded labels and anchors
+- `sites/rizom/src/sections/hero/*`
+  - current hero matches AI/shared baseline, not foundation/work mockups
+- `sites/rizom/src/sections/problem/*`
+  - current 3-card problem grid fits AI baseline more than other apps
+- `sites/rizom/src/sections/products/*`
+  - current product-stack layout is closest to AI
+- `sites/rizom/src/sections/quickstart/*`
+  - quickstart terminal block is AI-specific
+- `sites/rizom/src/sections/mission/*`
+  - current closing CTA shape is AI-biased
+- `sites/rizom/src/canvases/tree.canvas.js`
+  - AI-specific background effect
+
+### `rizom.foundation`-owned work
+
+Needs app-owned composition plus likely new section code for:
+
+- editorial hero
+- argument block
+- pull quote
+- research section
+- events section
+- support grid / support cards
+- about composition using shared ownership-like primitives where useful
+- follow/CTA composition
+- `sites/rizom/src/canvases/roots.canvas.js` integration through foundation-owned composition
+
+Likely result:
+
+- foundation reuses shared primitives
+- foundation owns route tree and section order
+- foundation adds new section templates where current shared set is missing required structure
+
+### `rizom.work`-owned work
+
+Needs app-owned composition plus likely new section code for:
+
+- split hero
+- diagnostic widget
+- problem block
+- workshop steps
+- personas grid
+- proof/testimonial/partners block
+- bridge / closer CTA sections
+- about composition using shared ownership-like primitives where useful
+- `sites/rizom/src/canvases/constellation.canvas.js` integration through work-owned composition
+
+Likely result:
+
+- work reuses shared primitives
+- work owns route tree and section order
+- work adds new section templates for interactive or bespoke mockup pieces
+
+### Transition rule for current plugin code
+
+Current plugin/config layer still exposes one `variant` switch:
+
+- `sites/rizom/src/plugin.ts`
+- `sites/rizom/src/index.ts`
+
+Short term: keep it working while split happens.
+
+Long term:
+
+- shrink shared plugin responsibility to shared asset/boot wiring only
+- stop using one plugin-driven variant switch as final ownership model for all three apps
+
+## Proposed file shape
+
+Keep change small. Do not refactor whole site at once.
+
+### Shared/base files
+
+Keep in `sites/rizom` or move within it toward neutral base roles:
+
+- `src/components/Section.tsx`
+- `src/components/Button.tsx`
+- `src/components/Badge.tsx`
+- `src/components/Divider.tsx`
+- `src/components/ProductCard.tsx` if kept generic
+- `src/sections/answer/*`
+- `src/sections/ownership/*`
+- `src/sections/ecosystem/*`
+- `src/boot/boot.boot.js`
+- `src/canvases/prelude.canvas.js`
+- shared theme wiring in `shared/theme-rizom`
+
+### AI composition files
+
+Treat these as eventual `rizom.ai` composition pieces, even if they stay put short term:
+
+- `src/routes.ts`
+- `src/components/Header.tsx`
+- `src/components/Footer.tsx`
+- `src/components/SideNav.tsx`
+- `src/sections/hero/*`
+- `src/sections/problem/*`
+- `src/sections/products/*`
+- `src/sections/quickstart/*`
+- `src/sections/mission/*`
+- `src/canvases/tree.canvas.js`
+
+### New app-owned composition entrypoints
+
+Add thin composition files instead of more `variant` branching inside shared files.
+
+Suggested first shape:
+
+- `sites/rizom/src/compositions/foundation.ts`
+- `sites/rizom/src/compositions/work.ts`
+- later `sites/rizom/src/compositions/ai.ts`
+
+Each composition file should own:
+
+- route list
+- section order
+- nav model
+- footer model
+- side-nav labels
+- selected canvas asset
+
+Short term, these can still be consumed by current plugin package while repo ownership stays in monorepo.
+
+### New foundation-only section files
+
+Likely add:
+
+- `sites/rizom/src/sections/pull-quote/*`
+- `sites/rizom/src/sections/research/*`
+- `sites/rizom/src/sections/events/*`
+- `sites/rizom/src/sections/support/*`
+
+Optional if needed after first pass:
+
+- foundation-specific hero variant file instead of mutating shared `hero`
+
+### New work-only section files
+
+Likely add:
+
+- `sites/rizom/src/sections/diagnostic/*`
+- `sites/rizom/src/sections/workshop/*`
+- `sites/rizom/src/sections/personas/*`
+- `sites/rizom/src/sections/proof/*`
+- `sites/rizom/src/sections/closer/*`
+
+Optional if needed after first pass:
+
+- work-specific hero variant file instead of mutating shared `hero`
+
+## Minimal implementation mechanism
+
+Keep first cut boring. Use existing `SitePackage` + `extendSite()` support instead of inventing a new composition framework.
+
+### Composition object shape
+
+Use a small explicit model for shell-level differences:
+
+```ts
+interface RizomShellLink {
+  href: string;
+  label: string;
+}
+
+interface RizomShellModel {
+  brandSuffix: "ai" | "foundation" | "work";
+  primaryCta: RizomShellLink;
+  navLinks: RizomShellLink[];
+  footerLinks: RizomShellLink[];
+  sideNav: Array<{ href: string; label: string }>;
+}
+```
+
+Keep it shell-only.
+
+Do **not** put route composition, section content, or template behavior into one giant config blob.
+
+### Shared readers of that model
+
+Refactor these pieces to accept explicit props instead of reading hardcoded AI values:
+
+- `Header`
+- `Footer`
+- `SideNav`
+- `DefaultLayout` or thin layout wrappers around it
+
+### Smallest viable site-composition seam
+
+Use `extendSite()` from `@brains/site-composition` and wrap shared layout/components with app-specific shell data.
+
+Suggested pattern:
+
+1. keep one base site package with reusable layouts/templates/static assets
+2. create thin composition wrappers that call `extendSite(baseSite, overrides)`
+3. override only:
+   - routes
+   - layout wrapper
+   - plugin config when canvas/asset wiring differs
+
+This keeps first implementation slice inside existing runtime contracts:
+
+- `SitePackage.layouts`
+- `SitePackage.routes`
+- `SitePackage.plugin`
+- `SitePackage.staticAssets`
+
+### Suggested file additions for that seam
+
+- `sites/rizom/src/compositions/types.ts`
+  - shell model types only
+- `sites/rizom/src/compositions/foundation.ts`
+- `sites/rizom/src/compositions/work.ts`
+- later `sites/rizom/src/compositions/ai.ts`
+- `sites/rizom/src/layouts/create-rizom-layout.tsx`
+  - returns layout component closed over a `RizomShellModel`
+- optional `sites/rizom/src/base-site.ts`
+  - exports reusable base `SitePackage`
+
+### Plugin change rule
+
+Keep plugin change minimal.
+
+Short term plugin should only care about things like:
+
+- selected canvas asset
+- shared boot script registration
+- shared static asset registration
+
+Do not keep growing plugin config into ownership/config for full route trees or nav labels.
+
+## First implementation slice
+
+Do not start with all three apps. Start with smallest ownership cut that proves direction.
+
+### Slice 1: foundation-first composition seam
+
+1. extract current shared site into an explicit base site export
+2. add `RizomShellModel` + generic shell readers
+3. keep current AI output working through existing/default shell model
+4. add `foundation` composition wrapper using `extendSite()`
+5. add first missing foundation-only section
+
+Target result:
+
+- one new composition seam exists
+- `foundation` can diverge without growing more `variant` conditionals everywhere
+- `ai` still works
+- no new inheritance machinery exists
+
+### Slice 2: foundation route completion
+
+1. add remaining foundation-only sections
+2. wire section order to match mockup more closely
+3. add tracked foundation site content
+4. boot-check foundation
+
+### Slice 3: work composition seam reuse
+
+1. add `work` composition entrypoint using same seam
+2. add work-only sections one by one
+3. boot-check work
 
 ## Phase plan
 
@@ -248,6 +553,16 @@ This plan is working when:
 3. `rizom.ai` also ends with explicit app-owned composition rather than implicit shared defaults
 4. shared pieces can still be imported directly without override magic
 5. extraction path for each app becomes straightforward: move composition into local `src/site.ts`
+
+## Decision for first implementation pass
+
+First app-owned compositions should live **temporarily as thin site-package wrappers under `sites/`** until extraction.
+
+Reason:
+
+- smallest runtime change now
+- keeps current resolver/package flow intact
+- lets extracted repos later move same composition into local `src/site.ts` with less churn
 
 ## Related
 

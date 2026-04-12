@@ -1,10 +1,15 @@
 import type { JSX } from "preact";
+import type { RizomShellModel } from "../compositions/types";
 import { GUTTER } from "./Section";
 
 const LINK_CLS =
   "text-label-md text-theme-light hover:text-theme transition-colors";
 
-export const Footer = (): JSX.Element => (
+interface FooterProps {
+  shell: RizomShellModel;
+}
+
+export const Footer = ({ shell }: FooterProps): JSX.Element => (
   <footer
     className={`flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
   >
@@ -12,25 +17,18 @@ export const Footer = (): JSX.Element => (
       <span className="font-nav text-[15px]">
         <span className="font-bold">rizom</span>
         <span className="font-bold text-accent">.</span>
-        <span className="text-theme-muted">ai</span>
+        <span className="text-theme-muted">{shell.brandSuffix}</span>
       </span>
       <span className="text-label-md text-theme-light">
-        © 2026 · Apache-2.0
+        {shell.footerMetaLabel}
       </span>
     </div>
     <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-      <a href="#" className={LINK_CLS}>
-        GitHub
-      </a>
-      <a href="#" className={LINK_CLS}>
-        Documentation
-      </a>
-      <a href="#" className={LINK_CLS}>
-        Discord
-      </a>
-      <a href="#" className={LINK_CLS}>
-        LinkedIn
-      </a>
+      {shell.footerLinks.map((link) => (
+        <a key={link.href + link.label} href={link.href} className={LINK_CLS}>
+          {link.label}
+        </a>
+      ))}
       <button
         id="themeToggle"
         aria-label="Toggle light mode"
