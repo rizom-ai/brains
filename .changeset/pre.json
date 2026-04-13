@@ -93,6 +93,7 @@
     "brains-ops-published-delivery",
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
+    "caddy-root-agent-card-redirect",
     "deploy-template-runtime-sync",
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",

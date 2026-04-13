@@ -1,7 +1,7 @@
 {
   "name": "@brains/product-site-content",
   "private": true,
-  "version": "0.2.0-alpha.10",
+  "version": "0.2.0-alpha.11",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"

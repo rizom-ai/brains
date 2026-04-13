@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.11
+
+### Patch Changes
+
+- [`cf353fd`](https://github.com/rizom-ai/brains/commit/cf353fd41279a1ab59ab5ecd07dee9b1bcfd98dc) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore an explicit Caddy redirect from `/` to `/.well-known/agent-card.json` so core-only deployments never return a bare 502 on the root path.
+
 ## 0.2.0-alpha.10
 
 ### Patch Changes
