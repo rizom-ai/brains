@@ -105,6 +105,7 @@
     "rizom-ops-bootstrap-commands",
     "rizom-ops-pilot-secrets-push",
     "rizom-ops-publish-fix",
+    "rizom-ops-render-live-status",
     "sharp-lazy-load",
     "ssh-key-bootstrap-and-local-secret-paths",
     "standalone-deploy-publish-workflow",

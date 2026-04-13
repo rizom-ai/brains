@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.6
+
+### Patch Changes
+
+- [`a9c2fbd`](https://github.com/rizom-ai/brains/commit/a9c2fbd4baba6a45a08580177ca8d62fe7875179) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Make `brains-ops render` fill rover-pilot status columns from built-in live probes for DNS, `/health`, and unauthenticated `/mcp` reachability.
+
 ## 0.2.0-alpha.5
 
 ## 0.2.0-alpha.4
