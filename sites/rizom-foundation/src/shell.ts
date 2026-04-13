@@ -12,10 +12,15 @@ export const foundationShellModel: RizomShellModel = {
     { href: "#ecosystem", label: "Ecosystem" },
   ],
   footerMetaLabel: "© 2026 · Stichting Rizom",
+  footerTagline: {
+    prefix: "",
+    link: { href: "https://rizom.work", label: "Rizom.work" },
+    suffix: " runs the TMS workshops and tools that fund this research.",
+  },
   footerLinks: [
     { href: "#mission", label: "Newsletter" },
     { href: "#", label: "LinkedIn" },
-    { href: "#ecosystem", label: "Discord" },
+    { href: "#ecosystem", label: "Ecosystem" },
     { href: "#support", label: "Contact" },
   ],
   sideNav: [
@@ -24,5 +29,6 @@ export const foundationShellModel: RizomShellModel = {
     { href: "#events", label: "Events" },
     { href: "#ownership", label: "About" },
     { href: "#mission", label: "Follow" },
+    { href: "#ecosystem", label: "Network" },
   ],
 };

@@ -7,14 +7,16 @@ export const PullQuoteLayout = ({
   attribution,
 }: PullQuoteContent): JSX.Element => {
   return (
-    <Section id="pull-quote" className="reveal py-section">
-      <div className="max-w-[960px] mx-auto rounded-[24px] border border-white/8 bg-white/[0.02] px-6 py-10 md:px-10 md:py-14 text-center">
-        <blockquote className="font-display text-[28px] tracking-[-1px] leading-[1.2] md:text-display-md text-theme">
+    <Section id="pull-quote" className="reveal pt-20 pb-10 md:pt-20 md:pb-10">
+      <div className="max-w-[880px] mx-auto px-4 md:px-10 text-center">
+        <div className="mx-auto mb-8 h-px w-12 bg-[var(--color-divider)]" />
+        <blockquote className="font-display font-light text-[26px] tracking-[-0.8px] leading-[1.25] md:text-[42px] text-theme">
           {quote}
         </blockquote>
-        <div className="mt-6 font-body text-body-sm md:text-body-md text-theme-muted">
+        <div className="mt-6 font-label text-label-sm font-medium uppercase tracking-[0.16em] text-theme-light">
           {attribution}
         </div>
+        <div className="mx-auto mt-8 h-px w-12 bg-[var(--color-divider)]" />
       </div>
     </Section>
   );

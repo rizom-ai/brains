@@ -15,8 +15,8 @@ export const workShellModel: RizomShellModel = {
   footerLinks: [
     { href: "https://rizom.foundation", label: "Foundation" },
     { href: "https://typeform.com", label: "Team Type quiz" },
-    { href: "#cta", label: "Book a call" },
-    { href: "#ecosystem", label: "Network" },
+    { href: "#", label: "LinkedIn" },
+    { href: "#cta", label: "Contact" },
   ],
   sideNav: [
     { href: "#hero", label: "Intro" },
@@ -25,5 +25,6 @@ export const workShellModel: RizomShellModel = {
     { href: "#personas", label: "People" },
     { href: "#proof", label: "Proof" },
     { href: "#ownership", label: "About" },
+    { href: "#ecosystem", label: "Network" },
   ],
 };

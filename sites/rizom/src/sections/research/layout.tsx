@@ -12,8 +12,11 @@ export const ResearchLayout = ({
   ctaHref,
 }: ResearchContent): JSX.Element => {
   return (
-    <Section id="research" className="reveal pt-20 pb-28 md:pt-24 md:pb-36">
-      <div className="max-w-[960px] mx-auto">
+    <Section
+      id="research"
+      className="foundation-research reveal pt-20 pb-28 md:pt-24 md:pb-36"
+    >
+      <div className="foundation-research-inner max-w-[960px] mx-auto">
         <div className="mb-10 md:mb-12">
           <div className="flex items-center gap-3 text-accent mb-4">
             <span className="block w-8 h-px bg-accent/80" />
@@ -34,7 +37,7 @@ export const ResearchLayout = ({
             <a
               key={essay.num + essay.title}
               href={essay.href}
-              className={`reveal reveal-delay-${Math.min(i + 1, 3)} grid grid-cols-[72px_1fr_auto] md:grid-cols-[110px_1fr_36px] gap-4 md:gap-8 items-start py-8 md:py-11 border-t border-white/8 hover:border-accent/40 transition-all hover:pl-3 md:hover:pl-4 group`}
+              className={`foundation-research-row reveal reveal-delay-${Math.min(i + 1, 3)} grid grid-cols-[72px_1fr_auto] md:grid-cols-[110px_1fr_36px] gap-4 md:gap-8 items-start py-8 md:py-11 border-t border-white/8 hover:border-accent/40 transition-all hover:pl-3 md:hover:pl-4 group`}
             >
               <div className="font-display text-[38px] md:text-[54px] leading-none tracking-[-1.5px] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)]">
                 {essay.num}

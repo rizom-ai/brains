@@ -25,22 +25,22 @@ export const WorkHeroLayout = ({
   return (
     <Section
       id="hero"
-      className="relative min-h-[100dvh] flex items-center overflow-hidden py-24 md:py-16"
+      className="work-hero relative min-h-[100dvh] flex items-center overflow-hidden py-24 md:py-16"
     >
-      <div className="grid w-full items-center gap-10 md:gap-16 lg:grid-cols-[0.95fr_1.05fr]">
-        <div className="relative z-[2]">
-          <div className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-6 opacity-0 animate-hero-rise [animation-delay:0.1s]">
+      <div className="work-hero-grid grid w-full items-center gap-10 md:gap-16 lg:grid-cols-[0.95fr_1.05fr]">
+        <div className="work-hero-text relative z-[2]">
+          <div className="work-kicker inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-6 opacity-0 animate-hero-rise [animation-delay:0.1s]">
             <span>{kicker}</span>
           </div>
-          <h1 className="font-display font-medium text-[38px] tracking-[-1.8px] leading-[1.02] md:text-display-xl mb-7 opacity-0 animate-hero-rise [animation-delay:0.2s] max-w-[14ch]">
+          <h1 className="work-hero-title font-display font-medium text-[38px] tracking-[-1.8px] leading-[1.02] md:text-display-xl mb-7 opacity-0 animate-hero-rise [animation-delay:0.2s] max-w-[14ch]">
             {headlineStart}{" "}
             <span className="italic text-accent">{headlineEmphasis}</span>
             {headlineEnd}
           </h1>
-          <p className="font-body text-body-md md:text-body-lg text-theme-muted max-w-[560px] mb-9 opacity-0 animate-hero-rise [animation-delay:0.4s]">
+          <p className="work-hero-subtitle font-body text-body-md md:text-body-lg text-theme-muted max-w-[560px] mb-9 opacity-0 animate-hero-rise [animation-delay:0.4s]">
             {subtitle}
           </p>
-          <div className="flex flex-col md:flex-row gap-3 md:gap-4 md:flex-wrap opacity-0 animate-hero-rise [animation-delay:0.6s]">
+          <div className="work-hero-cta flex flex-col md:flex-row gap-3 md:gap-4 md:flex-wrap opacity-0 animate-hero-rise [animation-delay:0.6s]">
             <Button href={primaryCtaHref} variant="primary" block>
               {primaryCtaLabel}
             </Button>
@@ -50,8 +50,8 @@ export const WorkHeroLayout = ({
           </div>
         </div>
 
-        <div className="relative z-[2] w-full max-w-[540px] ml-auto rounded-2xl border border-accent/30 bg-[linear-gradient(180deg,rgba(22,16,40,0.97)_0%,rgba(14,10,26,0.97)_100%)] p-7 md:p-8 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.7)] opacity-0 animate-hero-rise [animation-delay:0.75s]">
-          <div className="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-[linear-gradient(90deg,transparent,var(--color-accent)_25%,var(--palette-amber-light)_50%,var(--color-accent)_75%,transparent)]" />
+        <div className="work-diagnostic relative z-[2] w-full max-w-[540px] ml-auto rounded-2xl border border-accent/30 bg-[linear-gradient(180deg,rgba(22,16,40,0.97)_0%,rgba(14,10,26,0.97)_100%)] p-7 md:p-8 shadow-[0_32px_80px_-24px_rgba(0,0,0,0.7)] opacity-0 animate-hero-rise [animation-delay:0.75s]">
+          <div className="work-diagnostic-bar absolute inset-x-0 top-0 h-[2px] rounded-t-2xl bg-[linear-gradient(90deg,transparent,var(--color-accent)_25%,var(--palette-amber-light)_50%,var(--color-accent)_75%,transparent)]" />
           <div className="flex items-baseline justify-between gap-4 border-b border-white/12 pb-4 mb-4">
             <span className="font-mono text-[10.5px] uppercase tracking-[0.25em] text-[var(--palette-amber-light)]">
               {diagnosticTitle}
@@ -227,7 +227,7 @@ export const WorkHeroLayout = ({
 
           <a
             href={diagnosticCtaHref}
-            className="mt-5 inline-flex w-full items-center justify-center rounded-[10px] border border-white/18 px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-white/88 hover:bg-white/5 hover:border-white/36"
+            className="work-diagnostic-cta mt-5 inline-flex w-full items-center justify-center rounded-[10px] border border-white/18 px-4 py-3 font-mono text-[10.5px] uppercase tracking-[0.18em] text-white/88 hover:bg-white/5 hover:border-white/36"
           >
             {diagnosticCtaLabel}
           </a>

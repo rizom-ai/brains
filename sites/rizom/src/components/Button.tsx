@@ -53,6 +53,10 @@ export const Button = ({
   <a
     href={href}
     className={cn(
+      "rizom-btn",
+      `rizom-btn-${variant}`,
+      `rizom-btn-${size}`,
+      block && "rizom-btn-block",
       BASE,
       VARIANT[variant],
       SIZE[size],

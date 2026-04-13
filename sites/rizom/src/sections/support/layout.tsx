@@ -21,8 +21,8 @@ export const SupportLayout = ({
   cards,
 }: SupportContent): JSX.Element => {
   return (
-    <Section id="support" className="reveal py-section">
-      <div className="max-w-[1120px] mx-auto">
+    <Section id="support" className="foundation-support reveal py-section">
+      <div className="foundation-support-inner max-w-[1120px] mx-auto">
         <div className="mb-10 md:mb-12">
           <div className="flex items-center gap-3 text-accent mb-4">
             <span className="block w-8 h-px bg-accent/80" />
@@ -35,26 +35,26 @@ export const SupportLayout = ({
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="foundation-support-grid grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {cards.map((card, i) => (
             <div
               key={card.label + card.headline}
-              className={`reveal reveal-delay-${i + 1} ${CARD_BY_TONE[card.tone]}`}
+              className={`foundation-support-card foundation-support-card-${card.tone} reveal reveal-delay-${i + 1} ${CARD_BY_TONE[card.tone]}`}
             >
               <span
-                className={`font-nav text-[18px] font-bold ${TEXT_BY_TONE[card.tone]}`}
+                className={`foundation-support-label font-nav text-[18px] font-bold ${TEXT_BY_TONE[card.tone]}`}
               >
                 {card.label}
               </span>
-              <h3 className="font-display text-[28px] md:text-display-sm tracking-[-0.6px] leading-[1.15] text-theme">
+              <h3 className="foundation-support-headline font-display text-[28px] md:text-display-sm tracking-[-0.6px] leading-[1.15] text-theme">
                 {card.headline}
               </h3>
-              <p className="text-body-xs md:text-body-sm text-theme-muted">
+              <p className="foundation-support-body text-body-xs md:text-body-sm text-theme-muted">
                 {card.body}
               </p>
               <a
                 href={card.linkHref}
-                className={`font-body text-body-sm font-medium ${TEXT_BY_TONE[card.tone]} hover:opacity-75`}
+                className={`foundation-support-link font-body text-body-sm font-medium ${TEXT_BY_TONE[card.tone]} hover:opacity-75`}
               >
                 {card.linkLabel}
               </a>

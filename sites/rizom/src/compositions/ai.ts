@@ -25,5 +25,6 @@ export const aiShellModel: RizomShellModel = {
     { href: "#ownership", label: "Open" },
     { href: "#quickstart", label: "Start" },
     { href: "#mission", label: "Vision" },
+    { href: "#ecosystem", label: "Network" },
   ],
 };

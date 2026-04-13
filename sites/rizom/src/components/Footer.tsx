@@ -11,17 +11,31 @@ interface FooterProps {
 
 export const Footer = ({ shell }: FooterProps): JSX.Element => (
   <footer
-    className={`flex flex-col md:flex-row items-center justify-between gap-4 md:gap-0 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
+    className={`flex flex-col md:flex-row items-center md:items-start justify-between gap-4 md:gap-0 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
   >
-    <div className="flex flex-col md:flex-row items-center gap-1.5 md:gap-3">
-      <span className="font-nav text-[15px]">
-        <span className="font-bold">rizom</span>
-        <span className="font-bold text-accent">.</span>
-        <span className="text-theme-muted">{shell.brandSuffix}</span>
-      </span>
-      <span className="text-label-md text-theme-light">
-        {shell.footerMetaLabel}
-      </span>
+    <div className="flex flex-col items-center md:items-start gap-3 max-w-[480px]">
+      <div className="flex flex-col md:flex-row items-center gap-1.5 md:gap-3">
+        <span className="font-nav text-[15px]">
+          <span className="font-bold">rizom</span>
+          <span className="font-bold text-accent">.</span>
+          <span className="text-theme-muted">{shell.brandSuffix}</span>
+        </span>
+        <span className="text-label-md text-theme-light">
+          {shell.footerMetaLabel}
+        </span>
+      </div>
+      {shell.footerTagline ? (
+        <p className="text-label-md leading-[1.6] text-theme-light">
+          {shell.footerTagline.prefix ?? ""}
+          <a
+            href={shell.footerTagline.link.href}
+            className="text-accent hover:opacity-75 transition-opacity"
+          >
+            {shell.footerTagline.link.label}
+          </a>
+          {shell.footerTagline.suffix ?? ""}
+        </p>
+      ) : null}
     </div>
     <div className="flex flex-wrap justify-center gap-4 md:gap-6">
       {shell.footerLinks.map((link) => (
