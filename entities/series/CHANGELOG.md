@@ -1,5 +1,16 @@
 # @brains/series
 
+## 0.2.0-alpha.8
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.8
+  - @brains/entity-service@0.2.0-alpha.8
+  - @brains/job-queue@0.2.0-alpha.8
+  - @brains/plugins@0.2.0-alpha.8
+  - @brains/templates@0.2.0-alpha.8
+
 ## 0.2.0-alpha.7
 
 ### Patch Changes

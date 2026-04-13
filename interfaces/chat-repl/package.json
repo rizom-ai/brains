@@ -1,7 +1,7 @@
 {
   "name": "@brains/chat-repl",
   "private": true,
-  "version": "0.2.0-alpha.7",
+  "version": "0.2.0-alpha.8",
   "type": "module",
   "main": "./src/index.ts",
   "module": "./src/index.ts",

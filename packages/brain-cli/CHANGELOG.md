@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.8
+
+### Patch Changes
+
+- [`ddf17de`](https://github.com/rizom-ai/brains/commit/ddf17def0015d19da2647ca42417c93b7c80fe4e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Sync the shared Kamal deploy template into both published packages so deployed scaffolds use the same package-local runtime copy after install, and align the rover-pilot scaffold with preview host routing.
+
 ## 0.2.0-alpha.7
 
 ### Patch Changes
