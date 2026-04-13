@@ -31,6 +31,14 @@ describe("@rizom/ops package metadata", () => {
     expect(readPackageFile("templates/rover-pilot/deploy/Caddyfile")).toBe(
       readSharedFile("deploy-templates/Caddyfile"),
     );
+    expect(
+      readPackageFile("templates/rover-pilot/deploy/kamal/deploy.yml"),
+    ).toBe(
+      readSharedFile("deploy-templates/kamal-deploy.yml").replace(
+        "__SERVICE_NAME__",
+        "rover",
+      ),
+    );
   });
 
   it("publishes built dist entrypoints and templates", () => {

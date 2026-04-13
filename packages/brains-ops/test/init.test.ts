@@ -159,6 +159,9 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
+      'BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts',
+    );
+    expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
@@ -248,6 +251,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).not.toContain("mcp:");
     expect(deployConfig).toContain("app_port: 80");
     expect(deployConfig).toContain("path: /health");
+    expect(deployConfig).toContain("- preview.<%= ENV['BRAIN_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
 
     const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");

@@ -31,6 +31,9 @@ describe("@rizom/brain package metadata", () => {
     expect(readPackageFile("templates/deploy/Caddyfile")).toBe(
       readSharedFile("deploy-templates/Caddyfile"),
     );
+    expect(readPackageFile("templates/deploy/kamal-deploy.yml")).toBe(
+      readSharedFile("deploy-templates/kamal-deploy.yml"),
+    );
     expect(
       readPackageFile("templates/deploy/scripts/provision-server.ts"),
     ).toBe(readSharedFile("deploy-scripts/provision-server.ts"));
@@ -59,6 +62,7 @@ describe("@rizom/brain package metadata", () => {
     expect(packageJson.files).toContain("templates");
     expect(filePaths.has("templates/deploy/Dockerfile")).toBeTrue();
     expect(filePaths.has("templates/deploy/Caddyfile")).toBeTrue();
+    expect(filePaths.has("templates/deploy/kamal-deploy.yml")).toBeTrue();
     expect(
       filePaths.has("templates/deploy/scripts/provision-server.ts"),
     ).toBeTrue();
