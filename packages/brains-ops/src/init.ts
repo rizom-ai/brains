@@ -82,7 +82,7 @@ async function writeStarterFileIfMissing(
 
 async function renderStarterFile(relativePath: string): Promise<string> {
   if (relativePath === ".gitignore") {
-    return "node_modules/\n";
+    return "node_modules/\n.brains-ops/\n";
   }
 
   const templatePath = join(templateRootDir, relativePath);

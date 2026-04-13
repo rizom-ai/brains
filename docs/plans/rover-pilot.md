@@ -315,6 +315,19 @@ Delivery contract:
   - writes only `views/users.md`
   - derives status columns from observable facts (server existence, deploy state, DNS, MCP reachability, expected Discord secret presence)
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
+- `brains-ops ssh-key:bootstrap <repo>`
+  - reuses or creates the local deploy SSH key for the pilot repo
+  - reads local `.env` and `.env.local`
+  - supports `KAMAL_SSH_PRIVATE_KEY_FILE` and `~/...` path expansion
+  - verifies or registers the configured Hetzner SSH key name from `HCLOUD_SSH_KEY_NAME`
+  - supports `--push-to gh` to push `KAMAL_SSH_PRIVATE_KEY` into the pilot repo's GitHub secrets
+  - exits non-zero on missing Hetzner credentials or key drift
+- `brains-ops cert:bootstrap <repo> <handle>`
+  - resolves the selected user's effective domain from `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
+  - issues a Cloudflare Origin cert for `[domain, *.domain]`
+  - writes local cert artifacts under a repo-local ignored operator directory
+  - supports `--push-to gh` to push `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` into the pilot repo's GitHub secrets
+  - exits non-zero on missing Cloudflare credentials or unknown user handle
 - `brains-ops secrets:push <repo> <handle>`
   - resolves the selected user's effective secret names from `pilot.yaml`, `users/*.yaml`, and `cohorts/*.yaml`
   - pushes shared repo secrets plus the selected user's namespaced secrets to GitHub Secrets
@@ -381,8 +394,10 @@ Manual truth entry first:
 
 Automated per-user provisioning after that:
 
-5. Operator runs `brains-ops secrets:push <repo> <handle>` to push the shared repo secrets plus that user's namespaced secrets into GitHub.
-6. Operator runs `brains-ops onboard <repo> <handle>`, which:
+5. Operator runs `brains-ops ssh-key:bootstrap <repo> --push-to gh` to prepare the shared pilot deploy key and align GitHub + Hetzner.
+6. Operator runs `brains-ops cert:bootstrap <repo> <handle> --push-to gh` to mint the selected user's origin cert and push it into the pilot repo secrets.
+7. Operator runs `brains-ops secrets:push <repo> <handle>` to push the remaining shared repo secrets plus that user's namespaced secrets into GitHub.
+8. Operator runs `brains-ops onboard <repo> <handle>`, which:
    - Creates content repo `rover-<handle>-content` in `rizom-ai` (if missing)
    - Provisions Hetzner CX22 server (if missing)
    - Configures DNS: `<handle>.rizom.ai` → server IP in existing Cloudflare zone
@@ -392,9 +407,9 @@ Automated per-user provisioning after that:
    - Deploys via Kamal to the user's server
    - Verifies MCP endpoint reachable
    - Regenerates `views/users.md`
-7. For fleet version bumps, operator edits `pilot.yaml.brainVersion` and pushes once; CI rebuilds the shared image, refreshes generated user env files, and redeploys affected users.
-8. Operator writes `users/<handle>/notes.md` with any onboarding context
-9. Operator hands over MCP connection details to user
+9. For fleet version bumps, operator edits `pilot.yaml.brainVersion` and pushes once; CI rebuilds the shared image, refreshes generated user env files, and redeploys affected users.
+10. Operator writes `users/<handle>/notes.md` with any onboarding context
+11. Operator hands over MCP connection details to user
 
 ### Cohort structure
 
@@ -497,6 +512,8 @@ Until one of those fires: stay on per-user deploys.
 - [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the pilot repo
 - [x] Add monorepo-owned `brains-ops render <repo>` so operators get table view from YAML truth
 - [x] Add monorepo-owned `brains-ops onboard <repo> <handle>` wrapper around per-user provisioning
+- [x] Add monorepo-owned `brains-ops ssh-key:bootstrap <repo>` for pilot deploy-key bootstrap
+- [x] Add monorepo-owned `brains-ops cert:bootstrap <repo> <handle>` for pilot origin-cert bootstrap
 - [x] Add monorepo-owned `brains-ops secrets:push <repo> <handle>` for pilot GitHub secret delivery
 - [x] Add monorepo-owned `brains-ops reconcile-cohort <repo> <cohort>` for staged rollout of one active cohort
 - [x] Add monorepo-owned `brains-ops reconcile-all <repo>` for fleet-wide convergence

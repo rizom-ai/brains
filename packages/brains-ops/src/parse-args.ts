@@ -7,6 +7,7 @@ export interface ParsedArgs {
     help?: boolean | undefined;
     version?: boolean | undefined;
     dryRun?: boolean | undefined;
+    pushTo?: string | undefined;
   };
 }
 
@@ -14,6 +15,7 @@ const options = {
   help: { type: "boolean" as const, short: "h" },
   version: { type: "boolean" as const, short: "v" },
   "dry-run": { type: "boolean" as const },
+  "push-to": { type: "string" as const },
 };
 
 function getBoolean(
@@ -22,6 +24,14 @@ function getBoolean(
 ): boolean | undefined {
   const value = values[key];
   return typeof value === "boolean" ? value : undefined;
+}
+
+function getString(
+  values: Record<string, unknown>,
+  key: string,
+): string | undefined {
+  const value = values[key];
+  return typeof value === "string" ? value : undefined;
 }
 
 export function parseArgs(argv: string[]): ParsedArgs {
@@ -46,6 +56,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       help: getBoolean(values, "help"),
       version: getBoolean(values, "version"),
       dryRun: getBoolean(values, "dry-run"),
+      pushTo: getString(values, "push-to"),
     },
   };
 }

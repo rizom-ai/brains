@@ -51,6 +51,31 @@ describe("brains-ops parseArgs", () => {
     expect(result.flags.dryRun).toBe(true);
   });
 
+  it("parses ssh-key:bootstrap with repo path and push target", () => {
+    const result = parseArgs([
+      "ssh-key:bootstrap",
+      "/tmp/rover-pilot",
+      "--push-to",
+      "gh",
+    ]);
+    expect(result.command).toBe("ssh-key:bootstrap");
+    expect(result.args).toEqual(["/tmp/rover-pilot"]);
+    expect(result.flags.pushTo).toBe("gh");
+  });
+
+  it("parses cert:bootstrap with repo path, handle, and push target", () => {
+    const result = parseArgs([
+      "cert:bootstrap",
+      "/tmp/rover-pilot",
+      "alice",
+      "--push-to",
+      "gh",
+    ]);
+    expect(result.command).toBe("cert:bootstrap");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
+    expect(result.flags.pushTo).toBe("gh");
+  });
+
   it("defaults to help when no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
@@ -184,6 +209,32 @@ discord:
     );
   });
 
+  it("returns usage error when ssh-key:bootstrap missing repo", async () => {
+    const result = await runCommand({
+      command: "ssh-key:bootstrap",
+      args: [],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops ssh-key:bootstrap <repo>",
+    );
+  });
+
+  it("returns usage error when cert:bootstrap missing handle", async () => {
+    const result = await runCommand({
+      command: "cert:bootstrap",
+      args: ["/tmp/rover-pilot"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops cert:bootstrap <repo> <handle>",
+    );
+  });
+
   it("uses the default runner for onboard", async () => {
     const root = await createPilotRepo(baseFiles);
 
@@ -281,6 +332,8 @@ discord:
     expect(result.message).toContain("brains-ops — operator CLI");
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
+    expect(result.message).toContain("ssh-key:bootstrap <repo>");
+    expect(result.message).toContain("cert:bootstrap <repo> <handle>");
     expect(result.message).toContain("secrets:push <repo> <handle>");
     expect(result.message).not.toContain("requires operator runner");
   });

@@ -150,6 +150,20 @@ export {
   resolveLocalEnvValue,
   resolveLocalPath,
 } from "./local-env";
+export { readJsonBody, parseJsonResponse } from "./http-response";
+export {
+  createOriginCertificateRequest,
+  generateOriginKeyPair,
+  issueCloudflareOriginCertificate,
+  setCloudflareZoneSslStrict,
+  wrapPem,
+} from "./origin-ca";
+export type {
+  CloudflareOriginCaResult,
+  FetchLike,
+  OriginCertificateRequest,
+  OriginKeyPair,
+} from "./origin-ca";
 
 // Presentation utilities
 export {

@@ -33,6 +33,17 @@ When a push changes only deploy contract files and no generated `users/<handle>/
 
 They are scaffolded from `@rizom/ops`, then versioned in this repo like any other deploy contract.
 
+## Bootstrap flow
+
+For a new pilot user, the operator bootstrap order is:
+
+1. `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`
+2. `bunx brains-ops cert:bootstrap <repo> <handle> --push-to gh`
+3. `bunx brains-ops secrets:push <repo> <handle>`
+4. `bunx brains-ops onboard <repo> <handle>`
+
+`brains-ops cert:bootstrap` writes local cert artifacts under `.brains-ops/`, which stays repo-local and ignored by git.
+
 ## Upgrading operator behavior
 
 When `@rizom/ops` changes the scaffolded deploy contract:

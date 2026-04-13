@@ -96,6 +96,7 @@ describe("initPilotRepo", () => {
 
     const gitignore = await readFile(join(repo, ".gitignore"), "utf8");
     expect(gitignore).toContain("node_modules/");
+    expect(gitignore).toContain(".brains-ops/");
 
     const usersTable = await readFile(join(repo, "views", "users.md"), "utf8");
     expect(usersTable).toContain(
@@ -244,6 +245,8 @@ describe("initPilotRepo", () => {
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");
     expect(readme).toContain("brains-ops render");
+    expect(readme).toContain("brains-ops ssh-key:bootstrap");
+    expect(readme).toContain("brains-ops cert:bootstrap");
     expect(readme).toContain("bun install");
     expect(readme).toContain("@rizom/ops");
     expect(readme).toContain(".env.schema");

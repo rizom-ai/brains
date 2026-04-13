@@ -6,6 +6,7 @@ import {
   resolveLocalPath,
 } from "@brains/utils";
 import { findUser } from "./reconcile-lib";
+import { runSubprocess, type RunCommand } from "./run-subprocess";
 import { deriveUserSecretNames } from "./user-secret-names";
 
 export interface SecretsPushOptions {
@@ -20,12 +21,6 @@ export interface SecretsPushResult {
   skippedKeys: string[];
   dryRun?: boolean | undefined;
 }
-
-export type RunCommand = (
-  command: string,
-  args: string[],
-  options?: { stdin?: string; env?: NodeJS.ProcessEnv },
-) => Promise<void>;
 
 interface SecretTarget {
   destination: string;
@@ -208,32 +203,3 @@ function logKeyGroup(
     logger(`  - ${key}`);
   }
 }
-
-const runSubprocess: RunCommand = async (command, args, options = {}) => {
-  const { spawn } = await import("node:child_process");
-
-  await new Promise<void>((resolve, reject) => {
-    const proc = spawn(command, args, {
-      stdio: ["pipe", "inherit", "inherit"],
-      env: options.env ? { ...process.env, ...options.env } : process.env,
-    });
-
-    proc.on("error", reject);
-    proc.on("close", (code) => {
-      if (code === 0) {
-        resolve();
-        return;
-      }
-      reject(
-        new Error(`${command} ${args.join(" ")} exited with code ${code ?? 1}`),
-      );
-    });
-
-    if (options.stdin) {
-      proc.stdin.end(options.stdin);
-      return;
-    }
-
-    proc.stdin.end();
-  });
-};
