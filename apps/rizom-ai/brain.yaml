@@ -5,13 +5,9 @@ preset: default
 logLevel: info
 domain: rizom.ai
 
-# Use the shared rizom site package with the `ai` variant.
-# Same package serves rizom.foundation and rizom.work via different
-# variants (foundation, work) — the variant flips the canvas, accent
-# shade, and copy register.
+# Use the thin rizom.ai wrapper package over shared Rizom base.
 site:
-  package: "@brains/site-rizom"
-  variant: ai
+  package: "@brains/site-rizom-ai"
 plugins:
   directory-sync:
     git:

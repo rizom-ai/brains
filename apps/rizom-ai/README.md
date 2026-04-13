@@ -1,10 +1,10 @@
 # rizom.ai
 
-A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model with the [@brains/site-rizom](../../sites/rizom/) site package (variant: `ai`) — the product landing page for the Rizom collective.
+A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model with the [@brains/site-rizom-ai](../../sites/rizom-ai/) wrapper package — the product landing page for the Rizom collective.
 
 ## Status
 
-**MVP target.** First instance to wire up the new `@brains/site-rizom` package. Currently renders the hero section with the `tree` background canvas and amber-light accent. More sections (problem, answer, products, ownership, quickstart, mission, ecosystem) land as `sites/rizom/` grows.
+`rizom.ai` now has its own thin site wrapper package over the shared Rizom base. Foundation and work use the same pattern, which makes later extraction and site-specific composition changes cheaper.
 
 ## Setup
 
@@ -37,17 +37,18 @@ bunx brain start
 | `.envrc`        | Loads `.env` and sources `.env.local` for the shell   |
 | `tsconfig.json` | Bun JSX runtime resolution for Preact site components |
 
-## Site variant
+## Site package
 
-`brain.yaml` selects the `ai` variant of `@brains/site-rizom`:
+`brain.yaml` now selects `@brains/site-rizom-ai`:
 
 ```yaml
 site:
-  package: "@brains/site-rizom"
-  variant: ai
+  package: "@brains/site-rizom-ai"
 ```
 
-The same package serves rizom.foundation (variant: `foundation`) and rizom.work (variant: `work`). The variant determines:
+That wrapper still composes the shared `@brains/site-rizom` base underneath. The shared base still provides the common Rizom family runtime, while the thin wrapper owns the final `rizom.ai` shell and route composition seam.
+
+Across the Rizom family, the variant still determines:
 
 - **Background canvas**: `tree` (ai), `roots` (foundation), `constellation` (work)
 - **Accent shade**: amber-light `#FFA366` (ai), amber-dark `#C45A08` (foundation), amber `#E87722` (work)
@@ -57,7 +58,7 @@ Light mode collapses all variants to amber-dark for contrast (per brand guide A2
 
 ## Deployment
 
-rizom.ai deploys through this repo's current workflow. Variant architecture now lives directly in `sites/rizom` + `shared/theme-rizom`.
+rizom.ai deploys through this repo's current workflow. Shared Rizom architecture now lives in `sites/rizom` + `shared/theme-rizom`, with `sites/rizom-ai` acting as the app-owned composition wrapper.
 
 ### First-time 1Password setup
 
