@@ -128,15 +128,14 @@ export async function runCommand(
 
     case "cert:bootstrap": {
       const repo = parsed.args[0];
-      const handle = parsed.args[1];
-      if (!repo || !handle) {
+      if (!repo) {
         return {
           success: false,
-          message: "Usage: brains-ops cert:bootstrap <repo> <handle>",
+          message: "Usage: brains-ops cert:bootstrap <repo>",
         };
       }
 
-      return runPilotCertBootstrap(repo, handle, {
+      return runPilotCertBootstrap(repo, {
         ...(dependencies.env ? { env: dependencies.env } : {}),
         ...(dependencies.fetchImpl
           ? { fetchImpl: dependencies.fetchImpl }
@@ -223,7 +222,7 @@ export async function runCommand(
           "  render <repo>",
           "  onboard <repo> <handle>",
           "  ssh-key:bootstrap <repo>",
-          "  cert:bootstrap <repo> <handle>",
+          "  cert:bootstrap <repo>",
           "  secrets:push <repo> <handle>",
           "  reconcile-cohort <repo> <cohort>",
           "  reconcile-all <repo>",

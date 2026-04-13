@@ -646,7 +646,7 @@ describe("brain init", () => {
       expect(deploy).toContain("certificate_pem: CERTIFICATE_PEM");
       expect(deploy).toContain("private_key_pem: PRIVATE_KEY_PEM");
       expect(deploy).toContain("- <%= ENV['BRAIN_DOMAIN'] %>");
-      expect(deploy).toContain("- preview.<%= ENV['BRAIN_DOMAIN'] %>");
+      expect(deploy).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
       expect(deploy).not.toContain(":80");
       expect(deploy).not.toContain(":81");
       expect(deploy).toContain("healthcheck:");
@@ -707,6 +707,9 @@ describe("brain init", () => {
       expect(workflow).toContain(".kamal/secrets");
       expect(workflow).toContain("bun deploy/scripts/provision-server.ts");
       expect(workflow).toContain("bun deploy/scripts/update-dns.ts");
+      expect(workflow).toContain(
+        'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
+      );
       expect(workflow).not.toContain("<<EOF");
       expect(workflow).not.toContain(
         "printf '%s\\n' \"$KAMAL_SSH_PRIVATE_KEY\"",
@@ -737,6 +740,7 @@ describe("brain init", () => {
         "ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null",
       );
       expect(workflow).toContain("kamal setup --skip-push");
+      expect(workflow).toContain("PREVIEW_DOMAIN: ${{ env.PREVIEW_DOMAIN }}");
       expect(workflow).toContain(
         "VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}",
       );
@@ -755,6 +759,12 @@ describe("brain init", () => {
       expect(script).toContain('ENV["GITHUB_ENV"]');
       expect(script).toContain('ENV["GITHUB_REPOSITORY_OWNER"]');
       expect(script).toContain('ENV["GITHUB_REPOSITORY"]');
+      expect(script).toContain("preview_domain = if labels.length >= 3");
+      expect(script).toContain(
+        'labels.dup.tap { |parts| parts[0] = "#{parts[0]}-preview" }.join(".")',
+      );
+      expect(script).toContain('"preview.#{brain_domain}"');
+      expect(script).toContain('file.puts("PREVIEW_DOMAIN=#{preview_domain}")');
       expect(script).toContain("INSTANCE_NAME");
 
       expect(existsSync(join(testDir, "deploy", "scripts", "helpers.ts"))).toBe(

@@ -30,15 +30,15 @@ describe("deploy preview host routing", () => {
     const deployConfig = readFileSync(deployConfigPath, "utf-8");
 
     expect(deployConfig).toContain("- <%= ENV['BRAIN_DOMAIN'] %>");
-    expect(deployConfig).toContain("- preview.<%= ENV['BRAIN_DOMAIN'] %>");
+    expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
     expect(deployConfig).not.toContain(":80");
     expect(deployConfig).not.toContain(":81");
   });
 
-  it("routes preview.* hosts to the preview site inside the container", () => {
+  it("routes *-preview.* hosts to the preview site inside the container", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
-    expect(caddyfile).toContain("@preview host preview.*");
+    expect(caddyfile).toContain("@preview host *-preview.*");
     expect(caddyfile).toContain("handle @preview {");
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
   });

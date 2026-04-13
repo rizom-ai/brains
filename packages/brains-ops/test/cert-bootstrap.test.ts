@@ -59,14 +59,14 @@ describe("pilot origin CA bootstrap", () => {
 
   it("generates a verifiable CSR via the shared origin helper", () => {
     const keyPair = generateOriginKeyPair();
-    const request = createOriginCertificateRequest("smoke.rizom.ai", keyPair);
+    const request = createOriginCertificateRequest("rizom.ai", keyPair);
 
     expect(request.csrPem).toContain("BEGIN CERTIFICATE REQUEST");
     expect(request.certificationRequestInfoDer.byteLength).toBeGreaterThan(0);
     expect(request.signature.byteLength).toBeGreaterThan(0);
   });
 
-  it("creates files under the repo-local operator directory and calls Cloudflare APIs", async () => {
+  it("creates shared files under the repo-local operator directory and calls Cloudflare APIs", async () => {
     const calls: Array<{ url: string; init: RequestInit | undefined }> = [];
 
     const fetchImpl: FetchLike = async (input, init) => {
@@ -81,7 +81,7 @@ describe("pilot origin CA bootstrap", () => {
           csr: string;
         };
 
-        expect(body.hostnames).toEqual(["smoke.rizom.ai", "*.smoke.rizom.ai"]);
+        expect(body.hostnames).toEqual(["rizom.ai", "*.rizom.ai"]);
         expect(body.requested_validity).toBe(5475);
         expect(body.request_type).toBe("origin-rsa");
         expect(body.csr).toContain("BEGIN CERTIFICATE REQUEST");
@@ -110,19 +110,19 @@ describe("pilot origin CA bootstrap", () => {
       throw new Error(`Unexpected request: ${url}`);
     };
 
-    const result = await bootstrapPilotOriginCertificate(testDir, "smoke", {
+    const result = await bootstrapPilotOriginCertificate(testDir, {
       cfApiToken: "cf-token",
       cfZoneId: "zone-id",
       fetchImpl,
       logger: () => {},
     });
 
-    expect(result.domain).toBe("smoke.rizom.ai");
+    expect(result.domain).toBe("rizom.ai");
     expect(result.certificatePath).toBe(
-      join(testDir, ".brains-ops", "certs", "smoke", "origin.pem"),
+      join(testDir, ".brains-ops", "certs", "shared", "origin.pem"),
     );
     expect(result.privateKeyPath).toBe(
-      join(testDir, ".brains-ops", "certs", "smoke", "origin.key"),
+      join(testDir, ".brains-ops", "certs", "shared", "origin.key"),
     );
     expect(existsSync(result.certificatePath)).toBe(true);
     expect(existsSync(result.privateKeyPath)).toBe(true);
@@ -143,8 +143,23 @@ describe("pilot origin CA bootstrap", () => {
     expect(mode).toBe(0o600);
   });
 
-  it("returns a friendly failure result when the selected handle is unknown", async () => {
-    const result = await runPilotCertBootstrap(testDir, "missing", {
+  it("returns a friendly failure result when pilot.yaml has an invalid domain suffix", async () => {
+    writeFileSync(
+      join(testDir, "pilot.yaml"),
+      [
+        "schemaVersion: 1",
+        "brainVersion: 0.2.0-alpha.3",
+        "model: rover",
+        "githubOrg: rizom-ai",
+        "contentRepoPrefix: rover-",
+        'domainSuffix: "*.rizom.ai"',
+        "preset: core",
+        "aiApiKey: AI_API_KEY",
+        "",
+      ].join("\n"),
+    );
+
+    const result = await runPilotCertBootstrap(testDir, {
       cfApiToken: "cf-token",
       cfZoneId: "zone-id",
       fetchImpl: async () => new Response(null, { status: 200 }),
@@ -152,7 +167,7 @@ describe("pilot origin CA bootstrap", () => {
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain("Unknown user handle");
+    expect(result.message).toContain("Invalid pilot domainSuffix");
   });
 
   it("pushes certs to GitHub secrets when --push-to gh is used", async () => {
@@ -188,7 +203,7 @@ describe("pilot origin CA bootstrap", () => {
       throw new Error(`Unexpected request: ${url}`);
     };
 
-    const result = await bootstrapPilotOriginCertificate(testDir, "smoke", {
+    const result = await bootstrapPilotOriginCertificate(testDir, {
       cfApiToken: "cf-token",
       cfZoneId: "zone-id",
       fetchImpl,
@@ -199,7 +214,7 @@ describe("pilot origin CA bootstrap", () => {
       },
     });
 
-    expect(result.domain).toBe("smoke.rizom.ai");
+    expect(result.domain).toBe("rizom.ai");
     expect(calls).toHaveLength(2);
     expect(calls[0]).toEqual({
       command: "gh",

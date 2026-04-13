@@ -17,6 +17,15 @@ if (!brainDomain) {
   throw new Error(`Missing domain in ${brainYamlPath}`);
 }
 
+const zone =
+  brainDomain.startsWith(`${handle}.`) && brainDomain.length > handle.length + 1
+    ? brainDomain.slice(handle.length + 1)
+    : "";
+if (!zone) {
+  throw new Error(`Could not derive preview domain from ${brainDomain}`);
+}
+const previewDomain = `${handle}-preview.${zone}`;
+
 const outputs: Record<string, string> = {
   brain_version: envEntries["BRAIN_VERSION"] ?? "",
   ai_api_key_secret_name: envEntries["AI_API_KEY_SECRET"] ?? "",
@@ -25,6 +34,7 @@ const outputs: Record<string, string> = {
   discord_bot_token_secret_name: envEntries["DISCORD_BOT_TOKEN_SECRET"] ?? "",
   content_repo: envEntries["CONTENT_REPO"] ?? "",
   brain_domain: brainDomain,
+  preview_domain: previewDomain,
   brain_yaml_path: brainYamlPath,
   instance_name: `rover-${handle}`,
   image_repository: `ghcr.io/${repository}`,

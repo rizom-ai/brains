@@ -101,7 +101,7 @@ proxy:
     private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
-    - preview.<%= ENV['BRAIN_DOMAIN'] %>
+    - <%= ENV['PREVIEW_DOMAIN'] %>
   app_port: 80
   healthcheck:
     path: /health
@@ -157,7 +157,7 @@ GitHub stores the pushed runtime/deploy values as normal secrets, including `KAM
 1. Put the zone on Cloudflare and complete nameserver activation.
 2. Set `domain:` in `brain.yaml`.
 3. Run `brain cert:bootstrap --push-to gh`.
-4. Let the deploy workflow create/update the `@` and `preview` DNS records.
+4. Let the deploy workflow create/update the primary and preview DNS records.
 
 The workflow updates DNS before Kamal deploys, because `kamal-proxy` healthchecks need the hostnames to resolve during rollout.
 

@@ -182,10 +182,11 @@ jobs:
           CF_API_TOKEN: ${{ secrets.CF_API_TOKEN }}
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
         run: |
           bun deploy/scripts/update-dns.ts
-          BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
+          BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Validate SSH key
         run: ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
@@ -212,6 +213,7 @@ jobs:
           IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}
           REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
           BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
         run: kamal setup --skip-push -c deploy/kamal/deploy.yml
 
@@ -219,7 +221,10 @@ jobs:
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
-        run: curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health"
+          PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}
+        run: |
+          curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN/health"
+          curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN/"
 
       - name: Upload generated config
         uses: actions/upload-artifact@v4

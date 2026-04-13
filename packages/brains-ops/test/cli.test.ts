@@ -63,16 +63,15 @@ describe("brains-ops parseArgs", () => {
     expect(result.flags.pushTo).toBe("gh");
   });
 
-  it("parses cert:bootstrap with repo path, handle, and push target", () => {
+  it("parses cert:bootstrap with repo path and push target", () => {
     const result = parseArgs([
       "cert:bootstrap",
       "/tmp/rover-pilot",
-      "alice",
       "--push-to",
       "gh",
     ]);
     expect(result.command).toBe("cert:bootstrap");
-    expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
+    expect(result.args).toEqual(["/tmp/rover-pilot"]);
     expect(result.flags.pushTo).toBe("gh");
   });
 
@@ -283,17 +282,15 @@ discord:
     );
   });
 
-  it("returns usage error when cert:bootstrap missing handle", async () => {
+  it("returns usage error when cert:bootstrap missing repo", async () => {
     const result = await runCommand({
       command: "cert:bootstrap",
-      args: ["/tmp/rover-pilot"],
+      args: [],
       flags: {},
     });
 
     expect(result.success).toBe(false);
-    expect(result.message).toContain(
-      "Usage: brains-ops cert:bootstrap <repo> <handle>",
-    );
+    expect(result.message).toContain("Usage: brains-ops cert:bootstrap <repo>");
   });
 
   it("uses the default runner for onboard", async () => {
@@ -394,7 +391,7 @@ discord:
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
-    expect(result.message).toContain("cert:bootstrap <repo> <handle>");
+    expect(result.message).toContain("cert:bootstrap <repo>");
     expect(result.message).toContain("secrets:push <repo> <handle>");
     expect(result.message).not.toContain("requires operator runner");
   });

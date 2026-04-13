@@ -171,7 +171,10 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
-      'BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts',
+      "PREVIEW_DOMAIN: ${{ steps.user_config.outputs.preview_domain }}",
+    );
+    expect(deployWorkflow).toContain(
+      'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
     );
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
@@ -217,6 +220,10 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(resolveScript).toContain("brain_yaml_path");
+    expect(resolveScript).toContain("preview_domain");
+    expect(resolveScript).toContain(
+      "const previewDomain = `${handle}-preview.${zone}`",
+    );
     expect(resolveScript).toContain('from "./helpers"');
 
     const helpersScript = await readFile(
@@ -253,6 +260,7 @@ describe("initPilotRepo", () => {
 
     const caddyfile = await readFile(join(repo, "deploy", "Caddyfile"), "utf8");
     expect(caddyfile).toContain(":80");
+    expect(caddyfile).toContain("@preview host *-preview.*");
     expect(caddyfile).toContain("agent-card.json");
     expect(caddyfile).toContain("reverse_proxy localhost:3334");
 
@@ -267,7 +275,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).not.toContain("mcp:");
     expect(deployConfig).toContain("app_port: 80");
     expect(deployConfig).toContain("path: /health");
-    expect(deployConfig).toContain("- preview.<%= ENV['BRAIN_DOMAIN'] %>");
+    expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
 
     const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");
@@ -307,7 +315,7 @@ describe("initPilotRepo", () => {
     expect(readme).toContain("brains-ops init");
     expect(readme).toContain("brains-ops render");
     expect(readme).toContain("brains-ops ssh-key:bootstrap");
-    expect(readme).toContain("brains-ops cert:bootstrap");
+    expect(readme).toContain("brains-ops cert:bootstrap <repo>");
     expect(readme).toContain("bun install");
     expect(readme).toContain("@rizom/ops");
     expect(readme).toContain(".env.schema");

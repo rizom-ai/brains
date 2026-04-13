@@ -8,7 +8,7 @@ import {
   setCloudflareZoneSslStrict,
   type FetchLike,
 } from "@brains/utils/origin-ca";
-import { findUser } from "./reconcile-lib";
+import { loadPilotRegistry } from "./load-registry";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 
@@ -31,11 +31,10 @@ export interface CertBootstrapResult {
 
 export async function runPilotCertBootstrap(
   rootDir: string,
-  handle: string,
   options: CertBootstrapOptions = {},
 ): Promise<{ success: boolean; message?: string }> {
   try {
-    await bootstrapPilotOriginCertificate(rootDir, handle, options);
+    await bootstrapPilotOriginCertificate(rootDir, options);
     return { success: true };
   } catch (error) {
     return {
@@ -48,11 +47,10 @@ export async function runPilotCertBootstrap(
 
 export async function bootstrapPilotOriginCertificate(
   rootDir: string,
-  handle: string,
   options: CertBootstrapOptions = {},
 ): Promise<CertBootstrapResult> {
-  const { user } = await findUser(rootDir, handle);
-  const domain = user.domain;
+  const registry = await loadPilotRegistry(rootDir);
+  const domain = resolvePilotZone(registry.pilot.domainSuffix);
   const env = options.env ?? process.env;
   const localEnvValues = readLocalEnvValues(rootDir);
   const cfApiToken =
@@ -86,14 +84,14 @@ export async function bootstrapPilotOriginCertificate(
     rootDir,
     ".brains-ops",
     "certs",
-    handle,
+    "shared",
     "origin.pem",
   );
   const privateKeyPath = join(
     rootDir,
     ".brains-ops",
     "certs",
-    handle,
+    "shared",
     "origin.key",
   );
 
@@ -123,7 +121,7 @@ export async function bootstrapPilotOriginCertificate(
     );
   }
 
-  logger(`Issued Origin CA cert for ${domain}`);
+  logger(`Issued shared Origin CA cert for ${domain} and *.${domain}`);
   logger(`Wrote ${certificatePath}`);
   logger(`Wrote ${privateKeyPath}`);
   if (certResult.expiresOn) {
@@ -140,4 +138,14 @@ export async function bootstrapPilotOriginCertificate(
     privateKeyPath,
     certificatePem: certResult.certificatePem,
   };
+}
+
+function resolvePilotZone(domainSuffix: string): string {
+  const zone = domainSuffix.trim().replace(/^\./, "").replace(/\.$/, "");
+
+  if (!zone || zone.includes("*")) {
+    throw new Error(`Invalid pilot domainSuffix: ${domainSuffix}`);
+  }
+
+  return zone;
 }

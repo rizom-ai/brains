@@ -38,11 +38,11 @@ They are scaffolded from `@rizom/ops`, then versioned in this repo like any othe
 For a new pilot user, the operator bootstrap order is:
 
 1. `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`
-2. `bunx brains-ops cert:bootstrap <repo> <handle> --push-to gh`
+2. `bunx brains-ops cert:bootstrap <repo> --push-to gh`
 3. `bunx brains-ops secrets:push <repo> <handle>`
 4. `bunx brains-ops onboard <repo> <handle>`
 
-`brains-ops cert:bootstrap` writes local cert artifacts under `.brains-ops/`, which stays repo-local and ignored by git.
+`brains-ops cert:bootstrap` writes the shared wildcard cert artifacts under `.brains-ops/certs/shared/`, which stays repo-local and ignored by git. The generated deploy contract uses `<handle>-preview.<zone>` so the same `*.${zone}` cert covers both main and preview hosts.
 
 ## Upgrading operator behavior
 

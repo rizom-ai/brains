@@ -463,6 +463,14 @@ brain_domain = config["domain"]
 raise "Missing brain in brain.yaml" if brain_model.nil? || brain_model.to_s.strip.empty?
 raise "Missing domain in brain.yaml" if brain_domain.nil? || brain_domain.to_s.strip.empty?
 
+brain_domain = brain_domain.to_s.strip
+labels = brain_domain.split(".")
+preview_domain = if labels.length >= 3
+  labels.dup.tap { |parts| parts[0] = "#{parts[0]}-preview" }.join(".")
+else
+  "preview.#{brain_domain}"
+end
+
 github_env = ENV["GITHUB_ENV"]
 raise "Missing GITHUB_ENV" if github_env.nil? || github_env.empty?
 
@@ -483,6 +491,7 @@ File.open(github_env, "a") do |file|
   file.puts("INSTANCE_NAME=#{instance_name}")
   file.puts("BRAIN_MODEL=#{brain_model}")
   file.puts("BRAIN_DOMAIN=#{brain_domain}")
+  file.puts("PREVIEW_DOMAIN=#{preview_domain}")
   file.puts("IMAGE_REPOSITORY=ghcr.io/#{registry_username}/#{repository_name}")
   file.puts("REGISTRY_USERNAME=#{registry_username}")
 end
@@ -778,7 +787,7 @@ ${workflowSecretsEnv}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
-          BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
+          BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Install Kamal
         run: |
@@ -808,6 +817,7 @@ ${workflowSecretsEnv}
         env:
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
           VERSION: \${{ github.event.workflow_run.head_sha || github.sha }}
+          PREVIEW_DOMAIN: \${{ env.PREVIEW_DOMAIN }}
         run: kamal setup --skip-push
 
       - name: Verify origin TLS
@@ -815,7 +825,7 @@ ${workflowSecretsEnv}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN"
-          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
+          curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"
 
       - name: Dump remote proxy diagnostics
         if: failure()

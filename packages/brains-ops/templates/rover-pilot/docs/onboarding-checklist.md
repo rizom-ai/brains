@@ -6,7 +6,7 @@
 4. Add the user to a cohort in `cohorts/*.yaml`.
 5. Run `bunx brains-ops render <repo>`.
 6. Run `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`.
-7. Run `bunx brains-ops cert:bootstrap <repo> <handle> --push-to gh`.
+7. Run `bunx brains-ops cert:bootstrap <repo> --push-to gh`.
 8. Run `bunx brains-ops secrets:push <repo> <handle>`.
 9. Run `bunx brains-ops onboard <repo> <handle>`.
 10. Verify the deployed rover core contract:
