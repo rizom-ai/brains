@@ -313,7 +313,9 @@ Delivery contract:
   - inputs: `pilot.yaml`, every `users/*.yaml`, every `cohorts/*.yaml`
   - validates via Zod before rendering anything
   - writes only `views/users.md`
-  - derives status columns from observable facts (server existence, deploy state, DNS, MCP reachability, expected Discord secret presence)
+  - derives status columns from observable facts using built-in live probes by default
+  - built-in probes check DNS resolution, `GET https://<domain>/health`, and unauthenticated `POST https://<domain>/mcp`
+  - test-only injected resolvers remain acceptable for regression coverage
   - exits non-zero on missing users / duplicate handles / zero-cohort membership / multi-cohort membership / empty cohorts / duplicate cohort members / invalid schema
 - `brains-ops ssh-key:bootstrap <repo>`
   - reuses or creates the local deploy SSH key for the pilot repo

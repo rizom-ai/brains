@@ -4,6 +4,10 @@ import type { FetchLike } from "@brains/utils/origin-ca";
 import { runPilotCertBootstrap } from "./cert-bootstrap";
 import { initPilotRepo } from "./init";
 import type { LoadPilotRegistryOptions } from "./load-registry";
+import {
+  createObservedStatusResolver,
+  type LookupHost,
+} from "./observed-status";
 import { onboardUser } from "./onboard-user";
 import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
@@ -24,6 +28,7 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   env?: NodeJS.ProcessEnv | undefined;
   logger?: ((message: string) => void) | undefined;
   fetchImpl?: FetchLike | undefined;
+  lookupHost?: LookupHost | undefined;
   secretRunCommand?: OpsRunCommand | undefined;
   bootstrapRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
@@ -59,11 +64,18 @@ export async function runCommand(
         };
       }
 
-      await writeUsersTable(repo, {
-        ...(dependencies.resolveStatus
-          ? { resolveStatus: dependencies.resolveStatus }
-          : {}),
-      });
+      const resolveStatus =
+        dependencies.resolveStatus ??
+        createObservedStatusResolver({
+          ...(dependencies.fetchImpl
+            ? { fetchImpl: dependencies.fetchImpl }
+            : {}),
+          ...(dependencies.lookupHost
+            ? { lookupHost: dependencies.lookupHost }
+            : {}),
+        });
+
+      await writeUsersTable(repo, { resolveStatus });
       return {
         success: true,
         message: `Rendered ${repo}/views/users.md`,

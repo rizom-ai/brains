@@ -126,16 +126,77 @@ discord:
   it("renders table for render command", async () => {
     const root = await createPilotRepo(baseFiles);
 
-    const result = await runCommand({
-      command: "render",
-      args: [root],
-      flags: {},
-    });
+    const result = await runCommand(
+      {
+        command: "render",
+        args: [root],
+        flags: {},
+      },
+      {
+        resolveStatus() {
+          return Promise.resolve(undefined);
+        },
+      },
+    );
 
     expect(result.success).toBe(true);
     const table = await readFile(join(root, "views/users.md"), "utf8");
     expect(table).toContain("| alice | canary | rover | core |");
     expect(table).toContain("| alice.rizom.ai | rover-alice-content |");
+  });
+
+  it("uses built-in live probes for render when no custom resolver is provided", async () => {
+    const root = await createPilotRepo(baseFiles);
+
+    const result = await runCommand(
+      {
+        command: "render",
+        args: [root],
+        flags: {},
+      },
+      {
+        lookupHost(hostname) {
+          expect(hostname).toBe("alice.rizom.ai");
+          return Promise.resolve({ address: "203.0.113.10", family: 4 });
+        },
+        fetchImpl(input, init) {
+          const url = typeof input === "string" ? input : input.toString();
+
+          if (url === "https://alice.rizom.ai/health") {
+            expect(init?.method).toBe("GET");
+            return Promise.resolve(new Response("ok", { status: 200 }));
+          }
+
+          if (url === "https://alice.rizom.ai/mcp") {
+            expect(init?.method).toBe("POST");
+            return Promise.resolve(
+              new Response(
+                JSON.stringify({
+                  jsonrpc: "2.0",
+                  error: {
+                    code: -32001,
+                    message: "Unauthorized: Bearer token required",
+                  },
+                  id: null,
+                }),
+                {
+                  status: 401,
+                  headers: { "content-type": "application/json" },
+                },
+              ),
+            );
+          }
+
+          throw new Error(`Unexpected URL: ${url}`);
+        },
+      },
+    );
+
+    expect(result.success).toBe(true);
+    const table = await readFile(join(root, "views/users.md"), "utf8");
+    expect(table).toContain(
+      "| alice | canary | rover | core | 0.1.1-alpha.14 | alice.rizom.ai | rover-alice-content | off | ready | ready | ready | ready |",
+    );
   });
 
   it("renders table with injected observed status", async () => {
