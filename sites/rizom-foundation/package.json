@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-rizom-foundation",
   "private": true,
-  "version": "0.2.0-alpha.9",
+  "version": "0.2.0-alpha.10",
   "description": "Rizom foundation site wrapper — thin app-owned composition over shared Rizom base",
   "type": "module",
   "exports": {

@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.10
+
+### Patch Changes
+
+- [`afd89a0`](https://github.com/rizom-ai/brains/commit/afd89a011595edccab23ed761dda92517ee9d806) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the generated rover-pilot deploy workflow so its final generated-config commit can push successfully from GitHub Actions checkout state.
+
 ## 0.2.0-alpha.9
 
 ### Patch Changes
