@@ -50,6 +50,14 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:3333");
   });
 
+  it("redirects bare / to the agent card before the production fallback", () => {
+    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+
+    expect(caddyfile).toContain("@root path /");
+    expect(caddyfile).toContain("handle @root {");
+    expect(caddyfile).toContain("redir /.well-known/agent-card.json 302");
+  });
+
   it("falls back to the a2a server when no production webserver is running", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 

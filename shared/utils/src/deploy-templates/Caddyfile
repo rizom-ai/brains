@@ -50,6 +50,11 @@
 		reverse_proxy localhost:3335
 	}
 
+	@root path /
+	handle @root {
+		redir /.well-known/agent-card.json 302
+	}
+
 	# Production site: prefer the webserver when present; otherwise fall back
 	# to the A2A interface so core-only deployments never return a bare 502.
 	handle {
