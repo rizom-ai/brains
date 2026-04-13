@@ -113,11 +113,65 @@ Before extraction, capture:
 
 Current preflight snapshot:
 
-| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                  | Monorepo-only site/theme coupling                                                   | Notes                                  |
-| ----------------------- | ----------- | ------------------ | ------------------------------- | ---------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------------------- |
-| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom"`, variant `work`                                | mockup still unfinished                |
-| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                      | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base | wrapper added; mockup still unfinished |
-| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml` | `site.package: "@brains/site-rizom"`, variant `ai`                                  | most complete current app              |
+| App                     | Brain model | Domain(s)          | Current content repo            | Deploy scaffold in app repo                                                                           | Monorepo-only site/theme coupling                                                                            | Notes                                                          |
+| ----------------------- | ----------- | ------------------ | ------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------- |
+| `apps/rizom-work`       | `ranger`    | `rizom.work`       | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                                               | `site.package: "@brains/site-rizom-work"` thin wrapper over shared Rizom base                                | first visual pass done; still needs standalone extraction prep |
+| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | none configured in `brain.yaml` | no `package.json`, no `.env.schema`, no deploy scaffold                                               | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base                          | first visual pass done; still needs standalone extraction prep |
+| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`     | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml`; no tracked GH workflows | `site.package: "@brains/site-rizom-ai"` thin wrapper over shared Rizom base; deploy still model-image-shaped | best extraction candidate; wrapper seam now exists             |
+
+### `rizom.ai` extraction preflight
+
+`rizom.ai` is still the best next extraction candidate, but extraction is currently paused until two blockers are resolved.
+
+Current blockers:
+
+- the latest published CLI path tested during preflight (`@rizom/brain@0.2.0-alpha.5`) currently fails on `init --deploy`
+- the current Rizom site packages used by the monorepo app (`@brains/site-rizom`, `@brains/site-rizom-ai`) are not published consumable packages, so a standalone repo cannot depend on them directly today
+
+Because of that, `rizom.ai` is not yet a straight "scaffold, copy files, deploy" move from the published path.
+
+Current state to carry forward:
+
+- app package: `apps/rizom-ai`
+- brain model: `ranger`
+- domain: `rizom.ai`
+- content repo: `rizom-ai/rizom-ai-content`
+- site package: `@brains/site-rizom-ai`
+- tracked env files: `.env.example`, `.env.schema`
+- tracked deploy files: `config/deploy.yml`, `.kamal/hooks/pre-deploy`
+
+Known gaps versus standard standalone `brain init --deploy` shape:
+
+- no tracked `.github/workflows/publish-image.yml`
+- no tracked `.github/workflows/deploy.yml`
+- no tracked `deploy/Dockerfile`
+- no tracked `deploy/Caddyfile`
+- no tracked `scripts/extract-brain-config.rb`
+- current `config/deploy.yml` still uses model-image shape (`image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>`) instead of repo-image shape
+- app still has monorepo-local start script assumptions in `package.json`
+- local working tree contains ignored runtime junk (`brain-data/.git`, `dist/`, `data/`, `.env`, `.env.local`, `node_modules/`) that must not be copied into extraction
+
+Recommended next step for `rizom.ai` is no longer immediate extraction, but choosing one unblock path first:
+
+1. either make the Rizom site/theme runtime consumable outside the monorepo
+2. or vendor `rizom.ai` site ownership into app-local `src/site.ts` and `src/theme.css` during extraction
+3. separately, fix the latest published CLI `init --deploy` regression before relying on that release line for extraction
+
+Once those blockers are cleared:
+
+1. scaffold fresh standalone repo from published CLI with `--deploy`
+2. copy over only intentional app-owned files:
+   - `brain.yaml`
+   - `.env.schema`
+   - `.env.example`
+   - app README content as needed
+   - final `src/site.ts` or wrapper dependency choice
+3. preserve content repo slug `rizom-ai/rizom-ai-content`
+4. regenerate derived deploy artifacts from published CLI inside new repo
+5. diff generated deploy/image workflow shape against current `apps/rizom-ai` partial setup and keep only current values that are still intentional
+6. boot locally from new repo
+7. bootstrap secrets/SSH/certs using standard flow
+8. deploy and verify before removing `apps/rizom-ai`
 
 ### Shared Rizom packages can stay
 

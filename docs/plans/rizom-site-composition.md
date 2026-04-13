@@ -76,18 +76,18 @@ Avoid:
 
 ### `rizom.ai`
 
-`rizom.ai` is the least blocked of the three because the current shared site already largely matches its structure.
+`rizom.ai` now has the same thin wrapper seam as the other two apps:
 
-That means:
+- `@brains/site-rizom-ai`
+- wrapper-owned shell model
+- wrapper-owned route export
 
-- it can keep running on the current implementation while the split begins
-- it should act as the source material for identifying reusable base pieces
-- it does not need to be the first app-specific composition rewrite
+That means the ownership model is now aligned across all three Rizom apps.
 
-Open work for `rizom.ai` still exists, but it is lower urgency:
+Open work for `rizom.ai` still exists:
 
-- separate its app-specific composition from shared/base pieces
-- eventually give it the same explicit app-owned composition shape as the other Rizom apps
+- move any remaining AI-final defaults out of shared/base files and into the wrapper where they are truly app-owned
+- decide what should remain shared base versus wrapper-owned AI composition
 - move that composition into app-local `src/site.ts` when extraction becomes desirable
 
 ### `rizom.foundation`
@@ -502,18 +502,17 @@ Deliverable:
 
 - `rizom.work` mockup substantially represented in app-owned composition
 
-### Phase 5: give `rizom.ai` explicit app-owned composition
+### Phase 5: finish `rizom.ai` explicit composition
 
-Once the base split pattern is proven by `foundation` and `work`:
+Wrapper seam now exists for `rizom.ai`, so remaining work is narrower:
 
-1. create explicit `rizom.ai` composition too
-2. stop relying on shared package defaults as the final `rizom.ai` site assembly
-3. keep only genuinely reusable base pieces shared
-4. move `rizom.ai` composition into app-local `src/site.ts` when extraction becomes desirable
+1. stop relying on shared package defaults as the final `rizom.ai` site assembly where that is still true
+2. keep only genuinely reusable base pieces shared
+3. move `rizom.ai` composition into app-local `src/site.ts` when extraction becomes desirable
 
 Deliverable:
 
-- all three Rizom apps follow the same ownership model
+- all three Rizom apps follow the same ownership model in practice, not just via wrapper package names
 
 ### Phase 6: extraction follow-through
 

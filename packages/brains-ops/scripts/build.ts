@@ -91,13 +91,18 @@ const templateDeployDir = join(
   "rover-pilot",
   "deploy",
 );
-cpSync(
-  join(sharedDeployTemplatesDir, "Dockerfile"),
-  join(templateDeployDir, "Dockerfile"),
+for (const file of ["Dockerfile", "Caddyfile"]) {
+  cpSync(join(sharedDeployTemplatesDir, file), join(templateDeployDir, file));
+}
+
+const kamalTemplate = readFileSync(
+  join(sharedDeployTemplatesDir, "kamal-deploy.yml"),
+  "utf8",
 );
-cpSync(
-  join(sharedDeployTemplatesDir, "Caddyfile"),
-  join(templateDeployDir, "Caddyfile"),
+mkdirSync(join(templateDeployDir, "kamal"), { recursive: true });
+writeFileSync(
+  join(templateDeployDir, "kamal", "deploy.yml"),
+  kamalTemplate.replace("__SERVICE_NAME__", "rover"),
 );
 
 console.log("Built dist/brains-ops.js");

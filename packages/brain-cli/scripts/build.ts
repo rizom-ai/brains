@@ -49,6 +49,10 @@ function syncDeployTemplates(): void {
     join(packageDeployTemplatesDir, "Caddyfile"),
   );
   cpSync(
+    join(sharedDeployTemplatesDir, "kamal-deploy.yml"),
+    join(packageDeployTemplatesDir, "kamal-deploy.yml"),
+  );
+  cpSync(
     join(sharedDeployScriptsDir, "provision-server.ts"),
     join(packageDeployScriptsDir, "provision-server.ts"),
   );

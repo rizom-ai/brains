@@ -1,4 +1,4 @@
-service: rover
+service: __SERVICE_NAME__
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:

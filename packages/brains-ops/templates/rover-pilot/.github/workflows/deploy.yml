@@ -168,7 +168,9 @@ jobs:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
-        run: bun deploy/scripts/update-dns.ts
+        run: |
+          bun deploy/scripts/update-dns.ts
+          BRAIN_DOMAIN="preview.$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Validate SSH key
         run: ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null

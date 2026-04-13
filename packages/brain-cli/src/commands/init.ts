@@ -351,47 +351,11 @@ jobs:
 ];
 
 function writeDeployYml(dir: string, onlyIfMissing = false): void {
-  const content = `service: brain
-image: <%= ENV['IMAGE_REPOSITORY'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl:
-    certificate_pem: CERTIFICATE_PEM
-    private_key_pem: PRIVATE_KEY_PEM
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>
-    - preview.<%= ENV['BRAIN_DOMAIN'] %>
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: <%= ENV['REGISTRY_USERNAME'] %>
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - AI_API_KEY
-    - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
-    - DISCORD_BOT_TOKEN
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain.yaml:/app/brain.yaml
-`;
+  const template = readFileSync(
+    join(packageDeployTemplatesDir, "kamal-deploy.yml"),
+    "utf-8",
+  );
+  const content = template.replace("__SERVICE_NAME__", "brain");
 
   if (onlyIfMissing) {
     writeScaffoldFile(
