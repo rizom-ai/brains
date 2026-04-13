@@ -2,7 +2,7 @@ service: rover
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:
-  mcp:
+  web:
     hosts:
       - <%= ENV['SERVER_IP'] %>
 

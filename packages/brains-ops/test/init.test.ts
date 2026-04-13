@@ -168,6 +168,18 @@ describe("initPilotRepo", () => {
       'bunx brains-ops render "$GITHUB_WORKSPACE"',
     );
     expect(deployWorkflow).toContain(
+      "IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}",
+    );
+    expect(deployWorkflow).toContain(
+      "REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}",
+    );
+    expect(deployWorkflow).toContain(
+      "BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}",
+    );
+    expect(deployWorkflow).toContain(
+      "BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}",
+    );
+    expect(deployWorkflow).toContain(
       "kamal setup --skip-push -c deploy/kamal/deploy.yml",
     );
     expect(deployWorkflow).not.toContain("repository: rizom-ai/brains");
@@ -219,6 +231,10 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(deployConfig).toContain("service: rover");
+    expect(deployConfig).toContain("servers:");
+    expect(deployConfig).toContain("web:");
+    expect(deployConfig).not.toContain("primary_role:");
+    expect(deployConfig).not.toContain("mcp:");
     expect(deployConfig).toContain("app_port: 3333");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");

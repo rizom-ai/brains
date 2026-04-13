@@ -192,6 +192,10 @@ jobs:
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
           VERSION: brain-${{ steps.user_config.outputs.brain_version }}
+          IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}
+          REGISTRY_USERNAME: ${{ steps.user_config.outputs.registry_username }}
+          BRAIN_DOMAIN: ${{ steps.user_config.outputs.brain_domain }}
+          BRAIN_YAML_PATH: ${{ steps.user_config.outputs.brain_yaml_path }}
         run: kamal setup --skip-push -c deploy/kamal/deploy.yml
 
       - name: Verify origin TLS
