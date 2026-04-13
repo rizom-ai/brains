@@ -151,7 +151,7 @@ describe("@rizom/ops package metadata", () => {
   });
 
   it("does not publish with workspace runtime dependencies", () => {
-    const dependencies = packageJson.dependencies ?? {};
+    const dependencies = packageJson.dependencies;
     const dependencyValues = Object.values(dependencies);
     expect(
       dependencyValues.some((value) => value === "workspace:*"),

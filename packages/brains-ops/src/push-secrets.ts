@@ -9,23 +9,19 @@ export interface PushSecretsOptions {
 }
 
 export async function pushSecretsToBackend(
-  target: PushTarget,
+  _target: PushTarget,
   secrets: readonly SecretPair[],
   options: PushSecretsOptions = {},
 ): Promise<void> {
   const runCommand = options.runCommand ?? runSubprocess;
   const logger = options.logger ?? console.log;
 
-  switch (target) {
-    case "gh":
-      logger(`Pushing ${secrets.length} secrets to GitHub Secrets...`);
-      await Promise.all(
-        secrets.map(([name, value]) =>
-          runCommand("gh", ["secret", "set", name], { stdin: value }),
-        ),
-      );
-      return;
-  }
+  logger(`Pushing ${secrets.length} secrets to GitHub Secrets...`);
+  await Promise.all(
+    secrets.map(([name, value]) =>
+      runCommand("gh", ["secret", "set", name], { stdin: value }),
+    ),
+  );
 }
 
 export { normalizePushTarget };

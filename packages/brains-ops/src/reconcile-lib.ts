@@ -13,7 +13,7 @@ import {
   type SnapshotStatus,
 } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
-import type { ContentRepoFile, UserRunner } from "./user-runner";
+import type { ContentRepoFile, UserRunResult, UserRunner } from "./user-runner";
 
 export type { ContentRepoSyncOptions } from "./content-repo";
 export type { ContentRepoFile, UserRunResult, UserRunner } from "./user-runner";
@@ -29,12 +29,18 @@ export async function runUsers(
   const defaultRunner = createDefaultUserRunner(registry.pilot.githubOrg);
 
   for (const user of users) {
-    const runnerResult = (runner ? await runner(user) : undefined) ?? {};
+    let userResult: UserRunResult = {};
+    if (runner) {
+      const runnerResult = await runner(user);
+      if (runnerResult !== undefined) {
+        userResult = runnerResult;
+      }
+    }
     const defaultResult = await defaultRunner(user);
-    const brainYaml = runnerResult.brainYaml ?? defaultResult.brainYaml;
-    const envFile = runnerResult.envFile ?? defaultResult.envFile;
+    const brainYaml = userResult.brainYaml ?? defaultResult.brainYaml;
+    const envFile = userResult.envFile ?? defaultResult.envFile;
     const contentRepoFiles: ContentRepoFile[] =
-      runnerResult.contentRepoFiles ?? defaultResult.contentRepoFiles ?? [];
+      userResult.contentRepoFiles ?? defaultResult.contentRepoFiles ?? [];
 
     if (envFile) {
       await writeUserFile(rootDir, user.handle, ".env", envFile);

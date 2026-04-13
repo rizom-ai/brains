@@ -1,4 +1,4 @@
-import { z } from "@brains/utils";
+import type { z } from "@brains/utils";
 
 /**
  * Safely parse a Response body as JSON. Empty body returns undefined;

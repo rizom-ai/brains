@@ -6,7 +6,7 @@ import { dirname, join } from "node:path";
 
 import { onboardUser } from "../src/onboard-user";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "brains-ops-content-repo-"));
 
   for (const [relativePath, content] of Object.entries(files)) {

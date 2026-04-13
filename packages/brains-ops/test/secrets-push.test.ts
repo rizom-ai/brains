@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 
 import { pushPilotSecrets } from "../src/secrets-push";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "brains-ops-secrets-"));
 
   for (const [relativePath, content] of Object.entries(files)) {

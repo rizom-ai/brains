@@ -10,6 +10,7 @@ import {
 } from "@brains/plugins/test";
 import { ProgressReporter } from "@brains/utils";
 import type { ITopicMergeSynthesizer } from "../../src/lib/topic-merge-synthesizer";
+import type { TopicMergeSynthesisResult } from "../../src/templates/merge-synthesis-template";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const topicAdapter = new TopicAdapter();
@@ -22,12 +23,12 @@ describe("TopicProcessingHandler", () => {
   let progressReporter: ProgressReporter;
   let topicMergeSynthesizer: ITopicMergeSynthesizer;
 
-  beforeEach(() => {
+  beforeEach((): void => {
     logger = createSilentLogger();
     mockShell = createMockShell({ logger });
     context = createEntityPluginContext(mockShell, "topics");
     topicMergeSynthesizer = {
-      synthesize: async () => ({
+      synthesize: async (): Promise<TopicMergeSynthesisResult> => ({
         title: "Human-AI Collaboration",
         content:
           "AI agents collaborate with humans on shared work. Agents participate as collaborators in distributed teams.",

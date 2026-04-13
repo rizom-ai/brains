@@ -8,7 +8,7 @@ import type { ResolvedUser } from "../src/load-registry";
 import { parseArgs } from "../src/parse-args";
 import { runCommand } from "../src/run-command";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "brains-ops-cli-"));
 
   for (const [relativePath, content] of Object.entries(files)) {
@@ -337,7 +337,9 @@ discord:
     const root = await createPilotRepo(baseFiles);
     const calls: string[] = [];
 
-    const runner = async (user: ResolvedUser) => {
+    const runner = async (
+      user: ResolvedUser,
+    ): Promise<{ brainYaml: string }> => {
       calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
       return {
         brainYaml: `brain: ${user.model}\npreset: ${user.preset}\ndomain: ${user.domain}\n`,
@@ -385,7 +387,7 @@ discord:
     const root = await createPilotRepo(baseFiles);
     const calls: string[] = [];
 
-    const runner = async (user: ResolvedUser) => {
+    const runner = async (user: ResolvedUser): Promise<void> => {
       calls.push(`${user.handle}:${user.cohort}:${user.preset}`);
     };
 

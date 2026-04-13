@@ -5,7 +5,7 @@ import { dirname, join } from "node:path";
 
 import { writeUsersTable } from "../src/render-users-table";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-render-"));
 
   for (const [relativePath, content] of Object.entries(files)) {

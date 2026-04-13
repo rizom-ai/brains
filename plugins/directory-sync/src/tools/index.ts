@@ -14,7 +14,7 @@ export function createDirectorySyncTools(
     createTool(
       pluginId,
       "sync",
-      "Sync brain entities with the filesystem. Pulls from git if configured, then imports files. Git commit and push happen automatically after imports complete.",
+      "Sync brain entities with the filesystem. Use this for refresh, pull, sync, or backup-to-git requests. Pulls from git if configured, then imports files. Git commit and push happen automatically after imports complete.",
       z.object({}),
       async (_input, context) => {
         try {
@@ -66,7 +66,7 @@ export function createDirectorySyncTools(
     createTool(
       pluginId,
       "status",
-      "Get sync and git repository status — last sync time, watching state, pending git changes.",
+      "Get sync and git repository status — last sync time, watching state, pending git changes. Use this for status questions, not for actually syncing or backing up.",
       z.object({}),
       async () => {
         try {

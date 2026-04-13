@@ -8,7 +8,7 @@ import {
   type ObservedUserStatus,
 } from "../src/load-registry";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-"));
 
   for (const [relativePath, content] of Object.entries(files)) {

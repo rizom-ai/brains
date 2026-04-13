@@ -1,6 +1,6 @@
 id: tool-invocation-git-sync
 name: Git Sync Backup Request
-description: Tests that agent calls directory-sync sync tool when user wants to backup their brain
+description: Tests that agent treats backing up the brain to git as a sync action
 type: tool_invocation
 tags:
   - core

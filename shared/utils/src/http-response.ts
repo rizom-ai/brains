@@ -1,4 +1,4 @@
-import { z } from "./zod";
+import type { z } from "./zod";
 
 /**
  * Safely parse a Response body as JSON. Empty body returns undefined;

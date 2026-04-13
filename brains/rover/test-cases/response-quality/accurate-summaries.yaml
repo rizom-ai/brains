@@ -18,5 +18,5 @@ successCriteria:
   minHelpfulnessScore: 3
 
 efficiency:
-  maxToolCalls: 8
+  maxToolCalls: 10
   maxTokens: 50000

@@ -101,7 +101,7 @@ while (server.status !== "running" || !server.public_net?.ipv4?.ip) {
   server = await getServer(server.id);
 }
 
-const serverIp = server.public_net?.ipv4?.ip;
+const serverIp = server.public_net.ipv4.ip;
 if (!serverIp) {
   throw new Error(`Server ${server.id} running but has no IPv4 address`);
 }

@@ -8,7 +8,7 @@ import { onboardUser } from "../src/onboard-user";
 import { reconcileAll } from "../src/reconcile-all";
 import { reconcileCohort } from "../src/reconcile-cohort";
 
-async function createPilotRepo(files: Record<string, string>) {
+async function createPilotRepo(files: Record<string, string>): Promise<string> {
   const root = await mkdtemp(join(tmpdir(), "rover-pilot-reconcile-"));
 
   for (const [relativePath, content] of Object.entries(files)) {
@@ -24,16 +24,18 @@ function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-function createRunner(calls: string[]) {
-  return async (user: ResolvedUser) => {
+function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
+  return async (user: ResolvedUser): Promise<void> => {
     calls.push(
       `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
     );
   };
 }
 
-function createSnapshotRunner(calls: string[]) {
-  return async (user: ResolvedUser) => {
+function createSnapshotRunner(
+  calls: string[],
+): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
+  return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
       `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
     );
