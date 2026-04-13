@@ -47,6 +47,7 @@ discord:
       "users/bob.yaml": `handle: bob
 discord:
   enabled: true
+  anchorUserId: "123456789"
 aiApiKeyOverride: BOB_AI_API_KEY
 `,
       "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
@@ -95,6 +96,7 @@ members:
         contentRepo: "rover-bob-content",
         deployStatus: "unknown",
         discordEnabled: true,
+        discordAnchorUserId: "123456789",
         dnsStatus: "unknown",
         domain: "bob.rizom.ai",
         effectiveAiApiKey: "BOB_AI_API_KEY",

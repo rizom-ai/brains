@@ -112,6 +112,23 @@ describe("reconcile scripts", () => {
     );
   });
 
+  it("renders discord anchor user IDs into generated brain config", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/bob.yaml": `handle: bob
+discord:
+  enabled: true
+  anchorUserId: "123456789"
+`,
+    });
+
+    await onboardUser(root, "bob");
+
+    expect(
+      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
+    ).toContain('anchors: ["discord:123456789"]');
+  });
+
   it("reconcileCohort runs only users in target cohort, sorted by handle", async () => {
     const root = await createPilotRepo(baseFiles);
     const calls: string[] = [];

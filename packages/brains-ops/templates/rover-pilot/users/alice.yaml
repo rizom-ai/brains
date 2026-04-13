@@ -4,3 +4,4 @@ anchorProfile:
   description: Replace this with Alice's real public profile summary.
 discord:
   enabled: false
+  # anchorUserId: "123456789012345678"

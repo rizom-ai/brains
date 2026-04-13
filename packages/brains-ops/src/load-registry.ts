@@ -55,6 +55,7 @@ export interface ResolvedUserIdentity {
   domain: string;
   contentRepo: string;
   discordEnabled: boolean;
+  discordAnchorUserId?: string;
   effectiveAiApiKey: string;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
@@ -136,6 +137,9 @@ export async function loadPilotRegistry(
         domain: `${userFile.data.handle}${pilot.domainSuffix}`,
         contentRepo: `${pilot.contentRepoPrefix}${userFile.data.handle}-content`,
         discordEnabled: userFile.data.discord.enabled,
+        ...(userFile.data.discord.anchorUserId
+          ? { discordAnchorUserId: userFile.data.discord.anchorUserId }
+          : {}),
         effectiveAiApiKey:
           userFile.data.aiApiKeyOverride ??
           cohort.data.aiApiKeyOverride ??

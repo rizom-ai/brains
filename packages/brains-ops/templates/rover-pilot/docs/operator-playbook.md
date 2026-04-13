@@ -35,6 +35,8 @@ They are scaffolded from `@rizom/ops`, then versioned in this repo like any othe
 
 ## Bootstrap flow
 
+If Discord is enabled for a user and they should have anchor-level Discord access, set `users/<handle>.yaml -> discord.anchorUserId` to their Discord user ID. Generated `users/<handle>/brain.yaml` will then include `anchors: ["discord:<id>"]`.
+
 For a new pilot user, the operator bootstrap order is:
 
 1. `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`

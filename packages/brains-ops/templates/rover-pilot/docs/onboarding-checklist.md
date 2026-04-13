@@ -3,6 +3,7 @@
 1. Run `bun install` so the repo uses its pinned `@rizom/ops` version.
 2. Fill in `pilot.yaml`.
 3. Add or edit `users/<handle>.yaml`.
+   - if Discord is enabled and the user should be an anchor there, set `discord.anchorUserId` to their Discord user ID
 4. Add the user to a cohort in `cohorts/*.yaml`.
 5. Run `bunx brains-ops render <repo>`.
 6. Run `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`.

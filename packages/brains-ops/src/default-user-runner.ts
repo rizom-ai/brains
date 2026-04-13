@@ -19,7 +19,7 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
     `domain: ${user.domain}`,
     `preset: ${user.preset}`,
     "",
-    "anchors: []",
+    renderAnchors(user),
     "",
     "plugins:",
     "  directory-sync:",
@@ -38,6 +38,14 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderAnchors(user: ResolvedUser): string {
+  if (user.discordEnabled && user.discordAnchorUserId) {
+    return `anchors: ["discord:${user.discordAnchorUserId}"]`;
+  }
+
+  return "anchors: []";
 }
 
 function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {

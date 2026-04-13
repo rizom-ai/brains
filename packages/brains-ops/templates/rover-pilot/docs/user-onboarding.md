@@ -271,9 +271,12 @@ Important:
 - Discord is **off by default**
 - if you want Discord, tell us explicitly
 - for this pilot, Discord-enabled users may need to supply their own bot token
+- if Discord is enabled and you should have full anchor access there, we may also ask for your Discord user ID
 - if Discord is enabled, we will send the exact invite/setup steps separately
 
 If Discord is **not** enabled for you, that is completely normal.
+
+If we ask for your Discord user ID, you can get it by enabling Developer Mode in Discord, then right-clicking your username and choosing **Copy User ID**.
 
 ## What to expect in the pilot
 
@@ -351,6 +354,7 @@ Rover URL: https://<handle>.rizom.ai/mcp
 Auth type: Bearer token
 Bearer token: <token>
 Discord enabled: yes/no
+Discord anchor access: yes/no
 ```
 
 If anything is unclear, reply with the exact error text or a screenshot and we will help.

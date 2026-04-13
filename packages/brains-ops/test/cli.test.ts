@@ -311,6 +311,28 @@ discord:
     );
   });
 
+  it("uses the default runner for onboard with a discord anchor user", async () => {
+    const root = await createPilotRepo({
+      ...baseFiles,
+      "users/bob.yaml": `handle: bob
+discord:
+  enabled: true
+  anchorUserId: "123456789"
+`,
+    });
+
+    const result = await runCommand({
+      command: "onboard",
+      args: [root, "bob"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(true);
+    expect(
+      await readFile(join(root, "users/bob/brain.yaml"), "utf8"),
+    ).toContain('anchors: ["discord:123456789"]');
+  });
+
   it("uses injected operator runner for onboard", async () => {
     const root = await createPilotRepo(baseFiles);
     const calls: string[] = [];
