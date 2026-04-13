@@ -32,6 +32,7 @@ That usually includes:
 - your Rover URL: `https://<handle>.rizom.ai/mcp`
 - your **Bearer token**
 - confirmation of whether Discord is enabled for you
+- if needed, an invite to your **private** Rover content repo
 - any extra instructions if we are testing a specific workflow with your cohort
 
 Treat the **Bearer token** like a password. Do not share it.
@@ -200,7 +201,50 @@ A simple mental model:
 - **Claude Desktop** = talk to Rover
 - **Obsidian** = edit the underlying notes
 
-If we have already shared your content repo workflow with you, the simplest setup is:
+### Important: your content repo is private
+
+If you use the Obsidian/git workflow, you will be working in your own **private** GitHub repo.
+
+That means:
+
+- you do **not** need repo access just to use Rover through MCP
+- you **do** need GitHub access if you want to clone, edit, and push to your content repo
+- we will invite you only to **your own** content repo, not to the operator repo and not to other users' repos
+
+### How you get access
+
+If you want the Obsidian/git workflow, we will:
+
+1. create or confirm your private content repo
+2. invite your GitHub account to that repo
+3. ask you to accept the GitHub invite
+4. send you the repo URL
+
+### Easiest setup for most users
+
+The easiest path for most first-time users is:
+
+1. install **GitHub Desktop**
+2. accept the repo invite in GitHub
+3. clone the private repo with GitHub Desktop
+4. open the cloned folder as an Obsidian vault
+5. optionally install the **Obsidian Git** plugin if you want in-app commit/push/pull support
+6. edit your markdown notes
+7. commit and push your changes
+
+### Authentication options
+
+To work with a private repo, you need GitHub authentication.
+
+Usually the easiest order is:
+
+1. **GitHub Desktop** or normal GitHub sign-in
+2. **SSH key** if you already use git that way
+3. a **fine-grained personal access token** only if another tool specifically requires it
+
+You do **not** need a personal access token just to use Rover through MCP.
+
+If we have already shared your content repo workflow with you, the normal setup is:
 
 1. clone your Rover content repo locally
 2. open that folder as an Obsidian vault
