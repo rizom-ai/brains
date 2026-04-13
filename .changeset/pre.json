@@ -93,6 +93,7 @@
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
     "externalize-preact",
+    "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
     "fix-shared-local-env-browser-build",
     "fixed-group-alpha-republish",

@@ -1,5 +1,16 @@
 # @brains/app
 
+## 0.2.0-alpha.5
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.5
+  - @brains/utils@0.2.0-alpha.5
+  - @brains/core@0.2.0-alpha.5
+  - @brains/plugins@0.2.0-alpha.5
+  - @brains/templates@0.2.0-alpha.5
+
 ## 0.2.0-alpha.4
 
 ### Patch Changes

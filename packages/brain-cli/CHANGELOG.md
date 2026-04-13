@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.5
+
+### Patch Changes
+
+- [`c968a9d`](https://github.com/rizom-ai/brains/commit/c968a9d64b5f3f858135872f6c4c1052e394c7b0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Keep the Origin CA helper on a node-only `@brains/utils/origin-ca` subpath so `@rizom/brain` browser-targeted builds can publish successfully.
+
 ## 0.2.0-alpha.4
 
 ## 0.2.0-alpha.3
