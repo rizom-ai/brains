@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-rizom",
   "private": true,
-  "version": "0.2.0-alpha.8",
+  "version": "0.2.0-alpha.9",
   "description": "Rizom site package — shared by rizom.ai, rizom.foundation, and rizom.work. Variant selected per-brain via brain.yaml site.variant.",
   "type": "module",
   "exports": {

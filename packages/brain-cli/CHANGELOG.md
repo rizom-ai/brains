@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.9
+
+### Patch Changes
+
+- [`676b2c1`](https://github.com/rizom-ai/brains/commit/676b2c15d4a696b400783ad5c46325c7990d9154) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix deployed smoke routing so the container healthcheck goes through Caddy, core-only root requests no longer fail when no site webserver is running, and GET `/a2a` returns a helpful non-404 response.
+
 ## 0.2.0-alpha.8
 
 ### Patch Changes

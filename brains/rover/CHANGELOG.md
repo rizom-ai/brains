@@ -1,5 +1,38 @@
 # @brains/rover
 
+## 0.2.0-alpha.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.9
+  - @brains/blog@0.2.0-alpha.9
+  - @brains/decks@0.2.0-alpha.9
+  - @brains/image-plugin@0.2.0-alpha.9
+  - @brains/link@0.2.0-alpha.9
+  - @brains/note@0.2.0-alpha.9
+  - @brains/portfolio@0.2.0-alpha.9
+  - @brains/prompt@0.2.0-alpha.9
+  - @brains/series@0.2.0-alpha.9
+  - @brains/site-info@0.2.0-alpha.9
+  - @brains/social-media@0.2.0-alpha.9
+  - @brains/topics@0.2.0-alpha.9
+  - @brains/wishlist@0.2.0-alpha.9
+  - @brains/a2a@0.2.0-alpha.9
+  - @brains/discord@0.2.0-alpha.9
+  - @brains/mcp@0.2.0-alpha.9
+  - @brains/webserver@0.2.0-alpha.9
+  - @brains/analytics@0.2.0-alpha.9
+  - @brains/content-pipeline@0.2.0-alpha.9
+  - @brains/dashboard@0.2.0-alpha.9
+  - @brains/directory-sync@0.2.0-alpha.9
+  - @brains/newsletter@0.2.0-alpha.9
+  - @brains/obsidian-vault@0.2.0-alpha.9
+  - @brains/site-builder-plugin@0.2.0-alpha.9
+  - @brains/stock-photo@0.2.0-alpha.9
+  - @brains/app@0.2.0-alpha.9
+  - @brains/site-default@0.2.0-alpha.9
+
 ## 0.2.0-alpha.8
 
 ### Patch Changes

@@ -109,6 +109,7 @@
     "rizom-ops-render-live-status",
     "shared-kamal-template-sync",
     "sharp-lazy-load",
+    "smoke-a2a-root-caddy-fallback",
     "ssh-key-bootstrap-and-local-secret-paths",
     "standalone-deploy-publish-workflow",
     "standalone-deploy-ssh-readiness",
