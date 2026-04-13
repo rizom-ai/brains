@@ -43,7 +43,7 @@ const models = ["rover", "ranger", "relay"];
 const entries = models
   .map(
     (model) =>
-      `  ${model}: ${JSON.stringify(readModelEnvSchema(monorepoRoot, model))},`,
+      `  ${model}:\n    ${JSON.stringify(readModelEnvSchema(monorepoRoot, model))},`,
   )
   .join("\n");
 
