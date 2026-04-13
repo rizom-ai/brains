@@ -512,7 +512,7 @@ Until one of those fires: stay on per-user deploys.
   - proven with `smoke.rizom.ai`
   - Hetzner provisioning, Cloudflare DNS, Kamal deploy, and origin TLS all succeeded
   - public verification matched rover-core expectations: `/health` returned `200`, unauthenticated `/mcp` returned `401`
-- [ ] Create the `rover-pilot` monorepo in `rizom-ai` with the structure defined in Design
+- [x] Create the `rover-pilot` monorepo in `rizom-ai` with the structure defined in Design
 - [x] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
 - [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the pilot repo
 - [x] Add monorepo-owned `brains-ops render <repo>` so operators get table view from YAML truth
