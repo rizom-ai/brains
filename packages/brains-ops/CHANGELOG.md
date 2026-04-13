@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.4
+
+### Patch Changes
+
+- [`6067211`](https://github.com/rizom-ai/brains/commit/60672115d53b6c53b0ed04b2517f2252a80c9d27) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add private `brains-ops ssh-key:bootstrap` and `brains-ops cert:bootstrap` commands for rover-pilot operator bootstrap, and share the Origin CA helper boundary used by `@rizom/brain`.
+
 ## 0.2.0-alpha.3
 
 ## 0.2.0-alpha.2
