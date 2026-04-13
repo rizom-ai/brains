@@ -1,7 +1,7 @@
 {
   "name": "@brains/theme-rizom",
   "private": true,
-  "version": "0.2.0-alpha.11",
+  "version": "0.2.0-alpha.12",
   "description": "Rizom brand theme — amber + purple bioluminescent palette shared by rizom.ai, rizom.foundation, and rizom.work. Per-variant accents via [data-rizom-variant] selectors.",
   "type": "module",
   "exports": {

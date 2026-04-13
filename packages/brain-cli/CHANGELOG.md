@@ -1,5 +1,7 @@
 # @rizom/brain
 
+## 0.2.0-alpha.12
+
 ## 0.2.0-alpha.11
 
 ### Patch Changes

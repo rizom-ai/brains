@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.12
+
+### Patch Changes
+
+- [`30cce87`](https://github.com/rizom-ai/brains/commit/30cce876daba182fdf1063506d4662692873d5fe) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Seed a per-user `anchor-profile` into new Rover content repos and sync generated content seeds through the pilot deploy workflow.
+
 ## 0.2.0-alpha.11
 
 ### Patch Changes
