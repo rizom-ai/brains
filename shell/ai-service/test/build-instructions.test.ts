@@ -66,4 +66,20 @@ describe("buildInstructions", () => {
     const instructions = buildInstructions(identity, "public");
     expect(instructions).toContain("public user");
   });
+
+  it("should map note-like language to the base entity type", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      '"note", "notes", "memo", "base" → entityType: `base`',
+    );
+    expect(instructions).not.toContain('"note", "memo" → entityType: `note`');
+  });
+
+  it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain(
+      "Create a `base` entity immediately instead of asking for more detail unless the request is truly empty.",
+    );
+    expect(instructions).toContain("save, or capture content");
+  });
 });

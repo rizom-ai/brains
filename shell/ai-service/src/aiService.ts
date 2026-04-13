@@ -12,7 +12,11 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
-import { selectTextProvider, selectImageProvider } from "./provider-selection";
+import {
+  selectTextProvider,
+  selectImageProvider,
+  supportsTemperature,
+} from "./provider-selection";
 
 /**
  * AI Service for generating responses using Vercel AI SDK
@@ -128,9 +132,10 @@ export class AIService implements IAIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
-        ...(this.config.temperature !== undefined && {
-          temperature: this.config.temperature,
-        }),
+        ...(this.config.temperature !== undefined &&
+          supportsTemperature(this.config.model) && {
+            temperature: this.config.temperature,
+          }),
         ...(this.config.maxTokens !== undefined && {
           maxTokens: this.config.maxTokens,
         }),
@@ -186,9 +191,10 @@ export class AIService implements IAIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
-        ...(this.config.temperature !== undefined && {
-          temperature: this.config.temperature,
-        }),
+        ...(this.config.temperature !== undefined &&
+          supportsTemperature(this.config.model) && {
+            temperature: this.config.temperature,
+          }),
         ...(this.config.maxTokens !== undefined && {
           maxTokens: this.config.maxTokens,
         }),

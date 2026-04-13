@@ -85,3 +85,23 @@ export function selectImageProvider(model?: string): {
 
   return { provider: "openai", modelId: model };
 }
+
+/**
+ * Some providers/models reject temperature entirely.
+ *
+ * OpenAI reasoning models (gpt-5*, o*) currently warn or fail when
+ * temperature is passed, so callers should omit it.
+ */
+export function supportsTemperature(model?: string): boolean {
+  if (!model) return true;
+
+  const explicit = parseProviderPrefix(model);
+  const provider = explicit?.provider ?? selectTextProvider(model);
+  const modelId = explicit?.modelId ?? model;
+
+  if (provider !== "openai") {
+    return true;
+  }
+
+  return !/^(gpt-5|o[1-9])(?:[.-]|$)/.test(modelId);
+}

@@ -355,6 +355,7 @@ export class ShellInitializer {
 
     const agentFactory = createBrainAgentFactory({
       model: aiService.getModel(),
+      modelId: aiService.getConfig().model,
       webSearch: aiService.getConfig().webSearch,
       temperature: aiService.getConfig().temperature,
       maxTokens: aiService.getConfig().maxTokens,

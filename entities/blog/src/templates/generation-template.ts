@@ -7,19 +7,25 @@ import { createTemplate } from "@brains/plugins";
 export const blogGenerationSchema = z.object({
   title: z
     .string()
+    .trim()
+    .min(1)
     .max(80)
     .describe(
-      "A short, punchy title (2-4 words) that's memorable and evocative",
+      "A short, punchy title (2-4 words) that's memorable and evocative. Must not be empty.",
     ),
   content: z
     .string()
+    .trim()
+    .min(1)
     .describe(
-      "Blog post content in markdown format, relatively concise (30-80 lines), with flowing narrative style",
+      "Blog post content in markdown format, relatively concise (30-80 lines), with flowing narrative style. Must not be empty.",
     ),
   excerpt: z
     .string()
+    .trim()
+    .min(1)
     .describe(
-      "A concise 1-2 sentence summary that captures the essence of the post",
+      "A concise 1-2 sentence summary that captures the essence of the post. Must not be empty.",
     ),
 });
 
@@ -37,6 +43,8 @@ export const blogGenerationTemplate = createTemplate<BlogGeneration>({
   basePrompt: `You are writing blog posts in a distinctive voice that blends philosophy, technology, and culture.
 
 Your task is to generate a complete blog post based on the user's prompt.
+
+Always return non-empty values for title, content, and excerpt. Never return empty strings or placeholder-only output.
 
 Style guidelines:
 1. Title: Short and punchy (2-4 words). Evocative, not SEO-optimized. Examples: "False Media", "Foam Party", "The Low End Theory"

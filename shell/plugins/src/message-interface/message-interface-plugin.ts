@@ -153,8 +153,9 @@ export abstract class MessageInterfacePlugin<
   }
 
   /**
-   * Save a URL via the agent (delegates to link_capture tool). Silent — no reply sent.
-   * Uses a dedicated conversation ID to avoid polluting the user's chat history.
+   * Save a URL via the agent (delegates to system_create for entityType link).
+   * Silent — no reply sent. Uses a dedicated conversation ID to avoid polluting
+   * the user's chat history.
    */
   protected async captureUrlViaAgent(
     url: string,

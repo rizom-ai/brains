@@ -69,6 +69,32 @@ function sanitizeEntity<T extends BaseEntity>(entity: T): T {
   return entity;
 }
 
+const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i;
+
+function normalizeOptionalString(
+  value: string | undefined,
+): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
+function extractFirstUrl(
+  ...values: Array<string | undefined>
+): string | undefined {
+  for (const value of values) {
+    const match = value?.match(URL_PATTERN);
+    if (match?.[0]) {
+      return match[0];
+    }
+  }
+
+  return undefined;
+}
+
 export function createSystemTools(services: SystemServices): Tool[] {
   const { entityService, conversationService, logger, jobs } = services;
 
@@ -352,26 +378,78 @@ export function createSystemTools(services: SystemServices): Tool[] {
       "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
       createInputSchema,
       async (input, toolContext) => {
-        if (!input.content && !input.prompt)
+        const prompt = normalizeOptionalString(input.prompt);
+        const content = normalizeOptionalString(input.content);
+        const title = normalizeOptionalString(input.title);
+        const targetEntityType = normalizeOptionalString(
+          input.targetEntityType,
+        );
+        const targetEntityId = normalizeOptionalString(input.targetEntityId);
+
+        if (!content && !prompt)
           return {
             success: false,
             error:
               "Provide 'content' (direct create) or 'prompt' (AI generation), or both.",
           };
 
-        if (input.prompt) {
+        if (input.entityType === "link") {
+          const url = extractFirstUrl(content, prompt, title);
+
+          if (url) {
+            try {
+              const jobId = await jobs.enqueue(
+                "link:generation",
+                {
+                  url,
+                  metadata: {
+                    interfaceId: toolContext.interfaceType,
+                    userId: toolContext.userId,
+                    ...(toolContext.channelId
+                      ? { channelId: toolContext.channelId }
+                      : {}),
+                    ...(toolContext.channelName
+                      ? { channelName: toolContext.channelName }
+                      : {}),
+                    timestamp: new Date().toISOString(),
+                  },
+                },
+                toolContext,
+              );
+              return { success: true, data: { status: "generating", jobId } };
+            } catch (error) {
+              return {
+                success: false,
+                error:
+                  error instanceof Error
+                    ? error.message
+                    : "Failed to queue link capture job",
+              };
+            }
+          }
+
+          if (prompt) {
+            return {
+              success: false,
+              error:
+                "Link creation requires a URL in the prompt, content, or title.",
+            };
+          }
+        }
+
+        if (prompt) {
           try {
             const jobId = await jobs.enqueue(
               `${input.entityType}:generation`,
               {
-                prompt: input.prompt,
-                title: input.title,
-                content: input.content,
-                ...(input.targetEntityType && {
-                  targetEntityType: input.targetEntityType,
+                prompt,
+                ...(title && { title }),
+                ...(content && { content }),
+                ...(targetEntityType && {
+                  targetEntityType,
                 }),
-                ...(input.targetEntityId && {
-                  targetEntityId: input.targetEntityId,
+                ...(targetEntityId && {
+                  targetEntityId,
                 }),
               },
               toolContext,
@@ -388,14 +466,14 @@ export function createSystemTools(services: SystemServices): Tool[] {
           }
         }
 
-        const id = slugify(input.title ?? `${input.entityType}-${Date.now()}`);
+        const id = slugify(title ?? `${input.entityType}-${Date.now()}`);
         const now = new Date().toISOString();
         try {
           const result = await entityService.createEntity({
             id,
             entityType: input.entityType,
-            content: input.content ?? "",
-            metadata: { title: input.title ?? id },
+            content: content ?? "",
+            metadata: { title: title ?? id },
             created: now,
             updated: now,
           });

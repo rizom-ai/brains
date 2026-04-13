@@ -54,6 +54,11 @@ export async function loadPluginEvalConfig(
       plugin = mod.default(pluginConfig);
     }
   } else {
+    // TODO: This heuristic can pick the wrong export for plugin eval bootstrap.
+    // Example: @brains/link exports LinkAdapter before LinkPlugin/createLinkPlugin,
+    // so eval.yaml-based runs can instantiate a non-plugin class and fail AppConfig
+    // validation before any evals execute. Replace this with explicit plugin export
+    // resolution instead of "first function export wins".
     // Search for a factory function or class in named exports
     const exportNames = Object.keys(mod).filter((k) => k !== "default");
     const factoryOrClass = exportNames.find(

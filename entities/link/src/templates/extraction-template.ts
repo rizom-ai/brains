@@ -10,9 +10,8 @@ const linkExtractionSchema = z.object({
     ),
   error: z
     .string()
-    .optional()
     .describe(
-      "If success is false, explain why content could not be extracted",
+      "If success is false, explain why content could not be extracted. Use an empty string when success is true.",
     ),
   title: z
     .string()
@@ -49,6 +48,8 @@ export const linkExtractionTemplate = createTemplate<LinkExtractionResult>({
 You will receive webpage content in markdown format. Your job is to extract structured information from it.
 
 If the content is empty, contains only an error message, or has no meaningful information to extract, set success to false and explain why.
+
+Always include every field in your response. If success is true, set error to an empty string.
 
 If the content has meaningful information, set success to true and extract:
 1. A clear, descriptive title for the page

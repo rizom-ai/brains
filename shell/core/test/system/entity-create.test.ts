@@ -10,6 +10,17 @@ const enqueuedCreateJobSchema = z.object({
   targetEntityId: z.string(),
 });
 
+const enqueuedLinkJobSchema = z.object({
+  url: z.string().url(),
+  metadata: z.object({
+    interfaceId: z.string(),
+    userId: z.string(),
+    channelId: z.string().optional(),
+    channelName: z.string().optional(),
+    timestamp: z.string(),
+  }),
+});
+
 describe("system_create tool", () => {
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
@@ -82,6 +93,57 @@ describe("system_create tool", () => {
     });
 
     expect(result).toHaveProperty("success", false);
+  });
+
+  it("should route prompted link creation with a URL to link generation", async () => {
+    const result = await exec({
+      entityType: "link",
+      prompt: "Save this link for me: https://anthropic.com/research",
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.status).toBe("generating");
+    expect(data.jobId).toBeDefined();
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("link:generation");
+    const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
+    expect(jobData.url).toBe("https://anthropic.com/research");
+    expect(jobData.metadata.interfaceId).toBe("test");
+    expect(jobData.metadata.userId).toBe("test");
+  });
+
+  it("should reject prompted link creation without a URL", async () => {
+    const result = await exec({
+      entityType: "link",
+      prompt: "Save the article I mentioned earlier",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain("requires a URL");
+  });
+
+  it("should ignore empty optional strings when queuing generation jobs", async () => {
+    await exec({
+      entityType: "post",
+      prompt: "Write about TypeScript.",
+      title: "",
+      content: "",
+      targetEntityType: "",
+      targetEntityId: "",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("post:generation");
+    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(rawJobData["title"]).toBeUndefined();
+    expect(rawJobData["content"]).toBeUndefined();
+    expect(rawJobData["targetEntityType"]).toBeUndefined();
+    expect(rawJobData["targetEntityId"]).toBeUndefined();
+    expect(rawJobData["prompt"]).toBe("Write about TypeScript.");
   });
 
   it("should pass targetEntityType and targetEntityId to job data", async () => {

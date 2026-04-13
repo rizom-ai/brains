@@ -1,0 +1,30 @@
+id: tool-invocation-system-create-link-unreachable
+name: Unreachable Link Still Uses system_create
+description: Verifies that the agent still invokes system_create for link capture requests with unreachable URLs instead of refusing preemptively or hallucinating success
+type: tool_invocation
+tags:
+  - core
+  - system
+  - link
+  - error-handling
+  - anti-fabrication
+
+turns:
+  - userMessage: "Save this link: https://this-domain-definitely-does-not-exist-12345.com/page"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "link"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+    - "link_capture"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

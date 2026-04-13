@@ -292,6 +292,22 @@ describe("AIService", () => {
         }),
       );
     });
+
+    it("should omit temperature for OpenAI reasoning models", async () => {
+      const service = AIService.createFresh(
+        { model: "gpt-5.4-mini", temperature: 0.3 },
+        logger,
+      );
+
+      await service.generateText("System", "User");
+
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.not.objectContaining({ temperature: expect.anything() }),
+      );
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ maxTokens: 1000 }),
+      );
+    });
   });
 
   describe("Object Generation", () => {
@@ -366,6 +382,25 @@ describe("AIService", () => {
           temperature: 0.2,
           maxTokens: 1500,
         }),
+      );
+    });
+
+    it("should omit temperature for reasoning models during object generation", async () => {
+      const service = AIService.createFresh(
+        {
+          model: "gpt-5.4-mini",
+          temperature: 0.2,
+        },
+        logger,
+      );
+
+      await service.generateObject("System", "User", testSchema);
+
+      expect(generateObjectSpy).toHaveBeenCalledWith(
+        expect.not.objectContaining({ temperature: expect.anything() }),
+      );
+      expect(generateObjectSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ maxTokens: 1000 }),
       );
     });
   });

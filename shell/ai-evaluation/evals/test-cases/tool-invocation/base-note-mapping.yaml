@@ -1,0 +1,49 @@
+id: shell-base-note-mapping
+name: Base/Note Mapping for Capture Flows
+description: Tests that note-like language and Discord-style uploaded text content map to the base entity type.
+type: multi_turn
+tags:
+  - shell
+  - tool-invocation
+  - create
+  - base
+  - note
+  - discord
+
+turns:
+  - userMessage: "Capture this as a note: buy milk, eggs, and coffee filters"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+
+  - userMessage: "Save this memo about the launch timeline"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+
+  - userMessage: |
+      save this file
+
+      User uploaded a file "meeting-notes.md":
+
+      # Meeting Notes
+      - finalize onboarding checklist
+      - align on rover pilot docs
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: base
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 9
+  maxTokens: 60000

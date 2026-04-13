@@ -19,6 +19,7 @@ import type { Tool, ToolContext } from "@brains/mcp-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { BrainAgent, BrainAgentFactory } from "./agent-types";
+import { supportsTemperature } from "./provider-selection";
 import {
   createToolExecuteWrapper,
   createMessageBusEmitter,
@@ -57,6 +58,7 @@ export interface BrainAgentConfig {
  */
 export interface BrainAgentFactoryOptions {
   model: LanguageModel;
+  modelId?: string | undefined;
   webSearch?: boolean | undefined;
   temperature?: number | undefined;
   maxTokens?: number | undefined;
@@ -181,10 +183,11 @@ Users say different things than the internal entity types. Always map:
 - "case study", "portfolio piece", "project" → entityType: \`project\`
 - "presentation", "deck", "slides" → entityType: \`deck\`
 - "bookmark", "link", "saved link" → entityType: \`link\`
-- "note", "memo" → entityType: \`note\`
+- "note", "notes", "memo", "base" → entityType: \`base\`
 
 ### Core Tools
-- **\`system_create\`** — creates ANY entity type: notes, blog posts, social posts, newsletters, images, decks. Pass \`entityType\` to specify what to create. Use \`prompt\` for AI generation or \`content\` for direct creation. **ALWAYS use this tool when the user asks to create, generate, or write content** — never just write text in the response. The content must be persisted as an entity.
+- **\`system_create\`** — creates ANY entity type: notes, blog posts, social posts, newsletters, images, decks. Pass \`entityType\` to specify what to create. Use \`prompt\` for AI generation or \`content\` for direct creation. **ALWAYS use this tool when the user asks to create, generate, write, save, or capture content** — never just write text in the response. The content must be persisted as an entity.
+- For lightweight capture requests like “save this memo about the launch timeline”, “capture this note”, or uploaded text files, treat the user’s words or file text as sufficient source material. Create a \`base\` entity immediately instead of asking for more detail unless the request is truly empty.
 - **\`system_get\`** / **\`system_list\`** / **\`system_search\`** — read entities. Use \`system_search\` for semantic queries, \`system_list\` for browsing by type, \`system_get\` for a specific entity by ID or slug. When the user asks for a content overview or summary, use \`system_list\` to show actual content — not \`system_insights\` (which only gives aggregate stats).
 - **\`system_update\`** — modify an entity's content or metadata. Use this for title changes, status updates, content edits, or any field modification.
 - **\`system_delete\`** — remove an entity. Always attempt the delete when asked — the tool handles confirmation.
@@ -260,7 +263,8 @@ When asking for confirmation, clearly describe what will happen.
 export function createBrainAgentFactory(
   options: BrainAgentFactoryOptions,
 ): BrainAgentFactory {
-  const { model, webSearch, temperature, maxTokens, messageBus } = options;
+  const { model, modelId, webSearch, temperature, maxTokens, messageBus } =
+    options;
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -312,7 +316,8 @@ export function createBrainAgentFactory(
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
-          ...(temperature !== undefined && { temperature }),
+          ...(temperature !== undefined &&
+            supportsTemperature(modelId) && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
           ...(webSearch && {
             providerOptions: {

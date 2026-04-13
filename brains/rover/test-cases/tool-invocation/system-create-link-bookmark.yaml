@@ -1,0 +1,29 @@
+id: tool-invocation-system-create-link-bookmark
+name: Bookmark Link via system_create
+description: Verifies that bookmark phrasing still maps to system_create with entityType link
+type: tool_invocation
+tags:
+  - core
+  - system
+  - link
+  - intent-recognition
+
+turns:
+  - userMessage: "Bookmark https://github.com/anthropics/claude-code"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "link"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+    - "link_capture"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000
