@@ -22,7 +22,6 @@ import { buildInstanceEnvSchema } from "../lib/env-schema";
  */
 const RIZOM_BRAIN_VERSION = `^${pkg.version}`;
 const PREACT_VERSION = "^10.27.2";
-const BUN_DOCKER_TAG = "oven/bun:1.3.10-slim";
 
 export interface ScaffoldOptions {
   model: string;
@@ -589,6 +588,7 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile
+          target: standalone
           push: true
           tags: \${{ steps.meta.outputs.tags }}
           labels: |
@@ -604,102 +604,40 @@ jobs:
   );
 }
 
+const packageDeployTemplatesDir = resolvePackageDeployTemplatesDir();
+
+function resolvePackageDeployTemplatesDir(): string {
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  const candidates = [
+    join(currentDir, "..", "..", "templates", "deploy"),
+    join(currentDir, "..", "templates", "deploy"),
+  ];
+
+  for (const candidate of candidates) {
+    if (
+      existsSync(join(candidate, "Dockerfile")) &&
+      existsSync(join(candidate, "Caddyfile"))
+    ) {
+      return candidate;
+    }
+  }
+
+  throw new Error("Missing package-local deploy templates for brain init");
+}
+
 function writeDeployDockerfile(dir: string, regen = false): void {
-  const content = `FROM ${BUN_DOCKER_TAG}
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \\
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \\
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \\
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \\
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \\
-    && setcap cap_net_bind_service=+ep $(which caddy) \\
-    && rm -rf /var/lib/apt/lists/*
-
-COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
-
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-COPY . .
-
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
-RUN mkdir -p /app/data /app/cache /app/brain-data && \\
-    chmod -R 777 /app/data /app/cache /app/brain-data
-
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
-`;
-
+  const content = readFileSync(
+    join(packageDeployTemplatesDir, "Dockerfile"),
+    "utf-8",
+  );
   writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content, false, regen);
 }
 
 function writeDeployCaddyfile(dir: string, regen = false): void {
-  const content = `# Internal Caddy — path-based routing to brain services.
-# kamal-proxy handles SSL + host routing externally.
-# This Caddy runs inside the container, no TLS.
-
-# Shared internal HTTP entrypoint. kamal-proxy terminates TLS and forwards
-# requests here. Preview hosts are routed by Host header, not by a separate
-# external TLS port.
-:80 {
-	@preview host preview.*
-	handle @preview {
-		reverse_proxy localhost:4321
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-
-	# MCP endpoint
-	handle /mcp* {
-		reverse_proxy localhost:3333
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:3334
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
-	# Static production site (catch-all)
-	handle {
-		reverse_proxy localhost:8080
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-}
-`;
-
+  const content = readFileSync(
+    join(packageDeployTemplatesDir, "Caddyfile"),
+    "utf-8",
+  );
   writeScaffoldFile(join(dir, "deploy", "Caddyfile"), content, false, regen);
 }
 
@@ -971,11 +909,7 @@ export type { EnvSchemaEntry } from "@rizom/brain/deploy";
 `;
 
 function writeSharedDeployScripts(dir: string): void {
-  const scriptsDir = dirname(
-    fileURLToPath(
-      import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
-    ),
-  );
+  const scriptsDir = join(packageDeployTemplatesDir, "scripts");
 
   writeScaffoldFile(
     join(dir, "deploy", "scripts", "helpers.ts"),

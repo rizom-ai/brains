@@ -1,0 +1,66 @@
+# Internal Caddy — path-based routing to brain services.
+# kamal-proxy terminates TLS externally; this runs inside the container.
+:80 {
+	@preview host preview.*
+	handle @preview {
+		reverse_proxy localhost:4321
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
+	# MCP endpoint
+	handle /mcp* {
+		reverse_proxy localhost:3333
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+		}
+	}
+
+	# A2A endpoints
+	handle /.well-known/agent-card.json {
+		reverse_proxy localhost:3334
+	}
+
+	handle /a2a {
+		reverse_proxy localhost:3334
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization"
+		}
+	}
+
+	# Plugin API routes
+	handle /api/* {
+		reverse_proxy localhost:3335
+	}
+
+	# Production site: proxy to webserver if running, otherwise serve
+	# a minimal static fallback so the healthcheck and bare-domain
+	# requests succeed even on the core preset (no webserver).
+	handle {
+		reverse_proxy localhost:8080
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
+	handle_errors {
+		root * /srv/fallback
+		try_files /index.html
+		file_server
+	}
+}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdtempSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,8 +10,29 @@ import packageJson from "../package.json";
 const packageDir = dirname(
   fileURLToPath(new URL("../package.json", import.meta.url)),
 );
+const monorepoRoot = dirname(dirname(packageDir));
+
+function readPackageFile(relativePath: string): string {
+  return readFileSync(join(packageDir, relativePath), "utf8");
+}
+
+function readSharedFile(relativePath: string): string {
+  return readFileSync(
+    join(monorepoRoot, "shared", "utils", "src", relativePath),
+    "utf8",
+  );
+}
 
 describe("@rizom/ops package metadata", () => {
+  it("keeps package-local deploy templates synced from shared source", () => {
+    expect(readPackageFile("templates/rover-pilot/deploy/Dockerfile")).toBe(
+      readSharedFile("deploy-templates/Dockerfile"),
+    );
+    expect(readPackageFile("templates/rover-pilot/deploy/Caddyfile")).toBe(
+      readSharedFile("deploy-templates/Caddyfile"),
+    );
+  });
+
   it("publishes built dist entrypoints and templates", () => {
     expect(packageJson.main).toBe("./dist/index.js");
     expect(packageJson.types).toBe("./dist/index.d.ts");

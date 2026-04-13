@@ -18,10 +18,51 @@ import {
   existsSync,
   readdirSync,
 } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-const outdir = join(import.meta.dir, "..", "dist");
+const packageDir = join(import.meta.dir, "..");
+const outdir = join(packageDir, "dist");
 mkdirSync(outdir, { recursive: true });
+
+const sharedDeployTemplatesDir = dirname(
+  fileURLToPath(
+    import.meta.resolve("@brains/utils/deploy-templates/Dockerfile"),
+  ),
+);
+const sharedDeployScriptsDir = dirname(
+  fileURLToPath(
+    import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
+  ),
+);
+const packageDeployTemplatesDir = join(packageDir, "templates", "deploy");
+const packageDeployScriptsDir = join(packageDeployTemplatesDir, "scripts");
+
+function syncDeployTemplates(): void {
+  mkdirSync(packageDeployScriptsDir, { recursive: true });
+  cpSync(
+    join(sharedDeployTemplatesDir, "Dockerfile"),
+    join(packageDeployTemplatesDir, "Dockerfile"),
+  );
+  cpSync(
+    join(sharedDeployTemplatesDir, "Caddyfile"),
+    join(packageDeployTemplatesDir, "Caddyfile"),
+  );
+  cpSync(
+    join(sharedDeployScriptsDir, "provision-server.ts"),
+    join(packageDeployScriptsDir, "provision-server.ts"),
+  );
+  cpSync(
+    join(sharedDeployScriptsDir, "update-dns.ts"),
+    join(packageDeployScriptsDir, "update-dns.ts"),
+  );
+  cpSync(
+    join(sharedDeployScriptsDir, "write-ssh-key.ts"),
+    join(packageDeployScriptsDir, "write-ssh-key.ts"),
+  );
+}
+
+syncDeployTemplates();
 
 // ─── Find monorepo root ───────────────────────────────────────────────────
 

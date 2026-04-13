@@ -38,6 +38,7 @@ describe("initPilotRepo", () => {
       true,
     );
     expect(existsSync(join(repo, "docs", "operator-playbook.md"))).toBe(true);
+    expect(existsSync(join(repo, "docs", "user-onboarding.md"))).toBe(true);
     expect(existsSync(join(repo, "package.json"))).toBe(true);
     expect(existsSync(join(repo, ".github", "workflows", "build.yml"))).toBe(
       true,
@@ -50,6 +51,7 @@ describe("initPilotRepo", () => {
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
     expect(existsSync(join(repo, "deploy", "Dockerfile"))).toBe(true);
+    expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(true);
     expect(existsSync(join(repo, ".kamal", "hooks", "pre-deploy"))).toBe(true);
     expect(existsSync(join(repo, ".env.schema"))).toBe(true);
     expect(existsSync(join(repo, ".gitignore"))).toBe(true);
@@ -114,6 +116,7 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(buildWorkflow).toContain("docker/build-push-action@v6");
+    expect(buildWorkflow).toContain("target: fleet");
     expect(buildWorkflow).toContain("brainVersion");
     expect(buildWorkflow).toContain(
       "ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}",
@@ -222,9 +225,17 @@ describe("initPilotRepo", () => {
       join(repo, "deploy", "Dockerfile"),
       "utf8",
     );
+    expect(dockerfile).toContain("AS runtime");
+    expect(dockerfile).toContain("AS standalone");
+    expect(dockerfile).toContain("AS fleet");
     expect(dockerfile).toContain("ARG BRAIN_VERSION");
     expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
-    expect(dockerfile).toContain("brain start");
+    expect(dockerfile).toContain("caddy start");
+
+    const caddyfile = await readFile(join(repo, "deploy", "Caddyfile"), "utf8");
+    expect(caddyfile).toContain(":80");
+    expect(caddyfile).toContain("agent-card.json");
+    expect(caddyfile).toContain("reverse_proxy localhost:3334");
 
     const deployConfig = await readFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
@@ -235,7 +246,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("web:");
     expect(deployConfig).not.toContain("primary_role:");
     expect(deployConfig).not.toContain("mcp:");
-    expect(deployConfig).toContain("app_port: 3333");
+    expect(deployConfig).toContain("app_port: 80");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
 
@@ -257,6 +268,20 @@ describe("initPilotRepo", () => {
     expect(operatorPlaybook).toContain("final aggregation step");
     expect(operatorPlaybook).toContain("deploy/scripts/");
     expect(operatorPlaybook).toContain("`@rizom/ops` in `package.json`");
+
+    const userOnboarding = await readFile(
+      join(repo, "docs", "user-onboarding.md"),
+      "utf8",
+    );
+    expect(userOnboarding).toContain("Rover Pilot User Onboarding");
+    expect(userOnboarding).toContain("https://<handle>.rizom.ai/mcp");
+    expect(userOnboarding).toContain("Bearer token");
+    expect(userOnboarding).toContain("there is no website to browse");
+    expect(userOnboarding).toContain("Claude Desktop");
+    expect(userOnboarding).toContain("Obsidian");
+    expect(userOnboarding).toContain(
+      "Wishlist: when Rover cannot do something yet",
+    );
 
     const readme = await readFile(join(repo, "README.md"), "utf8");
     expect(readme).toContain("brains-ops init");

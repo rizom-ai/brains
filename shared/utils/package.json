@@ -20,6 +20,9 @@
     "./deploy-scripts/*": {
       "types": "./src/deploy-scripts/*",
       "default": "./src/deploy-scripts/*"
+    },
+    "./deploy-templates/*": {
+      "default": "./src/deploy-templates/*"
     }
   },
   "scripts": {

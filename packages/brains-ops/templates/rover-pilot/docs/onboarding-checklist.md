@@ -14,3 +14,4 @@
     - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns `401`
 11. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
 12. Hand the MCP connection details to the user.
+13. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.

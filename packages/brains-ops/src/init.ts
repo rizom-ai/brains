@@ -16,6 +16,7 @@ const starterFilePaths = [
   ".github/workflows/deploy.yml",
   ".github/workflows/reconcile.yml",
   "deploy/Dockerfile",
+  "deploy/Caddyfile",
   "deploy/kamal/deploy.yml",
   "deploy/scripts/helpers.ts",
   "deploy/scripts/provision-server.ts",
@@ -28,6 +29,7 @@ const starterFilePaths = [
   ".kamal/hooks/pre-deploy",
   "docs/onboarding-checklist.md",
   "docs/operator-playbook.md",
+  "docs/user-onboarding.md",
   "README.md",
 ] as const;
 

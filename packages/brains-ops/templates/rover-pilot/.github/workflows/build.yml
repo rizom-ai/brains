@@ -54,6 +54,7 @@ jobs:
         with:
           context: .
           file: deploy/Dockerfile
+          target: fleet
           push: true
           build-args: |
             BRAIN_VERSION=${{ env.BRAIN_VERSION }}
