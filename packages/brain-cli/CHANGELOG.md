@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.7
+
+### Patch Changes
+
+- [`b7eb35c`](https://github.com/rizom-ai/brains/commit/b7eb35cee36e1bb1742dcf99af0510f490e5a5cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix published deploy scaffolds to use package-local deploy templates and sync shared Docker/Caddy sources into both published packages at build time.
+
 ## 0.2.0-alpha.6
 
 ## 0.2.0-alpha.5

@@ -1,7 +1,7 @@
 {
   "name": "@brains/decks",
   "private": true,
-  "version": "0.2.0-alpha.6",
+  "version": "0.2.0-alpha.7",
   "description": "Presentation decks plugin for creating and viewing slide presentations",
   "type": "module",
   "exports": {

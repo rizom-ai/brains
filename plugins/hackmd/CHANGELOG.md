@@ -1,5 +1,13 @@
 # @brains/hackmd
 
+## 0.2.0-alpha.7
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.7
+  - @brains/utils@0.2.0-alpha.7
+
 ## 0.2.0-alpha.6
 
 ### Patch Changes
