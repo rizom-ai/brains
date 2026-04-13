@@ -1,3 +1,6 @@
 handle: alice
+anchorProfile:
+  name: Alice Example
+  description: Replace this with Alice's real public profile summary.
 discord:
   enabled: false

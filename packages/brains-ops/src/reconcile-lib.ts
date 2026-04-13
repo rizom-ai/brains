@@ -1,6 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 
+import {
+  syncUserContentRepo,
+  type ContentRepoSyncOptions,
+} from "./content-repo";
 import { createDefaultUserRunner } from "./default-user-runner";
 import {
   loadPilotRegistry,
@@ -9,15 +13,17 @@ import {
   type SnapshotStatus,
 } from "./load-registry";
 import { writeUsersTable } from "./render-users-table";
-import type { UserRunner } from "./user-runner";
+import type { ContentRepoFile, UserRunner } from "./user-runner";
 
-export type { UserRunResult, UserRunner } from "./user-runner";
+export type { ContentRepoSyncOptions } from "./content-repo";
+export type { ContentRepoFile, UserRunResult, UserRunner } from "./user-runner";
 
 export async function runUsers(
   rootDir: string,
   registry: PilotRegistry,
   users: ResolvedUser[],
   runner?: UserRunner,
+  contentRepoOptions: ContentRepoSyncOptions = {},
 ): Promise<void> {
   const snapshotWritten = new Set<string>();
   const defaultRunner = createDefaultUserRunner(registry.pilot.githubOrg);
@@ -27,6 +33,8 @@ export async function runUsers(
     const defaultResult = await defaultRunner(user);
     const brainYaml = runnerResult.brainYaml ?? defaultResult.brainYaml;
     const envFile = runnerResult.envFile ?? defaultResult.envFile;
+    const contentRepoFiles: ContentRepoFile[] =
+      runnerResult.contentRepoFiles ?? defaultResult.contentRepoFiles ?? [];
 
     if (envFile) {
       await writeUserFile(rootDir, user.handle, ".env", envFile);
@@ -35,6 +43,23 @@ export async function runUsers(
     if (brainYaml) {
       await writeUserFile(rootDir, user.handle, "brain.yaml", brainYaml);
       snapshotWritten.add(user.handle);
+    }
+
+    await syncUserContentRepo(
+      rootDir,
+      registry.pilot.githubOrg,
+      user,
+      contentRepoFiles,
+      contentRepoOptions,
+    );
+
+    for (const file of contentRepoFiles) {
+      await writeUserFile(
+        rootDir,
+        user.handle,
+        join("content", file.path),
+        file.content,
+      );
     }
   }
 

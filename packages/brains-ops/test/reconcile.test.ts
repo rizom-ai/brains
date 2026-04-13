@@ -55,6 +55,10 @@ preset: core
 aiApiKey: AI_API_KEY
 `,
   "users/alice.yaml": `handle: alice
+anchorProfile:
+  name: Alice Example
+  description: Researcher and writer
+
 discord:
   enabled: false
 `,
@@ -90,6 +94,16 @@ describe("reconcile scripts", () => {
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.15\nAI_API_KEY_SECRET=CANARY_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+    );
+    const anchorProfile = await readFile(
+      join(root, "users/alice/content/anchor-profile/anchor-profile.md"),
+      "utf8",
+    );
+    expect(anchorProfile).toContain("kind: professional");
+    expect(anchorProfile).toContain("name: Alice Example");
+    expect(anchorProfile).toContain("description: Researcher and writer");
+    expect(anchorProfile).toContain(
+      "This profile was initialized by brains-ops. Edit it in your content repo.",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
@@ -193,6 +207,12 @@ discord:
     expect(await readFile(join(root, "users/mary-jane/.env"), "utf8")).toBe(
       "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_MARY_JANE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_MARY_JANE\nDISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_MARY_JANE\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
     );
+    expect(
+      await readFile(
+        join(root, "users/mary-jane/content/anchor-profile/anchor-profile.md"),
+        "utf8",
+      ),
+    ).toContain("name: Mary Jane");
   });
 
   it("reconcileCohort fails for unknown cohort", async () => {

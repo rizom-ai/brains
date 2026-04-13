@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 export type RunCommand = (
   command: string,
   args: string[],
-  options?: { stdin?: string; env?: NodeJS.ProcessEnv },
+  options?: { stdin?: string; env?: NodeJS.ProcessEnv; cwd?: string },
 ) => Promise<void>;
 
 export const runSubprocess: RunCommand = async (command, args, options = {}) =>
@@ -11,6 +11,7 @@ export const runSubprocess: RunCommand = async (command, args, options = {}) =>
     const proc = spawn(command, args, {
       stdio: ["pipe", "inherit", "inherit"],
       env: options.env ? { ...process.env, ...options.env } : process.env,
+      cwd: options.cwd,
     });
 
     proc.on("error", reject);

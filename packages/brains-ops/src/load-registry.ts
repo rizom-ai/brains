@@ -31,6 +31,21 @@ export interface ResolvedCohort {
   aiApiKeyOverride?: string;
 }
 
+export interface ResolvedAnchorProfileSocialLink {
+  platform: "github" | "instagram" | "linkedin" | "email" | "website";
+  url: string;
+  label?: string;
+}
+
+export interface ResolvedAnchorProfile {
+  name: string;
+  description?: string;
+  website?: string;
+  email?: string;
+  story?: string;
+  socialLinks?: ResolvedAnchorProfileSocialLink[];
+}
+
 export interface ResolvedUserIdentity {
   handle: string;
   cohort: string;
@@ -41,6 +56,7 @@ export interface ResolvedUserIdentity {
   contentRepo: string;
   discordEnabled: boolean;
   effectiveAiApiKey: string;
+  anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
 
@@ -124,6 +140,10 @@ export async function loadPilotRegistry(
           userFile.data.aiApiKeyOverride ??
           cohort.data.aiApiKeyOverride ??
           pilot.aiApiKey,
+        anchorProfile: resolveAnchorProfile(
+          userFile.data.handle,
+          userFile.data.anchorProfile,
+        ),
         snapshotStatus: await resolveSnapshotStatus(
           rootDir,
           userFile.data.handle,
@@ -225,6 +245,38 @@ function resolveMemberships(
   }
 
   return membership;
+}
+
+function resolveAnchorProfile(
+  handle: string,
+  anchorProfile?: UserConfig["anchorProfile"],
+): ResolvedAnchorProfile {
+  return {
+    name: anchorProfile?.name ?? handleToDisplayName(handle),
+    ...(anchorProfile?.description
+      ? { description: anchorProfile.description }
+      : {}),
+    ...(anchorProfile?.website ? { website: anchorProfile.website } : {}),
+    ...(anchorProfile?.email ? { email: anchorProfile.email } : {}),
+    ...(anchorProfile?.story ? { story: anchorProfile.story } : {}),
+    ...(anchorProfile?.socialLinks
+      ? {
+          socialLinks: anchorProfile.socialLinks.map((link) => ({
+            platform: link.platform,
+            url: link.url,
+            ...(link.label ? { label: link.label } : {}),
+          })),
+        }
+      : {}),
+  };
+}
+
+function handleToDisplayName(handle: string): string {
+  return handle
+    .split("-")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 async function resolveSnapshotStatus(

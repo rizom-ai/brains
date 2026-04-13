@@ -26,6 +26,25 @@ export const pilotSchema = z
   })
   .strict();
 
+const anchorProfileSocialLinkSchema = z
+  .object({
+    platform: z.enum(["github", "instagram", "linkedin", "email", "website"]),
+    url: z.string().min(1),
+    label: z.string().min(1).optional(),
+  })
+  .strict();
+
+const anchorProfileSchema = z
+  .object({
+    name: z.string().min(1).optional(),
+    description: z.string().min(1).optional(),
+    website: z.string().min(1).optional(),
+    email: z.string().min(1).optional(),
+    story: z.string().min(1).optional(),
+    socialLinks: z.array(anchorProfileSocialLinkSchema).optional(),
+  })
+  .strict();
+
 export const userSchema = z
   .object({
     handle: handleSchema,
@@ -35,6 +54,7 @@ export const userSchema = z
       })
       .strict(),
     aiApiKeyOverride: secretNameSchema.optional(),
+    anchorProfile: anchorProfileSchema.optional(),
   })
   .strict();
 

@@ -37,6 +37,10 @@ preset: core
 aiApiKey: AI_API_KEY
 `,
       "users/alice.yaml": `handle: alice
+anchorProfile:
+  name: Alice Example
+  description: Researcher and writer
+
 discord:
   enabled: false
 `,
@@ -63,6 +67,10 @@ members:
     expect(registry.users).toHaveLength(2);
     expect(registry.users).toEqual([
       {
+        anchorProfile: {
+          description: "Researcher and writer",
+          name: "Alice Example",
+        },
         brainVersion: "0.1.1-alpha.15",
         cohort: "canary",
         contentRepo: "rover-alice-content",
@@ -79,6 +87,9 @@ members:
         snapshotStatus: "present",
       },
       {
+        anchorProfile: {
+          name: "Bob",
+        },
         brainVersion: "0.1.1-alpha.14",
         cohort: "steady",
         contentRepo: "rover-bob-content",

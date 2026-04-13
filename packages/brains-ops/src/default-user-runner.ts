@@ -1,5 +1,6 @@
+import { toYaml } from "@brains/utils";
 import type { ResolvedUser } from "./load-registry";
-import type { UserRunResult } from "./reconcile-lib";
+import type { ContentRepoFile, UserRunResult } from "./user-runner";
 import { deriveUserSecretNames } from "./user-secret-names";
 
 export function createDefaultUserRunner(
@@ -8,6 +9,7 @@ export function createDefaultUserRunner(
   return async (user: ResolvedUser): Promise<UserRunResult> => ({
     brainYaml: renderUserBrainYaml(user, githubOrg),
     envFile: renderUserEnv(user, githubOrg),
+    contentRepoFiles: renderContentRepoFiles(user),
   });
 }
 
@@ -36,6 +38,37 @@ function renderUserBrainYaml(user: ResolvedUser, githubOrg: string): string {
   lines.push("");
 
   return lines.join("\n");
+}
+
+function renderContentRepoFiles(user: ResolvedUser): ContentRepoFile[] {
+  return [
+    {
+      path: "anchor-profile/anchor-profile.md",
+      content: renderAnchorProfile(user),
+    },
+  ];
+}
+
+function renderAnchorProfile(user: ResolvedUser): string {
+  const frontmatter: Record<string, unknown> = {
+    kind: "professional",
+    name: user.anchorProfile.name,
+    ...(user.anchorProfile.description
+      ? { description: user.anchorProfile.description }
+      : {}),
+    ...(user.anchorProfile.website
+      ? { website: user.anchorProfile.website }
+      : {}),
+    ...(user.anchorProfile.email ? { email: user.anchorProfile.email } : {}),
+    ...(user.anchorProfile.socialLinks
+      ? { socialLinks: user.anchorProfile.socialLinks }
+      : {}),
+  };
+  const body =
+    user.anchorProfile.story ??
+    "This profile was initialized by brains-ops. Edit it in your content repo.";
+
+  return `---\n${toYaml(frontmatter).trimEnd()}\n---\n\n${body}\n`;
 }
 
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {

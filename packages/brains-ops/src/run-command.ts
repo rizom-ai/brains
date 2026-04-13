@@ -92,7 +92,9 @@ export async function runCommand(
         };
       }
 
-      await onboardUser(repo, handle, dependencies.runner);
+      await onboardUser(repo, handle, dependencies.runner, {
+        ...(dependencies.env ? { env: dependencies.env } : {}),
+      });
       return {
         success: true,
         message: `Onboarded ${handle}`,
@@ -181,7 +183,9 @@ export async function runCommand(
         };
       }
 
-      await reconcileCohort(repo, cohort, dependencies.runner);
+      await reconcileCohort(repo, cohort, dependencies.runner, {
+        ...(dependencies.env ? { env: dependencies.env } : {}),
+      });
       return {
         success: true,
         message: `Reconciled cohort ${cohort}`,
@@ -197,7 +201,9 @@ export async function runCommand(
         };
       }
 
-      await reconcileAll(repo, dependencies.runner);
+      await reconcileAll(repo, dependencies.runner, {
+        ...(dependencies.env ? { env: dependencies.env } : {}),
+      });
       return {
         success: true,
         message: "Reconciled all cohorts",

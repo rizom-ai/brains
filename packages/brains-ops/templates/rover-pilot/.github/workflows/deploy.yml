@@ -12,6 +12,7 @@ on:
     paths:
       - users/*/.env
       - users/*/brain.yaml
+      - users/*/content/**
       - deploy/**
       - .github/workflows/deploy.yml
 
@@ -73,7 +74,15 @@ jobs:
       - name: Install operator tooling
         run: bun install
 
+      - name: Resolve selected user secret names
+        id: user_secret_names
+        run: |
+          HANDLE_SUFFIX="$(printf '%s' "$HANDLE" | tr '[:lower:]-' '[:upper:]_')"
+          echo "git_sync_token_secret_name=GIT_SYNC_TOKEN_${HANDLE_SUFFIX}" >> "$GITHUB_OUTPUT"
+
       - name: Reconcile selected user config
+        env:
+          GIT_SYNC_TOKEN: ${{ secrets[steps.user_secret_names.outputs.git_sync_token_secret_name] }}
         run: bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
 
       - name: Resolve generated user config
@@ -97,6 +106,12 @@ jobs:
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
         run: bun deploy/scripts/validate-secrets.ts
+
+      - name: Seed content repo
+        env:
+          CONTENT_REPO: ${{ steps.user_config.outputs.content_repo }}
+          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
+        run: bun deploy/scripts/sync-content-repo.ts
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -213,6 +228,7 @@ jobs:
           path: |
             users/${{ matrix.handle }}/brain.yaml
             users/${{ matrix.handle }}/.env
+            users/${{ matrix.handle }}/content
 
       - name: Dump remote proxy diagnostics
         if: failure()

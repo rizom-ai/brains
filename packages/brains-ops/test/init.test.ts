@@ -81,6 +81,9 @@ describe("initPilotRepo", () => {
     expect(
       existsSync(join(repo, "deploy", "scripts", "resolve-deploy-handles.ts")),
     ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "sync-content-repo.ts")),
+    ).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).toContain("schemaVersion: 1");
@@ -138,6 +141,7 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("fetch-depth: 0");
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
+    expect(deployWorkflow).toContain("users/*/content/**");
     expect(deployWorkflow).toContain("handle:");
     expect(deployWorkflow).toContain("strategy:");
     expect(deployWorkflow).toContain("matrix.handle");
@@ -152,10 +156,18 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-deploy-handles.ts",
     );
+    expect(deployWorkflow).toContain("Resolve selected user secret names");
+    expect(deployWorkflow).toContain(
+      'echo "git_sync_token_secret_name=GIT_SYNC_TOKEN_${HANDLE_SUFFIX}" >> "$GITHUB_OUTPUT"',
+    );
+    expect(deployWorkflow).toContain(
+      "GIT_SYNC_TOKEN: ${{ secrets[steps.user_secret_names.outputs.git_sync_token_secret_name] }}",
+    );
     expect(deployWorkflow).toContain("bunx brains-ops onboard");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-user-config.ts",
     );
+    expect(deployWorkflow).toContain("bun deploy/scripts/sync-content-repo.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
@@ -368,6 +380,53 @@ describe("initPilotRepo", () => {
       "BRAIN_VERSION=0.1.1-alpha.14\n",
     );
     const currentSha = commitAll(repo, "add alice env");
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "push",
+          BEFORE_SHA: beforeSha,
+          GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles returns changed user handles for generated content seed updates", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    const beforeSha = commitAll(repo, "initial");
+
+    await mkdir(join(repo, "users", "alice", "content", "anchor-profile"), {
+      recursive: true,
+    });
+    await writeFile(
+      join(
+        repo,
+        "users",
+        "alice",
+        "content",
+        "anchor-profile",
+        "anchor-profile.md",
+      ),
+      "---\nname: Alice Example\nkind: professional\n---\n",
+    );
+    const currentSha = commitAll(repo, "seed alice anchor profile");
     await writeFile(outputPath, "");
 
     execFileSync(
