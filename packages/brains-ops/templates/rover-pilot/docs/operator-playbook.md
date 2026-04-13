@@ -53,6 +53,16 @@ When `@rizom/ops` changes the scaffolded deploy contract:
 3. review the resulting changes to `.env.schema`, `deploy/scripts/`, and workflows in git
 4. commit the updated deploy artifacts together
 
+## Rover-core verification notes
+
+Rover core is MCP-only. Do not expect the bare domain to serve a website.
+
+Use these checks after deploy:
+
+- `https://<handle>.rizom.ai/health` should return `200`
+- unauthenticated `POST https://<handle>.rizom.ai/mcp` should return `401 Unauthorized: Bearer token required`
+- a bare `GET /` may also return `401`; that is expected for rover core and does not indicate a bad deploy
+
 ## Recovery notes
 
 Document known failure modes, recovery steps, and operator notes here.

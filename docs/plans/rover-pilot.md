@@ -506,7 +506,10 @@ Until one of those fires: stay on per-user deploys.
 
 ## Implementation checklist (one-time setup)
 
-- [ ] Validate one throwaway rover deploy against `rizom.ai` zone using existing Cloudflare config
+- [x] Validate one throwaway rover deploy against `rizom.ai` zone using existing Cloudflare config
+  - proven with `smoke.rizom.ai`
+  - Hetzner provisioning, Cloudflare DNS, Kamal deploy, and origin TLS all succeeded
+  - public verification matched rover-core expectations: `/health` returned `200`, unauthenticated `/mcp` returned `401`
 - [ ] Create the `rover-pilot` monorepo in `rizom-ai` with the structure defined in Design
 - [x] Define Zod-validated schema for `users/*.yaml` and `cohorts/*.yaml`
 - [x] Add monorepo-owned `brains-ops init <repo>` to scaffold the pilot repo
@@ -530,19 +533,25 @@ Until one of those fires: stay on per-user deploys.
 
 ## Immediate next execution order
 
-1. Create the private `rizom-ai/rover-pilot` repo from the published `brains-ops` scaffold.
-2. Commit the scaffolded repo with pinned `@rizom/ops` package metadata and the generated baseline files.
-3. Run one throwaway user through the full shared-zone path under `<handle>.rizom.ai`.
-4. Verify the whole chain end to end:
-   - content repo creation
-   - generated `users/<handle>/brain.yaml`
-   - generated `users/<handle>/.env`
-   - Hetzner server provisioning
-   - Cloudflare DNS upsert in the `rizom.ai` zone
-   - shared image build and per-user deploy
-   - MCP reachability on the final subdomain
-5. Set the shared AI spend cap before onboarding any non-throwaway user.
-6. Pick cohort 1 only after the throwaway deploy and spend-cap decision are both complete.
+Completed proof:
+
+- private `rizom-ai/rover-pilot` repo scaffolded from published `@rizom/ops`
+- baseline repo committed with generated files
+- throwaway user deployed successfully at `smoke.rizom.ai`
+- end-to-end chain verified:
+  - content repo creation
+  - generated `users/<handle>/brain.yaml`
+  - generated `users/<handle>/.env`
+  - Hetzner server provisioning
+  - Cloudflare DNS upsert in the `rizom.ai` zone
+  - shared image build and per-user deploy
+  - MCP reachability contract on the final subdomain (`/health` = `200`, unauthenticated `/mcp` = `401`)
+
+Remaining immediate work:
+
+1. Set the shared AI spend cap before onboarding any non-throwaway user.
+2. Pick cohort 1 only after the spend-cap decision is complete.
+3. Provision cohort 1 gradually.
 
 ## Relationship to other plans
 

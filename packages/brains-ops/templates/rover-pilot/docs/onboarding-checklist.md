@@ -9,5 +9,8 @@
 7. Run `bunx brains-ops cert:bootstrap <repo> <handle> --push-to gh`.
 8. Run `bunx brains-ops secrets:push <repo> <handle>`.
 9. Run `bunx brains-ops onboard <repo> <handle>`.
-10. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
-11. Hand the MCP connection details to the user.
+10. Verify the deployed rover core contract:
+    - `https://<handle>.rizom.ai/health` returns `200`
+    - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns `401`
+11. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
+12. Hand the MCP connection details to the user.
