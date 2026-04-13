@@ -174,6 +174,9 @@ describe("initPilotRepo", () => {
       'bunx brains-ops render "$GITHUB_WORKSPACE"',
     );
     expect(deployWorkflow).toContain(
+      "git push origin HEAD:${{ github.ref_name }}",
+    );
+    expect(deployWorkflow).toContain(
       "IMAGE_REPOSITORY: ${{ steps.user_config.outputs.image_repository }}",
     );
     expect(deployWorkflow).toContain(
@@ -193,6 +196,7 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).not.toContain(
       'git commit -m "chore(ops): reconcile $HANDLE"',
     );
+    expect(deployWorkflow).not.toContain("\n          git push\n");
     expect(deployWorkflow).not.toContain("node <<");
     expect(deployWorkflow).not.toContain("TODO:");
 
