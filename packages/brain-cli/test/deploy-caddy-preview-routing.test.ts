@@ -7,8 +7,10 @@ const caddyfilePath = join(
   "..",
   "..",
   "..",
-  "deploy",
-  "docker",
+  "shared",
+  "utils",
+  "src",
+  "deploy-templates",
   "Caddyfile",
 );
 
@@ -39,5 +41,22 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("@preview host preview.*");
     expect(caddyfile).toContain("handle @preview {");
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
+  });
+
+  it("routes the container healthcheck through caddy to the mcp server", () => {
+    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+
+    expect(caddyfile).toContain("handle /health {");
+    expect(caddyfile).toContain("reverse_proxy localhost:3333");
+  });
+
+  it("falls back to the a2a server when no production webserver is running", () => {
+    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+
+    expect(caddyfile).toContain(
+      "reverse_proxy localhost:8080 localhost:3334 {",
+    );
+    expect(caddyfile).toContain("lb_policy first");
+    expect(caddyfile).toContain("lb_retries 1");
   });
 });

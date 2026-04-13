@@ -12,6 +12,11 @@
 		}
 	}
 
+	# Health endpoint
+	handle /health {
+		reverse_proxy localhost:3333
+	}
+
 	# MCP endpoint
 	handle /mcp* {
 		reverse_proxy localhost:3333
@@ -45,22 +50,18 @@
 		reverse_proxy localhost:3335
 	}
 
-	# Production site: proxy to webserver if running, otherwise serve
-	# a minimal static fallback so the healthcheck and bare-domain
-	# requests succeed even on the core preset (no webserver).
+	# Production site: prefer the webserver when present; otherwise fall back
+	# to the A2A interface so core-only deployments never return a bare 502.
 	handle {
-		reverse_proxy localhost:8080
+		reverse_proxy localhost:8080 localhost:3334 {
+			lb_policy first
+			lb_retries 1
+		}
 
 		header {
 			X-Frame-Options "SAMEORIGIN"
 			X-Content-Type-Options "nosniff"
 			Referrer-Policy "strict-origin-when-cross-origin"
 		}
-	}
-
-	handle_errors {
-		root * /srv/fallback
-		try_files /index.html
-		file_server
 	}
 }

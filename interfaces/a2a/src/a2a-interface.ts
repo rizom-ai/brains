@@ -171,6 +171,20 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       return c.json(this.agentCard);
     });
 
+    app.get("/", (c) => {
+      return c.redirect("/.well-known/agent-card.json", 302);
+    });
+
+    app.get("/a2a", (c) => {
+      return c.json(
+        {
+          error: "Use POST with JSON-RPC 2.0 requests.",
+          agentCard: "/.well-known/agent-card.json",
+        },
+        405,
+      );
+    });
+
     // JSON-RPC 2.0 endpoint
     app.post("/a2a", async (c) => {
       if (!this.agentService) {
