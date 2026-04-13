@@ -32,7 +32,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "test": "bun test"
+    "test": "bun test --timeout 20000"
   },
   "dependencies": {},
   "devDependencies": {

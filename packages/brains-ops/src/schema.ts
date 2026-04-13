@@ -51,6 +51,7 @@ export const userSchema = z
     discord: z
       .object({
         enabled: z.boolean(),
+        anchorUserId: z.string().min(1).optional(),
       })
       .strict(),
     aiApiKeyOverride: secretNameSchema.optional(),

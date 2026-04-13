@@ -9,9 +9,15 @@ import { runSubprocess, type RunCommand } from "./run-subprocess";
 import type { ContentRepoFile } from "./user-runner";
 import { deriveUserSecretNames } from "./user-secret-names";
 
+type FetchImpl = (
+  input: string | URL | Request,
+  init?: RequestInit,
+) => Promise<Response>;
+
 export interface ContentRepoSyncOptions {
   env?: NodeJS.ProcessEnv | undefined;
   runCommand?: RunCommand | undefined;
+  fetchImpl?: FetchImpl | undefined;
   contentRepoRemoteResolver?:
     | ((
         user: ResolvedUser,
@@ -52,8 +58,18 @@ export async function syncUserContentRepo(
     join(tmpdir(), `brains-ops-content-sync-${user.handle}-`),
   );
   const runCommand = options.runCommand ?? runSubprocess;
+  const fetchImpl = options.fetchImpl ?? fetch;
 
   try {
+    if (!options.contentRepoRemoteResolver && gitSyncToken) {
+      await ensureGitHubRepoExists(
+        githubOrg,
+        user.contentRepo,
+        gitSyncToken,
+        fetchImpl,
+      );
+    }
+
     await runCommand("git", ["clone", remoteUrl, worktree]);
     await checkoutMainBranch(worktree, runCommand);
     await runCommand("git", ["config", "user.name", "brains-ops[bot]"], {
@@ -146,6 +162,67 @@ function buildGitHubRemoteUrl(
   }
 
   return `https://x-access-token:${encodeURIComponent(gitSyncToken)}@github.com/${githubOrg}/${contentRepo}.git`;
+}
+
+async function ensureGitHubRepoExists(
+  githubOrg: string,
+  contentRepo: string,
+  gitSyncToken: string,
+  fetchImpl: FetchImpl,
+): Promise<void> {
+  const repoPath = `${encodeURIComponent(githubOrg)}/${encodeURIComponent(contentRepo)}`;
+  const repoUrl = `https://api.github.com/repos/${repoPath}`;
+  const headers = {
+    Accept: "application/vnd.github+json",
+    Authorization: `Bearer ${gitSyncToken}`,
+    "User-Agent": "brains-ops",
+    "X-GitHub-Api-Version": "2022-11-28",
+  };
+
+  const repoResponse = await fetchImpl(repoUrl, { headers });
+  if (repoResponse.ok) {
+    return;
+  }
+
+  if (repoResponse.status !== 404) {
+    throw new Error(
+      `Failed to check GitHub repo ${githubOrg}/${contentRepo}: ${repoResponse.status} ${await readResponseText(repoResponse)}`,
+    );
+  }
+
+  const createResponse = await fetchImpl(
+    `https://api.github.com/orgs/${encodeURIComponent(githubOrg)}/repos`,
+    {
+      method: "POST",
+      headers,
+      body: JSON.stringify({
+        name: contentRepo,
+        private: true,
+        auto_init: false,
+      }),
+    },
+  );
+
+  if (createResponse.ok) {
+    console.log(`Created missing content repo ${githubOrg}/${contentRepo}`);
+    return;
+  }
+
+  if (createResponse.status === 422) {
+    const retryResponse = await fetchImpl(repoUrl, { headers });
+    if (retryResponse.ok) {
+      return;
+    }
+  }
+
+  throw new Error(
+    `Failed to create GitHub repo ${githubOrg}/${contentRepo}: ${createResponse.status} ${await readResponseText(createResponse)}`,
+  );
+}
+
+async function readResponseText(response: Response): Promise<string> {
+  const text = await response.text();
+  return text.trim().length === 0 ? response.statusText : text;
 }
 
 async function checkoutMainBranch(

@@ -97,6 +97,68 @@ anchorProfile:
 } satisfies Record<string, string>;
 
 describe("content repo seeding", () => {
+  it("creates a missing GitHub content repo before seeding it", async () => {
+    const root = await createPilotRepo(baseFiles);
+    const fetchCalls: Array<{ url: string; method: string }> = [];
+    const commandCalls: Array<{ command: string; args: string[] }> = [];
+
+    await onboardUser(root, "alice", undefined, {
+      env: {
+        ...process.env,
+        GIT_SYNC_TOKEN: "test-token",
+      },
+      fetchImpl: async (input, init) => {
+        const url = String(input);
+        const method = init?.method ?? "GET";
+        fetchCalls.push({ url, method });
+
+        if (
+          url === "https://api.github.com/repos/rizom-ai/rover-alice-content" &&
+          method === "GET"
+        ) {
+          return new Response("Not Found", { status: 404 });
+        }
+
+        if (
+          url === "https://api.github.com/orgs/rizom-ai/repos" &&
+          method === "POST"
+        ) {
+          return new Response(JSON.stringify({ private: true }), {
+            status: 201,
+            headers: { "content-type": "application/json" },
+          });
+        }
+
+        throw new Error(`Unexpected fetch: ${method} ${url}`);
+      },
+      runCommand: async (command, args) => {
+        commandCalls.push({ command, args });
+      },
+    });
+
+    expect(fetchCalls).toEqual([
+      {
+        url: "https://api.github.com/repos/rizom-ai/rover-alice-content",
+        method: "GET",
+      },
+      {
+        url: "https://api.github.com/orgs/rizom-ai/repos",
+        method: "POST",
+      },
+    ]);
+    expect(commandCalls[0]?.command).toBe("git");
+    expect(commandCalls[0]?.args[0]).toBe("clone");
+    expect(commandCalls[0]?.args[1]).toBe(
+      "https://x-access-token:test-token@github.com/rizom-ai/rover-alice-content.git",
+    );
+    expect(typeof commandCalls[0]?.args[2]).toBe("string");
+    expect(
+      commandCalls.some(
+        ({ command, args }) => command === "git" && args[0] === "push",
+      ),
+    ).toBe(true);
+  });
+
   it("seeds a generated anchor profile into an empty content repo", async () => {
     const root = await createPilotRepo(baseFiles);
     const remotePath = await createBareRemote();
