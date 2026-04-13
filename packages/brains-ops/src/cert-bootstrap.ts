@@ -1,14 +1,13 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { readLocalEnvValues, resolveLocalEnvValue } from "@brains/utils";
 import {
   createOriginCertificateRequest,
   generateOriginKeyPair,
   issueCloudflareOriginCertificate,
-  readLocalEnvValues,
-  resolveLocalEnvValue,
   setCloudflareZoneSslStrict,
   type FetchLike,
-} from "@brains/utils";
+} from "@brains/utils/origin-ca";
 import { findUser } from "./reconcile-lib";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";

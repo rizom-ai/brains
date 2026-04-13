@@ -12,9 +12,7 @@ export function readLocalEnvValues(cwd: string): Record<string, string> {
 
     const parsed = parseLocalEnv(readFileSync(envPath, "utf8"));
     for (const [key, value] of Object.entries(parsed)) {
-      if (typeof value === "string" && /^[A-Z][A-Z0-9_]*$/.test(key)) {
-        values[key] = value;
-      }
+      values[key] = value;
     }
   }
 
@@ -45,18 +43,20 @@ function parseLocalEnv(content: string): Record<string, string> {
   const values: Record<string, string> = {};
 
   for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
+    const trimmed = rawLine.trim();
+    if (trimmed.length === 0 || trimmed.startsWith("#")) {
       continue;
     }
 
-    const separatorIndex = line.indexOf("=");
-    if (separatorIndex <= 0) {
+    const match = rawLine.match(
+      /^\s*(?:export\s+)?([A-Z][A-Z0-9_]*)\s*=\s*(.*)\s*$/,
+    );
+    const key = match?.[1];
+    const rawValue = match?.[2];
+    if (!key || rawValue === undefined) {
       continue;
     }
 
-    const key = line.slice(0, separatorIndex).trim();
-    const rawValue = line.slice(separatorIndex + 1).trim();
     values[key] = unquoteEnvValue(rawValue);
   }
 
@@ -64,11 +64,18 @@ function parseLocalEnv(content: string): Record<string, string> {
 }
 
 function unquoteEnvValue(value: string): string {
-  if (
-    (value.startsWith('"') && value.endsWith('"')) ||
-    (value.startsWith("'") && value.endsWith("'"))
-  ) {
+  if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) {
     return value.slice(1, -1);
+  }
+
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+    return value
+      .slice(1, -1)
+      .replace(/\\n/g, "\n")
+      .replace(/\\r/g, "\r")
+      .replace(/\\t/g, "\t")
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, "\\");
   }
 
   return value;

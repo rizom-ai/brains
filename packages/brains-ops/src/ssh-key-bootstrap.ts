@@ -14,8 +14,8 @@ import {
   resolveLocalEnvValue,
   resolveLocalPath,
   z,
-  type FetchLike,
 } from "@brains/utils";
+import { type FetchLike } from "@brains/utils/origin-ca";
 import { pushSecretsToBackend, normalizePushTarget } from "./push-secrets";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 

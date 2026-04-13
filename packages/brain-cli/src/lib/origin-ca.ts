@@ -7,4 +7,4 @@ export {
   type FetchLike,
   type OriginCertificateRequest,
   type OriginKeyPair,
-} from "@brains/utils";
+} from "@brains/utils/origin-ca";
