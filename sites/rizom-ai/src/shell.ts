@@ -13,10 +13,16 @@ export const aiShellModel: RizomShellModel = {
   ],
   footerMetaLabel: "© 2026 · Apache-2.0",
   footerLinks: [
-    { href: "#", label: "GitHub" },
-    { href: "#", label: "Documentation" },
+    { href: "https://github.com/rizom-ai/brains", label: "GitHub" },
+    {
+      href: "https://github.com/rizom-ai/brains/tree/main/docs",
+      label: "Documentation",
+    },
     { href: "#", label: "Discord" },
-    { href: "#", label: "LinkedIn" },
+    {
+      href: "https://www.linkedin.com/company/rizom-collective",
+      label: "LinkedIn",
+    },
   ],
   sideNav: [
     { href: "#hero", label: "Intro" },

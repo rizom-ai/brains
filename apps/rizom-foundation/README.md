@@ -4,7 +4,7 @@ A deployment instance of the [@brains/relay](../../brains/relay/) brain model â€
 
 ## Status
 
-**Composition seam in progress.** This app now points at a thin `@brains/site-rizom-foundation` wrapper so foundation-specific site structure can diverge from the shared `rizom.ai` baseline without growing more `variant` conditionals inside one final site package.
+`rizom.foundation` now has an explicit app-owned wrapper over shared Rizom base primitives. The wrapper owns the final shell + route composition, while durable editorial section copy is beginning to move into tracked `brain-data/site-content/home/*.md` content files.
 
 ## Setup
 
@@ -30,7 +30,21 @@ That wrapper currently does three things:
 
 - injects the `foundation` canvas/plugin config
 - owns the foundation shell model (nav/footer/side-nav labels)
-- adds the first foundation-only section seams (`pull-quote`, `research`) while reusing the shared Rizom base site
+- owns the final foundation route composition while reusing shared Rizom base primitives
+
+Tracked `site-content` now exists for durable foundation sections such as:
+
+- `ownership`
+- `mission`
+- `research`
+- `events`
+- `support`
+
+## Content repo
+
+This instance is now wired for directory-sync against:
+
+- `rizom-ai/rizom-foundation-content`
 
 ## Deployment
 

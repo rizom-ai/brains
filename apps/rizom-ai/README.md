@@ -4,7 +4,7 @@ A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model 
 
 ## Status
 
-`rizom.ai` now has its own thin site wrapper package over the shared Rizom base. Foundation and work use the same pattern, which makes later extraction and site-specific composition changes cheaper.
+`rizom.ai` now has its own thin site wrapper package over the shared Rizom base, and now explicitly owns its final route tree rather than inheriting the shared Rizom baseline as its effective final composition. Foundation and work use the same wrapper pattern, which makes later extraction and site-specific composition changes cheaper.
 
 ## Setup
 

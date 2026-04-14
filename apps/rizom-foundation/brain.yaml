@@ -12,5 +12,9 @@ site:
   package: "@brains/site-rizom-foundation"
 
 plugins:
+  directory-sync:
+    git:
+      repo: rizom-ai/rizom-foundation-content
+      authToken: ${GIT_SYNC_TOKEN}
   mcp:
     authToken: ${MCP_AUTH_TOKEN}

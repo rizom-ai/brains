@@ -19,7 +19,10 @@ export const foundationShellModel: RizomShellModel = {
   },
   footerLinks: [
     { href: "#mission", label: "Newsletter" },
-    { href: "#", label: "LinkedIn" },
+    {
+      href: "https://www.linkedin.com/company/rizom-collective",
+      label: "LinkedIn",
+    },
     { href: "#ecosystem", label: "Ecosystem" },
     { href: "#support", label: "Contact" },
   ],

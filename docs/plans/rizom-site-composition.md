@@ -92,9 +92,14 @@ Open work for `rizom.ai` still exists:
 
 ### `rizom.foundation`
 
-First seam now exists: the app points at a thin `@brains/site-rizom-foundation` wrapper and has its first foundation-only section hook (`pull-quote`).
+`rizom.foundation` now has explicit app-owned route composition in its thin wrapper:
 
-Remaining open work is still substantial. Foundation still needs composition closer to its mockup, including likely sections such as:
+- `@brains/site-rizom-foundation`
+- wrapper-owned shell model
+- wrapper-owned route export
+- tracked `site-content` for durable editorial sections
+
+Implemented foundation sections now include:
 
 - editorial hero
 - argument block
@@ -106,9 +111,18 @@ Remaining open work is still substantial. Foundation still needs composition clo
 - follow/CTA section
 - ecosystem
 
+Open work remains, but it is now mostly content/link polish, shared-vs-app ownership cleanup, and later extraction rather than first-pass composition scaffolding.
+
 ### `rizom.work`
 
-Needs composition closer to its mockup, including likely sections such as:
+`rizom.work` now also has explicit app-owned route composition in its thin wrapper:
+
+- `@brains/site-rizom-work`
+- wrapper-owned shell model
+- wrapper-owned route export
+- tracked `site-content` for durable workshop/offer sections
+
+Implemented work sections now include:
 
 - split hero
 - diagnostic widget
@@ -119,16 +133,19 @@ Needs composition closer to its mockup, including likely sections such as:
 - bridge/closer CTA sections
 - ecosystem
 
+Open work is now mostly real CTA destination cleanup, proof/case-study polish, shared-vs-app ownership cleanup, and later extraction.
+
 ### Shared-shell cleanup still needed
 
-Current shared Rizom shell still has hardcoded AI-shaped pieces that must stop being final shared behavior:
+The biggest shared-shell cleanup is now done:
 
 - `Header.tsx`
 - `Footer.tsx`
 - `SideNav.tsx`
-- `routes.ts`
 
-Those should either become neutral shared primitives or move under app-owned composition.
+now read explicit shell models rather than hardcoded app labels.
+
+Open shared cleanup still remains around `routes.ts` and around deciding which currently shared section implementations are truly reusable primitives versus temporary app-specific sections living in `sites/rizom`.
 
 ## Concrete cut list
 

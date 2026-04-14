@@ -2,13 +2,16 @@ import type { RouteDefinitionInput } from "@brains/plugins";
 import { createEcosystemContent } from "./compositions/ecosystem";
 
 /**
- * Routes for all rizom site variants (ai / foundation / work).
+ * Transitional shared Rizom route baseline.
  *
- * Variants share the same routes; what differs is the section
- * copy and the canvas script (injected via the site plugin's head
- * script hook). Some sections still resolve authored content via
- * site-content entities; others, like the shared ecosystem block,
- * are now supplied directly from shared composition helpers.
+ * This shared package still ships a default route stack for direct
+ * consumers of `@brains/site-rizom`, but app-owned wrappers should
+ * treat it as a reusable baseline rather than the canonical final
+ * composition for rizom.ai / rizom.foundation / rizom.work.
+ *
+ * In practice this baseline remains closest to the historical
+ * rizom.ai structure while the remaining app ownership cleanup
+ * continues.
  */
 export const routes: RouteDefinitionInput[] = [
   {

@@ -18,4 +18,21 @@ That wrapper currently does three things:
 
 - injects the `work` canvas/plugin config
 - owns the work shell model (nav/footer/side-nav labels)
-- replaces the inherited hero with the first work-specific split hero + diagnostic panel seam
+- owns the final work route composition while reusing shared Rizom base primitives
+
+Tracked `site-content` now exists for durable work sections such as:
+
+- `hero`
+- `problem`
+- `workshop`
+- `personas`
+- `proof`
+- `bridge`
+- `ownership`
+- `mission`
+
+## Content repo
+
+This instance is now wired for directory-sync against:
+
+- `rizom-ai/rizom-work-content`
