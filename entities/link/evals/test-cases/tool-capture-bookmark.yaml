@@ -1,6 +1,6 @@
 id: link-tool-capture-bookmark
 name: Link Capture for Bookmarking
-description: Verifies that the agent recognizes bookmark/save intent and calls link_capture
+description: Verifies that the agent recognizes bookmark/save intent and calls system_create with entityType link
 type: tool_invocation
 tags:
   - link
@@ -12,14 +12,17 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: link_capture
+    - toolName: system_create
       shouldBeCalled: true
+      argsContain:
+        entityType: "link"
   toolCountRange:
     min: 1
   responseNotContains:
     - "I cannot"
     - "I don't have access"
     - "I'm unable"
+    - "link_capture"
   minAccuracyScore: 3
 
 efficiency:

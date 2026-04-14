@@ -1,6 +1,6 @@
 id: link-tool-capture-unreachable
 name: Link Capture Handles Unreachable URL
-description: Verifies that the agent reports an error for unreachable URLs (domain not found/url_unreachable) rather than saving or hallucinating content
+description: Verifies that the agent routes unreachable URL requests through system_create with entityType link rather than pre-emptively refusing or hallucinating success
 type: tool_invocation
 tags:
   - link
@@ -13,8 +13,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: link_capture
+    - toolName: system_create
       shouldBeCalled: true
+      argsContain:
+        entityType: "link"
   # Agent should indicate failure - don't require specific wording, just check it doesn't claim success
   responseNotContains:
     - "successfully captured"
@@ -22,6 +24,7 @@ successCriteria:
     - "bookmarked"
     - "Here's what I found"
     - "Here is what I found"
+    - "link_capture"
   minAccuracyScore: 3
 
 efficiency:

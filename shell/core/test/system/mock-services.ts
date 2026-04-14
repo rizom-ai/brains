@@ -28,7 +28,65 @@ export function createMockSystemServices(
   };
 
   const entityRegistry = {
-    getAdapter: () => ({ supportsCoverImage: false }),
+    getAdapter: (
+      type: string,
+    ): {
+      supportsCoverImage: boolean;
+      fromMarkdown: (markdown: string) => unknown;
+    } => {
+      if (type === "link") {
+        return {
+          supportsCoverImage: false,
+          fromMarkdown: (markdown: string): unknown => {
+            const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
+            if (!match) {
+              throw new Error("Invalid link markdown");
+            }
+
+            const frontmatter = match[1] ?? "";
+            const title = frontmatter.match(/^title:\s*(.+)$/m)?.[1]?.trim();
+            const status = frontmatter.match(/^status:\s*(.+)$/m)?.[1]?.trim();
+            const url = frontmatter.match(/^url:\s*(.+)$/m)?.[1]?.trim();
+            const domain = frontmatter.match(/^domain:\s*(.+)$/m)?.[1]?.trim();
+            const capturedAt = frontmatter
+              .match(/^capturedAt:\s*(.+)$/m)?.[1]
+              ?.trim();
+            const sourceRef = frontmatter
+              .match(/^\s+ref:\s*(.+)$/m)?.[1]
+              ?.trim();
+            const sourceLabel = frontmatter
+              .match(/^\s+label:\s*(.+)$/m)?.[1]
+              ?.trim();
+
+            if (
+              !title ||
+              !status ||
+              !url ||
+              !domain ||
+              !capturedAt ||
+              !sourceRef ||
+              !sourceLabel
+            ) {
+              throw new Error("Incomplete link frontmatter");
+            }
+
+            return {
+              content: markdown,
+              entityType: "link",
+              metadata: {
+                title: title.replace(/^['"]|['"]$/g, ""),
+                status: status.replace(/^['"]|['"]$/g, ""),
+              },
+            };
+          },
+        };
+      }
+
+      return {
+        supportsCoverImage: false,
+        fromMarkdown: (): unknown => ({}),
+      };
+    },
     hasEntityType: (type: string) => entityTypes.has(type),
     getAllEntityTypes: () => Array.from(entityTypes),
   } as unknown as SystemServices["entityRegistry"];
@@ -39,8 +97,18 @@ export function createMockSystemServices(
       const entity = entities.get(id);
       return entity?.entityType === type ? entity : null;
     },
-    listEntities: async (type: string) =>
-      Array.from(entities.values()).filter((e) => e.entityType === type),
+    listEntities: async (
+      type: string,
+      options?: { filter?: { metadata?: Record<string, unknown> } },
+    ) =>
+      Array.from(entities.values()).filter((e) => {
+        if (e.entityType !== type) return false;
+        const metadataFilter = options?.filter?.metadata;
+        if (!metadataFilter) return true;
+        return Object.entries(metadataFilter).every(
+          ([key, value]) => e.metadata[key] === value,
+        );
+      }),
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
     createEntity: async (entity: BaseEntity) => {
@@ -83,7 +151,7 @@ export function createMockSystemServices(
     data: unknown;
   }> = [];
   const jobs = {
-    enqueue: async (type: string, data: unknown) => {
+    enqueue: async (type: string, data: unknown): Promise<string> => {
       enqueuedJobs.push({
         type,
         data,

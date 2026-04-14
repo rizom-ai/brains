@@ -394,12 +394,57 @@ export function createSystemTools(services: SystemServices): Tool[] {
           };
 
         if (input.entityType === "link") {
+          if (content) {
+            try {
+              const adapter = services.entityRegistry.getAdapter("link");
+              const parsed = adapter.fromMarkdown(content);
+              const parsedMetadata = parsed.metadata as
+                | Record<string, unknown>
+                | undefined;
+              const parsedTitle =
+                typeof parsedMetadata?.["title"] === "string"
+                  ? parsedMetadata["title"]
+                  : undefined;
+              const parsedStatus =
+                typeof parsedMetadata?.["status"] === "string"
+                  ? parsedMetadata["status"]
+                  : undefined;
+              const parsedUrl = extractFirstUrl(content);
+
+              if (parsedTitle && parsedStatus && parsedUrl) {
+                const id =
+                  slugify(parsedUrl) ||
+                  slugify(parsedTitle) ||
+                  `${input.entityType}-${Date.now()}`;
+                const now = new Date().toISOString();
+                const result = await entityService.createEntity({
+                  id,
+                  entityType: input.entityType,
+                  content,
+                  metadata: {
+                    title: parsedTitle,
+                    status: parsedStatus,
+                  },
+                  created: now,
+                  updated: now,
+                });
+
+                return {
+                  success: true,
+                  data: { entityId: result.entityId, status: "created" },
+                };
+              }
+            } catch {
+              // Fall through: raw URLs should route to capture below.
+            }
+          }
+
           const url = extractFirstUrl(content, prompt, title);
 
           if (url) {
             try {
               const jobId = await jobs.enqueue(
-                "link:generation",
+                "link-capture",
                 {
                   url,
                   metadata: {
@@ -428,16 +473,48 @@ export function createSystemTools(services: SystemServices): Tool[] {
             }
           }
 
+          if (content) {
+            return {
+              success: false,
+              error:
+                "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
+            };
+          }
+
           if (prompt) {
             return {
               success: false,
               error:
-                "Link creation requires a URL in the prompt, content, or title.",
+                "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
             };
           }
         }
 
         if (prompt) {
+          let resolvedTargetEntityId = targetEntityId;
+
+          if (
+            input.entityType === "image" &&
+            targetEntityType &&
+            targetEntityId
+          ) {
+            const targetEntity = await findEntityByIdentifier(
+              entityService,
+              targetEntityType,
+              targetEntityId,
+              logger,
+            );
+
+            if (!targetEntity) {
+              return {
+                success: false,
+                error: `Target entity not found: ${targetEntityType}/${targetEntityId}`,
+              };
+            }
+
+            resolvedTargetEntityId = targetEntity.id;
+          }
+
           try {
             const jobId = await jobs.enqueue(
               `${input.entityType}:generation`,
@@ -448,8 +525,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
                 ...(targetEntityType && {
                   targetEntityType,
                 }),
-                ...(targetEntityId && {
-                  targetEntityId,
+                ...(resolvedTargetEntityId && {
+                  targetEntityId: resolvedTargetEntityId,
                 }),
               },
               toolContext,

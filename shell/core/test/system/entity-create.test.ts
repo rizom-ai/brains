@@ -95,7 +95,7 @@ describe("system_create tool", () => {
     expect(result).toHaveProperty("success", false);
   });
 
-  it("should route prompted link creation with a URL to link generation", async () => {
+  it("should route prompted link creation with a URL to link capture", async () => {
     const result = await exec({
       entityType: "link",
       prompt: "Save this link for me: https://anthropic.com/research",
@@ -108,11 +108,79 @@ describe("system_create tool", () => {
 
     const enqueuedJob = services.getLastEnqueuedJob();
     if (!enqueuedJob) throw new Error("No job was enqueued");
-    expect(enqueuedJob.type).toBe("link:generation");
+    expect(enqueuedJob.type).toBe("link-capture");
     const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
     expect(jobData.url).toBe("https://anthropic.com/research");
     expect(jobData.metadata.interfaceId).toBe("test");
     expect(jobData.metadata.userId).toBe("test");
+  });
+
+  it("should create a link directly from full markdown/frontmatter content", async () => {
+    const markdown = `---
+status: draft
+title: Anthropic Research
+url: https://anthropic.com/research
+description: Research updates from Anthropic
+keywords:
+  - ai
+  - research
+domain: anthropic.com
+capturedAt: "2026-04-14T08:00:00.000Z"
+source:
+  ref: "manual:local"
+  label: MANUAL
+---
+
+A saved research link.`;
+
+    const result = await exec({
+      entityType: "link",
+      content: markdown,
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.status).toBe("created");
+    expect(data.entityId).toBeDefined();
+    if (!data.entityId) throw new Error("Expected entityId to be defined");
+
+    const stored = await services.entityService.getEntity(
+      "link",
+      data.entityId,
+    );
+    expect(stored).not.toBeNull();
+    expect(stored?.metadata["title"]).toBe("Anthropic Research");
+    expect(stored?.metadata["status"]).toBe("draft");
+    expect(stored?.content).toBe(markdown);
+  });
+
+  it("should route raw link content to link capture", async () => {
+    const result = await exec({
+      entityType: "link",
+      content: "https://en.wikipedia.org/wiki/The_Drama_(film)",
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.status).toBe("generating");
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("link-capture");
+    const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
+    expect(jobData.url).toBe("https://en.wikipedia.org/wiki/The_Drama_(film)");
+  });
+
+  it("should reject invalid direct link content that is not full markdown/frontmatter", async () => {
+    const result = await exec({
+      entityType: "link",
+      content: "This is not a valid link entity body.",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Direct link creation requires full link markdown/frontmatter",
+    );
   });
 
   it("should reject prompted link creation without a URL", async () => {
@@ -146,12 +214,24 @@ describe("system_create tool", () => {
     expect(rawJobData["prompt"]).toBe("Write about TypeScript.");
   });
 
-  it("should pass targetEntityType and targetEntityId to job data", async () => {
+  it("should resolve image generation targets to canonical entity ids", async () => {
+    services.addEntities([
+      {
+        id: "my-blog-post",
+        entityType: "post",
+        content: "---\ntitle: My Blog Post\nslug: my-blog-post\n---\nContent",
+        metadata: { title: "My Blog Post", slug: "my-blog-post" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-1",
+      },
+    ]);
+
     await exec({
       entityType: "image",
       prompt: "Generate a cover image",
       targetEntityType: "post",
-      targetEntityId: "my-blog-post",
+      targetEntityId: "My Blog Post",
     });
 
     const enqueuedJob = services.getLastEnqueuedJob();
@@ -159,6 +239,20 @@ describe("system_create tool", () => {
     const jobData = enqueuedCreateJobSchema.parse(enqueuedJob.data);
     expect(jobData.targetEntityType).toBe("post");
     expect(jobData.targetEntityId).toBe("my-blog-post");
+  });
+
+  it("should reject image generation when the target entity does not exist", async () => {
+    const result = await exec({
+      entityType: "image",
+      prompt: "Generate a cover image",
+      targetEntityType: "post",
+      targetEntityId: "missing-post",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Target entity not found: post/missing-post",
+    );
   });
 
   it("should not include options field in schema", () => {
@@ -170,6 +264,18 @@ describe("system_create tool", () => {
   });
 
   it("should pass target fields as top-level (not nested in options)", async () => {
+    services.addEntities([
+      {
+        id: "test-post",
+        entityType: "post",
+        content: "---\ntitle: Test Post\nslug: test-post\n---\nContent",
+        metadata: { title: "Test Post", slug: "test-post" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-2",
+      },
+    ]);
+
     await exec({
       entityType: "image",
       prompt: "Generate image",
