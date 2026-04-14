@@ -99,6 +99,7 @@
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
     "fix-shared-local-env-browser-build",
+    "fix-system-create-link-routing",
     "fixed-group-alpha-republish",
     "hide-operator-routes-from-nav",
     "ops-anchor-profile-content-seeding",

@@ -1,5 +1,14 @@
 # @brains/site-rizom-ai
 
+## 0.2.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.15
+  - @brains/plugins@0.2.0-alpha.15
+  - @brains/site-rizom@0.2.0-alpha.15
+
 ## 0.2.0-alpha.14
 
 ### Patch Changes

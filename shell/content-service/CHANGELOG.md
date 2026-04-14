@@ -1,5 +1,16 @@
 # @brains/content-service
 
+## 0.2.0-alpha.15
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.15
+  - @brains/ai-service@0.2.0-alpha.15
+  - @brains/entity-service@0.2.0-alpha.15
+  - @brains/job-queue@0.2.0-alpha.15
+  - @brains/templates@0.2.0-alpha.15
+
 ## 0.2.0-alpha.14
 
 ### Patch Changes

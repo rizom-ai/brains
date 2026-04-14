@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.15
+
+### Patch Changes
+
+- [`b271ded`](https://github.com/rizom-ai/brains/commit/b271ded85f8dbcbcdef009045bfdc9fd60ff73f0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix `system_create` for `link` entities so URL-based link requests enqueue the correct `link-capture` job, raw URL content routes through capture, and direct creation only succeeds for valid full link markdown/frontmatter.
+
+  Also add regression coverage for link creation routing and link-related eval fixtures so future releases catch mismatches between `system_create`, link job names, and link capture behavior.
+
 ## 0.2.0-alpha.14
 
 ## 0.2.0-alpha.13
