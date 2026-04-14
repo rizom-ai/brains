@@ -406,24 +406,6 @@ export function createSystemTools(services: SystemServices): Tool[] {
         }
 
         if (createInput.prompt) {
-          let resolvedTargetEntityId = createInput.targetEntityId;
-
-          if (
-            createInput.entityType === "image" &&
-            createInput.targetEntityType &&
-            createInput.targetEntityId
-          ) {
-            const resolved = await resolveEntityOrError(
-              entityService,
-              createInput.targetEntityType,
-              createInput.targetEntityId,
-              logger,
-              "Target entity",
-            );
-            if (!resolved.ok) return { success: false, error: resolved.error };
-            resolvedTargetEntityId = resolved.entity.id;
-          }
-
           try {
             const jobId = await jobs.enqueue(
               `${createInput.entityType}:generation`,
@@ -434,8 +416,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
                 ...(createInput.targetEntityType && {
                   targetEntityType: createInput.targetEntityType,
                 }),
-                ...(resolvedTargetEntityId && {
-                  targetEntityId: resolvedTargetEntityId,
+                ...(createInput.targetEntityId && {
+                  targetEntityId: createInput.targetEntityId,
                 }),
               },
               toolContext,

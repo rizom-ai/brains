@@ -49,6 +49,7 @@ export const projectGenerationTemplate = createTemplate<ProjectGeneration>({
   schema: projectGenerationSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are helping to create a professional portfolio case study based on REAL project information.
 
 IMPORTANT: The prompt contains related content found in the user's knowledge base. Use this content as the source of truth - extract facts, technologies, challenges, and outcomes from it. Do NOT invent or fabricate details.

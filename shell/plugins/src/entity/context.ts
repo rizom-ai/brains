@@ -4,6 +4,7 @@ import type { IShell, ContentGenerationConfig } from "../interfaces";
 import type {
   IEntityService,
   BaseEntity,
+  CreateInterceptor,
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
@@ -51,6 +52,12 @@ export interface IEntitiesNamespace {
 
   /** Register a data source for dynamic content */
   registerDataSource: (dataSource: DataSource) => void;
+
+  /** Register a create interceptor for this plugin's entity type */
+  registerCreateInterceptor: (
+    entityType: string,
+    interceptor: CreateInterceptor,
+  ) => void;
 }
 
 /**
@@ -148,6 +155,12 @@ export function createEntityPluginContext(
         type: string,
       ): z.ZodObject<z.ZodRawShape> | undefined => {
         return entityRegistry.getEffectiveFrontmatterSchema(type);
+      },
+      registerCreateInterceptor: (
+        entityType: string,
+        interceptor: CreateInterceptor,
+      ): void => {
+        entityRegistry.registerCreateInterceptor(entityType, interceptor);
       },
       update: async <T extends BaseEntity>(
         entity: T,

@@ -1,4 +1,9 @@
 import { describe, expect, test, beforeEach } from "bun:test";
+import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
+} from "../src/types";
 import { z } from "@brains/utils";
 import { EntityRegistry } from "../src/entityRegistry";
 import { baseEntitySchema } from "../src/types";
@@ -246,6 +251,34 @@ This note has frontmatter metadata.`;
 
     expect(parsedContent.content).toBe("This note has frontmatter metadata.");
     expect(parsedContent.category).toBe("testing");
+  });
+
+  test("registerCreateInterceptor stores and retrieves interceptor by entity type", async (): Promise<void> => {
+    const interceptor = async (
+      input: CreateInput,
+      _executionContext: CreateExecutionContext,
+    ): Promise<CreateInterceptionResult> => ({
+      kind: "continue",
+      input: { ...input, title: "rewritten" },
+    });
+
+    registry.registerCreateInterceptor("note", interceptor);
+
+    const retrieved = registry.getCreateInterceptor("note");
+    expect(retrieved).toBe(interceptor);
+
+    const result = await retrieved?.(
+      { entityType: "note", title: "original" },
+      { interfaceType: "test", userId: "test-user" },
+    );
+    expect(result).toEqual({
+      kind: "continue",
+      input: { entityType: "note", title: "rewritten" },
+    });
+  });
+
+  test("getCreateInterceptor returns undefined when none is registered", (): void => {
+    expect(registry.getCreateInterceptor("unknown")).toBeUndefined();
   });
 
   describe("entity type config", () => {

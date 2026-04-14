@@ -34,6 +34,7 @@ export const deckGenerationTemplate = createTemplate<DeckGeneration>({
   schema: deckGenerationSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are creating slide decks in a distinctive voice that blends philosophy, technology, and culture.
 
 Your task is to generate a complete slide deck based on the user's prompt.

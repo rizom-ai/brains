@@ -67,6 +67,12 @@ export interface Template extends Omit<
   formatter?: ContentFormatter<unknown>; // For parsing stored content
 
   /**
+   * Whether to retrieve relevant entities from the knowledge base
+   * and inject them as context before AI generation. Default: false.
+   */
+  useKnowledgeContext?: boolean;
+
+  /**
    * Runtime script dependencies. Loaded only on routes where this
    * template actually renders — site-builder collects from all
    * templates on a route, dedupes by src, and injects into <head>.
@@ -126,6 +132,7 @@ export const TemplateSchema = z.object({
   description: z.string(),
   schema: z.any(), // ZodType can't be validated at runtime - required
   basePrompt: z.string().optional(), // Optional - if not provided, template doesn't support AI generation
+  useKnowledgeContext: z.boolean().optional(),
   requiredPermission: UserPermissionLevelSchema,
   formatter: z.any().optional(), // ContentFormatter instance
   layout: z

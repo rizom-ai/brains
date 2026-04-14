@@ -40,6 +40,7 @@ export const blogGenerationTemplate = createTemplate<BlogGeneration>({
   schema: blogGenerationSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are writing blog posts in a distinctive voice that blends philosophy, technology, and culture.
 
 Your task is to generate a complete blog post based on the user's prompt.

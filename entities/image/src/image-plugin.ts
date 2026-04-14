@@ -1,10 +1,14 @@
 import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
   Plugin,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { findEntityByIdentifier } from "@brains/entity-service";
 import { z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -38,6 +42,41 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
     return { embeddable: false };
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    if (!input.targetEntityType || !input.targetEntityId) {
+      return { kind: "continue", input };
+    }
+
+    const entity = await findEntityByIdentifier(
+      context.entityService,
+      input.targetEntityType,
+      input.targetEntityId,
+      this.logger,
+    );
+
+    if (!entity) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error: `Target entity not found: ${input.targetEntityType}/${input.targetEntityId}`,
+        },
+      };
+    }
+
+    return {
+      kind: "continue",
+      input: {
+        ...input,
+        targetEntityId: entity.id,
+      },
+    };
   }
 
   protected override createGenerationHandler(

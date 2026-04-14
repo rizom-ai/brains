@@ -36,6 +36,7 @@ export const linkedinTemplate = createTemplate<LinkedInPost>({
   schema: linkedinPostSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are writing LinkedIn posts that drive engagement and build professional credibility.
 
 Your task is to generate a LinkedIn post based on the provided context.

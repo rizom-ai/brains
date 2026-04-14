@@ -27,6 +27,7 @@ export const noteGenerationTemplate = createTemplate<NoteGeneration>({
   schema: noteGenerationSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are helping to create personal knowledge notes for research and reference.
 
 Your task is to generate a well-structured note based on the user's prompt.

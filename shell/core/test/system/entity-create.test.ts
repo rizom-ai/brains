@@ -2,6 +2,11 @@ import { describe, expect, it, beforeEach } from "bun:test";
 import { createSystemTools } from "../../src/system/tools";
 import { createOutputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
+import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
+} from "@brains/entity-service";
 import type { Tool } from "@brains/mcp-service";
 import { z, slugify } from "@brains/utils";
 
@@ -21,138 +26,345 @@ const enqueuedLinkJobSchema = z.object({
   }),
 });
 
+const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i;
+type MockServices = ReturnType<typeof createMockSystemServices>;
+
+function extractFirstUrl(
+  ...values: Array<string | undefined>
+): string | undefined {
+  for (const value of values) {
+    const url = value?.match(URL_PATTERN)?.[0];
+    if (url) return url;
+  }
+
+  return undefined;
+}
+
+async function resolveMockEntityByIdentifier(
+  services: MockServices,
+  entityType: string,
+  identifier: string,
+) {
+  const byId = await services.entityService.getEntity(entityType, identifier);
+  if (byId) return byId;
+
+  const bySlug = await services.entityService.listEntities(entityType, {
+    filter: { metadata: { slug: identifier } },
+  });
+  if (bySlug[0]) return bySlug[0];
+
+  const byTitle = await services.entityService.listEntities(entityType, {
+    filter: { metadata: { title: identifier } },
+  });
+  return byTitle[0] ?? null;
+}
+
+function registerLinkCreateInterceptor(services: MockServices): void {
+  services.entityRegistry.registerCreateInterceptor(
+    "link",
+    async (
+      input: CreateInput,
+      executionContext: CreateExecutionContext,
+    ): Promise<CreateInterceptionResult> => {
+      if (input.content) {
+        try {
+          const adapter = services.entityRegistry.getAdapter("link");
+          const parsed = adapter.fromMarkdown(input.content);
+          const parsedMetadata = parsed.metadata as
+            | Record<string, unknown>
+            | undefined;
+          const parsedTitle =
+            typeof parsedMetadata?.["title"] === "string"
+              ? parsedMetadata["title"]
+              : undefined;
+          const parsedStatus =
+            typeof parsedMetadata?.["status"] === "string"
+              ? parsedMetadata["status"]
+              : undefined;
+          const parsedUrl = extractFirstUrl(input.content);
+
+          if (parsedTitle && parsedStatus && parsedUrl) {
+            const id =
+              slugify(parsedUrl) ||
+              slugify(parsedTitle) ||
+              `${input.entityType}-${Date.now()}`;
+            const now = new Date().toISOString();
+            const result = await services.entityService.createEntity({
+              id,
+              entityType: input.entityType,
+              content: input.content,
+              metadata: {
+                title: parsedTitle,
+                status: parsedStatus,
+              },
+              created: now,
+              updated: now,
+            });
+
+            return {
+              kind: "handled",
+              result: {
+                success: true,
+                data: { entityId: result.entityId, status: "created" },
+              },
+            };
+          }
+        } catch {
+          // Fall through: raw URLs should route to capture below.
+        }
+      }
+
+      const url = extractFirstUrl(input.content, input.prompt, input.title);
+      if (url) {
+        const jobId = await services.jobs.enqueue(
+          "link-capture",
+          {
+            url,
+            metadata: {
+              interfaceId: executionContext.interfaceType,
+              userId: executionContext.userId,
+              ...(executionContext.channelId
+                ? { channelId: executionContext.channelId }
+                : {}),
+              ...(executionContext.channelName
+                ? { channelName: executionContext.channelName }
+                : {}),
+              timestamp: new Date().toISOString(),
+            },
+          },
+          null,
+        );
+
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { status: "generating", jobId },
+          },
+        };
+      }
+
+      if (input.content) {
+        return {
+          kind: "handled",
+          result: {
+            success: false,
+            error:
+              "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
+          },
+        };
+      }
+
+      if (input.prompt) {
+        return {
+          kind: "handled",
+          result: {
+            success: false,
+            error:
+              "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
+          },
+        };
+      }
+
+      return { kind: "continue", input };
+    },
+  );
+}
+
+function registerImageCreateInterceptor(services: MockServices): void {
+  services.entityRegistry.registerCreateInterceptor(
+    "image",
+    async (input: CreateInput): Promise<CreateInterceptionResult> => {
+      if (!input.targetEntityType || !input.targetEntityId) {
+        return { kind: "continue", input };
+      }
+
+      const resolved = await resolveMockEntityByIdentifier(
+        services,
+        input.targetEntityType,
+        input.targetEntityId,
+      );
+      if (!resolved) {
+        return {
+          kind: "handled",
+          result: {
+            success: false,
+            error: `Target entity not found: ${input.targetEntityType}/${input.targetEntityId}`,
+          },
+        };
+      }
+
+      return {
+        kind: "continue",
+        input: {
+          ...input,
+          targetEntityId: resolved.id,
+        },
+      };
+    },
+  );
+}
+
 describe("system_create tool", () => {
   let tools: Tool[];
   let services: ReturnType<typeof createMockSystemServices>;
 
   beforeEach(() => {
     services = createMockSystemServices();
-
-    services.entityRegistry.registerCreateInterceptor(
-      "link",
-      async (input, executionContext) => {
-        if (input.content) {
-          try {
-            const adapter = services.entityRegistry.getAdapter("link");
-            const parsed = adapter.fromMarkdown(input.content);
-            const parsedMetadata = parsed.metadata as
-              | Record<string, unknown>
-              | undefined;
-            const parsedTitle =
-              typeof parsedMetadata?.["title"] === "string"
-                ? parsedMetadata["title"]
-                : undefined;
-            const parsedStatus =
-              typeof parsedMetadata?.["status"] === "string"
-                ? parsedMetadata["status"]
-                : undefined;
-            const parsedUrl = input.content.match(
-              /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i,
-            )?.[0];
-
-            if (parsedTitle && parsedStatus && parsedUrl) {
-              const id =
-                slugify(parsedUrl) ||
-                slugify(parsedTitle) ||
-                `${input.entityType}-${Date.now()}`;
-              const now = new Date().toISOString();
-              const result = await services.entityService.createEntity({
-                id,
-                entityType: input.entityType,
-                content: input.content,
-                metadata: {
-                  title: parsedTitle,
-                  status: parsedStatus,
-                },
-                created: now,
-                updated: now,
-              });
-
-              return {
-                kind: "handled" as const,
-                result: {
-                  success: true as const,
-                  data: { entityId: result.entityId, status: "created" },
-                },
-              };
-            }
-          } catch {
-            // Fall through: raw URLs should route to capture below.
-          }
-        }
-
-        const url = [input.content, input.prompt, input.title]
-          .map(
-            (value) =>
-              value?.match(
-                /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i,
-              )?.[0],
-          )
-          .find(Boolean);
-
-        if (url) {
-          const jobId = await services.jobs.enqueue(
-            "link-capture",
-            {
-              url,
-              metadata: {
-                interfaceId: executionContext.interfaceType,
-                userId: executionContext.userId,
-                ...(executionContext.channelId
-                  ? { channelId: executionContext.channelId }
-                  : {}),
-                ...(executionContext.channelName
-                  ? { channelName: executionContext.channelName }
-                  : {}),
-                timestamp: new Date().toISOString(),
-              },
-            },
-            null,
-          );
-
-          return {
-            kind: "handled" as const,
-            result: {
-              success: true as const,
-              data: { status: "generating", jobId },
-            },
-          };
-        }
-
-        if (input.content) {
-          return {
-            kind: "handled" as const,
-            result: {
-              success: false as const,
-              error:
-                "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
-            },
-          };
-        }
-
-        if (input.prompt) {
-          return {
-            kind: "handled" as const,
-            result: {
-              success: false as const,
-              error:
-                "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
-            },
-          };
-        }
-
-        return { kind: "continue" as const, input };
-      },
-    );
-
+    registerLinkCreateInterceptor(services);
+    registerImageCreateInterceptor(services);
     tools = createSystemTools(services);
   });
 
-  function exec(input: Record<string, unknown>): Promise<unknown> {
+  function exec(
+    input: Record<string, unknown>,
+    context?: {
+      interfaceType?: string;
+      userId?: string;
+      channelId?: string;
+      channelName?: string;
+    },
+  ): Promise<unknown> {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
-    return tool.handler(input, { interfaceType: "test", userId: "test" });
+    return tool.handler(input, {
+      interfaceType: context?.interfaceType ?? "test",
+      userId: context?.userId ?? "test",
+      ...(context?.channelId ? { channelId: context.channelId } : {}),
+      ...(context?.channelName ? { channelName: context.channelName } : {}),
+    });
   }
+
+  it("should pass normalized input and execution context to registered create interceptors", async () => {
+    let capturedInput: CreateInput | undefined;
+    let capturedContext: CreateExecutionContext | undefined;
+
+    services.entityRegistry.registerCreateInterceptor(
+      "base",
+      async (input, executionContext) => {
+        capturedInput = input;
+        capturedContext = executionContext;
+        return {
+          kind: "handled",
+          result: {
+            success: true,
+            data: { status: "intercepted", entityId: "intercepted-id" },
+          },
+        } as const;
+      },
+    );
+
+    const result = await exec(
+      {
+        entityType: "base",
+        prompt: "Write about TypeScript.",
+        title: "",
+        content: "",
+        targetEntityType: "",
+        targetEntityId: "",
+      },
+      {
+        interfaceType: "matrix",
+        userId: "alice",
+        channelId: "!room:test",
+        channelName: "#general",
+      },
+    );
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "intercepted", entityId: "intercepted-id" },
+    });
+    expect(capturedInput).toEqual({
+      entityType: "base",
+      prompt: "Write about TypeScript.",
+    });
+    expect(capturedContext).toEqual({
+      interfaceType: "matrix",
+      userId: "alice",
+      channelId: "!room:test",
+      channelName: "#general",
+    });
+  });
+
+  it("should return handled interceptor results without falling through", async () => {
+    services.entityRegistry.registerCreateInterceptor("base", async () => ({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { status: "handled", entityId: "from-interceptor" },
+      },
+    }));
+
+    const result = await exec({
+      entityType: "base",
+      title: "My Note",
+      content: "This is a test.",
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { status: "handled", entityId: "from-interceptor" },
+    });
+    expect(services.getEntities().size).toBe(0);
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+  });
+
+  it("should continue with rewritten input for generation jobs", async () => {
+    services.entityRegistry.registerCreateInterceptor(
+      "base",
+      async (input) => ({
+        kind: "continue",
+        input: {
+          ...input,
+          prompt: "Rewritten prompt",
+          title: "Rewritten Title",
+        },
+      }),
+    );
+
+    await exec({
+      entityType: "base",
+      prompt: "Original prompt",
+    });
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("base:generation");
+    expect(enqueuedJob.data).toEqual({
+      prompt: "Rewritten prompt",
+      title: "Rewritten Title",
+    });
+  });
+
+  it("should continue with rewritten input for direct create", async () => {
+    services.entityRegistry.registerCreateInterceptor(
+      "base",
+      async (input) => ({
+        kind: "continue",
+        input: {
+          ...input,
+          title: "Interceptor Title",
+          content: "Interceptor body.",
+        },
+      }),
+    );
+
+    const result = await exec({
+      entityType: "base",
+      title: "Original Title",
+      content: "Original body.",
+    });
+
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.entityId).toBe("interceptor-title");
+    const entity = await services.entityService.getEntity(
+      "base",
+      "interceptor-title",
+    );
+    expect(entity?.content).toBe("Interceptor body.");
+    expect(entity?.metadata["title"]).toBe("Interceptor Title");
+  });
 
   it("should create entity with title and content", async () => {
     const result = await exec({

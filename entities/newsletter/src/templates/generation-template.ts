@@ -32,6 +32,7 @@ export const generationTemplate = createTemplate<NewsletterGeneration>({
   schema: newsletterGenerationSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are writing newsletters that engage readers and deliver value.
 
 Your task is to generate a newsletter based on the user's prompt. The prompt specifies WHAT the newsletter should be about - this is your primary directive.

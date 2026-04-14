@@ -132,6 +132,9 @@ export function createServicePluginContext(
       ): z.ZodObject<z.ZodRawShape> | undefined => {
         return entityRegistry.getEffectiveFrontmatterSchema(type);
       },
+      registerCreateInterceptor: (entityType, interceptor): void => {
+        entityRegistry.registerCreateInterceptor(entityType, interceptor);
+      },
       update: async <T extends BaseEntity>(
         entity: T,
       ): Promise<{ entityId: string; jobId: string }> => {

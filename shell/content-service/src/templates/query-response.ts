@@ -1,5 +1,5 @@
+import type { Template } from "@brains/templates";
 import { z } from "@brains/utils";
-import type { ContentTemplate } from "../types";
 
 /**
  * Schema for public query responses
@@ -33,12 +33,13 @@ export type QueryResponse = z.infer<typeof queryResponseSchema>;
  * Template for public query responses
  * Used to ensure consistent, safe responses for public users
  */
-export const queryResponseTemplate: ContentTemplate<QueryResponse> = {
+export const queryResponseTemplate: Template = {
   name: "shell:query_response",
   description: "Template for structured query responses for public users",
   schema: queryResponseSchema,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   basePrompt: `You are a helpful assistant providing information from a knowledge base.
 
 Generate a clear, informative response to the user's query based on the available context.

@@ -34,6 +34,7 @@ const testTemplate: Template = {
   basePrompt: "You are a helpful assistant.",
   schema: z.object({ message: z.string() }),
   requiredPermission: "public",
+  useKnowledgeContext: true,
 };
 
 function createSearchEntity(overrides: {
@@ -335,8 +336,25 @@ describe("AIContentDataSource", () => {
       expect(mockEntityService.search).toHaveBeenCalled();
     });
 
-    it("should skip knowledge base search for topics extraction", async () => {
+    it("should skip knowledge base search when knowledge context is disabled", async () => {
+      mockTemplateGet.mockReturnValue({
+        ...testTemplate,
+        name: "topics:extraction",
+        useKnowledgeContext: false,
+      });
+
       await generate("Huge batch prompt", "topics:extraction");
+
+      expect(mockEntityService.search).not.toHaveBeenCalled();
+    });
+
+    it("should skip knowledge base search when knowledge context is unset", async () => {
+      mockTemplateGet.mockReturnValue({
+        ...testTemplate,
+        useKnowledgeContext: undefined,
+      });
+
+      await generate("Find information about AI");
 
       expect(mockEntityService.search).not.toHaveBeenCalled();
     });

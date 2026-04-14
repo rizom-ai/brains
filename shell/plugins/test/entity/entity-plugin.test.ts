@@ -52,6 +52,29 @@ class TestEntityPlugin extends EntityPlugin<TestEntity> {
   }
 }
 
+class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
+  readonly entityType = "intercepting-item";
+  readonly schema = testSchema;
+  readonly adapter = new TestAdapter();
+
+  constructor() {
+    super("intercepting-item", testPkg);
+  }
+
+  protected override async interceptCreate(input: {
+    entityType: string;
+    title?: string;
+  }) {
+    return {
+      kind: "continue" as const,
+      input: {
+        ...input,
+        title: "rewritten-title",
+      },
+    };
+  }
+}
+
 // EntityPlugin subclass with derive() implementation
 class DerivedEntityPlugin extends EntityPlugin<TestEntity> {
   readonly entityType = "derived-item";
@@ -139,6 +162,28 @@ describe("EntityPlugin", () => {
       await harness.installPlugin(plugin);
 
       expect(plugin.id).toBe("test-item");
+    });
+
+    it("should auto-register create interceptor when interceptCreate() is overridden", async () => {
+      const plugin = new InterceptingEntityPlugin();
+      await harness.installPlugin(plugin);
+
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("intercepting-item");
+      expect(interceptor).toBeDefined();
+
+      const result = await interceptor?.(
+        { entityType: "intercepting-item", title: "original-title" },
+        { interfaceType: "test", userId: "test-user" },
+      );
+      expect(result).toEqual({
+        kind: "continue",
+        input: {
+          entityType: "intercepting-item",
+          title: "rewritten-title",
+        },
+      });
     });
   });
 

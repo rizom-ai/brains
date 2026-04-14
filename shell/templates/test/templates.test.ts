@@ -22,6 +22,7 @@ describe("Templates", () => {
       schema: z.object({ content: z.string() }),
       requiredPermission: "trusted",
       basePrompt: "Generate content",
+      useKnowledgeContext: true,
       layout: {
         interactive: "mock-hydration-script",
       },

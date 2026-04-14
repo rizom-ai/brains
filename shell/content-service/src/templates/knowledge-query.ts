@@ -22,6 +22,7 @@ Instructions:
 5. Structure your response clearly and concisely`,
   dataSourceId: "shell:ai-content",
   requiredPermission: "public",
+  useKnowledgeContext: true,
   schema: defaultQueryResponseSchema,
   formatter: new DefaultQueryResponseFormatter(),
 };
