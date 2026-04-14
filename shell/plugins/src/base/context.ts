@@ -1,5 +1,5 @@
 import type { IShell } from "../interfaces";
-import type { Logger } from "@brains/utils";
+import { derivePreviewDomain, type Logger } from "@brains/utils";
 import type {
   MessageHandler,
   MessageSender,
@@ -148,7 +148,7 @@ export interface BasePluginContext {
   /** Production site URL derived from domain (e.g. "https://yeehaa.io"), undefined if no domain */
   readonly siteUrl: string | undefined;
 
-  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io"), undefined if no domain */
+  /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://recall-preview.rizom.ai"), undefined if no domain */
   readonly previewUrl: string | undefined;
 
   /** App metadata (version, model, plugins) */
@@ -237,6 +237,7 @@ export function createBasePluginContext(
   const entityService = shell.getEntityService();
   const jobQueueService = shell.getJobQueueService();
   const logger = shell.getLogger().child(pluginId);
+  const domain = shell.getDomain();
 
   const sendMessage: MessageSender = async (channel, message, options) => {
     return messageBus.send(
@@ -262,11 +263,9 @@ export function createBasePluginContext(
 
     appInfo: () => shell.getAppInfo(),
 
-    domain: shell.getDomain(),
-    siteUrl: shell.getDomain() ? `https://${shell.getDomain()}` : undefined,
-    previewUrl: shell.getDomain()
-      ? `https://preview.${shell.getDomain()}`
-      : undefined,
+    domain,
+    siteUrl: domain ? `https://${domain}` : undefined,
+    previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
 
     messaging: {
       send: sendMessage,

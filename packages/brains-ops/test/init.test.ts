@@ -282,7 +282,7 @@ describe("initPilotRepo", () => {
 
     const caddyfile = await readFile(join(repo, "deploy", "Caddyfile"), "utf8");
     expect(caddyfile).toContain(":80");
-    expect(caddyfile).toContain("@preview host *-preview.*");
+    expect(caddyfile).toContain("@preview host preview.* *-preview.*");
     expect(caddyfile).toContain("agent-card.json");
     expect(caddyfile).toContain("reverse_proxy localhost:3334");
 

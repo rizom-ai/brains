@@ -1,7 +1,7 @@
 # Internal Caddy — path-based routing to brain services.
 # kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
-	@preview host *-preview.*
+	@preview host preview.* *-preview.*
 	handle @preview {
 		reverse_proxy localhost:4321
 

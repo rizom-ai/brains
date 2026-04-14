@@ -6,7 +6,7 @@
 # requests here. Preview hosts are routed by Host header, not by a separate
 # external TLS port.
 :80 {
-	@preview host preview.*
+	@preview host preview.* *-preview.*
 	handle @preview {
 		reverse_proxy localhost:4321
 

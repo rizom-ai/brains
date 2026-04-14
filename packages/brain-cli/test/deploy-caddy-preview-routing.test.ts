@@ -35,10 +35,10 @@ describe("deploy preview host routing", () => {
     expect(deployConfig).not.toContain(":81");
   });
 
-  it("routes *-preview.* hosts to the preview site inside the container", () => {
+  it("routes both preview.<domain> and *-preview.* hosts to the preview site inside the container", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
-    expect(caddyfile).toContain("@preview host *-preview.*");
+    expect(caddyfile).toContain("@preview host preview.* *-preview.*");
     expect(caddyfile).toContain("handle @preview {");
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
   });
