@@ -80,6 +80,10 @@ jobs:
       - name: Publish to npm
         env:
           # Trusted Publishing uses the GitHub Actions OIDC identity for
-          # this workflow instead of a long-lived NPM_TOKEN secret.
+          # this workflow instead of a long-lived token. Explicitly blank
+          # token env vars so npm cannot fall back to token auth if one is
+          # present from runner or higher-scope Actions configuration.
+          NODE_AUTH_TOKEN: ""
+          NPM_TOKEN: ""
           NPM_CONFIG_PROVENANCE: "true"
         run: bun run changeset:publish
