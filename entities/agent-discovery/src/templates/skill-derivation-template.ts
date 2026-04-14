@@ -13,6 +13,7 @@ export const skillDerivationTemplate = createTemplate<SkillDerivationResult>({
   description: "Derive skills from topic titles and brain capabilities",
   dataSourceId: "shell:ai-content",
   schema: skillDerivationResultSchema,
+  useKnowledgeContext: true,
   basePrompt: `You are analyzing a brain's content to identify its high-level capabilities.
 
 Given knowledge domains, CONSOLIDATE related topics into broader skills.

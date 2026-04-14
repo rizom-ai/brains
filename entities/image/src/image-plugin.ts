@@ -8,7 +8,7 @@ import type {
   Plugin,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
-import { findEntityByIdentifier } from "@brains/entity-service";
+import { resolveEntityOrError } from "@brains/entity-service";
 import { z } from "@brains/utils";
 import { imageSchema, imageAdapter, type Image } from "@brains/image";
 import { ImageGenerationJobHandler } from "./handlers/image-generation-handler";
@@ -53,29 +53,24 @@ export class ImagePlugin extends EntityPlugin<Image, ImageConfig> {
       return { kind: "continue", input };
     }
 
-    const entity = await findEntityByIdentifier(
+    const resolved = await resolveEntityOrError(
       context.entityService,
       input.targetEntityType,
       input.targetEntityId,
       this.logger,
+      "Target entity",
     );
 
-    if (!entity) {
+    if (!resolved.ok) {
       return {
         kind: "handled",
-        result: {
-          success: false,
-          error: `Target entity not found: ${input.targetEntityType}/${input.targetEntityId}`,
-        },
+        result: { success: false, error: resolved.error },
       };
     }
 
     return {
       kind: "continue",
-      input: {
-        ...input,
-        targetEntityId: entity.id,
-      },
+      input: { ...input, targetEntityId: resolved.entity.id },
     };
   }
 
