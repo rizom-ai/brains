@@ -28,10 +28,6 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          registry-url: https://registry.npmjs.org
       - run: bun install --frozen-lockfile
 
       # Single-run release flow:
@@ -79,7 +75,7 @@ jobs:
 
       - name: Publish to npm
         env:
-          # Trusted Publishing uses the GitHub Actions OIDC identity for
-          # this workflow instead of a long-lived NPM_TOKEN secret.
-          NPM_CONFIG_PROVENANCE: "true"
-        run: bun run changeset:publish
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+          bun run changeset:publish
