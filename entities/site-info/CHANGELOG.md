@@ -1,5 +1,14 @@
 # @brains/site-info
 
+## 0.2.0-alpha.18
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.18
+  - @brains/entity-service@0.2.0-alpha.18
+  - @brains/plugins@0.2.0-alpha.18
+
 ## 0.2.0-alpha.17
 
 ### Patch Changes

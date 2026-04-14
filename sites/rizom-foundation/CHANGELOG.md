@@ -1,5 +1,16 @@
 # @brains/site-rizom-foundation
 
+## 0.2.0-alpha.18
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.18
+  - @brains/utils@0.2.0-alpha.18
+  - @brains/plugins@0.2.0-alpha.18
+  - @brains/templates@0.2.0-alpha.18
+  - @brains/site-rizom@0.2.0-alpha.18
+
 ## 0.2.0-alpha.17
 
 ### Patch Changes
