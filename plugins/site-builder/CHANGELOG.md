@@ -1,5 +1,14 @@
 # @brains/site-builder-plugin
 
+## 0.2.0-alpha.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.13
+  - @brains/ui-library@0.2.0-alpha.13
+  - @brains/plugins@0.2.0-alpha.13
+
 ## 0.2.0-alpha.12
 
 ### Patch Changes

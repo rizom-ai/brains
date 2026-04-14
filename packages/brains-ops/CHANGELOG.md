@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.13
+
+### Patch Changes
+
+- [`5798b3b`](https://github.com/rizom-ai/brains/commit/5798b3bc70be7475a4fad26c4dab0323d602077b) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Replace rover-pilot's per-user GitHub secret push flow with age-encrypted checked-in user secret files, add `brains-ops age-key:bootstrap` and `brains-ops secrets:encrypt`, and update the published deploy scaffold to decrypt per-user overrides while falling back to shared pilot secret selectors.
+
 ## 0.2.0-alpha.12
 
 ### Patch Changes

@@ -106,6 +106,7 @@
     "personal-layout-mobile-correctness",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
+    "rizom-ops-age-encrypted-pilot-secrets",
     "rizom-ops-bootstrap-commands",
     "rizom-ops-pilot-secrets-push",
     "rizom-ops-publish-fix",
