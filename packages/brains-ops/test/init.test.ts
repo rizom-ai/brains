@@ -263,7 +263,10 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).toContain("bun install");
     expect(reconcileWorkflow).toContain("bunx brains-ops reconcile-all");
     expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
-    expect(reconcileWorkflow).toContain("git push");
+    expect(reconcileWorkflow).toContain(
+      "git push origin HEAD:${{ github.ref_name }}",
+    );
+    expect(reconcileWorkflow).not.toContain("\n          git push\n");
     expect(reconcileWorkflow).not.toContain("TODO:");
 
     const dockerfile = await readFile(
