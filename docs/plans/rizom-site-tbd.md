@@ -6,6 +6,7 @@ Current technical status:
 
 - all three Rizom site wrappers own their final route trees
 - `rizom.foundation` and `rizom.work` now use tracked `site-content` for durable section copy
+- all three Rizom apps are now wired to dedicated content repos
 - the changed apps boot successfully after the composition/content split
 - known broken anchor cleanup was already fixed (`rizom.work` closer CTA)
 
