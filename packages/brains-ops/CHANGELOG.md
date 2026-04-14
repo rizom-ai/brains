@@ -1,5 +1,14 @@
 # @brains/ops
 
+## 0.2.0-alpha.16
+
+### Patch Changes
+
+- [`db41123`](https://github.com/rizom-ai/brains/commit/db411235976b9896cb0b77bd09f218714acefa3c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Align preview domain routing across deploy paths.
+  - Derive preview URLs consistently from the configured brain domain
+  - Support both `preview.<domain>` and `*-preview.*` preview host shapes in deploy Caddy templates
+  - Add regression coverage for preview URL derivation and preview host routing
+
 ## 0.2.0-alpha.15
 
 ## 0.2.0-alpha.14
