@@ -143,9 +143,9 @@ export function createSystemTools(services: SystemServices): Tool[] {
           input.id,
           logger,
         );
-        return "error" in result
-          ? { success: false, error: result.error }
-          : { success: true, data: { entity: sanitizeEntity(result.entity) } };
+        return result.ok
+          ? { success: true, data: { entity: sanitizeEntity(result.entity) } }
+          : { success: false, error: result.error };
       },
       {
         visibility: "public",
@@ -502,8 +502,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
               logger,
               "Target entity",
             );
-            if ("error" in resolved)
-              return { success: false, error: resolved.error };
+            if (!resolved.ok) return { success: false, error: resolved.error };
             resolvedTargetEntityId = resolved.entity.id;
           }
 
@@ -575,8 +574,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
           input.id,
           logger,
         );
-        if ("error" in resolved)
-          return { success: false, error: resolved.error };
+        if (!resolved.ok) return { success: false, error: resolved.error };
         const { entity } = resolved;
 
         if (input.confirmed) {
@@ -620,8 +618,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
           input.id,
           logger,
         );
-        if ("error" in resolved)
-          return { success: false, error: resolved.error };
+        if (!resolved.ok) return { success: false, error: resolved.error };
         const { entity } = resolved;
         if (input.content && input.fields)
           return {
@@ -808,8 +805,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
             input.entityId,
             logger,
           );
-          if ("error" in resolved)
-            return { success: false, error: resolved.error };
+          if (!resolved.ok) return { success: false, error: resolved.error };
           const { entity } = resolved;
           const adapter = services.entityRegistry.getAdapter(input.entityType);
           if (!adapter.supportsCoverImage)
@@ -825,7 +821,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
               logger,
               "Image",
             );
-            if ("error" in image) return { success: false, error: image.error };
+            if (!image.ok) return { success: false, error: image.error };
           }
           const updated = setCoverImageId(entity, input.imageId);
           await entityService.updateEntity(updated);

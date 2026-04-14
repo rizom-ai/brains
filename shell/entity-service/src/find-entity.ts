@@ -1,11 +1,9 @@
 import type { BaseEntity, ICoreEntityService } from "./types";
 import type { Logger } from "@brains/utils";
 
-/**
- * Result of attempting to resolve an entity by identifier.
- * Discriminated union so callers can narrow without re-checking null.
- */
-export type ResolvedEntity = { entity: BaseEntity } | { error: string };
+export type ResolvedEntity =
+  | { ok: true; entity: BaseEntity }
+  | { ok: false; error: string };
 
 /**
  * Find an entity by trying ID, slug, then title lookups.
@@ -69,7 +67,10 @@ export async function resolveEntityOrError(
     logger,
   );
   if (!entity) {
-    return { error: `${label} not found: ${entityType}/${identifier}` };
+    return {
+      ok: false,
+      error: `${label} not found: ${entityType}/${identifier}`,
+    };
   }
-  return { entity };
+  return { ok: true, entity };
 }
