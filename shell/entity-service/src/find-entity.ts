@@ -2,6 +2,12 @@ import type { BaseEntity, ICoreEntityService } from "./types";
 import type { Logger } from "@brains/utils";
 
 /**
+ * Result of attempting to resolve an entity by identifier.
+ * Discriminated union so callers can narrow without re-checking null.
+ */
+export type ResolvedEntity = { entity: BaseEntity } | { error: string };
+
+/**
  * Find an entity by trying ID, slug, then title lookups.
  *
  * Shared utility used by SystemPlugin and ImagePlugin to resolve
@@ -41,4 +47,29 @@ export async function findEntityByIdentifier(
     }
     return null;
   }
+}
+
+/**
+ * Resolve an entity by identifier or return a formatted error message.
+ * Wraps findEntityByIdentifier with the common null-check + error-string pattern.
+ *
+ * @param label - Prefix for the error message, e.g. "Entity" (default) or "Target entity"
+ */
+export async function resolveEntityOrError(
+  entityService: ICoreEntityService,
+  entityType: string,
+  identifier: string,
+  logger?: Logger,
+  label = "Entity",
+): Promise<ResolvedEntity> {
+  const entity = await findEntityByIdentifier(
+    entityService,
+    entityType,
+    identifier,
+    logger,
+  );
+  if (!entity) {
+    return { error: `${label} not found: ${entityType}/${identifier}` };
+  }
+  return { entity };
 }

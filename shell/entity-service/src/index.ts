@@ -69,4 +69,5 @@ export type {
   PaginateOptions,
   PaginateResult,
 } from "./pagination";
-export { findEntityByIdentifier } from "./find-entity";
+export { findEntityByIdentifier, resolveEntityOrError } from "./find-entity";
+export type { ResolvedEntity } from "./find-entity";

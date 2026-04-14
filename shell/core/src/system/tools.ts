@@ -1,6 +1,6 @@
 import type { Tool, ToolResponse, ToolContext } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
-import { findEntityByIdentifier } from "@brains/entity-service";
+import { resolveEntityOrError } from "@brains/entity-service";
 import { z, slugify, setCoverImageId, getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "@brains/entity-service";
 import type { SystemServices } from "./types";
@@ -137,18 +137,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
             error: `Unknown entity type: ${input.entityType}. Available: ${entityService.getEntityTypes().join(", ")}`,
           };
         }
-        const entity = await findEntityByIdentifier(
+        const result = await resolveEntityOrError(
           entityService,
           input.entityType,
           input.id,
           logger,
         );
-        return entity
-          ? { success: true, data: { entity: sanitizeEntity(entity) } }
-          : {
-              success: false,
-              error: `Entity not found: ${input.entityType}/${input.id}`,
-            };
+        return "error" in result
+          ? { success: false, error: result.error }
+          : { success: true, data: { entity: sanitizeEntity(result.entity) } };
       },
       {
         visibility: "public",
@@ -498,21 +495,16 @@ export function createSystemTools(services: SystemServices): Tool[] {
             targetEntityType &&
             targetEntityId
           ) {
-            const targetEntity = await findEntityByIdentifier(
+            const resolved = await resolveEntityOrError(
               entityService,
               targetEntityType,
               targetEntityId,
               logger,
+              "Target entity",
             );
-
-            if (!targetEntity) {
-              return {
-                success: false,
-                error: `Target entity not found: ${targetEntityType}/${targetEntityId}`,
-              };
-            }
-
-            resolvedTargetEntityId = targetEntity.id;
+            if ("error" in resolved)
+              return { success: false, error: resolved.error };
+            resolvedTargetEntityId = resolved.entity.id;
           }
 
           try {
@@ -577,17 +569,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
       "Delete an entity. Requires confirmation.",
       deleteInputSchema,
       async (input) => {
-        const entity = await findEntityByIdentifier(
+        const resolved = await resolveEntityOrError(
           entityService,
           input.entityType,
           input.id,
           logger,
         );
-        if (!entity)
-          return {
-            success: false,
-            error: `Entity not found: ${input.entityType}/${input.id}`,
-          };
+        if ("error" in resolved)
+          return { success: false, error: resolved.error };
+        const { entity } = resolved;
 
         if (input.confirmed) {
           try {
@@ -624,17 +614,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
       "Update an entity's fields or content. Requires confirmation.",
       updateInputSchema,
       async (input) => {
-        const entity = await findEntityByIdentifier(
+        const resolved = await resolveEntityOrError(
           entityService,
           input.entityType,
           input.id,
           logger,
         );
-        if (!entity)
-          return {
-            success: false,
-            error: `Entity not found: ${input.entityType}/${input.id}`,
-          };
+        if ("error" in resolved)
+          return { success: false, error: resolved.error };
+        const { entity } = resolved;
         if (input.content && input.fields)
           return {
             success: false,
@@ -814,17 +802,15 @@ export function createSystemTools(services: SystemServices): Tool[] {
       setCoverInputSchema,
       async (input) => {
         try {
-          const entity = await findEntityByIdentifier(
+          const resolved = await resolveEntityOrError(
             entityService,
             input.entityType,
             input.entityId,
             logger,
           );
-          if (!entity)
-            return {
-              success: false,
-              error: `Entity not found: ${input.entityType}/${input.entityId}`,
-            };
+          if ("error" in resolved)
+            return { success: false, error: resolved.error };
+          const { entity } = resolved;
           const adapter = services.entityRegistry.getAdapter(input.entityType);
           if (!adapter.supportsCoverImage)
             return {
@@ -832,12 +818,14 @@ export function createSystemTools(services: SystemServices): Tool[] {
               error: `Entity type '${input.entityType}' doesn't support cover images`,
             };
           if (input.imageId) {
-            const image = await entityService.getEntity("image", input.imageId);
-            if (!image)
-              return {
-                success: false,
-                error: `Image not found: ${input.imageId}`,
-              };
+            const image = await resolveEntityOrError(
+              entityService,
+              "image",
+              input.imageId,
+              logger,
+              "Image",
+            );
+            if ("error" in image) return { success: false, error: image.error };
           }
           const updated = setCoverImageId(entity, input.imageId);
           await entityService.updateEntity(updated);
