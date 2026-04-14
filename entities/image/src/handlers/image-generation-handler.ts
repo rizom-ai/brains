@@ -10,6 +10,7 @@ import {
   PROGRESS_STEPS,
   JobResult,
 } from "@brains/utils";
+import { findEntityByIdentifier } from "@brains/entity-service";
 import { imageAdapter } from "@brains/image";
 import { buildImageBasePrompt } from "../lib/build-image-base-prompt";
 
@@ -208,9 +209,11 @@ ${data.entityContent}`,
           message: `Updating ${targetEntityType} with cover image`,
         });
 
-        const targetEntity = await this.context.entityService.getEntity(
+        const targetEntity = await findEntityByIdentifier(
+          this.context.entityService,
           targetEntityType,
           targetEntityId,
+          this.logger,
         );
 
         if (!targetEntity) {

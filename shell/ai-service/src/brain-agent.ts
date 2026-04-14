@@ -201,7 +201,17 @@ Users say different things than the internal entity types. Always map:
 ### Image & Cover Operations
 - To **generate a cover image**, use \`system_create\` with \`entityType: "image"\`, a \`prompt\`, and pass \`targetEntityType\`/\`targetEntityId\` as top-level fields. This generates the image AND sets it as cover in one step.
   Example: \`system_create({ entityType: "image", prompt: "...", targetEntityType: "post", targetEntityId: "my-post" })\`
+- Requests like **"create a new cover"**, **"replace the cover image"**, **"I don't like this cover, make a new one"**, or **"regenerate the cover"** are all the same operation: generate a new image and attach it to the target entity. These are **fulfillable** requests, not wishlist requests.
+- If the user gives a **quoted exact title/slug/id** for a post or page, resolve it with \`system_get\` first.
+- If the user refers to an existing post/page/item by a **fuzzy name** rather than an exact ID, resolve it with \`system_search\`, then pass the **canonical entity ID** to \`system_create\`.
+- For partial references like "my resilience post", "the drama blog post", or "that urban sensing article", prefer \`system_search\`. **Do not invent or guess slugs/IDs** for cover-image targets.
+- If an exact \`system_get\` lookup fails, say that target was **not found**. Do **not** silently substitute a semantically similar post from \`system_search\` unless the user explicitly confirms it is the same one.
+- On a follow-up like "is it ready?" after a failed cover-generation request, answer in the form: **"It failed because the target post was not found."** Do **not** say "not yet" or imply the job is still pending.
+- Once you have identified the post, **immediately call** \`system_create\` with \`entityType: "image"\`; do not stop at lookup and do not convert the request into a wish.
+- **Never create a \`wish\` for cover-image generation or replacement requests.** This capability is available via \`system_create\` with \`entityType: "image"\`.
 - To **set an existing image** as cover, use \`system_set-cover\` with the \`imageId\`.
+- For direct requests like **"set image X as the cover for post Y"**, call \`system_set-cover\` **immediately** with those identifiers. Do **not** preflight with \`system_get\` or \`system_search\` unless the post or image reference is actually ambiguous.
+- Let \`system_set-cover\` validate whether the post or image exists.
 - Do NOT look for an \`image_generate\` tool — it does not exist. All image creation goes through \`system_create\`.
 
 ### Tool Usage Rules
@@ -212,11 +222,15 @@ Users say different things than the internal entity types. Always map:
 - **Always specify target entities** — when an operation relates to an existing entity, pass its type and ID
 - If the user says **backup to git**, **sync to git**, **pull the latest from git**, or **refresh from the filesystem**, treat that as a \`directory-sync_sync\` request, not just a status check
 - Use \`directory-sync_status\` only for questions about state like "what's my sync status?"
+- If a request is fulfillable with an existing tool, **do not** create a wishlist item instead. Wishlist creation is only for truly unavailable capabilities.
+- Regenerating or replacing a cover image for an existing post is **fulfillable**: resolve the target post, then call \`system_create\` with \`entityType: "image"\`.
 - Summarize tool results concisely rather than showing raw output
 
 ### Multi-Turn Context
 - **Remember previous results** — when the user says "that post", "the first one", "it", refer back to entities from earlier turns
-- After listing entities, remember their IDs so you can get details without asking the user to repeat themselves` +
+- After listing entities, remember their IDs so you can get details without asking the user to repeat themselves
+- If you just created or queued a post/social post in the previous turn and the user says **"that post"** or asks for a follow-up action like **"now generate a cover image for that post"**, treat it as referring to the item you just created — do **not** search for alternate posts unless the reference is genuinely ambiguous
+- For those immediate follow-up cover requests, call \`system_create\` with \`entityType: "image"\` right away. Pass \`targetEntityType\`, and include \`targetEntityId\` if you know it from prior tool results` +
     (pluginInstructions && pluginInstructions.length > 0
       ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`
       : "") +
@@ -241,6 +255,8 @@ Users say different things than the internal entity types. Always map:
 - **NEVER mimic previous responses** - your conversation history shows past outputs, but you must still invoke tools
 - Do not mention job IDs, batch IDs, or internal identifiers in your response - just confirm the action was started
 - If a tool call fails, report the actual error - do not invent a success response
+- If a previous action in the conversation already failed, do **not** describe it as pending, running, or waiting for confirmation. State that it failed and why.
+- Only check status for work that was actually queued or started successfully.
 - For async operations (capture, build, sync): say "queued" or "started", NOT "Done!" - you don't know the outcome yet
 - If a URL or resource might be inaccessible (private repos, auth-required pages), mention this caveat
 

@@ -1,7 +1,7 @@
 {
   "name": "@brains/image-plugin",
   "private": true,
-  "version": "0.2.0-alpha.14",
+  "version": "0.2.0-alpha.12",
   "description": "Plugin for AI-powered image generation and management",
   "type": "module",
   "main": "./src/index.ts",
@@ -15,6 +15,7 @@
     "lint:fix": "eslint src test --ext .ts --fix"
   },
   "dependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/image": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@brains/utils": "workspace:*"

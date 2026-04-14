@@ -1,0 +1,34 @@
+id: tool-invocation-set-cover-generate-by-title
+name: Generate Cover Image for Entity Resolved by Title
+description: Verifies that the agent resolves a quoted post title before generating a new cover image and uses the canonical target entity id without falling back to the wishlist
+type: tool_invocation
+tags:
+  - core
+  - image
+  - cover
+
+turns:
+  - userMessage: "I don't like the cover image for the blog post 'Resilience Is Not Redundancy'. Can you create a new one for me?"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: "post"
+        id: "Resilience Is Not Redundancy"
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "image"
+        targetEntityType: "post"
+  responseNotContains:
+    - "not found"
+    - "I cannot"
+    - "I don't have access"
+    - "I'm unable"
+
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 30000

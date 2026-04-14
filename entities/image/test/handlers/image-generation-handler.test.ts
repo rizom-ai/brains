@@ -301,7 +301,7 @@ describe("ImageGenerationJobHandler", () => {
         id: "my-post",
         entityType: "post",
         content: "---\ntitle: My Post\n---\nContent",
-        metadata: { title: "My Post" },
+        metadata: { title: "My Post", slug: "my-post" },
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
         contentHash: "abc123",
@@ -310,7 +310,6 @@ describe("ImageGenerationJobHandler", () => {
       const targetContext = createMockEntityPluginContext({
         returns: {
           entityService: {
-            getEntity: mockTargetEntity,
             createEntity: { entityId: "test-image", jobId: "job-123" },
           },
           ai: {
@@ -321,6 +320,7 @@ describe("ImageGenerationJobHandler", () => {
             },
           },
         },
+        listEntitiesImpl: async () => [mockTargetEntity],
       });
       const targetHandler = new ImageGenerationJobHandler(
         targetContext,
@@ -344,6 +344,60 @@ describe("ImageGenerationJobHandler", () => {
       expect(targetContext.entities.update).toHaveBeenCalledWith(
         expect.objectContaining({
           id: "my-post",
+        }),
+      );
+    });
+
+    it("should resolve target entities by title before updating coverImageId", async () => {
+      const mockTargetEntity = {
+        id: "resilience-in-distributed-systems",
+        entityType: "post",
+        content:
+          "---\ntitle: Resilience Is Not Redundancy\nslug: resilience-in-distributed-systems\n---\nContent",
+        metadata: {
+          title: "Resilience Is Not Redundancy",
+          slug: "resilience-in-distributed-systems",
+        },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "abc123",
+      };
+
+      const targetContext = createMockEntityPluginContext({
+        returns: {
+          entityService: {
+            createEntity: { entityId: "test-image", jobId: "job-123" },
+          },
+          ai: {
+            canGenerateImages: true,
+            generateImage: {
+              base64: VALID_PNG_BASE64,
+              dataUrl: VALID_PNG_DATA_URL,
+            },
+          },
+        },
+        listEntitiesImpl: async () => [mockTargetEntity],
+      });
+      const targetHandler = new ImageGenerationJobHandler(
+        targetContext,
+        logger,
+      );
+
+      const jobData = createValidJobData({
+        targetEntityType: "post",
+        targetEntityId: "Resilience Is Not Redundancy",
+      });
+
+      const result = await targetHandler.process(
+        jobData,
+        "job-123",
+        progressReporter,
+      );
+
+      expect(result.success).toBe(true);
+      expect(targetContext.entities.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          id: "resilience-in-distributed-systems",
         }),
       );
     });
