@@ -38,8 +38,9 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 - `brains-ops init <repo>`
 - `brains-ops render <repo>` — regenerates `views/users.md` with live DNS, `/health`, and unauthenticated `/mcp` status checks
 - `brains-ops onboard <repo> <handle>`
+- `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`
 - `brains-ops cert:bootstrap <repo>`
-- `brains-ops secrets:push <repo> <handle>`
+- `brains-ops secrets:encrypt <repo> <handle>`
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`

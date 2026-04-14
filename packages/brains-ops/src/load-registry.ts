@@ -29,6 +29,8 @@ export interface ResolvedCohort {
   brainVersionOverride?: string;
   presetOverride?: PilotPreset;
   aiApiKeyOverride?: string;
+  gitSyncTokenOverride?: string;
+  mcpAuthTokenOverride?: string;
 }
 
 export interface ResolvedAnchorProfileSocialLink {
@@ -57,6 +59,8 @@ export interface ResolvedUserIdentity {
   discordEnabled: boolean;
   discordAnchorUserId?: string;
   effectiveAiApiKey: string;
+  effectiveGitSyncToken: string;
+  effectiveMcpAuthToken: string;
   anchorProfile: ResolvedAnchorProfile;
   snapshotStatus: SnapshotStatus;
 }
@@ -116,6 +120,12 @@ export async function loadPilotRegistry(
       ...(cohortFile.data.aiApiKeyOverride
         ? { aiApiKeyOverride: cohortFile.data.aiApiKeyOverride }
         : {}),
+      ...(cohortFile.data.gitSyncTokenOverride
+        ? { gitSyncTokenOverride: cohortFile.data.gitSyncTokenOverride }
+        : {}),
+      ...(cohortFile.data.mcpAuthTokenOverride
+        ? { mcpAuthTokenOverride: cohortFile.data.mcpAuthTokenOverride }
+        : {}),
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
 
@@ -144,6 +154,14 @@ export async function loadPilotRegistry(
           userFile.data.aiApiKeyOverride ??
           cohort.data.aiApiKeyOverride ??
           pilot.aiApiKey,
+        effectiveGitSyncToken:
+          userFile.data.gitSyncTokenOverride ??
+          cohort.data.gitSyncTokenOverride ??
+          pilot.gitSyncToken,
+        effectiveMcpAuthToken:
+          userFile.data.mcpAuthTokenOverride ??
+          cohort.data.mcpAuthTokenOverride ??
+          pilot.mcpAuthToken,
         anchorProfile: resolveAnchorProfile(
           userFile.data.handle,
           userFile.data.anchorProfile,
@@ -176,7 +194,9 @@ export async function loadPilotRegistry(
 
 async function loadUserFiles(rootDir: string): Promise<LoadedUserFile[]> {
   const userDir = join(rootDir, "users");
-  const userFiles = await listYamlFiles(userDir);
+  const userFiles = (await listYamlFiles(userDir)).filter(
+    (filePath) => !basename(filePath).endsWith(".secrets.yaml"),
+  );
 
   const loaded = await Promise.all(
     userFiles.map(async (filePath): Promise<LoadedUserFile> => {
@@ -320,12 +340,10 @@ async function readYamlFile<T>(
   return result.data;
 }
 
-function stripYamlExtension(fileName: string): string {
-  return fileName.replace(/\.yaml$/, "");
+function stripYamlExtension(name: string): string {
+  return name.replace(/\.ya?ml$/, "");
 }
 
-function normalizePath(filePath: string): string {
-  return filePath.replaceAll("\\", "/");
+function normalizePath(path: string): string {
+  return path.replaceAll("\\", "/");
 }
-
-export { PilotRegistryError };

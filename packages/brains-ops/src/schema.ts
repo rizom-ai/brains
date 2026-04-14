@@ -12,6 +12,7 @@ export const handleSchema = z
   .string()
   .regex(handlePattern, "expected lowercase handle slug");
 export const secretNameSchema = z.string().min(1);
+export const agePublicKeySchema = z.string().startsWith("age1").min(1);
 
 export const pilotSchema = z
   .object({
@@ -23,6 +24,9 @@ export const pilotSchema = z
     domainSuffix: z.string().min(1),
     preset: presetSchema,
     aiApiKey: secretNameSchema,
+    gitSyncToken: secretNameSchema,
+    mcpAuthToken: secretNameSchema,
+    agePublicKey: agePublicKeySchema,
   })
   .strict();
 
@@ -55,6 +59,8 @@ export const userSchema = z
       })
       .strict(),
     aiApiKeyOverride: secretNameSchema.optional(),
+    gitSyncTokenOverride: secretNameSchema.optional(),
+    mcpAuthTokenOverride: secretNameSchema.optional(),
     anchorProfile: anchorProfileSchema.optional(),
   })
   .strict();
@@ -65,6 +71,8 @@ export const cohortSchema = z
     brainVersionOverride: exactVersionSchema.optional(),
     presetOverride: presetSchema.optional(),
     aiApiKeyOverride: secretNameSchema.optional(),
+    gitSyncTokenOverride: secretNameSchema.optional(),
+    mcpAuthTokenOverride: secretNameSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {

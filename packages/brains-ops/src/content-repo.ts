@@ -7,7 +7,6 @@ import { readLocalEnvValues, resolveLocalEnvValue } from "@brains/utils";
 import type { ResolvedUser } from "./load-registry";
 import { runSubprocess, type RunCommand } from "./run-subprocess";
 import type { ContentRepoFile } from "./user-runner";
-import { deriveUserSecretNames } from "./user-secret-names";
 
 type FetchImpl = (
   input: string | URL | Request,
@@ -45,7 +44,7 @@ export async function syncUserContentRepo(
 
   const env = options.env ?? process.env;
   const localEnvValues = readLocalEnvValues(rootDir);
-  const gitSyncToken = resolveGitSyncToken(user.handle, env, localEnvValues);
+  const gitSyncToken = resolveGitSyncToken(env, localEnvValues);
   const remoteUrl =
     options.contentRepoRemoteResolver?.(user, githubOrg, gitSyncToken) ??
     buildGitHubRemoteUrl(githubOrg, user.contentRepo, gitSyncToken);
@@ -137,19 +136,10 @@ function isStaleAnchorProfile(content: string): boolean {
 }
 
 function resolveGitSyncToken(
-  handle: string,
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
 ): string | undefined {
-  const secretNames = deriveUserSecretNames(handle);
-
-  return (
-    resolveLocalEnvValue(
-      secretNames.gitSyncTokenSecretName,
-      env,
-      localEnvValues,
-    ) ?? resolveLocalEnvValue("GIT_SYNC_TOKEN", env, localEnvValues)
-  );
+  return resolveLocalEnvValue("GIT_SYNC_TOKEN", env, localEnvValues);
 }
 
 function buildGitHubRemoteUrl(

@@ -38,6 +38,9 @@ describe("pilot origin CA bootstrap", () => {
         "domainSuffix: .rizom.ai",
         "preset: core",
         "aiApiKey: AI_API_KEY",
+        "gitSyncToken: GIT_SYNC_TOKEN",
+        "mcpAuthToken: MCP_AUTH_TOKEN",
+        "agePublicKey: age1testpublickey",
         "",
       ].join("\n"),
     );
@@ -155,6 +158,9 @@ describe("pilot origin CA bootstrap", () => {
         'domainSuffix: "*.rizom.ai"',
         "preset: core",
         "aiApiKey: AI_API_KEY",
+        "gitSyncToken: GIT_SYNC_TOKEN",
+        "mcpAuthToken: MCP_AUTH_TOKEN",
+        "agePublicKey: age1testpublickey",
         "",
       ].join("\n"),
     );

@@ -22,6 +22,7 @@ const starterFilePaths = [
   "deploy/scripts/provision-server.ts",
   "deploy/scripts/update-dns.ts",
   "deploy/scripts/write-ssh-key.ts",
+  "deploy/scripts/decrypt-user-secrets.ts",
   "deploy/scripts/validate-secrets.ts",
   "deploy/scripts/write-kamal-secrets.ts",
   "deploy/scripts/resolve-user-config.ts",
@@ -85,7 +86,7 @@ async function writeStarterFileIfMissing(
 
 async function renderStarterFile(relativePath: string): Promise<string> {
   if (relativePath === ".gitignore") {
-    return "node_modules/\n.brains-ops/\n";
+    return "node_modules/\n.brains-ops/\nusers/*.secrets.yaml\n";
   }
 
   const templatePath = join(templateRootDir, relativePath);

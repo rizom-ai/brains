@@ -35,6 +35,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
 anchorProfile:
@@ -49,10 +52,12 @@ discord:
   enabled: true
   anchorUserId: "123456789"
 aiApiKeyOverride: BOB_AI_API_KEY
+gitSyncTokenOverride: BOB_GIT_SYNC_TOKEN
 `,
       "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
 presetOverride: default
 aiApiKeyOverride: CANARY_AI_API_KEY
+mcpAuthTokenOverride: CANARY_MCP_AUTH_TOKEN
 members:
   - alice
 `,
@@ -80,6 +85,8 @@ members:
         dnsStatus: "unknown",
         domain: "alice.rizom.ai",
         effectiveAiApiKey: "CANARY_AI_API_KEY",
+        effectiveGitSyncToken: "GIT_SYNC_TOKEN",
+        effectiveMcpAuthToken: "CANARY_MCP_AUTH_TOKEN",
         handle: "alice",
         mcpStatus: "unknown",
         model: "rover",
@@ -100,6 +107,8 @@ members:
         dnsStatus: "unknown",
         domain: "bob.rizom.ai",
         effectiveAiApiKey: "BOB_AI_API_KEY",
+        effectiveGitSyncToken: "BOB_GIT_SYNC_TOKEN",
+        effectiveMcpAuthToken: "MCP_AUTH_TOKEN",
         handle: "bob",
         mcpStatus: "unknown",
         model: "rover",
@@ -120,6 +129,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -154,6 +166,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -187,6 +202,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: alice
 discord:
@@ -230,6 +248,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
       "users/alice.yaml": `handle: bob
 discord:

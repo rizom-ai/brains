@@ -10,10 +10,10 @@ Rover is your private AI assistant for working with your own notes, links, and i
 
 In this pilot, Rover is intentionally simple:
 
-- you talk to it through an **MCP client**
+- you will usually talk to it in **Discord**
 - **there is no website to browse**
-- Discord is optional
-- Obsidian fits through the git-sync/content-repo workflow, not as the main chat interface
+- **MCP is optional** and only needed for direct client access or specific testing workflows
+- your content can also live in a normal git repo of markdown/text files; **Obsidian is optional** if you want a nicer note-editing interface
 
 You can think of Rover as a private knowledge companion that helps you:
 
@@ -25,45 +25,66 @@ You can think of Rover as a private knowledge companion that helps you:
 
 ## What you will receive from us
 
-We will send you the details you need to connect.
+We will send you the details you need to get started.
 
 That usually includes:
 
-- your Rover URL: `https://<handle>.rizom.ai/mcp`
-- your **Bearer token**
-- confirmation of whether Discord is enabled for you
+- confirmation that Discord is enabled for you, plus the invite/setup steps
+- if needed, your Rover MCP URL: `https://<handle>.rizom.ai/mcp`
+- if needed, your **Bearer token**
 - if needed, an invite to your **private** Rover content repo
 - any extra instructions if we are testing a specific workflow with your cohort
 
-Treat the **Bearer token** like a password. Do not share it.
+If we give you a **Bearer token**, treat it like a password. Do not share it.
 
-## One important idea: MCP is just the connection method
+## One important idea: Discord is the default, MCP is optional
 
-If you have never used MCP before, the shortest explanation is:
+If you are new to Rover, the shortest explanation is:
 
 - **Rover** is the assistant
-- **MCP** is the way your AI client connects to Rover
+- **Discord** is the default way most pilot users will talk to it
+- **MCP** is an optional direct connection method for supported AI clients
 
-You do not need to understand the protocol details.
+You do not need to understand the protocol details unless we specifically ask you to use MCP.
 
-For the pilot, the practical meaning is simple:
+For most users, the practical meaning is simple:
 
-- open a supported client
-- add your Rover URL
-- paste your Bearer token
-- start talking to Rover
+- join Discord
+- message Rover there
+- start using it
+
+If your cohort is also testing MCP, we will send the URL, Bearer token, and setup help separately.
 
 ## What to use first
 
 For most users, the easiest first setup is:
 
-- **Claude Desktop** for talking to Rover
-- **Obsidian** only if you also want to work directly with markdown files later
-- **Discord** only if we explicitly enable it for you
+- **Discord** for talking to Rover
+- a normal **git repo of markdown/text files** only if you also want to work directly with your content later
+- **Obsidian** only if you want a friendlier interface for those same files
+- **Claude Desktop** or another MCP client only if we explicitly ask you to test a direct MCP workflow
 
-## How to connect
+## Default setup: Discord
 
-Use an MCP client that supports:
+For most users, getting started means:
+
+- join the Discord server we send you
+- open the Rover channel or DM
+- send a first message
+
+Try a first message like:
+
+> What can you help me do, and what should I use you for?
+
+Or:
+
+> Help me save my first note.
+
+If Discord is not enabled for you yet, tell us and we will share the right next step.
+
+## Optional: direct MCP access
+
+If we have asked you to use an MCP client, use one that supports:
 
 - **HTTP / Streamable HTTP MCP**
 - **Bearer token authentication**
@@ -78,9 +99,9 @@ If the client asks for a name, use something simple like:
 
 - `Rover (<handle>)`
 
-## Claude Desktop setup
+## Optional: Claude Desktop setup
 
-If your Claude Desktop version supports connecting to a **remote HTTP / Streamable HTTP MCP server**, enter:
+If we ask you to connect through Claude Desktop and your version supports a **remote HTTP / Streamable HTTP MCP server**, enter:
 
 - **Server URL:** `https://<handle>.rizom.ai/mcp`
 - **Authentication:** Bearer token
@@ -186,34 +207,38 @@ If Rover cannot do what you asked, a good response from Rover is something like:
 
 If that does **not** happen, that is useful feedback for us too.
 
-## Obsidian
+## Git, text files, and Obsidian
 
-Obsidian is part of the pilot through the **git-synced content repo workflow**, not through MCP.
+The underlying content workflow is a normal **git repo** with normal **markdown/text files**.
+
+Obsidian is optional. It is just one possible editor for those files.
 
 That means:
 
-- use **Claude Desktop** as the main way to talk to Rover
-- use **Obsidian** if you want to browse, draft, and edit markdown files directly
+- use **Discord** as the main way to talk to Rover
+- use a normal editor plus **git** if you want to browse, draft, and edit your files directly
+- use **Obsidian** only if you want a more note-focused interface for the same files
 - Rover can pick up those file changes through the normal git-sync / directory-sync flow
 
 A simple mental model:
 
-- **Claude Desktop** = talk to Rover
-- **Obsidian** = edit the underlying notes
+- **Discord** = talk to Rover
+- **git repo + text files** = the underlying content
+- **Obsidian** = an optional editor for that content
 
 ### Important: your content repo is private
 
-If you use the Obsidian/git workflow, you will be working in your own **private** GitHub repo.
+If you use the git/text-file workflow, you will be working in your own **private** GitHub repo.
 
 That means:
 
-- you do **not** need repo access just to use Rover through MCP
+- you do **not** need repo access just to use Rover in Discord or through MCP
 - you **do** need GitHub access if you want to clone, edit, and push to your content repo
 - we will invite you only to **your own** content repo, not to the operator repo and not to other users' repos
 
 ### How you get access
 
-If you want the Obsidian/git workflow, we will:
+If you want the git/text-file workflow, we will:
 
 1. create or confirm your private content repo
 2. invite your GitHub account to that repo
@@ -227,10 +252,9 @@ The easiest path for most first-time users is:
 1. install **GitHub Desktop**
 2. accept the repo invite in GitHub
 3. clone the private repo with GitHub Desktop
-4. open the cloned folder as an Obsidian vault
-5. optionally install the **Obsidian Git** plugin if you want in-app commit/push/pull support
-6. edit your markdown notes
-7. commit and push your changes
+4. open the cloned folder in your normal editor and edit the markdown/text files directly
+5. optionally open that same folder as an **Obsidian** vault if you prefer
+6. commit and push your changes
 
 ### Authentication options
 
@@ -242,41 +266,38 @@ Usually the easiest order is:
 2. **SSH key** if you already use git that way
 3. a **fine-grained personal access token** only if another tool specifically requires it
 
-You do **not** need a personal access token just to use Rover through MCP.
+You do **not** need a personal access token just to use Rover in Discord or through MCP.
 
 If we have already shared your content repo workflow with you, the normal setup is:
 
 1. clone your Rover content repo locally
-2. open that folder as an Obsidian vault
+2. edit the markdown/text files in your normal editor, or open that same folder as an Obsidian vault if you prefer
 3. optionally install the **Obsidian Git** plugin if you want in-app commit/push/pull support
-4. edit or organize your markdown notes there
-5. commit and push your changes through normal git or the Obsidian Git plugin
+4. edit or organize your notes there
+5. commit and push your changes through normal git, GitHub Desktop, or the Obsidian Git plugin
 6. let the normal git-sync flow carry those changes into Rover
 
-If we have **not** given you a direct content repo workflow yet, that is fine. You can ignore Obsidian for now and use Rover purely through MCP.
+If we have **not** given you a direct content repo workflow yet, that is fine. You can ignore git, text files, and Obsidian for now and use Rover in Discord. If we have also asked you to test MCP, you can use that too.
 
-## Discord (optional)
+## Discord (default)
 
-Discord is optional in this pilot.
+Discord is the default interface for this pilot.
 
-If it is enabled for you, think of it as a lightweight secondary interface for:
+Think of it as the main place to:
 
-- quick note capture
-- dropping in links to save
-- short questions when you do not want to open Claude Desktop
+- save quick notes
+- drop in links to save
+- ask short or long questions
+- use Rover day to day without setting up a separate client
 
 Important:
 
-- **MCP remains the main interface**
-- Discord is **off by default**
-- if you want Discord, tell us explicitly
-- for this pilot, Discord-enabled users may need to supply their own bot token
-- if Discord is enabled and you should have full anchor access there, we may also ask for your Discord user ID
+- **Discord is the main pilot interface moving forward**
+- MCP is **optional**
 - if Discord is enabled, we will send the exact invite/setup steps separately
+- for some pilot setups, Discord-enabled users may need to supply their own bot token
 
-If Discord is **not** enabled for you, that is completely normal.
-
-If we ask for your Discord user ID, you can get it by enabling Developer Mode in Discord, then right-clicking your username and choosing **Copy User ID**.
+If Discord is **not** enabled for you yet, ask us and we will tell you whether your cohort is on the Discord-first workflow.
 
 ## What to expect in the pilot
 
@@ -297,7 +318,7 @@ That is normal. The point of the pilot is to learn from real use.
 For the pilot:
 
 - your Rover is deployed specifically for you
-- access to `/mcp` is protected by your Bearer token
+- if you are using MCP, access to `/mcp` is protected by your Bearer token
 - you should avoid putting highly sensitive material into the pilot unless we have explicitly agreed that it is in scope
 
 If you are unsure whether something belongs in Rover, ask us first.
@@ -306,9 +327,9 @@ If you are unsure whether something belongs in Rover, ask us first.
 
 ### I opened the domain and it does not look like a normal site
 
-That is expected. In this pilot, **there is no website to browse**. Rover core is MCP-first.
+That is expected. In this pilot, **there is no website to browse**. Rover runs through Discord and, optionally, a direct MCP endpoint.
 
-### I got an authentication error
+### I got an authentication error in MCP
 
 Usually this means one of three things:
 
@@ -350,11 +371,14 @@ Short, honest feedback is perfect.
 When we onboard you, the message will look roughly like this:
 
 ```text
-Rover URL: https://<handle>.rizom.ai/mcp
+Discord enabled: yes/no
+Discord setup: <invite link or setup steps>
+MCP access: optional / enabled / not enabled
+
+If MCP is enabled:
+MCP URL: https://<handle>.rizom.ai/mcp
 Auth type: Bearer token
 Bearer token: <token>
-Discord enabled: yes/no
-Discord anchor access: yes/no
 ```
 
 If anything is unclear, reply with the exact error text or a screenshot and we will help.

@@ -39,16 +39,28 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
   });
 
-  it("parses secrets:push with repo path, handle, and dry-run", () => {
+  it("parses secrets:encrypt with repo path, handle, and dry-run", () => {
     const result = parseArgs([
-      "secrets:push",
+      "secrets:encrypt",
       "/tmp/rover-pilot",
       "alice",
       "--dry-run",
     ]);
-    expect(result.command).toBe("secrets:push");
+    expect(result.command).toBe("secrets:encrypt");
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
     expect(result.flags.dryRun).toBe(true);
+  });
+
+  it("parses age-key:bootstrap with repo path and push target", () => {
+    const result = parseArgs([
+      "age-key:bootstrap",
+      "/tmp/rover-pilot",
+      "--push-to",
+      "gh",
+    ]);
+    expect(result.command).toBe("age-key:bootstrap");
+    expect(result.args).toEqual(["/tmp/rover-pilot"]);
+    expect(result.flags.pushTo).toBe("gh");
   });
 
   it("parses ssh-key:bootstrap with repo path and push target", () => {
@@ -91,6 +103,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
     "users/alice.yaml": `handle: alice
 discord:
@@ -256,16 +271,29 @@ discord:
     );
   });
 
-  it("returns usage error when secrets:push missing handle", async () => {
+  it("returns usage error when secrets:encrypt missing handle", async () => {
     const result = await runCommand({
-      command: "secrets:push",
+      command: "secrets:encrypt",
       args: ["/tmp/rover-pilot"],
       flags: {},
     });
 
     expect(result.success).toBe(false);
     expect(result.message).toContain(
-      "Usage: brains-ops secrets:push <repo> <handle>",
+      "Usage: brains-ops secrets:encrypt <repo> <handle>",
+    );
+  });
+
+  it("returns usage error when age-key:bootstrap missing repo", async () => {
+    const result = await runCommand({
+      command: "age-key:bootstrap",
+      args: [],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops age-key:bootstrap <repo>",
     );
   });
 
@@ -307,18 +335,14 @@ discord:
       "brain: rover\ndomain: alice.rizom.ai\npreset: core\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
   });
 
   it("uses the default runner for onboard with a discord anchor user", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
-      "users/bob.yaml": `handle: bob
-discord:
-  enabled: true
-  anchorUserId: "123456789"
-`,
+      "users/bob.yaml": `handle: bob\ndiscord:\n  enabled: true\n  anchorUserId: "123456789"\n`,
     });
 
     const result = await runCommand({
@@ -361,7 +385,7 @@ discord:
       "brain: rover\npreset: core\ndomain: alice.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
   });
 
@@ -376,10 +400,10 @@ discord:
 
     expect(result.success).toBe(true);
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
-      "MCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE",
+      "CONTENT_REPO=rizom-ai/rover-alice-content",
     );
     expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
-      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+      "CONTENT_REPO=rizom-ai/rover-bob-content",
     );
   });
 
@@ -403,7 +427,7 @@ discord:
     expect(result.success).toBe(true);
     expect(calls).toEqual(["alice:canary:core", "bob:canary:core"]);
     expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
-      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+      "CONTENT_REPO=rizom-ai/rover-bob-content",
     );
   });
 
@@ -414,9 +438,10 @@ discord:
     expect(result.message).toContain("brains-ops — operator CLI");
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
+    expect(result.message).toContain("age-key:bootstrap <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
     expect(result.message).toContain("cert:bootstrap <repo>");
-    expect(result.message).toContain("secrets:push <repo> <handle>");
+    expect(result.message).toContain("secrets:encrypt <repo> <handle>");
     expect(result.message).not.toContain("requires operator runner");
   });
 

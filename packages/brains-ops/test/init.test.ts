@@ -84,6 +84,9 @@ describe("initPilotRepo", () => {
     expect(
       existsSync(join(repo, "deploy", "scripts", "sync-content-repo.ts")),
     ).toBe(true);
+    expect(
+      existsSync(join(repo, "deploy", "scripts", "decrypt-user-secrets.ts")),
+    ).toBe(true);
 
     const pilotYaml = await readFile(join(repo, "pilot.yaml"), "utf8");
     expect(pilotYaml).toContain("schemaVersion: 1");
@@ -91,6 +94,11 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).toContain("githubOrg: <github-org>");
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
+    expect(pilotYaml).toContain("gitSyncToken: GIT_SYNC_TOKEN");
+    expect(pilotYaml).toContain("mcpAuthToken: MCP_AUTH_TOKEN");
+    expect(pilotYaml).toContain(
+      "agePublicKey: age1replace-with-your-public-key",
+    );
 
     const envSchema = await readFile(join(repo, ".env.schema"), "utf8");
     expect(envSchema).toContain("# Rover pilot instance env schema");
@@ -102,6 +110,7 @@ describe("initPilotRepo", () => {
     const gitignore = await readFile(join(repo, ".gitignore"), "utf8");
     expect(gitignore).toContain("node_modules/");
     expect(gitignore).toContain(".brains-ops/");
+    expect(gitignore).toContain("users/*.secrets.yaml");
 
     const usersTable = await readFile(join(repo, "views", "users.md"), "utf8");
     expect(usersTable).toContain(
@@ -142,6 +151,7 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
     expect(deployWorkflow).toContain("users/*/content/**");
+    expect(deployWorkflow).toContain("users/*.secrets.yaml.age");
     expect(deployWorkflow).toContain("handle:");
     expect(deployWorkflow).toContain("strategy:");
     expect(deployWorkflow).toContain("matrix.handle");
@@ -156,18 +166,21 @@ describe("initPilotRepo", () => {
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-deploy-handles.ts",
     );
-    expect(deployWorkflow).toContain("Resolve selected user secret names");
+    expect(deployWorkflow).toContain("Decrypt user secrets");
     expect(deployWorkflow).toContain(
-      'echo "git_sync_token_secret_name=GIT_SYNC_TOKEN_${HANDLE_SUFFIX}" >> "$GITHUB_OUTPUT"',
+      "AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}",
     );
     expect(deployWorkflow).toContain(
-      "GIT_SYNC_TOKEN: ${{ secrets[steps.user_secret_names.outputs.git_sync_token_secret_name] }}",
+      'bun deploy/scripts/decrypt-user-secrets.ts "$HANDLE"',
     );
     expect(deployWorkflow).toContain("bunx brains-ops onboard");
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/resolve-user-config.ts",
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/sync-content-repo.ts");
+    expect(deployWorkflow).toContain(
+      'export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"',
+    );
     expect(deployWorkflow).toContain("bun deploy/scripts/provision-server.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/update-dns.ts");
     expect(deployWorkflow).toContain(
@@ -178,6 +191,12 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain(
       "bun deploy/scripts/write-kamal-secrets.ts",
+    );
+    expect(deployWorkflow).toContain(
+      'export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"',
+    );
+    expect(deployWorkflow).toContain(
+      'export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"',
     );
     expect(deployWorkflow).toContain("bun deploy/scripts/write-ssh-key.ts");
     expect(deployWorkflow).toContain("bun deploy/scripts/validate-secrets.ts");
@@ -332,7 +351,7 @@ describe("initPilotRepo", () => {
     await mkdir(repo, { recursive: true });
     await writeFile(
       join(repo, "pilot.yaml"),
-      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\n",
+      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\nmcpAuthToken: CUSTOM_MCP_AUTH_TOKEN\nagePublicKey: age1custompublickey\n",
     );
 
     await initPilotRepo(repo);

@@ -1,7 +1,6 @@
 import { toYaml } from "@brains/utils";
 import type { ResolvedUser } from "./load-registry";
 import type { ContentRepoFile, UserRunResult } from "./user-runner";
-import { deriveUserSecretNames } from "./user-secret-names";
 
 export function createDefaultUserRunner(
   githubOrg: string,
@@ -80,22 +79,11 @@ function renderAnchorProfile(user: ResolvedUser): string {
 }
 
 function renderUserEnv(user: ResolvedUser, githubOrg: string): string {
-  const secretNames = deriveUserSecretNames(user.handle);
   const lines = [
     `BRAIN_VERSION=${user.brainVersion}`,
-    `AI_API_KEY_SECRET=${user.effectiveAiApiKey}`,
-    `GIT_SYNC_TOKEN_SECRET=${secretNames.gitSyncTokenSecretName}`,
-    `MCP_AUTH_TOKEN_SECRET=${secretNames.mcpAuthTokenSecretName}`,
+    `CONTENT_REPO=${githubOrg}/${user.contentRepo}`,
+    "",
   ];
-
-  if (user.discordEnabled) {
-    lines.push(
-      `DISCORD_BOT_TOKEN_SECRET=${secretNames.discordBotTokenSecretName}`,
-    );
-  }
-
-  lines.push(`CONTENT_REPO=${githubOrg}/${user.contentRepo}`);
-  lines.push("");
 
   return lines.join("\n");
 }

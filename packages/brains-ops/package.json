@@ -34,7 +34,9 @@
     "lint:fix": "eslint . --ext .ts --fix",
     "test": "bun test --timeout 20000"
   },
-  "dependencies": {},
+  "dependencies": {
+    "age-encryption": "^0.3.0"
+  },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",

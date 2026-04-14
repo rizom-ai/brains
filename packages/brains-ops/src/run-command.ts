@@ -1,6 +1,7 @@
 import packageJson from "../package.json";
 
 import type { FetchLike } from "@brains/utils/origin-ca";
+import { runPilotAgeKeyBootstrap } from "./age-key-bootstrap";
 import { runPilotCertBootstrap } from "./cert-bootstrap";
 import { initPilotRepo } from "./init";
 import type { LoadPilotRegistryOptions } from "./load-registry";
@@ -13,7 +14,7 @@ import type { ParsedArgs } from "./parse-args";
 import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
 import { writeUsersTable } from "./render-users-table";
-import { pushPilotSecrets } from "./secrets-push";
+import { encryptPilotSecrets } from "./secrets-encrypt";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import type { UserRunner } from "./user-runner";
@@ -29,7 +30,6 @@ export interface CommandDependencies extends LoadPilotRegistryOptions {
   logger?: ((message: string) => void) | undefined;
   fetchImpl?: FetchLike | undefined;
   lookupHost?: LookupHost | undefined;
-  secretRunCommand?: OpsRunCommand | undefined;
   bootstrapRunCommand?: OpsRunCommand | undefined;
   sshKeygen?: SshKeygen | undefined;
 }
@@ -101,6 +101,24 @@ export async function runCommand(
       };
     }
 
+    case "age-key:bootstrap": {
+      const repo = parsed.args[0];
+      if (!repo) {
+        return {
+          success: false,
+          message: "Usage: brains-ops age-key:bootstrap <repo>",
+        };
+      }
+
+      return runPilotAgeKeyBootstrap(repo, {
+        ...(dependencies.logger ? { logger: dependencies.logger } : {}),
+        ...(parsed.flags.pushTo ? { pushTo: parsed.flags.pushTo } : {}),
+        ...(dependencies.bootstrapRunCommand
+          ? { runCommand: dependencies.bootstrapRunCommand }
+          : {}),
+      });
+    }
+
     case "ssh-key:bootstrap": {
       const repo = parsed.args[0];
       if (!repo) {
@@ -148,27 +166,26 @@ export async function runCommand(
       });
     }
 
-    case "secrets:push": {
+    case "secrets:encrypt": {
       const repo = parsed.args[0];
       const handle = parsed.args[1];
       if (!repo || !handle) {
         return {
           success: false,
-          message: "Usage: brains-ops secrets:push <repo> <handle>",
+          message: "Usage: brains-ops secrets:encrypt <repo> <handle>",
         };
       }
 
-      const result = await pushPilotSecrets(repo, handle, {
+      const result = await encryptPilotSecrets(repo, handle, {
         env: dependencies.env,
         logger: dependencies.logger,
         dryRun: parsed.flags.dryRun,
-        runCommand: dependencies.secretRunCommand,
       });
       return {
         success: true,
         message: result.dryRun
-          ? `Dry run: would push ${result.pushedKeys.length} secrets`
-          : `Pushed ${result.pushedKeys.length} secrets for ${handle}`,
+          ? `Dry run: would encrypt ${result.encryptedKeys.length} secrets for ${handle}`
+          : `Encrypted ${result.encryptedKeys.length} secrets for ${handle}`,
       };
     }
 
@@ -221,9 +238,10 @@ export async function runCommand(
           "  init <repo>",
           "  render <repo>",
           "  onboard <repo> <handle>",
+          "  age-key:bootstrap <repo>",
           "  ssh-key:bootstrap <repo>",
           "  cert:bootstrap <repo>",
-          "  secrets:push <repo> <handle>",
+          "  secrets:encrypt <repo> <handle>",
           "  reconcile-cohort <repo> <cohort>",
           "  reconcile-all <repo>",
           "  help",

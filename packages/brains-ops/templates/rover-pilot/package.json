@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "packageManager": "bun@__BUN_VERSION__",
+  "dependencies": {
+    "age-encryption": "^0.3.0"
+  },
   "devDependencies": {
     "@rizom/ops": "__BRAINS_OPS_VERSION__"
   }

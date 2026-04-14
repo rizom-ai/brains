@@ -27,7 +27,7 @@ function getErrorMessage(error: unknown): string {
 function createRunner(calls: string[]): (user: ResolvedUser) => Promise<void> {
   return async (user: ResolvedUser): Promise<void> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
     );
   };
 }
@@ -37,7 +37,7 @@ function createSnapshotRunner(
 ): (user: ResolvedUser) => Promise<{ brainYaml: string }> {
   return async (user: ResolvedUser): Promise<{ brainYaml: string }> => {
     calls.push(
-      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}`,
+      `${user.handle}:${user.cohort}:${user.preset}:${user.brainVersion}:${user.effectiveAiApiKey}:${user.effectiveGitSyncToken}:${user.effectiveMcpAuthToken}`,
     );
 
     return {
@@ -55,6 +55,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
   "users/alice.yaml": `handle: alice
 anchorProfile:
@@ -72,10 +75,13 @@ discord:
 discord:
   enabled: false
 aiApiKeyOverride: CARA_AI_API_KEY
+gitSyncTokenOverride: CARA_GIT_SYNC_TOKEN
+mcpAuthTokenOverride: CARA_MCP_AUTH_TOKEN
 `,
   "cohorts/canary.yaml": `brainVersionOverride: 0.1.1-alpha.15
 presetOverride: default
 aiApiKeyOverride: CANARY_AI_API_KEY
+mcpAuthTokenOverride: CANARY_MCP_AUTH_TOKEN
 members:
   - bob
   - alice
@@ -95,7 +101,7 @@ describe("reconcile scripts", () => {
       "brain: rover\ndomain: alice.rizom.ai\npreset: default\n\nanchors: []\n\nplugins:\n  directory-sync:\n    git:\n      repo: rizom-ai/rover-alice-content\n      authToken: ${GIT_SYNC_TOKEN}\n  mcp:\n    authToken: ${MCP_AUTH_TOKEN}\n",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toBe(
-      "BRAIN_VERSION=0.1.1-alpha.15\nAI_API_KEY_SECRET=CANARY_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_ALICE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_ALICE\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.15\nCONTENT_REPO=rizom-ai/rover-alice-content\n",
     );
     const anchorProfile = await readFile(
       join(root, "users/alice/content/anchor-profile/anchor-profile.md"),
@@ -117,11 +123,7 @@ describe("reconcile scripts", () => {
   it("renders discord anchor user IDs into generated brain config", async () => {
     const root = await createPilotRepo({
       ...baseFiles,
-      "users/bob.yaml": `handle: bob
-discord:
-  enabled: true
-  anchorUserId: "123456789"
-`,
+      "users/bob.yaml": `handle: bob\ndiscord:\n  enabled: true\n  anchorUserId: "123456789"\n`,
     });
 
     await onboardUser(root, "bob");
@@ -138,8 +140,8 @@ discord:
     await reconcileCohort(root, "canary", createRunner(calls));
 
     expect(calls).toEqual([
-      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
-      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY",
+      "alice:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
+      "bob:canary:default:0.1.1-alpha.15:CANARY_AI_API_KEY:GIT_SYNC_TOKEN:CANARY_MCP_AUTH_TOKEN",
     ]);
   });
 
@@ -152,13 +154,13 @@ discord:
       "BRAIN_VERSION=0.1.1-alpha.15",
     );
     expect(await readFile(join(root, "users/alice/.env"), "utf8")).toContain(
-      "AI_API_KEY_SECRET=CANARY_AI_API_KEY",
+      "CONTENT_REPO=rizom-ai/rover-alice-content",
     );
     expect(await readFile(join(root, "users/bob/.env"), "utf8")).toContain(
-      "DISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_BOB",
+      "CONTENT_REPO=rizom-ai/rover-bob-content",
     );
     expect(await readFile(join(root, "users/cara/.env"), "utf8")).toContain(
-      "AI_API_KEY_SECRET=CARA_AI_API_KEY",
+      "CONTENT_REPO=rizom-ai/rover-cara-content",
     );
   });
 
@@ -179,7 +181,9 @@ discord:
 
     await onboardUser(root, "cara", createSnapshotRunner(calls));
 
-    expect(calls).toEqual(["cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY"]);
+    expect(calls).toEqual([
+      "cara:steady:core:0.1.1-alpha.14:CARA_AI_API_KEY:CARA_GIT_SYNC_TOKEN:CARA_MCP_AUTH_TOKEN",
+    ]);
 
     const snapshot = await readFile(
       join(root, "users/cara/brain.yaml"),
@@ -189,7 +193,7 @@ discord:
       "brain: rover\npreset: core\ndomain: cara.rizom.ai\n",
     );
     expect(await readFile(join(root, "users/cara/.env"), "utf8")).toBe(
-      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=CARA_AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_CARA\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_CARA\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-cara-content\n",
     );
 
     const table = await readFile(join(root, "views/users.md"), "utf8");
@@ -198,7 +202,7 @@ discord:
     );
   });
 
-  it("normalizes hyphenated handles in generated secret selector names", async () => {
+  it("keeps hyphenated handles in generated content repo paths", async () => {
     const root = await createPilotRepo({
       "pilot.yaml": `schemaVersion: 1
 brainVersion: 0.1.1-alpha.14
@@ -208,14 +212,12 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
+agePublicKey: age1testpublickey
 `,
-      "users/mary-jane.yaml": `handle: mary-jane
-discord:
-  enabled: true
-`,
-      "cohorts/canary.yaml": `members:
-  - mary-jane
-`,
+      "users/mary-jane.yaml": `handle: mary-jane\ndiscord:\n  enabled: true\n`,
+      "cohorts/canary.yaml": `members:\n  - mary-jane\n`,
     });
 
     await onboardUser(root, "mary-jane");
@@ -224,7 +226,7 @@ discord:
       await readFile(join(root, "users/mary-jane/brain.yaml"), "utf8"),
     ).toContain("repo: rizom-ai/rover-mary-jane-content");
     expect(await readFile(join(root, "users/mary-jane/.env"), "utf8")).toBe(
-      "BRAIN_VERSION=0.1.1-alpha.14\nAI_API_KEY_SECRET=AI_API_KEY\nGIT_SYNC_TOKEN_SECRET=GIT_SYNC_TOKEN_MARY_JANE\nMCP_AUTH_TOKEN_SECRET=MCP_AUTH_TOKEN_MARY_JANE\nDISCORD_BOT_TOKEN_SECRET=DISCORD_BOT_TOKEN_MARY_JANE\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
+      "BRAIN_VERSION=0.1.1-alpha.14\nCONTENT_REPO=rizom-ai/rover-mary-jane-content\n",
     );
     expect(
       await readFile(

@@ -13,6 +13,7 @@ on:
       - users/*/.env
       - users/*/brain.yaml
       - users/*/content/**
+      - users/*.secrets.yaml.age
       - deploy/**
       - .github/workflows/deploy.yml
 
@@ -74,16 +75,18 @@ jobs:
       - name: Install operator tooling
         run: bun install
 
-      - name: Resolve selected user secret names
-        id: user_secret_names
-        run: |
-          HANDLE_SUFFIX="$(printf '%s' "$HANDLE" | tr '[:lower:]-' '[:upper:]_')"
-          echo "git_sync_token_secret_name=GIT_SYNC_TOKEN_${HANDLE_SUFFIX}" >> "$GITHUB_OUTPUT"
+      - name: Decrypt user secrets
+        id: user_secrets
+        env:
+          AGE_SECRET_KEY: ${{ secrets.AGE_SECRET_KEY }}
+        run: bun deploy/scripts/decrypt-user-secrets.ts "$HANDLE"
 
       - name: Reconcile selected user config
         env:
-          GIT_SYNC_TOKEN: ${{ secrets[steps.user_secret_names.outputs.git_sync_token_secret_name] }}
-        run: bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
+          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
+        run: |
+          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
+          bunx brains-ops onboard "$GITHUB_WORKSPACE" "$HANDLE"
 
       - name: Resolve generated user config
         id: user_config
@@ -91,10 +94,9 @@ jobs:
 
       - name: Validate selected secrets
         env:
-          AI_API_KEY: ${{ secrets[steps.user_config.outputs.ai_api_key_secret_name] }}
-          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
-          MCP_AUTH_TOKEN: ${{ secrets[steps.user_config.outputs.mcp_auth_token_secret_name] }}
-          DISCORD_BOT_TOKEN: ${{ steps.user_config.outputs.discord_bot_token_secret_name != '' && secrets[steps.user_config.outputs.discord_bot_token_secret_name] || '' }}
+          SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
+          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
+          SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
           HCLOUD_TOKEN: ${{ secrets.HCLOUD_TOKEN }}
           HCLOUD_SSH_KEY_NAME: ${{ secrets.HCLOUD_SSH_KEY_NAME }}
           HCLOUD_SERVER_TYPE: ${{ secrets.HCLOUD_SERVER_TYPE }}
@@ -105,13 +107,19 @@ jobs:
           CF_ZONE_ID: ${{ secrets.CF_ZONE_ID }}
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
-        run: bun deploy/scripts/validate-secrets.ts
+        run: |
+          export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
+          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
+          export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"
+          bun deploy/scripts/validate-secrets.ts
 
       - name: Seed content repo
         env:
           CONTENT_REPO: ${{ steps.user_config.outputs.content_repo }}
-          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
-        run: bun deploy/scripts/sync-content-repo.ts
+          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
+        run: |
+          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
+          bun deploy/scripts/sync-content-repo.ts
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -158,14 +166,17 @@ jobs:
 
       - name: Write .kamal/secrets
         env:
-          AI_API_KEY: ${{ secrets[steps.user_config.outputs.ai_api_key_secret_name] }}
-          GIT_SYNC_TOKEN: ${{ secrets[steps.user_config.outputs.git_sync_token_secret_name] }}
-          MCP_AUTH_TOKEN: ${{ secrets[steps.user_config.outputs.mcp_auth_token_secret_name] }}
-          DISCORD_BOT_TOKEN: ${{ steps.user_config.outputs.discord_bot_token_secret_name != '' && secrets[steps.user_config.outputs.discord_bot_token_secret_name] || '' }}
+          SHARED_AI_API_KEY: ${{ secrets[steps.user_secrets.outputs.shared_ai_api_key_secret_name] }}
+          SHARED_GIT_SYNC_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_git_sync_token_secret_name] }}
+          SHARED_MCP_AUTH_TOKEN: ${{ secrets[steps.user_secrets.outputs.shared_mcp_auth_token_secret_name] }}
           KAMAL_REGISTRY_PASSWORD: ${{ secrets.KAMAL_REGISTRY_PASSWORD }}
           CERTIFICATE_PEM: ${{ secrets.CERTIFICATE_PEM }}
           PRIVATE_KEY_PEM: ${{ secrets.PRIVATE_KEY_PEM }}
-        run: bun deploy/scripts/write-kamal-secrets.ts
+        run: |
+          export AI_API_KEY="${AI_API_KEY:-$SHARED_AI_API_KEY}"
+          export GIT_SYNC_TOKEN="${GIT_SYNC_TOKEN:-$SHARED_GIT_SYNC_TOKEN}"
+          export MCP_AUTH_TOKEN="${MCP_AUTH_TOKEN:-$SHARED_MCP_AUTH_TOKEN}"
+          bun deploy/scripts/write-kamal-secrets.ts
 
       - name: Provision server
         id: provision

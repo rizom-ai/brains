@@ -32,9 +32,9 @@ const handles = [
     diffOutput
       .split(/\r?\n/)
       .map((path) => {
-        const match = path.match(
-          /^users\/([^/]+)\/(?:\.env|brain\.yaml|content\/.*)$/,
-        );
+        const match =
+          path.match(/^users\/([^/]+)\/(?:\.env|brain\.yaml|content\/.*)$/) ??
+          path.match(/^users\/([^/]+)\.secrets\.yaml\.age$/);
         return match?.[1] ?? null;
       })
       .filter((handle): handle is string => handle !== null)
