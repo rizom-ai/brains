@@ -222,6 +222,11 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   } as unknown as IEntityService;
 
   // --- Entity Registry ---
+  const createInterceptors = new Map<
+    string,
+    (input: unknown, executionContext: unknown) => Promise<unknown>
+  >();
+
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type: string) => {
       entityTypes.add(type);
@@ -237,6 +242,19 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getAllEntityTypes: () => Array.from(entityTypes),
     getEntityTypeConfig: () => ({}),
     getWeightMap: () => ({}),
+    registerCreateInterceptor: (type, interceptor) => {
+      createInterceptors.set(
+        type,
+        interceptor as (
+          input: unknown,
+          executionContext: unknown,
+        ) => Promise<unknown>,
+      );
+    },
+    getCreateInterceptor: (type) =>
+      createInterceptors.get(type) as ReturnType<
+        IEntityRegistry["getCreateInterceptor"]
+      >,
     extendFrontmatterSchema: (): void => {},
     getEffectiveFrontmatterSchema: () => undefined,
   };

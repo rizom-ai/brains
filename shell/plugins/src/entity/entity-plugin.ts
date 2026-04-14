@@ -1,6 +1,9 @@
 import { BasePlugin } from "../base-plugin";
 import type { PluginCapabilities, IShell } from "../interfaces";
 import type {
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
   EntityAdapter,
   BaseEntity,
   DataSource,
@@ -65,6 +68,14 @@ export abstract class EntityPlugin<
       this.getEntityTypeConfig(),
     );
 
+    if (this.interceptCreate !== EntityPlugin.prototype.interceptCreate) {
+      shell
+        .getEntityRegistry()
+        .registerCreateInterceptor(this.entityType, (input, executionContext) =>
+          this.interceptCreate(input, executionContext, context),
+        );
+    }
+
     // Auto-register generation handler if provided
     const handler = this.createGenerationHandler(context);
     if (handler) {
@@ -101,6 +112,18 @@ export abstract class EntityPlugin<
       resources: [],
       ...(instructions && { instructions }),
     };
+  }
+
+  /**
+   * Override to intercept system_create for this entity type.
+   * Subclasses can fully handle creation or continue with a rewritten input.
+   */
+  protected async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    _context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return { kind: "continue", input };
   }
 
   /**

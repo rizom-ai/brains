@@ -100,6 +100,51 @@ export interface SearchResult<T extends BaseEntity = BaseEntity> {
 }
 
 /**
+ * Normalized system_create input shape used by plugin create interceptors.
+ */
+export interface CreateInput {
+  entityType: string;
+  prompt?: string;
+  title?: string;
+  content?: string;
+  targetEntityType?: string;
+  targetEntityId?: string;
+}
+
+/**
+ * Minimal caller context forwarded to plugin create interceptors.
+ */
+export interface CreateExecutionContext {
+  interfaceType: string;
+  userId: string;
+  channelId?: string;
+  channelName?: string;
+}
+
+/**
+ * Result returned to system_create when a plugin fully handles creation.
+ */
+export type CreateResult =
+  | {
+      success: true;
+      data: { entityId?: string; jobId?: string; status: string };
+    }
+  | { success: false; error: string };
+
+/**
+ * Plugin create interceptors can either fully handle creation,
+ * or continue with a rewritten normalized input.
+ */
+export type CreateInterceptionResult =
+  | { kind: "handled"; result: CreateResult }
+  | { kind: "continue"; input: CreateInput };
+
+export type CreateInterceptor = (
+  input: CreateInput,
+  executionContext: CreateExecutionContext,
+) => Promise<CreateInterceptionResult>;
+
+/**
  * Interface for entity adapter - handles conversion between entities and markdown
  * following the hybrid storage model
  *
@@ -325,6 +370,10 @@ export interface EntityRegistry {
 
   /** Get weight map for all registered entity types with non-default weights */
   getWeightMap(): Record<string, number>;
+
+  registerCreateInterceptor(type: string, interceptor: CreateInterceptor): void;
+
+  getCreateInterceptor(type: string): CreateInterceptor | undefined;
 
   /**
    * Extend an adapter's frontmatterSchema with additional fields.

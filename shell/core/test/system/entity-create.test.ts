@@ -3,7 +3,7 @@ import { createSystemTools } from "../../src/system/tools";
 import { createOutputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 import type { Tool } from "@brains/mcp-service";
-import { z } from "@brains/utils";
+import { z, slugify } from "@brains/utils";
 
 const enqueuedCreateJobSchema = z.object({
   targetEntityType: z.string(),
@@ -27,6 +27,124 @@ describe("system_create tool", () => {
 
   beforeEach(() => {
     services = createMockSystemServices();
+
+    services.entityRegistry.registerCreateInterceptor(
+      "link",
+      async (input, executionContext) => {
+        if (input.content) {
+          try {
+            const adapter = services.entityRegistry.getAdapter("link");
+            const parsed = adapter.fromMarkdown(input.content);
+            const parsedMetadata = parsed.metadata as
+              | Record<string, unknown>
+              | undefined;
+            const parsedTitle =
+              typeof parsedMetadata?.["title"] === "string"
+                ? parsedMetadata["title"]
+                : undefined;
+            const parsedStatus =
+              typeof parsedMetadata?.["status"] === "string"
+                ? parsedMetadata["status"]
+                : undefined;
+            const parsedUrl = input.content.match(
+              /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i,
+            )?.[0];
+
+            if (parsedTitle && parsedStatus && parsedUrl) {
+              const id =
+                slugify(parsedUrl) ||
+                slugify(parsedTitle) ||
+                `${input.entityType}-${Date.now()}`;
+              const now = new Date().toISOString();
+              const result = await services.entityService.createEntity({
+                id,
+                entityType: input.entityType,
+                content: input.content,
+                metadata: {
+                  title: parsedTitle,
+                  status: parsedStatus,
+                },
+                created: now,
+                updated: now,
+              });
+
+              return {
+                kind: "handled" as const,
+                result: {
+                  success: true as const,
+                  data: { entityId: result.entityId, status: "created" },
+                },
+              };
+            }
+          } catch {
+            // Fall through: raw URLs should route to capture below.
+          }
+        }
+
+        const url = [input.content, input.prompt, input.title]
+          .map(
+            (value) =>
+              value?.match(
+                /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i,
+              )?.[0],
+          )
+          .find(Boolean);
+
+        if (url) {
+          const jobId = await services.jobs.enqueue(
+            "link-capture",
+            {
+              url,
+              metadata: {
+                interfaceId: executionContext.interfaceType,
+                userId: executionContext.userId,
+                ...(executionContext.channelId
+                  ? { channelId: executionContext.channelId }
+                  : {}),
+                ...(executionContext.channelName
+                  ? { channelName: executionContext.channelName }
+                  : {}),
+                timestamp: new Date().toISOString(),
+              },
+            },
+            null,
+          );
+
+          return {
+            kind: "handled" as const,
+            result: {
+              success: true as const,
+              data: { status: "generating", jobId },
+            },
+          };
+        }
+
+        if (input.content) {
+          return {
+            kind: "handled" as const,
+            result: {
+              success: false as const,
+              error:
+                "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
+            },
+          };
+        }
+
+        if (input.prompt) {
+          return {
+            kind: "handled" as const,
+            result: {
+              success: false as const,
+              error:
+                "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
+            },
+          };
+        }
+
+        return { kind: "continue" as const, input };
+      },
+    );
+
     tools = createSystemTools(services);
   });
 

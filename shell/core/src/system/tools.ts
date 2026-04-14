@@ -2,7 +2,11 @@ import type { Tool, ToolResponse, ToolContext } from "@brains/mcp-service";
 import { createTool } from "@brains/mcp-service";
 import { resolveEntityOrError } from "@brains/entity-service";
 import { z, slugify, setCoverImageId, getErrorMessage } from "@brains/utils";
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  CreateExecutionContext,
+  CreateInput,
+} from "@brains/entity-service";
 import type { SystemServices } from "./types";
 
 const PLUGIN_ID = "system";
@@ -69,8 +73,6 @@ function sanitizeEntity<T extends BaseEntity>(entity: T): T {
   return entity;
 }
 
-const URL_PATTERN = /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/i;
-
 function normalizeOptionalString(
   value: string | undefined,
 ): string | undefined {
@@ -80,19 +82,6 @@ function normalizeOptionalString(
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
-}
-
-function extractFirstUrl(
-  ...values: Array<string | undefined>
-): string | undefined {
-  for (const value of values) {
-    const match = value?.match(URL_PATTERN);
-    if (match?.[0]) {
-      return match[0];
-    }
-  }
-
-  return undefined;
 }
 
 export function createSystemTools(services: SystemServices): Tool[] {
@@ -390,115 +379,44 @@ export function createSystemTools(services: SystemServices): Tool[] {
               "Provide 'content' (direct create) or 'prompt' (AI generation), or both.",
           };
 
-        if (input.entityType === "link") {
-          if (content) {
-            try {
-              const adapter = services.entityRegistry.getAdapter("link");
-              const parsed = adapter.fromMarkdown(content);
-              const parsedMetadata = parsed.metadata as
-                | Record<string, unknown>
-                | undefined;
-              const parsedTitle =
-                typeof parsedMetadata?.["title"] === "string"
-                  ? parsedMetadata["title"]
-                  : undefined;
-              const parsedStatus =
-                typeof parsedMetadata?.["status"] === "string"
-                  ? parsedMetadata["status"]
-                  : undefined;
-              const parsedUrl = extractFirstUrl(content);
+        let createInput: CreateInput = {
+          entityType: input.entityType,
+          ...(prompt && { prompt }),
+          ...(title && { title }),
+          ...(content && { content }),
+          ...(targetEntityType && { targetEntityType }),
+          ...(targetEntityId && { targetEntityId }),
+        };
 
-              if (parsedTitle && parsedStatus && parsedUrl) {
-                const id =
-                  slugify(parsedUrl) ||
-                  slugify(parsedTitle) ||
-                  `${input.entityType}-${Date.now()}`;
-                const now = new Date().toISOString();
-                const result = await entityService.createEntity({
-                  id,
-                  entityType: input.entityType,
-                  content,
-                  metadata: {
-                    title: parsedTitle,
-                    status: parsedStatus,
-                  },
-                  created: now,
-                  updated: now,
-                });
-
-                return {
-                  success: true,
-                  data: { entityId: result.entityId, status: "created" },
-                };
-              }
-            } catch {
-              // Fall through: raw URLs should route to capture below.
-            }
-          }
-
-          const url = extractFirstUrl(content, prompt, title);
-
-          if (url) {
-            try {
-              const jobId = await jobs.enqueue(
-                "link-capture",
-                {
-                  url,
-                  metadata: {
-                    interfaceId: toolContext.interfaceType,
-                    userId: toolContext.userId,
-                    ...(toolContext.channelId
-                      ? { channelId: toolContext.channelId }
-                      : {}),
-                    ...(toolContext.channelName
-                      ? { channelName: toolContext.channelName }
-                      : {}),
-                    timestamp: new Date().toISOString(),
-                  },
-                },
-                toolContext,
-              );
-              return { success: true, data: { status: "generating", jobId } };
-            } catch (error) {
-              return {
-                success: false,
-                error:
-                  error instanceof Error
-                    ? error.message
-                    : "Failed to queue link capture job",
-              };
-            }
-          }
-
-          if (content) {
-            return {
-              success: false,
-              error:
-                "Direct link creation requires full link markdown/frontmatter, or provide a URL to capture.",
-            };
-          }
-
-          if (prompt) {
-            return {
-              success: false,
-              error:
-                "Link creation requires a URL in the prompt, content, or title, or full link markdown content for direct creation.",
-            };
-          }
+        const interceptor = services.entityRegistry.getCreateInterceptor(
+          createInput.entityType,
+        );
+        if (interceptor) {
+          const executionContext: CreateExecutionContext = {
+            interfaceType: toolContext.interfaceType,
+            userId: toolContext.userId,
+            ...(toolContext.channelId && { channelId: toolContext.channelId }),
+            ...(toolContext.channelName && {
+              channelName: toolContext.channelName,
+            }),
+          };
+          const interception = await interceptor(createInput, executionContext);
+          if (interception.kind === "handled") return interception.result;
+          createInput = interception.input;
         }
 
-        if (prompt) {
-          let resolvedTargetEntityId = targetEntityId;
+        if (createInput.prompt) {
+          let resolvedTargetEntityId = createInput.targetEntityId;
 
           if (
-            input.entityType === "image" &&
-            targetEntityType &&
-            targetEntityId
+            createInput.entityType === "image" &&
+            createInput.targetEntityType &&
+            createInput.targetEntityId
           ) {
             const resolved = await resolveEntityOrError(
               entityService,
-              targetEntityType,
-              targetEntityId,
+              createInput.targetEntityType,
+              createInput.targetEntityId,
               logger,
               "Target entity",
             );
@@ -508,13 +426,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
 
           try {
             const jobId = await jobs.enqueue(
-              `${input.entityType}:generation`,
+              `${createInput.entityType}:generation`,
               {
-                prompt,
-                ...(title && { title }),
-                ...(content && { content }),
-                ...(targetEntityType && {
-                  targetEntityType,
+                prompt: createInput.prompt,
+                ...(createInput.title && { title: createInput.title }),
+                ...(createInput.content && { content: createInput.content }),
+                ...(createInput.targetEntityType && {
+                  targetEntityType: createInput.targetEntityType,
                 }),
                 ...(resolvedTargetEntityId && {
                   targetEntityId: resolvedTargetEntityId,
@@ -534,14 +452,16 @@ export function createSystemTools(services: SystemServices): Tool[] {
           }
         }
 
-        const id = slugify(title ?? `${input.entityType}-${Date.now()}`);
+        const id = slugify(
+          createInput.title ?? `${createInput.entityType}-${Date.now()}`,
+        );
         const now = new Date().toISOString();
         try {
           const result = await entityService.createEntity({
             id,
-            entityType: input.entityType,
-            content: content ?? "",
-            metadata: { title: title ?? id },
+            entityType: createInput.entityType,
+            content: createInput.content ?? "",
+            metadata: { title: createInput.title ?? id },
             created: now,
             updated: now,
           });

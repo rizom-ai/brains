@@ -211,5 +211,116 @@ describe("LinkPlugin with Harness", () => {
       expect(registeredHandlers).toContain("link:generation");
       expect(registeredHandlers).toContain("link-capture");
     });
+
+    it("should register a create interceptor for link", () => {
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("link");
+      expect(interceptor).toBeDefined();
+    });
+
+    it("should enqueue link-capture from the registered interceptor", async () => {
+      const enqueued: Array<{ type: string; data: unknown }> = [];
+      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
+      const origJobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...origJobQueue,
+        enqueue: async (type: string, data: unknown): Promise<string> => {
+          enqueued.push({ type, data });
+          return "job-123";
+        },
+      };
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+
+      await plugin.register(mockShell);
+      const interceptor = mockShell
+        .getEntityRegistry()
+        .getCreateInterceptor("link");
+      if (!interceptor) throw new Error("Expected link create interceptor");
+
+      const result = await interceptor(
+        {
+          entityType: "link",
+          prompt: "Save this: https://anthropic.com/research",
+        },
+        {
+          interfaceType: "test",
+          userId: "test-user",
+          channelId: "!room:test",
+          channelName: "#test",
+        },
+      );
+
+      expect(result).toEqual({
+        kind: "handled",
+        result: {
+          success: true,
+          data: {
+            status: "generating",
+            jobId: "job-123",
+          },
+        },
+      });
+      expect(enqueued).toHaveLength(1);
+      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.data).toEqual({
+        url: "https://anthropic.com/research",
+        metadata: expect.objectContaining({
+          interfaceId: "test",
+          userId: "test-user",
+          channelId: "!room:test",
+          channelName: "#test",
+          timestamp: expect.any(String),
+        }),
+      });
+    });
+
+    it("should direct-create valid link markdown from the registered interceptor", async () => {
+      const markdown = `---
+status: draft
+title: Anthropic Research
+url: https://anthropic.com/research
+description: Research updates from Anthropic
+keywords:
+  - ai
+  - research
+domain: anthropic.com
+capturedAt: "2026-04-14T08:00:00.000Z"
+source:
+  ref: "manual:local"
+  label: MANUAL
+---
+
+A saved research link.`;
+
+      const interceptor = harness
+        .getEntityRegistry()
+        .getCreateInterceptor("link");
+      if (!interceptor) throw new Error("Expected link create interceptor");
+
+      const result = await interceptor(
+        {
+          entityType: "link",
+          content: markdown,
+        },
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      );
+
+      expect(result).toEqual({
+        kind: "handled",
+        result: {
+          success: true,
+          data: {
+            entityId: expect.any(String),
+            status: "created",
+          },
+        },
+      });
+    });
   });
 });

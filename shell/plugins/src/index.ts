@@ -64,6 +64,11 @@ export {
 // Core entity types
 export type {
   BaseEntity,
+  CreateInput,
+  CreateExecutionContext,
+  CreateResult,
+  CreateInterceptionResult,
+  CreateInterceptor,
   EntityAdapter,
   EntityInput,
   EntityMutationResult,

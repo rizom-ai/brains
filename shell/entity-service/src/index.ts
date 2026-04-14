@@ -26,6 +26,11 @@ export type { EmbeddingDB } from "./db/embedding-db";
 
 export type {
   BaseEntity,
+  CreateInput,
+  CreateExecutionContext,
+  CreateResult,
+  CreateInterceptionResult,
+  CreateInterceptor,
   EntityInput,
   SearchResult,
   EntityAdapter,

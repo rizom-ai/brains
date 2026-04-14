@@ -27,6 +27,11 @@ export function createMockSystemServices(
     }
   };
 
+  const createInterceptors = new Map<
+    string,
+    (...args: unknown[]) => Promise<unknown>
+  >();
+
   const entityRegistry = {
     getAdapter: (
       type: string,
@@ -89,6 +94,13 @@ export function createMockSystemServices(
     },
     hasEntityType: (type: string) => entityTypes.has(type),
     getAllEntityTypes: () => Array.from(entityTypes),
+    registerCreateInterceptor: (
+      type: string,
+      interceptor: (...args: unknown[]) => Promise<unknown>,
+    ) => {
+      createInterceptors.set(type, interceptor);
+    },
+    getCreateInterceptor: (type: string) => createInterceptors.get(type),
   } as unknown as SystemServices["entityRegistry"];
 
   const entityService = {

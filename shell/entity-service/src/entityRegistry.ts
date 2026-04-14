@@ -1,6 +1,7 @@
 import type { z, Logger } from "@brains/utils";
 import type {
   BaseEntity,
+  CreateInterceptor,
   EntityAdapter,
   EntityRegistry as IEntityRegistry,
   EntityTypeConfig,
@@ -16,6 +17,7 @@ export class EntityRegistry implements IEntityRegistry {
   private entitySchemas = new Map<string, z.ZodType<unknown>>();
   private entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
   private entityConfigs = new Map<string, EntityTypeConfig>();
+  private createInterceptors = new Map<string, CreateInterceptor>();
   private frontmatterExtensions = new Map<
     string,
     z.ZodObject<z.ZodRawShape>[]
@@ -169,6 +171,17 @@ export class EntityRegistry implements IEntityRegistry {
       }
     }
     return weightMap;
+  }
+
+  registerCreateInterceptor(
+    type: string,
+    interceptor: CreateInterceptor,
+  ): void {
+    this.createInterceptors.set(type, interceptor);
+  }
+
+  getCreateInterceptor(type: string): CreateInterceptor | undefined {
+    return this.createInterceptors.get(type);
   }
 
   /**
