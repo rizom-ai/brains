@@ -1,7 +1,7 @@
 # Internal Caddy — path-based routing to brain services.
 # kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
-	@preview host preview.* *-preview.*
+	@preview header_regexp preview_host Host ^(?:preview\..+|.+-preview\..+)$
 	handle @preview {
 		reverse_proxy localhost:4321
 
@@ -48,11 +48,6 @@
 	# Plugin API routes
 	handle /api/* {
 		reverse_proxy localhost:3335
-	}
-
-	@root path /
-	handle @root {
-		redir /.well-known/agent-card.json 302
 	}
 
 	# Production site: prefer the webserver when present; otherwise fall back

@@ -1,12 +1,7 @@
 # Internal Caddy — path-based routing to brain services.
-# kamal-proxy handles SSL + host routing externally.
-# This Caddy runs inside the container, no TLS.
-
-# Shared internal HTTP entrypoint. kamal-proxy terminates TLS and forwards
-# requests here. Preview hosts are routed by Host header, not by a separate
-# external TLS port.
+# kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
-	@preview host preview.* *-preview.*
+	@preview header_regexp preview_host Host ^(?:preview\..+|.+-preview\..+)$
 	handle @preview {
 		reverse_proxy localhost:4321
 
@@ -15,6 +10,11 @@
 			X-Content-Type-Options "nosniff"
 			Referrer-Policy "strict-origin-when-cross-origin"
 		}
+	}
+
+	# Health endpoint
+	handle /health {
+		reverse_proxy localhost:3333
 	}
 
 	# MCP endpoint
@@ -50,9 +50,13 @@
 		reverse_proxy localhost:3335
 	}
 
-	# Static production site (catch-all)
+	# Production site: prefer the webserver when present; otherwise fall back
+	# to the A2A interface so core-only deployments never return a bare 502.
 	handle {
-		reverse_proxy localhost:8080
+		reverse_proxy localhost:8080 localhost:3334 {
+			lb_policy first
+			lb_retries 1
+		}
 
 		header {
 			X-Frame-Options "SAMEORIGIN"

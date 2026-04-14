@@ -38,7 +38,9 @@ describe("deploy preview host routing", () => {
   it("routes both preview.<domain> and *-preview.* hosts to the preview site inside the container", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
-    expect(caddyfile).toContain("@preview host preview.* *-preview.*");
+    expect(caddyfile).toContain(
+      "@preview header_regexp preview_host Host ^(?:preview\\..+|.+-preview\\..+)$",
+    );
     expect(caddyfile).toContain("handle @preview {");
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
   });
@@ -48,14 +50,6 @@ describe("deploy preview host routing", () => {
 
     expect(caddyfile).toContain("handle /health {");
     expect(caddyfile).toContain("reverse_proxy localhost:3333");
-  });
-
-  it("redirects bare / to the agent card before the production fallback", () => {
-    const caddyfile = readFileSync(caddyfilePath, "utf-8");
-
-    expect(caddyfile).toContain("@root path /");
-    expect(caddyfile).toContain("handle @root {");
-    expect(caddyfile).toContain("redir /.well-known/agent-card.json 302");
   });
 
   it("falls back to the a2a server when no production webserver is running", () => {
