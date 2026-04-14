@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.14
+
+### Patch Changes
+
+- [`44b03e3`](https://github.com/rizom-ai/brains/commit/44b03e3e560fb17b97b9cf7178c0e2084b9d818e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Restore `brains-ops secrets:push <repo>` as a shared GitHub Actions secret sync command so operators can push repo-wide pilot secrets like `GIT_SYNC_TOKEN` and `MCP_AUTH_TOKEN` from local env files without hand-written `gh secret set` calls.
+
 ## 0.2.0-alpha.13
 
 ### Patch Changes

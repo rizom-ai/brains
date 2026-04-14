@@ -111,6 +111,7 @@
     "rizom-ops-pilot-secrets-push",
     "rizom-ops-publish-fix",
     "rizom-ops-render-live-status",
+    "rizom-ops-restore-shared-secret-push",
     "shared-kamal-template-sync",
     "sharp-lazy-load",
     "smoke-a2a-root-caddy-fallback",

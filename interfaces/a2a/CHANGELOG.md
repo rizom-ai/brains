@@ -1,5 +1,13 @@
 # @brains/a2a
 
+## 0.2.0-alpha.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.14
+  - @brains/plugins@0.2.0-alpha.14
+
 ## 0.2.0-alpha.13
 
 ### Patch Changes

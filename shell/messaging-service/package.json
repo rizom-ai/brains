@@ -1,6 +1,6 @@
 {
   "name": "@brains/messaging-service",
-  "version": "0.2.0-alpha.13",
+  "version": "0.2.0-alpha.14",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
