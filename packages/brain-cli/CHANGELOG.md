@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.17
+
+### Patch Changes
+
+- [`da0e978`](https://github.com/rizom-ai/brains/commit/da0e9782945f67e41b5a08a41cf0ccb6ba2f93c2) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Register the stable `link-capture` handler alias in the link plugin so URL-based link capture jobs do not fail with `No handler registered for job type: link-capture`.
+
+  This keeps `system_create` generic while preserving the public `link-capture` workflow name used for link capture.
+
 ## 0.2.0-alpha.16
 
 ### Patch Changes

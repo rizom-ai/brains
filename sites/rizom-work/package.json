@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-rizom-work",
   "private": true,
-  "version": "0.2.0-alpha.16",
+  "version": "0.2.0-alpha.17",
   "description": "Rizom work site wrapper — thin app-owned composition over shared Rizom base",
   "type": "module",
   "exports": {

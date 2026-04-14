@@ -1,7 +1,7 @@
 {
   "name": "@brains/discord",
   "private": true,
-  "version": "0.2.0-alpha.16",
+  "version": "0.2.0-alpha.17",
   "description": "Discord interface for Brains",
   "type": "module",
   "exports": {
