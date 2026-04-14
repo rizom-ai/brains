@@ -1,6 +1,6 @@
 import { z, fromYaml } from "@brains/utils";
 import { defineConfig, type AppConfig } from "@brains/app";
-import type { Plugin } from "@brains/plugins";
+import { pluginMetadataSchema, type Plugin } from "@brains/plugins";
 import { resolveProviderKey } from "./multi-model";
 
 const evalYamlSchema = z.object({
@@ -27,6 +27,81 @@ export function parseEvalYaml(content: string): EvalYamlConfig | null {
   return result.success ? result.data : null;
 }
 
+function isPlugin(value: unknown): value is Plugin {
+  if (typeof value !== "object" || value === null) return false;
+  if (!pluginMetadataSchema.safeParse(value).success) return false;
+  return typeof (value as Plugin).register === "function";
+}
+
+interface PluginFactoryCandidate {
+  (config: Record<string, unknown>): unknown;
+  new (config: Record<string, unknown>): unknown;
+}
+
+async function resolvePluginExport(
+  moduleExports: Record<string, unknown>,
+  pluginConfig: Record<string, unknown>,
+  pluginPackageName: string,
+): Promise<Plugin> {
+  const entries = Object.entries(moduleExports);
+  const candidates = entries.sort(([nameA, valueA], [nameB, valueB]) => {
+    const rank = (name: string, value: unknown): number => {
+      if (name === "default") return 0;
+      if (isPlugin(value)) return 1;
+      if (name.startsWith("create") && name.endsWith("Plugin")) return 2;
+      if (name.endsWith("Plugin")) return 3;
+      if (typeof value === "function") return 4;
+      return 5;
+    };
+
+    return rank(nameA, valueA) - rank(nameB, valueB);
+  });
+
+  const errors: string[] = [];
+
+  for (const [exportName, candidate] of candidates) {
+    if (isPlugin(candidate)) {
+      return candidate;
+    }
+
+    if (typeof candidate !== "function") {
+      continue;
+    }
+
+    const factoryCandidate = candidate as PluginFactoryCandidate;
+
+    try {
+      const instance = await Promise.resolve(
+        new factoryCandidate(pluginConfig),
+      );
+      if (isPlugin(instance)) {
+        return instance;
+      }
+    } catch (error) {
+      errors.push(
+        `${exportName} via constructor failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+
+    try {
+      const instance = await Promise.resolve(factoryCandidate(pluginConfig));
+      if (isPlugin(instance)) {
+        return instance;
+      }
+    } catch (error) {
+      errors.push(
+        `${exportName} via factory failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  throw new Error(
+    `Could not resolve a plugin export from ${pluginPackageName}. ` +
+      `Tried exports: ${candidates.map(([name]) => name).join(", ")}.` +
+      (errors.length > 0 ? ` Errors: ${errors.join(" | ")}` : ""),
+  );
+}
+
 /**
  * Load a plugin eval config from eval.yaml.
  *
@@ -36,48 +111,13 @@ export function parseEvalYaml(content: string): EvalYamlConfig | null {
 export async function loadPluginEvalConfig(
   evalConfig: EvalYamlConfig,
 ): Promise<AppConfig> {
-  const mod = await import(evalConfig.plugin);
-
-  // Find the plugin: look for a factory function or a class
-  let plugin: Plugin;
+  const mod = (await import(evalConfig.plugin)) as Record<string, unknown>;
   const pluginConfig = evalConfig.config ?? {};
-
-  // Try common export patterns:
-  // 1. Default export as factory: export default function blogPlugin(config) { ... }
-  // 2. Named class: export class BlogPlugin extends EntityPlugin { ... }
-  // 3. Named factory: export function blogPlugin(config) { ... }
-  if (typeof mod.default === "function") {
-    // Could be a class or factory
-    try {
-      plugin = new mod.default(pluginConfig);
-    } catch {
-      plugin = mod.default(pluginConfig);
-    }
-  } else {
-    // TODO: This heuristic can pick the wrong export for plugin eval bootstrap.
-    // Example: @brains/link exports LinkAdapter before LinkPlugin/createLinkPlugin,
-    // so eval.yaml-based runs can instantiate a non-plugin class and fail AppConfig
-    // validation before any evals execute. Replace this with explicit plugin export
-    // resolution instead of "first function export wins".
-    // Search for a factory function or class in named exports
-    const exportNames = Object.keys(mod).filter((k) => k !== "default");
-    const factoryOrClass = exportNames.find(
-      (k) => typeof mod[k] === "function",
-    );
-
-    if (!factoryOrClass) {
-      throw new Error(
-        `No plugin factory or class found in ${evalConfig.plugin}. ` +
-          `Expected a default export or named export that is a function/class.`,
-      );
-    }
-
-    try {
-      plugin = new mod[factoryOrClass](pluginConfig);
-    } catch {
-      plugin = mod[factoryOrClass](pluginConfig);
-    }
-  }
+  const plugin = await resolvePluginExport(
+    mod,
+    pluginConfig,
+    evalConfig.plugin,
+  );
 
   const pluginId = plugin.id;
   const evalDbBase = `/tmp/${pluginId}-eval-${Date.now()}`;

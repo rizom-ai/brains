@@ -74,4 +74,16 @@ describe("loadPluginEvalConfig", () => {
       }
     }
   });
+
+  it("resolves the actual plugin export when a package also exports adapters", async () => {
+    const config = await loadPluginEvalConfig({
+      plugin: "@brains/link",
+    });
+
+    const plugin = config.plugins?.[0];
+    expect(plugin).toBeDefined();
+    expect(plugin?.id).toBe("link");
+    expect(plugin?.packageName).toBe("@brains/link");
+    expect(plugin?.type).toBe("entity");
+  });
 });

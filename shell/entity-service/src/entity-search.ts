@@ -6,6 +6,27 @@ import { z, type Logger } from "@brains/utils";
 import { sql, and, desc, type SQL } from "drizzle-orm";
 import { entities } from "./schema/entities";
 
+export const MAX_SEARCH_QUERY_CHARS = 12_000;
+
+export function prepareSearchQuery(
+  query: string,
+  logger?: Logger,
+  maxChars = MAX_SEARCH_QUERY_CHARS,
+): string {
+  const normalizedQuery = query.trim().replace(/\s+/g, " ");
+
+  if (normalizedQuery.length <= maxChars) {
+    return normalizedQuery;
+  }
+
+  logger?.warn("Truncating search query that exceeds max length", {
+    originalLength: normalizedQuery.length,
+    truncatedLength: maxChars,
+  });
+
+  return normalizedQuery.slice(0, maxChars);
+}
+
 /**
  * Schema for search options (excluding tags)
  */
@@ -51,12 +72,15 @@ export class EntitySearch {
 
     // Check if we have weights to apply
     const hasWeights = weight && Object.keys(weight).length > 0;
+    const preparedQuery = prepareSearchQuery(query, this.logger);
 
-    this.logger.debug(`Searching entities with query: "${query}"`);
+    this.logger.debug(
+      `Searching entities with query (${preparedQuery.length} chars)`,
+    );
 
     // Generate embedding for the query
     const { embedding: queryEmbedding } =
-      await this.embeddingService.generateEmbedding(query);
+      await this.embeddingService.generateEmbedding(preparedQuery);
 
     // Convert Float32Array to JSON array for SQL
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
@@ -95,7 +119,7 @@ export class EntitySearch {
       typeConditions,
       limit,
       offset,
-      query,
+      preparedQuery,
     );
   }
 
@@ -191,8 +215,9 @@ export class EntitySearch {
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
+    const preparedQuery = prepareSearchQuery(query, this.logger);
     const { embedding: queryEmbedding } =
-      await this.embeddingService.generateEmbedding(query);
+      await this.embeddingService.generateEmbedding(preparedQuery);
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
