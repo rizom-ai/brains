@@ -5,6 +5,7 @@ import {
   type SitePackageOverrides,
 } from "@brains/site-composition";
 import baseSite, { createRizomLayout } from "@brains/site-rizom";
+import { RizomWorkSitePlugin } from "./plugin";
 import { workRoutes } from "./routes";
 import { workShellModel } from "./shell";
 
@@ -12,7 +13,7 @@ const WorkLayout = createRizomLayout(workShellModel);
 
 const workPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
-): Plugin => baseSite.plugin({ ...(config ?? {}), variant: "work" });
+): Plugin => new RizomWorkSitePlugin({ ...(config ?? {}), variant: "work" });
 
 const overrides: SitePackageOverrides = {
   layouts: {

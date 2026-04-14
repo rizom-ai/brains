@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { SupportContent } from "./schema";
-import { Section } from "../../components/Section";
+import { Section } from "@brains/site-rizom";
 
 const CARD_BASE =
   "flex flex-col items-start gap-5 rounded-2xl border p-8 md:p-10";

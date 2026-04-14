@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { PullQuoteContent } from "./schema";
-import { Section } from "../../components/Section";
+import { Section } from "@brains/site-rizom";
 
 export const PullQuoteLayout = ({
   quote,

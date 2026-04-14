@@ -1,8 +1,6 @@
 import type { JSX } from "preact";
 import type { CloserContent } from "./schema";
-import { Section } from "../../components/Section";
-import { Divider } from "../../components/Divider";
-import { Button } from "../../components/Button";
+import { Button, Divider, Section } from "@brains/site-rizom";
 
 export const CloserLayout = ({
   preamble,

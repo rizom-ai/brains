@@ -37,6 +37,10 @@ import { RizomSitePlugin } from "./plugin";
  * the package: tree (ai), constellation (work), roots (foundation).
  */
 export { routes, createRizomLayout };
+export { RizomSitePlugin } from "./plugin";
+export { Section } from "./components/Section";
+export { Button } from "./components/Button";
+export { Divider } from "./components/Divider";
 export { createEcosystemContent } from "./compositions/ecosystem";
 export type { RizomShellModel } from "./compositions/types";
 

@@ -1,7 +1,6 @@
 import type { JSX } from "preact";
 import type { BridgeContent } from "./schema";
-import { Section } from "../../components/Section";
-import { Divider } from "../../components/Divider";
+import { Divider, Section } from "@brains/site-rizom";
 
 export const BridgeLayout = ({
   kicker,

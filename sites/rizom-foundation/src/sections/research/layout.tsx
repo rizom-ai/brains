@@ -1,7 +1,6 @@
 import type { JSX } from "preact";
 import type { ResearchContent } from "./schema";
-import { Section } from "../../components/Section";
-import { Button } from "../../components/Button";
+import { Button, Section } from "@brains/site-rizom";
 
 export const ResearchLayout = ({
   kicker,
