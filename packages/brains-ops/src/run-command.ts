@@ -15,6 +15,7 @@ import { reconcileAll } from "./reconcile-all";
 import { reconcileCohort } from "./reconcile-cohort";
 import { writeUsersTable } from "./render-users-table";
 import { encryptPilotSecrets } from "./secrets-encrypt";
+import { pushPilotSecrets } from "./secrets-push";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
 import type { UserRunner } from "./user-runner";
@@ -166,6 +167,28 @@ export async function runCommand(
       });
     }
 
+    case "secrets:push": {
+      const repo = parsed.args[0];
+      if (!repo) {
+        return {
+          success: false,
+          message: "Usage: brains-ops secrets:push <repo>",
+        };
+      }
+
+      const result = await pushPilotSecrets(repo, {
+        env: dependencies.env,
+        logger: dependencies.logger,
+        dryRun: parsed.flags.dryRun,
+      });
+      return {
+        success: true,
+        message: result.dryRun
+          ? `Dry run: would push ${result.pushedKeys.length} secrets`
+          : `Pushed ${result.pushedKeys.length} secrets`,
+      };
+    }
+
     case "secrets:encrypt": {
       const repo = parsed.args[0];
       const handle = parsed.args[1];
@@ -241,6 +264,7 @@ export async function runCommand(
           "  age-key:bootstrap <repo>",
           "  ssh-key:bootstrap <repo>",
           "  cert:bootstrap <repo>",
+          "  secrets:push <repo>",
           "  secrets:encrypt <repo> <handle>",
           "  reconcile-cohort <repo> <cohort>",
           "  reconcile-all <repo>",

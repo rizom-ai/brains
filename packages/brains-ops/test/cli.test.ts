@@ -39,6 +39,13 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot"]);
   });
 
+  it("parses secrets:push with repo path and dry-run", () => {
+    const result = parseArgs(["secrets:push", "/tmp/rover-pilot", "--dry-run"]);
+    expect(result.command).toBe("secrets:push");
+    expect(result.args).toEqual(["/tmp/rover-pilot"]);
+    expect(result.flags.dryRun).toBe(true);
+  });
+
   it("parses secrets:encrypt with repo path, handle, and dry-run", () => {
     const result = parseArgs([
       "secrets:encrypt",
@@ -271,6 +278,17 @@ discord:
     );
   });
 
+  it("returns usage error when secrets:push missing repo", async () => {
+    const result = await runCommand({
+      command: "secrets:push",
+      args: [],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("Usage: brains-ops secrets:push <repo>");
+  });
+
   it("returns usage error when secrets:encrypt missing handle", async () => {
     const result = await runCommand({
       command: "secrets:encrypt",
@@ -441,6 +459,7 @@ discord:
     expect(result.message).toContain("age-key:bootstrap <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
     expect(result.message).toContain("cert:bootstrap <repo>");
+    expect(result.message).toContain("secrets:push <repo>");
     expect(result.message).toContain("secrets:encrypt <repo> <handle>");
     expect(result.message).not.toContain("requires operator runner");
   });

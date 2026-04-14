@@ -10,6 +10,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`
 - `brains-ops cert:bootstrap <repo>`
+- `brains-ops secrets:push <repo>`
 - `brains-ops secrets:encrypt <repo> <handle>`
 - `brains-ops reconcile-cohort <repo> <cohort>`
 - `brains-ops reconcile-all <repo>`
