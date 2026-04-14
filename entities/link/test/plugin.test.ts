@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { createMockShell } from "@brains/test-utils";
 import type { LinkPlugin } from "../src/index";
 import { createLinkPlugin } from "../src/index";
 import { LinkAdapter } from "../src/adapters/link-adapter";
@@ -189,6 +190,26 @@ describe("LinkPlugin with Harness", () => {
       const toolNames = capabilities.tools.map((t) => t.name);
       expect(toolNames).not.toContain("link_capture");
       expect(capabilities.tools).toHaveLength(0);
+    });
+
+    it("should register both link:generation and link-capture job handlers", async () => {
+      const registeredHandlers: string[] = [];
+      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
+      const origJobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue = {
+        ...origJobQueue,
+        registerHandler: (type: string): void => {
+          registeredHandlers.push(type);
+        },
+      };
+      mockShell.getJobQueueService = (): ReturnType<
+        typeof mockShell.getJobQueueService
+      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+
+      await plugin.register(mockShell);
+
+      expect(registeredHandlers).toContain("link:generation");
+      expect(registeredHandlers).toContain("link-capture");
     });
   });
 });

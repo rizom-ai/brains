@@ -4,6 +4,8 @@ import type {
   JobHandler,
   Template,
   DataSource,
+  IShell,
+  PluginCapabilities,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
@@ -32,6 +34,38 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
 
   constructor(config: Partial<LinkConfig> = {}) {
     super("link", packageJson, config, linkConfigSchema);
+  }
+
+  /**
+   * `EntityPlugin` auto-registers generation handlers as `${entityType}:generation`.
+   * Link capture also has a dedicated public job name used by `system_create`.
+   * Register that alias here so core stays generic and does not need to know
+   * about plugin-scoped handler naming.
+   */
+  override async register(shell: IShell): Promise<PluginCapabilities> {
+    const capabilities = await super.register(shell);
+
+    if (!this.context) {
+      throw new Error(
+        "LinkPlugin context was not initialized during register()",
+      );
+    }
+
+    shell
+      .getJobQueueService()
+      .registerHandler(
+        "link-capture",
+        new LinkCaptureJobHandler(
+          this.logger.child("LinkCaptureJobHandler"),
+          this.context,
+          this.config.jinaApiKey
+            ? { jinaApiKey: this.config.jinaApiKey }
+            : undefined,
+        ),
+        this.id,
+      );
+
+    return capabilities;
   }
 
   protected override createGenerationHandler(
