@@ -13,8 +13,8 @@ concurrency: ${{ github.workflow }}-${{ github.ref }}
 jobs:
   release:
     name: Release
-    # Fork-safety: only run on the canonical repo. Forks don't have
-    # NPM_TOKEN and shouldn't attempt to publish.
+    # Fork-safety: only run on the canonical repo. Forks shouldn't
+    # attempt to publish releases for the upstream packages.
     if: github.repository == 'rizom-ai/brains'
     runs-on: ubuntu-latest
     permissions:
@@ -28,6 +28,10 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
       - run: bun install --frozen-lockfile
 
       # Single-run release flow:
@@ -75,7 +79,7 @@ jobs:
 
       - name: Publish to npm
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
-          bun run changeset:publish
+          # Trusted Publishing uses the GitHub Actions OIDC identity for
+          # this workflow instead of a long-lived NPM_TOKEN secret.
+          NPM_CONFIG_PROVENANCE: "true"
+        run: bun run changeset:publish

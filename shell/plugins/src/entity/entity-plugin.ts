@@ -69,11 +69,11 @@ export abstract class EntityPlugin<
     );
 
     if (this.interceptCreate !== EntityPlugin.prototype.interceptCreate) {
-      shell
-        .getEntityRegistry()
-        .registerCreateInterceptor(this.entityType, (input, executionContext) =>
+      context.entities.registerCreateInterceptor(
+        this.entityType,
+        (input, executionContext) =>
           this.interceptCreate(input, executionContext, context),
-        );
+      );
     }
 
     // Auto-register generation handler if provided
