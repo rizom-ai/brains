@@ -121,14 +121,13 @@ Current preflight snapshot:
 
 ### `rizom.ai` extraction preflight
 
-`rizom.ai` is still the best next extraction candidate, but extraction is currently paused until two blockers are resolved.
+`rizom.ai` is still the best next extraction candidate. One blocker remains.
 
-Current blockers:
+Current blocker:
 
-- the latest published CLI path tested during preflight (`@rizom/brain@0.2.0-alpha.5`) currently fails on `init --deploy`
-- the current Rizom site packages used by the monorepo app (`@brains/site-rizom`, `@brains/site-rizom-ai`) are not published consumable packages, so a standalone repo cannot depend on them directly today
+- the Rizom site packages used by the monorepo app (`@brains/site-rizom`, `@brains/site-rizom-ai`) are not published consumable packages, so a standalone repo cannot depend on them directly today
 
-Because of that, `rizom.ai` is not yet a straight "scaffold, copy files, deploy" move from the published path.
+The previously-flagged `init --deploy` regression against `@rizom/brain@0.2.0-alpha.5` is resolved: the current published CLI (verified at `alpha.18`) scaffolds all expected files cleanly (`brain.yaml`, `.env.schema`, `config/deploy.yml`, `deploy/Caddyfile`, `deploy/Dockerfile`, `.github/workflows/deploy.yml` + `publish-image.yml`, `.kamal/hooks/pre-deploy`, `scripts/extract-brain-config.rb`).
 
 Current state to carry forward:
 
@@ -151,13 +150,12 @@ Known gaps versus standard standalone `brain init --deploy` shape:
 - app still has monorepo-local start script assumptions in `package.json`
 - local working tree contains ignored runtime junk (`brain-data/.git`, `dist/`, `data/`, `.env`, `.env.local`, `node_modules/`) that must not be copied into extraction
 
-Recommended next step for `rizom.ai` is no longer immediate extraction, but choosing one unblock path first:
+Recommended next step for `rizom.ai` is choosing one site-package unblock path:
 
-1. either make the Rizom site/theme runtime consumable outside the monorepo
+1. either make the Rizom site/theme runtime consumable outside the monorepo (publish `@brains/site-rizom` and `@brains/site-rizom-ai`)
 2. or vendor `rizom.ai` site ownership into app-local `src/site.ts` and `src/theme.css` during extraction
-3. separately, fix the latest published CLI `init --deploy` regression before relying on that release line for extraction
 
-Once those blockers are cleared:
+Once that blocker is cleared:
 
 1. scaffold fresh standalone repo from published CLI with `--deploy`
 2. copy over only intentional app-owned files:
