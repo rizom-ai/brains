@@ -542,6 +542,8 @@ describe("StreamableHTTPServer", () => {
           auth: {
             token: testToken,
           },
+          getCmsConfig: async (): Promise<string> =>
+            "backend:\n  repo: owner/repo\n  branch: main\n",
         });
         await server.start();
         port = server.getPort();
@@ -573,6 +575,16 @@ describe("StreamableHTTPServer", () => {
         expect(response.body).toMatchObject({
           sessions: 0,
         });
+      });
+
+      test("should allow cms-config without auth", async () => {
+        const response = await makeRequest("GET", "/cms-config", {
+          port,
+        });
+
+        expect(response.status).toBe(200);
+        expect(response.body).toContain("repo: owner/repo");
+        expect(response.body).toContain("branch: main");
       });
 
       test("should reject MCP requests without auth header", async () => {

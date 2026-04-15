@@ -3,7 +3,7 @@ import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";
-import { createSystemResources } from "./resources";
+import { createSystemResources, getCmsConfigYaml } from "./resources";
 import { createSystemResourceTemplates } from "./resource-templates";
 import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
@@ -74,6 +74,21 @@ export function registerSystemCapabilities(
     }
   }
   logger.debug(`Registered ${resources.length} system resources`);
+
+  messageBus.subscribe("system:cms-config:get", async () => {
+    try {
+      return {
+        success: true,
+        data: await getCmsConfigYaml(services),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to build CMS config",
+      };
+    }
+  });
 
   // ── Resource Templates ──
   const resourceTemplates = createSystemResourceTemplates(services);

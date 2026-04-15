@@ -26,6 +26,7 @@ export interface StreamableHTTPServerConfig {
   host?: string;
   logger?: Logger | TransportLogger;
   auth?: AuthConfig;
+  getCmsConfig?: (() => Promise<string>) | undefined;
 }
 
 /**
@@ -103,8 +104,12 @@ export class StreamableHTTPServer {
     res: Response,
     next: NextFunction,
   ): void => {
-    // Skip auth for health endpoints
-    if (req.path === "/health" || req.path === "/status") {
+    // Skip auth for public read-only endpoints
+    if (
+      req.path === "/health" ||
+      req.path === "/status" ||
+      req.path === "/cms-config"
+    ) {
       return next();
     }
 
@@ -182,6 +187,29 @@ export class StreamableHTTPServer {
         port: this.boundPort ?? this.config.port ?? 3333,
       });
     });
+
+    this.app.get(
+      "/cms-config",
+      asyncHandler(async (_req, res) => {
+        if (!this.config.getCmsConfig) {
+          res.status(503).type("text/plain").send("CMS config unavailable");
+          return;
+        }
+
+        try {
+          const yaml = await this.config.getCmsConfig();
+          res.type("text/yaml").send(yaml);
+        } catch (error) {
+          this.logger.error("CMS config route error:", error);
+          res
+            .status(503)
+            .type("text/plain")
+            .send(
+              error instanceof Error ? error.message : "CMS config unavailable",
+            );
+        }
+      }),
+    );
 
     // StreamableHTTP endpoint at /mcp
     this.app.post(

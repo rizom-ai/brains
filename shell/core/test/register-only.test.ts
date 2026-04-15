@@ -15,7 +15,7 @@ import {
 } from "@brains/job-queue";
 import { DataSourceRegistry } from "@brains/entity-service";
 import { MessageBus } from "@brains/messaging-service";
-import { z } from "@brains/utils";
+import { fromYaml, z } from "@brains/utils";
 
 async function resetAllSingletons(): Promise<void> {
   await Shell.resetInstance();
@@ -145,6 +145,46 @@ describe("Shell registerOnly mode", () => {
     expect(resources.some((r) => r.resource.uri === "brain://cms-config")).toBe(
       true,
     );
+  });
+
+  it("should provide cms config over the system message bus", async () => {
+    const gitInfoPlugin: Plugin = {
+      id: "git-info-test-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Provides git repo info for cms tests",
+      packageName: "@test/git-info-plugin",
+      register: async (shellInstance) => {
+        shellInstance
+          .getMessageBus()
+          .subscribe("git-sync:get-repo-info", async () => ({
+            success: true,
+            data: { repo: "owner/repo", branch: "main" },
+          }));
+
+        return { tools: [], resources: [] };
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [gitInfoPlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ registerOnly: true });
+
+    const response = await shell
+      .getMessageBus()
+      .send<Record<string, never>, string>("system:cms-config:get", {}, "test");
+
+    expect("noop" in response).toBe(false);
+    if ("noop" in response || !response.success || !response.data) {
+      throw new Error("Expected cms config response");
+    }
+
+    const parsed = fromYaml<{ backend: { repo: string; branch: string } }>(
+      response.data,
+    );
+    expect(parsed.backend.repo).toBe("owner/repo");
+    expect(parsed.backend.branch).toBe("main");
   });
 
   it("should not start daemons in registerOnly mode", async () => {

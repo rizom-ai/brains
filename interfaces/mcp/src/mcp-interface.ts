@@ -139,7 +139,8 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       throw new Error("Context not initialized");
     }
 
-    this.mcpTransport = this.context.mcpTransport;
+    const context = this.context;
+    this.mcpTransport = context.mcpTransport;
 
     // Determine the user ID based on transport for permission rules
     // This will be used by the centralized PermissionService to determine actual permissions
@@ -185,6 +186,21 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         port: this.config.httpPort,
         logger: this.logger,
         auth: { token: this.config.authToken },
+        getCmsConfig: async () => {
+          const response = await context.messaging.send<
+            Record<string, never>,
+            string
+          >("system:cms-config:get", {});
+
+          if ("noop" in response) {
+            throw new Error("CMS config unavailable");
+          }
+          if (!response.success || !response.data) {
+            throw new Error(response.error ?? "CMS config unavailable");
+          }
+
+          return response.data;
+        },
       });
 
       // Connect MCP server from service to HTTP transport
@@ -192,7 +208,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       this.httpServer.connectMCPServer(mcpServer, this.mcpTransport);
 
       // Connect agent service for /api/chat endpoint
-      this.httpServer.connectAgentService(this.context.agentService);
+      this.httpServer.connectAgentService(context.agentService);
 
       // Start HTTP server
       await this.httpServer.start();

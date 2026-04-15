@@ -5,7 +5,9 @@ import type { SystemServices } from "./types";
 
 const CMS_CONFIG_URI = "brain://cms-config";
 
-async function getCmsConfigYaml(services: SystemServices): Promise<string> {
+export async function getCmsConfigYaml(
+  services: SystemServices,
+): Promise<string> {
   const repoInfo = await services.messageBus.send<
     Record<string, never>,
     { repo: string; branch: string }
