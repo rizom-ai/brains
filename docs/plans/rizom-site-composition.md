@@ -19,14 +19,16 @@ Important current-state nuance: the shared implementation is already mostly `riz
 
 ## Decision
 
-Use **shared base + app-owned composition**.
+Use **app-owned real sites + extracted shared abstractions**.
 
 That means:
 
-- shared packages keep reusable Rizom primitives
-- each app owns its own final site composition
+- `@brains/site-rizom-ai`, `@brains/site-rizom-foundation`, and `@brains/site-rizom-work` are the real sites
+- reusable pieces should live in proper shared abstractions, not in a half-site that still behaves like one branded app
 - do not build deep inheritance or hidden override rules
 - prefer explicit composition from shared building blocks
+
+`sites/rizom` can exist only as a transitional holding area while code is being sorted, but it should not remain a long-lived pseudo-site/base-site hybrid.
 
 ## Ownership split
 
@@ -40,7 +42,7 @@ Keep only broadly reusable pieces shared:
 - shared canvas helpers/effects when not app-specific
 - shared brand theme tokens in `shared/theme-rizom`
 
-`sites/rizom` should move toward a base/spine role, not a giant final-site package for all three apps.
+Those pieces should ultimately live in proper shared abstractions. `sites/rizom` should not remain a giant final-site package for all three apps, and it also should not remain a permanent fake base site.
 
 ### App-owned composition
 
@@ -248,12 +250,13 @@ Current plugin/config layer still exposes one `variant` switch:
 - `sites/rizom/src/plugin.ts`
 - `sites/rizom/src/index.ts`
 
-Short term: keep it working while split happens.
+Short term: keep it working only as a migration seam while code is being moved.
 
 Long term:
 
-- shrink shared plugin responsibility to shared asset/boot wiring only
+- move shared behavior into proper shared abstractions or remove it
 - stop using one plugin-driven variant switch as final ownership model for all three apps
+- stop treating `sites/rizom` as a direct-consumer site fallback
 
 ## Proposed file shape
 
@@ -533,14 +536,79 @@ Deliverable:
 
 ### Phase 6: extraction follow-through
 
-Once an app's composition is stable:
+Once an app's composition is stable, extraction should follow the published standalone shape from `brain init` rather than inventing a monorepo-only intermediate form.
 
-1. scaffold standalone repo with published CLI
-2. move final site composition into app-local `src/site.ts`
-3. keep only genuinely reusable Rizom primitives shared
-4. move app-only styling into local `src/theme.css` when needed
-5. deploy and verify
-6. remove old monorepo app
+Standard standalone repo shape:
+
+```text
+my-brain/
+├── brain.yaml
+├── .env.example
+├── .env.schema
+├── .gitignore
+├── README.md
+├── package.json
+├── tsconfig.json
+├── src/
+│   ├── site.ts
+│   └── theme.css
+├── config/
+│   └── deploy.yml
+├── deploy/
+│   ├── Dockerfile
+│   └── Caddyfile
+├── .kamal/hooks/pre-deploy
+├── .github/workflows/
+│   ├── publish-image.yml
+│   └── deploy.yml
+└── scripts/
+    └── extract-brain-config.rb
+```
+
+Published contract for extraction:
+
+- clean-machine path must work: `bun add -g @rizom/brain && brain init mybrain && cd mybrain && brain start`
+- extracted repos publish and deploy their own repo image: `ghcr.io/<owner>/<repo>`
+- do not preserve monorepo-only instance conventions just for transition comfort
+
+Preflight for each app:
+
+- target repo slug
+- production domain(s)
+- current `brain.yaml`
+- current `.env.schema` and secret inventory
+- current content repo
+- current deploy config
+- whether any monorepo-only site/theme/package refs remain
+- whether infra should be reused or replaced
+
+Current preflight snapshot:
+
+| App                     | Brain model | Domain(s)          | Current content repo                | Deploy scaffold in app repo                                                                                                                          | Monorepo-only site/theme coupling                                                                            | Notes                                                                                            |
+| ----------------------- | ----------- | ------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `apps/rizom-work`       | `ranger`    | `rizom.work`       | `rizom-ai/rizom-work-content`       | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-work"` thin wrapper over shared Rizom base                                | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
+| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | `rizom-ai/rizom-foundation-content` | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base                          | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
+| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`         | partial: `package.json`, `bun.lock`, `.gitignore`, `.kamal/hooks/pre-deploy`, `config/deploy.yml`; no tracked `.env.schema`, no tracked GH workflows | `site.package: "@brains/site-rizom-ai"` thin wrapper over shared Rizom base; deploy still model-image-shaped | best extraction candidate; wrapper seam now exists                                               |
+
+Current `rizom.ai` extraction blocker:
+
+- the monorepo site packages (`@brains/site-rizom`, `@brains/site-rizom-ai`) are not published consumable packages today, so extraction must either publish them or vendor final site ownership into app-local `src/site.ts` and `src/theme.css`
+
+Extraction procedure:
+
+1. scaffold a fresh repo with the published CLI
+2. copy in app-specific config (`brain.yaml`, `.env.schema`, `.env.example`, deploy config)
+3. move the app's final site composition into local `src/site.ts`
+4. keep shared Rizom primitives only where they are still genuinely reusable
+5. move app-only styling into local `src/theme.css` when needed
+6. run `brain init . --deploy --regen`
+7. boot locally from the repo itself
+8. create and push the standalone repo
+9. run the standard bootstrap flow for SSH, secrets, and certs
+10. deploy from the published package path
+11. verify the live site
+12. remove the old monorepo app
+13. update docs/tests
 
 ## Order
 
@@ -564,10 +632,10 @@ Recommended order:
 
 This plan is working when:
 
-1. shared Rizom code is clearly reusable base code, not hidden final-site behavior
-2. `rizom.foundation` and `rizom.work` each have app-owned route composition
-3. `rizom.ai` also ends with explicit app-owned composition rather than implicit shared defaults
-4. shared pieces can still be imported directly without override magic
+1. `rizom.ai`, `rizom.foundation`, and `rizom.work` are clearly the real site owners
+2. shared Rizom code is clearly reusable shared code, not hidden final-site behavior
+3. `rizom.ai`, `rizom.foundation`, and `rizom.work` each have explicit app-owned composition
+4. `sites/rizom` is either gone or reduced to code that obviously belongs in shared abstractions rather than a direct-consumer site
 5. extraction path for each app becomes straightforward: move composition into local `src/site.ts`
 
 ## Decision for first implementation pass
@@ -582,5 +650,4 @@ Reason:
 
 ## Related
 
-- `docs/plans/standalone-apps.md`
 - `docs/plans/public-release-cleanup.md`

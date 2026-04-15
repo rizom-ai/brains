@@ -55,16 +55,16 @@ Focus areas:
 
 Plan:
 
-- [standalone-apps.md](./plans/standalone-apps.md)
+- [rizom-site-composition.md](./plans/rizom-site-composition.md)
 
 ### 2. Rizom site variant follow-through
 
-The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. Remaining work is product polish and eventual extraction.
+The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. Remaining work is product polish, moving reusable code into proper shared abstractions, and eventual extraction.
 
 Focus areas:
 
 - finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) (CTA destinations, newsletter/support links, quiz URLs)
-- decide which currently shared section implementations are truly reusable primitives versus app-specific sections
+- move reusable Rizom code into proper shared abstractions instead of leaving `sites/rizom` as a pseudo-site
 - extract each app into a standalone repo once its composition is stable
 
 Plans:
