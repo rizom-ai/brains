@@ -182,7 +182,7 @@ The shared HTTP surface should provide one HTTP app per brain and mount:
 - `/mcp` → MCP transport
 - `/.well-known/agent-card.json` and `/a2a` → A2A
 - `/api/*` → plugin API routes
-- `/health` and status endpoints
+- canonical public `/health` and status endpoints
 - public site routes where applicable
 - preview routes/hosts where site-builder is enabled
 
@@ -284,7 +284,7 @@ This means `deploy/Caddyfile` will need to change once the shared surface exists
 
 Kamal itself can likely stay conceptually similar, but the generated deploy shape must align with the new runtime:
 
-- healthcheck should hit the consolidated HTTP surface
+- healthcheck should hit the canonical `/health` route on the consolidated HTTP surface
 - deploy assumptions about internal ports need updating
 - smoke routing and boot expectations should match the single-surface design
 - core deployments should not require preview/public-site routing assumptions
@@ -309,7 +309,8 @@ This means Kamal templates and related deploy scaffolding must be updated togeth
 6. Site presets keep `/` public and mount admin under `/cms` or `/dashboard`
 7. Core deploys work without preview/public-site split assumptions
 8. Site-builder deploys preserve existing preview/public web behavior while adding admin routes
-9. Deploy scaffolding (Caddy/Kamal) matches the consolidated routing model
+9. The canonical public `/health` endpoint is served by the shared HTTP surface
+10. Deploy scaffolding (Caddy/Kamal) matches the consolidated routing model
 
 ## Related
 

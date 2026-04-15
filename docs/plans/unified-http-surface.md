@@ -49,7 +49,7 @@ Each brain should expose one shared HTTP surface that can mount:
 - `/.well-known/agent-card.json`
 - `/a2a`
 - `/api/*`
-- `/health`
+- canonical public `/health`
 - public site routes where applicable
 
 ## Non-goals
@@ -73,6 +73,7 @@ A shared HTTP host should own:
 - route mounting
 - same-port composition
 - shared middleware where appropriate
+- the canonical public `/health` endpoint
 
 This is likely:
 
@@ -200,7 +201,7 @@ Kamal templates and assumptions also need updating.
 
 In particular:
 
-- healthchecks should target the consolidated HTTP host
+- healthchecks should target the canonical `/health` route on the consolidated HTTP host
 - runtime expectations around internal ports should shrink
 - deploy smoke behavior should match the unified path layout
 - generated scaffolding should reflect the new single-surface architecture
@@ -261,6 +262,10 @@ Update:
 - smoke routing
 - operator docs
 
+Explicitly:
+
+- the canonical public `/health` endpoint should be served by the shared HTTP surface, not by a protocol-specific standalone server
+
 Explicit acceptance criteria:
 
 - core deploys do not depend on preview/public-site routing assumptions
@@ -274,6 +279,7 @@ Explicit acceptance criteria:
 - preserve `preset: core` without site-builder dependency
 - do not require preview/public-site split behavior for core-only brains
 - preserve preview/public web behavior when site-builder is enabled
+- make the canonical public `/health` endpoint part of the shared HTTP surface
 - keep rollout incremental and reversible
 
 ## Tradeoffs
