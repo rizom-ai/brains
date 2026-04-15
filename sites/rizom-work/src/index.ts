@@ -4,12 +4,10 @@ import {
   type SitePackage,
   type SitePackageOverrides,
 } from "@brains/site-composition";
-import baseSite, { createRizomLayout } from "@brains/site-rizom";
+import baseSite from "@brains/site-rizom";
+import { WorkLayout } from "./layout";
 import { RizomWorkSitePlugin } from "./plugin";
 import { workRoutes } from "./routes";
-import { workShellModel } from "./shell";
-
-const WorkLayout = createRizomLayout(workShellModel);
 
 const workPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,

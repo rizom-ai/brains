@@ -1,652 +1,332 @@
 # Plan: Rizom Site Composition
 
-## Context
-
-`rizom.ai`, `rizom.foundation`, and `rizom.work` no longer fit one shared final site package with small `variant` toggles.
-
-Open problem:
-
-- routes differ
-- section order differs
-- nav/footer language differs
-- hero structure differs
-- some sections are app-only
-- `foundation` and `work` mockups are still not implemented
-
-If this keeps growing inside one `sites/rizom` variant switchboard, ownership gets hard to trace and extraction later gets harder.
-
-Important current-state nuance: the shared implementation is already mostly `rizom.ai`-shaped. That makes `rizom.ai` the baseline to carve shared base code out of, not the first blocked mockup to finish.
-
 ## Decision
 
-Use **app-owned real sites + extracted shared abstractions**.
+Use **wrapper-owned real sites + extracted shared primitives**.
 
 That means:
 
-- `@brains/site-rizom-ai`, `@brains/site-rizom-foundation`, and `@brains/site-rizom-work` are the real sites
-- reusable pieces should live in proper shared abstractions, not in a half-site that still behaves like one branded app
-- do not build deep inheritance or hidden override rules
-- prefer explicit composition from shared building blocks
+- `@brains/site-rizom-ai`, `@brains/site-rizom-foundation`, and `@brains/site-rizom-work` are the real site owners now
+- `sites/rizom` is transitional only
+- shared code should move toward proper shared abstractions, not remain a pseudo-site
+- do not keep a higher-order layout helper or a shared shell config object as the long-term ownership model
+- prefer explicit wrapper-owned composition from plain components
 
-`sites/rizom` can exist only as a transitional holding area while code is being sorted, but it should not remain a long-lived pseudo-site/base-site hybrid.
+## Current state
 
-## Ownership split
+Already done:
 
-### Shared/base ownership
+- all three wrappers own their final routes
+- all app-specific templates live in the wrappers
+- durable site content is tracked under each app's `brain-data/site-content`
+- all three apps are repo-backed through `directory-sync`
+- shared `sites/rizom/src/routes.ts` is empty
+- shared `sites/rizom` no longer defaults to the AI site shell in layout/plugin boot fallback
 
-Keep only broadly reusable pieces shared:
+What remains in `sites/rizom` now is mostly:
 
-- common components
-- layout primitives
-- common section templates that are still genuinely reusable
-- shared canvas helpers/effects when not app-specific
-- shared brand theme tokens in `shared/theme-rizom`
+- shared runtime glue (`plugin.ts`, `boot.boot.js`, static canvas assets)
+- shared layout/frame code
+- shared UI primitives (`Section`, `Button`, `Badge`, `Divider`, `ProductCard`)
+- the family-owned `ecosystem` section
+- transitional shell/chrome pieces that still need cleaner ownership
 
-Those pieces should ultimately live in proper shared abstractions. `sites/rizom` should not remain a giant final-site package for all three apps, and it also should not remain a permanent fake base site.
+## Architectural rule
 
-### App-owned composition
+### Wrappers own final composition
 
-Each app should own:
+Each wrapper should own:
 
-- routes
-- section inventory
-- section ordering
-- nav/footer copy and CTAs
-- hero treatment
+- layout composition
+- header/footer/side-nav assembly
+- app-specific nav labels and CTA links
+- route tree
+- section order
 - app-only sections
-- final site assembly
+- app-specific canvas selection
 
-Inside monorepo, this can start as app-owned composition code. After extraction, same ownership moves into app-local `src/site.ts`.
+### Shared code stays primitive
 
-## Explicit composition rule
+Shared code should only own things that are genuinely reusable across apps:
 
-Do not build magic inheritance.
+- frame/canvas wrapper
+- small presentational UI primitives
+- shared runtime boot/plugin glue
+- shared canvas helpers/assets when truly shared
+- family-owned `ecosystem` section
+- shared theme tokens in `shared/theme-rizom`
+
+## New layout rule
+
+Do **not** keep or expand this pattern:
+
+- higher-order layout factories
+- `createRizomLayout(shell)`
+- shared `RizomShellModel` config blobs
+- hidden wrapper binding tricks
 
 Preferred shape:
 
-- import shared sections/components/helpers directly
-- assemble each app route tree directly
-- override only pieces app actually owns
+1. shared package exports a plain frame component
+2. each wrapper defines its own normal layout component
+3. wrapper layout renders its own header/footer/side-nav composition explicitly
 
-Avoid:
+## Target component shape
 
-- deep override chains
-- hidden fallback behavior
-- more `if (variant === ...)` sprawl in one shared site package
+### Shared
 
-## Current gaps
+Shared package should trend toward something like:
 
-### `rizom.ai`
+- `RizomFrame`
+- `RizomLayoutProps`
+- `Section`
+- `Button`
+- `Badge`
+- `Divider`
+- `ProductCard`
+- shared plugin/boot/canvas exports
+- `createEcosystemContent`
 
-`rizom.ai` now has the same thin wrapper seam as the other two apps:
+`RizomFrame` should only own:
 
-- `@brains/site-rizom-ai`
-- wrapper-owned shell model
-- wrapper-owned route export
+- full-page background canvas element
+- centered page container/frame
 
-That means the ownership model is now aligned across all three Rizom apps.
+It should **not** own app chrome.
 
-Open work for `rizom.ai` still exists:
+### Wrapper
 
-- move any remaining AI-final defaults out of shared/base files and into the wrapper where they are truly app-owned
-- decide what should remain shared base versus wrapper-owned AI composition
-- move that composition into app-local `src/site.ts` when extraction becomes desirable
+Each wrapper should have a small explicit layout component, e.g.:
 
-### `rizom.foundation`
+- `sites/rizom-ai/src/layout.tsx`
+- `sites/rizom-foundation/src/layout.tsx`
+- `sites/rizom-work/src/layout.tsx`
 
-`rizom.foundation` now has explicit app-owned route composition in its thin wrapper:
+Those wrapper layouts should render:
 
-- `@brains/site-rizom-foundation`
-- wrapper-owned shell model
-- wrapper-owned route export
-- tracked `site-content` for durable editorial sections
+- `RizomFrame`
+- wrapper-owned header composition
+- wrapper-owned side-nav composition
+- `<main>{sections}</main>`
+- wrapper-owned footer composition
 
-Implemented foundation sections now include:
+No HOC. No shell model.
 
-- editorial hero
-- argument block
-- pull quote
-- research section
-- events section
-- support grid
-- about section
-- follow/CTA section
-- ecosystem
+## Chrome ownership rule
 
-Open work remains, but it is now mostly content/link polish, shared-vs-app ownership cleanup, and later extraction rather than first-pass composition scaffolding.
+Header/footer/side-nav should no longer be treated as one shared shell object.
 
-### `rizom.work`
+Preferred direction:
 
-`rizom.work` now also has explicit app-owned route composition in its thin wrapper:
+- wrappers own the composition directly
+- if shared chrome components remain, they should take direct props, not a bundled shell model
+- if direct props still feel awkward, move those chrome components fully into wrappers
 
-- `@brains/site-rizom-work`
-- wrapper-owned shell model
-- wrapper-owned route export
-- tracked `site-content` for durable workshop/offer sections
+In other words:
 
-Implemented work sections now include:
+- avoid `shell.brandSuffix`
+- avoid `shell.navLinks`
+- avoid `shell.footerLinks`
+- avoid `shell.sideNav`
 
-- split hero
-- diagnostic widget
-- problem block
-- workshop steps
-- personas
-- proof/testimonial section
-- bridge/closer CTA sections
-- ecosystem
-
-Open work is now mostly real CTA destination cleanup, proof/case-study polish, shared-vs-app ownership cleanup, and later extraction.
-
-### Shared-shell cleanup still needed
-
-The biggest shared-shell cleanup is now done:
-
-- `Header.tsx`
-- `Footer.tsx`
-- `SideNav.tsx`
-
-now read explicit shell models rather than hardcoded app labels.
-
-Open shared cleanup still remains around `routes.ts` and around deciding which currently shared section implementations are truly reusable primitives versus temporary app-specific sections living in `sites/rizom`.
+Use plain props or wrapper-local components instead.
 
 ## Concrete cut list
 
-### Keep shared/base
+### Keep shared for now
 
-These look broadly reusable and should stay shared if kept small and explicit:
+These are good shared candidates:
 
+- `sites/rizom/src/layouts/*frame*` or equivalent frame-only layout primitive
 - `sites/rizom/src/components/Section.tsx`
-  - layout primitive only
 - `sites/rizom/src/components/Button.tsx`
-  - reusable CTA primitive if variants stay generic
 - `sites/rizom/src/components/Badge.tsx`
-  - reusable label primitive
 - `sites/rizom/src/components/Divider.tsx`
-  - reusable separator primitive
 - `sites/rizom/src/components/ProductCard.tsx`
-  - reusable only if treated as a generic card primitive, not as `rizom.ai` page structure
-- `sites/rizom/src/sections/answer/*`
-  - likely reusable as centered prose block
-- `sites/rizom/src/sections/ownership/*`
-  - likely reusable as feature-grid/about block
-- `sites/rizom/src/sections/ecosystem/*`
-  - clearly shared across all three apps
-- `sites/rizom/src/canvases/prelude.canvas.js`
-  - shared canvas helpers
+- `sites/rizom/src/components/product-card-types.ts`
 - `sites/rizom/src/boot/boot.boot.js`
-  - shared boot behavior if it stops assuming one fixed route structure
-- `shared/theme-rizom/*`
-  - shared brand tokens and common styling primitives
-
-### Likely `rizom.ai`-specific
-
-These are current baseline pieces, but they should not remain implicit shared defaults forever:
-
-- `sites/rizom/src/routes.ts`
-  - current full route stack is effectively `rizom.ai` composition
-- `sites/rizom/src/components/Header.tsx`
-  - hardcoded `rizom.ai` branding + AI-shaped nav labels
-- `sites/rizom/src/components/Footer.tsx`
-  - hardcoded `rizom.ai` branding + links
-- `sites/rizom/src/components/SideNav.tsx`
-  - hardcoded labels and anchors
-- `sites/rizom/src/sections/hero/*`
-  - current hero matches AI/shared baseline, not foundation/work mockups
-- `sites/rizom/src/sections/problem/*`
-  - current 3-card problem grid fits AI baseline more than other apps
-- `sites/rizom/src/sections/products/*`
-  - current product-stack layout is closest to AI
-- `sites/rizom/src/sections/quickstart/*`
-  - quickstart terminal block is AI-specific
-- `sites/rizom/src/sections/mission/*`
-  - current closing CTA shape is AI-biased
+- `sites/rizom/src/canvases/prelude.canvas.js`
 - `sites/rizom/src/canvases/tree.canvas.js`
-  - AI-specific background effect
+- `sites/rizom/src/canvases/roots.canvas.js`
+- `sites/rizom/src/canvases/constellation.canvas.js`
+- `sites/rizom/src/canvases/products.canvas.js`
+- `sites/rizom/src/sections/ecosystem/*`
+- `sites/rizom/src/compositions/ecosystem.ts`
+- `shared/theme-rizom/*`
 
-### `rizom.foundation`-owned work
+### Transition pieces to simplify or move
 
-Needs app-owned composition plus likely new section code for:
+These should no longer define the ownership model:
 
-- editorial hero
-- argument block
-- pull quote
-- research section
-- events section
-- support grid / support cards
-- about composition using shared ownership-like primitives where useful
-- follow/CTA composition
-- `sites/rizom/src/canvases/roots.canvas.js` integration through foundation-owned composition
-
-Likely result:
-
-- foundation reuses shared primitives
-- foundation owns route tree and section order
-- foundation adds new section templates where current shared set is missing required structure
-
-### `rizom.work`-owned work
-
-Needs app-owned composition plus likely new section code for:
-
-- split hero
-- diagnostic widget
-- problem block
-- workshop steps
-- personas grid
-- proof/testimonial/partners block
-- bridge / closer CTA sections
-- about composition using shared ownership-like primitives where useful
-- `sites/rizom/src/canvases/constellation.canvas.js` integration through work-owned composition
-
-Likely result:
-
-- work reuses shared primitives
-- work owns route tree and section order
-- work adds new section templates for interactive or bespoke mockup pieces
-
-### Transition rule for current plugin code
-
-Current plugin/config layer still exposes one `variant` switch:
-
-- `sites/rizom/src/plugin.ts`
-- `sites/rizom/src/index.ts`
-
-Short term: keep it working only as a migration seam while code is being moved.
-
-Long term:
-
-- move shared behavior into proper shared abstractions or remove it
-- stop using one plugin-driven variant switch as final ownership model for all three apps
-- stop treating `sites/rizom` as a direct-consumer site fallback
-
-## Proposed file shape
-
-Keep change small. Do not refactor whole site at once.
-
-### Shared/base files
-
-Keep in `sites/rizom` or move within it toward neutral base roles:
-
-- `src/components/Section.tsx`
-- `src/components/Button.tsx`
-- `src/components/Badge.tsx`
-- `src/components/Divider.tsx`
-- `src/components/ProductCard.tsx` if kept generic
-- `src/sections/answer/*`
-- `src/sections/ownership/*`
-- `src/sections/ecosystem/*`
-- `src/boot/boot.boot.js`
-- `src/canvases/prelude.canvas.js`
-- shared theme wiring in `shared/theme-rizom`
-
-### AI composition files
-
-Treat these as eventual `rizom.ai` composition pieces, even if they stay put short term:
-
-- `src/routes.ts`
-- `src/components/Header.tsx`
-- `src/components/Footer.tsx`
-- `src/components/SideNav.tsx`
-- `src/sections/hero/*`
-- `src/sections/problem/*`
-- `src/sections/products/*`
-- `src/sections/quickstart/*`
-- `src/sections/mission/*`
-- `src/canvases/tree.canvas.js`
-
-### New app-owned composition entrypoints
-
-Add thin composition files instead of more `variant` branching inside shared files.
-
-Suggested first shape:
-
-- `sites/rizom/src/compositions/foundation.ts`
-- `sites/rizom/src/compositions/work.ts`
-- later `sites/rizom/src/compositions/ai.ts`
-
-Each composition file should own:
-
-- route list
-- section order
-- nav model
-- footer model
-- side-nav labels
-- selected canvas asset
-
-Short term, these can still be consumed by current plugin package while repo ownership stays in monorepo.
-
-### New foundation-only section files
-
-Likely add:
-
-- `sites/rizom/src/sections/pull-quote/*`
-- `sites/rizom/src/sections/research/*`
-- `sites/rizom/src/sections/events/*`
-- `sites/rizom/src/sections/support/*`
-
-Optional if needed after first pass:
-
-- foundation-specific hero variant file instead of mutating shared `hero`
-
-### New work-only section files
-
-Likely add:
-
-- `sites/rizom/src/sections/diagnostic/*`
-- `sites/rizom/src/sections/workshop/*`
-- `sites/rizom/src/sections/personas/*`
-- `sites/rizom/src/sections/proof/*`
-- `sites/rizom/src/sections/closer/*`
-
-Optional if needed after first pass:
-
-- work-specific hero variant file instead of mutating shared `hero`
-
-## Minimal implementation mechanism
-
-Keep first cut boring. Use existing `SitePackage` + `extendSite()` support instead of inventing a new composition framework.
-
-### Composition object shape
-
-Use a small explicit model for shell-level differences:
-
-```ts
-interface RizomShellLink {
-  href: string;
-  label: string;
-}
-
-interface RizomShellModel {
-  brandSuffix: "ai" | "foundation" | "work";
-  primaryCta: RizomShellLink;
-  navLinks: RizomShellLink[];
-  footerLinks: RizomShellLink[];
-  sideNav: Array<{ href: string; label: string }>;
-}
-```
-
-Keep it shell-only.
-
-Do **not** put route composition, section content, or template behavior into one giant config blob.
-
-### Shared readers of that model
-
-Refactor these pieces to accept explicit props instead of reading hardcoded AI values:
-
-- `Header`
-- `Footer`
-- `SideNav`
-- `DefaultLayout` or thin layout wrappers around it
-
-### Smallest viable site-composition seam
-
-Use `extendSite()` from `@brains/site-composition` and wrap shared layout/components with app-specific shell data.
-
-Suggested pattern:
-
-1. keep one base site package with reusable layouts/templates/static assets
-2. create thin composition wrappers that call `extendSite(baseSite, overrides)`
-3. override only:
-   - routes
-   - layout wrapper
-   - plugin config when canvas/asset wiring differs
-
-This keeps first implementation slice inside existing runtime contracts:
-
-- `SitePackage.layouts`
-- `SitePackage.routes`
-- `SitePackage.plugin`
-- `SitePackage.staticAssets`
-
-### Suggested file additions for that seam
-
-- `sites/rizom/src/compositions/types.ts`
-  - shell model types only
-- `sites/rizom/src/compositions/foundation.ts`
-- `sites/rizom/src/compositions/work.ts`
-- later `sites/rizom/src/compositions/ai.ts`
 - `sites/rizom/src/layouts/create-rizom-layout.tsx`
-  - returns layout component closed over a `RizomShellModel`
-- optional `sites/rizom/src/base-site.ts`
-  - exports reusable base `SitePackage`
+- any shared `RizomShellModel` or shell-type config
+- `sites/rizom/src/components/Header.tsx`
+- `sites/rizom/src/components/Footer.tsx`
+- `sites/rizom/src/components/SideNav.tsx`
 
-### Plugin change rule
+Goal:
 
-Keep plugin change minimal.
+- replace HOC layout with plain frame + wrapper-local layout components
+- stop routing wrapper chrome through one shared shell object
 
-Short term plugin should only care about things like:
+### Wrapper-owned code
 
-- selected canvas asset
+Each wrapper should own:
+
+- `src/layout.tsx`
+- wrapper-local chrome composition
+- route export
+- wrapper plugin override for app identity/canvas path
+- all app-specific templates and sections
+
+## Next implementation slice
+
+### Slice 1: remove HOC layout pattern
+
+1. replace shared layout helper with a plain shared frame component
+2. add `layout.tsx` to each wrapper
+3. move header/footer/side-nav composition into wrapper layouts
+4. stop exporting or relying on `createRizomLayout`
+5. stop exporting or relying on a shared shell model
+
+Deliverable:
+
+- wrappers own their layout composition explicitly
+- shared package owns only frame/runtime primitives
+
+### Slice 2: simplify chrome ownership
+
+Choose the smaller correct cut:
+
+Option A:
+
+- keep `Header`, `Footer`, and `SideNav` shared temporarily
+- change them to direct props
+- remove shell object indirection
+
+Option B:
+
+- move `Header`, `Footer`, and `SideNav` into wrappers entirely
+
+Preferred default:
+
+- take the smallest path that eliminates the shell object first
+- do not keep the shell object just because the components happen to remain shared for one more step
+
+### Slice 3: extract shared primitives into a real shared package
+
+After wrapper layouts are explicit, move remaining reusable code out of `sites/rizom` into a proper shared abstraction.
+
+Initial candidates:
+
+- frame component
+- UI primitives
+- product card primitive
+- shared canvas runtime assets
+- maybe ecosystem if it remains family-owned
+
+## Plugin rule
+
+Shared plugin code should stay narrow.
+
+It should only care about:
+
 - shared boot script registration
-- shared static asset registration
+- static asset exposure
+- optional legacy direct-consumer compatibility while transition lasts
 
-Do not keep growing plugin config into ownership/config for full route trees or nav labels.
+It should not become the place where app layout, nav, or footer ownership lives.
 
-## First implementation slice
+## Current app snapshot
 
-Do not start with all three apps. Start with smallest ownership cut that proves direction.
+### `rizom.ai`
 
-### Slice 1: foundation-first composition seam
+Now owns:
 
-1. extract current shared site into an explicit base site export
-2. add `RizomShellModel` + generic shell readers
-3. keep current AI output working through existing/default shell model
-4. add `foundation` composition wrapper using `extendSite()`
-5. add first missing foundation-only section
-
-Target result:
-
-- one new composition seam exists
-- `foundation` can diverge without growing more `variant` conditionals everywhere
-- `ai` still works
-- no new inheritance machinery exists
-
-### Slice 2: foundation route completion
-
-1. add remaining foundation-only sections
-2. wire section order to match mockup more closely
-3. add tracked foundation site content
-4. boot-check foundation
-
-### Slice 3: work composition seam reuse
-
-1. add `work` composition entrypoint using same seam
-2. add work-only sections one by one
-3. boot-check work
-
-## Phase plan
-
-### Phase 1: carve base from current shared site
-
-Goal: separate reusable primitives from app-specific composition.
+- wrapper routes
+- AI templates/sections
+- wrapper plugin identity/canvas selection
+- tracked site content
 
 Open work:
 
-1. identify which current `sites/rizom` pieces are truly reusable
-2. make shared header/footer/nav pieces neutral or primitive-only
-3. stop using one shared hardcoded route stack as final output for all apps
-4. define small composition surface apps can assemble explicitly
+- wrapper-owned explicit layout component
+- remove any remaining dependence on shared shell/chrome patterns
+- later standalone extraction to app-local `src/site.ts`
 
-Deliverable:
+### `rizom.foundation`
 
-- shared base pieces exist without forcing one final site structure
+Now owns:
 
-### Phase 2: keep `rizom.ai` stable while base split happens
-
-Reason:
-
-- current shared site is already mostly `rizom.ai`
-- it is useful as the baseline for deciding what is truly reusable
-- it is not the variant currently blocked on unfinished mockup implementation
+- wrapper routes
+- foundation templates/sections
+- wrapper plugin identity/canvas selection
+- tracked site content
 
 Open work:
 
-1. keep `rizom.ai` working while shared/base pieces are carved out
-2. avoid redesigning `rizom.ai` at the same time as the base split
-3. note which remaining pieces are truly `rizom.ai`-specific and should later move into app-owned composition
+- wrapper-owned explicit layout component
+- remove any remaining dependence on shared shell/chrome patterns
+- later standalone extraction to app-local `src/site.ts`
 
-Deliverable:
+### `rizom.work`
 
-- `rizom.ai` remains stable while shared/base boundaries become clearer
+Now owns:
 
-### Phase 3: implement `rizom.foundation` first
-
-Reason:
-
-- narrower than `work`
-- less interactive
-- better first proof for app-owned composition
+- wrapper routes
+- work templates/sections
+- wrapper plugin identity/canvas selection
+- tracked site content
 
 Open work:
 
-1. define foundation-specific route tree
-2. implement missing foundation-only sections
-3. wire real app-owned nav/footer labels
-4. add tracked foundation site content for those sections
-5. boot-check foundation in monorepo
+- wrapper-owned explicit layout component
+- remove any remaining dependence on shared shell/chrome patterns
+- later standalone extraction to app-local `src/site.ts`
 
-Deliverable:
+## Extraction follow-through
 
-- `rizom.foundation` mockup substantially represented in app-owned composition
+Once a wrapper's ownership is explicit enough, extraction should follow the published standalone shape from `brain init`, not a monorepo-only special case.
 
-### Phase 4: implement `rizom.work`
+Current extraction blocker for `rizom.ai` remains the same:
 
-Open work:
+- monorepo site packages are not yet the final published consumable shape
+- so extraction eventually needs either published shared packages or vendored app-local `src/site.ts` ownership
 
-1. define work-specific route tree
-2. implement diagnostic/widget and workshop-specific sections
-3. wire work-specific nav/footer labels
-4. add tracked work site content for those sections
-5. boot-check work in monorepo
+That is another reason to prefer:
 
-Deliverable:
-
-- `rizom.work` mockup substantially represented in app-owned composition
-
-### Phase 5: finish `rizom.ai` explicit composition
-
-Wrapper seam now exists for `rizom.ai`, so remaining work is narrower:
-
-1. stop relying on shared package defaults as the final `rizom.ai` site assembly where that is still true
-2. keep only genuinely reusable base pieces shared
-3. move `rizom.ai` composition into app-local `src/site.ts` when extraction becomes desirable
-
-Deliverable:
-
-- all three Rizom apps follow the same ownership model in practice, not just via wrapper package names
-
-### Phase 6: extraction follow-through
-
-Once an app's composition is stable, extraction should follow the published standalone shape from `brain init` rather than inventing a monorepo-only intermediate form.
-
-Standard standalone repo shape:
-
-```text
-my-brain/
-├── brain.yaml
-├── .env.example
-├── .env.schema
-├── .gitignore
-├── README.md
-├── package.json
-├── tsconfig.json
-├── src/
-│   ├── site.ts
-│   └── theme.css
-├── config/
-│   └── deploy.yml
-├── deploy/
-│   ├── Dockerfile
-│   └── Caddyfile
-├── .kamal/hooks/pre-deploy
-├── .github/workflows/
-│   ├── publish-image.yml
-│   └── deploy.yml
-└── scripts/
-    └── extract-brain-config.rb
-```
-
-Published contract for extraction:
-
-- clean-machine path must work: `bun add -g @rizom/brain && brain init mybrain && cd mybrain && brain start`
-- extracted repos publish and deploy their own repo image: `ghcr.io/<owner>/<repo>`
-- do not preserve monorepo-only instance conventions just for transition comfort
-
-Preflight for each app:
-
-- target repo slug
-- production domain(s)
-- current `brain.yaml`
-- current `.env.schema` and secret inventory
-- current content repo
-- current deploy config
-- whether any monorepo-only site/theme/package refs remain
-- whether infra should be reused or replaced
-
-Current preflight snapshot:
-
-| App                     | Brain model | Domain(s)          | Current content repo                | Deploy scaffold in app repo                                                                                                                          | Monorepo-only site/theme coupling                                                                            | Notes                                                                                            |
-| ----------------------- | ----------- | ------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `apps/rizom-work`       | `ranger`    | `rizom.work`       | `rizom-ai/rizom-work-content`       | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-work"` thin wrapper over shared Rizom base                                | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
-| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | `rizom-ai/rizom-foundation-content` | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base                          | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
-| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`         | partial: `package.json`, `bun.lock`, `.gitignore`, `.kamal/hooks/pre-deploy`, `config/deploy.yml`; no tracked `.env.schema`, no tracked GH workflows | `site.package: "@brains/site-rizom-ai"` thin wrapper over shared Rizom base; deploy still model-image-shaped | best extraction candidate; wrapper seam now exists                                               |
-
-Current `rizom.ai` extraction blocker:
-
-- the monorepo site packages (`@brains/site-rizom`, `@brains/site-rizom-ai`) are not published consumable packages today, so extraction must either publish them or vendor final site ownership into app-local `src/site.ts` and `src/theme.css`
-
-Extraction procedure:
-
-1. scaffold a fresh repo with the published CLI
-2. copy in app-specific config (`brain.yaml`, `.env.schema`, `.env.example`, deploy config)
-3. move the app's final site composition into local `src/site.ts`
-4. keep shared Rizom primitives only where they are still genuinely reusable
-5. move app-only styling into local `src/theme.css` when needed
-6. run `brain init . --deploy --regen`
-7. boot locally from the repo itself
-8. create and push the standalone repo
-9. run the standard bootstrap flow for SSH, secrets, and certs
-10. deploy from the published package path
-11. verify the live site
-12. remove the old monorepo app
-13. update docs/tests
+- plain wrapper-owned layout components
+- plain shared primitives
+- less magic in `sites/rizom`
 
 ## Order
 
-Recommended order:
+Recommended order now:
 
-1. carve shared base from current Rizom site code
-2. keep `rizom.ai` stable while that split happens
-3. finish `rizom.foundation`
-4. finish `rizom.work`
-5. give `rizom.ai` explicit app-owned composition last
-6. extract each app only after its own composition is stable
+1. remove HOC layout + shared shell object
+2. make wrapper layouts explicit normal components
+3. simplify or move header/footer/side-nav ownership
+4. extract remaining reusable primitives into a proper shared package
+5. keep `ecosystem` family-owned or move it to that shared package if still appropriate
+6. extract apps to standalone repos only after layout ownership is clean
 
 ## Non-goals
 
-- Do not create deep site inheritance machinery.
-- Do not force all three apps to extract at once.
-- Do not keep app-specific route trees trapped behind one shared `variant` switch.
-- Do not bundle repo extraction with a giant branding refactor.
+- do not reintroduce a variant-driven pseudo-site in `sites/rizom`
+- do not keep a shared shell config blob as the architecture
+- do not hide wrapper ownership behind factories or indirect binding
+- do not mix content-polish work into this refactor
 
 ## Verification
 
 This plan is working when:
 
-1. `rizom.ai`, `rizom.foundation`, and `rizom.work` are clearly the real site owners
-2. shared Rizom code is clearly reusable shared code, not hidden final-site behavior
-3. `rizom.ai`, `rizom.foundation`, and `rizom.work` each have explicit app-owned composition
-4. `sites/rizom` is either gone or reduced to code that obviously belongs in shared abstractions rather than a direct-consumer site
-5. extraction path for each app becomes straightforward: move composition into local `src/site.ts`
-
-## Decision for first implementation pass
-
-First app-owned compositions should live **temporarily as thin site-package wrappers under `sites/`** until extraction.
-
-Reason:
-
-- smallest runtime change now
-- keeps current resolver/package flow intact
-- lets extracted repos later move same composition into local `src/site.ts` with less churn
+1. each wrapper has its own explicit `layout.tsx`
+2. `sites/rizom` no longer exports or depends on a higher-order layout helper
+3. `sites/rizom` no longer defines ownership through a shared shell object
+4. wrappers are visibly the real owners of layout/chrome/routes/templates
+5. shared Rizom code is obviously primitive/shared code, not a disguised site
+6. extraction into app-local `src/site.ts` becomes straightforward
 
 ## Related
 

@@ -1,4 +1,6 @@
-export interface RizomShellLink {
+export type RizomBrandSuffix = "ai" | "foundation" | "work";
+
+export interface RizomLink {
   href: string;
   label: string;
 }
@@ -10,16 +12,6 @@ export interface RizomSideNavItem {
 
 export interface RizomFooterTagline {
   prefix?: string;
-  link: RizomShellLink;
+  link: RizomLink;
   suffix?: string;
-}
-
-export interface RizomShellModel {
-  brandSuffix: "ai" | "foundation" | "work";
-  primaryCta: RizomShellLink;
-  navLinks: RizomShellLink[];
-  footerMetaLabel: string;
-  footerTagline?: RizomFooterTagline;
-  footerLinks: RizomShellLink[];
-  sideNav: RizomSideNavItem[];
 }

@@ -6,19 +6,19 @@ import { templates } from "./templates";
 /**
  * Config for the Rizom site plugin.
  *
- * A single package (`@brains/site-rizom`) serves all three rizom
- * variants (ai / foundation / work). Each brain instance selects its
- * variant via `site.variant` in brain.yaml, which the resolver spreads
- * through to this plugin's factory.
+ * A single package (`@brains/site-rizom`) carries shared Rizom runtime
+ * primitives for all three app wrappers (ai / foundation / work).
+ * Wrapper plugins override app identity directly; direct consumers can
+ * still opt into a legacy `site.variant` path if they need it.
  */
 const rizomSiteConfigSchema = z.object({
-  variant: z.enum(["ai", "foundation", "work"]).default("ai"),
+  variant: z.enum(["ai", "foundation", "work"]).optional(),
   /** Optional theme override (e.g. `github:org/theme-repo`) — reserved for future use. */
   theme: z.string().optional(),
 });
 
 type RizomSiteConfig = z.infer<typeof rizomSiteConfigSchema>;
-type RizomSiteVariant = RizomSiteConfig["variant"];
+type RizomSiteVariant = NonNullable<RizomSiteConfig["variant"]>;
 
 /**
  * Maps each variant to the static-asset path of its canvas script.
@@ -61,17 +61,19 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
       return { success: true };
     });
 
-    this.logger.info(`Rizom site plugin registered (variant: ${variant})`);
+    this.logger.info(
+      `Rizom site plugin registered${variant ? ` (variant: ${variant})` : ""}`,
+    );
   }
 
   /**
    * Resolve the app identity used by the shared boot script.
    *
    * Wrappers override this so app ownership is explicit at the wrapper
-   * boundary. Direct consumers of @brains/site-rizom still fall back to
-   * the legacy config-driven variant switch for backward compatibility.
+   * boundary. Direct consumers of @brains/site-rizom can still opt into
+   * a legacy config-driven variant by setting `site.variant` explicitly.
    */
-  protected getVariant(): RizomSiteVariant {
+  protected getVariant(): RizomSiteVariant | undefined {
     return this.config.variant;
   }
 
@@ -81,35 +83,38 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
    * Wrappers can override this directly instead of depending on the
    * shared package's legacy variant switchboard.
    */
-  protected getCanvasPath(variant: RizomSiteVariant): string {
-    return CANVAS_BY_VARIANT[variant];
+  protected getCanvasPath(variant?: RizomSiteVariant): string | undefined {
+    return variant ? CANVAS_BY_VARIANT[variant] : undefined;
   }
 
   /**
    * Build the head script content.
    *
-   *   1. A tiny inline <script> that stashes the variant name on
-   *      window.__RIZOM_VARIANT__ so the external boot script can
-   *      read it (this is the only variant-specific code that needs
-   *      to stay inline).
-   *   2. /boot.js — the full site boot (data-rizom-variant,
-   *      data-theme, scroll reveal, side-nav tracker, theme toggle),
-   *      loaded with `defer` from staticAssets.
-   *   3. The variant-specific canvas script, also `defer`.
+   *   1. Optionally stash the variant name on window.__RIZOM_VARIANT__
+   *      so the external boot script can read it.
+   *   2. /boot.js — the shared site boot (data-theme, scroll reveal,
+   *      side-nav tracker, theme toggle), loaded with `defer`.
+   *   3. Optionally load the variant-specific canvas prelude + script.
    */
-  protected buildHeadScript(variant: string, canvasPath: string): string {
-    const variantJson = JSON.stringify(variant);
-    return [
-      `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,
+  protected buildHeadScript(variant?: string, canvasPath?: string): string {
+    const scripts = [`<script src="/boot.js" defer></script>`];
+
+    if (variant) {
+      const variantJson = JSON.stringify(variant);
+      scripts.unshift(
+        `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,
+      );
+    }
+
+    if (canvasPath) {
       // Prelude defines the shared canvas helpers (dpr, isLightMode, C,
       // rgba, createRand, drawGlowBezier, drawGlowNode) as top-level
       // bindings that any subsequent <script> in this document can read.
-      // Loaded ONCE here so the variant canvas + the products canvas
-      // (injected per-template via runtimeScripts) both see them.
-      `<script src="/canvases/prelude.canvas.js" defer></script>`,
-      `<script src="/boot.js" defer></script>`,
-      `<script src="${canvasPath}" defer></script>`,
-    ].join("");
+      scripts.push(`<script src="/canvases/prelude.canvas.js" defer></script>`);
+      scripts.push(`<script src="${canvasPath}" defer></script>`);
+    }
+
+    return scripts.join("");
   }
 
   protected override async getTools(): Promise<Tool[]> {

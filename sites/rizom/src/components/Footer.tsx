@@ -1,15 +1,27 @@
 import type { JSX } from "preact";
-import type { RizomShellModel } from "../compositions/types";
+import type {
+  RizomBrandSuffix,
+  RizomFooterTagline,
+  RizomLink,
+} from "../compositions/types";
 import { GUTTER } from "./Section";
 
 const LINK_CLS =
   "text-label-md text-theme-light hover:text-theme transition-colors";
 
 interface FooterProps {
-  shell: RizomShellModel;
+  brandSuffix: RizomBrandSuffix;
+  metaLabel: string;
+  tagline?: RizomFooterTagline;
+  links: RizomLink[];
 }
 
-export const Footer = ({ shell }: FooterProps): JSX.Element => (
+export const Footer = ({
+  brandSuffix,
+  metaLabel,
+  tagline,
+  links,
+}: FooterProps): JSX.Element => (
   <footer
     className={`flex flex-col md:flex-row items-center md:items-start justify-between gap-4 md:gap-0 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
   >
@@ -18,27 +30,25 @@ export const Footer = ({ shell }: FooterProps): JSX.Element => (
         <span className="font-nav text-[15px]">
           <span className="font-bold">rizom</span>
           <span className="font-bold text-accent">.</span>
-          <span className="text-theme-muted">{shell.brandSuffix}</span>
+          <span className="text-theme-muted">{brandSuffix}</span>
         </span>
-        <span className="text-label-md text-theme-light">
-          {shell.footerMetaLabel}
-        </span>
+        <span className="text-label-md text-theme-light">{metaLabel}</span>
       </div>
-      {shell.footerTagline ? (
+      {tagline ? (
         <p className="text-label-md leading-[1.6] text-theme-light">
-          {shell.footerTagline.prefix ?? ""}
+          {tagline.prefix ?? ""}
           <a
-            href={shell.footerTagline.link.href}
+            href={tagline.link.href}
             className="text-accent hover:opacity-75 transition-opacity"
           >
-            {shell.footerTagline.link.label}
+            {tagline.link.label}
           </a>
-          {shell.footerTagline.suffix ?? ""}
+          {tagline.suffix ?? ""}
         </p>
       ) : null}
     </div>
     <div className="flex flex-wrap justify-center gap-4 md:gap-6">
-      {shell.footerLinks.map((link) => (
+      {links.map((link) => (
         <a key={link.href + link.label} href={link.href} className={LINK_CLS}>
           {link.label}
         </a>

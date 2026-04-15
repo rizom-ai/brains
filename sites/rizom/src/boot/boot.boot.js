@@ -15,8 +15,8 @@
  */
 (function () {
   function init() {
-    var variant = window.__RIZOM_VARIANT__ || "ai";
-    if (document.body) {
+    var variant = window.__RIZOM_VARIANT__;
+    if (document.body && variant) {
       document.body.setAttribute("data-rizom-variant", variant);
     }
 

@@ -7,7 +7,6 @@ import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import productsCanvas from "./canvases/products.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 import { DefaultLayout } from "./layouts/default";
-import { createRizomLayout } from "./layouts/create-rizom-layout";
 import { routes } from "./routes";
 import { RizomSitePlugin } from "./plugin";
 
@@ -25,7 +24,7 @@ import { RizomSitePlugin } from "./plugin";
  *
  * This package now acts primarily as the shared Rizom base.
  * App wrappers own final composition, while direct consumers of the
- * shared package can still use the legacy `site.variant` fallback.
+ * shared package can still opt into a legacy `site.variant` path.
  *
  * Static assets (canvas scripts) are shipped via the SitePackage's
  * `staticAssets` map — text-imported at package load time and written
@@ -36,15 +35,25 @@ import { RizomSitePlugin } from "./plugin";
  * reuse the same static assets: tree (ai), constellation (work),
  * roots (foundation).
  */
-export { routes, createRizomLayout };
+export { routes };
+export { RizomFrame } from "./layouts/frame";
+export type { RizomLayoutProps } from "./layouts/frame";
 export { RizomSitePlugin } from "./plugin";
+export { Header } from "./components/Header";
+export { Footer } from "./components/Footer";
+export { SideNav } from "./components/SideNav";
 export { Section } from "./components/Section";
 export { Button } from "./components/Button";
 export { Badge } from "./components/Badge";
 export { Divider } from "./components/Divider";
 export { ProductCard } from "./components/ProductCard";
 export { createEcosystemContent } from "./compositions/ecosystem";
-export type { RizomShellModel } from "./compositions/types";
+export type {
+  RizomBrandSuffix,
+  RizomFooterTagline,
+  RizomLink,
+  RizomSideNavItem,
+} from "./compositions/types";
 
 const site: SitePackage = {
   layouts: {

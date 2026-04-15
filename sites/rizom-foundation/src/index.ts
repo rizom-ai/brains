@@ -4,12 +4,10 @@ import {
   type SitePackage,
   type SitePackageOverrides,
 } from "@brains/site-composition";
-import baseSite, { createRizomLayout } from "@brains/site-rizom";
+import baseSite from "@brains/site-rizom";
+import { FoundationLayout } from "./layout";
 import { RizomFoundationSitePlugin } from "./plugin";
 import { foundationRoutes } from "./routes";
-import { foundationShellModel } from "./shell";
-
-const FoundationLayout = createRizomLayout(foundationShellModel);
 
 const foundationPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
