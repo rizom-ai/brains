@@ -999,6 +999,28 @@ describe("resolve with site package", () => {
     });
   });
 
+  test("should inject entityDisplay into admin", () => {
+    const [adminFactory] = createMockFactory("admin");
+    const site = createMockSitePackage("personal-site", {
+      entityDisplay: { post: { label: "Essay", pluralName: "Essays" } },
+    });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["admin", adminFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const admin = config.plugins?.find((p) => p.id === "admin");
+
+    expect(getConfig(admin)["entityDisplay"]).toEqual({
+      post: { label: "Essay", pluralName: "Essays" },
+    });
+  });
+
   test("should inject staticAssets from site package into site-builder", () => {
     // Site packages can ship static files (canvas scripts, fonts, etc.)
     // via a `staticAssets` map of output-path → file-contents-string.

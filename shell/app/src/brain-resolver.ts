@@ -150,6 +150,13 @@ export function resolve(
       siteBuilderDefaults,
       siteBuilderExplicit,
     );
+
+    const adminExplicit = pluginOverrides["admin"] ?? {};
+    const adminDefaults: Record<string, unknown> = {
+      ...(site?.entityDisplay && { entityDisplay: site.entityDisplay }),
+    };
+
+    pluginOverrides["admin"] = deepMerge(adminDefaults, adminExplicit);
   }
 
   if (site) {

@@ -18,6 +18,7 @@ import { topicsPlugin } from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
+import { adminPlugin } from "@brains/admin";
 import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
@@ -51,6 +52,7 @@ const core = [
   "topics",
   "directory-sync",
   "agents",
+  "admin",
   "mcp",
   "discord",
   "a2a",
@@ -96,6 +98,7 @@ export default defineBrain({
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
+    ["admin", adminPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],

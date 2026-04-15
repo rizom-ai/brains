@@ -618,14 +618,7 @@ export class Shell implements IShell {
           registerHandler: createRegisterHandlerFn(jqs, "system"),
         },
         conversationService: this.services.conversationService,
-        messageBus: this.services.messageBus,
         logger: this.services.logger.child("system"),
-        ...(this.config.siteBaseUrl && {
-          siteBaseUrl: this.config.siteBaseUrl,
-        }),
-        ...(this.config.entityDisplay && {
-          entityDisplay: this.config.entityDisplay,
-        }),
         query: (prompt, context) => this.query(prompt, context),
         getIdentity: () => this.services.identityService.getCharacter(),
         getProfile: () => this.services.profileService.getProfile(),

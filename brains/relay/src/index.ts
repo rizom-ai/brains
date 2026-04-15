@@ -7,6 +7,7 @@ import { WebserverInterface } from "@brains/webserver";
 import { directorySync } from "@brains/directory-sync";
 
 import { join } from "path";
+import { adminPlugin } from "@brains/admin";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -53,6 +54,7 @@ const core = [
   "link",
   "topics",
   "agents",
+  "admin",
   "mcp",
   "discord",
   "a2a",
@@ -99,6 +101,7 @@ export default defineBrain({
     // presentation-heavy relay instances can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
+    ["admin", adminPlugin, {}],
     [
       "directory-sync",
       directorySync,

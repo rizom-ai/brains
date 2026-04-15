@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
+    "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/decks": "workspace:*",

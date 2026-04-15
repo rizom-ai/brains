@@ -28,6 +28,7 @@
       "name": "@brains/ranger",
       "version": "0.2.0-alpha.18",
       "dependencies": {
+        "@brains/admin": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/dashboard": "workspace:*",
@@ -57,6 +58,7 @@
       "version": "0.2.0-alpha.18",
       "dependencies": {
         "@brains/a2a": "workspace:*",
+        "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -85,6 +87,7 @@
       "version": "0.2.0-alpha.18",
       "dependencies": {
         "@brains/a2a": "workspace:*",
+        "@brains/admin": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
@@ -539,6 +542,24 @@
         "@brains/typescript-config": "workspace:*",
         "@brains/utils": "workspace:*",
         "@types/bun": "latest",
+        "typescript": "^5.3.3",
+      },
+    },
+    "plugins/admin": {
+      "name": "@brains/admin",
+      "version": "0.2.0-alpha.18",
+      "dependencies": {
+        "@brains/cms-config": "workspace:*",
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
         "typescript": "^5.3.3",
       },
     },
@@ -1115,7 +1136,6 @@
       "name": "@brains/core",
       "version": "0.2.0-alpha.18",
       "dependencies": {
-        "@brains/cms-config": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/utils": "workspace:*",
@@ -1402,6 +1422,8 @@
     "@babel/runtime": ["@babel/runtime@7.28.6", "", {}, "sha512-05WQkdpL9COIMz4LjTxGpPNCdlpyimKppYNoJ5Di5EUObifl8t4tuLuUBBZEpoLYOmfvIWrsp9fCl0HoPRVTdA=="],
 
     "@brains/a2a": ["@brains/a2a@workspace:interfaces/a2a"],
+
+    "@brains/admin": ["@brains/admin@workspace:plugins/admin"],
 
     "@brains/agent-discovery": ["@brains/agent-discovery@workspace:entities/agent-discovery"],
 

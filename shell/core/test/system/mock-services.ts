@@ -198,25 +198,11 @@ export function createMockSystemServices(
     getMessages: async () => [],
   } as unknown as SystemServices["conversationService"];
 
-  const messageBus = {
-    send: async (topic: string) => {
-      if (topic === "git-sync:get-repo-info") {
-        return {
-          success: true,
-          data: { repo: "owner/repo", branch: "main" },
-        };
-      }
-      return { success: true };
-    },
-    subscribe: (): (() => void) => () => {},
-  } as unknown as SystemServices["messageBus"];
-
   return {
     entityService,
     entityRegistry,
     jobs,
     conversationService,
-    messageBus,
     logger: createSilentLogger("system-test"),
     query: async () => ({ message: "Mock response", summary: "Mock" }),
     getIdentity: () => ({
