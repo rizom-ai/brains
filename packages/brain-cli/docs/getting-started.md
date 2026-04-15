@@ -99,6 +99,7 @@ Options:
   --content-repo <repo>  Git repo for content sync
   --backend <name>       Secret backend plugin (default: none)
   --deploy               Include deployment scaffolding
+  --regen                Refresh generated deploy scaffolding files
 ```
 
 ## Configuration

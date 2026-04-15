@@ -568,7 +568,7 @@ describe("brain init", () => {
       ).toBe(customWorkflow);
     });
 
-    it("should regenerate derived deploy artifacts when --deploy --regen is used", () => {
+    it("should regenerate deploy scaffolding when --deploy --regen is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
         ["brain: rover", "domain: custom.example.com", ""].join("\n"),
@@ -603,13 +603,24 @@ describe("brain init", () => {
           "",
         ].join("\n"),
       );
-      const customDeployYml = "service: custom\nimage: custom/image\n";
       mkdirSync(join(testDir, "config"), { recursive: true });
-      writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
+      writeFileSync(
+        join(testDir, "config", "deploy.yml"),
+        "service: custom\nimage: custom/image\n",
+      );
       mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
       writeFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
         "name: Custom Deploy\n",
+      );
+      mkdirSync(join(testDir, "deploy", "scripts"), { recursive: true });
+      writeFileSync(
+        join(testDir, "deploy", "scripts", "helpers.ts"),
+        "export const custom = true;\n",
+      );
+      writeFileSync(
+        join(testDir, "deploy", "scripts", "provision-server.ts"),
+        "console.log('custom');\n",
       );
 
       scaffold(testDir, { model: "rover", deploy: true, regen: true });
@@ -620,9 +631,30 @@ describe("brain init", () => {
       );
       expect(workflow).toContain("name: Deploy");
       expect(workflow).toContain("EXTRA_SECRET: ${{ secrets.EXTRA_SECRET }}");
-      expect(readFileSync(join(testDir, "config", "deploy.yml"), "utf-8")).toBe(
-        customDeployYml,
+
+      const deployYml = readFileSync(
+        join(testDir, "config", "deploy.yml"),
+        "utf-8",
       );
+      expect(deployYml).toContain("IMAGE_REPOSITORY");
+      expect(deployYml).not.toContain("service: custom");
+
+      const helperScript = readFileSync(
+        join(testDir, "deploy", "scripts", "helpers.ts"),
+        "utf-8",
+      );
+      expect(helperScript).toContain('from "@rizom/brain/deploy"');
+      expect(helperScript).not.toContain("custom = true");
+
+      const provisionServerScript = readFileSync(
+        join(testDir, "deploy", "scripts", "provision-server.ts"),
+        "utf-8",
+      );
+      expect(provisionServerScript).toContain(
+        'const token = requireEnv("HCLOUD_TOKEN")',
+      );
+      expect(provisionServerScript).not.toContain("console.log('custom')");
+
       expect(readFileSync(join(testDir, ".env.schema"), "utf-8")).toContain(
         "EXTRA_SECRET=",
       );

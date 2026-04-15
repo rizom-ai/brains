@@ -91,14 +91,14 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
 
   // Deploy files only with --deploy
   if (options.deploy) {
-    writeDeployYml(dir);
+    writeDeployYml(dir, options.regen);
     writePreDeployHook(dir, options.regen);
     writeExtractBrainConfigScript(dir, options.regen);
     writeDeployDockerfile(dir, options.regen);
     writeDeployCaddyfile(dir, options.regen);
     writePublishWorkflow(dir, options.regen);
     writeDeployWorkflow(dir, options.regen);
-    writeSharedDeployScripts(dir);
+    writeSharedDeployScripts(dir, options.regen);
   }
 }
 
@@ -350,19 +350,15 @@ jobs:
 `,
 ];
 
-function writeDeployYml(dir: string, onlyIfMissing = false): void {
+function writeDeployYml(dir: string, regen = false): void {
   const template = readFileSync(
     join(packageDeployTemplatesDir, "kamal-deploy.yml"),
     "utf-8",
   );
   const content = template.replace("__SERVICE_NAME__", "brain");
 
-  if (onlyIfMissing) {
-    writeScaffoldFile(
-      join(dir, "config", "deploy.yml"),
-      content,
-      onlyIfMissing,
-    );
+  if (regen) {
+    writeScaffoldFile(join(dir, "config", "deploy.yml"), content, false, true);
     return;
   }
 
@@ -882,17 +878,24 @@ const DEPLOY_HELPERS_SHIM = `export {
 export type { EnvSchemaEntry } from "@rizom/brain/deploy";
 `;
 
-function writeSharedDeployScripts(dir: string): void {
+function writeSharedDeployScripts(dir: string, regen = false): void {
   const scriptsDir = join(packageDeployTemplatesDir, "scripts");
 
   writeScaffoldFile(
     join(dir, "deploy", "scripts", "helpers.ts"),
     DEPLOY_HELPERS_SHIM,
+    false,
+    regen,
   );
 
   for (const script of SHARED_DEPLOY_SCRIPTS) {
     const content = readFileSync(join(scriptsDir, script), "utf-8");
-    writeScaffoldFile(join(dir, "deploy", "scripts", script), content);
+    writeScaffoldFile(
+      join(dir, "deploy", "scripts", script),
+      content,
+      false,
+      regen,
+    );
   }
 }
 
