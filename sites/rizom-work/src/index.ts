@@ -4,7 +4,7 @@ import {
   type SitePackage,
   type SitePackageOverrides,
 } from "@brains/site-composition";
-import baseSite from "@brains/site-rizom";
+import { rizomBaseSite } from "@brains/rizom-runtime";
 import { WorkLayout } from "./layout";
 import { RizomWorkSitePlugin } from "./plugin";
 import { workRoutes } from "./routes";
@@ -21,6 +21,6 @@ const overrides: SitePackageOverrides = {
   plugin: workPlugin,
 };
 
-const site: SitePackage = extendSite(baseSite, overrides);
+const site: SitePackage = extendSite(rizomBaseSite, overrides);
 
 export default site;

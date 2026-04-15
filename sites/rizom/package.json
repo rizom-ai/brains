@@ -18,11 +18,10 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/rizom-ui": "workspace:*",
+    "@brains/rizom-ecosystem": "workspace:*",
+    "@brains/rizom-runtime": "workspace:*",
     "@brains/site-composition": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/utils": "workspace:*",
-    "preact": "^10.27.2"
+    "@brains/templates": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

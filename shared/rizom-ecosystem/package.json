@@ -1,8 +1,8 @@
 {
-  "name": "@brains/site-rizom-work",
+  "name": "@brains/rizom-ecosystem",
   "private": true,
-  "version": "0.2.0-alpha.19",
-  "description": "Rizom work site wrapper — thin app-owned composition over shared Rizom base",
+  "version": "0.2.0-alpha.18",
+  "description": "Shared Rizom ecosystem section and content helpers",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -16,11 +16,7 @@
     "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
-    "@brains/plugins": "workspace:*",
-    "@brains/rizom-ecosystem": "workspace:*",
-    "@brains/rizom-runtime": "workspace:*",
     "@brains/rizom-ui": "workspace:*",
-    "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

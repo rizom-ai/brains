@@ -18,9 +18,10 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
+    "@brains/rizom-ecosystem": "workspace:*",
+    "@brains/rizom-runtime": "workspace:*",
     "@brains/rizom-ui": "workspace:*",
     "@brains/site-composition": "workspace:*",
-    "@brains/site-rizom": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"

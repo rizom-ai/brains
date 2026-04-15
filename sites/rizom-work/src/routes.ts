@@ -1,5 +1,5 @@
 import type { RouteDefinitionInput } from "@brains/plugins";
-import { createEcosystemContent } from "@brains/site-rizom";
+import { createEcosystemContent } from "@brains/rizom-ecosystem";
 
 /**
  * Explicit rizom.work composition.
