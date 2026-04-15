@@ -13,7 +13,7 @@ const AiLayout = createRizomLayout(aiShellModel);
 
 const aiPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
-): Plugin => new RizomAiSitePlugin({ ...(config ?? {}), variant: "ai" });
+): Plugin => new RizomAiSitePlugin(config ?? {});
 
 const overrides: SitePackageOverrides = {
   layouts: {

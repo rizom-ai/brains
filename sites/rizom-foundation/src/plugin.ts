@@ -3,6 +3,14 @@ import { RizomSitePlugin } from "@brains/site-rizom";
 import { foundationTemplates } from "./templates";
 
 export class RizomFoundationSitePlugin extends RizomSitePlugin {
+  protected override getVariant() {
+    return "foundation" as const;
+  }
+
+  protected override getCanvasPath(): string {
+    return "/canvases/roots.canvas.js";
+  }
+
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {

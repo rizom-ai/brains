@@ -18,6 +18,7 @@ const rizomSiteConfigSchema = z.object({
 });
 
 type RizomSiteConfig = z.infer<typeof rizomSiteConfigSchema>;
+type RizomSiteVariant = RizomSiteConfig["variant"];
 
 /**
  * Maps each variant to the static-asset path of its canvas script.
@@ -25,7 +26,7 @@ type RizomSiteConfig = z.infer<typeof rizomSiteConfigSchema>;
  * map (see `src/index.ts`), so the browser fetches them from the
  * build output rather than receiving them inline.
  */
-const CANVAS_BY_VARIANT: Record<RizomSiteConfig["variant"], string> = {
+const CANVAS_BY_VARIANT: Record<RizomSiteVariant, string> = {
   ai: "/canvases/tree.canvas.js",
   foundation: "/canvases/roots.canvas.js",
   work: "/canvases/constellation.canvas.js",
@@ -46,8 +47,8 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
   ): Promise<void> {
     context.templates.register(templates);
 
-    const variant = this.config.variant;
-    const canvasPath = CANVAS_BY_VARIANT[variant];
+    const variant = this.getVariant();
+    const canvasPath = this.getCanvasPath(variant);
 
     // Wait for site-builder's head-script handler to be subscribed
     // before sending the registration message. Same pattern as
@@ -64,6 +65,27 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
   }
 
   /**
+   * Resolve the app identity used by the shared boot script.
+   *
+   * Wrappers override this so app ownership is explicit at the wrapper
+   * boundary. Direct consumers of @brains/site-rizom still fall back to
+   * the legacy config-driven variant switch for backward compatibility.
+   */
+  protected getVariant(): RizomSiteVariant {
+    return this.config.variant;
+  }
+
+  /**
+   * Resolve the canvas asset for the active app.
+   *
+   * Wrappers can override this directly instead of depending on the
+   * shared package's legacy variant switchboard.
+   */
+  protected getCanvasPath(variant: RizomSiteVariant): string {
+    return CANVAS_BY_VARIANT[variant];
+  }
+
+  /**
    * Build the head script content.
    *
    *   1. A tiny inline <script> that stashes the variant name on
@@ -75,7 +97,7 @@ export class RizomSitePlugin extends ServicePlugin<RizomSiteConfig> {
    *      loaded with `defer` from staticAssets.
    *   3. The variant-specific canvas script, also `defer`.
    */
-  private buildHeadScript(variant: string, canvasPath: string): string {
+  protected buildHeadScript(variant: string, canvasPath: string): string {
     const variantJson = JSON.stringify(variant);
     return [
       `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,

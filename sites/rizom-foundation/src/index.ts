@@ -13,8 +13,7 @@ const FoundationLayout = createRizomLayout(foundationShellModel);
 
 const foundationPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
-): Plugin =>
-  new RizomFoundationSitePlugin({ ...(config ?? {}), variant: "foundation" });
+): Plugin => new RizomFoundationSitePlugin(config ?? {});
 
 const overrides: SitePackageOverrides = {
   layouts: {

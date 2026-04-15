@@ -3,6 +3,14 @@ import { RizomSitePlugin } from "@brains/site-rizom";
 import { workTemplates } from "./templates";
 
 export class RizomWorkSitePlugin extends RizomSitePlugin {
+  protected override getVariant() {
+    return "work" as const;
+  }
+
+  protected override getCanvasPath(): string {
+    return "/canvases/constellation.canvas.js";
+  }
+
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {

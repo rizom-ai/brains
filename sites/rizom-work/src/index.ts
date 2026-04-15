@@ -13,7 +13,7 @@ const WorkLayout = createRizomLayout(workShellModel);
 
 const workPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
-): Plugin => new RizomWorkSitePlugin({ ...(config ?? {}), variant: "work" });
+): Plugin => new RizomWorkSitePlugin(config ?? {});
 
 const overrides: SitePackageOverrides = {
   layouts: {

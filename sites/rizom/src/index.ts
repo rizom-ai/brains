@@ -23,18 +23,18 @@ import { RizomSitePlugin } from "./plugin";
  * Rizom site package — shared by rizom.ai, rizom.foundation,
  * and rizom.work.
  *
- * A single package serves all three variants. Each brain instance
- * selects its variant via `site.variant` in brain.yaml, which the
- * resolver spreads into the site plugin's factory config.
+ * This package now acts primarily as the shared Rizom base.
+ * App wrappers own final composition, while direct consumers of the
+ * shared package can still use the legacy `site.variant` fallback.
  *
  * Static assets (canvas scripts) are shipped via the SitePackage's
  * `staticAssets` map — text-imported at package load time and written
  * to the build output by site-builder. The site plugin's head script
  * loads them via `<script src="/canvases/*.canvas.js" defer>`.
  *
- * All three variant canvases ship in the package so any brain can
- * switch variant via `site.variant` in brain.yaml without touching
- * the package: tree (ai), constellation (work), roots (foundation).
+ * All three canvases still ship in the shared package so wrappers can
+ * reuse the same static assets: tree (ai), constellation (work),
+ * roots (foundation).
  */
 export { routes, createRizomLayout };
 export { RizomSitePlugin } from "./plugin";
