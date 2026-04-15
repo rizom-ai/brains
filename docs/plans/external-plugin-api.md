@@ -83,7 +83,7 @@ Before calling this done, ship:
 
 ## Dependencies
 
-- `docs/plans/npm-packages.md`
+- `docs/plans/standalone-apps.md` (published-package contract)
 
 ## Done when
 

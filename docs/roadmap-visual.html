@@ -209,9 +209,8 @@ const items = [
   { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
 
   // Rover 0.1 remaining blockers (in progress)
-  { id: "npmpackages", name: "npm Packages", status: "in-progress", desc: "Public alpha publishing is already live for @rizom/brain via the release workflow and Changesets. Current cycle is 0.2.0-alpha.x → 0.2.0 stable. Carries forward with the regular release cadence rather than gated on a separate public-release event.", blocks: [] },
-  { id: "kamal", name: "Kamal Deploy", status: "short-term", step: 1, desc: "Keep tightening the self-hosted deploy path first. The core pieces are already proven on live instances; the remaining work is workflow convergence, better operator-facing diagnostics, and a smoother first-run path for external users. rizom.ai extraction is the next concrete step once the shared Rizom site packages become standalone-consumable.", blocks: [] },
-  { id: "rizomsites", name: "Rizom Site Follow-through", status: "short-term", step: 2, desc: "Variant split across rizom.ai, rizom.foundation, and rizom.work landed — each app now owns its final route composition. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts), deciding which shared sections are truly reusable primitives, and eventual per-app extraction.", deps: ["kamal"] },
+  { id: "deploymentpath", name: "Deployment Path", status: "short-term", step: 1, desc: "Single track covering both the published @rizom/brain package and the standalone app extraction story. Alpha publishing already runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, extract the three remaining apps/* (rizom.ai is the next candidate, blocked only on the shared Rizom site packages becoming standalone-consumable).", blocks: [] },
+  { id: "rizomsites", name: "Rizom Site Follow-through", status: "short-term", step: 2, desc: "Variant split across rizom.ai, rizom.foundation, and rizom.work landed — each app now owns its final route composition. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts), deciding which shared sections are truly reusable primitives, and eventual per-app extraction.", deps: ["deploymentpath"] },
   { id: "monitoring3", name: "Monitoring — Phase 3", status: "completed", desc: "Usage tracking via structured logs. IEmbeddingService.generateEmbedding() returns {embedding, usage}. AIService and EmbeddingJobHandler log ai:usage events. brain diagnostics usage parses log file, aggregates by provider/model.", date: "2026-04" },
   // Rover 0.1 blockers now complete
   { id: "searchembeddings", name: "Search & Embeddings", status: "completed", desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.", date: "2026-04" },
@@ -224,7 +223,7 @@ const items = [
   { id: "topicssimplify", name: "Topics Simplification", status: "completed", desc: "Removed source tracking, added batched deriveAll(), then followed up with stronger canonicalization, heuristic + synthesized auto-merge, bounded metadata-only aliases, and confirmed replace-all topic rebuilds via system_extract.", date: "2026-04" },
   { id: "unifiedai", name: "Unified AI Config", status: "completed", desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.", date: "2026-04" },
   { id: "mcpfix", name: "MCP Tool Registry Fix", status: "completed", desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.", date: "2026-04" },
-  { id: "pluginapi", name: "External Plugin API", status: "long-term", desc: "A cleaner external extension story — public subpath exports (@rizom/brain/plugins, /entities, /services, etc.), loading plugins from brain.yaml with env-var interpolation, a plugin API version contract, and at least one reference external plugin with author docs. Not gating v0.2.0 stable.", deps: ["npmpackages"], blocks: [] },
+  { id: "pluginapi", name: "External Plugin API", status: "long-term", desc: "A cleaner external extension story — public subpath exports (@rizom/brain/plugins, /entities, /services, etc.), loading plugins from brain.yaml with env-var interpolation, a plugin API version contract, and at least one reference external plugin with author docs. Not gating v0.2.0 stable.", deps: ["deploymentpath"], blocks: [] },
   { id: "compositeplugins", name: "Composite Plugins", status: "completed", desc: "CapabilityEntry accepts factories returning Plugin | Plugin[]. brain-resolver flattens arrays. Reference composite @brains/newsletter bundles newsletter-entity + buttondown behind one capability id. Rover migrated. Sub-plugins gated by composite id.", date: "2026-04" },
   { id: "appsconfigonly", name: "Apps as Lightweight Instance Packages", status: "completed", desc: "apps/* removed from workspace globs. Each apps/<name>/ is now a lightweight instance package centered on brain.yaml, with conventional support files like .env, .env.example, .gitignore, tsconfig.json, package.json, and optional deploy artifacts, consumed by the brain CLI at runtime against the brain model package it references.", date: "2026-04" },
   { id: "braininit", name: "Brain Init Scaffold", status: "completed", desc: "brain init becomes a real on-ramp: interactive prompts via @clack/prompts, generated brain.yaml defaults to preset: core (minimal viable brain), commented-out directory-sync block users can enable in two lines.", date: "2026-04" },
@@ -249,12 +248,12 @@ const items = [
   { id: "atproto36", name: "AT Protocol Phases 3-6", status: "medium-term", desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.", deps: ["atproto12"], blocks: ["hostedrovers"] },
   { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
   { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "monitoring", name: "Monitoring — Post-Release", status: "medium-term", desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.", deps: ["kamal", "monitoring3"] },
-  { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["npmpackages"] },
+  { id: "monitoring", name: "Monitoring — Post-Release", status: "medium-term", desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.", deps: ["deploymentpath", "monitoring3"] },
+  { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["deploymentpath"] },
   { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
   { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
   { id: "searchrerank", name: "Search Reranking", status: "medium-term", desc: "Cross-encoder re-scoring of top-N results. Depends on local AI runtime.", deps: ["mediasidecar"] },
-  { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["kamal"] },
+  { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["deploymentpath"] },
   { id: "multiuser", name: "Multi-User & Permissions", status: "medium-term", desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.", blocks: [] },
   { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
 
@@ -340,15 +339,12 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Near-term priorities</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('kamal')">kamal deploy</span>
+        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('documentation2')">docs phase 2</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm packages</span>
-        <span class="dep-label">alpha-publishing already works; cycle is 0.2.0-alpha.x → 0.2.0 stable</span>
+        <span class="dep-label">alpha-publishing rolls in parallel; cycle is 0.2.0-alpha.x → 0.2.0 stable</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('pluginapi')">external plugin api</span>
@@ -360,9 +356,9 @@ function render() {
       </div>
     </div>
     <div class="dep-group">
-      <div class="dep-group-title">Post-npm Chain</div>
+      <div class="dep-group-title">Post-Publish Chain</div>
       <div class="dep-row">
-        <span class="dep-node s-wip" onclick="selectItem('npmpackages')">npm publish</span>
+        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-mid" onclick="selectItem('compiledbinaries')">compiled binaries</span>
       </div>
@@ -404,7 +400,7 @@ function render() {
     <div class="dep-group">
       <div class="dep-group-title">Desktop App</div>
       <div class="dep-row">
-        <span class="dep-node s-mid" onclick="selectItem('npmpackages')">npm-packages</span>
+        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
         <span class="dep-plus">+</span>
         <span class="dep-node s-mid" onclick="selectItem('chatsdk')">chat-sdk</span>
         <span class="dep-plus">+</span>

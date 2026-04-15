@@ -42,6 +42,51 @@ Prefer **extraction over harmonization**.
 
 We are not trying to make in-repo apps imitate the full standalone shape first. When an app wants independent ownership, deploy cadence, or repo history, extract it directly into the standard standalone shape scaffolded by `brain init`.
 
+## Published package contract
+
+Extraction depends on `@rizom/brain` being a real operator path, not a placeholder. The package side of this plan keeps that contract honest.
+
+### Carry from alpha to stable
+
+The remaining release work is the path from the current `0.2.0-alpha.x` cycle to `0.2.0` stable, without drift between the published package and the intended operator experience. Releases continue via the existing Changesets workflow.
+
+### Keep the published scaffold contract aligned
+
+The published package, docs, and examples must keep matching the actual standalone instance shape:
+
+- `brain init` scaffold output
+- `brain init --deploy` generated deploy assets
+- local `package.json`-based instance shape
+- local `src/site.ts` / `src/theme.css` authoring conventions
+- published-path deploy/bootstrap docs
+
+### Keep bundled coverage correct
+
+The runtime bundle must continue to include everything needed for supported checked-in and scaffolded app definitions:
+
+- supported in-tree brain models
+- built-in site/theme package refs used by supported app configs
+- any runtime assets needed for published-path boot
+
+### Verify the clean-machine install path
+
+The most important release gate is the full clean-machine path:
+
+```bash
+bun add -g @rizom/brain
+brain init mybrain
+cd mybrain
+brain start
+```
+
+This needs to be treated as a release gate, not an informal spot check. App extractions exercise the same path end-to-end.
+
+### Non-goals for the published package
+
+- Node.js/npm runtime support
+- splitting the framework into many separately published internal packages
+- reviving old packageless instance conventions
+
 ## Why
 
 - App repos own instance-specific code: `brain.yaml`, local site/theme code, deploy config, repo-local workflows.
@@ -275,6 +320,14 @@ An extracted app repo is correct when:
 4. `Deploy` consumes the matching commit-SHA image.
 5. app-specific site/theme code lives with the app, not in one-off monorepo packages.
 6. content sync still works against the chosen content repo.
+
+The published-package contract is correct when:
+
+1. the published package boots the standard standalone scaffold on a clean machine.
+2. generated deploy scaffolds match the documented operator path.
+3. supported built-in brain/site/theme references resolve correctly from the published bundle.
+4. docs/examples match the actual published behavior.
+5. stable release staging for `v0.2.0` is complete.
 
 The overall plan is done when:
 
