@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first public `v0.1.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths. Even so, public-release staging is paused while nearer-term product work takes priority.
+`brains` is approaching its first stable `v0.2.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
 
 What already exists today:
 
@@ -72,39 +72,9 @@ Plans:
 - [rizom-site-composition.md](./plans/rizom-site-composition.md)
 - [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
 
-### 3. Public plugin surface
+### 3. Documentation phase 2
 
-Open a cleaner public extension story after the more immediate user-facing work above.
-
-Focus areas:
-
-- more library subpaths
-- clearer plugin authoring contract
-- runtime loading for external plugins
-- external plugin examples and docs
-
-Plan:
-
-- [external-plugin-api.md](./plans/external-plugin-api.md)
-
-### 4. Public release cleanup and stable release path
-
-This work is intentionally on hold until the nearer-term product work above is complete.
-
-Remaining work after that:
-
-- Phase 2 backup
-- release staging to `brains-temp`
-- clean-machine smoke test from the published path
-- final rename / go-live flow
-
-Plan:
-
-- [public-release-cleanup.md](./plans/public-release-cleanup.md)
-
-### 5. Documentation phase 2
-
-After the public release baseline is in place, fill the remaining user-facing docs:
+Fill the remaining user-facing docs in parallel with the product work above:
 
 - entity type reference
 - content-management guidance
@@ -114,6 +84,39 @@ After the public release baseline is in place, fill the remaining user-facing do
 Plan:
 
 - [documentation.md](./plans/documentation.md)
+
+## Long-term
+
+These areas are intentionally post-`v0.2.0`. They are tracked but not gating launch.
+
+### Public plugin surface
+
+A cleaner external extension story — public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, etc.), loading plugins from `brain.yaml`, a plugin API version contract, and at least one reference external plugin.
+
+Plan:
+
+- [external-plugin-api.md](./plans/external-plugin-api.md)
+
+### Public repo cleanup
+
+A separate project from version stability. Archive-and-rename the private repo to `rizom-ai/brains` with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the plugin and docs stories are settled.
+
+Plan:
+
+- [public-release-cleanup.md](./plans/public-release-cleanup.md)
+
+### Further long-horizon plans
+
+Tracked but not sequenced yet:
+
+- hosted rovers, multi-user infra, monetization
+- desktop app, chat interface SDK, atproto integration
+- local AI runtime (sidecar for embeddings + generation)
+- content insights, entity history, topic auto-merge
+- memory reduction, parallel eval workers, unify build pipeline
+- relay presets, a2a authentication
+
+See `docs/plans/` for individual plan status.
 
 ## Product direction
 
