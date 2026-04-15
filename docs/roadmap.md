@@ -59,13 +59,12 @@ Plan:
 
 ### 2. Rizom site variant follow-through
 
-The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. Remaining work is product polish, moving reusable code into proper shared abstractions, and eventual extraction.
+The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. The next extraction target is a separate Rizom monorepo named `rizom-sites`; remaining work is product polish plus that repo move.
 
 Focus areas:
 
-- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) (CTA destinations, newsletter/support links, quiz URLs)
-- finish the shared-package cleanup around `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem`
-- extract each app into a standalone repo once its composition is stable
+- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) without blocking engineering work
+- extract the Rizom app family into the separate `rizom-sites` monorepo
 
 Plans:
 

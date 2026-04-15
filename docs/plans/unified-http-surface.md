@@ -4,125 +4,327 @@
 
 Proposed.
 
-## Context
+## Summary
 
-Today, brain HTTP-facing interfaces are split across separate servers/ports:
+The brain should converge on one HTTP surface per instance.
 
-- MCP HTTP serves `/mcp`
-- A2A serves `/.well-known/agent-card.json` and `/a2a`
-- future admin/dashboard/CMS routes would otherwise introduce yet another surface
+Not:
 
-This is workable, but not elegant. It complicates:
+- one MCP HTTP server
+- one A2A HTTP server
+- one browser/admin server
+- one plugin API server
 
-- deploy/proxy/TLS configuration
+But:
+
+- one HTTP app
+- one externally visible port
+- multiple mounted protocol and capability routes
+
+## Why
+
+Today the split mostly reflects implementation history, not product intent.
+
+Multiple HTTP servers/ports increase complexity in:
+
+- deploy setup
+- proxy configuration
+- TLS termination
+- health checks
+- smoke tests
 - operator mental model
-- URL design
-- future browser-facing admin features
+- browser-facing admin work
+
+The desired mental model is simple:
+
+> go to the brain URL
 
 ## Goal
 
-Each brain should prefer one HTTP surface, on one port, with routes such as:
+Each brain should expose one shared HTTP surface that can mount:
 
+- `/` or `/cms`
+- `/cms-config`
 - `/mcp`
 - `/.well-known/agent-card.json`
 - `/a2a`
-- `/cms-config`
-- `/` or `/cms`
-
-The user/operator should think: “go to the brain URL,” not “which port/protocol does this feature live on?”
+- `/api/*`
+- `/health`
+- public site routes where applicable
 
 ## Non-goals
 
-- Rewriting all HTTP interfaces in one step
-- Changing A2A protocol semantics
+- Rewriting every transport in a single PR
 - Changing MCP protocol semantics
-- Forcing site-builder into `preset: core`
+- Changing A2A protocol semantics
+- Forcing site-builder onto `preset: core`
+- Eliminating every secondary internal port immediately if keeping one temporarily simplifies migration
+
+## Ownership model
+
+This consolidation should not blur responsibilities.
+
+### Shared HTTP surface owner
+
+A shared HTTP host should own:
+
+- the HTTP app/router
+- listener lifecycle
+- route mounting
+- same-port composition
+- shared middleware where appropriate
+
+This is likely:
+
+- an evolved `interfaces/webserver`, or
+- a new generic HTTP interface
+
+### `plugins/admin`
+
+`plugins/admin` should own:
+
+- admin capability
+- admin page/assets
+- CMS config orchestration
+- later dashboard composition
+
+It should not need to own the listening socket.
+
+### `interfaces/mcp`
+
+`interfaces/mcp` should own:
+
+- MCP transport/protocol semantics
+- mounted `/mcp` behavior
+- auth behavior specific to MCP
+
+It should not be the long-term owner of arbitrary browser/admin routes.
+
+### `interfaces/a2a`
+
+`interfaces/a2a` should own:
+
+- agent-card and A2A protocol behavior
+- mounted `/.well-known/agent-card.json` and `/a2a`
+
+It should not need to own a separate general-purpose HTTP server once consolidation lands.
 
 ## Current state
 
+Today the stack is effectively split like this:
+
 - `interfaces/mcp` owns its own HTTP server
 - `interfaces/a2a` owns its own HTTP server
-- browser/admin features are being planned separately
+- `interfaces/webserver` owns browser/public-site traffic
+- deploy routing glues them together by path and port
 
-This separation came mostly from implementation simplicity, not because multiple ports are a product requirement.
+That works, but it bakes transport fragmentation into runtime and deploy layers.
 
-## Preferred direction
+## Target state
 
-Move toward a shared HTTP host/router per brain.
+A single in-process HTTP surface hosts everything.
 
-That shared HTTP surface should be able to mount:
+Conceptually:
 
-- MCP routes
-- A2A routes
-- admin/dashboard/CMS routes
-- health/status routes
-- optional public web routes where applicable
+- the shared HTTP host starts one server
+- interfaces/plugins contribute mounted handlers or route groups
+- product paths are decided centrally
+- protocols stay owned by their own modules
+
+### Core preset
+
+- `/` → admin
+- `/cms-config` → admin/CMS config
+- `/mcp` → MCP
+- `/.well-known/agent-card.json` + `/a2a` → A2A
+- `/health` → health
+- no preview/production site split required
+
+Core should be the simplest shape: one admin-oriented HTTP surface.
+
+### Site presets
+
+- `/` → public site
+- `/cms` or `/dashboard` → admin
+- `/cms-config` → admin/CMS config
+- `/mcp` → MCP
+- `/.well-known/agent-card.json` + `/a2a` → A2A
+- `/api/*` → plugin APIs
+- `/health` → health
+- existing preview/public web behavior should continue to work when site-builder is enabled
+
+## Deployment implications
+
+This consolidation affects deploy tooling, not just runtime interfaces.
+
+### Current deploy shape
+
+The generated internal Caddy config currently routes to different internal ports, for example:
+
+- `/mcp` → one port
+- `/a2a` / agent-card → another
+- `/api/*` → another
+- public site/webserver → another
+- preview traffic → separate preview path/server
+
+That mirrors the current fragmented runtime.
+
+### Target deploy shape
+
+Once the shared HTTP surface exists, deploy routing should simplify to:
+
+- one primary internal HTTP port for production traffic
+- path-based routing handled mostly inside the shared app
+- Caddy doing far less internal fan-out
+
+Important distinction:
+
+- core does not need preview/public-site split behavior
+- site-builder-enabled presets should keep preview/public web behavior, even if preview remains a partially separate concern during migration
+
+Preview traffic may remain separate at first if that keeps rollout small, but the default production path should converge on one internal surface.
+
+### Caddy changes
+
+`deploy/Caddyfile` will need to change accordingly.
+
+Expected direction:
+
+- stop routing `/mcp`, `/a2a`, `/api/*`, admin, and public site to different internal services where unnecessary
+- reverse proxy most production traffic to the consolidated HTTP host
+- keep only truly separate concerns separate during migration
+
+### Kamal changes
+
+Kamal templates and assumptions also need updating.
+
+In particular:
+
+- healthchecks should target the consolidated HTTP host
+- runtime expectations around internal ports should shrink
+- deploy smoke behavior should match the unified path layout
+- generated scaffolding should reflect the new single-surface architecture
+
+This means consolidation work should include coordinated template updates for:
+
+- `deploy/Caddyfile`
+- Kamal deploy config/templates
+- any related boot/health/smoke scripts
 
 ## Rollout
 
-### Phase 1
+### Phase 1 — stop adding more HTTP ownership to MCP
 
-Do not block current CMS work on full unification.
+Treat any non-MCP routes on `interfaces/mcp` as transitional.
 
-Use the existing brain HTTP surface for:
+Specifically:
 
-- `GET /cms-config`
-- `/` or `/cms` for the admin shell
+- `/cms-config` on the MCP HTTP server is acceptable only as an interim step
+- admin/browser routes should not continue to accumulate there
 
-Keep A2A as-is for now if necessary.
+### Phase 2 — establish the shared HTTP host
 
-### Phase 2
+Choose the actual host abstraction:
 
-Refactor MCP and A2A to mount onto a shared HTTP server/router.
+- evolve `interfaces/webserver`, or
+- introduce a generic HTTP interface
 
-### Phase 3
+That host becomes the place where shared routes are mounted.
 
-Standardize preset behavior:
+### Phase 3 — move admin routes there
 
-- `core`: admin/dashboard at `/`
-- site presets: public site at `/`, admin at `/cms` or `/dashboard`
+Mount:
 
-## Tradeoff
+- `/` or `/cms`
+- `/cms-config`
 
-### Separate ports
+with page/assets and admin logic owned by `plugins/admin`.
+
+### Phase 4 — mount MCP onto the shared surface
+
+Keep MCP ownership in `interfaces/mcp`, but make it a mounted protocol handler at `/mcp` on the shared HTTP app.
+
+### Phase 5 — mount A2A onto the shared surface
+
+Do the same for:
+
+- `/.well-known/agent-card.json`
+- `/a2a`
+
+### Phase 6 — align deploy scaffolding
+
+Update:
+
+- Caddy
+- Kamal templates
+- health checks
+- smoke routing
+- operator docs
+
+Explicit acceptance criteria:
+
+- core deploys do not depend on preview/public-site routing assumptions
+- site-builder deploys keep existing preview/public web behavior while gaining the consolidated admin/MCP/A2A surface
+
+## Design constraints
+
+- preserve protocol ownership boundaries
+- keep route ownership out of unrelated transports
+- prefer one visible port per brain
+- preserve `preset: core` without site-builder dependency
+- do not require preview/public-site split behavior for core-only brains
+- preserve preview/public web behavior when site-builder is enabled
+- keep rollout incremental and reversible
+
+## Tradeoffs
+
+### Fragmented HTTP servers
 
 Pros:
 
-- simpler initial implementation
-- easier isolation
+- easier to build incrementally
+- easier local isolation during early development
 
 Cons:
 
-- worse UX
-- more config/proxy complexity
-- harder to grow into a coherent admin surface
+- more deploy complexity
+- more ports and routing assumptions
+- harder admin/browser story
+- harder long-term product coherence
 
-### Unified HTTP surface
+### Shared HTTP surface
 
 Pros:
 
-- one port
+- cleaner product model
 - cleaner URLs
-- easier deploy story
-- better fit for CMS/dashboard/admin
+- simpler proxy/deploy setup once landed
+- better fit for admin/dashboard/CMS
+- better long-term place for MCP and A2A browser-adjacent behavior
 
 Cons:
 
 - requires interface consolidation work
-- slightly tighter coupling at the HTTP hosting layer
+- requires coordinated runtime + deploy changes
+- needs careful ownership boundaries to avoid a giant god-interface
 
 ## Recommendation
 
-Treat one shared HTTP surface as the target architecture.
+Treat the shared HTTP surface as the target architecture and update new work to align with it.
 
-For now:
+Concretely:
 
-- proceed incrementally
-- do not revert existing A2A work just to get there
-- ensure new browser/admin features align with the unified-surface direction
+- admin belongs in `plugins/admin`
+- route mounting belongs to the shared HTTP host
+- MCP belongs at `/mcp` on that same surface
+- A2A belongs at `/a2a` on that same surface
+- Caddy/Kamal should be updated to reflect that architecture, not preserve accidental multi-port fragmentation forever
 
 ## Related
 
 - `docs/plans/cms-on-core.md`
-- `interfaces/a2a/src/a2a-interface.ts`
 - `interfaces/mcp/src/transports/http-server.ts`
+- `interfaces/a2a/src/a2a-interface.ts`
+- `interfaces/webserver/`
+- `packages/brain-cli/templates/deploy/Caddyfile`
+- `packages/brain-cli/templates/deploy/kamal-deploy.yml`
