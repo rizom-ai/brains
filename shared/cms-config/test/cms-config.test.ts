@@ -93,13 +93,26 @@ describe("generateCmsConfig", () => {
     expect(config.backend.branch).toBe("main");
   });
 
-  it("should set folder to '.' for base entity type", () => {
+  it("should emit base collection with markdown format at repo root", () => {
     const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
 
-    expect(config.collections[0]?.folder).toBe(".");
+    const baseCollection = config.collections.find((c) => c.name === "base");
+    expect(baseCollection?.folder).toBe(".");
+    expect(baseCollection?.format).toBe("markdown");
+    expect(baseCollection?.fields).toEqual([
+      { name: "body", label: "Body", widget: "markdown" },
+    ]);
   });
 
-  it("should add body field as markdown widget at end", () => {
+  it("should keep typed collections on the frontmatter format", () => {
+    const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
+
+    const postCollection = config.collections.find((c) => c.name === "post");
+    expect(postCollection?.format).toBe("frontmatter");
+    expect(postCollection?.folder).toBe("post");
+  });
+
+  it("should add body field as markdown widget at end for typed entities", () => {
     const config = generateCmsConfig(cmsOpts({ post: postFrontmatterSchema }));
 
     const fields = config.collections[0]?.fields ?? [];

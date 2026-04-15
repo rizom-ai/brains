@@ -48,7 +48,7 @@ export type {
   SortField,
 } from "./types";
 
-export { baseEntitySchema } from "./types";
+export { baseEntitySchema, BASE_ENTITY_TYPE } from "./types";
 
 export {
   generateMarkdownWithFrontmatter,

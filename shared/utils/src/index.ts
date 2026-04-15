@@ -58,6 +58,7 @@ export {
   generateIdFromText,
   pluralize,
   toDisplayName,
+  formatLabel,
   calculateReadingTime,
   truncateText,
   derivePreviewDomain,

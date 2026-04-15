@@ -1,6 +1,13 @@
 import { z } from "@brains/utils";
 
 /**
+ * Entity type for unstructured notes (the "base" entity type).
+ * Used as a sentinel for the default catch-all markdown file shape —
+ * no typed frontmatter schema required, content is the entire file body.
+ */
+export const BASE_ENTITY_TYPE = "base";
+
+/**
  * Embedding job data - minimal data for job queue
  * Content is NOT stored to avoid large base64 data in job queue
  * (which would end up in dashboard hydration props JSON)

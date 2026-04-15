@@ -18,6 +18,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@brains/entity-service": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

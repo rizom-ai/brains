@@ -127,6 +127,20 @@ export function pluralize(word: string): string {
 }
 
 /**
+ * Convert a camelCase, snake_case, or kebab-case identifier to a
+ * Title Case human-readable label. Collapses runs of whitespace.
+ * Every word is title-cased (not just the first).
+ */
+export function formatLabel(name: string): string {
+  return name
+    .replace(/[-_]/g, " ")
+    .replace(/([A-Z])/g, " $1")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
  * Convert a kebab-case entity type to a human-friendly display name.
  * Splits on hyphens, title-cases each word, pluralizes the last word.
  */

@@ -1,10 +1,17 @@
-import type { z } from "@brains/utils";
+import { formatLabel, pluralize, type z } from "@brains/utils";
+import { BASE_ENTITY_TYPE } from "@brains/entity-service";
 
-export interface EntityDisplayMap {
-  [entityType: string]: {
-    label?: string;
-  };
+/**
+ * Per-entity-type display metadata accepted by the generator.
+ * Structurally compatible with `EntityDisplayEntry` from `@brains/plugins` —
+ * shell callers can pass their full registry map without conversion.
+ */
+export interface EntityDisplayLabel {
+  label?: string;
+  pluralName?: string;
 }
+
+export type EntityDisplayMap = Partial<Record<string, EntityDisplayLabel>>;
 
 /**
  * CMS field widget descriptor for Sveltia/Decap CMS config
@@ -91,18 +98,9 @@ const LONG_TEXT_FIELDS = new Set([
   "story",
 ]);
 
-function formatLabel(name: string): string {
-  return name
-    .replace(/[-_]/g, " ")
-    .replace(/([A-Z])/g, " $1")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function pluralizeLabel(label: string): string {
   if (label.endsWith("s")) return label;
-  return `${label}s`;
+  return pluralize(label);
 }
 
 function unwrapZodType(
@@ -228,6 +226,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     const hasBody = adapter?.hasBody !== false;
     const routeConfig = options.entityDisplay?.[entityType];
     const label = routeConfig?.label ?? formatLabel(entityType);
+    const pluralLabel = routeConfig?.pluralName ?? pluralizeLabel(label);
 
     if (adapter?.isSingleton) {
       singletonFiles.push({
@@ -236,17 +235,36 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
         file: `${entityType}/${entityType}.md`,
         fields: buildFields(frontmatterSchema, hasBody),
       });
-    } else {
+      continue;
+    }
+
+    // Base notes live at the repo root and can contain bare `---` in their
+    // body (markdown horizontal rules, separators). Sveltia's frontmatter
+    // parser breaks on those, so we treat the file as markdown-only: the
+    // entire content is the body, no frontmatter widgets. Title extraction
+    // from the H1 is handled by the note adapter on the brain side.
+    if (entityType === BASE_ENTITY_TYPE) {
       collections.push({
         name: entityType,
-        label: pluralizeLabel(label),
-        folder: entityType === "base" ? "." : entityType,
+        label: pluralLabel,
+        folder: ".",
         create: true,
         extension: "md",
-        format: "frontmatter",
-        fields: buildFields(frontmatterSchema, hasBody),
+        format: "markdown",
+        fields: [{ name: "body", label: "Body", widget: "markdown" }],
       });
+      continue;
     }
+
+    collections.push({
+      name: entityType,
+      label: pluralLabel,
+      folder: entityType,
+      create: true,
+      extension: "md",
+      format: "frontmatter",
+      fields: buildFields(frontmatterSchema, hasBody),
+    });
   }
 
   if (singletonFiles.length > 0) {
