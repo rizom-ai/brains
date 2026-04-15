@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { RizomBrandSuffix, RizomLink } from "../compositions/types";
+import type { RizomBrandSuffix, RizomLink } from "./types";
 
 const LINK_CLS =
   "hidden md:inline-block font-body text-body-sm text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full";

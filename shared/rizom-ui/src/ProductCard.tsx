@@ -1,17 +1,7 @@
 import type { JSX } from "preact";
 import { Section } from "./Section";
-import type { ProductCardContent, ProductVariant } from "./product-card-types";
+import type { ProductCardContent, ProductVariant } from "./types";
 
-// Layout component for the product section template. Takes the
-// validated ProductContent directly so site-content entities flow
-// through with no shape gymnastics.
-
-// Gradients, borders, and glow colors are driven by --color-card-*
-// tokens in theme-rizom, so both dark and light modes flow through
-// the theme variables. The bg uses `bg-[image:var(...)]` (Tailwind v4
-// typed prefix that maps to `background-image`) because the token
-// value is a linear-gradient — plain `bg-[var(...)]` would set
-// `background-color`, which can't accept gradient values.
 const INNER_BASE =
   "flex flex-col-reverse items-center gap-6 md:gap-12 rounded-2xl md:rounded-3xl border p-6 md:p-12 transition-all duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1";
 const INNER_CLASS: Record<ProductVariant, string> = {

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { RizomFrame, type RizomLayoutProps } from "./frame";
+import { RizomFrame, type RizomLayoutProps } from "@brains/rizom-ui";
 
 /**
  * Neutral fallback layout for direct consumers of @brains/site-rizom.

@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import type { RizomSideNavItem } from "../compositions/types";
+import type { RizomSideNavItem } from "./types";
 
 interface SideNavProps {
   items: RizomSideNavItem[];

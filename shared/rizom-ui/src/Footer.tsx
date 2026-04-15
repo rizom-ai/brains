@@ -1,9 +1,5 @@
 import type { JSX } from "preact";
-import type {
-  RizomBrandSuffix,
-  RizomFooterTagline,
-  RizomLink,
-} from "../compositions/types";
+import type { RizomBrandSuffix, RizomFooterTagline, RizomLink } from "./types";
 import { GUTTER } from "./Section";
 
 const LINK_CLS =

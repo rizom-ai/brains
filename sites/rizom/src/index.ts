@@ -36,24 +36,20 @@ import { RizomSitePlugin } from "./plugin";
  * roots (foundation).
  */
 export { routes };
-export { RizomFrame } from "./layouts/frame";
-export type { RizomLayoutProps } from "./layouts/frame";
 export { RizomSitePlugin } from "./plugin";
-export { Header } from "./components/Header";
-export { Footer } from "./components/Footer";
-export { SideNav } from "./components/SideNav";
-export { Section } from "./components/Section";
-export { Button } from "./components/Button";
-export { Badge } from "./components/Badge";
-export { Divider } from "./components/Divider";
-export { ProductCard } from "./components/ProductCard";
-export { createEcosystemContent } from "./compositions/ecosystem";
+export { RizomFrame } from "@brains/rizom-ui";
+export type { RizomLayoutProps } from "@brains/rizom-ui";
+export { Header, Footer, SideNav } from "@brains/rizom-ui";
+export { Section, Button, Badge, Divider, ProductCard } from "@brains/rizom-ui";
 export type {
+  ProductCardContent,
+  ProductVariant,
   RizomBrandSuffix,
   RizomFooterTagline,
   RizomLink,
   RizomSideNavItem,
-} from "./compositions/types";
+} from "@brains/rizom-ui";
+export { createEcosystemContent } from "./compositions/ecosystem";
 
 const site: SitePackage = {
   layouts: {

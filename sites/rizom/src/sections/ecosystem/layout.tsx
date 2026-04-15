@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
+import { Section } from "@brains/rizom-ui";
 import type { EcosystemContent, EcosystemSuffix } from "./schema";
-import { Section } from "../../components/Section";
 
 const BASE_CARD_CLASS =
   "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";

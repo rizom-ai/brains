@@ -18,10 +18,9 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/site-builder-plugin": "workspace:*",
+    "@brains/rizom-ui": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },
