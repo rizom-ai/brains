@@ -1,9 +1,6 @@
 import type { JSX } from "preact";
 import { Section } from "./Section";
-import type {
-  ProductCardContent,
-  ProductVariant,
-} from "../sections/products/schema";
+import type { ProductCardContent, ProductVariant } from "./product-card-types";
 
 // Layout component for the product section template. Takes the
 // validated ProductContent directly so site-content entities flow

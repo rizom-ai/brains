@@ -5,6 +5,7 @@ import {
   type SitePackageOverrides,
 } from "@brains/site-composition";
 import baseSite, { createRizomLayout } from "@brains/site-rizom";
+import { RizomAiSitePlugin } from "./plugin";
 import { aiRoutes } from "./routes";
 import { aiShellModel } from "./shell";
 
@@ -12,7 +13,7 @@ const AiLayout = createRizomLayout(aiShellModel);
 
 const aiPlugin: SitePackage["plugin"] = (
   config?: Record<string, unknown>,
-): Plugin => baseSite.plugin({ ...(config ?? {}), variant: "ai" });
+): Plugin => new RizomAiSitePlugin({ ...(config ?? {}), variant: "ai" });
 
 const overrides: SitePackageOverrides = {
   layouts: {

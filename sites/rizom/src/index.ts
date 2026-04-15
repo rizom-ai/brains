@@ -40,7 +40,9 @@ export { routes, createRizomLayout };
 export { RizomSitePlugin } from "./plugin";
 export { Section } from "./components/Section";
 export { Button } from "./components/Button";
+export { Badge } from "./components/Badge";
 export { Divider } from "./components/Divider";
+export { ProductCard } from "./components/ProductCard";
 export { createEcosystemContent } from "./compositions/ecosystem";
 export type { RizomShellModel } from "./compositions/types";
 

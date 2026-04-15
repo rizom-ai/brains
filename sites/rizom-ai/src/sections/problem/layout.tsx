@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProblemContent } from "./schema";
-import { Section } from "../../components/Section";
+import { Section } from "@brains/site-rizom";
 
 /**
  * Three-up grid of problem statements with outlined numerals.

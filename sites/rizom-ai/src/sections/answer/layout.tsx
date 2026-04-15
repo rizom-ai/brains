@@ -1,8 +1,6 @@
 import type { JSX } from "preact";
 import type { AnswerContent } from "./schema";
-import { Section } from "../../components/Section";
-import { Badge } from "../../components/Badge";
-import { Divider } from "../../components/Divider";
+import { Badge, Divider, Section } from "@brains/site-rizom";
 
 export const AnswerLayout = ({
   badge,
