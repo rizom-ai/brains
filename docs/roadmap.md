@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-12
+Last updated: 2026-04-15
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -27,6 +27,8 @@ These areas are effectively landed:
 
 - **Entity and plugin architecture** — unified `EntityPlugin` / `ServicePlugin` / `InterfacePlugin` split
 - **System tool surface** — create, update, delete, search, extract, status, and insights consolidated into framework-level tools
+- **Plugin create interceptors** — plugins can override `system_create` behavior per entity type via `EntityPlugin.interceptCreate`; link capture and image cover-target resolution moved into their respective plugins
+- **Knowledge-context opt-in** — AI templates explicitly opt in to knowledge-base context injection, replacing an implicit default that caused embedding-API overflows on long extractive prompts
 - **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
 - **Eval overhaul** — app/model/shell eval layering and comparison reporting
 - **Theme/site decoupling** — site packages are structural-only; themes resolve independently
@@ -34,7 +36,9 @@ These areas are effectively landed:
 - **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
 - **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
+- **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
+- **Rizom site variant split** — `rizom.ai`, `rizom.foundation`, and `rizom.work` each own their final route composition and section templates via thin wrapper packages over a shared base
 - **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
 
 ## Near-term priorities
@@ -53,17 +57,20 @@ Plan:
 
 - [standalone-apps.md](./plans/standalone-apps.md)
 
-### 2. Rizom site variants
+### 2. Rizom site variant follow-through
 
-Continue the shared-site work across the Rizom family once the deploy path is in a good place.
+The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. Remaining work is product polish and eventual extraction.
 
 Focus areas:
 
-- keep `sites/rizom` as the shared structural spine
-- finish the intended variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work`
-- keep brand/theme decisions cleanly separated from per-instance configuration
+- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) (CTA destinations, newsletter/support links, quiz URLs)
+- decide which currently shared section implementations are truly reusable primitives versus app-specific sections
+- extract each app into a standalone repo once its composition is stable
 
-This work now lives directly in the shared `sites/rizom` + `shared/theme-rizom` packages.
+Plans:
+
+- [rizom-site-composition.md](./plans/rizom-site-composition.md)
+- [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
 
 ### 3. Public plugin surface
 
