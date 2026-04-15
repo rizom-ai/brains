@@ -158,11 +158,11 @@ Before extraction, capture:
 
 Current preflight snapshot:
 
-| App                     | Brain model | Domain(s)          | Current content repo                | Deploy scaffold in app repo                                                                           | Monorepo-only site/theme coupling                                                                            | Notes                                                                                            |
-| ----------------------- | ----------- | ------------------ | ----------------------------------- | ----------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
-| `apps/rizom-work`       | `ranger`    | `rizom.work`       | `rizom-ai/rizom-work-content`       | no `package.json`, no `.env.schema`, no deploy scaffold                                               | `site.package: "@brains/site-rizom-work"` thin wrapper over shared Rizom base                                | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
-| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | `rizom-ai/rizom-foundation-content` | no `package.json`, no `.env.schema`, no deploy scaffold                                               | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base                          | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
-| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`         | partial only: `package.json`, `.env.schema`, Kamal hook, `config/deploy.yml`; no tracked GH workflows | `site.package: "@brains/site-rizom-ai"` thin wrapper over shared Rizom base; deploy still model-image-shaped | best extraction candidate; wrapper seam now exists                                               |
+| App                     | Brain model | Domain(s)          | Current content repo                | Deploy scaffold in app repo                                                                                                                          | Monorepo-only site/theme coupling                                                                            | Notes                                                                                            |
+| ----------------------- | ----------- | ------------------ | ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------ |
+| `apps/rizom-work`       | `ranger`    | `rizom.work`       | `rizom-ai/rizom-work-content`       | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-work"` thin wrapper over shared Rizom base                                | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
+| `apps/rizom-foundation` | `relay`     | `rizom.foundation` | `rizom-ai/rizom-foundation-content` | basic instance shape (`brain.yaml`, `.env.example`, `README.md`, `tsconfig.json`); no `package.json`, no `.env.schema`, no deploy scaffold           | `site.package: "@brains/site-rizom-foundation"` thin wrapper over shared Rizom base                          | wrapper-owned routes + tracked site-content now in place; still needs standalone extraction prep |
+| `apps/rizom-ai`         | `ranger`    | `rizom.ai`         | `rizom-ai/rizom-ai-content`         | partial: `package.json`, `bun.lock`, `.gitignore`, `.kamal/hooks/pre-deploy`, `config/deploy.yml`; no tracked `.env.schema`, no tracked GH workflows | `site.package: "@brains/site-rizom-ai"` thin wrapper over shared Rizom base; deploy still model-image-shaped | best extraction candidate; wrapper seam now exists                                               |
 
 ### `rizom.ai` extraction preflight
 
@@ -181,19 +181,20 @@ Current state to carry forward:
 - domain: `rizom.ai`
 - content repo: `rizom-ai/rizom-ai-content`
 - site package: `@brains/site-rizom-ai`
-- tracked env files: `.env.example`, `.env.schema`
+- tracked instance files: `package.json`, `bun.lock`, `brain.yaml`, `tsconfig.json`, `README.md`, `.gitignore`, `.env.example`
 - tracked deploy files: `config/deploy.yml`, `.kamal/hooks/pre-deploy`
 
 Known gaps versus standard standalone `brain init --deploy` shape:
 
+- no tracked `.env.schema`
 - no tracked `.github/workflows/publish-image.yml`
 - no tracked `.github/workflows/deploy.yml`
 - no tracked `deploy/Dockerfile`
 - no tracked `deploy/Caddyfile`
 - no tracked `scripts/extract-brain-config.rb`
 - current `config/deploy.yml` still uses model-image shape (`image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>`) instead of repo-image shape
-- app still has monorepo-local start script assumptions in `package.json`
-- local working tree contains ignored runtime junk (`brain-data/.git`, `dist/`, `data/`, `.env`, `.env.local`, `node_modules/`) that must not be copied into extraction
+- `package.json` still uses monorepo-local start script (`bun ../../packages/brain-cli/dist/brain.js start`) and pins `@rizom/brain` to an old alpha (`^0.1.1-alpha.10` vs current `0.2.0-alpha.18`)
+- local working tree contains ignored runtime junk (`brain-data/`, `cache/`, `data/`, `dist/`, `.env`, `.env.local`, `node_modules/`) that must not be copied into extraction
 
 Recommended next step for `rizom.ai` is choosing one site-package unblock path:
 
