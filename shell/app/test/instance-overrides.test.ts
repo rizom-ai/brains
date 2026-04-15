@@ -994,6 +994,9 @@ describe("resolve with site package", () => {
 
     expect(sbConfig["routes"]).toHaveLength(2);
     expect(sbConfig["entityDisplay"]).toEqual({ post: { label: "Essay" } });
+    expect(config.shellConfig?.entityDisplay).toEqual({
+      post: { label: "Essay" },
+    });
   });
 
   test("should inject staticAssets from site package into site-builder", () => {

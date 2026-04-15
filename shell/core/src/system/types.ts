@@ -4,7 +4,11 @@ import type { IConversationService } from "@brains/conversation-service";
 import type { MessageBus } from "@brains/messaging-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { DefaultQueryResponse, Logger } from "@brains/utils";
-import type { AppInfo, DaemonStatusInfo } from "@brains/plugins";
+import type {
+  AppInfo,
+  DaemonStatusInfo,
+  EntityDisplayEntry,
+} from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
 
 /**
@@ -18,6 +22,8 @@ export interface SystemServices {
   conversationService: IConversationService;
   messageBus: MessageBus;
   logger: Logger;
+  siteBaseUrl?: string;
+  entityDisplay?: Record<string, EntityDisplayEntry>;
 
   /** AI query — direct service call */
   query: (

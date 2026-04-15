@@ -1,6 +1,7 @@
 import type { SystemServices } from "../../src/system/types";
 import { createSilentLogger } from "@brains/test-utils";
 import type { BaseEntity } from "@brains/entity-service";
+import { z } from "@brains/utils";
 import { createInsightsRegistry } from "../../src/system/insights";
 
 /**
@@ -32,16 +33,24 @@ export function createMockSystemServices(
     (...args: unknown[]) => Promise<unknown>
   >();
 
+  const defaultFrontmatterSchema = z.object({
+    title: z.string().optional(),
+  });
+
   const entityRegistry = {
     getAdapter: (
       type: string,
     ): {
       supportsCoverImage: boolean;
+      hasBody: boolean;
+      isSingleton: boolean;
       fromMarkdown: (markdown: string) => unknown;
     } => {
       if (type === "link") {
         return {
           supportsCoverImage: false,
+          hasBody: true,
+          isSingleton: false,
           fromMarkdown: (markdown: string): unknown => {
             const match = markdown.match(/^---\n([\s\S]*?)\n---\n?([\s\S]*)$/);
             if (!match) {
@@ -89,11 +98,15 @@ export function createMockSystemServices(
 
       return {
         supportsCoverImage: false,
+        hasBody: true,
+        isSingleton: false,
         fromMarkdown: (): unknown => ({}),
       };
     },
     hasEntityType: (type: string) => entityTypes.has(type),
     getAllEntityTypes: () => Array.from(entityTypes),
+    getEffectiveFrontmatterSchema: (type: string) =>
+      entityTypes.has(type) ? defaultFrontmatterSchema : undefined,
     registerCreateInterceptor: (
       type: string,
       interceptor: (...args: unknown[]) => Promise<unknown>,
@@ -186,7 +199,15 @@ export function createMockSystemServices(
   } as unknown as SystemServices["conversationService"];
 
   const messageBus = {
-    send: async () => ({ success: true }),
+    send: async (topic: string) => {
+      if (topic === "git-sync:get-repo-info") {
+        return {
+          success: true,
+          data: { repo: "owner/repo", branch: "main" },
+        };
+      }
+      return { success: true };
+    },
     subscribe: (): (() => void) => () => {},
   } as unknown as SystemServices["messageBus"];
 

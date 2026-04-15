@@ -3,6 +3,7 @@ import { createSystemTools } from "../../src/system/tools";
 import { createOutputSchema } from "../../src/system/schemas";
 import { createMockSystemServices } from "./mock-services";
 import type {
+  BaseEntity,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
@@ -44,7 +45,7 @@ async function resolveMockEntityByIdentifier(
   services: MockServices,
   entityType: string,
   identifier: string,
-) {
+): Promise<BaseEntity | null> {
   const byId = await services.entityService.getEntity(entityType, identifier);
   if (byId) return byId;
 

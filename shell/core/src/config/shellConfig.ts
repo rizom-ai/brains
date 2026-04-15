@@ -1,5 +1,9 @@
 import { z, dbConfigSchema, type DbConfig } from "@brains/utils";
-import type { Plugin, IEvalHandlerRegistry } from "@brains/plugins";
+import type {
+  Plugin,
+  IEvalHandlerRegistry,
+  EntityDisplayEntry,
+} from "@brains/plugins";
 import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
@@ -97,14 +101,27 @@ export const shellConfigSchema = z.object({
   plugins: z.array(pluginMetadataSchema).default([]),
   dataDir: z.string().default("./brain-data"),
   siteBaseUrl: z.string().optional(),
+  entityDisplay: z
+    .record(
+      z
+        .object({
+          label: z.string().min(1),
+        })
+        .passthrough(),
+    )
+    .optional(),
 });
 
-export type ShellConfig = z.infer<typeof shellConfigSchema> & {
+export type ShellConfig = Omit<
+  z.infer<typeof shellConfigSchema>,
+  "entityDisplay"
+> & {
   plugins: Plugin[];
   permissions: PermissionConfig;
   identity?: BrainCharacter;
   profile?: AnchorProfile;
   evalHandlerRegistry?: IEvalHandlerRegistry;
+  entityDisplay?: Record<string, EntityDisplayEntry>;
 };
 
 export type ShellConfigInput = Partial<
@@ -152,11 +169,14 @@ export function createShellConfig(
     plugins: overrides.plugins ?? [],
     permissions: overrides.permissions ?? {},
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
+    ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
+    ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),
   };
 
   const validated = shellConfigSchema.parse(config);
+  const { entityDisplay, ...validatedRest } = validated;
   const result: ShellConfig = {
-    ...validated,
+    ...validatedRest,
     plugins: config.plugins,
     permissions: config.permissions,
   };
@@ -168,6 +188,8 @@ export function createShellConfig(
     result.evalHandlerRegistry = overrides.evalHandlerRegistry;
   if (overrides.siteBaseUrl !== undefined)
     result.siteBaseUrl = overrides.siteBaseUrl;
+  if (entityDisplay !== undefined)
+    result.entityDisplay = entityDisplay as Record<string, EntityDisplayEntry>;
 
   return result;
 }

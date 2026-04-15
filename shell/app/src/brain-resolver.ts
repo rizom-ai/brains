@@ -271,6 +271,18 @@ export function resolve(
     Object.assign(appConfig, definition.extra);
   }
 
+  if (site) {
+    const existingShellConfig = appConfig.shellConfig ?? {};
+    const existingEntityDisplay = existingShellConfig.entityDisplay ?? {};
+    appConfig.shellConfig = {
+      ...existingShellConfig,
+      entityDisplay: {
+        ...site.entityDisplay,
+        ...existingEntityDisplay,
+      },
+    };
+  }
+
   return defineConfig(appConfig);
 }
 

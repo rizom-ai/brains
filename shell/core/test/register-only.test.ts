@@ -136,6 +136,17 @@ describe("Shell registerOnly mode", () => {
     expect(shell.isInitialized()).toBe(true);
   });
 
+  it("should register the cms config resource with the MCP service", async () => {
+    const config = createTestConfig(testDir.dir);
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ registerOnly: true });
+
+    const resources = shell.getMCPService().listResources();
+    expect(resources.some((r) => r.resource.uri === "brain://cms-config")).toBe(
+      true,
+    );
+  });
+
   it("should not start daemons in registerOnly mode", async () => {
     let daemonStarted = false;
 
