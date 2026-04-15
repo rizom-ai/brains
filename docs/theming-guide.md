@@ -289,12 +289,11 @@ site:
   theme: "@brains/theme-mytheme"
 ```
 
-Multi-variant site packages can still add structural flavor fields alongside the theme:
+Explicit site wrappers can still choose a shared theme alongside their site package:
 
 ```yaml
 site:
-  package: "@brains/site-rizom"
-  variant: ai
+  package: "@brains/site-rizom-ai"
   theme: "@brains/theme-rizom"
 ```
 
@@ -364,16 +363,15 @@ Each brain instance picks a structural site package and a theme in `brain.yaml`:
 # brain.yaml
 brain: rover
 site:
-  package: "@brains/site-rizom"
-  theme: "@brains/theme-rizom"
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 ```
 
 ```yaml
 # apps/rizom-ai/brain.yaml
 brain: ranger
 site:
-  package: "@brains/site-rizom"
-  variant: ai # site packages may ship multiple structural flavors
+  package: "@brains/site-rizom-ai"
   theme: "@brains/theme-rizom"
 ```
 

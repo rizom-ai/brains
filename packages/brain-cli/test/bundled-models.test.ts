@@ -30,7 +30,6 @@ describe("bundled model set", () => {
     expect(entrypoint).toContain(
       'import defaultTheme from "@brains/theme-default";',
     );
-    expect(entrypoint).toContain('import rizomSite from "@brains/site-rizom";');
     expect(entrypoint).toContain(
       'import rizomTheme from "@brains/theme-rizom";',
     );
@@ -40,9 +39,6 @@ describe("bundled model set", () => {
     );
     expect(entrypoint).toContain(
       'registerPackage("@brains/theme-default", defaultTheme);',
-    );
-    expect(entrypoint).toContain(
-      'registerPackage("@brains/site-rizom", rizomSite);',
     );
     expect(entrypoint).toContain(
       'registerPackage("@brains/theme-rizom", rizomTheme);',

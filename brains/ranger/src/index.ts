@@ -17,7 +17,7 @@ import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { dashboardPlugin } from "@brains/dashboard";
 import { join } from "path";
-import rizomSite from "@brains/site-rizom";
+import defaultSite from "@brains/site-default";
 import rizomTheme from "@brains/theme-rizom";
 
 /**
@@ -38,7 +38,7 @@ export default defineBrain({
   name: "ranger",
   version: "0.1.0",
   model: "gpt-5.4-mini",
-  site: rizomSite,
+  site: defaultSite,
   theme: rizomTheme,
   presets: {
     default: [

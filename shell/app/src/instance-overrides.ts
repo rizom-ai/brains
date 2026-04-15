@@ -14,11 +14,11 @@ const instanceOverridesSchema = z.object({
   /**
    * Site and theme overrides.
    *
-   * - `package` names the site package to load (e.g. `@brains/site-rizom`).
+   * - `package` names the site package to load (e.g. `@brains/site-default`).
    *   Overrides any `site` set by the brain definition.
    * - `variant` is forwarded to the site plugin's config schema, so a
    *   single site package can ship multiple structural flavors
-   *   (e.g. site-rizom with variant: foundation | work | ai).
+   *   (for example a wrapper or multi-flavor site package).
    * - `theme` selects the theme package or inline CSS string to use for
    *   styling. It is resolved separately from the site plugin.
    *

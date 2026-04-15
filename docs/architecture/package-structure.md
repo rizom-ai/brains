@@ -46,6 +46,9 @@ brains/
 | `shared/theme-default`        | Rizom default theme (blue/orange)                      |
 | `shared/theme-rizom`          | Rizom brand theme                                      |
 | `shared/theme-*`              | Additional active shared themes                        |
+| `shared/rizom-ui`             | Shared Rizom frame and UI primitives                   |
+| `shared/rizom-runtime`        | Shared Rizom runtime plugin and static assets          |
+| `shared/rizom-ecosystem`      | Shared Rizom ecosystem section + content helpers       |
 | `shared/product-site-content` | Product page layouts and templates                     |
 | `shared/image`                | Image schema, adapter, utilities                       |
 | `shared/mcp-bridge`           | Base class for upstream MCP integration                |
@@ -108,14 +111,14 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package              | Purpose                                                                          |
-| -------------------- | -------------------------------------------------------------------------------- |
-| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default` |
-| `sites/personal`     | Personal site composition, blog-focused                                          |
-| `sites/professional` | Professional site composition, editorial + portfolio + decks                     |
-| `sites/rizom`        | Rizom multi-variant structural site, typically paired with `@brains/theme-rizom` |
-
-Multi-variant site packages (like `sites/rizom`) accept a `variant` argument from `brain.yaml` and switch templates / structure per instance. Theme selection remains independent via `site.theme`.
+| Package                  | Purpose                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------- |
+| `sites/default`          | Default structural site for rover, typically paired with `@brains/theme-default` |
+| `sites/personal`         | Personal site composition, blog-focused                                          |
+| `sites/professional`     | Professional site composition, editorial + portfolio + decks                     |
+| `sites/rizom-ai`         | Rizom AI site wrapper                                                            |
+| `sites/rizom-foundation` | Rizom Foundation site wrapper                                                    |
+| `sites/rizom-work`       | Rizom Work site wrapper                                                          |
 
 ## Brains
 
@@ -141,5 +144,5 @@ App instances are deployment configurations, not workspace members. Each directo
 
 | Directory               | Purpose                                                                     |
 | ----------------------- | --------------------------------------------------------------------------- |
-| `apps/rizom-ai`         | Marketing site for the framework (ranger model + sites/rizom variant ai).   |
-| `apps/rizom-foundation` | Manifesto / foundation site (relay model + sites/rizom variant foundation). |
+| `apps/rizom-ai`         | Marketing site for the framework (ranger model + sites/rizom-ai wrapper).   |
+| `apps/rizom-foundation` | Manifesto / foundation site (relay model + sites/rizom-foundation wrapper). |

@@ -181,18 +181,9 @@ function shouldScaffoldLocalSiteTheme(model: string): boolean {
 }
 
 function getPinnedSiteTheme(
-  model: string,
+  _model: string,
 ): { sitePackage: string; themePackage: string } | undefined {
-  switch (model) {
-    case "ranger":
-    case "relay":
-      return {
-        sitePackage: "@brains/site-rizom",
-        themePackage: "@brains/theme-rizom",
-      };
-    default:
-      return undefined;
-  }
+  return undefined;
 }
 
 function writeBrainYaml(

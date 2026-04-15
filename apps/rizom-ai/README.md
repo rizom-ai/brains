@@ -46,7 +46,7 @@ site:
   package: "@brains/site-rizom-ai"
 ```
 
-That wrapper still composes the shared `@brains/site-rizom` base underneath. The shared base still provides the common Rizom family runtime, while the thin wrapper owns the final `rizom.ai` shell and route composition seam.
+That wrapper now composes shared Rizom packages underneath (`@brains/rizom-ui`, `@brains/rizom-runtime`, `@brains/rizom-ecosystem`). The wrapper owns the final `rizom.ai` layout, route composition, and app-specific templates.
 
 Across the Rizom family, the variant still determines:
 
@@ -58,7 +58,7 @@ Light mode collapses all variants to amber-dark for contrast (per brand guide A2
 
 ## Deployment
 
-rizom.ai deploys through this repo's current workflow. Shared Rizom architecture now lives in `sites/rizom` + `shared/theme-rizom`, with `sites/rizom-ai` acting as the app-owned composition wrapper.
+rizom.ai deploys through this repo's current workflow. Shared Rizom architecture now lives in `shared/rizom-ui`, `shared/rizom-runtime`, `shared/rizom-ecosystem`, and `shared/theme-rizom`, with `sites/rizom-ai` acting as the app-owned composition wrapper.
 
 ### First-time 1Password setup
 

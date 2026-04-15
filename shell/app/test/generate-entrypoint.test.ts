@@ -116,14 +116,14 @@ plugins:
     const yaml = `
 brain: "@brains/rover"
 site:
-  package: "@brains/site-rizom"
-  theme: "@brains/theme-rizom"
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 `;
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg1 from "@brains/theme-rizom"');
-    expect(code).toContain('registerPackage("@brains/theme-rizom", __pkg1)');
+    expect(code).toContain('import __pkg1 from "@brains/theme-default"');
+    expect(code).toContain('registerPackage("@brains/theme-default", __pkg1)');
   });
 
   test("should import registerPackage from @brains/app", () => {

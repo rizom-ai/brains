@@ -49,9 +49,8 @@ database: file:./data/brain.db # database URL
 # Site package override (optional — overrides brain model default)
 # Object form supports variant + theme overrides for sites that ship multiple flavors
 site:
-  package: "@brains/site-rizom"
-  variant: ai
-  # theme: "@brains/theme-rizom"  # optional
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 
 # Preset — selects a curated subset of capabilities + interfaces
 preset: full # core | default | full | eval

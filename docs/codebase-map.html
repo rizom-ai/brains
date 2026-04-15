@@ -169,10 +169,9 @@ const nodes = [
   { id:'site-default',      label:'Default',       sub:'sites/default',       desc:'Minimal rover site.',                 x:36,  y:524, w:100, h:H, layer:'sites' },
   { id:'site-personal',     label:'Personal',      sub:'sites/personal',      desc:'Blog-focused personal site.',         x:146, y:524, w:100, h:H, layer:'sites' },
   { id:'site-professional', label:'Professional',  sub:'sites/professional',  desc:'Blog + decks + portfolio site.',      x:256, y:524, w:100, h:H, layer:'sites' },
-  { id:'site-rizom',        label:'Rizom (base)',  sub:'sites/rizom',         desc:'Shared Rizom base — primitives, layouts, common sections, canvases. Wrapped by per-app site packages.', x:476, y:524, w:130, h:H, layer:'sites' },
-  { id:'site-rizom-ai',     label:'Rizom AI',      sub:'sites/rizom-ai',      desc:'rizom.ai wrapper. Owns final route composition over the Rizom base.', x:616, y:524, w:120, h:H, layer:'sites' },
-  { id:'site-rizom-found',  label:'Rizom Foundation', sub:'sites/rizom-foundation', desc:'rizom.foundation wrapper. Owns final route composition + foundation-specific section templates.', x:746, y:524, w:160, h:H, layer:'sites' },
-  { id:'site-rizom-work',   label:'Rizom Work',    sub:'sites/rizom-work',    desc:'rizom.work wrapper. Owns final route composition + work-specific section templates.', x:916, y:524, w:120, h:H, layer:'sites' },
+  { id:'site-rizom-ai',     label:'Rizom AI',      sub:'sites/rizom-ai',      desc:'rizom.ai wrapper. Owns final route composition over shared Rizom packages.', x:476, y:524, w:130, h:H, layer:'sites' },
+  { id:'site-rizom-found',  label:'Rizom Foundation', sub:'sites/rizom-foundation', desc:'rizom.foundation wrapper. Owns final route composition + foundation-specific section templates.', x:616, y:524, w:160, h:H, layer:'sites' },
+  { id:'site-rizom-work',   label:'Rizom Work',    sub:'sites/rizom-work',    desc:'rizom.work wrapper. Owns final route composition + work-specific section templates.', x:786, y:524, w:120, h:H, layer:'sites' },
 
   // Shared (row 8)
   { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, progress.', x:36,  y:596, w:100, h:H, layer:'shared' },

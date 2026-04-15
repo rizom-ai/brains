@@ -4,7 +4,6 @@ import { join } from "node:path";
 
 const siteSources = [
   "sites/default/src/index.ts",
-  "sites/rizom/src/index.ts",
   "sites/rizom-foundation/src/index.ts",
   "sites/rizom-work/src/index.ts",
   "sites/rizom-ai/src/index.ts",
@@ -12,7 +11,6 @@ const siteSources = [
 
 const sitePackages = [
   "sites/default/package.json",
-  "sites/rizom/package.json",
   "sites/rizom-foundation/package.json",
   "sites/rizom-work/package.json",
   "sites/rizom-ai/package.json",

@@ -24,7 +24,7 @@ bunx brain start
 
 ## Site package
 
-`brain.yaml` now points at `@brains/site-rizom-foundation`, a thin site-package wrapper over `@brains/site-rizom`.
+`brain.yaml` now points at `@brains/site-rizom-foundation`, a thin site-package wrapper over the shared Rizom UI/runtime/ecosystem packages.
 
 That wrapper currently does three things:
 

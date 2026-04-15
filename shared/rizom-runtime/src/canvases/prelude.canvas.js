@@ -1,7 +1,7 @@
 /*
  * Shared globals + helpers used by tree / constellation / roots canvas
- * scripts. Concatenated in front of each variant canvas at site-package
- * load time (see sites/rizom/src/index.ts) so the variant canvases
+ * scripts. Loaded as a shared static asset by the Rizom runtime package
+ * so the variant canvases
  * stay byte-equivalent to docs/design/canvases/ and can be re-synced
  * from the design source without merge conflicts.
  *

@@ -1205,13 +1205,13 @@ logLevel: debug
     const yaml = `
 brain: "@brains/relay"
 site:
-  package: "@brains/site-rizom"
+  package: "@brains/site-example"
   variant: foundation
   theme: github:rizom-ai/theme-foundation
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.site).toEqual({
-      package: "@brains/site-rizom",
+      package: "@brains/site-example",
       variant: "foundation",
       theme: "github:rizom-ai/theme-foundation",
     });

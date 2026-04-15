@@ -31,9 +31,8 @@ plugins:
 ```yaml
 brain: rover
 site:
-  package: "@brains/site-rizom"
-  variant: ai
-  theme: "@brains/theme-rizom"
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 name: "My Brain"
 logLevel: info
 logFile: ./brain.log
@@ -82,15 +81,14 @@ Optional site override.
 
 ```yaml
 site:
-  package: "@brains/site-rizom"
-  variant: ai
-  theme: "@brains/theme-rizom"
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 ```
 
 Fields:
 
 - `package` — site package to load
-- `variant` — site-specific variant string
+- `variant` — optional site-specific flavor string for packages that support it
 - `theme` — theme package or inline CSS string to use for styling
 
 `site.package` and `site.theme` are resolved independently. The site package stays structural-only; the theme is validated separately and injected into site-builder.
@@ -360,7 +358,7 @@ plugins:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-### Ranger instance using a variant site package
+### Ranger instance using an explicit site wrapper
 
 ```yaml
 brain: ranger
@@ -368,8 +366,8 @@ preset: default
 domain: rizom.ai
 
 site:
-  package: "@brains/site-rizom"
-  variant: ai
+  package: "@brains/site-rizom-ai"
+  theme: "@brains/theme-rizom"
 
 plugins:
   mcp:

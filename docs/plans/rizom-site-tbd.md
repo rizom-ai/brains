@@ -23,7 +23,7 @@ Still TBD whether the footer should link to:
 
 File:
 
-- `sites/rizom-ai/src/shell.ts`
+- `sites/rizom-ai/src/layout.tsx`
 
 ## `rizom.foundation`
 
@@ -34,7 +34,7 @@ Primary newsletter CTA is still undecided.
 Files:
 
 - `apps/rizom-foundation/brain-data/site-content/home/mission.md`
-- `sites/rizom-foundation/src/shell.ts`
+- `sites/rizom-foundation/src/layout.tsx`
 
 ### Essay destinations
 
@@ -78,7 +78,7 @@ Several CTA paths still use placeholder Typeform URLs pending the real quiz dest
 Files:
 
 - `sites/rizom-work/src/routes.ts`
-- `sites/rizom-work/src/shell.ts`
+- `sites/rizom-work/src/layout.tsx`
 - `apps/rizom-work/brain-data/site-content/home/workshop.md`
 - `apps/rizom-work/brain-data/site-content/home/mission.md`
 
@@ -88,7 +88,7 @@ The site currently supports the on-page CTA section flow, but the final booking/
 
 Files:
 
-- `sites/rizom-work/src/shell.ts`
+- `sites/rizom-work/src/layout.tsx`
 - `apps/rizom-work/brain-data/site-content/home/mission.md`
 
 ### Proof / case-study finalization
@@ -103,9 +103,8 @@ File:
 
 These are future cleanup questions, not blockers for the current implementation:
 
-- which sections in `sites/rizom/src/sections/*` are truly shared long-term
 - when to extract wrapper-owned composition into app-local `src/site.ts`
-- whether any remaining AI-shaped defaults should eventually leave the shared base
+- whether the shared Rizom packages (`rizom-ui`, `rizom-runtime`, `rizom-ecosystem`) need any further simplification before extraction
 
 ## Recommendation
 

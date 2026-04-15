@@ -23,7 +23,6 @@ import ranger from "@brains/ranger";
 import relay from "@brains/relay";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
-import rizomSite from "@brains/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
 registerModel("rover", rover);
@@ -32,7 +31,6 @@ registerModel("relay", relay);
 
 registerPackage("@brains/site-default", defaultSite);
 registerPackage("@brains/theme-default", defaultTheme);
-registerPackage("@brains/site-rizom", rizomSite);
 registerPackage("@brains/theme-rizom", rizomTheme);
 
 // ─── Register boot function ───────────────────────────────────────────────

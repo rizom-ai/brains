@@ -40,9 +40,10 @@
         "@brains/prompt": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
+        "@brains/site-default": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-rizom": "workspace:*",
         "@brains/social-media": "workspace:*",
+        "@brains/theme-rizom": "workspace:*",
         "@brains/webserver": "workspace:*",
         "@brains/wishlist": "workspace:*",
       },
@@ -68,9 +69,10 @@
         "@brains/prompt": "workspace:*",
         "@brains/site-builder-plugin": "workspace:*",
         "@brains/site-content": "workspace:*",
+        "@brains/site-default": "workspace:*",
         "@brains/site-info": "workspace:*",
-        "@brains/site-rizom": "workspace:*",
         "@brains/summary": "workspace:*",
+        "@brains/theme-rizom": "workspace:*",
         "@brains/topics": "workspace:*",
         "@brains/webserver": "workspace:*",
       },
@@ -507,7 +509,6 @@
         "@brains/site-default": "workspace:*",
         "@brains/site-personal": "workspace:*",
         "@brains/site-professional": "workspace:*",
-        "@brains/site-rizom": "workspace:*",
         "@brains/theme-default": "workspace:*",
         "@brains/theme-rizom": "workspace:*",
         "@brains/typescript-config": "workspace:*",
@@ -768,6 +769,7 @@
       "name": "@brains/cms-config",
       "version": "0.2.0-alpha.18",
       "dependencies": {
+        "@brains/entity-service": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
@@ -1311,23 +1313,6 @@
         "typescript": "^5.3.3",
       },
     },
-    "sites/rizom": {
-      "name": "@brains/site-rizom",
-      "version": "0.2.0-alpha.18",
-      "dependencies": {
-        "@brains/plugins": "workspace:*",
-        "@brains/rizom-ecosystem": "workspace:*",
-        "@brains/rizom-runtime": "workspace:*",
-        "@brains/site-composition": "workspace:*",
-        "@brains/templates": "workspace:*",
-      },
-      "devDependencies": {
-        "@brains/eslint-config": "workspace:*",
-        "@brains/typescript-config": "workspace:*",
-        "eslint": "^8.56.0",
-        "typescript": "^5.3.3",
-      },
-    },
     "sites/rizom-ai": {
       "name": "@brains/site-rizom-ai",
       "version": "0.2.0-alpha.18",
@@ -1525,8 +1510,6 @@
     "@brains/site-personal": ["@brains/site-personal@workspace:sites/personal"],
 
     "@brains/site-professional": ["@brains/site-professional@workspace:sites/professional"],
-
-    "@brains/site-rizom": ["@brains/site-rizom@workspace:sites/rizom"],
 
     "@brains/site-rizom-ai": ["@brains/site-rizom-ai@workspace:sites/rizom-ai"],
 

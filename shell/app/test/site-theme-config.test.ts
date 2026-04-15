@@ -9,7 +9,7 @@ function readOverrides(
 
 const rizomYaml = `brain: rover
 site:
-  package: "@brains/site-rizom"
+  package: "@brains/site-default"
   theme: "@brains/theme-rizom"
 `;
 
@@ -23,7 +23,7 @@ describe("brain.yaml site theme pairing", () => {
     const overrides = readOverrides(rizomYaml);
 
     expect(overrides.site).toEqual({
-      package: "@brains/site-rizom",
+      package: "@brains/site-default",
       theme: "@brains/theme-rizom",
     });
   });

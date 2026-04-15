@@ -64,7 +64,7 @@ The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed
 Focus areas:
 
 - finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) (CTA destinations, newsletter/support links, quiz URLs)
-- move reusable Rizom code into proper shared abstractions instead of leaving `sites/rizom` as a pseudo-site
+- finish the shared-package cleanup around `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem`
 - extract each app into a standalone repo once its composition is stable
 
 Plans:

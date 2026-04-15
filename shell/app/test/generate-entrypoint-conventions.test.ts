@@ -61,8 +61,8 @@ describe("generateEntrypoint conventions", () => {
     const code = generateEntrypoint(
       `brain: "@brains/rover"
 site:
-  package: "@brains/site-rizom"
-  theme: "@brains/theme-rizom"
+  package: "@brains/site-default"
+  theme: "@brains/theme-default"
 `,
       { cwd: testDir },
     );

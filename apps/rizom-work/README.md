@@ -1,6 +1,6 @@
 # rizom.work
 
-A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model — the distributed consultancy / network face of the Rizom collective, now using a thin `@brains/site-rizom-work` wrapper over shared Rizom base primitives.
+A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model — the distributed consultancy / network face of the Rizom collective, now using a thin `@brains/site-rizom-work` wrapper over shared Rizom UI/runtime/ecosystem packages.
 
 ## Setup
 
@@ -12,7 +12,7 @@ bunx brain start
 
 ## Site package
 
-`brain.yaml` now points at `@brains/site-rizom-work`, a thin site-package wrapper over `@brains/site-rizom`.
+`brain.yaml` now points at `@brains/site-rizom-work`, a thin site-package wrapper over the shared Rizom UI/runtime/ecosystem packages.
 
 That wrapper currently does three things:
 

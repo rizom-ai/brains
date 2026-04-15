@@ -176,20 +176,22 @@ describe("brain init", () => {
       expect(yaml).not.toContain("@brains/theme-default");
     });
 
-    it("should pin ranger to the kept public site package and theme", () => {
+    it("should not scaffold dormant site refs for ranger", () => {
       scaffold(testDir, { model: "ranger" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@brains/site-rizom"');
-      expect(yaml).toContain('theme: "@brains/theme-rizom"');
+      expect(yaml).not.toMatch(/^site:/m);
+      expect(yaml).not.toContain("@brains/site-");
+      expect(yaml).not.toContain("@brains/theme-");
     });
 
-    it("should pin relay to the kept public site package and theme", () => {
+    it("should not scaffold dormant site refs for relay", () => {
       scaffold(testDir, { model: "relay" });
 
       const yaml = readFileSync(join(testDir, "brain.yaml"), "utf-8");
-      expect(yaml).toContain('package: "@brains/site-rizom"');
-      expect(yaml).toContain('theme: "@brains/theme-rizom"');
+      expect(yaml).not.toMatch(/^site:/m);
+      expect(yaml).not.toContain("@brains/site-");
+      expect(yaml).not.toContain("@brains/theme-");
     });
   });
 
