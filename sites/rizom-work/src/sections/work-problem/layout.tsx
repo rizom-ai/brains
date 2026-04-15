@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { WorkProblemContent } from "./schema";
-import { Section } from "@brains/site-rizom";
+import { Section } from "@brains/rizom-ui";
 
 export const WorkProblemLayout = ({
   kicker,

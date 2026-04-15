@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { MissionContent } from "./schema";
-import { Button, Divider, Section } from "@brains/site-rizom";
+import { Button, Divider, Section } from "@brains/rizom-ui";
 
 export const MissionLayout = ({
   preamble,

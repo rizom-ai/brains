@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { HeroContent } from "./schema";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@brains/rizom-ui";
 
 /**
  * Hero section — full-viewport intro with animated rise-in headline,

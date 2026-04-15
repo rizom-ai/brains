@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { OwnershipContent } from "./schema";
-import { Badge, Section } from "@brains/site-rizom";
+import { Badge, Section } from "@brains/rizom-ui";
 
 export const OwnershipLayout = ({
   badge,

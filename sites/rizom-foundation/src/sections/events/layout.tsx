@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { EventsContent } from "./schema";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@brains/rizom-ui";
 
 export const EventsLayout = ({
   kicker,

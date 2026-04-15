@@ -5,7 +5,7 @@ import {
   RizomFrame,
   SideNav,
   type RizomLayoutProps,
-} from "@brains/site-rizom";
+} from "@brains/rizom-ui";
 
 const NAV_LINKS = [
   { href: "#problem", label: "Problem" },

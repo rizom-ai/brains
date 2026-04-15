@@ -37,18 +37,6 @@ import { RizomSitePlugin } from "./plugin";
  */
 export { routes };
 export { RizomSitePlugin } from "./plugin";
-export { RizomFrame } from "@brains/rizom-ui";
-export type { RizomLayoutProps } from "@brains/rizom-ui";
-export { Header, Footer, SideNav } from "@brains/rizom-ui";
-export { Section, Button, Badge, Divider, ProductCard } from "@brains/rizom-ui";
-export type {
-  ProductCardContent,
-  ProductVariant,
-  RizomBrandSuffix,
-  RizomFooterTagline,
-  RizomLink,
-  RizomSideNavItem,
-} from "@brains/rizom-ui";
 export { createEcosystemContent } from "./compositions/ecosystem";
 
 const site: SitePackage = {

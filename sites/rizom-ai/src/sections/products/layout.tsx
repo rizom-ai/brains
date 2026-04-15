@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProductsContent } from "./schema";
-import { ProductCard } from "@brains/site-rizom";
+import { ProductCard } from "@brains/rizom-ui";
 
 /**
  * Products section layout — renders an array of `ProductCard`s.
