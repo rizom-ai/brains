@@ -2,18 +2,19 @@
 
 This file is now a compatibility pointer.
 
-Canonical planning for the remaining Rizom extraction work lives in:
+Canonical planning for current Rizom site follow-through lives in:
 
 - `docs/plans/rizom-site-composition.md`
 
-Current extraction target:
+Current direction:
 
-- extract the Rizom app family into a separate monorepo named `rizom-sites`
+- first simplify the Rizom site family into a shared `sites/rizom` core plus app-local `src/site.ts` ownership
+- only reconsider a separate `rizom-sites` repo after that smaller shape exists and there is a concrete reason to extract
 
 Use `docs/plans/rizom-site-composition.md` for:
 
 - Rizom package ownership boundaries
-- `rizom-sites` repo scope
-- extraction order
-- what moves with the Rizom app family
+- the shared-site + app-local-variant target shape
+- refactor order
+- later extraction criteria
 - verification criteria

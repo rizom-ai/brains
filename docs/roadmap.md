@@ -38,7 +38,7 @@ These areas are effectively landed:
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
 - **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
-- **Rizom site variant split** — `rizom.ai`, `rizom.foundation`, and `rizom.work` each own their final route composition and section templates via thin wrapper packages over shared Rizom packages
+- **Rizom site variant split** — `rizom.ai`, `rizom.foundation`, and `rizom.work` each own their final route composition and section templates; the remaining follow-through is simplifying the current wrapper/shared-package split into a shared site core plus app-local variants
 - **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
 
 ## Near-term priorities
@@ -59,12 +59,13 @@ Plan:
 
 ### 2. Rizom site variant follow-through
 
-The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed — each app now owns its final composition. The next extraction target is a separate Rizom monorepo named `rizom-sites`; remaining work is product polish plus that repo move.
+The variant split across `rizom.ai`, `rizom.foundation`, and `rizom.work` landed, but the current Rizom architecture is still an in-between state: three wrapper site packages plus several Rizom-specific shared packages. The next step is to simplify that into one shared Rizom site core plus app-local variants. Extraction into a separate `rizom-sites` repo is now a later decision, not the forcing function.
 
 Focus areas:
 
 - finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) without blocking engineering work
-- extract the Rizom app family into the separate `rizom-sites` monorepo
+- collapse the current wrapper/shared-package split into `sites/rizom` + app-local `src/site.ts` ownership
+- reconsider separate-repo extraction only after that smaller shape exists and there is a concrete reason to move it
 
 Plans:
 
