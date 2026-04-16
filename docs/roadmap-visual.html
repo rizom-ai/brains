@@ -1,340 +1,975 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Brains Project Roadmap</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-    background: #0d1117;
-    color: #c9d1d9;
-    min-height: 100vh;
-    overflow-x: hidden;
-  }
-  .header {
-    padding: 32px 40px 16px;
-    border-bottom: 1px solid #21262d;
-  }
-  .header h1 { font-size: 24px; font-weight: 600; color: #f0f6fc; }
-  .header p { font-size: 13px; color: #8b949e; margin-top: 4px; }
-  .legend {
-    display: flex; gap: 20px; padding: 12px 40px;
-    border-bottom: 1px solid #21262d; font-size: 12px;
-  }
-  .legend-item { display: flex; align-items: center; gap: 6px; }
-  .legend-dot {
-    width: 10px; height: 10px; border-radius: 50%;
-  }
-  .main { display: flex; height: calc(100vh - 110px); }
-  .graph {
-    flex: 1; overflow: auto; padding: 32px 40px;
-    position: relative;
-  }
-  .detail-panel {
-    width: 380px; border-left: 1px solid #21262d;
-    padding: 24px; overflow-y: auto;
-    background: #161b22; display: none;
-  }
-  .detail-panel.open { display: block; }
-  .detail-panel h2 { font-size: 16px; color: #f0f6fc; margin-bottom: 4px; }
-  .detail-panel .status-badge {
-    display: inline-block; font-size: 11px; padding: 2px 8px;
-    border-radius: 10px; margin-bottom: 12px;
-  }
-  .detail-panel .desc { font-size: 13px; line-height: 1.6; color: #8b949e; }
-  .detail-panel .deps { margin-top: 16px; }
-  .detail-panel .deps h3 { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-  .detail-panel .dep-item {
-    font-size: 12px; padding: 4px 0; color: #58a6ff; cursor: pointer;
-  }
-  .detail-panel .dep-item:hover { text-decoration: underline; }
-  .close-btn {
-    position: absolute; top: 16px; right: 16px;
-    background: none; border: none; color: #8b949e; cursor: pointer;
-    font-size: 18px;
-  }
-  .close-btn:hover { color: #f0f6fc; }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brains Project Roadmap</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        background: #0d1117;
+        color: #c9d1d9;
+        min-height: 100vh;
+        overflow-x: hidden;
+      }
+      .header {
+        padding: 32px 40px 16px;
+        border-bottom: 1px solid #21262d;
+      }
+      .header h1 {
+        font-size: 24px;
+        font-weight: 600;
+        color: #f0f6fc;
+      }
+      .header p {
+        font-size: 13px;
+        color: #8b949e;
+        margin-top: 4px;
+      }
+      .legend {
+        display: flex;
+        gap: 20px;
+        padding: 12px 40px;
+        border-bottom: 1px solid #21262d;
+        font-size: 12px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+      }
+      .main {
+        display: flex;
+        height: calc(100vh - 110px);
+      }
+      .graph {
+        flex: 1;
+        overflow: auto;
+        padding: 32px 40px;
+        position: relative;
+      }
+      .detail-panel {
+        width: 380px;
+        border-left: 1px solid #21262d;
+        padding: 24px;
+        overflow-y: auto;
+        background: #161b22;
+        display: none;
+      }
+      .detail-panel.open {
+        display: block;
+      }
+      .detail-panel h2 {
+        font-size: 16px;
+        color: #f0f6fc;
+        margin-bottom: 4px;
+      }
+      .detail-panel .status-badge {
+        display: inline-block;
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 10px;
+        margin-bottom: 12px;
+      }
+      .detail-panel .desc {
+        font-size: 13px;
+        line-height: 1.6;
+        color: #8b949e;
+      }
+      .detail-panel .deps {
+        margin-top: 16px;
+      }
+      .detail-panel .deps h3 {
+        font-size: 12px;
+        color: #8b949e;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+      .detail-panel .dep-item {
+        font-size: 12px;
+        padding: 4px 0;
+        color: #58a6ff;
+        cursor: pointer;
+      }
+      .detail-panel .dep-item:hover {
+        text-decoration: underline;
+      }
+      .close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: none;
+        border: none;
+        color: #8b949e;
+        cursor: pointer;
+        font-size: 18px;
+      }
+      .close-btn:hover {
+        color: #f0f6fc;
+      }
 
-  /* Sections */
-  .section { margin-bottom: 32px; }
-  .section-title {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-    color: #8b949e; margin-bottom: 12px; font-weight: 600;
-  }
+      /* Sections */
+      .section {
+        margin-bottom: 32px;
+      }
+      .section-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8b949e;
+        margin-bottom: 12px;
+        font-weight: 600;
+      }
 
-  /* Pipeline */
-  .pipeline {
-    display: flex; align-items: center; gap: 0;
-    margin-bottom: 24px; flex-wrap: wrap;
-  }
-  .pipeline-arrow {
-    color: #30363d; font-size: 20px; margin: 0 4px;
-    user-select: none;
-  }
+      /* Pipeline */
+      .pipeline {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin-bottom: 24px;
+        flex-wrap: wrap;
+      }
+      .pipeline-arrow {
+        color: #30363d;
+        font-size: 20px;
+        margin: 0 4px;
+        user-select: none;
+      }
 
-  /* Cards */
-  .card-row {
-    display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;
-  }
-  .card {
-    padding: 10px 14px; border-radius: 8px;
-    border: 1px solid #21262d; cursor: pointer;
-    transition: all 0.15s ease; min-width: 180px; max-width: 280px;
-    position: relative;
-  }
-  .card:hover { border-color: #58a6ff; transform: translateY(-1px); }
-  .card.selected { border-color: #58a6ff; box-shadow: 0 0 0 1px #58a6ff; }
-  .card .name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
-  .card .brief { font-size: 11px; color: #8b949e; line-height: 1.4; }
-  .card .step-num {
-    position: absolute; top: -8px; left: -8px;
-    background: #58a6ff; color: #0d1117; font-size: 10px;
-    font-weight: 700; width: 18px; height: 18px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-  }
+      /* Cards */
+      .card-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .card {
+        padding: 10px 14px;
+        border-radius: 8px;
+        border: 1px solid #21262d;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        min-width: 180px;
+        max-width: 280px;
+        position: relative;
+      }
+      .card:hover {
+        border-color: #58a6ff;
+        transform: translateY(-1px);
+      }
+      .card.selected {
+        border-color: #58a6ff;
+        box-shadow: 0 0 0 1px #58a6ff;
+      }
+      .card .name {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 2px;
+      }
+      .card .brief {
+        font-size: 11px;
+        color: #8b949e;
+        line-height: 1.4;
+      }
+      .card .step-num {
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        background: #58a6ff;
+        color: #0d1117;
+        font-size: 10px;
+        font-weight: 700;
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
 
-  /* Status colors */
-  .card.completed { background: #0d1117; border-color: #1a2a1a; opacity: 0.55; }
-  .card.completed .name { color: #3fb950; }
-  .card.completed:hover { opacity: 0.8; }
+      /* Status colors */
+      .card.completed {
+        background: #0d1117;
+        border-color: #1a2a1a;
+        opacity: 0.55;
+      }
+      .card.completed .name {
+        color: #3fb950;
+      }
+      .card.completed:hover {
+        opacity: 0.8;
+      }
 
-  .card.in-progress { background: #1c1a0e; border-color: #3d3520; }
-  .card.in-progress .name { color: #d29922; }
+      .card.in-progress {
+        background: #1c1a0e;
+        border-color: #3d3520;
+      }
+      .card.in-progress .name {
+        color: #d29922;
+      }
 
-  .card.short-term { background: #0d1a2d; border-color: #1a3050; }
-  .card.short-term .name { color: #58a6ff; }
+      .card.short-term {
+        background: #0d1a2d;
+        border-color: #1a3050;
+      }
+      .card.short-term .name {
+        color: #58a6ff;
+      }
 
-  .card.medium-term { background: #151520; border-color: #252540; }
-  .card.medium-term .name { color: #bc8cff; }
+      .card.medium-term {
+        background: #151520;
+        border-color: #252540;
+      }
+      .card.medium-term .name {
+        color: #bc8cff;
+      }
 
-  .card.long-term { background: #12151a; border-color: #21262d; }
-  .card.long-term .name { color: #8b949e; }
+      .card.long-term {
+        background: #12151a;
+        border-color: #21262d;
+      }
+      .card.long-term .name {
+        color: #8b949e;
+      }
 
-  .badge-completed { background: #1a2a1a; color: #3fb950; }
-  .badge-in-progress { background: #1c1a0e; color: #d29922; }
-  .badge-short-term { background: #0d1a2d; color: #58a6ff; }
-  .badge-medium-term { background: #151520; color: #bc8cff; }
-  .badge-long-term { background: #12151a; color: #8b949e; }
+      .badge-completed {
+        background: #1a2a1a;
+        color: #3fb950;
+      }
+      .badge-in-progress {
+        background: #1c1a0e;
+        color: #d29922;
+      }
+      .badge-short-term {
+        background: #0d1a2d;
+        color: #58a6ff;
+      }
+      .badge-medium-term {
+        background: #151520;
+        color: #bc8cff;
+      }
+      .badge-long-term {
+        background: #12151a;
+        color: #8b949e;
+      }
 
-  .dot-completed { background: #3fb950; }
-  .dot-in-progress { background: #d29922; }
-  .dot-short-term { background: #58a6ff; }
-  .dot-medium-term { background: #bc8cff; }
-  .dot-long-term { background: #8b949e; }
+      .dot-completed {
+        background: #3fb950;
+      }
+      .dot-in-progress {
+        background: #d29922;
+      }
+      .dot-short-term {
+        background: #58a6ff;
+      }
+      .dot-medium-term {
+        background: #bc8cff;
+      }
+      .dot-long-term {
+        background: #8b949e;
+      }
 
-  /* Dependency graph SVG */
-  .dep-graph {
-    margin-top: 8px; padding: 20px;
-    background: #161b22; border-radius: 8px; border: 1px solid #21262d;
-  }
-  .dep-graph h3 {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
-    color: #8b949e; margin-bottom: 16px; font-weight: 600;
-  }
-  .dep-node {
-    display: inline-flex; align-items: center; padding: 5px 10px;
-    border-radius: 6px; font-size: 11px; font-weight: 500;
-    margin: 3px; cursor: pointer; transition: all 0.15s;
-  }
-  .dep-node:hover { filter: brightness(1.3); }
-  .dep-node.s-done { background: #1a2a1a; color: #3fb950; }
-  .dep-node.s-wip { background: #1c1a0e; color: #d29922; }
-  .dep-node.s-next { background: #0d1a2d; color: #58a6ff; }
-  .dep-node.s-mid { background: #151520; color: #bc8cff; }
-  .dep-node.s-far { background: #12151a; color: #8b949e; }
-  .dep-row { display: flex; align-items: center; margin-bottom: 6px; }
-  .dep-arrow { color: #30363d; margin: 0 6px; font-size: 14px; }
-  .dep-label { font-size: 10px; color: #484f58; margin-left: 8px; }
-  .dep-group { margin-bottom: 16px; }
-  .dep-group-title { font-size: 10px; color: #484f58; margin-bottom: 6px; }
-  .dep-plus { color: #30363d; margin: 0 4px; font-size: 12px; }
+      /* Dependency graph SVG */
+      .dep-graph {
+        margin-top: 8px;
+        padding: 20px;
+        background: #161b22;
+        border-radius: 8px;
+        border: 1px solid #21262d;
+      }
+      .dep-graph h3 {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #8b949e;
+        margin-bottom: 16px;
+        font-weight: 600;
+      }
+      .dep-node {
+        display: inline-flex;
+        align-items: center;
+        padding: 5px 10px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        margin: 3px;
+        cursor: pointer;
+        transition: all 0.15s;
+      }
+      .dep-node:hover {
+        filter: brightness(1.3);
+      }
+      .dep-node.s-done {
+        background: #1a2a1a;
+        color: #3fb950;
+      }
+      .dep-node.s-wip {
+        background: #1c1a0e;
+        color: #d29922;
+      }
+      .dep-node.s-next {
+        background: #0d1a2d;
+        color: #58a6ff;
+      }
+      .dep-node.s-mid {
+        background: #151520;
+        color: #bc8cff;
+      }
+      .dep-node.s-far {
+        background: #12151a;
+        color: #8b949e;
+      }
+      .dep-row {
+        display: flex;
+        align-items: center;
+        margin-bottom: 6px;
+      }
+      .dep-arrow {
+        color: #30363d;
+        margin: 0 6px;
+        font-size: 14px;
+      }
+      .dep-label {
+        font-size: 10px;
+        color: #484f58;
+        margin-left: 8px;
+      }
+      .dep-group {
+        margin-bottom: 16px;
+      }
+      .dep-group-title {
+        font-size: 10px;
+        color: #484f58;
+        margin-bottom: 6px;
+      }
+      .dep-plus {
+        color: #30363d;
+        margin: 0 4px;
+        font-size: 12px;
+      }
 
-  /* Completed grid */
-  .completed-grid {
-    display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 8px;
-  }
-  .completed-grid .card { min-width: unset; max-width: unset; }
-</style>
-</head>
-<body>
+      /* Completed grid */
+      .completed-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 8px;
+      }
+      .completed-grid .card {
+        min-width: unset;
+        max-width: unset;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>Brains Project Roadmap</h1>
+      <p>Last updated: 2026-04-15 — Click any item for details</p>
+    </div>
 
-<div class="header">
-  <h1>Brains Project Roadmap</h1>
-  <p>Last updated: 2026-04-15 — Click any item for details</p>
-</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-dot dot-completed"></div>
+        Completed
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot dot-in-progress"></div>
+        In Progress
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot dot-short-term"></div>
+        Short-term
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot dot-medium-term"></div>
+        Medium-term
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot dot-long-term"></div>
+        Long-term
+      </div>
+    </div>
 
-<div class="legend">
-  <div class="legend-item"><div class="legend-dot dot-completed"></div> Completed</div>
-  <div class="legend-item"><div class="legend-dot dot-in-progress"></div> In Progress</div>
-  <div class="legend-item"><div class="legend-dot dot-short-term"></div> Short-term</div>
-  <div class="legend-item"><div class="legend-dot dot-medium-term"></div> Medium-term</div>
-  <div class="legend-item"><div class="legend-dot dot-long-term"></div> Long-term</div>
-</div>
+    <div class="main">
+      <div class="graph" id="graph"></div>
+      <div class="detail-panel" id="detail">
+        <button class="close-btn" onclick="closeDetail()">&times;</button>
+        <div id="detail-content"></div>
+      </div>
+    </div>
 
-<div class="main">
-  <div class="graph" id="graph"></div>
-  <div class="detail-panel" id="detail">
-    <button class="close-btn" onclick="closeDetail()">&times;</button>
-    <div id="detail-content"></div>
-  </div>
-</div>
+    <script>
+      const items = [
+        // Completed
+        {
+          id: "v1",
+          name: "Rover v0.1 — yeehaa.io",
+          status: "completed",
+          desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.",
+          date: "2026-01",
+        },
+        {
+          id: "refactor",
+          name: "Codebase Refactor",
+          status: "completed",
+          desc: "Brain model/instance split, layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, barrel export cleanup. ~2,860 lines eliminated.",
+          date: "2026-02/03",
+        },
+        {
+          id: "sites",
+          name: "Site Packages",
+          status: "completed",
+          desc: "Theme + layout + routes into reusable packages. Brain models reference a default site; instances override via brain.yaml.",
+          date: "2026-03",
+        },
+        {
+          id: "presets",
+          name: "Enable-Based Presets",
+          status: "completed",
+          desc: "preset: core | default | full with add/remove. Curated plugin subsets for rover, ranger, relay.",
+          date: "2026-03",
+        },
+        {
+          id: "gitsync",
+          name: "Git-Sync Merge",
+          status: "completed",
+          desc: "Merged into directory-sync. Single plugin: file sync + git ops. withLock(), LeadingTrailingDebounce.",
+          date: "2026-03",
+        },
+        {
+          id: "entitytools",
+          name: "Unified Entity Tools",
+          status: "completed",
+          desc: "system_create/update/delete with prompt-driven routing. Removed ~8 plugin-specific tools.",
+          date: "2026-03",
+        },
+        {
+          id: "imgperf",
+          name: "Image Performance",
+          status: "completed",
+          desc: "Lazy loading, WebP via Sharp, responsive variants, shared images directory, filesystem cache.",
+          date: "2026-03",
+        },
+        {
+          id: "domain",
+          name: "Unified Domain Config",
+          status: "completed",
+          desc: "Single domain in brain.yaml. Identity service derives all URLs.",
+          date: "2026-03",
+        },
+        {
+          id: "entityplugin",
+          name: "EntityPlugin + Consolidation",
+          status: "completed",
+          desc: "New base class. Migrated all content plugins. derive() + system_extract. Series extracted from blog. entities/ workspace.",
+          date: "2026-03",
+        },
+        {
+          id: "mcpbridge",
+          name: "MCP Bridge",
+          status: "completed",
+          desc: "MCPBridgePlugin base class. Spawns upstream MCP servers, discovers tools, prefixes + error isolation. Notion + HackMD.",
+          date: "2026-03",
+        },
+        {
+          id: "a2aasync",
+          name: "A2A Non-Blocking",
+          status: "completed",
+          desc: "Async task flow — return 'working' immediately, caller polls. Stale task protection.",
+          date: "2026-03",
+        },
+        {
+          id: "other",
+          name: "Other (2026-03)",
+          status: "completed",
+          desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.",
+          date: "2026-03",
+        },
+        {
+          id: "sysframework",
+          name: "System Tools as Framework",
+          status: "completed",
+          desc: "Moved system plugin into shell-level registration. Tools, resources, prompts, instructions register directly on shell services. Removed AI from base context.",
+          date: "2026-03",
+        },
+        {
+          id: "prompts",
+          name: "Prompts as Entities",
+          status: "completed",
+          desc: "Prompt entity type with auto-materialization. Defaults emerge from code on first startup, become editable. AI generation resolves prompt entities automatically.",
+          date: "2026-03",
+        },
+        {
+          id: "hierarchy",
+          name: "Plugin Hierarchy Simplification",
+          status: "completed",
+          desc: "Three sibling contexts (BasePluginContext → Entity, Service, Interface). CorePlugin deleted. AI only on EntityPluginContext, templates only on ServicePluginContext. Types renamed.",
+          date: "2026-03",
+        },
+        {
+          id: "blockio",
+          name: "Blocking I/O — Phases 1-2",
+          status: "completed",
+          desc: "Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread evaluated and parked.",
+          date: "2026-03",
+        },
+        {
+          id: "eval",
+          name: "Eval Overhaul",
+          status: "completed",
+          desc: "mode: eval replaces preset: eval. eval.yaml for plugin evals. Three-tier test case loading. Markdown + comparison reporters. Result store with history rollups.",
+          date: "2026-03",
+        },
+        {
+          id: "syncsimplify",
+          name: "Sync Tools Simplification",
+          status: "completed",
+          desc: "Unified sync + status tools. Non-blocking via job queue. Auto-export always on. Orphan cleanup on initial sync. Sync mutex. IGitSync + IDirectorySync interfaces.",
+          date: "2026-03",
+        },
 
-<script>
-const items = [
-  // Completed
-  { id: "v1", name: "Rover v0.1 — yeehaa.io", status: "completed", desc: "Site builder, blog (17 essays, 3 series), decks, portfolio, topics, links, notes, social media, newsletter, analytics, dashboard, Discord/MCP/A2A interfaces, git sync, CMS, Hetzner deploy, 7 themes.", date: "2026-01" },
-  { id: "refactor", name: "Codebase Refactor", status: "completed", desc: "Brain model/instance split, layouts workspace, BaseGenerationJobHandler, BaseEntityDataSource, barrel export cleanup. ~2,860 lines eliminated.", date: "2026-02/03" },
-  { id: "sites", name: "Site Packages", status: "completed", desc: "Theme + layout + routes into reusable packages. Brain models reference a default site; instances override via brain.yaml.", date: "2026-03" },
-  { id: "presets", name: "Enable-Based Presets", status: "completed", desc: "preset: core | default | full with add/remove. Curated plugin subsets for rover, ranger, relay.", date: "2026-03" },
-  { id: "gitsync", name: "Git-Sync Merge", status: "completed", desc: "Merged into directory-sync. Single plugin: file sync + git ops. withLock(), LeadingTrailingDebounce.", date: "2026-03" },
-  { id: "entitytools", name: "Unified Entity Tools", status: "completed", desc: "system_create/update/delete with prompt-driven routing. Removed ~8 plugin-specific tools.", date: "2026-03" },
-  { id: "imgperf", name: "Image Performance", status: "completed", desc: "Lazy loading, WebP via Sharp, responsive variants, shared images directory, filesystem cache.", date: "2026-03" },
-  { id: "domain", name: "Unified Domain Config", status: "completed", desc: "Single domain in brain.yaml. Identity service derives all URLs.", date: "2026-03" },
-  { id: "entityplugin", name: "EntityPlugin + Consolidation", status: "completed", desc: "New base class. Migrated all content plugins. derive() + system_extract. Series extracted from blog. entities/ workspace.", date: "2026-03" },
-  { id: "mcpbridge", name: "MCP Bridge", status: "completed", desc: "MCPBridgePlugin base class. Spawns upstream MCP servers, discovers tools, prefixes + error isolation. Notion + HackMD.", date: "2026-03" },
-  { id: "a2aasync", name: "A2A Non-Blocking", status: "completed", desc: "Async task flow — return 'working' immediately, caller polls. Stale task protection.", date: "2026-03" },
-  { id: "other", name: "Other (2026-03)", status: "completed", desc: "A2A interface, auth phase 1, agent state machine, Varlock, consistent secrets, CMS base notes, rover seed, Obsidian, pre-compiled hydration, mlp deploy, MockShell migration, MCP resources + prompts.", date: "2026-03" },
-  { id: "sysframework", name: "System Tools as Framework", status: "completed", desc: "Moved system plugin into shell-level registration. Tools, resources, prompts, instructions register directly on shell services. Removed AI from base context.", date: "2026-03" },
-  { id: "prompts", name: "Prompts as Entities", status: "completed", desc: "Prompt entity type with auto-materialization. Defaults emerge from code on first startup, become editable. AI generation resolves prompt entities automatically.", date: "2026-03" },
-  { id: "hierarchy", name: "Plugin Hierarchy Simplification", status: "completed", desc: "Three sibling contexts (BasePluginContext → Entity, Service, Interface). CorePlugin deleted. AI only on EntityPluginContext, templates only on ServicePluginContext. Types renamed.", date: "2026-03" },
-  { id: "blockio", name: "Blocking I/O — Phases 1-2", status: "completed", desc: "Async FS in directory-sync and webserver. Webserver moved to child process. Worker thread evaluated and parked.", date: "2026-03" },
-  { id: "eval", name: "Eval Overhaul", status: "completed", desc: "mode: eval replaces preset: eval. eval.yaml for plugin evals. Three-tier test case loading. Markdown + comparison reporters. Result store with history rollups.", date: "2026-03" },
-  { id: "syncsimplify", name: "Sync Tools Simplification", status: "completed", desc: "Unified sync + status tools. Non-blocking via job queue. Auto-export always on. Orphan cleanup on initial sync. Sync mutex. IGitSync + IDirectorySync interfaces.", date: "2026-03" },
+        {
+          id: "toolresource",
+          name: "Tool-to-Resource Migration",
+          status: "completed",
+          desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.",
+          date: "2026-03",
+        },
 
-  { id: "toolresource", name: "Tool-to-Resource Migration", status: "completed", desc: "Removed 5 read-only tools, replaced with MCP resources. Profile + site info embedded in system prompt. Agent invalidated on entity changes.", date: "2026-03" },
+        {
+          id: "targetentity",
+          name: "Target Entity Pattern",
+          status: "completed",
+          desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.",
+          date: "2026-03",
+        },
 
-  { id: "targetentity", name: "Target Entity Pattern", status: "completed", desc: "targetEntityType/targetEntityId as first-class fields on system_create. Options bag removed.", date: "2026-03" },
+        // Rover 0.1 remaining blockers (in progress)
+        {
+          id: "deploymentpath",
+          name: "Deployment Path",
+          status: "short-term",
+          step: 1,
+          desc: "Single track covering both the published @rizom/brain package and the remaining Rizom follow-through. Alpha publishing already runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, and keep the Rizom-specific site cleanup from drifting into unnecessary extraction churn.",
+          blocks: [],
+        },
+        {
+          id: "rizomsites",
+          name: "Rizom Site Follow-through",
+          status: "short-term",
+          step: 2,
+          desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each Rizom app owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts). A separate `rizom-sites` repo is still a later decision, not the current target.",
+          deps: ["deploymentpath"],
+        },
+        {
+          id: "monitoring3",
+          name: "Monitoring — Phase 3",
+          status: "completed",
+          desc: "Usage tracking via structured logs. IEmbeddingService.generateEmbedding() returns {embedding, usage}. AIService and EmbeddingJobHandler log ai:usage events. brain diagnostics usage parses log file, aggregates by provider/model.",
+          date: "2026-04",
+        },
+        // Rover 0.1 blockers now complete
+        {
+          id: "searchembeddings",
+          name: "Search & Embeddings",
+          status: "completed",
+          desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.",
+          date: "2026-04",
+        },
+        {
+          id: "monitoring12",
+          name: "Monitoring — Phases 1-2",
+          status: "completed",
+          desc: "Structured logging (JSON mode + log file, always JSON, stderr by default, noise dropped to debug). Enriched /health with version, uptime, DB status, sync status, AI provider/model/key validity. Configurable via logging: block in brain.yaml.",
+          date: "2026-04",
+        },
+        // Short-term (completed)
+        {
+          id: "stockphoto",
+          name: "Stock Photo Plugin",
+          status: "completed",
+          desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.",
+          date: "2026-03",
+        },
+        {
+          id: "deprecatematrix",
+          name: "Deprecate Matrix",
+          status: "completed",
+          desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.",
+          date: "2026-03",
+        },
+        {
+          id: "agentdir1",
+          name: "Agent Discovery",
+          status: "completed",
+          desc: "Agent contacts + skill entities in entities/agent-discovery/. Agent Card extension. Auto-create on A2A call. Skills derived from topics, served in Agent Card.",
+          date: "2026-04",
+        },
+        {
+          id: "evalcoverage",
+          name: "Eval Coverage",
+          status: "completed",
+          desc: "58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support with per-provider keys.",
+          date: "2026-04",
+        },
+        {
+          id: "topicssimplify",
+          name: "Topics Simplification",
+          status: "completed",
+          desc: "Removed source tracking, added batched deriveAll(), then followed up with stronger canonicalization, heuristic + synthesized auto-merge, bounded metadata-only aliases, and confirmed replace-all topic rebuilds via system_extract.",
+          date: "2026-04",
+        },
+        {
+          id: "unifiedai",
+          name: "Unified AI Config",
+          status: "completed",
+          desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.",
+          date: "2026-04",
+        },
+        {
+          id: "mcpfix",
+          name: "MCP Tool Registry Fix",
+          status: "completed",
+          desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.",
+          date: "2026-04",
+        },
+        {
+          id: "pluginapi",
+          name: "External Plugin API",
+          status: "long-term",
+          desc: "A cleaner external extension story — public subpath exports (@rizom/brain/plugins, /entities, /services, etc.), loading plugins from brain.yaml with env-var interpolation, a plugin API version contract, and at least one reference external plugin with author docs. Not gating v0.2.0 stable.",
+          deps: ["deploymentpath"],
+          blocks: [],
+        },
+        {
+          id: "compositeplugins",
+          name: "Composite Plugins",
+          status: "completed",
+          desc: "CapabilityEntry accepts factories returning Plugin | Plugin[]. brain-resolver flattens arrays. Reference composite @brains/newsletter bundles newsletter-entity + buttondown behind one capability id. Rover migrated. Sub-plugins gated by composite id.",
+          date: "2026-04",
+        },
+        {
+          id: "appsconfigonly",
+          name: "Apps as Lightweight Instance Packages",
+          status: "completed",
+          desc: "apps/* removed from workspace globs. Each apps/<name>/ is now a lightweight instance package centered on brain.yaml, with conventional support files like .env, .env.example, .gitignore, tsconfig.json, package.json, and optional deploy artifacts, consumed by the brain CLI at runtime against the brain model package it references.",
+          date: "2026-04",
+        },
+        {
+          id: "braininit",
+          name: "Brain Init Scaffold",
+          status: "completed",
+          desc: "brain init becomes a real on-ramp: interactive prompts via @clack/prompts, generated brain.yaml defaults to preset: core (minimal viable brain), commented-out directory-sync block users can enable in two lines.",
+          date: "2026-04",
+        },
+        {
+          id: "atproto12",
+          name: "AT Protocol Phases 1-2",
+          status: "short-term",
+          desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.",
+          blocks: ["atproto36"],
+        },
+        {
+          id: "sitebuilder1",
+          name: "Site Builder Phase 1",
+          status: "completed",
+          desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.",
+          date: "2026-03",
+        },
+        {
+          id: "documentation",
+          name: "Documentation Phase 1",
+          status: "completed",
+          desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.",
+          date: "2026-03",
+        },
+        {
+          id: "documentation2",
+          name: "Documentation Phase 2",
+          status: "short-term",
+          step: 3,
+          desc: "Fill the remaining user-facing docs in parallel with deployment polish and rizom site follow-through: entity type reference, content-management guidance, interface setup guides, and deeper customization docs for themes, layouts, and plugins.",
+        },
 
-  // Rover 0.1 remaining blockers (in progress)
-  { id: "deploymentpath", name: "Deployment Path", status: "short-term", step: 1, desc: "Single track covering both the published @rizom/brain package and the remaining Rizom follow-through. Alpha publishing already runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, and keep the Rizom-specific site cleanup from drifting into unnecessary extraction churn.", blocks: [] },
-  { id: "rizomsites", name: "Rizom Site Follow-through", status: "short-term", step: 2, desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each Rizom app owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts). A separate `rizom-sites` repo is still a later decision, not the current target.", deps: ["deploymentpath"] },
-  { id: "monitoring3", name: "Monitoring — Phase 3", status: "completed", desc: "Usage tracking via structured logs. IEmbeddingService.generateEmbedding() returns {embedding, usage}. AIService and EmbeddingJobHandler log ai:usage events. brain diagnostics usage parses log file, aggregates by provider/model.", date: "2026-04" },
-  // Rover 0.1 blockers now complete
-  { id: "searchembeddings", name: "Search & Embeddings", status: "completed", desc: "Separate embedding DB, online OpenAI embeddings (text-embedding-3-small), FTS5 hybrid search, threshold tuning. ONNX/fastembed removed — no native embedding deps in bundle. All 4 phases complete.", date: "2026-04" },
-  { id: "monitoring12", name: "Monitoring — Phases 1-2", status: "completed", desc: "Structured logging (JSON mode + log file, always JSON, stderr by default, noise dropped to debug). Enriched /health with version, uptime, DB status, sync status, AI provider/model/key validity. Configurable via logging: block in brain.yaml.", date: "2026-04" },
-  // Short-term (completed)
-  { id: "stockphoto", name: "Stock Photo Plugin", status: "completed", desc: "ServicePlugin with provider abstraction. Unsplash first provider. stock-photo_search + stock-photo_select. Dedup, cover targeting, ToS download tracking.", date: "2026-03" },
-  { id: "deprecatematrix", name: "Deprecate Matrix", status: "completed", desc: "Removed. Matrix interface deleted from codebase, brain models, Docker build, and docs.", date: "2026-03" },
-  { id: "agentdir1", name: "Agent Discovery", status: "completed", desc: "Agent contacts + skill entities in entities/agent-discovery/. Agent Card extension. Auto-create on A2A call. Skills derived from topics, served in Agent Card.", date: "2026-04" },
-  { id: "evalcoverage", name: "Eval Coverage", status: "completed", desc: "58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support with per-provider keys.", date: "2026-04" },
-  { id: "topicssimplify", name: "Topics Simplification", status: "completed", desc: "Removed source tracking, added batched deriveAll(), then followed up with stronger canonicalization, heuristic + synthesized auto-merge, bounded metadata-only aliases, and confirmed replace-all topic rebuilds via system_extract.", date: "2026-04" },
-  { id: "unifiedai", name: "Unified AI Config", status: "completed", desc: "AI_API_KEY single env var. Provider auto-detected from model name. Default: gpt-4.1. AI_IMAGE_KEY for separate image key.", date: "2026-04" },
-  { id: "mcpfix", name: "MCP Tool Registry Fix", status: "completed", desc: "registerTool() always stores in internal registry. Prevents interface permission level from dropping anchor tools. Eval 58% → 96%.", date: "2026-04" },
-  { id: "pluginapi", name: "External Plugin API", status: "long-term", desc: "A cleaner external extension story — public subpath exports (@rizom/brain/plugins, /entities, /services, etc.), loading plugins from brain.yaml with env-var interpolation, a plugin API version contract, and at least one reference external plugin with author docs. Not gating v0.2.0 stable.", deps: ["deploymentpath"], blocks: [] },
-  { id: "compositeplugins", name: "Composite Plugins", status: "completed", desc: "CapabilityEntry accepts factories returning Plugin | Plugin[]. brain-resolver flattens arrays. Reference composite @brains/newsletter bundles newsletter-entity + buttondown behind one capability id. Rover migrated. Sub-plugins gated by composite id.", date: "2026-04" },
-  { id: "appsconfigonly", name: "Apps as Lightweight Instance Packages", status: "completed", desc: "apps/* removed from workspace globs. Each apps/<name>/ is now a lightweight instance package centered on brain.yaml, with conventional support files like .env, .env.example, .gitignore, tsconfig.json, package.json, and optional deploy artifacts, consumed by the brain CLI at runtime against the brain model package it references.", date: "2026-04" },
-  { id: "braininit", name: "Brain Init Scaffold", status: "completed", desc: "brain init becomes a real on-ramp: interactive prompts via @clack/prompts, generated brain.yaml defaults to preset: core (minimal viable brain), commented-out directory-sync block users can enable in two lines.", date: "2026-04" },
-  { id: "atproto12", name: "AT Protocol Phases 1-2", status: "short-term", desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.", blocks: ["atproto36"] },
-  { id: "sitebuilder1", name: "Site Builder Phase 1", status: "completed", desc: "Parallel route rendering with pLimit(4). Routes are independent — different paths, content, output files. Sequential for...of replaced with pLimit(4) + Promise.all.", date: "2026-03" },
-  { id: "documentation", name: "Documentation Phase 1", status: "completed", desc: "User-facing docs in packages/brain-cli/docs/: getting started, brain.yaml reference, CLI reference, deployment guide.", date: "2026-03" },
-  { id: "documentation2", name: "Documentation Phase 2", status: "short-term", step: 3, desc: "Fill the remaining user-facing docs in parallel with deployment polish and rizom site follow-through: entity type reference, content-management guidance, interface setup guides, and deeper customization docs for themes, layouts, and plugins." },
+        {
+          id: "publicrelease",
+          name: "Public Repo Cleanup",
+          status: "long-term",
+          desc: "A separate project from version stability. Archive-and-rename the private repo to rizom-ai/brains with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the plugin and docs stories are settled.",
+          blocks: [],
+        },
 
-  { id: "publicrelease", name: "Public Repo Cleanup", status: "long-term", desc: "A separate project from version stability. Archive-and-rename the private repo to rizom-ai/brains with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the plugin and docs stories are settled.", blocks: [] },
+        {
+          id: "createinterceptors",
+          name: "Plugin Create Interceptors",
+          status: "completed",
+          desc: "Plugins can override system_create per entity type via EntityPlugin.interceptCreate. Link capture + image cover-target resolution moved out of core into their respective plugins. CreateInterceptor type + registry in @brains/entity-service.",
+          date: "2026-04",
+        },
+        {
+          id: "kbcontextoptin",
+          name: "Knowledge-Context Opt-In",
+          status: "completed",
+          desc: "AI templates explicitly opt in to knowledge-base context via useKnowledgeContext: true, replacing an implicit default that embedded full fetched content as search queries and caused 8192-token OpenAI overflows on long extractive prompts (link:extraction with Wikipedia).",
+          date: "2026-04",
+        },
+        {
+          id: "fleetops",
+          name: "Multi-User Fleet Ops (@rizom/ops)",
+          status: "completed",
+          desc: "Operator-managed rover fleets: shared wildcard TLS with <handle>-preview.<zone> preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths.",
+          date: "2026-04",
+        },
+        {
+          id: "rizomvariantsplit",
+          name: "Rizom Site Variant Split",
+          status: "completed",
+          desc: "rizom.ai, rizom.foundation, and rizom.work each own their final route composition and section templates from app-local `src/site.ts`. Shared Rizom UI, runtime, and ecosystem code now live in `sites/rizom`, while `shared/theme-rizom` stays separate with additive app-local theme overrides where needed.",
+          date: "2026-04",
+        },
+        {
+          id: "namingcleanup",
+          name: "Naming Cleanup",
+          status: "completed",
+          desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.",
+          date: "2026-03",
+        },
+        {
+          id: "changesets",
+          name: "Changesets + Versioning",
+          status: "completed",
+          desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.",
+          date: "2026-04",
+        },
+        {
+          id: "contentinsights",
+          name: "Content Insights",
+          status: "completed",
+          desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().",
+          date: "2026-03",
+        },
+        {
+          id: "entityhistory",
+          name: "Entity History",
+          status: "completed",
+          desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.",
+          date: "2026-03",
+        },
 
-  { id: "createinterceptors", name: "Plugin Create Interceptors", status: "completed", desc: "Plugins can override system_create per entity type via EntityPlugin.interceptCreate. Link capture + image cover-target resolution moved out of core into their respective plugins. CreateInterceptor type + registry in @brains/entity-service.", date: "2026-04" },
-  { id: "kbcontextoptin", name: "Knowledge-Context Opt-In", status: "completed", desc: "AI templates explicitly opt in to knowledge-base context via useKnowledgeContext: true, replacing an implicit default that embedded full fetched content as search queries and caused 8192-token OpenAI overflows on long extractive prompts (link:extraction with Wikipedia).", date: "2026-04" },
-  { id: "fleetops", name: "Multi-User Fleet Ops (@rizom/ops)", status: "completed", desc: "Operator-managed rover fleets: shared wildcard TLS with <handle>-preview.<zone> preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths.", date: "2026-04" },
-  { id: "rizomvariantsplit", name: "Rizom Site Variant Split", status: "completed", desc: "rizom.ai, rizom.foundation, and rizom.work each own their final route composition and section templates via thin wrapper packages. Shared UI, runtime, and ecosystem code now live in dedicated shared packages.", date: "2026-04" },
-  { id: "namingcleanup", name: "Naming Cleanup", status: "completed", desc: "Removed 'Personal Brain' from 60+ files. Updated READMEs, package.json descriptions, docs, source code.", date: "2026-03" },
-  { id: "changesets", name: "Changesets + Versioning", status: "completed", desc: "Automated versioning with Changesets, changelog generation, npm publish workflow. 62 internal @brains/* packages marked private. GitHub Actions release workflow creates Version Packages PRs.", date: "2026-04" },
-  { id: "contentinsights", name: "Content Insights", status: "completed", desc: "Extensible system_insights tool with InsightsRegistry. Core provides overview, publishing-cadence, content-health. Topics plugin registers topic-distribution. Analytics registers traffic-overview. Plugins extend via context.insights.register().", date: "2026-03" },
-  { id: "entityhistory", name: "Entity History", status: "completed", desc: "directory-sync_history tool — log() and show() on IGitSync. List commit history for any entity, retrieve content at specific version. No new storage.", date: "2026-03" },
+        // Medium-term
+        {
+          id: "chatsdk",
+          name: "Chat SDK Migration",
+          status: "medium-term",
+          desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.",
+          blocks: ["hostedrovers", "desktopapp"],
+        },
+        {
+          id: "atproto36",
+          name: "AT Protocol Phases 3-6",
+          status: "medium-term",
+          desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.",
+          deps: ["atproto12"],
+          blocks: ["hostedrovers"],
+        },
+        {
+          id: "agentdir2",
+          name: "Agent Directory Phase 2",
+          status: "medium-term",
+          desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.",
+          deps: ["atproto36", "agentdir1"],
+        },
+        {
+          id: "a2aauth",
+          name: "A2A Auth Phase 2+",
+          status: "medium-term",
+          desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS.",
+        },
+        {
+          id: "monitoring",
+          name: "Monitoring — Post-Release",
+          status: "medium-term",
+          desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.",
+          deps: ["deploymentpath", "monitoring3"],
+        },
+        {
+          id: "compiledbinaries",
+          name: "Compiled Binaries",
+          status: "medium-term",
+          desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.",
+          deps: ["deploymentpath"],
+        },
+        {
+          id: "hostedrovers",
+          name: "Hosted Rovers",
+          status: "medium-term",
+          desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.",
+          deps: ["atproto36", "chatsdk", "mediasidecar"],
+        },
+        {
+          id: "mediasidecar",
+          name: "Local AI Runtime",
+          status: "medium-term",
+          desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.",
+          blocks: ["hostedrovers", "desktopapp"],
+        },
+        {
+          id: "searchrerank",
+          name: "Search Reranking",
+          status: "medium-term",
+          desc: "Cross-encoder re-scoring of top-N results. Depends on local AI runtime.",
+          deps: ["mediasidecar"],
+        },
+        {
+          id: "monetization",
+          name: "Monetization",
+          status: "medium-term",
+          desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.",
+          deps: ["deploymentpath"],
+        },
+        {
+          id: "multiuser",
+          name: "Multi-User & Permissions",
+          status: "medium-term",
+          desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.",
+          blocks: [],
+        },
+        {
+          id: "sitebuilder24",
+          name: "Site Builder Phases 2-4",
+          status: "medium-term",
+          desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.",
+          blocks: ["astro"],
+        },
 
-  // Medium-term
-  { id: "chatsdk", name: "Chat SDK Migration", status: "medium-term", desc: "Replace Discord with unified ChatInterface using Vercel Chat SDK.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "atproto36", name: "AT Protocol Phases 3-6", status: "medium-term", desc: "Inbound ingestion, decentralized discovery, cross-brain feeds, ambient federation.", deps: ["atproto12"], blocks: ["hostedrovers"] },
-  { id: "agentdir2", name: "Agent Directory Phase 2", status: "medium-term", desc: "AT Protocol discovery — auto-discover peers via Jetstream brain cards.", deps: ["atproto36", "agentdir1"] },
-  { id: "a2aauth", name: "A2A Auth Phase 2+", status: "medium-term", desc: "OAuth 2.0 Client Credentials, then Cloudflare mTLS." },
-  { id: "monitoring", name: "Monitoring — Post-Release", status: "medium-term", desc: "Builds on Phases 1-2 (done) and Phase 3 (usage tracking). Health dashboard polling enriched /health, log aggregation (JSON → central store), alerting (brain down, build failed, sync stuck, key expired, disk full), web dashboard with usage charts, remote heartbeat for fleet-wide view. Needed once Kamal deploys are live.", deps: ["deploymentpath", "monitoring3"] },
-  { id: "compiledbinaries", name: "Compiled Binaries", status: "medium-term", desc: "Standalone executables via bun build --compile. CLI binary works (101MB). Brain model needs path fix. Alternative to npm.", deps: ["deploymentpath"] },
-  { id: "hostedrovers", name: "Hosted Rovers", status: "medium-term", desc: "Ranger provisions, K8s runs. Hetzner K8s, Ingress-NGINX, scale-to-zero, Turso per-rover DBs.", deps: ["atproto36", "chatsdk", "mediasidecar"] },
-  { id: "mediasidecar", name: "Local AI Runtime", status: "medium-term", desc: "Sidecar process for AI/ML. Removes fastembed from brain model package. Enables offline brains and cheaper hosted rovers.", blocks: ["hostedrovers", "desktopapp"] },
-  { id: "searchrerank", name: "Search Reranking", status: "medium-term", desc: "Cross-encoder re-scoring of top-N results. Depends on local AI runtime.", deps: ["mediasidecar"] },
-  { id: "monetization", name: "Monetization", status: "medium-term", desc: "Open core + managed hosting. Free self-hosted, paid hosted rovers ($15-50/month). Stripe billing.", deps: ["deploymentpath"] },
-  { id: "multiuser", name: "Multi-User & Permissions", status: "medium-term", desc: "User entities with cross-interface identity. Team brains, audit trails. Backward compatible.", blocks: [] },
-  { id: "sitebuilder24", name: "Site Builder Phases 2-4", status: "medium-term", desc: "Extract @brains/site-engine with renderer-agnostic SiteEngineServices interface.", blocks: ["astro"] },
+        // Long-term
+        {
+          id: "astro",
+          name: "Astro Migration",
+          status: "long-term",
+          desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Depends on site-builder phases 2-4.",
+          deps: ["sitebuilder24"],
+        },
+        {
+          id: "desktopapp",
+          name: "Desktop App (Electrobun)",
+          status: "long-term",
+          desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat.",
+          deps: ["chatsdk", "mediasidecar"],
+        },
+        {
+          id: "agentregistry",
+          name: "Ranger as Agent Registry",
+          status: "long-term",
+          desc: "Central discovery: brains search ranger for agents by capability. Builds on AT Protocol discovery + hosted rovers.",
+        },
+        {
+          id: "webui",
+          name: "Web UI",
+          status: "long-term",
+          desc: "Browser interface beyond static site.",
+        },
+        {
+          id: "obsidian",
+          name: "Obsidian Community Plugin",
+          status: "long-term",
+          desc: "Chat, publish, generate from inside Obsidian via MCP HTTP.",
+        },
+      ];
 
-  // Long-term
-  { id: "astro", name: "Astro Migration", status: "long-term", desc: "Replace Preact builder with Astro behind SiteEngineServices interface. Depends on site-builder phases 2-4.", deps: ["sitebuilder24"] },
-  { id: "desktopapp", name: "Desktop App (Electrobun)", status: "long-term", desc: "Native desktop app. Brain IS the main process. Tray icon, dashboard, config, local CMS (Sveltia, no OAuth), optional chat.", deps: ["chatsdk", "mediasidecar"] },
-  { id: "agentregistry", name: "Ranger as Agent Registry", status: "long-term", desc: "Central discovery: brains search ranger for agents by capability. Builds on AT Protocol discovery + hosted rovers." },
-  { id: "webui", name: "Web UI", status: "long-term", desc: "Browser interface beyond static site." },
-  { id: "obsidian", name: "Obsidian Community Plugin", status: "long-term", desc: "Chat, publish, generate from inside Obsidian via MCP HTTP." },
-];
+      const statusLabels = {
+        completed: "Completed",
+        "in-progress": "In Progress",
+        "short-term": "Short-term",
+        "medium-term": "Medium-term",
+        "long-term": "Long-term",
+      };
 
-const statusLabels = {
-  "completed": "Completed",
-  "in-progress": "In Progress",
-  "short-term": "Short-term",
-  "medium-term": "Medium-term",
-  "long-term": "Long-term"
-};
+      const badgeClass = {
+        completed: "badge-completed",
+        "in-progress": "badge-in-progress",
+        "short-term": "badge-short-term",
+        "medium-term": "badge-medium-term",
+        "long-term": "badge-long-term",
+      };
 
-const badgeClass = {
-  "completed": "badge-completed",
-  "in-progress": "badge-in-progress",
-  "short-term": "badge-short-term",
-  "medium-term": "badge-medium-term",
-  "long-term": "badge-long-term"
-};
+      let selectedId = null;
 
-let selectedId = null;
-
-function renderCard(item) {
-  const sel = selectedId === item.id ? " selected" : "";
-  const stepHtml = item.step ? `<div class="step-num">${item.step}</div>` : "";
-  return `<div class="card ${item.status}${sel}" onclick="selectItem('${item.id}')" id="card-${item.id}">
+      function renderCard(item) {
+        const sel = selectedId === item.id ? " selected" : "";
+        const stepHtml = item.step
+          ? `<div class="step-num">${item.step}</div>`
+          : "";
+        return `<div class="card ${item.status}${sel}" onclick="selectItem('${item.id}')" id="card-${item.id}">
     ${stepHtml}
     <div class="name">${item.name}</div>
     <div class="brief">${item.desc.slice(0, 80)}${item.desc.length > 80 ? "…" : ""}</div>
   </div>`;
-}
+      }
 
-function render() {
-  const graph = document.getElementById("graph");
+      function render() {
+        const graph = document.getElementById("graph");
 
-  const completed = items.filter(i => i.status === "completed");
-  const inProgress = items.filter(i => i.status === "in-progress");
-  const pipeline = items.filter(i => i.status === "short-term" && i.step).sort((a, b) => a.step - b.step);
-  const independent = items.filter(i => i.status === "short-term" && !i.step);
-  const medium = items.filter(i => i.status === "medium-term");
-  const long = items.filter(i => i.status === "long-term");
+        const completed = items.filter((i) => i.status === "completed");
+        const inProgress = items.filter((i) => i.status === "in-progress");
+        const pipeline = items
+          .filter((i) => i.status === "short-term" && i.step)
+          .sort((a, b) => a.step - b.step);
+        const independent = items.filter(
+          (i) => i.status === "short-term" && !i.step,
+        );
+        const medium = items.filter((i) => i.status === "medium-term");
+        const long = items.filter((i) => i.status === "long-term");
 
-  let html = "";
+        let html = "";
 
-  // In Progress
-  if (inProgress.length) {
-    html += `<div class="section">
+        // In Progress
+        if (inProgress.length) {
+          html += `<div class="section">
       <div class="section-title">In Progress</div>
       <div class="card-row">${inProgress.map(renderCard).join("")}</div>
     </div>`;
-  }
+        }
 
-  // Pipeline (only shown if any items carry explicit step numbers)
-  if (pipeline.length) {
-    html += `<div class="section">
+        // Pipeline (only shown if any items carry explicit step numbers)
+        if (pipeline.length) {
+          html += `<div class="section">
       <div class="section-title">Short-term Pipeline (sequential)</div>
       <div class="pipeline">
-        ${pipeline.map((item, i) =>
-          renderCard(item) + (i < pipeline.length - 1 ? '<span class="pipeline-arrow">→</span>' : "")
-        ).join("")}
+        ${pipeline
+          .map(
+            (item, i) =>
+              renderCard(item) +
+              (i < pipeline.length - 1
+                ? '<span class="pipeline-arrow">→</span>'
+                : ""),
+          )
+          .join("")}
       </div>
     </div>`;
-  }
+        }
 
-  // Independent
-  if (independent.length) {
-    html += `<div class="section">
+        // Independent
+        if (independent.length) {
+          html += `<div class="section">
       <div class="section-title">Short-term (independent)</div>
       <div class="card-row">${independent.map(renderCard).join("")}</div>
     </div>`;
-  }
+        }
 
-  // Dependency Graph
-  html += `<div class="dep-graph">
+        // Dependency Graph
+        html += `<div class="dep-graph">
     <h3>Dependency Graph</h3>
     <div class="dep-group">
       <div class="dep-group-title">Near-term priorities</div>
@@ -430,20 +1065,20 @@ function render() {
     </div>
   </div>`;
 
-  // Medium-term
-  html += `<div class="section" style="margin-top:24px">
+        // Medium-term
+        html += `<div class="section" style="margin-top:24px">
     <div class="section-title">Medium-term</div>
     <div class="card-row">${medium.map(renderCard).join("")}</div>
   </div>`;
 
-  // Long-term
-  html += `<div class="section">
+        // Long-term
+        html += `<div class="section">
     <div class="section-title">Long-term</div>
     <div class="card-row">${long.map(renderCard).join("")}</div>
   </div>`;
 
-  // Completed (collapsed by default)
-  html += `<div class="section">
+        // Completed (collapsed by default)
+        html += `<div class="section">
     <div class="section-title" style="cursor:pointer" onclick="toggleCompleted()">
       Completed (${completed.length}) <span id="toggle-arrow">▸</span>
     </div>
@@ -452,71 +1087,77 @@ function render() {
     </div>
   </div>`;
 
-  graph.innerHTML = html;
-}
+        graph.innerHTML = html;
+      }
 
-function toggleCompleted() {
-  const grid = document.getElementById("completed-grid");
-  const arrow = document.getElementById("toggle-arrow");
-  if (grid.style.display === "none") {
-    grid.style.display = "grid";
-    arrow.textContent = "▾";
-  } else {
-    grid.style.display = "none";
-    arrow.textContent = "▸";
-  }
-}
+      function toggleCompleted() {
+        const grid = document.getElementById("completed-grid");
+        const arrow = document.getElementById("toggle-arrow");
+        if (grid.style.display === "none") {
+          grid.style.display = "grid";
+          arrow.textContent = "▾";
+        } else {
+          grid.style.display = "none";
+          arrow.textContent = "▸";
+        }
+      }
 
-function selectItem(id) {
-  selectedId = id;
-  const item = items.find(i => i.id === id);
-  if (!item) return;
+      function selectItem(id) {
+        selectedId = id;
+        const item = items.find((i) => i.id === id);
+        if (!item) return;
 
-  const panel = document.getElementById("detail");
-  const content = document.getElementById("detail-content");
+        const panel = document.getElementById("detail");
+        const content = document.getElementById("detail-content");
 
-  const deps = (item.deps || []).map(d => items.find(i => i.id === d)).filter(Boolean);
-  const blocks = items.filter(i => (i.deps || []).includes(id));
+        const deps = (item.deps || [])
+          .map((d) => items.find((i) => i.id === d))
+          .filter(Boolean);
+        const blocks = items.filter((i) => (i.deps || []).includes(id));
 
-  let html = `
+        let html = `
     <h2>${item.name}</h2>
     <div class="status-badge ${badgeClass[item.status]}">${statusLabels[item.status]}${item.step ? ` — Step ${item.step}` : ""}${item.date ? ` — ${item.date}` : ""}</div>
     <div class="desc">${item.desc}</div>
   `;
 
-  if (deps.length) {
-    html += `<div class="deps">
+        if (deps.length) {
+          html += `<div class="deps">
       <h3>Depends on</h3>
-      ${deps.map(d => `<div class="dep-item" onclick="selectItem('${d.id}')">${d.name}</div>`).join("")}
+      ${deps.map((d) => `<div class="dep-item" onclick="selectItem('${d.id}')">${d.name}</div>`).join("")}
     </div>`;
-  }
+        }
 
-  if (blocks.length) {
-    html += `<div class="deps">
+        if (blocks.length) {
+          html += `<div class="deps">
       <h3>Unblocks</h3>
-      ${blocks.map(b => `<div class="dep-item" onclick="selectItem('${b.id}')">${b.name}</div>`).join("")}
+      ${blocks.map((b) => `<div class="dep-item" onclick="selectItem('${b.id}')">${b.name}</div>`).join("")}
     </div>`;
-  }
+        }
 
-  content.innerHTML = html;
-  panel.classList.add("open");
+        content.innerHTML = html;
+        panel.classList.add("open");
 
-  // Highlight card
-  document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
-  const card = document.getElementById(`card-${id}`);
-  if (card) {
-    card.classList.add("selected");
-    card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-  }
-}
+        // Highlight card
+        document
+          .querySelectorAll(".card")
+          .forEach((c) => c.classList.remove("selected"));
+        const card = document.getElementById(`card-${id}`);
+        if (card) {
+          card.classList.add("selected");
+          card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
 
-function closeDetail() {
-  document.getElementById("detail").classList.remove("open");
-  document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
-  selectedId = null;
-}
+      function closeDetail() {
+        document.getElementById("detail").classList.remove("open");
+        document
+          .querySelectorAll(".card")
+          .forEach((c) => c.classList.remove("selected"));
+        selectedId = null;
+      }
 
-render();
-</script>
-</body>
+      render();
+    </script>
+  </body>
 </html>

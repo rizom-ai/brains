@@ -59,7 +59,7 @@ Plan:
 
 ### 2. Rizom site variant follow-through
 
-The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Extraction into a separate `rizom-sites` repo is still a later decision, not the current target.
+The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. Extraction into a separate `rizom-sites` repo is still a later decision, not the current target.
 
 Focus areas:
 

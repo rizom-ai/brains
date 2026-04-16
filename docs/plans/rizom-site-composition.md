@@ -37,85 +37,46 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 - `sites/rizom` now exists as the shared Rizom site core.
 - `sites/rizom` now owns the shared Rizom runtime, UI, and ecosystem seams.
 - `shared/theme-rizom` remains the separate shared theme.
+- additive app-local theme layering now exists via `site.themeOverride`, so local `src/theme.css` appends after the shared base theme instead of replacing it.
+- `apps/rizom-foundation/src/theme.css` and `apps/rizom-work/src/theme.css` now own app-specific polish; `rizom.ai` currently does not need a local theme override file.
+- `shared/theme-rizom` now keeps shared Rizom family tokens, utilities, variant semantics, and current-site ecosystem semantics rather than app-specific section styling.
 - All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
 
-The main architectural cleanup is now complete: `sites/rizom` is the single shared Rizom source package, the old wrapper packages are gone, and the old Rizom-only shared packages have been removed.
+The main architectural cleanup is now complete: `sites/rizom` is the single shared Rizom source package, the old wrapper packages are gone, the old Rizom-only shared packages have been removed, and the shared-vs-local theme boundary is now in the intended shape.
 
-## Follow-on theme cleanup plan
+## Theme follow-through status
 
-The next Rizom-specific cleanup should mirror the site work, but without turning app-local theme files into full theme forks.
+The theme follow-through is now complete enough to stop treating it as a separate architecture phase.
 
-### Problem statement
+What landed:
 
-`shared/theme-rizom` currently mixes three layers of concern:
+- minimal runtime support for shared base theme + additive local override layering
+- app-local theme ownership for the two apps that actually need it:
+  - `apps/rizom-foundation/src/theme.css`
+  - `apps/rizom-work/src/theme.css`
+- no forced `apps/rizom-ai/src/theme.css` fork; `rizom.ai` continues to use the shared theme directly
+- a reduction in bespoke `foundation-*` and `work-*` hook selectors by moving section-local styling into JSX/Tailwind and app-local CSS variables
+- a narrower `shared/theme-rizom` that now holds:
+  - shared palette + semantic tokens
+  - shared typography/utilities
+  - shared variant semantics (`ai`, `foundation`, `work`)
+  - shared current-site ecosystem-card semantics
 
-- true shared Rizom theme foundations (palette, semantic tokens, shared utilities, shared typography scale)
-- shared variant-level differences (`ai`, `foundation`, `work`) that are still genuinely part of the Rizom family theme
-- app-specific visual overrides and polish, especially in the large `foundation-*` and `work-*` selector blocks
+Resulting boundary:
 
-That means the shared theme has drifted away from a reusable base and now owns styling that really belongs with individual apps.
+- `shared/theme-rizom` owns family-level semantics
+- app-local `src/theme.css` owns only app-specific polish
+- app-local JSX owns section-local layout/styling whenever that is clearer than maintaining a second CSS API
 
-### Goal
+Remaining work here is no longer architectural cleanup. It is normal product/content polish tracked elsewhere (for example CTA destinations, newsletter/quiz/contact details in `docs/plans/rizom-site-tbd.md`).
 
-Keep `shared/theme-rizom` as the shared Rizom base theme, but move app-specific overrides into app-local `src/theme.css` files, using Tailwind utilities and semantic CSS variables wherever possible.
-
-Target shape:
-
-- `shared/theme-rizom` owns shared palette tokens, semantic tokens, shared utilities, and only genuinely shared variant semantics
-- `apps/rizom-ai/src/theme.css` owns any ai-only polish that is not truly shared
-- `apps/rizom-foundation/src/theme.css` owns foundation-specific visual overrides
-- `apps/rizom-work/src/theme.css` owns work-specific visual overrides
-- app-local theme files should be additive override layers, not copies of the shared theme
-
-### Required runtime support
-
-Today, local `src/theme.css` is a replacement convention when `site.theme` is omitted. That is the wrong shape for the Rizom cleanup because it would force each app to duplicate the shared theme.
-
-Before moving CSS, add minimal support for **base theme + local override layering** so that an app can keep using `@brains/theme-rizom` while also appending its own local `src/theme.css` after the shared theme.
-
-That layering support should stay minimal:
-
-- preserve the existing independent site/theme contract
-- avoid inventing a new theme abstraction system
-- make local theme CSS additive, not a second package boundary
-
-### Safe implementation order
-
-1. Add minimal runtime support for shared theme + local override layering.
-2. Validate that local `src/theme.css` can append after the shared theme without replacing it.
-3. Audit `shared/theme-rizom/src/theme.css` and classify rules into:
-   - shared base tokens/utilities
-   - shared Rizom variant semantics
-   - app-specific overrides
-4. Move app-specific blocks into app-local theme files:
-   - foundation-specific selectors → `apps/rizom-foundation/src/theme.css`
-   - work-specific selectors → `apps/rizom-work/src/theme.css`
-   - ai-specific selectors only if needed
-5. While moving rules, prefer:
-   - Tailwind utilities in components when styling is already component-local
-   - semantic CSS variables instead of repeating literal colors
-   - shared theme tokens only when something is truly common to all Rizom apps
-6. Re-run visual and runtime checks before deleting any moved rules from `shared/theme-rizom`.
-
-### Validation
-
-Use the lightest checks that prove the boundary is correct:
-
-- tests around conventional theme loading / entrypoint generation if the layering contract changes
-- targeted lint/typecheck for the touched theme/runtime files
-- boot each Rizom app and verify:
-  - shared base theme still loads
-  - local app overrides apply on top
-  - no app silently falls back to a duplicated standalone theme fork
-- visual spot-check for `rizom.ai`, `rizom.foundation`, and `rizom.work`
-
-### Discipline rules
+### Discipline rules retained after the cleanup
 
 - Do not collapse `shared/theme-rizom` into `sites/rizom`
 - Do not turn local `src/theme.css` into full copies of the shared theme
 - Do not introduce a new config-heavy theme framework
-- Do not keep app-specific selectors in the shared theme once a local override layer exists
-- Prefer Tailwind + CSS variables over bespoke one-off literals when cleaning drift
+- Keep app-specific section styling out of the shared theme unless it genuinely becomes common across the whole Rizom family
+- Prefer Tailwind + CSS variables over bespoke one-off literals when cleaning future drift
 
 ## Implementation prep
 
