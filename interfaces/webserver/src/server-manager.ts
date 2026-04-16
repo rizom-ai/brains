@@ -1,10 +1,16 @@
 import type { Logger } from "@brains/utils";
-import type { AppInfo, RegisteredWebRoute } from "@brains/plugins";
+import type {
+  AppInfo,
+  RegisteredApiRoute,
+  RegisteredWebRoute,
+  IMessageBus,
+} from "@brains/plugins";
 import { resolve, join } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
 import { compress } from "@hono/bun-compress";
 import { etag } from "hono/etag";
+import { createApiRouteHandler } from "./api-server";
 
 export interface ServerManagerOptions {
   logger: Logger;
@@ -17,6 +23,10 @@ export interface ServerManagerOptions {
   getHealthData?: () => Promise<AppInfo>;
   /** Plugin-contributed web routes mounted on the shared host. */
   webRoutes?: RegisteredWebRoute[];
+  /** Plugin-contributed API routes mounted on the shared host. */
+  apiRoutes?: RegisteredApiRoute[];
+  /** Message bus used to execute plugin API routes. */
+  messageBus?: IMessageBus;
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
@@ -183,6 +193,23 @@ export class ServerManager {
             app.get(route.fullPath, handler);
             break;
         }
+      }
+    }
+
+    if (
+      opts.healthEndpoint &&
+      this.options.apiRoutes &&
+      this.options.messageBus
+    ) {
+      for (const route of this.options.apiRoutes) {
+        const handler = createApiRouteHandler(route, this.options.messageBus);
+        const method = route.definition.method.toLowerCase() as
+          | "get"
+          | "post"
+          | "put"
+          | "delete";
+
+        app[method](route.fullPath, handler);
       }
     }
 

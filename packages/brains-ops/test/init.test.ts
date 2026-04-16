@@ -292,6 +292,7 @@ describe("initPilotRepo", () => {
     expect(caddyfile).not.toContain("handle /mcp* {");
     expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
     expect(caddyfile).not.toContain("handle /a2a {");
+    expect(caddyfile).not.toContain("handle /api/* {");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
     expect(caddyfile).not.toContain("localhost:3334");
 

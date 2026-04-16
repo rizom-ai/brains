@@ -42,12 +42,13 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 
-  it("does not need per-protocol proxy blocks for shared-host routes", () => {
+  it("does not need protocol or api-specific proxy blocks for shared-host routes", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
     expect(caddyfile).not.toContain("handle /mcp* {");
     expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
     expect(caddyfile).not.toContain("handle /a2a {");
+    expect(caddyfile).not.toContain("handle /api/* {");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 

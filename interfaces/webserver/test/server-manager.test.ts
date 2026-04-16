@@ -2,7 +2,8 @@ import { describe, it, expect, afterEach } from "bun:test";
 import { mkdirSync, writeFileSync, rmSync, existsSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { createSilentLogger } from "@brains/test-utils";
+import { createSilentLogger, createMockMessageBus } from "@brains/test-utils";
+import type { IMessageBus } from "@brains/plugins";
 import { ServerManager } from "../src/server-manager";
 
 describe("ServerManager (in-process)", () => {
@@ -205,6 +206,64 @@ describe("ServerManager (in-process)", () => {
     expect(res.headers.get("access-control-allow-methods")).toContain(
       "OPTIONS",
     );
+  });
+
+  it("should serve plugin-contributed API routes on the shared host", async () => {
+    testDir = join(tmpdir(), `webserver-api-test-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { subscribed: true } },
+        },
+      },
+    }) as unknown as IMessageBus;
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      apiRoutes: [
+        {
+          pluginId: "newsletter",
+          fullPath: "/api/newsletter/subscribe",
+          definition: {
+            path: "/subscribe",
+            method: "POST",
+            tool: "subscribe",
+            public: true,
+          },
+        },
+      ],
+      messageBus,
+    });
+
+    await manager.start();
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/api/newsletter/subscribe`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ email: "test@example.com" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      data: { subscribed: true },
+    });
   });
 
   it("should not start preview server when preview is not configured", async () => {

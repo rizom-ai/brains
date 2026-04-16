@@ -6,7 +6,6 @@ import {
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { ServerManager } from "./server-manager";
-import { ApiServer } from "./api-server";
 import { existsSync } from "fs";
 import { join } from "path";
 import { webserverConfigSchema, type WebserverConfig } from "./config";
@@ -21,7 +20,6 @@ import packageJson from "../package.json";
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager?: ServerManager;
-  private apiServer?: ApiServer;
   private siteUrl: string | undefined;
   private previewUrl: string | undefined;
 
@@ -50,22 +48,9 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
         context.appInfo(),
       webRoutes: context.webRoutes.getRoutes(),
+      apiRoutes: context.apiRoutes.getRoutes(),
+      messageBus: context.apiRoutes.getMessageBus(),
     });
-
-    // Initialize API server (runs on main thread, own port)
-    const apiRoutes = context.apiRoutes.getRoutes();
-    if (apiRoutes.length > 0) {
-      const messageBus = context.apiRoutes.getMessageBus();
-      this.apiServer = new ApiServer({
-        logger: context.logger,
-        port: this.config.apiPort,
-        routes: apiRoutes,
-        messageBus,
-      });
-      context.logger.info(
-        `Configured ${apiRoutes.length} API routes on port ${this.config.apiPort}`,
-      );
-    }
   }
 
   private getServerManager(): ServerManager {
@@ -83,15 +68,9 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
 
         // Start static file server (child process)
         await this.getServerManager().start();
-
-        // Start API server (main thread, own port)
-        if (this.apiServer) {
-          await this.apiServer.start();
-        }
       },
       stop: async (): Promise<void> => {
         await this.serverManager?.stop();
-        await this.apiServer?.stop();
       },
       healthCheck: async (): Promise<DaemonHealth> => {
         const status = this.serverManager?.getStatus();

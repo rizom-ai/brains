@@ -17,11 +17,6 @@
 		reverse_proxy localhost:8080
 	}
 
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
 	# Production site and shared HTTP surface
 	handle {
 		reverse_proxy localhost:8080
