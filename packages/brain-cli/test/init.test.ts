@@ -275,13 +275,12 @@ describe("brain init", () => {
       expect(existsSync(join(testDir, ".gitignore"))).toBe(true);
     });
 
-    it("should create tsconfig.json with Preact JSX config", () => {
+    it("should create tsconfig.json extending the public instance preset", () => {
       scaffold(testDir, { model: "rover" });
       const path = join(testDir, "tsconfig.json");
       expect(existsSync(path)).toBe(true);
       const content = JSON.parse(readFileSync(path, "utf-8"));
-      expect(content.compilerOptions.jsx).toBe("react-jsx");
-      expect(content.compilerOptions.jsxImportSource).toBe("preact");
+      expect(content.extends).toBe("@rizom/brain/tsconfig.instance.json");
     });
 
     it("should not create local site/theme scaffold for rover core", () => {

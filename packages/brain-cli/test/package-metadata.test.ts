@@ -23,6 +23,13 @@ function readSharedFile(relativePath: string): string {
   );
 }
 
+function readSharedTsConfigFile(relativePath: string): string {
+  return readFileSync(
+    join(monorepoRoot, "shared", "typescript-config", relativePath),
+    "utf8",
+  );
+}
+
 describe("@rizom/brain package metadata", () => {
   it("keeps package-local deploy templates synced from shared source", () => {
     expect(readPackageFile("templates/deploy/Dockerfile")).toBe(
@@ -45,6 +52,12 @@ describe("@rizom/brain package metadata", () => {
     );
   });
 
+  it("keeps the public instance tsconfig preset synced from shared source", () => {
+    expect(readPackageFile("tsconfig.instance.json")).toBe(
+      readSharedTsConfigFile("instance.json"),
+    );
+  });
+
   it("publishes deploy templates in the packed artifact", () => {
     const pack = spawnSync("npm", ["pack", "--json", "--dry-run"], {
       cwd: packageDir,
@@ -60,6 +73,7 @@ describe("@rizom/brain package metadata", () => {
     );
 
     expect(packageJson.files).toContain("templates");
+    expect(packageJson.files).toContain("tsconfig.instance.json");
     expect(filePaths.has("templates/deploy/Dockerfile")).toBeTrue();
     expect(filePaths.has("templates/deploy/Caddyfile")).toBeTrue();
     expect(filePaths.has("templates/deploy/kamal-deploy.yml")).toBeTrue();
@@ -70,6 +84,7 @@ describe("@rizom/brain package metadata", () => {
     expect(
       filePaths.has("templates/deploy/scripts/write-ssh-key.ts"),
     ).toBeTrue();
+    expect(filePaths.has("tsconfig.instance.json")).toBeTrue();
   });
 
   it("can scaffold deploy files from a packed install outside the monorepo", () => {
@@ -151,6 +166,9 @@ describe("@rizom/brain package metadata", () => {
       join(projectDir, "demo", "deploy", "Caddyfile"),
       "utf8",
     );
+    const tsconfig = JSON.parse(
+      readFileSync(join(projectDir, "demo", "tsconfig.json"), "utf8"),
+    ) as { extends?: string };
 
     expect(dockerfile).toContain(
       "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
@@ -159,5 +177,6 @@ describe("@rizom/brain package metadata", () => {
     expect(caddyfile).toContain("handle /.well-known/agent-card.json");
     expect(caddyfile).toContain("handle /a2a");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
+    expect(tsconfig.extends).toBe("@rizom/brain/tsconfig.instance.json");
   }, 15000);
 });

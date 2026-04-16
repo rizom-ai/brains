@@ -64,8 +64,8 @@ export interface ScaffoldOptions {
  * base theme automatically; the local site scaffold activates when the
  * operator switches `brain.yaml` to the local site convention.
  *
- * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
- * runtime when compiling site components.
+ * The `tsconfig.json` extends the public `@rizom/brain` instance preset
+ * so standalone apps share the same JSX/runtime authoring contract.
  */
 export function scaffold(dir: string, options: ScaffoldOptions): void {
   const existing = existsSync(join(dir, "brain.yaml"))
@@ -1036,15 +1036,12 @@ plugins, change presets, or wire up integrations like Discord and MCP.
   writeScaffoldFile(join(dir, "README.md"), content);
 }
 
-// Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime;
-// without these hints it defaults to React and Preact components render to
-// nothing.
+// Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime.
+// Keep instance apps on the published @rizom/brain preset so in-repo and
+// standalone authoring use the same public contract.
 function writeTsConfig(dir: string): void {
   const content = `{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact"
-  }
+  "extends": "@rizom/brain/tsconfig.instance.json"
 }
 `;
 

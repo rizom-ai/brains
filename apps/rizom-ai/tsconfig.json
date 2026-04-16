@@ -1,8 +1,4 @@
 {
-  "extends": "../../tsconfig.json",
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact"
-  },
+  "extends": "@rizom/brain/tsconfig.instance.json",
   "include": ["src/**/*"]
 }

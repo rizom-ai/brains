@@ -37,6 +37,7 @@ const sharedDeployScriptsDir = dirname(
 );
 const packageDeployTemplatesDir = join(packageDir, "templates", "deploy");
 const packageDeployScriptsDir = join(packageDeployTemplatesDir, "scripts");
+const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
 function syncDeployTemplates(): void {
   mkdirSync(packageDeployScriptsDir, { recursive: true });
@@ -84,6 +85,14 @@ function findMonorepoRoot(): string {
 }
 
 const monorepoRoot = findMonorepoRoot();
+const sharedInstanceTsConfigPath = join(
+  monorepoRoot,
+  "shared",
+  "typescript-config",
+  "instance.json",
+);
+
+cpSync(sharedInstanceTsConfigPath, packageInstanceTsConfigPath);
 
 // ─── Compile hydration scripts ────────────────────────────────────────────
 //

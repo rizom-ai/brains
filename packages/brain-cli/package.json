@@ -19,11 +19,13 @@
     "./deploy": {
       "types": "./dist/deploy.d.ts",
       "import": "./dist/deploy.js"
-    }
+    },
+    "./tsconfig.instance.json": "./tsconfig.instance.json"
   },
   "files": [
     "dist",
-    "templates"
+    "templates",
+    "tsconfig.instance.json"
   ],
   "scripts": {
     "build": "bun scripts/build.ts",
