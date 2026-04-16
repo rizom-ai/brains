@@ -27,11 +27,7 @@ export class DashboardDataSource implements DataSource {
     this.logger = logger.child("DashboardDataSource");
   }
 
-  async fetch<T>(
-    _query: unknown,
-    _outputSchema: z.ZodSchema<T>,
-    _context: BaseDataSourceContext,
-  ): Promise<T> {
+  async getDashboardData(): Promise<DashboardData> {
     const widgets: Record<string, WidgetData> = {};
     const registeredWidgets = this.registry.list();
 
@@ -66,10 +62,16 @@ export class DashboardDataSource implements DataSource {
       }
     }
 
-    const result: DashboardData = {
+    return {
       widgets,
     };
+  }
 
-    return result as T;
+  async fetch<T>(
+    _query: unknown,
+    _outputSchema: z.ZodSchema<T>,
+    _context: BaseDataSourceContext,
+  ): Promise<T> {
+    return (await this.getDashboardData()) as T;
   }
 }

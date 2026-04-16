@@ -1,20 +1,9 @@
-import type {
-  Resource,
-  ServicePluginContext,
-  WebRouteDefinition,
-} from "@brains/plugins";
+import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { generateCmsConfig, type EntityDisplayMap } from "@brains/cms-config";
-import {
-  CMS_SHELL_PATH,
-  renderAdminShellHtml,
-  renderCmsShellHtml,
-} from "./admin-shell";
+import { renderCmsShellHtml } from "./admin-shell";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
-
-export const CMS_CONFIG_URI = "brain://cms-config";
-const CMS_CONFIG_TOPIC = "system:cms-config:get";
 
 const entityDisplayEntrySchema = z
   .object({
@@ -35,18 +24,6 @@ function getCmsConfigOptions(config: AdminConfig): {
 } {
   const entityDisplay = config.entityDisplay as EntityDisplayMap | undefined;
   return entityDisplay ? { entityDisplay } : {};
-}
-
-function getAdminShellOptions(context: ServicePluginContext): {
-  cmsShellPath: string;
-  siteUrl?: string;
-  previewUrl?: string;
-} {
-  return {
-    cmsShellPath: CMS_SHELL_PATH,
-    ...(context.siteUrl ? { siteUrl: context.siteUrl } : {}),
-    ...(context.previewUrl ? { previewUrl: context.previewUrl } : {}),
-  };
 }
 
 async function getRepoInfo(
@@ -93,34 +70,10 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
     super("admin", packageJson, config, adminConfigSchema);
   }
 
-  protected override async onRegister(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    context.messaging.subscribe(CMS_CONFIG_TOPIC, async () => {
-      try {
-        return {
-          success: true,
-          data: await buildCmsConfigYaml(
-            context,
-            getCmsConfigOptions(this.config),
-          ),
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error:
-            error instanceof Error
-              ? error.message
-              : "Failed to build CMS config",
-        };
-      }
-    });
-  }
-
   override getWebRoutes(): WebRouteDefinition[] {
     return [
       {
-        path: "/cms-config",
+        path: this.config.routePath,
         method: "GET",
         public: true,
         handler: async (): Promise<Response> => {
@@ -129,12 +82,12 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
               this.getContext(),
               getCmsConfigOptions(this.config),
             );
-            return new Response(yaml, {
-              headers: { "Content-Type": "text/yaml; charset=utf-8" },
+            return new Response(renderCmsShellHtml({ cmsConfigYaml: yaml }), {
+              headers: { "Content-Type": "text/html; charset=utf-8" },
             });
           } catch (error) {
             return new Response(
-              error instanceof Error ? error.message : "CMS config unavailable",
+              error instanceof Error ? error.message : "CMS unavailable",
               {
                 status: 503,
                 headers: { "Content-Type": "text/plain; charset=utf-8" },
@@ -142,50 +95,6 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
             );
           }
         },
-      },
-      {
-        path: this.config.routePath,
-        method: "GET",
-        public: true,
-        handler: (): Response =>
-          new Response(
-            renderAdminShellHtml(getAdminShellOptions(this.getContext())),
-            {
-              headers: { "Content-Type": "text/html; charset=utf-8" },
-            },
-          ),
-      },
-      {
-        path: CMS_SHELL_PATH,
-        method: "GET",
-        public: true,
-        handler: (): Response =>
-          new Response(renderCmsShellHtml(), {
-            headers: { "Content-Type": "text/html; charset=utf-8" },
-          }),
-      },
-    ];
-  }
-
-  protected override async getResources(): Promise<Resource[]> {
-    return [
-      {
-        uri: CMS_CONFIG_URI,
-        name: "CMS Config",
-        description: "Schema-driven Sveltia CMS config for the current brain",
-        mimeType: "text/yaml",
-        handler: async () => ({
-          contents: [
-            {
-              uri: CMS_CONFIG_URI,
-              mimeType: "text/yaml",
-              text: await buildCmsConfigYaml(
-                this.getContext(),
-                getCmsConfigOptions(this.config),
-              ),
-            },
-          ],
-        }),
       },
     ];
   }

@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import type { WebRouteDefinition } from "@brains/plugins";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 
@@ -30,6 +31,29 @@ describe("DashboardPlugin", () => {
     it("should expose no tools", async () => {
       const capabilities = await harness.installPlugin(new DashboardPlugin());
       expect(capabilities.tools).toHaveLength(0);
+    });
+  });
+
+  describe("Web routes", () => {
+    it("should expose the existing dashboard web route", async () => {
+      const routes = plugin.getWebRoutes();
+      expect(routes).toHaveLength(1);
+      expect(routes[0]).toMatchObject({
+        path: "/dashboard",
+        method: "GET",
+        public: true,
+      } satisfies Partial<WebRouteDefinition>);
+
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      expect(response?.status).toBe(200);
+      expect(response?.headers.get("content-type")).toContain("text/html");
+      const html = await response?.text();
+      expect(html).toContain("Brain Dashboard");
+      expect(html).toContain("Entity Statistics");
+      expect(html).toContain("dashboard:dashboard");
+      expect(html).not.toContain("data-cms-frame");
     });
   });
 

@@ -1106,6 +1106,62 @@ describe("resolve with site package", () => {
     expect(getConfig(admin)["routePath"]).toBe("/cms");
   });
 
+  test("should default dashboard routePath to root without site-builder", () => {
+    const [dashboardFactory] = createMockFactory("dashboard");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["dashboard", dashboardFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const dashboard = config.plugins?.find((p) => p.id === "dashboard");
+
+    expect(getConfig(dashboard)["routePath"]).toBe("/");
+  });
+
+  test("should default dashboard routePath to /dashboard when site-builder is active", () => {
+    const [dashboardFactory] = createMockFactory("dashboard");
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["dashboard", dashboardFactory, {}],
+        ["site-builder", siteBuilderFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const dashboard = config.plugins?.find((p) => p.id === "dashboard");
+
+    expect(getConfig(dashboard)["routePath"]).toBe("/dashboard");
+  });
+
+  test("should move admin routePath to /cms when dashboard is active on core", () => {
+    const [adminFactory] = createMockFactory("admin");
+    const [dashboardFactory] = createMockFactory("dashboard");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["admin", adminFactory, {}],
+        ["dashboard", dashboardFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const admin = config.plugins?.find((p) => p.id === "admin");
+
+    expect(getConfig(admin)["routePath"]).toBe("/cms");
+  });
+
   test("should inject staticAssets from site package into site-builder", () => {
     // Site packages can ship static files (canvas scripts, fonts, etc.)
     // via a `staticAssets` map of output-path → file-contents-string.

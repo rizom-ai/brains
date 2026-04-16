@@ -1,11 +1,2 @@
-export {
-  AdminPlugin,
-  adminPlugin,
-  buildCmsConfigYaml,
-  CMS_CONFIG_URI,
-} from "./plugin";
-export {
-  CMS_SHELL_PATH,
-  renderAdminShellHtml,
-  renderCmsShellHtml,
-} from "./admin-shell";
+export { AdminPlugin, adminPlugin, buildCmsConfigYaml } from "./plugin";
+export { renderCmsShellHtml } from "./admin-shell";

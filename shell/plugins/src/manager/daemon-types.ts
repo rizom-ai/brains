@@ -17,6 +17,7 @@ export type DaemonHealth = z.infer<typeof DaemonHealthSchema>;
  */
 export const DaemonStatusInfoSchema = z.object({
   name: z.string(),
+  pluginId: z.string(),
   status: z.string(),
   health: DaemonHealthSchema.optional(),
 });

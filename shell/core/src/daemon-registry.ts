@@ -210,6 +210,7 @@ export class DaemonRegistry {
     // Return fresh status info
     return allDaemons.map((daemon) => ({
       name: daemon.name,
+      pluginId: daemon.pluginId,
       status: daemon.status,
       health: daemon.health,
     }));

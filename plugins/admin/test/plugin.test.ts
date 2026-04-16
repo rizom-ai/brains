@@ -1,16 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { Resource } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { fromYaml, z } from "@brains/utils";
-import {
-  adminPlugin,
-  buildCmsConfigYaml,
-  CMS_CONFIG_URI,
-  CMS_SHELL_PATH,
-  renderAdminShellHtml,
-  renderCmsShellHtml,
-} from "../src";
+import { adminPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
 function createAdminTestShell(options: { domain?: string } = {}): MockShell {
   const shell = createMockShell({
@@ -82,88 +74,32 @@ describe("admin plugin", () => {
     ).toBe(true);
   });
 
-  it("should register the cms config resource", async () => {
-    const shell = createAdminTestShell();
-    const plugin = adminPlugin();
-
-    const capabilities = await plugin.register(shell);
-    const resource = capabilities.resources.find(
-      (entry: Resource) => entry.uri === CMS_CONFIG_URI,
-    );
-
-    expect(resource).toBeDefined();
-    const result = await resource?.handler();
-    expect(result?.contents[0]?.uri).toBe(CMS_CONFIG_URI);
-    expect(result?.contents[0]?.mimeType).toBe("text/yaml");
-    expect(result?.contents[0]?.text).toContain("owner/repo");
-  });
-
-  it("should answer system:cms-config:get via messaging", async () => {
-    const shell = createAdminTestShell();
-    const plugin = adminPlugin();
-
-    await plugin.register(shell);
-
-    const response = await shell
-      .getMessageBus()
-      .send<Record<string, never>, string>("system:cms-config:get", {}, "test");
-
-    expect("noop" in response).toBe(false);
-    if ("noop" in response || !response.success || !response.data) {
-      throw new Error("Expected cms config response");
-    }
-
-    const parsed = fromYaml<{ backend: { repo: string; branch: string } }>(
-      response.data,
-    );
-    expect(parsed.backend.repo).toBe("owner/repo");
-    expect(parsed.backend.branch).toBe("main");
-  });
-
-  it("should expose web routes for cms config, admin home, and cms shell", async () => {
+  it("should expose a cms web route with inline config", async () => {
     const shell = createAdminTestShell({ domain: "yeehaa.io" });
     const plugin = adminPlugin({ routePath: "/cms" });
 
     await plugin.register(shell);
 
     const routes = plugin.getWebRoutes();
-    expect(routes).toHaveLength(3);
-    expect(routes.map((route) => route.path)).toEqual([
-      "/cms-config",
-      "/cms",
-      CMS_SHELL_PATH,
-    ]);
+    expect(routes).toHaveLength(1);
+    expect(routes.map((route) => route.path)).toEqual(["/cms"]);
 
     const cmsResponse = await routes[0]?.handler(
-      new Request("http://brain/cms-config"),
-    );
-    expect(cmsResponse?.status).toBe(200);
-    expect(cmsResponse?.headers.get("content-type")).toContain("text/yaml");
-    expect(await cmsResponse?.text()).toContain("owner/repo");
-
-    const adminResponse = await routes[1]?.handler(
       new Request("http://brain/cms"),
     );
-    expect(adminResponse?.status).toBe(200);
-    expect(adminResponse?.headers.get("content-type")).toContain("text/html");
-    const adminHtml = await adminResponse?.text();
-    expect(adminHtml).toContain("Brain Admin");
-    expect(adminHtml).toContain(CMS_SHELL_PATH);
-    expect(adminHtml).toContain("https://yeehaa.io");
-    expect(adminHtml).toContain("https://preview.yeehaa.io");
-    expect(adminHtml).toContain(
-      renderAdminShellHtml({
-        cmsShellPath: CMS_SHELL_PATH,
-        siteUrl: "https://yeehaa.io",
-        previewUrl: "https://preview.yeehaa.io",
+    expect(cmsResponse?.status).toBe(200);
+    expect(cmsResponse?.headers.get("content-type")).toContain("text/html");
+    const cmsHtml = await cmsResponse?.text();
+    expect(cmsHtml).toContain("Content Manager");
+    expect(cmsHtml).toContain("window.CMS_CONFIG_URL");
+    expect(cmsHtml).toContain("data:text/yaml;charset=utf-8,");
+    expect(cmsHtml).toContain("owner%2Frepo");
+    expect(cmsHtml).toContain(
+      renderCmsShellHtml({
+        cmsConfigYaml: await buildCmsConfigYaml(
+          createServicePluginContext(shell, "admin"),
+        ),
       }).trim(),
     );
-
-    const shellResponse = await routes[2]?.handler(
-      new Request(`http://brain${CMS_SHELL_PATH}`),
-    );
-    expect(shellResponse?.status).toBe(200);
-    expect(shellResponse?.headers.get("content-type")).toContain("text/html");
-    expect(await shellResponse?.text()).toContain(renderCmsShellHtml().trim());
   });
 });

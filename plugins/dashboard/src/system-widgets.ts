@@ -81,15 +81,15 @@ export function createSystemWidgets(
           links.push({ label: "Site", url: profile.website });
         }
 
-        const webserver = appInfo.daemons.find((d) =>
-          d.name.startsWith("webserver"),
+        const webserver = appInfo.daemons.find(
+          (d) => d.pluginId === "webserver",
         );
         const previewUrl = webserver?.health?.details?.["previewUrl"];
         if (typeof previewUrl === "string") {
           links.push({ label: "Preview", url: previewUrl });
         }
 
-        const mcp = appInfo.daemons.find((d) => d.name.startsWith("mcp"));
+        const mcp = appInfo.daemons.find((d) => d.pluginId === "mcp");
         const mcpUrl = mcp?.health?.details?.["url"];
         if (typeof mcpUrl === "string") {
           links.push({ label: "MCP", url: mcpUrl });

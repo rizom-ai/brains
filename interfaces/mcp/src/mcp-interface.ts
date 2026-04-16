@@ -186,21 +186,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
         port: this.config.httpPort,
         logger: this.logger,
         auth: { token: this.config.authToken },
-        getCmsConfig: async () => {
-          const response = await context.messaging.send<
-            Record<string, never>,
-            string
-          >("system:cms-config:get", {});
-
-          if ("noop" in response) {
-            throw new Error("CMS config unavailable");
-          }
-          if (!response.success || !response.data) {
-            throw new Error(response.error ?? "CMS config unavailable");
-          }
-
-          return response.data;
-        },
       });
 
       // Connect MCP server from service to HTTP transport

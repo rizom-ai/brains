@@ -1,4 +1,8 @@
-import type { Tool, ServicePluginContext } from "@brains/plugins";
+import type {
+  Tool,
+  ServicePluginContext,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
@@ -6,6 +10,7 @@ import type { RegisteredWidget } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
 import { dashboardTemplate } from "./templates/dashboard";
 import { createSystemWidgets } from "./system-widgets";
+import { renderDashboardPageHtml } from "./dashboard-page";
 import packageJson from "../package.json";
 
 /**
@@ -13,6 +18,7 @@ import packageJson from "../package.json";
  */
 const dashboardConfigSchema = z.object({
   version: z.string().default("1.0.0"),
+  routePath: z.string().default("/dashboard"),
 });
 
 type DashboardConfig = z.infer<typeof dashboardConfigSchema>;
@@ -160,6 +166,35 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     );
 
     this.logger.info("Dashboard plugin registered");
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [
+      {
+        path: this.config.routePath,
+        method: "GET",
+        public: true,
+        handler: async (): Promise<Response> => {
+          if (!this.datasource) {
+            return new Response("Dashboard unavailable", {
+              status: 503,
+              headers: { "Content-Type": "text/plain; charset=utf-8" },
+            });
+          }
+
+          const dashboardData = await this.datasource.getDashboardData();
+          return new Response(
+            renderDashboardPageHtml({
+              dashboardData,
+              title: "Brain Dashboard",
+            }),
+            {
+              headers: { "Content-Type": "text/html; charset=utf-8" },
+            },
+          );
+        },
+      },
+    ];
   }
 
   protected override async getTools(): Promise<Tool[]> {
