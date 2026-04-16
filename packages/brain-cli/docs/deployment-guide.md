@@ -212,7 +212,7 @@ For simple setups, you can run the repo-owned image directly after `Publish Imag
 ```bash
 docker run -d \
   --name mybrain \
-  -p 4321:80 \
+  -p 4321:8080 \
   -v ~/brain-data:/app/brain-data \
   -v ~/brain.yaml:/app/brain.yaml \
   --env-file .env \
