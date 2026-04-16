@@ -94,7 +94,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 - **CLI** — in-process REPL via `interfaces/chat-repl` (Ink)
 - **MCP** — stdio + HTTP transports via `interfaces/mcp`
-- **Webserver** — in-process Hono via `Bun.serve`, static site + API routes
+- **Webserver** — in-process Hono via `Bun.serve`, serving site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
 - **Discord** — bot interface via `interfaces/discord` (moving to Chat SDK long-term)
 - **A2A** — agent-to-agent JSON-RPC via `interfaces/a2a` (Agent Card, non-blocking tasks)
 
@@ -289,7 +289,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/chat-repl` — interactive Ink-based REPL
 - `@brains/cli` — command-line interface plumbing
 - `@brains/mcp` — MCP transport (stdio + HTTP)
-- `@brains/webserver` — in-process Hono webserver + `/health` endpoint + API routes
+- `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
 - `@brains/discord` — Discord bot interface
 - `@brains/a2a` — agent-to-agent JSON-RPC interface (Agent Card, non-blocking tasks)
 

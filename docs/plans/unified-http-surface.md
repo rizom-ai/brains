@@ -33,7 +33,7 @@ Multiple HTTP servers/ports increase complexity in:
 - health checks
 - smoke tests
 - operator mental model
-- browser-facing admin work
+- browser-facing dashboard/CMS work
 
 The desired mental model is simple:
 
@@ -43,8 +43,8 @@ The desired mental model is simple:
 
 Each brain should expose one shared HTTP surface that can mount:
 
-- `/` or `/cms`
-- `/cms-config`
+- `/` or `/dashboard`
+- `/cms`
 - `/mcp`
 - `/.well-known/agent-card.json`
 - `/a2a`
@@ -90,12 +90,23 @@ Compatibility requirement:
 
 `plugins/admin` should own:
 
-- admin capability
-- admin page/assets
+- CMS capability
+- CMS page/assets
 - CMS config orchestration
-- later dashboard composition
+- admin-specific data contracts
 
 It should not need to own the listening socket.
+
+### `plugins/dashboard`
+
+`plugins/dashboard` should remain the source of truth for the dashboard UI.
+
+The shared HTTP surface should mount that existing dashboard directly:
+
+- at `/` for `preset: core`
+- at `/dashboard` for site presets
+
+It should not be reimplemented inside `plugins/admin`.
 
 ### `interfaces/mcp`
 
@@ -140,20 +151,20 @@ Conceptually:
 
 ### Core preset
 
-- `/` → admin
-- `/cms-config` → admin/CMS config
+- `/` → existing dashboard surface
+- `/cms` → CMS page with inline config
 - `/mcp` → MCP
 - `/.well-known/agent-card.json` + `/a2a` → A2A
 - `/health` → health
 - no preview/production site split required
 
-Core should be the simplest shape: one admin-oriented HTTP surface.
+Core should be the simplest shape: one operator-oriented HTTP surface.
 
 ### Site presets
 
 - `/` → public site
-- `/cms` or `/dashboard` → admin
-- `/cms-config` → admin/CMS config
+- `/dashboard` → existing dashboard surface
+- `/cms` → CMS page with inline config
 - `/mcp` → MCP
 - `/.well-known/agent-card.json` + `/a2a` → A2A
 - `/api/*` → plugin APIs
@@ -197,7 +208,7 @@ Preview traffic may remain separate at first if that keeps rollout small, but th
 
 Expected direction:
 
-- stop routing `/mcp`, `/a2a`, `/api/*`, admin, and public site to different internal services where unnecessary
+- stop routing `/mcp`, `/a2a`, `/api/*`, dashboard/CMS, and public site to different internal services where unnecessary
 - reverse proxy most production traffic to the consolidated HTTP host
 - keep only truly separate concerns separate during migration
 
@@ -226,7 +237,7 @@ Treat any non-MCP routes on `interfaces/mcp` as transitional.
 
 Specifically:
 
-- `/cms-config` on the MCP HTTP server is acceptable only as an interim step
+- any MCP-hosted CMS config delivery or browser bootstrap is acceptable only as an interim step
 - admin/browser routes should not continue to accumulate there
 
 ### Phase 2 — establish the shared HTTP host
@@ -254,10 +265,10 @@ First consolidation slice:
 
 Mount:
 
-- `/` or `/cms`
-- `/cms-config`
+- the existing dashboard UI at `/` for core and `/dashboard` for site presets
+- `/cms` with inline CMS config bootstrapping
 
-with page/assets and admin logic owned by `plugins/admin`.
+with CMS page/assets owned by `plugins/admin` and dashboard UI owned by `plugins/dashboard`.
 
 ### Phase 5 — mount MCP onto the shared surface
 
@@ -287,7 +298,7 @@ Explicitly:
 Explicit acceptance criteria:
 
 - core deploys do not depend on preview/public-site routing assumptions
-- site-builder deploys keep existing preview/public web behavior while gaining the consolidated admin/MCP/A2A surface
+- site-builder deploys keep existing preview/public web behavior while gaining the consolidated dashboard/CMS/MCP/A2A surface
 
 ## Design constraints
 
@@ -338,7 +349,8 @@ Treat the shared HTTP surface as the target architecture and update new work to 
 
 Concretely:
 
-- admin belongs in `plugins/admin`
+- CMS page/config ownership belongs in `plugins/admin`
+- dashboard ownership belongs in `plugins/dashboard`
 - route mounting belongs to `interfaces/webserver` as the evolving shared HTTP host
 - do not introduce a new generic HTTP interface unless `webserver` proves unable to carry this role cleanly
 - preserve current `webserver` behavior while refactoring toward the shared-host model
