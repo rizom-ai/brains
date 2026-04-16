@@ -128,6 +128,11 @@ Before touching the extracted repos:
 2. publish the new `@rizom/ops`
 3. verify the published templates contain the post-Caddy deploy shape
 
+Do **not** run `init` in `~/Documents/yeehaa-io`, `~/Documents/mylittlephoney`, or `~/Documents/rover-pilot` until those releases exist and the repo dependencies have been upgraded to them. Otherwise we risk mixing:
+
+- new checked-in deploy scaffolds
+- old installed runtime packages
+
 Expected published template shape:
 
 - no `deploy/Caddyfile`
@@ -138,6 +143,16 @@ Expected published template shape:
 
 ## Migration plan
 
+### Phase 0 — Release the packages
+
+1. Release `@rizom/brain` with:
+   - shared-host HTTP convergence
+   - Caddy removal from deploy/runtime/templates
+   - standalone deploy scaffold reconciliation
+2. Release `@rizom/ops` with:
+   - rover-pilot deploy scaffold reconciliation
+3. Verify the published packages contain the expected templates before touching any extracted repo.
+
 ### Phase 1 — Standalone canary: `mylittlephoney`
 
 1. Create a branch and snapshot current deploy artifacts.
@@ -145,6 +160,7 @@ Expected published template shape:
 3. Run:
 
    ```bash
+   bun add @rizom/brain@<new-version>
    bun install
    bunx brain init . --deploy
    ```
@@ -166,11 +182,12 @@ Expected published template shape:
 Repeat the same sequence used for `mylittlephoney`:
 
 1. upgrade `@rizom/brain`
-2. run `bun install`
-3. run `bunx brain init . --deploy`
-4. review diff
-5. deploy
-6. verify site, preview, `/health`, `/mcp`, and A2A routes
+2. run `bun add @rizom/brain@<new-version>`
+3. run `bun install`
+4. run `bunx brain init . --deploy`
+5. review diff
+6. deploy
+7. verify site, preview, `/health`, `/mcp`, and A2A routes
 
 ### Phase 3 — Fleet scaffold: `rover-pilot`
 
@@ -178,6 +195,7 @@ Repeat the same sequence used for `mylittlephoney`:
 2. Rerun init on the existing repo:
 
    ```bash
+   bun add -d @rizom/ops@<new-version>
    bun install
    bunx brains-ops init .
    ```
@@ -221,12 +239,13 @@ For each migrated deployment, confirm:
 
 Recommended order:
 
-1. release `@rizom/brain` and `@rizom/ops`
-2. migrate `mylittlephoney`
-3. migrate `yeehaa-io`
-4. update `rover-pilot` shared scaffold
-5. deploy `rover-pilot` canary user (`smoke`)
-6. roll forward the remaining rover-pilot users
+1. release `@rizom/brain`
+2. release `@rizom/ops`
+3. migrate `mylittlephoney`
+4. migrate `yeehaa-io`
+5. update `rover-pilot` shared scaffold
+6. deploy `rover-pilot` canary user (`smoke`)
+7. roll forward the remaining rover-pilot users
 
 ## Risks
 
