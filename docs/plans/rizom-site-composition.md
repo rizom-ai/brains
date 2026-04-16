@@ -41,6 +41,65 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 
 The wrapper-and-shared-package layering is the in-between state this plan moves away from.
 
+## Implementation prep
+
+### Existing seams we should reuse, not redesign
+
+The current codebase already has the main seam this refactor wants:
+
+- `shared/rizom-runtime/src/base-site.ts` defines `rizomBaseSite`
+- each wrapper package composes by calling `extendSite(rizomBaseSite, overrides)`
+- app-local site ownership is already a supported runtime convention via `apps/<name>/src/site.ts`
+- app-local theme ownership is already a supported runtime convention via `apps/<name>/src/theme.css`
+
+So the refactor should start by **moving and renaming existing seams**, not by inventing a new site API.
+
+### Concrete impact map
+
+Expected code touch points for the refactor:
+
+- create `sites/rizom/src/index.ts` as the new shared site entrypoint
+- move shared Rizom runtime/UI/ecosystem code out of:
+  - `shared/rizom-ui`
+  - `shared/rizom-runtime`
+  - `shared/rizom-ecosystem`
+- move wrapper-owned app composition out of:
+  - `sites/rizom-ai/src/*`
+  - `sites/rizom-foundation/src/*`
+  - `sites/rizom-work/src/*`
+- add local app source under:
+  - `apps/rizom-ai/src/site.ts`
+  - `apps/rizom-foundation/src/site.ts`
+  - `apps/rizom-work/src/site.ts`
+- update instance config at:
+  - `apps/rizom-ai/brain.yaml`
+  - `apps/rizom-foundation/brain.yaml`
+  - `apps/rizom-work/brain.yaml`
+- update structural tests and assumptions such as:
+  - `shell/app/test/site-package-structure.test.ts`
+  - any docs/codebase maps that still describe `sites/rizom-*` as the long-term shape
+
+### Safe coding order
+
+1. Create `sites/rizom` by lifting the current shared base out of `shared/rizom-runtime`.
+2. Move Rizom-only shared helpers from `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into that shared site.
+3. Convert one app to the local `src/site.ts` convention end-to-end to prove the pattern.
+4. Convert the remaining two apps.
+5. Delete the old wrapper packages and cleanup references only after all three apps boot from local source.
+
+That order minimizes simultaneous breakage and uses the already-supported local-site runtime path.
+
+### Targeted validation while implementing
+
+Use the lightest checks that prove each seam still works:
+
+- after introducing `sites/rizom`: targeted typecheck for the new shared site package and any moved shared Rizom code
+- after converting each app: boot that app locally from its directory and verify the local `src/site.ts` path resolves
+- after removing the wrapper packages: update and run `shell/app/test/site-package-structure.test.ts`
+- before calling the refactor done: run workspace lint, typecheck, and the relevant site/app tests
+
+The key regression to watch for is not type shape alone — it is whether `brain.yaml` without `site.package` correctly picks up app-local `src/site.ts` and preserves the prior rendered output.
+
 ## Refactor plan
 
 ### Step 1 — establish the shared site
