@@ -24,47 +24,6 @@ CLOUDFLARE_API_TOKEN=
 CLOUDFLARE_ZONE_ID=
 `;
 
-const legacyDeployYml = `service: brain
-image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl: true
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>:80
-    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: rizom-ai
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - AI_API_KEY
-    - GIT_SYNC_TOKEN
-    - MCP_AUTH_TOKEN
-    - DISCORD_BOT_TOKEN
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain-dist:/app/dist
-  - /opt/brain.yaml:/app/brain.yaml
-`;
-
 const legacyDeployWorkflow = `name: Deploy
 
 on:
@@ -95,6 +54,143 @@ jobs:
           GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
           MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
         run: kamal deploy --skip-push
+`;
+
+const legacyStandaloneDeployYml = `service: brain
+image: <%= ENV['IMAGE_REPOSITORY'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: <%= ENV['REGISTRY_USERNAME'] %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+
+const legacyStandaloneDockerfile = `FROM oven/bun:1.3.10-slim
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
+    && setcap cap_net_bind_service=+ep $(which caddy) \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY package.json ./package.json
+RUN bun install --production --ignore-scripts
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+COPY . .
+
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
+`;
+
+const legacyStandaloneCaddyfile = `# Internal Caddy — path-based routing to brain services.
+# kamal-proxy terminates TLS externally; this runs inside the container.
+:80 {
+	@preview host preview.mylittlephoney.com *-preview.*
+	handle @preview {
+		reverse_proxy localhost:4321
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
+	# Health endpoint
+	handle /health {
+		reverse_proxy localhost:3333
+	}
+
+	# MCP endpoint
+	handle /mcp* {
+		reverse_proxy localhost:3333
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+		}
+	}
+
+	# A2A endpoints
+	handle /.well-known/agent-card.json {
+		reverse_proxy localhost:3334
+	}
+
+	handle /a2a {
+		reverse_proxy localhost:3334
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization"
+		}
+	}
+
+	# Plugin API routes
+	handle /api/* {
+		reverse_proxy localhost:3335
+	}
+
+	# Production site: prefer the webserver when present; otherwise fall back
+	# to the A2A interface so core-only deployments never return a bare 502.
+	handle {
+		reverse_proxy localhost:8080 localhost:3334 {
+			lb_policy first
+			lb_retries 1
+		}
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+}
 `;
 
 describe("brain init", () => {
@@ -502,7 +598,19 @@ describe("brain init", () => {
       );
       writeFileSync(join(testDir, ".env.example"), legacyEnvExample);
       mkdirSync(join(testDir, "config"), { recursive: true });
-      writeFileSync(join(testDir, "config", "deploy.yml"), legacyDeployYml);
+      writeFileSync(
+        join(testDir, "config", "deploy.yml"),
+        legacyStandaloneDeployYml,
+      );
+      mkdirSync(join(testDir, "deploy"), { recursive: true });
+      writeFileSync(
+        join(testDir, "deploy", "Dockerfile"),
+        legacyStandaloneDockerfile,
+      );
+      writeFileSync(
+        join(testDir, "deploy", "Caddyfile"),
+        legacyStandaloneCaddyfile,
+      );
       mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
       writeFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -526,6 +634,19 @@ describe("brain init", () => {
       expect(deploy).not.toContain(":80");
       expect(deploy).not.toContain(":81");
 
+      const dockerfile = readFileSync(
+        join(testDir, "deploy", "Dockerfile"),
+        "utf-8",
+      );
+      expect(dockerfile).toContain("EXPOSE 8080");
+      expect(dockerfile).toContain(
+        'CMD ["./node_modules/.bin/brain", "start"]',
+      );
+      expect(dockerfile).not.toContain("caddy start");
+      expect(dockerfile).not.toContain("deploy/Caddyfile");
+
+      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(false);
+
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
         "utf-8",
@@ -545,10 +666,15 @@ describe("brain init", () => {
       );
       const customEnvExample = "AI_API_KEY=\nCUSTOM_ONLY=1\n";
       const customDeployYml = "service: custom\nimage: custom/image\n";
+      const customDockerfile = "FROM scratch\n";
+      const customCaddyfile = "custom caddy\n";
       const customWorkflow = "name: Custom Deploy\n";
       writeFileSync(join(testDir, ".env.example"), customEnvExample);
       mkdirSync(join(testDir, "config"), { recursive: true });
       writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
+      mkdirSync(join(testDir, "deploy"), { recursive: true });
+      writeFileSync(join(testDir, "deploy", "Dockerfile"), customDockerfile);
+      writeFileSync(join(testDir, "deploy", "Caddyfile"), customCaddyfile);
       mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
       writeFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -562,6 +688,12 @@ describe("brain init", () => {
       );
       expect(readFileSync(join(testDir, "config", "deploy.yml"), "utf-8")).toBe(
         customDeployYml,
+      );
+      expect(readFileSync(join(testDir, "deploy", "Dockerfile"), "utf-8")).toBe(
+        customDockerfile,
+      );
+      expect(readFileSync(join(testDir, "deploy", "Caddyfile"), "utf-8")).toBe(
+        customCaddyfile,
       );
       expect(
         readFileSync(

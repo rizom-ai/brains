@@ -90,24 +90,19 @@ Implication:
 
 ### Standalone apps: `yeehaa-io` and `mylittlephoney`
 
-Short answer: **mostly yes, but not by itself**.
+Short answer: **yes, for the known stale generated deploy artifacts**.
 
-`brain init --deploy` helps, but is not sufficient by itself.
+`brain init --deploy` now reconciles the known stale standalone deploy scaffold:
 
-It can reconcile some known generated files, but only if:
+- `config/deploy.yml`
+- `deploy/Dockerfile`
+- generated legacy `deploy/Caddyfile` removal
 
-1. the repo is using a new enough published `@rizom/brain`
-2. the file is one `brain init` knows how to update
-3. the existing file matches a known legacy generated artifact, or `--regen` is used
-
-Important limits:
-
-- `brain init` without `--regen` does not force-rewrite every existing generated file
-- even with `--regen`, `brain init` does not clean up removed files like `deploy/Caddyfile`
+It still preserves custom files that do not match the known generated legacy content.
 
 So for standalone repos the practical rule is:
 
-> upgrade `@rizom/brain`, run `brain init . --deploy --regen`, then manually remove stale removed files and review the diff
+> upgrade to a new enough `@rizom/brain`, rerun `brain init . --deploy`, review the diff, and only fall back to `--regen` or manual sync if the repo has drifted beyond the known generated legacy shapes
 
 ### Fleet repo: `rover-pilot`
 
@@ -151,18 +146,14 @@ Expected published template shape:
 
    ```bash
    bun install
-   bunx brain init . --deploy --regen
+   bunx brain init . --deploy
    ```
 
-4. Delete stale removed file if still present:
-
-   ```bash
-   rm -f deploy/Caddyfile
-   ```
-
-5. Review the generated diff.
-6. Deploy.
-7. Verify:
+4. Review the generated diff.
+   - expected updates include `config/deploy.yml` and `deploy/Dockerfile`
+   - expected cleanup includes generated legacy `deploy/Caddyfile` removal
+5. Deploy.
+6. Verify:
    - main site
    - preview host
    - `/health`
@@ -176,11 +167,10 @@ Repeat the same sequence used for `mylittlephoney`:
 
 1. upgrade `@rizom/brain`
 2. run `bun install`
-3. run `bunx brain init . --deploy --regen`
-4. remove stale `deploy/Caddyfile` if present
-5. review diff
-6. deploy
-7. verify site, preview, `/health`, `/mcp`, and A2A routes
+3. run `bunx brain init . --deploy`
+4. review diff
+5. deploy
+6. verify site, preview, `/health`, `/mcp`, and A2A routes
 
 ### Phase 3 — Fleet scaffold: `rover-pilot`
 
@@ -241,7 +231,7 @@ Recommended order:
 ## Risks
 
 - running `init` from an old installed package will regenerate the old scaffold again
-- `brain init --deploy --regen` can update generated files, but does not automatically remove deleted legacy files
+- `brain init --deploy` now reconciles the known stale generated standalone deploy scaffold, but not arbitrary custom drift
 - `brains-ops init` now reconciles the known stale generated rover-pilot deploy scaffold, but not arbitrary custom drift
 - rover-pilot workflow and script updates should be copied as a coherent set to avoid mixed old/new deploy behavior
 
