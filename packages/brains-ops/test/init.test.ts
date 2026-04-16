@@ -17,6 +17,162 @@ import { initPilotRepo } from "../src/init";
 
 const opsPackageDir = join(dirname(import.meta.dir));
 
+const legacyDeployYml = `service: rover
+image: <%= ENV['IMAGE_REPOSITORY'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>
+    - <%= ENV['PREVIEW_DOMAIN'] %>
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: <%= ENV['REGISTRY_USERNAME'] %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+
+const legacyDockerfile = `ARG BUN_VERSION=1.3.10
+FROM oven/bun:\${BUN_VERSION}-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
+    && setcap cap_net_bind_service=+ep $(which caddy) \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+
+RUN mkdir -p /srv/fallback && \
+    printf '<!doctype html><html><head><meta charset="utf-8"><title>brain</title></head><body></body></html>\n' \
+    > /srv/fallback/index.html
+
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
+
+# --- standalone: bake full project into image (brain-cli deploy) ---
+FROM runtime AS standalone
+COPY package.json ./package.json
+RUN bun install --production --ignore-scripts
+COPY . .
+
+# --- fleet: install published brain at pinned version (ops deploy) ---
+FROM runtime AS fleet
+ARG BRAIN_VERSION
+RUN test -n "$BRAIN_VERSION" \
+ && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
+ && bun add @rizom/brain@$BRAIN_VERSION
+`;
+
+const legacyCaddyfile = `# Internal Caddy — path-based routing to brain services.
+# kamal-proxy terminates TLS externally; this runs inside the container.
+:80 {
+	@preview host *-preview.*
+	handle @preview {
+		reverse_proxy localhost:4321
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+
+	# Health endpoint
+	handle /health {
+		reverse_proxy localhost:3333
+	}
+
+	# MCP endpoint
+	handle /mcp* {
+		reverse_proxy localhost:3333
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
+		}
+	}
+
+	# A2A endpoints
+	handle /.well-known/agent-card.json {
+		reverse_proxy localhost:3334
+	}
+
+	handle /a2a {
+		reverse_proxy localhost:3334
+
+		header {
+			X-Content-Type-Options "nosniff"
+			Access-Control-Allow-Origin "*"
+			Access-Control-Allow-Methods "GET, POST, OPTIONS"
+			Access-Control-Allow-Headers "Content-Type, Authorization"
+		}
+	}
+
+	# Plugin API routes
+	handle /api/* {
+		reverse_proxy localhost:3335
+	}
+
+	@root path /
+	handle @root {
+		redir /.well-known/agent-card.json 302
+	}
+
+	# Production site: prefer the webserver when present; otherwise fall back
+	# to the A2A interface so core-only deployments never return a bare 502.
+	handle {
+		reverse_proxy localhost:8080 localhost:3334 {
+			lb_policy first
+			lb_retries 1
+		}
+
+		header {
+			X-Frame-Options "SAMEORIGIN"
+			X-Content-Type-Options "nosniff"
+			Referrer-Policy "strict-origin-when-cross-origin"
+		}
+	}
+}
+`;
+
 async function linkOpsPackage(repoDir: string): Promise<void> {
   const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
@@ -341,6 +497,64 @@ describe("initPilotRepo", () => {
     expect(readme).toContain("brain-${brainVersion}");
     expect(readme).toContain("pilot.yaml.brainVersion");
     expect(readme).toContain("single operator-owned repo");
+  });
+
+  it("reconciles known stale generated deploy artifacts on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    await writeFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      legacyDeployYml,
+    );
+    await writeFile(join(repo, "deploy", "Dockerfile"), legacyDockerfile);
+    await writeFile(join(repo, "deploy", "Caddyfile"), legacyCaddyfile);
+
+    await initPilotRepo(repo);
+
+    const deployConfig = await readFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      "utf8",
+    );
+    expect(deployConfig).toContain("app_port: 8080");
+    expect(deployConfig).not.toContain("\n  app_port: 80\n");
+
+    const dockerfile = await readFile(
+      join(repo, "deploy", "Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
+    expect(dockerfile).not.toContain("caddy start");
+    expect(dockerfile).not.toContain("deploy/Caddyfile");
+
+    expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(false);
+  });
+
+  it("preserves custom deploy artifacts on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    await writeFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      "service: custom\nimage: custom/image\n",
+    );
+    await writeFile(join(repo, "deploy", "Dockerfile"), "FROM scratch\n");
+    await writeFile(join(repo, "deploy", "Caddyfile"), "custom caddy\n");
+
+    await initPilotRepo(repo);
+
+    expect(
+      await readFile(join(repo, "deploy", "kamal", "deploy.yml"), "utf8"),
+    ).toBe("service: custom\nimage: custom/image\n");
+    expect(await readFile(join(repo, "deploy", "Dockerfile"), "utf8")).toBe(
+      "FROM scratch\n",
+    );
+    expect(await readFile(join(repo, "deploy", "Caddyfile"), "utf8")).toBe(
+      "custom caddy\n",
+    );
   });
 
   it("preserves existing human-edited files on rerun", async () => {
