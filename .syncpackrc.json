@@ -3,7 +3,7 @@
   "versionGroups": [
     {
       "label": "Use workspace protocol for internal packages",
-      "dependencies": ["@brains/**"],
+      "dependencies": ["@brains/**", "@rizom/brain"],
       "dependencyTypes": ["dev", "prod"],
       "pinVersion": "workspace:*"
     },
@@ -40,11 +40,13 @@
       "range": "^"
     }
   ],
-  "sortFirst": ["name", "version", "description", "keywords", "license", "author"],
-  "sortAz": [
-    "scripts",
-    "dependencies",
-    "devDependencies",
-    "peerDependencies"
-  ]
+  "sortFirst": [
+    "name",
+    "version",
+    "description",
+    "keywords",
+    "license",
+    "author"
+  ],
+  "sortAz": ["scripts", "dependencies", "devDependencies", "peerDependencies"]
 }

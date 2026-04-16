@@ -17,6 +17,7 @@ export interface ServerManagerOptions {
   previewDistDir?: string;
   productionDistDir: string;
   sharedImagesDir: string;
+  /** @deprecated Preview is served on the shared host; kept for config compatibility. */
   previewPort?: number;
   productionPort: number;
   /** Returns app info for the /health endpoint. */
@@ -51,7 +52,6 @@ export class ServerManager {
   private logger: Logger;
   private options: ServerManagerOptions;
   private productionServer: ReturnType<typeof Bun.serve> | null = null;
-  private previewServer: ReturnType<typeof Bun.serve> | null = null;
 
   private isPreviewHost(host: string | null): boolean {
     if (!host) {
@@ -126,31 +126,12 @@ export class ServerManager {
     this.logger.info(
       `Production server listening on http://localhost:${this.productionServer.port}`,
     );
-
-    if (this.options.previewDistDir && previewApp) {
-      this.previewServer = Bun.serve({
-        port: this.options.previewPort ?? 4321,
-        fetch: async (req) => {
-          const fastResponse = await this.serveImageFastPath(req);
-          if (fastResponse) return fastResponse;
-          return previewApp.fetch(req);
-        },
-      });
-
-      this.logger.info(
-        `Preview server listening on http://localhost:${this.previewServer.port}`,
-      );
-    }
   }
 
   async stop(): Promise<void> {
     if (this.productionServer) {
       await this.productionServer.stop();
       this.productionServer = null;
-    }
-    if (this.previewServer) {
-      await this.previewServer.stop();
-      this.previewServer = null;
     }
     this.logger.debug("Webserver stopped");
   }
@@ -165,9 +146,10 @@ export class ServerManager {
       productionUrl: this.productionServer
         ? `http://localhost:${this.productionServer.port}`
         : undefined,
-      previewUrl: this.previewServer
-        ? `http://localhost:${this.previewServer.port}`
-        : undefined,
+      previewUrl:
+        this.productionServer && this.options.previewDistDir
+          ? `http://localhost:${this.productionServer.port}`
+          : undefined,
     };
   }
 

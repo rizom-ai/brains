@@ -8,6 +8,7 @@ import {
   parseInstanceOverrides,
   InstanceOverridesParseError,
 } from "./instance-overrides";
+import { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
 import { registerPackage } from "./package-registry";
@@ -134,8 +135,13 @@ async function main(): Promise<void> {
   // Pre-register @-prefixed package references from plugin overrides
   await registerPackageRefs(overrides);
 
+  const effectiveOverrides = await registerConventionalSiteTheme(
+    process.cwd(),
+    overrides,
+  );
+
   const logger = Logger.getInstance();
-  const config = resolve(definition, process.env, overrides, logger);
+  const config = resolve(definition, process.env, effectiveOverrides, logger);
   await handleCLI(config);
 }
 

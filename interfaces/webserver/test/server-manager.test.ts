@@ -91,17 +91,19 @@ describe("ServerManager (in-process)", () => {
     expect(res.status).toBe(404);
   });
 
-  it("should serve preview site when configured", async () => {
+  it("should expose preview on the shared host when configured", async () => {
     const m = setup({ preview: true });
     await m.start();
 
     const status = m.getStatus();
-    expect(status.previewUrl).toBeDefined();
+    expect(status.previewUrl).toBe(status.productionUrl);
 
-    const url = status.previewUrl;
+    const url = status.productionUrl;
     expect(url).toBeDefined();
     if (!url) return;
-    const res = await fetch(url);
+    const res = await fetch(url, {
+      headers: { Host: "preview.localhost" },
+    });
     expect(res.status).toBe(200);
     const text = await res.text();
     expect(text).toContain("Preview");
