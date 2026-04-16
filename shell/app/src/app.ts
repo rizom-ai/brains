@@ -140,10 +140,7 @@ export class App {
 
     this.isShuttingDown = true;
 
-    // Remove signal handlers
     this.cleanupSignalHandlers();
-
-    // Interfaces and background services are stopped during shell shutdown.
     await this.shell?.shutdown();
   }
 

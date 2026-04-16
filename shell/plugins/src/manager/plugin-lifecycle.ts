@@ -61,12 +61,11 @@ export class PluginLifecycle {
           await this.daemonRegistry.startPlugin(pluginId);
           this.logger.debug(`Started daemons for plugin: ${pluginId}`);
         } catch (error) {
-          const msg = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`Daemon ${pluginId} failed to start: ${msg}`);
-
           if (plugin.requiresDaemonStartup?.()) {
             throw error;
           }
+          const msg = error instanceof Error ? error.message : String(error);
+          this.logger.warn(`Daemon ${pluginId} failed to start: ${msg}`);
         }
       }
 

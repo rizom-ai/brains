@@ -244,18 +244,21 @@ export class DaemonRegistry {
       `Starting ${pluginDaemons.length} daemons for plugin: ${pluginId}`,
     );
 
-    const errors: Error[] = [];
+    let firstError: Error | undefined;
 
     for (const daemonInfo of pluginDaemons) {
       try {
         await this.start(daemonInfo.name);
       } catch (error) {
-        errors.push(error instanceof Error ? error : new Error(String(error)));
+        if (!firstError) {
+          firstError =
+            error instanceof Error ? error : new Error(String(error));
+        }
       }
     }
 
-    if (errors.length > 0) {
-      throw errors[0];
+    if (firstError) {
+      throw firstError;
     }
   }
 
