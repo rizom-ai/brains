@@ -5,12 +5,6 @@ preset: default
 logLevel: info
 domain: rizom.foundation
 
-# Thin foundation site wrapper over shared Rizom base primitives.
-# Owns the first foundation-specific composition seam while the broader
-# Rizom site split is still happening inside the monorepo.
-site:
-  package: "@brains/site-rizom-foundation"
-
 plugins:
   directory-sync:
     git:

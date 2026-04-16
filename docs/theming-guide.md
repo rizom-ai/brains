@@ -289,11 +289,11 @@ site:
   theme: "@brains/theme-mytheme"
 ```
 
-Explicit site wrappers can still choose a shared theme alongside their site package:
+A shared site package can still choose a shared theme alongside its site package:
 
 ```yaml
 site:
-  package: "@brains/site-rizom-ai"
+  package: "@brains/site-rizom"
   theme: "@brains/theme-rizom"
 ```
 
@@ -371,7 +371,6 @@ site:
 # apps/rizom-ai/brain.yaml
 brain: ranger
 site:
-  package: "@brains/site-rizom-ai"
   theme: "@brains/theme-rizom"
 ```
 

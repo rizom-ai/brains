@@ -1,9 +1,0 @@
-{
-  "extends": "@brains/typescript-config/base.json",
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "preact"
-  },
-  "include": ["src/**/*", "test/**/*", "../types/**/*.d.ts"],
-  "exclude": ["node_modules", "dist"]
-}

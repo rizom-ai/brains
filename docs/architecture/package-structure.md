@@ -46,9 +46,6 @@ brains/
 | `shared/theme-default`        | Rizom default theme (blue/orange)                      |
 | `shared/theme-rizom`          | Rizom brand theme                                      |
 | `shared/theme-*`              | Additional active shared themes                        |
-| `shared/rizom-ui`             | Shared Rizom frame and UI primitives                   |
-| `shared/rizom-runtime`        | Shared Rizom runtime plugin and static assets          |
-| `shared/rizom-ecosystem`      | Shared Rizom ecosystem section + content helpers       |
 | `shared/product-site-content` | Product page layouts and templates                     |
 | `shared/image`                | Image schema, adapter, utilities                       |
 | `shared/mcp-bridge`           | Base class for upstream MCP integration                |
@@ -98,27 +95,25 @@ Note: system tools (create/update/delete/search/status) are registered directly 
 
 ## Interfaces
 
-| Package                | Purpose                                                      |
-| ---------------------- | ------------------------------------------------------------ |
-| `interfaces/cli`       | Terminal REPL interface plumbing                             |
-| `interfaces/chat-repl` | Interactive Ink-based chat REPL                              |
-| `interfaces/discord`   | Discord chat bot                                             |
-| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                        |
-| `interfaces/webserver` | In-process Hono server: static site + API routes + `/health` |
-| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)     |
+| Package                | Purpose                                                                             |
+| ---------------------- | ----------------------------------------------------------------------------------- |
+| `interfaces/cli`       | Terminal REPL interface plumbing                                                    |
+| `interfaces/chat-repl` | Interactive Ink-based chat REPL                                                     |
+| `interfaces/discord`   | Discord chat bot                                                                    |
+| `interfaces/mcp`       | Model Context Protocol (stdio + HTTP)                                               |
+| `interfaces/webserver` | In-process Hono server: site pages, dashboard/CMS routes, API routes, and `/health` |
+| `interfaces/a2a`       | Agent-to-Agent JSON-RPC (Agent Card, non-blocking tasks)                            |
 
 ## Sites
 
 Site packages are structural-only bundles: layouts, routes, site plugins, entity display metadata, and static assets. Themes live separately under `shared/theme-*` and are selected alongside the site in `brain.yaml`.
 
-| Package                  | Purpose                                                                          |
-| ------------------------ | -------------------------------------------------------------------------------- |
-| `sites/default`          | Default structural site for rover, typically paired with `@brains/theme-default` |
-| `sites/personal`         | Personal site composition, blog-focused                                          |
-| `sites/professional`     | Professional site composition, editorial + portfolio + decks                     |
-| `sites/rizom-ai`         | Rizom AI site wrapper                                                            |
-| `sites/rizom-foundation` | Rizom Foundation site wrapper                                                    |
-| `sites/rizom-work`       | Rizom Work site wrapper                                                          |
+| Package              | Purpose                                                                          |
+| -------------------- | -------------------------------------------------------------------------------- |
+| `sites/default`      | Default structural site for rover, typically paired with `@brains/theme-default` |
+| `sites/personal`     | Personal site composition, blog-focused                                          |
+| `sites/professional` | Professional site composition, editorial + portfolio + decks                     |
+| `sites/rizom`        | Shared Rizom site core composed by the Rizom app instances                       |
 
 ## Brains
 
@@ -142,7 +137,8 @@ Standalone published packages.
 
 App instances are deployment configurations, not workspace members. Each directory is a `brain.yaml` + `.env` + optional `deploy/` bundle that the `brain` CLI loads at runtime.
 
-| Directory               | Purpose                                                                     |
-| ----------------------- | --------------------------------------------------------------------------- |
-| `apps/rizom-ai`         | Marketing site for the framework (ranger model + sites/rizom-ai wrapper).   |
-| `apps/rizom-foundation` | Manifesto / foundation site (relay model + sites/rizom-foundation wrapper). |
+| Directory               | Purpose                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| `apps/rizom-ai`         | Marketing site for the framework (ranger model + app-local `src/site.ts` over `sites/rizom`). |
+| `apps/rizom-foundation` | Manifesto / foundation site (relay model + app-local `src/site.ts` over `sites/rizom`).       |
+| `apps/rizom-work`       | Consultancy / network site (ranger model + app-local `src/site.ts` over `sites/rizom`).       |

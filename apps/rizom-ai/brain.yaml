@@ -5,9 +5,6 @@ preset: default
 logLevel: info
 domain: rizom.ai
 
-# Use the thin rizom.ai wrapper package over shared Rizom base.
-site:
-  package: "@brains/site-rizom-ai"
 plugins:
   directory-sync:
     git:

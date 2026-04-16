@@ -39,10 +39,10 @@ cd mybrain && brain start
 
 That's it. You now have:
 
-- A web server on `localhost:3000` serving a generated site
+- A web server on `localhost:3000` serving your site plus browser routes like `/dashboard` and `/cms`
 - An MCP server on `localhost:3001` your AI assistant can connect to
 - An A2A endpoint on `localhost:3002` for agent-to-agent calls
-- A CMS dashboard on `localhost:3000/admin`
+- A dashboard at `localhost:3000/dashboard` and CMS at `localhost:3000/cms`
 - Markdown files in `./brain-data/` you can edit with any editor
 
 Connect Claude Desktop or Cursor by adding to your MCP config:
@@ -156,7 +156,7 @@ entities/             Built-in entity types: blog, link, deck, project, note, to
 plugins/              Built-in service plugins: site-builder, git sync, notion, hackmd, ...
 interfaces/           Built-in interfaces: MCP, A2A, Discord, webserver, CLI
 brains/rover          Reference brain model
-sites/                Site packages: default, personal, professional, rizom-ai, rizom-foundation, rizom-work
+sites/                Site packages: default, personal, professional, rizom
 packages/brain-cli    The `brain` command-line tool
 docs/                 Architecture, plugin development, deployment, theming
 ```

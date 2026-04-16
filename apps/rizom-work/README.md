@@ -1,6 +1,6 @@
 # rizom.work
 
-A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model — the distributed consultancy / network face of the Rizom collective, now using a thin `@brains/site-rizom-work` wrapper over shared Rizom UI/runtime/ecosystem packages.
+A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model — the distributed consultancy / network face of the Rizom collective, now owning its composition from app-local `src/site.ts` over the shared [@brains/site-rizom](../../sites/rizom/) core.
 
 ## Setup
 
@@ -10,15 +10,15 @@ cd apps/rizom-work
 bunx brain start
 ```
 
-## Site package
+## Local site source
 
-`brain.yaml` now points at `@brains/site-rizom-work`, a thin site-package wrapper over the shared Rizom UI/runtime/ecosystem packages.
+`brain.yaml` now omits an explicit `site.package`, so the runtime picks up app-local `src/site.ts`.
 
-That wrapper currently does three things:
+That local site source currently does three things:
 
 - injects the `work` canvas/plugin config
 - owns the work shell model (nav/footer/side-nav labels)
-- owns the final work route composition while reusing shared Rizom base primitives
+- owns the final work route composition while reusing the shared Rizom site core
 
 Tracked `site-content` now exists for durable work sections such as:
 

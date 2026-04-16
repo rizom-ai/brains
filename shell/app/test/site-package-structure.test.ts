@@ -2,19 +2,9 @@ import { describe, expect, test } from "bun:test";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const siteSources = [
-  "sites/default/src/index.ts",
-  "sites/rizom-foundation/src/index.ts",
-  "sites/rizom-work/src/index.ts",
-  "sites/rizom-ai/src/index.ts",
-];
+const siteSources = ["sites/default/src/index.ts", "sites/rizom/src/index.ts"];
 
-const sitePackages = [
-  "sites/default/package.json",
-  "sites/rizom-foundation/package.json",
-  "sites/rizom-work/package.json",
-  "sites/rizom-ai/package.json",
-];
+const sitePackages = ["sites/default/package.json", "sites/rizom/package.json"];
 
 const brainSources = [
   "brains/ranger/src/index.ts",

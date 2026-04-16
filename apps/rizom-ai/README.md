@@ -1,10 +1,10 @@
 # rizom.ai
 
-A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model with the [@brains/site-rizom-ai](../../sites/rizom-ai/) wrapper package — the product landing page for the Rizom collective.
+A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model — the product landing page for the Rizom collective, now proving the app-local `src/site.ts` ownership pattern over the shared [@brains/site-rizom](../../sites/rizom/) core.
 
 ## Status
 
-`rizom.ai` now has its own thin site wrapper package over the shared Rizom base, and now explicitly owns its final route tree rather than inheriting the shared Rizom baseline as its effective final composition. Foundation and work use the same wrapper pattern, which makes later extraction and site-specific composition changes cheaper.
+`rizom.ai` now owns its final route tree from app-local source in `src/site.ts`, composing from the shared Rizom site core instead of a dedicated wrapper package. This is the first proof point for the planned shift from wrapper packages to app-local site ownership.
 
 ## Setup
 
@@ -36,17 +36,13 @@ bunx brain start
 | `.env.local`    | Local-only bootstrap secrets for direnv               |
 | `.envrc`        | Loads `.env` and sources `.env.local` for the shell   |
 | `tsconfig.json` | Bun JSX runtime resolution for Preact site components |
+| `src/site.ts`   | App-local site composition entrypoint                 |
 
-## Site package
+## Local site source
 
-`brain.yaml` now selects `@brains/site-rizom-ai`:
+`brain.yaml` now omits an explicit `site.package`, so the runtime picks up app-local `src/site.ts`.
 
-```yaml
-site:
-  package: "@brains/site-rizom-ai"
-```
-
-That wrapper now composes shared Rizom packages underneath (`@brains/rizom-ui`, `@brains/rizom-runtime`, `@brains/rizom-ecosystem`). The wrapper owns the final `rizom.ai` layout, route composition, and app-specific templates.
+That local site file composes from the shared `@brains/site-rizom` base and owns the final `rizom.ai` layout, route composition, and app-specific templates directly from this app.
 
 Across the Rizom family, the variant still determines:
 
@@ -58,7 +54,7 @@ Light mode collapses all variants to amber-dark for contrast (per brand guide A2
 
 ## Deployment
 
-rizom.ai deploys through this repo's current workflow. Shared Rizom architecture now lives in `shared/rizom-ui`, `shared/rizom-runtime`, `shared/rizom-ecosystem`, and `shared/theme-rizom`, with `sites/rizom-ai` acting as the app-owned composition wrapper.
+rizom.ai deploys through this repo's current workflow. Shared Rizom architecture now lives in `sites/rizom`, with `shared/theme-rizom` remaining separate, and `apps/rizom-ai/src/site.ts` acting as the app-owned composition entrypoint.
 
 ### First-time 1Password setup
 

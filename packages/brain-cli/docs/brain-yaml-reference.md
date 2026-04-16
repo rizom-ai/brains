@@ -358,7 +358,7 @@ plugins:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-### Ranger instance using an explicit site wrapper
+### Ranger instance using the shared Rizom site core
 
 ```yaml
 brain: ranger
@@ -366,7 +366,7 @@ preset: default
 domain: rizom.ai
 
 site:
-  package: "@brains/site-rizom-ai"
+  package: "@brains/site-rizom"
   theme: "@brains/theme-rizom"
 
 plugins:

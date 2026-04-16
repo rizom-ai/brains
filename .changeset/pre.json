@@ -83,14 +83,8 @@
     "@brains/site-professional": "0.2.0",
     "@brains/site-composition": "0.2.0",
     "@rizom/ops": "0.2.0",
-    "@brains/site-rizom-foundation": "0.1.0",
-    "@brains/site-rizom-work": "0.1.0",
-    "@brains/site-rizom-ai": "0.2.0-alpha.5",
     "@brains/admin": "0.2.0-alpha.18",
-    "@brains/cms-config": "0.2.0-alpha.18",
-    "@brains/rizom-ecosystem": "0.2.0-alpha.18",
-    "@brains/rizom-runtime": "0.2.0-alpha.18",
-    "@brains/rizom-ui": "0.2.0-alpha.18"
+    "@brains/cms-config": "0.2.0-alpha.18"
   },
   "changesets": [
     "align-preview-domain-routing",

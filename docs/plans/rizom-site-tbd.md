@@ -4,7 +4,7 @@ These items are **not blockers** for the current Rizom sites implementation.
 
 Current technical status:
 
-- all three Rizom site wrappers own their final route trees
+- all three Rizom apps now own their final route trees from app-local `src/site.ts`
 - `rizom.foundation` and `rizom.work` now use tracked `site-content` for durable section copy
 - all three Rizom apps are now wired to dedicated content repos
 - the changed apps boot successfully after the composition/content split
@@ -23,7 +23,7 @@ Still TBD whether the footer should link to:
 
 File:
 
-- `sites/rizom-ai/src/layout.tsx`
+- `apps/rizom-ai/src/layout.tsx`
 
 ## `rizom.foundation`
 
@@ -34,7 +34,7 @@ Primary newsletter CTA is still undecided.
 Files:
 
 - `apps/rizom-foundation/brain-data/site-content/home/mission.md`
-- `sites/rizom-foundation/src/layout.tsx`
+- `apps/rizom-foundation/src/layout.tsx`
 
 ### Essay destinations
 
@@ -67,7 +67,7 @@ That may be intentional for now, but final product wording/destination is still 
 
 File:
 
-- `sites/rizom-foundation/src/routes.ts`
+- `apps/rizom-foundation/src/routes.ts`
 
 ## `rizom.work`
 
@@ -77,8 +77,8 @@ Several CTA paths still use placeholder Typeform URLs pending the real quiz dest
 
 Files:
 
-- `sites/rizom-work/src/routes.ts`
-- `sites/rizom-work/src/layout.tsx`
+- `apps/rizom-work/src/routes.ts`
+- `apps/rizom-work/src/layout.tsx`
 - `apps/rizom-work/brain-data/site-content/home/workshop.md`
 - `apps/rizom-work/brain-data/site-content/home/mission.md`
 
@@ -88,7 +88,7 @@ The site currently supports the on-page CTA section flow, but the final booking/
 
 Files:
 
-- `sites/rizom-work/src/layout.tsx`
+- `apps/rizom-work/src/layout.tsx`
 - `apps/rizom-work/brain-data/site-content/home/mission.md`
 
 ### Proof / case-study finalization

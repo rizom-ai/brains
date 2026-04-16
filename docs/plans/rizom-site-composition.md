@@ -33,13 +33,13 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 
 ## Current state
 
-- `apps/rizom-*` are thin shells: `brain.yaml`, `brain-data/`, `package.json`, `tsconfig.json`. No source.
-- `sites/rizom-ai`, `sites/rizom-foundation`, `sites/rizom-work` are the wrapper packages owning routes, layout, templates, sections per site.
-- `shared/rizom-ui`, `shared/rizom-runtime`, `shared/rizom-ecosystem`, `shared/theme-rizom` hold cross-site Rizom code.
-- The old `sites/rizom` package is gone (an empty `sites/rizom/` directory with a stale `.turbo` cache remains and should be deleted).
+- `apps/rizom-*` now have local `src/site.ts` ownership for their final route trees and layout composition.
+- `sites/rizom` now exists as the shared Rizom site core.
+- `sites/rizom` now owns the shared Rizom runtime, UI, and ecosystem seams.
+- `shared/theme-rizom` remains the separate shared theme.
 - All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
 
-The wrapper-and-shared-package layering is the in-between state this plan moves away from.
+The remaining architectural cleanup is primarily removing the old compatibility package shells and keeping `sites/rizom` as the single shared Rizom source package.
 
 ## Implementation prep
 
@@ -47,27 +47,19 @@ The wrapper-and-shared-package layering is the in-between state this plan moves 
 
 The current codebase already has the main seam this refactor wants:
 
-- `shared/rizom-runtime/src/base-site.ts` defines `rizomBaseSite`
-- each wrapper package composes by calling `extendSite(rizomBaseSite, overrides)`
+- `sites/rizom/src/runtime/base-site.ts` now defines `rizomBaseSite`
 - app-local site ownership is already a supported runtime convention via `apps/<name>/src/site.ts`
 - app-local theme ownership is already a supported runtime convention via `apps/<name>/src/theme.css`
+- `sites/rizom` now re-exports the shared Rizom UI/runtime/ecosystem surface from one place
 
 So the refactor should start by **moving and renaming existing seams**, not by inventing a new site API.
 
 ### Concrete impact map
 
-Expected code touch points for the refactor:
+Expected code touch points for the remaining refactor:
 
-- create `sites/rizom/src/index.ts` as the new shared site entrypoint
-- move shared Rizom runtime/UI/ecosystem code out of:
-  - `shared/rizom-ui`
-  - `shared/rizom-runtime`
-  - `shared/rizom-ecosystem`
-- move wrapper-owned app composition out of:
-  - `sites/rizom-ai/src/*`
-  - `sites/rizom-foundation/src/*`
-  - `sites/rizom-work/src/*`
-- add local app source under:
+- keep evolving `sites/rizom/src/index.ts` as the shared site entrypoint
+- continue maintaining local app source under:
   - `apps/rizom-ai/src/site.ts`
   - `apps/rizom-foundation/src/site.ts`
   - `apps/rizom-work/src/site.ts`
@@ -81,11 +73,10 @@ Expected code touch points for the refactor:
 
 ### Safe coding order
 
-1. Create `sites/rizom` by lifting the current shared base out of `shared/rizom-runtime`.
+1. Keep `sites/rizom` as the single shared site entrypoint.
 2. Move Rizom-only shared helpers from `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into that shared site.
-3. Convert one app to the local `src/site.ts` convention end-to-end to prove the pattern.
-4. Convert the remaining two apps.
-5. Delete the old wrapper packages and cleanup references only after all three apps boot from local source.
+3. Keep all three apps booting from local `src/site.ts` while shared code is consolidated.
+4. Delete stale references only after the shared-package collapse is complete.
 
 That order minimizes simultaneous breakage and uses the already-supported local-site runtime path.
 
@@ -121,11 +112,13 @@ Exit criteria:
 
 ### Step 2 — collapse the Rizom-specific shared site packages into the shared site
 
-Move the contents of `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into `sites/rizom` where they are truly part of the shared Rizom site. Delete those three packages and their workspace entries.
+This step has now been completed for the old shared Rizom packages that lived at:
 
-Keep `shared/theme-rizom` as the separate shared theme unless there is an explicit later decision to reverse the current site/theme split.
+- `shared/rizom-ui`
+- `shared/rizom-runtime`
+- `shared/rizom-ecosystem`
 
-Do not preserve the moved packages as internal sub-packages. The point is to stop having a Rizom-shared layer separate from the shared site.
+`sites/rizom` now owns that shared Rizom code directly. `shared/theme-rizom` remains the separate shared theme.
 
 Exit criteria:
 
@@ -135,7 +128,7 @@ Exit criteria:
 
 ### Step 3 — fold each wrapper into its app's local source
 
-For each of `sites/rizom-ai`, `sites/rizom-foundation`, `sites/rizom-work`:
+This step has now been completed for the former wrapper packages that lived at `sites/rizom-ai`, `sites/rizom-foundation`, and `sites/rizom-work`.
 
 - move the wrapper-owned `src/` into the corresponding app as local source, centered on `apps/rizom-*/src/site.ts` with helper modules alongside it as needed
 - update imports so the app composes from `@brains/site-rizom` instead of `@brains/site-rizom-*`

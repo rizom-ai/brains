@@ -106,22 +106,22 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 
 Interface packages live in `interfaces/`. Some chat-style interfaces use `MessageInterfacePlugin`, which is a specialized interface base class for conversational transports.
 
-| Package                | Purpose                                               |
-| ---------------------- | ----------------------------------------------------- |
-| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks      |
-| `interfaces/chat-repl` | Local chat REPL / development chat interface          |
-| `interfaces/discord`   | Discord bot interface                                 |
-| `interfaces/mcp`       | MCP transport over stdio and HTTP                     |
-| `interfaces/webserver` | In-process web server for static files and API routes |
+| Package                | Purpose                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------- |
+| `interfaces/a2a`       | Agent-to-agent protocol, Agent Card, async tasks                                            |
+| `interfaces/chat-repl` | Local chat REPL / development chat interface                                                |
+| `interfaces/discord`   | Discord bot interface                                                                       |
+| `interfaces/mcp`       | MCP transport over stdio and HTTP                                                           |
+| `interfaces/webserver` | Browser-facing HTTP surface for site pages, dashboard/CMS routes, API routes, and `/health` |
 
 ### Sites, themes, and brains
 
-| Area             | Current packages                                                                                                                      |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `sites/`         | `default`, `personal`, `professional`, `rizom-ai`, `rizom-foundation`, `rizom-work` (site compositions; may inherit from other sites) |
-| `shared/theme-*` | `base`, `default`, `rizom`                                                                                                            |
-| `brains/`        | `rover`, `ranger`, `relay`                                                                                                            |
-| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                               |
+| Area             | Current packages                                                                                 |
+| ---------------- | ------------------------------------------------------------------------------------------------ |
+| `sites/`         | `default`, `personal`, `professional`, `rizom` (site compositions; may inherit from other sites) |
+| `shared/theme-*` | `base`, `default`, `rizom`                                                                       |
+| `brains/`        | `rover`, `ranger`, `relay`                                                                       |
+| `packages/`      | `brain-cli` published as `@rizom/brain`                                                          |
 
 ## Plugin model
 
@@ -161,7 +161,7 @@ Interface plugins are how users or other agents interact with a brain:
 
 - MCP clients connect through `interfaces/mcp`
 - chat users connect through `interfaces/discord` or `interfaces/chat-repl`
-- browsers connect through `interfaces/webserver`
+- browsers connect through `interfaces/webserver` for public pages, dashboard/CMS routes, and browser-facing APIs
 - peer agents connect through `interfaces/a2a`
 
 ## Runtime flow
