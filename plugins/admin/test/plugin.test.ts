@@ -7,7 +7,9 @@ import {
   adminPlugin,
   buildCmsConfigYaml,
   CMS_CONFIG_URI,
+  CMS_SHELL_PATH,
   renderAdminShellHtml,
+  renderCmsShellHtml,
 } from "../src";
 
 function createAdminTestShell(options: { domain?: string } = {}): MockShell {
@@ -118,15 +120,19 @@ describe("admin plugin", () => {
     expect(parsed.backend.branch).toBe("main");
   });
 
-  it("should expose web routes for cms config and admin shell", async () => {
-    const shell = createAdminTestShell();
+  it("should expose web routes for cms config, admin home, and cms shell", async () => {
+    const shell = createAdminTestShell({ domain: "yeehaa.io" });
     const plugin = adminPlugin({ routePath: "/cms" });
 
     await plugin.register(shell);
 
     const routes = plugin.getWebRoutes();
-    expect(routes).toHaveLength(2);
-    expect(routes.map((route) => route.path)).toEqual(["/cms-config", "/cms"]);
+    expect(routes).toHaveLength(3);
+    expect(routes.map((route) => route.path)).toEqual([
+      "/cms-config",
+      "/cms",
+      CMS_SHELL_PATH,
+    ]);
 
     const cmsResponse = await routes[0]?.handler(
       new Request("http://brain/cms-config"),
@@ -135,13 +141,29 @@ describe("admin plugin", () => {
     expect(cmsResponse?.headers.get("content-type")).toContain("text/yaml");
     expect(await cmsResponse?.text()).toContain("owner/repo");
 
-    const shellResponse = await routes[1]?.handler(
+    const adminResponse = await routes[1]?.handler(
       new Request("http://brain/cms"),
+    );
+    expect(adminResponse?.status).toBe(200);
+    expect(adminResponse?.headers.get("content-type")).toContain("text/html");
+    const adminHtml = await adminResponse?.text();
+    expect(adminHtml).toContain("Brain Admin");
+    expect(adminHtml).toContain(CMS_SHELL_PATH);
+    expect(adminHtml).toContain("https://yeehaa.io");
+    expect(adminHtml).toContain("https://preview.yeehaa.io");
+    expect(adminHtml).toContain(
+      renderAdminShellHtml({
+        cmsShellPath: CMS_SHELL_PATH,
+        siteUrl: "https://yeehaa.io",
+        previewUrl: "https://preview.yeehaa.io",
+      }).trim(),
+    );
+
+    const shellResponse = await routes[2]?.handler(
+      new Request(`http://brain${CMS_SHELL_PATH}`),
     );
     expect(shellResponse?.status).toBe(200);
     expect(shellResponse?.headers.get("content-type")).toContain("text/html");
-    expect(await shellResponse?.text()).toContain(
-      renderAdminShellHtml().trim(),
-    );
+    expect(await shellResponse?.text()).toContain(renderCmsShellHtml().trim());
   });
 });

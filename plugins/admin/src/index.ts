@@ -4,4 +4,8 @@ export {
   buildCmsConfigYaml,
   CMS_CONFIG_URI,
 } from "./plugin";
-export { renderAdminShellHtml } from "./admin-shell";
+export {
+  CMS_SHELL_PATH,
+  renderAdminShellHtml,
+  renderCmsShellHtml,
+} from "./admin-shell";

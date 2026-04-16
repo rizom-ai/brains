@@ -5,7 +5,11 @@ import type {
 } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { generateCmsConfig, type EntityDisplayMap } from "@brains/cms-config";
-import { renderAdminShellHtml } from "./admin-shell";
+import {
+  CMS_SHELL_PATH,
+  renderAdminShellHtml,
+  renderCmsShellHtml,
+} from "./admin-shell";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
 
@@ -31,6 +35,18 @@ function getCmsConfigOptions(config: AdminConfig): {
 } {
   const entityDisplay = config.entityDisplay as EntityDisplayMap | undefined;
   return entityDisplay ? { entityDisplay } : {};
+}
+
+function getAdminShellOptions(context: ServicePluginContext): {
+  cmsShellPath: string;
+  siteUrl?: string;
+  previewUrl?: string;
+} {
+  return {
+    cmsShellPath: CMS_SHELL_PATH,
+    ...(context.siteUrl ? { siteUrl: context.siteUrl } : {}),
+    ...(context.previewUrl ? { previewUrl: context.previewUrl } : {}),
+  };
 }
 
 async function getRepoInfo(
@@ -132,7 +148,19 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
         method: "GET",
         public: true,
         handler: (): Response =>
-          new Response(renderAdminShellHtml(), {
+          new Response(
+            renderAdminShellHtml(getAdminShellOptions(this.getContext())),
+            {
+              headers: { "Content-Type": "text/html; charset=utf-8" },
+            },
+          ),
+      },
+      {
+        path: CMS_SHELL_PATH,
+        method: "GET",
+        public: true,
+        handler: (): Response =>
+          new Response(renderCmsShellHtml(), {
             headers: { "Content-Type": "text/html; charset=utf-8" },
           }),
       },
