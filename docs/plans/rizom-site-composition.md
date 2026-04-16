@@ -39,7 +39,7 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 - `shared/theme-rizom` remains the separate shared theme.
 - All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
 
-The remaining architectural cleanup is primarily removing the old compatibility package shells and keeping `sites/rizom` as the single shared Rizom source package.
+The main architectural cleanup is now complete: `sites/rizom` is the single shared Rizom source package, the old wrapper packages are gone, and the old Rizom-only shared packages have been removed.
 
 ## Implementation prep
 
@@ -73,12 +73,14 @@ Expected code touch points for the remaining refactor:
 
 ### Safe coding order
 
+This was the successful implementation order:
+
 1. Keep `sites/rizom` as the single shared site entrypoint.
 2. Move Rizom-only shared helpers from `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into that shared site.
 3. Keep all three apps booting from local `src/site.ts` while shared code is consolidated.
 4. Delete stale references only after the shared-package collapse is complete.
 
-That order minimizes simultaneous breakage and uses the already-supported local-site runtime path.
+That order minimized simultaneous breakage and used the already-supported local-site runtime path.
 
 ### Targeted validation while implementing
 
