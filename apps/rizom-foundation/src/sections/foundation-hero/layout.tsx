@@ -21,10 +21,10 @@ export const FoundationHeroLayout = ({
   return (
     <Section
       id="hero"
-      className="foundation-hero flex min-h-[100dvh] items-center overflow-hidden text-center"
+      className="flex min-h-[100dvh] items-center overflow-hidden text-center"
     >
-      <div className="foundation-hero-inner relative z-[2] mx-auto max-w-[980px] pt-24 md:pt-28">
-        <div className="foundation-hero-meta mx-auto mb-6 flex flex-wrap items-center justify-center gap-3 text-theme-light font-label text-label-sm font-semibold uppercase tracking-[0.18em] opacity-0 animate-hero-rise [animation-delay:0.1s]">
+      <div className="relative z-[2] mx-auto max-w-[1040px] pt-[52px] md:pt-[60px]">
+        <div className="mx-auto mb-8 inline-flex flex-wrap items-center justify-center gap-[10px] border-y border-[var(--color-foundation-meta-rule)] px-[18px] py-[10px] font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-theme-light opacity-0 animate-hero-rise [animation-delay:0.1s] md:mb-14 md:gap-3 md:px-6 md:py-[11px]">
           <span>{volumeLabel}</span>
           <span className="text-accent">·</span>
           <span>{yearLabel}</span>
@@ -32,19 +32,19 @@ export const FoundationHeroLayout = ({
           <span>{metaLabel}</span>
           <span className="inline-block h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_12px_var(--color-glow-cta)]" />
         </div>
-        <h1 className="foundation-hero-title font-display font-normal text-[38px] tracking-[-1.5px] leading-[1.04] md:text-display-xl mb-6 opacity-0 animate-hero-rise [animation-delay:0.2s]">
+        <h1 className="mb-6 font-display text-[clamp(56px,10.5vw,148px)] font-normal leading-[0.88] tracking-[-2.5px] opacity-0 animate-hero-rise [animation-delay:0.2s] md:tracking-[-5px]">
           {headline}
-          <span className="foundation-hero-tail block mt-3 md:mt-4 text-[28px] md:text-display-sm text-theme-muted leading-[1.18]">
+          <span className="mt-4 block text-[0.42em] leading-[1.2] tracking-[-1.5px] text-theme-muted italic md:mt-6 md:leading-[1.15]">
             {headlineTail}
           </span>
         </h1>
-        <p className="foundation-hero-tagline mx-auto max-w-[760px] font-display text-[22px] md:text-display-xs tracking-[-0.6px] text-theme mb-5 opacity-0 animate-hero-rise [animation-delay:0.35s]">
+        <p className="mx-auto mb-7 max-w-[780px] font-display text-[clamp(20px,2.4vw,28px)] tracking-[-0.3px] text-theme italic leading-[1.4] opacity-0 animate-hero-rise [animation-delay:0.35s] md:mb-10">
           {tagline}
         </p>
-        <p className="foundation-hero-subtitle mx-auto max-w-[720px] font-body text-body-md md:text-body-lg text-theme-muted mb-9 md:mb-10 opacity-0 animate-hero-rise [animation-delay:0.45s]">
+        <p className="mx-auto mb-11 max-w-[560px] font-body text-[16px] leading-[1.7] text-theme-muted italic opacity-0 animate-hero-rise [animation-delay:0.45s]">
           {subtitle}
         </p>
-        <div className="foundation-hero-cta flex flex-col md:flex-row gap-3 md:gap-4 md:justify-center md:flex-wrap opacity-0 animate-hero-rise [animation-delay:0.6s]">
+        <div className="flex flex-col items-center gap-6 opacity-0 animate-hero-rise [animation-delay:0.6s] md:flex-row md:flex-wrap md:justify-center md:gap-9">
           <Button href={primaryCtaHref} variant="primary" block>
             {primaryCtaLabel}
           </Button>
@@ -52,7 +52,7 @@ export const FoundationHeroLayout = ({
             {secondaryCtaLabel}
           </Button>
         </div>
-        <div className="foundation-hero-colophon mt-10 md:mt-12 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 font-label text-label-sm font-medium uppercase tracking-[0.14em] text-theme-light opacity-0 animate-hero-rise [animation-delay:0.75s]">
+        <div className="mx-auto mt-10 flex max-w-[680px] flex-col items-center justify-center gap-[14px] border-t border-[var(--color-foundation-divider-soft)] pt-[18px] font-label text-label-sm font-medium uppercase tracking-[0.14em] text-theme-light opacity-0 animate-hero-rise [animation-delay:0.75s] md:mt-16 md:flex-row md:gap-8 md:pt-6">
           {colophon.map((line) => (
             <span key={line}>{line}</span>
           ))}

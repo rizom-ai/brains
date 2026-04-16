@@ -13,9 +13,9 @@ export const ResearchLayout = ({
   return (
     <Section
       id="research"
-      className="foundation-research reveal pt-20 pb-28 md:pt-24 md:pb-36"
+      className="reveal px-0 py-[88px] md:pt-20 md:pb-[120px]"
     >
-      <div className="foundation-research-inner max-w-[960px] mx-auto">
+      <div className="mx-auto max-w-[960px]">
         <div className="mb-10 md:mb-12">
           <div className="flex items-center gap-3 text-accent mb-4">
             <span className="block w-8 h-px bg-accent/80" />
@@ -36,7 +36,7 @@ export const ResearchLayout = ({
             <a
               key={essay.num + essay.title}
               href={essay.href}
-              className={`foundation-research-row reveal reveal-delay-${Math.min(i + 1, 3)} grid grid-cols-[72px_1fr_auto] md:grid-cols-[110px_1fr_36px] gap-4 md:gap-8 items-start py-8 md:py-11 border-t border-white/8 hover:border-accent/40 transition-all hover:pl-3 md:hover:pl-4 group`}
+              className={`reveal reveal-delay-${Math.min(i + 1, 3)} group grid grid-cols-[80px_1fr_auto] items-start gap-6 border-t border-[var(--color-foundation-divider-soft)] py-8 transition-all hover:border-accent/40 hover:pl-3 md:grid-cols-[110px_1fr_36px] md:gap-8 md:py-11 md:hover:pl-4`}
             >
               <div className="font-display text-[38px] md:text-[54px] leading-none tracking-[-1.5px] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)]">
                 {essay.num}
