@@ -1025,11 +1025,16 @@ plugins, change presets, or wire up integrations like Discord and MCP.
 }
 
 // Bun walks up from cwd looking for tsconfig.json to pick a JSX runtime.
-// Keep instance apps on the published @rizom/brain preset so in-repo and
-// standalone authoring use the same public contract.
+// Keep instance apps on the published @rizom/brain preset, but also repeat
+// the JSX hints locally because Bun's runtime transpiler needs them directly
+// when loading app-local TSX files.
 function writeTsConfig(dir: string): void {
   const content = `{
-  "extends": "@rizom/brain/tsconfig.instance.json"
+  "extends": "@rizom/brain/tsconfig.instance.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact"
+  }
 }
 `;
 

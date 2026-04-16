@@ -157,7 +157,7 @@ describe("@rizom/brain package metadata", () => {
     );
     const tsconfig = JSON.parse(
       readFileSync(join(projectDir, "demo", "tsconfig.json"), "utf8"),
-    ) as { extends?: string };
+    );
 
     expect(dockerfile).toContain(
       "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
@@ -165,6 +165,12 @@ describe("@rizom/brain package metadata", () => {
     expect(dockerfile).toContain("FROM runtime AS standalone");
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
-    expect(tsconfig.extends).toBe("@rizom/brain/tsconfig.instance.json");
+    expect(tsconfig).toMatchObject({
+      extends: "@rizom/brain/tsconfig.instance.json",
+      compilerOptions: {
+        jsx: "react-jsx",
+        jsxImportSource: "preact",
+      },
+    });
   }, 15000);
 });

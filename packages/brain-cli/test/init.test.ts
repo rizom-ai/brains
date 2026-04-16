@@ -281,6 +281,8 @@ describe("brain init", () => {
       expect(existsSync(path)).toBe(true);
       const content = JSON.parse(readFileSync(path, "utf-8"));
       expect(content.extends).toBe("@rizom/brain/tsconfig.instance.json");
+      expect(content.compilerOptions.jsx).toBe("react-jsx");
+      expect(content.compilerOptions.jsxImportSource).toBe("preact");
     });
 
     it("should not create local site/theme scaffold for rover core", () => {
