@@ -118,6 +118,11 @@ export abstract class InterfacePlugin<
     return undefined;
   }
 
+  /** Override when daemon startup failure should fail shell boot. */
+  public requiresDaemonStartup(): boolean {
+    return false;
+  }
+
   /** Get web routes for this interface (override when the interface mounts onto the shared host) */
   getWebRoutes(): WebRouteDefinition[] {
     return [];

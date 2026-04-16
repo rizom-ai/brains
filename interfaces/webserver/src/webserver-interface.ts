@@ -59,6 +59,10 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     return this.serverManager;
   }
 
+  public override requiresDaemonStartup(): boolean {
+    return true;
+  }
+
   protected override createDaemon(): Daemon | undefined {
     return {
       start: async (): Promise<void> => {

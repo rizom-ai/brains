@@ -223,6 +223,16 @@ export class ShellInitializer {
     }
 
     await pluginManager.initializePlugins(options);
+
+    if (!options?.registerOnly) {
+      for (const { id, error } of pluginManager.getFailedPlugins()) {
+        const plugin = pluginManager.getPlugin(id);
+        if (plugin?.requiresDaemonStartup?.()) {
+          throw error;
+        }
+      }
+    }
+
     this.logger.debug("Plugin initialization complete");
   }
 

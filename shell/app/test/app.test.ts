@@ -7,6 +7,7 @@ import type { Shell } from "@brains/core";
 const createMockShell = (): Shell => {
   return {
     initialize: mock(() => Promise.resolve()),
+    shutdown: mock(() => Promise.resolve()),
     getPluginManager: mock(() => ({
       registerPlugin: mock(() => {}),
     })),
@@ -65,9 +66,8 @@ describe("App", () => {
       const mockShell = createMockShell();
       const app = App.create({}, mockShell);
 
-      // Should not throw even without initialization
-      // eslint-disable-next-line @typescript-eslint/await-thenable
-      await expect(app.stop()).resolves.toBeUndefined();
+      expect(app.stop()).resolves.toBeUndefined();
+      expect(mockShell.shutdown).toHaveBeenCalled();
     });
 
     it("should initialize shell during app initialization", async () => {

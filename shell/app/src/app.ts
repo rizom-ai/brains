@@ -143,7 +143,8 @@ export class App {
     // Remove signal handlers
     this.cleanupSignalHandlers();
 
-    // Interfaces are stopped as plugins during shell shutdown
+    // Interfaces and background services are stopped during shell shutdown.
+    await this.shell?.shutdown();
   }
 
   /**

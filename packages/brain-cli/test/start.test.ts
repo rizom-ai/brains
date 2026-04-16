@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
-import { resolveRunnerType } from "../src/commands/start";
+import { EventEmitter } from "events";
+import { resolveRunnerType, start } from "../src/commands/start";
 import { registerModel, resetModels } from "../src/lib/model-registry";
 
 describe("brain start", () => {
@@ -18,6 +19,60 @@ describe("brain start", () => {
 
   it("should detect standalone context by absence of bun.lock", () => {
     expect(existsSync("/tmp/bun.lock")).toBe(false);
+  });
+});
+
+describe("start subprocess lifecycle", () => {
+  it("forwards SIGINT to the spawned runner and cleans up listeners", async () => {
+    const appDir = join(import.meta.dir, "..", "..", "..", "apps", "rizom-ai");
+
+    const fakeProcess = new EventEmitter() as EventEmitter & {
+      env: NodeJS.ProcessEnv;
+    };
+    fakeProcess.env = process.env;
+
+    const child = new EventEmitter() as EventEmitter & {
+      kill: ReturnType<typeof mock>;
+      exitCode: number | null;
+      killed: boolean;
+    };
+    child.exitCode = null;
+    child.killed = false;
+    child.kill = mock((signal?: string) => {
+      child.killed = true;
+      expect(signal).toBe("SIGINT");
+      return true;
+    });
+
+    const spawnImpl = mock(() => child as never);
+
+    const resultPromise = start(
+      appDir,
+      { chat: false },
+      {
+        spawnImpl,
+        processImpl: fakeProcess as unknown as Pick<
+          NodeJS.Process,
+          "env" | "on" | "removeListener"
+        >,
+      },
+    );
+
+    expect(fakeProcess.listenerCount("SIGINT")).toBe(1);
+    expect(fakeProcess.listenerCount("SIGTERM")).toBe(1);
+    expect(fakeProcess.listenerCount("exit")).toBe(1);
+
+    fakeProcess.emit("SIGINT");
+    expect(child.kill).toHaveBeenCalledWith("SIGINT");
+
+    child.emit("close", null, "SIGINT");
+    const result = await resultPromise;
+
+    expect(result.success).toBe(true);
+    expect(fakeProcess.listenerCount("SIGINT")).toBe(0);
+    expect(fakeProcess.listenerCount("SIGTERM")).toBe(0);
+    expect(fakeProcess.listenerCount("exit")).toBe(0);
+    expect(spawnImpl).toHaveBeenCalled();
   });
 });
 

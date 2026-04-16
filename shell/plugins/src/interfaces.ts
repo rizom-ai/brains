@@ -326,6 +326,7 @@ export interface PluginCapabilities {
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
   register(shell: IShell): Promise<PluginCapabilities>;
   shutdown?(): Promise<void>;
+  requiresDaemonStartup?(): boolean;
 };
 
 /**

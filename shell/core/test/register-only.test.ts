@@ -136,6 +136,39 @@ describe("Shell registerOnly mode", () => {
     expect(shell.isInitialized()).toBe(true);
   });
 
+  it("should fail initialization when a required daemon cannot start", async () => {
+    class RequiredDaemonInterface extends InterfacePlugin {
+      constructor() {
+        super(
+          "required-daemon",
+          { version: "0.1.0", name: "@test/required-daemon" },
+          {},
+          z.object({}),
+        );
+      }
+
+      public override requiresDaemonStartup(): boolean {
+        return true;
+      }
+
+      protected override createDaemon(): Daemon | undefined {
+        return {
+          start: async (): Promise<void> => {
+            throw new Error("Port 8080 is already in use");
+          },
+          stop: async (): Promise<void> => {},
+        };
+      }
+    }
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [new RequiredDaemonInterface()];
+    shell = Shell.createFresh(config, deps);
+
+    expect(shell.initialize()).rejects.toThrow("Port 8080 is already in use");
+    expect(shell.isInitialized()).toBe(false);
+  });
+
   it("should not start daemons in registerOnly mode", async () => {
     let daemonStarted = false;
 

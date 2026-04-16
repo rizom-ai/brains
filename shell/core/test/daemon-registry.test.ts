@@ -69,6 +69,20 @@ describe("DaemonRegistry", () => {
     expect(health).toEqual(mockHealth);
   });
 
+  it("should throw from startPlugin when a daemon fails to start", async () => {
+    const mockDaemon: Daemon = {
+      start: async () => {
+        throw new Error("boom");
+      },
+      stop: async () => {},
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+
+    expect(registry.startPlugin("test-plugin")).rejects.toThrow("boom");
+    expect(registry.get("test-daemon")?.status).toBe("error");
+  });
+
   it("should manage daemons by plugin", async () => {
     const mockDaemon1: Daemon = {
       start: async () => {},

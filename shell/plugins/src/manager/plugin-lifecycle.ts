@@ -63,7 +63,10 @@ export class PluginLifecycle {
         } catch (error) {
           const msg = error instanceof Error ? error.message : String(error);
           this.logger.warn(`Daemon ${pluginId} failed to start: ${msg}`);
-          // Don't fail plugin initialization if daemon startup fails
+
+          if (plugin.requiresDaemonStartup?.()) {
+            throw error;
+          }
         }
       }
 
