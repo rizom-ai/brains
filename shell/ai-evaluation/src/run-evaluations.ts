@@ -9,8 +9,8 @@
  *   bun run eval --tags core                  # Run only tests with 'core' tag
  *   bun run eval --skip-llm-judge             # Skip LLM quality scoring
  *   bun run eval --verbose                    # Show verbose output
- *   bun run eval --url http://localhost:3333  # Run against remote instance
- *   bun run eval --url http://localhost:3333 --token <token>  # With auth
+ *   bun run eval --url http://localhost:8080  # Run against remote instance
+ *   bun run eval --url http://localhost:8080 --token <token>  # With auth
  */
 
 import { resolve as resolvePath, join } from "path";
@@ -255,7 +255,7 @@ Examples:
   bun run eval --type plugin                Run only plugin tests
   bun run eval --type agent                 Run only agent tests
   bun run eval --skip-llm-judge             Skip LLM judge for speed
-  bun run eval --url http://localhost:3333  Run against remote instance
+  bun run eval --url http://localhost:8080  Run against remote instance
 `);
 }
 

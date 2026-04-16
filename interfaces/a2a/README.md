@@ -15,10 +15,14 @@ A2A (Agent-to-Agent) interface plugin. Enables brain instances to discover and c
 # brain.yaml
 plugins:
   a2a:
-    port: 3334
-    domain: yeehaa.io
     organization: rizom.ai
 ```
+
+A2A is served on the shared webserver host:
+
+- local: `http://localhost:8080/a2a`
+- deployed: `https://your-domain.com/a2a`
+- agent card: `/.well-known/agent-card.json` on the same host
 
 ## Testing with A2A Inspector
 
@@ -33,16 +37,16 @@ docker build -t a2a-inspector .
 docker run -d --network=host a2a-inspector uv run -- uvicorn app:app --host 0.0.0.0 --port 5001
 ```
 
-Open `http://localhost:5001` and connect to `http://localhost:3334`.
+Open `http://localhost:5001` and connect to `http://localhost:8080`.
 
 ### Manual testing
 
 ```bash
 # Fetch Agent Card
-curl http://localhost:3334/.well-known/agent-card.json | jq
+curl http://localhost:8080/.well-known/agent-card.json | jq
 
 # Send a message
-curl -X POST http://localhost:3334/a2a \
+curl -X POST http://localhost:8080/a2a \
   -H "Content-Type: application/json" \
   -d '{
     "jsonrpc": "2.0",

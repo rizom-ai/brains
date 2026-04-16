@@ -63,8 +63,8 @@ describe("resolveRemoteUrl", () => {
   });
 
   it("should handle http:// for local dev", () => {
-    expect(resolveRemoteUrl("http://localhost:3333")).toBe(
-      "http://localhost:3333/mcp",
+    expect(resolveRemoteUrl("http://localhost:8080")).toBe(
+      "http://localhost:8080/mcp",
     );
   });
 

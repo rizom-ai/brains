@@ -79,10 +79,10 @@ export interface ApiServerOptions {
 }
 
 /**
- * Dedicated API route server.
+ * Shared-host API route handler utilities.
  *
- * Runs on the main thread (needs message bus access) but on its own port,
- * separate from the static file webserver. Caddy routes /api/* here.
+ * Plugin API routes now run on the main webserver surface, but this helper
+ * remains as the adapter from registered API routes to Hono handlers.
  */
 export class ApiServer {
   private server: Server<unknown> | null = null;

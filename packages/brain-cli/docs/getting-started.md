@@ -71,7 +71,7 @@ mybrain/
 
 The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` ref from `brain.yaml` when you want to switch to the local site convention. Local `src/theme.css` layers on top of the active base theme automatically.
 
-With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `deploy/Caddyfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to `--backend none`, which means varlock validates and normalizes values supplied directly from local env files or GitHub Actions secrets.
+With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to `--backend none`, which means varlock validates and normalizes values supplied directly from local env files or GitHub Actions secrets.
 
 The proven operator flow is:
 
@@ -133,13 +133,13 @@ For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
 
 Once running, a brain can be accessed through several surfaces depending on the selected model and configured plugins.
 
-| Interface     | Access                                  | Notes                                                     |
-| ------------- | --------------------------------------- | --------------------------------------------------------- |
-| **Web**       | `http://localhost:4321`                 | Static site + CMS                                         |
-| **MCP**       | stdio or HTTP                           | Connect from Claude Desktop, Cursor, or other MCP clients |
-| **Chat REPL** | `brain chat`                            | Local terminal conversation loop                          |
-| **Discord**   | Bot in a server                         | Requires Discord credentials                              |
-| **A2A**       | `https://domain/.well-known/agent.json` | Agent-to-agent protocol                                   |
+| Interface     | Access                                              | Notes                                                     |
+| ------------- | --------------------------------------------------- | --------------------------------------------------------- |
+| **Web**       | `http://localhost:8080`                             | Shared HTTP surface: site, CMS, dashboard, API routes     |
+| **MCP**       | stdio or `http://localhost:8080/mcp`                | Connect from Claude Desktop, Cursor, or other MCP clients |
+| **Chat REPL** | `brain chat`                                        | Local terminal conversation loop                          |
+| **Discord**   | Bot in a server                                     | Requires Discord credentials                              |
+| **A2A**       | `http://localhost:8080/.well-known/agent-card.json` | Agent-to-agent protocol                                   |
 
 ## Common next steps
 

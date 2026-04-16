@@ -136,7 +136,7 @@ Native dependencies (`sharp` for image processing, `@libsql/client` or `better-s
 
 ## Deployment
 
-`brains` is designed to run as a single self-contained process on a small VM. The shipped deployment recipe builds a Docker image with everything baked in (Bun runtime, your brain code, native deps, Caddy reverse proxy, embedding model) and runs it behind TLS with one command.
+`brains` is designed to run as a single self-contained process on a small VM. The shipped deployment recipe builds a Docker image with everything baked in (Bun runtime, your brain code, native deps, embedding model) and runs it behind TLS with one command.
 
 ```bash
 brain build --model rover

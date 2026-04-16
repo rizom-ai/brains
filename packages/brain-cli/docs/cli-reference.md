@@ -52,7 +52,6 @@ brain init mybrain --no-interactive
 | `config/deploy.yml`                   | —                                    | Yes                                  |
 | `.kamal/hooks/pre-deploy`             | —                                    | Yes                                  |
 | `deploy/Dockerfile`                   | —                                    | Yes                                  |
-| `deploy/Caddyfile`                    | —                                    | Yes                                  |
 | `.github/workflows/publish-image.yml` | —                                    | Yes                                  |
 | `.github/workflows/deploy.yml`        | —                                    | Yes                                  |
 

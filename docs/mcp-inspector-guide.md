@@ -16,7 +16,7 @@ bun run dev
 
 1. Go to: https://modelcontextprotocol.io/inspector
 2. Configure connection:
-   - **Server URL**: `http://localhost:3333/mcp`
+   - **Server URL**: `http://localhost:8080/mcp`
    - **Transport**: Streamable HTTP
    - **Authentication** (use the separate fields):
      - **Header Name**: `Authorization`
@@ -43,7 +43,7 @@ Once connected, you can:
 
 For production servers:
 
-- **Server URL**: `https://api.yourdomain.com/mcp`
+- **Server URL**: `https://yourdomain.com/mcp`
 - **Transport**: Streamable HTTP
 - **Authentication**:
   - **Header Name**: `Authorization`
@@ -53,8 +53,8 @@ For production servers:
 
 ### Connection Refused
 
-- Check the server is running: `curl http://localhost:3333/health`
-- Verify port 3333 is not blocked
+- Check the server is running: `curl http://localhost:8080/health`
+- Verify port 8080 is not blocked
 
 ### Authentication Failed
 

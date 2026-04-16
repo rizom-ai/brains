@@ -219,10 +219,10 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Deployment
 
-- **[Kamal](https://kamal-deploy.org/)** — primary deploy tool (replacing Terraform + SSH + Caddy)
+- **[Kamal](https://kamal-deploy.org/)** — primary deploy tool (replacing Terraform + SSH)
   - Hetzner Cloud as the default provider
   - Per-instance `config/deploy.yml` scaffolded by `brain init <dir> --deploy`
-  - Internal Caddy routing for production + preview hosts
+  - App serves production and preview hosts directly
   - `/health` endpoint for healthchecks
 - **[Terraform](https://www.terraform.io/)** — legacy IaC for Hetzner / Cloudflare DNS / Bunny CDN
   - Still present under `deploy/providers/hetzner/terraform/`

@@ -54,14 +54,14 @@ describe("buildEvalArgs", () => {
     const argv = [
       "eval",
       "--url",
-      "http://localhost:3333",
+      "http://localhost:8080",
       "--token",
       "secret",
     ];
     const result = buildEvalArgs(argv);
     expect(result).toEqual([
       "--url",
-      "http://localhost:3333",
+      "http://localhost:8080",
       "--token",
       "secret",
     ]);

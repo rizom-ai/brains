@@ -72,7 +72,6 @@ mybrain/
   brain.yaml                          # Brain configuration
   config/deploy.yml                   # Kamal deployment config
   deploy/Dockerfile                   # Repo-local runtime image build
-  deploy/Caddyfile                    # Internal container routing
   .env.example                        # Secret template
   .env.schema                         # Deploy/runtime secret contract
   .kamal/hooks/pre-deploy             # Uploads brain.yaml to server
@@ -102,7 +101,7 @@ proxy:
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
     - <%= ENV['PREVIEW_DOMAIN'] %>
-  app_port: 80
+  app_port: 8080
   healthcheck:
     path: /health
 
