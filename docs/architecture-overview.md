@@ -116,12 +116,12 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 
 ### Sites, themes, and brains
 
-| Area             | Current packages                                                                                           |
-| ---------------- | ---------------------------------------------------------------------------------------------------------- |
-| `sites/`         | `default`, `personal`, `professional`, `yeehaa`, `rizom` (site compositions; may inherit from other sites) |
-| `shared/theme-*` | `base`, `default`, `yeehaa`, `rizom`, `brutalist`, `editorial`, `geometric`, `neo-retro`, `swiss`          |
-| `brains/`        | `rover`, `ranger`, `relay`                                                                                 |
-| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                    |
+| Area             | Current packages                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `sites/`         | `default`, `personal`, `professional`, `rizom-ai`, `rizom-foundation`, `rizom-work` (site compositions; may inherit from other sites) |
+| `shared/theme-*` | `base`, `default`, `rizom`                                                                                                            |
+| `brains/`        | `rover`, `ranger`, `relay`                                                                                                            |
+| `packages/`      | `brain-cli` published as `@rizom/brain`                                                                                               |
 
 ## Plugin model
 

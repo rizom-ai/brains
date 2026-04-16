@@ -2,204 +2,144 @@
 
 ## Decision
 
-The next extraction target is **one separate Rizom monorepo named `rizom-sites`**.
+The Rizom site family (rizom.ai, rizom.foundation, rizom.work) should be treated as **one shared site core with three app-owned variants**. The non-overlapping (per-domain) parts live **in the apps**, not in shared packages.
+
+Target shape:
+
+- **One** composable shared site definition (`sites/rizom`) owns the common 90%: routes, default layout, default templates, default sections, and shared Rizom runtime/plugin/static-asset structure.
+- **Each** `apps/rizom-*` grows real `src/` containing its own app-local composition, per-domain sections/copy, and any overrides. When an app wants a local skin, it should own that in app-local source (`src/site.ts` and, if needed, `src/theme.css`). Each app's `brain.yaml` and `brain-data/` stay where they are.
+- The current `sites/rizom-*` wrapper packages collapse **into** each app's local source.
+- The Rizom-specific shared packages that are really part of the shared site (`rizom-ui`, `rizom-runtime`, `rizom-ecosystem`) collapse **into** that shared site. `shared/theme-rizom` stays separate unless there is an explicit later decision to undo site/theme decoupling.
+
+Once that shape lands, extraction to a separate `rizom-sites` repo becomes a small move (shared site + shared theme + 3 apps), not a large untangling. Whether to extract is a second-stage decision.
 
 Do **not**:
 
-- reintroduce a shared `sites/rizom` pseudo-site
-- force the Rizom shared packages to become public framework packages yet
-- split immediately into three separate app repos
+- reintroduce a parameterized `sites/rizom` base with config knobs for per-site variation
+- grow Rizom-specific shared packages to capture differences between the three sites
+- publish new framework packages just to enable extraction
 
-Instead:
+## Why this shape
 
-- keep the current wrapper-owned site composition model
-- keep the current shared Rizom package split
-- move the whole Rizom site family out together into `rizom-sites`
+The previous architecture (one shared `sites/rizom` base + thin app shells consuming it via config) was abandoned because the base grew weird abstractions whenever one site needed to differ. The reaction was three independent wrapper packages with shared code factored into four `shared/rizom-*` packages. That state is in-between: it's the average of "one parameterized base" (too rigid) and "three independent sites" (over-duplicates aesthetics), and it leaves seven Rizom-shaped packages to maintain and eventually extract.
 
-## Why this is the target
+Putting commonality in a shared site and divergence in app `src/` resolves the tension without re-introducing config-driven parameterization. The shared site is _composable_, not parameterized — apps consume it as building blocks and override pieces in their own source code.
 
-The current architecture is already clean enough for extraction inside the monorepo:
+### The discipline rule
 
-- `@brains/site-rizom-ai` owns `rizom.ai`
-- `@brains/site-rizom-foundation` owns `rizom.foundation`
-- `@brains/site-rizom-work` owns `rizom.work`
-- the old shared `sites/rizom` package is gone
-- shared Rizom code already lives in dedicated shared packages
+When one site needs something different, add it to that app's `src/`. Never grow a config knob on the shared site to handle per-app variation. The shared site only grows when something genuinely becomes common to all three.
 
-The remaining problem is **repo boundary**, not site ownership.
-
-If each app were extracted to its own repo right now, we would have to choose between:
-
-- publishing all Rizom shared packages individually, or
-- inventing a new public façade just for extraction, or
-- copying shared Rizom code into each app repo
-
-A dedicated Rizom monorepo avoids all three.
-
-## Repository split
-
-### `brains` stays responsible for
-
-- `@rizom/brain`
-- generic framework/runtime/CLI code
-- generic site system
-- generic themes and generic UI layers
-- model definitions like `ranger` and `relay`
-
-### `rizom-sites` will own
-
-- `apps/rizom-ai`
-- `apps/rizom-foundation`
-- `apps/rizom-work`
-- `@brains/site-rizom-ai`
-- `@brains/site-rizom-foundation`
-- `@brains/site-rizom-work`
-- `@brains/rizom-ui`
-- `@brains/rizom-runtime`
-- `@brains/rizom-ecosystem`
-- `@brains/theme-rizom`
-- Rizom app-local content repos / deploy wiring / app docs
-
-## Package layering
-
-This is the intended layering and should remain true after extraction:
-
-- `@brains/ui-library` = generic shared UI
-- `@brains/rizom-ui` = Rizom-specific shared UI
-- `@brains/rizom-runtime` = Rizom-specific runtime/plugin/canvas layer
-- `@brains/rizom-ecosystem` = shared family-owned ecosystem section
-- `@brains/theme-rizom` = shared Rizom theme
-- `@brains/site-rizom-*` = thin final assembly layer for each real site
-
-The site wrappers stay thin and explicit. They are not a mistake; they are the final composition owners.
+This rule is what prevents drift back into the old `sites/rizom` pattern. Without it, the shared site accretes parameterization and we end up where we started.
 
 ## Current state
 
-Already done:
+- `apps/rizom-*` are thin shells: `brain.yaml`, `brain-data/`, `package.json`, `tsconfig.json`. No source.
+- `sites/rizom-ai`, `sites/rizom-foundation`, `sites/rizom-work` are the wrapper packages owning routes, layout, templates, sections per site.
+- `shared/rizom-ui`, `shared/rizom-runtime`, `shared/rizom-ecosystem`, `shared/theme-rizom` hold cross-site Rizom code.
+- The old `sites/rizom` package is gone (an empty `sites/rizom/` directory with a stale `.turbo` cache remains and should be deleted).
+- All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
 
-- wrappers own final routes, templates, and layout composition
-- durable content lives in tracked `brain-data/site-content`
-- all three apps are repo-backed via `directory-sync`
-- shared Rizom code is split into:
-  - `shared/rizom-ui`
-  - `shared/rizom-runtime`
-  - `shared/rizom-ecosystem`
-  - `shared/theme-rizom`
-- `sites/rizom` / `@brains/site-rizom` has been removed
+The wrapper-and-shared-package layering is the in-between state this plan moves away from.
 
-So the current monorepo work is no longer about ownership cleanup. It is about preparing a clean repo move.
+## Refactor plan
 
-## Extraction plan
+### Step 1 — establish the shared site
 
-### Step 1 — freeze the architecture shape
+Create `sites/rizom` (reusing `@brains/site-rizom` if desired) as a composable site definition. It exposes:
 
-Before moving repos, keep these rules fixed:
+- the common route set
+- the default layout
+- the default templates
+- the default section components
+- the shared Rizom runtime/plugin/static-asset structure
 
-- wrappers remain the real site owners
-- shared Rizom packages remain separate packages
-- do not collapse back into one base-site package
-- do not force app-local `src/site.ts` yet unless the new repo actually needs it
+Composability shape: each piece can be imported, extended, or replaced by an app. Avoid configuration objects that try to anticipate per-app variation.
 
 Exit criteria:
 
-- no further architectural churn inside the current Rizom package split
+- `sites/rizom` exists and exports the common building blocks
+- no per-site assumptions in its source
 
-### Step 2 — define the `rizom-sites` workspace shape
+### Step 2 — collapse the Rizom-specific shared site packages into the shared site
 
-Create the target layout for the new repo:
+Move the contents of `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into `sites/rizom` where they are truly part of the shared Rizom site. Delete those three packages and their workspace entries.
 
-- `apps/rizom-ai`
-- `apps/rizom-foundation`
-- `apps/rizom-work`
-- `packages/site-rizom-ai`
-- `packages/site-rizom-foundation`
-- `packages/site-rizom-work`
-- `packages/rizom-ui`
-- `packages/rizom-runtime`
-- `packages/rizom-ecosystem`
-- `packages/theme-rizom`
+Keep `shared/theme-rizom` as the separate shared theme unless there is an explicit later decision to reverse the current site/theme split.
 
-Naming inside that repo can be adjusted later, but the ownership grouping should stay the same.
+Do not preserve the moved packages as internal sub-packages. The point is to stop having a Rizom-shared layer separate from the shared site.
 
 Exit criteria:
 
-- target repo structure is explicit and documented before file moves start
+- `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` are removed from the workspace
+- nothing outside `sites/rizom` imports `@brains/rizom-ui`, `@brains/rizom-runtime`, or `@brains/rizom-ecosystem`
+- `shared/theme-rizom` remains independently consumable
 
-### Step 3 — move the Rizom family together
+### Step 3 — fold each wrapper into its app's local source
 
-Move the Rizom apps and Rizom shared packages out together.
+For each of `sites/rizom-ai`, `sites/rizom-foundation`, `sites/rizom-work`:
 
-Move together:
+- move the wrapper-owned `src/` into the corresponding app as local source, centered on `apps/rizom-*/src/site.ts` with helper modules alongside it as needed
+- update imports so the app composes from `@brains/site-rizom` instead of `@brains/site-rizom-*`
+- remove the explicit `site.package` ref from `brain.yaml` once the app is using the local `src/site.ts` convention
+- only remove an explicit `site.theme` ref if the app also adopts a local `src/theme.css`; otherwise keep using the shared Rizom theme explicitly
+- delete the wrapper package and its workspace entry
 
-- the three app directories
-- the three Rizom site wrapper packages
-- the Rizom shared packages
-- any Rizom-specific docs that must stay with the app family
-
-Do not move:
-
-- generic framework code
-- generic site system code
-- generic UI library code
-- generic CLI/framework docs unless they need updated links
+After this, each app owns its variant and overrides directly. Imports from `@brains/site-rizom` provide the common 90%.
 
 Exit criteria:
 
-- `rizom-sites` can install and boot all three apps against published/shared framework deps
+- `sites/rizom-*` wrapper packages are removed from the workspace
+- each `apps/rizom-*` boots from its own local `src/site.ts`
 
-### Step 4 — repoint the remaining framework references
+### Step 4 — verify and clean up
 
-After the move, clean up the `brains` repo so it no longer pretends to own Rizom app-family code.
-
-That includes:
-
-- docs links
-- codebase maps / roadmap references
-- any tests that still assume Rizom site packages live here
-- package/workspace declarations
+- `bun install`
+- typecheck and lint the workspace
+- boot all three apps; verify they render the same as before the refactor (skins intact, content unchanged)
+- delete the empty `sites/rizom/` leftover directory
+- update docs, codebase maps, security/public-release inventory, and any tests that still reference `sites/rizom-*` or `shared/rizom-*` paths
 
 Exit criteria:
 
-- the framework repo has no live source ownership of the Rizom app family
+- the repo contains `sites/rizom`, `shared/theme-rizom`, and three `apps/rizom-*` instances (with real `src/`) and nothing else Rizom-specific
+- all three apps boot and visually match prior output
 
-### Step 5 — decide later whether app-local site files are worth it
+### Step 5 — decide later whether to extract
 
-Only after `rizom-sites` exists should we decide whether to keep:
+After the refactor, the Rizom footprint is a small set of things (shared site + shared theme + 3 apps). Whether to move them to a separate `rizom-sites` repo is then a small, separate decision driven by actual need (CI cost, repo size, confidentiality, contributor scope), not by the desire to escape an unmanageable tangle.
 
-- `packages/site-rizom-ai` style wrappers
-
-or move further to:
-
-- `apps/rizom-ai/src/site.ts`
-
-That is a second-stage decision, not the immediate extraction step.
+Do not extract until there is a concrete reason to.
 
 Exit criteria:
 
-- repo extraction is complete before any additional composition-locality refactor
+- extraction is reconsidered against real motivation, not used as a forcing function for the architecture above
 
-## What not to do next
+## What not to do
 
-Do not spend the next cycle on:
-
-- publishing all Rizom shared packages individually
-- inventing a new public façade layer just to escape this repo
-- splitting directly into three separate app repos
-- reworking themes into a new abstraction system
-- content/CTA/product polish as part of the extraction plan
+- do not reintroduce `sites/rizom` as a parameterized base
+- do not grow Rizom-specific shared packages alongside `sites/rizom`
+- do not add config knobs to the shared site to handle per-app variation — put the variation in the app
+- do not collapse `shared/theme-rizom` into the site unless there is an explicit separate decision to reverse site/theme decoupling
+- do not publish new framework packages to enable extraction
+- do not split into three separate app repos
+- do not rework themes into a new abstraction system as part of this refactor
+- do not bundle content/CTA/product polish into this refactor
 
 ## Verification
 
 This plan is successful when:
 
-1. `rizom-sites` contains the whole Rizom site family
-2. the existing wrapper/shared-package boundaries survive the move intact
-3. `brains` no longer owns Rizom app-family source packages
-4. all three apps still boot and typecheck in the new repo
-5. no monolithic shared base-site package is reintroduced
+1. `sites/rizom` exists and owns the common Rizom site shape
+2. `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` are gone, collapsed into the shared site
+3. `shared/theme-rizom` remains a separate theme unless a future explicit decision changes that boundary
+4. the three `sites/rizom-*` wrapper packages are gone, folded into app-local `src/site.ts`
+5. each `apps/rizom-*` owns its own variant and any overrides in its own source
+6. all three apps still boot and visually match prior output
+7. no parameterized base or shared-package fan-out has reappeared
 
 ## Related
 
 - `docs/plans/rizom-site-tbd.md`
 - `docs/plans/standalone-apps.md`
 - `docs/plans/public-release-cleanup.md`
+- `docs/plans/rover-test-apps.md`

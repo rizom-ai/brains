@@ -38,7 +38,7 @@ These areas are effectively landed:
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
 - **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
-- **Rizom site variant split** — `rizom.ai`, `rizom.foundation`, and `rizom.work` each own their final route composition and section templates via thin wrapper packages over a shared base
+- **Rizom site variant split** — `rizom.ai`, `rizom.foundation`, and `rizom.work` each own their final route composition and section templates via thin wrapper packages over shared Rizom packages
 - **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
 
 ## Near-term priorities
