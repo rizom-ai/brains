@@ -6,6 +6,16 @@ import { A2AInterface } from "../src/a2a-interface";
 describe("A2A HTTP routes", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
+  function installWebserverPlugin(): void {
+    harness.getMockShell().addPlugin({
+      id: "webserver",
+      version: "1.0.0",
+      type: "interface",
+      packageName: "@brains/webserver",
+      register: async () => ({ tools: [], resources: [] }),
+    });
+  }
+
   beforeEach(() => {
     harness = createPluginHarness({
       logger: createSilentLogger("a2a-test"),
@@ -16,30 +26,23 @@ describe("A2A HTTP routes", () => {
     await harness.getMockShell().getDaemonRegistry().stopPlugin("a2a");
   });
 
-  it("redirects bare / to the agent card", async () => {
-    const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
-    await harness.getMockShell().getDaemonRegistry().startPlugin("a2a");
-
-    const response = await fetch(
-      `http://127.0.0.1:${plugin.getServerPort()}/`,
-      { redirect: "manual" },
-    );
-
-    expect(response.status).toBe(302);
-    expect(response.headers.get("location")).toBe(
-      "/.well-known/agent-card.json",
-    );
-  });
-
   it("returns a helpful 405 for GET /a2a", async () => {
+    installWebserverPlugin();
     const plugin = new A2AInterface({ port: 0 });
     await harness.installPlugin(plugin);
-    await harness.getMockShell().getDaemonRegistry().startPlugin("a2a");
 
-    const response = await fetch(
-      `http://127.0.0.1:${plugin.getServerPort()}/a2a`,
-    );
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) => candidate.path === "/a2a" && candidate.method === "GET",
+      );
+
+    expect(route).toBeDefined();
+    if (!route) {
+      throw new Error("Expected A2A GET route");
+    }
+
+    const response = await route.handler(new Request("http://brain/a2a"));
 
     expect(response.status).toBe(405);
     const body = await response.json();
@@ -49,22 +52,16 @@ describe("A2A HTTP routes", () => {
     });
   });
 
-  it("does not start a standalone HTTP listener when webserver is present", async () => {
-    harness.getMockShell().addPlugin({
-      id: "webserver",
-      version: "1.0.0",
-      type: "interface",
-      packageName: "@brains/webserver",
-      register: async () => ({ tools: [], resources: [] }),
-    });
+  it("requires webserver for registration", async () => {
     const plugin = new A2AInterface({ port: 0 });
-    await harness.installPlugin(plugin);
-    await harness.getMockShell().getDaemonRegistry().startPlugin("a2a");
 
-    expect(plugin.isStandaloneServerRunning()).toBe(false);
+    return expect(harness.installPlugin(plugin)).rejects.toThrow(
+      "A2A requires the webserver interface",
+    );
   });
 
   it("exposes shared-host routes for agent card and a2a", async () => {
+    installWebserverPlugin();
     const plugin = new A2AInterface({ port: 0 });
     await harness.installPlugin(plugin);
 

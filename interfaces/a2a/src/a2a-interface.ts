@@ -31,13 +31,11 @@ import packageJson from "../package.json";
 export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
-  private server: ReturnType<typeof Bun.serve> | undefined;
   private unsubscribeReady: (() => void) | undefined;
   private unsubscribeSyncCompleted: (() => void) | undefined;
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
-  private sharedHttpHostAvailable = false;
   private app: Hono | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
@@ -49,9 +47,14 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   ): Promise<void> {
     await super.onRegister(context);
 
+    if (!context.plugins.has("webserver")) {
+      throw new Error(
+        "A2A requires the webserver interface. Standalone HTTP listeners have been removed.",
+      );
+    }
+
     this.agentService = context.agentService;
     this.permissionContext = context.permissions;
-    this.sharedHttpHostAvailable = context.plugins.has("webserver");
 
     // Build Agent Card after all plugins have registered
     // so we can see the full tool registry
@@ -114,10 +117,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       profile,
       version: packageJson.version,
       domain: context.domain,
-      baseUrl:
-        !context.domain && this.sharedHttpHostAvailable
-          ? "http://localhost:8080"
-          : undefined,
       organization: this.config.organization,
       tools,
       skills,
@@ -169,10 +168,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         return c.json({ error: "Agent Card not ready" }, 503);
       }
       return c.json(this.agentCard);
-    });
-
-    app.get("/", (c) => {
-      return c.redirect("/.well-known/agent-card.json", 302);
     });
 
     app.get("/a2a", (c) => {
@@ -271,14 +266,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return app;
   }
 
-  public isStandaloneServerRunning(): boolean {
-    return this.server !== undefined;
-  }
-
-  public getServerPort(): number | undefined {
-    return this.server?.port;
-  }
-
   override getWebRoutes(): WebRouteDefinition[] {
     const handleSharedRoute = (request: Request): Promise<Response> =>
       Promise.resolve(this.getOrCreateApp().fetch(request));
@@ -325,27 +312,11 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   protected override createDaemon(): Daemon | undefined {
     return {
       start: async (): Promise<void> => {
-        if (this.sharedHttpHostAvailable) {
-          this.logger.info("A2A mounted on shared webserver host");
-          return;
-        }
-
-        const app = this.getOrCreateApp();
-        this.server = Bun.serve({
-          port: this.config.port,
-          fetch: app.fetch,
-        });
-        this.logger.info(
-          `A2A server listening on http://localhost:${this.server.port}`,
-        );
+        this.logger.info("A2A mounted on shared webserver host");
       },
       stop: async (): Promise<void> => {
         this.unsubscribeReady?.();
         this.unsubscribeSyncCompleted?.();
-        if (this.server) {
-          await this.server.stop();
-          this.server = undefined;
-        }
         this.logger.info("A2A server stopped");
       },
     };

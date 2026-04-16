@@ -49,13 +49,11 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 
-  it("falls back to the a2a server when no production webserver is running", () => {
+  it("routes default traffic through the shared webserver host", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
-    expect(caddyfile).toContain(
-      "reverse_proxy localhost:8080 localhost:3334 {",
-    );
-    expect(caddyfile).toContain("lb_policy first");
-    expect(caddyfile).toContain("lb_retries 1");
+    expect(caddyfile).toContain("handle {");
+    expect(caddyfile).toContain("reverse_proxy localhost:8080");
+    expect(caddyfile).not.toContain("localhost:3334");
   });
 });

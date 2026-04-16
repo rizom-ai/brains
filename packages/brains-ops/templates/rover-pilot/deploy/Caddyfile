@@ -50,13 +50,9 @@
 		reverse_proxy localhost:3335
 	}
 
-	# Production site: prefer the webserver when present; otherwise fall back
-	# to the A2A interface so core-only deployments never return a bare 502.
+	# Production site and shared HTTP surface
 	handle {
-		reverse_proxy localhost:8080 localhost:3334 {
-			lb_policy first
-			lb_retries 1
-		}
+		reverse_proxy localhost:8080
 
 		header {
 			X-Frame-Options "SAMEORIGIN"

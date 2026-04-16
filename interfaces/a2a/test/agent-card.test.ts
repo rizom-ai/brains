@@ -78,7 +78,7 @@ describe("buildAgentCard", () => {
       tools: [],
     });
 
-    expect(card.url).toBe("http://localhost:3334/a2a");
+    expect(card.url).toBe("http://localhost:8080/a2a");
   });
 
   test("should use explicit baseUrl when mounted on a shared host", () => {

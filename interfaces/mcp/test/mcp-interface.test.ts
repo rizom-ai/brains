@@ -7,7 +7,6 @@ import { StreamableHTTPServer } from "../src/transports/http-server";
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
-  let server: StreamableHTTPServer | null = null;
 
   function installMockHttpTransport(): void {
     const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
@@ -21,6 +20,16 @@ describe("MCPInterface", () => {
     harness.getMockShell().getMCPService = (): never => mockTransport as never;
   }
 
+  function installWebserverPlugin(): void {
+    harness.getMockShell().addPlugin({
+      id: "webserver",
+      version: "1.0.0",
+      type: "interface",
+      packageName: "@brains/webserver",
+      register: async () => ({ tools: [], resources: [] }),
+    });
+  }
+
   beforeEach(() => {
     harness = createPluginHarness({
       logger: createSilentLogger("mcp-test"),
@@ -28,10 +37,7 @@ describe("MCPInterface", () => {
   });
 
   afterEach(async () => {
-    if (server) {
-      await server.stop();
-      server = null;
-    }
+    await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
     StreamableHTTPServer.resetInstance();
   });
 
@@ -79,28 +85,31 @@ describe("MCPInterface", () => {
     });
 
     it("should proxy shared-host status route to the MCP HTTP transport", async () => {
-      server = StreamableHTTPServer.createFresh({
-        port: 0,
-        logger: createSilentLogger("mcp-proxy-test"),
-        auth: { disabled: true },
-      });
-      await server.start();
+      installMockHttpTransport();
+      installWebserverPlugin();
 
       const plugin = new MCPInterface({
         transport: "http",
-        httpPort: server.getPort(),
+        httpPort: 3001,
         authToken: "test-token",
       });
+      await harness.installPlugin(plugin);
+      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
+
       const route = plugin
         .getWebRoutes()
         .find((candidate) => candidate.path === "/status");
 
       expect(route).toBeDefined();
-      const response = await route?.handler(new Request("http://brain/status"));
-      expect(response?.status).toBe(200);
-      const body = await response?.json();
-      expect(body?.port).toBe(server.getPort());
-      expect(body?.sessions).toBe(0);
+      if (!route) {
+        throw new Error("Expected MCP status route");
+      }
+
+      const response = await route.handler(new Request("http://brain/status"));
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.port).toBe(3001);
+      expect(body.sessions).toBe(0);
     });
   });
 
@@ -118,6 +127,7 @@ describe("MCPInterface", () => {
     });
 
     it("should register with http transport and anchor permissions", async () => {
+      installWebserverPlugin();
       const plugin = new MCPInterface({ transport: "http" });
 
       const capabilities = await harness.installPlugin(plugin);
@@ -140,6 +150,7 @@ describe("MCPInterface", () => {
     });
 
     it("should register with http transport", async () => {
+      installWebserverPlugin();
       const plugin = new MCPInterface({ transport: "http" });
 
       const capabilities = await harness.installPlugin(plugin);
@@ -160,6 +171,7 @@ describe("MCPInterface", () => {
     });
 
     it("should create http daemon with correct port", async () => {
+      installWebserverPlugin();
       const plugin = new MCPInterface({
         transport: "http",
         httpPort: 3333,
@@ -172,43 +184,16 @@ describe("MCPInterface", () => {
       expect(capabilities).toBeDefined();
     });
 
-    it("should not start a standalone HTTP listener when webserver is present", async () => {
-      installMockHttpTransport();
-      harness.getMockShell().addPlugin({
-        id: "webserver",
-        version: "1.0.0",
-        type: "interface",
-        packageName: "@brains/webserver",
-        register: async () => ({ tools: [], resources: [] }),
-      });
+    it("should require webserver for http transport", async () => {
       const plugin = new MCPInterface({
         transport: "http",
         httpPort: 0,
         authToken: "test-token",
       });
 
-      await harness.installPlugin(plugin);
-      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
-
-      expect(plugin.isHttpListenerRunning()).toBe(false);
-
-      await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
-    });
-
-    it("should start a standalone HTTP listener when webserver is absent", async () => {
-      installMockHttpTransport();
-      const plugin = new MCPInterface({
-        transport: "http",
-        httpPort: 0,
-        authToken: "test-token",
-      });
-
-      await harness.installPlugin(plugin);
-      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
-
-      expect(plugin.isHttpListenerRunning()).toBe(true);
-
-      await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
+      return expect(harness.installPlugin(plugin)).rejects.toThrow(
+        "MCP HTTP transport requires the webserver interface",
+      );
     });
   });
 });

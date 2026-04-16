@@ -33,7 +33,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
   private domain: string | undefined;
-  private sharedHttpHostAvailable = false;
 
   constructor(config: Partial<MCPConfig> = {}) {
     // Default authToken from environment if not provided
@@ -66,7 +65,12 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     this.domain = context.domain;
-    this.sharedHttpHostAvailable = context.plugins.has("webserver");
+
+    if (this.config.transport === "http" && !context.plugins.has("webserver")) {
+      throw new Error(
+        "MCP HTTP transport requires the webserver interface. Standalone HTTP listeners have been removed.",
+      );
+    }
 
     this.logger.debug(
       `MCP interface initialized with ${this.config.transport} transport`,
@@ -90,10 +94,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     });
 
     return this.httpServer;
-  }
-
-  public isHttpListenerRunning(): boolean {
-    return this.httpServer?.isRunning() ?? false;
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
@@ -157,7 +157,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
           if (this.config.transport === "http") {
             const apiUrl = this.domain
               ? `https://${this.domain}/mcp`
-              : `http://localhost:${this.config.httpPort}/mcp`;
+              : "http://localhost:8080/mcp";
             message = `MCP HTTP: ${apiUrl}`;
           } else {
             message = "MCP stdio server running";
@@ -174,7 +174,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
               this.config.transport === "http"
                 ? this.domain
                   ? `https://${this.domain}/mcp`
-                  : `http://localhost:${this.config.httpPort}/mcp`
+                  : "http://localhost:8080/mcp"
                 : undefined,
             running: isRunning,
           },
@@ -256,16 +256,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       // Connect agent service for /api/chat endpoint
       this.httpServer.connectAgentService(context.agentService);
 
-      if (this.sharedHttpHostAvailable) {
-        this.logger.debug(
-          "MCP HTTP transport mounted on shared webserver host",
-        );
-      } else {
-        await this.httpServer.start();
-        this.logger.debug(
-          `MCP HTTP transport started on port ${this.config.httpPort}`,
-        );
-      }
+      this.logger.debug("MCP HTTP transport mounted on shared webserver host");
     }
   }
 

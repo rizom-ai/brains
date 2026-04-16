@@ -51,7 +51,7 @@ export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const { character, profile, version, domain, organization, tools } = options;
 
   const baseUrl =
-    options.baseUrl ?? (domain ? `https://${domain}` : "http://localhost:3334");
+    options.baseUrl ?? (domain ? `https://${domain}` : "http://localhost:8080");
   const url = `${baseUrl}/a2a`;
 
   // Use derived skills when available, fall back to tool mapping
