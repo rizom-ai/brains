@@ -1,7 +1,7 @@
 import { existsSync } from "fs";
 import { join } from "path";
-import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
+import { spawnBunRunner } from "../lib/spawn-bun-runner";
 
 /**
  * Extract raw args after 'eval' from the CLI argv.
@@ -36,18 +36,9 @@ export async function runEval(
 
   const evalArgs = buildEvalArgs(rawArgv);
 
-  return new Promise((resolve) => {
-    const proc = spawn("bun", ["run", "eval", ...evalArgs], {
-      cwd,
-      stdio: "inherit",
-      env: process.env,
-    });
-
-    proc.on("close", (code) => {
-      resolve({
-        success: code === 0,
-        ...(code !== 0 ? { message: `Eval exited with code ${code}` } : {}),
-      });
-    });
+  return spawnBunRunner({
+    cwd,
+    args: ["run", "eval", ...evalArgs],
+    failureMessage: (code) => `Eval exited with code ${code}`,
   });
 }

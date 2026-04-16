@@ -1083,16 +1083,22 @@ export type { EnvSchemaEntry } from "@rizom/brain/deploy";
 `;
 
 function normalizeStandaloneDeployYmlForComparison(content: string): string {
-  return content.replace(
-    /\n {2}secret:\n(?: {4}- .*\n)+\nvolumes:\n/,
-    "\n  secret:\n    - __DYNAMIC_SECRETS__\n\nvolumes:\n",
-  );
+  return content
+    .replace(
+      /\n {2}secret:\n(?: {4}- .*\n)+\nvolumes:\n/,
+      "\n  secret:\n    - __DYNAMIC_SECRETS__\n\nvolumes:\n",
+    )
+    .replace(
+      /\n {4}- <%= ENV\['BRAIN_DOMAIN'\] %>\n {4}- [^\n]+\n {2}app_port: /,
+      "\n    - <%= ENV['BRAIN_DOMAIN'] %>\n    - __PREVIEW_HOST__\n  app_port: ",
+    );
 }
 
 function matchesLegacyStandaloneDeployYml(current: string): boolean {
   const normalized = normalizeStandaloneDeployYmlForComparison(current);
 
-  return [
+  return (
+    normalized ===
     `service: brain
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
@@ -1107,7 +1113,7 @@ proxy:
     private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
-    - <%= ENV['PREVIEW_DOMAIN'] %>
+    - __PREVIEW_HOST__
   app_port: 80
   healthcheck:
     path: /health
@@ -1130,46 +1136,8 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-`,
-    `service: brain
-image: <%= ENV['IMAGE_REPOSITORY'] %>
-
-servers:
-  web:
-    hosts:
-      - <%= ENV['SERVER_IP'] %>
-
-proxy:
-  ssl:
-    certificate_pem: CERTIFICATE_PEM
-    private_key_pem: PRIVATE_KEY_PEM
-  hosts:
-    - <%= ENV['BRAIN_DOMAIN'] %>
-    - preview.<%= ENV['BRAIN_DOMAIN'] %>
-  app_port: 80
-  healthcheck:
-    path: /health
-
-registry:
-  server: ghcr.io
-  username: <%= ENV['REGISTRY_USERNAME'] %>
-  password:
-    - KAMAL_REGISTRY_PASSWORD
-
-builder:
-  arch: amd64
-
-env:
-  clear:
-    NODE_ENV: production
-  secret:
-    - __DYNAMIC_SECRETS__
-
-volumes:
-  - /opt/brain-data:/app/brain-data
-  - /opt/brain.yaml:/app/brain.yaml
-`,
-  ].includes(normalized);
+`
+  );
 }
 
 function removeLegacyGeneratedFile(

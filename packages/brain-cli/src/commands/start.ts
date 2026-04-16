@@ -1,6 +1,5 @@
 import { existsSync } from "fs";
 import { join, dirname } from "path";
-import { spawn, type ChildProcess } from "child_process";
 import type { CommandResult } from "../run-command";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
@@ -10,81 +9,12 @@ import {
 } from "../lib/model-registry";
 import { checkApiKey } from "../lib/preflight";
 import { formatBootError } from "../lib/boot-errors";
+import {
+  spawnBunRunner,
+  type SpawnBunRunnerDependencies,
+} from "../lib/spawn-bun-runner";
 
-interface StartDependencies {
-  spawnImpl?: typeof spawn;
-  processImpl?: Pick<NodeJS.Process, "env" | "on" | "removeListener">;
-}
-
-function startRunnerSubprocess(
-  cwd: string,
-  args: string[],
-  dependencies: StartDependencies = {},
-): Promise<CommandResult> {
-  const spawnImpl = dependencies.spawnImpl ?? spawn;
-  const processImpl = dependencies.processImpl ?? process;
-
-  return new Promise((resolve) => {
-    const proc = spawnImpl("bun", args, {
-      cwd,
-      stdio: "inherit",
-      env: processImpl.env,
-    });
-
-    let settled = false;
-    const cleanup = (): void => {
-      processImpl.removeListener("SIGINT", handleSigint);
-      processImpl.removeListener("SIGTERM", handleSigterm);
-      processImpl.removeListener("exit", handleExit);
-    };
-    const finish = (result: CommandResult): void => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      cleanup();
-      resolve(result);
-    };
-    const forwardSignal = (signal: NodeJS.Signals): void => {
-      const child = proc as ChildProcess;
-      if (child.exitCode !== null || child.killed) {
-        return;
-      }
-      try {
-        child.kill(signal);
-      } catch {
-        // Ignore races where the child exits between the status check and kill.
-      }
-    };
-
-    const handleSigint = (): void => forwardSignal("SIGINT");
-    const handleSigterm = (): void => forwardSignal("SIGTERM");
-    const handleExit = (): void => forwardSignal("SIGTERM");
-
-    processImpl.on("SIGINT", handleSigint);
-    processImpl.on("SIGTERM", handleSigterm);
-    processImpl.on("exit", handleExit);
-
-    proc.on("error", (error) => {
-      finish({
-        success: false,
-        message: `Failed to start brain runner: ${error.message}`,
-      });
-    });
-
-    proc.on("close", (code, signal) => {
-      if (signal === "SIGINT" || signal === "SIGTERM") {
-        finish({ success: true });
-        return;
-      }
-
-      finish({
-        success: code === 0,
-        ...(code !== 0 ? { message: `Brain exited with code ${code}` } : {}),
-      });
-    });
-  });
-}
+type StartDependencies = SpawnBunRunnerDependencies;
 
 /**
  * Detect monorepo root by walking up looking for bun.lock.
@@ -141,13 +71,6 @@ export function resolveRunnerType(
   return undefined;
 }
 
-/**
- * Start a brain.
- *
- * Two paths:
- * 1. Monorepo/Docker: delegate to runner subprocess
- * 2. Bundled: boot in-process from registered model
- */
 export async function start(
   cwd: string,
   flags: { chat: boolean },
@@ -162,7 +85,6 @@ export async function start(
 
   const runnerType = resolveRunnerType(cwd);
 
-  // Monorepo/Docker: subprocess
   if (runnerType === "monorepo" || runnerType === "docker") {
     const runner = findRunner(cwd);
     if (!runner) {
@@ -172,10 +94,14 @@ export async function start(
     const args = ["run", runner.path];
     if (flags.chat) args.push("--cli");
 
-    return startRunnerSubprocess(cwd, args, dependencies);
+    return spawnBunRunner({
+      cwd,
+      args,
+      failureMessage: (code) => `Brain exited with code ${code}`,
+      ...dependencies,
+    });
   }
 
-  // Bundled: in-process boot
   if (runnerType === "builtin") {
     const keyCheck = checkApiKey(process.env);
     if (!keyCheck.ok) {

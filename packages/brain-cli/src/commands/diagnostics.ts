@@ -1,8 +1,8 @@
 import { existsSync } from "fs";
 import { join } from "path";
-import { spawn } from "child_process";
 import type { CommandResult } from "../run-command";
 import { findRunner } from "./start";
+import { spawnBunRunner } from "../lib/spawn-bun-runner";
 
 /**
  * brain diagnostics <subcommand>
@@ -42,18 +42,9 @@ export async function diagnostics(
     };
   }
 
-  return new Promise((resolve) => {
-    const proc = spawn("bun", ["run", runner.path, "diagnostics", subcommand], {
-      cwd: dir,
-      stdio: "inherit",
-      env: process.env,
-    });
-
-    proc.on("close", (code) => {
-      resolve({
-        success: code === 0,
-        ...(code !== 0 ? { message: `Diagnostics failed (exit ${code})` } : {}),
-      });
-    });
+  return spawnBunRunner({
+    cwd: dir,
+    args: ["run", runner.path, "diagnostics", subcommand],
+    failureMessage: (code) => `Diagnostics failed (exit ${code})`,
   });
 }

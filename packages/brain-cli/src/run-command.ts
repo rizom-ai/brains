@@ -1,6 +1,7 @@
 import { mkdirSync } from "fs";
 import { join } from "path";
-import { spawn, execSync } from "child_process";
+import { execSync } from "child_process";
+import { spawnBunRunner } from "./lib/spawn-bun-runner";
 import pkg from "../package.json" with { type: "json" };
 import type { ParsedArgs } from "./parse-args";
 import { scaffold, type ScaffoldOptions } from "./commands/init";
@@ -167,21 +168,10 @@ async function runRawTool(
     runnerArgs.push("--tool-input", inputJson);
   }
 
-  return new Promise((resolve) => {
-    const proc = spawn("bun", runnerArgs, {
-      cwd: dir,
-      stdio: "inherit",
-      env: process.env,
-    });
-
-    proc.on("close", (code) => {
-      resolve({
-        success: code === 0,
-        ...(code !== 0
-          ? { message: `Tool failed with exit code ${code}` }
-          : {}),
-      });
-    });
+  return spawnBunRunner({
+    cwd: dir,
+    args: runnerArgs,
+    failureMessage: (code) => `Tool failed with exit code ${code}`,
   });
 }
 
