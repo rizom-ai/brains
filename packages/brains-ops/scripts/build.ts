@@ -91,9 +91,10 @@ const templateDeployDir = join(
   "rover-pilot",
   "deploy",
 );
-for (const file of ["Dockerfile", "Caddyfile"]) {
-  cpSync(join(sharedDeployTemplatesDir, file), join(templateDeployDir, file));
-}
+cpSync(
+  join(sharedDeployTemplatesDir, "Dockerfile"),
+  join(templateDeployDir, "Dockerfile"),
+);
 
 const kamalTemplate = readFileSync(
   join(sharedDeployTemplatesDir, "kamal-deploy.yml"),

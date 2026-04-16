@@ -97,7 +97,6 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
     writePreDeployHook(dir, options.regen);
     writeExtractBrainConfigScript(dir, options.regen);
     writeDeployDockerfile(dir, options.regen);
-    writeDeployCaddyfile(dir, options.regen);
     writePublishWorkflow(dir, options.regen);
     writeDeployWorkflow(dir, options.regen);
     writeSharedDeployScripts(dir, options.regen);
@@ -577,10 +576,7 @@ function resolvePackageDeployTemplatesDir(): string {
   ];
 
   for (const candidate of candidates) {
-    if (
-      existsSync(join(candidate, "Dockerfile")) &&
-      existsSync(join(candidate, "Caddyfile"))
-    ) {
+    if (existsSync(join(candidate, "Dockerfile"))) {
       return candidate;
     }
   }
@@ -594,14 +590,6 @@ function writeDeployDockerfile(dir: string, regen = false): void {
     "utf-8",
   );
   writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content, false, regen);
-}
-
-function writeDeployCaddyfile(dir: string, regen = false): void {
-  const content = readFileSync(
-    join(packageDeployTemplatesDir, "Caddyfile"),
-    "utf-8",
-  );
-  writeScaffoldFile(join(dir, "deploy", "Caddyfile"), content, false, regen);
 }
 
 function writeDeployWorkflow(dir: string, regen = false): void {

@@ -6,14 +6,13 @@ import { fileURLToPath } from "url";
 const packageDir = dirname(
   fileURLToPath(new URL("../package.json", import.meta.url)),
 );
-const caddyfilePath = join(packageDir, "templates", "deploy", "Caddyfile");
-
 const deployConfigPath = join(
   packageDir,
   "templates",
   "deploy",
   "kamal-deploy.yml",
 );
+const dockerfilePath = join(packageDir, "templates", "deploy", "Dockerfile");
 
 describe("deploy preview host routing", () => {
   it("uses bare TLS hostnames in Kamal config", () => {
@@ -25,39 +24,19 @@ describe("deploy preview host routing", () => {
     expect(deployConfig).not.toContain(":81");
   });
 
-  it("routes both preview.<domain> and *-preview.* hosts to the preview site inside the container", () => {
-    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+  it("points Kamal directly at the shared webserver port", () => {
+    const deployConfig = readFileSync(deployConfigPath, "utf-8");
 
-    expect(caddyfile).toContain(
-      "@preview header_regexp preview_host Host ^(?:preview\\..+|.+-preview\\..+)$",
-    );
-    expect(caddyfile).toContain("handle @preview {");
-    expect(caddyfile).toContain("reverse_proxy localhost:4321");
+    expect(deployConfig).toContain("app_port: 8080");
+    expect(deployConfig).toContain("path: /health");
   });
 
-  it("lets the shared-host catch-all handle the container healthcheck", () => {
-    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+  it("starts the app directly without caddy", () => {
+    const dockerfile = readFileSync(dockerfilePath, "utf-8");
 
-    expect(caddyfile).not.toContain("handle /health {");
-    expect(caddyfile).toContain("handle {");
-    expect(caddyfile).toContain("reverse_proxy localhost:8080");
-  });
-
-  it("does not need protocol or api-specific proxy blocks for shared-host routes", () => {
-    const caddyfile = readFileSync(caddyfilePath, "utf-8");
-
-    expect(caddyfile).not.toContain("handle /mcp* {");
-    expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
-    expect(caddyfile).not.toContain("handle /a2a {");
-    expect(caddyfile).not.toContain("handle /api/* {");
-    expect(caddyfile).toContain("reverse_proxy localhost:8080");
-  });
-
-  it("routes default traffic through the shared webserver host", () => {
-    const caddyfile = readFileSync(caddyfilePath, "utf-8");
-
-    expect(caddyfile).toContain("handle {");
-    expect(caddyfile).toContain("reverse_proxy localhost:8080");
-    expect(caddyfile).not.toContain("localhost:3334");
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
+    expect(dockerfile).not.toContain("caddy start");
+    expect(dockerfile).not.toContain("deploy/Caddyfile");
   });
 });

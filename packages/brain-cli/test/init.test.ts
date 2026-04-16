@@ -477,7 +477,7 @@ describe("brain init", () => {
         existsSync(join(testDir, ".github", "workflows", "publish-image.yml")),
       ).toBe(true);
       expect(existsSync(join(testDir, "deploy", "Dockerfile"))).toBe(true);
-      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(true);
+      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(false);
     });
 
     it("should derive generated artifact content from existing brain.yaml", () => {

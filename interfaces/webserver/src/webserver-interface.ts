@@ -13,10 +13,9 @@ import { placeholderHtml } from "./templates/placeholder";
 import packageJson from "../package.json";
 
 /**
- * Webserver interface for serving static sites and API routes.
+ * Webserver interface for serving static sites, shared web routes, and API routes.
  *
- * The static file server runs in-process via Bun.serve().
- * The API server runs on the main thread (needs message bus) on its own port.
+ * Runs in-process via Bun.serve() on the shared host.
  */
 export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private serverManager?: ServerManager;
@@ -33,7 +32,7 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     this.siteUrl = context.siteUrl;
     this.previewUrl = context.previewUrl;
 
-    // Initialize server manager (spawns child process for static files)
+    // Initialize server manager for the shared host
     this.serverManager = new ServerManager({
       logger: context.logger,
       productionDistDir: this.config.productionDistDir,
@@ -66,7 +65,6 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         // Ensure dist directories exist with placeholder content
         await this.ensureDistDirectories();
 
-        // Start static file server (child process)
         await this.getServerManager().start();
       },
       stop: async (): Promise<void> => {

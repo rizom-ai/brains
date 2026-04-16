@@ -107,6 +107,21 @@ describe("ServerManager (in-process)", () => {
     expect(text).toContain("Preview");
   });
 
+  it("should serve preview content on the shared host when the request host matches preview", async () => {
+    const m = setup({ preview: true });
+    await m.start();
+
+    const status = m.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(url, {
+      headers: { Host: "preview.localhost" },
+    });
+    expect(res.status).toBe(200);
+    const text = await res.text();
+    expect(text).toContain("Preview");
+  });
+
   it("should handle /health endpoint", async () => {
     const m = setup();
     await m.start();

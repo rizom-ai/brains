@@ -46,10 +46,6 @@ function syncDeployTemplates(): void {
     join(packageDeployTemplatesDir, "Dockerfile"),
   );
   cpSync(
-    join(sharedDeployTemplatesDir, "Caddyfile"),
-    join(packageDeployTemplatesDir, "Caddyfile"),
-  );
-  cpSync(
     join(sharedDeployTemplatesDir, "kamal-deploy.yml"),
     join(packageDeployTemplatesDir, "kamal-deploy.yml"),
   );

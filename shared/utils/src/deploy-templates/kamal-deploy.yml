@@ -13,7 +13,7 @@ proxy:
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
     - <%= ENV['PREVIEW_DOMAIN'] %>
-  app_port: 80
+  app_port: 8080
   healthcheck:
     path: /health
 

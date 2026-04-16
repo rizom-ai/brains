@@ -53,6 +53,15 @@ export class ServerManager {
   private productionServer: ReturnType<typeof Bun.serve> | null = null;
   private previewServer: ReturnType<typeof Bun.serve> | null = null;
 
+  private isPreviewHost(host: string | null): boolean {
+    if (!host) {
+      return false;
+    }
+
+    const normalizedHost = host.replace(/:\d+$/, "").toLowerCase();
+    return /^(?:preview\..+|.+-preview\..+)$/.test(normalizedHost);
+  }
+
   constructor(options: ServerManagerOptions) {
     this.logger = options.logger;
     this.options = {
@@ -78,12 +87,26 @@ export class ServerManager {
       immutableExtensions: /\.(js|css|jpg|jpeg|png|gif|ico|woff|woff2)$/,
       healthEndpoint: true,
     });
+    const previewApp = this.options.previewDistDir
+      ? this.createApp({
+          distDir: this.options.previewDistDir,
+          compress: false,
+          defaultCache: "no-cache",
+          immutableExtensions: /\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/,
+          healthEndpoint: false,
+        })
+      : undefined;
     try {
       this.productionServer = Bun.serve({
         port: this.options.productionPort,
         fetch: async (req) => {
           const fastResponse = await this.serveImageFastPath(req);
           if (fastResponse) return fastResponse;
+
+          if (previewApp && this.isPreviewHost(req.headers.get("host"))) {
+            return previewApp.fetch(req);
+          }
+
           return productionApp.fetch(req);
         },
       });
@@ -104,14 +127,7 @@ export class ServerManager {
       `Production server listening on http://localhost:${this.productionServer.port}`,
     );
 
-    if (this.options.previewDistDir) {
-      const previewApp = this.createApp({
-        distDir: this.options.previewDistDir,
-        compress: false,
-        defaultCache: "no-cache",
-        immutableExtensions: /\.(jpg|jpeg|png|gif|ico|webp|svg|woff|woff2)$/,
-        healthEndpoint: false,
-      });
+    if (this.options.previewDistDir && previewApp) {
       this.previewServer = Bun.serve({
         port: this.options.previewPort ?? 4321,
         fetch: async (req) => {

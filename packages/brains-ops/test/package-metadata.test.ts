@@ -28,9 +28,6 @@ describe("@rizom/ops package metadata", () => {
     expect(readPackageFile("templates/rover-pilot/deploy/Dockerfile")).toBe(
       readSharedFile("deploy-templates/Dockerfile"),
     );
-    expect(readPackageFile("templates/rover-pilot/deploy/Caddyfile")).toBe(
-      readSharedFile("deploy-templates/Caddyfile"),
-    );
     expect(
       readPackageFile("templates/rover-pilot/deploy/kamal/deploy.yml"),
     ).toBe(

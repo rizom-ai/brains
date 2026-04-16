@@ -35,9 +35,6 @@ describe("@rizom/brain package metadata", () => {
     expect(readPackageFile("templates/deploy/Dockerfile")).toBe(
       readSharedFile("deploy-templates/Dockerfile"),
     );
-    expect(readPackageFile("templates/deploy/Caddyfile")).toBe(
-      readSharedFile("deploy-templates/Caddyfile"),
-    );
     expect(readPackageFile("templates/deploy/kamal-deploy.yml")).toBe(
       readSharedFile("deploy-templates/kamal-deploy.yml"),
     );
@@ -75,7 +72,6 @@ describe("@rizom/brain package metadata", () => {
     expect(packageJson.files).toContain("templates");
     expect(packageJson.files).toContain("tsconfig.instance.json");
     expect(filePaths.has("templates/deploy/Dockerfile")).toBeTrue();
-    expect(filePaths.has("templates/deploy/Caddyfile")).toBeTrue();
     expect(filePaths.has("templates/deploy/kamal-deploy.yml")).toBeTrue();
     expect(
       filePaths.has("templates/deploy/scripts/provision-server.ts"),
@@ -140,9 +136,6 @@ describe("@rizom/brain package metadata", () => {
       existsSync(join(projectDir, "demo", "deploy", "Dockerfile")),
     ).toBeTrue();
     expect(
-      existsSync(join(projectDir, "demo", "deploy", "Caddyfile")),
-    ).toBeTrue();
-    expect(
       existsSync(
         join(projectDir, "demo", "deploy", "scripts", "provision-server.ts"),
       ),
@@ -162,10 +155,6 @@ describe("@rizom/brain package metadata", () => {
       join(projectDir, "demo", "deploy", "Dockerfile"),
       "utf8",
     );
-    const caddyfile = readFileSync(
-      join(projectDir, "demo", "deploy", "Caddyfile"),
-      "utf8",
-    );
     const tsconfig = JSON.parse(
       readFileSync(join(projectDir, "demo", "tsconfig.json"), "utf8"),
     ) as { extends?: string };
@@ -174,11 +163,8 @@ describe("@rizom/brain package metadata", () => {
       "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
     );
     expect(dockerfile).toContain("FROM runtime AS standalone");
-    expect(caddyfile).not.toContain("handle /health");
-    expect(caddyfile).not.toContain("handle /.well-known/agent-card.json");
-    expect(caddyfile).not.toContain("handle /a2a");
-    expect(caddyfile).not.toContain("handle /api/*");
-    expect(caddyfile).toContain("reverse_proxy localhost:8080");
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
     expect(tsconfig.extends).toBe("@rizom/brain/tsconfig.instance.json");
   }, 15000);
 });

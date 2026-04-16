@@ -51,7 +51,6 @@ describe("initPilotRepo", () => {
     ).toBe(true);
     expect(existsSync(join(repo, "deploy", "kamal", "deploy.yml"))).toBe(true);
     expect(existsSync(join(repo, "deploy", "Dockerfile"))).toBe(true);
-    expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(true);
     expect(existsSync(join(repo, ".kamal", "hooks", "pre-deploy"))).toBe(true);
     expect(existsSync(join(repo, ".env.schema"))).toBe(true);
     expect(existsSync(join(repo, ".gitignore"))).toBe(true);
@@ -278,24 +277,10 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain("AS fleet");
     expect(dockerfile).toContain("ARG BRAIN_VERSION");
     expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
-    expect(dockerfile).toContain("caddy start");
-
-    const caddyfile = await readFile(join(repo, "deploy", "Caddyfile"), "utf8");
-    expect(caddyfile).toContain(":80");
-    expect(caddyfile).toContain(
-      "@preview header_regexp preview_host Host ^(?:preview\\..+|.+-preview\\..+)$",
-    );
-    expect(caddyfile).not.toContain("agent-card.json");
-    expect(caddyfile).not.toContain(
-      "redir @root /.well-known/agent-card.json 302",
-    );
-    expect(caddyfile).not.toContain("handle /health {");
-    expect(caddyfile).not.toContain("handle /mcp* {");
-    expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
-    expect(caddyfile).not.toContain("handle /a2a {");
-    expect(caddyfile).not.toContain("handle /api/* {");
-    expect(caddyfile).toContain("reverse_proxy localhost:8080");
-    expect(caddyfile).not.toContain("localhost:3334");
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
+    expect(dockerfile).not.toContain("caddy start");
+    expect(dockerfile).not.toContain("deploy/Caddyfile");
 
     const deployConfig = await readFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
@@ -306,7 +291,7 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("web:");
     expect(deployConfig).not.toContain("primary_role:");
     expect(deployConfig).not.toContain("mcp:");
-    expect(deployConfig).toContain("app_port: 80");
+    expect(deployConfig).toContain("app_port: 8080");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
