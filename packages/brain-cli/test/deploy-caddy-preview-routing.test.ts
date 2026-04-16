@@ -35,10 +35,11 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
   });
 
-  it("routes the container healthcheck through caddy to the shared webserver host", () => {
+  it("lets the shared-host catch-all handle the container healthcheck", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
-    expect(caddyfile).toContain("handle /health {");
+    expect(caddyfile).not.toContain("handle /health {");
+    expect(caddyfile).toContain("handle {");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 

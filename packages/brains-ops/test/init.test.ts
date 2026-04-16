@@ -289,6 +289,7 @@ describe("initPilotRepo", () => {
     expect(caddyfile).not.toContain(
       "redir @root /.well-known/agent-card.json 302",
     );
+    expect(caddyfile).not.toContain("handle /health {");
     expect(caddyfile).not.toContain("handle /mcp* {");
     expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
     expect(caddyfile).not.toContain("handle /a2a {");

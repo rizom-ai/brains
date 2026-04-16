@@ -174,6 +174,7 @@ describe("@rizom/brain package metadata", () => {
       "FROM oven/bun:${BUN_VERSION}-slim AS runtime",
     );
     expect(dockerfile).toContain("FROM runtime AS standalone");
+    expect(caddyfile).not.toContain("handle /health");
     expect(caddyfile).not.toContain("handle /.well-known/agent-card.json");
     expect(caddyfile).not.toContain("handle /a2a");
     expect(caddyfile).not.toContain("handle /api/*");

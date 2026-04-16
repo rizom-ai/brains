@@ -12,11 +12,6 @@
 		}
 	}
 
-	# Health endpoint — canonical public /health lives on the shared webserver host
-	handle /health {
-		reverse_proxy localhost:8080
-	}
-
 	# Production site and shared HTTP surface
 	handle {
 		reverse_proxy localhost:8080
