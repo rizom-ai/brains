@@ -158,5 +158,6 @@ describe("@rizom/brain package metadata", () => {
     expect(dockerfile).toContain("FROM runtime AS standalone");
     expect(caddyfile).toContain("handle /.well-known/agent-card.json");
     expect(caddyfile).toContain("handle /a2a");
+    expect(caddyfile).toContain("reverse_proxy localhost:8080");
   }, 15000);
 });

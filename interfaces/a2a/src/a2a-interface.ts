@@ -2,6 +2,7 @@ import {
   InterfacePlugin,
   type InterfacePluginContext,
   type Tool,
+  type WebRouteDefinition,
 } from "@brains/plugins";
 import type { Daemon, IAgentService } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
@@ -36,6 +37,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
+  private sharedHttpHostAvailable = false;
+  private app: Hono | undefined;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -48,6 +51,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
     this.agentService = context.agentService;
     this.permissionContext = context.permissions;
+    this.sharedHttpHostAvailable = context.plugins.has("webserver");
 
     // Build Agent Card after all plugins have registered
     // so we can see the full tool registry
@@ -110,6 +114,10 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       profile,
       version: packageJson.version,
       domain: context.domain,
+      baseUrl:
+        !context.domain && this.sharedHttpHostAvailable
+          ? "http://localhost:8080"
+          : undefined,
       organization: this.config.organization,
       tools,
       skills,
@@ -149,21 +157,13 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return this.permissionContext.getUserLevel("a2a", identity);
   }
 
-  protected override async getTools(): Promise<Tool[]> {
-    return [
-      createA2ACallTool({
-        outboundTokens: this.config.outboundTokens,
-        entityService: this.getContext().entityService,
-        sendMessage: (channel, payload) =>
-          this.getContext().messaging.send(channel, payload),
-      }),
-    ];
-  }
+  private getOrCreateApp(): Hono {
+    if (this.app) {
+      return this.app;
+    }
 
-  protected override createDaemon(): Daemon | undefined {
     const app = new Hono();
 
-    // Agent Card discovery endpoint
     app.get("/.well-known/agent-card.json", (c) => {
       if (!this.agentCard) {
         return c.json({ error: "Agent Card not ready" }, 503);
@@ -185,7 +185,8 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       );
     });
 
-    // JSON-RPC 2.0 endpoint
+    app.options("/a2a", (c) => c.body(null, 204));
+
     app.post("/a2a", async (c) => {
       if (!this.agentService) {
         return c.json(
@@ -222,7 +223,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         c.req.header("Authorization"),
       );
 
-      // SSE streaming for message/stream
       if (parsed.data.method === "message/stream") {
         const streamParams = streamParamsSchema.safeParse(
           parsed.data.params ?? {},
@@ -267,14 +267,76 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       return c.json(response);
     });
 
+    this.app = app;
+    return app;
+  }
+
+  public isStandaloneServerRunning(): boolean {
+    return this.server !== undefined;
+  }
+
+  public getServerPort(): number | undefined {
+    return this.server?.port;
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    const handleSharedRoute = (request: Request): Promise<Response> =>
+      Promise.resolve(this.getOrCreateApp().fetch(request));
+
+    return [
+      {
+        path: "/.well-known/agent-card.json",
+        method: "GET",
+        public: true,
+        handler: handleSharedRoute,
+      },
+      {
+        path: "/a2a",
+        method: "GET",
+        public: true,
+        handler: handleSharedRoute,
+      },
+      {
+        path: "/a2a",
+        method: "POST",
+        public: true,
+        handler: handleSharedRoute,
+      },
+      {
+        path: "/a2a",
+        method: "OPTIONS",
+        public: true,
+        handler: handleSharedRoute,
+      },
+    ];
+  }
+
+  protected override async getTools(): Promise<Tool[]> {
+    return [
+      createA2ACallTool({
+        outboundTokens: this.config.outboundTokens,
+        entityService: this.getContext().entityService,
+        sendMessage: (channel, payload) =>
+          this.getContext().messaging.send(channel, payload),
+      }),
+    ];
+  }
+
+  protected override createDaemon(): Daemon | undefined {
     return {
       start: async (): Promise<void> => {
+        if (this.sharedHttpHostAvailable) {
+          this.logger.info("A2A mounted on shared webserver host");
+          return;
+        }
+
+        const app = this.getOrCreateApp();
         this.server = Bun.serve({
           port: this.config.port,
           fetch: app.fetch,
         });
         this.logger.info(
-          `A2A server listening on http://localhost:${this.config.port}`,
+          `A2A server listening on http://localhost:${this.server.port}`,
         );
       },
       stop: async (): Promise<void> => {

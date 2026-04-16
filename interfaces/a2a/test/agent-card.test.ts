@@ -81,6 +81,18 @@ describe("buildAgentCard", () => {
     expect(card.url).toBe("http://localhost:3334/a2a");
   });
 
+  test("should use explicit baseUrl when mounted on a shared host", () => {
+    const card = buildAgentCard({
+      character: mockCharacter,
+      profile: mockProfile,
+      version: "1.0.0",
+      baseUrl: "http://localhost:8080",
+      tools: [],
+    });
+
+    expect(card.url).toBe("http://localhost:8080/a2a");
+  });
+
   test("should include provider when organization is set", () => {
     const card = buildAgentCard({
       character: mockCharacter,

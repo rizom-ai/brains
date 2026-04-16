@@ -17,9 +17,9 @@
 		reverse_proxy localhost:8080
 	}
 
-	# MCP endpoint
+	# MCP endpoint — routed through the shared webserver host
 	handle /mcp* {
-		reverse_proxy localhost:3333
+		reverse_proxy localhost:8080
 
 		header {
 			X-Content-Type-Options "nosniff"
@@ -29,13 +29,13 @@
 		}
 	}
 
-	# A2A endpoints
+	# A2A endpoints — routed through the shared webserver host
 	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
+		reverse_proxy localhost:8080
 	}
 
 	handle /a2a {
-		reverse_proxy localhost:3334
+		reverse_proxy localhost:8080
 
 		header {
 			X-Content-Type-Options "nosniff"

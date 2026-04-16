@@ -290,8 +290,12 @@ describe("initPilotRepo", () => {
       "redir @root /.well-known/agent-card.json 302",
     );
     expect(caddyfile).toContain("handle /mcp* {");
+    expect(caddyfile).toContain("handle /.well-known/agent-card.json {");
+    expect(caddyfile).toContain("handle /a2a {");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
-    expect(caddyfile).toContain("reverse_proxy localhost:3334");
+    expect(caddyfile).toContain(
+      "reverse_proxy localhost:8080 localhost:3334 {",
+    );
 
     const deployConfig = await readFile(
       join(repo, "deploy", "kamal", "deploy.yml"),

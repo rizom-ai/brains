@@ -16,6 +16,8 @@ export interface AgentCardOptions {
   version: string;
   /** Domain the brain is served at */
   domain?: string;
+  /** Explicit public base URL override, used when mounted on a shared host */
+  baseUrl?: string;
   /** Organization name for the provider field */
   organization?: string;
   /** Anchor kind: professional (individual), team, or collective */
@@ -48,7 +50,8 @@ function buildDescription(
 export function buildAgentCard(options: AgentCardOptions): AgentCard {
   const { character, profile, version, domain, organization, tools } = options;
 
-  const baseUrl = domain ? `https://${domain}` : "http://localhost:3334";
+  const baseUrl =
+    options.baseUrl ?? (domain ? `https://${domain}` : "http://localhost:3334");
   const url = `${baseUrl}/a2a`;
 
   // Use derived skills when available, fall back to tool mapping
