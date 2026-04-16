@@ -175,6 +175,9 @@ export class ServerManager {
           case "DELETE":
             app.delete(route.fullPath, handler);
             break;
+          case "OPTIONS":
+            app.options(route.fullPath, handler);
+            break;
           case "GET":
           default:
             app.get(route.fullPath, handler);

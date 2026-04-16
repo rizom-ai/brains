@@ -60,7 +60,9 @@ export interface ScaffoldOptions {
  * start` works from the new dir. Models with an active website surface
  * also ship local `src/site.ts` and `src/theme.css` convention files as
  * editable starting points while `brain.yaml` stays pinned to the model's
- * built-in site/theme until the operator opts into the local files.
+ * built-in site. The local theme scaffold layers on top of the active
+ * base theme automatically; the local site scaffold activates when the
+ * operator switches `brain.yaml` to the local site convention.
  *
  * The `tsconfig.json` ships JSX hints so bun knows to use the Preact
  * runtime when compiling site components.
@@ -211,7 +213,8 @@ function writeBrainYaml(
   const pinnedSiteTheme = getPinnedSiteTheme(model);
   const siteBlock = pinnedSiteTheme
     ? `# Start from the model's built-in site/theme. Edit src/site.ts and src/theme.css,
-# then remove these refs when you're ready to switch to the local convention.
+# remove site.package when you're ready to switch to the local site convention.
+# src/theme.css already layers on top of the built-in theme by default.
 site:
   package: "${pinnedSiteTheme.sitePackage}"
   theme: "${pinnedSiteTheme.themePackage}"
@@ -972,9 +975,9 @@ function writeThemeCss(dir: string): void {
   const content = `/*
  * Local theme scaffold.
  *
- * This file is not active until you remove the explicit site.theme ref from
- * brain.yaml. Start editing here, then switch brain.yaml to the local
- * convention when you're ready.
+ * This file layers on top of the active base theme automatically. Keep
+ * shared theme structure in the base theme; put instance-local visual
+ * overrides here.
  */
 
 :root {

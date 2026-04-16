@@ -5,6 +5,7 @@ import {
   type Resource,
   type JobProgressEvent,
   type JobContext,
+  type WebRouteDefinition,
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
@@ -73,6 +74,48 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     setupJobProgressListener(context, this.logger);
   }
 
+  override getWebRoutes(): WebRouteDefinition[] {
+    if (this.config.transport !== "http") {
+      return [];
+    }
+
+    const proxyToMcpHttp = (request: Request): Promise<Response> =>
+      this.proxyHttpRequest(request);
+
+    return [
+      {
+        path: "/status",
+        method: "GET",
+        public: true,
+        handler: proxyToMcpHttp,
+      },
+      {
+        path: "/mcp",
+        method: "GET",
+        public: true,
+        handler: proxyToMcpHttp,
+      },
+      {
+        path: "/mcp",
+        method: "POST",
+        public: true,
+        handler: proxyToMcpHttp,
+      },
+      {
+        path: "/mcp",
+        method: "DELETE",
+        public: true,
+        handler: proxyToMcpHttp,
+      },
+      {
+        path: "/mcp",
+        method: "OPTIONS",
+        public: true,
+        handler: proxyToMcpHttp,
+      },
+    ];
+  }
+
   /**
    * Create daemon for managing MCP server lifecycle
    */
@@ -126,6 +169,45 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       return this.stdioServer !== undefined && this.mcpTransport !== undefined;
     } else {
       return this.httpServer !== undefined && this.mcpTransport !== undefined;
+    }
+  }
+
+  private async proxyHttpRequest(request: Request): Promise<Response> {
+    const incomingUrl = new URL(request.url);
+    const targetUrl = new URL(
+      `${incomingUrl.pathname}${incomingUrl.search}`,
+      `http://127.0.0.1:${this.config.httpPort}`,
+    );
+
+    const headers = new Headers(request.headers);
+    headers.delete("host");
+
+    const init: RequestInit & { duplex?: "half" } = {
+      method: request.method,
+      headers,
+      redirect: "manual",
+    };
+
+    if (request.method !== "GET" && request.method !== "HEAD") {
+      init.body = request.body;
+      init.duplex = "half";
+    }
+
+    try {
+      const response = await fetch(targetUrl, init);
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: new Headers(response.headers),
+      });
+    } catch (error) {
+      return new Response(
+        error instanceof Error ? error.message : "MCP HTTP unavailable",
+        {
+          status: 503,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        },
+      );
     }
   }
 

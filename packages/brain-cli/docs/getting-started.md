@@ -69,7 +69,7 @@ mybrain/
   src/theme.css     # local theme scaffold
 ```
 
-The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` / `site.theme` refs from `brain.yaml` when you want to switch to the local convention.
+The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` ref from `brain.yaml` when you want to switch to the local site convention. Local `src/theme.css` layers on top of the active base theme automatically.
 
 With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `deploy/Caddyfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to `--backend none`, which means varlock validates and normalizes values supplied directly from local env files or GitHub Actions secrets.
 

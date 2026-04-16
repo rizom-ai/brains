@@ -421,28 +421,35 @@ function resolveSitePackage(
   return definition.site;
 }
 
+function resolveThemeCssRef(refOrCss: string): string {
+  if (hasPackage(refOrCss)) {
+    const pkg = getPackage(refOrCss);
+    const parsed = themeCssSchema.safeParse(pkg);
+    if (!parsed.success) {
+      throw new Error(`Package "${refOrCss}" does not export theme CSS`);
+    }
+    return parsed.data;
+  }
+
+  return refOrCss;
+}
+
 function resolveTheme(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): string | undefined {
-  const overrideTheme = overrides?.site?.theme;
-  if (typeof overrideTheme === "string") {
-    if (hasPackage(overrideTheme)) {
-      const pkg = getPackage(overrideTheme);
-      const parsed = themeCssSchema.safeParse(pkg);
-      if (!parsed.success) {
-        throw new Error(`Package "${overrideTheme}" does not export theme CSS`);
-      }
-      return composeTheme(parsed.data);
-    }
-    return composeTheme(overrideTheme);
+  const baseTheme = overrides?.site?.theme
+    ? resolveThemeCssRef(overrides.site.theme)
+    : definition.theme;
+  const themeOverride = overrides?.site?.themeOverride
+    ? resolveThemeCssRef(overrides.site.themeOverride)
+    : undefined;
+
+  if (!baseTheme && !themeOverride) {
+    return undefined;
   }
 
-  if (definition.theme) {
-    return composeTheme(definition.theme);
-  }
-
-  return undefined;
+  return composeTheme([baseTheme, themeOverride].filter(Boolean).join("\n\n"));
 }
 
 /**

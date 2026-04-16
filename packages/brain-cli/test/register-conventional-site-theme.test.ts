@@ -70,19 +70,19 @@ describe("registerConventionalSiteTheme", () => {
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeDefined();
   });
 
-  test("registers ./src/theme.css when site.theme is omitted", async () => {
+  test("registers ./src/theme.css as a local theme override layer", async () => {
     const themeCss = ":root { --color-brand: hotpink; }";
     writeFileSync(join(testDir, "src/theme.css"), themeCss);
 
     const result = await registerConventionalSiteTheme(testDir, {});
 
     expect(result.site).toEqual({
-      theme: CONVENTIONAL_THEME_PACKAGE_REF,
+      themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(themeCss);
   });
 
-  test("explicit site.package and site.theme win over local conventions", async () => {
+  test("explicit site.package still wins, while local theme.css layers after explicit site.theme", async () => {
     writeFileSync(
       join(testDir, "src/site.ts"),
       "export default { layouts: {}, routes: [], plugin() { return { id: 'x', version: '1.0.0', description: 'x', packageName: '@x/x', type: 'service', async register() { return { tools: [], resources: [] }; } }; }, entityDisplay: {} };",
@@ -102,9 +102,18 @@ describe("registerConventionalSiteTheme", () => {
 
     const result = await registerConventionalSiteTheme(testDir, overrides);
 
-    expect(result).toEqual(overrides);
+    expect(result).toEqual({
+      site: {
+        package: "@brains/site-explicit",
+        theme: "@brains/theme-explicit",
+        themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
+        variant: "work",
+      },
+    });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeUndefined();
-    expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBeUndefined();
+    expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(
+      ":root { --color-brand: cyan; }",
+    );
   });
 
   test("only registers the missing half when one explicit site field is present", async () => {
@@ -123,9 +132,27 @@ describe("registerConventionalSiteTheme", () => {
     expect(result.site).toEqual({
       package: "@brains/site-explicit",
       variant: "ai",
-      theme: CONVENTIONAL_THEME_PACKAGE_REF,
+      themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeUndefined();
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(themeCss);
+  });
+
+  test("explicit site.themeOverride suppresses the local theme convention", async () => {
+    writeFileSync(
+      join(testDir, "src/theme.css"),
+      ":root { --color-brand: chartreuse; }",
+    );
+
+    const overrides: InstanceOverrides = {
+      site: {
+        themeOverride: "body { color: rebeccapurple; }",
+      },
+    };
+
+    const result = await registerConventionalSiteTheme(testDir, overrides);
+
+    expect(result).toEqual(overrides);
+    expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBeUndefined();
   });
 });

@@ -1306,6 +1306,59 @@ describe("resolve with site package", () => {
     );
   });
 
+  test("should layer brain.yaml site.themeOverride after the base theme", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    registerPackage("@brains/theme-local", ".local { color: purple; }");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      theme: "body { color: pink; }",
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        site: { themeOverride: "@brains/theme-local" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme("body { color: pink; }\n\n.local { color: purple; }"),
+    );
+  });
+
+  test("should treat themeOverride as the whole theme when no base theme exists", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("personal-site");
+
+    const config = resolve(
+      defineBrain({
+        name: "test",
+        version: "1.0.0",
+        site,
+        capabilities: [["site-builder", siteBuilderFactory, {}]],
+        interfaces: [],
+      }),
+      {},
+      {
+        site: { themeOverride: "body { color: lime; }" },
+      },
+    );
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    expect(getConfig(siteBuilder)["themeCSS"]).toBe(
+      composeTheme("body { color: lime; }"),
+    );
+  });
+
   test("should allow brain.yaml site-builder overrides to win over site defaults", () => {
     const [siteBuilderFactory] = createMockFactory("site-builder");
     const site = createMockSitePackage("personal-site");
@@ -1371,12 +1424,14 @@ site:
   package: "@brains/site-example"
   variant: foundation
   theme: github:rizom-ai/theme-foundation
+  themeOverride: ./src/theme.css
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.site).toEqual({
       package: "@brains/site-example",
       variant: "foundation",
       theme: "github:rizom-ai/theme-foundation",
+      themeOverride: "./src/theme.css",
     });
   });
 

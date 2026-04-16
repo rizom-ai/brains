@@ -16,6 +16,9 @@ export {
 } from "./runtime";
 export type { RizomRuntimeConfig, RizomRuntimeVariant } from "./runtime";
 
+export { createRizomSite } from "./create-site";
+export type { CreateRizomSiteOptions } from "./create-site";
+
 export {
   Badge,
   Button,

@@ -71,7 +71,8 @@ function toImportPath(fromDir: string, filePath: string): string {
  * When `cwd` is provided, conventional local authoring files are also
  * bundled:
  * - `./src/site.ts` if `site.package` is omitted
- * - `./src/theme.css` if `site.theme` is omitted
+ * - `./src/theme.css` as an additive theme override layer when
+ *   `site.themeOverride` is omitted
  *
  * @param yamlContent - Raw brain.yaml content
  * @returns Generated TypeScript code, or null if yaml is invalid
@@ -130,14 +131,16 @@ export function generateEntrypoint(
     }
 
     const themePath = `${options.cwd}/src/theme.css`;
-    if (!overrides.site?.theme && existsSync(themePath)) {
+    if (!overrides.site?.themeOverride && existsSync(themePath)) {
       conventionalImports.push(
         `import __pkg${importIndex} from "${toImportPath(options.cwd, themePath)}" with { type: "text" };`,
       );
       conventionalRegistrations.push(
         `registerPackage("${CONVENTIONAL_THEME_PACKAGE_REF}", __pkg${importIndex});`,
       );
-      conventionalArgs.push(`themeRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`);
+      conventionalArgs.push(
+        `themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+      );
       importIndex += 1;
     }
   }

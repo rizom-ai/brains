@@ -18,7 +18,8 @@ export {
  * Register convention-based local site/theme files for standalone repos.
  *
  * - `src/site.ts` becomes the effective `site.package` when brain.yaml omits it
- * - `src/theme.css` becomes the effective `site.theme` when brain.yaml omits it
+ * - `src/theme.css` becomes an additive `site.themeOverride` layer so apps can
+ *   extend a shared base theme without forking it
  */
 export async function registerConventionalSiteTheme(
   cwd: string,
@@ -42,13 +43,13 @@ export async function registerConventionalSiteTheme(
   }
 
   const themePath = join(cwd, "src/theme.css");
-  if (!overrides.site?.theme && existsSync(themePath)) {
+  if (!overrides.site?.themeOverride && existsSync(themePath)) {
     registerPackage(
       CONVENTIONAL_THEME_PACKAGE_REF,
       readFileSync(themePath, "utf-8"),
     );
     nextOverrides = applyConventionalSiteRefs(nextOverrides, {
-      themeRef: CONVENTIONAL_THEME_PACKAGE_REF,
+      themeOverrideRef: CONVENTIONAL_THEME_PACKAGE_REF,
     });
   }
 

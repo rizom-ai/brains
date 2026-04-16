@@ -1,0 +1,275 @@
+@layer theme {
+  [data-theme="light"] {
+    --color-bg: #F5EFE3;
+    --color-bg-subtle: #EEE7D6;
+    --color-bg-card: #F0E9D8;
+  }
+}
+
+@layer theme-override {
+  /* Foundation CTA treatment — editorial link-style buttons rather
+     than pill buttons. Keep shared Button component; restyle locally
+     so other Rizom apps keep the shared button treatment. */
+  .rizom-btn {
+    width: auto !important;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 2px 8px !important;
+    border: none !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    font-family: var(--font-display);
+    font-size: 18px !important;
+    font-weight: 400;
+    font-style: italic;
+    letter-spacing: -0.2px;
+    text-transform: none;
+  }
+  .rizom-btn-primary {
+    color: var(--color-accent) !important;
+    border-bottom: 1px solid var(--color-accent) !important;
+  }
+  .rizom-btn-secondary {
+    color: var(--color-text) !important;
+    border-bottom: 1px solid rgb(from var(--color-accent) r g b / 0.35) !important;
+  }
+  .rizom-btn:hover {
+    transform: translateY(-1px);
+    padding-bottom: 11px !important;
+    background: transparent !important;
+  }
+  .rizom-btn-primary:hover {
+    color: var(--color-accent) !important;
+    border-bottom-width: 2px !important;
+  }
+  .rizom-btn-secondary:hover {
+    color: var(--color-text) !important;
+    border-bottom-color: rgb(from var(--color-accent) r g b / 0.55) !important;
+  }
+
+  /* Foundation editorial polish */
+  .foundation-hero {
+    text-align: center;
+  }
+  .foundation-hero-inner {
+    max-width: 1040px;
+    padding-top: 60px;
+  }
+  .foundation-hero-meta {
+    margin-bottom: 56px;
+    padding: 11px 24px;
+    border-top: 1px solid rgb(from var(--color-accent) r g b / 0.4);
+    border-bottom: 1px solid rgb(from var(--color-accent) r g b / 0.4);
+    display: inline-flex;
+  }
+  .foundation-hero-title {
+    font-size: clamp(56px, 10.5vw, 148px) !important;
+    letter-spacing: -5px !important;
+    line-height: 0.88 !important;
+    font-weight: 400;
+  }
+  .foundation-hero-tail {
+    font-size: 0.42em !important;
+    letter-spacing: -1.5px !important;
+    font-style: italic;
+    color: var(--color-text-muted);
+    margin-top: 24px !important;
+    line-height: 1.15 !important;
+  }
+  .foundation-hero-tagline {
+    max-width: 780px;
+    margin-bottom: 40px;
+    font-size: clamp(20px, 2.4vw, 28px) !important;
+    font-style: italic;
+    line-height: 1.4;
+    letter-spacing: -0.3px;
+  }
+  .foundation-hero-subtitle {
+    max-width: 560px;
+    margin-bottom: 44px;
+    font-size: 16px !important;
+    font-style: italic;
+    line-height: 1.7;
+  }
+  .foundation-hero-cta {
+    gap: 36px;
+    justify-content: center;
+  }
+  .foundation-hero-colophon {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid rgb(from var(--color-text) r g b / 0.06);
+    gap: 32px;
+    max-width: 680px;
+    margin-left: auto;
+    margin-right: auto;
+    letter-spacing: 1.8px;
+  }
+  .foundation-research,
+  .foundation-events,
+  .foundation-ownership {
+    padding-top: 144px;
+    padding-bottom: 144px;
+  }
+  .foundation-research {
+    padding-top: 80px;
+    padding-bottom: 120px;
+  }
+  .foundation-events {
+    padding-top: 120px;
+    padding-bottom: 120px;
+  }
+  .foundation-research-row,
+  .foundation-event-row {
+    border-color: rgb(from var(--color-text) r g b / 0.06);
+  }
+  .foundation-ownership-grid {
+    gap: 80px;
+    align-items: flex-start;
+  }
+  .foundation-ownership-right {
+    padding-top: 60px;
+    gap: 32px;
+  }
+  .foundation-feature-row {
+    gap: 20px;
+  }
+  .foundation-support {
+    padding-top: 120px;
+    padding-bottom: 120px;
+  }
+  .foundation-support-grid {
+    margin-top: 48px;
+    gap: 24px;
+  }
+  .foundation-support-card {
+    padding: 40px;
+    gap: 20px;
+    align-items: flex-start;
+    transition: transform 500ms cubic-bezier(0.2, 0.8, 0.2, 1), border-color 500ms ease, box-shadow 500ms ease;
+  }
+  .foundation-support-card:hover {
+    transform: translateY(-4px);
+  }
+  .foundation-support-card-amber:hover {
+    border-color: rgb(from var(--color-accent) r g b / 0.5);
+    box-shadow: 0 20px 60px -20px rgb(from var(--color-accent) r g b / 0.25);
+  }
+  .foundation-support-card-purple:hover {
+    border-color: rgb(from var(--color-secondary) r g b / 0.5);
+    box-shadow: 0 20px 60px -20px rgb(from var(--color-secondary) r g b / 0.25);
+  }
+  .foundation-support-label {
+    font-size: 18px;
+  }
+  .foundation-support-headline {
+    font-size: clamp(26px, 3vw, 36px) !important;
+    line-height: 1.2;
+    letter-spacing: -0.5px;
+  }
+  .foundation-support-link {
+    margin-top: 8px;
+  }
+  .foundation-ownership h2 {
+    font-weight: 400;
+    letter-spacing: -1.2px;
+  }
+  .foundation-ownership p {
+    line-height: 1.7;
+  }
+
+  @media (max-width: 900px) {
+    .foundation-events {
+      padding-top: 88px;
+      padding-bottom: 88px;
+    }
+    .foundation-event-row {
+      grid-template-columns: 80px 1fr;
+      gap: 24px;
+      padding-top: 32px;
+      padding-bottom: 32px;
+    }
+    .foundation-event-row:hover {
+      padding-left: 12px;
+    }
+    .foundation-event-row > :last-child {
+      grid-column: 1 / -1;
+      text-align: left;
+      padding-top: 0;
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 14px;
+      align-items: baseline;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .foundation-hero-inner {
+      padding-top: 52px;
+    }
+    .foundation-hero-meta {
+      margin-bottom: 32px;
+      gap: 10px;
+      padding: 10px 18px;
+    }
+    .foundation-hero-title {
+      letter-spacing: -2.5px !important;
+    }
+    .foundation-hero-tail {
+      margin-top: 16px !important;
+      line-height: 1.2 !important;
+    }
+    .foundation-hero-tagline {
+      margin-bottom: 28px;
+    }
+    .foundation-hero-cta {
+      flex-direction: column;
+      align-items: center;
+      gap: 24px;
+    }
+    .foundation-hero-colophon {
+      margin-top: 40px;
+      gap: 14px;
+      padding-top: 18px;
+    }
+    .foundation-research,
+    .foundation-ownership,
+    .foundation-support {
+      padding-top: 88px;
+      padding-bottom: 88px;
+    }
+    .foundation-research-row {
+      grid-template-columns: 80px 1fr auto;
+      gap: 24px;
+      padding-top: 32px;
+      padding-bottom: 32px;
+    }
+    .foundation-research-row:hover {
+      padding-left: 12px;
+    }
+    .foundation-ownership-grid {
+      flex-direction: column;
+      gap: 36px;
+    }
+    .foundation-ownership-left,
+    .foundation-ownership-right {
+      width: 100%;
+    }
+    .foundation-ownership-right {
+      padding-top: 0;
+      gap: 32px;
+    }
+    .foundation-ownership h2 {
+      margin-top: 16px;
+      font-size: 28px !important;
+    }
+    .foundation-support-grid {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+    .foundation-support-card {
+      padding: 32px 24px;
+    }
+  }
+}

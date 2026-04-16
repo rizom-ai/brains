@@ -19,8 +19,11 @@ const instanceOverridesSchema = z.object({
    * - `variant` is forwarded to the site plugin's config schema, so a
    *   single site package can ship multiple structural flavors
    *   (for example a wrapper or multi-flavor site package).
-   * - `theme` selects the theme package or inline CSS string to use for
-   *   styling. It is resolved separately from the site plugin.
+   * - `theme` selects the base theme package or inline CSS string to use
+   *   for styling. It is resolved separately from the site plugin.
+   * - `themeOverride` appends extra CSS after the base theme. This is used
+   *   by the local `src/theme.css` convention so apps can layer local theme
+   *   overrides on top of a shared base theme without forking it.
    *
    * The whole block is optional; any subfield is optional.
    */
@@ -29,6 +32,7 @@ const instanceOverridesSchema = z.object({
       package: z.string().optional(),
       variant: z.string().optional(),
       theme: z.string().optional(),
+      themeOverride: z.string().optional(),
     })
     .optional(),
 
@@ -106,15 +110,23 @@ export const CONVENTIONAL_THEME_PACKAGE_REF = "@brains/local-theme";
 /**
  * Apply convention-discovered site/theme refs only when brain.yaml does not
  * explicitly choose them.
+ *
+ * `themeOverrideRef` is additive: it layers local theme CSS after the base
+ * theme from `site.theme` or the brain definition's default theme.
  */
 export function applyConventionalSiteRefs(
   overrides: InstanceOverrides,
   conventions: {
     sitePackageRef?: string;
     themeRef?: string;
+    themeOverrideRef?: string;
   },
 ): InstanceOverrides {
-  if (!conventions.sitePackageRef && !conventions.themeRef) {
+  if (
+    !conventions.sitePackageRef &&
+    !conventions.themeRef &&
+    !conventions.themeOverrideRef
+  ) {
     return overrides;
   }
 
@@ -128,6 +140,10 @@ export function applyConventionalSiteRefs(
     site.theme = conventions.themeRef;
   }
 
+  if (!site.themeOverride && conventions.themeOverrideRef) {
+    site.themeOverride = conventions.themeOverrideRef;
+  }
+
   return {
     ...overrides,
     ...(Object.keys(site).length > 0 ? { site } : {}),
@@ -139,15 +155,23 @@ export function applyConventionalSiteRefs(
  * site plugin config.
  *
  * - `package` is consumed by site-package resolution
- * - `theme` is consumed by theme resolution
+ * - `theme` and `themeOverride` are consumed by theme resolution
  *
  * Remaining fields (for example `variant`) flow into the site plugin's
  * own config schema.
  */
 export function stripSiteConfig(
   site: NonNullable<InstanceOverrides["site"]> | undefined,
-): Omit<NonNullable<InstanceOverrides["site"]>, "package" | "theme"> {
-  const { package: _pkg, theme: _theme, ...config } = site ?? {};
+): Omit<
+  NonNullable<InstanceOverrides["site"]>,
+  "package" | "theme" | "themeOverride"
+> {
+  const {
+    package: _pkg,
+    theme: _theme,
+    themeOverride: _themeOverride,
+    ...config
+  } = site ?? {};
   return config;
 }
 

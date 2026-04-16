@@ -1,4 +1,10 @@
-export const WebRouteMethods = ["GET", "POST", "PUT", "DELETE"] as const;
+export const WebRouteMethods = [
+  "GET",
+  "POST",
+  "PUT",
+  "DELETE",
+  "OPTIONS",
+] as const;
 export type WebRouteMethod = (typeof WebRouteMethods)[number];
 
 export type WebRouteHandler = (

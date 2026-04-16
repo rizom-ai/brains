@@ -1,15 +1,25 @@
-import { describe, expect, it, beforeEach } from "bun:test";
+import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
+import { StreamableHTTPServer } from "../src/transports/http-server";
 
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
+  let server: StreamableHTTPServer | null = null;
 
   beforeEach(() => {
     harness = createPluginHarness({
       logger: createSilentLogger("mcp-test"),
     });
+  });
+
+  afterEach(async () => {
+    if (server) {
+      await server.stop();
+      server = null;
+    }
+    StreamableHTTPServer.resetInstance();
   });
 
   describe("initialization", () => {
@@ -30,6 +40,53 @@ describe("MCPInterface", () => {
         httpPort: 3001,
       });
       expect(plugin.id).toBe("mcp");
+    });
+  });
+
+  describe("shared web routes", () => {
+    it("should expose shared-host routes for HTTP transport", () => {
+      const plugin = new MCPInterface({ transport: "http", httpPort: 3001 });
+
+      const routes = plugin.getWebRoutes();
+      expect(routes).toHaveLength(5);
+      expect(routes).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ path: "/status", method: "GET" }),
+          expect.objectContaining({ path: "/mcp", method: "GET" }),
+          expect.objectContaining({ path: "/mcp", method: "POST" }),
+          expect.objectContaining({ path: "/mcp", method: "DELETE" }),
+          expect.objectContaining({ path: "/mcp", method: "OPTIONS" }),
+        ]),
+      );
+    });
+
+    it("should expose no shared-host routes for stdio transport", () => {
+      const plugin = new MCPInterface({ transport: "stdio" });
+      expect(plugin.getWebRoutes()).toEqual([]);
+    });
+
+    it("should proxy shared-host status route to the MCP HTTP transport", async () => {
+      server = StreamableHTTPServer.createFresh({
+        port: 0,
+        logger: createSilentLogger("mcp-proxy-test"),
+        auth: { disabled: true },
+      });
+      await server.start();
+
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: server.getPort(),
+      });
+      const route = plugin
+        .getWebRoutes()
+        .find((candidate) => candidate.path === "/status");
+
+      expect(route).toBeDefined();
+      const response = await route?.handler(new Request("http://brain/status"));
+      expect(response?.status).toBe(200);
+      const body = await response?.json();
+      expect(body?.port).toBe(server.getPort());
+      expect(body?.sessions).toBe(0);
     });
   });
 

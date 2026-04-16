@@ -1,26 +1,12 @@
-import type { Plugin } from "@brains/plugins";
-import {
-  extendSite,
-  type SitePackage,
-  type SitePackageOverrides,
-} from "@brains/site-composition";
-import rizomBaseSite from "@brains/site-rizom";
+import { createRizomSite } from "@brains/site-rizom";
 import { WorkLayout } from "./layout";
-import { RizomWorkSitePlugin } from "./plugin";
 import { workRoutes } from "./routes";
+import { workTemplates } from "./templates";
 
-const workPlugin: SitePackage["plugin"] = (
-  config?: Record<string, unknown>,
-): Plugin => new RizomWorkSitePlugin(config ?? {});
-
-const overrides: SitePackageOverrides = {
-  layouts: {
-    default: WorkLayout,
-  },
+export default createRizomSite({
+  packageName: "rizom-work-site",
+  variant: "work",
+  layout: WorkLayout,
   routes: workRoutes,
-  plugin: workPlugin,
-};
-
-const site: SitePackage = extendSite(rizomBaseSite, overrides);
-
-export default site;
+  templates: workTemplates,
+});

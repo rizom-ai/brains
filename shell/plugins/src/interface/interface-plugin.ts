@@ -7,6 +7,7 @@ import type {
 import type { Daemon } from "../manager/daemon-types";
 import type { InterfacePluginContext } from "./context";
 import { createInterfacePluginContext } from "./context";
+import type { WebRouteDefinition } from "../types/web-routes";
 import type {
   JobProgressEvent,
   JobContext,
@@ -115,6 +116,11 @@ export abstract class InterfacePlugin<
    */
   protected createDaemon(): Daemon | undefined {
     return undefined;
+  }
+
+  /** Get web routes for this interface (override when the interface mounts onto the shared host) */
+  getWebRoutes(): WebRouteDefinition[] {
+    return [];
   }
 
   /**

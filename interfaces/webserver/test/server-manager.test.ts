@@ -160,6 +160,53 @@ describe("ServerManager (in-process)", () => {
     expect(await res.text()).toContain("owner/repo");
   });
 
+  it("should serve plugin-contributed OPTIONS routes when configured", async () => {
+    testDir = join(tmpdir(), `webserver-options-test-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "mcp",
+          fullPath: "/mcp",
+          definition: {
+            path: "/mcp",
+            method: "OPTIONS",
+            public: true,
+            handler: async (): Promise<Response> =>
+              new Response(null, {
+                status: 204,
+                headers: {
+                  "Access-Control-Allow-Origin": "*",
+                  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+                },
+              }),
+          },
+        },
+      ],
+    });
+
+    await manager.start();
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/mcp`, { method: "OPTIONS" });
+    expect(res.status).toBe(204);
+    expect(res.headers.get("access-control-allow-origin")).toBe("*");
+    expect(res.headers.get("access-control-allow-methods")).toContain(
+      "OPTIONS",
+    );
+  });
+
   it("should not start preview server when preview is not configured", async () => {
     const m = setup();
     await m.start();

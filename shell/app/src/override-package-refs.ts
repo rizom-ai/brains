@@ -4,10 +4,10 @@ import type { InstanceOverrides } from "./instance-overrides";
 /**
  * Collect all @-prefixed package references from instance overrides.
  *
- * Scans `site.package`, `site.theme`, and plugin config values.
- * Used by both the entrypoint generator (static imports) and
- * the dev runner (dynamic imports) to ensure all referenced
- * packages are registered before resolve() runs.
+ * Scans `site.package`, `site.theme`, `site.themeOverride`, and plugin
+ * config values. Used by both the entrypoint generator (static imports)
+ * and the dev runner (dynamic imports) to ensure all referenced packages
+ * are registered before resolve() runs.
  */
 export function collectOverridePackageRefs(
   overrides: InstanceOverrides,
@@ -23,6 +23,11 @@ export function collectOverridePackageRefs(
   const siteTheme = overrides.site?.theme;
   if (siteTheme && isScopedPackageRef(siteTheme)) {
     refs.push(siteTheme);
+  }
+
+  const siteThemeOverride = overrides.site?.themeOverride;
+  if (siteThemeOverride && isScopedPackageRef(siteThemeOverride)) {
+    refs.push(siteThemeOverride);
   }
 
   // Plugin config values

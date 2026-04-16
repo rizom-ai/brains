@@ -37,7 +37,7 @@ describe("generateEntrypoint conventions", () => {
     );
   });
 
-  test("bundles ./src/theme.css when brain.yaml omits site.theme", () => {
+  test("bundles ./src/theme.css as a local theme override layer", () => {
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
     const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
@@ -50,11 +50,11 @@ describe("generateEntrypoint conventions", () => {
       `registerPackage("${CONVENTIONAL_THEME_PACKAGE_REF}", __pkg0);`,
     );
     expect(code).toContain(
-      `applyConventionalSiteRefs(overrides, { themeRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+      `applyConventionalSiteRefs(overrides, { themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
     );
   });
 
-  test("explicit site.package and site.theme suppress convention imports", () => {
+  test("explicit site.package suppresses only the site import; local theme override still bundles", () => {
     writeFileSync(join(testDir, "src/site.ts"), "export default {};\n");
     writeFileSync(join(testDir, "src/theme.css"), ":root {}\n");
 
@@ -69,8 +69,8 @@ site:
 
     expect(code).not.toBeNull();
     expect(code).not.toContain("./src/site.ts");
-    expect(code).not.toContain("./src/theme.css");
+    expect(code).toContain("./src/theme.css");
     expect(code).not.toContain(CONVENTIONAL_SITE_PACKAGE_REF);
-    expect(code).not.toContain(CONVENTIONAL_THEME_PACKAGE_REF);
+    expect(code).toContain(CONVENTIONAL_THEME_PACKAGE_REF);
   });
 });

@@ -1,26 +1,12 @@
-import type { Plugin } from "@brains/plugins";
-import {
-  extendSite,
-  type SitePackage,
-  type SitePackageOverrides,
-} from "@brains/site-composition";
-import rizomBaseSite from "@brains/site-rizom";
+import { createRizomSite } from "@brains/site-rizom";
 import { AiLayout } from "./layout";
-import { RizomAiSitePlugin } from "./plugin";
 import { aiRoutes } from "./routes";
+import { aiTemplates } from "./templates";
 
-const aiPlugin: SitePackage["plugin"] = (
-  config?: Record<string, unknown>,
-): Plugin => new RizomAiSitePlugin(config ?? {});
-
-const overrides: SitePackageOverrides = {
-  layouts: {
-    default: AiLayout,
-  },
+export default createRizomSite({
+  packageName: "rizom-ai-site",
+  variant: "ai",
+  layout: AiLayout,
   routes: aiRoutes,
-  plugin: aiPlugin,
-};
-
-const site: SitePackage = extendSite(rizomBaseSite, overrides);
-
-export default site;
+  templates: aiTemplates,
+});

@@ -22,7 +22,10 @@ describe("collectOverridePackageRefs", () => {
 
   test("should collect both site and plugin refs", () => {
     const refs = collectOverridePackageRefs({
-      site: { package: "@brains/site-default" },
+      site: {
+        package: "@brains/site-default",
+        themeOverride: "@brains/theme-rizom-local",
+      },
       plugins: {
         "site-builder": {
           themeCSS: "@brains/theme-override",
@@ -30,6 +33,7 @@ describe("collectOverridePackageRefs", () => {
       },
     });
     expect(refs).toContain("@brains/site-default");
+    expect(refs).toContain("@brains/theme-rizom-local");
     expect(refs).toContain("@brains/theme-override");
   });
 

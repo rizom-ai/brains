@@ -89,11 +89,12 @@ Fields:
 
 - `package` — site package to load
 - `variant` — optional site-specific flavor string for packages that support it
-- `theme` — theme package or inline CSS string to use for styling
+- `theme` — base theme package or inline CSS string to use for styling
+- `themeOverride` — extra CSS or a theme CSS package ref to append after the base theme
 
-`site.package` and `site.theme` are resolved independently. The site package stays structural-only; the theme is validated separately and injected into site-builder.
+`site.package`, `site.theme`, and `site.themeOverride` are resolved independently. The site package stays structural-only; the theme is validated separately and injected into site-builder. `themeOverride` is additive, which lets an app-local `src/theme.css` extend a shared base theme without replacing it.
 
-Use this when the brain model's built-in site package is not the one you want, or when you want to pair the same site package with a different theme.
+Use this when the brain model's built-in site package is not the one you want, when you want to pair the same site package with a different base theme, or when you want to layer local theme overrides on top of a shared theme.
 
 ### `name`
 
