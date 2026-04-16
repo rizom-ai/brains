@@ -16,16 +16,18 @@ Three config-only test apps under `brains/rover/test-apps/`, one per preset. No 
 
 ```
 brains/rover/test-apps/
-├── README.md          # env vars each preset needs + reset instructions
+├── README.md          # minimum/optional env vars + reset instructions
 ├── .gitignore         # */brain-data/, */.env*, */cache/, */dist/, */data/
 ├── core/brain.yaml
 ├── default/brain.yaml
 └── full/brain.yaml
 ```
 
-Each `brain.yaml` specifies only `brain: rover` and `preset: <name>` plus any test-scoped plugin config. `domain` is omitted (not needed for local iteration). Secrets come from the developer's shell env — no per-app `.env` files to maintain.
+Each `brain.yaml` specifies only `brain: rover`, `preset: <name>`, and a test-scoped `plugins.directory-sync.seedContentPath: ../../eval-content` override. `domain` is omitted (not needed for local iteration). Secrets come from the developer's shell env — no per-app `.env` files to maintain.
 
-Per-preset `brain-data/` directories are gitignored. On first run each is populated from the shared `brains/rover/eval-content/` — richer sample content than `seed-content/` (real anchor-profile, deck, image, link, agent entities + sample essay). Exact population mechanism (directory-sync seed-path override vs a `prestart` copy step) is resolved at implementation time.
+Per-preset `brain-data/` directories are gitignored. On first run, `directory-sync` seeds each preset from the shared `brains/rover/eval-content/`, using the existing `seedContentPath` mechanism rather than a custom `prestart` copy step. This keeps the test apps config-only while still giving them richer sample content than `seed-content/` (real anchor-profile, deck, image, link, agent entities + sample essay).
+
+The common minimum local env for boot is `AI_API_KEY` + `GIT_SYNC_TOKEN`. Use a real `AI_API_KEY` if AI-backed flows should succeed; placeholder values may still let the app boot, but background AI jobs will fail. `MCP_AUTH_TOKEN` is optional for local HTTP auth, but without it the MCP HTTP daemon will not start. `DISCORD_BOT_TOKEN` is optional because the Discord interface is skipped when unset, and service-specific tokens (LinkedIn, Buttondown, Unsplash, Cloudflare) are only needed when exercising those integrations.
 
 Separate data dirs per preset because presets register different entity types. A single shared DB would leave narrower presets with entities they don't know about after a run of the wider preset.
 
@@ -38,31 +40,32 @@ Separate data dirs per preset because presets register different entity types. A
 ### New
 
 - `brains/rover/test-apps/.gitignore` — ignore `*/brain-data/`, `*/.env*`, `*/cache/`, `*/dist/`, `*/data/`
-- `brains/rover/test-apps/README.md` — env vars each preset needs, reset instructions
+- `brains/rover/test-apps/README.md` — common minimum env, optional integration env vars, reset instructions
 - `brains/rover/test-apps/core/brain.yaml`
 - `brains/rover/test-apps/default/brain.yaml`
 - `brains/rover/test-apps/full/brain.yaml`
 
 ### Modified
 
-- `brains/rover/package.json` — add `@rizom/brain` as a workspace devDependency and three start scripts, each with a `pre` hook that builds the CLI through turbo (cache-hit fast when nothing changed):
+- `brains/rover/package.json` — add three start scripts that run the in-repo `@rizom/brain` package via Bun workspace filtering, preserving the test-app cwd through `INIT_CWD`:
 
   ```json
-  "devDependencies": {
-    "@rizom/brain": "workspace:*"
-  },
   "scripts": {
-    "build:cli":        "turbo run build --filter=@rizom/brain",
-    "prestart:core":    "bun run build:cli",
-    "start:core":       "cd test-apps/core && bunx brain start",
-    "prestart:default": "bun run build:cli",
-    "start:default":    "cd test-apps/default && bunx brain start",
-    "prestart:full":    "bun run build:cli",
-    "start:full":       "cd test-apps/full && bunx brain start"
+    "start:core":    "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full":    "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start"
   }
   ```
 
-  No relative paths (`@rizom/brain` resolves via workspace), no hand-managed build order (`prestart:*` + turbo handle it).
+  This avoids cross-package relative paths and avoids relying on `bunx` resolution. It intentionally uses the in-repo `@rizom/brain` package as the monorepo dev entrypoint.
+
+- `packages/brain-cli/package.json` — add a small workspace-internal dev script used by the filtered invocation:
+
+  ```json
+  "scripts": {
+    "dev:start": "bun dist/brain.js start"
+  }
+  ```
 
 - `brains/rover/package.json` → `files` array — **do not** include `test-apps` (kept out of publish by default)
 
@@ -73,11 +76,13 @@ Separate data dirs per preset because presets register different entity types. A
 
 ## Verification
 
-1. `bun start:core` in `brains/rover/` boots a brain with preset core — MCP available, no site-builder, no webserver.
-2. `bun start:default` boots with the default preset — site-builder + webserver registered.
-3. `bun start:full` boots with all plugins registered.
-4. Running one preset then another preserves each preset's own `brain-data/` — no cross-contamination.
-5. `@rizom/brain` publish output does not include `test-apps/` (inspect `npm pack --dry-run`).
+1. `bun start:core` in `brains/rover/` boots successfully with the core preset using only the minimum local env; `site-builder` is not active, while the core `webserver` interface remains active. With a real `AI_API_KEY`, background AI flows also succeed.
+2. `bun start:default` boots successfully with the default preset and starts the website surface (`site-builder` + `webserver`).
+3. `bun start:full` boots successfully with the full preset; missing optional integration secrets only skip the corresponding integrations rather than blocking local startup.
+4. First boot of each preset creates and seeds its own `brains/rover/test-apps/<preset>/brain-data/` from `brains/rover/eval-content/`.
+5. Running one preset then another preserves each preset's own `brain-data/` — no cross-contamination.
+6. `@rizom/brain` publish output does not include `test-apps/` (inspect `npm pack --dry-run`).
+7. `bun start:core` resolves through the in-repo `@rizom/brain` workspace package rather than a relative path or implicit global CLI.
 
 ## Non-goals
 

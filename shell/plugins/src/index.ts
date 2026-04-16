@@ -196,6 +196,12 @@ export type {
   NavigationSlot,
   EntityDisplayEntry,
 } from "./types/routes";
+export type {
+  WebRouteDefinition,
+  RegisteredWebRoute,
+  WebRouteMethod,
+  WebRouteHandler,
+} from "./types/web-routes";
 export {
   RouteDefinitionSchema,
   NavigationSlots,

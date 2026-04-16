@@ -12,6 +12,7 @@ import type {
   Tool,
   QueryContext,
   RegisteredApiRoute,
+  RegisteredWebRoute,
 } from "@brains/plugins";
 
 // Plugin manager
@@ -204,11 +205,10 @@ export class Shell implements IShell {
 
       this.services.logger.debug("Shell initialized successfully");
 
-      // Emit system:plugins:ready BEFORE starting background services
-      // This is critical: plugins must complete their ready handlers before
-      // any background processing begins. For example:
-      // - directory-sync needs to set up initial sync before jobs run
-      // - Pending jobs from previous runs must not execute until plugins are ready
+      // Emit system:plugins:ready BEFORE starting background services.
+      // Plugins must complete their ready handlers before any background
+      // processing begins, so sync-style plugins can prepare initial state
+      // and pending jobs from previous runs don't execute prematurely.
       await this.services.messageBus.send(
         "system:plugins:ready",
         {
@@ -502,6 +502,31 @@ export class Shell implements IShell {
     return routes;
   }
 
+  public getPluginWebRoutes(): RegisteredWebRoute[] {
+    const routes: RegisteredWebRoute[] = [];
+
+    for (const [
+      pluginId,
+      info,
+    ] of this.services.pluginManager.getAllPlugins()) {
+      const { plugin } = info;
+      if (
+        "getWebRoutes" in plugin &&
+        typeof plugin.getWebRoutes === "function"
+      ) {
+        for (const definition of plugin.getWebRoutes()) {
+          routes.push({
+            pluginId,
+            fullPath: definition.path,
+            definition,
+          });
+        }
+      }
+    }
+
+    return routes;
+  }
+
   public registerDaemon(name: string, daemon: Daemon, pluginId: string): void {
     this.services.daemonRegistry.register(name, daemon, pluginId);
   }
@@ -623,7 +648,6 @@ export class Shell implements IShell {
         getIdentity: () => this.services.identityService.getCharacter(),
         getProfile: () => this.services.profileService.getProfile(),
         getAppInfo: () => this.getAppInfo(),
-        getDaemonStatuses: () => this.services.daemonRegistry.getStatuses(),
         searchLimit: 10,
         insights: this.insightsRegistry,
       },

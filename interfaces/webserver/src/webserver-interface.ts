@@ -41,12 +41,15 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
       productionDistDir: this.config.productionDistDir,
       sharedImagesDir: this.config.sharedImagesDir,
       productionPort: this.config.productionPort,
-      ...(this.config.previewDistDir && {
-        previewDistDir: this.config.previewDistDir,
-      }),
-      ...(this.config.previewPort && { previewPort: this.config.previewPort }),
+      ...(this.config.enablePreview &&
+        this.config.previewDistDir && {
+          previewDistDir: this.config.previewDistDir,
+        }),
+      ...(this.config.enablePreview &&
+        this.config.previewPort && { previewPort: this.config.previewPort }),
       getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
         context.appInfo(),
+      webRoutes: context.webRoutes.getRoutes(),
     });
 
     // Initialize API server (runs on main thread, own port)
@@ -136,7 +139,11 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
   private async ensureDistDirectories(): Promise<void> {
     const { mkdir, writeFile } = await import("fs/promises");
 
-    if (this.config.previewDistDir && !existsSync(this.config.previewDistDir)) {
+    if (
+      this.config.enablePreview &&
+      this.config.previewDistDir &&
+      !existsSync(this.config.previewDistDir)
+    ) {
       await mkdir(this.config.previewDistDir, { recursive: true });
       await writeFile(
         join(this.config.previewDistDir, "index.html"),

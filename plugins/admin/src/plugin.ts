@@ -1,6 +1,11 @@
-import type { Resource, ServicePluginContext } from "@brains/plugins";
+import type {
+  Resource,
+  ServicePluginContext,
+  WebRouteDefinition,
+} from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
 import { generateCmsConfig, type EntityDisplayMap } from "@brains/cms-config";
+import { renderAdminShellHtml } from "./admin-shell";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
 
@@ -16,9 +21,17 @@ const entityDisplayEntrySchema = z
 
 const adminConfigSchema = z.object({
   entityDisplay: z.record(entityDisplayEntrySchema).optional(),
+  routePath: z.string().default("/"),
 });
 
 type AdminConfig = z.infer<typeof adminConfigSchema>;
+
+function getCmsConfigOptions(config: AdminConfig): {
+  entityDisplay?: EntityDisplayMap;
+} {
+  const entityDisplay = config.entityDisplay as EntityDisplayMap | undefined;
+  return entityDisplay ? { entityDisplay } : {};
+}
 
 async function getRepoInfo(
   context: ServicePluginContext,
@@ -71,11 +84,10 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
       try {
         return {
           success: true,
-          data: await buildCmsConfigYaml(context, {
-            ...(this.config.entityDisplay && {
-              entityDisplay: this.config.entityDisplay as EntityDisplayMap,
-            }),
-          }),
+          data: await buildCmsConfigYaml(
+            context,
+            getCmsConfigOptions(this.config),
+          ),
         };
       } catch (error) {
         return {
@@ -87,6 +99,44 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
         };
       }
     });
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [
+      {
+        path: "/cms-config",
+        method: "GET",
+        public: true,
+        handler: async (): Promise<Response> => {
+          try {
+            const yaml = await buildCmsConfigYaml(
+              this.getContext(),
+              getCmsConfigOptions(this.config),
+            );
+            return new Response(yaml, {
+              headers: { "Content-Type": "text/yaml; charset=utf-8" },
+            });
+          } catch (error) {
+            return new Response(
+              error instanceof Error ? error.message : "CMS config unavailable",
+              {
+                status: 503,
+                headers: { "Content-Type": "text/plain; charset=utf-8" },
+              },
+            );
+          }
+        },
+      },
+      {
+        path: this.config.routePath,
+        method: "GET",
+        public: true,
+        handler: (): Response =>
+          new Response(renderAdminShellHtml(), {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          }),
+      },
+    ];
   }
 
   protected override async getResources(): Promise<Resource[]> {
@@ -101,11 +151,10 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
             {
               uri: CMS_CONFIG_URI,
               mimeType: "text/yaml",
-              text: await buildCmsConfigYaml(this.getContext(), {
-                ...(this.config.entityDisplay && {
-                  entityDisplay: this.config.entityDisplay as EntityDisplayMap,
-                }),
-              }),
+              text: await buildCmsConfigYaml(
+                this.getContext(),
+                getCmsConfigOptions(this.config),
+              ),
             },
           ],
         }),

@@ -10,6 +10,7 @@
     "env.schema.template"
   ],
   "scripts": {
+    "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
     "lint": "eslint .",

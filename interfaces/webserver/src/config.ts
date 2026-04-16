@@ -4,6 +4,12 @@ import { z } from "@brains/utils";
  * Webserver configuration schema
  */
 export const webserverConfigSchema = z.object({
+  enablePreview: z
+    .boolean()
+    .default(true)
+    .describe(
+      "Enable the preview site server when preview assets are configured",
+    ),
   previewDistDir: z
     .string()
     .default("./dist/site-preview")

@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
   defineBrain,
-  type InterfaceConstructor,
   type PluginConfig,
   type PluginFactory,
 } from "../src/brain-definition";
@@ -666,7 +665,7 @@ describe("resolve with instance overrides", () => {
       interfaces: [
         [
           "webserver",
-          MockWebserver as InterfaceConstructor,
+          MockWebserver,
           (): PluginConfig => ({ productionPort: 8080 }),
         ],
       ],
@@ -692,13 +691,7 @@ describe("resolve with instance overrides", () => {
       name: "test",
       version: "1.0.0",
       capabilities: [],
-      interfaces: [
-        [
-          "webserver",
-          MockWebserver as InterfaceConstructor,
-          (): PluginConfig => ({}),
-        ],
-      ],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
     });
 
     const config = resolve(
@@ -999,6 +992,62 @@ describe("resolve with site package", () => {
     });
   });
 
+  test("should disable webserver preview when site-builder is not active", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        core: ["webserver"],
+        default: ["site-builder", "webserver"],
+      },
+      defaultPreset: "core",
+      capabilities: [
+        ["site-builder", createMockFactory("site-builder")[0], {}],
+      ],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+    });
+
+    const config = resolve(def, {});
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+
+    expect(getConfig(webserver)["enablePreview"]).toBe(false);
+  });
+
+  test("should keep webserver preview when site-builder is active", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      presets: {
+        core: ["webserver"],
+        default: ["site-builder", "webserver"],
+      },
+      defaultPreset: "default",
+      capabilities: [
+        ["site-builder", createMockFactory("site-builder")[0], {}],
+      ],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+    });
+
+    const config = resolve(def, {});
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+
+    expect(getConfig(webserver)["enablePreview"]).toBe(true);
+  });
+
+  test("should disable webserver preview when webserver is enabled without presets or site-builder", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [["webserver", MockWebserver, (): PluginConfig => ({})]],
+    });
+
+    const config = resolve(def, {});
+    const webserver = config.plugins?.find((p) => p.id === "webserver");
+
+    expect(getConfig(webserver)["enablePreview"]).toBe(false);
+  });
+
   test("should inject entityDisplay into admin", () => {
     const [adminFactory] = createMockFactory("admin");
     const site = createMockSitePackage("personal-site", {
@@ -1019,6 +1068,42 @@ describe("resolve with site package", () => {
     expect(getConfig(admin)["entityDisplay"]).toEqual({
       post: { label: "Essay", pluralName: "Essays" },
     });
+  });
+
+  test("should default admin routePath to root without site-builder", () => {
+    const [adminFactory] = createMockFactory("admin");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [["admin", adminFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const admin = config.plugins?.find((p) => p.id === "admin");
+
+    expect(getConfig(admin)["routePath"]).toBe("/");
+  });
+
+  test("should default admin routePath to /cms when site-builder is active", () => {
+    const [adminFactory] = createMockFactory("admin");
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [
+        ["admin", adminFactory, {}],
+        ["site-builder", siteBuilderFactory, {}],
+      ],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+    const admin = config.plugins?.find((p) => p.id === "admin");
+
+    expect(getConfig(admin)["routePath"]).toBe("/cms");
   });
 
   test("should inject staticAssets from site package into site-builder", () => {
@@ -1526,16 +1611,8 @@ describe("resolve with presets", () => {
       },
       capabilities: [["system", systemFactory, {}]],
       interfaces: [
-        [
-          "mcp",
-          MockMCP as InterfaceConstructor,
-          (): PluginConfig => ({ port: 3333 }),
-        ],
-        [
-          "chat",
-          MockChat as InterfaceConstructor,
-          (): PluginConfig => ({ botToken: "test-token" }),
-        ],
+        ["mcp", MockMCP, (): PluginConfig => ({ port: 3333 })],
+        ["chat", MockChat, (): PluginConfig => ({ botToken: "test-token" })],
       ],
     });
 
@@ -1707,16 +1784,8 @@ describe("resolve with mode: eval", () => {
       evalDisable: ["chat"],
       capabilities: [["system", systemFactory, {}]],
       interfaces: [
-        [
-          "mcp",
-          MockMCP as InterfaceConstructor,
-          (): PluginConfig => ({ port: 3333 }),
-        ],
-        [
-          "chat",
-          MockChat as InterfaceConstructor,
-          (): PluginConfig => ({ botToken: "test-token" }),
-        ],
+        ["mcp", MockMCP, (): PluginConfig => ({ port: 3333 })],
+        ["chat", MockChat, (): PluginConfig => ({ botToken: "test-token" })],
       ],
     });
 

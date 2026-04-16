@@ -12,6 +12,7 @@ import type {
   ConversationMetadata,
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
+import type { RegisteredWebRoute } from "../types/web-routes";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { ToolInfo } from "@brains/mcp-service";
 
@@ -51,6 +52,11 @@ export interface IApiRoutesNamespace {
   getRoutes: () => RegisteredApiRoute[];
   /** Get the message bus for handling route requests */
   getMessageBus: () => IMessageBus;
+}
+
+export interface IWebRoutesNamespace {
+  /** Get all registered web routes from plugins */
+  getRoutes: () => RegisteredWebRoute[];
 }
 
 /**
@@ -154,6 +160,9 @@ export interface InterfacePluginContext extends BasePluginContext {
    * - `apiRoutes.getMessageBus()` - Get message bus for route handling
    */
   readonly apiRoutes: IApiRoutesNamespace;
+
+  /** Plugin-contributed web routes for the shared HTTP surface */
+  readonly webRoutes: IWebRoutesNamespace;
 }
 
 /**
@@ -243,6 +252,12 @@ export function createInterfacePluginContext(
       },
       getMessageBus: (): IMessageBus => {
         return shell.getMessageBus();
+      },
+    },
+
+    webRoutes: {
+      getRoutes: (): RegisteredWebRoute[] => {
+        return shell.getPluginWebRoutes();
       },
     },
   };

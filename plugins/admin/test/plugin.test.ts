@@ -3,7 +3,12 @@ import type { Resource } from "@brains/plugins";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { fromYaml, z } from "@brains/utils";
-import { adminPlugin, buildCmsConfigYaml, CMS_CONFIG_URI } from "../src";
+import {
+  adminPlugin,
+  buildCmsConfigYaml,
+  CMS_CONFIG_URI,
+  renderAdminShellHtml,
+} from "../src";
 
 function createAdminTestShell(options: { domain?: string } = {}): MockShell {
   const shell = createMockShell({
@@ -14,14 +19,21 @@ function createAdminTestShell(options: { domain?: string } = {}): MockShell {
     data: { repo: "owner/repo", branch: "main" },
   }));
 
-  shell.getEntityService = () =>
+  shell.getEntityService = (): ReturnType<MockShell["getEntityService"]> =>
     ({
       getEntityTypes: (): string[] => ["note", "post"],
     }) as ReturnType<MockShell["getEntityService"]>;
 
-  shell.getEntityRegistry = () =>
+  shell.getEntityRegistry = (): ReturnType<MockShell["getEntityRegistry"]> =>
     ({
-      getEffectiveFrontmatterSchema: (type: string) => {
+      getEffectiveFrontmatterSchema: (
+        type: string,
+      ):
+        | z.ZodObject<{
+            title: z.ZodOptional<z.ZodString>;
+            summary: z.ZodOptional<z.ZodString>;
+          }>
+        | undefined => {
         if (type === "note" || type === "post") {
           return z.object({
             title: z.string().optional(),
@@ -30,7 +42,9 @@ function createAdminTestShell(options: { domain?: string } = {}): MockShell {
         }
         return undefined;
       },
-      getAdapter: (type: string) => {
+      getAdapter: (
+        type: string,
+      ): { isSingleton: false; hasBody: true } | undefined => {
         if (type === "note" || type === "post") {
           return { isSingleton: false, hasBody: true };
         }
@@ -102,5 +116,32 @@ describe("admin plugin", () => {
     );
     expect(parsed.backend.repo).toBe("owner/repo");
     expect(parsed.backend.branch).toBe("main");
+  });
+
+  it("should expose web routes for cms config and admin shell", async () => {
+    const shell = createAdminTestShell();
+    const plugin = adminPlugin({ routePath: "/cms" });
+
+    await plugin.register(shell);
+
+    const routes = plugin.getWebRoutes();
+    expect(routes).toHaveLength(2);
+    expect(routes.map((route) => route.path)).toEqual(["/cms-config", "/cms"]);
+
+    const cmsResponse = await routes[0]?.handler(
+      new Request("http://brain/cms-config"),
+    );
+    expect(cmsResponse?.status).toBe(200);
+    expect(cmsResponse?.headers.get("content-type")).toContain("text/yaml");
+    expect(await cmsResponse?.text()).toContain("owner/repo");
+
+    const shellResponse = await routes[1]?.handler(
+      new Request("http://brain/cms"),
+    );
+    expect(shellResponse?.status).toBe(200);
+    expect(shellResponse?.headers.get("content-type")).toContain("text/html");
+    expect(await shellResponse?.text()).toContain(
+      renderAdminShellHtml().trim(),
+    );
   });
 });

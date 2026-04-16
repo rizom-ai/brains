@@ -54,6 +54,7 @@ const core = [
   "agents",
   "admin",
   "mcp",
+  "webserver",
   "discord",
   "a2a",
 ];
@@ -69,7 +70,6 @@ const web = [
   "obsidian-vault",
   "site-info",
   "site-builder",
-  "webserver",
 ];
 
 const full = [

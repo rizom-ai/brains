@@ -46,7 +46,8 @@ import rizomTheme from "@brains/theme-rizom";
 //
 // Think: a Discord-backed team assistant that captures notes and links,
 // auto-extracts topic clusters, and can talk to peer brains via A2A.
-// No site-builder, no webserver — purely chat + MCP + brain-data.
+// Uses the shared webserver host for HTTP health/admin entrypoints, but
+// does not require site-builder or preview/public-site behavior.
 const core = [
   "prompt",
   "directory-sync",
@@ -56,6 +57,7 @@ const core = [
   "agents",
   "admin",
   "mcp",
+  "webserver",
   "discord",
   "a2a",
 ];
@@ -72,7 +74,6 @@ const defaultPreset = [
   "site-info",
   "site-content",
   "site-builder",
-  "webserver",
 ];
 
 export default defineBrain({

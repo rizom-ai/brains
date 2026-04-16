@@ -7,12 +7,11 @@ import { createSystemResources } from "./resources";
 import { createSystemResourceTemplates } from "./resource-templates";
 import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
-import { createSystemWidgets } from "./widgets";
 
 const SYSTEM_ID = "system";
 
 /**
- * Register system tools, resources, prompts, instructions, and widgets.
+ * Register system tools, resources, prompts, and instructions.
  * Called from shell initialization after all plugins are registered.
  */
 export function registerSystemCapabilities(
@@ -109,14 +108,4 @@ export function registerSystemCapabilities(
     logger.debug("System instructions already registered, skipping");
   }
   logger.debug("Registered system instructions");
-
-  // ── Dashboard widgets ──
-  const widgets = createSystemWidgets(services);
-  messageBus.subscribe("system:plugins:ready", async () => {
-    for (const widget of widgets) {
-      await messageBus.send("dashboard:register-widget", widget, SYSTEM_ID);
-    }
-    logger.debug(`Registered ${widgets.length} dashboard widgets`);
-    return { success: true };
-  });
 }

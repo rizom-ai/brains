@@ -43,10 +43,10 @@ describe("DashboardPlugin", () => {
 
       const registry = plugin.getWidgetRegistry();
       expect(registry).toBeDefined();
-      expect(registry?.size).toBe(1);
-      const widgets = registry?.list() ?? [];
-      expect(widgets).toHaveLength(1);
-      expect(widgets[0]).toMatchObject({
+      const testPluginWidgets =
+        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      expect(testPluginWidgets).toHaveLength(1);
+      expect(testPluginWidgets[0]).toMatchObject({
         id: "test-widget",
         pluginId: "test-plugin",
       });
@@ -69,7 +69,9 @@ describe("DashboardPlugin", () => {
       });
 
       const registry = plugin.getWidgetRegistry();
-      expect(registry?.size).toBe(0);
+      const testPluginWidgets =
+        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      expect(testPluginWidgets).toHaveLength(0);
     });
 
     it("should unregister all widgets for a plugin", async () => {
@@ -94,13 +96,17 @@ describe("DashboardPlugin", () => {
       });
 
       const registry = plugin.getWidgetRegistry();
-      expect(registry?.size).toBe(2);
+      const testPluginCount = (): number =>
+        registry?.list().filter((w) => w.pluginId === "test-plugin").length ??
+        0;
+
+      expect(testPluginCount()).toBe(2);
 
       await harness.sendMessage("dashboard:unregister-widget", {
         pluginId: "test-plugin",
       });
 
-      expect(registry?.size).toBe(0);
+      expect(testPluginCount()).toBe(0);
     });
   });
 });

@@ -56,6 +56,7 @@ import type {
   ImageGenerationResult,
 } from "@brains/ai-service";
 import type { RegisteredApiRoute } from "./types/api-routes";
+import type { RegisteredWebRoute } from "./types/web-routes";
 
 /**
  * Handler function for plugin evaluations
@@ -232,6 +233,9 @@ export interface IShell {
 
   // API routes from plugins
   getPluginApiRoutes(): RegisteredApiRoute[];
+
+  // Web routes from plugins
+  getPluginWebRoutes(): RegisteredWebRoute[];
 }
 
 /**

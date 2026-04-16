@@ -1,28 +1,21 @@
-import type { SystemServices } from "./types";
+import type { ServicePluginContext } from "@brains/plugins";
+import type { RegisteredWidget } from "./widget-registry";
 
-export interface DashboardWidget {
-  id: string;
-  pluginId: string;
-  title: string;
-  section: string;
-  priority: number;
-  rendererName: string;
-  dataProvider: () => Promise<Record<string, unknown>>;
-}
+const SYSTEM_PLUGIN_ID = "system";
 
 export function createSystemWidgets(
-  services: SystemServices,
-): DashboardWidget[] {
+  context: ServicePluginContext,
+): RegisteredWidget[] {
   return [
     {
       id: "entity-stats",
-      pluginId: "system",
+      pluginId: SYSTEM_PLUGIN_ID,
       title: "Entity Statistics",
       section: "primary",
       priority: 10,
       rendererName: "StatsWidget",
       dataProvider: async (): Promise<Record<string, unknown>> => {
-        const counts = await services.entityService.getEntityCounts();
+        const counts = await context.entityService.getEntityCounts();
         return {
           stats: Object.fromEntries(
             counts.map(({ entityType, count }) => [entityType, count]),
@@ -32,13 +25,13 @@ export function createSystemWidgets(
     },
     {
       id: "character",
-      pluginId: "system",
+      pluginId: SYSTEM_PLUGIN_ID,
       title: "Brain Character",
       section: "sidebar",
       priority: 5,
       rendererName: "IdentityWidget",
       dataProvider: async (): Promise<Record<string, unknown>> => {
-        const character = services.getIdentity();
+        const character = context.identity.get();
         return {
           name: character.name,
           role: character.role,
@@ -49,13 +42,13 @@ export function createSystemWidgets(
     },
     {
       id: "profile",
-      pluginId: "system",
+      pluginId: SYSTEM_PLUGIN_ID,
       title: "Anchor Profile",
       section: "sidebar",
       priority: 10,
       rendererName: "ProfileWidget",
       dataProvider: async (): Promise<Record<string, unknown>> => {
-        const profile = services.getProfile();
+        const profile = context.identity.getProfile();
         const links: Array<{ label: string; url: string }> = [];
         if (profile.website) {
           links.push({ label: "Website", url: profile.website });
@@ -74,28 +67,29 @@ export function createSystemWidgets(
     },
     {
       id: "system-info",
-      pluginId: "system",
+      pluginId: SYSTEM_PLUGIN_ID,
       title: "System",
       section: "sidebar",
       priority: 15,
       rendererName: "SystemWidget",
       dataProvider: async (): Promise<Record<string, unknown>> => {
-        const appInfo = await services.getAppInfo();
-        const daemons = await services.getDaemonStatuses();
+        const appInfo = await context.identity.getAppInfo();
         const links: Array<{ label: string; url: string }> = [];
 
-        const profile = services.getProfile();
+        const profile = context.identity.getProfile();
         if (profile.website) {
           links.push({ label: "Site", url: profile.website });
         }
 
-        const webserver = daemons.find((d) => d.name.startsWith("webserver"));
+        const webserver = appInfo.daemons.find((d) =>
+          d.name.startsWith("webserver"),
+        );
         const previewUrl = webserver?.health?.details?.["previewUrl"];
         if (typeof previewUrl === "string") {
           links.push({ label: "Preview", url: previewUrl });
         }
 
-        const mcp = daemons.find((d) => d.name.startsWith("mcp"));
+        const mcp = appInfo.daemons.find((d) => d.name.startsWith("mcp"));
         const mcpUrl = mcp?.health?.details?.["url"];
         if (typeof mcpUrl === "string") {
           links.push({ label: "MCP", url: mcpUrl });

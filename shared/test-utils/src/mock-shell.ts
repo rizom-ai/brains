@@ -10,6 +10,7 @@ import type {
   DefaultQueryResponse,
   EvalHandler,
   RegisteredApiRoute,
+  RegisteredWebRoute,
   ToolInfo,
   IMCPTransport,
   AppInfo,
@@ -546,6 +547,25 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
             routes.push({
               pluginId,
               fullPath: `/api/${pluginId}${definition.path}`,
+              definition,
+            });
+          }
+        }
+      }
+      return routes;
+    },
+    getPluginWebRoutes: (): RegisteredWebRoute[] => {
+      const routes: RegisteredWebRoute[] = [];
+      for (const [pluginId, plugin] of plugins) {
+        if (
+          "getWebRoutes" in plugin &&
+          typeof plugin.getWebRoutes === "function"
+        ) {
+          const pluginRoutes = plugin.getWebRoutes();
+          for (const definition of pluginRoutes) {
+            routes.push({
+              pluginId,
+              fullPath: definition.path,
               definition,
             });
           }

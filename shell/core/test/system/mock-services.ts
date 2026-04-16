@@ -224,7 +224,6 @@ export function createMockSystemServices(
       },
       daemons: [],
     }),
-    getDaemonStatuses: async () => [],
     searchLimit: 10,
     insights: createInsightsRegistry(),
     ...overrides,

@@ -36,6 +36,22 @@ describe("WebserverInterface", () => {
     expect(plugin).toBeDefined();
   });
 
+  it("should allow preview to be disabled for core-style usage", async () => {
+    const corePlugin = new WebserverInterface({
+      enablePreview: false,
+      productionDistDir: "./test-website-production-core",
+      productionPort: 8083,
+    });
+    const coreHarness = createPluginHarness<WebserverInterface>({
+      logger: createSilentLogger("webserver-core-test"),
+    });
+
+    await coreHarness.installPlugin(corePlugin);
+    expect(corePlugin).toBeDefined();
+
+    coreHarness.reset();
+  });
+
   it("should initialize with default config", async () => {
     const defaultPlugin = new WebserverInterface();
     const defaultHarness = createPluginHarness<WebserverInterface>({

@@ -118,4 +118,53 @@ describe("ServerManager (in-process)", () => {
     const body = await res.json();
     expect(body.status).toBe("healthy");
   });
+
+  it("should serve plugin-contributed web routes when configured", async () => {
+    testDir = join(tmpdir(), `webserver-cms-test-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      webRoutes: [
+        {
+          pluginId: "admin",
+          fullPath: "/cms-config",
+          definition: {
+            path: "/cms-config",
+            method: "GET",
+            public: true,
+            handler: async (): Promise<Response> =>
+              new Response("backend:\n  repo: owner/repo\n", {
+                headers: { "Content-Type": "text/yaml; charset=utf-8" },
+              }),
+          },
+        },
+      ],
+    });
+
+    await manager.start();
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/cms-config`);
+    expect(res.status).toBe(200);
+    expect(res.headers.get("content-type")).toContain("text/yaml");
+    expect(await res.text()).toContain("owner/repo");
+  });
+
+  it("should not start preview server when preview is not configured", async () => {
+    const m = setup();
+    await m.start();
+
+    const status = m.getStatus();
+    expect(status.previewUrl).toBeUndefined();
+  });
 });

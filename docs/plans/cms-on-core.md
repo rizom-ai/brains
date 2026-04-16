@@ -128,10 +128,15 @@ The earlier MCP-hosted `/cms-config` route is a transitional implementation, not
 
 ### 5. Admin routes belong on a shared HTTP surface
 
-The final owner of route mounting should be a shared HTTP surface:
+The chosen owner of route mounting is an evolved `interfaces/webserver`.
 
-- likely by evolving `interfaces/webserver`, or
-- by introducing a new generic HTTP interface
+We are not introducing a new generic HTTP interface for now.
+
+Compatibility requirements:
+
+- existing `webserver` site-serving behavior must keep working
+- preview/public web behavior must stay intact when site-builder is enabled
+- `core` must be able to run this shared host without preview/static-site assumptions
 
 That shared HTTP surface owns:
 
@@ -240,14 +245,27 @@ In progress / partially done.
 - move CMS config orchestration into `plugins/admin`
 - remove repo-aware CMS logic from `shell/core`
 
-### Phase 3 — shared HTTP surface
+### Phase 3 — shared HTTP surface via `interfaces/webserver`
 
 Next major slice.
 
 - stop treating `interfaces/mcp` as the browser/admin HTTP owner
+- evolve `interfaces/webserver` into the shared host
+- preserve current site/preview behavior while doing so
+
+### Phase 4 — canonical `/health` first
+
+First consolidation slice:
+
+- make the evolved `interfaces/webserver` own the canonical public `/health`
+- use that route for Caddy/Kamal health checks
+- keep site-builder deployments working while core can use the same host without preview assumptions
+
+### Phase 5 — admin routes
+
 - move `/cms-config` to the shared HTTP surface
 - serve admin shell there
-- mount MCP onto that same surface
+- later mount MCP and A2A onto that same surface
 
 ### Phase 4 — preset-specific path policy
 
@@ -294,10 +312,10 @@ This means Kamal templates and related deploy scaffolding must be updated togeth
 
 ## Open questions
 
-1. Should the shared HTTP host evolve from `interfaces/webserver`, or should we introduce a new generic HTTP interface?
-2. For site presets, should admin canonicalize on `/cms`, `/dashboard`, or support both with one canonical redirect?
-3. Should `brain://cms-config` remain as an internal/debug MCP resource, or eventually go away?
-4. How much of preview routing should be consolidated in the same pass versus kept separate initially?
+1. For site presets, should admin canonicalize on `/cms`, `/dashboard`, or support both with one canonical redirect?
+2. Should `brain://cms-config` remain as an internal/debug MCP resource, or eventually go away?
+3. How much of preview routing should be consolidated in the same pass versus kept separate initially?
+4. Does `interfaces/webserver` need a formally documented minimal core mode in config, or can that emerge from implementation defaults?
 
 ## Verification
 

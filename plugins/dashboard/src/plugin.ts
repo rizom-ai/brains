@@ -5,6 +5,7 @@ import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
 import { dashboardTemplate } from "./templates/dashboard";
+import { createSystemWidgets } from "./system-widgets";
 import packageJson from "../package.json";
 
 /**
@@ -62,6 +63,11 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   ): Promise<void> {
     // Initialize widget registry
     this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
+
+    // Register built-in system widgets (entity stats, character, profile, system info)
+    for (const widget of createSystemWidgets(context)) {
+      this.widgetRegistry.register(widget);
+    }
 
     // Initialize and register datasource
     this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);

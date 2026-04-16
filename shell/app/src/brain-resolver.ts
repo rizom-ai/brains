@@ -123,6 +123,12 @@ export function resolve(
   const activeIds = resolveActiveIds(definition, overrides);
   const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
   const effectiveModel = overrides?.model ?? definition.model;
+  const webserverEnabled = activeIds
+    ? activeIds.has("webserver")
+    : definition.interfaces.some(([id]) => id === "webserver");
+  const siteBuilderEnabled = activeIds
+    ? activeIds.has("site-builder")
+    : definition.capabilities.some(([id]) => id === "site-builder");
 
   const site: SitePackage | undefined = resolveSitePackage(
     definition,
@@ -133,6 +139,18 @@ export function resolve(
   // Instantiate capabilities — each plugin gets only its own
   // matching override (by plugin ID), never other plugins' overrides.
   const capabilities: Plugin[] = [];
+
+  if (webserverEnabled) {
+    const webserverExplicit = pluginOverrides["webserver"] ?? {};
+    const webserverDefaults: Record<string, unknown> = {
+      enablePreview: siteBuilderEnabled,
+    };
+
+    pluginOverrides["webserver"] = deepMerge(
+      webserverDefaults,
+      webserverExplicit,
+    );
+  }
 
   if (site || theme !== undefined) {
     const siteBuilderExplicit = pluginOverrides["site-builder"] ?? {};
@@ -150,14 +168,15 @@ export function resolve(
       siteBuilderDefaults,
       siteBuilderExplicit,
     );
-
-    const adminExplicit = pluginOverrides["admin"] ?? {};
-    const adminDefaults: Record<string, unknown> = {
-      ...(site?.entityDisplay && { entityDisplay: site.entityDisplay }),
-    };
-
-    pluginOverrides["admin"] = deepMerge(adminDefaults, adminExplicit);
   }
+
+  const adminExplicit = pluginOverrides["admin"] ?? {};
+  const adminDefaults: Record<string, unknown> = {
+    routePath: siteBuilderEnabled ? "/cms" : "/",
+    ...(site?.entityDisplay && { entityDisplay: site.entityDisplay }),
+  };
+
+  pluginOverrides["admin"] = deepMerge(adminDefaults, adminExplicit);
 
   if (site) {
     const sitePlugin = site.plugin({

@@ -4,7 +4,10 @@ import { createSilentLogger } from "@brains/test-utils";
 import { EntityPlugin, type DeriveEvent } from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
 import { z } from "@brains/utils";
-import type { BaseEntity } from "@brains/entity-service";
+import type {
+  BaseEntity,
+  CreateInterceptionResult,
+} from "@brains/entity-service";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/entity-service";
 
 // Test schema
@@ -64,7 +67,7 @@ class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
   protected override async interceptCreate(input: {
     entityType: string;
     title?: string;
-  }) {
+  }): Promise<CreateInterceptionResult> {
     return {
       kind: "continue" as const,
       input: {

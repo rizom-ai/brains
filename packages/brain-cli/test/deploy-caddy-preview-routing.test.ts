@@ -1,28 +1,18 @@
 import { describe, expect, it } from "bun:test";
 import { readFileSync } from "fs";
-import { join } from "path";
+import { dirname, join } from "path";
+import { fileURLToPath } from "url";
 
-const caddyfilePath = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "shared",
-  "utils",
-  "src",
-  "deploy-templates",
-  "Caddyfile",
+const packageDir = dirname(
+  fileURLToPath(new URL("../package.json", import.meta.url)),
 );
+const caddyfilePath = join(packageDir, "templates", "deploy", "Caddyfile");
 
 const deployConfigPath = join(
-  import.meta.dir,
-  "..",
-  "..",
-  "..",
-  "apps",
-  "rizom-ai",
-  "config",
-  "deploy.yml",
+  packageDir,
+  "templates",
+  "deploy",
+  "kamal-deploy.yml",
 );
 
 describe("deploy preview host routing", () => {
@@ -45,11 +35,11 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:4321");
   });
 
-  it("routes the container healthcheck through caddy to the mcp server", () => {
+  it("routes the container healthcheck through caddy to the shared webserver host", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 
     expect(caddyfile).toContain("handle /health {");
-    expect(caddyfile).toContain("reverse_proxy localhost:3333");
+    expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 
   it("falls back to the a2a server when no production webserver is running", () => {

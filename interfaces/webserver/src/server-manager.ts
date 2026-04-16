@@ -1,5 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { AppInfo } from "@brains/plugins";
+import type { AppInfo, RegisteredWebRoute } from "@brains/plugins";
 import { resolve, join } from "path";
 import { Hono, type Context as HonoContext, type Next as HonoNext } from "hono";
 import { serveStatic } from "hono/bun";
@@ -15,6 +15,8 @@ export interface ServerManagerOptions {
   productionPort: number;
   /** Returns app info for the /health endpoint. */
   getHealthData?: () => Promise<AppInfo>;
+  /** Plugin-contributed web routes mounted on the shared host. */
+  webRoutes?: RegisteredWebRoute[];
 }
 
 const CACHE_IMMUTABLE = "public, max-age=31536000, immutable";
@@ -156,6 +158,29 @@ export class ServerManager {
         }
         return c.json({ status: "healthy" }, 200);
       });
+    }
+
+    if (opts.healthEndpoint && this.options.webRoutes) {
+      for (const route of this.options.webRoutes) {
+        const handler = (c: HonoContext): Response | Promise<Response> =>
+          route.definition.handler(c.req.raw);
+
+        switch (route.definition.method ?? "GET") {
+          case "POST":
+            app.post(route.fullPath, handler);
+            break;
+          case "PUT":
+            app.put(route.fullPath, handler);
+            break;
+          case "DELETE":
+            app.delete(route.fullPath, handler);
+            break;
+          case "GET":
+          default:
+            app.get(route.fullPath, handler);
+            break;
+        }
+      }
     }
 
     if (opts.compress) {

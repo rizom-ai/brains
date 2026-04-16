@@ -75,10 +75,16 @@ A shared HTTP host should own:
 - shared middleware where appropriate
 - the canonical public `/health` endpoint
 
-This is likely:
+Chosen direction:
 
-- an evolved `interfaces/webserver`, or
-- a new generic HTTP interface
+- evolve `interfaces/webserver` into the shared HTTP host
+- do not introduce a new generic HTTP interface for now
+
+Compatibility requirement:
+
+- existing `webserver` site-serving behavior must continue to work during the transition
+- preview/public-site behavior must remain intact for site-builder-enabled presets
+- `core` must be able to run the shared host without preview/static-site assumptions
 
 ### `plugins/admin`
 
@@ -225,14 +231,26 @@ Specifically:
 
 ### Phase 2 — establish the shared HTTP host
 
-Choose the actual host abstraction:
+Evolve `interfaces/webserver` into the shared HTTP host.
 
-- evolve `interfaces/webserver`, or
-- introduce a generic HTTP interface
+That means:
+
+- keep the existing interface/package working
+- preserve current production site, preview site, and API-route behavior
+- refactor internals so one shared app can become the canonical public surface
+- allow a minimal core-oriented mode that does not require preview or static-site output
 
 That host becomes the place where shared routes are mounted.
 
-### Phase 3 — move admin routes there
+### Phase 3 — canonical `/health` on the shared host
+
+First consolidation slice:
+
+- make `interfaces/webserver` own the canonical public `/health`
+- keep current site/preview behavior working
+- make Caddy/Kamal target that route
+
+### Phase 4 — move admin routes there
 
 Mount:
 
@@ -241,18 +259,18 @@ Mount:
 
 with page/assets and admin logic owned by `plugins/admin`.
 
-### Phase 4 — mount MCP onto the shared surface
+### Phase 5 — mount MCP onto the shared surface
 
 Keep MCP ownership in `interfaces/mcp`, but make it a mounted protocol handler at `/mcp` on the shared HTTP app.
 
-### Phase 5 — mount A2A onto the shared surface
+### Phase 6 — mount A2A onto the shared surface
 
 Do the same for:
 
 - `/.well-known/agent-card.json`
 - `/a2a`
 
-### Phase 6 — align deploy scaffolding
+### Phase 7 — align deploy scaffolding
 
 Update:
 
@@ -321,7 +339,9 @@ Treat the shared HTTP surface as the target architecture and update new work to 
 Concretely:
 
 - admin belongs in `plugins/admin`
-- route mounting belongs to the shared HTTP host
+- route mounting belongs to `interfaces/webserver` as the evolving shared HTTP host
+- do not introduce a new generic HTTP interface unless `webserver` proves unable to carry this role cleanly
+- preserve current `webserver` behavior while refactoring toward the shared-host model
 - MCP belongs at `/mcp` on that same surface
 - A2A belongs at `/a2a` on that same surface
 - Caddy/Kamal should be updated to reflect that architecture, not preserve accidental multi-port fragmentation forever

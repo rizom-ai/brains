@@ -3,7 +3,7 @@ import type { JobsNamespace } from "@brains/job-queue";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { DefaultQueryResponse, Logger } from "@brains/utils";
-import type { AppInfo, DaemonStatusInfo } from "@brains/plugins";
+import type { AppInfo } from "@brains/plugins";
 import type { IInsightsRegistry } from "@brains/plugins";
 
 /**
@@ -27,7 +27,6 @@ export interface SystemServices {
   getIdentity: () => BrainCharacter;
   getProfile: () => AnchorProfile;
   getAppInfo: () => Promise<AppInfo>;
-  getDaemonStatuses: () => Promise<DaemonStatusInfo[]>;
 
   /** Search config */
   searchLimit: number;
