@@ -214,6 +214,7 @@ export interface IShell {
 
   // Plugin information
   getPluginPackageName(pluginId: string): string | undefined;
+  hasPlugin(id: string): boolean;
 
   // Job operations namespace
   readonly jobs: IJobsNamespace;

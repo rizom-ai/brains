@@ -431,14 +431,13 @@ describe("StreamableHTTPServer", () => {
     });
   });
 
-  describe("Express App Access", () => {
-    test("should provide access to Express app", () => {
+  describe("Handler Access", () => {
+    test("should provide access to a fetch handler", () => {
       server = new StreamableHTTPServer({ auth: { disabled: true } });
       const app = server.getApp();
 
       expect(app).toBeDefined();
-      expect(app.listen).toBeDefined();
-      expect(app.use).toBeDefined();
+      expect(app.fetch).toBeDefined();
     });
   });
 

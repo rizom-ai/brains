@@ -477,6 +477,10 @@ export class Shell implements IShell {
     return this.services.pluginManager.getPluginPackageName(pluginId);
   }
 
+  public hasPlugin(id: string): boolean {
+    return this.services.pluginManager.hasPlugin(id);
+  }
+
   public getPluginApiRoutes(): RegisteredApiRoute[] {
     const routes: RegisteredApiRoute[] = [];
 

@@ -289,6 +289,8 @@ describe("initPilotRepo", () => {
     expect(caddyfile).not.toContain(
       "redir @root /.well-known/agent-card.json 302",
     );
+    expect(caddyfile).toContain("handle /mcp* {");
+    expect(caddyfile).toContain("reverse_proxy localhost:8080");
     expect(caddyfile).toContain("reverse_proxy localhost:3334");
 
     const deployConfig = await readFile(

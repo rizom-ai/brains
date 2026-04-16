@@ -42,6 +42,13 @@ describe("deploy preview host routing", () => {
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
   });
 
+  it("routes /mcp through caddy to the shared webserver host", () => {
+    const caddyfile = readFileSync(caddyfilePath, "utf-8");
+
+    expect(caddyfile).toContain("handle /mcp* {");
+    expect(caddyfile).toContain("reverse_proxy localhost:8080");
+  });
+
   it("falls back to the a2a server when no production webserver is running", () => {
     const caddyfile = readFileSync(caddyfilePath, "utf-8");
 

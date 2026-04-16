@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
+import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { MCPInterface } from "../src/mcp-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
@@ -7,6 +8,18 @@ import { StreamableHTTPServer } from "../src/transports/http-server";
 describe("MCPInterface", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let server: StreamableHTTPServer | null = null;
+
+  function installMockHttpTransport(): void {
+    const mcpServer = new McpServer({ name: "test-server", version: "1.0.0" });
+    const mockTransport = {
+      getMcpServer: (): McpServer => mcpServer,
+      createMcpServer: (): McpServer =>
+        new McpServer({ name: "test-server", version: "1.0.0" }),
+      setPermissionLevel: (): void => {},
+    };
+
+    harness.getMockShell().getMCPService = (): never => mockTransport as never;
+  }
 
   beforeEach(() => {
     harness = createPluginHarness({
@@ -76,6 +89,7 @@ describe("MCPInterface", () => {
       const plugin = new MCPInterface({
         transport: "http",
         httpPort: server.getPort(),
+        authToken: "test-token",
       });
       const route = plugin
         .getWebRoutes()
@@ -146,12 +160,55 @@ describe("MCPInterface", () => {
     });
 
     it("should create http daemon with correct port", async () => {
-      const plugin = new MCPInterface({ transport: "http", httpPort: 3333 });
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: 3333,
+        authToken: "test-token",
+      });
 
       const capabilities = await harness.installPlugin(plugin);
 
       // Plugin should have registered with daemon support
       expect(capabilities).toBeDefined();
+    });
+
+    it("should not start a standalone HTTP listener when webserver is present", async () => {
+      installMockHttpTransport();
+      harness.getMockShell().addPlugin({
+        id: "webserver",
+        version: "1.0.0",
+        type: "interface",
+        packageName: "@brains/webserver",
+        register: async () => ({ tools: [], resources: [] }),
+      });
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: 0,
+        authToken: "test-token",
+      });
+
+      await harness.installPlugin(plugin);
+      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
+
+      expect(plugin.isHttpListenerRunning()).toBe(false);
+
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
+    });
+
+    it("should start a standalone HTTP listener when webserver is absent", async () => {
+      installMockHttpTransport();
+      const plugin = new MCPInterface({
+        transport: "http",
+        httpPort: 0,
+        authToken: "test-token",
+      });
+
+      await harness.installPlugin(plugin);
+      await harness.getMockShell().getDaemonRegistry().startPlugin("mcp");
+
+      expect(plugin.isHttpListenerRunning()).toBe(true);
+
+      await harness.getMockShell().getDaemonRegistry().stopPlugin("mcp");
     });
   });
 });

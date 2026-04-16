@@ -59,6 +59,11 @@ export interface IWebRoutesNamespace {
   getRoutes: () => RegisteredWebRoute[];
 }
 
+export interface IPluginsNamespace {
+  /** Check whether a plugin/interface is registered on the shell */
+  has: (pluginId: string) => boolean;
+}
+
 /**
  * Extended conversations namespace for InterfacePluginContext
  * Adds write operations to the read-only base
@@ -163,6 +168,9 @@ export interface InterfacePluginContext extends BasePluginContext {
 
   /** Plugin-contributed web routes for the shared HTTP surface */
   readonly webRoutes: IWebRoutesNamespace;
+
+  /** Plugin registry visibility for interface coordination */
+  readonly plugins: IPluginsNamespace;
 }
 
 /**
@@ -259,6 +267,11 @@ export function createInterfacePluginContext(
       getRoutes: (): RegisteredWebRoute[] => {
         return shell.getPluginWebRoutes();
       },
+    },
+
+    plugins: {
+      has: (candidatePluginId: string): boolean =>
+        shell.hasPlugin(candidatePluginId),
     },
   };
 }

@@ -33,6 +33,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
   private stdioServer: StdioMCPServer | undefined;
   private httpServer: StreamableHTTPServer | undefined;
   private domain: string | undefined;
+  private sharedHttpHostAvailable = false;
 
   constructor(config: Partial<MCPConfig> = {}) {
     // Default authToken from environment if not provided
@@ -65,6 +66,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     context: InterfacePluginContext,
   ): Promise<void> {
     this.domain = context.domain;
+    this.sharedHttpHostAvailable = context.plugins.has("webserver");
 
     this.logger.debug(
       `MCP interface initialized with ${this.config.transport} transport`,
@@ -74,44 +76,64 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     setupJobProgressListener(context, this.logger);
   }
 
+  private getOrCreateHttpServer(): StreamableHTTPServer {
+    if (this.httpServer) {
+      return this.httpServer;
+    }
+
+    this.httpServer = StreamableHTTPServer.createFresh({
+      port: this.config.httpPort,
+      logger: this.logger,
+      auth: this.config.authToken
+        ? { token: this.config.authToken }
+        : { disabled: true },
+    });
+
+    return this.httpServer;
+  }
+
+  public isHttpListenerRunning(): boolean {
+    return this.httpServer?.isRunning() ?? false;
+  }
+
   override getWebRoutes(): WebRouteDefinition[] {
     if (this.config.transport !== "http") {
       return [];
     }
 
-    const proxyToMcpHttp = (request: Request): Promise<Response> =>
-      this.proxyHttpRequest(request);
+    const handleWithSharedTransport = (request: Request): Promise<Response> =>
+      this.getOrCreateHttpServer().handleRequest(request);
 
     return [
       {
         path: "/status",
         method: "GET",
         public: true,
-        handler: proxyToMcpHttp,
+        handler: handleWithSharedTransport,
       },
       {
         path: "/mcp",
         method: "GET",
         public: true,
-        handler: proxyToMcpHttp,
+        handler: handleWithSharedTransport,
       },
       {
         path: "/mcp",
         method: "POST",
         public: true,
-        handler: proxyToMcpHttp,
+        handler: handleWithSharedTransport,
       },
       {
         path: "/mcp",
         method: "DELETE",
         public: true,
-        handler: proxyToMcpHttp,
+        handler: handleWithSharedTransport,
       },
       {
         path: "/mcp",
         method: "OPTIONS",
         public: true,
-        handler: proxyToMcpHttp,
+        handler: handleWithSharedTransport,
       },
     ];
   }
@@ -172,45 +194,6 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
     }
   }
 
-  private async proxyHttpRequest(request: Request): Promise<Response> {
-    const incomingUrl = new URL(request.url);
-    const targetUrl = new URL(
-      `${incomingUrl.pathname}${incomingUrl.search}`,
-      `http://127.0.0.1:${this.config.httpPort}`,
-    );
-
-    const headers = new Headers(request.headers);
-    headers.delete("host");
-
-    const init: RequestInit & { duplex?: "half" } = {
-      method: request.method,
-      headers,
-      redirect: "manual",
-    };
-
-    if (request.method !== "GET" && request.method !== "HEAD") {
-      init.body = request.body;
-      init.duplex = "half";
-    }
-
-    try {
-      const response = await fetch(targetUrl, init);
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: new Headers(response.headers),
-      });
-    } catch (error) {
-      return new Response(
-        error instanceof Error ? error.message : "MCP HTTP unavailable",
-        {
-          status: 503,
-          headers: { "Content-Type": "text/plain; charset=utf-8" },
-        },
-      );
-    }
-  }
-
   /**
    * Start the MCP server
    */
@@ -264,11 +247,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       this.logger.debug("MCP STDIO transport started");
     } else {
       // HTTP transport — auth required unless token is absent
-      this.httpServer = StreamableHTTPServer.createFresh({
-        port: this.config.httpPort,
-        logger: this.logger,
-        auth: { token: this.config.authToken },
-      });
+      this.httpServer = this.getOrCreateHttpServer();
 
       // Connect MCP server from service to HTTP transport
       const mcpServer = this.mcpTransport.getMcpServer();
@@ -277,11 +256,16 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       // Connect agent service for /api/chat endpoint
       this.httpServer.connectAgentService(context.agentService);
 
-      // Start HTTP server
-      await this.httpServer.start();
-      this.logger.debug(
-        `MCP HTTP transport started on port ${this.config.httpPort}`,
-      );
+      if (this.sharedHttpHostAvailable) {
+        this.logger.debug(
+          "MCP HTTP transport mounted on shared webserver host",
+        );
+      } else {
+        await this.httpServer.start();
+        this.logger.debug(
+          `MCP HTTP transport started on port ${this.config.httpPort}`,
+        );
+      }
     }
   }
 
