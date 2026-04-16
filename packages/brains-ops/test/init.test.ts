@@ -285,13 +285,13 @@ describe("initPilotRepo", () => {
     expect(caddyfile).toContain(
       "@preview header_regexp preview_host Host ^(?:preview\\..+|.+-preview\\..+)$",
     );
-    expect(caddyfile).toContain("agent-card.json");
+    expect(caddyfile).not.toContain("agent-card.json");
     expect(caddyfile).not.toContain(
       "redir @root /.well-known/agent-card.json 302",
     );
-    expect(caddyfile).toContain("handle /mcp* {");
-    expect(caddyfile).toContain("handle /.well-known/agent-card.json {");
-    expect(caddyfile).toContain("handle /a2a {");
+    expect(caddyfile).not.toContain("handle /mcp* {");
+    expect(caddyfile).not.toContain("handle /.well-known/agent-card.json {");
+    expect(caddyfile).not.toContain("handle /a2a {");
     expect(caddyfile).toContain("reverse_proxy localhost:8080");
     expect(caddyfile).not.toContain("localhost:3334");
 

@@ -21,6 +21,13 @@ import {
 import { createA2ACallTool } from "./client";
 import packageJson from "../package.json";
 
+const A2A_CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "X-Content-Type-Options": "nosniff",
+} as const;
+
 /**
  * A2A Interface Plugin
  *
@@ -156,6 +163,19 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return this.permissionContext.getUserLevel("a2a", identity);
   }
 
+  private withCors(response: Response): Response {
+    const headers = new Headers(response.headers);
+    for (const [key, value] of Object.entries(A2A_CORS_HEADERS)) {
+      headers.set(key, value);
+    }
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
+  }
+
   private getOrCreateApp(): Hono {
     if (this.app) {
       return this.app;
@@ -165,32 +185,38 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
 
     app.get("/.well-known/agent-card.json", (c) => {
       if (!this.agentCard) {
-        return c.json({ error: "Agent Card not ready" }, 503);
+        return this.withCors(c.json({ error: "Agent Card not ready" }, 503));
       }
-      return c.json(this.agentCard);
+      return this.withCors(c.json(this.agentCard));
     });
 
     app.get("/a2a", (c) => {
-      return c.json(
-        {
-          error: "Use POST with JSON-RPC 2.0 requests.",
-          agentCard: "/.well-known/agent-card.json",
-        },
-        405,
+      return this.withCors(
+        c.json(
+          {
+            error: "Use POST with JSON-RPC 2.0 requests.",
+            agentCard: "/.well-known/agent-card.json",
+          },
+          405,
+        ),
       );
     });
 
-    app.options("/a2a", (c) => c.body(null, 204));
+    app.options("/a2a", () =>
+      this.withCors(new Response(null, { status: 204 })),
+    );
 
     app.post("/a2a", async (c) => {
       if (!this.agentService) {
-        return c.json(
-          {
-            jsonrpc: "2.0",
-            error: { code: -32603, message: "Agent service not ready" },
-            id: null,
-          },
-          503,
+        return this.withCors(
+          c.json(
+            {
+              jsonrpc: "2.0",
+              error: { code: -32603, message: "Agent service not ready" },
+              id: null,
+            },
+            503,
+          ),
         );
       }
 
@@ -198,20 +224,24 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       try {
         body = await c.req.json();
       } catch {
-        return c.json({
-          jsonrpc: "2.0",
-          error: { code: -32700, message: "Parse error" },
-          id: null,
-        });
+        return this.withCors(
+          c.json({
+            jsonrpc: "2.0",
+            error: { code: -32700, message: "Parse error" },
+            id: null,
+          }),
+        );
       }
 
       const parsed = jsonrpcRequestSchema.safeParse(body);
       if (!parsed.success) {
-        return c.json({
-          jsonrpc: "2.0",
-          error: { code: -32600, message: "Invalid request" },
-          id: null,
-        });
+        return this.withCors(
+          c.json({
+            jsonrpc: "2.0",
+            error: { code: -32600, message: "Invalid request" },
+            id: null,
+          }),
+        );
       }
 
       const callerPermissionLevel = this.resolveCallerPermission(
@@ -224,14 +254,16 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         );
 
         if (!streamParams.success) {
-          return c.json({
-            jsonrpc: "2.0",
-            error: {
-              code: -32602,
-              message: `Invalid params: ${streamParams.error.message}`,
-            },
-            id: parsed.data.id,
-          });
+          return this.withCors(
+            c.json({
+              jsonrpc: "2.0",
+              error: {
+                code: -32602,
+                message: `Invalid params: ${streamParams.error.message}`,
+              },
+              id: parsed.data.id,
+            }),
+          );
         }
 
         const { stream } = handleStreamMessage(
@@ -244,13 +276,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
           },
         );
 
-        return new Response(stream, {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-cache",
-            Connection: "keep-alive",
-          },
-        });
+        return this.withCors(
+          new Response(stream, {
+            headers: {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+            },
+          }),
+        );
       }
 
       const response = await handleJsonRpc(parsed.data, {
@@ -259,7 +293,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         callerPermissionLevel,
       });
 
-      return c.json(response);
+      return this.withCors(c.json(response));
     });
 
     this.app = app;

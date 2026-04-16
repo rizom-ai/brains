@@ -45,6 +45,14 @@ describe("A2A HTTP routes", () => {
     const response = await route.handler(new Request("http://brain/a2a"));
 
     expect(response.status).toBe(405);
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("Access-Control-Allow-Methods")).toBe(
+      "GET, POST, OPTIONS",
+    );
+    expect(response.headers.get("Access-Control-Allow-Headers")).toBe(
+      "Content-Type, Authorization",
+    );
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
     const body = await response.json();
     expect(body).toEqual({
       error: "Use POST with JSON-RPC 2.0 requests.",
@@ -77,5 +85,31 @@ describe("A2A HTTP routes", () => {
         expect.objectContaining({ path: "/a2a", method: "OPTIONS" }),
       ]),
     );
+  });
+
+  it("adds cors headers to the agent card route", async () => {
+    installWebserverPlugin();
+    const plugin = new A2AInterface({ port: 0 });
+    await harness.installPlugin(plugin);
+
+    const route = plugin
+      .getWebRoutes()
+      .find(
+        (candidate) =>
+          candidate.path === "/.well-known/agent-card.json" &&
+          candidate.method === "GET",
+      );
+
+    expect(route).toBeDefined();
+    if (!route) {
+      throw new Error("Expected A2A agent card route");
+    }
+
+    const response = await route.handler(
+      new Request("http://brain/.well-known/agent-card.json"),
+    );
+
+    expect(response.headers.get("Access-Control-Allow-Origin")).toBe("*");
+    expect(response.headers.get("X-Content-Type-Options")).toBe("nosniff");
   });
 });

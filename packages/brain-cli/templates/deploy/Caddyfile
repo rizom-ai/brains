@@ -17,34 +17,6 @@
 		reverse_proxy localhost:8080
 	}
 
-	# MCP endpoint — routed through the shared webserver host
-	handle /mcp* {
-		reverse_proxy localhost:8080
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints — routed through the shared webserver host
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:8080
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:8080
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
 	# Plugin API routes
 	handle /api/* {
 		reverse_proxy localhost:3335
