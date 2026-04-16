@@ -11,9 +11,9 @@ export const WorkshopLayout = ({
   ctaHref,
 }: WorkshopContent): JSX.Element => {
   return (
-    <Section id="workshop" className="workshop-section reveal py-section">
-      <div className="workshop-inner max-w-[1120px] mx-auto">
-        <div className="workshop-head mb-10 md:mb-12">
+    <Section id="workshop" className="reveal py-[88px] md:py-[128px]">
+      <div className="mx-auto max-w-[1120px]">
+        <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />
           <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
             {kicker}
@@ -21,32 +21,32 @@ export const WorkshopLayout = ({
           <h2 className="font-display text-[34px] tracking-[-1.2px] leading-[1.06] md:text-display-lg max-w-[16ch]">
             {headline}
           </h2>
-          <p className="workshop-intro mt-5 text-body-sm md:text-body-md text-theme-muted max-w-[720px]">
+          <p className="mx-auto mt-5 max-w-[640px] text-[18px] leading-[1.72] text-theme-muted">
             {intro}
           </p>
         </div>
 
-        <div className="workshop-steps-grid grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-10">
+        <div className="mx-auto flex max-w-[960px] flex-col">
           {steps.map((step, i) => (
             <div
               key={step.num + step.title}
-              className={`workshop-step reveal reveal-delay-${i + 1}`}
+              className={`reveal reveal-delay-${i + 1} grid items-start gap-[18px] border-t border-[var(--color-work-divider-soft)] py-8 md:grid-cols-[240px_1fr] md:gap-16 md:py-14 ${i === steps.length - 1 ? "border-b" : ""}`}
             >
               <div className="mb-5 flex items-center gap-4">
-                <span className="workshop-step-num font-display text-[42px] md:text-[56px] leading-none tracking-[-1.5px] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)]">
+                <span className="font-display text-[42px] leading-none tracking-[-1.5px] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:text-[56px]">
                   {step.num}
                 </span>
                 <div className="flex-1">
                   <div className="h-px bg-white/12 mb-2" />
-                  <div className="workshop-step-label font-label text-label-sm uppercase tracking-[0.18em] text-theme-light">
+                  <div className="font-label text-label-sm uppercase tracking-[0.18em] text-theme-light">
                     {step.label}
                   </div>
                 </div>
               </div>
-              <h3 className="workshop-step-title font-display text-[26px] tracking-[-0.7px] leading-[1.15] text-theme">
+              <h3 className="font-display text-[26px] leading-[1.15] tracking-[-0.7px] text-theme">
                 {step.title}
               </h3>
-              <p className="workshop-step-body mt-3 text-body-xs md:text-body-sm text-theme-muted">
+              <p className="mt-3 text-body-xs text-theme-muted md:text-body-sm">
                 {step.body}
               </p>
             </div>

@@ -8,9 +8,9 @@ export const PersonasLayout = ({
   cards,
 }: PersonasContent): JSX.Element => {
   return (
-    <Section id="personas" className="personas-section reveal py-section">
-      <div className="personas-inner max-w-[1120px] mx-auto">
-        <div className="personas-head mb-10 md:mb-12">
+    <Section id="personas" className="reveal py-[88px] md:py-[128px]">
+      <div className="mx-auto max-w-[1120px]">
+        <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />
           <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
             {kicker}
@@ -20,19 +20,19 @@ export const PersonasLayout = ({
           </h2>
         </div>
 
-        <div className="persona-grid grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+        <div className="mx-auto grid max-w-[1160px] grid-cols-1 gap-12 md:grid-cols-2 md:gap-[72px]">
           {cards.map((card, i) => (
             <div
               key={card.label}
-              className={`persona-card reveal reveal-delay-${Math.min(i + 1, 3)} rounded-2xl border border-white/10 bg-white/[0.02] p-6 md:p-8`}
+              className={`reveal reveal-delay-${Math.min(i + 1, 3)} flex flex-col gap-[22px] border-t border-[var(--color-work-divider-strong)] pt-14`}
             >
-              <div className="persona-label font-nav text-heading-sm md:text-heading-md font-bold text-theme mb-4">
+              <div className="font-nav text-[11px] font-bold uppercase tracking-[2.5px] text-[var(--color-secondary)]">
                 {card.label}
               </div>
-              <p className="persona-quote font-display italic text-[22px] md:text-[28px] tracking-[-0.8px] leading-[1.2] text-accent mb-4">
+              <p className="max-w-[500px] font-display text-[clamp(24px,2.6vw,32px)] italic leading-[1.2] tracking-[-0.6px] text-theme">
                 {card.quote}
               </p>
-              <p className="persona-body text-body-xs md:text-body-sm text-theme-muted">
+              <p className="max-w-[500px] text-[17px] leading-[1.75] text-theme-muted">
                 {card.body}
               </p>
             </div>

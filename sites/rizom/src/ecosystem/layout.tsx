@@ -6,7 +6,7 @@ const BASE_CARD_CLASS =
   "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";
 
 const ACTIVE_EXTRAS =
-  "border-[var(--color-card-panel-ai-border)] bg-[image:var(--color-card-panel-ai-bg)] before:!opacity-100 before:!h-[3px] hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-ai)]";
+  "border-[var(--color-card-panel-current-border)] bg-[image:var(--color-card-panel-current-bg)] before:!opacity-100 before:!h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)] hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-current)]";
 
 const STANDARD_EXTRAS =
   "border-[var(--color-card-panel-border)] bg-[image:var(--color-card-panel-bg)]";
@@ -44,10 +44,13 @@ export const EcosystemLayout = ({ cards }: EcosystemContent): JSX.Element => {
           // empty string.
           const isActive = card.linkLabel === "You are here";
           const extras = isActive ? ACTIVE_EXTRAS : STANDARD_EXTRAS;
+          const accentEffects = isActive
+            ? ""
+            : `${ACCENT_GLOW[card.suffix]} ${ACCENT_BAR[card.suffix]}`;
           return (
             <div
               key={card.suffix}
-              className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${extras} ${ACCENT_GLOW[card.suffix]} ${ACCENT_BAR[card.suffix]}`}
+              className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${extras} ${accentEffects}`}
             >
               <div className="flex items-center gap-1 font-nav text-base mb-2">
                 <span className="font-bold">rizom</span>

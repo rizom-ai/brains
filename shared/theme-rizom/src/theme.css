@@ -20,13 +20,13 @@
  */
 
 /* Font imports */
-@import url('https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,300..800;1,300..800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,300..800;1,300..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
 
 /* Brand-specific Tailwind utilities — exposed via @theme inline so
    `bg-secondary`, `font-display`, `text-display-lg`, `py-section` etc.
@@ -110,24 +110,24 @@
        ============================================ */
 
     /* Backgrounds */
-    --palette-bg-deep: #0D0A1A;
-    --palette-bg-card: #1A0A3E;
-    --palette-bg-light: #F2EEE8;
+    --palette-bg-deep: #0d0a1a;
+    --palette-bg-card: #1a0a3e;
+    --palette-bg-light: #f2eee8;
 
     /* Amber spectrum */
-    --palette-amber-dark: #C45A08;
-    --palette-amber: #E87722;
-    --palette-amber-light: #FFA366;
-    --palette-amber-glow: #FFD4A8;
+    --palette-amber-dark: #c45a08;
+    --palette-amber: #e87722;
+    --palette-amber-light: #ffa366;
+    --palette-amber-glow: #ffd4a8;
 
     /* Purple spectrum */
-    --palette-purple: #6B2FA0;
-    --palette-purple-light: #8C82C8;
-    --palette-purple-muted: #818CF8;
+    --palette-purple: #6b2fa0;
+    --palette-purple-light: #8c82c8;
+    --palette-purple-muted: #818cf8;
 
     /* Text */
-    --palette-text-light: #1A1625;
-    --palette-white: #FFFFFF;
+    --palette-text-light: #1a1625;
+    --palette-white: #ffffff;
 
     /* ============================================
        SEMANTIC TOKENS — dark mode default
@@ -135,7 +135,7 @@
 
     /* Backgrounds */
     --color-bg: var(--palette-bg-deep);
-    --color-bg-subtle: #0E0B1E;
+    --color-bg-subtle: #0e0b1e;
     --color-bg-card: var(--palette-bg-card);
     --color-bg-muted: rgb(from var(--palette-white) r g b / 0.04);
     --color-bg-dark: #000000;
@@ -164,7 +164,7 @@
     --color-on-accent: var(--palette-white);
 
     /* Status / utility colors */
-    --color-success: #4ade80;       /* terminal OK lines, success toasts */
+    --color-success: #4ade80; /* terminal OK lines, success toasts */
 
     /* Surface gradients — product cards, ecosystem cards, terminal.
        All translucent fills derive from the palette via relative
@@ -175,33 +175,69 @@
        as literals because separate palette entries for each micro
        shade would be noise. */
     --color-surface-terminal: rgb(18 16 31 / 0.85);
-    --color-surface-terminal-border: rgb(from var(--palette-white) r g b / 0.06);
+    --color-surface-terminal-border: rgb(
+      from var(--palette-white) r g b / 0.06
+    );
 
-    --color-card-rover-bg: linear-gradient(135deg, rgb(28 16 32 / 0.85) 0%, rgb(20 14 28 / 0.85) 100%);
+    --color-card-rover-bg: linear-gradient(
+      135deg,
+      rgb(28 16 32 / 0.85) 0%,
+      rgb(20 14 28 / 0.85) 100%
+    );
     --color-card-rover-border: rgb(from var(--palette-amber) r g b / 0.15);
     --color-card-rover-border-hover: rgb(from var(--palette-amber) r g b / 0.5);
     --color-glow-rover: rgb(from var(--palette-amber) r g b / 0.25);
 
-    --color-card-relay-bg: linear-gradient(135deg, rgb(22 16 42 / 0.85) 0%, rgb(18 14 30 / 0.85) 100%);
-    --color-card-relay-border: rgb(from var(--palette-purple-light) r g b / 0.2);
-    --color-card-relay-border-hover: rgb(from var(--palette-purple-light) r g b / 0.5);
+    --color-card-relay-bg: linear-gradient(
+      135deg,
+      rgb(22 16 42 / 0.85) 0%,
+      rgb(18 14 30 / 0.85) 100%
+    );
+    --color-card-relay-border: rgb(
+      from var(--palette-purple-light) r g b / 0.2
+    );
+    --color-card-relay-border-hover: rgb(
+      from var(--palette-purple-light) r g b / 0.5
+    );
     --color-glow-relay: rgb(from var(--palette-purple) r g b / 0.25);
 
-    --color-card-ranger-bg: linear-gradient(135deg, rgb(22 16 42 / 0.85) 0%, rgb(24 15 30 / 0.85) 50%, rgb(20 16 42 / 0.85) 100%);
-    --color-card-ranger-border: rgb(from var(--palette-purple-light) r g b / 0.15);
-    --color-card-ranger-border-hover: rgb(from var(--palette-purple-light) r g b / 0.4);
+    --color-card-ranger-bg: linear-gradient(
+      135deg,
+      rgb(22 16 42 / 0.85) 0%,
+      rgb(24 15 30 / 0.85) 50%,
+      rgb(20 16 42 / 0.85) 100%
+    );
+    --color-card-ranger-border: rgb(
+      from var(--palette-purple-light) r g b / 0.15
+    );
+    --color-card-ranger-border-hover: rgb(
+      from var(--palette-purple-light) r g b / 0.4
+    );
     --color-glow-ranger: rgb(from var(--palette-purple) r g b / 0.2);
 
-    /* Panel cards — subtle info-card archetype. `-ai-*` is the
-       amber-highlighted active treatment applied to whichever card
-       represents the current site; the base `panel-bg/border` is the
-       standard treatment. Reusable outside the ecosystem section. */
-    --color-card-panel-bg: linear-gradient(135deg, rgb(from var(--palette-purple) r g b / 0.06) 0%, rgb(from var(--palette-amber) r g b / 0.03) 100%);
+    /* Panel cards — subtle info-card archetype. The `-current-*`
+       tokens style the card for the site you're currently on, while the
+       base `panel-bg/border` stays neutral and the per-site glow tokens
+       distinguish linked sibling sites in the ecosystem grid. */
+    --color-card-panel-bg: linear-gradient(
+      135deg,
+      rgb(from var(--palette-purple) r g b / 0.06) 0%,
+      rgb(from var(--palette-amber) r g b / 0.03) 100%
+    );
     --color-card-panel-border: rgb(from var(--palette-white) r g b / 0.06);
-    --color-card-panel-ai-bg: linear-gradient(135deg, rgb(from var(--palette-amber) r g b / 0.12) 0%, rgb(from var(--palette-amber) r g b / 0.03) 100%);
-    --color-card-panel-ai-border: rgb(from var(--palette-amber) r g b / 0.25);
+    --color-card-panel-current-bg: linear-gradient(
+      135deg,
+      rgb(from var(--color-accent) r g b / 0.12) 0%,
+      rgb(from var(--color-accent) r g b / 0.03) 100%
+    );
+    --color-card-panel-current-border: rgb(
+      from var(--color-accent) r g b / 0.25
+    );
+    --color-glow-panel-current: rgb(from var(--color-accent) r g b / 0.2);
     --color-glow-panel-ai: rgb(from var(--palette-amber) r g b / 0.2);
-    --color-glow-panel-foundation: rgb(from var(--palette-purple-light) r g b / 0.2);
+    --color-glow-panel-foundation: rgb(
+      from var(--palette-purple-light) r g b / 0.2
+    );
     --color-glow-panel-work: rgb(from var(--palette-purple) r g b / 0.2);
 
     /* CTA button glow — amber drop-shadow under hover */
@@ -209,8 +245,19 @@
     --color-glow-cta-strong: rgb(from var(--palette-amber) r g b / 0.4);
 
     /* Decorative divider + highlight-underline gradients */
-    --color-divider: linear-gradient(90deg, transparent, rgb(from var(--palette-amber) r g b / 0.4), transparent);
-    --color-highlight-underline: linear-gradient(90deg, transparent, rgb(from var(--palette-amber) r g b / 0.4) 20%, rgb(from var(--palette-amber) r g b / 0.4) 80%, transparent);
+    --color-divider: linear-gradient(
+      90deg,
+      transparent,
+      rgb(from var(--palette-amber) r g b / 0.4),
+      transparent
+    );
+    --color-highlight-underline: linear-gradient(
+      90deg,
+      transparent,
+      rgb(from var(--palette-amber) r g b / 0.4) 20%,
+      rgb(from var(--palette-amber) r g b / 0.4) 80%,
+      transparent
+    );
 
     /* Logo — white in dark mode, brand amber in light mode */
     --color-logo: var(--palette-white);
@@ -236,11 +283,11 @@
     --color-status-warning-text: #fde68a;
 
     /* Typography */
-    --font-display: 'Chakra Petch', system-ui, sans-serif;
-    --font-body: 'Barlow', system-ui, sans-serif;
-    --font-label: 'Plus Jakarta Sans', system-ui, sans-serif;
-    --font-nav: 'Space Grotesk', system-ui, sans-serif;
-    --font-mono: 'Fira Code', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-display: "Chakra Petch", system-ui, sans-serif;
+    --font-body: "Barlow", system-ui, sans-serif;
+    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
+    --font-nav: "Space Grotesk", system-ui, sans-serif;
+    --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     /* theme-base bridges (sans / heading / serif / mono) */
     --font-sans: var(--font-body);
@@ -249,31 +296,35 @@
 
     /* Typography scale — each token bundles font-size + line-height +
        letter-spacing via Tailwind v4 modifiers (see theme-base @theme inline).
-       Sizes derived from the rizom-ai design mock; collapsed where similar. */
+       Sizes derived from the Rizom marketing mocks; collapsed where similar. */
 
     /* Display — large fluid headlines (font-display, Chakra Petch) */
-    --text-display-2xl: clamp(72px, 8vw, 120px);  /* problem numbers   */
-    --text-display-xl:  clamp(52px, 8vw, 112px);  /* mission headline  */
-    --text-display-lg:  clamp(40px, 5.5vw, 72px); /* hero h1           */
-    --text-display-md:  clamp(32px, 4vw, 52px);   /* answer / ownership h2 */
-    --text-display-sm:  clamp(26px, 3vw, 36px);   /* product h3 / scales / quickstart h2 */
+    --text-display-2xl: clamp(72px, 8vw, 120px); /* problem numbers   */
+    --text-display-xl: clamp(52px, 8vw, 112px); /* mission headline  */
+    --text-display-lg: clamp(40px, 5.5vw, 72px); /* hero h1           */
+    --text-display-md: clamp(32px, 4vw, 52px); /* section h2 / secondary hero */
+    --text-display-sm: clamp(
+      26px,
+      3vw,
+      36px
+    ); /* product h3 / scales / quickstart h2 */
 
     /* Heading — subsection labels (font-nav, Space Grotesk) */
-    --text-heading-lg: 22px;  /* eco-title              */
-    --text-heading-md: 20px;  /* feature/problem title  */
-    --text-heading-sm: 17px;  /* mobile feature/problem */
+    --text-heading-lg: 22px; /* eco-title              */
+    --text-heading-md: 20px; /* feature/problem title  */
+    --text-heading-sm: 17px; /* mobile feature/problem */
 
     /* Body — paragraphs (font-body, Barlow) */
-    --text-body-xl: 19px;  /* answer-sub               */
-    --text-body-lg: 18px;  /* hero subtitle / mission  */
-    --text-body-md: 16px;  /* product-desc / scales-sub */
-    --text-body-sm: 15px;  /* feature/problem/quickstart desc */
-    --text-body-xs: 14px;  /* eco-desc / terminal / mobile body */
+    --text-body-xl: 19px; /* answer-sub               */
+    --text-body-lg: 18px; /* hero subtitle / mission  */
+    --text-body-md: 16px; /* product-desc / scales-sub */
+    --text-body-sm: 15px; /* feature/problem/quickstart desc */
+    --text-body-xs: 14px; /* eco-desc / terminal / mobile body */
 
     /* Label — small uppercase text (font-label, Plus Jakarta Sans) */
-    --text-label-md: 13px;  /* badges / footer links / product tags */
-    --text-label-sm: 12px;  /* terminal labels / scroll cue         */
-    --text-label-xs: 10px;  /* product badges / side nav labels     */
+    --text-label-md: 13px; /* badges / footer links / product tags */
+    --text-label-sm: 12px; /* terminal labels / scroll cue         */
+    --text-label-xs: 10px; /* product badges / side nav labels     */
 
     /* Section vertical rhythm — fluid via clamp so a single
        `py-section` utility works on every viewport. */
@@ -285,8 +336,8 @@
      ============================================ */
   [data-theme="light"] {
     --color-bg: var(--palette-bg-light);
-    --color-bg-subtle: #EAE5DD;
-    --color-bg-card: #F0ECE5;
+    --color-bg-subtle: #eae5dd;
+    --color-bg-card: #f0ece5;
     --color-bg-muted: rgb(from var(--palette-text-light) r g b / 0.04);
     --color-bg-dark: var(--palette-bg-deep);
 
@@ -298,7 +349,7 @@
 
     /* All variants collapse to amber-dark in light mode for contrast (brand guide A2) */
     --color-accent: var(--palette-amber-dark);
-    --color-accent-dark: #8B3A05;
+    --color-accent-dark: #8b3a05;
     --color-secondary: var(--palette-purple);
 
     --color-brand: var(--color-accent);
@@ -316,25 +367,38 @@
        to warm paper-ish paired colors on a light background. Endpoint
        hexes here are hand-tuned paper tones that aren't worth separate
        palette entries; they're kept as literals for readability. */
-    --color-card-rover-bg: linear-gradient(135deg, #F5EDE4 0%, #F0EBE2 100%);
+    --color-card-rover-bg: linear-gradient(135deg, #f5ede4 0%, #f0ebe2 100%);
     --color-card-rover-border: rgb(from var(--palette-amber) r g b / 0.2);
-    --color-card-relay-bg: linear-gradient(135deg, #EEEAF4 0%, #ECE8F0 100%);
+    --color-card-relay-bg: linear-gradient(135deg, #eeeaf4 0%, #ece8f0 100%);
     --color-card-relay-border: rgb(from var(--palette-purple) r g b / 0.2);
-    --color-card-ranger-bg: linear-gradient(135deg, #EDEAF0 0%, #F0ECE5 100%);
-    --color-card-ranger-border: rgb(from var(--palette-text-light) r g b / 0.12);
+    --color-card-ranger-bg: linear-gradient(135deg, #edeaf0 0%, #f0ece5 100%);
+    --color-card-ranger-border: rgb(
+      from var(--palette-text-light) r g b / 0.12
+    );
 
     --color-surface-terminal: var(--palette-text-light);
-    --color-surface-terminal-border: rgb(from var(--palette-text-light) r g b / 0.1);
+    --color-surface-terminal-border: rgb(
+      from var(--palette-text-light) r g b / 0.1
+    );
 
     /* Panel cards collapse to a solid beige in light mode (per mock
        `body.light .eco-card { background: var(--bg-card) }`) instead of
        the translucent dark-mode gradient. The solid color is wrapped
        as a 1-stop linear-gradient because the bg utility uses
        background-image, which doesn't accept bare color values. */
-    --color-card-panel-bg: linear-gradient(var(--color-bg-card), var(--color-bg-card));
+    --color-card-panel-bg: linear-gradient(
+      var(--color-bg-card),
+      var(--color-bg-card)
+    );
     --color-card-panel-border: rgb(from var(--palette-text-light) r g b / 0.08);
-    --color-card-panel-ai-bg: linear-gradient(135deg, rgb(from var(--palette-amber) r g b / 0.18) 0%, rgb(from var(--palette-amber) r g b / 0.05) 100%);
-    --color-card-panel-ai-border: rgb(from var(--palette-amber) r g b / 0.35);
+    --color-card-panel-current-bg: linear-gradient(
+      135deg,
+      rgb(from var(--color-accent) r g b / 0.18) 0%,
+      rgb(from var(--color-accent) r g b / 0.05) 100%
+    );
+    --color-card-panel-current-border: rgb(
+      from var(--color-accent) r g b / 0.35
+    );
 
     /* Warning tokens inherited from theme-base light-mode block. */
   }
@@ -349,18 +413,18 @@
     --color-secondary: var(--palette-purple-muted);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: 'Chakra Petch', system-ui, sans-serif;
-    --font-label: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-display: "Chakra Petch", system-ui, sans-serif;
+    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
   [data-rizom-variant="foundation"] {
     --color-accent: var(--palette-amber-dark);
-    --color-accent-dark: #8B3A05;
+    --color-accent-dark: #8b3a05;
     --color-secondary: var(--palette-purple);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: 'Fraunces', Georgia, serif;
-    --font-label: 'Plus Jakarta Sans', system-ui, sans-serif;
+    --font-display: "Fraunces", Georgia, serif;
+    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
   [data-rizom-variant="work"] {
@@ -369,19 +433,18 @@
     --color-secondary: var(--palette-purple-light);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: 'Archivo', system-ui, sans-serif;
-    --font-label: 'Space Grotesk', system-ui, sans-serif;
+    --font-display: "Archivo", system-ui, sans-serif;
+    --font-label: "Space Grotesk", system-ui, sans-serif;
   }
 
   /* In light mode, ALL variants use amber-dark */
   [data-theme="light"][data-rizom-variant],
   [data-theme="light"] [data-rizom-variant] {
     --color-accent: var(--palette-amber-dark);
-    --color-accent-dark: #8B3A05;
+    --color-accent-dark: #8b3a05;
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
   }
-
 }
 
 /* ============================================
@@ -407,14 +470,22 @@
   }
 
   /* Logo */
-  .text-logo { color: var(--color-logo); }
+  .text-logo {
+    color: var(--color-logo);
+  }
 
   /* Navigation */
-  .text-nav { color: var(--color-text-muted); }
-  .text-nav:hover { color: var(--color-text); }
+  .text-nav {
+    color: var(--color-text-muted);
+  }
+  .text-nav:hover {
+    color: var(--color-text);
+  }
 
   /* Header */
-  .bg-header { background-color: transparent; }
+  .bg-header {
+    background-color: transparent;
+  }
 
   /* Nav — fade from theme-bg (95%) to transparent, used behind the
      fixed top nav. Uses relative color syntax so it tracks
@@ -435,7 +506,10 @@
     height: 8px;
     border-radius: 50%;
     background: rgb(from var(--color-text) r g b / 0.15);
-    transition: background-color 300ms ease, transform 300ms ease, box-shadow 300ms ease;
+    transition:
+      background-color 300ms ease,
+      transform 300ms ease,
+      box-shadow 300ms ease;
   }
   .side-nav-dot::after {
     content: attr(data-label);
@@ -457,22 +531,35 @@
     background: var(--color-accent);
     transform: scale(1.3);
   }
-  .side-nav-dot:hover::after { opacity: 1; }
+  .side-nav-dot:hover::after {
+    opacity: 1;
+  }
   .side-nav-dot.active {
     background: var(--color-accent);
     box-shadow: 0 0 12px rgb(from var(--color-accent) r g b / 0.5);
   }
 
   /* Footer */
-  .bg-footer { background-color: var(--color-footer); }
+  .bg-footer {
+    background-color: var(--color-footer);
+  }
 
   /* Theme toggle */
-  .bg-theme-toggle { background-color: var(--color-bg-card); }
-  .bg-theme-toggle-hover { background-color: var(--color-accent); }
-  .text-theme-toggle-icon { color: var(--color-text); }
-  [data-theme="light"] .text-theme-toggle-icon { color: var(--palette-bg-deep); }
-  .bg-theme-toggle-hover .text-theme-toggle-icon { color: var(--palette-bg-deep); }
-
+  .bg-theme-toggle {
+    background-color: var(--color-bg-card);
+  }
+  .bg-theme-toggle-hover {
+    background-color: var(--color-accent);
+  }
+  .text-theme-toggle-icon {
+    color: var(--color-text);
+  }
+  [data-theme="light"] .text-theme-toggle-icon {
+    color: var(--palette-bg-deep);
+  }
+  .bg-theme-toggle-hover .text-theme-toggle-icon {
+    color: var(--palette-bg-deep);
+  }
 
   /* Warning utilities live in theme-base. */
 
@@ -489,20 +576,34 @@
   .reveal {
     opacity: 0;
     transform: translateY(32px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
+    transition:
+      opacity 0.8s ease,
+      transform 0.8s ease;
   }
   .reveal.visible {
     opacity: 1;
     transform: translateY(0);
   }
-  .reveal-delay-1 { transition-delay: 0.1s; }
-  .reveal-delay-2 { transition-delay: 0.2s; }
-  .reveal-delay-3 { transition-delay: 0.3s; }
+  .reveal-delay-1 {
+    transition-delay: 0.1s;
+  }
+  .reveal-delay-2 {
+    transition-delay: 0.2s;
+  }
+  .reveal-delay-3 {
+    transition-delay: 0.3s;
+  }
 
   /* Hero rise-in animation — h1, subtitle, CTA row fade up in sequence. */
   @keyframes heroRise {
-    from { opacity: 0; transform: translateY(24px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
   .animate-hero-rise {
     animation: heroRise 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
@@ -510,13 +611,25 @@
 
   /* Scroll cue — drip animation at the bottom of the hero. */
   @keyframes scrollCueRise {
-    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
-    to   { opacity: 0.75; transform: translateX(-50%) translateY(0); }
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(20px);
+    }
+    to {
+      opacity: 0.75;
+      transform: translateX(-50%) translateY(0);
+    }
   }
   @keyframes scrollDrop {
-    0%   { top: -20px; }
-    60%  { top: 48px; }
-    100% { top: 48px; }
+    0% {
+      top: -20px;
+    }
+    60% {
+      top: 48px;
+    }
+    100% {
+      top: 48px;
+    }
   }
   .scroll-cue {
     position: absolute;
@@ -538,11 +651,18 @@
     animation: scrollCueRise 1s cubic-bezier(0.2, 0.8, 0.2, 1) 1s forwards;
     transition: color 300ms ease;
   }
-  .scroll-cue:hover { color: var(--color-accent); }
+  .scroll-cue:hover {
+    color: var(--color-accent);
+  }
   .scroll-cue-line {
     width: 1px;
     height: 48px;
-    background: linear-gradient(180deg, transparent 0%, currentColor 40%, currentColor 100%);
+    background: linear-gradient(
+      180deg,
+      transparent 0%,
+      currentColor 40%,
+      currentColor 100%
+    );
     position: relative;
     overflow: hidden;
   }
@@ -560,7 +680,10 @@
 
 /* Prose styles — conservative, follow theme-default shape with rizom fonts */
 @layer theme-override {
-  .prose { color: var(--color-text); font-family: var(--font-body); }
+  .prose {
+    color: var(--color-text);
+    font-family: var(--font-body);
+  }
 
   .prose h1,
   .prose h2,
@@ -576,11 +699,19 @@
   }
 
   .prose p,
-  .prose strong { color: var(--color-text); }
-  .prose em { color: var(--color-accent); }
+  .prose strong {
+    color: var(--color-text);
+  }
+  .prose em {
+    color: var(--color-accent);
+  }
 
-  .prose a { color: var(--color-accent); }
-  .prose a:hover { color: var(--color-accent-dark); }
+  .prose a {
+    color: var(--color-accent);
+  }
+  .prose a:hover {
+    color: var(--color-accent-dark);
+  }
 
   .prose code {
     color: var(--color-text);
