@@ -99,12 +99,13 @@ File:
 
 - `apps/rizom-work/brain-data/site-content/home/proof.md`
 
-## Later architectural cleanup (also non-blocking)
+## Architectural follow-through
 
-These are future cleanup questions, not blockers for the current implementation:
+The remaining Rizom architecture cleanup is now tracked in:
 
-- when to extract wrapper-owned composition into app-local `src/site.ts`
-- whether the shared Rizom packages (`rizom-ui`, `rizom-runtime`, `rizom-ecosystem`) need any further simplification before extraction
+- `docs/plans/rizom-site-composition.md`
+
+That work is still separate from this product/content backlog. Do not block CTA/link/content cleanup on architectural reshaping unless a missing destination causes a broken runtime, anchor, or public launch issue.
 
 ## Recommendation
 
