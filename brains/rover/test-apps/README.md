@@ -6,6 +6,7 @@ Local rover preset apps for fast iteration during development.
 
 - `core` — minimal capture + sync + MCP/A2A surface, with webserver but no site-builder
 - `default` — adds the website surface, dashboard, blog, decks, analytics, and site-builder
+- `full` — adds portfolio, content automation, newsletter, social-media, and stock-photo workflows
 
 ## Start a preset
 
@@ -14,6 +15,7 @@ From `brains/rover/`:
 ```sh
 bun start:core
 bun start:default
+bun start:full
 ```
 
 Each command runs the matching test app via the in-repo `@rizom/brain` workspace package and seeds its local `brain-data/` from `../../eval-content` on first boot.
@@ -26,6 +28,12 @@ Set these in your shell before starting:
 export AI_API_KEY=...
 export GIT_SYNC_TOKEN=...
 ```
+
+Or put those values in a preset-local `.env` file next to `brain.yaml`, for example:
+
+- `brains/rover/test-apps/core/.env`
+- `brains/rover/test-apps/default/.env`
+- `brains/rover/test-apps/full/.env`
 
 Use a real `AI_API_KEY` if you want topic extraction, embeddings, and other AI-backed flows to succeed. A placeholder value may still let the app boot, but background AI jobs will fail.
 
@@ -51,6 +59,7 @@ Remove the matching test app data directory:
 ```sh
 rm -rf brains/rover/test-apps/core/brain-data
 rm -rf brains/rover/test-apps/default/brain-data
+rm -rf brains/rover/test-apps/full/brain-data
 ```
 
 The next `bun start:*` re-seeds that preset from `brains/rover/eval-content/`.

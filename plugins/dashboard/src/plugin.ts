@@ -47,7 +47,6 @@ const unregisterWidgetPayloadSchema = z.object({
  * and serves the data through a datasource.
  */
 export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
-  public readonly dependencies = ["site-builder"];
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
 
@@ -64,7 +63,6 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     // Initialize widget registry
     this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
 
-    // Register built-in system widgets (entity stats, character, profile, system info)
     for (const widget of createSystemWidgets(context)) {
       this.widgetRegistry.register(widget);
     }
@@ -76,33 +74,44 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     // Register dashboard template
     context.templates.register({ dashboard: dashboardTemplate });
 
-    // Register dashboard route via site-builder messaging
-    await context.messaging.send("plugin:site-builder:route:register", {
-      pluginId: this.id,
-      routes: [
-        {
-          id: "dashboard",
-          path: "/dashboard",
-          title: "System Dashboard",
-          description: "Monitor your Brain system statistics and activity",
-          layout: "default",
-          // Operator-only — suppressed from public navigation;
-          // reachable via direct URL.
-          navigation: {
-            show: false,
-            label: "Dashboard",
-            slot: "secondary",
-            priority: 100,
-          },
-          sections: [
-            {
-              id: "main",
-              template: `${this.id}:dashboard`,
+    // Register dashboard route via site-builder messaging when available.
+    // Core-style brains can still use the dashboard plugin without site-builder.
+    const routeRegistration = await context.messaging.send(
+      "plugin:site-builder:route:register",
+      {
+        pluginId: this.id,
+        routes: [
+          {
+            id: "dashboard",
+            path: "/dashboard",
+            title: "System Dashboard",
+            description: "Monitor your Brain system statistics and activity",
+            layout: "default",
+            // Operator-only — suppressed from public navigation;
+            // reachable via direct URL.
+            navigation: {
+              show: false,
+              label: "Dashboard",
+              slot: "secondary",
+              priority: 100,
             },
-          ],
-        },
-      ],
-    });
+            sections: [
+              {
+                id: "main",
+                template: `${this.id}:dashboard`,
+              },
+            ],
+          },
+        ],
+      },
+    );
+
+    if ("noop" in routeRegistration || !routeRegistration.success) {
+      this.logger.debug(
+        "Dashboard route not registered via site-builder",
+        "noop" in routeRegistration ? "no handler" : routeRegistration.error,
+      );
+    }
 
     // Subscribe to widget registration messages
     context.messaging.subscribe(

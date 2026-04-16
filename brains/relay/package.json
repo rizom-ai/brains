@@ -21,6 +21,7 @@
     "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",

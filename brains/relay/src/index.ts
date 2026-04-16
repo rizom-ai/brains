@@ -8,6 +8,7 @@ import { directorySync } from "@brains/directory-sync";
 
 import { join } from "path";
 import { adminPlugin } from "@brains/admin";
+import { dashboardPlugin } from "@brains/dashboard";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -56,6 +57,7 @@ const core = [
   "topics",
   "agents",
   "admin",
+  "dashboard",
   "mcp",
   "webserver",
   "discord",
@@ -103,6 +105,7 @@ export default defineBrain({
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     ["admin", adminPlugin, {}],
+    ["dashboard", dashboardPlugin, undefined],
     [
       "directory-sync",
       directorySync,

@@ -93,9 +93,11 @@ Admin is broader than CMS.
 - CMS config orchestration
 - admin shell assets/page code
 - admin-specific data contracts
-- later dashboard composition
+- CMS integration inside the admin surface
 - optional `brain://cms-config` resource if we keep it
 - the in-process `system:cms-config:get` capability
+
+`plugins/admin` should **not** grow a parallel dashboard implementation if `plugins/dashboard` already provides the dashboard surface we want.
 
 This plugin may depend on:
 
@@ -174,7 +176,9 @@ Build the real shared HTTP surface and move browser/admin routes there.
 - CMS config generation based on current entity schemas
 - admin shell assets/source
 - a minimal contract that the shared HTTP surface can mount
-- later dashboard/CMS tabs inside the same admin UI
+- CMS integration points inside the admin UI
+
+`plugins/dashboard` should remain the source of truth for the dashboard UI. The next implementation slices should make it usable on core without requiring `site-builder`, rather than rebuilding dashboard behavior inside `plugins/admin`.
 
 The admin plugin defines **what admin is**, not **which server owns the port**.
 
@@ -267,15 +271,17 @@ First consolidation slice:
 - serve admin shell there
 - later mount MCP and A2A onto that same surface
 
-### Phase 4 — preset-specific path policy
+### Phase 6 — preset-specific path policy
 
 - `core`: admin at `/`
 - site presets: admin at `/cms` or `/dashboard`
 
-### Phase 5 — dashboard returns inside admin
+### Phase 7 — reuse `plugins/dashboard` inside admin
 
-- dashboard becomes a section/tab of admin
-- not a reason to move ownership back into `system`
+- make `plugins/dashboard` core-compatible without requiring `site-builder`
+- use the existing dashboard UI as the admin home/dashboard surface
+- integrate CMS as a section/tab inside that dashboard-oriented admin surface
+- do **not** build a second dashboard implementation inside `plugins/admin`
 
 ## Deployment implications
 

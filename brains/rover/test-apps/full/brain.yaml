@@ -1,0 +1,6 @@
+brain: rover
+preset: full
+
+plugins:
+  directory-sync:
+    seedContentPath: ../../eval-content

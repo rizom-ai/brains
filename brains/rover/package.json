@@ -12,6 +12,7 @@
   "scripts": {
     "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:full": "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
     "lint": "eslint .",

@@ -23,6 +23,10 @@ describe("DashboardPlugin", () => {
       expect(plugin.version).toBeDefined();
     });
 
+    it("should not require site-builder as a plugin dependency", () => {
+      expect(Object.hasOwn(plugin, "dependencies")).toBe(false);
+    });
+
     it("should expose no tools", async () => {
       const capabilities = await harness.installPlugin(new DashboardPlugin());
       expect(capabilities.tools).toHaveLength(0);

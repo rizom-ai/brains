@@ -53,6 +53,7 @@ const core = [
   "directory-sync",
   "agents",
   "admin",
+  "dashboard",
   "mcp",
   "webserver",
   "discord",
