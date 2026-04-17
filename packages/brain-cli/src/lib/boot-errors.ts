@@ -1,8 +1,10 @@
+import { getErrorMessage } from "@brains/utils";
+
 /**
  * Classify boot errors into user-friendly messages.
  */
 export function formatBootError(error: unknown): string {
-  const msg = error instanceof Error ? error.message : String(error);
+  const msg = getErrorMessage(error);
 
   // Database lock — another instance running
   if (msg.includes("SQLITE_BUSY") || msg.includes("database is locked")) {

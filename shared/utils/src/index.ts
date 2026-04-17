@@ -131,7 +131,7 @@ export {
 } from "./generation-result";
 
 // Error utilities
-export { getErrorMessage } from "./error";
+export { getErrorMessage, toError } from "./error";
 
 // Debounce utilities
 export { LeadingTrailingDebounce } from "./debounce";

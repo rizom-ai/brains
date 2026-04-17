@@ -23,6 +23,10 @@ const adminConfigSchema = z.object({
 
 type AdminConfig = z.infer<typeof adminConfigSchema>;
 
+function getCmsConfigPath(routePath: string): string {
+  return `${routePath.endsWith("/") ? routePath : `${routePath}/`}config.yml`;
+}
+
 function getCmsConfigOptions(config: AdminConfig): {
   entityDisplay?: EntityDisplayMap;
 } {
@@ -80,19 +84,31 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
+    const cmsConfigPath = getCmsConfigPath(this.config.routePath);
+
     return [
       {
         path: this.config.routePath,
         method: "GET",
         public: true,
         handler: async (): Promise<Response> => {
+          return new Response(renderCmsShellHtml({ cmsConfigPath }), {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
+        },
+      },
+      {
+        path: cmsConfigPath,
+        method: "GET",
+        public: true,
+        handler: async (): Promise<Response> => {
           try {
-            const cmsConfig = await buildCmsConfig(
+            const yaml = await buildCmsConfigYaml(
               this.getContext(),
               getCmsConfigOptions(this.config),
             );
-            return new Response(renderCmsShellHtml({ cmsConfig }), {
-              headers: { "Content-Type": "text/html; charset=utf-8" },
+            return new Response(yaml, {
+              headers: { "Content-Type": "application/yaml; charset=utf-8" },
             });
           } catch (error) {
             return new Response(

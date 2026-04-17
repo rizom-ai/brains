@@ -74,38 +74,49 @@ describe("admin plugin", () => {
     ).toBe(true);
   });
 
-  it("should expose a cms web route with inline config", async () => {
+  it("should expose a cms shell route and a config route", async () => {
     const shell = createAdminTestShell({ domain: "yeehaa.io" });
     const plugin = adminPlugin({ routePath: "/cms" });
 
     await plugin.register(shell);
 
     const routes = plugin.getWebRoutes();
-    expect(routes).toHaveLength(1);
-    expect(routes.map((route) => route.path)).toEqual(["/cms"]);
+    expect(routes).toHaveLength(2);
+    expect(routes.map((route) => route.path)).toEqual([
+      "/cms",
+      "/cms/config.yml",
+    ]);
 
-    const cmsResponse = await routes[0]?.handler(
+    const cmsRoute = routes[0];
+    const configRoute = routes[1];
+
+    const cmsResponse = await cmsRoute?.handler(
       new Request("http://brain/cms"),
     );
     expect(cmsResponse?.status).toBe(200);
     expect(cmsResponse?.headers.get("content-type")).toContain("text/html");
     const cmsHtml = await cmsResponse?.text();
     expect(cmsHtml).toContain("Content Manager");
-    expect(cmsHtml).toContain("window.CMS_MANUAL_INIT = true");
-    expect(cmsHtml).toContain("window.CMS_BOOTSTRAP_CONFIG");
-    expect(cmsHtml).toContain("load_config_file");
-    expect(cmsHtml).toContain("owner/repo");
-    const expectedHtml = renderCmsShellHtml({
-      cmsConfig: fromYaml(
-        await buildCmsConfigYaml(createServicePluginContext(shell, "admin")),
-      ),
-    });
+    expect(cmsHtml).toContain('rel="cms-config-url"');
+    expect(cmsHtml).toContain('href="/cms/config.yml"');
     expect(cmsHtml).toContain(
       '<script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>',
     );
-    expect(cmsHtml).toContain(
-      "window.initCMS?.({ config: window.CMS_BOOTSTRAP_CONFIG });",
+
+    const configResponse = await configRoute?.handler(
+      new Request("http://brain/cms/config.yml"),
     );
-    expect(expectedHtml).toContain("window.CMS_BOOTSTRAP_CONFIG");
+    expect(configResponse?.status).toBe(200);
+    expect(configResponse?.headers.get("content-type")).toContain(
+      "application/yaml",
+    );
+    const configYaml = await configResponse?.text();
+    expect(configYaml).toContain("owner/repo");
+    expect(configYaml).toContain("branch: main");
+
+    const expectedHtml = renderCmsShellHtml({
+      cmsConfigPath: "/cms/config.yml",
+    });
+    expect(cmsHtml).toBe(expectedHtml);
   });
 });

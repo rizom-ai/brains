@@ -147,6 +147,7 @@ function writeReconcilableScaffoldFile(options: {
   executable?: boolean;
   legacyContents?: string[];
   shouldReconcile?: (current: string) => boolean;
+  regen?: boolean;
 }): void {
   const {
     path,
@@ -154,8 +155,17 @@ function writeReconcilableScaffoldFile(options: {
     executable = false,
     legacyContents = [],
     shouldReconcile,
+    regen = false,
   } = options;
   mkdirSync(dirname(path), { recursive: true });
+
+  if (regen) {
+    writeFileSync(path, content);
+    if (executable) {
+      chmodSync(path, 0o755);
+    }
+    return;
+  }
 
   if (!existsSync(path)) {
     writeFileSync(path, content, { flag: "wx" });
@@ -180,6 +190,21 @@ function writeReconcilableScaffoldFile(options: {
   if (executable) {
     chmodSync(path, 0o755);
   }
+}
+
+/**
+ * Match a file against a content fingerprint:
+ * every string in `must` must appear in `current`, and every string
+ * in `mustNot` (when provided) must not.
+ */
+function matchesFingerprint(
+  current: string,
+  fingerprint: { must: string[]; mustNot?: string[] },
+): boolean {
+  return (
+    fingerprint.must.every((s) => current.includes(s)) &&
+    (fingerprint.mustNot?.every((s) => !current.includes(s)) ?? true)
+  );
 }
 
 function shouldScaffoldLocalSiteTheme(model: string): boolean {
@@ -561,16 +586,12 @@ function writeDeployYml(dir: string, regen = false): void {
   );
   const content = template.replace("__SERVICE_NAME__", "brain");
 
-  if (regen) {
-    writeScaffoldFile(join(dir, "config", "deploy.yml"), content, false, true);
-    return;
-  }
-
   writeReconcilableScaffoldFile({
     path: join(dir, "config", "deploy.yml"),
     content,
     legacyContents: legacyDeployYmlContents,
     shouldReconcile: matchesLegacyStandaloneDeployYml,
+    regen,
   });
 }
 
@@ -719,15 +740,17 @@ function buildWorkflowSecretsEnvBlock(dir: string): string {
 }
 
 function isLegacyStandalonePublishWorkflow(current: string): boolean {
-  return (
-    current.includes("name: Publish Image") &&
-    current.includes("uses: docker/build-push-action@v6") &&
-    current.includes("file: deploy/Dockerfile") &&
-    current.includes("type=raw,value=latest") &&
-    current.includes("type=raw,value=${{ github.sha }}") &&
-    current.includes("service=brain") &&
-    !current.includes("target: standalone")
-  );
+  return matchesFingerprint(current, {
+    must: [
+      "name: Publish Image",
+      "uses: docker/build-push-action@v6",
+      "file: deploy/Dockerfile",
+      "type=raw,value=latest",
+      "type=raw,value=${{ github.sha }}",
+      "service=brain",
+    ],
+    mustNot: ["target: standalone"],
+  });
 }
 
 function writePublishWorkflow(dir: string, regen = false): void {
@@ -782,20 +805,11 @@ jobs:
             service=brain
 `;
 
-  if (regen) {
-    writeScaffoldFile(
-      join(dir, ".github", "workflows", "publish-image.yml"),
-      content,
-      false,
-      true,
-    );
-    return;
-  }
-
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "publish-image.yml"),
     content,
     shouldReconcile: isLegacyStandalonePublishWorkflow,
+    regen,
   });
 }
 
@@ -818,13 +832,13 @@ function resolvePackageDeployTemplatesDir(): string {
 }
 
 function isLegacyStandaloneDeployDockerfile(current: string): boolean {
-  return (
-    current.includes("apt-get install -y --no-install-recommends caddy") &&
-    current.includes("COPY deploy/Caddyfile /etc/caddy/Caddyfile") &&
-    current.includes(
+  return matchesFingerprint(current, {
+    must: [
+      "apt-get install -y --no-install-recommends caddy",
+      "COPY deploy/Caddyfile /etc/caddy/Caddyfile",
       'CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]',
-    )
-  );
+    ],
+  });
 }
 
 function writeDeployDockerfile(dir: string, regen = false): void {
@@ -833,45 +847,39 @@ function writeDeployDockerfile(dir: string, regen = false): void {
     "utf-8",
   );
 
-  if (regen) {
-    writeScaffoldFile(join(dir, "deploy", "Dockerfile"), content, false, true);
-    return;
-  }
-
   writeReconcilableScaffoldFile({
     path: join(dir, "deploy", "Dockerfile"),
     content,
     legacyContents: legacyDockerfileContents,
     shouldReconcile: isLegacyStandaloneDeployDockerfile,
+    regen,
   });
 }
 
 function isLegacyStandaloneDeployWorkflow(current: string): boolean {
-  return (
-    current.includes("name: Deploy") &&
-    current.includes('workflows: ["Publish Image"]') &&
-    current.includes(
+  return matchesFingerprint(current, {
+    must: [
+      "name: Deploy",
+      'workflows: ["Publish Image"]',
       'echo "IMAGE_REPOSITORY=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> "$GITHUB_ENV"',
-    ) &&
-    current.includes("const baseUrl = 'https://api.hetzner.cloud/v1';") &&
-    current.includes("await upsertRecord('preview.' + domain);") &&
-    current.includes(
+      "const baseUrl = 'https://api.hetzner.cloud/v1';",
+      "await upsertRecord('preview.' + domain);",
       'curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"',
-    ) &&
-    !current.includes("run: ./scripts/extract-brain-config.rb")
-  );
+    ],
+    mustNot: ["run: ./scripts/extract-brain-config.rb"],
+  });
 }
 
 function isScriptDeployWorkflowMissingBunSetup(current: string): boolean {
-  return (
-    current.includes("name: Deploy") &&
-    current.includes("run: ./scripts/extract-brain-config.rb") &&
-    current.includes("run: bun deploy/scripts/provision-server.ts") &&
-    current.includes(
+  return matchesFingerprint(current, {
+    must: [
+      "name: Deploy",
+      "run: ./scripts/extract-brain-config.rb",
+      "run: bun deploy/scripts/provision-server.ts",
       'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
-    ) &&
-    !current.includes("uses: oven-sh/setup-bun@v2")
-  );
+    ],
+    mustNot: ["uses: oven-sh/setup-bun@v2"],
+  });
 }
 
 function writeDeployWorkflow(dir: string, regen = false): void {
@@ -1105,27 +1113,25 @@ ${workflowSecretsEnv}
           '
 `;
 
-  if (regen) {
-    writeScaffoldFile(
-      join(dir, ".github", "workflows", "deploy.yml"),
-      content,
-      false,
-      true,
-    );
-    return;
-  }
-
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "deploy.yml"),
     content,
     legacyContents: legacyDeployWorkflowContents,
     shouldReconcile: (current) =>
-      (current.includes("name: Deploy") &&
-        current.includes("run: kamal deploy --skip-push") &&
-        current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
-        !current.includes('workflows: ["Publish Image"]')) ||
-      isLegacyStandaloneDeployWorkflow(current) ||
-      isScriptDeployWorkflowMissingBunSetup(current),
+      [
+        (c: string) =>
+          matchesFingerprint(c, {
+            must: [
+              "name: Deploy",
+              "run: kamal deploy --skip-push",
+              "SERVER_IP: ${{ secrets.SERVER_IP }}",
+            ],
+            mustNot: ['workflows: ["Publish Image"]'],
+          }),
+        isLegacyStandaloneDeployWorkflow,
+        isScriptDeployWorkflowMissingBunSetup,
+      ].some((p) => p(current)),
+    regen,
   });
 }
 

@@ -83,14 +83,9 @@ export async function start(
     };
   }
 
-  const runnerType = resolveRunnerType(cwd);
+  const runner = findRunner(cwd);
 
-  if (runnerType === "monorepo" || runnerType === "docker") {
-    const runner = findRunner(cwd);
-    if (!runner) {
-      return { success: false, message: "Runner not found." };
-    }
-
+  if (runner) {
     const args = ["run", runner.path];
     if (flags.chat) args.push("--cli");
 
@@ -102,7 +97,7 @@ export async function start(
     });
   }
 
-  if (runnerType === "builtin") {
+  if (hasRegisteredModels()) {
     const keyCheck = checkApiKey(process.env);
     if (!keyCheck.ok) {
       return {

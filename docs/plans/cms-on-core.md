@@ -214,11 +214,12 @@ Base notes (`entityType: "base"`) can contain bare `---` in the markdown body. F
 
 ### Fix
 
-For base notes, the shared CMS generator emits a markdown-only collection:
+For base notes, the shared CMS generator emits a `.md` collection using Sveltia's normal markdown/frontmatter file format, but only exposes a single body field:
 
-- `format: "markdown"`
+- `format: "frontmatter"`
 - one `body` field
 - no frontmatter widgets
+- note files still do **not** need actual frontmatter; Sveltia treats frontmatter as optional for `.md`
 
 This preserves existing note content verbatim and keeps title extraction on the brain side.
 

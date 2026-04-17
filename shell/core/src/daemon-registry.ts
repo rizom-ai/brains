@@ -1,4 +1,4 @@
-import { getErrorMessage, Logger } from "@brains/utils";
+import { getErrorMessage, Logger, toError } from "@brains/utils";
 import type {
   Daemon,
   DaemonHealth,
@@ -104,8 +104,7 @@ export class DaemonRegistry {
       this.logger.debug(`Daemon started successfully: ${name}`);
     } catch (error) {
       daemonInfo.status = "error";
-      daemonInfo.error =
-        error instanceof Error ? error : new Error(String(error));
+      daemonInfo.error = toError(error);
       this.logger.warn(
         `Daemon ${name} failed to start: ${getErrorMessage(error)}`,
       );
@@ -136,8 +135,7 @@ export class DaemonRegistry {
       this.logger.debug(`Daemon stopped successfully: ${name}`);
     } catch (error) {
       daemonInfo.status = "error";
-      daemonInfo.error =
-        error instanceof Error ? error : new Error(String(error));
+      daemonInfo.error = toError(error);
       this.logger.error(`Failed to stop daemon: ${name}`, error);
       throw error;
     }
@@ -250,10 +248,7 @@ export class DaemonRegistry {
       try {
         await this.start(daemonInfo.name);
       } catch (error) {
-        if (!firstError) {
-          firstError =
-            error instanceof Error ? error : new Error(String(error));
-        }
+        firstError ??= toError(error);
       }
     }
 

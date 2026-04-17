@@ -26,9 +26,11 @@ jobs:
           INSTANCE_NAME="$(basename "$PWD")"
           BRAIN_MODEL="$(grep '^brain:' brain.yaml | sed 's/^brain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
           BRAIN_DOMAIN="$(grep '^domain:' brain.yaml | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          PREVIEW_DOMAIN="preview.$BRAIN_DOMAIN"
           echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
           echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
           echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+          echo "PREVIEW_DOMAIN=$PREVIEW_DOMAIN" >> "$GITHUB_ENV"
 
       - name: Validate env via varlock
         env:
@@ -375,8 +377,13 @@ jobs:
             }
           }
 
+          const previewDomain = process.env.PREVIEW_DOMAIN;
+          if (!previewDomain) {
+            throw new Error('Missing PREVIEW_DOMAIN');
+          }
+
           await upsertRecord(domain);
-          await upsertRecord('preview.' + domain);
+          await upsertRecord(previewDomain);
           NODE
 
       - name: Install Kamal
@@ -419,7 +426,7 @@ jobs:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
         run: |
           curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN"
-          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
+          curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"
 
       - name: Dump remote proxy diagnostics
         if: failure()

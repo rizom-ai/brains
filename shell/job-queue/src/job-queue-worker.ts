@@ -1,4 +1,4 @@
-import { getErrorMessage, z } from "@brains/utils";
+import { getErrorMessage, toError, z } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IJobProgressMonitor } from "@brains/utils";
 import type { JobResult } from "./schemas";
@@ -371,8 +371,7 @@ export class JobQueueWorker {
         result,
       };
     } catch (error) {
-      const processError =
-        error instanceof Error ? error : new Error(String(error));
+      const processError = toError(error);
 
       // Call handler's error callback if available
       try {

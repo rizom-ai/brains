@@ -1,4 +1,4 @@
-import { getErrorMessage } from "@brains/utils";
+import { getErrorMessage, toError } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import type { EventEmitter } from "events";
@@ -64,8 +64,9 @@ export class PluginLifecycle {
           if (plugin.requiresDaemonStartup?.()) {
             throw error;
           }
-          const msg = error instanceof Error ? error.message : String(error);
-          this.logger.warn(`Daemon ${pluginId} failed to start: ${msg}`);
+          this.logger.warn(
+            `Daemon ${pluginId} failed to start: ${getErrorMessage(error)}`,
+          );
         }
       }
 
@@ -81,8 +82,7 @@ export class PluginLifecycle {
 
       // Update plugin status
       pluginInfo.status = PluginStatus.ERROR;
-      pluginInfo.error =
-        error instanceof Error ? error : new Error(String(error));
+      pluginInfo.error = toError(error);
 
       // Emit error event
       this.events.emit(PluginEvent.ERROR, pluginId, error);

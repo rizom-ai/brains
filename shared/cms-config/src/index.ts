@@ -238,11 +238,10 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
       continue;
     }
 
-    // Base notes live at the repo root and can contain bare `---` in their
-    // body (markdown horizontal rules, separators). Sveltia's frontmatter
-    // parser breaks on those, so we treat the file as markdown-only: the
-    // entire content is the body, no frontmatter widgets. Title extraction
-    // from the H1 is handled by the note adapter on the brain side.
+    // Base notes live at the repo root. Sveltia does not accept
+    // `format: "markdown"` with `.md` files, so keep the collection on the
+    // normal markdown+frontmatter file format while only exposing a single
+    // body field in the CMS. Title extraction still happens on the brain side.
     if (entityType === BASE_ENTITY_TYPE) {
       collections.push({
         name: entityType,
@@ -250,7 +249,7 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
         folder: ".",
         create: true,
         extension: "md",
-        format: "markdown",
+        format: "frontmatter",
         fields: [{ name: "body", label: "Body", widget: "markdown" }],
       });
       continue;
