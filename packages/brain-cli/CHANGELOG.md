@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.22
+
+### Patch Changes
+
+- [`032b7c8`](https://github.com/rizom-ai/brains/commit/032b7c841a7d82586a7259a4ab52f09f95ad46ab) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Broaden standalone deploy workflow reconciliation so `brain init --deploy` upgrades older extracted deploy workflows to the current script-based shared-host scaffold instead of leaving stale inline workflow logic behind.
+
 ## 0.2.0-alpha.21
 
 ### Patch Changes

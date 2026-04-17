@@ -1,5 +1,14 @@
 # @brains/directory-sync
 
+## 0.2.0-alpha.22
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.22
+  - @brains/utils@0.2.0-alpha.22
+  - @brains/plugins@0.2.0-alpha.22
+
 ## 0.2.0-alpha.21
 
 ### Patch Changes

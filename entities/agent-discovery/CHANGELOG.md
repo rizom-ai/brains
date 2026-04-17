@@ -1,5 +1,15 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.22
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.22
+  - @brains/utils@0.2.0-alpha.22
+  - @brains/plugins@0.2.0-alpha.22
+  - @brains/templates@0.2.0-alpha.22
+
 ## 0.2.0-alpha.21
 
 ### Patch Changes

@@ -123,6 +123,7 @@
     "ssh-key-bootstrap-and-local-secret-paths",
     "standalone-deploy-publish-workflow",
     "standalone-deploy-ssh-readiness",
+    "standalone-deploy-workflow-reconcile",
     "standalone-dockerfile-reconcile",
     "standalone-site-authoring-scaffold",
     "tailwind-runtime-deps",
