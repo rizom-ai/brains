@@ -36,7 +36,7 @@ async function decryptYamlFile(
 }
 
 describe("encryptPilotSecrets", () => {
-  it("encrypts discord token and override-only secrets to an .age file", async () => {
+  it("encrypts per-user plaintext secrets and override-only secrets to an .age file", async () => {
     const identity = await generateIdentity();
     const agePublicKey = await identityToRecipient(identity);
 
@@ -65,11 +65,10 @@ members:
       ".env.local": [
         "ALICE_AI_KEY=alice-ai-key",
         "CANARY_GIT_SYNC_TOKEN=git-token",
-        "DISCORD_BOT_TOKEN=discord-token",
         "SHARED_MCP_AUTH_TOKEN=shared-mcp-token",
         "",
       ].join("\n"),
-      "users/alice.secrets.yaml": "discordBotToken: stale\n",
+      "users/alice.secrets.yaml": "discordBotToken: discord-token\n",
     });
 
     const result = await encryptPilotSecrets(root, "alice");
@@ -130,7 +129,54 @@ discord:
     expect(logs[1]).toContain("shared defaults only");
   });
 
-  it("errors when discord is enabled but no local discord token is available", async () => {
+  it("autogenerates a plaintext per-user secrets template when required secrets are missing", async () => {
+    const identity = await generateIdentity();
+    const agePublicKey = await identityToRecipient(identity);
+
+    const root = await createPilotRepo({
+      "pilot.yaml": `schemaVersion: 1
+brainVersion: 0.2.0-alpha.1
+model: rover
+githubOrg: rizom-ai
+contentRepoPrefix: rover-
+domainSuffix: .rizom.ai
+preset: core
+aiApiKey: SHARED_AI_KEY
+gitSyncToken: SHARED_GIT_SYNC_TOKEN
+mcpAuthToken: SHARED_MCP_AUTH_TOKEN
+agePublicKey: ${agePublicKey}
+`,
+      "users/alice.yaml": `handle: alice
+discord:
+  enabled: true
+aiApiKeyOverride: ALICE_AI_KEY
+`,
+      "cohorts/canary.yaml": `members:
+  - alice
+`,
+    });
+
+    try {
+      await encryptPilotSecrets(root, "alice");
+      expect.unreachable("expected encryptPilotSecrets to fail");
+    } catch (error) {
+      expect(String(error)).toContain(
+        "Created users/alice.secrets.yaml; fill it in and rerun secrets:encrypt",
+      );
+    }
+
+    const plaintextTemplate = await readFile(
+      join(root, "users/alice.secrets.yaml"),
+      "utf8",
+    );
+    expect(plaintextTemplate).toContain("# local per-user secret staging file");
+    expect(plaintextTemplate).toContain("aiApiKey: ");
+    expect(plaintextTemplate).toContain("discordBotToken: ");
+    expect(plaintextTemplate).not.toContain("gitSyncToken: ");
+    expect(plaintextTemplate).not.toContain("mcpAuthToken: ");
+  });
+
+  it("still supports env fallback when no plaintext per-user file exists", async () => {
     const identity = await generateIdentity();
     const agePublicKey = await identityToRecipient(identity);
 
@@ -154,16 +200,16 @@ discord:
       "cohorts/canary.yaml": `members:
   - alice
 `,
-      ".env.local": "AI_API_KEY=shared-ai\n",
+      ".env.local": "DISCORD_BOT_TOKEN=discord-token\n",
     });
 
-    try {
-      await encryptPilotSecrets(root, "alice");
-      expect.unreachable("expected encryptPilotSecrets to fail");
-    } catch (error) {
-      expect(String(error)).toContain(
-        "Missing required local secret value for DISCORD_BOT_TOKEN",
-      );
-    }
+    const result = await encryptPilotSecrets(root, "alice");
+    expect(result.encryptedKeys).toEqual(["discordBotToken"]);
+
+    const decrypted = await decryptYamlFile(
+      join(root, "users/alice.secrets.yaml.age"),
+      identity,
+    );
+    expect(decrypted).toContain("discordBotToken: discord-token");
   });
 });
