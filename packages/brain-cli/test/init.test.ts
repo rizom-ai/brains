@@ -241,6 +241,50 @@ jobs:
             service=brain
 `;
 
+const scriptDeployWorkflowWithoutBunSetup = `name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Publish Image"]
+    branches: ["main"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${"${{ github.event.workflow_run.head_sha || github.sha }}"}
+
+      - name: Extract config from brain.yaml
+        run: ./scripts/extract-brain-config.rb
+        env:
+          INSTANCE_NAME: ${"${{ github.event.repository.name }}"}
+
+      - name: Provision server
+        id: provision
+        env:
+          HCLOUD_TOKEN: ${"${{ secrets.HCLOUD_TOKEN }}"}
+          HCLOUD_SSH_KEY_NAME: ${"${{ secrets.HCLOUD_SSH_KEY_NAME }}"}
+          HCLOUD_SERVER_TYPE: ${"${{ secrets.HCLOUD_SERVER_TYPE }}"}
+          HCLOUD_LOCATION: ${"${{ secrets.HCLOUD_LOCATION }}"}
+        run: bun deploy/scripts/provision-server.ts
+
+      - name: Update Cloudflare DNS
+        env:
+          CF_API_TOKEN: ${"${{ secrets.CF_API_TOKEN }}"}
+          CF_ZONE_ID: ${"${{ secrets.CF_ZONE_ID }}"}
+          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
+        run: |
+          BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
+          BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
+`;
+
 const legacyStandaloneCaddyfile = `# Internal Caddy — path-based routing to brain services.
 # kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
@@ -826,10 +870,32 @@ describe("brain init", () => {
       expect(workflow).toContain(
         'curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"',
       );
+      expect(workflow).toContain("uses: oven-sh/setup-bun@v2");
       expect(workflow).not.toContain(
         "await upsertRecord('preview.' + domain);",
       );
       expect(workflow).not.toContain("preview.$BRAIN_DOMAIN");
+    });
+
+    it("should reconcile script deploy workflows that are missing bun setup", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        scriptDeployWorkflowWithoutBunSetup,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain("uses: oven-sh/setup-bun@v2");
+      expect(workflow).toContain("run: bun deploy/scripts/provision-server.ts");
     });
 
     it("should reconcile stale standalone publish workflows when --deploy is used", () => {
@@ -1058,6 +1124,7 @@ describe("brain init", () => {
       expect(workflow).toContain(
         "ref: ${{ github.event.workflow_run.head_sha || github.sha }}",
       );
+      expect(workflow).toContain("uses: oven-sh/setup-bun@v2");
       expect(workflow).toContain("run: ./scripts/extract-brain-config.rb");
       expect(workflow).toContain(
         "INSTANCE_NAME: ${{ github.event.repository.name }}",

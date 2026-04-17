@@ -862,6 +862,18 @@ function isLegacyStandaloneDeployWorkflow(current: string): boolean {
   );
 }
 
+function isScriptDeployWorkflowMissingBunSetup(current: string): boolean {
+  return (
+    current.includes("name: Deploy") &&
+    current.includes("run: ./scripts/extract-brain-config.rb") &&
+    current.includes("run: bun deploy/scripts/provision-server.ts") &&
+    current.includes(
+      'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
+    ) &&
+    !current.includes("uses: oven-sh/setup-bun@v2")
+  );
+}
+
 function writeDeployWorkflow(dir: string, regen = false): void {
   const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
   const content = `name: Deploy
@@ -883,6 +895,9 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: \${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
 
       - name: Extract config from brain.yaml
         run: ./scripts/extract-brain-config.rb
@@ -1109,7 +1124,8 @@ ${workflowSecretsEnv}
         current.includes("run: kamal deploy --skip-push") &&
         current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
         !current.includes('workflows: ["Publish Image"]')) ||
-      isLegacyStandaloneDeployWorkflow(current),
+      isLegacyStandaloneDeployWorkflow(current) ||
+      isScriptDeployWorkflowMissingBunSetup(current),
   });
 }
 
