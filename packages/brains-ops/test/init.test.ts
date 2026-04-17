@@ -532,6 +532,30 @@ describe("initPilotRepo", () => {
     expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(false);
   });
 
+  it("reconciles old caddy Dockerfiles even when the generated formatting drifted", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    await writeFile(
+      join(repo, "deploy", "Dockerfile"),
+      legacyDockerfile.replace(
+        "ARG BUN_VERSION=1.3.10",
+        "ARG BUN_VERSION=1.3.11",
+      ),
+    );
+
+    await initPilotRepo(repo);
+
+    const dockerfile = await readFile(
+      join(repo, "deploy", "Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).not.toContain("caddy start");
+    expect(dockerfile).not.toContain("deploy/Caddyfile");
+  });
+
   it("preserves custom deploy artifacts on rerun", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");

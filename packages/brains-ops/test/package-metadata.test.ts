@@ -23,6 +23,46 @@ function readSharedFile(relativePath: string): string {
   );
 }
 
+const legacyPilotDockerfile = `ARG BUN_VERSION=1.3.10
+FROM oven/bun:${"${BUN_VERSION}"}-slim AS runtime
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
+    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
+    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
+    && setcap cap_net_bind_service=+ep $(which caddy) \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY deploy/Caddyfile /etc/caddy/Caddyfile
+
+RUN mkdir -p /srv/fallback && \
+    printf '<!doctype html><html><head><meta charset="utf-8"><title>brain</title></head><body></body></html>\n' \
+    > /srv/fallback/index.html
+
+ENV XDG_DATA_HOME=/data
+ENV XDG_CONFIG_HOME=/config
+RUN mkdir -p /app/data /app/cache /app/brain-data && \
+    chmod -R 777 /app/data /app/cache /app/brain-data
+
+CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
+
+# --- standalone: bake full project into image (brain-cli deploy) ---
+FROM runtime AS standalone
+COPY package.json ./package.json
+RUN bun install --production --ignore-scripts
+COPY . .
+
+# --- fleet: install published brain at pinned version (ops deploy) ---
+FROM runtime AS fleet
+ARG BRAIN_VERSION
+RUN test -n "$BRAIN_VERSION" \
+ && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
+ && bun add @rizom/brain@$BRAIN_VERSION
+`;
+
 describe("@rizom/ops package metadata", () => {
   it("keeps package-local deploy templates synced from shared source", () => {
     expect(readPackageFile("templates/rover-pilot/deploy/Dockerfile")).toBe(
@@ -145,6 +185,77 @@ describe("@rizom/ops package metadata", () => {
       encoding: "utf8",
     });
     expect(smoke.status).toBe(0);
+  });
+
+  it("reconciles legacy deploy Dockerfiles from a packed tarball outside the monorepo", () => {
+    const build = spawnSync("bun", ["run", "build"], {
+      cwd: packageDir,
+      encoding: "utf8",
+    });
+    expect(build.status).toBe(0);
+
+    const packDir = mkdtempSync(join(tmpdir(), "rizom-ops-pack-"));
+    const pack = spawnSync("npm", ["pack", "--pack-destination", packDir], {
+      cwd: packageDir,
+      encoding: "utf8",
+    });
+    expect(pack.status).toBe(0);
+
+    const tarball = pack.stdout.trim().split(/\r?\n/).pop();
+    expect(tarball).toBeDefined();
+    if (!tarball) {
+      throw new Error("npm pack did not return a tarball filename");
+    }
+
+    const projectDir = mkdtempSync(join(tmpdir(), "rizom-ops-reconcile-"));
+    writeFileSync(
+      join(projectDir, "package.json"),
+      JSON.stringify(
+        {
+          name: "rizom-ops-reconcile",
+          private: true,
+          type: "module",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const install = spawnSync("bun", ["add", join(packDir, tarball)], {
+      cwd: projectDir,
+      encoding: "utf8",
+    });
+    expect(install.status).toBe(0);
+
+    const init = spawnSync("./node_modules/.bin/brains-ops", ["init", "demo"], {
+      cwd: projectDir,
+      encoding: "utf8",
+    });
+    expect(init.status).toBe(0);
+
+    writeFileSync(
+      join(projectDir, "demo", "deploy", "Dockerfile"),
+      legacyPilotDockerfile,
+      "utf8",
+    );
+
+    const rerun = spawnSync(
+      "./node_modules/.bin/brains-ops",
+      ["init", "demo"],
+      {
+        cwd: projectDir,
+        encoding: "utf8",
+      },
+    );
+    expect(rerun.status).toBe(0);
+
+    const dockerfile = readFileSync(
+      join(projectDir, "demo", "deploy", "Dockerfile"),
+      "utf8",
+    );
+    expect(dockerfile).toContain("EXPOSE 8080");
+    expect(dockerfile).not.toContain("deploy/Caddyfile");
+    expect(dockerfile).not.toContain("caddy start");
   });
 
   it("does not publish with workspace runtime dependencies", () => {

@@ -215,6 +215,16 @@ const reconcilableStarterFiles: Partial<
   "deploy/kamal/deploy.yml": legacyDeployYmlContents,
 };
 
+function isLegacyPilotDockerfile(current: string): boolean {
+  return (
+    current.includes("apt-get install -y --no-install-recommends caddy") &&
+    current.includes("COPY deploy/Caddyfile /etc/caddy/Caddyfile") &&
+    current.includes(
+      'CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]',
+    )
+  );
+}
+
 export async function initPilotRepo(rootDir: string): Promise<void> {
   await mkdir(rootDir, { recursive: true });
 
@@ -270,7 +280,10 @@ async function writeStarterFileIfMissing(
   }
 
   const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
-  if (!legacyContents.includes(current)) {
+  const matchesLegacyContent = legacyContents.includes(current);
+  const matchesLegacyPredicate =
+    relativePath === "deploy/Dockerfile" && isLegacyPilotDockerfile(current);
+  if (!matchesLegacyContent && !matchesLegacyPredicate) {
     return;
   }
 
