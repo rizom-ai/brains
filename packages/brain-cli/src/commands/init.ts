@@ -718,6 +718,18 @@ function buildWorkflowSecretsEnvBlock(dir: string): string {
     .join("\n");
 }
 
+function isLegacyStandalonePublishWorkflow(current: string): boolean {
+  return (
+    current.includes("name: Publish Image") &&
+    current.includes("uses: docker/build-push-action@v6") &&
+    current.includes("file: deploy/Dockerfile") &&
+    current.includes("type=raw,value=latest") &&
+    current.includes("type=raw,value=${{ github.sha }}") &&
+    current.includes("service=brain") &&
+    !current.includes("target: standalone")
+  );
+}
+
 function writePublishWorkflow(dir: string, regen = false): void {
   const content = `name: Publish Image
 
@@ -770,12 +782,21 @@ jobs:
             service=brain
 `;
 
-  writeScaffoldFile(
-    join(dir, ".github", "workflows", "publish-image.yml"),
+  if (regen) {
+    writeScaffoldFile(
+      join(dir, ".github", "workflows", "publish-image.yml"),
+      content,
+      false,
+      true,
+    );
+    return;
+  }
+
+  writeReconcilableScaffoldFile({
+    path: join(dir, ".github", "workflows", "publish-image.yml"),
     content,
-    false,
-    regen,
-  );
+    shouldReconcile: isLegacyStandalonePublishWorkflow,
+  });
 }
 
 const packageDeployTemplatesDir = resolvePackageDeployTemplatesDir();

@@ -191,6 +191,56 @@ ${"${{ github.event.workflow_run.head_sha || github.sha }}"}
           curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
 `;
 
+const legacyStandalonePublishWorkflow = `name: Publish Image
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${"${{ github.sha }}"}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${"${{ github.repository_owner }}"}/${"${{ github.event.repository.name }}"}
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${"${{ github.sha }}"}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${"${{ github.actor }}"}
+          password: ${"${{ secrets.GITHUB_TOKEN }}"}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/Dockerfile
+          push: true
+          tags: ${"${{ steps.meta.outputs.tags }}"}
+          labels: |
+            ${"${{ steps.meta.outputs.labels }}"}
+            service=brain
+`;
+
 const legacyStandaloneCaddyfile = `# Internal Caddy — path-based routing to brain services.
 # kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
@@ -782,6 +832,30 @@ describe("brain init", () => {
       expect(workflow).not.toContain("preview.$BRAIN_DOMAIN");
     });
 
+    it("should reconcile stale standalone publish workflows when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "publish-image.yml"),
+        legacyStandalonePublishWorkflow,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "publish-image.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain("file: deploy/Dockerfile");
+      expect(workflow).toContain("target: standalone");
+      expect(workflow).not.toContain(
+        "file: deploy/Dockerfile\n          push: true",
+      );
+    });
+
     it("should preserve custom deploy artifacts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
@@ -792,6 +866,7 @@ describe("brain init", () => {
       const customDockerfile = "FROM scratch\n";
       const customCaddyfile = "custom caddy\n";
       const customWorkflow = "name: Custom Deploy\n";
+      const customPublishWorkflow = "name: Custom Publish\n";
       writeFileSync(join(testDir, ".env.example"), customEnvExample);
       mkdirSync(join(testDir, "config"), { recursive: true });
       writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
@@ -802,6 +877,10 @@ describe("brain init", () => {
       writeFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
         customWorkflow,
+      );
+      writeFileSync(
+        join(testDir, ".github", "workflows", "publish-image.yml"),
+        customPublishWorkflow,
       );
 
       scaffold(testDir, { model: "rover", deploy: true });
@@ -824,6 +903,12 @@ describe("brain init", () => {
           "utf-8",
         ),
       ).toBe(customWorkflow);
+      expect(
+        readFileSync(
+          join(testDir, ".github", "workflows", "publish-image.yml"),
+          "utf-8",
+        ),
+      ).toBe(customPublishWorkflow);
     });
 
     it("should regenerate deploy scaffolding when --deploy --regen is used", () => {
@@ -1103,6 +1188,7 @@ describe("brain init", () => {
       expect(workflow).toContain("type=raw,value=${{ github.sha }}");
       expect(workflow).toContain("service=brain");
       expect(workflow).toContain("file: deploy/Dockerfile");
+      expect(workflow).toContain("target: standalone");
     });
 
     it("should produce same config/deploy.yml regardless of model", () => {
