@@ -173,6 +173,82 @@ const legacyCaddyfile = `# Internal Caddy — path-based routing to brain servic
 }
 `;
 
+const legacyDeployWorkflowCommitStep = `      - name: Commit generated config
+        run: |
+          if git diff --quiet -- users views; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add users views
+          git commit -m "chore(ops): reconcile generated config"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
+const updatedDeployWorkflowCommitStep = `      - name: Commit generated config
+        run: |
+          if git diff --quiet -- users views; then
+            exit 0
+          fi
+
+          git fetch origin "\${{ github.ref_name }}"
+          if git diff --quiet "origin/\${{ github.ref_name }}" -- users views; then
+            exit 0
+          fi
+
+          patch_file="$(mktemp)"
+          git diff --binary -- users views > "$patch_file"
+          git reset --hard "origin/\${{ github.ref_name }}"
+          git apply --3way --index "$patch_file"
+
+          if git diff --cached --quiet -- users views; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ops): reconcile generated config"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
+const legacyReconcileWorkflowCommitStep = `      - name: Commit generated outputs
+        run: |
+          if git diff --quiet -- views users; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add views users
+          git commit -m "chore(ops): reconcile pilot outputs"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
+const updatedReconcileWorkflowCommitStep = `      - name: Commit generated outputs
+        run: |
+          if git diff --quiet -- views users; then
+            exit 0
+          fi
+
+          git fetch origin "\${{ github.ref_name }}"
+          if git diff --quiet "origin/\${{ github.ref_name }}" -- views users; then
+            exit 0
+          fi
+
+          patch_file="$(mktemp)"
+          git diff --binary -- views users > "$patch_file"
+          git reset --hard "origin/\${{ github.ref_name }}"
+          git apply --3way --index "$patch_file"
+
+          if git diff --cached --quiet -- views users; then
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(ops): reconcile pilot outputs"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
 async function linkOpsPackage(repoDir: string): Promise<void> {
   const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
@@ -363,6 +439,13 @@ describe("initPilotRepo", () => {
       'bunx brains-ops render "$GITHUB_WORKSPACE"',
     );
     expect(deployWorkflow).toContain(
+      'git fetch origin "${{ github.ref_name }}"',
+    );
+    expect(deployWorkflow).toContain(
+      'git reset --hard "origin/${{ github.ref_name }}"',
+    );
+    expect(deployWorkflow).toContain('git apply --3way --index "$patch_file"');
+    expect(deployWorkflow).toContain(
       "git push origin HEAD:${{ github.ref_name }}",
     );
     expect(deployWorkflow).toContain(
@@ -418,6 +501,15 @@ describe("initPilotRepo", () => {
     expect(reconcileWorkflow).toContain("bun install");
     expect(reconcileWorkflow).toContain("bunx brains-ops reconcile-all");
     expect(reconcileWorkflow).not.toContain("repository: rizom-ai/brains");
+    expect(reconcileWorkflow).toContain(
+      'git fetch origin "${{ github.ref_name }}"',
+    );
+    expect(reconcileWorkflow).toContain(
+      'git reset --hard "origin/${{ github.ref_name }}"',
+    );
+    expect(reconcileWorkflow).toContain(
+      'git apply --3way --index "$patch_file"',
+    );
     expect(reconcileWorkflow).toContain(
       "git push origin HEAD:${{ github.ref_name }}",
     );
@@ -530,6 +622,55 @@ describe("initPilotRepo", () => {
     expect(dockerfile).not.toContain("deploy/Caddyfile");
 
     expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(false);
+  });
+
+  it("reconciles legacy workflow push steps on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const deployWorkflowPath = join(repo, ".github", "workflows", "deploy.yml");
+    const deployWorkflow = await readFile(deployWorkflowPath, "utf8");
+    expect(deployWorkflow).toContain(updatedDeployWorkflowCommitStep);
+    await writeFile(
+      deployWorkflowPath,
+      deployWorkflow.replace(
+        updatedDeployWorkflowCommitStep,
+        legacyDeployWorkflowCommitStep,
+      ),
+    );
+
+    const reconcileWorkflowPath = join(
+      repo,
+      ".github",
+      "workflows",
+      "reconcile.yml",
+    );
+    const reconcileWorkflow = await readFile(reconcileWorkflowPath, "utf8");
+    expect(reconcileWorkflow).toContain(updatedReconcileWorkflowCommitStep);
+    await writeFile(
+      reconcileWorkflowPath,
+      reconcileWorkflow.replace(
+        updatedReconcileWorkflowCommitStep,
+        legacyReconcileWorkflowCommitStep,
+      ),
+    );
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
+      'git fetch origin "${{ github.ref_name }}"',
+    );
+    expect(await readFile(deployWorkflowPath, "utf8")).not.toContain(
+      legacyDeployWorkflowCommitStep,
+    );
+    expect(await readFile(reconcileWorkflowPath, "utf8")).toContain(
+      'git fetch origin "${{ github.ref_name }}"',
+    );
+    expect(await readFile(reconcileWorkflowPath, "utf8")).not.toContain(
+      legacyReconcileWorkflowCommitStep,
+    );
   });
 
   it("reconciles old caddy Dockerfiles even when the generated formatting drifted", async () => {

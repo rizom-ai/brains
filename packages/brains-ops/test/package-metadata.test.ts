@@ -63,6 +63,18 @@ RUN test -n "$BRAIN_VERSION" \
  && bun add @rizom/brain@$BRAIN_VERSION
 `;
 
+const legacyDeployWorkflowCommitStep = `      - name: Commit generated config
+        run: |
+          if git diff --quiet -- users views; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add users views
+          git commit -m "chore(ops): reconcile generated config"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
 describe("@rizom/ops package metadata", () => {
   it("keeps package-local deploy templates synced from shared source", () => {
     expect(readPackageFile("templates/rover-pilot/deploy/Dockerfile")).toBe(
@@ -256,6 +268,86 @@ describe("@rizom/ops package metadata", () => {
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).not.toContain("deploy/Caddyfile");
     expect(dockerfile).not.toContain("caddy start");
+  });
+
+  it("reconciles legacy deploy workflow push steps from a packed tarball outside the monorepo", () => {
+    const build = spawnSync("bun", ["run", "build"], {
+      cwd: packageDir,
+      encoding: "utf8",
+    });
+    expect(build.status).toBe(0);
+
+    const packDir = mkdtempSync(join(tmpdir(), "rizom-ops-pack-"));
+    const pack = spawnSync("npm", ["pack", "--pack-destination", packDir], {
+      cwd: packageDir,
+      encoding: "utf8",
+    });
+    expect(pack.status).toBe(0);
+
+    const tarball = pack.stdout.trim().split(/\r?\n/).pop();
+    expect(tarball).toBeDefined();
+    if (!tarball) {
+      throw new Error("npm pack did not return a tarball filename");
+    }
+
+    const projectDir = mkdtempSync(join(tmpdir(), "rizom-ops-workflow-"));
+    writeFileSync(
+      join(projectDir, "package.json"),
+      JSON.stringify(
+        {
+          name: "rizom-ops-workflow",
+          private: true,
+          type: "module",
+        },
+        null,
+        2,
+      ),
+    );
+
+    const install = spawnSync("bun", ["add", join(packDir, tarball)], {
+      cwd: projectDir,
+      encoding: "utf8",
+    });
+    expect(install.status).toBe(0);
+
+    const init = spawnSync("./node_modules/.bin/brains-ops", ["init", "demo"], {
+      cwd: projectDir,
+      encoding: "utf8",
+    });
+    expect(init.status).toBe(0);
+
+    const deployWorkflowPath = join(
+      projectDir,
+      "demo",
+      ".github",
+      "workflows",
+      "deploy.yml",
+    );
+    const deployWorkflow = readFileSync(deployWorkflowPath, "utf8");
+    writeFileSync(
+      deployWorkflowPath,
+      deployWorkflow.replace(
+        / {6}- name: Commit generated config[\s\S]*?git push origin HEAD:\$\{\{ github\.ref_name \}\}\n/,
+        legacyDeployWorkflowCommitStep,
+      ),
+      "utf8",
+    );
+
+    const rerun = spawnSync(
+      "./node_modules/.bin/brains-ops",
+      ["init", "demo"],
+      {
+        cwd: projectDir,
+        encoding: "utf8",
+      },
+    );
+    expect(rerun.status).toBe(0);
+
+    const reconciledWorkflow = readFileSync(deployWorkflowPath, "utf8");
+    expect(reconciledWorkflow).toContain(
+      'git fetch origin "${{ github.ref_name }}"',
+    );
+    expect(reconciledWorkflow).not.toContain(legacyDeployWorkflowCommitStep);
   });
 
   it("does not publish with workspace runtime dependencies", () => {

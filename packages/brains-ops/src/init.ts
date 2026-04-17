@@ -215,6 +215,30 @@ const reconcilableStarterFiles: Partial<
   "deploy/kamal/deploy.yml": legacyDeployYmlContents,
 };
 
+const legacyDeployWorkflowFinalizeStep = `      - name: Commit generated config
+        run: |
+          if git diff --quiet -- users views; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add users views
+          git commit -m "chore(ops): reconcile generated config"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
+const legacyReconcileWorkflowCommitStep = `      - name: Commit generated outputs
+        run: |
+          if git diff --quiet -- views users; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add views users
+          git commit -m "chore(ops): reconcile pilot outputs"
+          git push origin HEAD:\${{ github.ref_name }}
+`;
+
 function isLegacyPilotDockerfile(current: string): boolean {
   return (
     current.includes("apt-get install -y --no-install-recommends caddy") &&
@@ -223,6 +247,14 @@ function isLegacyPilotDockerfile(current: string): boolean {
       'CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]',
     )
   );
+}
+
+function isLegacyPilotDeployWorkflow(current: string): boolean {
+  return current.includes(legacyDeployWorkflowFinalizeStep);
+}
+
+function isLegacyPilotReconcileWorkflow(current: string): boolean {
+  return current.includes(legacyReconcileWorkflowCommitStep);
 }
 
 export async function initPilotRepo(rootDir: string): Promise<void> {
@@ -282,7 +314,12 @@ async function writeStarterFileIfMissing(
   const legacyContents = reconcilableStarterFiles[relativePath] ?? [];
   const matchesLegacyContent = legacyContents.includes(current);
   const matchesLegacyPredicate =
-    relativePath === "deploy/Dockerfile" && isLegacyPilotDockerfile(current);
+    (relativePath === "deploy/Dockerfile" &&
+      isLegacyPilotDockerfile(current)) ||
+    (relativePath === ".github/workflows/deploy.yml" &&
+      isLegacyPilotDeployWorkflow(current)) ||
+    (relativePath === ".github/workflows/reconcile.yml" &&
+      isLegacyPilotReconcileWorkflow(current));
   if (!matchesLegacyContent && !matchesLegacyPredicate) {
     return;
   }

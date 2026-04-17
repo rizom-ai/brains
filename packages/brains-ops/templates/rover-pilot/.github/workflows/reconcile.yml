@@ -38,8 +38,22 @@ jobs:
           if git diff --quiet -- views users; then
             exit 0
           fi
+
+          git fetch origin "${{ github.ref_name }}"
+          if git diff --quiet "origin/${{ github.ref_name }}" -- views users; then
+            exit 0
+          fi
+
+          patch_file="$(mktemp)"
+          git diff --binary -- views users > "$patch_file"
+          git reset --hard "origin/${{ github.ref_name }}"
+          git apply --3way --index "$patch_file"
+
+          if git diff --cached --quiet -- views users; then
+            exit 0
+          fi
+
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add views users
           git commit -m "chore(ops): reconcile pilot outputs"
           git push origin HEAD:${{ github.ref_name }}
