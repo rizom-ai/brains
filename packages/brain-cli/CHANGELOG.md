@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.21
+
+### Patch Changes
+
+- [`a031b3f`](https://github.com/rizom-ai/brains/commit/a031b3fa4bd5a972352777f6a4bd75516a16a422) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Broaden standalone deploy Dockerfile reconciliation so `brain init --deploy` upgrades older Caddy-based Dockerfiles even when the generated header drifted slightly, instead of leaving a stale Dockerfile behind after removing `deploy/Caddyfile`.
+
 ## 0.2.0-alpha.20
 
 ### Patch Changes
