@@ -572,6 +572,7 @@ describe("initPilotRepo", () => {
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/mcp");
     expect(userOnboarding).toContain("GitHub token");
+    expect(userOnboarding).toContain("Working in the CMS");
     expect(userOnboarding).toContain("Bearer token");
     expect(userOnboarding).toContain("Claude Desktop");
     expect(userOnboarding).toContain("Obsidian");
