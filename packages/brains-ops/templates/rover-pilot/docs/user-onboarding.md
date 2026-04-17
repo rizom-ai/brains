@@ -11,9 +11,11 @@ Rover is your private AI assistant for working with your own notes, links, and i
 In this pilot, Rover is intentionally simple:
 
 - you will usually talk to it in **Discord**
-- **there is no website to browse**
+- you can also use the **Dashboard** in your browser at `https://<handle>.rizom.ai/`
+- you can edit content in the **CMS** at `https://<handle>.rizom.ai/cms`
+- the CMS uses a **GitHub token** because your content lives in a private GitHub repo
 - **MCP is optional** and only needed for direct client access or specific testing workflows
-- your content can also live in a normal git repo of markdown/text files; **Obsidian is optional** if you want a nicer note-editing interface
+- **git** and **Obsidian** are optional if you want to work with the underlying files directly
 
 You can think of Rover as a private knowledge companion that helps you:
 
@@ -30,19 +32,23 @@ We will send you the details you need to get started.
 That usually includes:
 
 - confirmation that Discord is enabled for you, plus the invite/setup steps
+- your **Dashboard URL**: `https://<handle>.rizom.ai/`
+- your **CMS URL**: `https://<handle>.rizom.ai/cms`
+- if you will use the CMS, an invite to your **private** Rover content repo plus instructions for creating a GitHub token
 - if needed, your Rover MCP URL: `https://<handle>.rizom.ai/mcp`
 - if needed, your **Bearer token**
-- if needed, an invite to your **private** Rover content repo
 - any extra instructions if we are testing a specific workflow with your cohort
 
 If we give you a **Bearer token**, treat it like a password. Do not share it.
 
-## One important idea: Discord is the default, MCP is optional
+## One important idea: Discord + Dashboard + CMS are the default, MCP is optional
 
 If you are new to Rover, the shortest explanation is:
 
 - **Rover** is the assistant
-- **Discord** is the default way most pilot users will talk to it
+- **Discord** is the default chat interface
+- the **Dashboard** is the default browser view
+- the **CMS** is the default browser editing interface
 - **MCP** is an optional direct connection method for supported AI clients
 
 You do not need to understand the protocol details unless we specifically ask you to use MCP.
@@ -50,7 +56,8 @@ You do not need to understand the protocol details unless we specifically ask yo
 For most users, the practical meaning is simple:
 
 - join Discord
-- message Rover there
+- open your dashboard in the browser
+- use the CMS when you want to edit structured content directly
 - start using it
 
 If your cohort is also testing MCP, we will send the URL, Bearer token, and setup help separately.
@@ -60,17 +67,21 @@ If your cohort is also testing MCP, we will send the URL, Bearer token, and setu
 For most users, the easiest first setup is:
 
 - **Discord** for talking to Rover
+- the **Dashboard** at `https://<handle>.rizom.ai/` for the browser view
+- the **CMS** at `https://<handle>.rizom.ai/cms` for editing, using a GitHub token
 - a normal **git repo of markdown/text files** only if you also want to work directly with your content later
 - **Obsidian** only if you want a friendlier interface for those same files
 - **Claude Desktop** or another MCP client only if we explicitly ask you to test a direct MCP workflow
 
-## Default setup: Discord
+## Default setup: Discord + Dashboard + CMS
 
 For most users, getting started means:
 
 - join the Discord server we send you
-- open the Rover channel or DM
-- send a first message
+- open your Dashboard at `https://<handle>.rizom.ai/`
+- open the CMS at `https://<handle>.rizom.ai/cms`
+- when the CMS asks for GitHub access, use a fine-grained GitHub token with access to your private Rover content repo
+- send a first message in Discord and try a first edit in the CMS
 
 Try a first message like:
 
@@ -81,6 +92,12 @@ Or:
 > Help me save my first note.
 
 If Discord is not enabled for you yet, tell us and we will share the right next step.
+
+In the browser, a good first check is:
+
+- the Dashboard loads at `https://<handle>.rizom.ai/`
+- the CMS loads at `https://<handle>.rizom.ai/cms`
+- after you enter your GitHub token, you can see your collections and content
 
 ## Optional: direct MCP access
 
@@ -209,20 +226,33 @@ If that does **not** happen, that is useful feedback for us too.
 
 ## Git, text files, and Obsidian
 
-The underlying content workflow is a normal **git repo** with normal **markdown/text files**.
+The underlying content workflow is still a normal **git repo** with normal **markdown/text files**.
+
+But for this pilot, treat that as **optional**.
+
+The default setup is:
+
+- **Discord** = talk to Rover
+- **Dashboard** = browser overview
+- **CMS** = browser editing interface
+
+Use direct git or file-based workflows only if you want more control.
 
 Obsidian is optional. It is just one possible editor for those files.
 
 That means:
 
 - use **Discord** as the main way to talk to Rover
-- use a normal editor plus **git** if you want to browse, draft, and edit your files directly
+- use the **Dashboard** and **CMS** as the normal browser workflow
+- use a normal editor plus **git** only if you want to browse, draft, and edit your files directly
 - use **Obsidian** only if you want a more note-focused interface for the same files
 - Rover can pick up those file changes through the normal git-sync / directory-sync flow
 
 A simple mental model:
 
 - **Discord** = talk to Rover
+- **Dashboard** = see Rover in the browser
+- **CMS** = edit Rover content in the browser
 - **git repo + text files** = the underlying content
 - **Obsidian** = an optional editor for that content
 
@@ -258,15 +288,17 @@ The easiest path for most first-time users is:
 
 ### Authentication options
 
-To work with a private repo, you need GitHub authentication.
+To work with a private repo or the CMS, you need GitHub authentication.
 
 Usually the easiest order is:
 
-1. **GitHub Desktop** or normal GitHub sign-in
-2. **SSH key** if you already use git that way
-3. a **fine-grained personal access token** only if another tool specifically requires it
+1. **GitHub sign-in** to accept the private repo invite
+2. a **fine-grained personal access token** for the CMS, with access to your private Rover content repo
+3. **GitHub Desktop** or normal git auth if you also want to clone the repo locally
+4. **SSH key** only if you already use git that way
 
-You do **not** need a personal access token just to use Rover in Discord or through MCP.
+You do **not** need a GitHub token just to use Rover in Discord.
+You do **not** need an MCP Bearer token unless we explicitly ask you to use MCP.
 
 If we have already shared your content repo workflow with you, the normal setup is:
 
@@ -279,9 +311,9 @@ If we have already shared your content repo workflow with you, the normal setup 
 
 If we have **not** given you a direct content repo workflow yet, that is fine. You can ignore git, text files, and Obsidian for now and use Rover in Discord. If we have also asked you to test MCP, you can use that too.
 
-## Discord (default)
+## Discord (default chat interface)
 
-Discord is the default interface for this pilot.
+Discord is the default chat interface for this pilot.
 
 Think of it as the main place to:
 
@@ -325,9 +357,9 @@ If you are unsure whether something belongs in Rover, ask us first.
 
 ## Troubleshooting
 
-### I opened the domain and it does not look like a normal site
+### I opened the domain and it does not look like a normal public site
 
-That is expected. In this pilot, **there is no website to browse**. Rover runs through Discord and, optionally, a direct MCP endpoint.
+That is expected. The root URL is your **Dashboard**, not a public website. The CMS lives at `/cms`. Rover also runs through Discord and, optionally, a direct MCP endpoint.
 
 ### I got an authentication error in MCP
 
@@ -373,6 +405,9 @@ When we onboard you, the message will look roughly like this:
 ```text
 Discord enabled: yes/no
 Discord setup: <invite link or setup steps>
+Dashboard URL: https://<handle>.rizom.ai/
+CMS URL: https://<handle>.rizom.ai/cms
+CMS auth: GitHub token with access to your private Rover content repo
 MCP access: optional / enabled / not enabled
 
 If MCP is enabled:

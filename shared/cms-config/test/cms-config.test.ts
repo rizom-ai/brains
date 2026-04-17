@@ -93,10 +93,11 @@ describe("generateCmsConfig", () => {
     expect(config.backend.branch).toBe("main");
   });
 
-  it("should emit base collection with frontmatter format at repo root", () => {
+  it("should emit base collection as Notes at repo root", () => {
     const config = generateCmsConfig(cmsOpts({ base: noteFrontmatterSchema }));
 
     const baseCollection = config.collections.find((c) => c.name === "base");
+    expect(baseCollection?.label).toBe("Notes");
     expect(baseCollection?.folder).toBe(".");
     expect(baseCollection?.format).toBe("frontmatter");
     expect(baseCollection?.fields).toEqual([

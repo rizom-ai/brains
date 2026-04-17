@@ -568,9 +568,11 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(userOnboarding).toContain("Rover Pilot User Onboarding");
+    expect(userOnboarding).toContain("https://<handle>.rizom.ai/");
+    expect(userOnboarding).toContain("https://<handle>.rizom.ai/cms");
     expect(userOnboarding).toContain("https://<handle>.rizom.ai/mcp");
+    expect(userOnboarding).toContain("GitHub token");
     expect(userOnboarding).toContain("Bearer token");
-    expect(userOnboarding).toContain("there is no website to browse");
     expect(userOnboarding).toContain("Claude Desktop");
     expect(userOnboarding).toContain("Obsidian");
     expect(userOnboarding).toContain(

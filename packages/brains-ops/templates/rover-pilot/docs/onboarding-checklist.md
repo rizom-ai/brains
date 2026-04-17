@@ -21,6 +21,11 @@
     - `https://<handle>.rizom.ai/health` returns `200`
     - unauthenticated `POST https://<handle>.rizom.ai/mcp` returns `401`
 14. For fleet upgrades, edit `pilot.yaml.brainVersion` and push once; CI rebuilds the shared image tag, refreshes generated user env files, and redeploys affected users.
-15. Hand the Discord setup details to the user. If they need direct client access, also hand over the MCP connection details.
-16. If you are also giving them a content repo workflow, describe it first as a normal git repo of markdown/text files; mention Obsidian only as an optional editor.
-17. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.
+15. Hand the Discord setup details to the user.
+16. Hand over the browser defaults:
+    - Dashboard: `https://<handle>.rizom.ai/`
+    - CMS: `https://<handle>.rizom.ai/cms`
+    - GitHub token guidance for CMS access to the user's private content repo
+17. If they need direct client access, also hand over the MCP connection details.
+18. If you are also giving them a content repo workflow, describe it as optional and frame git/Obsidian as an advanced file-based path, not the default.
+19. Send `docs/user-onboarding.md` to the user as the pilot handoff guide.

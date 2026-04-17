@@ -225,7 +225,9 @@ export function generateCmsConfig(options: CmsConfigOptions): CmsConfig {
     const adapter = options.getAdapter(entityType);
     const hasBody = adapter?.hasBody !== false;
     const routeConfig = options.entityDisplay?.[entityType];
-    const label = routeConfig?.label ?? formatLabel(entityType);
+    const defaultLabel =
+      entityType === BASE_ENTITY_TYPE ? "Note" : formatLabel(entityType);
+    const label = routeConfig?.label ?? defaultLabel;
     const pluralLabel = routeConfig?.pluralName ?? pluralizeLabel(label);
 
     if (adapter?.isSingleton) {
