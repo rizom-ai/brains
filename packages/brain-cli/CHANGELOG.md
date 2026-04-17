@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.23
+
+### Patch Changes
+
+- [`9a6c51c`](https://github.com/rizom-ai/brains/commit/9a6c51ce14682de27ee8acde944106ba2d33b73c) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Broaden standalone publish workflow reconciliation so `brain init --deploy` upgrades older extracted `publish-image.yml` files to target the standalone Docker stage instead of leaving stale image builds behind.
+
 ## 0.2.0-alpha.22
 
 ### Patch Changes

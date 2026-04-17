@@ -1,5 +1,13 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.23
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.23
+  - @brains/job-queue@0.2.0-alpha.23
+
 ## 0.2.0-alpha.22
 
 ### Patch Changes

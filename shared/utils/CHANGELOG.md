@@ -1,5 +1,7 @@
 # @brains/utils
 
+## 0.2.0-alpha.23
+
 ## 0.2.0-alpha.22
 
 ## 0.2.0-alpha.21

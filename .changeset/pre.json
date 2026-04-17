@@ -125,6 +125,7 @@
     "standalone-deploy-ssh-readiness",
     "standalone-deploy-workflow-reconcile",
     "standalone-dockerfile-reconcile",
+    "standalone-publish-workflow-reconcile",
     "standalone-site-authoring-scaffold",
     "tailwind-runtime-deps",
     "themes-export"
