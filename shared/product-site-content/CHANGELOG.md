@@ -1,5 +1,13 @@
 # @brains/product-site-content
 
+## 0.2.0-alpha.26
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.26
+  - @brains/templates@0.2.0-alpha.26
+
 ## 0.2.0-alpha.25
 
 ### Patch Changes

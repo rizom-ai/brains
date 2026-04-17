@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.26
+
+### Patch Changes
+
+- [`48a0ff8`](https://github.com/rizom-ai/brains/commit/48a0ff8d9092898fdf1d476af829598eb9fa3129) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the rover-pilot generated deploy and reconcile workflows so generated config commits rebase onto the latest branch tip before pushing, and let `brains-ops init` reconcile the older direct-push workflow shape on rerun.
+
 ## 0.2.0-alpha.25
 
 ### Patch Changes

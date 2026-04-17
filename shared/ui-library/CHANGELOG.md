@@ -1,5 +1,7 @@
 # @brains/ui-library
 
+## 0.2.0-alpha.26
+
 ## 0.2.0-alpha.25
 
 ## 0.2.0-alpha.24

@@ -1,7 +1,7 @@
 {
   "name": "@brains/content-pipeline",
   "private": true,
-  "version": "0.2.0-alpha.25",
+  "version": "0.2.0-alpha.26",
   "description": "Content pipeline plugin for managing entity publishing queues, scheduling, and generation",
   "type": "module",
   "main": "src/index.ts",

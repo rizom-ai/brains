@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-rizom",
   "private": true,
-  "version": "0.2.0-alpha.25",
+  "version": "0.2.0-alpha.26",
   "description": "Shared Rizom site core — structural base for rizom.ai, rizom.foundation, and rizom.work",
   "type": "module",
   "exports": {
