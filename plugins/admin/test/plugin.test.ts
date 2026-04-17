@@ -91,15 +91,21 @@ describe("admin plugin", () => {
     expect(cmsResponse?.headers.get("content-type")).toContain("text/html");
     const cmsHtml = await cmsResponse?.text();
     expect(cmsHtml).toContain("Content Manager");
-    expect(cmsHtml).toContain("window.CMS_CONFIG_URL");
-    expect(cmsHtml).toContain("data:text/yaml;charset=utf-8,");
-    expect(cmsHtml).toContain("owner%2Frepo");
+    expect(cmsHtml).toContain("window.CMS_MANUAL_INIT = true");
+    expect(cmsHtml).toContain("window.CMS_BOOTSTRAP_CONFIG");
+    expect(cmsHtml).toContain("load_config_file");
+    expect(cmsHtml).toContain("owner/repo");
+    const expectedHtml = renderCmsShellHtml({
+      cmsConfig: fromYaml(
+        await buildCmsConfigYaml(createServicePluginContext(shell, "admin")),
+      ),
+    });
     expect(cmsHtml).toContain(
-      renderCmsShellHtml({
-        cmsConfigYaml: await buildCmsConfigYaml(
-          createServicePluginContext(shell, "admin"),
-        ),
-      }).trim(),
+      '<script src="https://unpkg.com/@sveltia/cms/dist/sveltia-cms.js"></script>',
     );
+    expect(cmsHtml).toContain(
+      "window.initCMS?.({ config: window.CMS_BOOTSTRAP_CONFIG });",
+    );
+    expect(expectedHtml).toContain("window.CMS_BOOTSTRAP_CONFIG");
   });
 });

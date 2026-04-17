@@ -1,6 +1,10 @@
 import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { generateCmsConfig, type EntityDisplayMap } from "@brains/cms-config";
+import {
+  generateCmsConfig,
+  type CmsConfig,
+  type EntityDisplayMap,
+} from "@brains/cms-config";
 import { renderCmsShellHtml } from "./admin-shell";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
@@ -46,12 +50,12 @@ async function getRepoInfo(
   return { repo, branch };
 }
 
-export async function buildCmsConfigYaml(
+async function buildCmsConfig(
   context: ServicePluginContext,
   options: { entityDisplay?: EntityDisplayMap } = {},
-): Promise<string> {
+): Promise<CmsConfig> {
   const { repo, branch } = await getRepoInfo(context);
-  const cmsConfig = generateCmsConfig({
+  return generateCmsConfig({
     repo,
     branch,
     ...(context.siteUrl && { baseUrl: context.siteUrl }),
@@ -61,8 +65,13 @@ export async function buildCmsConfigYaml(
     getAdapter: (type) => context.entities.getAdapter(type),
     ...(options.entityDisplay && { entityDisplay: options.entityDisplay }),
   });
+}
 
-  return toYaml(cmsConfig);
+export async function buildCmsConfigYaml(
+  context: ServicePluginContext,
+  options: { entityDisplay?: EntityDisplayMap } = {},
+): Promise<string> {
+  return toYaml(await buildCmsConfig(context, options));
 }
 
 export class AdminPlugin extends ServicePlugin<AdminConfig> {
@@ -78,11 +87,11 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
         public: true,
         handler: async (): Promise<Response> => {
           try {
-            const yaml = await buildCmsConfigYaml(
+            const cmsConfig = await buildCmsConfig(
               this.getContext(),
               getCmsConfigOptions(this.config),
             );
-            return new Response(renderCmsShellHtml({ cmsConfigYaml: yaml }), {
+            return new Response(renderCmsShellHtml({ cmsConfig }), {
               headers: { "Content-Type": "text/html; charset=utf-8" },
             });
           } catch (error) {
