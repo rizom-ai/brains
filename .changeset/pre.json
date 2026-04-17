@@ -117,6 +117,7 @@
     "rizom-ops-render-live-status",
     "rizom-ops-restore-shared-secret-push",
     "shared-kamal-template-sync",
+    "shared-preview-host-and-workspace-runtime",
     "sharp-lazy-load",
     "smoke-a2a-root-caddy-fallback",
     "ssh-key-bootstrap-and-local-secret-paths",

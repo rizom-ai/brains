@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.20
+
+### Patch Changes
+
+- [`628c908`](https://github.com/rizom-ai/brains/commit/628c90859ec4b6f906d1c30cedd0da33829bd477) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Converge the in-repo runtime and deploy path on the shared-host model: local app `src/site.ts` / `src/theme.css` conventions now resolve consistently in the monorepo runner, in-repo apps use the workspace `@rizom/brain`, and the legacy dedicated preview server on port `4321` is removed so preview stays on the shared HTTP host.
+
 ## 0.2.0-alpha.19
 
 ### Patch Changes
