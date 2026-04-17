@@ -124,6 +124,73 @@ RUN mkdir -p /app/data /app/cache /app/brain-data && \
 CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
 `;
 
+const legacyStandaloneDeployWorkflow = `name: Deploy
+
+on:
+  workflow_run:
+    workflows: ["Publish Image"]
+    branches: ["main"]
+    types: [completed]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: \
+${"${{ github.event.workflow_run.head_sha || github.sha }}"}
+
+      - name: Extract config from brain.yaml
+        run: |
+          INSTANCE_NAME="$(basename "$PWD")"
+          BRAIN_MODEL="$(grep '^brain:' brain.yaml | sed 's/^brain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          BRAIN_DOMAIN="$(grep '^domain:' brain.yaml | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
+          echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
+          echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
+          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
+          echo "IMAGE_REPOSITORY=ghcr.io/${"${{ github.repository_owner }}"}/${"${{ github.event.repository.name }}"}" >> "$GITHUB_ENV"
+          echo "REGISTRY_USERNAME=${"${{ github.repository_owner }}"}" >> "$GITHUB_ENV"
+
+      - name: Provision server
+        id: provision
+        env:
+          HCLOUD_TOKEN: ${"${{ secrets.HCLOUD_TOKEN }}"}
+          HCLOUD_SSH_KEY_NAME: ${"${{ secrets.HCLOUD_SSH_KEY_NAME }}"}
+          HCLOUD_SERVER_TYPE: ${"${{ secrets.HCLOUD_SERVER_TYPE }}"}
+          HCLOUD_LOCATION: ${"${{ secrets.HCLOUD_LOCATION }}"}
+        run: |
+          node <<'NODE'
+          const baseUrl = 'https://api.hetzner.cloud/v1';
+          NODE
+
+      - name: Update Cloudflare DNS
+        env:
+          CF_API_TOKEN: ${"${{ secrets.CF_API_TOKEN }}"}
+          CF_ZONE_ID: ${"${{ secrets.CF_ZONE_ID }}"}
+          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
+        run: |
+          node <<'NODE'
+          await upsertRecord('preview.' + domain);
+          NODE
+
+      - name: Deploy
+        env:
+          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
+          VERSION: ${"${{ github.event.workflow_run.head_sha || github.sha }}"}
+        run: kamal setup --skip-push
+
+      - name: Verify origin TLS
+        env:
+          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
+        run: |
+          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
+`;
+
 const legacyStandaloneCaddyfile = `# Internal Caddy — path-based routing to brain services.
 # kamal-proxy terminates TLS externally; this runs inside the container.
 :80 {
@@ -682,6 +749,37 @@ describe("brain init", () => {
       expect(dockerfile).toContain("EXPOSE 8080");
       expect(dockerfile).not.toContain("caddy start");
       expect(dockerfile).not.toContain("deploy/Caddyfile");
+    });
+
+    it("should reconcile stale standalone deploy workflows when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
+      writeFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        legacyStandaloneDeployWorkflow,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain("run: ./scripts/extract-brain-config.rb");
+      expect(workflow).toContain("run: bun deploy/scripts/provision-server.ts");
+      expect(workflow).toContain(
+        'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
+      );
+      expect(workflow).toContain(
+        'curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"',
+      );
+      expect(workflow).not.toContain(
+        "await upsertRecord('preview.' + domain);",
+      );
+      expect(workflow).not.toContain("preview.$BRAIN_DOMAIN");
     });
 
     it("should preserve custom deploy artifacts when --deploy is used", () => {

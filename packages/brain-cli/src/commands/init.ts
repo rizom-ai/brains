@@ -825,6 +825,22 @@ function writeDeployDockerfile(dir: string, regen = false): void {
   });
 }
 
+function isLegacyStandaloneDeployWorkflow(current: string): boolean {
+  return (
+    current.includes("name: Deploy") &&
+    current.includes('workflows: ["Publish Image"]') &&
+    current.includes(
+      'echo "IMAGE_REPOSITORY=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> "$GITHUB_ENV"',
+    ) &&
+    current.includes("const baseUrl = 'https://api.hetzner.cloud/v1';") &&
+    current.includes("await upsertRecord('preview.' + domain);") &&
+    current.includes(
+      'curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"',
+    ) &&
+    !current.includes("run: ./scripts/extract-brain-config.rb")
+  );
+}
+
 function writeDeployWorkflow(dir: string, regen = false): void {
   const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
   const content = `name: Deploy
@@ -1068,10 +1084,11 @@ ${workflowSecretsEnv}
     content,
     legacyContents: legacyDeployWorkflowContents,
     shouldReconcile: (current) =>
-      current.includes("name: Deploy") &&
-      current.includes("run: kamal deploy --skip-push") &&
-      current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
-      !current.includes('workflows: ["Publish Image"]'),
+      (current.includes("name: Deploy") &&
+        current.includes("run: kamal deploy --skip-push") &&
+        current.includes("SERVER_IP: ${{ secrets.SERVER_IP }}") &&
+        !current.includes('workflows: ["Publish Image"]')) ||
+      isLegacyStandaloneDeployWorkflow(current),
   });
 }
 
