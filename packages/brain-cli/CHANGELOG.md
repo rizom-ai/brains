@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.27
+
+### Patch Changes
+
+- [`2523c7d`](https://github.com/rizom-ai/brains/commit/2523c7d055f81675336d135fb190a807a6ff0d30) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix CMS config delivery for `/cms`, align base-note CMS config with Sveltia's `.md` format expectations, and update rover test apps so local CMS routes boot without noisy git-sync startup failures.
+
 ## 0.2.0-alpha.26
 
 ## 0.2.0-alpha.25

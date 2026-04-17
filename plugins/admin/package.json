@@ -1,7 +1,7 @@
 {
   "name": "@brains/admin",
   "private": true,
-  "version": "0.2.0-alpha.26",
+  "version": "0.2.0-alpha.27",
   "description": "Admin plugin for CMS config and admin-surface orchestration",
   "type": "module",
   "exports": {

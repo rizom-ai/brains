@@ -95,6 +95,7 @@
     "bundled-site-package-registry",
     "caddy-preview-host-regex-fix",
     "caddy-root-agent-card-redirect",
+    "calm-squids-smell",
     "deploy-template-runtime-sync",
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",

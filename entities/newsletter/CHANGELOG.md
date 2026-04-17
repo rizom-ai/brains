@@ -1,5 +1,15 @@
 # @brains/newsletter-entity
 
+## 0.2.0-alpha.27
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.27
+  - @brains/utils@0.2.0-alpha.27
+  - @brains/entity-service@0.2.0-alpha.27
+  - @brains/plugins@0.2.0-alpha.27
+
 ## 0.2.0-alpha.26
 
 ### Patch Changes
