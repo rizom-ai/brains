@@ -1,5 +1,14 @@
 # @brains/ops
 
+## 0.2.0-alpha.29
+
+### Patch Changes
+
+- [`700994f`](https://github.com/rizom-ai/brains/commit/700994f91babcb4d1d7e4f137689ef333e5c80c3) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Improve CMS defaults and rover-pilot onboarding guidance.
+  - fix `@brains/admin` `/cms` bootstrapping so Sveltia uses the inline config instead of failing to fetch a missing config file
+  - make the base entity default to `Note` / `Notes` in `@brains/cms-config` when no explicit display override is provided
+  - update the published `@rizom/ops` rover-pilot onboarding docs to frame Discord, Dashboard, and CMS as the default experience, with Git, Obsidian, and MCP as optional workflows
+
 ## 0.2.0-alpha.28
 
 ### Patch Changes

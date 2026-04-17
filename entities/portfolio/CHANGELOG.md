@@ -1,5 +1,15 @@
 # @brains/portfolio
 
+## 0.2.0-alpha.29
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/ui-library@0.2.0-alpha.29
+  - @brains/utils@0.2.0-alpha.29
+  - @brains/plugins@0.2.0-alpha.29
+  - @brains/templates@0.2.0-alpha.29
+
 ## 0.2.0-alpha.28
 
 ### Patch Changes
