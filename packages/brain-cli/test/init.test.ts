@@ -659,6 +659,31 @@ describe("brain init", () => {
       expect(workflow).not.toContain("SERVER_IP: ${{ secrets.SERVER_IP }}");
     });
 
+    it("should reconcile old caddy Dockerfiles even when the generated header drifted", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      mkdirSync(join(testDir, "deploy"), { recursive: true });
+      writeFileSync(
+        join(testDir, "deploy", "Dockerfile"),
+        legacyStandaloneDockerfile.replace(
+          "FROM oven/bun:1.3.10-slim",
+          "FROM oven/bun:1.3.11-slim",
+        ),
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const dockerfile = readFileSync(
+        join(testDir, "deploy", "Dockerfile"),
+        "utf-8",
+      );
+      expect(dockerfile).toContain("EXPOSE 8080");
+      expect(dockerfile).not.toContain("caddy start");
+      expect(dockerfile).not.toContain("deploy/Caddyfile");
+    });
+
     it("should preserve custom deploy artifacts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),

@@ -796,6 +796,16 @@ function resolvePackageDeployTemplatesDir(): string {
   throw new Error("Missing package-local deploy templates for brain init");
 }
 
+function isLegacyStandaloneDeployDockerfile(current: string): boolean {
+  return (
+    current.includes("apt-get install -y --no-install-recommends caddy") &&
+    current.includes("COPY deploy/Caddyfile /etc/caddy/Caddyfile") &&
+    current.includes(
+      'CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]',
+    )
+  );
+}
+
 function writeDeployDockerfile(dir: string, regen = false): void {
   const content = readFileSync(
     join(packageDeployTemplatesDir, "Dockerfile"),
@@ -811,6 +821,7 @@ function writeDeployDockerfile(dir: string, regen = false): void {
     path: join(dir, "deploy", "Dockerfile"),
     content,
     legacyContents: legacyDockerfileContents,
+    shouldReconcile: isLegacyStandaloneDeployDockerfile,
   });
 }
 
