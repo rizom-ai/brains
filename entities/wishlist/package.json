@@ -1,7 +1,7 @@
 {
   "name": "@brains/wishlist",
   "private": true,
-  "version": "0.2.0-alpha.23",
+  "version": "0.2.0-alpha.24",
   "description": "Wishlist plugin for tracking unfulfilled user requests",
   "type": "module",
   "exports": {

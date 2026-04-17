@@ -1,5 +1,13 @@
 # @brains/blog
 
+## 0.2.0-alpha.24
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.24
+  - @brains/plugins@0.2.0-alpha.24
+
 ## 0.2.0-alpha.23
 
 ### Patch Changes

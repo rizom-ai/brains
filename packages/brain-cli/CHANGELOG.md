@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.24
+
+### Patch Changes
+
+- [`22cb36f`](https://github.com/rizom-ai/brains/commit/22cb36f8b843b09f8ff82a3ba569cd16b0865aa0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add Bun setup to the generated standalone deploy workflow and reconcile older extracted deploy workflows that already use `bun`-based deploy scripts but were missing the required GitHub Actions Bun installation step.
+
 ## 0.2.0-alpha.23
 
 ### Patch Changes

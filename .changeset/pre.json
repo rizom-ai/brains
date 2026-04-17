@@ -121,6 +121,7 @@
     "sharp-lazy-load",
     "smoke-a2a-root-caddy-fallback",
     "ssh-key-bootstrap-and-local-secret-paths",
+    "standalone-deploy-bun-setup",
     "standalone-deploy-publish-workflow",
     "standalone-deploy-ssh-readiness",
     "standalone-deploy-workflow-reconcile",
