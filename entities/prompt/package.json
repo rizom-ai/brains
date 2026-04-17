@@ -1,7 +1,7 @@
 {
   "name": "@brains/prompt",
   "private": true,
-  "version": "0.2.0-alpha.27",
+  "version": "0.2.0-alpha.28",
   "description": "Prompt entity type — AI prompts as editable markdown entities",
   "type": "module",
   "exports": {

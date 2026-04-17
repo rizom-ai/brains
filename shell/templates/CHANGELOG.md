@@ -1,5 +1,12 @@
 # @brains/templates
 
+## 0.2.0-alpha.28
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.28
+
 ## 0.2.0-alpha.27
 
 ### Patch Changes

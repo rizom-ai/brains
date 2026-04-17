@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.28
+
+### Patch Changes
+
+- [`9bc790c`](https://github.com/rizom-ai/brains/commit/9bc790c3063196c06e628c85c7cfc0000bef5f95) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Update `brains-ops secrets:encrypt` to prefer `users/<handle>.secrets.yaml`, auto-create that plaintext per-user secrets file when required values are missing, and keep environment-variable fallback for compatibility.
+
 ## 0.2.0-alpha.27
 
 ## 0.2.0-alpha.26

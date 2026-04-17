@@ -108,6 +108,7 @@
     "ops-anchor-profile-content-seeding",
     "ops-deploy-finalize-push-ref",
     "ops-dockerfile-reconcile",
+    "ops-per-user-plaintext-secrets",
     "ops-workflow-race-reconcile",
     "personal-layout-mobile-correctness",
     "plugin-owned-create-interceptors",

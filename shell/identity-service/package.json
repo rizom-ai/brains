@@ -1,7 +1,7 @@
 {
   "name": "@brains/identity-service",
   "private": true,
-  "version": "0.2.0-alpha.27",
+  "version": "0.2.0-alpha.28",
   "description": "Identity service for managing brain character and anchor profile",
   "main": "src/index.ts",
   "types": "src/index.ts",
