@@ -1,7 +1,7 @@
 {
   "name": "@brains/stock-photo",
   "private": true,
-  "version": "0.2.0-alpha.24",
+  "version": "0.2.0-alpha.25",
   "description": "Stock photo search and selection — Unsplash provider",
   "type": "module",
   "exports": {

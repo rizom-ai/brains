@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.25
+
+### Patch Changes
+
+- [`c6ec96d`](https://github.com/rizom-ai/brains/commit/c6ec96d98ceee54acfb7c5ac5f1141d011b78286) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Broaden rover-pilot deploy Dockerfile reconciliation so `brains-ops init` upgrades older Caddy-based Dockerfiles even when packaged runtime formatting drift would otherwise prevent an exact legacy-content match.
+
 ## 0.2.0-alpha.24
 
 ## 0.2.0-alpha.23
