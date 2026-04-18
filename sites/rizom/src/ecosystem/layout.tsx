@@ -43,10 +43,12 @@ export const EcosystemLayout = ({ cards }: EcosystemContent): JSX.Element => {
           // treats `#` as a markdown heading marker and parses it as an
           // empty string.
           const isActive = card.linkLabel === "You are here";
+          const isDisabled = card.linkHref.trim().length === 0;
           const extras = isActive ? ACTIVE_EXTRAS : STANDARD_EXTRAS;
           const accentEffects = isActive
             ? ""
             : `${ACCENT_GLOW[card.suffix]} ${ACCENT_BAR[card.suffix]}`;
+          const linkClass = `font-body text-body-xs font-medium mt-2 ${isDisabled ? "text-theme-light opacity-70 cursor-default" : `transition-opacity hover:opacity-70 ${ACCENT_LINK[card.suffix]}`}`;
           return (
             <div
               key={card.suffix}
@@ -61,12 +63,13 @@ export const EcosystemLayout = ({ cards }: EcosystemContent): JSX.Element => {
                 {card.title}
               </div>
               <p className="text-body-xs text-theme-muted">{card.body}</p>
-              <a
-                href={card.linkHref}
-                className={`font-body text-body-xs font-medium mt-2 transition-opacity hover:opacity-70 ${ACCENT_LINK[card.suffix]}`}
-              >
-                {card.linkLabel}
-              </a>
+              {isDisabled ? (
+                <span className={linkClass}>{card.linkLabel}</span>
+              ) : (
+                <a href={card.linkHref} className={linkClass}>
+                  {card.linkLabel}
+                </a>
+              )}
             </div>
           );
         })}
