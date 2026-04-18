@@ -1,7 +1,7 @@
 {
   "name": "@brains/admin",
   "private": true,
-  "version": "0.2.0-alpha.31",
+  "version": "0.2.0-alpha.32",
   "description": "Compatibility wrapper for the CMS plugin",
   "type": "module",
   "exports": {

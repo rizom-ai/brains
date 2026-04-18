@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.32
+
+### Patch Changes
+
+- [`4b5c628`](https://github.com/rizom-ai/brains/commit/4b5c6288c766b2c0acd77bbb96ac2556fe82f619) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the rover-pilot deploy scaffold so deploys can run after Reconcile-generated config commits. The generated Deploy workflow now listens for successful Reconcile runs on `main`, the generated handle resolver supports `workflow_run` events, and rerunning `brains-ops init` upgrades older pilot repos that still have the stale pre-fix workflow and resolver templates.
+
 ## 0.2.0-alpha.31
 
 ## 0.2.0-alpha.30

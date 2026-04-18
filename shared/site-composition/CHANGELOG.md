@@ -1,5 +1,13 @@
 # @brains/site-composition
 
+## 0.2.0-alpha.32
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.32
+  - @brains/plugins@0.2.0-alpha.32
+
 ## 0.2.0-alpha.31
 
 ### Patch Changes
