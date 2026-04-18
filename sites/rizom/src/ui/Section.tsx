@@ -7,7 +7,7 @@ export interface SectionProps {
   children?: ComponentChildren;
 }
 
-export const GUTTER = "px-6 md:px-10 lg:px-20";
+export const GUTTER = "px-6 md:px-10 xl:px-20";
 
 const BASE = `${GUTTER} relative z-[1]`;
 

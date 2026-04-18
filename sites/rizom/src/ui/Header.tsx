@@ -15,7 +15,7 @@ export const Header = ({
   navLinks,
   primaryCta,
 }: HeaderProps): JSX.Element => (
-  <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 lg:px-20 lg:py-5 bg-nav-fade backdrop-blur-[8px]">
+  <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 xl:px-20 xl:py-5 bg-nav-fade backdrop-blur-[8px]">
     <div className="flex items-center font-nav text-[20px]">
       <span className="font-bold text-theme">rizom</span>
       <span className="font-bold text-accent">.</span>

@@ -12,7 +12,7 @@ export const ProblemLayout = ({ cards }: ProblemContent): JSX.Element => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-[60px]">
         {cards.map((card, i) => (
           <div key={card.num} className={`reveal reveal-delay-${i + 1}`}>
-            <div className="block font-display font-normal text-[64px] md:text-display-2xl mb-5 md:mb-8 text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">
+            <div className="block font-display font-normal text-[64px] md:text-display-2xl mb-2 md:mb-3 leading-[1] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:[-webkit-text-stroke:1.5px_var(--color-accent)]">
               {card.num}
             </div>
             <div className="font-nav text-heading-sm md:text-heading-md font-bold mb-2.5 md:mb-3">

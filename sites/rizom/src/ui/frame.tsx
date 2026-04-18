@@ -32,6 +32,8 @@ export const RizomFrame = ({ children }: RizomFrameProps): JSX.Element => (
       />
     </div>
 
-    <div className="max-w-[1440px] mx-auto relative">{children}</div>
+    <div className="max-w-[1440px] mx-auto relative overflow-x-clip">
+      {children}
+    </div>
   </>
 );
