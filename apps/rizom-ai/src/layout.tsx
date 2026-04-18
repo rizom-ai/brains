@@ -4,6 +4,7 @@ import {
   Header,
   RizomFrame,
   SideNav,
+  socialLinksToRizomLinks,
   type RizomLayoutProps,
 } from "@brains/site-rizom";
 
@@ -19,16 +20,11 @@ const PRIMARY_CTA = {
 };
 
 const FOOTER_LINKS = [
-  { href: "https://github.com/rizom-ai/brains", label: "GitHub" },
   {
     href: "https://github.com/rizom-ai/brains/tree/main/docs",
     label: "Documentation",
   },
   { href: "#", label: "Discord" },
-  {
-    href: "https://www.linkedin.com/company/rizom-collective",
-    label: "LinkedIn",
-  },
 ];
 
 const SIDE_NAV_ITEMS = [
@@ -63,7 +59,10 @@ export const AiLayout = ({
     <Footer
       brandSuffix="ai"
       metaLabel={siteInfo.copyright}
-      links={FOOTER_LINKS}
+      links={[
+        ...FOOTER_LINKS,
+        ...socialLinksToRizomLinks(siteInfo, ["github", "linkedin"]),
+      ]}
     />
   </RizomFrame>
 );

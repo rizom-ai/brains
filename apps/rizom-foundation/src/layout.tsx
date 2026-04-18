@@ -4,6 +4,7 @@ import {
   Header,
   RizomFrame,
   SideNav,
+  socialLinksToRizomLinks,
   type RizomLayoutProps,
 } from "@brains/site-rizom";
 
@@ -20,10 +21,6 @@ const PRIMARY_CTA = {
 
 const FOOTER_LINKS = [
   { href: "#mission", label: "Newsletter" },
-  {
-    href: "https://www.linkedin.com/company/rizom-collective",
-    label: "LinkedIn",
-  },
   { href: "#ecosystem", label: "Ecosystem" },
   { href: "#support", label: "Contact" },
 ];
@@ -66,7 +63,10 @@ export const FoundationLayout = ({
       brandSuffix="foundation"
       metaLabel={siteInfo.copyright}
       tagline={FOOTER_TAGLINE}
-      links={FOOTER_LINKS}
+      links={[
+        ...FOOTER_LINKS,
+        ...socialLinksToRizomLinks(siteInfo, ["linkedin"]),
+      ]}
     />
   </RizomFrame>
 );

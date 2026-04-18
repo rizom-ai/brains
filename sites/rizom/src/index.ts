@@ -29,6 +29,7 @@ export {
   RizomFrame,
   Section,
   SideNav,
+  socialLinksToRizomLinks,
   GUTTER,
 } from "./ui";
 export type {
