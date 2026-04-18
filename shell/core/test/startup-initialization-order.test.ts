@@ -46,6 +46,28 @@ describe("Startup Initialization Order", () => {
     });
   });
 
+  describe("ShellInitializer must load identity caches on plugins:ready", () => {
+    const shellInitializerPath = join(
+      __dirname,
+      "../src/initialization/shellInitializer.ts",
+    );
+
+    it("should call refreshCache() on identity and profile services in system:plugins:ready handler", () => {
+      const source = readFileSync(shellInitializerPath, "utf-8");
+
+      const pluginsReadyIndex = source.indexOf('"system:plugins:ready"');
+      expect(pluginsReadyIndex).toBeGreaterThan(-1);
+
+      const handlerBlock = source.slice(
+        pluginsReadyIndex,
+        pluginsReadyIndex + 500,
+      );
+
+      expect(handlerBlock).toContain("identityService.refreshCache()");
+      expect(handlerBlock).toContain("profileService.refreshCache()");
+    });
+  });
+
   describe("Shell.initialize must NOT call service.initialize() directly", () => {
     it("should NOT have identityService.initialize() or profileService.initialize() calls in shell.ts initialize method", () => {
       const shellPath = join(__dirname, "../src/shell.ts");

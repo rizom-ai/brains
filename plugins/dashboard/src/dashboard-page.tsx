@@ -258,24 +258,59 @@ function renderCardHead(widget: WidgetData): string {
 }
 
 function renderWideCard(widgetData: WidgetData, hero = false): string {
-  const cls = hero ? "card card--hero" : "card card--wide";
+  const cls = hero ? "card card--hero" : "card";
   return `<article class="${cls}">
     ${renderCardHead(widgetData)}
     ${renderWidgetBody(widgetData)}
   </article>`;
 }
 
+const SIDEBAR_ORDER: Record<string, number> = {
+  ProfileWidget: 0,
+  IdentityWidget: 1,
+};
+
+function stripLinksFromData(data: unknown): {
+  bodyData: unknown;
+  links: Array<{ label: string; url: string }>;
+} {
+  if (typeof data !== "object" || data === null) {
+    return { bodyData: data, links: [] };
+  }
+  const { rest, links } = stripLinks(data as Record<string, unknown>);
+  return { bodyData: rest, links };
+}
+
 function renderIdentityCard(widgets: WidgetData[]): string {
   if (widgets.length === 0) return "";
-  const sections = widgets
-    .map(
-      (w) => `<div class="identity-section">
+
+  const ordered = [...widgets].sort((a, b) => {
+    const rankA =
+      SIDEBAR_ORDER[a.widget.rendererName] ?? 10 + a.widget.priority;
+    const rankB =
+      SIDEBAR_ORDER[b.widget.rendererName] ?? 10 + b.widget.priority;
+    return rankA - rankB;
+  });
+
+  const pooledLinks: Array<{ label: string; url: string }> = [];
+  const sections = ordered.map((w) => {
+    const { bodyData, links } = stripLinksFromData(w.data);
+    pooledLinks.push(...links);
+    const widgetForBody: WidgetData = { widget: w.widget, data: bodyData };
+    return `<div class="identity-section">
       <span class="card-title">${escapeHtml(w.widget.title)}</span>
-      ${renderWidgetBody(w)}
-    </div>`,
-    )
-    .join("");
-  return `<aside class="card card-identity">${sections}</aside>`;
+      ${renderWidgetBody(widgetForBody)}
+    </div>`;
+  });
+
+  if (pooledLinks.length > 0) {
+    sections.push(`<div class="identity-section">
+      <span class="card-title">Endpoints</span>
+      ${renderLinksSection(pooledLinks)}
+    </div>`);
+  }
+
+  return `<aside class="card card-identity">${sections.join("")}</aside>`;
 }
 
 export function renderDashboardPageHtml(options: {
@@ -520,20 +555,30 @@ export function renderDashboardPageHtml(options: {
         50%      { box-shadow: 0 0 0 6px rgba(104, 204, 139, 0); }
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 300px;
+      .layout {
+        display: flex;
         gap: 20px;
-        align-items: start;
+        align-items: flex-start;
+      }
+      .main-column {
+        flex: 1 1 0;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+      .sidebar-column {
+        flex: 0 0 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
       @media (max-width: 1024px) {
-        .grid { grid-template-columns: 1fr 1fr; }
-        .grid .card-identity { grid-column: span 2; grid-row: auto; }
+        .layout { flex-direction: column; align-items: stretch; }
+        .sidebar-column { flex: 1 1 auto; width: 100%; }
       }
       @media (max-width: 640px) {
         .console { padding: 28px 18px 56px; }
-        .grid { grid-template-columns: 1fr; }
-        .grid .card-identity { grid-column: span 1; }
         .masthead { grid-template-columns: 1fr; align-items: start; }
         .masthead-meta { align-items: flex-start; }
       }
@@ -546,10 +591,8 @@ export function renderDashboardPageHtml(options: {
         position: relative;
         box-shadow: var(--shadow-card);
       }
-      .card--hero  { grid-column: span 2; padding: 28px 32px 32px; }
-      .card--wide  { grid-column: span 2; }
+      .card--hero  { padding: 28px 32px 32px; }
       .card-identity {
-        grid-row: span 4;
         padding: 24px;
         display: flex;
         flex-direction: column;
@@ -795,16 +838,16 @@ export function renderDashboardPageHtml(options: {
       .theme-toggle:hover { color: var(--accent); border-color: var(--rule-accent); }
 
       @media (prefers-reduced-motion: no-preference) {
-        .grid > * {
+        .main-column > *,
+        .sidebar-column > * {
           opacity: 0;
           transform: translateY(8px);
           animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
         }
-        .grid > *:nth-child(1) { animation-delay: 0.05s; }
-        .grid > *:nth-child(2) { animation-delay: 0.15s; }
-        .grid > *:nth-child(3) { animation-delay: 0.25s; }
-        .grid > *:nth-child(4) { animation-delay: 0.35s; }
-        .grid > *:nth-child(5) { animation-delay: 0.45s; }
+        .main-column    > *:nth-child(1) { animation-delay: 0.05s; }
+        .main-column    > *:nth-child(2) { animation-delay: 0.20s; }
+        .main-column    > *:nth-child(3) { animation-delay: 0.35s; }
+        .sidebar-column > *:nth-child(1) { animation-delay: 0.15s; }
         .masthead { animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
         @keyframes rise { to { opacity: 1; transform: translateY(0); } }
       }
@@ -823,9 +866,11 @@ export function renderDashboardPageHtml(options: {
         </div>
       </header>
 
-      <section class="grid">
-        ${mainCards.join("")}
-        ${identityCard}
+      <section class="layout">
+        <div class="main-column">
+          ${mainCards.join("")}
+        </div>
+        ${identityCard ? `<div class="sidebar-column">${identityCard}</div>` : ""}
       </section>
     </main>
 
