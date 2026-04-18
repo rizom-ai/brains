@@ -3,14 +3,17 @@ import {
   GenerateOptionsSchema,
   type GenerateOptions,
 } from "../schemas/generate-options";
-import { SiteContentOperations } from "./site-content-operations";
+import {
+  SiteContentOperations,
+  type SiteGenerationConfig,
+} from "./site-content-operations";
 
 export class SiteContentService {
   private readonly operations: SiteContentOperations;
 
   constructor(
     pluginContext: ServicePluginContext,
-    private readonly siteConfig?: Record<string, unknown>,
+    private readonly siteConfig?: SiteGenerationConfig,
   ) {
     this.operations = new SiteContentOperations(pluginContext);
   }

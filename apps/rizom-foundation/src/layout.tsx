@@ -45,18 +45,26 @@ const SIDE_NAV_ITEMS = [
 
 export const FoundationLayout = ({
   sections,
+  siteInfo,
 }: RizomLayoutProps): JSX.Element => (
   <RizomFrame>
     <Header
       brandSuffix="foundation"
       navLinks={NAV_LINKS}
-      primaryCta={PRIMARY_CTA}
+      primaryCta={
+        siteInfo.cta
+          ? {
+              href: siteInfo.cta.buttonLink,
+              label: siteInfo.cta.buttonText,
+            }
+          : PRIMARY_CTA
+      }
     />
     <SideNav items={SIDE_NAV_ITEMS} />
     <main>{sections}</main>
     <Footer
       brandSuffix="foundation"
-      metaLabel="© 2026 · Stichting Rizom"
+      metaLabel={siteInfo.copyright}
       tagline={FOOTER_TAGLINE}
       links={FOOTER_LINKS}
     />

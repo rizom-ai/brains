@@ -76,8 +76,8 @@ export const NavigationMetadataSchema = z
 export const RouteDefinitionSchema = z.object({
   id: z.string(), // Unique route identifier
   path: z.string(), // URL path
-  title: z.string(), // Route title
-  description: z.string().default(""), // Route description
+  title: z.string().default(""), // Route title override (defaults resolved later)
+  description: z.string().default(""), // Route description override (defaults resolved later)
   sections: z.array(SectionDefinitionSchema).default([]), // Page sections
   layout: z.string().default("default"), // Layout to use for this route
   fullscreen: z.boolean().optional(), // Render without page layout shell (no header/footer)

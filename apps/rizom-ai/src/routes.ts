@@ -5,8 +5,6 @@ export const aiRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
-    title: "Rizom AI",
-    description: "Build the agent that represents you.",
     layout: "default",
     navigation: {
       show: false,

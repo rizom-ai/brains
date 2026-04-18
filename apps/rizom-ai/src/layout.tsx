@@ -41,14 +41,28 @@ const SIDE_NAV_ITEMS = [
   { href: "#ecosystem", label: "Network" },
 ];
 
-export const AiLayout = ({ sections }: RizomLayoutProps): JSX.Element => (
+export const AiLayout = ({
+  sections,
+  siteInfo,
+}: RizomLayoutProps): JSX.Element => (
   <RizomFrame>
-    <Header brandSuffix="ai" navLinks={NAV_LINKS} primaryCta={PRIMARY_CTA} />
+    <Header
+      brandSuffix="ai"
+      navLinks={NAV_LINKS}
+      primaryCta={
+        siteInfo.cta
+          ? {
+              href: siteInfo.cta.buttonLink,
+              label: siteInfo.cta.buttonText,
+            }
+          : PRIMARY_CTA
+      }
+    />
     <SideNav items={SIDE_NAV_ITEMS} />
     <main>{sections}</main>
     <Footer
       brandSuffix="ai"
-      metaLabel="© 2026 · Apache-2.0"
+      metaLabel={siteInfo.copyright}
       links={FOOTER_LINKS}
     />
   </RizomFrame>

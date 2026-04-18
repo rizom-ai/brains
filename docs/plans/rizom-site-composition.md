@@ -41,8 +41,47 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 - `apps/rizom-foundation/src/theme.css` and `apps/rizom-work/src/theme.css` now own app-specific polish; `rizom.ai` currently does not need a local theme override file.
 - `shared/theme-rizom` now keeps shared Rizom family tokens, utilities, variant semantics, and current-site ecosystem semantics rather than app-specific section styling.
 - All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
+- The Rizom apps currently underuse `site-info`: route `title` / `description` and layout chrome are still mostly hardcoded in app-local `routes.ts` and `layout.tsx` instead of being driven by `brain-data/site-info/site-info.md`.
 
 The main architectural cleanup is now complete: `sites/rizom` is the single shared Rizom source package, the old wrapper packages are gone, the old Rizom-only shared packages have been removed, and the shared-vs-local theme boundary is now in the intended shape.
+
+## Extraction and CI/CD status
+
+### Extraction
+
+Extraction is now a **later decision**, not an active part of the refactor.
+
+What is true now:
+
+- the Rizom site family is in the intended smaller shape for a future move if we ever want one: shared `sites/rizom` core + `shared/theme-rizom` + three app-owned variants
+- the current roadmap is to **keep the Rizom apps in this monorepo** unless a concrete operational reason appears
+- valid reasons to revisit extraction later would be things like CI cost, contributor isolation, confidentiality, or deploy/release ownership boundaries
+
+What is **not** true now:
+
+- there is no current plan to extract Rizom just because the architecture cleanup is done
+- there is no current plan to split the three Rizom apps into separate repos
+- there is no current need to publish new framework packages to make extraction possible
+
+### CI/CD
+
+The site-architecture work is ahead of the deploy-workflow cleanup.
+
+Current status:
+
+- repo-level CI exists and covers install, typecheck, lint, and tests
+- shared model-image publishing exists for the deployable brain models used by the Rizom sites
+- `rizom.ai` has an in-repo deploy workflow (`.github/workflows/rizom-ai-deploy.yml`) plus app-local deploy config
+- `rizom.foundation` and `rizom.work` are **not yet** fully converged on the same checked-in app-local deploy scaffold in this repo
+
+So the correct status is:
+
+- architecture: largely complete
+- extraction: deferred
+- CI: in place
+- CD: partially converged, with `rizom.ai` ahead of `rizom.foundation` and `rizom.work`
+
+The next infrastructure follow-through here is to converge the remaining Rizom app deploys on the current `brain init --deploy` / Kamal scaffold shape rather than inventing a separate Rizom-specific deployment path.
 
 ## Theme follow-through status
 
@@ -78,132 +117,104 @@ Remaining work here is no longer architectural cleanup. It is normal product/con
 - Keep app-specific section styling out of the shared theme unless it genuinely becomes common across the whole Rizom family
 - Prefer Tailwind + CSS variables over bespoke one-off literals when cleaning future drift
 
-## Implementation prep
+## Completed work
 
-### Existing seams we should reuse, not redesign
+The site-composition refactor itself is done.
 
-The current codebase already has the main seam this refactor wants:
+Completed:
 
-- `sites/rizom/src/runtime/base-site.ts` now defines `rizomBaseSite`
-- app-local site ownership is already a supported runtime convention via `apps/<name>/src/site.ts`
-- app-local theme ownership is already a supported runtime convention via `apps/<name>/src/theme.css`
-- `sites/rizom` now re-exports the shared Rizom UI/runtime/ecosystem surface from one place
+- `sites/rizom` is the single shared Rizom site core
+- the old Rizom-only shared packages were collapsed into `sites/rizom`
+- the old `sites/rizom-*` wrapper packages were removed
+- all three apps now boot from app-local `src/site.ts`
+- the shared-vs-local theme boundary is in the intended shape
 
-So the refactor should start by **moving and renaming existing seams**, not by inventing a new site API.
+That means the architecture is now in the intended steady state:
 
-### Concrete impact map
+- shared structure in `sites/rizom`
+- shared family theme in `shared/theme-rizom`
+- per-site variation in app-local source under `apps/rizom-*`
 
-Expected code touch points for the remaining refactor:
+## Remaining work
 
-- keep evolving `sites/rizom/src/index.ts` as the shared site entrypoint
-- continue maintaining local app source under:
-  - `apps/rizom-ai/src/site.ts`
-  - `apps/rizom-foundation/src/site.ts`
-  - `apps/rizom-work/src/site.ts`
-- update instance config at:
-  - `apps/rizom-ai/brain.yaml`
-  - `apps/rizom-foundation/brain.yaml`
-  - `apps/rizom-work/brain.yaml`
-- update structural tests and assumptions such as:
-  - `shell/app/test/site-package-structure.test.ts`
-  - any docs/codebase maps that still describe `sites/rizom-*` as the long-term shape
+### 1 — fix the `site-info` boundary
 
-### Safe coding order
+The most immediate architecture follow-through is to stop hardcoding site-wide identity in app code when `siteInfo` is already available at layout render time.
 
-This was the successful implementation order:
+Current mismatch:
 
-1. Keep `sites/rizom` as the single shared site entrypoint.
-2. Move Rizom-only shared helpers from `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` into that shared site.
-3. Keep all three apps booting from local `src/site.ts` while shared code is consolidated.
-4. Delete stale references only after the shared-package collapse is complete.
+- `RizomLayoutProps` already includes `siteInfo`
+- app-local `layout.tsx` files currently hardcode most header/footer/CTA chrome
+- app-local `routes.ts` files currently hardcode top-level page `title` / `description`
+- `brain-data/site-info/site-info.md` is present but mostly placeholder and not acting as the real source of truth
 
-That order minimized simultaneous breakage and used the already-supported local-site runtime path.
+Do next:
 
-### Targeted validation while implementing
+- make the Rizom layouts actually consume `siteInfo`
+- move site-wide identity/chrome data out of app-local hardcoded constants where appropriate:
+  - default title / description
+  - primary CTA
+  - footer/meta/copyright
+  - any nav/footer links that should be content-managed rather than code-owned
+- keep `routes.ts` focused on page structure, sections, and page-specific overrides
+- decide explicitly which values stay route-local and which become site-wide defaults
+- update the current Rizom file set consistently:
+  - `apps/rizom-ai/src/layout.tsx`
+  - `apps/rizom-ai/src/routes.ts`
+  - `apps/rizom-ai/brain-data/site-info/site-info.md`
+  - `apps/rizom-foundation/src/layout.tsx`
+  - `apps/rizom-foundation/src/routes.ts`
+  - `apps/rizom-foundation/brain-data/site-info/site-info.md`
+  - `apps/rizom-work/src/layout.tsx`
+  - `apps/rizom-work/src/routes.ts`
+  - `apps/rizom-work/brain-data/site-info/site-info.md`
 
-Use the lightest checks that prove each seam still works:
+Discipline rule:
 
-- after introducing `sites/rizom`: targeted typecheck for the new shared site package and any moved shared Rizom code
-- after converting each app: boot that app locally from its directory and verify the local `src/site.ts` path resolves
-- after removing the wrapper packages: update and run `shell/app/test/site-package-structure.test.ts`
-- before calling the refactor done: run workspace lint, typecheck, and the relevant site/app tests
-
-The key regression to watch for is not type shape alone — it is whether `brain.yaml` without `site.package` correctly picks up app-local `src/site.ts` and preserves the prior rendered output.
-
-## Refactor plan
-
-### Step 1 — establish the shared site
-
-Create `sites/rizom` (reusing `@brains/site-rizom` if desired) as a composable site definition. It exposes:
-
-- the common route set
-- the default layout
-- the default templates
-- the default section components
-- the shared Rizom runtime/plugin/static-asset structure
-
-Composability shape: each piece can be imported, extended, or replaced by an app. Avoid configuration objects that try to anticipate per-app variation.
+- if a value is truly site-wide, prefer `site-info`
+- if a value is page-specific, keep it in `routes.ts`
+- do not leave the same semantic value duplicated in both places without an explicit override rule
 
 Exit criteria:
 
-- `sites/rizom` exists and exports the common building blocks
-- no per-site assumptions in its source
+- `brain-data/site-info/site-info.md` is the obvious source of truth for site-wide identity
+- app-local `routes.ts` no longer duplicates site-wide metadata by default
+- layout chrome is no longer silently split between placeholder `site-info` content and hardcoded constants
+- each Rizom app follows the same boundary rule for site-wide vs page-local data
 
-### Step 2 — collapse the Rizom-specific shared site packages into the shared site
+### 2 — deploy scaffold convergence
 
-This step has now been completed for the old shared Rizom packages that lived at:
+The next remaining follow-through is deployment scaffolding.
 
-- `shared/rizom-ui`
-- `shared/rizom-runtime`
-- `shared/rizom-ecosystem`
+Do next:
 
-`sites/rizom` now owns that shared Rizom code directly. `shared/theme-rizom` remains the separate shared theme.
-
-Exit criteria:
-
-- `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` are removed from the workspace
-- nothing outside `sites/rizom` imports `@brains/rizom-ui`, `@brains/rizom-runtime`, or `@brains/rizom-ecosystem`
-- `shared/theme-rizom` remains independently consumable
-
-### Step 3 — fold each wrapper into its app's local source
-
-This step has now been completed for the former wrapper packages that lived at `sites/rizom-ai`, `sites/rizom-foundation`, and `sites/rizom-work`.
-
-- move the wrapper-owned `src/` into the corresponding app as local source, centered on `apps/rizom-*/src/site.ts` with helper modules alongside it as needed
-- update imports so the app composes from `@brains/site-rizom` instead of `@brains/site-rizom-*`
-- remove the explicit `site.package` ref from `brain.yaml` once the app is using the local `src/site.ts` convention
-- only remove an explicit `site.theme` ref if the app also adopts a local `src/theme.css`; otherwise keep using the shared Rizom theme explicitly
-- delete the wrapper package and its workspace entry
-
-After this, each app owns its variant and overrides directly. Imports from `@brains/site-rizom` provide the common 90%.
+- converge `rizom.foundation` and `rizom.work` on the same app-local deploy scaffold shape already exercised by `rizom.ai`
+- keep Rizom app deploy workflows aligned with the current `brain init --deploy` / Kamal templates
+- update any lingering docs, tests, or codebase maps that still describe the pre-consolidation deploy shape
 
 Exit criteria:
 
-- `sites/rizom-*` wrapper packages are removed from the workspace
-- each `apps/rizom-*` boots from its own local `src/site.ts`
+- the remaining Rizom app deploy workflows are reconciled onto the current shared scaffold shape
+- deploy drift is no longer a reason to reconsider extraction prematurely
 
-### Step 4 — verify and clean up
+### 3 — decide later whether to extract
 
-- `bun install`
-- typecheck and lint the workspace
-- boot all three apps; verify they render the same as before the refactor (skins intact, content unchanged)
-- delete the empty `sites/rizom/` leftover directory
-- update docs, codebase maps, security/public-release inventory, and any tests that still reference `sites/rizom-*` or `shared/rizom-*` paths
+After the refactor, the Rizom footprint is small enough that extraction would now be a separate operational decision rather than an architectural rescue.
 
-Exit criteria:
+Current decision: **do not extract now**.
 
-- the repo contains `sites/rizom`, `shared/theme-rizom`, and three `apps/rizom-*` instances (with real `src/`) and nothing else Rizom-specific
-- all three apps boot and visually match prior output
+Revisit extraction only if one of these becomes materially true:
 
-### Step 5 — decide later whether to extract
+- Rizom-specific CI/CD ownership or churn justifies isolation
+- contributor or confidentiality boundaries require a separate repo
+- release cadence or operational ownership diverges enough from the framework repo to justify the split
 
-After the refactor, the Rizom footprint is a small set of things (shared site + shared theme + 3 apps). Whether to move them to a separate `rizom-sites` repo is then a small, separate decision driven by actual need (CI cost, repo size, confidentiality, contributor scope), not by the desire to escape an unmanageable tangle.
-
-Do not extract until there is a concrete reason to.
+Until then, keep the Rizom apps in the monorepo and finish deploy-workflow convergence first.
 
 Exit criteria:
 
-- extraction is reconsidered against real motivation, not used as a forcing function for the architecture above
+- extraction is reconsidered only against real operational motivation
+- deploy convergence is complete before any extraction decision is reopened
 
 ## What not to do
 
@@ -220,13 +231,13 @@ Exit criteria:
 
 This plan is successful when:
 
-1. `sites/rizom` exists and owns the common Rizom site shape
-2. `shared/rizom-ui`, `shared/rizom-runtime`, and `shared/rizom-ecosystem` are gone, collapsed into the shared site
-3. `shared/theme-rizom` remains a separate theme unless a future explicit decision changes that boundary
-4. the three `sites/rizom-*` wrapper packages are gone, folded into app-local `src/site.ts`
-5. each `apps/rizom-*` owns its own variant and any overrides in its own source
-6. all three apps still boot and visually match prior output
-7. no parameterized base or shared-package fan-out has reappeared
+1. `sites/rizom` remains the shared Rizom site core
+2. `shared/theme-rizom` remains the separate shared family theme
+3. each `apps/rizom-*` continues to own its own variant and overrides in app-local source
+4. no parameterized base or new Rizom-specific shared-package fan-out reappears
+5. `brain-data/site-info/site-info.md` is the real source of truth for site-wide identity and chrome defaults
+6. the remaining Rizom deploy workflows are reconciled onto the shared app-local scaffold shape
+7. extraction stays deferred unless a concrete operational reason appears
 
 ## Related
 

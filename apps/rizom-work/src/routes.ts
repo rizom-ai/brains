@@ -5,8 +5,6 @@ export const workRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
-    title: "Rizom Work",
-    description: "TMS workshops for teams that need to coordinate better.",
     layout: "default",
     navigation: {
       show: false,

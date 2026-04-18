@@ -5,7 +5,10 @@ import type {
   RouteDefinition,
   SectionDefinition,
 } from "@brains/plugins";
+import type { SiteInfoBody } from "@brains/site-info";
 import type { GenerateOptions } from "../schemas/generate-options";
+
+export type SiteGenerationConfig = Pick<SiteInfoBody, "title" | "description">;
 
 export class SiteContentOperations {
   constructor(private readonly context: ServicePluginContext) {}
@@ -45,7 +48,7 @@ export class SiteContentOperations {
 
   async generate(
     options: GenerateOptions,
-    siteConfig?: Record<string, unknown>,
+    siteConfig?: SiteGenerationConfig,
     metadata?: Partial<JobContext>,
   ): Promise<{
     jobs: Array<{ jobId: string; routeId: string; sectionId: string }>;
@@ -168,8 +171,9 @@ export class SiteContentOperations {
           data: {
             routeId: route.id,
             sectionId: section.id,
-            routeTitle: route.title,
-            routeDescription: route.description,
+            routeTitle: route.title || siteConfig?.title || "",
+            routeDescription:
+              route.description || siteConfig?.description || "",
             sectionContent: section.content,
           },
           conversationId: "system",

@@ -38,14 +38,28 @@ const SIDE_NAV_ITEMS = [
   { href: "#ecosystem", label: "Network" },
 ];
 
-export const WorkLayout = ({ sections }: RizomLayoutProps): JSX.Element => (
+export const WorkLayout = ({
+  sections,
+  siteInfo,
+}: RizomLayoutProps): JSX.Element => (
   <RizomFrame>
-    <Header brandSuffix="work" navLinks={NAV_LINKS} primaryCta={PRIMARY_CTA} />
+    <Header
+      brandSuffix="work"
+      navLinks={NAV_LINKS}
+      primaryCta={
+        siteInfo.cta
+          ? {
+              href: siteInfo.cta.buttonLink,
+              label: siteInfo.cta.buttonText,
+            }
+          : PRIMARY_CTA
+      }
+    />
     <SideNav items={SIDE_NAV_ITEMS} />
     <main>{sections}</main>
     <Footer
       brandSuffix="work"
-      metaLabel="© 2026 · Rizom Collective"
+      metaLabel={siteInfo.copyright}
       links={FOOTER_LINKS}
     />
   </RizomFrame>

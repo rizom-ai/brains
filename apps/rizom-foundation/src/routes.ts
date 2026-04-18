@@ -5,8 +5,6 @@ export const foundationRoutes: RouteDefinitionInput[] = [
   {
     id: "home",
     path: "/",
-    title: "Rizom Foundation",
-    description: "Researching alternatives to broken institutions.",
     layout: "default",
     navigation: {
       show: false,
