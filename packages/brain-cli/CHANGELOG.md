@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.31
+
+### Patch Changes
+
+- [`bf3cfd2`](https://github.com/rizom-ai/brains/commit/bf3cfd215ca507c157d81a2fb4fa4827d841a15a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Render list-style dashboard widgets correctly and add built-in Topics and Skills dashboard cards so topic and skill summaries show up in the brain dashboard.
+
 ## 0.2.0-alpha.30
 
 ## 0.2.0-alpha.29

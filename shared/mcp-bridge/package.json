@@ -1,7 +1,7 @@
 {
   "name": "@brains/mcp-bridge",
   "private": true,
-  "version": "0.2.0-alpha.30",
+  "version": "0.2.0-alpha.31",
   "description": "Reusable base class for plugins that bridge external MCP servers",
   "type": "module",
   "exports": {
