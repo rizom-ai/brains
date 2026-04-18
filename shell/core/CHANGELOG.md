@@ -1,5 +1,14 @@
 # @brains/core
 
+## 0.2.0-alpha.30
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.30
+  - @brains/plugins@0.2.0-alpha.30
+  - @brains/templates@0.2.0-alpha.30
+
 ## 0.2.0-alpha.29
 
 ### Patch Changes

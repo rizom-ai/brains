@@ -1,5 +1,19 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.30
+
+### Patch Changes
+
+- [`4abfb3d`](https://github.com/rizom-ai/brains/commit/4abfb3d8ef92215c5995b07e533eebf597906f1a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Polish the shared Rizom footer layout so the theme toggle sits between the brand meta and footer links, and render disabled ecosystem card labels as non-clickable text when a card has no link.
+
+- Updated dependencies []:
+  - @brains/site-builder-plugin@0.2.0-alpha.30
+  - @brains/site-composition@0.2.0-alpha.30
+  - @brains/ui-library@0.2.0-alpha.30
+  - @brains/utils@0.2.0-alpha.30
+  - @brains/plugins@0.2.0-alpha.30
+  - @brains/templates@0.2.0-alpha.30
+
 ## 0.2.0-alpha.29
 
 ### Patch Changes

@@ -84,7 +84,8 @@
     "@brains/site-composition": "0.2.0",
     "@rizom/ops": "0.2.0",
     "@brains/admin": "0.2.0-alpha.18",
-    "@brains/cms-config": "0.2.0-alpha.18"
+    "@brains/cms-config": "0.2.0-alpha.18",
+    "@brains/cms": "0.2.0-alpha.29"
   },
   "changesets": [
     "align-preview-domain-routing",
@@ -115,6 +116,7 @@
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
+    "rizom-footer-ecosystem-polish",
     "rizom-ops-age-encrypted-pilot-secrets",
     "rizom-ops-bootstrap-commands",
     "rizom-ops-pilot-secrets-push",
