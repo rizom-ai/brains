@@ -1,5 +1,13 @@
 # @brains/notion
 
+## 0.2.0-alpha.33
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/mcp-bridge@0.2.0-alpha.33
+  - @brains/utils@0.2.0-alpha.33
+
 ## 0.2.0-alpha.32
 
 ### Patch Changes

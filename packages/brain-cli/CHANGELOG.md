@@ -1,5 +1,19 @@
 # @rizom/brain
 
+## 0.2.0-alpha.33
+
+### Patch Changes
+
+- [`584a247`](https://github.com/rizom-ai/brains/commit/584a2475b5ef1996447cd94ac8790c99ef2847ef) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Refine the publication pipeline dashboard widget so it is calmer, denser, and easier to scan.
+
+  This updates the publication pipeline presentation in the brain dashboard with:
+  - a cleaner status summary
+  - better default stage selection
+  - tighter, more readable item rows
+  - clearer queued/failed state emphasis without over-styling
+
+  The goal is to make the publication pipeline feel polished and operationally useful without changing pipeline behavior.
+
 ## 0.2.0-alpha.32
 
 ## 0.2.0-alpha.31

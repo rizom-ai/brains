@@ -1,5 +1,16 @@
 # @brains/plugins
 
+## 0.2.0-alpha.33
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.33
+  - @brains/identity-service@0.2.0-alpha.33
+  - @brains/job-queue@0.2.0-alpha.33
+  - @brains/messaging-service@0.2.0-alpha.33
+  - @brains/templates@0.2.0-alpha.33
+
 ## 0.2.0-alpha.32
 
 ### Patch Changes
