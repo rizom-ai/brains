@@ -68,16 +68,18 @@ export function renderDashboardPageHtml(input: DashboardRenderInput): string {
   for (const widget of groups.secondary)
     mainCards.push(renderWidgetCard(widget, false));
 
+  // Sidebar order: Character (who it is) → plugin-contributed sidebar
+  // widgets (what it can do) → Endpoints (where to reach it).
   const sidebarCards: string[] = [];
   const characterCard = renderCharacterCard(input.character);
   if (characterCard) sidebarCards.push(characterCard);
+  for (const widget of groups.sidebar)
+    sidebarCards.push(renderWidgetCard(widget, false));
   const endpointsCard = renderEndpointsCard(
     input.appInfo.endpoints,
     input.baseUrl,
   );
   if (endpointsCard) sidebarCards.push(endpointsCard);
-  for (const widget of groups.sidebar)
-    sidebarCards.push(renderWidgetCard(widget, false));
 
   return `<!doctype html>
 <html lang="en" data-theme="dark">

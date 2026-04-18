@@ -29,6 +29,15 @@ import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
 
+/** First sentence of a text block, capped at 200 chars with ellipsis. */
+function firstSentence(text: string): string | undefined {
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(/^(.*?[.!?])(?:\s|$)/);
+  if (match?.[1]) return match[1];
+  return trimmed.length <= 200 ? trimmed : `${trimmed.slice(0, 197)}…`;
+}
+
 export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
   TopicsPluginConfig
@@ -80,6 +89,40 @@ export class TopicsPlugin extends EntityPlugin<
     context.insights.register(
       "topic-distribution",
       createTopicDistributionInsight(),
+    );
+
+    // Dashboard widget
+    context.messaging.subscribe(
+      "system:plugins:ready",
+      async (): Promise<{ success: boolean }> => {
+        await context.messaging.send("dashboard:register-widget", {
+          id: "topics",
+          pluginId: this.id,
+          title: "Topics",
+          section: "secondary",
+          priority: 20,
+          rendererName: "ListWidget",
+          dataProvider: async () => {
+            const topics =
+              await context.entityService.listEntities<TopicEntity>("topic", {
+                limit: 10,
+                sortFields: [{ field: "updated", direction: "desc" }],
+              });
+            return {
+              items: topics.map((t) => {
+                const body = this.adapter.parseTopicBody(t.content);
+                const description = firstSentence(body.content);
+                return {
+                  id: t.id,
+                  name: body.title || t.id,
+                  ...(description && { description }),
+                };
+              }),
+            };
+          },
+        });
+        return { success: true };
+      },
     );
 
     // Eval handlers
