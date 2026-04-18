@@ -160,10 +160,13 @@ export class PreactBuilder implements StaticSiteBuilder {
         throw new Error(`Layout not found: ${layoutName}`);
       }
 
+      const resolvedTitle = route.title || siteInfo.title;
+      const resolvedDescription = route.description || siteInfo.description;
+
       const layoutProps = {
         sections: sectionComponents,
-        title: route.title,
-        description: route.description,
+        title: resolvedTitle,
+        description: resolvedDescription,
         path: route.path,
         siteInfo,
         ...(context.slots && { slots: context.slots }),
@@ -182,8 +185,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Set default head props if no Head component was rendered
     if (!headCollector.getHeadProps()) {
       const headProps: HeadProps = {
-        title: route.title,
-        description: route.description,
+        title: route.title || siteInfo.title,
+        description: route.description || siteInfo.description,
       };
 
       if (route.path !== "/") {
@@ -258,7 +261,7 @@ export class PreactBuilder implements StaticSiteBuilder {
         const contentObj = z.record(z.unknown()).parse(content);
         const validatedContent = template.schema.parse({
           ...contentObj,
-          pageTitle: route.title,
+          pageTitle: route.title || context.siteConfig.title,
         });
 
         // Create component using h() to pass props correctly

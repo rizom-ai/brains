@@ -8,7 +8,7 @@ import { Section } from "@brains/site-rizom";
  */
 export const ProblemLayout = ({ cards }: ProblemContent): JSX.Element => {
   return (
-    <Section id="features" className="reveal py-section">
+    <Section id="problem" className="reveal py-section">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-16 md:gap-[60px]">
         {cards.map((card, i) => (
           <div key={card.num} className={`reveal reveal-delay-${i + 1}`}>

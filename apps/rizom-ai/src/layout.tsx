@@ -24,7 +24,6 @@ const FOOTER_LINKS = [
     href: "https://github.com/rizom-ai/brains/tree/main/docs",
     label: "Documentation",
   },
-  { href: "#", label: "Discord" },
 ];
 
 const SIDE_NAV_ITEMS = [

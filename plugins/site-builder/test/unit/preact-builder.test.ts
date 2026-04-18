@@ -130,6 +130,82 @@ describe("PreactBuilder", () => {
     expect(html).toContain("Hello World");
   });
 
+  it("should fall back to site info metadata when route metadata is omitted", async () => {
+    const builder = createPreactBuilder({
+      logger,
+      outputDir,
+      workingDir,
+      cssProcessor: new MockCSSProcessor(),
+    });
+
+    const viewRegistry = {
+      getViewTemplate: (_name: string): ViewTemplate => ({
+        name: "test",
+        schema: z.object({ content: z.string() }),
+        pluginId: "test-plugin",
+        renderers: {
+          web: (props: unknown): VNode => {
+            const { content } = props as { content: string };
+            return h("div", {}, content);
+          },
+        },
+      }),
+      registerRoute: (): void => {},
+      getRoute: (): undefined => undefined,
+      listRoutes: (): RouteDefinition[] => [],
+      registerViewTemplate: (): void => {},
+      listViewTemplates: (): ViewTemplate[] => [],
+      validateViewTemplate: (): boolean => true,
+      getRenderer: (): undefined => undefined,
+      hasRenderer: (): boolean => false,
+      listFormats: (): OutputFormat[] => [],
+    };
+
+    const buildContext: BuildContext = {
+      routes: [
+        {
+          id: "test",
+          path: "/",
+          title: "",
+          description: "",
+          layout: "default",
+          sections: [
+            {
+              id: "content",
+              template: "test",
+              content: { content: "Hello World" },
+            },
+          ],
+        },
+      ],
+      getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
+      pluginContext: createMockServicePluginContext(),
+      siteConfig: {
+        title: "Test Site",
+        description: "Test Site Description",
+      },
+      getContent: async (_route, section) => section.content ?? null,
+      layouts: { default: TestLayout },
+      getSiteInfo: async () => ({
+        title: "Test Site",
+        description: "Test Site Description",
+        navigation: {
+          primary: [],
+          secondary: [],
+        },
+        copyright: "© 2025 Test Site. All rights reserved.",
+      }),
+    };
+
+    await builder.build(buildContext, () => {});
+
+    const html = await fs.readFile(join(outputDir, "index.html"), "utf-8");
+    expect(html).toContain("<title>Test Site</title>");
+    expect(html).toContain(
+      '<meta name="description" content="Test Site Description">',
+    );
+  });
+
   it("should create nested directories for routes", async () => {
     const builder = createPreactBuilder({
       logger,
