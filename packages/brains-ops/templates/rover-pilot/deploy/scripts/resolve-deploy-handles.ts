@@ -9,14 +9,23 @@ if (eventName === "workflow_dispatch") {
   process.exit(0);
 }
 
-if (eventName !== "push") {
+if (eventName !== "push" && eventName !== "workflow_run") {
   throw new Error(`Unsupported GITHUB_EVENT_NAME: ${eventName}`);
 }
 
 const beforeSha = requireEnv("BEFORE_SHA");
-const currentSha = requireEnv("GITHUB_SHA");
+const currentSha =
+  eventName === "workflow_run"
+    ? execFileSync("git", ["rev-parse", "HEAD"], {
+        encoding: "utf8",
+      }).trim()
+    : requireEnv("GITHUB_SHA");
 
-if (!isUsableGitRevision(beforeSha) || !isUsableGitRevision(currentSha)) {
+if (
+  !isUsableGitRevision(beforeSha) ||
+  !isUsableGitRevision(currentSha) ||
+  beforeSha === currentSha
+) {
   writeGitHubOutput("handles_json", JSON.stringify([]));
   process.exit(0);
 }

@@ -378,6 +378,11 @@ describe("initPilotRepo", () => {
     );
     expect(deployWorkflow).toContain("workflow_dispatch:");
     expect(deployWorkflow).toContain("push:");
+    expect(deployWorkflow).toContain("workflow_run:");
+    expect(deployWorkflow).toContain("workflows: [Reconcile]");
+    expect(deployWorkflow).toContain(
+      "github.event.workflow_run.conclusion == 'success'",
+    );
     expect(deployWorkflow).toContain("fetch-depth: 0");
     expect(deployWorkflow).toContain("users/*/brain.yaml");
     expect(deployWorkflow).toContain("users/*/.env");
@@ -490,6 +495,15 @@ describe("initPilotRepo", () => {
     expect(helpersScript).toContain("readJsonResponse");
     expect(helpersScript).toContain("parseEnvFile");
     expect(helpersScript).toContain("requireEnv");
+
+    const resolveHandlesScript = await readFile(
+      join(repo, "deploy", "scripts", "resolve-deploy-handles.ts"),
+      "utf8",
+    );
+    expect(resolveHandlesScript).toContain(
+      'if (eventName !== "push" && eventName !== "workflow_run")',
+    );
+    expect(resolveHandlesScript).toContain('eventName === "workflow_run"');
 
     const reconcileWorkflow = await readFile(
       join(repo, ".github", "workflows", "reconcile.yml"),
@@ -676,6 +690,72 @@ describe("initPilotRepo", () => {
     );
   });
 
+  it("reconciles stale deploy workflow recursion fixes on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+
+    const deployWorkflowPath = join(repo, ".github", "workflows", "deploy.yml");
+    const deployWorkflow = await readFile(deployWorkflowPath, "utf8");
+    await writeFile(
+      deployWorkflowPath,
+      deployWorkflow
+        .replace(
+          / {2}workflow_run:\n {4}workflows: \[Reconcile\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n/,
+          "",
+        )
+        .replace(
+          / {4}if: >\n {6}github\.event_name != 'workflow_run' \|\|\n {6}github\.event\.workflow_run\.conclusion == 'success'\n {4}runs-on:/,
+          "    runs-on:",
+        )
+        .replaceAll(
+          "ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.sha }}",
+          "ref: ${{ github.sha }}",
+        )
+        .replace(
+          "BEFORE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.before || '' }}",
+          "BEFORE_SHA: ${{ github.event.before || '' }}",
+        ),
+    );
+
+    const resolveHandlesPath = join(
+      repo,
+      "deploy",
+      "scripts",
+      "resolve-deploy-handles.ts",
+    );
+    const resolveHandlesScript = await readFile(resolveHandlesPath, "utf8");
+    await writeFile(
+      resolveHandlesPath,
+      resolveHandlesScript
+        .replace(
+          'if (eventName !== "push" && eventName !== "workflow_run") {',
+          'if (eventName !== "push") {',
+        )
+        .replace(
+          /const currentSha =[\s\S]*? {4}: requireEnv\("GITHUB_SHA"\);/,
+          'const currentSha = requireEnv("GITHUB_SHA");',
+        )
+        .replace(/\n {2}beforeSha === currentSha/, ""),
+    );
+
+    await initPilotRepo(repo);
+
+    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
+      "workflow_run:",
+    );
+    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
+      "github.event.workflow_run.conclusion == 'success'",
+    );
+    expect(await readFile(resolveHandlesPath, "utf8")).toContain(
+      'if (eventName !== "push" && eventName !== "workflow_run")',
+    );
+    expect(await readFile(resolveHandlesPath, "utf8")).toContain(
+      'eventName === "workflow_run"',
+    );
+  });
+
   it("reconciles old caddy Dockerfiles even when the generated formatting drifted", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");
@@ -800,6 +880,43 @@ describe("initPilotRepo", () => {
           GITHUB_EVENT_NAME: "push",
           BEFORE_SHA: beforeSha,
           GITHUB_SHA: currentSha,
+          GITHUB_OUTPUT: outputPath,
+        },
+        encoding: "utf8",
+      },
+    );
+
+    const output = await readFile(outputPath, "utf8");
+    expect(output).toContain('handles_json=["alice"]');
+  });
+
+  it("resolve-deploy-handles returns changed user handles for workflow_run events", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+    const outputPath = join(root, "github-output.txt");
+
+    await initPilotRepo(repo);
+    await linkOpsPackage(repo);
+    initializeGitRepo(repo);
+    const beforeSha = commitAll(repo, "initial");
+
+    await mkdir(join(repo, "users", "alice"), { recursive: true });
+    await writeFile(
+      join(repo, "users", "alice", ".env"),
+      "BRAIN_VERSION=0.1.1-alpha.14\n",
+    );
+    commitAll(repo, "add alice env");
+    await writeFile(outputPath, "");
+
+    execFileSync(
+      process.execPath,
+      ["deploy/scripts/resolve-deploy-handles.ts"],
+      {
+        cwd: repo,
+        env: {
+          ...process.env,
+          GITHUB_EVENT_NAME: "workflow_run",
+          BEFORE_SHA: beforeSha,
           GITHUB_OUTPUT: outputPath,
         },
         encoding: "utf8",

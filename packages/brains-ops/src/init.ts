@@ -253,8 +253,24 @@ function isLegacyPilotDeployWorkflow(current: string): boolean {
   return current.includes(legacyDeployWorkflowFinalizeStep);
 }
 
+function isStalePilotDeployWorkflow(current: string): boolean {
+  return (
+    current.includes("name: Deploy\n") &&
+    current.includes("run: bun deploy/scripts/resolve-deploy-handles.ts") &&
+    current.includes("users/*/.env") &&
+    !current.includes("workflow_run:\n")
+  );
+}
+
 function isLegacyPilotReconcileWorkflow(current: string): boolean {
   return current.includes(legacyReconcileWorkflowCommitStep);
+}
+
+function isStaleResolveDeployHandlesScript(current: string): boolean {
+  return (
+    current.includes('if (eventName !== "push") {') &&
+    current.includes('const currentSha = requireEnv("GITHUB_SHA");')
+  );
 }
 
 export async function initPilotRepo(rootDir: string): Promise<void> {
@@ -317,9 +333,12 @@ async function writeStarterFileIfMissing(
     (relativePath === "deploy/Dockerfile" &&
       isLegacyPilotDockerfile(current)) ||
     (relativePath === ".github/workflows/deploy.yml" &&
-      isLegacyPilotDeployWorkflow(current)) ||
+      (isLegacyPilotDeployWorkflow(current) ||
+        isStalePilotDeployWorkflow(current))) ||
     (relativePath === ".github/workflows/reconcile.yml" &&
-      isLegacyPilotReconcileWorkflow(current));
+      isLegacyPilotReconcileWorkflow(current)) ||
+    (relativePath === "deploy/scripts/resolve-deploy-handles.ts" &&
+      isStaleResolveDeployHandlesScript(current));
   if (!matchesLegacyContent && !matchesLegacyPredicate) {
     return;
   }

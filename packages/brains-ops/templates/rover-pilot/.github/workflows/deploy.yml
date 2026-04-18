@@ -16,6 +16,10 @@ on:
       - users/*.secrets.yaml.age
       - deploy/**
       - .github/workflows/deploy.yml
+  workflow_run:
+    workflows: [Reconcile]
+    types: [completed]
+    branches: [main]
 
 permissions:
   contents: write
@@ -23,13 +27,16 @@ permissions:
 
 jobs:
   resolve_handles:
+    if: >
+      github.event_name != 'workflow_run' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       handles_json: ${{ steps.resolve.outputs.handles_json }}
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.sha }}
           fetch-depth: 0
 
       - uses: oven-sh/setup-bun@v2
@@ -41,7 +48,7 @@ jobs:
         id: resolve
         env:
           HANDLE_INPUT: ${{ inputs.handle || '' }}
-          BEFORE_SHA: ${{ github.event.before || '' }}
+          BEFORE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.before || '' }}
         run: bun deploy/scripts/resolve-deploy-handles.ts
 
   no_changes:
@@ -68,7 +75,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.sha }}
 
       - uses: oven-sh/setup-bun@v2
 
@@ -271,7 +278,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.sha }}
 
       - uses: oven-sh/setup-bun@v2
 
