@@ -116,6 +116,7 @@
     "ops-workflow-race-reconcile",
     "personal-layout-mobile-correctness",
     "pilot-deploy-reconcile-chain",
+    "pipeline-tabs-last-widget",
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",

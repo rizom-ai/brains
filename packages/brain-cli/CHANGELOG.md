@@ -1,5 +1,17 @@
 # @rizom/brain
 
+## 0.2.0-alpha.34
+
+### Patch Changes
+
+- [`1fd698f`](https://github.com/rizom-ai/brains/commit/1fd698f56637dd4d2e9a48bafbb89fce6d435db6) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix the publication pipeline dashboard widget so its status tabs work again, and move the pipeline card to the end of the dashboard widget stack.
+
+  This follow-up update:
+  - restores working pipeline tab switching in the dashboard renderer
+  - keeps each tab compact with an internally scrollable list
+  - preserves the calmer, denser pipeline presentation
+  - renders the publication pipeline after the other secondary widgets
+
 ## 0.2.0-alpha.33
 
 ### Patch Changes
