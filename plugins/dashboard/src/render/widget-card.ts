@@ -119,6 +119,13 @@ interface PipelineItem {
   retryInfo?: string;
 }
 
+const PIPELINE_DEFAULT_STATUS_ORDER: PipelineStatus[] = [
+  "failed",
+  "queued",
+  "draft",
+  "published",
+];
+
 function isPipelineStatus(value: unknown): value is PipelineStatus {
   return (
     typeof value === "string" &&
@@ -137,6 +144,41 @@ function pipelineStatusLabel(status: PipelineStatus): string {
     case "failed":
       return "failed";
   }
+}
+
+function pipelineStatusPriority(status: PipelineStatus): number {
+  switch (status) {
+    case "failed":
+      return 0;
+    case "queued":
+      return 1;
+    case "draft":
+      return 2;
+    case "published":
+      return 3;
+  }
+}
+
+function pipelineDefaultStatus(
+  summary: Record<PipelineStatus, number>,
+): PipelineStatus {
+  return (
+    PIPELINE_DEFAULT_STATUS_ORDER.find((status) => summary[status] > 0) ??
+    "draft"
+  );
+}
+
+function comparePipelineItems(a: PipelineItem, b: PipelineItem): number {
+  const priorityDiff =
+    pipelineStatusPriority(a.status) - pipelineStatusPriority(b.status);
+  if (priorityDiff !== 0) return priorityDiff;
+
+  const aMeta = a.retryInfo ?? a.scheduledFor ?? "";
+  const bMeta = b.retryInfo ?? b.scheduledFor ?? "";
+  const metaDiff = aMeta.localeCompare(bMeta);
+  if (metaDiff !== 0) return metaDiff;
+
+  return a.title.localeCompare(b.title);
 }
 
 function renderPipelineBody(data: unknown): string {
@@ -186,33 +228,53 @@ function renderPipelineBody(data: unknown): string {
       isPipelineStatus((item as { status?: unknown }).status),
   );
 
-  const summaryHtml = PIPELINE_STATUSES.map(
-    (status) => `<div class="pipeline-summary-item">
+  const activeStatus = pipelineDefaultStatus(summary);
+
+  const tabsHtml = PIPELINE_STATUSES.map((status) => {
+    const activeClass = status === activeStatus ? " is-active" : "";
+    const pressed = status === activeStatus ? "true" : "false";
+    return `<button class="pipeline-tab${activeClass}" type="button" data-pipeline-tab="${status}" aria-pressed="${pressed}">
       <span class="pipeline-dot pipeline-dot--${status}"></span>
       <span class="pipeline-summary-count">${escapeHtml(summary[status])}</span>
       <span class="pipeline-summary-label">${escapeHtml(pipelineStatusLabel(status))}</span>
-    </div>`,
-  ).join("");
+    </button>`;
+  }).join("");
 
-  if (items.length === 0) {
-    return `<div class="pipeline-summary">${summaryHtml}</div>
-      <p class="muted">No pipeline items yet.</p>`;
-  }
+  const panelsHtml = PIPELINE_STATUSES.map((status) => {
+    const statusItems = items
+      .filter((item) => item.status === status)
+      .sort(comparePipelineItems);
 
-  const itemRows = items
-    .map((item) => {
-      const meta = item.retryInfo ?? item.scheduledFor ?? item.status;
-      return `<div class="pipeline-item">
-        <span class="pipeline-dot pipeline-dot--${escapeHtml(item.status)}"></span>
-        <span class="pipeline-name">${escapeHtml(item.title)}</span>
-        <span class="pipeline-type">${escapeHtml(item.type)}</span>
-        <span class="pipeline-when${item.status === "failed" ? " pipeline-when--err" : ""}">${escapeHtml(meta)}</span>
+    const panelClass =
+      status === activeStatus ? "pipeline-panel is-active" : "pipeline-panel";
+
+    if (statusItems.length === 0) {
+      return `<div class="${panelClass}" data-pipeline-panel="${status}">
+        <p class="pipeline-empty">No ${escapeHtml(pipelineStatusLabel(status))} items</p>
       </div>`;
-    })
-    .join("");
+    }
 
-  return `<div class="pipeline-summary">${summaryHtml}</div>
-    <div class="pipeline-list">${itemRows}</div>`;
+    const itemRows = statusItems
+      .map((item) => {
+        const meta = item.retryInfo ?? item.scheduledFor ?? item.status;
+        return `<div class="pipeline-item">
+          <span class="pipeline-dot pipeline-dot--${escapeHtml(item.status)}"></span>
+          <span class="pipeline-name">${escapeHtml(item.title)}</span>
+          <span class="pipeline-type">${escapeHtml(item.type)}</span>
+          <span class="pipeline-when${item.status === "failed" ? " pipeline-when--err" : ""}">${escapeHtml(meta)}</span>
+        </div>`;
+      })
+      .join("");
+
+    return `<div class="${panelClass}" data-pipeline-panel="${status}">
+      <div class="pipeline-list">${itemRows}</div>
+    </div>`;
+  }).join("");
+
+  return `<div class="pipeline-widget" data-pipeline-widget data-pipeline-default="${activeStatus}">
+    <div class="pipeline-tabs">${tabsHtml}</div>
+    ${panelsHtml}
+  </div>`;
 }
 
 // ─── Dispatch ─────────────────────────────────────────────────────────

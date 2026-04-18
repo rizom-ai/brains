@@ -73,7 +73,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
         pluginId: this.id,
         title: "Publication Pipeline",
         section: "secondary",
-        priority: 15,
+        priority: 100,
         rendererName: "PipelineWidget",
         dataProvider: async () => {
           const entityTypes = context.entityService.getEntityTypes();

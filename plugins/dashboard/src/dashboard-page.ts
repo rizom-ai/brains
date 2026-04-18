@@ -55,6 +55,40 @@ const THEME_TOGGLE_SCRIPT = `
 })();
 `;
 
+const PIPELINE_TABS_SCRIPT = `
+(function () {
+  function activate(root, status) {
+    var tabs = root.querySelectorAll("[data-pipeline-tab]");
+    var panels = root.querySelectorAll("[data-pipeline-panel]");
+
+    tabs.forEach(function (tab) {
+      var active = tab.getAttribute("data-pipeline-tab") === status;
+      tab.classList.toggle("is-active", active);
+      tab.setAttribute("aria-pressed", active ? "true" : "false");
+    });
+
+    panels.forEach(function (panel) {
+      var active = panel.getAttribute("data-pipeline-panel") === status;
+      panel.classList.toggle("is-active", active);
+    });
+  }
+
+  document.querySelectorAll("[data-pipeline-widget]").forEach(function (root) {
+    var defaultStatus = root.getAttribute("data-pipeline-default");
+    root.querySelectorAll("[data-pipeline-tab]").forEach(function (tab) {
+      tab.addEventListener("click", function () {
+        var status = tab.getAttribute("data-pipeline-tab");
+        if (status) activate(root, status);
+      });
+    });
+
+    if (defaultStatus) {
+      activate(root, defaultStatus);
+    }
+  });
+})();
+`;
+
 export function renderDashboardPageHtml(input: DashboardRenderInput): string {
   const totalEntities = input.entityCounts.reduce(
     (sum, { count }) => sum + count,
@@ -114,6 +148,7 @@ export function renderDashboardPageHtml(input: DashboardRenderInput): string {
     <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">Light mode</button>
 
     <script>${THEME_TOGGLE_SCRIPT}</script>
+    <script>${PIPELINE_TABS_SCRIPT}</script>
   </body>
 </html>
 `;
