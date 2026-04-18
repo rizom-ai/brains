@@ -70,6 +70,7 @@ Useful extras:
 
 ```bash
 bun run format
+bun run docs:links
 bun run deps:check
 bun run workspace:check
 ```

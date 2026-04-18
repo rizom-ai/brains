@@ -2,111 +2,109 @@
 
 > Internal-use brain model. This source ships publicly so the architecture stays inspectable, but `@brains/rover` is the public reference model for adoption, extension, and standalone app authoring.
 
-A community-facing brain model for collectives and organizations. Manages notes, links, social media, products, and wishlists with a public website featuring CTA-driven landing pages.
+`@brains/ranger` is the community-facing brain model for collectives and organizations. It combines publishing, lightweight community interaction, and operator tooling around notes, links, social posts, products, and wishlist-style feedback.
+
+## Presets
+
+- **`default`** — the full shipped ranger surface
 
 ## Capabilities
 
-| Plugin         | Purpose                                         |
-| -------------- | ----------------------------------------------- |
-| system         | Core entity management, search, identity        |
-| dashboard      | Extensible dashboard with plugin widgets        |
-| note           | Note capture and organization                   |
-| link           | URL capture and metadata extraction             |
-| social-media   | LinkedIn integration and social post management |
-| products       | Product catalog management                      |
-| wishlist       | Community wishlist tracking                     |
-| directory-sync | File ↔ DB synchronization                       |
-| git-sync       | Remote git backup and collaboration             |
-| analytics      | Cloudflare web analytics (beacon + query API)   |
-| site-builder   | Static site generation with CTA landing pages   |
+| Plugin           | Purpose                                     |
+| ---------------- | ------------------------------------------- |
+| `prompt`         | editable prompt/template entities           |
+| `admin`          | CMS/admin surface                           |
+| `dashboard`      | operator dashboard widgets                  |
+| `note`           | note capture and organization               |
+| `link`           | URL capture and metadata extraction         |
+| `social-media`   | social publishing entities and workflows    |
+| `products`       | product catalog entities                    |
+| `wishlist`       | community request / wishlist entities       |
+| `directory-sync` | markdown + optional git-backed content sync |
+| `analytics`      | Cloudflare web analytics integration        |
+| `site-info`      | site identity metadata                      |
+| `site-content`   | durable route/section copy                  |
+| `site-builder`   | static-site generation                      |
+
+System tools such as create, update, search, extract, and status are framework-level surfaces provided by the shell.
 
 ## Interfaces
 
-| Interface | Purpose                                            |
-| --------- | -------------------------------------------------- |
-| MCP       | Model Context Protocol (stdio + HTTP)              |
-| Discord   | Discord chat bot with URL capture                  |
-| Webserver | HTTP server for static site (with preview support) |
+| Interface   | Purpose                               |
+| ----------- | ------------------------------------- |
+| `mcp`       | Model Context Protocol                |
+| `discord`   | community chat interface with capture |
+| `webserver` | HTTP host for site, admin, and health |
 
-## Custom Route Logic
+## Seed content
 
-The home page uses a CTA footer layout with the `about` template showing the `HOME` entity — ideal for community landing pages with a call-to-action. Social posts and links get dedicated entity routes with secondary navigation.
+Default identity and starter content live in `seed-content/`:
 
-## Seed Content
+- `brain-character/` — brain identity
+- `anchor-profile/` — owner/operator profile
+- `site-info/` — site title and metadata
 
-Default identity and content in `seed-content/`:
-
-- `brain-character/` — Brain identity (name, role, purpose, values)
-- `anchor-profile/` — Owner profile
-- `site-info/` — Site title, description, theme mode
-
-Seed content is copied on first boot when `brain-data/` is empty. After that, the DB and git repo are the source of truth.
+Seed content is copied on first boot when `brain-data/` is empty. After that, the markdown content directory becomes the durable source of truth, with the runtime indexing it into SQLite and optionally syncing it to git.
 
 ## Usage
 
-### 1. Create an instance
+### 1. Create an instance directory
 
-```
+```text
 apps/my-collective/
-├── brain.yaml          # Instance config
-├── .env                # Secrets only
-├── tsconfig.json       # Required for Bun JSX resolution
+├── brain.yaml
+├── .env
+├── tsconfig.json
 └── package.json
 ```
 
-### 2. brain.yaml
+### 2. Configure `brain.yaml`
 
 ```yaml
 brain: ranger
-
-logLevel: debug
+preset: default
 
 anchors:
   - "discord:your-discord-user-id"
-trusted:
-  - "discord:trusted-user-id"
 
 plugins:
-  git-sync:
-    repo: your-org/brain-content
-    authorName: Ranger
-    authorEmail: collective@example.com
+  directory-sync:
+    git:
+      repo: your-org/brain-content
   discord: {}
   webserver:
     productionDomain: https://your-site.com
-    previewDomain: https://preview.your-site.com
-    previewDistDir: ./dist/site-preview
-    previewPort: 4321
 ```
 
-### 3. .env (secrets only)
+### 3. Configure `.env`
 
-```
+```bash
 AI_API_KEY=your-api-key-here
-MATRIX_ACCESS_TOKEN=syt_...
 DISCORD_BOT_TOKEN=your-discord-token
 GIT_SYNC_TOKEN=ghp_...
 MCP_AUTH_TOKEN=your-mcp-token
 
-# Optional
+# Optional integrations
 LINKEDIN_ACCESS_TOKEN=your-linkedin-token
 LINKEDIN_ORGANIZATION_ID=your-org-id
-CLOUDFLARE_ACCOUNT_ID=your-account-id
 CLOUDFLARE_API_TOKEN=your-api-token
 CLOUDFLARE_ANALYTICS_SITE_TAG=your-site-tag
 ```
 
-### 4. Run
+### 4. Run the instance
 
 ```bash
-bun run dev        # Development with watch
-bun run start      # Production
-bun run start:cli  # CLI mode
+bunx brain start
 ```
 
-## Config Architecture
+## Architecture
 
-- **Brain model** (`src/index.ts`): Structural config — which plugins, layouts, templates, routes, permission rules, entity route config
-- **brain.yaml**: Instance config — who, where, what repo, what domain
-- **.env**: Secrets — tokens and API keys you'd rotate if leaked
-- **seed-content/**: Default identity — copied once on first boot
+- **Brain model** (`src/index.ts`) — plugin selection, presets, interfaces, permissions
+- **`brain.yaml`** — per-instance config and overrides
+- **`.env`** — secrets only
+- **`seed-content/`** — first-boot starter content
+
+See also:
+
+- [Brain model architecture](../../docs/brain-model.md)
+- [Repository README](../../README.md)

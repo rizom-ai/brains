@@ -1,5 +1,7 @@
 # Roadmap
 
+> **Archive note:** This file is a historical public-release planning snapshot. For the current roadmap, see [`../roadmap.md`](../roadmap.md).
+
 This is a public, high-level view of where `brains` is headed. Items are roughly ordered by priority but not strictly by date — actual landing depends on maintainer availability.
 
 For what's already shipped, see [CHANGELOG.md](./CHANGELOG.md).

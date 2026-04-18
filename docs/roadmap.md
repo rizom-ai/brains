@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-15
+Last updated: 2026-04-18
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -79,7 +79,8 @@ Fill the remaining user-facing docs in parallel with the product work above:
 - entity type reference
 - content-management guidance
 - interface setup guides
-- deeper customization docs for themes, layouts, and plugins
+- deeper customization docs for themes, layouts, and plugin authoring examples
+- keep architecture-level plugin docs thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`
 
 Plan:
 

@@ -86,7 +86,6 @@ plugins/              built-in service plugins
 interfaces/           built-in interface plugins
 brains/               brain model packages
 sites/                structural site packages
-sites/                structural site packages
 packages/brain-cli/   published CLI and runtime package: @rizom/brain
 deploy/               deployment recipes and templates
 docs/                 architecture, theming, roadmap, plans

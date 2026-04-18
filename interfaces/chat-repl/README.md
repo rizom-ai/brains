@@ -1,252 +1,79 @@
-# @brains/cli
+# @brains/chat-repl
 
-Command-line interface for Brain applications using Ink (React for CLI).
+Terminal chat REPL interface for local interaction with a running brain, built with Ink.
 
 ## Overview
 
-This package provides an interactive terminal interface for Brain applications with real-time updates, command history, and progress tracking.
+`@brains/chat-repl` provides a local, terminal-first interface plugin. User input is routed through the brain's agent service, so the REPL behaves like a natural-language conversation surface rather than a command parser.
 
-## Features
+It also keeps a few local UI commands for terminal control:
 
-- Interactive terminal UI with Ink (React)
-- Command execution with auto-completion
-- Real-time progress bars for batch operations
-- Conversation history and context
-- Multi-line input support
-- Status bar with current state
-- Command history navigation
+- `/exit` or `/quit` — leave the REPL
+- `/clear` — clear the visible message history
+- `/progress` — toggle detailed progress output
 
-## Installation
+## Current behavior
 
-```bash
-bun add @brains/cli
-```
+- natural-language chat routed through the agent service
+- inline progress reporting for long-running work
+- command/message history in the terminal session
+- confirmation handling for destructive or review-required actions
+- keyboard shortcuts for clearing, exiting, and progress display
 
 ## Usage
 
-### As a Plugin
+This package is currently a private workspace package and is typically consumed through brain models or workspace imports.
 
 ```typescript
-import { CLIInterface } from "@brains/cli";
+import { CLIInterface } from "@brains/chat-repl";
 
 const cli = new CLIInterface({
-  prompt: "brain> ",
-  historyFile: ".brain_history",
-});
-
-// Register with shell
-await shell.registerPlugin(cli);
-```
-
-### Standalone
-
-```typescript
-import { CLIInterface } from "@brains/cli";
-import { Shell } from "@brains/core";
-
-// Initialize shell
-const shell = await Shell.initialize({
-  plugins: [
-    new CLIInterface(),
-    // other plugins
-  ],
+  theme: {
+    primaryColor: "#0066cc",
+    accentColor: "#ff6600",
+  },
 });
 ```
 
-## User Interface
-
-The CLI provides a rich terminal interface:
-
-```
-┌─────────────────────────────────────┐
-│ Brain CLI v1.0.0                    │
-├─────────────────────────────────────┤
-│                                     │
-│ > create note "Meeting Notes"       │
-│ Created note: note_abc123           │
-│                                     │
-│ > search "project updates"          │
-│ Found 3 results:                    │
-│ 1. Project Status Update            │
-│ 2. Q4 Project Planning              │
-│ 3. Project Milestone Review         │
-│                                     │
-│ > _                                 │
-├─────────────────────────────────────┤
-│ Ready | Entities: 42 | Memory: 12MB │
-└─────────────────────────────────────┘
-```
-
-## Components
-
-### App Component
-
-Main application container with message list and input:
-
-```typescript
-<App
-  messages={messages}
-  onSubmit={handleCommand}
-  status={currentStatus}
-/>
-```
-
-### EnhancedInput
-
-Advanced input with history and multi-line support:
-
-```typescript
-<EnhancedInput
-  prompt="brain> "
-  onSubmit={handleSubmit}
-  history={commandHistory}
-  multiline={false}
-/>
-```
-
-### BatchProgress
-
-Progress tracking for batch operations:
-
-```typescript
-<BatchProgress
-  jobId="import_123"
-  title="Importing entities"
-  operations={[
-    { name: "Reading files", progress: 100 },
-    { name: "Processing", progress: 45 },
-    { name: "Saving", progress: 0 },
-  ]}
-/>
-```
-
-### StatusBar
-
-Bottom status bar with system information:
-
-```typescript
-<StatusBar
-  status="Ready"
-  entityCount={42}
-  memoryUsage="12MB"
-/>
-```
-
-## Commands
-
-Commands are auto-generated from plugin tools:
-
-```bash
-# Entity operations
-> create note "Title" --content "Content here"
-> search "query text"
-> update note_123 --content "New content"
-> delete note_123
-
-# System commands
-> help
-> status
-> clear
-> exit
-
-# Conversation
-> getmessages conv_123
-> getconversation conv_123
-```
-
-## Keyboard Shortcuts
-
-- `↑/↓` - Navigate command history
-- `Tab` - Auto-complete commands
-- `Ctrl+C` - Cancel current operation
-- `Ctrl+D` - Exit
-- `Ctrl+L` - Clear screen
-
-## Progress Events
-
-The CLI subscribes to job progress events:
-
-```typescript
-// Batch operations show progress
-messageBus.emit("job:progress", {
-  jobId: "import_123",
-  progress: 45,
-  message: "Processing file 45/100",
-});
-```
+Registered as an interface plugin, it opens an Ink-based terminal UI and keeps a single local conversation channel.
 
 ## Configuration
 
 ```typescript
 interface CLIConfig {
-  prompt?: string; // Command prompt (default: "> ")
-  historyFile?: string; // History file path
-  maxHistory?: number; // Max history entries (default: 1000)
   theme?: {
-    primary?: string; // Primary color
-    success?: string; // Success messages
-    error?: string; // Error messages
-    info?: string; // Info messages
+    primaryColor?: string;
+    accentColor?: string;
   };
 }
 ```
 
-## Message Formatting
+Defaults:
 
-Messages support markdown formatting:
+- `theme.primaryColor`: `#0066cc`
+- `theme.accentColor`: `#ff6600`
 
-```typescript
-// Bold, italic, code
-**bold text** *italic* `code`
+## Keyboard shortcuts
 
-// Lists
-- Item 1
-- Item 2
-
-// Code blocks
-\`\`\`typescript
-const example = "code";
-\`\`\`
-
-// Links (shown as text)
-[Link text](url)
-```
-
-## Testing
-
-```typescript
-import { render } from "ink-testing-library";
-import { App } from "@brains/cli";
-
-const { lastFrame, stdin } = render(
-  <App messages={[]} onSubmit={jest.fn()} />
-);
-
-// Simulate input
-stdin.write("create note Test\n");
-
-// Check output
-expect(lastFrame()).toContain("create note Test");
-```
-
-## Architecture
-
-The CLI uses the MessageInterfacePlugin base class:
-
-1. Receives commands from user input
-2. Executes via CommandRegistry
-3. Formats responses for display
-4. Maintains conversation context
-5. Handles async operations with progress
+- `Ctrl+C` — exit
+- `Ctrl+L` — clear the screen
+- `Ctrl+P` — toggle detailed progress
+- `Shift+↑ / Shift+↓` — scroll by line
+- `Page Up / Page Down` — scroll by larger steps
 
 ## Exports
 
-- `CLIInterface` - Main interface plugin class
-- `App` - Root React component
-- `EnhancedInput` - Input component
-- `BatchProgress` - Progress component
-- `StatusBar` - Status component
-- Components and utilities
+- `CLIInterface`
+- `cliConfigSchema`
+- `CLIConfig`
+- `ProgressBar`
+- `BatchProgress`
+
+## Related docs
+
+- [interfaces/AGENTS.md](../AGENTS.md)
+- [Architecture Overview](../../docs/architecture-overview.md)
+- [Plugin System](../../docs/plugin-system.md)
 
 ## License
 

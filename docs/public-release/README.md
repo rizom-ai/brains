@@ -89,7 +89,7 @@ A **brain instance** is a deployment of a brain model on your infrastructure, co
 
 **Interfaces** are how users and other agents talk to your brain. Built-in: MCP, A2A, Discord, webserver, CLI.
 
-For the deeper picture: [docs/architecture-overview.md](docs/architecture-overview.md), [docs/plugin-system.md](docs/plugin-system.md), [docs/entity-model.md](docs/entity-model.md).
+For the deeper picture: [Architecture Overview](../architecture-overview.md), [Plugin System](../plugin-system.md), [Entity Model](../entity-model.md).
 
 ---
 
@@ -117,7 +117,7 @@ plugins:
     authToken: ${MCP_AUTH_TOKEN}
 ```
 
-Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [packages/brain-cli/docs/brain-yaml-reference.md](packages/brain-cli/docs/brain-yaml-reference.md).
+Secrets stay in `.env`; everything else goes in `brain.yaml`. Full reference: [packages/brain-cli/docs/brain-yaml-reference.md](../../packages/brain-cli/docs/brain-yaml-reference.md).
 
 ---
 
@@ -143,7 +143,7 @@ brain build --model rover
 brain deploy --provider hetzner
 ```
 
-See [deploy/README.md](deploy/README.md) for the full deployment guide. Reference brains run on Hetzner Cloud at €5–10/month. Other providers (Fly.io, Railway, generic Docker hosts) work with minor recipe edits.
+See [deploy/README.md](../../deploy/README.md) for the full deployment guide. Reference brains run on Hetzner Cloud at €5–10/month. Other providers (Fly.io, Railway, generic Docker hosts) work with minor recipe edits.
 
 ---
 
@@ -165,21 +165,21 @@ docs/                 Architecture, plugin development, deployment, theming
 
 ## Documentation
 
-- [Architecture overview](docs/architecture-overview.md)
-- [Brain model + instance configuration](docs/brain-model.md)
-- [Entity model](docs/entity-model.md)
-- [Plugin system](docs/plugin-system.md) and [development patterns](docs/plugin-development-patterns.md)
-- [`brain.yaml` reference](packages/brain-cli/docs/brain-yaml-reference.md)
-- [Theming guide](docs/theming-guide.md)
-- [Deployment](deploy/README.md)
-- [Stability commitments](STABILITY.md)
-- [Roadmap](docs/roadmap.md)
+- [Architecture overview](../architecture-overview.md)
+- [Brain model + instance configuration](../brain-model.md)
+- [Entity model](../entity-model.md)
+- [Plugin system](../plugin-system.md) and [development patterns](../plugin-development-patterns.md)
+- [`brain.yaml` reference](../../packages/brain-cli/docs/brain-yaml-reference.md)
+- [Theming guide](../theming-guide.md)
+- [Deployment](../../deploy/README.md)
+- [Stability commitments](./STABILITY.md)
+- [Roadmap](../roadmap.md)
 
 ---
 
 ## License
 
-[Apache-2.0](LICENSE)
+[Apache-2.0](../../LICENSE)
 
 ## Security
 

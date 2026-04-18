@@ -4,14 +4,14 @@
 
 ## TL;DR
 
-| You want to...              | Do this                                                                                  |
-| --------------------------- | ---------------------------------------------------------------------------------------- |
-| Report a bug                | [Open an issue](../../issues/new?template=bug_report.md)                                 |
-| Suggest a feature           | [Open an issue](../../issues/new?template=feature_request.md) — read first, queued, slow |
-| Fix a typo or broken link   | Open a small PR; will be reviewed                                                        |
-| Build a substantial feature | Don't open a PR. Fork instead.                                                           |
-| Report a security issue     | See [SECURITY.md](SECURITY.md) — **email, do not file an issue**                         |
-| Build a third-party plugin  | Publish it as your own npm package; see [docs/plugin-system.md](docs/plugin-system.md)   |
+| You want to...              | Do this                                                                                                               |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Report a bug                | [Open an issue](https://github.com/rizom-ai/brains/issues/new?template=bug_report.md)                                 |
+| Suggest a feature           | [Open an issue](https://github.com/rizom-ai/brains/issues/new?template=feature_request.md) — read first, queued, slow |
+| Fix a typo or broken link   | Open a small PR; will be reviewed                                                                                     |
+| Build a substantial feature | Don't open a PR. Fork instead.                                                                                        |
+| Report a security issue     | See [SECURITY.md](SECURITY.md) — **email, do not file an issue**                                                      |
+| Build a third-party plugin  | Publish it as your own npm package; see [Plugin System](../plugin-system.md)                                          |
 
 ## Why maintainer-only
 
@@ -85,10 +85,10 @@ These are enforced by the pre-commit hook and CI. If your PR isn't following the
 
 If you want to extend `brains` without contributing upstream, the plugin system is the right path. See:
 
-- [docs/plugin-system.md](docs/plugin-system.md) — architecture and lifecycle
-- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md) — common patterns
-- [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md) — API cheat sheet
-- [`plugins/examples/`](plugins/examples/) — minimal working examples
+- [Plugin System](../plugin-system.md) — architecture and lifecycle
+- [Plugin Development Patterns](../plugin-development-patterns.md) — common patterns
+- [Plugin Quick Reference](../plugin-quick-reference.md) — API cheat sheet
+- [`plugins/examples/`](../../plugins/examples/) — minimal working examples
 
 Publish your plugin as `@your-org/brain-plugin-cool-thing` on npm and reference it in `brain.yaml`. Your plugin doesn't need to be in this repository to work with `brains`.
 

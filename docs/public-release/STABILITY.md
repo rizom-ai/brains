@@ -12,7 +12,7 @@ These are the things you can build on with reasonable confidence. Breaking chang
 
 ### `brain.yaml` top-level schema
 
-The top-level fields documented in [brain.yaml reference](docs/brain-yaml-reference.md) are stable:
+The top-level fields documented in [brain.yaml reference](../../packages/brain-cli/docs/brain-yaml-reference.md) are stable:
 
 - `brain` — brain model package reference
 - `site` — site package override

@@ -119,14 +119,14 @@ list:
 Mapping [docs/roadmap.md](../roadmap.md) items that would naturally slot
 into relay once they land:
 
-| future plugin / feature                                             | target tier                  | notes                                                            |
-| ------------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
-| **multi-user + permissions** ([plan](./multi-user.md))              | `core`                       | defining feature for a team brain — users, roles, audit trail    |
-| **Chat SDK migration** ([plan](./chat-interface-sdk.md))            | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                          |
-| **AT Protocol phases 1-2** ([plan](./atproto-integration.md))       | `default`                    | outbound publishing — teams push knowledge to decentralized feed |
-| **AT Protocol phases 3-6**                                          | `full`                       | inbound ingestion, cross-brain feeds, ambient federation         |
-| **agent-discovery phase 2** (ATProto firehose)                      | `core`                       | auto-discover peer brains — already registered in `core` as stub |
-| **monitoring — phase 3** (usage tracking) ([plan](./monitoring.md)) | `default` or `full`          | team operators need to see AI spend + usage                      |
+| future plugin / feature                                       | target tier                  | notes                                                            |
+| ------------------------------------------------------------- | ---------------------------- | ---------------------------------------------------------------- |
+| **multi-user + permissions** ([plan](./multi-user.md))        | `core`                       | defining feature for a team brain — users, roles, audit trail    |
+| **Chat SDK migration** ([plan](./chat-interface-sdk.md))      | replaces `discord` in `core` | unified chat across Slack/Discord/Teams                          |
+| **AT Protocol phases 1-2** ([plan](./atproto-integration.md)) | `default`                    | outbound publishing — teams push knowledge to decentralized feed |
+| **AT Protocol phases 3-6**                                    | `full`                       | inbound ingestion, cross-brain feeds, ambient federation         |
+| **agent-discovery phase 2** (ATProto firehose)                | `core`                       | auto-discover peer brains — already registered in `core` as stub |
+| **monitoring — phase 3** (usage tracking)                     | `default` or `full`          | team operators need to see AI spend + usage                      |
 
 ## Future — hypothetical plugins worth naming
 
