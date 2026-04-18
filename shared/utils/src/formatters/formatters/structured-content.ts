@@ -5,6 +5,7 @@ import type {
   Root,
   Heading,
   Paragraph,
+  PhrasingContent,
   RootContent,
   List,
   ListItem,
@@ -411,18 +412,37 @@ export class StructuredContentFormatter<T> implements ContentFormatter<T> {
   }
 
   /**
-   * Extract text from a paragraph node
+   * Extract text from a paragraph node.
+   *
+   * Preserves inline markdown emphasis (`*em*`) and strong (`**strong**`)
+   * so layouts that opt into custom rendering (e.g. an accent-highlight
+   * treatment for `*...*` runs) can still see the author's markup.
+   * Plain consumers that read the string as-is receive the markers as
+   * literal characters — that's faithful to what was authored.
    */
   private extractTextFromParagraph(paragraph: Paragraph): string {
-    const parts: string[] = [];
+    return this.extractInlineText(paragraph.children).trim();
+  }
 
-    for (const child of paragraph.children) {
+  /**
+   * Walk a phrasing-content tree and emit a string that re-serializes
+   * inline markup. Used by paragraph + list-item extraction so both
+   * treat emphasis consistently.
+   */
+  private extractInlineText(children: readonly PhrasingContent[]): string {
+    const parts: string[] = [];
+    for (const child of children) {
       if (child.type === "text") {
         parts.push(this.extractTextValue(child));
+      } else if (child.type === "emphasis") {
+        const inner = this.extractInlineText(child.children);
+        if (inner) parts.push(`*${inner}*`);
+      } else if (child.type === "strong") {
+        const inner = this.extractInlineText(child.children);
+        if (inner) parts.push(`**${inner}**`);
       }
     }
-
-    return parts.join("").trim();
+    return parts.join("");
   }
 
   /**

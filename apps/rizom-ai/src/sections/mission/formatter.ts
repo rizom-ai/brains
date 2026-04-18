@@ -7,8 +7,7 @@ export const missionFormatter = new StructuredContentFormatter<MissionContent>(
     title: "Mission Section",
     mappings: [
       { key: "preamble", label: "Preamble", type: "string" },
-      { key: "headlineStart", label: "Headline Start", type: "string" },
-      { key: "headlineHighlight", label: "Headline Highlight", type: "string" },
+      { key: "headline", label: "Headline", type: "string" },
       { key: "post", label: "Post", type: "string" },
       { key: "primaryCtaLabel", label: "Primary CTA Label", type: "string" },
       { key: "primaryCtaHref", label: "Primary CTA Href", type: "string" },

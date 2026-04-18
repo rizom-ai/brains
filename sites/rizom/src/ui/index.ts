@@ -7,6 +7,7 @@ export { Section, GUTTER } from "./Section";
 export { Button } from "./Button";
 export { Badge } from "./Badge";
 export { Divider } from "./Divider";
+export { renderHighlightedText } from "./highlighted-text";
 export { ProductCard } from "./ProductCard";
 export { socialLinksToRizomLinks } from "./site-info-links";
 export type {

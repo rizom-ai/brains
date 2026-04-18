@@ -1,12 +1,18 @@
 import type { JSX } from "preact";
 import type { CloserContent } from "./schema";
-import { Button, Divider, Section } from "@brains/site-rizom";
+import {
+  Button,
+  Divider,
+  Section,
+  renderHighlightedText,
+} from "@brains/site-rizom";
+
+/** rizom.work's highlight voice: italic + accent color. */
+const HIGHLIGHT_CLS = "italic text-accent";
 
 export const CloserLayout = ({
   preamble,
-  headlineStart,
-  headlineEmphasis,
-  headlineEnd,
+  headline,
   primaryCtaLabel,
   primaryCtaHref,
   secondaryCtaLabel,
@@ -19,12 +25,7 @@ export const CloserLayout = ({
         {preamble}
       </p>
       <h2 className="font-display text-[40px] md:text-display-xl leading-[0.98] tracking-[-1.6px]">
-        {headlineStart}
-        <br />
-        {headlineEmphasis ? (
-          <span className="italic text-accent">{headlineEmphasis}</span>
-        ) : null}
-        {headlineEnd}
+        {renderHighlightedText(headline, HIGHLIGHT_CLS)}
       </h2>
       <div className="flex flex-col md:flex-row gap-3 md:gap-5 md:justify-center items-stretch md:items-center mt-9 md:mt-12">
         <Button href={primaryCtaHref} variant="primary" size="lg" block>

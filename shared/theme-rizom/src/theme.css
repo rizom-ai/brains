@@ -140,6 +140,12 @@
     --color-bg-muted: rgb(from var(--palette-white) r g b / 0.04);
     --color-bg-dark: #000000;
 
+    /* Page-level grain layered on <html>. Light mode also layers in an
+       ember-glow atmosphere on top via a separate html rule — dark mode
+       stays single-layer so semi-transparent ProductCard backgrounds
+       composite identically to the original single-url version. */
+    --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+
     /* Text */
     --color-text: var(--palette-white);
     --color-text-muted: rgb(from var(--palette-white) r g b / 0.6);
@@ -341,6 +347,24 @@
     --color-bg-muted: rgb(from var(--palette-text-light) r g b / 0.04);
     --color-bg-dark: var(--palette-bg-deep);
 
+    /* Paper wants more tactile grain than ink to feel printed rather
+       than flat; amber radials at top + bottom mirror the dark mode's
+       ember glow so light mode isn't a brochure. --bg-atmosphere is
+       only declared here (not in :root) so dark mode's html rule
+       stays single-layer. */
+    --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+    --bg-atmosphere:
+      radial-gradient(
+        ellipse at 50% -10%,
+        rgb(from var(--palette-amber) r g b / 0.08) 0%,
+        transparent 55%
+      ),
+      radial-gradient(
+        ellipse at 50% 120%,
+        rgb(from var(--palette-amber-dark) r g b / 0.06) 0%,
+        transparent 50%
+      );
+
     --color-text: var(--palette-text-light);
     --color-text-muted: rgb(from var(--palette-text-light) r g b / 0.55);
     --color-text-light: rgb(from var(--palette-text-light) r g b / 0.38);
@@ -452,13 +476,18 @@
    automatically pick up the right accent.
    ============================================ */
 @layer theme-override {
-  /* Root background — paints the html element with the theme bg-color
-     plus the decorative SVG grain. Grain lives on html (not body) so
-     the texture spans the full viewport regardless of any body-level
-     max-width container, matching docs/design/rizom-ai.themed.html. */
+  /* Root background — dark mode paints a single grain layer to match
+     the pre-refactor compositing (ProductCard gradients rely on a
+     single-layer bg underneath to render cleanly). */
   html {
     background-color: var(--color-bg);
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+    background-image: var(--bg-noise);
+  }
+
+  /* Light mode layers warm amber radials over the grain — mirrors
+     the canvas ember glow that only shows through in dark mode. */
+  [data-theme="light"] html {
+    background-image: var(--bg-atmosphere), var(--bg-noise);
   }
 
   /* Default body styling — inherits the theme text color, body font,

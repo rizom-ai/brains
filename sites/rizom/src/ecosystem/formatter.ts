@@ -5,6 +5,8 @@ export const ecosystemFormatter =
   new StructuredContentFormatter<EcosystemContent>(EcosystemContentSchema, {
     title: "Ecosystem Section",
     mappings: [
+      { key: "eyebrow", label: "Eyebrow", type: "string" },
+      { key: "headline", label: "Headline", type: "string" },
       {
         key: "cards",
         label: "Cards",

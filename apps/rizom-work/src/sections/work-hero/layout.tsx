@@ -1,12 +1,13 @@
 import type { JSX } from "preact";
 import type { WorkHeroContent } from "./schema";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section, renderHighlightedText } from "@brains/site-rizom";
+
+/** rizom.work's highlight voice: italic + accent color. */
+const HIGHLIGHT_CLS = "italic text-accent";
 
 export const WorkHeroLayout = ({
   kicker,
-  headlineStart,
-  headlineEmphasis,
-  headlineEnd,
+  headline,
   subtitle,
   primaryCtaLabel,
   primaryCtaHref,
@@ -36,9 +37,7 @@ export const WorkHeroLayout = ({
             <span>{kicker}</span>
           </div>
           <h1 className="mb-7 max-w-[14ch] font-display text-[clamp(36px,5.2vw,76px)] font-[520] leading-none tracking-[-2px] opacity-0 animate-hero-rise [animation-delay:0.2s] max-[1100px]:max-w-full">
-            {headlineStart}{" "}
-            <span className="italic text-accent">{headlineEmphasis}</span>
-            {headlineEnd}
+            {renderHighlightedText(headline, HIGHLIGHT_CLS)}
           </h1>
           <p className="mb-10 max-w-[500px] font-body text-[18px] leading-[1.65] text-theme-muted opacity-0 animate-hero-rise [animation-delay:0.4s]">
             {subtitle}

@@ -22,7 +22,10 @@ export const aiRoutes: RouteDefinitionInput[] = [
       {
         id: "ecosystem",
         template: "rizom-site:ecosystem",
-        content: createEcosystemContent("ai"),
+        content: createEcosystemContent("ai", {
+          eyebrow: "The Ecosystem",
+          headline: "One ecosystem. The platform, the vision, the network.",
+        }),
       },
     ],
   },

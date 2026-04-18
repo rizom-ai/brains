@@ -52,7 +52,10 @@ export const foundationRoutes: RouteDefinitionInput[] = [
       {
         id: "ecosystem",
         template: "rizom-site:ecosystem",
-        content: createEcosystemContent("foundation"),
+        content: createEcosystemContent("foundation", {
+          eyebrow: "The Ecosystem",
+          headline: "One ecosystem. The platform, the vision, the network.",
+        }),
       },
     ],
   },

@@ -7,13 +7,7 @@ export const closerFormatter = new StructuredContentFormatter<CloserContent>(
     title: "Closer Section",
     mappings: [
       { key: "preamble", label: "Preamble", type: "string" },
-      { key: "headlineStart", label: "Headline start", type: "string" },
-      {
-        key: "headlineEmphasis",
-        label: "Headline emphasis",
-        type: "string",
-      },
-      { key: "headlineEnd", label: "Headline end", type: "string" },
+      { key: "headline", label: "Headline", type: "string" },
       { key: "primaryCtaLabel", label: "Primary CTA label", type: "string" },
       { key: "primaryCtaHref", label: "Primary CTA href", type: "string" },
       {

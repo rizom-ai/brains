@@ -30,6 +30,7 @@ export {
   Section,
   SideNav,
   socialLinksToRizomLinks,
+  renderHighlightedText,
   GUTTER,
 } from "./ui";
 export type {

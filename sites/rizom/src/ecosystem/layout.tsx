@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Section } from "../ui";
+import { Badge, Divider, Section } from "../ui";
 import type { EcosystemContent, EcosystemSuffix } from "./schema";
 
 const BASE_CARD_CLASS =
@@ -32,9 +32,20 @@ const ACCENT_LINK: Record<EcosystemSuffix, string> = {
   work: "text-secondary",
 };
 
-export const EcosystemLayout = ({ cards }: EcosystemContent): JSX.Element => {
+export const EcosystemLayout = ({
+  eyebrow,
+  headline,
+  cards,
+}: EcosystemContent): JSX.Element => {
   return (
     <Section id="ecosystem" className="reveal pt-section pb-16 md:pb-24">
+      <Divider className="mb-10 md:mb-14" />
+      <div className="text-center mb-10 md:mb-14">
+        <Badge className="mb-6">{eyebrow}</Badge>
+        <h2 className="font-display text-display-md max-w-[880px] mx-auto">
+          {headline}
+        </h2>
+      </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         {cards.map((card, i) => {
           // The active card (the one for the site you're currently on)

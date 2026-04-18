@@ -1,12 +1,13 @@
 import type { JSX } from "preact";
 import type { WorkProblemContent } from "./schema";
-import { Section } from "@brains/site-rizom";
+import { Section, renderHighlightedText } from "@brains/site-rizom";
+
+/** rizom.work's highlight voice: italic + accent color. */
+const HIGHLIGHT_CLS = "italic text-accent";
 
 export const WorkProblemLayout = ({
   kicker,
-  headlineStart,
-  headlineEmphasis,
-  headlineEnd,
+  headline,
   subhead,
 }: WorkProblemContent): JSX.Element => {
   return (
@@ -15,9 +16,7 @@ export const WorkProblemLayout = ({
         <span>{kicker}</span>
       </div>
       <h2 className="font-display text-[34px] tracking-[-1.2px] leading-[1.06] md:text-display-lg max-w-[18ch] mx-auto">
-        {headlineStart}{" "}
-        <span className="italic text-accent">{headlineEmphasis}</span>
-        {headlineEnd}
+        {renderHighlightedText(headline, HIGHLIGHT_CLS)}
       </h2>
       <p className="mt-6 text-body-md md:text-body-xl text-theme-muted max-w-[760px] mx-auto">
         {subhead}

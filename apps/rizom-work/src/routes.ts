@@ -55,7 +55,10 @@ export const workRoutes: RouteDefinitionInput[] = [
       {
         id: "ecosystem",
         template: "rizom-site:ecosystem",
-        content: createEcosystemContent("work"),
+        content: createEcosystemContent("work", {
+          eyebrow: "The Ecosystem",
+          headline: "One ecosystem. The platform, the vision, the network.",
+        }),
       },
     ],
   },

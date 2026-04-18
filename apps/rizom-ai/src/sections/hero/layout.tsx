@@ -1,6 +1,10 @@
 import type { JSX } from "preact";
 import type { HeroContent } from "./schema";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section, renderHighlightedText } from "@brains/site-rizom";
+
+/** rizom.ai's highlight voice: accent color + thin mid-line decoration. */
+const HIGHLIGHT_CLS =
+  "inline-block relative text-accent before:content-[''] before:absolute before:left-[-4%] before:right-[-4%] before:top-1/2 before:h-px before:bg-[var(--color-highlight-underline)] before:opacity-50";
 
 /**
  * Hero section — full-viewport intro with animated rise-in headline,
@@ -23,7 +27,7 @@ export const HeroLayout = ({
     >
       <div className="relative z-[2] w-full md:w-[55%] pt-0 md:pt-20">
         <h1 className="font-display font-normal text-[38px] tracking-[-1.5px] leading-[1.05] md:text-display-lg mb-6 opacity-0 animate-hero-rise [animation-delay:0.2s]">
-          {headline}
+          {renderHighlightedText(headline, HIGHLIGHT_CLS)}
         </h1>
         <p className="font-body text-body-md md:text-body-lg text-theme-muted max-w-full md:max-w-[480px] mb-9 md:mb-10 opacity-0 animate-hero-rise [animation-delay:0.4s]">
           {subhead}

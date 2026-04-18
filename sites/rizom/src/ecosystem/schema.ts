@@ -17,6 +17,16 @@ export const EcosystemCardSchema = z.object({
 });
 
 export const EcosystemContentSchema = z.object({
+  /**
+   * Short tracked-caps label rendered above the headline — matches the
+   * Badge used by other sections. Forces the ecosystem reveal to be
+   * framed deliberately instead of appearing as an unlabeled footer.
+   */
+  eyebrow: z.string(),
+  /**
+   * Section headline rendered above the card grid.
+   */
+  headline: z.string(),
   cards: z.array(EcosystemCardSchema).min(1),
 });
 
