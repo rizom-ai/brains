@@ -3,13 +3,8 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "jsxImportSource": "preact",
-    "lib": [
-      "DOM",
-      "ES2015"
-    ],
+    "lib": ["DOM", "ES2022"],
     "rootDir": "./src"
   },
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
