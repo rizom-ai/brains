@@ -1,7 +1,13 @@
 name: Release
 
 on:
-  push:
+  # Chain off CI so a red build never produces an npm publish. Release
+  # runs as a no-op when there are no pending changesets, which keeps
+  # the downstream image/deploy chain linear (CI → Release → Publish
+  # Images → Deploy) for both release and non-release pushes.
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
     branches: [main]
   # Manual trigger so operators can kick off a release run without
   # pushing a commit — handy for re-running a failed publish against
@@ -15,7 +21,12 @@ jobs:
     name: Release
     # Fork-safety: only run on the canonical repo. Forks shouldn't
     # attempt to publish releases for the upstream packages.
-    if: github.repository == 'rizom-ai/brains'
+    # For workflow_run events, also gate on the upstream CI run having
+    # succeeded — workflow_run fires on both success and failure.
+    if: >
+      github.repository == 'rizom-ai/brains' &&
+      (github.event_name == 'workflow_dispatch' ||
+       github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     permissions:
       contents: write

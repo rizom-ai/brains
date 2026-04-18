@@ -1,10 +1,13 @@
 name: Publish Brain Model Images
 
 on:
-  # Continuous publish: every successful CI run on main produces a fresh
-  # :latest tag + :<sha> tag for traceability.
+  # Continuous publish: every successful Release run on main produces a
+  # fresh :latest tag + :<sha> tag for traceability. Gating on Release
+  # (not CI directly) ensures the image reflects the bumped
+  # package.json versions that Release pushed, so there's no stale
+  # window where :latest points at the pre-bump commit.
   workflow_run:
-    workflows: ["CI"]
+    workflows: ["Release"]
     branches: ["main"]
     types: [completed]
   # Release publish: tagged releases get semver tags (:v0.1.0, :0.1, etc.).
