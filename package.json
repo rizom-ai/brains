@@ -34,7 +34,6 @@
   "packageManager": "bun@1.0.0",
   "private": true,
   "scripts": {
-    "precompile": "brain-precompile",
     "build": "turbo run build",
     "dev": "turbo run dev",
     "lint": "turbo run lint",

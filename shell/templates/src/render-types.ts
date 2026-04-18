@@ -23,7 +23,6 @@ export const ViewTemplateSchema = z.object({
     web: z.union([z.function(), z.string()]).optional(),
     // Future formats can be added here
   }),
-  interactive: z.string().optional(),
 });
 
 /**
@@ -54,9 +53,6 @@ export interface ViewTemplate<T = unknown> {
     // pdf?: PDFRenderer<T>;
     // email?: EmailRenderer<T>;
   };
-
-  // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
-  interactive?: string;
 
   // When true, render without any page layout shell (no header/footer)
   fullscreen?: boolean;

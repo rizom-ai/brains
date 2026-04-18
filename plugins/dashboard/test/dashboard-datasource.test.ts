@@ -3,10 +3,7 @@ import { createMockLogger, createMockEntityService } from "@brains/test-utils";
 import { DashboardWidgetRegistry } from "../src/widget-registry";
 import { DashboardDataSource } from "../src/dashboard-datasource";
 import type { RegisteredWidget } from "../src/widget-registry";
-import {
-  dashboardDataSchema,
-  type DashboardData,
-} from "../src/templates/dashboard/schema";
+import { dashboardDataSchema, type DashboardData } from "../src/widget-schema";
 import type { BaseDataSourceContext } from "@brains/plugins";
 
 describe("DashboardDataSource", () => {

@@ -19,7 +19,6 @@ import {
 import type { ComponentChildren } from "preact";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
-import { HydrationManager } from "../hydration/hydration-manager";
 import type { CSSProcessor } from "../css/css-processor";
 import { TailwindCSSProcessor } from "../css/css-processor";
 import { createHTMLShell } from "./html-generator";
@@ -80,25 +79,6 @@ export class PreactBuilder implements StaticSiteBuilder {
     // scripts, fonts, etc.) — keyed by output path, values are file
     // contents as strings.
     await this.writeInlineStaticAssets(context.staticAssets);
-
-    // Set up hydration for interactive components
-    onProgress("Setting up component hydration");
-    const hydrationManager = new HydrationManager(
-      this.logger.child("HydrationManager"),
-      context.getViewTemplate,
-      this.outputDir,
-    );
-
-    const interactiveTemplates = await hydrationManager.processRoutes(
-      context.routes,
-    );
-
-    if (interactiveTemplates.length > 0) {
-      await hydrationManager.updateHTMLFiles(
-        context.routes,
-        context.getContent,
-      );
-    }
 
     onProgress("Preact build complete");
   }

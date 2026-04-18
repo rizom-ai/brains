@@ -3,10 +3,7 @@ import type { Logger } from "@brains/utils";
 import { getErrorMessage } from "@brains/utils";
 import type { z } from "@brains/utils";
 import { type DashboardWidgetRegistry } from "./widget-registry";
-import {
-  type DashboardData,
-  type WidgetData,
-} from "./templates/dashboard/schema";
+import { type DashboardData, type WidgetData } from "./widget-schema";
 
 /**
  * Dashboard DataSource

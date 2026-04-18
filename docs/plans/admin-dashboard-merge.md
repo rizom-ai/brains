@@ -19,7 +19,9 @@ The webserver mounts plugin web routes before falling through to static serving 
 
 - keep dashboard as its own operator plugin
 - remove the site-builder dashboard template path
-- remove hydration support entirely
+- remove the current hydration pipeline
+
+This is **not** a statement that future browser-side interactivity is unwanted. It only removes the current custom pattern (`interactive` template field + compile step + HTML mutation) because that implementation no longer justified its cost.
 
 That direction also aligns with `docs/plans/cms-on-core.md`, which explicitly says to reuse `plugins/dashboard` and not build a second dashboard inside `plugins/admin`.
 
@@ -38,11 +40,13 @@ End result:
 - CMS is served from `@brains/admin`.
 - No site-builder dashboard template exists.
 - No `hydration.tsx`, `hydration.compiled.js`, `HydrationManager`, or template `interactive` field remains.
-- Public-site SSR in site-builder stays intact; only client-side hydration support is removed.
+- Public-site SSR in site-builder stays intact; only the current client-side hydration support is removed.
+- Future client-side interactivity remains valid, but should return through a simpler pattern if/when there is a real consumer.
 
 ## Non-goals
 
 - Merging `@brains/dashboard` into `@brains/admin`
+- Declaring that all future browser interactivity is a mistake
 - Changing widget-registration topic names (`dashboard:register-widget`, `dashboard:unregister-widget` stay unchanged)
 - Adding a shared admin/dashboard chrome
 - Moving dashboard from its current route policy to `/admin`
@@ -276,7 +280,9 @@ Order chosen to keep the repo typecheckable during the transition:
 ## What's lost
 
 - The unused hydrated dashboard path
-- The hydration compile/runtime machinery that only existed to support that path
+- The current hydration compile/runtime machinery that only existed to support that path
+
+A future plugin can still reintroduce browser interactivity with a different, simpler delivery model.
 
 Nothing load-bearing should be lost: dashboard already renders static HTML successfully through its direct web route.
 

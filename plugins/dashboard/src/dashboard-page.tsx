@@ -1,4 +1,4 @@
-import type { DashboardData, WidgetData } from "./templates/dashboard/schema";
+import type { DashboardData, WidgetData } from "./widget-schema";
 
 function escapeHtml(value: unknown): string {
   return String(value)

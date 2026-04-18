@@ -24,7 +24,7 @@ describe("Templates", () => {
       basePrompt: "Generate content",
       useKnowledgeContext: true,
       layout: {
-        interactive: "mock-hydration-script",
+        fullscreen: true,
       },
       dataSourceId: "test-provider",
     };

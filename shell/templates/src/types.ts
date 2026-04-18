@@ -57,8 +57,6 @@ export interface Template extends Omit<
   // View rendering capability (optional)
   layout?: {
     component?: ComponentType<unknown>;
-    // Pre-compiled hydration JS for client-side interactivity (undefined = not interactive)
-    interactive?: string;
     // When true, render without any page layout shell (no header/footer)
     fullscreen?: boolean;
   };
@@ -92,7 +90,6 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
     schema: z.ZodType<TSchema>;
     layout?: {
       component?: ComponentType<TComponent>;
-      interactive?: string;
       fullscreen?: boolean;
     };
     runtimeScripts?: RuntimeScript[];
@@ -107,9 +104,6 @@ export function createTemplate<TSchema = unknown, TComponent = TSchema>(
 
   if (layout) {
     result.layout = {};
-    if (layout.interactive !== undefined) {
-      result.layout.interactive = layout.interactive;
-    }
     if (layout.component) {
       result.layout.component = createTypedComponent<TSchema, TComponent>(
         schema,
@@ -138,7 +132,7 @@ export const TemplateSchema = z.object({
   layout: z
     .object({
       component: z.any(), // ComponentType or string
-      interactive: z.string().optional(),
+      fullscreen: z.boolean().optional(),
     })
     .optional(),
   dataSourceId: z.string().optional(),

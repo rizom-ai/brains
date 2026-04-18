@@ -119,7 +119,7 @@ describe("TemplateCapabilities", () => {
       expect(TemplateCapabilities.canRender(template)).toBe(true);
     });
 
-    it("should return true for interactive templates", () => {
+    it("should return true for templates with fullscreen layout", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -127,7 +127,7 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
         layout: {
           component: mockComponent,
-          interactive: "mock-hydration-script",
+          fullscreen: true,
         },
       });
 
@@ -199,7 +199,7 @@ describe("TemplateCapabilities", () => {
         formatter: mockFormatter,
         layout: {
           component: mockComponent,
-          interactive: "mock-hydration-script",
+          fullscreen: true,
         },
       });
 
@@ -315,7 +315,7 @@ describe("TemplateCapabilities", () => {
       expect(errors).toEqual([]);
     });
 
-    it("should return no errors for interactive template with dataSource", () => {
+    it("should return no errors for renderable template with dataSource", () => {
       const template = createTemplate({
         name: "test",
         description: "Test template",
@@ -324,7 +324,7 @@ describe("TemplateCapabilities", () => {
         requiredPermission: "public",
         layout: {
           component: mockComponent,
-          interactive: "mock-hydration-script",
+          fullscreen: true,
         },
       });
 

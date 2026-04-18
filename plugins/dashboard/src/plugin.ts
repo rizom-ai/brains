@@ -8,7 +8,6 @@ import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
-import { dashboardTemplate } from "./templates/dashboard";
 import { createSystemWidgets } from "./system-widgets";
 import { renderDashboardPageHtml } from "./dashboard-page";
 import packageJson from "../package.json";
@@ -76,48 +75,6 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
     // Initialize and register datasource
     this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);
     context.entities.registerDataSource(this.datasource);
-
-    // Register dashboard template
-    context.templates.register({ dashboard: dashboardTemplate });
-
-    // Register dashboard route via site-builder messaging when available.
-    // Core-style brains can still use the dashboard plugin without site-builder.
-    const routeRegistration = await context.messaging.send(
-      "plugin:site-builder:route:register",
-      {
-        pluginId: this.id,
-        routes: [
-          {
-            id: "dashboard",
-            path: "/dashboard",
-            title: "System Dashboard",
-            description: "Monitor your Brain system statistics and activity",
-            layout: "default",
-            // Operator-only — suppressed from public navigation;
-            // reachable via direct URL.
-            navigation: {
-              show: false,
-              label: "Dashboard",
-              slot: "secondary",
-              priority: 100,
-            },
-            sections: [
-              {
-                id: "main",
-                template: `${this.id}:dashboard`,
-              },
-            ],
-          },
-        ],
-      },
-    );
-
-    if ("noop" in routeRegistration || !routeRegistration.success) {
-      this.logger.debug(
-        "Dashboard route not registered via site-builder",
-        "noop" in routeRegistration ? "no handler" : routeRegistration.error,
-      );
-    }
 
     // Subscribe to widget registration messages
     context.messaging.subscribe(

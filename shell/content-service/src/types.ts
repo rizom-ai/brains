@@ -16,7 +16,6 @@ export const ContentTemplateSchema = z.object({
     .object({
       component: z.any(), // Component function or string
       description: z.string().optional(),
-      interactive: z.boolean().optional(),
       packageName: z.string().optional(),
     })
     .optional(),
@@ -25,8 +24,10 @@ export const ContentTemplateSchema = z.object({
 /**
  * ContentTemplate for reusable generation patterns and view rendering
  */
-export interface ContentTemplate<T = unknown>
-  extends Omit<z.infer<typeof ContentTemplateSchema>, "schema" | "formatter"> {
+export interface ContentTemplate<T = unknown> extends Omit<
+  z.infer<typeof ContentTemplateSchema>,
+  "schema" | "formatter"
+> {
   schema: z.ZodType<T>;
   formatter?: ContentFormatter<T>;
   dataSourceId?: string;

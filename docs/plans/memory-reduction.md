@@ -71,24 +71,11 @@ private async getOpenAIProvider() {
 
 **Expected savings:** 5-15MB (two SDK modules + their transitive deps not parsed by V8/JSC).
 
-### 1C. Lazy-load interactive hydration strings
+### 1C. Hydration pipeline removed
 
-**Files:**
+The old hydration path was removed instead of optimized.
 
-- `shell/templates/src/types.ts` (line 44-45) — widen `interactive` type
-- `plugins/dashboard/src/templates/dashboard/index.ts` — use lazy loader
-- `plugins/site-builder/src/hydration/hydration-manager.ts` — resolve loader
-
-Change `layout.interactive` from `string` to `string | (() => Promise<string>)`. The dashboard template stores a file-path loader instead of the imported string:
-
-```typescript
-// Instead of: import hydrationScript from "./hydration.compiled.js" with { type: "text" };
-interactive: () => Bun.file(new URL("./hydration.compiled.js", import.meta.url)).text(),
-```
-
-`HydrationManager` writes this async (`await fs.writeFile(...)` at line 170), so it just needs to resolve the loader before writing.
-
-**Expected savings:** 1-3MB (735KB string + V8 string overhead not held in registry).
+See `docs/hydration-pattern.md` for the retired approach and recovery notes.
 
 ---
 

@@ -45,9 +45,6 @@ export class RenderService implements IViewTemplateRegistry {
       renderers: { web: template.layout.component },
     };
 
-    if (template.layout.interactive) {
-      viewTemplate.interactive = template.layout.interactive;
-    }
     if (template.layout.fullscreen) {
       viewTemplate.fullscreen = template.layout.fullscreen;
     }

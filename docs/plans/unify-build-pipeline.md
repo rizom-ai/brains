@@ -184,10 +184,9 @@ becomes self-contained the same way the npm build is.
   library exports vs none). Keep them as separate scripts that
   share helpers, not a single mega-script with `--mode=docker`
   branches.
-- **Replacing turbo's `precompile` task.** Turbo still runs
-  `precompile` before `build` in normal dev flow. The helpers
-  are for the publish/CI path that bypasses turbo, not a
-  replacement for turbo task wiring.
+- **Changing unrelated task orchestration.** The helpers are for
+  the publish/CI path that bypasses turbo, not a replacement for
+  general turbo task wiring.
 - **Generalizing to other consumers.** Only build-model.ts and
   build.ts use the helpers initially. Adding new consumers
   (desktop app build, hosted rover build) is the trigger for

@@ -3,7 +3,7 @@
   "globalDependencies": ["**/.env.*local"],
   "tasks": {
     "build": {
-      "dependsOn": ["precompile", "^build"],
+      "dependsOn": ["^build"],
       "outputs": ["dist/**"],
       "cache": true
     },
@@ -16,12 +16,10 @@
       "cache": false
     },
     "dev": {
-      "dependsOn": ["precompile"],
       "cache": false,
       "persistent": true
     },
     "test": {
-      "dependsOn": ["precompile"],
       "inputs": [
         "src/**/*.tsx",
         "src/**/*.ts",
@@ -32,19 +30,14 @@
       "cache": true
     },
     "typecheck": {
-      "dependsOn": ["^typecheck", "precompile"],
+      "dependsOn": ["^typecheck"],
       "outputs": [],
       "cache": true
     },
     "clean": {
       "cache": false
     },
-    "precompile": {
-      "outputs": ["src/content-schemas.txt", "**/hydration.compiled.js"],
-      "cache": true
-    },
     "compile": {
-      "dependsOn": ["precompile"],
       "outputs": ["dist/**"],
       "cache": true
     }
