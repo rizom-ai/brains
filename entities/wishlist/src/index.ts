@@ -1,4 +1,10 @@
-import type { Plugin, EntityPluginContext } from "@brains/plugins";
+import type {
+  Plugin,
+  EntityPluginContext,
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
+} from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import {
   wishlistConfigSchema,
@@ -18,6 +24,43 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
 
   constructor(config: Partial<WishlistConfig> = {}) {
     super("wishlist", packageJson, config, wishlistConfigSchema);
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    const result = await new WishCreateHandler(this.logger, context).process(
+      {
+        ...(input.title ? { title: input.title } : {}),
+        ...(input.prompt ? { prompt: input.prompt } : {}),
+        ...(input.content ? { content: input.content } : {}),
+      },
+      `wish-create-${Date.now()}`,
+      {} as never,
+    );
+
+    if (!result.success) {
+      return {
+        kind: "handled",
+        result: {
+          success: false,
+          error: result.error ?? "Failed to create wish",
+        },
+      };
+    }
+
+    return {
+      kind: "handled",
+      result: {
+        success: true,
+        data: {
+          ...(result.entityId ? { entityId: result.entityId } : {}),
+          status: result.existed ? "updated" : "created",
+        },
+      },
+    };
   }
 
   protected override async onRegister(

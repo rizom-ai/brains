@@ -100,4 +100,35 @@ describe("WishCreateHandler", () => {
     const wishes = await context.entityService.listEntities("wish", {});
     expect(wishes[0]?.metadata["title"]).toBe("I want to send emails");
   });
+
+  it("should intercept system_create for wish and populate required metadata", async () => {
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("wish");
+    expect(interceptor).toBeDefined();
+
+    const result = await interceptor?.(
+      {
+        entityType: "wish",
+        title: "Make lasagna",
+        content: "User wants the assistant to physically make lasagna.",
+      },
+      { interfaceType: "discord", userId: "yeehaa" },
+    );
+
+    expect(result).toEqual({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { entityId: "make-lasagna", status: "created" },
+      },
+    });
+
+    const wish = await context.entityService.getEntity("wish", "make-lasagna");
+    expect(wish?.metadata["title"]).toBe("Make lasagna");
+    expect(wish?.metadata["status"]).toBe("new");
+    expect(wish?.metadata["priority"]).toBe("medium");
+    expect(wish?.metadata["requested"]).toBe(1);
+    expect(wish?.metadata["slug"]).toBe("make-lasagna");
+  });
 });
