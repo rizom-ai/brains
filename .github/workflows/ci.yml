@@ -42,9 +42,6 @@ jobs:
           restore-keys: |
             turbo-${{ runner.os }}-
 
-      - name: Compile hydration scripts
-        run: bun scripts/compile-hydration.ts
-
       - name: Type check
         run: bun run typecheck
 

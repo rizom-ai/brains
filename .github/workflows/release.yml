@@ -40,9 +40,9 @@ jobs:
       #      reality even if the npm publish step crashes later; the
       #      retry semantics of `changeset publish` are "republish if
       #      version not on registry" so a re-run picks up cleanly.
-      #   3. `changeset publish` runs `prepublishOnly` (compile hydration
-      #      + bundle via packages/brain-cli/scripts/build.ts) then
-      #      `npm publish`. Only publishes versions not already on npm.
+      #   3. `changeset publish` runs `prepublishOnly` (bundle via
+      #      packages/brain-cli/scripts/build.ts) then `npm publish`.
+      #      Only publishes versions not already on npm.
       #
       # No version PR, no second workflow run dependency. Trade-off: no
       # review window on auto-generated version bumps. Fine for the
