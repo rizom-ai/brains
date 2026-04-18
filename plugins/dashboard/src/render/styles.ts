@@ -482,6 +482,94 @@ body::after {
 .link:hover dd { color: var(--accent); }
 .link:hover .arrow { transform: translateX(3px); color: var(--accent); }
 
+.pipeline-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.pipeline-summary-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--rule-strong);
+  border-radius: 100px;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+}
+.pipeline-summary-count {
+  font-size: 11px;
+  color: var(--paper);
+  font-variant-numeric: tabular-nums;
+}
+.pipeline-summary-label {
+  color: var(--paper-mute);
+}
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pipeline-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--ink-soft) 35%, transparent);
+}
+.pipeline-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--neutral);
+}
+.pipeline-dot--draft { background: var(--neutral); }
+.pipeline-dot--queued { background: var(--warn); }
+.pipeline-dot--published { background: var(--ok); }
+.pipeline-dot--failed { background: var(--err); }
+.pipeline-name {
+  min-width: 0;
+  font-size: 13px;
+  color: var(--paper);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pipeline-type,
+.pipeline-when {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--paper-faint);
+  white-space: nowrap;
+}
+.pipeline-type {
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  color: var(--paper-mute);
+  opacity: 0.8;
+}
+.pipeline-when--err { color: var(--err); }
+@media (max-width: 720px) {
+  .pipeline-item {
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+  }
+  .pipeline-type,
+  .pipeline-when {
+    grid-column: 2;
+    margin-top: 2px;
+  }
+}
+
 .colophon {
   margin-top: 48px;
   padding-top: 20px;

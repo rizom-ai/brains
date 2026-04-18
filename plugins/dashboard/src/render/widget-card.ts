@@ -2,6 +2,9 @@ import { escapeHtml, formatLabel } from "@brains/utils";
 import type { WidgetData } from "../widget-schema";
 
 const KV_SKIP_KEYS = new Set(["rendered", "version"]);
+const PIPELINE_STATUSES = ["draft", "queued", "published", "failed"] as const;
+
+type PipelineStatus = (typeof PIPELINE_STATUSES)[number];
 
 function isEmptyValue(value: unknown): boolean {
   if (value === undefined || value === null || value === "") return true;
@@ -105,10 +108,120 @@ function renderListBody(data: unknown): string {
   return `<ul class="list">${items.map(renderListItem).join("")}</ul>`;
 }
 
+// ─── PipelineWidget ───────────────────────────────────────────────────
+
+interface PipelineItem {
+  id: string;
+  title: string;
+  type: string;
+  status: PipelineStatus;
+  scheduledFor?: string;
+  retryInfo?: string;
+}
+
+function isPipelineStatus(value: unknown): value is PipelineStatus {
+  return (
+    typeof value === "string" &&
+    PIPELINE_STATUSES.includes(value as PipelineStatus)
+  );
+}
+
+function pipelineStatusLabel(status: PipelineStatus): string {
+  switch (status) {
+    case "draft":
+      return "drafts";
+    case "queued":
+      return "queued";
+    case "published":
+      return "published";
+    case "failed":
+      return "failed";
+  }
+}
+
+function renderPipelineBody(data: unknown): string {
+  if (typeof data !== "object" || data === null) {
+    return '<p class="muted">Nothing to show yet.</p>';
+  }
+
+  const summaryRaw =
+    "summary" in data ? (data as { summary?: unknown }).summary : undefined;
+  const itemsRaw =
+    "items" in data ? (data as { items?: unknown }).items : undefined;
+
+  if (
+    typeof summaryRaw !== "object" ||
+    summaryRaw === null ||
+    !Array.isArray(itemsRaw)
+  ) {
+    return '<p class="muted">Nothing to show yet.</p>';
+  }
+
+  const summary = {
+    draft:
+      typeof (summaryRaw as { draft?: unknown }).draft === "number"
+        ? (summaryRaw as { draft: number }).draft
+        : 0,
+    queued:
+      typeof (summaryRaw as { queued?: unknown }).queued === "number"
+        ? (summaryRaw as { queued: number }).queued
+        : 0,
+    published:
+      typeof (summaryRaw as { published?: unknown }).published === "number"
+        ? (summaryRaw as { published: number }).published
+        : 0,
+    failed:
+      typeof (summaryRaw as { failed?: unknown }).failed === "number"
+        ? (summaryRaw as { failed: number }).failed
+        : 0,
+  };
+
+  const items = itemsRaw.filter(
+    (item): item is PipelineItem =>
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as { id?: unknown }).id === "string" &&
+      typeof (item as { title?: unknown }).title === "string" &&
+      typeof (item as { type?: unknown }).type === "string" &&
+      isPipelineStatus((item as { status?: unknown }).status),
+  );
+
+  const summaryHtml = PIPELINE_STATUSES.map(
+    (status) => `<div class="pipeline-summary-item">
+      <span class="pipeline-dot pipeline-dot--${status}"></span>
+      <span class="pipeline-summary-count">${escapeHtml(summary[status])}</span>
+      <span class="pipeline-summary-label">${escapeHtml(pipelineStatusLabel(status))}</span>
+    </div>`,
+  ).join("");
+
+  if (items.length === 0) {
+    return `<div class="pipeline-summary">${summaryHtml}</div>
+      <p class="muted">No pipeline items yet.</p>`;
+  }
+
+  const itemRows = items
+    .map((item) => {
+      const meta = item.retryInfo ?? item.scheduledFor ?? item.status;
+      return `<div class="pipeline-item">
+        <span class="pipeline-dot pipeline-dot--${escapeHtml(item.status)}"></span>
+        <span class="pipeline-name">${escapeHtml(item.title)}</span>
+        <span class="pipeline-type">${escapeHtml(item.type)}</span>
+        <span class="pipeline-when${item.status === "failed" ? " pipeline-when--err" : ""}">${escapeHtml(meta)}</span>
+      </div>`;
+    })
+    .join("");
+
+  return `<div class="pipeline-summary">${summaryHtml}</div>
+    <div class="pipeline-list">${itemRows}</div>`;
+}
+
 // ─── Dispatch ─────────────────────────────────────────────────────────
 
 function renderBody(widget: WidgetData): string {
   const data = widget.data;
+  if (widget.widget.rendererName === "PipelineWidget") {
+    return renderPipelineBody(data);
+  }
   if (widget.widget.rendererName === "ListWidget") {
     return renderListBody(data);
   }
@@ -122,8 +235,9 @@ function renderBody(widget: WidgetData): string {
 function maybeCountChip(widget: WidgetData): string {
   if (widget.widget.rendererName !== "ListWidget") return "";
   const data = widget.data;
-  if (typeof data !== "object" || data === null || !("items" in data))
+  if (typeof data !== "object" || data === null || !("items" in data)) {
     return "";
+  }
   const items = (data as { items: unknown }).items;
   if (!Array.isArray(items) || items.length === 0) return "";
   return `<span class="chip">${items.length}</span>`;
