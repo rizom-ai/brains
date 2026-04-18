@@ -145,6 +145,18 @@ They can automatically register:
 
 Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
 
+For creation, the standard pattern is:
+
+1. `system_create` receives a normalized request
+2. the target `EntityPlugin` may override `interceptCreate()`
+3. the plugin either:
+   - returns `handled` to fully own creation behavior, or
+   - returns `continue` to fall back to the shared create flow
+4. if the request includes a `prompt`, shared flow typically queues `{entityType}:generation`
+5. otherwise shared flow performs a direct entity create
+
+This is the canonical place for entity-specific create behavior such as URL capture, target resolution, deduplicating wishes, or enriching required metadata.
+
 ### ServicePlugin behavior
 
 Service plugins provide the system's operational surface area:

@@ -4,6 +4,30 @@ Entity plugins define content types — each owns one entity type with its schem
 
 Entity plugins extend `EntityPlugin` and have **zero tools**. All entity CRUD goes through the system plugin's `system_create`, `system_update`, `system_delete`, and `system_extract` tools.
 
+## Create flow pattern
+
+`system_create` is the single entry point for entity creation.
+
+If an entity type needs custom create behavior, its plugin should override `EntityPlugin.interceptCreate()`.
+That interceptor can:
+
+- return `handled` to fully own creation
+- return `continue` to fall back to the shared create flow
+
+Use `interceptCreate()` for entity-specific create logic such as:
+
+- validating or rewriting create input
+- resolving target entities before generation
+- turning generic create requests into specialized jobs
+- filling required metadata that generic create does not know about
+- semantic dedup before create
+
+Examples in the repo:
+
+- `link` intercepts `system_create` to route URL capture correctly
+- `image` intercepts `system_create` to resolve/validate cover-image targets
+- `wish` intercepts `system_create` to populate required metadata and deduplicate requests
+
 ## Plugins
 
 | Plugin       | Entity Type   | derive() | Description                                              |
