@@ -76,6 +76,17 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       `MCP interface initialized with ${this.config.transport} transport`,
     );
 
+    // Advertise the MCP endpoint so it surfaces in the dashboard's
+    // Endpoints card. HTTP transport mounts on the shared webserver
+    // at `/mcp`; stdio has no URL to advertise.
+    if (this.config.transport === "http") {
+      context.endpoints.register({
+        label: "MCP",
+        url: "/mcp",
+        priority: 30,
+      });
+    }
+
     // Subscribe to job progress events for MCP progress reporting
     setupJobProgressListener(context, this.logger);
   }

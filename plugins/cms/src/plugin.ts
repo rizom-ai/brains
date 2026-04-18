@@ -5,7 +5,7 @@ import {
   type CmsConfig,
   type EntityDisplayMap,
 } from "@brains/cms-config";
-import { renderCmsShellHtml } from "./admin-shell";
+import { renderCmsShellHtml } from "./cms-shell";
 import { toYaml, z } from "@brains/utils";
 import packageJson from "../package.json";
 
@@ -16,18 +16,18 @@ const entityDisplayEntrySchema = z
   })
   .passthrough();
 
-const adminConfigSchema = z.object({
+const cmsPluginConfigSchema = z.object({
   entityDisplay: z.record(entityDisplayEntrySchema).optional(),
   routePath: z.string().default("/"),
 });
 
-type AdminConfig = z.infer<typeof adminConfigSchema>;
+type CmsPluginConfig = z.infer<typeof cmsPluginConfigSchema>;
 
 function getCmsConfigPath(routePath: string): string {
   return `${routePath.endsWith("/") ? routePath : `${routePath}/`}config.yml`;
 }
 
-function getCmsConfigOptions(config: AdminConfig): {
+function getCmsConfigOptions(config: CmsPluginConfig): {
   entityDisplay?: EntityDisplayMap;
 } {
   const entityDisplay = config.entityDisplay as EntityDisplayMap | undefined;
@@ -78,9 +78,9 @@ export async function buildCmsConfigYaml(
   return toYaml(await buildCmsConfig(context, options));
 }
 
-export class AdminPlugin extends ServicePlugin<AdminConfig> {
-  constructor(config: Partial<AdminConfig> = {}) {
-    super("admin", packageJson, config, adminConfigSchema);
+export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
+  constructor(config: Partial<CmsPluginConfig> = {}) {
+    super("admin", packageJson, config, cmsPluginConfigSchema);
   }
 
   protected override async onRegister(
@@ -136,6 +136,8 @@ export class AdminPlugin extends ServicePlugin<AdminConfig> {
   }
 }
 
-export function adminPlugin(config?: Partial<AdminConfig>): AdminPlugin {
-  return new AdminPlugin(config);
+export function cmsPlugin(config?: Partial<CmsPluginConfig>): CmsPlugin {
+  return new CmsPlugin(config);
 }
+
+export { CmsPlugin as AdminPlugin, cmsPlugin as adminPlugin };

@@ -3,6 +3,7 @@ import type {
   AppInfo,
   ContentGenerationConfig,
   DefaultQueryResponse,
+  EndpointInfo,
   EvalHandler,
   IShell,
   Plugin,
@@ -14,6 +15,7 @@ import type {
   RegisteredApiRoute,
   RegisteredWebRoute,
 } from "@brains/plugins";
+import { endpointInfoSchema } from "@brains/plugins";
 
 // Plugin manager
 import type { PluginManager } from "@brains/plugins";
@@ -82,6 +84,7 @@ export class Shell implements IShell {
   private initialized = false;
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
+  private readonly endpoints: EndpointInfo[] = [];
 
   public readonly jobs: IJobsNamespace;
 
@@ -535,6 +538,17 @@ export class Shell implements IShell {
     this.services.daemonRegistry.register(name, daemon, pluginId);
   }
 
+  public registerEndpoint(endpoint: EndpointInfo): void {
+    const parsed = endpointInfoSchema.parse(endpoint);
+    this.endpoints.push(parsed);
+  }
+
+  public listEndpoints(): EndpointInfo[] {
+    return [...this.endpoints].sort(
+      (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+    );
+  }
+
   public getPublicContext(): {
     entityService: ShellServices["entityService"];
     generateContent: <T = unknown>(
@@ -612,6 +626,7 @@ export class Shell implements IShell {
         embeddingModel: "text-embedding-3-small",
       },
       daemons,
+      endpoints: this.listEndpoints(),
     };
   }
 

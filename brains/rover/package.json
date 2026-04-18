@@ -20,11 +20,11 @@
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
-    "@brains/admin": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/blog": "workspace:*",
+    "@brains/cms": "workspace:*",
     "@brains/content-pipeline": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",

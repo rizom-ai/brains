@@ -8,8 +8,10 @@ import { getErrorMessage, z } from "@brains/utils";
 import { DashboardWidgetRegistry, WIDGET_RENDERERS } from "./widget-registry";
 import type { RegisteredWidget } from "./widget-registry";
 import { DashboardDataSource } from "./dashboard-datasource";
-import { createSystemWidgets } from "./system-widgets";
-import { renderDashboardPageHtml } from "./dashboard-page";
+import {
+  renderDashboardPageHtml,
+  type DashboardRenderInput,
+} from "./dashboard-page";
 import packageJson from "../package.json";
 
 /**
@@ -54,6 +56,8 @@ const unregisterWidgetPayloadSchema = z.object({
 export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   private widgetRegistry: DashboardWidgetRegistry | null = null;
   private datasource: DashboardDataSource | null = null;
+  private siteUrl: string | undefined;
+  private ctx: ServicePluginContext | undefined;
 
   constructor(config?: Partial<DashboardConfig>) {
     super("dashboard", packageJson, config ?? {}, dashboardConfigSchema);
@@ -65,12 +69,17 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    // Initialize widget registry
-    this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
+    // Capture the public site URL so the dashboard can resolve
+    // relative endpoint URLs to absolute form at render time, and keep
+    // the context around so the handler can read shell state (identity,
+    // profile, appInfo, entity counts) directly at render time. The
+    // dashboard no longer wraps shell state in internal "system widgets" —
+    // widgets are reserved for plugin-contributed cards.
+    this.siteUrl = context.siteUrl;
+    this.ctx = context;
 
-    for (const widget of createSystemWidgets(context)) {
-      this.widgetRegistry.register(widget);
-    }
+    // Initialize widget registry — only external plugin widgets live here.
+    this.widgetRegistry = new DashboardWidgetRegistry(this.logger);
 
     // Initialize and register datasource
     this.datasource = new DashboardDataSource(this.widgetRegistry, this.logger);
@@ -131,24 +140,52 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
         path: this.config.routePath,
         method: "GET",
         public: true,
-        handler: async (): Promise<Response> => {
-          if (!this.datasource) {
+        handler: async (request: Request): Promise<Response> => {
+          if (!this.datasource || !this.ctx) {
             return new Response("Dashboard unavailable", {
               status: 503,
               headers: { "Content-Type": "text/plain; charset=utf-8" },
             });
           }
+          const ctx = this.ctx;
 
-          const dashboardData = await this.datasource.getDashboardData();
-          return new Response(
-            renderDashboardPageHtml({
-              dashboardData,
-              title: "Brain Dashboard",
-            }),
-            {
-              headers: { "Content-Type": "text/html; charset=utf-8" },
-            },
-          );
+          const [dashboardData, appInfo, entityCounts] = await Promise.all([
+            this.datasource.getDashboardData(),
+            ctx.appInfo(),
+            ctx.entityService.getEntityCounts(),
+          ]);
+          const character = ctx.identity.get();
+          const profile = ctx.identity.getProfile();
+
+          // Prefer the configured siteUrl (honors reverse proxies / public
+          // domains); fall back to the request's origin for local dev.
+          const baseUrl =
+            this.siteUrl ??
+            (() => {
+              try {
+                return new URL(request.url).origin;
+              } catch {
+                return undefined;
+              }
+            })();
+
+          // Handler owns the fallback chain: the brand's name is the
+          // profile, or the brain's configured name via appInfo.model,
+          // or a generic default. Renderer stays dumb.
+          const title = profile.name || appInfo.model || "Brain Dashboard";
+
+          const input: DashboardRenderInput = {
+            title,
+            baseUrl,
+            widgets: dashboardData.widgets,
+            character,
+            profile,
+            appInfo,
+            entityCounts,
+          };
+          return new Response(renderDashboardPageHtml(input), {
+            headers: { "Content-Type": "text/html; charset=utf-8" },
+          });
         },
       },
     ];

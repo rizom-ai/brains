@@ -32,6 +32,26 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
     this.siteUrl = context.siteUrl;
     this.previewUrl = context.previewUrl;
 
+    // Advertise the site + preview URLs through the endpoint registry so
+    // the dashboard can render them in its Endpoints card. Local dev
+    // without a configured domain has no absolute URL to advertise —
+    // skip Site in that case; the dashboard itself is the operator's
+    // landing page.
+    if (this.siteUrl) {
+      context.endpoints.register({
+        label: "Site",
+        url: this.siteUrl,
+        priority: 10,
+      });
+    }
+    if (this.config.enablePreview && this.previewUrl) {
+      context.endpoints.register({
+        label: "Preview",
+        url: this.previewUrl,
+        priority: 20,
+      });
+    }
+
     // Initialize server manager for the shared host
     this.serverManager = new ServerManager({
       logger: context.logger,

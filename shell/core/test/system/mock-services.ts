@@ -223,6 +223,7 @@ export function createMockSystemServices(
         embeddingModel: "text-embedding-3-small",
       },
       daemons: [],
+      endpoints: [],
     }),
     searchLimit: 10,
     insights: createInsightsRegistry(),

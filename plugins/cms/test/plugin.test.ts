@@ -2,9 +2,9 @@ import { describe, expect, it } from "bun:test";
 import { createServicePluginContext } from "@brains/plugins";
 import { createMockShell, type MockShell } from "@brains/test-utils";
 import { fromYaml, z } from "@brains/utils";
-import { adminPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
+import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
-function createAdminTestShell(options: { domain?: string } = {}): MockShell {
+function createCmsTestShell(options: { domain?: string } = {}): MockShell {
   const shell = createMockShell({
     ...(options.domain && { domain: options.domain }),
   });
@@ -49,9 +49,9 @@ function createAdminTestShell(options: { domain?: string } = {}): MockShell {
   return shell;
 }
 
-describe("admin plugin", () => {
+describe("cms plugin", () => {
   it("buildCmsConfigYaml should generate yaml from the plugin context", async () => {
-    const shell = createAdminTestShell({ domain: "yeehaa.io" });
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
     const context = createServicePluginContext(shell, "admin");
     const yaml = await buildCmsConfigYaml(context, {
       entityDisplay: {
@@ -75,8 +75,8 @@ describe("admin plugin", () => {
   });
 
   it("should expose a cms shell route and a config route", async () => {
-    const shell = createAdminTestShell({ domain: "yeehaa.io" });
-    const plugin = adminPlugin({ routePath: "/cms" });
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin({ routePath: "/cms" });
 
     await plugin.register(shell);
 
@@ -121,8 +121,8 @@ describe("admin plugin", () => {
   });
 
   it("advertises the CMS endpoint so the dashboard can link to it", async () => {
-    const shell = createAdminTestShell();
-    const plugin = adminPlugin({ routePath: "/cms" });
+    const shell = createCmsTestShell();
+    const plugin = cmsPlugin({ routePath: "/cms" });
 
     await plugin.register(shell);
 

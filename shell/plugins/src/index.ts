@@ -36,6 +36,7 @@ export type {
   ToolConfirmation,
   ToolVisibility,
   AppInfo,
+  EndpointInfo,
   DefaultQueryResponse,
   BaseJobTrackingInfo,
   // Types needed by test harness and shell packages
@@ -52,6 +53,7 @@ export type {
 
 export {
   appInfoSchema,
+  endpointInfoSchema,
   defaultQueryResponseSchema,
   pluginMetadataSchema,
   toolResponseSchema,

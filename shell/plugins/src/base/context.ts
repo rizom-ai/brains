@@ -222,6 +222,22 @@ export interface BasePluginContext {
    * - `insights.register()` - Register a domain-specific insight handler
    */
   readonly insights: IInsightsNamespace;
+
+  // ============================================================================
+  // Endpoint Advertisement
+  // ============================================================================
+
+  /**
+   * Endpoints namespace — advertise this plugin's user-facing URLs
+   * so they surface in `appInfo.endpoints` for the dashboard and
+   * other operator-facing consumers.
+   */
+  readonly endpoints: IEndpointsNamespace;
+}
+
+export interface IEndpointsNamespace {
+  /** Register a user-facing URL for this plugin */
+  register(endpoint: { label: string; url: string; priority?: number }): void;
 }
 
 /**
@@ -338,6 +354,12 @@ export function createBasePluginContext(
     insights: {
       register: (type: string, handler: InsightHandler): void => {
         shell.getInsightsRegistry().register(type, handler);
+      },
+    },
+
+    endpoints: {
+      register: ({ label, url, priority = 100 }): void => {
+        shell.registerEndpoint({ label, url, pluginId, priority });
       },
     },
   };

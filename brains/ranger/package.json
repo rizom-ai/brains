@@ -14,9 +14,9 @@
     "lint:fix": "eslint . --fix"
   },
   "dependencies": {
-    "@brains/admin": "workspace:*",
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/cms": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",

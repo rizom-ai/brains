@@ -18,7 +18,7 @@ import { topicsPlugin } from "@brains/topics";
 import { socialMediaPlugin } from "@brains/social-media";
 import { contentPipelinePlugin } from "@brains/content-pipeline";
 import { analyticsPlugin } from "@brains/analytics";
-import { adminPlugin } from "@brains/admin";
+import { cmsPlugin } from "@brains/cms";
 import { dashboardPlugin } from "@brains/dashboard";
 import { newsletter } from "@brains/newsletter";
 import { obsidianVaultPlugin } from "@brains/obsidian-vault";
@@ -29,6 +29,7 @@ import { agentDiscovery } from "@brains/agent-discovery";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import { join } from "path";
+import packageJson from "../package.json" with { type: "json" };
 
 /**
  * Rover Brain Model
@@ -84,7 +85,7 @@ const full = [
 ];
 export default defineBrain({
   name: "rover",
-  version: "0.1.0",
+  version: packageJson.version,
   model: "gpt-5.4-mini",
   site: defaultSite,
   theme: defaultTheme,
@@ -99,7 +100,7 @@ export default defineBrain({
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
-    ["admin", adminPlugin, {}],
+    ["admin", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],

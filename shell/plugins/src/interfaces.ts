@@ -97,6 +97,21 @@ export const toolInfoSchema = z.object({
 });
 
 /**
+ * Endpoint info — plugins advertise their user-facing URLs via
+ * `context.endpoints.register({...})`. Shell collects and exposes
+ * through `appInfo.endpoints` so the dashboard (and anything else)
+ * can render them without knowing about individual plugins.
+ */
+export const endpointInfoSchema = z.object({
+  label: z.string(),
+  url: z.string(),
+  pluginId: z.string(),
+  priority: z.number().default(100),
+});
+
+export type EndpointInfo = z.infer<typeof endpointInfoSchema>;
+
+/**
  * App info schema for validation
  */
 export const appInfoSchema = z.object({
@@ -110,6 +125,7 @@ export const appInfoSchema = z.object({
     embeddingModel: z.string(),
   }),
   daemons: z.array(DaemonStatusInfoSchema),
+  endpoints: z.array(endpointInfoSchema),
 });
 
 export type AppInfo = z.infer<typeof appInfoSchema>;
@@ -221,6 +237,10 @@ export interface IShell {
 
   // Daemon registration
   registerDaemon(name: string, daemon: Daemon, pluginId: string): void;
+
+  // Endpoint advertisement — plugins advertise user-facing URLs
+  registerEndpoint(endpoint: EndpointInfo): void;
+  listEndpoints(): EndpointInfo[];
 
   // Eval handler registration for plugin testing
   registerEvalHandler(

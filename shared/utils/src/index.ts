@@ -161,4 +161,4 @@ export {
   splitColumns,
   type SlideDirectiveResult,
 } from "./slide-directives";
-export { convertMermaidBlocks } from "./presentation-html";
+export { convertMermaidBlocks, escapeHtml } from "./presentation-html";

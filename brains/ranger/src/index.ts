@@ -12,7 +12,7 @@ import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteContentPlugin } from "@brains/site-content";
 import { siteInfoPlugin } from "@brains/site-info";
 import { analyticsPlugin } from "@brains/analytics";
-import { adminPlugin } from "@brains/admin";
+import { cmsPlugin } from "@brains/cms";
 import { productsPlugin } from "@brains/products";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
@@ -66,7 +66,7 @@ export default defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["admin", adminPlugin, {}],
+    ["admin", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

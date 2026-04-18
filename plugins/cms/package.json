@@ -1,8 +1,8 @@
 {
-  "name": "@brains/admin",
+  "name": "@brains/cms",
   "private": true,
   "version": "0.2.0-alpha.29",
-  "description": "Compatibility wrapper for the CMS plugin",
+  "description": "CMS plugin for config and browser authoring routes",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -14,7 +14,9 @@
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/cms": "workspace:*"
+    "@brains/cms-config": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

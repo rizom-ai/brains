@@ -15,6 +15,7 @@ import type {
   IMCPTransport,
   AppInfo,
   Daemon,
+  EndpointInfo,
   IDaemonRegistry,
   IInsightsRegistry,
   InsightHandler,
@@ -349,6 +350,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     }
   >();
 
+  const endpoints: EndpointInfo[] = [];
+
   const daemonRegistry: IDaemonRegistry = {
     register: (name, daemon, pluginId) => {
       daemons.set(name, { name, daemon, pluginId, status: "stopped" });
@@ -504,6 +507,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         embeddingModel: "text-embedding-3-small",
       },
       daemons: [],
+      endpoints: [...endpoints].sort(
+        (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+      ),
     }),
 
     // High-level operations
@@ -580,6 +586,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     registerDaemon: (name: string, daemon: Daemon, pluginId: string) => {
       daemonRegistry.register(name, daemon, pluginId);
     },
+
+    // Endpoint advertisement
+    registerEndpoint: (endpoint: EndpointInfo) => {
+      endpoints.push(endpoint);
+    },
+    listEndpoints: (): EndpointInfo[] =>
+      [...endpoints].sort(
+        (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
+      ),
 
     // Eval handler registration
     registerEvalHandler: (

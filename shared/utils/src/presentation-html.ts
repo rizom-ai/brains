@@ -14,6 +14,19 @@ const HTML_ENTITIES: Record<string, string> = {
 const ENTITY_PATTERN = /&(?:amp|lt|gt|quot|#39);/g;
 
 /**
+ * Escape characters that would otherwise break out of HTML context.
+ * Safe to use on any value before interpolating into templated HTML.
+ */
+export function escapeHtml(value: unknown): string {
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+/**
  * Unescape HTML entities back to their original characters.
  */
 function unescapeHtml(text: string): string {

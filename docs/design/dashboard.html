@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    /* ── Dark mode (primary) ── */
     --ink:          #0a0819;
     --ink-raised:   #14112b;
     --ink-soft:     #1b1638;
@@ -28,9 +27,6 @@
     --accent-dim:   #c4611f;
     --accent-soft:  rgba(255, 139, 61, 0.12);
 
-    --brand:        #8274ff;
-    --brand-dim:    rgba(130, 116, 255, 0.14);
-
     --ok:           #68cc8b;
     --warn:         #f5c158;
     --err:          #e26d6d;
@@ -45,7 +41,6 @@
   }
 
   [data-theme="light"] {
-    /* Printed specimen sheet — warm cream ground, ink, burnt orange */
     --ink:          #ece3cd;
     --ink-raised:   #f6efdc;
     --ink-soft:     #e4dac1;
@@ -64,9 +59,6 @@
     --accent-dim:   #923208;
     --accent-soft:  rgba(184, 65, 12, 0.07);
 
-    --brand:        #3921d7;
-    --brand-dim:    rgba(57, 33, 215, 0.12);
-
     --ok:           #2f7b4d;
     --warn:         #8f5a10;
     --err:          #932f2f;
@@ -78,7 +70,6 @@
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
   html, body { min-height: 100%; }
 
   body {
@@ -92,7 +83,6 @@
     position: relative;
   }
 
-  /* Grain texture — quiet, just enough to break the flat surface */
   body::before {
     content: "";
     position: fixed;
@@ -103,10 +93,8 @@
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
     z-index: 0;
   }
-
   [data-theme="light"] body::before { opacity: 0.06; mix-blend-mode: multiply; }
 
-  /* Faint vignette toward page edges */
   body::after {
     content: "";
     position: fixed;
@@ -117,7 +105,6 @@
     opacity: 0.55;
     z-index: 0;
   }
-
   [data-theme="light"] body::after {
     background: radial-gradient(ellipse at 50% -10%,
       rgba(255, 250, 235, 0.6) 0%,
@@ -145,7 +132,6 @@
     border-bottom: 1px solid var(--rule-strong);
     position: relative;
   }
-
   .masthead::after {
     content: "";
     position: absolute;
@@ -168,7 +154,6 @@
     gap: 10px;
     margin-bottom: 14px;
   }
-
   .eyebrow::before {
     content: "";
     width: 18px;
@@ -185,11 +170,9 @@
     color: var(--paper);
     font-style: normal;
   }
-
   [data-theme="light"] .brand {
     font-variation-settings: "opsz" 144, "SOFT" 40, "wght" 420;
   }
-
   .brand em {
     font-style: italic;
     font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
@@ -204,6 +187,36 @@
     line-height: 1.5;
   }
 
+  /* ── Character card (sidebar) ─────────────────────────── */
+  .identity-role {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--paper);
+    letter-spacing: -0.005em;
+  }
+  .identity-purpose {
+    margin-top: 10px;
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--paper-dim);
+  }
+  .values {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+    margin-top: 14px;
+  }
+  .value {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.08em;
+    text-transform: lowercase;
+    color: var(--paper-dim);
+    padding: 3px 8px;
+    border: 1px solid var(--rule-strong);
+    border-radius: 100px;
+  }
+
   .masthead-meta {
     display: flex;
     flex-direction: column;
@@ -214,13 +227,7 @@
     color: var(--paper-mute);
     letter-spacing: 0.04em;
   }
-
-  .masthead-meta .line {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
+  .masthead-meta .line { display: flex; align-items: center; gap: 8px; }
   .masthead-meta .label {
     text-transform: uppercase;
     font-size: 9.5px;
@@ -229,35 +236,41 @@
   }
 
   .pulse {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
+    width: 6px; height: 6px; border-radius: 50%;
     background: var(--ok);
     box-shadow: 0 0 0 0 rgba(104, 204, 139, 0.5);
     animation: pulse 2.4s ease-in-out infinite;
   }
-
   @keyframes pulse {
     0%, 100% { box-shadow: 0 0 0 0 rgba(104, 204, 139, 0.45); }
     50%      { box-shadow: 0 0 0 6px rgba(104, 204, 139, 0); }
   }
 
-  /* ── Grid ─────────────────────────────────────────────── */
-  .grid {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 300px;
+  /* ── Layout ───────────────────────────────────────────── */
+  .layout {
+    display: flex;
     gap: 20px;
-    align-items: start;
+    align-items: flex-start;
   }
-
+  .main-column {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .sidebar-column {
+    flex: 0 0 300px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
   @media (max-width: 1024px) {
-    .grid { grid-template-columns: 1fr 1fr; }
-    .grid .card-identity { grid-column: span 2; grid-row: auto; }
+    .layout { flex-direction: column; align-items: stretch; }
+    .sidebar-column { flex: 1 1 auto; width: 100%; }
   }
   @media (max-width: 640px) {
     .console { padding: 28px 18px 56px; }
-    .grid { grid-template-columns: 1fr; }
-    .grid .card-identity { grid-column: span 1; }
     .masthead { grid-template-columns: 1fr; align-items: start; }
     .masthead-meta { align-items: flex-start; }
   }
@@ -271,10 +284,7 @@
     position: relative;
     box-shadow: var(--shadow-card);
   }
-
-  .card--hero  { grid-column: span 2; padding: 28px 32px 32px; }
-  .card--wide  { grid-column: span 2; }
-  .card-identity { grid-row: span 3; padding: 24px; }
+  .card--hero { padding: 28px 32px 32px; }
 
   .card-head {
     display: flex;
@@ -283,7 +293,6 @@
     gap: 16px;
     margin-bottom: 18px;
   }
-
   .card-title {
     font-family: var(--font-mono);
     font-size: 10.5px;
@@ -295,7 +304,6 @@
     align-items: center;
     gap: 10px;
   }
-
   .card-title::before {
     content: "";
     width: 4px;
@@ -303,7 +311,6 @@
     background: var(--accent);
     border-radius: 50%;
   }
-
   .card-subtitle {
     font-family: var(--font-mono);
     font-size: 10.5px;
@@ -324,20 +331,17 @@
     color: var(--paper-dim);
     background: transparent;
   }
-
   .chip--warn { color: var(--warn); border-color: rgba(245, 193, 88, 0.35); }
   .chip--ok   { color: var(--ok);   border-color: rgba(104, 204, 139, 0.35); }
   .chip--err  { color: var(--err);  border-color: rgba(226, 109, 109, 0.4); }
-  .chip--accent { color: var(--accent); border-color: var(--rule-accent); }
 
-  /* ── Entities card (hero + breakdown) ─────────────────── */
+  /* ── Entities (hero) ──────────────────────────────────── */
   .entities {
     display: grid;
     grid-template-columns: minmax(0, 1.05fr) minmax(0, 1.15fr);
     gap: 36px;
     align-items: end;
   }
-
   @media (max-width: 720px) {
     .entities { grid-template-columns: 1fr; gap: 24px; align-items: start; }
   }
@@ -351,15 +355,8 @@
     color: var(--paper);
     font-variant-numeric: tabular-nums;
   }
-
   [data-theme="light"] .hero-number {
     font-variation-settings: "opsz" 144, "SOFT" 30, "wght" 420;
-  }
-  [data-theme="light"] .wish .tally {
-    font-variation-settings: "opsz" 72, "SOFT" 20, "wght" 460;
-  }
-  [data-theme="light"] .identity-name {
-    font-variation-settings: "opsz" 48, "SOFT" 30, "wght" 480;
   }
 
   .hero-label {
@@ -373,7 +370,6 @@
     text-transform: uppercase;
     color: var(--paper-mute);
   }
-
   .hero-delta {
     color: var(--accent);
     font-weight: 500;
@@ -385,7 +381,6 @@
     grid-template-columns: 1fr 1fr;
     gap: 0;
   }
-
   .breakdown-row {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -393,23 +388,15 @@
     gap: 12px;
     padding: 11px 0;
     border-top: 1px solid var(--rule);
-    position: relative;
   }
-
   .breakdown-row:nth-child(1),
   .breakdown-row:nth-child(2) { border-top: none; }
-
   .breakdown-row:nth-child(odd)  { padding-right: 18px; }
   .breakdown-row:nth-child(even) {
     padding-left: 18px;
     border-left: 1px solid var(--rule);
   }
-
-  .breakdown-name {
-    font-size: 13px;
-    color: var(--paper-dim);
-  }
-
+  .breakdown-name { font-size: 13px; color: var(--paper-dim); }
   .breakdown-count {
     font-family: var(--font-mono);
     font-size: 14px;
@@ -418,7 +405,6 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.01em;
   }
-
   .breakdown-bar {
     grid-column: 1 / -1;
     margin-top: 6px;
@@ -427,7 +413,6 @@
     position: relative;
     overflow: hidden;
   }
-
   .breakdown-bar > i {
     position: absolute;
     inset: 0 auto 0 0;
@@ -435,110 +420,8 @@
     opacity: 0.55;
   }
 
-  /* ── Identity card (sidebar) ──────────────────────────── */
-  .card-identity { display: flex; flex-direction: column; gap: 22px; }
-
-  .identity-section {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .identity-section + .identity-section {
-    padding-top: 22px;
-    border-top: 1px solid var(--rule);
-  }
-
-  .identity-section .card-title { margin-bottom: 4px; }
-
-  .identity-name {
-    font-family: var(--font-display);
-    font-variation-settings: "opsz" 48, "SOFT" 30, "wght" 420;
-    font-size: 26px;
-    line-height: 1.05;
-    letter-spacing: -0.015em;
-    color: var(--paper);
-  }
-
-  .identity-tagline {
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: var(--paper-dim);
-    margin-top: 4px;
-  }
-
-  .identity-role {
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--paper);
-    letter-spacing: -0.005em;
-  }
-
-  .identity-purpose {
-    font-size: 13px;
-    line-height: 1.55;
-    color: var(--paper-dim);
-  }
-
-  .values {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px 6px;
-    margin-top: 8px;
-  }
-
-  .value {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.08em;
-    text-transform: lowercase;
-    color: var(--paper-dim);
-    padding: 3px 8px;
-    border: 1px solid var(--rule-strong);
-    border-radius: 100px;
-  }
-
-  .kv {
-    display: flex;
-    flex-direction: column;
-  }
-
-  .kv-row {
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 16px;
-    align-items: baseline;
-    padding: 8px 0;
-    border-top: 1px solid var(--rule);
-  }
-
-  .kv-row:first-child { border-top: none; }
-
-  .kv-row dt {
-    font-size: 12px;
-    color: var(--paper-mute);
-    font-family: var(--font-mono);
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-
-  .kv-row dd {
-    font-size: 13px;
-    color: var(--paper);
-    font-variant-numeric: tabular-nums;
-    text-align: right;
-  }
-
-  .kv-row dd.mono {
-    font-family: var(--font-mono);
-    font-size: 12px;
-  }
-
-  .links {
-    display: flex;
-    flex-direction: column;
-  }
-
+  /* ── Links (used by Endpoints) ────────────────────────── */
+  .links { display: flex; flex-direction: column; }
   .link {
     display: grid;
     grid-template-columns: 72px 1fr auto;
@@ -550,9 +433,7 @@
     color: inherit;
     transition: color 0.15s ease;
   }
-
   .link:first-child { border-top: none; }
-
   .link dt {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -560,7 +441,6 @@
     text-transform: uppercase;
     color: var(--paper-mute);
   }
-
   .link dd {
     font-family: var(--font-mono);
     font-size: 12px;
@@ -569,18 +449,16 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .link .arrow {
     font-family: var(--font-mono);
     color: var(--paper-faint);
     font-size: 12px;
     transition: transform 0.2s ease, color 0.2s ease;
   }
-
   .link:hover dd { color: var(--accent); }
   .link:hover .arrow { transform: translateX(3px); color: var(--accent); }
 
-  /* ── Pipeline card ────────────────────────────────────── */
+  /* ── Pipeline ─────────────────────────────────────────── */
   .pipeline-meters {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -589,9 +467,7 @@
     padding-bottom: 16px;
     border-bottom: 1px solid var(--rule);
   }
-
   .meter { display: flex; flex-direction: column; gap: 4px; }
-
   .meter-value {
     font-family: var(--font-mono);
     font-weight: 500;
@@ -604,17 +480,13 @@
     align-items: center;
     gap: 9px;
   }
-
   .meter-dot {
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
+    width: 7px; height: 7px; border-radius: 50%;
     background: var(--neutral);
   }
   .meter-dot--ok   { background: var(--ok); }
   .meter-dot--warn { background: var(--warn); }
   .meter-dot--err  { background: var(--err); }
-
   .meter-label {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -624,7 +496,6 @@
   }
 
   .pipeline-list { display: flex; flex-direction: column; }
-
   .pipeline-item {
     display: grid;
     grid-template-columns: 10px 1fr auto auto;
@@ -634,18 +505,12 @@
     border-top: 1px solid var(--rule);
     transition: background 0.15s ease;
   }
-
   .pipeline-item:first-child { border-top: none; }
   .pipeline-item:hover { background: var(--accent-soft); }
-
-  .pipeline-item .dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--neutral);
-  }
+  .pipeline-item .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--neutral); }
   .pipeline-item .dot--ok   { background: var(--ok); }
   .pipeline-item .dot--warn { background: var(--warn); }
   .pipeline-item .dot--err  { background: var(--err); }
-
   .pipeline-item .name {
     font-size: 13.5px;
     color: var(--paper);
@@ -653,7 +518,6 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
-
   .pipeline-item .kind {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -661,7 +525,6 @@
     text-transform: uppercase;
     color: var(--paper-mute);
   }
-
   .pipeline-item .when {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -670,12 +533,10 @@
     min-width: 90px;
     text-align: right;
   }
-
   .pipeline-item .when--err { color: var(--err); }
 
-  /* ── Wishlist card ────────────────────────────────────── */
+  /* ── Wishlist ─────────────────────────────────────────── */
   .wishlist { display: flex; flex-direction: column; }
-
   .wish {
     display: grid;
     grid-template-columns: 44px 1fr auto auto;
@@ -685,10 +546,8 @@
     border-top: 1px solid var(--rule);
     transition: background 0.15s ease;
   }
-
   .wish:first-child { border-top: none; }
   .wish:hover { background: var(--accent-soft); }
-
   .wish .tally {
     font-family: var(--font-display);
     font-variation-settings: "opsz" 72, "SOFT" 20, "wght" 400;
@@ -698,7 +557,9 @@
     font-variant-numeric: tabular-nums;
     letter-spacing: -0.03em;
   }
-
+  [data-theme="light"] .wish .tally {
+    font-variation-settings: "opsz" 72, "SOFT" 20, "wght" 460;
+  }
   .wish .tally small {
     font-family: var(--font-mono);
     font-size: 10px;
@@ -707,12 +568,7 @@
     font-variant-numeric: normal;
     letter-spacing: 0.1em;
   }
-
-  .wish .title {
-    font-size: 13.5px;
-    color: var(--paper);
-  }
-
+  .wish .title { font-size: 13.5px; color: var(--paper); }
   .wish .prio {
     font-family: var(--font-mono);
     font-size: 9.5px;
@@ -723,11 +579,9 @@
     color: var(--paper-mute);
     border: 1px solid var(--rule-strong);
   }
-
-  .wish .prio--high   { color: var(--warn); border-color: rgba(245, 193, 88, 0.35); }
-  .wish .prio--crit   { color: var(--err);  border-color: rgba(226, 109, 109, 0.4); }
-  .wish .prio--low    { color: var(--paper-faint); }
-
+  .wish .prio--high { color: var(--warn); border-color: rgba(245, 193, 88, 0.35); }
+  .wish .prio--crit { color: var(--err);  border-color: rgba(226, 109, 109, 0.4); }
+  .wish .prio--low  { color: var(--paper-faint); }
   .wish .status {
     font-family: var(--font-mono);
     font-size: 9.5px;
@@ -737,7 +591,7 @@
   }
   .wish .status--new { color: var(--ok); }
 
-  /* ── Colophon (footer) ────────────────────────────────── */
+  /* ── Colophon ─────────────────────────────────────────── */
   .colophon {
     margin-top: 48px;
     padding-top: 20px;
@@ -752,7 +606,6 @@
     letter-spacing: 0.12em;
     text-transform: uppercase;
   }
-
   .colophon em {
     font-family: var(--font-display);
     font-variation-settings: "opsz" 48, "SOFT" 60, "wght" 350;
@@ -785,21 +638,19 @@
 
   /* ── Staggered entrance ───────────────────────────────── */
   @media (prefers-reduced-motion: no-preference) {
-    .grid > * {
+    .main-column > *,
+    .sidebar-column > * {
       opacity: 0;
       transform: translateY(8px);
       animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) forwards;
     }
-    .grid > *:nth-child(1) { animation-delay: 0.05s; }
-    .grid > *:nth-child(2) { animation-delay: 0.15s; }
-    .grid > *:nth-child(3) { animation-delay: 0.25s; }
-    .grid > *:nth-child(4) { animation-delay: 0.35s; }
-    .grid > *:nth-child(5) { animation-delay: 0.45s; }
+    .main-column    > *:nth-child(1) { animation-delay: 0.05s; }
+    .main-column    > *:nth-child(2) { animation-delay: 0.20s; }
+    .main-column    > *:nth-child(3) { animation-delay: 0.35s; }
+    .sidebar-column > *:nth-child(1) { animation-delay: 0.15s; }
+    .sidebar-column > *:nth-child(2) { animation-delay: 0.30s; }
     .masthead { animation: rise 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
-
-    @keyframes rise {
-      to { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes rise { to { opacity: 1; transform: translateY(0); } }
   }
 </style>
 </head>
@@ -807,7 +658,6 @@
 
 <main class="console">
 
-  <!-- ── Masthead ─────────────────────────────────────── -->
   <header class="masthead">
     <div>
       <div class="eyebrow">
@@ -823,78 +673,170 @@
     </div>
     <div class="masthead-meta">
       <div class="line"><span class="label">build</span><span>v1.0.0</span></div>
+      <div class="line"><span class="label">plugins</span><span>12 active</span></div>
+      <div class="line"><span class="label">theme</span><span>default</span></div>
       <div class="line"><span class="label">rendered</span><span>2026-04-18 14:23</span></div>
-      <div class="line"><span class="label">anchor</span><span>yeehaa</span></div>
     </div>
   </header>
 
-  <!-- ── Grid ─────────────────────────────────────────── -->
-  <section class="grid">
+  <section class="layout">
+    <div class="main-column">
 
-    <!-- Entities — hero -->
-    <article class="card card--hero">
-      <div class="card-head">
-        <span class="card-title">Entities</span>
-        <span class="card-subtitle">corpus · sorted by volume</span>
-      </div>
+      <!-- Entities — hero -->
+      <article class="card card--hero">
+        <div class="card-head">
+          <span class="card-title">Entities</span>
+          <span class="card-subtitle">corpus · sorted by volume</span>
+        </div>
 
-      <div class="entities">
-        <div>
-          <div class="hero-number">142</div>
-          <div class="hero-label">
-            indexed entities
-            <span class="hero-delta">+7 this week</span>
+        <div class="entities">
+          <div>
+            <div class="hero-number">142</div>
+            <div class="hero-label">
+              indexed entities
+              <span class="hero-delta">+7 this week</span>
+            </div>
+          </div>
+
+          <div class="breakdown">
+            <div class="breakdown-row">
+              <span class="breakdown-name">Topics</span>
+              <span class="breakdown-count">45</span>
+              <div class="breakdown-bar"><i style="width:100%"></i></div>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Notes</span>
+              <span class="breakdown-count">34</span>
+              <div class="breakdown-bar"><i style="width:76%"></i></div>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Images</span>
+              <span class="breakdown-count">25</span>
+              <div class="breakdown-bar"><i style="width:56%"></i></div>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Blog posts</span>
+              <span class="breakdown-count">18</span>
+              <div class="breakdown-bar"><i style="width:40%"></i></div>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Links</span>
+              <span class="breakdown-count">12</span>
+              <div class="breakdown-bar"><i style="width:27%"></i></div>
+            </div>
+            <div class="breakdown-row">
+              <span class="breakdown-name">Decks</span>
+              <span class="breakdown-count">8</span>
+              <div class="breakdown-bar"><i style="width:18%"></i></div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <!-- Pipeline -->
+      <article class="card">
+        <div class="card-head">
+          <span class="card-title">Publication pipeline</span>
+          <span class="chip chip--warn">3 queued</span>
+        </div>
+
+        <div class="pipeline-meters">
+          <div class="meter">
+            <div class="meter-value"><span class="meter-dot"></span>4</div>
+            <div class="meter-label">drafts</div>
+          </div>
+          <div class="meter">
+            <div class="meter-value"><span class="meter-dot meter-dot--warn"></span>3</div>
+            <div class="meter-label">queued</div>
+          </div>
+          <div class="meter">
+            <div class="meter-value"><span class="meter-dot meter-dot--ok"></span>28</div>
+            <div class="meter-label">published</div>
+          </div>
+          <div class="meter">
+            <div class="meter-value"><span class="meter-dot meter-dot--err"></span>1</div>
+            <div class="meter-label">failed</div>
           </div>
         </div>
 
-        <div class="breakdown">
-          <div class="breakdown-row">
-            <span class="breakdown-name">Topics</span>
-            <span class="breakdown-count">45</span>
-            <div class="breakdown-bar"><i style="width:100%"></i></div>
+        <div class="pipeline-list">
+          <div class="pipeline-item">
+            <span class="dot dot--warn"></span>
+            <span class="name">Weekly digest — March edition</span>
+            <span class="kind">newsletter</span>
+            <span class="when">Fri 08:00</span>
           </div>
-          <div class="breakdown-row">
-            <span class="breakdown-name">Notes</span>
-            <span class="breakdown-count">34</span>
-            <div class="breakdown-bar"><i style="width:76%"></i></div>
+          <div class="pipeline-item">
+            <span class="dot dot--warn"></span>
+            <span class="name">Self-directed learning frameworks</span>
+            <span class="kind">post</span>
+            <span class="when">Mon 09:00</span>
           </div>
-          <div class="breakdown-row">
-            <span class="breakdown-name">Images</span>
-            <span class="breakdown-count">25</span>
-            <div class="breakdown-bar"><i style="width:56%"></i></div>
+          <div class="pipeline-item">
+            <span class="dot dot--warn"></span>
+            <span class="name">New blog post announcement</span>
+            <span class="kind">social</span>
+            <span class="when">Mon 09:15</span>
           </div>
-          <div class="breakdown-row">
-            <span class="breakdown-name">Blog posts</span>
-            <span class="breakdown-count">18</span>
-            <div class="breakdown-bar"><i style="width:40%"></i></div>
+          <div class="pipeline-item">
+            <span class="dot dot--err"></span>
+            <span class="name">Instagram · portfolio highlight</span>
+            <span class="kind">social</span>
+            <span class="when when--err">retry 2/3</span>
           </div>
-          <div class="breakdown-row">
-            <span class="breakdown-name">Links</span>
-            <span class="breakdown-count">12</span>
-            <div class="breakdown-bar"><i style="width:27%"></i></div>
-          </div>
-          <div class="breakdown-row">
-            <span class="breakdown-name">Decks</span>
-            <span class="breakdown-count">8</span>
-            <div class="breakdown-bar"><i style="width:18%"></i></div>
+          <div class="pipeline-item">
+            <span class="dot dot--ok"></span>
+            <span class="name">Open source education tools</span>
+            <span class="kind">post</span>
+            <span class="when">2 Mar</span>
           </div>
         </div>
-      </div>
-    </article>
+      </article>
 
-    <!-- Identity — sidebar -->
-    <aside class="card card-identity">
-      <div class="identity-section">
-        <span class="card-title">Identity</span>
-        <div class="identity-name">Rizom Collective</div>
-        <p class="identity-tagline">
-          Cooperative for digital education. Tools and curricula for
-          self-directed learners.
-        </p>
-      </div>
+      <!-- Wishlist -->
+      <article class="card">
+        <div class="card-head">
+          <span class="card-title">Wishlist</span>
+          <span class="chip">7 open</span>
+        </div>
 
-      <div class="identity-section">
-        <span class="card-title">Character</span>
+        <div class="wishlist">
+          <div class="wish">
+            <span class="tally"><small>×</small>5</span>
+            <span class="title">Email integration for newsletter delivery</span>
+            <span class="prio prio--high">high</span>
+            <span class="status status--new">new</span>
+          </div>
+          <div class="wish">
+            <span class="tally"><small>×</small>3</span>
+            <span class="title">Calendar sync for scheduling posts</span>
+            <span class="prio">med</span>
+            <span class="status status--new">new</span>
+          </div>
+          <div class="wish">
+            <span class="tally"><small>×</small>2</span>
+            <span class="title">Instagram posting from social-media plugin</span>
+            <span class="prio">med</span>
+            <span class="status">planned</span>
+          </div>
+          <div class="wish">
+            <span class="tally"><small>×</small>1</span>
+            <span class="title">Water my plants automatically</span>
+            <span class="prio prio--low">low</span>
+            <span class="status status--new">new</span>
+          </div>
+        </div>
+      </article>
+
+    </div>
+
+    <div class="sidebar-column">
+
+      <!-- Brain Character — full: role, purpose, values -->
+      <aside class="card">
+        <div class="card-head">
+          <span class="card-title">Brain Character</span>
+        </div>
         <div class="identity-role">Community Knowledge Curator</div>
         <p class="identity-purpose">
           Help the Rizom community organize, share, and grow their collective
@@ -906,20 +848,13 @@
           <span class="value">self-direction</span>
           <span class="value">accessibility</span>
         </div>
-      </div>
+      </aside>
 
-      <div class="identity-section">
-        <span class="card-title">Anchor</span>
-        <dl class="kv">
-          <div class="kv-row"><dt>Owner</dt><dd>Jan Hein Hoogstad</dd></div>
-          <div class="kv-row"><dt>Handle</dt><dd class="mono">yeehaa</dd></div>
-          <div class="kv-row"><dt>Plugins</dt><dd class="mono">12 active</dd></div>
-          <div class="kv-row"><dt>Theme</dt><dd class="mono">default</dd></div>
-        </dl>
-      </div>
-
-      <div class="identity-section">
-        <span class="card-title">Endpoints</span>
+      <!-- Endpoints -->
+      <aside class="card">
+        <div class="card-head">
+          <span class="card-title">Endpoints</span>
+        </div>
         <dl class="links">
           <a class="link" href="https://rizom.ai" target="_blank" rel="noopener">
             <dt>Site</dt><dd>rizom.ai</dd><span class="arrow">↗</span>
@@ -937,104 +872,9 @@
             <dt>Repo</dt><dd>rizom-ai/brains</dd><span class="arrow">↗</span>
           </a>
         </dl>
-      </div>
-    </aside>
+      </aside>
 
-    <!-- Pipeline — primary row left -->
-    <article class="card card--wide">
-      <div class="card-head">
-        <span class="card-title">Publication pipeline</span>
-        <span class="chip chip--warn">3 queued</span>
-      </div>
-
-      <div class="pipeline-meters">
-        <div class="meter">
-          <div class="meter-value"><span class="meter-dot"></span>4</div>
-          <div class="meter-label">drafts</div>
-        </div>
-        <div class="meter">
-          <div class="meter-value"><span class="meter-dot meter-dot--warn"></span>3</div>
-          <div class="meter-label">queued</div>
-        </div>
-        <div class="meter">
-          <div class="meter-value"><span class="meter-dot meter-dot--ok"></span>28</div>
-          <div class="meter-label">published</div>
-        </div>
-        <div class="meter">
-          <div class="meter-value"><span class="meter-dot meter-dot--err"></span>1</div>
-          <div class="meter-label">failed</div>
-        </div>
-      </div>
-
-      <div class="pipeline-list">
-        <div class="pipeline-item">
-          <span class="dot dot--warn"></span>
-          <span class="name">Weekly digest — March edition</span>
-          <span class="kind">newsletter</span>
-          <span class="when">Fri 08:00</span>
-        </div>
-        <div class="pipeline-item">
-          <span class="dot dot--warn"></span>
-          <span class="name">Self-directed learning frameworks</span>
-          <span class="kind">post</span>
-          <span class="when">Mon 09:00</span>
-        </div>
-        <div class="pipeline-item">
-          <span class="dot dot--warn"></span>
-          <span class="name">New blog post announcement</span>
-          <span class="kind">social</span>
-          <span class="when">Mon 09:15</span>
-        </div>
-        <div class="pipeline-item">
-          <span class="dot dot--err"></span>
-          <span class="name">Instagram · portfolio highlight</span>
-          <span class="kind">social</span>
-          <span class="when when--err">retry 2/3</span>
-        </div>
-        <div class="pipeline-item">
-          <span class="dot dot--ok"></span>
-          <span class="name">Open source education tools</span>
-          <span class="kind">post</span>
-          <span class="when">2 Mar</span>
-        </div>
-      </div>
-    </article>
-
-    <!-- Wishlist — primary row left -->
-    <article class="card card--wide">
-      <div class="card-head">
-        <span class="card-title">Wishlist</span>
-        <span class="chip">7 open</span>
-      </div>
-
-      <div class="wishlist">
-        <div class="wish">
-          <span class="tally"><small>×</small>5</span>
-          <span class="title">Email integration for newsletter delivery</span>
-          <span class="prio prio--high">high</span>
-          <span class="status status--new">new</span>
-        </div>
-        <div class="wish">
-          <span class="tally"><small>×</small>3</span>
-          <span class="title">Calendar sync for scheduling posts</span>
-          <span class="prio">med</span>
-          <span class="status status--new">new</span>
-        </div>
-        <div class="wish">
-          <span class="tally"><small>×</small>2</span>
-          <span class="title">Instagram posting from social-media plugin</span>
-          <span class="prio">med</span>
-          <span class="status">planned</span>
-        </div>
-        <div class="wish">
-          <span class="tally"><small>×</small>1</span>
-          <span class="title">Water my plants automatically</span>
-          <span class="prio prio--low">low</span>
-          <span class="status status--new">new</span>
-        </div>
-      </div>
-    </article>
-
+    </div>
   </section>
 
   <footer class="colophon">
