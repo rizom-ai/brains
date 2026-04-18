@@ -58,6 +58,7 @@ export {
   generateIdFromText,
   pluralize,
   toDisplayName,
+  displayLinkLabel,
   formatLabel,
   calculateReadingTime,
   truncateText,

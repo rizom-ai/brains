@@ -154,6 +154,26 @@ export function toDisplayName(entityType: string): string {
   return titleCased.join(" ");
 }
 
+const LINK_LABEL_CANONICAL: Record<string, string> = {
+  github: "GitHub",
+  instagram: "Instagram",
+  linkedin: "LinkedIn",
+  email: "Email",
+  website: "Website",
+};
+
+/**
+ * Format a link/platform label for display. Known platforms
+ * (github, linkedin, etc.) resolve to their canonical spelling;
+ * unknown labels fall back to title case.
+ */
+export function displayLinkLabel(label: string): string {
+  const key = label.toLowerCase();
+  const canonical = LINK_LABEL_CANONICAL[key];
+  if (canonical !== undefined) return canonical;
+  return label.replace(/\b\w/g, (ch) => ch.toUpperCase());
+}
+
 /**
  * Calculate estimated reading time in minutes
  * Based on average reading speed of 200 words per minute

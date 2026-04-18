@@ -50,7 +50,7 @@ describe("DashboardPlugin", () => {
       expect(response?.status).toBe(200);
       expect(response?.headers.get("content-type")).toContain("text/html");
       const html = await response?.text();
-      expect(html).toContain("Brain Dashboard");
+      expect(html).toContain("Test Owner");
       expect(html).toContain("Entity Statistics");
       expect(html).toContain("dashboard:dashboard");
       expect(html).not.toContain("data-cms-frame");

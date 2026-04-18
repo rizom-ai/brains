@@ -1,0 +1,41 @@
+id: multi-turn-wishlist-lasagna-regression
+name: Wishlist persists unfulfillable request across turns
+description: Verifies that an unfulfillable physical-world request is saved as a wish via system_create and can be listed on the next turn.
+type: multi_turn
+tags:
+  - wishlist
+  - multi-turn
+  - regression
+
+turns:
+  - userMessage: "Can you make lasagna for me?"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "wish"
+      responseContains:
+        - "wishlist"
+      responseNotContains:
+        - "I made lasagna"
+        - "I made it"
+        - "it is done"
+
+  - userMessage: "Can you show me my wishlist"
+    successCriteria:
+      expectedTools:
+        - toolName: system_list
+          shouldBeCalled: true
+          argsContain:
+            entityType: "wish"
+      responseContains:
+        - "lasagna"
+      responseNotContains:
+        - "empty"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 40000
