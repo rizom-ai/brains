@@ -61,7 +61,6 @@ jobs:
         run: |
           BUILD_DIR=$(mktemp -d)
           cp deploy/docker/Dockerfile.model "$BUILD_DIR/Dockerfile"
-          cp deploy/docker/Caddyfile "$BUILD_DIR/Caddyfile"
           cp deploy/docker/package.prod.json "$BUILD_DIR/package.json"
           cp -r brains/${{ matrix.model }}/dist "$BUILD_DIR/dist"
 

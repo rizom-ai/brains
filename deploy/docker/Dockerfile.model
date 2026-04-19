@@ -4,13 +4,9 @@ FROM oven/bun:${BUN_VERSION}-slim
 
 WORKDIR /app
 
-# Layer 1: System dependencies + Caddy
+# Layer 1: System dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
-    && setcap cap_net_bind_service=+ep $(which caddy) \
+    curl ca-certificates git \
     && rm -rf /var/lib/apt/lists/*
 
 # Layer 2: Runtime native module package.json
@@ -19,27 +15,23 @@ COPY package.json ./package.json
 # Layer 3: Install runtime native modules
 RUN bun install --ignore-scripts
 
-# Layer 4: Caddy config (path-based routing to internal services)
-COPY Caddyfile /etc/caddy/Caddyfile
-
-# Layer 5: Create directories + Caddy storage paths
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
+# Layer 4: Create directories
 RUN mkdir -p /app/data /app/cache /app/brain-data && \
     chmod -R 777 /app/data /app/cache /app/brain-data
 
-# Layer 6: Copy pre-built bundle
+# Layer 5: Copy pre-built bundle
 COPY dist ./dist
 COPY seed-content ./seed-content
 COPY public ./public
 
-# Layer 7: Copy brain.yaml to workdir if present (brain CLI reads from cwd)
+# Layer 6: Copy brain.yaml to workdir if present (brain CLI reads from cwd)
 RUN test -f /app/dist/brain.yaml && cp /app/dist/brain.yaml /app/brain.yaml || true
 
-# Layer 8: Create writable directories for site builder output
+# Layer 7: Create writable directories for site builder output
 RUN mkdir -p /app/dist/site-production /app/dist/site-preview /app/dist/images && \
     chmod -R 777 /app/dist/site-production /app/dist/site-preview /app/dist/images
 
+EXPOSE 8080
+
 # brain.yaml is mounted at runtime via volume
-# Start Caddy (background) then brain
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && if [ -f dist/.model-entrypoint.js ]; then exec bun dist/.model-entrypoint.js; else exec bun dist/.brain-entrypoint.js; fi"]
+CMD ["sh", "-c", "if [ -f dist/.model-entrypoint.js ]; then exec bun dist/.model-entrypoint.js; else exec bun dist/.brain-entrypoint.js; fi"]
