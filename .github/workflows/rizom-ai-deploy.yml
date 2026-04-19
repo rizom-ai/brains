@@ -138,7 +138,7 @@ jobs:
           cp ../../deploy/docker/package.prod.json "$BUILD_DIR/package.json"
 
           echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
-          docker build -t "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION" "$BUILD_DIR"
+          docker build --label service=brain -t "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION" "$BUILD_DIR"
           docker push "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION"
 
       - name: Write Kamal SSH key
