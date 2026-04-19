@@ -137,6 +137,18 @@ export const ProductCard = ({
         <div
           className={`relative z-[1] order-first h-[220px] w-full overflow-hidden rounded-xl border border-[var(--color-card-illust-border)] bg-[linear-gradient(var(--color-card-illust-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-card-illust-grid)_1px,transparent_1px),var(--color-card-illust-overlay)] bg-[length:28px_28px,28px_28px,auto] md:h-[320px] ${isRelay ? "md:order-1" : "md:order-none"}`}
         >
+          <span
+            className={`${CORNER_CLASS[variant]} pointer-events-none absolute left-[10px] top-[10px] z-[2] h-[14px] w-[14px] opacity-85 before:absolute before:left-0 before:top-0 before:h-[1.5px] before:w-full before:bg-current before:content-[''] after:absolute after:left-0 after:top-0 after:h-full after:w-[1.5px] after:bg-current after:content-['']`}
+          />
+          <span
+            className={`${CORNER_CLASS[variant]} pointer-events-none absolute right-[10px] top-[10px] z-[2] h-[14px] w-[14px] opacity-85 before:absolute before:right-0 before:top-0 before:h-[1.5px] before:w-full before:bg-current before:content-[''] after:absolute after:right-0 after:top-0 after:h-full after:w-[1.5px] after:bg-current after:content-['']`}
+          />
+          <span
+            className={`${CORNER_CLASS[variant]} pointer-events-none absolute bottom-[10px] left-[10px] z-[2] h-[14px] w-[14px] opacity-85 before:absolute before:left-0 before:bottom-0 before:h-[1.5px] before:w-full before:bg-current before:content-[''] after:absolute after:left-0 after:bottom-0 after:h-full after:w-[1.5px] after:bg-current after:content-['']`}
+          />
+          <span
+            className={`${CORNER_CLASS[variant]} pointer-events-none absolute bottom-[10px] right-[10px] z-[2] h-[14px] w-[14px] opacity-85 before:absolute before:right-0 before:bottom-0 before:h-[1.5px] before:w-full before:bg-current before:content-[''] after:absolute after:right-0 after:bottom-0 after:h-full after:w-[1.5px] after:bg-current after:content-['']`}
+          />
           <ProductIllustration variant={variant} />
         </div>
       </div>

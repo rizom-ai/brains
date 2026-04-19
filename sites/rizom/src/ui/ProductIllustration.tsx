@@ -20,14 +20,6 @@ const PRODUCT_SVGS: Record<ProductVariant, string> = {
           </radialGradient>
         </defs>
 
-        <!-- Crosshairs at the four corners of the diagram -->
-        <g class="crosshair" stroke="var(--palette-amber)">
-          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
-          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
-          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
-          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
-        </g>
-
         <!-- A. RAW CAPTURES — abstract amber particle cloud. No figurative
              note/link/card shapes. Just a dense organic scatter of thought
              particles, varying size and opacity, threaded through with
@@ -260,14 +252,6 @@ const PRODUCT_SVGS: Record<ProductVariant, string> = {
             <stop offset="100%" stop-color="var(--palette-amber)" stop-opacity="0"/>
           </radialGradient>
         </defs>
-
-        <!-- Corner crosshairs -->
-        <g class="crosshair" stroke="var(--palette-purple-light)">
-          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
-          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
-          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
-          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
-        </g>
 
         <!-- TMS PENTAGON RADARS — five teammates as 5-dimensional
              radars (Specialization · Credibility · cOordination · Memory
@@ -528,14 +512,6 @@ const PRODUCT_SVGS: Record<ProductVariant, string> = {
             <stop offset="100%" stop-color="var(--palette-amber)" stop-opacity="0"/>
           </radialGradient>
         </defs>
-
-        <!-- Corner crosshairs -->
-        <g class="crosshair" stroke="var(--palette-amber)">
-          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
-          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
-          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
-          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
-        </g>
 
         <!-- FINGERPRINT WHORL — "match by substance."
              A 12-ridge whorl whose upper-right wedge is absent. The
