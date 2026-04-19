@@ -12,9 +12,13 @@
 		}
 	}
 
-	# Health endpoint
+	# Health endpoint: prefer the webserver when present, but fall back to
+	# MCP HTTP for deployments that expose health there instead.
 	handle /health {
-		reverse_proxy localhost:3333
+		reverse_proxy localhost:8080 localhost:3333 {
+			lb_policy first
+			lb_retries 1
+		}
 	}
 
 	# MCP endpoint
