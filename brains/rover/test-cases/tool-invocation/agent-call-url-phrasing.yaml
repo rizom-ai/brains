@@ -1,6 +1,6 @@
-id: tool-invocation-agent-call-unknown-url
-name: Refuse Unknown Agent by URL
-description: Tests that the agent refuses to call an unknown agent even when the user provides a full URL
+id: tool-invocation-agent-call-url-phrasing
+name: Refuse URL-Only Agent Contact Request
+description: Tests that URL-style agent contact requests still follow the save-first directory flow
 type: tool_invocation
 tags:
   - agent-discovery
@@ -8,7 +8,7 @@ tags:
   - tool-invocation
 
 turns:
-  - userMessage: "Ask https://unknown-agent.io about ecosystem architecture"
+  - userMessage: "Can you message this agent URL for me: https://unknown-agent.io/a2a? Ask about ecosystem architecture."
 
 successCriteria:
   expectedTools:
@@ -21,7 +21,9 @@ successCriteria:
     - "add"
   responseNotContains:
     - "I called"
-    - "I reached out"
+    - "wishlist"
+    - "wish"
+
 
 efficiency:
   maxToolCalls: 3

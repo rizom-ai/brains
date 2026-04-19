@@ -18,6 +18,7 @@ successCriteria:
       shouldBeCalled: false
   responseContains:
     - "directory"
+    - "add"
   responseNotContains:
     - "Calling unknown-agent.io"
     - "I called"

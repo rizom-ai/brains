@@ -127,7 +127,7 @@ const a2aCallInputSchema = {
   agent: z
     .string()
     .describe(
-      "Saved local agent id from your directory (for example yeehaa.io). Do not pass a URL.",
+      "Saved local agent id from your directory, usually a domain-like id such as yeehaa.io. Never pass a display name like Brain or a URL.",
     ),
   message: z.string().describe("Message to send to the remote agent"),
 };
@@ -305,7 +305,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "a2a_call",
     description:
-      "Call a saved remote A2A agent by its local directory id. Use only a saved agent id such as yeehaa.io, never a full URL. When the user asks to contact a saved agent, use this tool now rather than only describing what you could send. If the agent is not saved yet, ask the user to add it first.",
+      "Call a saved remote A2A agent by its local directory id. Use only a saved agent id such as yeehaa.io. Never pass a display name like Brain, never pass a full URL, and do not use this tool to probe whether an agent exists. If the user gives a URL, an unsaved agent, or an ambiguous name, ask them to add/save or clarify the agent first.",
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {

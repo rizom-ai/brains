@@ -350,10 +350,13 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   protected override async getInstructions(): Promise<string | undefined> {
     return `## Agent-to-agent calls
 - Use \`a2a_call\` only for agents already saved in the local \`agent\` directory.
-- Pass only the saved local agent id to \`a2a_call\` (for example \`yeehaa.io\`), never a full URL.
-- If the user asks you to ask, message, or contact a saved active agent, call \`a2a_call\` in the same turn. Do not stop after listing the agent, drafting the question, or searching locally.
-- If the user gives a full URL for an agent, do not call \`a2a_call\` yet. Tell the user to add that agent to the directory first.
+- Pass only the saved local agent id to \`a2a_call\` (for example \`yeehaa.io\`). Never pass a full URL or a display name like \`Brain\`.
+- If the user asks you to ask, message, or contact a saved active agent, treat that as an agent-directory request first and call \`a2a_call\` in the same turn. Do not stop after listing the agent, drafting the question, or searching general content locally.
+- If the user gives a full URL for an agent, do not pass that URL to \`a2a_call\`. Use a saved local agent id only. If that URL is not already saved in the local directory, tell the user to add it first.
+- If the user refers to an agent by name, first make sure that name resolves to exactly one saved agent id. If multiple saved agents could match, ask a short clarification question and do not call any agent yet.
+- After asking that clarification question, end the turn. Do not call \`a2a_call\` later in the same turn.
 - If the target agent is not in the directory, do not create a wish, reminder, todo, note, fallback task, or any new entity. Tell the user to add it first.
+- In these invalid agent-target cases, do not call any tool unless the user explicitly asks you to add/save the agent.
 - Only use creation tools for an agent if the user explicitly asks you to add or save that agent.
 - If the target agent is archived, do not call it and do not create a wish. Tell the user it must be unarchived first.`;
   }

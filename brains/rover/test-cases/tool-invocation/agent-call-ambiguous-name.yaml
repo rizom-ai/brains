@@ -1,0 +1,31 @@
+id: tool-invocation-agent-call-ambiguous-name
+name: Clarify Ambiguous Saved Agent Name
+description: Tests that the agent asks for clarification when multiple saved agents match a name-based reference
+type: tool_invocation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "Ask my contact Brain about ecosystem architecture"
+
+successCriteria:
+  expectedTools:
+    - toolName: a2a_call
+      shouldBeCalled: false
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContains:
+    - "which"
+    - "brain-labs.io"
+    - "yeehaa.io"
+  responseNotContains:
+    - "I called"
+    - "wishlist"
+    - "wish"
+
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

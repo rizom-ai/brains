@@ -9,6 +9,8 @@ describe("rover agent directory evaluation test cases", () => {
       "agent-call-by-name.yaml",
       "agent-call-unknown-domain.yaml",
       "agent-call-unknown-url.yaml",
+      "agent-call-url-phrasing.yaml",
+      "agent-call-ambiguous-name.yaml",
       "agent-call-archived.yaml",
     ];
 
