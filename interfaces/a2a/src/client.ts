@@ -344,10 +344,10 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         };
       }
 
-      if (entity.metadata["status"] === "archived") {
+      if (entity.metadata["status"] !== "approved") {
         return {
           success: false,
-          error: `Agent ${agentId} is archived in your directory. Unarchive it first.`,
+          error: `Agent ${agentId} is discovered but not approved yet. Approve it first.`,
         };
       }
 

@@ -14,7 +14,7 @@ const baseAgent = {
   metadata: {
     name: "Yeehaa",
     url: "https://yeehaa.io",
-    status: "active" as const,
+    status: "discovered" as const,
     slug: "yeehaa-io",
   },
   contentHash: "abc123",
@@ -25,9 +25,8 @@ const baseAgent = {
     brainName: "Yeehaa's Brain",
     url: "https://yeehaa.io",
     did: "did:web:yeehaa.io",
-    status: "active" as const,
+    status: "discovered" as const,
     discoveredAt: "2026-03-31T00:00:00.000Z",
-    discoveredVia: "manual" as const,
   },
   about: "Founder of Rizom.",
   skills: [

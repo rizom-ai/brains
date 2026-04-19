@@ -17,6 +17,7 @@ const agentListSchema = z.object({
   pageTitle: z.string().optional(),
   pagination: paginationInfoSchema.nullable(),
   baseUrl: z.string().optional(),
+  selectedStatus: z.enum(["all", "discovered", "approved"]),
 });
 
 export function getTemplates(): Record<string, Template> {

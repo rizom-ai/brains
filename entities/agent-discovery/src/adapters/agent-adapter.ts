@@ -3,10 +3,12 @@ import { z, StructuredContentFormatter, slugifyUrl } from "@brains/utils";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
+  agentStatusSchema,
   type AgentEntity,
   type AgentFrontmatter,
   type AgentMetadata,
   type AgentSkill,
+  type AgentStatus,
 } from "../schemas/agent";
 
 /**
@@ -96,12 +98,11 @@ export interface CreateAgentContentInput {
   name: string;
   kind: "professional" | "team" | "collective";
   organization?: string;
-  brainName?: string;
+  brainName: string;
   url: string;
   did?: string;
-  status: "active" | "archived";
+  status: AgentStatus | string;
   discoveredAt: string;
-  discoveredVia: "atproto" | "manual";
   about: string;
   skills: AgentSkill[];
   notes: string;
@@ -147,12 +148,11 @@ export class AgentAdapter extends BaseEntityAdapter<
       name: input.name,
       kind: input.kind,
       ...(input.organization && { organization: input.organization }),
-      ...(input.brainName && { brainName: input.brainName }),
+      brainName: input.brainName,
       url: input.url,
       ...(input.did && { did: input.did }),
-      status: input.status,
+      status: agentStatusSchema.parse(input.status),
       discoveredAt: input.discoveredAt,
-      discoveredVia: input.discoveredVia,
     };
 
     const body = bodyFormatter.format({

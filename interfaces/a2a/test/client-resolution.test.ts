@@ -74,17 +74,17 @@ function createMockEntityService(
 const toolContext = { interfaceType: "mcp" as const, userId: "test" };
 
 describe("a2a_call agent resolution", () => {
-  it("should resolve a saved agent by domain from the entity service", async () => {
+  it("should resolve an approved saved agent by domain from the entity service", async () => {
     const entities = new Map();
     entities.set("yeehaa.io", {
       id: "yeehaa.io",
       entityType: "agent",
       content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: active\n---",
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
       metadata: {
         name: "Yeehaa",
         url: "https://yeehaa.io/a2a",
-        status: "active",
+        status: "approved",
       },
     });
 
@@ -110,11 +110,11 @@ describe("a2a_call agent resolution", () => {
       id: "yeehaa.io",
       entityType: "agent",
       content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: active\n---",
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: approved\n---",
       metadata: {
         name: "Yeehaa",
         url: "https://yeehaa.io/a2a",
-        status: "active",
+        status: "approved",
       },
     });
 
@@ -138,13 +138,13 @@ describe("a2a_call agent resolution", () => {
     expect(fetchFn).not.toHaveBeenCalled();
   });
 
-  it("should refuse archived agents", async () => {
+  it("should refuse discovered agents until approved", async () => {
     const entities = new Map();
     entities.set("old.io", {
       id: "old.io",
       entityType: "agent",
-      content: "---\nname: Old\nurl: 'https://old.io'\nstatus: archived\n---",
-      metadata: { name: "Old", status: "archived" },
+      content: "---\nname: Old\nurl: 'https://old.io'\nstatus: discovered\n---",
+      metadata: { name: "Old", status: "discovered" },
     });
 
     const tool = createA2ACallTool({
@@ -159,7 +159,7 @@ describe("a2a_call agent resolution", () => {
 
     expect(isError(result)).toBe(true);
     if (isError(result)) {
-      expect(result.error).toContain("archived");
+      expect(result.error).toContain("Approve it first");
     }
   });
 

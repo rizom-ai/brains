@@ -17,10 +17,9 @@ function agentContent(opts: {
   url: string;
   status: string;
   organization?: string;
-  brainName?: string;
+  brainName: string;
   did?: string;
   discoveredAt?: string;
-  discoveredVia?: string;
   about?: string;
   skills?: string;
   notes?: string;
@@ -30,12 +29,11 @@ function agentContent(opts: {
     `name: ${opts.name}`,
     `kind: ${opts.kind}`,
     ...(opts.organization ? [`organization: ${opts.organization}`] : []),
-    ...(opts.brainName ? [`brainName: ${opts.brainName}`] : []),
+    `brainName: ${opts.brainName}`,
     `url: ${opts.url}`,
     ...(opts.did ? [`did: ${opts.did}`] : []),
     `status: ${opts.status}`,
     `discoveredAt: ${opts.discoveredAt ?? "2026-03-31T00:00:00.000Z"}`,
-    `discoveredVia: ${opts.discoveredVia ?? "manual"}`,
     "---",
   ].join("\n");
 
@@ -57,7 +55,7 @@ function agentContent(opts: {
 function createMockAgent(
   id: string,
   name: string,
-  status: "active" | "archived",
+  status: "discovered" | "approved",
   url = `https://${name.toLowerCase()}.io`,
 ): AgentEntity {
   const content = agentContent({
@@ -113,8 +111,8 @@ describe("AgentDataSource", () => {
 
     it("should return transformed agents with parsed body sections", async () => {
       const agents = [
-        createMockAgent("agent-1", "Yeehaa", "active"),
-        createMockAgent("agent-2", "Phoney", "active"),
+        createMockAgent("agent-1", "Yeehaa", "approved"),
+        createMockAgent("agent-2", "Phoney", "approved"),
       ];
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(agents);
@@ -144,6 +142,24 @@ describe("AgentDataSource", () => {
         }),
       );
     });
+
+    it("should filter by status at the entity-service level", async () => {
+      spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
+      spyOn(mockEntityService, "countEntities").mockResolvedValue(0);
+
+      await datasource.fetch(
+        { entityType: "agent", query: { status: "approved", page: 1 } },
+        listSchema,
+        mockContext,
+      );
+
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
+        "agent",
+        expect.objectContaining({
+          filter: { metadata: { status: "approved" } },
+        }),
+      );
+    });
   });
 
   describe("detail", () => {
@@ -154,7 +170,7 @@ describe("AgentDataSource", () => {
     });
 
     it("should return single agent with parsed sections", async () => {
-      const agent = createMockAgent("agent-1", "Yeehaa", "active");
+      const agent = createMockAgent("agent-1", "Yeehaa", "approved");
 
       // First call: lookup by slug, second: all for navigation
       spyOn(mockEntityService, "listEntities")
@@ -173,9 +189,9 @@ describe("AgentDataSource", () => {
     });
 
     it("should include prev/next navigation", async () => {
-      const alpha = createMockAgent("agent-1", "Alpha", "active");
-      const beta = createMockAgent("agent-2", "Beta", "active");
-      const gamma = createMockAgent("agent-3", "Gamma", "active");
+      const alpha = createMockAgent("agent-1", "Alpha", "approved");
+      const beta = createMockAgent("agent-2", "Beta", "approved");
+      const gamma = createMockAgent("agent-3", "Gamma", "approved");
       const agents = [alpha, beta, gamma];
 
       spyOn(mockEntityService, "listEntities")

@@ -5,6 +5,8 @@ import { AgentAvatar, KindBadge, extractDomain } from "./shared";
 
 export interface AgentDetailProps {
   agent: TemplateAgent;
+  prevAgent?: TemplateAgent | null;
+  nextAgent?: TemplateAgent | null;
 }
 
 function formatDate(dateStr: string): string {
@@ -72,9 +74,12 @@ const InfoRow = ({
  */
 export const AgentDetailTemplate = ({
   agent,
+  prevAgent,
+  nextAgent,
 }: AgentDetailProps): JSX.Element => {
   const { frontmatter, about, skills, notes } = agent;
   const domain = extractDomain(frontmatter.url);
+  const isApproved = frontmatter.status === "approved";
 
   return (
     <>
@@ -105,6 +110,9 @@ export const AgentDetailTemplate = ({
                 </h1>
                 <KindBadge kind={frontmatter.kind} />
               </div>
+              <div className="text-base text-theme-muted mb-2">
+                {frontmatter.brainName}
+              </div>
               <div className="flex items-center gap-3 text-theme-muted">
                 {frontmatter.organization && (
                   <span className="text-[15px]">
@@ -122,6 +130,18 @@ export const AgentDetailTemplate = ({
           </div>
 
           <div className="border-b border-theme mb-8" />
+
+          {!isApproved && (
+            <div className="mb-8 rounded-xl border border-theme bg-theme-subtle px-5 py-4">
+              <div className="text-sm font-semibold text-heading mb-1">
+                Saved for review
+              </div>
+              <p className="text-sm text-theme-muted">
+                This brain is discovered but not approved yet, so it cannot be
+                called until you approve it.
+              </p>
+            </div>
+          )}
 
           {/* Two-column layout */}
           <div className="flex flex-col md:flex-row gap-12">
@@ -167,7 +187,7 @@ export const AgentDetailTemplate = ({
                 <SectionHeading>Brain</SectionHeading>
                 <div className="p-4 bg-theme-subtle rounded-xl">
                   <div className="text-[15px] font-semibold text-heading mb-1">
-                    {frontmatter.brainName ?? `${frontmatter.name}'s Brain`}
+                    {frontmatter.brainName}
                   </div>
                   {frontmatter.did && (
                     <div className="text-xs text-theme-muted font-mono">
@@ -192,20 +212,14 @@ export const AgentDetailTemplate = ({
                   <InfoRow
                     label="Status"
                     value={
-                      frontmatter.status === "active" ? "Active" : "Archived"
+                      frontmatter.status === "approved"
+                        ? "Approved"
+                        : "Discovered"
                     }
                     valueClassName={
-                      frontmatter.status === "active"
+                      frontmatter.status === "approved"
                         ? "text-status-success font-medium"
                         : "text-theme-muted"
-                    }
-                  />
-                  <InfoRow
-                    label="Discovered via"
-                    value={
-                      frontmatter.discoveredVia === "atproto"
-                        ? "AT Protocol"
-                        : "Manual"
                     }
                   />
                 </div>
@@ -222,6 +236,37 @@ export const AgentDetailTemplate = ({
               </a>
             </aside>
           </div>
+
+          {(prevAgent || nextAgent) && (
+            <nav className="mt-12 pt-6 border-t border-theme flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-h-[1px]">
+                {prevAgent && (
+                  <a
+                    href={prevAgent.url}
+                    className="inline-flex flex-col text-sm text-theme-muted hover:text-heading transition-colors"
+                  >
+                    <span>← Previous</span>
+                    <span className="text-heading font-medium">
+                      {prevAgent.frontmatter.name}
+                    </span>
+                  </a>
+                )}
+              </div>
+              <div className="min-h-[1px] md:text-right">
+                {nextAgent && (
+                  <a
+                    href={nextAgent.url}
+                    className="inline-flex flex-col text-sm text-theme-muted hover:text-heading transition-colors"
+                  >
+                    <span>Next →</span>
+                    <span className="text-heading font-medium">
+                      {nextAgent.frontmatter.name}
+                    </span>
+                  </a>
+                )}
+              </div>
+            </nav>
+          )}
         </div>
       </article>
     </>

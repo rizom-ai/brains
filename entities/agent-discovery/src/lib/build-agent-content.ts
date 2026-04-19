@@ -1,5 +1,6 @@
 import { slugifyUrl } from "@brains/utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
+import type { AgentStatus } from "../schemas/agent";
 import type { ParsedAgentCard } from "./fetch-agent-card";
 
 const agentAdapter = new AgentAdapter();
@@ -10,7 +11,7 @@ const agentAdapter = new AgentAdapter();
  */
 export function buildAgentFromCard(card: ParsedAgentCard): {
   content: string;
-  metadata: { name: string; url: string; status: "active"; slug: string };
+  metadata: { name: string; url: string; status: AgentStatus; slug: string };
   anchorName: string;
 } {
   const anchorName = card.anchor?.name ?? card.brainName;
@@ -28,9 +29,8 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
     }),
     brainName: card.brainName,
     url: card.url,
-    status: "active",
+    status: "discovered",
     discoveredAt: new Date().toISOString(),
-    discoveredVia: "manual",
     about: aboutParts.join("\n\n"),
     skills: card.skills.map((s) => ({
       name: s.name,
@@ -45,7 +45,7 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
     metadata: {
       name: anchorName,
       url: card.url,
-      status: "active",
+      status: "discovered",
       slug: slugifyUrl(card.url),
     },
     anchorName,

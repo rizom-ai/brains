@@ -17,9 +17,8 @@ describe("AgentAdapter", () => {
         brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
         did: "did:web:yeehaa.io",
-        status: "active",
+        status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
-        discoveredVia: "manual",
         about: "Founder of Rizom, working on institutional design.",
         skills: [
           {
@@ -44,8 +43,7 @@ describe("AgentAdapter", () => {
       expect(content).toContain("yeehaa.io");
       expect(content).toContain("did:");
       expect(content).toContain("did:web:yeehaa.io");
-      expect(content).toContain("status: active");
-      expect(content).toContain("discoveredVia: manual");
+      expect(content).toContain("status: discovered");
 
       // Body sections
       expect(content).toContain("## About");
@@ -60,10 +58,10 @@ describe("AgentAdapter", () => {
       const content = adapter.createAgentContent({
         name: "Unknown",
         kind: "professional",
+        brainName: "Unknown Brain",
         url: "https://unknown.io",
-        status: "active",
+        status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
-        discoveredVia: "manual",
         about: "",
         skills: [],
         notes: "",
@@ -78,10 +76,10 @@ describe("AgentAdapter", () => {
       const content = adapter.createAgentContent({
         name: "Minimal",
         kind: "professional",
+        brainName: "Minimal Brain",
         url: "https://minimal.io",
-        status: "active",
+        status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
-        discoveredVia: "manual",
         about: "",
         skills: [],
         notes: "",
@@ -90,7 +88,7 @@ describe("AgentAdapter", () => {
       expect(content).toContain("name: Minimal");
       expect(content).toContain("minimal.io");
       expect(content).not.toContain("organization");
-      expect(content).not.toContain("brainName");
+      expect(content).toContain("brainName: Minimal Brain");
       expect(content).not.toContain("did");
     });
   });
@@ -99,10 +97,10 @@ describe("AgentAdapter", () => {
     it("should parse all three body sections", () => {
       const content = `---
 name: Yeehaa
+brainName: Yeehaa's Brain
 url: https://yeehaa.io
-status: active
+status: discovered
 discoveredAt: "2026-03-31T00:00:00.000Z"
-discoveredVia: manual
 ---
 
 ## About
@@ -137,10 +135,10 @@ Great collaborator.`;
     it("should handle missing sections gracefully", () => {
       const content = `---
 name: Minimal
+brainName: Minimal Brain
 url: https://minimal.io
-status: active
+status: discovered
 discoveredAt: "2026-03-31T00:00:00.000Z"
-discoveredVia: manual
 ---`;
 
       const parsed = adapter.parseAgentContent(content);
@@ -152,10 +150,10 @@ discoveredVia: manual
     it("should handle skills with no tags", () => {
       const content = `---
 name: Test
+brainName: Test Brain
 url: https://test.io
-status: active
+status: discovered
 discoveredAt: "2026-03-31T00:00:00.000Z"
-discoveredVia: manual
 ---
 
 ## About
@@ -187,10 +185,10 @@ Test agent.
         content: adapter.createAgentContent({
           name: "Yeehaa",
           kind: "professional",
+          brainName: "Yeehaa's Brain",
           url: "https://yeehaa.io",
-          status: "active",
+          status: "discovered",
           discoveredAt: "2026-03-31T00:00:00.000Z",
-          discoveredVia: "manual",
           about: "",
           skills: [],
           notes: "",
@@ -201,14 +199,14 @@ Test agent.
         metadata: {
           name: "Yeehaa",
           url: "https://yeehaa.io",
-          status: "active" as const,
+          status: "discovered" as const,
           slug: "yeehaa-io",
         },
       };
 
       const metadata = adapter.extractMetadata(entity);
       expect(metadata.name).toBe("Yeehaa");
-      expect(metadata.status).toBe("active");
+      expect(metadata.status).toBe("discovered");
       expect(metadata.slug).toBe("yeehaa-io");
     });
   });
@@ -218,10 +216,10 @@ Test agent.
       const content = adapter.createAgentContent({
         name: "Yeehaa",
         kind: "professional",
+        brainName: "Yeehaa's Brain",
         url: "https://yeehaa.io",
-        status: "active",
+        status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
-        discoveredVia: "manual",
         about: "",
         skills: [],
         notes: "",
@@ -230,7 +228,7 @@ Test agent.
       const partial = adapter.fromMarkdown(content);
       expect(partial.metadata?.slug).toBe("yeehaa-io");
       expect(partial.metadata?.name).toBe("Yeehaa");
-      expect(partial.metadata?.status).toBe("active");
+      expect(partial.metadata?.status).toBe("discovered");
     });
   });
 
@@ -243,9 +241,8 @@ Test agent.
         brainName: "Ranger Brain",
         url: "https://ranger.rizom.ai",
         did: "did:web:ranger.rizom.ai",
-        status: "active",
+        status: "discovered",
         discoveredAt: "2026-03-31T00:00:00.000Z",
-        discoveredVia: "manual",
         about: "Discovery and registry agent for the Rizom network.",
         skills: [
           {

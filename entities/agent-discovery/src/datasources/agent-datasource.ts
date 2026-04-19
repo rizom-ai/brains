@@ -1,13 +1,17 @@
 import {
   BaseEntityDataSource,
+  baseInputSchema,
+  baseQuerySchema,
   parseMarkdownWithFrontmatter,
 } from "@brains/plugins";
 import type {
+  BaseDataSourceContext,
   BaseQuery,
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import { z } from "@brains/utils";
 import {
   agentFrontmatterSchema,
   agentWithDataSchema,
@@ -24,10 +28,21 @@ interface AgentDetailData {
   nextAgent: AgentWithData | null;
 }
 
+const agentQuerySchema = baseQuerySchema.extend({
+  status: z.enum(["discovered", "approved"]).optional(),
+});
+
+const agentInputSchema = baseInputSchema.extend({
+  query: agentQuerySchema.optional(),
+});
+
+type AgentQuery = z.infer<typeof agentQuerySchema>;
+
 interface AgentListData {
   agents: AgentWithData[];
   pagination: PaginationInfo | null;
   baseUrl: string | undefined;
+  selectedStatus: "all" | "discovered" | "approved";
 }
 
 /**
@@ -93,6 +108,17 @@ export class AgentDataSource extends BaseEntityDataSource<
     };
   }
 
+  protected override parseQuery(query: unknown): {
+    entityType: string;
+    query: AgentQuery;
+  } {
+    const parsed = agentInputSchema.parse(query);
+    return {
+      entityType: parsed.entityType ?? this.config.entityType,
+      query: parsed.query ?? {},
+    };
+  }
+
   protected buildListResult(
     items: AgentWithData[],
     pagination: PaginationInfo | null,
@@ -102,6 +128,34 @@ export class AgentDataSource extends BaseEntityDataSource<
       agents: items,
       pagination,
       baseUrl: query.baseUrl,
+      selectedStatus:
+        query["status"] === "discovered" || query["status"] === "approved"
+          ? query["status"]
+          : "all",
     };
+  }
+
+  override async fetch<T>(
+    query: unknown,
+    outputSchema: z.ZodSchema<T>,
+    context: BaseDataSourceContext,
+  ): Promise<T> {
+    const { query: parsedQuery } = this.parseQuery(query);
+
+    if (parsedQuery.id) {
+      return super.fetch(query, outputSchema, context);
+    }
+
+    const { items, pagination } = await this.fetchList(
+      parsedQuery,
+      context.entityService,
+      parsedQuery.status
+        ? { filter: { metadata: { status: parsedQuery.status } } }
+        : undefined,
+    );
+
+    return outputSchema.parse(
+      this.buildListResult(items, pagination, parsedQuery),
+    );
   }
 }

@@ -12,6 +12,12 @@ export const agentSkillSchema = z.object({
 
 export type AgentSkill = z.infer<typeof agentSkillSchema>;
 
+export const agentStatusSchema = z
+  .enum(["discovered", "approved"])
+  .describe("Discovered for review or approved for calling");
+
+export type AgentStatus = z.infer<typeof agentStatusSchema>;
+
 /**
  * Agent frontmatter schema — structured data in YAML frontmatter.
  * Anchor fields (name, kind, organization) come from anchorProfileBodySchema.
@@ -21,19 +27,16 @@ export const agentFrontmatterSchema = anchorProfileBodySchema
   .pick({ name: true, kind: true, organization: true })
   .extend({
     // Brain (what)
-    brainName: z.string().optional().describe("Name of the brain"),
+    brainName: z.string().describe("Name of the brain instance"),
     url: z.string().url().describe("Brain endpoint URL"),
     did: z.string().optional().describe("Decentralized identifier (public)"),
 
     // Relationship
-    status: z.enum(["active", "archived"]).describe("Active or archived"),
+    status: agentStatusSchema,
     discoveredAt: z
       .string()
       .datetime()
       .describe("When this agent was first discovered"),
-    discoveredVia: z
-      .enum(["atproto", "manual"])
-      .describe("How this agent was discovered"),
   });
 
 export type AgentFrontmatter = z.infer<typeof agentFrontmatterSchema>;

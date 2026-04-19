@@ -24,11 +24,11 @@ function createSavedAgentEntityService(agentId = "remote.example.com"): {
       if (type !== "agent" || id !== agentId) return null;
       return {
         id: agentId,
-        content: `---\nname: Remote\nurl: 'https://${agentId}/a2a'\nstatus: active\n---`,
+        content: `---\nname: Remote\nurl: 'https://${agentId}/a2a'\nstatus: approved\n---`,
         metadata: {
           name: "Remote",
           url: `https://${agentId}/a2a`,
-          status: "active",
+          status: "approved",
         },
       };
     },
