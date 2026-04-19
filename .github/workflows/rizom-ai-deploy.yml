@@ -13,6 +13,9 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     defaults:
       run:
         working-directory: apps/rizom-ai
@@ -107,6 +110,8 @@ jobs:
       - name: Build and push app image
         env:
           VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           bun ../../shell/app/scripts/build.ts
 
@@ -132,7 +137,7 @@ jobs:
           cp ../../deploy/docker/Dockerfile.prod "$BUILD_DIR/Dockerfile"
           cp ../../deploy/docker/package.prod.json "$BUILD_DIR/package.json"
 
-          echo "$KAMAL_REGISTRY_PASSWORD" | docker login ghcr.io -u rizom-ai --password-stdin
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
           docker build -t "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION" "$BUILD_DIR"
           docker push "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION"
 
