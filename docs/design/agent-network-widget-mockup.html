@@ -1,0 +1,1029 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Agent Network Widget Mockup</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090814;
+      --bg-soft: #131126;
+      --panel: rgba(20, 17, 43, 0.82);
+      --panel-strong: rgba(15, 13, 34, 0.94);
+      --line: rgba(241, 234, 221, 0.10);
+      --line-strong: rgba(241, 234, 221, 0.18);
+      --text: #f1eadd;
+      --text-dim: #c8bfaf;
+      --text-mute: #887f72;
+      --accent: #ff8b3d;
+      --accent-soft: rgba(255, 139, 61, 0.14);
+      --ok: #71d39a;
+      --warn: #f2bf5b;
+      --violet: #9a8dff;
+      --shadow: 0 28px 80px -36px rgba(0, 0, 0, 0.72);
+      --radius-xl: 28px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --font-display: "Fraunces", serif;
+      --font-body: "IBM Plex Sans", sans-serif;
+      --font-mono: "JetBrains Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { min-height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(154, 141, 255, 0.12), transparent 28%),
+        radial-gradient(circle at top right, rgba(255, 139, 61, 0.14), transparent 32%),
+        linear-gradient(180deg, #0d0b1d 0%, var(--bg) 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.05;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+    }
+
+    .page {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 44px 28px 80px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-mute);
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 22px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+      gap: 28px;
+      align-items: start;
+      margin-bottom: 26px;
+    }
+
+    .title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(2.6rem, 5vw, 4.4rem);
+      line-height: 0.96;
+      letter-spacing: -0.03em;
+      font-weight: 420;
+    }
+
+    .title em {
+      font-style: normal;
+      color: var(--accent);
+      font-weight: 360;
+    }
+
+    .lede {
+      margin: 16px 0 0;
+      max-width: 60ch;
+      color: var(--text-dim);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .notes {
+      background: rgba(11, 10, 24, 0.68);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 18px 18px 16px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .notes h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-mute);
+      font-family: var(--font-mono);
+      font-weight: 500;
+    }
+
+    .notes ul {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--text-dim);
+      display: grid;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .stage {
+      margin-top: 16px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 280px;
+      gap: 26px;
+      align-items: start;
+    }
+
+    .widget {
+      position: relative;
+      border-radius: var(--radius-xl);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 20%),
+        var(--panel);
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(18px);
+    }
+
+    .widget::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(140deg, rgba(255, 139, 61, 0.08), transparent 26%, transparent 70%, rgba(154, 141, 255, 0.09));
+    }
+
+    .widget-header {
+      position: relative;
+      padding: 26px 28px 18px;
+      border-bottom: 1px solid var(--line);
+      display: grid;
+      gap: 16px;
+    }
+
+    .widget-topline {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .widget-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-mute);
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 11px;
+    }
+
+    .widget-kicker::before {
+      content: "";
+      width: 18px;
+      height: 1px;
+      background: var(--accent);
+    }
+
+    .agent-status--approved::before { background: var(--ok); }
+    .agent-status--discovered::before { background: var(--warn); }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .widget-title-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 20px;
+      align-items: end;
+    }
+
+    .widget-title {
+      margin: 0;
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 4vw, 3rem);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+      font-weight: 390;
+    }
+
+    .widget-subtitle {
+      margin: 10px 0 0;
+      color: var(--text-dim);
+      font-size: 15px;
+      line-height: 1.55;
+      max-width: 58ch;
+    }
+
+    .tab-bar {
+      display: inline-flex;
+      gap: 8px;
+      padding: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      width: fit-content;
+    }
+
+    .tab {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: var(--text-dim);
+      font: inherit;
+      padding: 10px 14px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, transform 140ms ease;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tab:hover { color: var(--text); }
+    .tab[aria-selected="true"] {
+      background: linear-gradient(180deg, rgba(255, 139, 61, 0.20), rgba(255, 139, 61, 0.10));
+      color: var(--text);
+      box-shadow: inset 0 0 0 1px rgba(255, 139, 61, 0.24);
+    }
+
+    .widget-body {
+      position: relative;
+      padding: 24px 28px 30px;
+    }
+
+    .panel { display: none; }
+    .panel.is-active {
+      display: grid;
+      gap: 22px;
+      animation: rise 180ms ease;
+    }
+
+    @keyframes rise {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .metric-card,
+    .sub-card,
+    .capability-card,
+    .agent-card,
+    .rail-card {
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
+    }
+
+    .metric-card {
+      padding: 18px 18px 16px;
+      display: grid;
+      gap: 10px;
+      min-height: 134px;
+    }
+
+    .metric-label,
+    .sub-label,
+    .capability-meta,
+    .section-label {
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10.5px;
+      color: var(--text-mute);
+    }
+
+    .metric-value {
+      font-family: var(--font-display);
+      font-size: clamp(2rem, 3.3vw, 3rem);
+      line-height: 0.95;
+      letter-spacing: -0.04em;
+    }
+
+    .metric-note,
+    .sub-copy,
+    .capability-copy,
+    .agent-copy,
+    .list-note {
+      color: var(--text-dim);
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .metric-inline {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: auto;
+    }
+
+    .micro-pill {
+      border-radius: 999px;
+      padding: 5px 9px;
+      font-size: 11px;
+      color: var(--text-dim);
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.02);
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
+      gap: 16px;
+    }
+
+    .sub-card {
+      padding: 18px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .bar-stack { display: grid; gap: 12px; }
+
+    .bar-row { display: grid; gap: 8px; }
+
+    .bar-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 10px;
+      font-size: 14px;
+    }
+
+    .bar-label { color: var(--text); }
+    .bar-value { color: var(--text-dim); font-variant-numeric: tabular-nums; }
+
+    .bar-track {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.05);
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), rgba(255, 139, 61, 0.46));
+    }
+
+    .bar-fill--violet {
+      background: linear-gradient(90deg, var(--violet), rgba(154, 141, 255, 0.4));
+    }
+
+    .bar-fill--ok {
+      background: linear-gradient(90deg, var(--ok), rgba(113, 211, 154, 0.35));
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .agent-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--line);
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .agent-chip strong {
+      color: var(--text);
+      font-weight: 600;
+    }
+
+    .agent-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-mute);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+    }
+
+    .agent-status::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      display: inline-block;
+    }
+
+    .capability-list,
+    .agent-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .capability-card,
+    .agent-card {
+      padding: 16px 16px 15px;
+      display: grid;
+      gap: 10px;
+    }
+
+    .capability-head,
+    .agent-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: start;
+      flex-wrap: wrap;
+    }
+
+    .capability-name,
+    .agent-name {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      color: var(--text);
+    }
+
+    .capability-count {
+      font-variant-numeric: tabular-nums;
+      color: var(--text-dim);
+      font-size: 13px;
+    }
+
+    .tag-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .tag {
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      padding: 5px 8px;
+      font-size: 11px;
+      color: var(--text-dim);
+      background: rgba(255,255,255,0.03);
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 14px;
+    }
+
+    .filter-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .filter-label {
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-size: 10.5px;
+      color: var(--text-mute);
+      margin-right: 4px;
+    }
+
+    .filter-button {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-dim);
+      font: inherit;
+      font-size: 12px;
+      padding: 8px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+    }
+
+    .filter-button:hover {
+      color: var(--text);
+      border-color: var(--line-strong);
+    }
+
+    .filter-button.is-active {
+      color: var(--text);
+      border-color: rgba(255, 139, 61, 0.34);
+      background: var(--accent-soft);
+    }
+
+    .filter-note {
+      color: var(--text-mute);
+      font-size: 12px;
+    }
+
+    .kind-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-mute);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 5px 8px;
+      background: rgba(255,255,255,0.03);
+    }
+
+    .kind-badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--violet);
+      display: inline-block;
+    }
+
+    .capability-method {
+      color: var(--text-mute);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .agent-copy strong { color: var(--text); }
+
+    .agent-card[hidden] {
+      display: none;
+    }
+
+    .rail {
+      display: grid;
+      gap: 16px;
+      position: sticky;
+      top: 20px;
+    }
+
+    .rail-card {
+      padding: 16px;
+      backdrop-filter: blur(14px);
+    }
+
+    .rail-card h3 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-family: var(--font-mono);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      color: var(--text-mute);
+      font-weight: 500;
+    }
+
+    .rail-card p,
+    .rail-card li {
+      color: var(--text-dim);
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+
+    .rail-card ul {
+      margin: 0;
+      padding-left: 17px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    @media (max-width: 1080px) {
+      .hero,
+      .stage,
+      .split,
+      .widget-title-row {
+        grid-template-columns: 1fr;
+      }
+
+      .rail {
+        position: static;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .page { padding: 28px 16px 60px; }
+      .widget-header,
+      .widget-body { padding-left: 18px; padding-right: 18px; }
+      .grid-3 { grid-template-columns: 1fr; }
+      .tab-bar { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
+      .tab { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="eyebrow">Agent directory mockup</div>
+
+    <section class="hero">
+      <div>
+        <h1 class="title">One widget, a few tabs — <em>network first</em>.</h1>
+        <p class="lede">
+          This mockup treats the directory widget as a compact map of your saved network: who is in it,
+          what they collectively offer, and which contacts stand out. It includes both discovered and approved agents.
+        </p>
+      </div>
+      <aside class="notes">
+        <h2>What this mockup is testing</h2>
+        <ul>
+          <li>Whether the <strong>overview</strong> feels like a network diagnosis rather than a second capabilities view.</li>
+          <li>Whether the <strong>capabilities</strong> tab feels like offered help lanes, not just relabeled asks.</li>
+          <li>Whether the <strong>agents</strong> tab needs kind filters to slice the network more intentionally.</li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="stage">
+      <section class="widget" aria-label="Network overview widget mockup">
+        <header class="widget-header">
+          <div class="widget-topline">
+            <div class="widget-kicker">Directory widget</div>
+          </div>
+
+          <div class="widget-title-row">
+            <div>
+              <h2 class="widget-title">Your network, at a glance</h2>
+              <p class="widget-subtitle">
+                A single widget for seeing where your network is strong, where it is thin, and who seems best positioned to help.
+              </p>
+            </div>
+
+            <div class="tab-bar" role="tablist" aria-label="Network widget tabs">
+              <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Overview</button>
+              <button class="tab" role="tab" aria-selected="false" aria-controls="panel-capabilities" id="tab-capabilities" data-tab="capabilities">Capabilities</button>
+              <button class="tab" role="tab" aria-selected="false" aria-controls="panel-agents" id="tab-agents" data-tab="agents">Agents</button>
+            </div>
+          </div>
+        </header>
+
+        <div class="widget-body">
+          <section class="panel is-active" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
+            <div class="grid-3">
+              <article class="metric-card">
+                <div class="metric-label">Network posture</div>
+                <div class="metric-value">Specialized</div>
+                <div class="metric-note">This is not a balanced general-purpose network yet. It is strongest around a few adjacent lanes, with weaker coverage around the edges.</div>
+                <div class="metric-inline">
+                  <span class="micro-pill">high depth</span>
+                  <span class="micro-pill">moderate breadth</span>
+                </div>
+              </article>
+
+              <article class="metric-card">
+                <div class="metric-label">Main risk</div>
+                <div class="metric-value">Single-threaded edges</div>
+                <div class="metric-note">Several outer lanes depend on one contact each. If those people are weak fits, unavailable, or unapproved, the network has no real fallback.</div>
+                <div class="metric-inline">
+                  <span class="micro-pill">design</span>
+                  <span class="micro-pill">policy</span>
+                  <span class="micro-pill">finance</span>
+                </div>
+              </article>
+
+              <article class="metric-card">
+                <div class="metric-label">Best intervention</div>
+                <div class="metric-value">Add breadth</div>
+                <div class="metric-note">The most useful improvement is to widen the weak edges instead of deepening already-strong lanes. One strong contact in each thin area would change the network materially.</div>
+                <div class="metric-inline">
+                  <span class="micro-pill">highest leverage move</span>
+                  <span class="micro-pill">not more research</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="split">
+              <article class="sub-card">
+                <div class="sub-label">Diagnostic read</div>
+                <div class="bar-stack">
+                  <div class="bar-row">
+                    <div class="bar-head"><span class="bar-label">Depth in core lanes</span><span class="bar-value">high</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:88%"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-head"><span class="bar-label">Breadth across ask types</span><span class="bar-value">medium</span></div>
+                    <div class="bar-track"><div class="bar-fill bar-fill--violet" style="width:54%"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-head"><span class="bar-label">Redundancy / fallback options</span><span class="bar-value">uneven</span></div>
+                    <div class="bar-track"><div class="bar-fill bar-fill--ok" style="width:42%"></div></div>
+                  </div>
+                  <div class="bar-row">
+                    <div class="bar-head"><span class="bar-label">Coverage of specialist edge cases</span><span class="bar-value">thin</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:20%"></div></div>
+                  </div>
+                </div>
+              </article>
+
+              <article class="sub-card">
+                <div class="sub-label">What to do with that</div>
+                <div class="chip-row">
+                  <span class="agent-chip"><strong>Add 1 design-minded contact</strong></span>
+                  <span class="agent-chip"><strong>Add 1 policy / legal contact</strong></span>
+                  <span class="agent-chip"><strong>Add 1 finance / ops contact</strong></span>
+                  <span class="agent-chip"><strong>Don’t over-invest in research</strong></span>
+                </div>
+                <div class="sub-copy">
+                  The overview is a <strong>network diagnosis</strong>: what shape you currently have, what risk it carries, and what kind of expansion would improve it most.
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="panel-capabilities" role="tabpanel" aria-labelledby="tab-capabilities">
+            <div class="capability-list">
+              <article class="capability-card">
+                <div class="capability-head">
+                  <div>
+                    <div class="capability-meta">Offer lane</div>
+                    <div class="capability-name">Research & synthesis</div>
+                  </div>
+                  <div class="capability-count">high depth</div>
+                </div>
+                <div class="capability-copy">The network offers strong support for investigation, evidence comparison, synthesis, and building structured understanding out of messy information.</div>
+                <div class="chip-row">
+                  <span class="agent-chip"><strong>Brain</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                  <span class="agent-chip"><strong>Signal Atlas</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
+                  <span class="agent-chip"><strong>Archive Loop</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">domain research</span>
+                  <span class="tag">evidence comparison</span>
+                  <span class="tag">source synthesis</span>
+                </div>
+              </article>
+
+              <article class="capability-card">
+                <div class="capability-head">
+                  <div>
+                    <div class="capability-meta">Offer lane</div>
+                    <div class="capability-name">Publishing & audience workflows</div>
+                  </div>
+                  <div class="capability-count">strong coverage</div>
+                </div>
+                <div class="capability-copy">The network can help turn source material into outward-facing output: newsletters, social narratives, editorial packaging, and distribution-oriented workflows.</div>
+                <div class="chip-row">
+                  <span class="agent-chip"><strong>Courier Desk</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                  <span class="agent-chip"><strong>Postline</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
+                  <span class="agent-chip"><strong>Relay Bureau</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">newsletter drafting</span>
+                  <span class="tag">campaign framing</span>
+                  <span class="tag">distribution flows</span>
+                </div>
+              </article>
+
+              <article class="capability-card">
+                <div class="capability-head">
+                  <div>
+                    <div class="capability-meta">Offer lane</div>
+                    <div class="capability-name">Operations & automation</div>
+                  </div>
+                  <div class="capability-count">solid coverage</div>
+                </div>
+                <div class="capability-copy">The network can design workflows, reduce manual operations, and help operationalize recurring work into more durable systems.</div>
+                <div class="chip-row">
+                  <span class="agent-chip"><strong>Patchrunner</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                  <span class="agent-chip"><strong>Brain Labs</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                  <span class="agent-chip"><strong>Quiet Process</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">workflow design</span>
+                  <span class="tag">ops cleanup</span>
+                  <span class="tag">orchestration</span>
+                </div>
+              </article>
+
+              <article class="capability-card">
+                <div class="capability-head">
+                  <div>
+                    <div class="capability-meta">Emerging lane</div>
+                    <div class="capability-name">Design & product thinking</div>
+                  </div>
+                  <div class="capability-count">limited depth</div>
+                </div>
+                <div class="capability-copy">The network does offer some product and interface critique, but this capability surface is still relatively thin compared to the stronger lanes above.</div>
+                <div class="chip-row">
+                  <span class="agent-chip"><strong>Studio North</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
+                  <span class="agent-chip"><strong>Pattern Foundry</strong> <span class="agent-status agent-status--approved">approved</span></span>
+                </div>
+                <div class="tag-row">
+                  <span class="tag">interface critique</span>
+                  <span class="tag">product shaping</span>
+                  <span class="tag">design review</span>
+                </div>
+              </article>
+            </div>
+          </section>
+
+          <section class="panel" id="panel-agents" role="tabpanel" aria-labelledby="tab-agents">
+            <div class="filter-row">
+              <div class="filter-group" role="toolbar" aria-label="Filter agents by kind">
+                <span class="filter-label">Kind filter</span>
+                <button class="filter-button is-active" type="button" data-kind-filter="all">All</button>
+                <button class="filter-button" type="button" data-kind-filter="professional">Professional</button>
+                <button class="filter-button" type="button" data-kind-filter="team">Team</button>
+                <button class="filter-button" type="button" data-kind-filter="collective">Collective</button>
+              </div>
+              <div class="filter-note">Representative contacts, filterable by brain kind.</div>
+            </div>
+
+            <div class="agent-list">
+              <article class="agent-card" data-kind="professional">
+                <div class="agent-head">
+                  <div>
+                    <div class="section-label">Representative contact</div>
+                    <div class="agent-name">Brain <span class="agent-status agent-status--approved">approved</span></div>
+                  </div>
+                  <div class="filter-group">
+                    <span class="kind-badge">professional</span>
+                    <div class="tag">yeehaa.io / Brain</div>
+                  </div>
+                </div>
+                <div class="agent-copy"><strong>Broad retrieval generalist.</strong> Strong candidate when the user needs search, recall, and structured knowledge access.</div>
+                <div class="tag-row">
+                  <span class="tag">system_search</span>
+                  <span class="tag">system_list</span>
+                  <span class="tag">knowledge base</span>
+                </div>
+              </article>
+
+              <article class="agent-card" data-kind="professional">
+                <div class="agent-head">
+                  <div>
+                    <div class="section-label">Representative contact</div>
+                    <div class="agent-name">Signal Atlas <span class="agent-status agent-status--discovered">discovered</span></div>
+                  </div>
+                  <div class="filter-group">
+                    <span class="kind-badge">professional</span>
+                    <div class="tag">signal-atlas.io / Atlas</div>
+                  </div>
+                </div>
+                <div class="agent-copy"><strong>Interesting specialist in research synthesis.</strong> Not callable yet, but clearly expands the network’s intelligence-gathering surface.</div>
+                <div class="tag-row">
+                  <span class="tag">synthesis</span>
+                  <span class="tag">evidence review</span>
+                  <span class="tag">research planning</span>
+                </div>
+              </article>
+
+              <article class="agent-card" data-kind="team">
+                <div class="agent-head">
+                  <div>
+                    <div class="section-label">Representative contact</div>
+                    <div class="agent-name">Relay Bureau <span class="agent-status agent-status--approved">approved</span></div>
+                  </div>
+                  <div class="filter-group">
+                    <span class="kind-badge">team</span>
+                    <div class="tag">relay.house / Bureau</div>
+                  </div>
+                </div>
+                <div class="agent-copy"><strong>Publishing-oriented operator.</strong> Useful for outward communication flows and content distribution.</div>
+                <div class="tag-row">
+                  <span class="tag">newsletter</span>
+                  <span class="tag">social-media</span>
+                  <span class="tag">audience ops</span>
+                </div>
+              </article>
+
+              <article class="agent-card" data-kind="collective">
+                <div class="agent-head">
+                  <div>
+                    <div class="section-label">Representative contact</div>
+                    <div class="agent-name">Patch Commons <span class="agent-status agent-status--discovered">discovered</span></div>
+                  </div>
+                  <div class="filter-group">
+                    <span class="kind-badge">collective</span>
+                    <div class="tag">patch-commons.net / Commons</div>
+                  </div>
+                </div>
+                <div class="agent-copy"><strong>Loose operator collective.</strong> More interesting for breadth and unconventional workflows than for a single specialist lane.</div>
+                <div class="tag-row">
+                  <span class="tag">distributed ops</span>
+                  <span class="tag">maintenance</span>
+                  <span class="tag">coordination</span>
+                </div>
+              </article>
+            </div>
+            <div class="list-note">This tab is less about raw recency and more about surfacing memorable, representative contacts from the network.</div>
+          </section>
+        </div>
+      </section>
+
+      <aside class="rail">
+        <section class="rail-card">
+          <h3>Interpretation</h3>
+          <p>
+            The widget is trying to say: <strong>"here is the shape of your network and the kinds of help available in it"</strong>,
+            not: "here is your task queue."
+          </p>
+        </section>
+
+        <section class="rail-card">
+          <h3>Reading the widget</h3>
+          <div class="legend">
+            <span><i class="dot" style="background: var(--ok)"></i> approved = callable now</span>
+            <span><i class="dot" style="background: var(--warn)"></i> discovered = in the network, but still review-state</span>
+          </div>
+        </section>
+
+        <section class="rail-card">
+          <h3>Questions to judge</h3>
+          <ul>
+            <li>Does the overview now read as diagnosis instead of routing?</li>
+            <li>Does the capabilities tab now feel like offered help lanes?</li>
+            <li>Do kind filters make the agents tab meaningfully more useful?</li>
+            <li>Should the widget stay this large, or compress into a denser card?</li>
+          </ul>
+        </section>
+      </aside>
+    </section>
+  </main>
+
+  <script>
+    const tabs = Array.from(document.querySelectorAll('[data-tab]'));
+    const panels = Array.from(document.querySelectorAll('.panel'));
+    const kindFilters = Array.from(document.querySelectorAll('[data-kind-filter]'));
+    const agentCards = Array.from(document.querySelectorAll('.agent-card[data-kind]'));
+
+    function activateTab(name) {
+      tabs.forEach((tab) => {
+        const active = tab.dataset.tab === name;
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+
+      panels.forEach((panel) => {
+        panel.classList.toggle('is-active', panel.id === `panel-${name}`);
+      });
+    }
+
+    function applyKindFilter(kind) {
+      kindFilters.forEach((button) => {
+        button.classList.toggle('is-active', button.dataset.kindFilter === kind);
+      });
+
+      agentCards.forEach((card) => {
+        const match = kind === 'all' || card.dataset.kind === kind;
+        card.hidden = !match;
+      });
+    }
+
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => activateTab(tab.dataset.tab));
+    });
+
+    kindFilters.forEach((button) => {
+      button.addEventListener('click', () => applyKindFilter(button.dataset.kindFilter));
+    });
+
+    applyKindFilter('all');
+  </script>
+</body>
+</html>
