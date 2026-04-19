@@ -3,16 +3,15 @@ name: Old Agent
 kind: professional
 brainName: Old Agent
 url: "https://old-agent.io/a2a"
-status: active
+status: discovered
 discoveredAt: "2026-03-10T10:00:00.000Z"
-discoveredVia: manual
 ---
 
 # Agent
 
 ## About
 
-Old Agent is a legacy contact kept in the directory for archival tests.
+Old Agent is a legacy contact kept in the directory for review-state tests.
 
 ## Skills
 
@@ -20,4 +19,4 @@ Old Agent is a legacy contact kept in the directory for archival tests.
 
 ## Notes
 
-Archive when no longer relevant.
+Approve only when relevant.

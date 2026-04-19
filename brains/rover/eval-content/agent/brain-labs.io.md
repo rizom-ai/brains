@@ -3,9 +3,8 @@ name: Brain
 kind: professional
 brainName: Brain Labs
 url: "https://brain-labs.io/a2a"
-status: active
+status: approved
 discoveredAt: "2026-03-16T10:00:00.000Z"
-discoveredVia: manual
 ---
 
 # Agent

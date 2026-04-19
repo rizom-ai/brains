@@ -4,8 +4,8 @@ preset: core
 plugins:
   directory-sync:
     seedContentPath: ../../eval-content
-    autoSync: false
-    initialSync: false
+    autoSync: true
+    initialSync: true
     git:
       repo: rizom-ai/rover-test-content
       gitUrl: file:///tmp/rover-test-content.git

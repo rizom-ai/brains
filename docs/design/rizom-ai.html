@@ -31,9 +31,9 @@ body.light .nav-cta{border-color:rgba(26,22,37,0.15)}
 body.light .nav-cta:hover{border-color:var(--amber)}
 body.light .btn-secondary{background:rgba(26,22,37,0.03);border-color:rgba(26,22,37,0.15);color:var(--text)}
 body.light .btn-secondary:hover{background:rgba(26,22,37,0.06);border-color:rgba(26,22,37,0.3)}
-body.light .product-inner.rover{background:linear-gradient(135deg,#F5EDE4 0%,#F0EBE2 100%);border-color:rgba(232,119,34,0.2)}
-body.light .product-inner.relay{background:linear-gradient(135deg,#EEEAF4 0%,#ECE8F0 100%);border-color:rgba(107,47,160,0.2)}
-body.light .product-inner.ranger{background:linear-gradient(135deg,#EDEAF0 0%,#F0ECE5 100%);border-color:rgba(26,22,37,0.12)}
+body.light .product-inner.rover{background:linear-gradient(180deg,rgba(232,119,34,0.1) 0%,transparent 55%),rgba(245,237,228,0.85);border-color:rgba(232,119,34,0.2)}
+body.light .product-inner.relay{background:linear-gradient(180deg,rgba(140,130,200,0.12) 0%,transparent 55%),rgba(238,234,244,0.85);border-color:rgba(107,47,160,0.2)}
+body.light .product-inner.ranger{background:linear-gradient(180deg,rgba(140,130,200,0.12) 0%,transparent 55%),rgba(237,234,240,0.85);border-color:rgba(26,22,37,0.12)}
 body.light .answer{background:transparent}
 body.light .terminal{background:#1A1625;border-color:rgba(26,22,37,0.1)}
 body.light .eco-card{background:var(--bg-card);border-color:rgba(26,22,37,0.08)}
@@ -113,6 +113,9 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 @keyframes heroRise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scrollCueRise{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:0.75;transform:translateX(-50%) translateY(0)}}
 .hero .subtitle{font-family:var(--font-body);font-size:18px;line-height:1.7;color:var(--text-muted);max-width:480px;margin-bottom:40px}
+.hero h1 .highlight{display:inline-block;position:relative;color:var(--amber)}
+.hero h1 .highlight::before{content:'';position:absolute;left:-4%;right:-4%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4) 20%,rgba(232,119,34,0.4) 80%,transparent);opacity:0.5}
+body.light .hero h1 .highlight{color:var(--amber-dark)}
 .hero .cta-row{display:flex;gap:16px;flex-wrap:wrap}
 .btn-primary{display:inline-flex;align-items:center;gap:8px;font-family:var(--font-body);font-size:16px;font-weight:600;color:#fff;background:var(--amber);border:none;border-radius:10px;padding:16px 32px;cursor:pointer;transition:all 0.3s}
 .btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 32px rgba(232,119,34,0.3)}
@@ -130,12 +133,12 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 /* ============= PROBLEM ============= */
 .problem{padding-top:120px;padding-bottom:120px;position:relative}
 .problem-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:60px}
-.problem-num{font-family:var(--font-head);font-size:clamp(72px,8vw,120px);font-weight:400;color:transparent;-webkit-text-stroke:1.5px var(--amber);line-height:0.9;margin-bottom:32px;letter-spacing:-2px;display:block}
+.problem-num{font-family:var(--font-head);font-size:clamp(72px,8vw,120px);font-weight:400;color:transparent;-webkit-text-stroke:1.5px var(--amber);line-height:1;margin-bottom:12px;letter-spacing:-2px;display:block}
 .problem-title{font-family:var(--font-nav);font-size:20px;font-weight:700;margin-bottom:12px}
 .problem-text{font-size:15px;line-height:1.7;color:var(--text-muted)}
 /* Threads track the section's responsive horizontal padding via inset */
 .problem-threads{position:absolute;bottom:20px;left:80px;right:80px;height:60px;pointer-events:none}
-@media(max-width:1100px){.problem-threads{left:40px;right:40px}}
+@media(max-width:1279px){.problem-threads{left:40px;right:40px}}
 
 /* ============= ANSWER ============= */
 .answer{padding-top:120px;padding-bottom:120px;text-align:center;background:transparent}
@@ -147,32 +150,193 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 .answer .divider{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.4),transparent);margin:48px auto}
 .answer .scales{font-family:var(--font-head);font-size:clamp(24px,3vw,36px);letter-spacing:-0.5px;line-height:1.1;margin-bottom:16px}
 .answer .scales-sub{font-size:16px;color:var(--text-dim);max-width:600px;margin:0 auto}
+.scales-diagram{display:block;width:100%;max-width:680px;margin:32px auto 40px}
+@media(max-width:768px){.scales-diagram{max-width:600px;margin:24px auto 32px}}
 
 /* ============= PRODUCT CARDS ============= */
-.product-card{padding-top:24px;padding-bottom:24px}
-.product-inner{display:flex;align-items:center;gap:48px;border-radius:24px;padding:48px;border:1px solid;transition:transform 0.5s cubic-bezier(0.2,0.8,0.2,1),border-color 0.5s,box-shadow 0.5s}
+/* Precision-instrument card: register brackets, ghost index numeral,
+   metadata readouts, and a framed diagram screen. Each card reads as a
+   piece of field equipment being inspected. */
+.product-card{padding-top:36px;padding-bottom:36px;position:relative}
+
+.product-inner{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);
+  grid-template-areas:"text illust";
+  gap:56px;
+  align-items:stretch;
+  border-radius:20px;
+  padding:44px 48px 40px;
+  border:1px solid;
+  position:relative;
+  overflow:hidden;
+  transition:transform 0.5s cubic-bezier(0.2,0.8,0.2,1),border-color 0.5s,box-shadow 0.5s;
+}
+/* Subtle dot-grid paper inside the card, fades toward the bottom */
+.product-inner::after{
+  content:"";position:absolute;inset:0;pointer-events:none;z-index:0;
+  background-image:radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+  background-size:22px 22px;background-position:14px 14px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);
+  mask-image:linear-gradient(180deg,#000 0%,#000 55%,transparent 100%);
+}
+body.light .product-inner::after{background-image:radial-gradient(circle at 1px 1px, rgba(26,22,37,0.06) 1px, transparent 0)}
+.product-inner > *{position:relative;z-index:1}
+.product-inner::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:0.7;transition:opacity 0.4s ease;z-index:2}
 .product-inner:hover{transform:translateY(-4px)}
-.product-inner.rover:hover{border-color:rgba(232,119,34,0.5);box-shadow:0 20px 60px -20px rgba(232,119,34,0.25)}
-.product-inner.relay:hover{border-color:rgba(140,130,200,0.5);box-shadow:0 20px 60px -20px rgba(107,47,160,0.25)}
-.product-inner.ranger:hover{border-color:rgba(140,130,200,0.4);box-shadow:0 20px 60px -20px rgba(107,47,160,0.2)}
-.product-inner.rover{background:linear-gradient(135deg,rgba(28,16,32,0.85) 0%,rgba(20,14,28,0.85) 100%);border-color:rgba(232,119,34,0.15)}
-.product-inner.relay{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(18,14,30,0.85) 100%);border-color:rgba(140,130,200,0.2);flex-direction:row-reverse}
-.product-inner.ranger{background:linear-gradient(135deg,rgba(22,16,42,0.85) 0%,rgba(24,15,30,0.85) 50%,rgba(20,16,42,0.85) 100%);border-color:rgba(120,100,220,0.15)}
-.product-text{flex:1;display:flex;flex-direction:column;gap:16px}
-.product-heading{display:flex;align-items:center;gap:12px}
-.product-label{font-family:var(--font-nav);font-size:24px;font-weight:700;letter-spacing:3px;text-transform:uppercase}
-.product-label.amber{color:var(--amber)}
-.product-label.purple{color:var(--purple-muted)}
-.product-badge{display:inline-flex;padding:4px 10px;border-radius:12px;font-family:var(--font-label);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
-.product-badge.amber{border:1px solid rgba(232,119,34,0.3);color:var(--amber);background:rgba(232,119,34,0.1)}
-.product-badge.purple{border:1px solid rgba(129,140,248,0.3);color:var(--purple-muted);background:rgba(129,140,248,0.1)}
-.product-h3{font-family:var(--font-head);font-size:clamp(26px,3vw,36px);letter-spacing:-0.5px;line-height:1.2}
-.product-desc{font-size:16px;line-height:1.8;color:var(--text-muted)}
-.product-tags{display:flex;gap:24px;padding-top:8px}
-.product-tags span{font-family:var(--font-label);font-size:13px;font-weight:600}
-.product-tags.amber span{color:rgba(232,119,34,0.6)}
-.product-tags.purple span{color:rgba(129,140,248,0.55)}
-.product-illust{flex-shrink:0;width:511px;max-width:100%;height:320px;border-radius:16px;overflow:hidden;position:relative}
+.product-inner:hover::before{opacity:1}
+.product-inner.rover:hover {border-color:rgba(232,119,34,0.55);box-shadow:0 30px 80px -30px rgba(232,119,34,0.35)}
+.product-inner.relay:hover {border-color:rgba(140,130,200,0.55);box-shadow:0 30px 80px -30px rgba(107,47,160,0.35)}
+.product-inner.ranger:hover{border-color:rgba(140,130,200,0.55);box-shadow:0 30px 80px -30px rgba(107,47,160,0.3)}
+
+.product-inner.rover  {background:linear-gradient(180deg,rgba(232,119,34,0.14) 0%,transparent 55%),rgba(22,16,32,0.85);border-color:rgba(232,119,34,0.2)}
+.product-inner.relay  {background:linear-gradient(180deg,rgba(140,130,200,0.14) 0%,transparent 55%),rgba(18,14,30,0.85);border-color:rgba(140,130,200,0.24);grid-template-areas:"illust text"}
+.product-inner.ranger {background:linear-gradient(180deg,rgba(140,130,200,0.14) 0%,transparent 55%),rgba(20,16,42,0.85);border-color:rgba(120,100,220,0.22)}
+
+.product-inner.rover::before {background:linear-gradient(90deg,transparent,var(--amber) 30%,var(--amber) 70%,transparent)}
+.product-inner.relay::before {background:linear-gradient(90deg,transparent,var(--purple-light) 30%,var(--purple-light) 70%,transparent)}
+.product-inner.ranger::before{background:linear-gradient(90deg,transparent,var(--amber-light) 18%,var(--purple-light) 82%,transparent)}
+
+/* Register-mark corner brackets */
+.product-corner{position:absolute;width:14px;height:14px;pointer-events:none;z-index:3;opacity:0.85}
+.product-corner::before,.product-corner::after{content:"";position:absolute;background:currentColor}
+.product-corner::before{left:0;top:0;width:100%;height:1.5px}
+.product-corner::after {left:0;top:0;width:1.5px;height:100%}
+.product-corner.tl{top:12px;left:12px}
+.product-corner.tr{top:12px;right:12px;transform:scaleX(-1)}
+.product-corner.bl{bottom:12px;left:12px;transform:scaleY(-1)}
+.product-corner.br{bottom:12px;right:12px;transform:scale(-1,-1)}
+.product-inner.rover  .product-corner{color:var(--amber)}
+.product-inner.relay  .product-corner{color:var(--purple-light)}
+.product-inner.ranger .product-corner{color:var(--purple-light)}
+
+/* Text column */
+.product-text{
+  grid-area:text;
+  display:flex;flex-direction:column;gap:18px;
+  position:relative;padding-top:6px;
+}
+
+/* Heading: display-face product name + badge */
+.product-heading{
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:14px;
+  padding-bottom:14px;
+  border-bottom:1px dashed rgba(255,255,255,0.1);
+  margin-top:2px;
+}
+body.light .product-heading{border-bottom-color:rgba(26,22,37,0.15)}
+.product-label{
+  font-family:var(--font-head);
+  font-size:clamp(38px,4vw,52px);
+  font-weight:700;letter-spacing:-1.2px;line-height:1;text-transform:none;
+}
+.product-label.amber {color:var(--amber)}
+.product-label.purple{color:var(--purple-light)}
+
+.product-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 10px;border-radius:2px;
+  font-family:var(--font-mono);font-size:10px;font-weight:600;
+  letter-spacing:0.2em;text-transform:uppercase;border:1px solid;
+  margin-left:auto;align-self:center;
+}
+.product-badge::before{content:"▸";font-size:9px;line-height:1}
+.product-badge.amber {border-color:rgba(232,119,34,0.45);color:var(--amber);background:rgba(232,119,34,0.08)}
+.product-badge.purple{border-color:rgba(140,130,200,0.45);color:var(--purple-light);background:rgba(140,130,200,0.08)}
+
+/* Tagline — mono protocol line between heading and h3 */
+.product-tagline{
+  font-family:var(--font-mono);font-size:11.5px;
+  letter-spacing:0.22em;text-transform:uppercase;color:var(--text-muted);
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.product-tagline .arrow{opacity:0.55}
+.product-inner.rover  .product-tagline .arrow{color:var(--amber)}
+.product-inner.relay  .product-tagline .arrow{color:var(--purple-light)}
+.product-inner.ranger .product-tagline .arrow{color:var(--purple-light)}
+
+.product-h3{
+  font-family:var(--font-head);
+  font-size:clamp(26px,2.8vw,36px);
+  letter-spacing:-0.6px;line-height:1.18;font-weight:700;
+}
+.product-desc{font-family:var(--font-body);font-size:16px;line-height:1.7;color:var(--text-muted);max-width:54ch}
+
+/* Tags as a slash-separated mono strip */
+.product-tags{
+  display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;
+  padding-top:18px;margin-top:auto;
+  border-top:1px dashed rgba(255,255,255,0.1);
+}
+body.light .product-tags{border-top-color:rgba(26,22,37,0.15)}
+.product-tags span{
+  font-family:var(--font-mono);font-size:10px;letter-spacing:0.16em;
+  text-transform:uppercase;font-weight:500;
+  padding:2px 10px 2px 0;color:var(--text-muted);position:relative;
+}
+.product-tags span + span::before{
+  content:"/";padding-right:10px;color:rgba(255,255,255,0.18);
+}
+body.light .product-tags span + span::before{color:rgba(26,22,37,0.2)}
+.product-tags.amber  span{color:rgba(232,119,34,0.9)}
+.product-tags.purple span{color:rgba(140,130,200,0.9)}
+
+/* Diagram screen */
+.product-illust{
+  grid-area:illust;
+  width:100%;max-width:100%;
+  height:380px;
+  border-radius:12px;overflow:hidden;
+  position:relative;
+  border:1px solid rgba(255,255,255,0.06);
+  background:
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(180deg,rgba(13,10,26,0.55) 0%,rgba(13,10,26,0.25) 100%);
+  background-size:28px 28px, 28px 28px, auto;
+}
+body.light .product-illust{
+  border-color:rgba(26,22,37,0.12);
+  background:
+    linear-gradient(rgba(26,22,37,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(26,22,37,0.04) 1px, transparent 1px),
+    linear-gradient(180deg,rgba(240,236,229,0.6) 0%,rgba(240,236,229,0.3) 100%);
+  background-size:28px 28px, 28px 28px, auto;
+}
+.product-inner.rover  .product-illust{box-shadow:inset 0 0 120px rgba(232,119,34,0.07)}
+.product-inner.relay  .product-illust{box-shadow:inset 0 0 120px rgba(140,130,200,0.07)}
+.product-inner.ranger .product-illust{box-shadow:inset 0 0 120px rgba(140,130,200,0.07)}
+
+/* Scan-line sweep on hover */
+.product-illust::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.06) 50%,transparent 100%);
+  transform:translateX(-120%);
+  transition:transform 0.9s cubic-bezier(0.4,0,0.2,1);z-index:3;
+}
+.product-inner:hover .product-illust::before{transform:translateX(120%)}
+
+/* SVG diagram fills the whole diagram screen */
+.product-diagram{
+  position:absolute;inset:0;
+  width:100%;height:100%;display:block;
+}
+.product-diagram .tile{fill:rgba(255,255,255,0.025);stroke-width:1}
+.product-diagram .tile-line{stroke-width:1}
+.product-diagram .node-label{font-family:var(--font-mono);font-size:9px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase}
+.product-diagram .crosshair line{stroke-width:1;opacity:0.45}
+body.light .product-diagram .tile{fill:rgba(26,22,37,0.03)}
+/* Diagram highlight colors in light mode: swap the "cream" pastels
+   (bright highlights on dark) for darker tones so hot accents stay
+   visible on the beige card surfaces. */
+body.light .product-diagram{
+  --amber-cream:var(--amber-dark);
+  --purple-cream:var(--purple);
+}
+
+/* Radar sweep + pulse ring use SVG animateTransform/animate — see inline SMIL
+   in the Ranger/Relay diagrams. Keeping CSS out of it avoids transform-origin
+   drift caused by fill-box vs view-box mismatches. */
 
 /* ============= OWNERSHIP ============= */
 .ownership{padding-top:120px;padding-bottom:120px}
@@ -212,6 +376,11 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 
 /* ============= ECOSYSTEM ============= */
 .ecosystem{padding-top:120px;padding-bottom:96px}
+.eco-header{text-align:center;margin-bottom:56px}
+.eco-header .divider-line{width:60px;height:1px;background:linear-gradient(90deg,transparent,rgba(232,119,34,0.3),transparent);margin:0 auto 40px}
+.eco-header .badge{margin-bottom:24px}
+.eco-header h2{font-family:var(--font-head);font-size:clamp(32px,4vw,52px);letter-spacing:-1px;line-height:1.1;max-width:880px;margin:0 auto}
+@media(max-width:768px){.eco-header{margin-bottom:40px}.eco-header .divider-line{margin-bottom:32px}}
 .eco-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
 .eco-card{background:linear-gradient(135deg,rgba(107,47,160,0.06) 0%,rgba(232,119,34,0.03) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;padding:32px;display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;transition:transform 0.4s cubic-bezier(0.2,0.8,0.2,1),border-color 0.4s,box-shadow 0.4s}
 .eco-card::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;opacity:0.6;transition:opacity 0.4s}
@@ -234,6 +403,8 @@ body.light .side-nav-dot.active{background:var(--amber-dark)}
 .eco-link.amber{color:var(--amber)}
 .eco-link.purple{color:var(--purple-light)}
 .eco-link:hover{opacity:0.7}
+.eco-link.disabled{color:var(--text-dim);opacity:0.7;cursor:default}
+.eco-link.disabled:hover{opacity:0.7}
 
 /* ============= FOOTER ============= */
 footer{padding:24px 80px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid rgba(255,255,255,0.04);flex-wrap:wrap;gap:16px}
@@ -255,15 +426,21 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
 #fpsHud{display:none;position:fixed;top:8px;right:8px;z-index:200;padding:6px 10px;background:rgba(13,10,26,0.78);color:#FFD4A8;font-family:var(--font-mono);font-size:11px;border-radius:4px;pointer-events:none;letter-spacing:0.02em}
 #fpsHud.is-on{display:block}
 
-/* Tablet — keep side-by-side but tighten */
-@media(max-width:1100px){
+/* Large-tablet / small-laptop — drop the 80px gutter back to 40px.
+   Kept at <1280 to match the live site's xl: breakpoint, so iPad Pro
+   portrait (1024) and ~1100-1279 laptops all share the tighter gutter. */
+@media(max-width:1279px){
   .section{padding-left:40px;padding-right:40px}
   nav{padding:16px 40px}
-  .product-inner{gap:32px;padding:36px}
-  .product-illust{width:320px;height:240px}
+  footer{padding:24px 40px}
+}
+/* Tablet — tighten the interior proportions as well */
+@media(max-width:1100px){
+  .product-inner{gap:32px;padding:34px 34px 28px}
+  .product-illust{height:320px}
+  .product-label{font-size:40px}
   .ownership-grid,.quickstart-grid{gap:40px}
   .quickstart-left{width:280px}
-  footer{padding:24px 40px}
 }
 
 /* ===== MOBILE ===== */
@@ -289,7 +466,7 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
   /* Problem */
   .problem{padding-top:88px;padding-bottom:88px}
   .problem-grid{grid-template-columns:1fr;gap:64px}
-  .problem-num{font-size:64px;margin-bottom:20px;-webkit-text-stroke-width:1.2px}
+  .problem-num{font-size:64px;margin-bottom:8px;-webkit-text-stroke-width:1.2px}
   .problem-title{font-size:18px;margin-bottom:10px}
   .problem-text{font-size:14px}
   .problem-threads{display:none}
@@ -301,16 +478,26 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
   .answer .scales{margin-bottom:14px}
   .answer .scales-sub{font-size:14px;line-height:1.7}
 
-  /* Product cards */
-  .product-card{padding-top:16px;padding-bottom:16px}
-  /* Selector matches .product-inner.relay's specificity (0,2,0) so column-reverse wins without !important */
-  .product-inner.rover,.product-inner.relay,.product-inner.ranger{flex-direction:column-reverse;gap:24px;padding:24px;border-radius:16px}
-  .product-illust{width:100%;height:180px;border-radius:12px}
-  .product-label{font-size:16px;letter-spacing:2px}
-  .product-h3{font-size:24px}
-  .product-desc{font-size:14px;line-height:1.8}
-  .product-tags{flex-wrap:wrap;gap:10px 18px}
-  .product-tags span{font-size:12px}
+  /* Product cards — single column with diagram on top */
+  .product-card{padding-top:20px;padding-bottom:20px}
+  .product-inner,.product-inner.rover,.product-inner.relay,.product-inner.ranger{
+    grid-template-columns:minmax(0,1fr);
+    grid-template-areas:"illust" "text";
+    gap:24px;padding:24px;border-radius:16px;
+  }
+  .product-corner.tl,.product-corner.tr{top:10px}
+  .product-corner.bl,.product-corner.br{bottom:10px}
+  .product-corner.tl,.product-corner.bl{left:10px}
+  .product-corner.tr,.product-corner.br{right:10px}
+  .product-illust{width:100%;height:260px;border-radius:10px}
+  .product-text{gap:14px;padding-top:0}
+  .product-label{font-size:36px;letter-spacing:-1px}
+  .product-badge{font-size:9px;padding:4px 8px}
+  .product-tagline{font-size:10.5px;letter-spacing:0.2em}
+  .product-h3{font-size:22px;line-height:1.22}
+  .product-desc{font-size:14px;line-height:1.75}
+  .product-tags{gap:4px 6px;padding-top:14px}
+  .product-tags span{font-size:9.5px}
 
   /* Ownership */
   .ownership{padding-top:88px;padding-bottom:88px}
@@ -379,7 +566,7 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
     <span class="logo-rizom">rizom</span><span class="logo-dot">.</span><span class="logo-ai">ai</span>
   </div>
   <div class="nav-links">
-    <a href="#features">Platform</a>
+    <a href="#problem">Platform</a>
     <a href="#quickstart">Docs</a>
     <a href="#ecosystem">Network</a>
     <a href="#quickstart" class="nav-cta">Get Started</a>
@@ -389,7 +576,7 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
 <!-- SIDE NAV INDICATOR -->
 <aside class="side-nav" aria-hidden="true">
   <a href="#hero" class="side-nav-dot" data-label="Intro"></a>
-  <a href="#features" class="side-nav-dot" data-label="Problem"></a>
+  <a href="#problem" class="side-nav-dot" data-label="Problem"></a>
   <a href="#answer" class="side-nav-dot" data-label="Answer"></a>
   <a href="#ownership" class="side-nav-dot" data-label="Open"></a>
   <a href="#quickstart" class="side-nav-dot" data-label="Start"></a>
@@ -400,21 +587,21 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
 <!-- HERO -->
 <section class="hero section" id="hero">
   <div class="hero-content">
-    <h1>Build the agent that represents you</h1>
+    <h1>Build the agent that <span class="highlight">represents you</span></h1>
     <p class="subtitle">Your knowledge becomes an AI agent. Your agent joins a network. The network finds the right expert for every problem — matched by what people actually know.</p>
     <div class="cta-row">
       <a href="#quickstart" class="btn-primary">Get Your Brain →</a>
       <a href="#answer" class="btn-secondary">How The Network Works</a>
     </div>
   </div>
-  <a class="scroll-cue" href="#features" aria-label="Scroll to content">
+  <a class="scroll-cue" href="#problem" aria-label="Scroll to content">
     <span class="scroll-cue-label">Scroll</span>
     <span class="scroll-cue-line"></span>
   </a>
 </section>
 
 <!-- PROBLEM -->
-<section class="problem section reveal" id="features">
+<section class="problem section reveal" id="problem">
   <div class="problem-grid">
     <div class="reveal reveal-delay-1">
       <div class="problem-num">01</div>
@@ -448,25 +635,331 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
   <p class="answer-sub">Every professional gets an agent that knows what they know. Every team gets shared intelligence. The network connects them — matching expertise to opportunity, automatically.</p>
   <div class="divider"></div>
   <div class="scales">It starts with you. It scales to everyone.</div>
+  <svg class="scales-diagram" viewBox="0 0 680 180" role="img" aria-label="Three layers of intelligence: personal brain, team, distributed network">
+    <!-- Rails between stages -->
+    <line x1="140" y1="65" x2="304" y2="65" style="stroke:var(--amber)" stroke-width="1" opacity="0.22"/>
+    <line x1="378" y1="65" x2="534" y2="65" style="stroke:var(--amber)" stroke-width="1" opacity="0.22"/>
+
+    <!-- Stage 1: You -->
+    <g>
+      <circle cx="110" cy="65" r="26" fill="none" style="stroke:var(--amber)" stroke-width="1.25" opacity="0.4"/>
+      <circle cx="110" cy="65" r="16" fill="none" style="stroke:var(--amber)" stroke-width="1" opacity="0.65"/>
+      <circle cx="110" cy="65" r="7" style="fill:var(--amber)"/>
+      <text x="110" y="135" text-anchor="middle" style="fill:var(--amber);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase">You</text>
+      <text x="110" y="158" text-anchor="middle" style="fill:var(--text-muted);font-family:var(--font-body);font-size:12px">Personal brain</text>
+    </g>
+
+    <!-- Stage 2: Team (hub + 4 satellites) -->
+    <g>
+      <line x1="340" y1="65" x2="316" y2="41" style="stroke:var(--amber)" stroke-width="1" opacity="0.55"/>
+      <line x1="340" y1="65" x2="364" y2="41" style="stroke:var(--amber)" stroke-width="1" opacity="0.55"/>
+      <line x1="340" y1="65" x2="364" y2="89" style="stroke:var(--amber)" stroke-width="1" opacity="0.55"/>
+      <line x1="340" y1="65" x2="316" y2="89" style="stroke:var(--amber)" stroke-width="1" opacity="0.55"/>
+      <circle cx="340" cy="65" r="6" style="fill:var(--amber)"/>
+      <circle cx="316" cy="41" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="364" cy="41" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="364" cy="89" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="316" cy="89" r="4.5" style="fill:var(--amber)"/>
+      <text x="340" y="135" text-anchor="middle" style="fill:var(--amber);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase">Team</text>
+      <text x="340" y="158" text-anchor="middle" style="fill:var(--text-muted);font-family:var(--font-body);font-size:12px">Shared intelligence</text>
+    </g>
+
+    <!-- Stage 3: Network (7-node hex mesh) -->
+    <g>
+      <!-- hexagon perimeter -->
+      <line x1="570" y1="33" x2="597.84" y2="49" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="597.84" y1="49" x2="597.84" y2="81" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="597.84" y1="81" x2="570" y2="97" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="570" y1="97" x2="542.16" y2="81" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="542.16" y1="81" x2="542.16" y2="49" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="542.16" y1="49" x2="570" y2="33" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <!-- interior triangulation -->
+      <line x1="570" y1="33" x2="570" y2="65" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="597.84" y1="81" x2="570" y2="65" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="542.16" y1="81" x2="570" y2="65" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <!-- long-range cross-links -->
+      <line x1="597.84" y1="49" x2="542.16" y2="81" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <line x1="542.16" y1="49" x2="597.84" y2="81" style="stroke:var(--amber)" stroke-width="0.9" opacity="0.45"/>
+      <!-- nodes -->
+      <circle cx="570" cy="33" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="597.84" cy="49" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="597.84" cy="81" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="570" cy="97" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="542.16" cy="81" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="542.16" cy="49" r="4.5" style="fill:var(--amber)"/>
+      <circle cx="570" cy="65" r="5" style="fill:var(--amber)"/>
+      <text x="570" y="135" text-anchor="middle" style="fill:var(--amber);font-family:var(--font-label);font-size:11px;font-weight:600;letter-spacing:0.22em;text-transform:uppercase">Network</text>
+      <text x="570" y="158" text-anchor="middle" style="fill:var(--text-muted);font-family:var(--font-body);font-size:12px">Distributed expertise</text>
+    </g>
+  </svg>
   <p class="scales-sub">Three layers of intelligence — personal, team, network. Each one makes the others smarter.</p>
 </section>
 
 <!-- ROVER -->
 <section class="product-card section reveal">
   <div class="product-inner rover">
+    <span class="product-corner tl"></span><span class="product-corner tr"></span>
+    <span class="product-corner bl"></span><span class="product-corner br"></span>
+
     <div class="product-text">
       <div class="product-heading">
         <span class="product-label amber">Rover</span>
         <span class="product-badge amber">Early Access</span>
       </div>
-      <h3 class="product-h3">Your knowledge, your agent, your voice</h3>
-      <p class="product-desc">Rover is where it starts. Capture what you know — notes, links, ideas — and your brain turns it into blog posts, presentations, and social content. In your voice. It's the agent that represents you to the world.</p>
+      <div class="product-tagline">
+        <span>Ingest</span><span class="arrow">→</span>
+        <span>Synthesize</span><span class="arrow">→</span>
+        <span>Publish</span>
+      </div>
+      <h3 class="product-h3">Your knowledge, your agent, your voice.</h3>
+      <p class="product-desc">Rover is where it starts. Capture what you know — notes, links, ideas — and your brain turns it into blog posts, presentations, and social content. In your voice. The agent that represents you to the world.</p>
       <div class="product-tags amber">
         <span>AI Blogging</span><span>Social Publishing</span><span>Slide Decks</span><span>Chat Interface</span>
       </div>
     </div>
+
     <div class="product-illust">
-      <canvas id="roverCanvas" width="511" height="320"></canvas>
+      <svg class="product-diagram" viewBox="0 0 511 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="An abstract amber cloud of captured thoughts flows into a central voiceprint signature, which is stamped on three identical output carriers. Same voice, carried through every output.">
+        <defs>
+          <filter id="rover-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="5" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id="rover-cloud-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stop-color="#E87722" stop-opacity="0.18"/>
+            <stop offset="55%" stop-color="#E87722" stop-opacity="0.05"/>
+            <stop offset="100%" stop-color="#E87722" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="rover-voice-aura" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"   stop-color="var(--amber-cream)" stop-opacity="0.28"/>
+            <stop offset="45%"  stop-color="var(--amber)"       stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="var(--amber)"       stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Crosshairs at the four corners of the diagram -->
+        <g class="crosshair" stroke="var(--amber)">
+          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
+          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
+          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
+          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
+        </g>
+
+        <!-- A. RAW CAPTURES — abstract amber particle cloud. No figurative
+             note/link/card shapes. Just a dense organic scatter of thought
+             particles, varying size and opacity, threaded through with
+             organic wisp curves. -->
+        <ellipse cx="92" cy="165" rx="105" ry="130" fill="url(#rover-cloud-glow)"/>
+
+        <g fill="var(--amber)">
+          <!-- bright anchors -->
+          <circle cx="30"  cy="55"  r="1.8" opacity="0.85"/>
+          <circle cx="110" cy="72"  r="2.2" opacity="0.92"/>
+          <circle cx="48"  cy="115" r="1.8" opacity="0.8"/>
+          <circle cx="96"  cy="140" r="2.1" opacity="0.9"/>
+          <circle cx="140" cy="125" r="1.9" opacity="0.85"/>
+          <circle cx="68"  cy="175" r="2.0" opacity="0.9"/>
+          <circle cx="116" cy="192" r="1.9" opacity="0.85"/>
+          <circle cx="58"  cy="228" r="1.8" opacity="0.82"/>
+          <circle cx="128" cy="240" r="2.1" opacity="0.9"/>
+          <circle cx="82"  cy="270" r="1.8" opacity="0.8"/>
+
+          <!-- mediums -->
+          <circle cx="52"  cy="78"  r="1.4" opacity="0.6"/>
+          <circle cx="72"  cy="62"  r="1.3" opacity="0.55"/>
+          <circle cx="140" cy="88"  r="1.5" opacity="0.6"/>
+          <circle cx="162" cy="110" r="1.3" opacity="0.55"/>
+          <circle cx="24"  cy="138" r="1.4" opacity="0.5"/>
+          <circle cx="78"  cy="108" r="1.5" opacity="0.6"/>
+          <circle cx="118" cy="108" r="1.2" opacity="0.5"/>
+          <circle cx="38"  cy="172" r="1.5" opacity="0.62"/>
+          <circle cx="148" cy="168" r="1.3" opacity="0.55"/>
+          <circle cx="155" cy="208" r="1.4" opacity="0.6"/>
+          <circle cx="36"  cy="248" r="1.4" opacity="0.55"/>
+          <circle cx="96"  cy="222" r="1.3" opacity="0.55"/>
+          <circle cx="112" cy="262" r="1.5" opacity="0.6"/>
+          <circle cx="148" cy="258" r="1.3" opacity="0.5"/>
+          <circle cx="50"  cy="200" r="1.2" opacity="0.5"/>
+
+          <!-- faint specks -->
+          <circle cx="15"  cy="80"  r="0.7" opacity="0.25"/>
+          <circle cx="88"  cy="38"  r="0.8" opacity="0.3"/>
+          <circle cx="132" cy="50"  r="0.65" opacity="0.22"/>
+          <circle cx="160" cy="70"  r="0.7" opacity="0.28"/>
+          <circle cx="10"  cy="110" r="0.75" opacity="0.25"/>
+          <circle cx="60"  cy="132" r="0.9" opacity="0.35"/>
+          <circle cx="90"  cy="92"  r="0.7" opacity="0.3"/>
+          <circle cx="164" cy="145" r="0.8" opacity="0.28"/>
+          <circle cx="20"  cy="178" r="0.7" opacity="0.26"/>
+          <circle cx="76"  cy="150" r="0.8" opacity="0.3"/>
+          <circle cx="128" cy="156" r="0.7" opacity="0.28"/>
+          <circle cx="168" cy="188" r="0.65" opacity="0.22"/>
+          <circle cx="10"  cy="222" r="0.7" opacity="0.25"/>
+          <circle cx="68"  cy="255" r="0.9" opacity="0.35"/>
+          <circle cx="102" cy="245" r="0.7" opacity="0.3"/>
+          <circle cx="20"  cy="290" r="0.75" opacity="0.28"/>
+          <circle cx="168" cy="230" r="0.7" opacity="0.26"/>
+          <circle cx="138" cy="282" r="0.8" opacity="0.3"/>
+        </g>
+
+        <!-- Sparks -->
+        <g fill="var(--amber-light)">
+          <circle cx="124" cy="108" r="1.2" opacity="0.85"/>
+          <circle cx="62"  cy="196" r="1.1" opacity="0.8"/>
+          <circle cx="146" cy="218" r="1.0" opacity="0.78"/>
+          <circle cx="90"  cy="248" r="1.1" opacity="0.82"/>
+        </g>
+
+        <!-- Organic wisp curves threading through the cloud — warmth. -->
+        <g fill="none" stroke="var(--amber)" stroke-linecap="round">
+          <path d="M 22,92 Q 54,86 82,100 T 138,112" stroke-width="0.5" opacity="0.28"/>
+          <path d="M 34,210 Q 70,222 102,212 T 162,228" stroke-width="0.5" opacity="0.25"/>
+          <path d="M 68,60 Q 88,80 102,72"             stroke-width="0.4" opacity="0.2"/>
+          <path d="M 50,268 Q 86,254 130,272"          stroke-width="0.4" opacity="0.2"/>
+        </g>
+
+        <!-- B. VOICEPRINT — the distilled signature. Warm radial aura
+             instead of geometric rings. A few peak bars are hot
+             (amber-light / amber-cream) — the waveform has loud moments. -->
+        <g transform="translate(214,160)">
+          <circle cx="56" cy="0" r="72" fill="url(#rover-voice-aura)"/>
+          <line x1="-4" y1="0" x2="116" y2="0" stroke="var(--amber)" stroke-width="0.6" opacity="0.3"/>
+          <g fill="var(--amber)" filter="url(#rover-glow)">
+            <rect x="0"   y="-3"    width="2" height="6"  rx="1"/>
+            <rect x="4"   y="-5"    width="2" height="10" rx="1"/>
+            <rect x="8"   y="-8"    width="2" height="16" rx="1"/>
+            <rect x="12"  y="-11"   width="2" height="22" rx="1"/>
+            <rect x="16"  y="-14"   width="2" height="28" rx="1"/>
+            <rect x="20"  y="-16"   width="2" height="32" rx="1" fill="var(--amber-light)"/>
+            <rect x="24"  y="-13"   width="2" height="26" rx="1"/>
+            <rect x="28"  y="-9"    width="2" height="18" rx="1"/>
+            <rect x="32"  y="-6"    width="2" height="12" rx="1"/>
+            <rect x="36"  y="-4"    width="2" height="8"  rx="1"/>
+            <rect x="40"  y="-7"    width="2" height="14" rx="1"/>
+            <rect x="44"  y="-11"   width="2" height="22" rx="1"/>
+            <rect x="48"  y="-15"   width="2" height="30" rx="1" fill="var(--amber-light)"/>
+            <rect x="52"  y="-17.5" width="2" height="35" rx="1" fill="var(--amber-cream)"/>
+            <rect x="56"  y="-16"   width="2" height="32" rx="1" fill="var(--amber-light)"/>
+            <rect x="60"  y="-12"   width="2" height="24" rx="1"/>
+            <rect x="64"  y="-8"    width="2" height="16" rx="1"/>
+            <rect x="68"  y="-6"    width="2" height="12" rx="1"/>
+            <rect x="72"  y="-9"    width="2" height="18" rx="1"/>
+            <rect x="76"  y="-13"   width="2" height="26" rx="1"/>
+            <rect x="80"  y="-14"   width="2" height="28" rx="1" fill="var(--amber-light)"/>
+            <rect x="84"  y="-11"   width="2" height="22" rx="1"/>
+            <rect x="88"  y="-8"    width="2" height="16" rx="1"/>
+            <rect x="92"  y="-5"    width="2" height="10" rx="1"/>
+            <rect x="96"  y="-4"    width="2" height="8"  rx="1"/>
+            <rect x="100" y="-3"    width="2" height="6"  rx="1"/>
+            <rect x="104" y="-2"    width="2" height="4"  rx="1"/>
+            <rect x="108" y="-1.5"  width="2" height="3"  rx="1"/>
+          </g>
+        </g>
+
+        <!-- C. CARRIERS — three identical signature carriers. No title
+             lines, no slide thumbnail, no avatar. Each card holds only
+             the voiceprint centered, with matching hot peak bars — the
+             signature's hot points echo identically on every output. -->
+
+        <!-- Carrier 1 (y=30-90) -->
+        <g>
+          <rect class="tile" x="362" y="30" width="128" height="60" rx="4"
+                stroke="rgba(232,119,34,0.5)" stroke-width="1" fill="rgba(232,119,34,0.04)"/>
+          <g transform="translate(376,60)" fill="var(--amber)" opacity="0.9">
+            <rect x="0"    y="-1.5" width="1.4" height="3"   rx="0.7"/>
+            <rect x="4.3"  y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="8.6"  y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="12.9" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="17.2" y="-7"   width="1.4" height="14"  rx="0.7"/>
+            <rect x="21.5" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="25.8" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="30.1" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="34.4" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="38.7" y="-2"   width="1.4" height="4"   rx="0.7"/>
+            <rect x="43"   y="-3.5" width="1.4" height="7"   rx="0.7"/>
+            <rect x="47.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="51.6" y="-7.5" width="1.4" height="15"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="55.9" y="-8.5" width="1.4" height="17"  rx="0.7" fill="var(--amber-cream)"/>
+            <rect x="60.2" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="64.5" y="-6"   width="1.4" height="12"  rx="0.7"/>
+            <rect x="68.8" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="73.1" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="77.4" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="81.7" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="86"   y="-7"   width="1.4" height="14"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="90.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="94.6" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="98.9" y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="103.2" y="-1.5" width="1.4" height="3"  rx="0.7"/>
+          </g>
+        </g>
+
+        <!-- Carrier 2 (y=130-190) -->
+        <g>
+          <rect class="tile" x="362" y="130" width="128" height="60" rx="4"
+                stroke="rgba(232,119,34,0.5)" stroke-width="1" fill="rgba(232,119,34,0.04)"/>
+          <g transform="translate(376,160)" fill="var(--amber)" opacity="0.9">
+            <rect x="0"    y="-1.5" width="1.4" height="3"   rx="0.7"/>
+            <rect x="4.3"  y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="8.6"  y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="12.9" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="17.2" y="-7"   width="1.4" height="14"  rx="0.7"/>
+            <rect x="21.5" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="25.8" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="30.1" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="34.4" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="38.7" y="-2"   width="1.4" height="4"   rx="0.7"/>
+            <rect x="43"   y="-3.5" width="1.4" height="7"   rx="0.7"/>
+            <rect x="47.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="51.6" y="-7.5" width="1.4" height="15"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="55.9" y="-8.5" width="1.4" height="17"  rx="0.7" fill="var(--amber-cream)"/>
+            <rect x="60.2" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="64.5" y="-6"   width="1.4" height="12"  rx="0.7"/>
+            <rect x="68.8" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="73.1" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="77.4" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="81.7" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="86"   y="-7"   width="1.4" height="14"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="90.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="94.6" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="98.9" y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="103.2" y="-1.5" width="1.4" height="3"  rx="0.7"/>
+          </g>
+        </g>
+
+        <!-- Carrier 3 (y=230-290) -->
+        <g>
+          <rect class="tile" x="362" y="230" width="128" height="60" rx="4"
+                stroke="rgba(232,119,34,0.5)" stroke-width="1" fill="rgba(232,119,34,0.04)"/>
+          <g transform="translate(376,260)" fill="var(--amber)" opacity="0.9">
+            <rect x="0"    y="-1.5" width="1.4" height="3"   rx="0.7"/>
+            <rect x="4.3"  y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="8.6"  y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="12.9" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="17.2" y="-7"   width="1.4" height="14"  rx="0.7"/>
+            <rect x="21.5" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="25.8" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="30.1" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="34.4" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="38.7" y="-2"   width="1.4" height="4"   rx="0.7"/>
+            <rect x="43"   y="-3.5" width="1.4" height="7"   rx="0.7"/>
+            <rect x="47.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="51.6" y="-7.5" width="1.4" height="15"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="55.9" y="-8.5" width="1.4" height="17"  rx="0.7" fill="var(--amber-cream)"/>
+            <rect x="60.2" y="-8"   width="1.4" height="16"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="64.5" y="-6"   width="1.4" height="12"  rx="0.7"/>
+            <rect x="68.8" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="73.1" y="-3"   width="1.4" height="6"   rx="0.7"/>
+            <rect x="77.4" y="-4.5" width="1.4" height="9"   rx="0.7"/>
+            <rect x="81.7" y="-6.5" width="1.4" height="13"  rx="0.7"/>
+            <rect x="86"   y="-7"   width="1.4" height="14"  rx="0.7" fill="var(--amber-light)"/>
+            <rect x="90.3" y="-5.5" width="1.4" height="11"  rx="0.7"/>
+            <rect x="94.6" y="-4"   width="1.4" height="8"   rx="0.7"/>
+            <rect x="98.9" y="-2.5" width="1.4" height="5"   rx="0.7"/>
+            <rect x="103.2" y="-1.5" width="1.4" height="3"  rx="0.7"/>
+          </g>
+        </g>
+      </svg>
     </div>
   </div>
 </section>
@@ -474,19 +967,304 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
 <!-- RELAY -->
 <section class="product-card section reveal">
   <div class="product-inner relay">
+    <span class="product-corner tl"></span><span class="product-corner tr"></span>
+    <span class="product-corner bl"></span><span class="product-corner br"></span>
+
     <div class="product-text">
       <div class="product-heading">
         <span class="product-label purple">Relay</span>
         <span class="product-badge purple">Coming Soon</span>
       </div>
-      <h3 class="product-h3">Shared intelligence that outlasts any individual</h3>
-      <p class="product-desc">When your brain joins a team, Relay connects them. It maps who knows what, tracks expertise as it evolves, and ensures that when someone leaves, their knowledge stays. The team's collective intelligence grows with every contribution.</p>
+      <div class="product-tagline">
+        <span>Map</span><span class="arrow">→</span>
+        <span>Track</span><span class="arrow">→</span>
+        <span>Retain</span>
+      </div>
+      <h3 class="product-h3">Shared intelligence that outlasts any individual.</h3>
+      <p class="product-desc">When your brain joins a team, Relay connects them. It maps who knows what, tracks expertise as it evolves, and ensures that when someone leaves, their knowledge stays. Collective memory grows with every contribution.</p>
       <div class="product-tags purple">
         <span>Knowledge Maps</span><span>Predictive Intel</span><span>Meeting Memory</span>
       </div>
     </div>
+
     <div class="product-illust">
-      <canvas id="relayCanvas" width="511" height="320"></canvas>
+      <svg class="product-diagram" viewBox="0 0 511 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="Five teammates as TMS-dimension pentagon radars spread across the canvas; each radar carries a voiceprint signature. Alex's radar is a ghost — his signature persists in the team record. The team has rewired its live connections around him (Iris↔Kai direct).">
+        <defs>
+          <filter id="relay-glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3.5" result="b"/>
+            <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+          <radialGradient id="relay-remnant-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stop-color="#8C82C8" stop-opacity="0.4"/>
+            <stop offset="60%" stop-color="#8C82C8" stop-opacity="0.1"/>
+            <stop offset="100%" stop-color="#8C82C8" stop-opacity="0"/>
+          </radialGradient>
+          <radialGradient id="relay-maya-halo" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stop-color="#FFA366" stop-opacity="0.26"/>
+            <stop offset="55%" stop-color="#E87722" stop-opacity="0.08"/>
+            <stop offset="100%" stop-color="#E87722" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Corner crosshairs -->
+        <g class="crosshair" stroke="var(--purple-light)">
+          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
+          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
+          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
+          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
+        </g>
+
+        <!-- TMS PENTAGON RADARS — five teammates as 5-dimensional
+             radars (Specialization · Credibility · cOordination · Memory
+             · Transfer). Each radar's data polygon is that teammate's
+             specific TMS profile, plus a voiceprint signature below.
+             Alex's radar is a ghost (dashed outline, outline-only data
+             polygon); his TMS signature persists in the team record
+             even though the team has rewired its live connections
+             around him (Iris↔Kai direct). -->
+
+        <!-- Subtle coordinate curves -->
+        <g stroke="var(--purple-light)" stroke-width="0.4" fill="none" opacity="0.08" stroke-dasharray="1 4">
+          <path d="M 0,85 Q 255,105 510,75"/>
+          <path d="M 0,240 Q 255,260 510,230"/>
+          <path d="M 100,0 Q 120,160 90,320"/>
+          <path d="M 430,0 Q 415,160 430,320"/>
+        </g>
+
+        <!-- Background starfield -->
+        <g fill="var(--purple-light)">
+          <circle cx="40"  cy="48"  r="0.9" opacity="0.3"/>
+          <circle cx="148" cy="32"  r="0.9" opacity="0.3"/>
+          <circle cx="310" cy="30"  r="0.85" opacity="0.28"/>
+          <circle cx="372" cy="22"  r="0.9" opacity="0.3"/>
+          <circle cx="486" cy="56"  r="0.85" opacity="0.25"/>
+          <circle cx="24"  cy="176" r="0.9" opacity="0.28"/>
+          <circle cx="58"  cy="280" r="0.9" opacity="0.26"/>
+          <circle cx="262" cy="298" r="0.85" opacity="0.24"/>
+          <circle cx="342" cy="300" r="0.85" opacity="0.26"/>
+          <circle cx="498" cy="180" r="0.9" opacity="0.28"/>
+          <circle cx="78"  cy="22"  r="0.55" opacity="0.2"/>
+          <circle cx="198" cy="20"  r="0.5" opacity="0.2"/>
+          <circle cx="312" cy="168" r="0.55" opacity="0.22"/>
+          <circle cx="98"  cy="240" r="0.5" opacity="0.2"/>
+          <circle cx="268" cy="200" r="0.55" opacity="0.2"/>
+          <circle cx="362" cy="205" r="0.5" opacity="0.2"/>
+          <circle cx="254" cy="140" r="0.55" opacity="0.22"/>
+          <circle cx="28"  cy="118" r="0.5" opacity="0.2"/>
+          <circle cx="502" cy="302" r="0.55" opacity="0.22"/>
+          <circle cx="388" cy="160" r="0.5" opacity="0.18"/>
+          <circle cx="100" cy="298" r="0.55" opacity="0.2"/>
+          <circle cx="460" cy="20"  r="0.55" opacity="0.22"/>
+        </g>
+
+        <!-- Remnant nebula around departed Alex (425, 255) -->
+        <circle cx="425" cy="255" r="72" fill="url(#relay-remnant-glow)"/>
+        <circle cx="425" cy="255" r="58" fill="none" stroke="var(--purple-light)" stroke-width="0.5" opacity="0.22" stroke-dasharray="1 3"/>
+        <circle cx="425" cy="255" r="44" fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.28" stroke-dasharray="1 2"/>
+        <g fill="var(--purple-light)">
+          <circle cx="492" cy="204" r="0.7" opacity="0.35"/>
+          <circle cx="502" cy="182" r="0.55" opacity="0.25"/>
+          <circle cx="460" cy="310" r="0.7" opacity="0.35"/>
+          <circle cx="490" cy="298" r="0.55" opacity="0.25"/>
+          <circle cx="368" cy="306" r="0.55" opacity="0.25"/>
+        </g>
+
+        <!-- Constellation edges — 5 live among Maya/Sam/Kai/Iris.
+             Alex disconnected (team rewired around him). -->
+        <g fill="none" stroke="var(--purple-light)" stroke-width="0.95" opacity="0.55" stroke-linecap="round">
+          <line x1="100" y1="130" x2="255" y2="65"/>
+          <line x1="255" y1="65"  x2="440" y2="100"/>
+          <line x1="100" y1="130" x2="165" y2="245"/>
+          <line x1="255" y1="65"  x2="165" y2="245"/>
+          <line x1="165" y1="245" x2="440" y2="100"/>
+        </g>
+        <g fill="var(--purple-light)" opacity="0.75">
+          <circle cx="177.5" cy="97.5"  r="1"/>
+          <circle cx="347.5" cy="82.5"  r="1"/>
+          <circle cx="132.5" cy="187.5" r="1"/>
+          <circle cx="210"   cy="155"   r="1"/>
+          <circle cx="302.5" cy="172.5" r="1"/>
+        </g>
+
+        <!-- MAYA · (100, 130) r=42 · lead · S=0.95 C=0.90 O=0.82 M=0.88 T=0.85 -->
+        <g transform="translate(100 130)">
+          <circle r="54" fill="url(#relay-maya-halo)"/>
+          <circle r="48" fill="none" stroke="var(--amber)" stroke-width="0.4" opacity="0.18"/>
+          <path d="M 0,-42 L 39.94,-12.98 L 24.70,33.98 L -24.70,33.98 L -39.94,-12.98 Z"
+                fill="none" stroke="var(--amber-light)" stroke-width="0.8" opacity="0.5"/>
+          <path d="M 0,-28 L 26.63,-8.65 L 16.46,22.65 L -16.46,22.65 L -26.63,-8.65 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.28" stroke-dasharray="2 3"/>
+          <path d="M 0,-14 L 13.31,-4.33 L 8.23,11.33 L -8.23,11.33 L -13.31,-4.33 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.22" stroke-dasharray="1 2"/>
+          <g stroke="var(--purple-light)" stroke-width="0.6" opacity="0.45">
+            <line x1="0" y1="0" x2="0"      y2="-42"/>
+            <line x1="0" y1="0" x2="39.94"  y2="-12.98"/>
+            <line x1="0" y1="0" x2="24.70"  y2="33.98"/>
+            <line x1="0" y1="0" x2="-24.70" y2="33.98"/>
+            <line x1="0" y1="0" x2="-39.94" y2="-12.98"/>
+          </g>
+          <path d="M 0,-39.9 L 35.95,-11.68 L 20.25,27.86 L -21.73,29.9 L -33.95,-11.03 Z"
+                fill="rgba(255,163,102,0.2)" stroke="var(--amber-light)" stroke-width="1.2" opacity="0.98"/>
+          <g>
+            <circle cx="0"      cy="-39.9"  r="1.8" fill="var(--amber-light)"/>
+            <circle cx="35.95"  cy="-11.68" r="1.8" fill="var(--amber-light)"/>
+            <circle cx="20.25"  cy="27.86"  r="1.8" fill="var(--amber-light)"/>
+            <circle cx="-21.73" cy="29.9"   r="1.8" fill="var(--amber-light)"/>
+            <circle cx="-33.95" cy="-11.03" r="1.8" fill="var(--amber-light)"/>
+          </g>
+          <circle r="4.5" fill="var(--amber)" filter="url(#relay-glow)"/>
+          <g stroke="var(--amber)" stroke-width="0.7" opacity="0.7">
+            <line x1="-8"  y1="-8"  x2="-12" y2="-12"/>
+            <line x1="8"   y1="-8"  x2="12"  y2="-12"/>
+            <line x1="8"   y1="8"   x2="12"  y2="12"/>
+            <line x1="-8"  y1="8"   x2="-12" y2="12"/>
+          </g>
+          <g fill="var(--amber-light)" opacity="0.95">
+            <rect x="-8.9" y="42.2"  width="1.8" height="7.6"  rx="0.6"/>
+            <rect x="-4.9" y="42.4"  width="1.8" height="7.2"  rx="0.6"/>
+            <rect x="-0.9" y="42.72" width="1.8" height="6.56" rx="0.6"/>
+            <rect x="3.1"  y="42.48" width="1.8" height="7.04" rx="0.6"/>
+            <rect x="7.1"  y="42.6"  width="1.8" height="6.8"  rx="0.6"/>
+          </g>
+        </g>
+
+        <!-- SAM · (255, 65) r=38 · coordinator · S=0.60 C=0.72 O=0.95 M=0.50 T=0.75 -->
+        <g transform="translate(255 65)">
+          <path d="M 0,-38 L 36.14,-11.74 L 22.34,30.74 L -22.34,30.74 L -36.14,-11.74 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.8" opacity="0.45"/>
+          <path d="M 0,-25 L 23.78,-7.73 L 14.70,20.23 L -14.70,20.23 L -23.78,-7.73 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.25" stroke-dasharray="2 3"/>
+          <path d="M 0,-13 L 12.36,-4.02 L 7.64,10.52 L -7.64,10.52 L -12.36,-4.02 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.22" stroke-dasharray="1 2"/>
+          <g stroke="var(--purple-light)" stroke-width="0.55" opacity="0.35">
+            <line x1="0" y1="0" x2="0"      y2="-38"/>
+            <line x1="0" y1="0" x2="36.14"  y2="-11.74"/>
+            <line x1="0" y1="0" x2="22.34"  y2="30.74"/>
+            <line x1="0" y1="0" x2="-22.34" y2="30.74"/>
+            <line x1="0" y1="0" x2="-36.14" y2="-11.74"/>
+          </g>
+          <path d="M 0,-22.8 L 26.02,-8.45 L 21.23,29.21 L -11.17,15.37 L -27.10,-8.81 Z"
+                fill="rgba(140,130,200,0.22)" stroke="var(--purple-light)" stroke-width="1" opacity="0.92"/>
+          <g>
+            <circle cx="0"      cy="-22.8"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="26.02"  cy="-8.45"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="21.23"  cy="29.21"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="-11.17" cy="15.37"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="-27.10" cy="-8.81"  r="1.6" fill="var(--purple-light)"/>
+          </g>
+          <circle r="3.2" fill="var(--purple-cream)" filter="url(#relay-glow)"/>
+          <g fill="var(--purple-light)" opacity="0.9">
+            <rect x="-8.9" y="38.6"  width="1.8" height="4.8"  rx="0.6"/>
+            <rect x="-4.9" y="38.12" width="1.8" height="5.76" rx="0.6"/>
+            <rect x="-0.9" y="37.2"  width="1.8" height="7.6"  rx="0.6"/>
+            <rect x="3.1"  y="39"    width="1.8" height="4.0"  rx="0.6"/>
+            <rect x="7.1"  y="38"    width="1.8" height="6.0"  rx="0.6"/>
+          </g>
+        </g>
+
+        <!-- KAI · (440, 100) r=38 · specialist · S=0.92 C=0.70 O=0.55 M=0.65 T=0.45 -->
+        <g transform="translate(440 100)">
+          <path d="M 0,-38 L 36.14,-11.74 L 22.34,30.74 L -22.34,30.74 L -36.14,-11.74 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.8" opacity="0.45"/>
+          <path d="M 0,-25 L 23.78,-7.73 L 14.70,20.23 L -14.70,20.23 L -23.78,-7.73 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.25" stroke-dasharray="2 3"/>
+          <path d="M 0,-13 L 12.36,-4.02 L 7.64,10.52 L -7.64,10.52 L -12.36,-4.02 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.22" stroke-dasharray="1 2"/>
+          <g stroke="var(--purple-light)" stroke-width="0.55" opacity="0.35">
+            <line x1="0" y1="0" x2="0"      y2="-38"/>
+            <line x1="0" y1="0" x2="36.14"  y2="-11.74"/>
+            <line x1="0" y1="0" x2="22.34"  y2="30.74"/>
+            <line x1="0" y1="0" x2="-22.34" y2="30.74"/>
+            <line x1="0" y1="0" x2="-36.14" y2="-11.74"/>
+          </g>
+          <path d="M 0,-34.96 L 25.3,-8.22 L 12.29,16.91 L -14.52,19.98 L -16.26,-5.28 Z"
+                fill="rgba(140,130,200,0.22)" stroke="var(--purple-light)" stroke-width="1" opacity="0.92"/>
+          <g>
+            <circle cx="0"      cy="-34.96" r="1.6" fill="var(--purple-light)"/>
+            <circle cx="25.3"   cy="-8.22"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="12.29"  cy="16.91"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="-14.52" cy="19.98"  r="1.6" fill="var(--purple-light)"/>
+            <circle cx="-16.26" cy="-5.28"  r="1.6" fill="var(--purple-light)"/>
+          </g>
+          <circle r="3.2" fill="var(--purple-cream)" filter="url(#relay-glow)"/>
+          <g fill="var(--purple-light)" opacity="0.9">
+            <rect x="-8.9" y="37.32" width="1.8" height="7.36" rx="0.6"/>
+            <rect x="-4.9" y="38.2"  width="1.8" height="5.6"  rx="0.6"/>
+            <rect x="-0.9" y="38.8"  width="1.8" height="4.4"  rx="0.6"/>
+            <rect x="3.1"  y="38.4"  width="1.8" height="5.2"  rx="0.6"/>
+            <rect x="7.1"  y="39.2"  width="1.8" height="3.6"  rx="0.6"/>
+          </g>
+        </g>
+
+        <!-- IRIS · (165, 245) r=40 · specialist · S=0.90 C=0.85 O=0.65 M=0.92 T=0.70 -->
+        <g transform="translate(165 245)">
+          <path d="M 0,-40 L 38.04,-12.36 L 23.52,32.36 L -23.52,32.36 L -38.04,-12.36 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.8" opacity="0.45"/>
+          <path d="M 0,-27 L 25.68,-8.34 L 15.88,21.84 L -15.88,21.84 L -25.68,-8.34 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.25" stroke-dasharray="2 3"/>
+          <path d="M 0,-13 L 12.36,-4.02 L 7.64,10.52 L -7.64,10.52 L -12.36,-4.02 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.4" opacity="0.22" stroke-dasharray="1 2"/>
+          <g stroke="var(--purple-light)" stroke-width="0.55" opacity="0.35">
+            <line x1="0" y1="0" x2="0"      y2="-40"/>
+            <line x1="0" y1="0" x2="38.04"  y2="-12.36"/>
+            <line x1="0" y1="0" x2="23.52"  y2="32.36"/>
+            <line x1="0" y1="0" x2="-23.52" y2="32.36"/>
+            <line x1="0" y1="0" x2="-38.04" y2="-12.36"/>
+          </g>
+          <path d="M 0,-36 L 32.33,-10.51 L 15.29,21.03 L -21.64,29.77 L -26.63,-8.65 Z"
+                fill="rgba(140,130,200,0.22)" stroke="var(--purple-light)" stroke-width="1" opacity="0.92"/>
+          <g>
+            <circle cx="0"      cy="-36"    r="1.7" fill="var(--purple-light)"/>
+            <circle cx="32.33"  cy="-10.51" r="1.7" fill="var(--purple-light)"/>
+            <circle cx="15.29"  cy="21.03"  r="1.7" fill="var(--purple-light)"/>
+            <circle cx="-21.64" cy="29.77"  r="1.7" fill="var(--purple-light)"/>
+            <circle cx="-26.63" cy="-8.65"  r="1.7" fill="var(--purple-light)"/>
+          </g>
+          <circle r="3.4" fill="var(--purple-cream)" filter="url(#relay-glow)"/>
+          <g fill="var(--purple-light)" opacity="0.9">
+            <rect x="-8.9" y="40.4"  width="1.8" height="7.2"  rx="0.6"/>
+            <rect x="-4.9" y="40.6"  width="1.8" height="6.8"  rx="0.6"/>
+            <rect x="-0.9" y="41.4"  width="1.8" height="5.2"  rx="0.6"/>
+            <rect x="3.1"  y="40.32" width="1.8" height="7.36" rx="0.6"/>
+            <rect x="7.1"  y="41.2"  width="1.8" height="5.6"  rx="0.6"/>
+          </g>
+        </g>
+
+        <!-- ALEX · (425, 255) r=36 · departed, ghost · S=0.80 C=0.78 O=0.68 M=0.95 T=0.90 -->
+        <g transform="translate(425 255)" opacity="0.7">
+          <path d="M 0,-36 L 34.24,-11.12 L 21.17,29.12 L -21.17,29.12 L -34.24,-11.12 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.35" stroke-dasharray="2 3"/>
+          <path d="M 0,-24 L 22.82,-7.42 L 14.11,19.42 L -14.11,19.42 L -22.82,-7.42 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.35" opacity="0.22" stroke-dasharray="1 2"/>
+          <path d="M 0,-12 L 11.41,-3.71 L 7.06,9.71 L -7.06,9.71 L -11.41,-3.71 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.35" opacity="0.2" stroke-dasharray="1 2"/>
+          <g stroke="var(--purple-light)" stroke-width="0.5" opacity="0.3" stroke-dasharray="1 2">
+            <line x1="0" y1="0" x2="0"      y2="-36"/>
+            <line x1="0" y1="0" x2="34.24"  y2="-11.12"/>
+            <line x1="0" y1="0" x2="21.17"  y2="29.12"/>
+            <line x1="0" y1="0" x2="-21.17" y2="29.12"/>
+            <line x1="0" y1="0" x2="-34.24" y2="-11.12"/>
+          </g>
+          <path d="M 0,-28.8 L 26.70,-8.68 L 14.39,19.81 L -20.11,27.67 L -30.81,-10.01 Z"
+                fill="none" stroke="var(--purple-light)" stroke-width="0.9" opacity="0.75" stroke-dasharray="2.5 2"/>
+          <g>
+            <circle cx="0"      cy="-28.8"  r="1.8" fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.75"/>
+            <circle cx="26.70"  cy="-8.68"  r="1.8" fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.75"/>
+            <circle cx="14.39"  cy="19.81"  r="1.8" fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.75"/>
+            <circle cx="-20.11" cy="27.67"  r="1.8" fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.75"/>
+            <circle cx="-30.81" cy="-10.01" r="1.8" fill="none" stroke="var(--purple-light)" stroke-width="0.7" opacity="0.75"/>
+          </g>
+          <line x1="-2.8" y1="-2.8" x2="2.8" y2="2.8" stroke="var(--purple-light)" stroke-width="0.9" opacity="0.75"/>
+          <line x1="-2.8" y1="2.8"  x2="2.8" y2="-2.8" stroke="var(--purple-light)" stroke-width="0.9" opacity="0.75"/>
+          <g stroke="var(--purple-light)" stroke-width="0.6" stroke-dasharray="1 1" opacity="0.75" fill="none">
+            <rect x="-8.9" y="36.8"  width="1.8" height="6.4"  rx="0.6"/>
+            <rect x="-4.9" y="36.88" width="1.8" height="6.24" rx="0.6"/>
+            <rect x="-0.9" y="37.28" width="1.8" height="5.44" rx="0.6"/>
+            <rect x="3.1"  y="36.2"  width="1.8" height="7.6"  rx="0.6"/>
+            <rect x="7.1"  y="36.4"  width="1.8" height="7.2"  rx="0.6"/>
+          </g>
+        </g>
+      </svg>
     </div>
   </div>
 </section>
@@ -494,19 +1272,206 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
 <!-- RANGER -->
 <section class="product-card section reveal">
   <div class="product-inner ranger">
+    <span class="product-corner tl"></span><span class="product-corner tr"></span>
+    <span class="product-corner bl"></span><span class="product-corner br"></span>
+
     <div class="product-text">
       <div class="product-heading">
         <span class="product-label purple">Ranger</span>
         <span class="product-badge purple">Coming Soon</span>
       </div>
-      <h3 class="product-h3">The right expert, found by what they actually know</h3>
-      <p class="product-desc">Ranger reads across every brain in the network. When work comes in, it scores every brain for fit — not by job titles, but by what each brain has been thinking about. It assembles teams from complementary knowledge. The right people, matched by substance.</p>
+      <div class="product-tagline">
+        <span>Scan</span><span class="arrow">→</span>
+        <span>Score</span><span class="arrow">→</span>
+        <span>Assemble</span>
+      </div>
+      <h3 class="product-h3">The right expert, found by what they actually know.</h3>
+      <p class="product-desc">Ranger reads across every brain in the network. When work comes in, it scores every brain for fit — not by job titles, but by what each brain has been thinking about. Teams assembled from complementary knowledge.</p>
       <div class="product-tags purple">
         <span>Match Scoring</span><span>Team Assembly</span><span>Gap Detection</span><span>Cross-Brain Search</span>
       </div>
     </div>
+
     <div class="product-illust">
-      <canvas id="rangerCanvas" width="511" height="320"></canvas>
+      <svg class="product-diagram" viewBox="0 0 511 320" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" aria-label="A dense fingerprint whorl with a wedge cut out of the upper right; the matching piece floats above, carrying the ridge segments that complete the pattern.">
+        <defs>
+          <radialGradient id="ranger-whorl-glow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%"  stop-color="#E87722" stop-opacity="0.18"/>
+            <stop offset="60%" stop-color="#E87722" stop-opacity="0.05"/>
+            <stop offset="100%" stop-color="#E87722" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+
+        <!-- Corner crosshairs -->
+        <g class="crosshair" stroke="var(--amber)">
+          <line x1="6" y1="6" x2="18" y2="6"/><line x1="6" y1="6" x2="6" y2="18"/>
+          <line x1="505" y1="6" x2="493" y2="6"/><line x1="505" y1="6" x2="505" y2="18"/>
+          <line x1="6" y1="314" x2="18" y2="314"/><line x1="6" y1="314" x2="6" y2="302"/>
+          <line x1="505" y1="314" x2="493" y2="314"/><line x1="505" y1="314" x2="505" y2="302"/>
+        </g>
+
+        <!-- FINGERPRINT WHORL — "match by substance."
+             A 12-ridge whorl whose upper-right wedge is absent. The
+             piece floats above and carries the 12 matching ridge
+             segments, each continuing its brief-side ridge at identical
+             curvature. Specificity is carried by minutiae: three
+             bifurcations, one termination, four island-fragments, and
+             fifteen pore-dots. Only a piece carrying THIS substance
+             could complete the pattern. -->
+
+        <!-- Atmospheric glow behind the whorl -->
+        <circle cx="175" cy="165" r="140" fill="url(#ranger-whorl-glow)"/>
+
+        <!-- 12 concentric ridges, wedge absent 300°→360°.
+             Ridge centres offset 1-3px in a zigzag for organic whorl.
+             Opacity ramps from faint outer (0.22) to brightest core. -->
+
+        <!-- Ridge 12 — outermost -->
+        <path d="M 303,165 A 128 128 0 1 1 239,54.15"
+              fill="none" stroke="var(--amber)" stroke-width="0.9" opacity="0.22" stroke-linecap="round"/>
+        <!-- Ridge 11 -->
+        <path d="M 294,164 A 118 118 0 1 1 235,61.81"
+              fill="none" stroke="var(--amber)" stroke-width="0.9" opacity="0.3" stroke-linecap="round"/>
+        <!-- Ridge 10 · BIFURCATION at ~130° -->
+        <path d="M 285,163 A 108 108 0 1 1 231,69.47"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.38" stroke-linecap="round"/>
+        <path d="M 107.58,245.75 Q 103,249 99.71,251.5"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.38" stroke-linecap="round"/>
+        <!-- Ridge 9 · dashed rhythm -->
+        <path d="M 275,166 A 98 98 0 1 1 226,81.13"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.48"
+              stroke-dasharray="3 2.5" stroke-linecap="round"/>
+        <!-- Ridge 8 · BIFURCATION at ~165° -->
+        <path d="M 264,167 A 88 88 0 1 1 220,90.79"
+              fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+        <path d="M 90.99,189.78 Q 84,190 78,188"
+              fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+        <!-- Ridge 7 -->
+        <path d="M 252,167 A 78 78 0 1 1 213,99.45"
+              fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.62" stroke-linecap="round"/>
+        <!-- Ridge 6 · BIFURCATION at ~260° -->
+        <path d="M 241,166 A 68 68 0 1 1 207,107.11"
+              fill="none" stroke="var(--amber)" stroke-width="1.05" opacity="0.7" stroke-linecap="round"/>
+        <path d="M 161.19,99.03 Q 160,90 158.55,84.27"
+              fill="none" stroke="var(--amber)" stroke-width="1.05" opacity="0.7" stroke-linecap="round"/>
+        <!-- Ridge 5 · dashed rhythm -->
+        <path d="M 231,164 A 58 58 0 1 1 202,113.77"
+              fill="none" stroke="var(--amber)" stroke-width="1.05" opacity="0.78"
+              stroke-dasharray="3 2.5" stroke-linecap="round"/>
+        <!-- Ridge 4 · TERMINATION at ~220° — two segments with a tiny gap -->
+        <path d="M 222,163 A 48 48 0 1 1 134.69,135.45"
+              fill="none" stroke="var(--amber)" stroke-width="1.1" opacity="0.82" stroke-linecap="round"/>
+        <path d="M 140.06,129.06 A 48 48 0 0 1 198,121.43"
+              fill="none" stroke="var(--amber)" stroke-width="1.1" opacity="0.82" stroke-linecap="round"/>
+        <circle cx="134.69" cy="135.45" r="0.85" fill="var(--amber)" opacity="0.7"/>
+        <circle cx="140.06" cy="129.06" r="0.85" fill="var(--amber)" opacity="0.7"/>
+        <!-- Ridge 3 -->
+        <path d="M 213,164 A 38 38 0 1 1 194,131.09"
+              fill="none" stroke="var(--amber)" stroke-width="1.15" opacity="0.88" stroke-linecap="round"/>
+        <!-- Ridge 2 -->
+        <path d="M 204,166 A 28 28 0 1 1 190,141.75"
+              fill="none" stroke="var(--amber)" stroke-width="1.2" opacity="0.94" stroke-linecap="round"/>
+        <!-- Ridge 1 · core — brightest -->
+        <path d="M 193,165 A 18 18 0 1 1 184,149.41"
+              fill="none" stroke="var(--amber-light)" stroke-width="1.35" opacity="1" stroke-linecap="round"/>
+
+        <!-- ISLAND RIDGES — 4 floating arc fragments -->
+        <path d="M 72.73,141.37 A 105 105 0 0 1 78.29,123.94"
+              fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.55" stroke-linecap="round"/>
+        <path d="M 121.57,198.39 A 63 63 0 0 1 117.46,190.62"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.6" stroke-linecap="round"/>
+        <path d="M 193.71,253.03 A 90 90 0 0 1 182.84,254.66"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.55" stroke-linecap="round"/>
+        <path d="M 155.46,118.99 A 50 50 0 0 1 160.37,117.19"
+              fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.6" stroke-linecap="round"/>
+
+        <!-- PORE DOTS — 15 amber flecks distributed through the ridges -->
+        <g fill="var(--amber)">
+          <circle cx="143.5"  cy="219.56" r="0.95" opacity="0.58"/>
+          <circle cx="180.73" cy="197.5"  r="0.95" opacity="0.58"/>
+          <circle cx="103.76" cy="105.22" r="0.95" opacity="0.5"/>
+          <circle cx="152.35" cy="161.01" r="0.95" opacity="0.65"/>
+          <circle cx="247.65" cy="251.56" r="0.95" opacity="0.48"/>
+          <circle cx="175"    cy="200"    r="0.9"  opacity="0.62"/>
+          <circle cx="142.86" cy="203.3"  r="0.9"  opacity="0.55"/>
+          <circle cx="212.5"  cy="229.95" r="0.9"  opacity="0.55"/>
+          <circle cx="247.77" cy="226.06" r="0.9"  opacity="0.48"/>
+          <circle cx="125.85" cy="130.59" r="0.9"  opacity="0.58"/>
+          <circle cx="96.22"  cy="151.11" r="0.9"  opacity="0.5"/>
+          <circle cx="117.5"  cy="65.41"  r="0.85" opacity="0.42"/>
+          <circle cx="166.45" cy="188.49" r="0.9"  opacity="0.7"/>
+          <circle cx="110.05" cy="127.5"  r="0.9"  opacity="0.55"/>
+          <circle cx="132.71" cy="180.39" r="0.9"  opacity="0.62"/>
+        </g>
+
+        <!-- Central pearl — origin of the whorl -->
+        <circle cx="175" cy="165" r="3.8" fill="var(--amber)"/>
+        <circle cx="173.5" cy="163.5" r="1.3" fill="var(--amber-light)"/>
+
+        <!-- Cut-edge markers — outer + innermost -->
+        <circle cx="303" cy="165"    r="2.2" fill="var(--amber)"/>
+        <circle cx="239" cy="54.15"  r="2.2" fill="var(--amber)"/>
+        <circle cx="193" cy="165"    r="1.3" fill="var(--amber)" opacity="0.8"/>
+        <circle cx="184" cy="149.41" r="1.3" fill="var(--amber)" opacity="0.8"/>
+
+        <!-- PIECE — the missing wedge's 12 matching ridge segments,
+             floating upper-right. Translated (130,-40) drifting toward
+             the gap. Ghost centre + matching cut-edge markers. -->
+        <g transform="translate(130 -40)">
+          <circle cx="175" cy="165" r="140" fill="url(#ranger-whorl-glow)" opacity="0.5"/>
+          <circle cx="175" cy="165" r="3.4" fill="none" stroke="var(--amber)" stroke-width="0.9"
+                  stroke-dasharray="1.5 1.8" opacity="0.55"/>
+
+          <!-- 12 matching ridge segments -->
+          <path d="M 239,54.15 A 128 128 0 0 1 303,165"
+                fill="none" stroke="var(--amber)" stroke-width="0.9" opacity="0.28" stroke-linecap="round"/>
+          <path d="M 235,61.81 A 118 118 0 0 1 294,164"
+                fill="none" stroke="var(--amber)" stroke-width="0.9" opacity="0.36" stroke-linecap="round"/>
+          <path d="M 231,69.47 A 108 108 0 0 1 285,163"
+                fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.44" stroke-linecap="round"/>
+          <path d="M 226,81.13 A 98 98 0 0 1 275,166"
+                fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.54"
+                stroke-dasharray="3 2.5" stroke-linecap="round"/>
+          <path d="M 220,90.79 A 88 88 0 0 1 264,167"
+                fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.62" stroke-linecap="round"/>
+          <path d="M 213,99.45 A 78 78 0 0 1 252,167"
+                fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.68" stroke-linecap="round"/>
+          <path d="M 207,107.11 A 68 68 0 0 1 241,166"
+                fill="none" stroke="var(--amber)" stroke-width="1.05" opacity="0.76" stroke-linecap="round"/>
+          <path d="M 202,113.77 A 58 58 0 0 1 231,164"
+                fill="none" stroke="var(--amber)" stroke-width="1.05" opacity="0.82"
+                stroke-dasharray="3 2.5" stroke-linecap="round"/>
+          <path d="M 198,121.43 A 48 48 0 0 1 222,163"
+                fill="none" stroke="var(--amber)" stroke-width="1.1" opacity="0.88" stroke-linecap="round"/>
+          <path d="M 194,131.09 A 38 38 0 0 1 213,164"
+                fill="none" stroke="var(--amber)" stroke-width="1.15" opacity="0.92" stroke-linecap="round"/>
+          <path d="M 190,141.75 A 28 28 0 0 1 204,166"
+                fill="none" stroke="var(--amber)" stroke-width="1.2" opacity="0.96" stroke-linecap="round"/>
+          <path d="M 184,149.41 A 18 18 0 0 1 193,165"
+                fill="none" stroke="var(--amber-light)" stroke-width="1.35" opacity="1" stroke-linecap="round"/>
+
+          <!-- Piece's own minutiae: bifurcation + two islands + 5 pore dots -->
+          <path d="M 232.57,99.59 Q 236,95 237.56,88.2"
+                fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.62" stroke-linecap="round"/>
+          <path d="M 244.63,116.23 A 85 85 0 0 1 251.35,127.76"
+                fill="none" stroke="var(--amber)" stroke-width="1" opacity="0.65" stroke-linecap="round"/>
+          <path d="M 245.71,94.29 A 100 100 0 0 1 251.6,100.72"
+                fill="none" stroke="var(--amber)" stroke-width="0.95" opacity="0.55" stroke-linecap="round"/>
+          <g fill="var(--amber)">
+            <circle cx="238.22" cy="128.5"  r="0.95" opacity="0.58"/>
+            <circle cx="260"    cy="141"    r="0.95" opacity="0.52"/>
+            <circle cx="210.36" cy="129.64" r="0.9"  opacity="0.62"/>
+            <circle cx="259.57" cy="134.22" r="0.9"  opacity="0.48"/>
+            <circle cx="197.98" cy="145.72" r="0.9"  opacity="0.68"/>
+          </g>
+
+          <!-- Matching cut-edge markers -->
+          <circle cx="239" cy="54.15"  r="2.2" fill="var(--amber)"/>
+          <circle cx="303" cy="165"    r="2.2" fill="var(--amber)"/>
+          <circle cx="184" cy="149.41" r="1.3" fill="var(--amber)" opacity="0.8"/>
+          <circle cx="193" cy="165"    r="1.3" fill="var(--amber)" opacity="0.8"/>
+        </g>
+      </svg>
     </div>
   </div>
 </section>
@@ -560,10 +1525,10 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
       <div class="label">Run</div>
       <div class="cmd">$ cd mybrain && brain start</div>
       <div class="sep"></div>
-      <div class="ok">✓ Web server → localhost:3000</div>
-      <div class="ok">✓ MCP server → localhost:3001</div>
-      <div class="ok">✓ A2A endpoint → localhost:3002</div>
-      <div class="ok">✓ CMS dashboard → localhost:3000/admin</div>
+      <div class="ok">✓ Website and CMS on the shared web host</div>
+      <div class="ok">✓ MCP server for assistants and tools</div>
+      <div class="ok">✓ A2A discovery endpoint for agent-to-agent use</div>
+      <div class="ok">✓ Plain-text content you can inspect and version with git</div>
     </div>
   </div>
 </section>
@@ -576,30 +1541,35 @@ body.light #themeToggle:hover{color:var(--text);border-color:rgba(26,22,37,0.3)}
   <p class="post">Brains are the foundation. But the vision is bigger — infrastructure for a world where talent flows to opportunity, professionals own what they create, and distributed teams outperform traditional organizations.</p>
   <div class="mission-cta">
     <a href="#quickstart" class="btn-primary">Start Building →</a>
-    <a href="https://github.com" class="btn-secondary">View on GitHub</a>
+    <a href="https://github.com/rizom-ai/brains" class="btn-secondary">View on GitHub</a>
   </div>
 </section>
 
 <!-- ECOSYSTEM -->
 <section class="ecosystem section reveal" id="ecosystem">
+  <div class="eco-header">
+    <div class="divider-line"></div>
+    <span class="badge badge-amber">The Ecosystem</span>
+    <h2>One ecosystem. The platform, the vision, the network.</h2>
+  </div>
   <div class="eco-grid">
     <div class="eco-card reveal reveal-delay-1">
       <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">ai</span></div>
       <div class="eco-title">The platform</div>
       <p class="eco-desc">Open-source AI agents built from your own knowledge. The tools that make everything else possible.</p>
-      <a href="#" class="eco-link amber">You are here</a>
+      <a href="/" class="eco-link amber">You are here</a>
     </div>
     <div class="eco-card reveal reveal-delay-2">
       <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">foundation</span></div>
       <div class="eco-title">The vision</div>
       <p class="eco-desc">Essays, principles, and community. Why we believe the future of knowledge work is distributed, owned, and play.</p>
-      <a href="#" class="eco-link purple">Read the manifesto →</a>
+      <span class="eco-link disabled">Coming soon</span>
     </div>
     <div class="eco-card reveal reveal-delay-3">
       <div class="eco-brand"><span class="r">rizom</span><span class="d">.</span><span class="s">work</span></div>
       <div class="eco-title">The network</div>
       <p class="eco-desc">Distributed consultancy powered by brains. Specialized expertise that mobilizes in hours, not months. Teams that assemble themselves.</p>
-      <a href="#" class="eco-link purple">Work with us →</a>
+      <span class="eco-link disabled">Coming soon</span>
     </div>
   </div>
 </section>
@@ -629,7 +1599,7 @@ document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
 
 // Side nav active state tracker
 const sideDots = document.querySelectorAll('.side-nav-dot');
-const sectionIds = ['hero','features','answer','ownership','quickstart','mission','ecosystem'];
+const sectionIds = ['hero','problem','answer','ownership','quickstart','mission','ecosystem'];
 const sectionObserver = new IntersectionObserver((entries) => {
   entries.forEach(e => {
     if (e.isIntersecting) {
