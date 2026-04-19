@@ -1,5 +1,5 @@
 service: brain
-image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+image: rizom-ai/<%= ENV['INSTANCE_NAME'] %>
 
 servers:
   web:

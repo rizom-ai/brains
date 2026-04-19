@@ -21,6 +21,15 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: |
+          cd ../..
+          bun install --frozen-lockfile
+
       - name: Extract config from brain.yaml
         run: |
           INSTANCE_NAME="$(basename "$PWD")"
@@ -94,6 +103,38 @@ jobs:
 
           appendFileSync(githubEnvPath, lines.join('\n') + '\n');
           NODE
+
+      - name: Build and push app image
+        env:
+          VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          bun ../../shell/app/scripts/build.ts
+
+          BUILD_DIR="$(mktemp -d)"
+          trap 'rm -rf "$BUILD_DIR"' EXIT
+
+          cp -r dist "$BUILD_DIR/"
+
+          if [ -d "dist/seed-content" ]; then
+            cp -r dist/seed-content "$BUILD_DIR/"
+          elif [ -d "seed-content" ]; then
+            cp -r seed-content "$BUILD_DIR/"
+          else
+            mkdir -p "$BUILD_DIR/seed-content"
+          fi
+
+          if [ -d "public" ]; then
+            cp -r public "$BUILD_DIR/"
+          else
+            mkdir -p "$BUILD_DIR/public"
+          fi
+
+          cp ../../deploy/docker/Dockerfile.prod "$BUILD_DIR/Dockerfile"
+          cp ../../deploy/docker/package.prod.json "$BUILD_DIR/package.json"
+
+          echo "$KAMAL_REGISTRY_PASSWORD" | docker login ghcr.io -u rizom-ai --password-stdin
+          docker build -t "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION" "$BUILD_DIR"
+          docker push "ghcr.io/rizom-ai/$INSTANCE_NAME:$VERSION"
 
       - name: Write Kamal SSH key
         run: |
@@ -412,8 +453,7 @@ jobs:
       - name: Deploy
         env:
           SERVER_IP: ${{ steps.provision.outputs.server_ip }}
-          # Deploy the immutable image for the exact commit that the
-          # publish-images workflow built and pushed.
+          # Deploy the immutable app image for the exact commit being built.
           VERSION: ${{ github.event.workflow_run.head_sha || github.sha }}
         # `kamal setup` is idempotent: on a fresh server it installs Docker
         # + kamal-proxy + deploys; on an already-set-up server it skips the
