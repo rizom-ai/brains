@@ -1,6 +1,6 @@
 id: tool-invocation-agent-call-by-name
-name: Call Agent by Name
-description: Tests that the agent uses a2a_call with a domain name instead of requiring a full URL
+name: Call Saved Agent by Domain
+description: Tests that the agent uses a2a_call with a saved agent domain from the local directory
 type: tool_invocation
 tags:
   - agent-discovery
@@ -8,18 +8,19 @@ tags:
   - tool-invocation
 
 turns:
-  - userMessage: "Ask yeehaa about ecosystem architecture"
+  - userMessage: "Ask yeehaa.io about ecosystem architecture"
 
 successCriteria:
   expectedTools:
     - toolName: a2a_call
       shouldBeCalled: true
       argsContain:
-        agent: "https://yeehaa.io"
+        agent: "yeehaa.io"
   responseNotContains:
     - "I need a URL"
     - "provide the full URL"
     - "I cannot"
+    - "Add it first"
 
 efficiency:
   maxToolCalls: 5

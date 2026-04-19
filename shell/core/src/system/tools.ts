@@ -84,8 +84,53 @@ function normalizeOptionalString(
   return trimmed.length > 0 ? trimmed : undefined;
 }
 
+function normalizeUpdateInput(input: {
+  fields?: Record<string, unknown>;
+  content?: string;
+}): {
+  fields?: Record<string, unknown>;
+  content?: string;
+} {
+  if (input.fields) {
+    return { fields: input.fields };
+  }
+
+  if (!input.content) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(input.content) as unknown;
+    if (
+      typeof parsed === "object" &&
+      parsed !== null &&
+      !Array.isArray(parsed)
+    ) {
+      if (
+        "fields" in parsed &&
+        typeof parsed.fields === "object" &&
+        parsed.fields !== null &&
+        !Array.isArray(parsed.fields)
+      ) {
+        return {
+          fields: parsed.fields as Record<string, unknown>,
+        };
+      }
+
+      return {
+        fields: parsed as Record<string, unknown>,
+      };
+    }
+  } catch {
+    // Not JSON — treat as full content replacement.
+  }
+
+  return { content: input.content };
+}
+
 export function createSystemTools(services: SystemServices): Tool[] {
-  const { entityService, conversationService, logger, jobs } = services;
+  const { entityService, conversationService, logger, jobs, entityRegistry } =
+    services;
 
   return [
     // ── Search ──
@@ -372,6 +417,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
         );
         const targetEntityId = normalizeOptionalString(input.targetEntityId);
 
+        if (!!targetEntityType !== !!targetEntityId)
+          return {
+            success: false,
+            error:
+              "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
+          };
+
         if (!content && !prompt)
           return {
             success: false,
@@ -522,12 +574,17 @@ export function createSystemTools(services: SystemServices): Tool[] {
         );
         if (!resolved.ok) return { success: false, error: resolved.error };
         const { entity } = resolved;
-        if (input.content && input.fields)
+        const normalizedInput = normalizeUpdateInput({
+          ...(input.fields !== undefined ? { fields: input.fields } : {}),
+          ...(input.content !== undefined ? { content: input.content } : {}),
+        });
+
+        if (normalizedInput.content && normalizedInput.fields)
           return {
             success: false,
             error: "Provide either 'content' or 'fields', not both",
           };
-        if (!input.content && !input.fields)
+        if (!normalizedInput.content && !normalizedInput.fields)
           return {
             success: false,
             error:
@@ -542,9 +599,42 @@ export function createSystemTools(services: SystemServices): Tool[] {
                 "Entity was modified since you reviewed the changes. Please try again.",
             };
           }
-          const updated = input.content
-            ? { ...entity, content: input.content }
-            : { ...entity, metadata: { ...entity.metadata, ...input.fields } };
+
+          if (normalizedInput.content !== undefined) {
+            const trimmedContent = normalizedInput.content.trim();
+            const frontmatterSchema =
+              entityRegistry.getEffectiveFrontmatterSchema(entity.entityType);
+
+            if (frontmatterSchema) {
+              if (!trimmedContent) {
+                return {
+                  success: false,
+                  error:
+                    "Full content replacement cannot be empty for this entity type. Use 'fields' for partial updates.",
+                };
+              }
+
+              try {
+                entityRegistry
+                  .getAdapter(entity.entityType)
+                  .parseFrontMatter(normalizedInput.content, frontmatterSchema);
+              } catch {
+                return {
+                  success: false,
+                  error:
+                    "Invalid content replacement for this entity type. Provide full markdown with valid frontmatter, or use 'fields' for partial updates.",
+                };
+              }
+            }
+          }
+
+          const updated =
+            normalizedInput.content !== undefined
+              ? { ...entity, content: normalizedInput.content }
+              : {
+                  ...entity,
+                  metadata: { ...entity.metadata, ...normalizedInput.fields },
+                };
           try {
             await entityService.updateEntity(updated);
           } catch (error) {
@@ -564,8 +654,8 @@ export function createSystemTools(services: SystemServices): Tool[] {
             ? entity.metadata["title"]
             : entity.id;
         let diff: string;
-        if (input.fields) {
-          diff = Object.entries(input.fields)
+        if (normalizedInput.fields) {
+          diff = Object.entries(normalizedInput.fields)
             .map(
               ([key, val]) =>
                 `${key}: ${String(entity.metadata[key] ?? "(empty)")} → ${String(val)}`,
@@ -573,7 +663,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
             .join("\n");
         } else {
           const oldLines = entity.content.split("\n");
-          const newLines = (input.content ?? "").split("\n");
+          const newLines = (normalizedInput.content ?? "").split("\n");
           const diffLines: string[] = [];
           for (let i = 0; i < Math.max(oldLines.length, newLines.length); i++) {
             if ((oldLines[i] ?? "") !== (newLines[i] ?? "")) {
@@ -589,6 +679,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
           description: `Update "${title}"?\n\nChanges:\n${diff}`,
           args: {
             ...input,
+            ...normalizedInput,
             id: entity.id,
             confirmed: true,
             contentHash: entity.contentHash,

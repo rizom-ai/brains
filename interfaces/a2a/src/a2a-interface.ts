@@ -44,6 +44,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   private agentService: IAgentService | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
   private app: Hono | undefined;
+  private hasWebserver = false;
 
   constructor(config: Partial<A2AConfig> = {}) {
     super("a2a", packageJson, config, a2aConfigSchema);
@@ -54,12 +55,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   ): Promise<void> {
     await super.onRegister(context);
 
-    if (!context.plugins.has("webserver")) {
-      throw new Error(
-        "A2A requires the webserver interface. Standalone HTTP listeners have been removed.",
-      );
-    }
-
+    this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agentService;
     this.permissionContext = context.permissions;
 
@@ -84,9 +80,15 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       },
     );
 
-    this.logger.info("A2A interface registered", {
-      domain: context.domain,
-    });
+    if (this.hasWebserver) {
+      this.logger.info("A2A interface registered", {
+        domain: context.domain,
+      });
+    } else {
+      this.logger.info("A2A interface registered in tool-only mode", {
+        domain: context.domain,
+      });
+    }
   }
 
   /**
@@ -301,6 +303,10 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
+    if (!this.hasWebserver) {
+      return [];
+    }
+
     const handleSharedRoute = (request: Request): Promise<Response> =>
       Promise.resolve(this.getOrCreateApp().fetch(request));
 
@@ -337,16 +343,29 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
       createA2ACallTool({
         outboundTokens: this.config.outboundTokens,
         entityService: this.getContext().entityService,
-        sendMessage: (channel, payload) =>
-          this.getContext().messaging.send(channel, payload),
       }),
     ];
+  }
+
+  protected override async getInstructions(): Promise<string | undefined> {
+    return `## Agent-to-agent calls
+- Use \`a2a_call\` only for agents already saved in the local \`agent\` directory.
+- Pass only the saved local agent id to \`a2a_call\` (for example \`yeehaa.io\`), never a full URL.
+- If the user asks you to ask, message, or contact a saved active agent, call \`a2a_call\` in the same turn. Do not stop after listing the agent, drafting the question, or searching locally.
+- If the user gives a full URL for an agent, do not call \`a2a_call\` yet. Tell the user to add that agent to the directory first.
+- If the target agent is not in the directory, do not create a wish, reminder, todo, note, fallback task, or any new entity. Tell the user to add it first.
+- Only use creation tools for an agent if the user explicitly asks you to add or save that agent.
+- If the target agent is archived, do not call it and do not create a wish. Tell the user it must be unarchived first.`;
   }
 
   protected override createDaemon(): Daemon | undefined {
     return {
       start: async (): Promise<void> => {
-        this.logger.info("A2A mounted on shared webserver host");
+        if (this.hasWebserver) {
+          this.logger.info("A2A mounted on shared webserver host");
+        } else {
+          this.logger.info("A2A running without webserver routes");
+        }
       },
       stop: async (): Promise<void> => {
         this.unsubscribeReady?.();

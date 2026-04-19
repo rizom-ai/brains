@@ -2,6 +2,39 @@ import { describe, it, expect } from "bun:test";
 import { parseA2AResponse, createA2ACallTool } from "../src/client";
 import { parseAgentCard } from "@brains/plugins";
 
+function createSavedAgentEntityService(agentId = "remote.example.com"): {
+  getEntity: (
+    type: string,
+    id: string,
+  ) => Promise<{
+    id: string;
+    content: string;
+    metadata: Record<string, unknown>;
+  } | null>;
+} {
+  return {
+    getEntity: async (
+      type: string,
+      id: string,
+    ): Promise<{
+      id: string;
+      content: string;
+      metadata: Record<string, unknown>;
+    } | null> => {
+      if (type !== "agent" || id !== agentId) return null;
+      return {
+        id: agentId,
+        content: `---\nname: Remote\nurl: 'https://${agentId}/a2a'\nstatus: active\n---`,
+        metadata: {
+          name: "Remote",
+          url: `https://${agentId}/a2a`,
+          status: "active",
+        },
+      };
+    },
+  };
+}
+
 describe("A2A Client", () => {
   describe("parseAgentCard", () => {
     it("should parse a valid agent card", () => {
@@ -247,10 +280,11 @@ describe("A2A Client", () => {
         outboundTokens: {
           "remote.example.com": "secret-token-xyz",
         },
+        entityService: createSavedAgentEntityService(),
       });
 
       await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 
@@ -267,10 +301,11 @@ describe("A2A Client", () => {
         outboundTokens: {
           "other-agent.com": "some-token",
         },
+        entityService: createSavedAgentEntityService(),
       });
 
       await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 
@@ -282,10 +317,11 @@ describe("A2A Client", () => {
       const capturedHeaders: Record<string, string>[] = [];
       const tool = createA2ACallTool({
         fetch: createMockFetch(capturedHeaders),
+        entityService: createSavedAgentEntityService(),
       });
 
       await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 
@@ -361,10 +397,11 @@ describe("A2A Client", () => {
           { state: "working", final: false },
           { state: "completed", final: true, text: "Final answer" },
         ]),
+        entityService: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 
@@ -379,10 +416,11 @@ describe("A2A Client", () => {
           { state: "working", final: false },
           { state: "failed", final: true, text: "Error: Agent crashed" },
         ]),
+        entityService: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 
@@ -396,10 +434,11 @@ describe("A2A Client", () => {
           { state: "working", final: false },
           // stream closes without final: true
         ]),
+        entityService: createSavedAgentEntityService(),
       });
 
       const result = await tool.handler(
-        { agent: "https://remote.example.com", message: "hello" },
+        { agent: "remote.example.com", message: "hello" },
         { interfaceType: "test", userId: "test" },
       );
 

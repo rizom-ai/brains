@@ -60,12 +60,13 @@ describe("A2A HTTP routes", () => {
     });
   });
 
-  it("requires webserver for registration", async () => {
+  it("registers without webserver in tool-only mode", async () => {
     const plugin = new A2AInterface({ port: 0 });
 
-    return expect(harness.installPlugin(plugin)).rejects.toThrow(
-      "A2A requires the webserver interface",
-    );
+    const capabilities = await harness.installPlugin(plugin);
+
+    expect(capabilities.tools.map((tool) => tool.name)).toContain("a2a_call");
+    expect(plugin.getWebRoutes()).toEqual([]);
   });
 
   it("exposes shared-host routes for agent card and a2a", async () => {

@@ -545,6 +545,32 @@ A saved research link.`;
     expect(rawJobData["prompt"]).toBe("Write about TypeScript.");
   });
 
+  it("should reject targetEntityType without targetEntityId", async () => {
+    const result = await exec({
+      entityType: "image",
+      prompt: "Generate a cover image",
+      targetEntityType: "post",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
+    );
+  });
+
+  it("should reject targetEntityId without targetEntityType", async () => {
+    const result = await exec({
+      entityType: "image",
+      prompt: "Generate a cover image",
+      targetEntityId: "my-post",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
+    );
+  });
+
   it("should resolve image generation targets to canonical entity ids", async () => {
     services.addEntities([
       {

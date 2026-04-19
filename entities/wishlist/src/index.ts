@@ -109,7 +109,8 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
       '"wish" BEFORE responding when you cannot fulfill a user\'s request. This applies to ' +
       "ALL unfulfillable requests: physical actions, missing integrations, and any capability " +
       "you lack. Do NOT just explain you can't do it — create the wish first, THEN respond. " +
-      "In your response, tell the user their request has been added to the wishlist."
+      "In your response, tell the user their request has been added to the wishlist. " +
+      "Exception: if a user asks to contact an A2A agent that is missing or not yet saved in the local agent directory, do not create a wish unless the user explicitly asks you to add or save that agent."
     );
   }
 }

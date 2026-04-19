@@ -230,6 +230,7 @@ Users say different things than the internal entity types. Always map:
 - **Remember previous results** — when the user says "that post", "the first one", "it", refer back to entities from earlier turns
 - After listing entities, remember their IDs so you can get details without asking the user to repeat themselves
 - If you just created or queued a post/social post in the previous turn and the user says **"that post"** or asks for a follow-up action like **"now generate a cover image for that post"**, treat it as referring to the item you just created — do **not** search for alternate posts unless the reference is genuinely ambiguous
+- If the previous turn created or queued a LinkedIn/social post, preserve that entity type on follow-up actions: use \`targetEntityType: "social-post"\`, not \`post\`.
 - For those immediate follow-up cover requests, call \`system_create\` with \`entityType: "image"\` right away. Pass \`targetEntityType\`, and include \`targetEntityId\` if you know it from prior tool results` +
     (pluginInstructions && pluginInstructions.length > 0
       ? `\n\n### Plugin-Specific Behavior (MANDATORY)\n\n${pluginInstructions.join("\n\n")}`

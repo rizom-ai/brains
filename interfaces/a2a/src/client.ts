@@ -126,9 +126,23 @@ type FetchFn = (
 const a2aCallInputSchema = {
   agent: z
     .string()
-    .describe("URL of the remote agent (e.g. https://yeehaa.io)"),
+    .describe(
+      "Saved local agent id from your directory (for example yeehaa.io). Do not pass a URL.",
+    ),
   message: z.string().describe("Message to send to the remote agent"),
 };
+
+function normalizeSavedAgentId(agent: string): string | null {
+  const trimmed = agent.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    return null;
+  }
+  if (/^[^\s/]+$/.test(trimmed)) {
+    return trimmed.toLowerCase();
+  }
+  return null;
+}
 
 async function fetchAgentCard(
   agentUrl: string,
@@ -280,8 +294,6 @@ export interface A2AClientDeps {
       metadata: Record<string, unknown>;
     } | null>;
   };
-  /** Send a message to other plugins (for auto-create on first contact) */
-  sendMessage?: (channel: string, payload: unknown) => Promise<unknown>;
 }
 
 /**
@@ -293,7 +305,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   return {
     name: "a2a_call",
     description:
-      "Call a remote A2A agent. Discovers the agent via its Agent Card, sends a message, and returns the response.",
+      "Call a saved remote A2A agent by its local directory id. Use only a saved agent id such as yeehaa.io, never a full URL. When the user asks to contact a saved agent, use this tool now rather than only describing what you could send. If the agent is not saved yet, ask the user to add it first.",
     inputSchema: a2aCallInputSchema,
     visibility: "anchor",
     handler: async (input): Promise<ToolResponse> => {
@@ -306,40 +318,45 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
       }
 
       const { agent, message } = parsed.data;
+      const agentId = normalizeSavedAgentId(agent);
 
-      // Resolve agent to a URL
-      let agentUrl = agent;
-      const isFullUrl =
-        agent.startsWith("http://") || agent.startsWith("https://");
-
-      if (!isFullUrl && deps.entityService) {
-        // Try entity lookup by ID (domain)
-        const entity = await deps.entityService.getEntity("agent", agent);
-        if (entity) {
-          // Refuse archived agents
-          if (entity.metadata["status"] === "archived") {
-            return {
-              success: false,
-              error: `Agent ${agent} is archived. Use agent_add to re-activate.`,
-            };
-          }
-          const entityUrl = entity.metadata["url"];
-          if (typeof entityUrl === "string") {
-            agentUrl = entityUrl;
-          }
-        }
+      if (!agentId) {
+        return {
+          success: false,
+          error:
+            "Invalid agent id. Use a saved agent id from your directory, not a URL.",
+        };
       }
 
-      // Ensure agentUrl is a full URL for Agent Card fetch
-      if (!agentUrl.startsWith("http")) {
-        agentUrl = `https://${agentUrl}`;
+      if (!deps.entityService) {
+        return {
+          success: false,
+          error:
+            "Agent directory is unavailable. Add the agent first, then try again.",
+        };
       }
 
-      const card = await fetchAgentCard(agentUrl, fetchFn);
+      const entity = await deps.entityService.getEntity("agent", agentId);
+      if (!entity) {
+        return {
+          success: false,
+          error: `Agent ${agentId} is not in your directory. Add it first.`,
+        };
+      }
+
+      if (entity.metadata["status"] === "archived") {
+        return {
+          success: false,
+          error: `Agent ${agentId} is archived in your directory. Unarchive it first.`,
+        };
+      }
+
+      const cardBaseUrl = `https://${agentId}`;
+      const card = await fetchAgentCard(cardBaseUrl, fetchFn);
       if (!card) {
         return {
           success: false,
-          error: `Could not fetch Agent Card from ${agentUrl}`,
+          error: `Could not fetch Agent Card from ${cardBaseUrl}`,
         };
       }
 
@@ -356,26 +373,7 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         }
       }
 
-      const result = await sendMessage(
-        endpointUrl,
-        message,
-        fetchFn,
-        authToken,
-      );
-
-      // Auto-create: notify agent directory after successful first contact
-      // Fire-and-forget — plugin handler does the full card fetch and entity creation
-      if (
-        "success" in result &&
-        result.success &&
-        isFullUrl &&
-        deps.sendMessage
-      ) {
-        const domain = new URL(endpointUrl).hostname;
-        void deps.sendMessage("a2a:call:completed", { domain }).catch(() => {});
-      }
-
-      return result;
+      return sendMessage(endpointUrl, message, fetchFn, authToken);
     },
   };
 }

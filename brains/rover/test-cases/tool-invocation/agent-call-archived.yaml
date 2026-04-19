@@ -1,0 +1,29 @@
+id: tool-invocation-agent-call-archived
+name: Refuse Archived Agent Call
+description: Tests that the agent refuses to call an archived agent from the local directory
+type: tool_invocation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+
+turns:
+  - userMessage: "Ask archived-agent.io about ecosystem architecture"
+
+successCriteria:
+  expectedTools:
+    - toolName: a2a_call
+      shouldBeCalled: false
+    - toolName: system_create
+      shouldBeCalled: false
+  responseContains:
+    - "archived"
+  responseNotContains:
+    - "I called"
+    - "Calling archived-agent.io"
+    - "wishlist"
+    - "wish"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

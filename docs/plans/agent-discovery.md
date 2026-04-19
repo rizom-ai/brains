@@ -1,6 +1,6 @@
 # Plan: Agent Discovery Tightening
 
-Last updated: 2026-04-18
+Last updated: 2026-04-19
 
 ## Goal
 
@@ -65,7 +65,37 @@ A successful A2A call must not create or save a new `agent` entity.
 - ATProto / firehose discovery
 - periodic refresh/upsert of known agents
 - trust scoring or ranking
-- new dedicated agent-management tools beyond the existing system tools
+- new dedicated agent-management tools beyond the existing system tools for basic directory operations
+
+## Architectural framing for future expansion
+
+This tightening round keeps the agent directory model intentionally small.
+
+Future expansion should be thought about in four buckets:
+
+1. **Data**
+   - agent schemas, metadata, markdown shape, and derivation
+   - owned by `entities/agent-discovery`
+2. **Views**
+   - **pages** via templates, data sources, and routes
+   - **widgets** via dashboard registration
+3. **Interface behavior**
+   - A2A resolution, calling rules, and Agent Card ingestion
+   - owned primarily by `interfaces/a2a`
+4. **Automation / orchestration**
+   - only when behavior goes beyond normal CRUD flows
+   - examples: bulk refresh, health checks, dedupe, import/export, scheduled sync
+
+Basic directory actions should continue to rely on the existing system tools where possible:
+
+- add agent → `system_create agent`
+- list agents → `system_list agent`
+- archive/unarchive agent → `system_update agent`
+- call agent → `a2a_call`
+
+That means the main expansion surface after tightening is likely **views** first, not a new dedicated tool layer.
+
+For this repo, “actions” should mostly continue to mean existing system tools plus occasional automation when CRUD is no longer enough.
 
 ## Implementation steps
 
@@ -93,9 +123,9 @@ Preserve the existing directory flows:
 
 - add via `system_create agent`
 - list via `system_list agent`
-- archive via `system_update agent`
+- archive or unarchive via `system_update agent`
 
-No new custom tools are required for this round.
+No new custom tools are required for this round. Existing tools already cover the basic directory actions.
 
 ### 4. Update tests
 
@@ -106,8 +136,91 @@ Add or update tests for:
 - `a2a_call` refuses unknown agents even if a URL/domain is provided
 - successful A2A calls do not create new `agent` entities
 
+## Planned next phase: views pass
+
+Once the tightening work lands, the next pass should focus on **views**, using existing data before adding new schema fields.
+
+### Principle
+
+Prefer the smallest useful views pass:
+
+- stay read-only on current fields where possible
+- avoid schema churn until the views clearly demand it
+- prefer analytical, grounded visualizations over decorative graph UIs
+
+Current data already supports useful views based on:
+
+- `status`
+- `discoveredAt`
+- `discoveredVia`
+- `kind`
+- `skills`
+
+### Pages
+
+#### Improve current directory pages
+
+Use the existing `agent-list` and `agent-detail` surfaces first.
+
+Priority improvements:
+
+- list page: clearer counts, better empty states, simple filters such as active vs archived
+- detail page: stronger archived treatment
+- detail page: use the already-available `prevAgent` / `nextAgent` navigation
+
+#### Add visualization-oriented pages
+
+The first visualization pages should be grounded in existing data:
+
+1. **Discovery timeline**
+   - agents grouped by discovery date or month
+   - useful for understanding growth and recency
+2. **Capabilities view**
+   - agents grouped by shared skills
+   - more of a clustered browse view than a graph
+
+Avoid starting with a relationship graph or force-directed network view. The current model has little or no edge data, so a graph would mostly be decoration.
+
+### Widgets
+
+Add small, glanceable dashboard widgets using the existing dashboard registration pattern.
+
+Recommended first widgets:
+
+1. **Directory Summary**
+   - total agents
+   - active vs archived
+   - by kind
+   - by discovery source
+2. **Recent Discoveries**
+   - recent agents as a grouped list or mini timeline
+3. **Top Skills**
+   - most common skills across saved agents
+
+Preferred widget visual language:
+
+- counts
+- pills
+- bars
+- grouped sections
+- lightweight timelines
+
+Avoid graph-heavy widgets in the first pass.
+
+### Order of work
+
+1. tighten the existing list/detail pages
+2. add directory summary and recent discoveries widgets
+3. add a discovery timeline page
+4. add a capabilities page
+
 ## Follow-up
 
-After this tightening round, the next likely step is a separate phase for refreshing and revalidating already-saved agents.
+After the views pass, the next likely expansion area is **automation / orchestration**:
 
-That should remain a separate decision from discovery itself.
+- refreshing and revalidating already-saved agents
+- health checks
+- dedupe or bulk maintenance flows
+- only if existing CRUD flows stop being sufficient
+
+Those should remain separate decisions from the core discovery contract itself.

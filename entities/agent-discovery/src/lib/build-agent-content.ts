@@ -6,7 +6,7 @@ const agentAdapter = new AgentAdapter();
 
 /**
  * Build agent entity content and metadata from a parsed Agent Card.
- * Shared between auto-create (event handler) and generation handler.
+ * Shared between manual add flows and the generation handler.
  */
 export function buildAgentFromCard(card: ParsedAgentCard): {
   content: string;

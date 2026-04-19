@@ -74,14 +74,18 @@ function createMockEntityService(
 const toolContext = { interfaceType: "mcp" as const, userId: "test" };
 
 describe("a2a_call agent resolution", () => {
-  it("should resolve agent by domain from entity service", async () => {
+  it("should resolve a saved agent by domain from the entity service", async () => {
     const entities = new Map();
     entities.set("yeehaa.io", {
       id: "yeehaa.io",
       entityType: "agent",
       content:
-        "---\nname: Yeehaa\nurl: 'https://yeehaa.io'\nstatus: active\n---",
-      metadata: { name: "Yeehaa", status: "active" },
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: active\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "active",
+      },
     });
 
     const fetchFn = createMockFetch();
@@ -100,16 +104,38 @@ describe("a2a_call agent resolution", () => {
     expect(fetchFn).toHaveBeenCalled();
   });
 
-  it("should still work with full URLs (backward compatible)", async () => {
+  it("should reject a full URL even when the agent is already saved", async () => {
+    const entities = new Map();
+    entities.set("yeehaa.io", {
+      id: "yeehaa.io",
+      entityType: "agent",
+      content:
+        "---\nname: Yeehaa\nurl: 'https://yeehaa.io/a2a'\nstatus: active\n---",
+      metadata: {
+        name: "Yeehaa",
+        url: "https://yeehaa.io/a2a",
+        status: "active",
+      },
+    });
+
     const fetchFn = createMockFetch();
-    const tool = createA2ACallTool({ fetch: fetchFn });
+    const tool = createA2ACallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(entities),
+    });
 
     const result = await tool.handler(
       { agent: "https://yeehaa.io", message: "hello" },
       toolContext,
     );
 
-    expect(isError(result)).toBe(false);
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toBe(
+        "Invalid agent id. Use a saved agent id from your directory, not a URL.",
+      );
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 
   it("should refuse archived agents", async () => {
@@ -137,7 +163,7 @@ describe("a2a_call agent resolution", () => {
     }
   });
 
-  it("should fall back to direct URL when no entity found", async () => {
+  it("should refuse unknown agents by domain", async () => {
     const fetchFn = createMockFetch();
     const tool = createA2ACallTool({
       fetch: fetchFn,
@@ -149,6 +175,33 @@ describe("a2a_call agent resolution", () => {
       toolContext,
     );
 
-    expect(isError(result)).toBe(false);
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toBe(
+        "Agent unknown.io is not in your directory. Add it first.",
+      );
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
+  });
+
+  it("should reject a full URL for an unknown agent before directory lookup", async () => {
+    const fetchFn = createMockFetch();
+    const tool = createA2ACallTool({
+      fetch: fetchFn,
+      entityService: createMockEntityService(new Map()),
+    });
+
+    const result = await tool.handler(
+      { agent: "https://unknown.io", message: "hello" },
+      toolContext,
+    );
+
+    expect(isError(result)).toBe(true);
+    if (isError(result)) {
+      expect(result.error).toBe(
+        "Invalid agent id. Use a saved agent id from your directory, not a URL.",
+      );
+    }
+    expect(fetchFn).not.toHaveBeenCalled();
   });
 });
