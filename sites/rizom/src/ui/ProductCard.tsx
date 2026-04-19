@@ -137,18 +137,6 @@ export const ProductCard = ({
         <div
           className={`relative z-[1] order-first h-[220px] w-full overflow-hidden rounded-xl border border-[var(--color-card-illust-border)] bg-[linear-gradient(var(--color-card-illust-grid)_1px,transparent_1px),linear-gradient(90deg,var(--color-card-illust-grid)_1px,transparent_1px),var(--color-card-illust-overlay)] bg-[length:28px_28px,28px_28px,auto] md:h-[320px] ${isRelay ? "md:order-1" : "md:order-none"}`}
         >
-          <span
-            className={`${CORNER_BASE} ${CORNER_CLASS[variant]} left-[10px] top-[10px]`}
-          />
-          <span
-            className={`${CORNER_BASE} ${CORNER_CLASS[variant]} right-[10px] top-[10px] scale-x-[-1]`}
-          />
-          <span
-            className={`${CORNER_BASE} ${CORNER_CLASS[variant]} bottom-[10px] left-[10px] scale-y-[-1]`}
-          />
-          <span
-            className={`${CORNER_BASE} ${CORNER_CLASS[variant]} bottom-[10px] right-[10px] scale-[-1]`}
-          />
           <ProductIllustration variant={variant} />
         </div>
       </div>
