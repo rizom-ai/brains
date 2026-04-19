@@ -170,23 +170,17 @@
       background: linear-gradient(140deg, rgba(255, 139, 61, 0.08), transparent 26%, transparent 70%, rgba(154, 141, 255, 0.09));
     }
 
-    .widget-header {
+    .widget-nav {
       position: relative;
-      padding: 26px 28px 18px;
-      border-bottom: 1px solid var(--line);
+      padding: 20px 28px 0;
       display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
       gap: 16px;
     }
 
-    .widget-topline {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 14px;
-      flex-wrap: wrap;
-    }
-
-    .widget-kicker {
+    .widget-label {
+      margin: 0;
       display: inline-flex;
       align-items: center;
       gap: 10px;
@@ -195,9 +189,11 @@
       text-transform: uppercase;
       letter-spacing: 0.16em;
       font-size: 11px;
+      font-weight: 500;
+      line-height: 1;
     }
 
-    .widget-kicker::before {
+    .widget-label::before {
       content: "";
       width: 18px;
       height: 1px;
@@ -212,30 +208,6 @@
       height: 8px;
       border-radius: 999px;
       display: inline-block;
-    }
-
-    .widget-title-row {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      gap: 20px;
-      align-items: end;
-    }
-
-    .widget-title {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 0.98;
-      letter-spacing: -0.03em;
-      font-weight: 390;
-    }
-
-    .widget-subtitle {
-      margin: 10px 0 0;
-      color: var(--text-dim);
-      font-size: 15px;
-      line-height: 1.55;
-      max-width: 58ch;
     }
 
     .tab-bar {
@@ -271,7 +243,9 @@
 
     .widget-body {
       position: relative;
-      padding: 24px 28px 30px;
+      padding: 18px 28px 30px;
+      border-top: 1px solid var(--line);
+      margin-top: 12px;
     }
 
     .panel { display: none; }
@@ -639,7 +613,7 @@
       .hero,
       .stage,
       .split,
-      .widget-title-row {
+      .widget-nav {
         grid-template-columns: 1fr;
       }
 
@@ -650,7 +624,7 @@
 
     @media (max-width: 760px) {
       .page { padding: 28px 16px 60px; }
-      .widget-header,
+      .widget-nav,
       .widget-body { padding-left: 18px; padding-right: 18px; }
       .grid-3 { grid-template-columns: 1fr; }
       .tab-bar { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -682,26 +656,14 @@
 
     <section class="stage">
       <section class="widget" aria-label="Network overview widget mockup">
-        <header class="widget-header">
-          <div class="widget-topline">
-            <div class="widget-kicker">Directory widget</div>
+        <div class="widget-nav">
+          <h2 class="widget-label">Agent directory</h2>
+          <div class="tab-bar" role="tablist" aria-label="Network widget tabs">
+            <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Overview</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="panel-capabilities" id="tab-capabilities" data-tab="capabilities">Capabilities</button>
+            <button class="tab" role="tab" aria-selected="false" aria-controls="panel-agents" id="tab-agents" data-tab="agents">Agents</button>
           </div>
-
-          <div class="widget-title-row">
-            <div>
-              <h2 class="widget-title">Your network, at a glance</h2>
-              <p class="widget-subtitle">
-                A single widget for seeing where your network is strong, where it is thin, and who seems best positioned to help.
-              </p>
-            </div>
-
-            <div class="tab-bar" role="tablist" aria-label="Network widget tabs">
-              <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Overview</button>
-              <button class="tab" role="tab" aria-selected="false" aria-controls="panel-capabilities" id="tab-capabilities" data-tab="capabilities">Capabilities</button>
-              <button class="tab" role="tab" aria-selected="false" aria-controls="panel-agents" id="tab-agents" data-tab="agents">Agents</button>
-            </div>
-          </div>
-        </header>
+        </div>
 
         <div class="widget-body">
           <section class="panel is-active" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
