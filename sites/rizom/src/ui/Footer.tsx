@@ -5,6 +5,9 @@ import { GUTTER } from "./Section";
 const LINK_CLS =
   "text-label-md text-theme-light hover:text-theme transition-colors";
 
+const TOGGLE_CLS =
+  "bg-transparent border border-theme-light rounded-md px-2.5 py-1.5 cursor-pointer text-theme-light text-label-md font-body transition-colors hover:text-theme hover:border-theme";
+
 interface FooterProps {
   brandSuffix: RizomBrandSuffix;
   metaLabel: string;
@@ -19,10 +22,10 @@ export const Footer = ({
   links,
 }: FooterProps): JSX.Element => (
   <footer
-    className={`flex flex-col md:grid md:grid-cols-3 md:items-center gap-5 md:gap-8 ${GUTTER} py-8 md:py-6 border-t border-theme-light text-center md:text-left`}
+    className={`flex flex-col gap-4 ${GUTTER} py-8 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 border-t border-theme-light text-center md:text-left`}
   >
-    <div className="flex flex-col items-center md:items-start gap-3 max-w-[480px] md:justify-self-start">
-      <div className="flex flex-row items-center justify-center md:justify-start gap-1.5 md:gap-3">
+    <div className="flex flex-col items-center gap-1.5 md:items-start max-w-[560px]">
+      <div className="flex flex-col items-center gap-1.5 md:flex-row md:items-center md:gap-3">
         <span className="font-nav text-[15px]">
           <span className="font-bold">rizom</span>
           <span className="font-bold text-accent">.</span>
@@ -43,21 +46,19 @@ export const Footer = ({
         </p>
       ) : null}
     </div>
-    <div className="flex justify-center md:justify-self-center">
-      <button
-        id="themeToggle"
-        aria-label="Toggle light mode"
-        className="bg-transparent border border-theme-light rounded-md px-2.5 py-1.5 cursor-pointer text-theme-light text-label-md font-body transition-colors hover:text-theme hover:border-theme"
-      >
-        ☀ Light
-      </button>
-    </div>
-    <div className="flex flex-wrap justify-center md:justify-end gap-4 md:gap-6 md:justify-self-end">
+    <div className="flex flex-wrap items-center justify-center gap-4 md:justify-end md:gap-6">
       {links.map((link) => (
         <a key={link.href + link.label} href={link.href} className={LINK_CLS}>
           {link.label}
         </a>
       ))}
+      <button
+        id="themeToggle"
+        aria-label="Toggle light mode"
+        className={TOGGLE_CLS}
+      >
+        ☀ Light
+      </button>
     </div>
   </footer>
 );

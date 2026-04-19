@@ -8,11 +8,11 @@ export const ProductVariantSchema = z.enum(["rover", "relay", "ranger"]);
  */
 export const ProductCardSchema = z.object({
   variant: ProductVariantSchema,
-  canvasId: z.string(),
   label: z.string(),
   badge: z.string(),
   headline: z.string(),
   description: z.string(),
+  tagline: z.array(z.string()).min(1).optional(),
   tags: z.array(z.string()).min(1),
 });
 

@@ -12,11 +12,16 @@ export const productsFormatter =
         itemType: "object",
         itemMappings: [
           { key: "variant", label: "Variant", type: "string" },
-          { key: "canvasId", label: "Canvas Id", type: "string" },
           { key: "label", label: "Label", type: "string" },
           { key: "badge", label: "Badge", type: "string" },
           { key: "headline", label: "Headline", type: "string" },
           { key: "description", label: "Description", type: "string" },
+          {
+            key: "tagline",
+            label: "Tagline",
+            type: "array",
+            itemType: "string",
+          },
           { key: "tags", label: "Tags", type: "array", itemType: "string" },
         ],
       },

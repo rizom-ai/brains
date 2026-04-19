@@ -21,7 +21,7 @@ export const SupportLayout = ({
   cards,
 }: SupportContent): JSX.Element => {
   return (
-    <Section id="support" className="reveal py-[88px] md:py-[120px]">
+    <Section id="support" className="reveal py-section">
       <div className="mx-auto max-w-[1120px]">
         <div className="mb-10 md:mb-12">
           <div className="flex items-center gap-3 text-accent mb-4">

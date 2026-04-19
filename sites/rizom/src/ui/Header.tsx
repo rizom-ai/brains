@@ -2,7 +2,7 @@ import type { JSX } from "preact";
 import type { RizomBrandSuffix, RizomLink } from "./types";
 
 const LINK_CLS =
-  "hidden md:inline-block font-body text-body-sm text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all hover:after:w-full";
+  "hidden md:inline-block font-body text-[15px] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full";
 
 interface HeaderProps {
   brandSuffix: RizomBrandSuffix;
@@ -15,8 +15,8 @@ export const Header = ({
   navLinks,
   primaryCta,
 }: HeaderProps): JSX.Element => (
-  <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 xl:px-20 xl:py-5 bg-nav-fade backdrop-blur-[8px]">
-    <div className="flex items-center font-nav text-[20px]">
+  <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between bg-nav-fade px-6 py-4 backdrop-blur-[8px] md:px-10 md:py-5 xl:px-20">
+    <div className="flex items-center gap-0 font-nav text-[20px]">
       <span className="font-bold text-theme">rizom</span>
       <span className="font-bold text-accent">.</span>
       <span className="text-theme-muted">{brandSuffix}</span>
@@ -29,7 +29,7 @@ export const Header = ({
       ))}
       <a
         href={primaryCta.href}
-        className="font-body text-label-md md:text-body-sm font-semibold text-theme border border-theme rounded-lg px-4 py-2 md:px-6 md:py-2.5 transition-colors hover:border-accent hover:text-accent"
+        className="font-body text-[13px] font-semibold text-theme border border-theme rounded-[8px] px-4 py-2 transition-colors hover:border-accent hover:text-accent md:px-6 md:py-2.5 md:text-[15px]"
       >
         {primaryCta.label}
       </a>

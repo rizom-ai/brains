@@ -221,6 +221,17 @@
     );
     --color-glow-ranger: rgb(from var(--palette-purple) r g b / 0.2);
 
+    --color-card-grid-dot: rgb(from var(--palette-white) r g b / 0.035);
+    --color-card-divider: rgb(from var(--palette-white) r g b / 0.1);
+    --color-card-tag-separator: rgb(from var(--palette-white) r g b / 0.18);
+    --color-card-illust-border: rgb(from var(--palette-white) r g b / 0.06);
+    --color-card-illust-grid: rgb(from var(--palette-white) r g b / 0.025);
+    --color-card-illust-overlay: linear-gradient(
+      180deg,
+      rgb(13 10 26 / 0.55) 0%,
+      rgb(13 10 26 / 0.25) 100%
+    );
+
     /* Panel cards — subtle info-card archetype. The `-current-*`
        tokens style the card for the site you're currently on, while the
        base `panel-bg/border` stays neutral and the per-site glow tokens
@@ -398,6 +409,21 @@
     --color-card-ranger-bg: linear-gradient(135deg, #edeaf0 0%, #f0ece5 100%);
     --color-card-ranger-border: rgb(
       from var(--palette-text-light) r g b / 0.12
+    );
+
+    --color-card-grid-dot: rgb(from var(--palette-text-light) r g b / 0.06);
+    --color-card-divider: rgb(from var(--palette-text-light) r g b / 0.15);
+    --color-card-tag-separator: rgb(
+      from var(--palette-text-light) r g b / 0.2
+    );
+    --color-card-illust-border: rgb(
+      from var(--palette-text-light) r g b / 0.12
+    );
+    --color-card-illust-grid: rgb(from var(--palette-text-light) r g b / 0.04);
+    --color-card-illust-overlay: linear-gradient(
+      180deg,
+      rgb(240 236 229 / 0.6) 0%,
+      rgb(240 236 229 / 0.3) 100%
     );
 
     --color-surface-terminal: var(--palette-text-light);

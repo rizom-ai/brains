@@ -3,7 +3,7 @@ import { Badge, Divider, Section } from "../ui";
 import type { EcosystemContent, EcosystemSuffix } from "./schema";
 
 const BASE_CARD_CLASS =
-  "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-xl md:rounded-2xl border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";
+  "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-[12px] md:rounded-[16px] border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";
 
 const ACTIVE_EXTRAS =
   "border-[var(--color-card-panel-current-border)] bg-[image:var(--color-card-panel-current-bg)] before:!opacity-100 before:!h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)] hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-current)]";
@@ -59,21 +59,23 @@ export const EcosystemLayout = ({
           const accentEffects = isActive
             ? ""
             : `${ACCENT_GLOW[card.suffix]} ${ACCENT_BAR[card.suffix]}`;
-          const linkClass = `font-body text-body-xs font-medium mt-2 ${isDisabled ? "text-theme-light opacity-70 cursor-default" : `transition-opacity hover:opacity-70 ${ACCENT_LINK[card.suffix]}`}`;
+          const linkClass = `mt-2 font-body text-[13px] md:text-[14px] font-medium ${isDisabled ? "text-theme-light opacity-70 cursor-default" : `transition-opacity hover:opacity-70 ${ACCENT_LINK[card.suffix]}`}`;
           return (
             <div
               key={card.suffix}
               className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${extras} ${accentEffects}`}
             >
-              <div className="flex items-center gap-1 font-nav text-base mb-2">
+              <div className="mb-2 flex items-center gap-1 font-nav text-[16px]">
                 <span className="font-bold">rizom</span>
                 <span className="font-bold text-accent">.</span>
                 <span className="text-theme-muted">{card.suffix}</span>
               </div>
-              <div className="font-nav text-heading-lg font-bold">
+              <div className="font-nav text-[18px] md:text-[22px] font-bold">
                 {card.title}
               </div>
-              <p className="text-body-xs text-theme-muted">{card.body}</p>
+              <p className="text-[13px] md:text-[14px] leading-[1.7] text-theme-muted">
+                {card.body}
+              </p>
               {isDisabled ? (
                 <span className={linkClass}>{card.linkLabel}</span>
               ) : (

@@ -11,7 +11,7 @@ export const ProofLayout = ({
   partners,
 }: ProofContent): JSX.Element => {
   return (
-    <Section id="proof" className="reveal py-[88px] md:py-[128px]">
+    <Section id="proof" className="reveal py-section">
       <div className="mx-auto max-w-[1120px]">
         <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />

@@ -5,7 +5,6 @@ import canvasPrelude from "./canvases/prelude.canvas.js" with { type: "text" };
 import treeCanvas from "./canvases/tree.canvas.js" with { type: "text" };
 import constellationCanvas from "./canvases/constellation.canvas.js" with { type: "text" };
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
-import productsCanvas from "./canvases/products.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 
 export const rizomRuntimeConfigSchema = z.object({
@@ -27,7 +26,6 @@ export const rizomRuntimeStaticAssets: Record<string, string> = {
   "/canvases/tree.canvas.js": treeCanvas,
   "/canvases/constellation.canvas.js": constellationCanvas,
   "/canvases/roots.canvas.js": rootsCanvas,
-  "/canvases/products.canvas.js": productsCanvas,
   "/boot.js": bootScript,
 };
 

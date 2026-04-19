@@ -24,6 +24,6 @@ export interface ProductCardContent {
   badge: string;
   headline: string;
   description: string;
+  tagline?: string[];
   tags: string[];
-  canvasId: string;
 }

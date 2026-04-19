@@ -13,7 +13,7 @@ export const EventsLayout = ({
   secondaryCtaHref,
 }: EventsContent): JSX.Element => {
   return (
-    <Section id="events" className="reveal py-[88px] md:py-[120px]">
+    <Section id="events" className="reveal py-section">
       <div className="mx-auto max-w-[960px]">
         <div className="mb-10 md:mb-12">
           <div className="flex items-center gap-3 text-accent mb-4">

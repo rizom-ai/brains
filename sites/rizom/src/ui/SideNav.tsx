@@ -8,7 +8,7 @@ interface SideNavProps {
 export const SideNav = ({ items }: SideNavProps): JSX.Element => (
   <aside
     aria-hidden="true"
-    className="hidden lg:flex fixed right-8 top-1/2 -translate-y-1/2 z-[90] flex-col gap-[18px] px-2 py-4"
+    className="fixed right-8 top-1/2 z-[90] hidden -translate-y-1/2 flex-col gap-[18px] px-2 py-4 xl:flex"
   >
     {items.map((dot) => (
       <a

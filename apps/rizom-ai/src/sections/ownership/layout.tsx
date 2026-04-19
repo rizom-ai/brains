@@ -8,7 +8,7 @@ export const OwnershipLayout = ({
   features,
 }: OwnershipContent): JSX.Element => {
   return (
-    <Section id="ownership" className="reveal py-[88px] md:py-[128px]">
+    <Section id="ownership" className="reveal py-section">
       <div className="flex flex-col items-start gap-9 md:flex-row md:gap-20">
         <div className="w-full md:w-[45%]">
           <Badge>{badge}</Badge>

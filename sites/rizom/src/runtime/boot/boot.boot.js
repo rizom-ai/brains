@@ -5,8 +5,8 @@
  *   1. `data-rizom-variant` on <body> (value substituted at load time)
  *   2. Scroll-reveal IntersectionObserver → toggles `.visible` on `.reveal`
  *   3. Side-nav active-dot tracker (home route only)
- *   4. #themeToggle label + canvas redraw on click (delegates theme flip
- *      to window.toggleTheme, which is defined by site-builder's inline
+ *   4. #themeToggle label sync on click (delegates theme flip to
+ *      window.toggleTheme, which is defined by site-builder's inline
  *      FOUC-prevention script — see plugins/site-builder html-generator.ts)
  *
  * Shipped as a static asset at /boot.js and loaded with <script defer>.
@@ -65,7 +65,7 @@
     }
 
     // Theme toggle — delegate actual flip to window.toggleTheme (injected
-    // by site-builder), we just flip the button label and redraw canvases.
+    // by site-builder), we just keep the button label in sync.
     var toggle = document.getElementById("themeToggle");
     if (toggle) {
       var syncLabel = function () {
@@ -77,9 +77,6 @@
       toggle.addEventListener("click", function () {
         if (typeof window.toggleTheme === "function") window.toggleTheme();
         syncLabel();
-        if (typeof window.redrawAllCanvases === "function") {
-          window.redrawAllCanvases();
-        }
       });
     }
   }
