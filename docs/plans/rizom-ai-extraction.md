@@ -137,18 +137,21 @@ Current `rizom.ai` site-content scope:
 
 - `src/sections/*` templates, schemas, formatters, layouts
 - `src/templates.ts` content assembly
-- local ecosystem template/content helper
+- app-owned ecosystem section content stored like the other landing-page sections
 - route references under the content namespace `landing-page:*`
+
+This has now landed for `rizom.ai`.
+
+`rizom.ai` now declares landing-page content in app-owned `src/site-content.ts`, and `@brains/site-content` derives/registers the underlying templates from that definition.
 
 After this boundary correction, the publishing/extraction contract is smaller and clearer.
 
-- `apps/rizom-ai/package.json` is still monorepo-oriented:
-  - `@rizom/brain` is pinned as `workspace:*`
-  - `start` uses `bun run --filter @rizom/brain dev:start`, which assumes the monorepo workspace exists
-- `apps/rizom-ai/package.json` does not explicitly declare the shared packages still imported by `src/`
+- `apps/rizom-ai/package.json` is still partly monorepo-oriented:
+  - `@rizom/brain` is still pinned as `workspace:*`
+  - default `start` now uses `bunx brain start`
+  - old workspace-specific path is retained explicitly as `start:workspace`
+- `apps/rizom-ai/package.json` does not explicitly declare the shared package still imported by `src/`
   - `@brains/site-rizom`
-  - `@brains/templates`
-  - `@brains/utils`
 - `apps/rizom-ai/README.md` still assumes monorepo context:
   - repo-root `bun install`
   - `../../` links into monorepo package locations
@@ -170,26 +173,27 @@ After this boundary correction, the publishing/extraction contract is smaller an
 ### Concrete imported shared packages in `apps/rizom-ai/src`
 
 - `@brains/site-rizom`
-- `@brains/templates`
-- `@brains/utils`
+
+This is the last remaining app-visible shared package in `rizom.ai` source.
 
 ### Current app contract after boundary cleanup
 
 **Site layer imports**
 
 - `@brains/site-rizom`
-  - `src/site.ts`
-  - `src/routes.ts` (type-only `CreateRizomSiteOptions`)
   - app layout/components that use shared Rizom UI primitives
 
-**Content authoring imports still exposed in app code**
+`src/site.ts` no longer composes `createRizomSite(...)` directly.
+Rizom site/theme defaults now come from the selected brain model, and local `src/site.ts` only supplies app-local site overrides.
+
+**Content authoring imports removed from app code**
+
+`apps/rizom-ai/src` no longer imports:
 
 - `@brains/templates`
-  - section template declarations in `src/sections/*/index.ts(x)`
-  - local ecosystem template in `src/sections/ecosystem.tsx`
 - `@brains/utils`
-  - section schemas and formatters in `src/sections/*`
-  - local ecosystem schema/formatter in `src/sections/ecosystem.tsx`
+
+Those low-level authoring concerns now route through app-owned `src/site-content.ts` plus `@brains/site-content`.
 
 **Content namespace**
 
@@ -203,18 +207,27 @@ After this boundary correction, the publishing/extraction contract is smaller an
 - `brains/ranger/src/index.ts` includes `site-content` in the `default` preset and capability list
 - app `brain.yaml` does **not** need to import or configure `@brains/site-content` directly for normal use
 - the extracted app should **not** import `@brains/site-content` directly from app source
-- app code provides landing-page templates/routes/content wiring; the plugin handles stored `site-content` entities and operations
+- `@brains/site-content` now owns landing-page content definition/wiring for `rizom.ai`
+- `shell/app` now supports conventional local `src/site-content.ts` loading and bundling
+- `@brains/site-content` should be treated as runtime infrastructure, not an app dependency blocker
 
 ### Immediate implication
 
-The first extraction blocker is **not** package publishing by itself. It is the wrong boundary:
+The first extraction blocker is **not** package publishing by itself. It was the remaining site-content registration gap.
 
-- separate **site logic** from **site-content logic**
-- stop treating app-local section schema/template/formatter code as part of the site package contract
-- keep site-content helpers in the app/content layer rather than the site-runtime API
-- then declare the real runtime/build dependencies explicitly
-- then stop relying on `workspace:*`
-- then replace monorepo-only scripts and deploy assets
+That gap is now closed for `rizom.ai`:
+
+- `site-rizom` is on the correct site-only boundary
+- durable `site-content` belongs to the plugin/runtime layer
+- landing-page content definition/wiring now runs through `@brains/site-content`
+- `apps/rizom-ai/src` no longer imports low-level schema/template/formatter authoring primitives directly
+
+The remaining work is now the actual extraction contract work:
+
+- declare the real runtime/build dependencies explicitly
+- stop relying on `workspace:*`
+- replace monorepo-only scripts and deploy assets
+- optionally simplify `site-rizom` further once the remaining Rizom apps migrate
 
 ### 2. Define the shared dependency contract
 
@@ -229,23 +242,21 @@ For each dependency, decide:
 
 #### Current dependency matrix
 
-| Package                | Current role in `rizom.ai`                                                       | Current state     | Pilot status                                                                                   |
-| ---------------------- | -------------------------------------------------------------------------------- | ----------------- | ---------------------------------------------------------------------------------------------- |
-| `@rizom/brain`         | public CLI/runtime, tsconfig preset                                              | public, versioned | usable now once `workspace:*` is replaced with a real version                                  |
-| `@brains/site-rizom`   | site/runtime/UI package plus content-namespace registration (`contentNamespace`) | **private**       | now aligned with the intended site-only boundary                                               |
-| `@brains/templates`    | app-local template authoring in `src/sections/*`                                 | **private**       | should not survive as part of the extracted app contract unchanged                             |
-| `@brains/utils`        | app-local schema/formatter authoring in `src/sections/*`                         | **private**       | should not survive as part of the extracted app contract unchanged                             |
-| `@brains/theme-rizom`  | shared Rizom family theme, consumed indirectly by the site/runtime stack         | **private**       | likely needed in the standalone story even if not directly imported by app `src/`              |
-| `@brains/site-content` | plugin/runtime layer for durable `site-content` entities and operations          | **private**       | currently supplied by the `ranger` default preset/runtime, not imported directly by app source |
+| Package              | Current role in `rizom.ai`                                           | Current state     | Pilot status                                                                        |
+| -------------------- | -------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------- |
+| `@rizom/brain`       | public CLI/runtime, tsconfig preset                                  | public, versioned | usable now once `workspace:*` is replaced with a real version                       |
+| `@brains/site-rizom` | app-visible Rizom site/runtime/UI surface still imported from `src/` | **private**       | should stop being an app dependency once Rizom defaults move behind the brain model |
 
-#### Key constraint
+#### Current constraint
 
-After the boundary cleanup, the remaining problem is no longer that `@brains/site-rizom` is mixed. The remaining problem is that the extracted app contract still exposes low-level **content authoring internals** directly:
+After the boundary cleanup and `rizom.ai` migration, the remaining problem is no longer low-level content authoring in app source.
 
-- `@brains/templates`
-- `@brains/utils`
+The remaining extraction constraints are now:
 
-That contract is still **not extractable as-is** if the goal is a smaller public/app-facing surface.
+- `apps/rizom-ai/package.json` still uses a monorepo-oriented dependency choice (`@rizom/brain: workspace:*`)
+- deploy workflow/assets are still repo-owned
+- `@brains/site-rizom` is still the last app-visible shared package because app layouts/components still import its shared UI primitives
+- `@brains/site-rizom` still carries temporary `contentNamespace` / `templates` passthrough for the not-yet-migrated Rizom apps
 
 #### Required order
 
@@ -253,19 +264,30 @@ That contract is still **not extractable as-is** if the goal is a smaller public
 
 Keep:
 
-- **site logic** in `@brains/site-rizom`
-  - runtime
+- **site logic** behind the brain model defaults
+  - Rizom runtime
   - layout shell
   - shared UI
   - route/site composition
-- **site-content logic** in the app/content layer
-  - templates
-  - schemas
-  - formatters
-  - content helpers
-  - content assembly
+- **durable site-content** in `@brains/site-content`
+  - stored route/section content entities
+  - content operations/tools
 
-**Step 2 — reduce the app contract**
+`@brains/site-content` and `@brains/theme-rizom` should be treated as runtime defaults/infrastructure, not app dependencies.
+
+`@brains/site-rizom` should also stop being an app dependency once app-local `src/site.ts` composition is removed.
+
+**Step 2 — extend `@brains/site-content`**
+
+Move landing-page content definition/wiring there:
+
+- templates
+- schemas
+- formatters
+- content namespace registration
+- final template construction/registration
+
+**Step 3 — reduce the app contract**
 
 Make `rizom.ai` depend only on the layer it should actually own/consume after that split.
 
@@ -279,9 +301,12 @@ Do **not** lock the public/extraction contract yet.
 
 First:
 
-1. keep `site-rizom` as **site logic** only
-2. keep `rizom.ai` content under the app/content layer and `landing-page:*` namespace
-3. decide whether the extraction pilot temporarily accepts direct app-owned `@brains/templates` / `@brains/utils`, or reduces that contract further before extraction
+1. keep `site-rizom` as **site logic** only while other Rizom apps finish migrating
+2. keep durable content on `@brains/site-content`
+3. treat `site-content` and `theme-rizom` as runtime defaults/infrastructure, not app deps
+4. keep Rizom site/theme defaults behind the selected brain model (now landed for `rizom.ai`)
+5. remove the remaining app-visible `site-rizom` UI imports behind a public surface
+6. then finalize the public/export decision
 
 Only after that should the public/export decision be finalized.
 
@@ -291,8 +316,8 @@ Before dry-run extraction, define:
 
 - what the **site layer** for Rizom actually is
 - what the **site-content layer** for Rizom actually is
-- which of `rizom.ai`'s current imports belong to each layer
-- which layer the extracted app should consume directly
+- how `@brains/site-content` will own landing-page content definition/wiring
+- which of `rizom.ai`'s current imports disappear once that lands
 - how durable `site-content` is supplied through plugin/preset/runtime without direct app imports
 - whether extraction continues to rely on `brain: ranger` / `preset: default`, or needs an explicit equivalent runtime contract
 - only then the exact published versions and package names to pin
@@ -300,6 +325,217 @@ Before dry-run extraction, define:
 Deliverable:
 
 - explicit dependency contract for the extracted app, based on the corrected boundary
+
+#### Concrete target shape for landing-page content
+
+The intended final shape is:
+
+- app-owned `src/site.ts` keeps only **site logic**
+- app-owned `src/site-content.ts` declares **landing-page content definitions**
+- `@brains/site-content` performs the low-level template construction/registration internally
+- app source stops importing `createTemplate`, `StructuredContentFormatter`, and eventually any low-level `z` helpers that only exist to satisfy the template plumbing layer
+
+Target split:
+
+**`src/site.ts`**
+
+Owns only:
+
+- `createRizomSite(...)`
+- `themeProfile`
+- layout shell
+- routes
+
+It should no longer own:
+
+- `contentNamespace`
+- template registration
+- template assembly
+
+**`src/site-content.ts`**
+
+Owns only app content definition, for example:
+
+- landing-page namespace
+- section keys
+- section layouts
+- section field definitions / content shape
+- section formatter metadata
+
+It should not have to call low-level template helpers directly.
+
+**`@brains/site-content`**
+
+Owns:
+
+- durable `site-content` entities
+- content operations/tools
+- content-namespace registration
+- template construction from app-provided definitions
+- final template registration with the render/template system
+
+#### Concrete migration target for `rizom.ai`
+
+Current app-owned files like:
+
+- `src/sections/*/index.ts(x)`
+- `src/sections/*/schema.ts`
+- `src/sections/*/formatter.ts`
+- `src/templates.ts`
+- `src/sections/ecosystem.tsx`
+
+should collapse toward app-owned **section definitions** that are consumed by `src/site-content.ts`, rather than exporting raw `Template` objects.
+
+Conceptually, the end state looks like:
+
+```ts
+// src/site.ts
+export default createRizomSite({
+  packageName: "rizom-ai-site",
+  themeProfile: "product",
+  layout: AiLayout,
+  routes: aiRoutes,
+});
+```
+
+```ts
+// src/site-content.ts
+export default {
+  namespace: "landing-page",
+  sections: {
+    hero: {
+      description: "Rizom site hero — full-viewport intro with CTA row",
+      layout: HeroLayout,
+      title: "Hero Section",
+      fields: {
+        headline: { label: "Headline", type: "string" },
+        subhead: { label: "Subhead", type: "string" },
+        primaryCtaLabel: { label: "Primary CTA Label", type: "string" },
+        primaryCtaHref: { label: "Primary CTA Href", type: "string" },
+        secondaryCtaLabel: { label: "Secondary CTA Label", type: "string" },
+        secondaryCtaHref: { label: "Secondary CTA Href", type: "string" },
+      },
+    },
+    products: {
+      description: "Rizom products section — array of product cards",
+      layout: ProductsLayout,
+      title: "Products Section",
+      fields: {
+        cards: {
+          label: "Cards",
+          type: "array",
+          minItems: 1,
+          items: {
+            type: "object",
+            fields: {
+              variant: {
+                label: "Variant",
+                type: "enum",
+                options: ["rover", "relay", "ranger"],
+              },
+              label: { label: "Label", type: "string" },
+              badge: { label: "Badge", type: "string" },
+              headline: { label: "Headline", type: "string" },
+              description: { label: "Description", type: "string" },
+              tagline: {
+                label: "Tagline",
+                type: "array",
+                optional: true,
+                minItems: 1,
+                items: { type: "string" },
+              },
+              tags: {
+                label: "Tags",
+                type: "array",
+                minItems: 1,
+                items: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+    },
+  },
+};
+```
+
+This is the minimal intended shape:
+
+- plain object export
+- one declarative field definition replaces both the current schema file and formatter file
+- `@brains/site-content` derives the runtime schema and markdown formatter internally from the same field metadata
+
+Start with a plain object export.
+Only introduce a helper if type inference or normalization becomes painful, and if so it should be generic to site content rather than landing-page-specific.
+
+The important part is the ownership boundary:
+
+- app provides high-level content definitions
+- `@brains/site-content` owns the low-level template/schema/formatter wiring
+
+#### Audit result against current `rizom.ai` sections
+
+The current `rizom.ai` landing-page sections fit this shape without a custom formatter layer.
+
+Covered directly by the proposed `fields` model:
+
+- scalar strings (`hero`, `answer`, `mission`, `quickstart`)
+- arrays of strings (`quickstart.okLines`, `products.tagline`, `products.tags`)
+- arrays of objects (`problem.cards`, `ownership.features`, `products.cards`, `ecosystem.cards`)
+- enums (`products.cards[].variant`, `ecosystem.cards[].suffix`)
+- optional fields (`products.cards[].tagline`)
+- array cardinality (`problem.cards.length(3)`, `minItems` cases in other sections)
+
+Current `rizom.ai` does **not** appear to require:
+
+- custom formatter functions
+- custom parser functions
+- computed template-time transforms in the formatter layer
+
+So the first implementation target for `@brains/site-content` only needs to support:
+
+- `string`
+- `enum`
+- `object`
+- `array`
+- `optional`
+- `minItems`
+- exact array length
+
+#### Ecosystem should become normal content
+
+Do **not** preserve `createEcosystemContent(...)` as a special helper path.
+
+This cleanup has now landed for the current Rizom apps:
+
+- ecosystem uses normal app-owned `brain-data/site-content/home/ecosystem.md` content
+- each app owns its own ecosystem copy
+- the special helper and inline route fallback were removed
+
+That keeps the contract simpler:
+
+- no special ecosystem content assembly path
+- no active-site-specific content helper in the extraction boundary
+- no redundant route-level fallback when stored `site-content` already exists
+- all landing-page sections use the same site-content mechanism
+
+The remaining migration should target the low-level authoring plumbing:
+
+- remove `createTemplate(...)`
+- remove `StructuredContentFormatter(...)`
+- replace duplicated schema + formatter declarations with one field definition
+- keep ecosystem on the same ordinary app-owned site-content path as every other section
+
+#### Why skip the intermediate step
+
+Do **not** add a temporary shape where apps merely move raw template registration into `@brains/site-content` but still construct raw templates themselves.
+
+That would create migration churn without solving the real contract problem.
+
+Go directly to the final target:
+
+- `@brains/site-content` owns landing-page content definition/wiring
+- apps stop depending on low-level authoring primitives
 
 ### 3. Define the standalone app repo shape
 
@@ -358,9 +594,12 @@ Deliverable:
 - [x] site logic vs site-content boundary is made explicit in code
 - [x] app-owned content namespace moved to `landing-page:*`
 - [ ] shared-package release/pinning strategy is chosen for the pilot
+- [ ] `@brains/site-rizom` is removed from the direct `apps/rizom-ai/src` dependency surface
 - [x] durable `site-content` plugin/runtime contract is documented without app-level imports
+- [x] `@brains/site-content` is extended to own landing-page content definition/wiring for `rizom.ai`
+- [x] direct app imports of `@brains/templates` / `@brains/utils` are removed from `apps/rizom-ai/src`
 - [ ] extraction choice is made: keep relying on `ranger` default preset vs define an explicit equivalent contract
-- [ ] standalone `package.json` shape is defined
+- [ ] standalone `package.json` shape is fully defined (`start` is now aligned; dependency pinning still remains)
 - [ ] standalone `brain.yaml` shape is confirmed
 - [ ] deploy workflow/config needed by `rizom.ai` is identified
 - [ ] env/secrets list is documented
@@ -368,8 +607,8 @@ Deliverable:
 - [ ] dry-run extraction is performed in a temp repo/directory
 - [ ] dry-run app can typecheck and build
 - [ ] dry-run app can start successfully
-- [ ] dry-run app can rebuild preview via `build-site --remote`
-- [ ] rebuilt preview output is inspected and correct
+- [x] dry-run app can rebuild preview via `build-site --remote` in the current monorepo app flow
+- [x] rebuilt preview output is inspected and correct for the migrated `rizom.ai` app flow
 - [ ] remaining breakages are documented as follow-up tasks
 
 ## Exit criteria

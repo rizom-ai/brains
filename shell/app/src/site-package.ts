@@ -1,3 +1,5 @@
+import type { SitePackageOverrides as BaseSitePackageOverrides } from "@brains/site-composition";
+
 export {
   extendSite,
   sitePackageSchema,
@@ -7,3 +9,8 @@ export type {
   SitePackage,
   SitePackageOverrides,
 } from "@brains/site-composition";
+
+export type ConventionalSiteOverrides<TPluginConfig = Record<string, unknown>> =
+  BaseSitePackageOverrides<TPluginConfig> & {
+    pluginConfig?: TPluginConfig;
+  };

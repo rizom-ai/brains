@@ -20,7 +20,7 @@ import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
 import { promptPlugin } from "@brains/prompt";
 import { agentDiscovery } from "@brains/agent-discovery";
-import defaultSite from "@brains/site-default";
+import rizomSite from "@brains/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
 /**
@@ -82,7 +82,7 @@ export default defineBrain({
   name: "relay",
   version: "0.1.0",
   model: "gpt-5.4-mini",
-  site: defaultSite,
+  site: rizomSite,
   theme: rizomTheme,
   presets: {
     core,

@@ -8,9 +8,9 @@ const HIGHLIGHT_CLS =
 
 /**
  * Hero section — full-viewport intro with animated rise-in headline,
- * subhead, and CTA row. All copy is content-driven via the
- * HeroContent schema; there are no hardcoded fallbacks. Instances
- * ship their own copy in brain-data/site-content/home/hero.md.
+ * subhead, and CTA row. All copy is content-driven via app-owned
+ * site-content definitions; there are no hardcoded fallbacks.
+ * Instances ship their own copy in brain-data/site-content/home/hero.md.
  */
 export const HeroLayout = ({
   headline,

@@ -4,6 +4,7 @@ import { join } from "path";
 import { tmpdir } from "os";
 import { generateEntrypoint } from "../src/generate-entrypoint";
 import {
+  CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "../src/instance-overrides";
@@ -51,6 +52,24 @@ describe("generateEntrypoint conventions", () => {
     );
     expect(code).toContain(
       `applyConventionalSiteRefs(overrides, { themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+    );
+  });
+
+  test("bundles ./src/site-content.ts when site-content definitions are omitted", () => {
+    writeFileSync(
+      join(testDir, "src/site-content.ts"),
+      'export default { namespace: "landing-page", sections: {} };\n',
+    );
+
+    const code = generateEntrypoint('brain: "@brains/rover"', { cwd: testDir });
+
+    expect(code).not.toBeNull();
+    expect(code).toContain('import __pkg0 from "./src/site-content.ts"');
+    expect(code).toContain(
+      `registerPackage("${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}", __pkg0);`,
+    );
+    expect(code).toContain(
+      `siteContentDefinitionsRef: "${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}"`,
     );
   });
 

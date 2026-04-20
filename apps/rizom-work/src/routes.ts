@@ -1,5 +1,4 @@
 import type { RouteDefinitionInput } from "@brains/plugins";
-import { createEcosystemContent } from "./sections/ecosystem";
 
 export const workRoutes: RouteDefinitionInput[] = [
   {
@@ -55,10 +54,6 @@ export const workRoutes: RouteDefinitionInput[] = [
       {
         id: "ecosystem",
         template: "landing-page:ecosystem",
-        content: createEcosystemContent("work", {
-          eyebrow: "The Ecosystem",
-          headline: "One ecosystem. The platform, the vision, the network.",
-        }),
       },
     ],
   },

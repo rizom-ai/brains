@@ -2,6 +2,7 @@ import { existsSync } from "fs";
 import { relative, sep } from "path";
 import { collectOverridePackageRefs } from "./override-package-refs";
 import {
+  CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
   parseInstanceOverrides,
@@ -73,6 +74,7 @@ function toImportPath(fromDir: string, filePath: string): string {
  * - `./src/site.ts` if `site.package` is omitted
  * - `./src/theme.css` as an additive theme override layer when
  *   `site.themeOverride` is omitted
+ * - `./src/site-content.ts` if `plugins.site-content.definitions` is omitted
  *
  * @param yamlContent - Raw brain.yaml content
  * @returns Generated TypeScript code, or null if yaml is invalid
@@ -140,6 +142,24 @@ export function generateEntrypoint(
       );
       conventionalArgs.push(
         `themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+      );
+      importIndex += 1;
+    }
+
+    const siteContentPath = `${options.cwd}/src/site-content.ts`;
+    const siteContentConfig = overrides.plugins?.["site-content"];
+    if (
+      siteContentConfig?.["definitions"] === undefined &&
+      existsSync(siteContentPath)
+    ) {
+      conventionalImports.push(
+        `import __pkg${importIndex} from "${toImportPath(options.cwd, siteContentPath)}";`,
+      );
+      conventionalRegistrations.push(
+        `registerPackage("${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}", __pkg${importIndex});`,
+      );
+      conventionalArgs.push(
+        `siteContentDefinitionsRef: "${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}"`,
       );
       importIndex += 1;
     }

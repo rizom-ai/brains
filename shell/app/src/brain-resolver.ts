@@ -1,17 +1,24 @@
 import type { Plugin } from "@brains/plugins";
 import { composeTheme } from "@brains/theme-base";
-import { ZodError, type Logger } from "@brains/utils";
+import { z, ZodError, type Logger } from "@brains/utils";
 import type {
   BrainDefinition,
   BrainEnvironment,
   PresetName,
 } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
-import { stripSiteConfig, type InstanceOverrides } from "./instance-overrides";
 import {
+  CONVENTIONAL_SITE_PACKAGE_REF,
+  stripSiteConfig,
+  type InstanceOverrides,
+} from "./instance-overrides";
+import {
+  extendSite,
   sitePackageSchema,
   themeCssSchema,
+  type ConventionalSiteOverrides,
   type SitePackage,
+  type SitePackageOverrides,
 } from "./site-package";
 import { resolveAIConfig } from "./ai-config";
 import { defineConfig } from "./config";
@@ -406,17 +413,68 @@ function resolveAllPackageRefs(
  * Resolve the site package from brain.yaml override or brain definition default.
  * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
  */
+const routeDefinitionOverrideSchema = z
+  .object({
+    id: z.string().min(1),
+  })
+  .passthrough();
+
+const entityDisplayEntryOverrideSchema = z
+  .object({
+    label: z.string().min(1),
+  })
+  .passthrough();
+
+const sitePackageOverridesSchema = z
+  .object({
+    layouts: z.record(z.unknown()).optional(),
+    plugin: z.function().optional(),
+    pluginConfig: z.record(z.unknown()).optional(),
+    routes: z.array(routeDefinitionOverrideSchema).optional(),
+    entityDisplay: z.record(entityDisplayEntryOverrideSchema).optional(),
+    staticAssets: z.record(z.string()).optional(),
+  })
+  .passthrough();
+
 function resolveSitePackage(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
   if (pkgRef && hasPackage(pkgRef)) {
-    const parsed = sitePackageSchema.safeParse(getPackage(pkgRef));
-    if (!parsed.success) {
-      throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
+    const pkg = getPackage(pkgRef);
+    const parsedSitePackage = sitePackageSchema.safeParse(pkg);
+    if (parsedSitePackage.success) {
+      return parsedSitePackage.data;
     }
-    return parsed.data;
+
+    if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF && definition.site) {
+      const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
+      if (parsedOverrides.success) {
+        const conventionalOverrides =
+          parsedOverrides.data as unknown as ConventionalSiteOverrides;
+        const { pluginConfig, ...siteOverrides } = conventionalOverrides;
+        const siteWithStructure = extendSite(
+          definition.site,
+          siteOverrides as SitePackageOverrides,
+        );
+
+        if (!pluginConfig) {
+          return siteWithStructure;
+        }
+
+        return {
+          ...siteWithStructure,
+          plugin: (config?: Record<string, unknown>) =>
+            siteWithStructure.plugin({
+              ...pluginConfig,
+              ...(config ?? {}),
+            }),
+        };
+      }
+    }
+
+    throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
   }
   return definition.site;
 }

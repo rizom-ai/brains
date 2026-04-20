@@ -1,17 +1,19 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
-import { z } from "@brains/utils";
 import { siteContentSchema } from "./schemas/site-content";
 import { siteContentAdapter } from "./adapters/site-content-adapter";
 import { SiteContentService } from "./lib/site-content-service";
+import { createSiteContentTemplates } from "./lib/site-content-definitions";
+import type { SiteContentPluginConfig } from "./definitions";
+import { siteContentPluginConfigSchema } from "./schemas/config";
 import { createSiteContentTools } from "./tools";
 import packageJson from "../package.json";
 
-export class SiteContentPlugin extends ServicePlugin {
+export class SiteContentPlugin extends ServicePlugin<SiteContentPluginConfig> {
   private siteContentService: SiteContentService | undefined;
 
-  constructor() {
-    super("site-content", packageJson, {}, z.object({}));
+  constructor(config: SiteContentPluginConfig = {}) {
+    super("site-content", packageJson, config, siteContentPluginConfigSchema);
   }
 
   protected override async onRegister(
@@ -23,6 +25,19 @@ export class SiteContentPlugin extends ServicePlugin {
       siteContentAdapter,
     );
 
+    const definitions = this.config.definitions
+      ? Array.isArray(this.config.definitions)
+        ? this.config.definitions
+        : [this.config.definitions]
+      : [];
+
+    for (const definition of definitions) {
+      context.templates.register(
+        createSiteContentTemplates(definition),
+        definition.namespace,
+      );
+    }
+
     this.siteContentService = new SiteContentService(context);
   }
 
@@ -31,6 +46,8 @@ export class SiteContentPlugin extends ServicePlugin {
   }
 }
 
-export function siteContentPlugin(): SiteContentPlugin {
-  return new SiteContentPlugin();
+export function siteContentPlugin(
+  config: SiteContentPluginConfig = {},
+): SiteContentPlugin {
+  return new SiteContentPlugin(config);
 }

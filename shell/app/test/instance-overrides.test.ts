@@ -8,6 +8,7 @@ import type { SitePackage } from "../src/site-package";
 import { resolve } from "../src/brain-resolver";
 import { registerPackage } from "../src/package-registry";
 import {
+  CONVENTIONAL_SITE_PACKAGE_REF,
   parseInstanceOverrides,
   InstanceOverridesParseError,
 } from "../src/instance-overrides";
@@ -990,6 +991,46 @@ describe("resolve with site package", () => {
     expect(config.shellConfig?.entityDisplay).toEqual({
       post: { label: "Essay" },
     });
+  });
+
+  test("should treat the conventional local site ref as overrides when the brain already defines a site", () => {
+    const [siteBuilderFactory] = createMockFactory("site-builder");
+    const site = createMockSitePackage("rizom-site", {
+      routes: [{ id: "home", path: "/", title: "Base Home" }],
+      entityDisplay: { post: { label: "Post" } },
+    });
+
+    registerPackage(CONVENTIONAL_SITE_PACKAGE_REF, {
+      layouts: { default: "app-layout" },
+      pluginConfig: { themeProfile: "product" },
+      routes: [{ id: "home", path: "/", title: "App Home" }],
+    });
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      site,
+      capabilities: [["site-builder", siteBuilderFactory, {}]],
+      interfaces: [],
+    });
+
+    const config = resolve(
+      def,
+      {},
+      {
+        site: { package: CONVENTIONAL_SITE_PACKAGE_REF },
+      },
+    );
+
+    const sitePlugin = config.plugins?.find((p) => p.id === "rizom-site");
+    expect(sitePlugin).toBeDefined();
+    expect(getConfig(sitePlugin)["themeProfile"]).toBe("product");
+
+    const siteBuilder = config.plugins?.find((p) => p.id === "site-builder");
+    const siteBuilderConfig = getConfig(siteBuilder);
+    expect(siteBuilderConfig["routes"]).toEqual([
+      { id: "home", path: "/", title: "App Home" },
+    ]);
   });
 
   test("should disable webserver preview when site-builder is not active", () => {

@@ -20,6 +20,7 @@ export {
   parseInstanceOverrides,
   InstanceOverridesParseError,
   applyConventionalSiteRefs,
+  CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "./instance-overrides";
@@ -36,5 +37,9 @@ export type {
   InterfaceEntry,
   InterfaceConstructor,
 } from "./brain-definition";
-export type { SitePackage, SitePackageOverrides } from "./site-package";
+export type {
+  ConventionalSiteOverrides,
+  SitePackage,
+  SitePackageOverrides,
+} from "./site-package";
 export { extendSite } from "./site-package";

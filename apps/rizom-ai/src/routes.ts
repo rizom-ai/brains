@@ -1,7 +1,4 @@
-import { type CreateRizomSiteOptions } from "@brains/site-rizom";
-import { createEcosystemContent } from "./sections/ecosystem";
-
-export const aiRoutes: CreateRizomSiteOptions["routes"] = [
+export const aiRoutes = [
   {
     id: "home",
     path: "/",
@@ -22,10 +19,6 @@ export const aiRoutes: CreateRizomSiteOptions["routes"] = [
       {
         id: "ecosystem",
         template: "landing-page:ecosystem",
-        content: createEcosystemContent("ai", {
-          eyebrow: "The Ecosystem",
-          headline: "One ecosystem. The platform, the vision, the network.",
-        }),
       },
     ],
   },

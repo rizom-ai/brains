@@ -106,13 +106,19 @@ export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 
 export const CONVENTIONAL_SITE_PACKAGE_REF = "@brains/local-site";
 export const CONVENTIONAL_THEME_PACKAGE_REF = "@brains/local-theme";
+export const CONVENTIONAL_SITE_CONTENT_PACKAGE_REF =
+  "@brains/local-site-content";
 
 /**
- * Apply convention-discovered site/theme refs only when brain.yaml does not
- * explicitly choose them.
+ * Apply convention-discovered local authoring refs only when brain.yaml does
+ * not explicitly choose them.
  *
  * `themeOverrideRef` is additive: it layers local theme CSS after the base
  * theme from `site.theme` or the brain definition's default theme.
+ *
+ * `siteContentDefinitionsRef` wires app-local `src/site-content.ts` into the
+ * `site-content` plugin config when that plugin does not already define a
+ * `definitions` value explicitly.
  */
 export function applyConventionalSiteRefs(
   overrides: InstanceOverrides,
@@ -120,12 +126,14 @@ export function applyConventionalSiteRefs(
     sitePackageRef?: string;
     themeRef?: string;
     themeOverrideRef?: string;
+    siteContentDefinitionsRef?: string;
   },
 ): InstanceOverrides {
   if (
     !conventions.sitePackageRef &&
     !conventions.themeRef &&
-    !conventions.themeOverrideRef
+    !conventions.themeOverrideRef &&
+    !conventions.siteContentDefinitionsRef
   ) {
     return overrides;
   }
@@ -144,9 +152,24 @@ export function applyConventionalSiteRefs(
     site.themeOverride = conventions.themeOverrideRef;
   }
 
+  const plugins = { ...(overrides.plugins ?? {}) };
+  const siteContentConfig = { ...(plugins["site-content"] ?? {}) };
+
+  if (
+    siteContentConfig["definitions"] === undefined &&
+    conventions.siteContentDefinitionsRef
+  ) {
+    siteContentConfig["definitions"] = conventions.siteContentDefinitionsRef;
+  }
+
+  if (Object.keys(siteContentConfig).length > 0) {
+    plugins["site-content"] = siteContentConfig;
+  }
+
   return {
     ...overrides,
     ...(Object.keys(site).length > 0 ? { site } : {}),
+    ...(Object.keys(plugins).length > 0 ? { plugins } : {}),
   };
 }
 

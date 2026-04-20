@@ -5,6 +5,7 @@ import { join } from "path";
 import { getPackage, registerPackage } from "../src/package-registry";
 import type { InstanceOverrides } from "../src/instance-overrides";
 import {
+  CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
   registerConventionalSiteTheme,
@@ -13,6 +14,7 @@ import {
 function clearRegistryEntries(): void {
   registerPackage(CONVENTIONAL_SITE_PACKAGE_REF, undefined);
   registerPackage(CONVENTIONAL_THEME_PACKAGE_REF, undefined);
+  registerPackage(CONVENTIONAL_SITE_CONTENT_PACKAGE_REF, undefined);
 }
 
 describe("registerConventionalSiteTheme", () => {
@@ -77,5 +79,25 @@ describe("registerConventionalSiteTheme", () => {
       themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_THEME_PACKAGE_REF)).toBe(themeCss);
+  });
+
+  test("registers ./src/site-content.ts when site-content definitions are omitted", async () => {
+    writeFileSync(
+      join(testDir, "src/site-content.ts"),
+      `export default { namespace: "landing-page", sections: {} };
+`,
+    );
+
+    const result = await registerConventionalSiteTheme(testDir, {});
+
+    expect(result.plugins).toEqual({
+      "site-content": {
+        definitions: CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
+      },
+    });
+    expect(getPackage(CONVENTIONAL_SITE_CONTENT_PACKAGE_REF)).toEqual({
+      namespace: "landing-page",
+      sections: {},
+    });
   });
 });

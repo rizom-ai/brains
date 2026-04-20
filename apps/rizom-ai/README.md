@@ -4,28 +4,29 @@ A deployment instance of the [@brains/ranger](../../brains/ranger/) brain model 
 
 ## Status
 
-`rizom.ai` now owns its final route tree from app-local source in `src/site.ts`, composing from the shared Rizom site core instead of a dedicated wrapper package. This is the first proof point for the planned shift from wrapper packages to app-local site ownership.
+`rizom.ai` now uses the brain model's default Rizom site/theme stack, while app-local `src/site.ts` provides only structural overrides (layout, routes, plugin config) and `src/site-content.ts` provides landing-page content definitions.
 
 ## Setup
 
 This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, `.envrc`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
-```bash
-# From the monorepo root, once
-bun install
+The default app start path is now `bun run start` → `bunx brain start`, so local usage matches the intended extracted-repo contract more closely.
 
+```bash
 # Copy and fill in app/deploy secrets
-cp apps/rizom-ai/.env.example apps/rizom-ai/.env
+cp .env.example .env
 
 # Optional: keep bootstrap secrets in a local-only shell file for direnv
-touch apps/rizom-ai/.env.local
-# Add OP_SERVICE_ACCOUNT_TOKEN / KAMAL_SSH_PRIVATE_KEY exports to apps/rizom-ai/.env.local if you use 1Password
+touch .env.local
+# Add OP_SERVICE_ACCOUNT_TOKEN / KAMAL_SSH_PRIVATE_KEY exports to .env.local if you use 1Password
 
 # Start
 cd apps/rizom-ai
 direnv allow
-bunx brain start
+bun run start
 ```
+
+Inside this monorepo, `bun install` still happens at the repo root. The app's default start command now matches the extracted-repo shape (`bunx brain start`), while `bun run start:workspace` keeps the old workspace-specific path available if needed.
 
 ## Files
 
@@ -42,13 +43,13 @@ bunx brain start
 
 `brain.yaml` now omits an explicit `site.package`, so the runtime picks up app-local `src/site.ts`.
 
-That local site file composes from the shared `@brains/site-rizom` base and owns the final `rizom.ai` layout, route composition, and app-specific landing-page content directly from this app.
+That local site file now exports only app-local site overrides:
 
-Current split:
+- layout
+- routes
+- Rizom plugin config overrides (currently `themeProfile`)
 
-- `@brains/site-rizom` = shared site logic
-- `apps/rizom-ai/src/sections/*` = app-owned landing-page content logic
-- landing-page templates register under the `landing-page:*` namespace
+The shared Rizom site/theme stack comes from the selected brain model by default, while landing-page templates register under the `landing-page:*` namespace via app-local `src/site-content.ts`.
 
 Across the Rizom family, the variant still determines:
 
