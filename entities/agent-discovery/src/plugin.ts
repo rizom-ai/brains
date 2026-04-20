@@ -5,24 +5,20 @@ import type {
   JobHandler,
   EntityPluginContext,
 } from "@brains/plugins";
-import { EntityPlugin, parseMarkdownWithFrontmatter } from "@brains/plugins";
-import {
-  agentEntitySchema,
-  agentFrontmatterSchema,
-  type AgentEntity,
-} from "./schemas/agent";
+import { EntityPlugin } from "@brains/plugins";
+import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
 import { AgentAdapter } from "./adapters/agent-adapter";
 import { AgentDataSource } from "./datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "./handlers/agent-generation-handler";
+import { buildAgentNetworkWidgetData } from "./lib/agent-network-widget";
 import { getTemplates } from "./lib/register-templates";
+import {
+  AgentNetworkWidget,
+  agentNetworkWidgetScript,
+} from "./widgets/agent-network-widget";
 import packageJson from "../package.json";
 
 const agentAdapter = new AgentAdapter();
-
-function parseAgentFrontmatter(entity: AgentEntity) {
-  return parseMarkdownWithFrontmatter(entity.content, agentFrontmatterSchema)
-    .metadata;
-}
 
 export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
   readonly entityType = "agent";
@@ -57,65 +53,15 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
       "system:plugins:ready",
       async (): Promise<{ success: boolean }> => {
         await context.messaging.send("dashboard:register-widget", {
-          id: "directory-summary",
+          id: "agent-network",
           pluginId: this.id,
-          title: "Agent Directory",
+          title: "Agent Network",
           section: "secondary",
           priority: 15,
-          rendererName: "StatsWidget",
-          dataProvider: async () => {
-            const agents =
-              await context.entityService.listEntities<AgentEntity>("agent");
-            const frontmatters = agents.map(parseAgentFrontmatter);
-            return {
-              total: frontmatters.length,
-              approved: frontmatters.filter((a) => a.status === "approved")
-                .length,
-              discovered: frontmatters.filter((a) => a.status === "discovered")
-                .length,
-              professional: frontmatters.filter(
-                (a) => a.kind === "professional",
-              ).length,
-              team: frontmatters.filter((a) => a.kind === "team").length,
-              collective: frontmatters.filter((a) => a.kind === "collective")
-                .length,
-            };
-          },
-        });
-
-        await context.messaging.send("dashboard:register-widget", {
-          id: "recent-discoveries",
-          pluginId: this.id,
-          title: "Recent Discoveries",
-          section: "secondary",
-          priority: 16,
-          rendererName: "ListWidget",
-          dataProvider: async () => {
-            const agents =
-              await context.entityService.listEntities<AgentEntity>("agent");
-            const items = agents
-              .map((entity) => ({
-                entity,
-                frontmatter: parseAgentFrontmatter(entity),
-              }))
-              .sort(
-                (a, b) =>
-                  new Date(b.frontmatter.discoveredAt).getTime() -
-                  new Date(a.frontmatter.discoveredAt).getTime(),
-              )
-              .slice(0, 8)
-              .map(({ entity, frontmatter }) => ({
-                id: entity.id,
-                name: frontmatter.brainName,
-                description:
-                  frontmatter.name === frontmatter.brainName
-                    ? frontmatter.kind
-                    : `${frontmatter.name} · ${frontmatter.kind}`,
-                status: frontmatter.status,
-              }));
-
-            return { items };
-          },
+          rendererName: "AgentNetworkWidget",
+          component: AgentNetworkWidget,
+          clientScript: agentNetworkWidgetScript,
+          dataProvider: async () => buildAgentNetworkWidgetData(context),
         });
 
         return { success: true };

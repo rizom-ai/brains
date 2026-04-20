@@ -1,0 +1,97 @@
+id: agent-discovery-swot-derive-basic
+name: Derive actionable SWOT from seeded agent directory data
+description: Exercises the real SWOT structured-generation path and expects operator-facing capability guidance rather than generic summary prose.
+type: plugin
+tags:
+  - agent-discovery
+  - swot
+  - core
+plugin: agent-discovery
+handler: deriveSwot
+
+input:
+  skills:
+    - name: Research
+      description: Turn source material into grounded findings.
+      tags: [research, synthesis]
+      examples: ["Source review", "Competitive scan"]
+    - name: Writing
+      description: Turn findings into concise operator-facing prose.
+      tags: [writing, editorial]
+      examples: ["Briefing memo", "Landing page copy"]
+    - name: Analysis
+      description: Evaluate patterns, tradeoffs, and evidence quality.
+      tags: [analysis, strategy]
+      examples: ["Gap analysis", "Decision memo"]
+
+  agents:
+    - name: Signal Forge
+      kind: professional
+      brainName: signal-forge
+      url: https://signal-forge.example.com
+      status: approved
+      about: External research partner with strong editorial depth.
+      skills:
+        - name: Research Operations
+          description: Deep source gathering and synthesis.
+          tags: [research, synthesis]
+        - name: Editorial Writing
+          description: Clear narrative and explanatory writing.
+          tags: [writing, editorial]
+      notes: Approved and reliable.
+
+    - name: Insight Mesh
+      kind: team
+      brainName: insight-mesh
+      url: https://insight-mesh.example.com
+      status: approved
+      about: Team brain with structured research workflows.
+      skills:
+        - name: Research Systems
+          description: Repeated research and knowledge workflows.
+          tags: [research, workflows]
+        - name: Facilitation
+          description: Turns research into collaborative sessions.
+          tags: [facilitation, workshops]
+      notes: Strong overlap on research plus adjacent facilitation.
+
+    - name: Scout Video
+      kind: professional
+      brainName: scout-video
+      url: https://scout-video.example.com
+      status: discovered
+      about: Pending review video production specialist.
+      skills:
+        - name: Video Production
+          description: Produces explainers and recorded walkthroughs.
+          tags: [video, production]
+      notes: Not approved yet.
+
+expectedOutput:
+  validateEach:
+    - path: derivedAt
+      exists: true
+    - path: strengths[0].title
+      exists: true
+    - path: strengths[0].detail
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate this SWOT as an operator decision aid, not a generic business-school SWOT.
+
+      Good output:
+      - describes capability patterns such as research depth, writing overlap, analysis gaps, facilitation adjacency, or tentative video coverage
+      - makes each detail useful for action by stating an implication, priority, or next move
+      - uses directory evidence rather than vague claims
+      - mentions approval/discovery only when it changes confidence or action
+
+      Bad output:
+      - generic phrases like "strong market position", "great opportunity", or "competitive advantage"
+      - pure summary with no operational implication
+      - over-focusing on status labels instead of capability depth, gaps, redundancy, or review priorities
+
+      Score QUALITY down unless most SWOT details tell an operator what the pattern means or what to do next.

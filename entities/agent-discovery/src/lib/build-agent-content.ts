@@ -2,13 +2,10 @@ import { slugifyUrl } from "@brains/utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
 import type { AgentStatus } from "../schemas/agent";
 import type { ParsedAgentCard } from "./fetch-agent-card";
+import { normalizeTags } from "./tag-vocabulary";
 
 const agentAdapter = new AgentAdapter();
 
-/**
- * Build agent entity content and metadata from a parsed Agent Card.
- * Shared between manual add flows and the generation handler.
- */
 export function buildAgentFromCard(card: ParsedAgentCard): {
   content: string;
   metadata: { name: string; url: string; status: AgentStatus; slug: string };
@@ -35,7 +32,7 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
     skills: card.skills.map((s) => ({
       name: s.name,
       description: s.description,
-      tags: s.tags,
+      tags: normalizeTags(s.tags),
     })),
     notes: "",
   });

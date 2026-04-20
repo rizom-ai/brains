@@ -26,13 +26,25 @@ describe("AgentDiscoveryPlugin", () => {
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
-    const registrations: Array<{ id: string; rendererName: string }> = [];
+    const registrations: Array<{
+      id: string;
+      rendererName: string;
+      hasComponent: boolean;
+      hasClientScript: boolean;
+    }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as { id: string; rendererName: string };
+      const payload = message.payload as {
+        id: string;
+        rendererName: string;
+        component?: unknown;
+        clientScript?: unknown;
+      };
       registrations.push({
         id: payload.id,
         rendererName: payload.rendererName,
+        hasComponent: typeof payload.component === "function",
+        hasClientScript: typeof payload.clientScript === "string",
       });
       return { success: true };
     });
@@ -41,8 +53,12 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.sendMessage("system:plugins:ready", {}, "shell");
 
     expect(registrations).toEqual([
-      { id: "directory-summary", rendererName: "StatsWidget" },
-      { id: "recent-discoveries", rendererName: "ListWidget" },
+      {
+        id: "agent-network",
+        rendererName: "AgentNetworkWidget",
+        hasComponent: true,
+        hasClientScript: true,
+      },
     ]);
 
     harness.reset();

@@ -3,17 +3,18 @@ import type { Logger } from "@brains/utils";
 import { generateIdFromText, getErrorMessage } from "@brains/utils";
 import { SkillAdapter } from "../adapters/skill-adapter";
 import type { SkillFrontmatter } from "../schemas/skill";
+import {
+  collectTagVocabulary,
+  formatVocabularyForPrompt,
+  type TagVocabularyEntry,
+} from "./tag-vocabulary";
 
 export interface SkillDeriverInput {
   topicTitles: string[];
   toolDescriptions: string[];
+  tagVocabulary?: TagVocabularyEntry[];
 }
 
-/**
- * Build the prompt for skill derivation.
- * Combines topic titles (knowledge domains) with tool descriptions (capabilities)
- * to produce action-oriented skill descriptions.
- */
 export function buildSkillPrompt(input: SkillDeriverInput): string {
   const sections: string[] = [];
 
@@ -29,6 +30,9 @@ export function buildSkillPrompt(input: SkillDeriverInput): string {
     );
   }
 
+  const primer = formatVocabularyForPrompt(input.tagVocabulary ?? []);
+  if (primer) sections.push(primer);
+
   return `You are analyzing a brain's content to identify its high-level capabilities.
 
 ${sections.join("\n\n")}
@@ -39,6 +43,11 @@ CONSOLIDATION RULES (critical):
 - "Event Sourcing" + "Software Architecture" → one skill about software design
 - "Urban Sensing" + "Distributed Systems" → one skill about technical infrastructure
 - Never map topics 1:1 to skills — that defeats the purpose
+
+TAGGING RULES (critical):
+- Reuse an existing tag when one fits
+- Propose a new tag only when nothing in the existing vocabulary fits
+- Keep tags short, reusable, and lower-friction across multiple skills
 
 For each skill, write an action-oriented description of what the brain
 can DO (not just what it knows). Use verbs: "Create...", "Analyze...",
@@ -51,12 +60,6 @@ Return 2-5 skills. Each skill needs:
 - examples: 2-3 concrete user prompts`;
 }
 
-/**
- * Derive skills from topics and tools.
- *
- * Collects topic titles and tool descriptions, makes one LLM call,
- * deletes all existing skills, creates new ones. Replace-all strategy.
- */
 export async function deriveSkills(
   context: EntityPluginContext,
   logger: Logger,
@@ -64,14 +67,12 @@ export async function deriveSkills(
 ): Promise<{ created: number; deleted: number; skipped: number }> {
   const adapter = new SkillAdapter();
 
-  // Collect topic titles
   const topics = await context.entityService.listEntities("topic");
   const topicTitles = topics
     .map((t) => {
       const meta = t.metadata as Record<string, unknown>;
       const name = meta["name"];
       if (typeof name === "string") return name;
-      // Fall back to parsing content for title
       const titleMatch = t.content.match(/^title:\s*(.+)$/m);
       return titleMatch?.[1]?.trim() ?? t.id;
     })
@@ -85,9 +86,12 @@ export async function deriveSkills(
   // Tool descriptions could be added here when EntityPluginContext
   // exposes MCP service access. For now, topics alone are enough —
   // the LLM infers capabilities from knowledge domains.
-  const prompt = buildSkillPrompt({ topicTitles, toolDescriptions: [] });
+  const prompt = buildSkillPrompt({
+    topicTitles,
+    toolDescriptions: [],
+    tagVocabulary: await collectTagVocabulary(context),
+  });
 
-  // One LLM call
   let skills: SkillFrontmatter[];
   try {
     const result = await context.ai.generate<{
@@ -104,18 +108,17 @@ export async function deriveSkills(
     return { created: 0, deleted: 0, skipped: 0 };
   }
 
-  // Replace-all mode: delete existing skills first (manual extract)
-  // Incremental mode: create by slug, skip existing (preserves user edits)
   let deleted = 0;
   if (options?.replaceAll) {
     const existingSkills = await context.entityService.listEntities("skill");
-    for (const skill of existingSkills) {
-      await context.entityService.deleteEntity("skill", skill.id);
-      deleted++;
-    }
+    await Promise.all(
+      existingSkills.map((skill) =>
+        context.entityService.deleteEntity("skill", skill.id),
+      ),
+    );
+    deleted = existingSkills.length;
   }
 
-  // Create skills — skip existing by slug
   let created = 0;
   let skipped = 0;
   for (const skill of skills) {

@@ -1,0 +1,90 @@
+id: agent-discovery-swot-capability-language
+name: SWOT uses capability language and clear next steps
+description: Checks that SWOT items stay grounded in capability areas, avoid agent-name storytelling, and explain what to do with the insight.
+type: plugin
+tags:
+  - agent-discovery
+  - swot
+  - quality
+plugin: agent-discovery
+handler: deriveSwot
+
+input:
+  skills:
+    - name: Research
+      description: Turn source material into grounded findings.
+      tags: [research, synthesis]
+      examples: ["Source review"]
+    - name: Writing
+      description: Turn findings into clear operator-facing prose.
+      tags: [writing, editorial]
+      examples: ["Briefing memo"]
+
+  agents:
+    - name: Neon Badger Collective
+      kind: team
+      brainName: neon-badger
+      url: https://neon-badger.example.com
+      status: approved
+      about: Research-heavy approved agent with facilitation depth.
+      skills:
+        - name: Research Systems
+          description: Repeated research and synthesis workflows.
+          tags: [research, synthesis]
+        - name: Facilitation
+          description: Turns findings into collaborative workshops.
+          tags: [facilitation, workshops]
+      notes: Approved.
+
+    - name: Cobalt Sparrow Unit
+      kind: professional
+      brainName: cobalt-sparrow
+      url: https://cobalt-sparrow.example.com
+      status: approved
+      about: Editorial partner with strong writing overlap.
+      skills:
+        - name: Editorial Writing
+          description: Clear explanation and narrative shaping.
+          tags: [writing, editorial]
+      notes: Approved.
+
+    - name: Quartz Moth Studio
+      kind: professional
+      brainName: quartz-moth
+      url: https://quartz-moth.example.com
+      status: discovered
+      about: Tentative adjacent capability in video explainers.
+      skills:
+        - name: Video Production
+          description: Produces recorded explainers.
+          tags: [video, production]
+      notes: Pending review.
+
+expectedOutput:
+  validateEach:
+    - path: derivedAt
+      exists: true
+    - path: strengths[0].title
+      exists: true
+    - path: strengths[0].detail
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate this SWOT with special attention to analysis style.
+
+      Good output:
+      - talks about capability areas like research, writing, facilitation, or video production
+      - uses details to explain an implication, priority, or next step
+      - stays grounded in the supplied directory context
+      - only mentions agent names if absolutely necessary, which should be rare
+
+      Bad output:
+      - names or leans on specific agents such as Neon Badger Collective, Cobalt Sparrow Unit, or Quartz Moth Studio as the main analytical unit
+      - treats brand names as the story instead of capability patterns
+      - gives observations without saying why they matter operationally
+
+      Score ACCURACY and QUALITY down if the SWOT reads like a directory recap instead of capability guidance.

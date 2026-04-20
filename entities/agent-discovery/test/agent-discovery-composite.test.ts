@@ -2,12 +2,13 @@ import { describe, expect, test } from "bun:test";
 import { agentDiscovery } from "../src";
 
 describe("agent-discovery composite", () => {
-  test("returns both the agent plugin and the skill plugin", () => {
+  test("returns the agent, skill, and swot plugins", () => {
     const plugins = agentDiscovery();
-    expect(plugins).toHaveLength(2);
+    expect(plugins).toHaveLength(3);
     const ids = plugins.map((p) => p.id);
     expect(ids).toContain("agent-discovery");
     expect(ids).toContain("skill");
+    expect(ids).toContain("swot");
   });
 
   test("both sub-plugins have type 'entity'", () => {
@@ -17,7 +18,7 @@ describe("agent-discovery composite", () => {
 
   test("works when called with no arguments", () => {
     const plugins = agentDiscovery();
-    expect(plugins).toHaveLength(2);
+    expect(plugins).toHaveLength(3);
   });
 
   test("returns fresh instances on each call", () => {
@@ -25,5 +26,6 @@ describe("agent-discovery composite", () => {
     const b = agentDiscovery();
     expect(a[0]).not.toBe(b[0]);
     expect(a[1]).not.toBe(b[1]);
+    expect(a[2]).not.toBe(b[2]);
   });
 });

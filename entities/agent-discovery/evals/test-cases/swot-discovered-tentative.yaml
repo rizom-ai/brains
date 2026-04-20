@@ -1,0 +1,86 @@
+id: agent-discovery-swot-status-as-confidence
+name: SWOT uses status as a confidence modifier, not the whole story
+description: Checks that approval status affects confidence and prioritization without turning the SWOT into a status report.
+type: plugin
+tags:
+  - agent-discovery
+  - swot
+  - quality
+plugin: agent-discovery
+handler: deriveSwot
+
+input:
+  skills:
+    - name: Analysis
+      description: Evaluate tradeoffs and evidence quality.
+      tags: [analysis, strategy]
+      examples: ["Decision memo"]
+    - name: Writing
+      description: Communicate findings clearly.
+      tags: [writing, editorial]
+      examples: ["Briefing note"]
+
+  agents:
+    - name: Verified Editorial
+      kind: professional
+      brainName: verified-editorial
+      url: https://verified-editorial.example.com
+      status: approved
+      about: Approved editorial partner.
+      skills:
+        - name: Editorial Writing
+          description: Clear synthesis and explanation.
+          tags: [writing, editorial]
+      notes: Approved.
+
+    - name: Tentative Video Mesh
+      kind: team
+      brainName: tentative-video-mesh
+      url: https://tentative-video-mesh.example.com
+      status: discovered
+      about: Pending review video capability.
+      skills:
+        - name: Video Production
+          description: Produces explainers and demos.
+          tags: [video, production]
+      notes: Not yet approved.
+
+    - name: Tentative Data Forge
+      kind: professional
+      brainName: tentative-data-forge
+      url: https://tentative-data-forge.example.com
+      status: discovered
+      about: Pending review visualization capability.
+      skills:
+        - name: Data Visualization
+          description: Builds charts and visual summaries.
+          tags: [visualization, charts]
+      notes: Not yet approved.
+
+expectedOutput:
+  validateEach:
+    - path: derivedAt
+      exists: true
+    - path: threats[0].title
+      exists: true
+    - path: threats[0].detail
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate how status is used in this SWOT.
+
+      Good output:
+      - uses approved vs discovered as a confidence modifier or prioritization signal
+      - says what the tentative status means operationally, such as "review before relying" or "do not treat as durable backup yet"
+      - still centers the analysis on capability depth, gaps, redundancy, and next actions
+
+      Bad output:
+      - turns the SWOT into a status report about approved and discovered agents
+      - overstates discovered-only capabilities as firm strengths
+      - ignores the operational implication of uncertainty
+
+      Score QUALITY down if status labels dominate the analysis instead of supporting an actionable capability judgment.

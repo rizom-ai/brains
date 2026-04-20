@@ -58,6 +58,19 @@ describe("buildSkillPrompt", () => {
     expect(prompt).toContain("Event Sourcing");
   });
 
+  it("should include the tag vocabulary primer when provided", () => {
+    const input: SkillDeriverInput = {
+      topicTitles: ["Event Sourcing"],
+      toolDescriptions: ["Create blog posts"],
+      tagVocabulary: [{ tag: "research", count: 3 }],
+    };
+
+    const prompt = buildSkillPrompt(input);
+
+    expect(prompt).toContain("Current agent-directory tag vocabulary");
+    expect(prompt).toContain("research (3)");
+  });
+
   it("should ask for action-oriented skill descriptions", () => {
     const input: SkillDeriverInput = {
       topicTitles: ["Event Sourcing"],
@@ -67,5 +80,6 @@ describe("buildSkillPrompt", () => {
     const prompt = buildSkillPrompt(input);
 
     expect(prompt).toContain("action-oriented");
+    expect(prompt).toContain("Reuse an existing tag when one fits");
   });
 });

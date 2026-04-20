@@ -15,7 +15,9 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2",
+    "preact-render-to-string": "^6.3.1"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

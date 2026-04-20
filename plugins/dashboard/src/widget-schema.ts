@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import { WIDGET_RENDERERS } from "./widget-registry";
+import type { WidgetComponent } from "./widget-registry";
 
 export const widgetMetaSchema = z.object({
   id: z.string(),
@@ -8,7 +8,8 @@ export const widgetMetaSchema = z.object({
   description: z.string().optional(),
   priority: z.number(),
   section: z.enum(["primary", "secondary", "sidebar"]),
-  rendererName: z.enum(WIDGET_RENDERERS),
+  rendererName: z.string(),
+  component: z.custom<WidgetComponent>().optional(),
 });
 
 export type WidgetMeta = z.infer<typeof widgetMetaSchema>;

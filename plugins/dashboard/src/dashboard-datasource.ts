@@ -32,7 +32,7 @@ export class DashboardDataSource implements DataSource {
     const results = await Promise.allSettled(
       registeredWidgets.map(async (widget) => {
         const data = await widget.dataProvider();
-        const { dataProvider: _, ...widgetMeta } = widget;
+        const { dataProvider: _, component: __, ...widgetMeta } = widget;
         return {
           key: `${widget.pluginId}:${widget.id}`,
           widget: widgetMeta,

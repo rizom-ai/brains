@@ -1,4 +1,5 @@
 import type { AppInfo } from "@brains/plugins";
+import type { WidgetComponent } from "../widget-registry";
 import type { WidgetData } from "../widget-schema";
 
 export interface CharacterInput {
@@ -17,10 +18,15 @@ export interface EntityCount {
   count: number;
 }
 
+export interface RenderableWidgetData extends WidgetData {
+  component?: WidgetComponent;
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
-  widgets: Record<string, WidgetData>;
+  widgets: Record<string, RenderableWidgetData>;
+  widgetScripts: string[];
   character: CharacterInput;
   profile: ProfileInput;
   appInfo: AppInfo;

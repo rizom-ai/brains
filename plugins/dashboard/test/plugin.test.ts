@@ -1,5 +1,7 @@
 import { describe, expect, it, beforeEach, afterEach } from "bun:test";
 import type { WebRouteDefinition } from "@brains/plugins";
+import { h } from "preact";
+import type { WidgetComponentProps } from "../src";
 import { DashboardPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 
@@ -136,6 +138,60 @@ describe("DashboardPlugin", () => {
       });
 
       expect(testPluginCount()).toBe(0);
+    });
+
+    it("should reject a custom renderer without a component", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "broken-widget",
+        pluginId: "test-plugin",
+        title: "Broken Widget",
+        section: "secondary",
+        priority: 14,
+        rendererName: "BrokenWidget",
+        dataProvider: async () => ({ ok: true }),
+      });
+
+      const registry = plugin.getWidgetRegistry();
+      const testPluginWidgets =
+        registry?.list().filter((w) => w.pluginId === "test-plugin") ?? [];
+      expect(testPluginWidgets).toHaveLength(0);
+    });
+
+    it("should register and render a plugin-provided widget component", async () => {
+      await harness.sendMessage("dashboard:register-widget", {
+        id: "swot",
+        pluginId: "swot",
+        title: "SWOT",
+        section: "secondary",
+        priority: 14,
+        rendererName: "SwotWidget",
+        component: ({ data }: WidgetComponentProps) => {
+          const input = data as {
+            strengths: Array<{ title: string }>;
+          };
+          return h(
+            "div",
+            { "data-swot-widget": "true" },
+            h("h3", {}, "Strengths"),
+            h("p", {}, input.strengths[0]?.title ?? "—"),
+          );
+        },
+        clientScript: "window.__swotBoot = true;",
+        dataProvider: async () => ({
+          strengths: [{ title: "Research & writing" }],
+        }),
+      });
+
+      const routes = plugin.getWebRoutes();
+      const response = await routes[0]?.handler(
+        new Request("http://brain/dashboard"),
+      );
+      const html = await response?.text();
+
+      expect(html).toContain("data-swot-widget");
+      expect(html).toContain("Strengths");
+      expect(html).toContain("Research &amp; writing");
+      expect(html).toContain("window.__swotBoot = true;");
     });
   });
 });

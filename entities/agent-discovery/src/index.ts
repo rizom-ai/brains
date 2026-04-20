@@ -2,8 +2,10 @@ import type { Plugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { agentDiscoveryPlugin } from "./plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
+import { swotPlugin } from "./plugins/swot-plugin";
 
 export { AgentDiscoveryPlugin, agentDiscoveryPlugin } from "./plugin";
+export { createSwotEvalPlugin } from "./eval/swot-eval-plugin";
 
 /**
  * Composite config for the agent-discovery feature.
@@ -20,7 +22,7 @@ export type AgentDiscoveryCompositeConfig = z.infer<
 >;
 
 /**
- * Composite factory: returns the agent entity plugin + skill entity plugin
+ * Composite factory: returns the agent, skill, and swot entity plugins
  * from a single capability entry.
  *
  * Use as a capability factory in `defineBrain()`:
@@ -32,14 +34,14 @@ export type AgentDiscoveryCompositeConfig = z.infer<
  * ```
  *
  * Both sub-plugins are gated by the composite's `agents` capability id — add
- * or remove it from a preset to enable or disable both. The capability id is
- * deliberately distinct from either sub-plugin id (`agent-discovery`, `skill`).
+ * or remove it from a preset to enable or disable all three. The capability id is
+ * deliberately distinct from the sub-plugin ids (`agent-discovery`, `skill`, `swot`).
  */
 export function agentDiscovery(
   config: AgentDiscoveryCompositeConfig = {},
 ): Plugin[] {
   agentDiscoveryCompositeConfigSchema.parse(config);
-  return [agentDiscoveryPlugin(), skillPlugin()];
+  return [agentDiscoveryPlugin(), skillPlugin(), swotPlugin()];
 }
 
 export {
@@ -61,9 +63,20 @@ export {
 
 export { AgentAdapter } from "./adapters/agent-adapter";
 export { AgentDataSource } from "./datasources/agent-datasource";
+export {
+  AgentNetworkWidget,
+  agentNetworkWidgetScript,
+} from "./widgets/agent-network-widget";
+
+export {
+  normalizeTag,
+  normalizeTags,
+  type TagVocabularyEntry,
+} from "./lib/tag-vocabulary";
 
 // Skill entity
 export { SkillPlugin, skillPlugin } from "./plugins/skill-plugin";
+export { SwotPlugin, swotPlugin } from "./plugins/swot-plugin";
 
 export {
   skillFrontmatterSchema,
@@ -75,3 +88,26 @@ export {
 } from "./schemas/skill";
 
 export { SkillAdapter } from "./adapters/skill-adapter";
+export { SwotAdapter, swotAdapter } from "./adapters/swot-adapter";
+export { SwotWidget } from "./widgets/swot-widget";
+export {
+  buildSwotContext,
+  buildSwotContextFromEntities,
+  type SwotContext,
+  type SwotContextAgent,
+  type SwotContextSkill,
+} from "./lib/swot-context";
+export {
+  swotItemSchema,
+  swotFrontmatterSchema,
+  swotMetadataSchema,
+  swotEntitySchema,
+  swotDerivationJobSchema,
+  swotGenerationSchema,
+  type SwotItem,
+  type SwotFrontmatter,
+  type SwotMetadata,
+  type SwotEntity,
+  type SwotDerivationJobData,
+  type SwotGeneration,
+} from "./schemas/swot";
