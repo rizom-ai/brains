@@ -5,7 +5,7 @@ import type {
   NavigationSlot,
 } from "@brains/plugins";
 import { RouteDefinitionSchema } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import { ensureArray, type Logger } from "@brains/utils";
 
 /**
  * Route Registry - manages route definitions for the site builder
@@ -21,9 +21,7 @@ export class RouteRegistry {
    * @throws Error if any route path is already registered
    */
   register(routes: RouteDefinitionInput | RouteDefinitionInput[]): void {
-    const routeArray = Array.isArray(routes) ? routes : [routes];
-
-    for (const route of routeArray) {
+    for (const route of ensureArray(routes)) {
       // Validate route definition
       const validated = RouteDefinitionSchema.parse(route);
 
@@ -43,8 +41,7 @@ export class RouteRegistry {
    * Unregister one or more routes by path
    */
   unregister(paths: string | string[]): void {
-    const pathArray = Array.isArray(paths) ? paths : [paths];
-    pathArray.forEach((path) => this.routes.delete(path));
+    ensureArray(paths).forEach((path) => this.routes.delete(path));
   }
 
   /**

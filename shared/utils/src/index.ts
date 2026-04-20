@@ -67,6 +67,9 @@ export {
   interpolateEnv,
 } from "./string-utils";
 
+// Array utilities
+export { ensureArray } from "./array";
+
 // Message chunking
 export { chunkMessage } from "./chunk-message";
 

@@ -11,9 +11,6 @@ import {
   type AgentStatus,
 } from "../schemas/agent";
 
-/**
- * Body schema for structured content formatter
- */
 const agentBodySchema = z.object({
   about: z.string(),
   skills: z.array(
@@ -28,10 +25,6 @@ const agentBodySchema = z.object({
 
 type AgentBody = z.infer<typeof agentBodySchema>;
 
-/**
- * Format a skills array to markdown list.
- * Uses plain text — StructuredContentFormatter strips inline markdown.
- */
 function formatSkills(value: unknown): string {
   if (!Array.isArray(value) || value.length === 0) return "";
   const skills = value as AgentSkill[];
@@ -44,10 +37,6 @@ function formatSkills(value: unknown): string {
     .join("\n");
 }
 
-/**
- * Parse skills from markdown list format:
- * - Name: Description [tag1, tag2]
- */
 function parseSkills(text: string): AgentSkill[] {
   if (!text.trim()) return [];
 
@@ -70,9 +59,6 @@ function parseSkills(text: string): AgentSkill[] {
   return skills;
 }
 
-/**
- * Structured content formatter for agent body sections
- */
 const bodyFormatter = new StructuredContentFormatter<AgentBody>(
   agentBodySchema,
   {
@@ -91,9 +77,6 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
   },
 );
 
-/**
- * Input for creating agent markdown content
- */
 export interface CreateAgentContentInput {
   name: string;
   kind: "professional" | "team" | "collective";
@@ -140,9 +123,6 @@ export class AgentAdapter extends BaseEntityAdapter<
     };
   }
 
-  /**
-   * Build full markdown content with frontmatter and body sections
-   */
   public createAgentContent(input: CreateAgentContentInput): string {
     const frontmatter: AgentFrontmatter = {
       name: input.name,
@@ -164,15 +144,12 @@ export class AgentAdapter extends BaseEntityAdapter<
     return this.buildMarkdown(body, frontmatter);
   }
 
-  /**
-   * Parse body sections from agent markdown content
-   */
   public parseAgentContent(content: string): {
     about: string;
     skills: AgentSkill[];
     notes: string;
   } {
-    const body = this.stripFrontmatter(content);
+    const body = this.extractBody(content);
     if (!body.trim()) {
       return { about: "", skills: [], notes: "" };
     }
@@ -188,11 +165,16 @@ export class AgentAdapter extends BaseEntityAdapter<
     }
   }
 
-  /**
-   * Strip frontmatter, return body only
-   */
-  private stripFrontmatter(content: string): string {
-    const match = content.match(/^---\n[\s\S]*?\n---\n?([\s\S]*)$/);
-    return match ? (match[1] ?? "") : content;
+  public parseEntity(entity: AgentEntity): {
+    frontmatter: AgentFrontmatter;
+    body: { about: string; skills: AgentSkill[]; notes: string };
+  } {
+    return {
+      frontmatter: this.parseFrontMatter(
+        entity.content,
+        agentFrontmatterSchema,
+      ),
+      body: this.parseAgentContent(entity.content),
+    };
   }
 }

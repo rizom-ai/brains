@@ -9,6 +9,7 @@ describe("buildSkillPrompt", () => {
     const input: SkillDeriverInput = {
       topicTitles: ["Event Sourcing", "Distributed Systems", "Urban Sensing"],
       toolDescriptions: ["Create blog posts", "Build website"],
+      tagVocabulary: [],
     };
 
     const prompt = buildSkillPrompt(input);
@@ -26,6 +27,7 @@ describe("buildSkillPrompt", () => {
         "Generate social media content",
         "Build and deploy a website",
       ],
+      tagVocabulary: [],
     };
 
     const prompt = buildSkillPrompt(input);
@@ -39,6 +41,7 @@ describe("buildSkillPrompt", () => {
     const input: SkillDeriverInput = {
       topicTitles: [],
       toolDescriptions: ["Create blog posts"],
+      tagVocabulary: [],
     };
 
     const prompt = buildSkillPrompt(input);
@@ -51,6 +54,7 @@ describe("buildSkillPrompt", () => {
     const input: SkillDeriverInput = {
       topicTitles: ["Event Sourcing"],
       toolDescriptions: [],
+      tagVocabulary: [],
     };
 
     const prompt = buildSkillPrompt(input);
@@ -75,6 +79,7 @@ describe("buildSkillPrompt", () => {
     const input: SkillDeriverInput = {
       topicTitles: ["Event Sourcing"],
       toolDescriptions: ["Create blog posts"],
+      tagVocabulary: [],
     };
 
     const prompt = buildSkillPrompt(input);

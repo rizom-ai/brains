@@ -1,5 +1,6 @@
 import type { Tool, ServicePluginContext } from "@brains/plugins";
 import { ServicePlugin } from "@brains/plugins";
+import { ensureArray } from "@brains/utils";
 import { siteContentSchema } from "./schemas/site-content";
 import { siteContentAdapter } from "./adapters/site-content-adapter";
 import { SiteContentService } from "./lib/site-content-service";
@@ -25,13 +26,7 @@ export class SiteContentPlugin extends ServicePlugin<SiteContentPluginConfig> {
       siteContentAdapter,
     );
 
-    const definitions = this.config.definitions
-      ? Array.isArray(this.config.definitions)
-        ? this.config.definitions
-        : [this.config.definitions]
-      : [];
-
-    for (const definition of definitions) {
+    for (const definition of ensureArray(this.config.definitions)) {
       context.templates.register(
         createSiteContentTemplates(definition),
         definition.namespace,

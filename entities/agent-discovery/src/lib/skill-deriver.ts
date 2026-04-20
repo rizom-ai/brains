@@ -12,7 +12,7 @@ import {
 export interface SkillDeriverInput {
   topicTitles: string[];
   toolDescriptions: string[];
-  tagVocabulary?: TagVocabularyEntry[];
+  tagVocabulary: TagVocabularyEntry[];
 }
 
 export function buildSkillPrompt(input: SkillDeriverInput): string {
@@ -30,7 +30,7 @@ export function buildSkillPrompt(input: SkillDeriverInput): string {
     );
   }
 
-  const primer = formatVocabularyForPrompt(input.tagVocabulary ?? []);
+  const primer = formatVocabularyForPrompt(input.tagVocabulary);
   if (primer) sections.push(primer);
 
   return `You are analyzing a brain's content to identify its high-level capabilities.

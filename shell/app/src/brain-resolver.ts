@@ -1,6 +1,6 @@
 import type { Plugin } from "@brains/plugins";
 import { composeTheme } from "@brains/theme-base";
-import { z, ZodError, type Logger } from "@brains/utils";
+import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
   BrainDefinition,
   BrainEnvironment,
@@ -220,7 +220,7 @@ export function resolve(
     const merged = override ? deepMerge(baseConfig, override) : baseConfig;
     try {
       const result = factory(merged);
-      capabilities.push(...(Array.isArray(result) ? result : [result]));
+      capabilities.push(...ensureArray(result));
     } catch (error) {
       if (error instanceof ZodError) {
         logger?.warn(`Skipping capability "${id}": missing required config`);
