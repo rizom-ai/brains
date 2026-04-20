@@ -237,7 +237,7 @@ export const AgentDetailTemplate = ({
             </aside>
           </div>
 
-          {(prevAgent || nextAgent) && (
+          {(prevAgent ?? nextAgent) && (
             <nav className="mt-12 pt-6 border-t border-theme flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div className="min-h-[1px]">
                 {prevAgent && (

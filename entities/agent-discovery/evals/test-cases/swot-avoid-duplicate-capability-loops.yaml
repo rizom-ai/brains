@@ -1,0 +1,98 @@
+id: agent-discovery-swot-avoid-duplicate-capability-loops
+name: SWOT avoids repeating the same capability pattern across quadrants
+description: Checks that the SWOT does not lazily restate one capability area in every quadrant unless the contrast is genuinely useful and operationally distinct.
+type: plugin
+tags:
+  - agent-discovery
+  - swot
+  - quality
+  - adversarial
+plugin: agent-discovery
+handler: deriveSwot
+
+input:
+  skills:
+    - name: Research
+      description: Turn source material into grounded findings.
+      tags: [research, synthesis]
+      examples: ["Source review", "Competitive scan"]
+    - name: Writing
+      description: Turn findings into concise operator-facing prose.
+      tags: [writing, editorial]
+      examples: ["Briefing memo", "Landing page copy"]
+    - name: Analysis
+      description: Evaluate evidence quality and tradeoffs.
+      tags: [analysis, strategy]
+      examples: ["Decision memo"]
+
+  agents:
+    - name: Deep Current
+      kind: professional
+      brainName: deep-current
+      url: https://deep-current.example.com
+      status: approved
+      about: Strong approved research and writing overlap.
+      skills:
+        - name: Research Operations
+          description: Deep source gathering and synthesis.
+          tags: [research, synthesis]
+        - name: Editorial Writing
+          description: Clear explanation and narrative shaping.
+          tags: [writing, editorial]
+      notes: Approved and reliable.
+
+    - name: Workshop Arc
+      kind: team
+      brainName: workshop-arc
+      url: https://workshop-arc.example.com
+      status: approved
+      about: Approved facilitation and workflow capability.
+      skills:
+        - name: Facilitation
+          description: Runs workshops and collaborative sessions.
+          tags: [facilitation, workshops]
+        - name: Research Workflow Design
+          description: Turns research into repeatable operating routines.
+          tags: [research, workflows]
+      notes: Approved and adjacent.
+
+    - name: Visual Drift
+      kind: professional
+      brainName: visual-drift
+      url: https://visual-drift.example.com
+      status: discovered
+      about: Tentative adjacent visualization capability.
+      skills:
+        - name: Data Visualization
+          description: Builds charts and visual summaries.
+          tags: [visualization, charts]
+      notes: Pending review.
+
+expectedOutput:
+  validateEach:
+    - path: derivedAt
+      exists: true
+    - path: strengths[0].detail
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: |
+      Evaluate whether this SWOT avoids repetitive capability loops.
+
+      Good output:
+      - uses distinct capability judgments across quadrants
+      - if the same capability appears in two quadrants, the contrast is genuinely different and useful to the owner
+        Example: writing may appear as a strength for current quality and as a weakness for thin backup, but only if both details give clearly different advice
+      - covers the broader picture here: research depth, analysis gap, facilitation adjacency, and tentative visualization review
+      - avoids system jargon and stays in plain advisory language
+
+      Bad output:
+      - repeats research or writing in multiple quadrants with only superficial wording changes
+      - says the same thing twice as both a weakness and threat, or both a strength and opportunity
+      - misses obvious distinct patterns because it keeps circling the same capability area
+      - sounds like internal diagnostics rather than advice to the owner
+
+      Score QUALITY down if the SWOT feels repetitive rather than decision-oriented.

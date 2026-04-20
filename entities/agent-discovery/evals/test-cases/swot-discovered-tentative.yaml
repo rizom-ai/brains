@@ -71,16 +71,18 @@ expectedOutput:
     minCoverageScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate how status is used in this SWOT.
+      Evaluate how confidence and uncertainty are used in this SWOT.
 
       Good output:
-      - uses approved vs discovered as a confidence modifier or prioritization signal
-      - says what the tentative status means operationally, such as "review before relying" or "do not treat as durable backup yet"
-      - still centers the analysis on capability depth, gaps, redundancy, and next actions
+      - uses dependable vs tentative network skill as a confidence modifier or prioritization signal
+      - says what the uncertainty means for the owner, such as "review before relying" or "do not plan around this yet"
+      - still centers the analysis on the owner's strengths, gaps, risks, and next actions
+      - avoids sounding like a status report
 
       Bad output:
-      - turns the SWOT into a status report about approved and discovered agents
-      - overstates discovered-only capabilities as firm strengths
-      - ignores the operational implication of uncertainty
+      - turns the SWOT into bookkeeping about approved and discovered agents
+      - overstates tentative network skills as firm strengths
+      - ignores the practical implication of uncertainty for the owner
+      - uses internal jargon instead of plain advice
 
-      Score QUALITY down if status labels dominate the analysis instead of supporting an actionable capability judgment.
+      Score QUALITY down if confidence labels dominate the analysis instead of supporting useful advice.

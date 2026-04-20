@@ -9,6 +9,7 @@ describe("agent-discovery SWOT evaluation test cases", () => {
       "swot-derive-basic.yaml",
       "swot-no-agent-names.yaml",
       "swot-discovered-tentative.yaml",
+      "swot-avoid-duplicate-capability-loops.yaml",
     ];
 
     const loader = YAMLLoader.createFresh({ directory: import.meta.dir });

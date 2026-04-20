@@ -81,17 +81,19 @@ expectedOutput:
     minCoverageScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate this SWOT as an operator decision aid, not a generic business-school SWOT.
+      Evaluate this SWOT as advice to the brain owner about their own skills and their network's skills.
 
       Good output:
-      - describes capability patterns such as research depth, writing overlap, analysis gaps, facilitation adjacency, or tentative video coverage
-      - makes each detail useful for action by stating an implication, priority, or next move
+      - says what the person is strong at, weak at, ready to explore next, or exposed by
+      - makes each detail useful for action by stating an implication, recommendation, or next move
       - uses directory evidence rather than vague claims
-      - mentions approval/discovery only when it changes confidence or action
+      - treats network status only as a confidence modifier when that changes what the owner should do next
+      - reads like guidance, not diagnostics
 
       Bad output:
       - generic phrases like "strong market position", "great opportunity", or "competitive advantage"
-      - pure summary with no operational implication
-      - over-focusing on status labels instead of capability depth, gaps, redundancy, or review priorities
+      - pure summary with no practical recommendation
+      - system language like "route", "routing", "coverage", "tag overlap", or similar internal jargon
+      - over-focusing on status labels instead of what the owner should strengthen, trust, test, or avoid
 
-      Score QUALITY down unless most SWOT details tell an operator what the pattern means or what to do next.
+      Score QUALITY down unless most SWOT details tell the owner what the pattern means and what to do next.

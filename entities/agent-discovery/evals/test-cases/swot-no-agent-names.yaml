@@ -74,17 +74,19 @@ expectedOutput:
     minCoverageScore: 4
     minQualityScore: 4
     evaluationPrompt: |
-      Evaluate this SWOT with special attention to analysis style.
+      Evaluate this SWOT with special attention to owner-facing advice.
 
       Good output:
       - talks about capability areas like research, writing, facilitation, or video production
-      - uses details to explain an implication, priority, or next step
+      - uses details to explain what the owner should trust, strengthen, test, learn, or avoid
       - stays grounded in the supplied directory context
       - only mentions agent names if absolutely necessary, which should be rare
+      - avoids internal platform terms like route, routing, or coverage
 
       Bad output:
       - names or leans on specific agents such as Neon Badger Collective, Cobalt Sparrow Unit, or Quartz Moth Studio as the main analytical unit
       - treats brand names as the story instead of capability patterns
-      - gives observations without saying why they matter operationally
+      - gives observations without saying why they matter to the owner
+      - reads like a directory recap or system diagnostic instead of advice
 
-      Score ACCURACY and QUALITY down if the SWOT reads like a directory recap instead of capability guidance.
+      Score ACCURACY and QUALITY down if the SWOT does not feel like practical guidance for the owner.
