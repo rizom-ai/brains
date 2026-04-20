@@ -176,7 +176,6 @@ export class LinkService {
         url,
         description: extractionResult.description,
         summary: extractionResult.summary,
-        keywords: extractionResult.keywords,
         domain: new URL(url).hostname,
         capturedAt,
         source,
@@ -198,17 +197,12 @@ export class LinkService {
     }
 
     // Complete extraction - save as draft
-    this.context.logger.info("Extracted keywords", {
-      keywords: extractionResult.keywords,
-    });
-
     const content = this.linkAdapter.createLinkContent({
       status: "draft",
       title: extractionResult.title,
       url,
       description: extractionResult.description,
       summary: extractionResult.summary,
-      keywords: extractionResult.keywords,
       domain: new URL(url).hostname,
       capturedAt,
       source,
@@ -238,7 +232,6 @@ export class LinkService {
       title: string;
       url: string;
       description?: string;
-      keywords: string[];
       domain: string;
       capturedAt: string;
     }>
@@ -261,7 +254,6 @@ export class LinkService {
         ...(frontmatter.description && {
           description: frontmatter.description,
         }),
-        keywords: frontmatter.keywords,
         domain: frontmatter.domain,
         capturedAt: frontmatter.capturedAt,
       };
@@ -273,7 +265,6 @@ export class LinkService {
    */
   async searchLinks(
     query?: string,
-    keywords?: string[],
     limit: number = 20,
   ): Promise<
     Array<{
@@ -281,19 +272,11 @@ export class LinkService {
       title: string;
       url: string;
       description?: string;
-      keywords: string[];
       domain: string;
       capturedAt: string;
     }>
   > {
-    let searchQuery = query ?? "";
-
-    if (keywords && keywords.length > 0) {
-      const keywordQuery = keywords.map((k) => `keywords: ${k}`).join(" OR ");
-      searchQuery = searchQuery
-        ? `${searchQuery} AND (${keywordQuery})`
-        : keywordQuery;
-    }
+    const searchQuery = query ?? "";
 
     const results = await this.context.entityService.search(searchQuery, {
       types: ["link"],
@@ -313,7 +296,6 @@ export class LinkService {
         ...(frontmatter.description && {
           description: frontmatter.description,
         }),
-        keywords: frontmatter.keywords,
         domain: frontmatter.domain,
         capturedAt: frontmatter.capturedAt,
       };
@@ -329,7 +311,6 @@ export class LinkService {
     url: string;
     description?: string;
     summary?: string;
-    keywords: string[];
     domain: string;
     capturedAt: string;
     status: LinkStatus;
@@ -348,7 +329,6 @@ export class LinkService {
       url: frontmatter.url,
       ...(frontmatter.description && { description: frontmatter.description }),
       ...(summary && { summary }),
-      keywords: frontmatter.keywords,
       domain: frontmatter.domain,
       capturedAt: frontmatter.capturedAt,
       status: entity.metadata["status"] as LinkStatus,

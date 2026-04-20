@@ -6,12 +6,8 @@ import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const adapter = new TopicAdapter();
 
-function makeTopicEntity(
-  id: string,
-  title: string,
-  keywords: string[],
-): BaseEntity {
-  const content = adapter.createTopicBody({ title, content: "", keywords });
+function makeTopicEntity(id: string, title: string): BaseEntity {
+  const content = adapter.createTopicBody({ title, content: "" });
   return {
     id,
     entityType: "topic",
@@ -43,10 +39,10 @@ function createMockEntityService(
 }
 
 describe("topic-distribution insight", () => {
-  it("should return topics with titles and keywords", async () => {
+  it("should return topics with titles", async () => {
     const topics = [
-      makeTopicEntity("education", "Education", ["learning", "pedagogy"]),
-      makeTopicEntity("typescript", "TypeScript", ["programming", "types"]),
+      makeTopicEntity("education", "Education"),
+      makeTopicEntity("typescript", "TypeScript"),
     ];
 
     const handler = createTopicDistributionInsight();
@@ -54,19 +50,16 @@ describe("topic-distribution insight", () => {
     const dist = result["topics"] as Array<{
       topic: string;
       title: string;
-      keywords: string[];
     }>;
 
     expect(dist).toHaveLength(2);
     expect(dist[0]).toMatchObject({
       topic: "education",
       title: "Education",
-      keywords: ["learning", "pedagogy"],
     });
     expect(dist[1]).toMatchObject({
       topic: "typescript",
       title: "TypeScript",
-      keywords: ["programming", "types"],
     });
   });
 

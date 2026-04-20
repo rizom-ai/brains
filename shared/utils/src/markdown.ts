@@ -78,7 +78,6 @@ export function extractIndexedFields(
   entityId: string,
 ): {
   title: string;
-  tags: string[];
   contentWeight: number;
 } {
   const { frontmatter } = parseMarkdown(markdown);
@@ -86,22 +85,13 @@ export function extractIndexedFields(
   // Extract title using hierarchy
   const title = extractTitle(markdown, entityId);
 
-  // Extract tags (ensure it's an array of strings)
-  let tags: string[] = [];
-  if (Array.isArray(frontmatter["tags"])) {
-    tags = frontmatter["tags"]
-      .filter((tag): tag is string => typeof tag === "string")
-      .map((tag) => tag.trim())
-      .filter((tag) => tag.length > 0);
-  }
-
   // Extract contentWeight (default to 1.0 for user content)
   let contentWeight = 1.0;
   if (typeof frontmatter["contentWeight"] === "number") {
     contentWeight = Math.max(0, Math.min(1, frontmatter["contentWeight"]));
   }
 
-  return { title, tags, contentWeight };
+  return { title, contentWeight };
 }
 
 /**

@@ -9,12 +9,6 @@ export class TopicDetailFormatter extends StructuredContentFormatter<TopicDetail
         { key: "id", label: "ID", type: "string" },
         { key: "title", label: "Title", type: "string" },
         { key: "content", label: "Content", type: "string" },
-        {
-          key: "keywords",
-          label: "Keywords",
-          type: "array",
-          itemType: "string",
-        },
         { key: "created", label: "Created", type: "string" },
         { key: "updated", label: "Updated", type: "string" },
       ],

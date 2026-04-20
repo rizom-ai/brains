@@ -28,7 +28,7 @@ export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
     frontmatter: WishFrontmatter;
     description: string;
   } {
-    // Parse through schema to apply defaults (priority, requested, tags)
+    // Parse through schema to apply defaults (priority, requested)
     const raw = this.parseFrontMatter(content, wishFrontmatterSchema);
     return {
       frontmatter: wishFrontmatterSchema.parse(raw),

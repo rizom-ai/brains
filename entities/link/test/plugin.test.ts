@@ -17,7 +17,6 @@ describe("LinkPlugin", () => {
   beforeEach(() => {
     plugin = createLinkPlugin({
       enableSummarization: true,
-      autoExtractKeywords: true,
     }) as LinkPlugin;
   });
 
@@ -38,7 +37,6 @@ describe("LinkPlugin", () => {
     it("should accept custom configuration", () => {
       const customPlugin = createLinkPlugin({
         enableSummarization: false,
-        autoExtractKeywords: false,
       }) as LinkPlugin;
 
       // Note: config is protected, so we test through behavior instead
@@ -66,7 +64,6 @@ describe("LinkPlugin", () => {
         url: "https://example.com/test",
         description: "A test article",
         summary: "This is a test article summary.",
-        keywords: ["test", "example"],
         domain: "example.com",
         capturedAt: "2025-01-30T10:00:00.000Z",
         source: {
@@ -96,9 +93,6 @@ status: draft
 title: Test Article
 url: https://example.com/test
 description: A test article
-keywords:
-  - test
-  - example
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -114,7 +108,6 @@ This is a test article summary.`;
       expect(parsed.frontmatter.url).toBe("https://example.com/test");
       expect(parsed.frontmatter.status).toBe("draft");
       expect(parsed.frontmatter.description).toBe("A test article");
-      expect(parsed.frontmatter.keywords).toEqual(["test", "example"]);
       expect(parsed.frontmatter.domain).toBe("example.com");
       expect(parsed.frontmatter.capturedAt).toBe("2025-01-30T10:00:00.000Z");
       expect(parsed.frontmatter.source).toEqual({
@@ -170,7 +163,6 @@ describe("LinkPlugin with Harness", () => {
 
     plugin = createLinkPlugin({
       enableSummarization: true,
-      autoExtractKeywords: true,
     }) as LinkPlugin;
     capabilities = await harness.installPlugin(plugin);
   });
@@ -283,9 +275,6 @@ status: draft
 title: Anthropic Research
 url: https://anthropic.com/research
 description: Research updates from Anthropic
-keywords:
-  - ai
-  - research
 domain: anthropic.com
 capturedAt: "2026-04-14T08:00:00.000Z"
 source:

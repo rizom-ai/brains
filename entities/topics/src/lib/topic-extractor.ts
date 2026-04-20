@@ -8,7 +8,7 @@ import {
 } from "./extraction-prompt";
 
 /**
- * Extracted topic — title, description, keywords, relevance score.
+ * Extracted topic — title, description, relevance score.
  */
 export type ExtractedTopic = ExtractedTopicData;
 

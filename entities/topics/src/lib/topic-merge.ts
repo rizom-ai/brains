@@ -47,7 +47,6 @@ const TOKEN_SYNONYMS: Record<string, string> = {
 
 export interface TopicSimilarityInput {
   title: string;
-  keywords?: string[];
 }
 
 function normalizeToken(token: string): string | null {
@@ -127,16 +126,6 @@ function jaccard(a: Set<string>, b: Set<string>): number {
   return union === 0 ? 0 : shared / union;
 }
 
-function tokenizeKeywords(keywords: string[] = []): string[] {
-  const tokens = new Set<string>();
-  for (const keyword of keywords) {
-    for (const token of tokenizeTopicText(keyword)) {
-      tokens.add(token);
-    }
-  }
-  return Array.from(tokens);
-}
-
 export function scoreTopicSimilarity(
   a: TopicSimilarityInput,
   b: TopicSimilarityInput,
@@ -173,20 +162,7 @@ export function scoreTopicSimilarity(
     }
   }
 
-  const keywordSetA = toTokenSet(tokenizeKeywords(a.keywords));
-  const keywordSetB = toTokenSet(tokenizeKeywords(b.keywords));
-
-  const titleJaccard = jaccard(titleSetA, titleSetB);
-  const keywordJaccard = jaccard(keywordSetA, keywordSetB);
-  const titleToKeyword = Math.max(
-    jaccard(titleSetA, keywordSetB),
-    jaccard(titleSetB, keywordSetA),
-  );
-
-  return Math.max(
-    titleJaccard,
-    0.65 * titleJaccard + 0.25 * keywordJaccard + 0.1 * titleToKeyword,
-  );
+  return jaccard(titleSetA, titleSetB);
 }
 
 export function toSimilarityInput(
@@ -194,6 +170,5 @@ export function toSimilarityInput(
 ): TopicSimilarityInput {
   return {
     title: topic.title,
-    keywords: topic.keywords,
   };
 }

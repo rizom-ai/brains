@@ -6,7 +6,6 @@ import {
   CardMetadata,
   ListPageHeader,
   EmptyState,
-  TagsList,
   formatDate,
   LinkButton,
 } from "@brains/ui-library";
@@ -49,12 +48,6 @@ export const LinkListLayout = ({
                 <p className="text-theme-muted mb-3 text-sm line-clamp-3">
                   {link.summary}
                 </p>
-
-                <TagsList
-                  tags={link.keywords}
-                  maxVisible={4}
-                  className="mb-2"
-                />
 
                 <CardMetadata>
                   <div className="flex items-center gap-3 text-xs text-theme-muted">

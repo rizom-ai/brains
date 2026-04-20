@@ -5,12 +5,11 @@ import { TopicAdapter } from "../lib/topic-adapter";
 export interface TopicDistributionEntry {
   topic: string;
   title: string;
-  keywords: string[];
 }
 
 /**
  * Create the topic-distribution insight handler.
- * Returns topics with their titles and keywords.
+ * Returns topics with their titles.
  */
 export function createTopicDistributionInsight(): InsightHandler {
   const adapter = new TopicAdapter();
@@ -27,7 +26,6 @@ export function createTopicDistributionInsight(): InsightHandler {
       return {
         topic: topic.id,
         title: parsed.title,
-        keywords: parsed.keywords,
       };
     });
 

@@ -5,7 +5,6 @@ const topicSummarySchema = z.object({
   id: z.string(),
   title: z.string(),
   summary: z.string(),
-  keywords: z.array(z.string()),
   created: z.string(),
   updated: z.string(),
 });

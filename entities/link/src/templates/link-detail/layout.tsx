@@ -4,7 +4,6 @@ import {
   Head,
   DetailPageHeader,
   BackLink,
-  TagsList,
   LinkButton,
   Card,
   Alert,
@@ -119,16 +118,6 @@ export const LinkDetailLayout = ({
                 Summary
               </h2>
               <p className="text-theme leading-relaxed">{link.summary}</p>
-            </section>
-          )}
-
-          {/* Keywords */}
-          {link.keywords.length > 0 && (
-            <section className="mb-8">
-              <h2 className="text-lg font-semibold text-heading mb-3">
-                Keywords
-              </h2>
-              <TagsList tags={link.keywords} />
             </section>
           )}
 

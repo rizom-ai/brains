@@ -36,11 +36,9 @@ describe("topic-merge", () => {
     const score = scoreTopicSimilarity(
       {
         title: "Agency in Human-AI Collaboration",
-        keywords: ["agency", "AI agents", "knowledge management"],
       },
       {
         title: "Human-Agent Collaboration",
-        keywords: ["AI agents", "agency", "distributed work"],
       },
     );
 
@@ -51,11 +49,9 @@ describe("topic-merge", () => {
     const score = scoreTopicSimilarity(
       {
         title: "Fragmentation as Opportunity",
-        keywords: ["fragmentation", "innovation", "resilience"],
       },
       {
         title: "Fragmentation and Multiplicity",
-        keywords: ["fragmentation", "multiplicity", "value pluralism"],
       },
     );
 
@@ -66,11 +62,9 @@ describe("topic-merge", () => {
     const score = scoreTopicSimilarity(
       {
         title: "Biomimicry",
-        keywords: ["nature", "design", "innovation"],
       },
       {
         title: "Educational Technology",
-        keywords: ["learning", "classroom", "pedagogy"],
       },
     );
 

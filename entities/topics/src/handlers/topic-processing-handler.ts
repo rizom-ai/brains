@@ -12,7 +12,6 @@ const topicProcessingJobDataSchema = z.object({
   topic: z.object({
     title: z.string(),
     content: z.string(),
-    keywords: z.array(z.string()),
     relevanceScore: z.number().min(0).max(1),
   }),
   sourceEntityId: z.string(),
@@ -119,7 +118,6 @@ export class TopicProcessingHandler extends BaseJobHandler<
       const created = await this.topicService.createTopic({
         title: topic.title,
         content: topic.content,
-        keywords: topic.keywords,
       });
 
       if (!created) {

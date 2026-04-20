@@ -23,21 +23,15 @@ export class TopicAdapter extends BaseEntityAdapter<
     });
   }
 
-  private buildFrontmatter(
-    title: string,
-    keywords: string[],
-  ): Record<string, unknown> {
-    return {
-      title,
-      ...(keywords.length > 0 && { keywords }),
-    };
+  private buildFrontmatter(title: string): Record<string, unknown> {
+    return { title };
   }
 
   public toMarkdown(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
     return this.buildMarkdown(
       parsed.content,
-      this.buildFrontmatter(parsed.title, parsed.keywords),
+      this.buildFrontmatter(parsed.title),
     );
   }
 
@@ -58,7 +52,7 @@ export class TopicAdapter extends BaseEntityAdapter<
     const parsed = this.parseTopicBody(entity.content);
     const fullMarkdown = this.buildMarkdown(
       "",
-      this.buildFrontmatter(parsed.title, parsed.keywords),
+      this.buildFrontmatter(parsed.title),
     );
     const match = fullMarkdown.match(/^---\n[\s\S]*?\n---/);
     return match ? match[0] : "";
@@ -79,14 +73,12 @@ export class TopicAdapter extends BaseEntityAdapter<
 
         return {
           content: contentText,
-          keywords: frontmatter.keywords ?? [],
           formatted: body,
           title: frontmatter.title,
         };
       } catch {
         return {
           content: body,
-          keywords: [],
           formatted: body,
           title: "Unknown Topic",
         };
@@ -95,20 +87,15 @@ export class TopicAdapter extends BaseEntityAdapter<
 
     return {
       content: body,
-      keywords: [],
       formatted: body,
       title: "Unknown Topic",
     };
   }
 
-  public createTopicBody(params: {
-    title: string;
-    content: string;
-    keywords: string[];
-  }): string {
+  public createTopicBody(params: { title: string; content: string }): string {
     return this.buildMarkdown(
       params.content,
-      this.buildFrontmatter(params.title, params.keywords),
+      this.buildFrontmatter(params.title),
     );
   }
 }

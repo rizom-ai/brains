@@ -30,7 +30,6 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
     url: string;
     description?: string;
     summary?: string;
-    keywords: string[];
     domain: string;
     capturedAt: string;
     source: LinkSource;
@@ -40,7 +39,6 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
       title: params.title,
       url: params.url,
       description: params.description,
-      keywords: params.keywords,
       domain: params.domain,
       capturedAt: params.capturedAt,
       source: params.source,

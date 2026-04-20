@@ -29,7 +29,6 @@ export class TopicService {
   public async createTopic(params: {
     title: string;
     content: string;
-    keywords: string[];
     metadata?: TopicMetadata;
   }): Promise<TopicEntity | null> {
     const topicId = generateIdFromText(params.title);
@@ -49,7 +48,6 @@ export class TopicService {
     const body = this.adapter.createTopicBody({
       title: params.title,
       content: params.content,
-      keywords: params.keywords,
     });
 
     try {
@@ -93,7 +91,6 @@ export class TopicService {
     updates: {
       title?: string;
       content?: string;
-      keywords?: string[];
       metadata?: TopicMetadata;
     },
   ): Promise<TopicEntity | null> {
@@ -106,14 +103,11 @@ export class TopicService {
 
     const title = updates.title ?? parsed.title;
     const content = updates.content ?? parsed.content;
-    const keywords = updates.keywords ?? parsed.keywords;
-
     const metadata: TopicMetadata = updates.metadata ?? existing.metadata;
 
     const newBody = this.adapter.createTopicBody({
       title,
       content,
-      keywords,
     });
 
     const { entityId } = await this.entityService.updateEntity({
@@ -158,7 +152,7 @@ export class TopicService {
   }
 
   public async findMergeCandidate(
-    incoming: Pick<ExtractedTopicData, "title" | "keywords">,
+    incoming: Pick<ExtractedTopicData, "title">,
     threshold: number,
   ): Promise<TopicMergeCandidate | null> {
     const topics = await this.listTopics();
@@ -168,7 +162,6 @@ export class TopicService {
       const parsed = this.adapter.parseTopicBody(topic.content);
       const score = scoreTopicSimilarity(incoming, {
         title: parsed.title,
-        keywords: parsed.keywords,
       });
 
       if (score < threshold) continue;
@@ -212,7 +205,6 @@ export class TopicService {
     synthesized: {
       title: string;
       content: string;
-      keywords: string[];
     };
     aliasCandidates: string[];
   }): Promise<TopicEntity | null> {
@@ -228,7 +220,6 @@ export class TopicService {
     return this.updateTopic(params.existingId, {
       title: params.synthesized.title,
       content: params.synthesized.content,
-      keywords: params.synthesized.keywords,
       metadata: { aliases },
     });
   }
@@ -263,7 +254,6 @@ export class TopicService {
     }
 
     const allContent: string[] = [];
-    const allKeywords = new Set<string>();
 
     for (const topic of validTopics) {
       const parsed = this.adapter.parseTopicBody(topic.content);
@@ -271,8 +261,6 @@ export class TopicService {
       if (topic.id !== target.id) {
         allContent.push(parsed.content);
       }
-
-      parsed.keywords.forEach((k) => allKeywords.add(k));
     }
 
     const targetParsed = this.adapter.parseTopicBody(target.content);
@@ -282,7 +270,6 @@ export class TopicService {
 
     const merged = await this.updateTopic(target.id, {
       content: mergedContent,
-      keywords: Array.from(allKeywords),
     });
 
     if (merged) {

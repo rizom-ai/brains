@@ -47,7 +47,7 @@ Content Type: ${params.entityType}
 CANONICALIZATION RULES:
 - Prefer reusable umbrella topics over article-specific framings, arguments, or sub-angles.
 - Reuse an existing topic title exactly when the content clearly belongs to it.
-- If multiple possible titles describe the same core idea, choose the broadest stable title and move the nuance into the description and keywords.
+- If multiple possible titles describe the same core idea, choose the broadest stable title and move the nuance into the description and content.
 - Avoid creating near-duplicates that only differ by actor naming, qualifiers, or rhetorical framing.
 - Prefer the base concept over a framed version like "X as Y", "X in Z", or "Angle on X" when they point to the same reusable topic.
 
@@ -55,7 +55,7 @@ Examples of good grouping:
 - "Agency in Human-AI Collaboration", "Human-Agent Collaboration", and "AI Collaboration" should usually collapse to one canonical collaboration topic.
 - Titles like "Fragmentation as Opportunity" or "Fragmentation in Digital Ecosystems" should usually collapse to the umbrella topic "Fragmentation".
 - "Fragmentation and Multiplicity" should usually also collapse to "Fragmentation" when multiplicity is just the angle, not a separate durable domain.
-- "Regenerative and Decentralized Design" should usually become the single primary design topic, with the secondary lens moved into keywords/content.${existingTopicsBlock}
+- "Regenerative and Decentralized Design" should usually become the single primary design topic, with the secondary lens moved into the topic content.${existingTopicsBlock}
 
 Content:
 ${params.content}`;

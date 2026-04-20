@@ -28,7 +28,6 @@ export const wishFrontmatterSchema = z.object({
   status: wishStatusSchema,
   priority: wishPrioritySchema.default("medium"),
   requested: z.number().int().default(1),
-  tags: z.array(z.string()).default([]),
   declinedReason: z.string().optional(),
 });
 

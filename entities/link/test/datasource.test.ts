@@ -28,9 +28,6 @@ status: ${status}
 title: ${title}
 url: https://example.com/${id}
 description: Description for ${title}
-keywords:
-  - test
-  - example
 domain: example.com
 capturedAt: '${capturedAt}'
 source:

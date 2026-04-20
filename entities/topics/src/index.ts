@@ -425,7 +425,6 @@ export class TopicsPlugin extends EntityPlugin<
     const detectionTopicSchema = z.object({
       title: z.string(),
       content: z.string(),
-      keywords: z.array(z.string()),
     });
 
     const detectMergeCandidateSchema = z.object({
@@ -452,7 +451,6 @@ export class TopicsPlugin extends EntityPlugin<
         const candidate = await topicService.findMergeCandidate(
           {
             title: parsed.incomingTopic.title,
-            keywords: parsed.incomingTopic.keywords,
           },
           threshold,
         );
@@ -511,7 +509,6 @@ export class TopicsPlugin extends EntityPlugin<
           await topicService.createTopic({
             title: existingTopic.title,
             content: existingTopic.content,
-            keywords: existingTopic.keywords,
             metadata: { aliases: existingTopic.aliases ?? [] },
           });
         }
@@ -527,7 +524,6 @@ export class TopicsPlugin extends EntityPlugin<
             topic: {
               title: parsed.incomingTopic.title,
               content: parsed.incomingTopic.content,
-              keywords: parsed.incomingTopic.keywords,
               relevanceScore: parsed.incomingTopic.relevanceScore ?? 0.9,
             },
             sourceEntityId: "eval-source",
@@ -550,7 +546,6 @@ export class TopicsPlugin extends EntityPlugin<
               id: t.id,
               title: parsed.title,
               content: parsed.content,
-              keywords: parsed.keywords,
               metadata: t.metadata,
             };
           }),
@@ -592,7 +587,6 @@ export class TopicsPlugin extends EntityPlugin<
             id: t.id,
             title: parsed.title,
             content: parsed.content,
-            keywords: parsed.keywords,
             metadata: t.metadata,
           };
         }),
@@ -622,7 +616,6 @@ export class TopicsPlugin extends EntityPlugin<
             await topicService.createTopic({
               title: topic.title,
               content: topic.content,
-              keywords: topic.keywords,
             });
           }
 
@@ -641,7 +634,6 @@ export class TopicsPlugin extends EntityPlugin<
               id: t.id,
               title: parsed.title,
               content: parsed.content,
-              keywords: parsed.keywords,
             };
           }),
         };
@@ -670,7 +662,6 @@ export class TopicsPlugin extends EntityPlugin<
             id: t.id,
             title: parsed.title,
             content: parsed.content,
-            keywords: parsed.keywords,
           };
         }),
       };

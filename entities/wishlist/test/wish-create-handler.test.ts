@@ -75,21 +75,6 @@ describe("WishCreateHandler", () => {
     expect(wishes[0]?.metadata["priority"]).toBe("high");
   });
 
-  it("should accept tags via options", async () => {
-    await handler.process(
-      {
-        title: "Instagram posting",
-        content: "User wants Instagram integration",
-        options: { tags: ["social", "integration"] },
-      },
-      "job-4",
-      noopProgress,
-    );
-
-    const wishes = await context.entityService.listEntities("wish", {});
-    expect(wishes.length).toBe(1);
-  });
-
   it("should use prompt as title fallback", async () => {
     await handler.process(
       { prompt: "I want to send emails" },

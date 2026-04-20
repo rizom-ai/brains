@@ -28,7 +28,6 @@ export const linkFrontmatterSchema = z.object({
   title: z.string(),
   url: z.string().url(),
   description: z.string().optional(),
-  keywords: z.array(z.string()),
   domain: z.string(),
   capturedAt: z.string().datetime(),
   source: linkSourceSchema,
@@ -60,10 +59,6 @@ export const linkConfigSchema = z.object({
     .boolean()
     .default(true)
     .describe("Generate AI summaries for captured links"),
-  autoExtractKeywords: z
-    .boolean()
-    .default(true)
-    .describe("Automatically extract keywords from content"),
   jinaApiKey: z
     .string()
     .optional()

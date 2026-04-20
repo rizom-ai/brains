@@ -75,7 +75,6 @@ describe("TopicService", () => {
     const created = await service.createTopic({
       title: "Test Topic",
       content: "Topic content",
-      keywords: ["test"],
     });
 
     expect(created?.metadata).toEqual({ aliases: [] } satisfies TopicMetadata);

@@ -11,8 +11,6 @@ status: draft
 title: Test Article
 url: https://example.com/test
 description: Test description
-keywords:
-  - test
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -22,14 +20,11 @@ source:
 
 Test summary`,
 
-  withMultipleTags: `---
+  withMultipleDescriptions: `---
 status: draft
 title: Test Article
 url: https://example.com/test
 description: Test description
-keywords:
-  - test
-  - example
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -44,8 +39,6 @@ status: published
 title: Published Article
 url: https://example.com/published
 description: A published article
-keywords:
-  - published
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -60,8 +53,6 @@ status: draft
 title: Matrix Article
 url: https://example.com/matrix
 description: Article from Matrix
-keywords:
-  - matrix
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -76,9 +67,6 @@ status: draft
 title: Article 1
 url: https://example.com/article1
 description: First article
-keywords:
-  - keyword1
-  - keyword2
 domain: example.com
 capturedAt: "2025-01-30T10:00:00.000Z"
 source:
@@ -120,13 +108,11 @@ export const mockAIResponse = {
     title: "Test Article",
     description: "A test article description",
     summary: "This is a test summary of the article content.",
-    keywords: ["test", "article", "example"],
   },
   minimal: {
     title: "Test Article",
     description: "Test description",
     summary: "Test summary",
-    keywords: ["test"],
   },
   missingFields: {
     title: "Test Article",

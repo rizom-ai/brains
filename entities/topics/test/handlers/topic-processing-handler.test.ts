@@ -32,7 +32,6 @@ describe("TopicProcessingHandler", () => {
         title: "Human-AI Collaboration",
         content:
           "AI agents collaborate with humans on shared work. Agents participate as collaborators in distributed teams.",
-        keywords: ["AI collaboration", "agency", "distributed work"],
       }),
     };
     handler = new TopicProcessingHandler(
@@ -52,7 +51,6 @@ describe("TopicProcessingHandler", () => {
     id: string;
     title: string;
     content: string;
-    keywords: string[];
   }): Promise<void> {
     await mockShell.getEntityService().createEntity({
       id: params.id,
@@ -60,7 +58,6 @@ describe("TopicProcessingHandler", () => {
       content: topicAdapter.createTopicBody({
         title: params.title,
         content: params.content,
-        keywords: params.keywords,
       }),
       metadata: { aliases: [] },
       created: new Date().toISOString(),
@@ -73,7 +70,6 @@ describe("TopicProcessingHandler", () => {
       id: "human-ai-collaboration",
       title: "Human-AI Collaboration",
       content: "AI agents collaborate with humans on shared work.",
-      keywords: ["AI collaboration", "agency"],
     });
 
     const result = await handler.process(
@@ -81,7 +77,6 @@ describe("TopicProcessingHandler", () => {
         topic: {
           title: "Human-Agent Collaboration",
           content: "Agents participate as collaborators in distributed teams.",
-          keywords: ["AI agents", "distributed work"],
           relevanceScore: 0.9,
         },
         sourceEntityId: "post-1",
@@ -116,7 +111,6 @@ describe("TopicProcessingHandler", () => {
       id: "biomimicry",
       title: "Biomimicry",
       content: "Nature inspires design and innovation.",
-      keywords: ["nature", "design"],
     });
 
     const result = await handler.process(
@@ -124,7 +118,6 @@ describe("TopicProcessingHandler", () => {
         topic: {
           title: "Educational Technology",
           content: "Digital tools reshape how people learn.",
-          keywords: ["learning", "pedagogy"],
           relevanceScore: 0.8,
         },
         sourceEntityId: "post-2",

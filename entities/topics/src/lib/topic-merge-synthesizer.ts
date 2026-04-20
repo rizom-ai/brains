@@ -35,13 +35,11 @@ export class TopicMergeSynthesizer implements ITopicMergeSynthesizer {
       templateName: "topics:merge-synthesis",
       prompt: `Canonical topic candidate:
 Title: ${existingParsed.title}
-Keywords: ${existingParsed.keywords.join(", ")}
 Content:
 ${existingParsed.content}
 
 Incoming topic candidate:
 Title: ${params.incomingTopic.title}
-Keywords: ${params.incomingTopic.keywords.join(", ")}
 Content:
 ${params.incomingTopic.content}`,
     });

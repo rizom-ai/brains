@@ -20,7 +20,6 @@ interface TopicListItem {
   id: string;
   title: string;
   summary: string;
-  keywords: string[];
   created: string;
   updated: string;
 }
@@ -57,7 +56,6 @@ export class TopicsDataSource extends BaseEntityDataSource<
       id: entity.id,
       title: parsed.title,
       summary: truncateText(parsed.content, 200),
-      keywords: parsed.keywords,
       created: entity.created,
       updated: entity.updated,
     };
@@ -101,7 +99,6 @@ export class TopicsDataSource extends BaseEntityDataSource<
         id: entity.id,
         title: parsed.title,
         content: parsed.content,
-        keywords: parsed.keywords,
         created: entity.created,
         updated: entity.updated,
       });

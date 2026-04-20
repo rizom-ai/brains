@@ -84,7 +84,6 @@ export async function extractTopicsBatched(
         await topicService.createTopic({
           title: topic.title,
           content: topic.content,
-          keywords: topic.keywords,
         });
         created++;
       }

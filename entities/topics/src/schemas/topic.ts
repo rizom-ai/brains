@@ -28,7 +28,6 @@ export type TopicEntity = z.infer<typeof topicEntitySchema>;
  */
 export const topicBodySchema = z.object({
   content: z.string(),
-  keywords: z.array(z.string()),
 });
 
 /**
@@ -36,7 +35,6 @@ export const topicBodySchema = z.object({
  */
 export const topicFrontmatterSchema = z.object({
   title: z.string().describe("Topic title"),
-  keywords: z.array(z.string()).optional().describe("Topic keywords"),
 });
 
 export type TopicBody = z.infer<typeof topicBodySchema>;

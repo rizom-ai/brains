@@ -14,7 +14,7 @@ describe("TopicAdapter", () => {
     it("should expose frontmatterSchema for CMS", () => {
       expect(adapter.frontmatterSchema).toBeDefined();
       expect(adapter.frontmatterSchema.shape).toHaveProperty("title");
-      expect(adapter.frontmatterSchema.shape).toHaveProperty("keywords");
+      expect(adapter.frontmatterSchema.shape).not.toHaveProperty("keywords");
     });
   });
 
@@ -23,26 +23,12 @@ describe("TopicAdapter", () => {
       const body = adapter.createTopicBody({
         title: "Test Topic",
         content: "This is the main content",
-        keywords: ["test", "example"],
       });
 
       expect(body).toContain("---");
       expect(body).toContain("title: Test Topic");
-      expect(body).toContain("keywords:");
-      expect(body).toContain("test");
-      expect(body).toContain("example");
       expect(body).toContain("This is the main content");
       expect(body).not.toContain("## Sources");
-    });
-
-    it("should omit keywords from frontmatter when empty", () => {
-      const body = adapter.createTopicBody({
-        title: "Test Topic",
-        content: "Content here",
-        keywords: [],
-      });
-
-      expect(body).toContain("title: Test Topic");
       expect(body).not.toContain("keywords:");
     });
   });
@@ -51,9 +37,6 @@ describe("TopicAdapter", () => {
     it("should parse frontmatter+body format", () => {
       const body = `---
 title: Test Topic
-keywords:
-  - test
-  - example
 ---
 This is the main content`;
 
@@ -61,14 +44,11 @@ This is the main content`;
 
       expect(parsed.title).toBe("Test Topic");
       expect(parsed.content).toBe("This is the main content");
-      expect(parsed.keywords).toEqual(["test", "example"]);
     });
 
     it("should ignore legacy ## Sources section in old entities", () => {
       const body = `---
 title: Old Topic
-keywords:
-  - legacy
 ---
 Main content here
 
@@ -79,7 +59,6 @@ Main content here
 
       expect(parsed.title).toBe("Old Topic");
       expect(parsed.content).toBe("Main content here");
-      expect(parsed.keywords).toEqual(["legacy"]);
     });
   });
 
@@ -143,7 +122,6 @@ Main content here
       const content = adapter.createTopicBody({
         title: "Test Topic",
         content: "Some content",
-        keywords: ["test"],
       });
 
       const entity = createMockTopicEntity({
@@ -164,8 +142,6 @@ Main content here
     it("should parse frontmatter format", () => {
       const markdown = `---
 title: Test Topic
-keywords:
-  - keyword1
 ---
 Some content here.`;
 
@@ -209,7 +185,6 @@ Content
       const content = adapter.createTopicBody({
         title: "Test Topic",
         content: "Some content",
-        keywords: ["test", "example"],
       });
 
       const entity = createMockTopicEntity({
@@ -220,7 +195,7 @@ Content
       const result = adapter.generateFrontMatter(entity);
 
       expect(result).toContain("title: Test Topic");
-      expect(result).toContain("keywords:");
+      expect(result).not.toContain("keywords:");
     });
   });
 
@@ -244,14 +219,12 @@ metadata: {}
       const body = adapter.createTopicBody({
         title: "Test Topic",
         content: "Main content here",
-        keywords: ["test", "example"],
       });
 
       const parsed = adapter.parseTopicBody(body);
 
       expect(parsed.title).toBe("Test Topic");
       expect(parsed.content).toBe("Main content here");
-      expect(parsed.keywords).toEqual(["test", "example"]);
     });
   });
 });

@@ -122,7 +122,6 @@ Content here`;
 
       expect(fields).toEqual({
         title: "Test Entity",
-        tags: ["one", "two", "three"],
         contentWeight: 0.8,
       });
     });
@@ -134,19 +133,8 @@ Content here`;
 
       expect(fields).toEqual({
         title: "Just some content",
-        tags: [],
         contentWeight: 1.0,
       });
-    });
-
-    it("should filter invalid tags", () => {
-      const markdown = `---
-tags: [valid, 123, "", "  ", another]
----`;
-
-      const fields = extractIndexedFields(markdown, "entity_123");
-
-      expect(fields.tags).toEqual(["valid", "another"]);
     });
 
     it("should clamp contentWeight between 0 and 1", () => {

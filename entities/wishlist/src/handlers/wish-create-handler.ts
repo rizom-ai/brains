@@ -11,7 +11,6 @@ export interface WishCreateData {
   content?: string;
   options?: {
     priority?: string;
-    tags?: string[];
   };
 }
 
@@ -92,7 +91,6 @@ export class WishCreateHandler {
         status: "new",
         priority,
         requested: 1,
-        tags: data.options?.tags ?? [],
       },
       description,
     );

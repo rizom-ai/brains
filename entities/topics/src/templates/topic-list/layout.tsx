@@ -6,7 +6,6 @@ import {
   CardMetadata,
   ListPageHeader,
   EmptyState,
-  TagsList,
   formatDate,
 } from "@brains/ui-library";
 
@@ -31,13 +30,6 @@ export const TopicListLayout = ({
             </CardTitle>
 
             <p className="text-theme-muted mb-4">{topic.summary}</p>
-
-            <TagsList
-              tags={topic.keywords}
-              maxVisible={5}
-              variant="muted"
-              className="mb-3"
-            />
 
             <CardMetadata>
               <div className="flex justify-between text-sm text-theme-muted">
