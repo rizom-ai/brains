@@ -1,5 +1,5 @@
 import type { RouteDefinitionInput } from "@brains/plugins";
-import { createEcosystemContent } from "@brains/site-rizom";
+import { createEcosystemContent } from "./sections/ecosystem";
 
 export const workRoutes: RouteDefinitionInput[] = [
   {
@@ -14,47 +14,47 @@ export const workRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "rizom-site:work-hero",
+        template: "landing-page:work-hero",
         content: {},
       },
       {
         id: "problem",
-        template: "rizom-site:work-problem",
+        template: "landing-page:work-problem",
         content: {},
       },
       {
         id: "workshop",
-        template: "rizom-site:workshop",
+        template: "landing-page:workshop",
         content: {},
       },
       {
         id: "personas",
-        template: "rizom-site:personas",
+        template: "landing-page:personas",
         content: {},
       },
       {
         id: "proof",
-        template: "rizom-site:proof",
+        template: "landing-page:proof",
         content: {},
       },
       {
         id: "bridge",
-        template: "rizom-site:bridge",
+        template: "landing-page:bridge",
         content: {},
       },
       {
         id: "ownership",
-        template: "rizom-site:ownership",
+        template: "landing-page:ownership",
         content: {},
       },
       {
         id: "mission",
-        template: "rizom-site:closer",
+        template: "landing-page:closer",
         content: {},
       },
       {
         id: "ecosystem",
-        template: "rizom-site:ecosystem",
+        template: "landing-page:ecosystem",
         content: createEcosystemContent("work", {
           eyebrow: "The Ecosystem",
           headline: "One ecosystem. The platform, the vision, the network.",

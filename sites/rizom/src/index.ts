@@ -2,9 +2,8 @@
  * Shared Rizom site core.
  *
  * This is the structural base that the app-owned Rizom variants
- * compose from. It currently re-exports the shared Rizom runtime,
- * UI, and ecosystem seams while those packages are being folded
- * into this shared site.
+ * compose from. It re-exports shared Rizom runtime and UI
+ * primitives used by the app-owned site/content layers.
  */
 export {
   DefaultRizomLayout,
@@ -42,18 +41,3 @@ export type {
   RizomLink,
   RizomSideNavItem,
 } from "./ui";
-
-export {
-  createEcosystemContent,
-  ecosystemFormatter,
-  EcosystemLayout,
-  ecosystemTemplate,
-  EcosystemCardSchema,
-  EcosystemContentSchema,
-  EcosystemSuffixSchema,
-} from "./ecosystem";
-export type {
-  EcosystemCard,
-  EcosystemContent,
-  EcosystemSuffix,
-} from "./ecosystem";

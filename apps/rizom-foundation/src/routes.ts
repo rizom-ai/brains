@@ -1,5 +1,5 @@
 import type { RouteDefinitionInput } from "@brains/plugins";
-import { createEcosystemContent } from "@brains/site-rizom";
+import { createEcosystemContent } from "./sections/ecosystem";
 
 export const foundationRoutes: RouteDefinitionInput[] = [
   {
@@ -14,44 +14,44 @@ export const foundationRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "rizom-site:foundation-hero",
+        template: "landing-page:foundation-hero",
         content: {},
       },
-      { id: "problem", template: "rizom-site:problem", content: {} },
-      { id: "answer", template: "rizom-site:answer", content: {} },
+      { id: "problem", template: "landing-page:problem", content: {} },
+      { id: "answer", template: "landing-page:answer", content: {} },
       {
         id: "pull-quote",
-        template: "rizom-site:pull-quote",
+        template: "landing-page:pull-quote",
         content: {},
       },
       {
         id: "research",
-        template: "rizom-site:research",
+        template: "landing-page:research",
         content: {},
       },
       {
         id: "events",
-        template: "rizom-site:events",
+        template: "landing-page:events",
         content: {},
       },
       {
         id: "support",
-        template: "rizom-site:support",
+        template: "landing-page:support",
         content: {},
       },
       {
         id: "ownership",
-        template: "rizom-site:ownership",
+        template: "landing-page:ownership",
         content: {},
       },
       {
         id: "mission",
-        template: "rizom-site:mission",
+        template: "landing-page:mission",
         content: {},
       },
       {
         id: "ecosystem",
-        template: "rizom-site:ecosystem",
+        template: "landing-page:ecosystem",
         content: createEcosystemContent("foundation", {
           eyebrow: "The Ecosystem",
           headline: "One ecosystem. The platform, the vision, the network.",

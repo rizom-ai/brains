@@ -6,13 +6,13 @@ import type {
 import { extendSite, type SitePackage } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import rizomBaseSite from ".";
-import { ecosystemTemplate } from "./ecosystem";
 import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
   constructor(
     packageName: string,
     config: Record<string, unknown>,
+    private readonly contentNamespace: string,
     private readonly extraTemplates: Record<string, Template>,
   ) {
     super(packageName, config);
@@ -22,13 +22,13 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
     context: ServicePluginContext,
   ): Promise<void> {
     await super.onRegister(context);
-    context.templates.register({ ecosystem: ecosystemTemplate });
-    context.templates.register(this.extraTemplates);
+    context.templates.register(this.extraTemplates, this.contentNamespace);
   }
 }
 
 export interface CreateRizomSiteOptions {
   packageName: string;
+  contentNamespace: string;
   themeProfile: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
@@ -42,6 +42,7 @@ export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
     new RizomVariantPlugin(
       options.packageName,
       { themeProfile: options.themeProfile, ...(config ?? {}) },
+      options.contentNamespace,
       options.templates,
     );
 

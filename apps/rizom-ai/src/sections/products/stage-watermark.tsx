@@ -1,7 +1,9 @@
 import type { JSX } from "preact";
-import { cn } from "@brains/ui-library";
 
 export type ProductStage = "you" | "team" | "network";
+
+const svgClass = (className?: string): string =>
+  `block h-auto w-full${className ? ` ${className}` : ""}`;
 
 export const ProductStageWatermark = ({
   stage,
@@ -14,7 +16,7 @@ export const ProductStageWatermark = ({
     return (
       <svg
         viewBox="0 0 220 120"
-        className={cn("block h-auto w-full", className)}
+        className={svgClass(className)}
         aria-hidden="true"
       >
         <circle
@@ -50,7 +52,7 @@ export const ProductStageWatermark = ({
     return (
       <svg
         viewBox="0 0 220 120"
-        className={cn("block h-auto w-full", className)}
+        className={svgClass(className)}
         aria-hidden="true"
       >
         {satellites.map((sat) => (
@@ -106,7 +108,7 @@ export const ProductStageWatermark = ({
   return (
     <svg
       viewBox="0 0 220 120"
-      className={cn("block h-auto w-full", className)}
+      className={svgClass(className)}
       aria-hidden="true"
     >
       {edges.map(([a, b]) => {

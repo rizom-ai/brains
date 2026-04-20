@@ -5,6 +5,7 @@ import { personasTemplate } from "./sections/personas";
 import { proofTemplate } from "./sections/proof";
 import { bridgeTemplate } from "./sections/bridge";
 import { closerTemplate } from "./sections/closer";
+import { ecosystemTemplate } from "./sections/ecosystem";
 
 export const workTemplates = {
   "work-hero": workHeroTemplate,
@@ -14,4 +15,5 @@ export const workTemplates = {
   proof: proofTemplate,
   bridge: bridgeTemplate,
   closer: closerTemplate,
+  ecosystem: ecosystemTemplate,
 };

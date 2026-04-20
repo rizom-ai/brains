@@ -3,6 +3,7 @@ import { pullQuoteTemplate } from "./sections/pull-quote";
 import { researchTemplate } from "./sections/research";
 import { eventsTemplate } from "./sections/events";
 import { supportTemplate } from "./sections/support";
+import { ecosystemTemplate } from "./sections/ecosystem";
 
 export const foundationTemplates = {
   "foundation-hero": foundationHeroTemplate,
@@ -10,4 +11,5 @@ export const foundationTemplates = {
   research: researchTemplate,
   events: eventsTemplate,
   support: supportTemplate,
+  ecosystem: ecosystemTemplate,
 };

@@ -1,5 +1,4 @@
 import type { JSX } from "preact";
-import { cn } from "@brains/ui-library";
 
 /**
  * Three-layer scales diagram — renders the "personal → team → network"
@@ -82,10 +81,7 @@ export const ScalesDiagram = ({
   return (
     <svg
       viewBox="0 0 680 180"
-      className={cn(
-        "mx-auto my-8 md:my-10 block w-full max-w-[600px] md:max-w-[680px]",
-        className,
-      )}
+      className={`mx-auto my-8 md:my-10 block w-full max-w-[600px] md:max-w-[680px]${className ? ` ${className}` : ""}`}
       role={decorative ? undefined : "img"}
       aria-hidden={decorative ? true : undefined}
       aria-label={

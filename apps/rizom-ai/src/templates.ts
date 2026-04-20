@@ -5,6 +5,7 @@ import { productsTemplate } from "./sections/products";
 import { ownershipTemplate } from "./sections/ownership";
 import { quickstartTemplate } from "./sections/quickstart";
 import { missionTemplate } from "./sections/mission";
+import { ecosystemTemplate } from "./sections/ecosystem";
 
 export const aiTemplates = {
   hero: heroTemplate,
@@ -14,4 +15,5 @@ export const aiTemplates = {
   ownership: ownershipTemplate,
   quickstart: quickstartTemplate,
   mission: missionTemplate,
+  ecosystem: ecosystemTemplate,
 };

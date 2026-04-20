@@ -5,6 +5,7 @@ import { workTemplates } from "./templates";
 
 export default createRizomSite({
   packageName: "rizom-work-site",
+  contentNamespace: "landing-page",
   themeProfile: "studio",
   layout: WorkLayout,
   routes: workRoutes,

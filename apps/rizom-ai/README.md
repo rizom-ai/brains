@@ -42,7 +42,13 @@ bunx brain start
 
 `brain.yaml` now omits an explicit `site.package`, so the runtime picks up app-local `src/site.ts`.
 
-That local site file composes from the shared `@brains/site-rizom` base and owns the final `rizom.ai` layout, route composition, and app-specific templates directly from this app.
+That local site file composes from the shared `@brains/site-rizom` base and owns the final `rizom.ai` layout, route composition, and app-specific landing-page content directly from this app.
+
+Current split:
+
+- `@brains/site-rizom` = shared site logic
+- `apps/rizom-ai/src/sections/*` = app-owned landing-page content logic
+- landing-page templates register under the `landing-page:*` namespace
 
 Across the Rizom family, the variant still determines:
 

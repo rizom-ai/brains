@@ -19,8 +19,8 @@ import type { z } from "@brains/utils";
  * Includes registration, formatting, parsing, resolution, and capability checking
  */
 export interface IServiceTemplatesNamespace {
-  /** Register templates for this plugin */
-  register: (templates: Record<string, Template>) => void;
+  /** Register templates for this plugin or an explicit template namespace */
+  register: (templates: Record<string, Template>, namespace?: string) => void;
 
   /** Format data using a template formatter */
   format: <T = unknown>(templateName: string, data: T) => string;
@@ -146,8 +146,11 @@ export function createServicePluginContext(
     },
 
     templates: {
-      register: (templates: Record<string, Template>): void => {
-        shell.registerTemplates(templates, pluginId);
+      register: (
+        templates: Record<string, Template>,
+        namespace?: string,
+      ): void => {
+        shell.registerTemplates(templates, namespace ?? pluginId);
       },
       format: <T = unknown>(templateName: string, data: T): string => {
         return contentService.formatContent(templateName, data, { pluginId });

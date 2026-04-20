@@ -1,7 +1,7 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
-import { createEcosystemContent } from "@brains/site-rizom";
+import { type CreateRizomSiteOptions } from "@brains/site-rizom";
+import { createEcosystemContent } from "./sections/ecosystem";
 
-export const aiRoutes: RouteDefinitionInput[] = [
+export const aiRoutes: CreateRizomSiteOptions["routes"] = [
   {
     id: "home",
     path: "/",
@@ -12,16 +12,16 @@ export const aiRoutes: RouteDefinitionInput[] = [
       priority: 10,
     },
     sections: [
-      { id: "hero", template: "rizom-site:hero", content: {} },
-      { id: "problem", template: "rizom-site:problem", content: {} },
-      { id: "answer", template: "rizom-site:answer", content: {} },
-      { id: "products", template: "rizom-site:products", content: {} },
-      { id: "ownership", template: "rizom-site:ownership", content: {} },
-      { id: "quickstart", template: "rizom-site:quickstart", content: {} },
-      { id: "mission", template: "rizom-site:mission", content: {} },
+      { id: "hero", template: "landing-page:hero", content: {} },
+      { id: "problem", template: "landing-page:problem", content: {} },
+      { id: "answer", template: "landing-page:answer", content: {} },
+      { id: "products", template: "landing-page:products", content: {} },
+      { id: "ownership", template: "landing-page:ownership", content: {} },
+      { id: "quickstart", template: "landing-page:quickstart", content: {} },
+      { id: "mission", template: "landing-page:mission", content: {} },
       {
         id: "ecosystem",
-        template: "rizom-site:ecosystem",
+        template: "landing-page:ecosystem",
         content: createEcosystemContent("ai", {
           eyebrow: "The Ecosystem",
           headline: "One ecosystem. The platform, the vision, the network.",

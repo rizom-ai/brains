@@ -5,6 +5,7 @@ import { aiTemplates } from "./templates";
 
 export default createRizomSite({
   packageName: "rizom-ai-site",
+  contentNamespace: "landing-page",
   themeProfile: "product",
   layout: AiLayout,
   routes: aiRoutes,

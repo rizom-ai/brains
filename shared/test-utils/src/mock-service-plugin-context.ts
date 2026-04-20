@@ -157,7 +157,7 @@ export function createMockServicePluginContext(
 
     // Template operations namespace
     templates: {
-      register: mock(() => {}),
+      register: mock((_templates?: unknown, _namespace?: string) => {}),
       format: mock(() => ""),
       parse: mock(() => ({})),
       resolve: mock(() => Promise.resolve(null)),
