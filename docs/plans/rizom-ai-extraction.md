@@ -174,7 +174,8 @@ After this boundary correction, the publishing/extraction contract is smaller an
 
 - `@brains/site-rizom`
 
-This is the last remaining app-visible shared package in `rizom.ai` source.
+This is now only a shared Rizom UI/layout authoring dependency.
+It is no longer the old site-composition blocker.
 
 ### Current app contract after boundary cleanup
 
@@ -185,6 +186,8 @@ This is the last remaining app-visible shared package in `rizom.ai` source.
 
 `src/site.ts` no longer composes `createRizomSite(...)` directly.
 Rizom site/theme defaults now come from the selected brain model, and local `src/site.ts` only supplies app-local site overrides.
+
+What remains here is shared Rizom UI authoring, not site composition.
 
 **Content authoring imports removed from app code**
 
@@ -242,10 +245,10 @@ For each dependency, decide:
 
 #### Current dependency matrix
 
-| Package              | Current role in `rizom.ai`                                           | Current state     | Pilot status                                                                        |
-| -------------------- | -------------------------------------------------------------------- | ----------------- | ----------------------------------------------------------------------------------- |
-| `@rizom/brain`       | public CLI/runtime, tsconfig preset                                  | public, versioned | usable now once `workspace:*` is replaced with a real version                       |
-| `@brains/site-rizom` | app-visible Rizom site/runtime/UI surface still imported from `src/` | **private**       | should stop being an app dependency once Rizom defaults move behind the brain model |
+| Package              | Current role in `rizom.ai`                                          | Current state     | Pilot status                                                             |
+| -------------------- | ------------------------------------------------------------------- | ----------------- | ------------------------------------------------------------------------ |
+| `@rizom/brain`       | public CLI/runtime, tsconfig preset                                 | public, versioned | usable now once `workspace:*` is replaced with a real version            |
+| `@brains/site-rizom` | shared Rizom UI/layout authoring surface still imported from `src/` | **private**       | now clearly the remaining authoring-surface blocker for clean extraction |
 
 #### Current constraint
 
@@ -255,8 +258,10 @@ The remaining extraction constraints are now:
 
 - `apps/rizom-ai/package.json` still uses a monorepo-oriented dependency choice (`@rizom/brain: workspace:*`)
 - deploy workflow/assets are still repo-owned
-- `@brains/site-rizom` is still the last app-visible shared package because app layouts/components still import its shared UI primitives
 - `@brains/site-rizom` still carries temporary `contentNamespace` / `templates` passthrough for the not-yet-migrated Rizom apps
+- `apps/rizom-ai/src` still imports shared Rizom UI/layout primitives from private `@brains/site-rizom`
+
+So extraction still needs one more explicit answer: split internal default Rizom site wiring from a published Rizom authoring surface.
 
 #### Required order
 
@@ -297,16 +302,16 @@ Only then decide what needs to be published or exposed publicly for extraction.
 
 #### Recommendation
 
-Do **not** lock the public/extraction contract yet.
+The missing answer is now explicit:
 
-First:
-
-1. keep `site-rizom` as **site logic** only while other Rizom apps finish migrating
+1. keep internal default Rizom site wiring behind the brain models (`ranger` / `relay`)
 2. keep durable content on `@brains/site-content`
 3. treat `site-content` and `theme-rizom` as runtime defaults/infrastructure, not app deps
-4. keep Rizom site/theme defaults behind the selected brain model (now landed for `rizom.ai`)
-5. remove the remaining app-visible `site-rizom` UI imports behind a public surface
-6. then finalize the public/export decision
+4. split `site-rizom` into:
+   - an internal default Rizom site layer used by brain models
+   - a published Rizom authoring surface for extracted app code
+5. switch extracted-app-facing Rizom UI/layout imports to that published surface
+6. then finalize the remaining package pinning / deploy contract
 
 Only after that should the public/export decision be finalized.
 
@@ -314,10 +319,11 @@ Only after that should the public/export decision be finalized.
 
 Before dry-run extraction, define:
 
-- what the **site layer** for Rizom actually is
-- what the **site-content layer** for Rizom actually is
-- how `@brains/site-content` will own landing-page content definition/wiring
-- which of `rizom.ai`'s current imports disappear once that lands
+- what the **internal default Rizom site layer** is
+- what the **published Rizom authoring surface** is
+- what the **site-content layer** for Rizom is
+- how `@brains/site-content` owns landing-page content definition/wiring
+- which of `rizom.ai`'s current imports disappear once the published Rizom authoring surface exists
 - how durable `site-content` is supplied through plugin/preset/runtime without direct app imports
 - whether extraction continues to rely on `brain: ranger` / `preset: default`, or needs an explicit equivalent runtime contract
 - only then the exact published versions and package names to pin
@@ -594,7 +600,8 @@ Deliverable:
 - [x] site logic vs site-content boundary is made explicit in code
 - [x] app-owned content namespace moved to `landing-page:*`
 - [ ] shared-package release/pinning strategy is chosen for the pilot
-- [ ] `@brains/site-rizom` is removed from the direct `apps/rizom-ai/src` dependency surface
+- [ ] split internal default Rizom site wiring from a published Rizom authoring surface
+- [ ] switch remaining extracted-app-facing Rizom UI/layout imports to that published surface
 - [x] durable `site-content` plugin/runtime contract is documented without app-level imports
 - [x] `@brains/site-content` is extended to own landing-page content definition/wiring for `rizom.ai`
 - [x] direct app imports of `@brains/templates` / `@brains/utils` are removed from `apps/rizom-ai/src`
