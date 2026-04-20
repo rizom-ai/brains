@@ -3,989 +3,1245 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Agent Network Widget Mockup</title>
+  <title>Agent Network Widget — Sketch</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..900,30..100&family=IBM+Plex+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   <style>
+    /* ───────────────────────────────────────────────────────────
+       Styles below are copied verbatim from
+       plugins/dashboard/src/render/styles.ts so this sketch
+       renders ≈ the real dashboard. Only the page wrapper and
+       sketch-specific helpers are added.
+       ─────────────────────────────────────────────────────────── */
+
     :root {
-      --bg: #090814;
-      --bg-soft: #131126;
-      --panel: rgba(20, 17, 43, 0.82);
-      --panel-strong: rgba(15, 13, 34, 0.94);
-      --line: rgba(241, 234, 221, 0.10);
-      --line-strong: rgba(241, 234, 221, 0.18);
-      --text: #f1eadd;
-      --text-dim: #c8bfaf;
-      --text-mute: #887f72;
-      --accent: #ff8b3d;
-      --accent-soft: rgba(255, 139, 61, 0.14);
-      --ok: #71d39a;
-      --warn: #f2bf5b;
-      --violet: #9a8dff;
-      --shadow: 0 28px 80px -36px rgba(0, 0, 0, 0.72);
-      --radius-xl: 28px;
-      --radius-lg: 18px;
-      --radius-md: 14px;
-      --font-display: "Fraunces", serif;
-      --font-body: "IBM Plex Sans", sans-serif;
-      --font-mono: "JetBrains Mono", monospace;
+      --ink:          #0a0819;
+      --ink-raised:   #14112b;
+      --ink-soft:     #1b1638;
+      --ink-deep:     #05040f;
+      --paper:        #f1eadd;
+      --paper-dim:    #bfb7a6;
+      --paper-mute:   #7a7263;
+      --paper-faint:  #4a4459;
+      --rule:         rgba(241, 234, 221, 0.07);
+      --rule-strong:  rgba(241, 234, 221, 0.14);
+      --rule-accent:  rgba(255, 139, 61, 0.45);
+      --accent:       #ff8b3d;
+      --accent-dim:   #c4611f;
+      --accent-soft:  rgba(255, 139, 61, 0.12);
+      --ok:           #68cc8b;
+      --warn:         #f5c158;
+      --err:          #e26d6d;
+      --neutral:      #7a7263;
+      --font-display: "Fraunces", "Times New Roman", serif;
+      --font-body:    "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+      --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+      --shadow-card:  0 1px 0 rgba(255, 255, 255, 0.02) inset,
+                      0 24px 48px -24px rgba(0, 0, 0, 0.55);
+      color-scheme: dark;
     }
 
-    * { box-sizing: border-box; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
     html, body { min-height: 100%; }
     body {
-      margin: 0;
       font-family: var(--font-body);
-      color: var(--text);
-      background:
-        radial-gradient(circle at top left, rgba(154, 141, 255, 0.12), transparent 28%),
-        radial-gradient(circle at top right, rgba(255, 139, 61, 0.14), transparent 32%),
-        linear-gradient(180deg, #0d0b1d 0%, var(--bg) 100%);
-      overflow-x: hidden;
+      font-size: 15px;
+      line-height: 1.55;
+      background: var(--ink);
+      color: var(--paper);
+      -webkit-font-smoothing: antialiased;
+      position: relative;
     }
-
     body::before {
       content: "";
       position: fixed;
       inset: 0;
       pointer-events: none;
-      opacity: 0.05;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.9'/%3E%3C/svg%3E");
+      opacity: 0.035;
       mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, transparent 0%, transparent 45%, var(--ink-deep) 110%);
+      opacity: 0.55;
+      z-index: 0;
     }
 
     .page {
-      max-width: 1320px;
-      margin: 0 auto;
-      padding: 44px 28px 80px;
       position: relative;
       z-index: 1;
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 56px 32px 96px;
     }
 
+    .page-head { margin-bottom: 36px; }
     .eyebrow {
-      display: inline-flex;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-mute);
+      display: flex;
       align-items: center;
       gap: 10px;
-      color: var(--text-mute);
-      font-family: var(--font-mono);
-      font-size: 11px;
-      letter-spacing: 0.2em;
-      text-transform: uppercase;
-      margin-bottom: 18px;
+      margin-bottom: 14px;
     }
-
     .eyebrow::before {
       content: "";
-      width: 22px;
-      height: 1px;
+      width: 18px; height: 1px;
       background: var(--accent);
     }
-
-    .hero {
-      display: grid;
-      grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
-      gap: 28px;
-      align-items: start;
-      margin-bottom: 26px;
-    }
-
-    .title {
-      margin: 0;
+    .brand {
       font-family: var(--font-display);
-      font-size: clamp(2.6rem, 5vw, 4.4rem);
-      line-height: 0.96;
-      letter-spacing: -0.03em;
-      font-weight: 420;
+      font-variation-settings: "opsz" 144, "SOFT" 50, "wght" 380;
+      font-size: clamp(2.25rem, 4vw, 3rem);
+      line-height: 1;
+      letter-spacing: -0.02em;
+      color: var(--paper);
+      margin-bottom: 14px;
     }
-
-    .title em {
-      font-style: normal;
+    .brand em {
+      font-style: italic;
+      font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
       color: var(--accent);
-      font-weight: 360;
     }
-
     .lede {
-      margin: 16px 0 0;
-      max-width: 60ch;
-      color: var(--text-dim);
-      font-size: 16px;
-      line-height: 1.65;
-    }
-
-    .notes {
-      background: rgba(11, 10, 24, 0.68);
-      border: 1px solid var(--line);
-      border-radius: 20px;
-      padding: 18px 18px 16px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(14px);
-    }
-
-    .notes h2 {
-      margin: 0 0 10px;
-      font-size: 13px;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--text-mute);
-      font-family: var(--font-mono);
-      font-weight: 500;
-    }
-
-    .notes ul {
-      margin: 0;
-      padding-left: 18px;
-      color: var(--text-dim);
-      display: grid;
-      gap: 10px;
-      font-size: 14px;
+      max-width: 62ch;
+      color: var(--paper-dim);
+      font-size: 14.5px;
       line-height: 1.55;
     }
 
-    .stage {
-      margin-top: 16px;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 280px;
-      gap: 26px;
-      align-items: start;
+    /* Sketch scaffolding — not in the dashboard */
+    .section {
+      margin-top: 48px;
     }
-
-    .widget {
-      position: relative;
-      border-radius: var(--radius-xl);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.03), transparent 20%),
-        var(--panel);
-      border: 1px solid var(--line);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-      backdrop-filter: blur(18px);
-    }
-
-    .widget::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(140deg, rgba(255, 139, 61, 0.08), transparent 26%, transparent 70%, rgba(154, 141, 255, 0.09));
-    }
-
-    .widget-nav {
-      position: relative;
-      padding: 20px 28px 0;
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .widget-label {
-      margin: 0;
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
-      color: var(--text-mute);
-      font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      font-size: 11px;
-      font-weight: 500;
-      line-height: 1;
-    }
-
-    .widget-label::before {
-      content: "";
-      width: 18px;
-      height: 1px;
-      background: var(--accent);
-    }
-
-    .agent-status--approved::before { background: var(--ok); }
-    .agent-status--discovered::before { background: var(--warn); }
-
-    .dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 999px;
-      display: inline-block;
-    }
-
-    .tab-bar {
-      display: inline-flex;
-      gap: 8px;
-      padding: 6px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--line);
-      width: fit-content;
-    }
-
-    .tab {
-      appearance: none;
-      border: 0;
-      background: transparent;
-      color: var(--text-dim);
-      font: inherit;
-      padding: 10px 14px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background 140ms ease, color 140ms ease, transform 140ms ease;
-      font-size: 14px;
-      font-weight: 500;
-    }
-
-    .tab:hover { color: var(--text); }
-    .tab[aria-selected="true"] {
-      background: linear-gradient(180deg, rgba(255, 139, 61, 0.20), rgba(255, 139, 61, 0.10));
-      color: var(--text);
-      box-shadow: inset 0 0 0 1px rgba(255, 139, 61, 0.24);
-    }
-
-    .widget-body {
-      position: relative;
-      padding: 18px 28px 30px;
-      border-top: 1px solid var(--line);
-      margin-top: 12px;
-    }
-
-    .panel { display: none; }
-    .panel.is-active {
-      display: grid;
-      gap: 22px;
-      animation: rise 180ms ease;
-    }
-
-    @keyframes rise {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .grid-3 {
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 14px;
-    }
-
-    .metric-card,
-    .sub-card,
-    .capability-card,
-    .agent-card,
-    .rail-card {
-      border-radius: var(--radius-lg);
-      border: 1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.015));
-    }
-
-    .metric-card {
-      padding: 18px 18px 16px;
-      display: grid;
-      gap: 10px;
-      min-height: 134px;
-    }
-
-    .metric-label,
-    .sub-label,
-    .capability-meta,
     .section-label {
       font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
       font-size: 10.5px;
-      color: var(--text-mute);
-    }
-
-    .metric-value {
-      font-family: var(--font-display);
-      font-size: clamp(2rem, 3.3vw, 3rem);
-      line-height: 0.95;
-      letter-spacing: -0.04em;
-    }
-
-    .metric-note,
-    .sub-copy,
-    .capability-copy,
-    .agent-copy,
-    .list-note {
-      color: var(--text-dim);
-      font-size: 14px;
-      line-height: 1.55;
-    }
-
-    .metric-inline {
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+      margin-bottom: 14px;
       display: flex;
+      align-items: center;
       gap: 10px;
-      flex-wrap: wrap;
-      margin-top: auto;
     }
-
-    .micro-pill {
-      border-radius: 999px;
-      padding: 5px 9px;
-      font-size: 11px;
-      color: var(--text-dim);
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.02);
+    .section-label .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--paper-faint);
     }
-
-    .split {
+    .section-label.is-after .dot { background: var(--accent); }
+    .section-note {
+      color: var(--paper-mute);
+      font-size: 13px;
+      max-width: 60ch;
+      margin-bottom: 20px;
+    }
+    .two-up {
       display: grid;
-      grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.9fr);
-      gap: 16px;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      align-items: start;
+    }
+    @media (max-width: 820px) {
+      .two-up { grid-template-columns: 1fr; }
     }
 
-    .sub-card {
-      padding: 18px;
-      display: grid;
-      gap: 14px;
+    /* ─── Card styles (from dashboard) ─── */
+    .card {
+      background: var(--ink-raised);
+      border: 1px solid var(--rule-strong);
+      border-radius: 4px;
+      padding: 22px 24px 24px;
+      position: relative;
+      box-shadow: var(--shadow-card);
     }
-
-    .bar-stack { display: grid; gap: 12px; }
-
-    .bar-row { display: grid; gap: 8px; }
-
-    .bar-head {
+    .card-head {
       display: flex;
+      align-items: center;
       justify-content: space-between;
-      align-items: baseline;
-      gap: 10px;
-      font-size: 14px;
+      gap: 16px;
+      margin-bottom: 18px;
     }
-
-    .bar-label { color: var(--text); }
-    .bar-value { color: var(--text-dim); font-variant-numeric: tabular-nums; }
-
-    .bar-track {
-      height: 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.05);
-      overflow: hidden;
-      border: 1px solid rgba(255,255,255,0.03);
-    }
-
-    .bar-fill {
-      height: 100%;
-      border-radius: inherit;
-      background: linear-gradient(90deg, var(--accent), rgba(255, 139, 61, 0.46));
-    }
-
-    .bar-fill--violet {
-      background: linear-gradient(90deg, var(--violet), rgba(154, 141, 255, 0.4));
-    }
-
-    .bar-fill--ok {
-      background: linear-gradient(90deg, var(--ok), rgba(113, 211, 154, 0.35));
-    }
-
-    .chip-row {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .agent-chip {
+    .card-title {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-mute);
       display: inline-flex;
       align-items: center;
-      gap: 8px;
-      padding: 7px 10px;
-      border-radius: 999px;
-      background: rgba(255,255,255,0.04);
-      border: 1px solid var(--line);
+      gap: 10px;
+    }
+    .card-title::before {
+      content: "";
+      width: 4px; height: 4px;
+      background: var(--accent);
+      border-radius: 50%;
+    }
+    .chip {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      color: var(--paper-mute);
+      padding: 2px 9px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 100px;
+      font-variant-numeric: tabular-nums;
+    }
+    .muted { color: var(--paper-mute); font-size: 13px; }
+
+    /* Stats (old widget) */
+    .kv { display: flex; flex-direction: column; }
+    .kv-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 16px;
+      align-items: baseline;
+      padding: 8px 0;
+      border-top: 1px solid var(--rule);
+    }
+    .kv-row:first-child { border-top: none; }
+    .kv-row dt {
       font-size: 12px;
-      color: var(--text-dim);
+      color: var(--paper-mute);
+      font-family: var(--font-mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .kv-row dd {
+      font-size: 13px;
+      color: var(--paper);
+      font-variant-numeric: tabular-nums;
+      text-align: right;
+      word-break: break-word;
     }
 
-    .agent-chip strong {
-      color: var(--text);
-      font-weight: 600;
+    /* List */
+    .list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; }
+    .list-item {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 16px;
+      align-items: baseline;
+      padding: 12px 4px;
+      border-top: 1px solid var(--rule);
+      transition: background 0.15s ease;
     }
+    .list-item:first-child { border-top: none; }
+    .list-item:hover { background: var(--accent-soft); }
+    .list-main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+    .list-name {
+      font-size: 13.5px;
+      color: var(--paper);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .list-desc {
+      font-size: 12px;
+      color: var(--paper-dim);
+      line-height: 1.45;
+    }
+    .list-tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+    .tag {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+      text-transform: lowercase;
+      color: var(--paper-mute);
+      padding: 2px 7px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 100px;
+    }
+    .list-meta { display: flex; align-items: center; gap: 6px; }
+    .list-count {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--paper-dim);
+      font-variant-numeric: tabular-nums;
+    }
+    .pill {
+      font-family: var(--font-mono);
+      font-size: 9.5px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 2px;
+      color: var(--paper-mute);
+      border: 1px solid var(--rule-strong);
+    }
+    .pill--warn { color: var(--warn); border-color: rgba(245, 193, 88, 0.35); }
+    .pill--err  { color: var(--err);  border-color: rgba(226, 109, 109, 0.4); }
+    .pill--ok   { color: var(--ok);   border-color: rgba(104, 204, 139, 0.35); }
+    .pill--mute { color: var(--paper-faint); }
 
-    .agent-status {
+    /* Kind tabs — borrowed from .pipeline-* in styles.ts */
+    .kind-widget { min-width: 0; }
+    .kind-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .kind-tab {
       display: inline-flex;
       align-items: center;
       gap: 6px;
-      color: var(--text-mute);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
+      padding: 5px 10px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 100px;
+      background: transparent;
+      cursor: pointer;
       font-family: var(--font-mono);
-      font-size: 10.5px;
+      font-size: 9.5px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .kind-tab:hover {
+      background: var(--accent-soft);
+      border-color: var(--rule-accent);
+      color: var(--paper);
+    }
+    .kind-tab.is-active {
+      background: color-mix(in srgb, var(--ink-soft) 55%, transparent);
+      border-color: var(--rule-accent);
+      color: var(--paper);
+    }
+    .kind-count {
+      font-size: 11px;
+      color: var(--paper);
+      font-variant-numeric: tabular-nums;
+    }
+    .kind-label { color: var(--paper-mute); }
+    .kind-tab.is-active .kind-label { color: var(--paper-dim); }
+    .kind-panel { display: none; }
+    .kind-panel.is-active { display: block; }
+    .kind-empty {
+      padding: 18px 4px;
+      font-size: 12.5px;
+      color: var(--paper-mute);
+      font-style: italic;
     }
 
-    .agent-status::before {
+    /* Primary view toggle: Overview / Agents / Skills */
+    .view-tabs {
+      display: flex;
+      gap: 24px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--rule);
+      padding-bottom: 2px;
+    }
+    .view-tab {
+      background: transparent;
+      border: none;
+      padding: 2px 0 10px;
+      margin-bottom: -1px;
+      cursor: pointer;
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+      border-bottom: 1px solid transparent;
+      transition: color 0.2s ease, border-color 0.2s ease;
+      display: inline-flex;
+      align-items: baseline;
+      gap: 8px;
+      position: relative;
+    }
+    .view-tab:hover { color: var(--paper-dim); }
+    .view-tab.is-active {
+      color: var(--paper);
+      border-bottom-color: var(--accent);
+    }
+    .view-tab .view-count {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--paper-mute);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: 0.04em;
+    }
+    .view-tab.is-active .view-count { color: var(--paper-dim); }
+
+    /* Panel entrance — quick, editorial */
+    @media (prefers-reduced-motion: no-preference) {
+      .kind-panel.is-active {
+        animation: panelRise 0.32s cubic-bezier(0.2, 0.7, 0.2, 1);
+      }
+      @keyframes panelRise {
+        from { opacity: 0; transform: translateY(4px); }
+        to   { opacity: 1; transform: translateY(0); }
+      }
+    }
+
+    /* Hide kind-filter row when not in Agents view */
+    [data-kind-widget][data-view="overview"] .kind-tabs,
+    [data-kind-widget][data-view="skills"] .kind-tabs { display: none; }
+
+    /* Overview: editorial headline — masthead treatment */
+    .headline {
+      font-family: var(--font-display);
+      font-variation-settings: "opsz" 144, "SOFT" 50, "wght" 360;
+      font-size: 27px;
+      line-height: 1.18;
+      letter-spacing: -0.018em;
+      color: var(--paper);
+      margin: 4px 0 28px;
+      position: relative;
+      padding-left: 16px;
+      max-width: 52ch;
+    }
+    .headline::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: var(--accent);
+    }
+    .headline em {
+      font-style: italic;
+      font-variation-settings: "opsz" 144, "SOFT" 100, "wght" 300;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+    .headline .mute {
+      display: block;
+      margin-top: 6px;
+      font-size: 15px;
+      line-height: 1.45;
+      color: var(--paper-mute);
+      font-variation-settings: "opsz" 72, "SOFT" 50, "wght" 340;
+      letter-spacing: -0.005em;
+      max-width: 48ch;
+    }
+
+    /* SWOT — classic cross, subtle rules carry the grid */
+    .swot {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+    }
+    .swot-cell {
+      padding: 14px 18px 16px;
+    }
+    .swot-cell:nth-child(1) { padding-left: 0; padding-top: 2px; border-right: 1px solid var(--rule); border-bottom: 1px solid var(--rule); }
+    .swot-cell:nth-child(2) { padding-right: 0; padding-top: 2px; border-bottom: 1px solid var(--rule); }
+    .swot-cell:nth-child(3) { padding-left: 0; padding-bottom: 2px; border-right: 1px solid var(--rule); }
+    .swot-cell:nth-child(4) { padding-right: 0; padding-bottom: 2px; }
+    @media (max-width: 540px) {
+      .swot { grid-template-columns: 1fr; }
+      .swot-cell { padding: 14px 0; border-right: none !important; border-bottom: 1px solid var(--rule); }
+      .swot-cell:last-child { border-bottom: none; }
+    }
+    .swot-head {
+      font-family: var(--font-display);
+      font-variation-settings: "opsz" 72, "SOFT" 50, "wght" 380;
+      font-style: italic;
+      font-size: 17px;
+      letter-spacing: -0.005em;
+      color: var(--paper);
+      margin-bottom: 12px;
+      line-height: 1;
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+    }
+    .swot-head::before {
       content: "";
       width: 7px;
       height: 7px;
-      border-radius: 999px;
-      display: inline-block;
+      border-radius: 50%;
+      flex-shrink: 0;
     }
-
-    .capability-list,
-    .agent-list {
-      display: grid;
-      gap: 12px;
-    }
-
-    .capability-card,
-    .agent-card {
-      padding: 16px 16px 15px;
-      display: grid;
-      gap: 10px;
-    }
-
-    .capability-head,
-    .agent-head {
+    .swot-cell.is-s .swot-head::before { background: var(--ok); }
+    .swot-cell.is-w .swot-head::before { background: var(--warn); }
+    .swot-cell.is-o .swot-head::before { background: var(--accent); }
+    .swot-cell.is-t .swot-head::before { background: var(--err); }
+    .swot-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
       display: flex;
-      justify-content: space-between;
-      gap: 14px;
-      align-items: start;
-      flex-wrap: wrap;
+      flex-direction: column;
+      gap: 7px;
     }
-
-    .capability-name,
-    .agent-name {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: -0.02em;
-      color: var(--text);
-    }
-
-    .capability-count {
-      font-variant-numeric: tabular-nums;
-      color: var(--text-dim);
+    .swot-item {
       font-size: 13px;
+      line-height: 1.5;
+      color: var(--paper-dim);
+    }
+    .swot-item b {
+      color: var(--paper);
+      font-weight: 500;
+    }
+    .swot-item .swot-note {
+      color: var(--paper-mute);
+      font-size: 12.5px;
     }
 
-    .tag-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .tag {
-      border-radius: 999px;
-      border: 1px solid var(--line);
-      padding: 5px 8px;
-      font-size: 11px;
-      color: var(--text-dim);
-      background: rgba(255,255,255,0.03);
-    }
-
-    .filter-row {
-      display: flex;
+    /* Skills tab: source chip (brain or agent brainName) */
+    .tag-row-source {
+      display: inline-flex;
       align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-      margin-bottom: 14px;
-    }
-
-    .filter-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .filter-label {
+      gap: 0;
       font-family: var(--font-mono);
-      text-transform: uppercase;
-      letter-spacing: 0.14em;
-      font-size: 10.5px;
-      color: var(--text-mute);
-      margin-right: 4px;
+      font-size: 9.5px;
+      letter-spacing: 0.1em;
+      text-transform: lowercase;
+      padding: 2px 7px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 100px;
+      color: var(--paper-mute);
     }
-
-    .filter-button {
-      appearance: none;
-      border: 1px solid var(--line);
-      background: rgba(255,255,255,0.03);
-      color: var(--text-dim);
-      font: inherit;
-      font-size: 12px;
-      padding: 8px 11px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
-    }
-
-    .filter-button:hover {
-      color: var(--text);
-      border-color: var(--line-strong);
-    }
-
-    .filter-button.is-active {
-      color: var(--text);
-      border-color: rgba(255, 139, 61, 0.34);
+    .tag-row-source.is-brain {
+      color: var(--accent);
+      border-color: var(--rule-accent);
       background: var(--accent-soft);
     }
 
-    .filter-note {
-      color: var(--text-mute);
-      font-size: 12px;
+    /* Skills tab: tag filter bar (pipeline-pattern) + flat list */
+    .tag-filter-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
     }
-
-    .kind-badge {
+    .tag-filter {
       display: inline-flex;
       align-items: center;
       gap: 6px;
+      padding: 5px 9px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 100px;
+      background: transparent;
+      cursor: pointer;
       font-family: var(--font-mono);
-      font-size: 10.5px;
-      text-transform: uppercase;
+      font-size: 9.5px;
       letter-spacing: 0.08em;
-      color: var(--text-mute);
-      border: 1px solid var(--line);
-      border-radius: 999px;
-      padding: 5px 8px;
-      background: rgba(255,255,255,0.03);
-    }
-
-    .kind-badge::before {
-      content: "";
-      width: 6px;
-      height: 6px;
-      border-radius: 999px;
-      background: var(--violet);
-      display: inline-block;
-    }
-
-    .capability-method {
-      color: var(--text-mute);
-      font-size: 12px;
-      line-height: 1.5;
-    }
-
-    .agent-copy strong { color: var(--text); }
-
-    .agent-card[hidden] {
-      display: none;
-    }
-
-    .rail {
-      display: grid;
-      gap: 16px;
-      position: sticky;
-      top: 20px;
-    }
-
-    .rail-card {
-      padding: 16px;
-      backdrop-filter: blur(14px);
-    }
-
-    .rail-card h3 {
-      margin: 0 0 10px;
-      font-size: 13px;
-      font-family: var(--font-mono);
       text-transform: uppercase;
-      letter-spacing: 0.14em;
-      color: var(--text-mute);
-      font-weight: 500;
+      color: var(--paper-faint);
+      transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
     }
-
-    .rail-card p,
-    .rail-card li {
-      color: var(--text-dim);
-      font-size: 13.5px;
-      line-height: 1.55;
+    .tag-filter:hover {
+      background: var(--accent-soft);
+      border-color: var(--rule-accent);
+      color: var(--paper);
     }
-
-    .rail-card ul {
-      margin: 0;
-      padding-left: 17px;
-      display: grid;
-      gap: 8px;
+    .tag-filter.is-active {
+      background: color-mix(in srgb, var(--ink-soft) 55%, transparent);
+      border-color: var(--rule-accent);
+      color: var(--paper);
     }
+    .tag-filter .count {
+      font-size: 11px;
+      color: var(--paper);
+      font-variant-numeric: tabular-nums;
+    }
+    .tag-filter .label { color: var(--paper-mute); }
+    .tag-filter.is-active .label { color: var(--paper-dim); }
+    .tag-filter.is-gap .count { color: var(--warn); }
+    .tag-filter.is-extends .count { color: var(--accent); }
 
-    .legend {
+    /* Skills row tags — visible alongside source */
+    .skills-list .list-item[data-hidden] { display: none; }
+    .skills-list .list-name { font-size: 13.5px; color: var(--paper); }
+    .skills-list .list-item { padding: 9px 4px; }
+    .kind-panel .list {
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--rule-strong) transparent;
+    }
+    .kind-panel .list::-webkit-scrollbar { width: 6px; }
+    .kind-panel .list::-webkit-scrollbar-thumb {
+      background: var(--rule-strong);
+      border-radius: 3px;
+    }
+    .kind-panel .list::-webkit-scrollbar-track { background: transparent; }
+
+    /* Lens role labels above each card in the three-lens After section */
+    .lens-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-faint);
+      margin: 28px 0 10px;
       display: flex;
-      flex-wrap: wrap;
+      align-items: center;
       gap: 10px;
     }
+    .lens-label:first-of-type { margin-top: 4px; }
+    .lens-label .num {
+      color: var(--accent);
+      font-weight: 500;
+    }
+    .lens-label .desc {
+      color: var(--paper-mute);
+      text-transform: none;
+      letter-spacing: 0.04em;
+      font-size: 11px;
+    }
 
-    .legend span {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+    /* Gap pill — for uncovered local skills */
+    .pill--gap {
+      color: var(--paper-mute);
+      border-style: dashed;
+    }
+
+    /* Card subtitle line under head */
+    .card-blurb {
+      color: var(--paper-mute);
+      font-size: 12.5px;
+      margin: -8px 0 14px;
+      line-height: 1.45;
+    }
+
+    /* Notes panel */
+    .notes {
+      margin-top: 48px;
+      padding: 24px 26px 22px;
+      border: 1px solid var(--rule-strong);
+      border-radius: 4px;
+      background: color-mix(in srgb, var(--ink-raised) 60%, transparent);
+    }
+    .notes-title {
+      font-family: var(--font-mono);
+      font-size: 10.5px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--paper-mute);
+      margin-bottom: 12px;
+    }
+    .notes ol {
+      margin: 0;
+      padding-left: 20px;
+      color: var(--paper-dim);
+      font-size: 13.5px;
+      line-height: 1.65;
+    }
+    .notes code {
+      font-family: var(--font-mono);
       font-size: 12px;
-      color: var(--text-dim);
+      color: var(--accent);
+      background: var(--accent-soft);
+      padding: 1px 6px;
+      border-radius: 3px;
     }
-
-    @media (max-width: 1080px) {
-      .hero,
-      .stage,
-      .split,
-      .widget-nav {
-        grid-template-columns: 1fr;
-      }
-
-      .rail {
-        position: static;
-      }
-    }
-
-    @media (max-width: 760px) {
-      .page { padding: 28px 16px 60px; }
-      .widget-nav,
-      .widget-body { padding-left: 18px; padding-right: 18px; }
-      .grid-3 { grid-template-columns: 1fr; }
-      .tab-bar { width: 100%; display: grid; grid-template-columns: repeat(3, 1fr); }
-      .tab { width: 100%; }
-    }
+    .notes li + li { margin-top: 8px; }
   </style>
 </head>
 <body>
   <main class="page">
-    <div class="eyebrow">Agent directory mockup</div>
+    <header class="page-head">
+      <div class="eyebrow">Widget sketch · agent discovery</div>
+      <h1 class="brand">Agent <em>network</em></h1>
+      <p class="lede">
+        Replace two status-framed widgets with one capability-framed widget.
+        Agents and the skills they offer become the subject; approval state
+        becomes a small nudge, not the organizing principle.
+      </p>
+    </header>
 
-    <section class="hero">
-      <div>
-        <h1 class="title">One widget, a few tabs — <em>network first</em>.</h1>
-        <p class="lede">
-          This mockup treats the directory widget as a compact map of your saved network: who is in it,
-          what they collectively offer, and which contacts stand out. It includes both discovered and approved agents.
-        </p>
+    <!-- ─── Before: the two existing widgets ─────────────────── -->
+    <section class="section">
+      <div class="section-label"><span class="dot"></span>Before · two widgets, status-framed</div>
+      <p class="section-note">
+        <code style="font-family:var(--font-mono);font-size:12px;color:var(--paper-mute)">
+          entities/agent-discovery/src/plugin.ts:59–119
+        </code>
+      </p>
+
+      <div class="two-up">
+        <!-- directory-summary (StatsWidget → kv fallback) -->
+        <article class="card">
+          <div class="card-head">
+            <span class="card-title">Agent Directory</span>
+          </div>
+          <dl class="kv">
+            <div class="kv-row"><dt>Total</dt><dd>12</dd></div>
+            <div class="kv-row"><dt>Approved</dt><dd>9</dd></div>
+            <div class="kv-row"><dt>Discovered</dt><dd>3</dd></div>
+            <div class="kv-row"><dt>Professional</dt><dd>7</dd></div>
+            <div class="kv-row"><dt>Team</dt><dd>4</dd></div>
+            <div class="kv-row"><dt>Collective</dt><dd>1</dd></div>
+          </dl>
+        </article>
+
+        <!-- recent-discoveries (ListWidget) -->
+        <article class="card">
+          <div class="card-head">
+            <span class="card-title">Recent Discoveries</span>
+            <span class="chip">8</span>
+          </div>
+          <ul class="list">
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">kai.brain</span>
+                <span class="list-desc">Kai Ostrow · professional</span>
+              </div>
+              <div class="list-meta"><span class="pill pill--ok">approved</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">loom.studio</span>
+                <span class="list-desc">Loom Studio · collective</span>
+              </div>
+              <div class="list-meta"><span class="pill pill--ok">discovered</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">mira.brain</span>
+                <span class="list-desc">professional</span>
+              </div>
+              <div class="list-meta"><span class="pill pill--ok">approved</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">ember-lab</span>
+                <span class="list-desc">Ember Lab · team</span>
+              </div>
+              <div class="list-meta"><span class="pill pill--ok">approved</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">salt.network</span>
+                <span class="list-desc">Salt Network · collective</span>
+              </div>
+              <div class="list-meta"><span class="pill pill--ok">discovered</span></div>
+            </li>
+          </ul>
+        </article>
       </div>
-      <aside class="notes">
-        <h2>What this mockup is testing</h2>
-        <ul>
-          <li>Whether the <strong>overview</strong> feels like a network diagnosis rather than a second capabilities view.</li>
-          <li>Whether the <strong>capabilities</strong> tab feels like offered help lanes, not just relabeled asks.</li>
-          <li>Whether the <strong>agents</strong> tab needs kind filters to slice the network more intentionally.</li>
-        </ul>
-      </aside>
     </section>
 
-    <section class="stage">
-      <section class="widget" aria-label="Network overview widget mockup">
-        <div class="widget-nav">
-          <h2 class="widget-label">Agent directory</h2>
-          <div class="tab-bar" role="tablist" aria-label="Network widget tabs">
-            <button class="tab" role="tab" aria-selected="true" aria-controls="panel-overview" id="tab-overview" data-tab="overview">Overview</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="panel-capabilities" id="tab-capabilities" data-tab="capabilities">Capabilities</button>
-            <button class="tab" role="tab" aria-selected="false" aria-controls="panel-agents" id="tab-agents" data-tab="agents">Agents</button>
+    <!-- ─── After: one combined widget with three internal lenses ─────────────── -->
+    <section class="section">
+      <div class="section-label is-after"><span class="dot"></span>After · one widget, three internal lenses on the coverage graph</div>
+      <p class="section-note">
+        The plugin owns a capability graph linking its <em>own</em>
+        <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">SkillEntity</code>
+        rows to remote <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">AgentEntity</code> rows.
+        One <code style="font-family:var(--font-mono);font-size:12px;color:var(--accent)">coverage.ts</code> module computes that graph;
+        one dashboard widget renders three lenses on it — agent-first, skill-first, and novelty-first — via an internal view toggle.
+        Header strip carries glanceable composition signals.
+      </p>
+
+      <article class="card kind-widget" data-kind-widget data-view="overview" style="max-width: 640px;">
+        <div class="card-head">
+          <span class="card-title">Agent Network</span>
+        </div>
+
+        <div class="view-tabs" role="tablist">
+          <button class="view-tab is-active" type="button" data-view-tab="overview" aria-pressed="true">
+            Overview
+          </button>
+          <button class="view-tab" type="button" data-view-tab="agents" aria-pressed="false">
+            Agents<span class="view-count">8</span>
+          </button>
+          <button class="view-tab" type="button" data-view-tab="skills" aria-pressed="false">
+            Skills<span class="view-count">14</span>
+          </button>
+        </div>
+
+        <div class="kind-tabs" role="tablist">
+          <button class="kind-tab is-active" type="button" data-kind-tab="all" aria-pressed="true">
+            <span class="kind-count">8</span>
+            <span class="kind-label">all</span>
+          </button>
+          <button class="kind-tab" type="button" data-kind-tab="professional" aria-pressed="false">
+            <span class="kind-count">4</span>
+            <span class="kind-label">professional</span>
+          </button>
+          <button class="kind-tab" type="button" data-kind-tab="team" aria-pressed="false">
+            <span class="kind-count">3</span>
+            <span class="kind-label">team</span>
+          </button>
+          <button class="kind-tab" type="button" data-kind-tab="collective" aria-pressed="false">
+            <span class="kind-count">1</span>
+            <span class="kind-label">collective</span>
+          </button>
+        </div>
+
+        <!-- OVERVIEW (default) — SWOT carries the content; card title gives the frame -->
+        <div class="kind-panel is-active" data-kind-panel="overview">
+          <div class="swot" role="grid" aria-label="SWOT analysis of agent network">
+            <div class="swot-cell is-s">
+              <div class="swot-head">Strengths</div>
+              <ul class="swot-list">
+                <li class="swot-item"><b>Research &amp; writing</b> — 4 sources</li>
+                <li class="swot-item"><b>75%</b> of brain skills have external backup</li>
+              </ul>
+            </div>
+            <div class="swot-cell is-w">
+              <div class="swot-head">Weaknesses</div>
+              <ul class="swot-list">
+                <li class="swot-item"><b>Data analysis</b> — uncovered</li>
+                <li class="swot-item"><b>Operations</b> — single agent</li>
+                <li class="swot-item"><b>Software design</b> — single agent</li>
+              </ul>
+            </div>
+            <div class="swot-cell is-o">
+              <div class="swot-head">Opportunities</div>
+              <ul class="swot-list">
+                <li class="swot-item"><b>4 extension areas</b> your network adds</li>
+                <li class="swot-item">design systems, video, contracts, expenses</li>
+              </ul>
+            </div>
+            <div class="swot-cell is-t">
+              <div class="swot-head">Threats</div>
+              <ul class="swot-list">
+                <li class="swot-item"><b>3 agents</b> pending review</li>
+                <li class="swot-item">No redundancy for <b>3 of 4</b> local skills</li>
+              </ul>
+            </div>
           </div>
         </div>
 
-        <div class="widget-body">
-          <section class="panel is-active" id="panel-overview" role="tabpanel" aria-labelledby="tab-overview">
-            <div class="grid-3">
-              <article class="metric-card">
-                <div class="metric-label">Network posture</div>
-                <div class="metric-value">Specialized</div>
-                <div class="metric-note">This is not a balanced general-purpose network yet. It is strongest around a few adjacent lanes, with weaker coverage around the edges.</div>
-                <div class="metric-inline">
-                  <span class="micro-pill">high depth</span>
-                  <span class="micro-pill">moderate breadth</span>
+        <!-- ALL -->
+        <div class="kind-panel" data-kind-panel="all">
+          <ul class="list">
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Kai Ostrow · kai.brain</span>
+                <span class="list-desc">Longform research partner, cites sources inline.</span>
+                <div class="list-tags">
+                  <span class="tag">research</span><span class="tag">writing</span>
+                  <span class="tag">citations</span><span class="tag">summaries</span>
                 </div>
-              </article>
-
-              <article class="metric-card">
-                <div class="metric-label">Main risk</div>
-                <div class="metric-value">Single-threaded edges</div>
-                <div class="metric-note">Several outer lanes depend on one contact each. If those people are weak fits, unavailable, or unapproved, the network has no real fallback.</div>
-                <div class="metric-inline">
-                  <span class="micro-pill">design</span>
-                  <span class="micro-pill">policy</span>
-                  <span class="micro-pill">finance</span>
-                </div>
-              </article>
-
-              <article class="metric-card">
-                <div class="metric-label">Best intervention</div>
-                <div class="metric-value">Add breadth</div>
-                <div class="metric-note">The most useful improvement is to widen the weak edges instead of deepening already-strong lanes. One strong contact in each thin area would change the network materially.</div>
-                <div class="metric-inline">
-                  <span class="micro-pill">highest leverage move</span>
-                  <span class="micro-pill">not more research</span>
-                </div>
-              </article>
-            </div>
-
-            <div class="split">
-              <article class="sub-card">
-                <div class="sub-label">Diagnostic read</div>
-                <div class="bar-stack">
-                  <div class="bar-row">
-                    <div class="bar-head"><span class="bar-label">Depth in core lanes</span><span class="bar-value">high</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:88%"></div></div>
-                  </div>
-                  <div class="bar-row">
-                    <div class="bar-head"><span class="bar-label">Breadth across ask types</span><span class="bar-value">medium</span></div>
-                    <div class="bar-track"><div class="bar-fill bar-fill--violet" style="width:54%"></div></div>
-                  </div>
-                  <div class="bar-row">
-                    <div class="bar-head"><span class="bar-label">Redundancy / fallback options</span><span class="bar-value">uneven</span></div>
-                    <div class="bar-track"><div class="bar-fill bar-fill--ok" style="width:42%"></div></div>
-                  </div>
-                  <div class="bar-row">
-                    <div class="bar-head"><span class="bar-label">Coverage of specialist edge cases</span><span class="bar-value">thin</span></div>
-                    <div class="bar-track"><div class="bar-fill" style="width:20%"></div></div>
-                  </div>
-                </div>
-              </article>
-
-              <article class="sub-card">
-                <div class="sub-label">What to do with that</div>
-                <div class="chip-row">
-                  <span class="agent-chip"><strong>Add 1 design-minded contact</strong></span>
-                  <span class="agent-chip"><strong>Add 1 policy / legal contact</strong></span>
-                  <span class="agent-chip"><strong>Add 1 finance / ops contact</strong></span>
-                  <span class="agent-chip"><strong>Don’t over-invest in research</strong></span>
-                </div>
-                <div class="sub-copy">
-                  The overview is a <strong>network diagnosis</strong>: what shape you currently have, what risk it carries, and what kind of expansion would improve it most.
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="panel" id="panel-capabilities" role="tabpanel" aria-labelledby="tab-capabilities">
-            <div class="capability-list">
-              <article class="capability-card">
-                <div class="capability-head">
-                  <div>
-                    <div class="capability-meta">Offer lane</div>
-                    <div class="capability-name">Research & synthesis</div>
-                  </div>
-                  <div class="capability-count">high depth</div>
-                </div>
-                <div class="capability-copy">The network offers strong support for investigation, evidence comparison, synthesis, and building structured understanding out of messy information.</div>
-                <div class="chip-row">
-                  <span class="agent-chip"><strong>Brain</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                  <span class="agent-chip"><strong>Signal Atlas</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
-                  <span class="agent-chip"><strong>Archive Loop</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                </div>
-                <div class="tag-row">
-                  <span class="tag">domain research</span>
-                  <span class="tag">evidence comparison</span>
-                  <span class="tag">source synthesis</span>
-                </div>
-              </article>
-
-              <article class="capability-card">
-                <div class="capability-head">
-                  <div>
-                    <div class="capability-meta">Offer lane</div>
-                    <div class="capability-name">Publishing & audience workflows</div>
-                  </div>
-                  <div class="capability-count">strong coverage</div>
-                </div>
-                <div class="capability-copy">The network can help turn source material into outward-facing output: newsletters, social narratives, editorial packaging, and distribution-oriented workflows.</div>
-                <div class="chip-row">
-                  <span class="agent-chip"><strong>Courier Desk</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                  <span class="agent-chip"><strong>Postline</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
-                  <span class="agent-chip"><strong>Relay Bureau</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                </div>
-                <div class="tag-row">
-                  <span class="tag">newsletter drafting</span>
-                  <span class="tag">campaign framing</span>
-                  <span class="tag">distribution flows</span>
-                </div>
-              </article>
-
-              <article class="capability-card">
-                <div class="capability-head">
-                  <div>
-                    <div class="capability-meta">Offer lane</div>
-                    <div class="capability-name">Operations & automation</div>
-                  </div>
-                  <div class="capability-count">solid coverage</div>
-                </div>
-                <div class="capability-copy">The network can design workflows, reduce manual operations, and help operationalize recurring work into more durable systems.</div>
-                <div class="chip-row">
-                  <span class="agent-chip"><strong>Patchrunner</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                  <span class="agent-chip"><strong>Brain Labs</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                  <span class="agent-chip"><strong>Quiet Process</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
-                </div>
-                <div class="tag-row">
-                  <span class="tag">workflow design</span>
-                  <span class="tag">ops cleanup</span>
-                  <span class="tag">orchestration</span>
-                </div>
-              </article>
-
-              <article class="capability-card">
-                <div class="capability-head">
-                  <div>
-                    <div class="capability-meta">Emerging lane</div>
-                    <div class="capability-name">Design & product thinking</div>
-                  </div>
-                  <div class="capability-count">limited depth</div>
-                </div>
-                <div class="capability-copy">The network does offer some product and interface critique, but this capability surface is still relatively thin compared to the stronger lanes above.</div>
-                <div class="chip-row">
-                  <span class="agent-chip"><strong>Studio North</strong> <span class="agent-status agent-status--discovered">discovered</span></span>
-                  <span class="agent-chip"><strong>Pattern Foundry</strong> <span class="agent-status agent-status--approved">approved</span></span>
-                </div>
-                <div class="tag-row">
-                  <span class="tag">interface critique</span>
-                  <span class="tag">product shaping</span>
-                  <span class="tag">design review</span>
-                </div>
-              </article>
-            </div>
-          </section>
-
-          <section class="panel" id="panel-agents" role="tabpanel" aria-labelledby="tab-agents">
-            <div class="filter-row">
-              <div class="filter-group" role="toolbar" aria-label="Filter agents by kind">
-                <span class="filter-label">Kind filter</span>
-                <button class="filter-button is-active" type="button" data-kind-filter="all">All</button>
-                <button class="filter-button" type="button" data-kind-filter="professional">Professional</button>
-                <button class="filter-button" type="button" data-kind-filter="team">Team</button>
-                <button class="filter-button" type="button" data-kind-filter="collective">Collective</button>
               </div>
-              <div class="filter-note">Representative contacts, filterable by brain kind.</div>
-            </div>
-
-            <div class="agent-list">
-              <article class="agent-card" data-kind="professional">
-                <div class="agent-head">
-                  <div>
-                    <div class="section-label">Representative contact</div>
-                    <div class="agent-name">Brain <span class="agent-status agent-status--approved">approved</span></div>
-                  </div>
-                  <div class="filter-group">
-                    <span class="kind-badge">professional</span>
-                    <div class="tag">yeehaa.io / Brain</div>
-                  </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">ember-lab</span>
+                <span class="list-desc">Design systems team · runs component audits.</span>
+                <div class="list-tags">
+                  <span class="tag">design-review</span><span class="tag">tokens</span>
+                  <span class="tag">a11y</span><span class="tag">figma-sync</span>
                 </div>
-                <div class="agent-copy"><strong>Broad retrieval generalist.</strong> Strong candidate when the user needs search, recall, and structured knowledge access.</div>
-                <div class="tag-row">
-                  <span class="tag">system_search</span>
-                  <span class="tag">system_list</span>
-                  <span class="tag">knowledge base</span>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Loom Studio · loom.studio</span>
+                <span class="list-desc">Video-first collective, ingests transcripts.</span>
+                <div class="list-tags">
+                  <span class="tag">transcribe</span><span class="tag">edit-notes</span>
+                  <span class="tag">b-roll</span>
                 </div>
-              </article>
-
-              <article class="agent-card" data-kind="professional">
-                <div class="agent-head">
-                  <div>
-                    <div class="section-label">Representative contact</div>
-                    <div class="agent-name">Signal Atlas <span class="agent-status agent-status--discovered">discovered</span></div>
-                  </div>
-                  <div class="filter-group">
-                    <span class="kind-badge">professional</span>
-                    <div class="tag">signal-atlas.io / Atlas</div>
-                  </div>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">mira.brain</span>
+                <span class="list-desc">Code review with a soft spot for TypeScript.</span>
+                <div class="list-tags">
+                  <span class="tag">code-review</span><span class="tag">typescript</span>
+                  <span class="tag">refactor</span>
                 </div>
-                <div class="agent-copy"><strong>Interesting specialist in research synthesis.</strong> Not callable yet, but clearly expands the network’s intelligence-gathering surface.</div>
-                <div class="tag-row">
-                  <span class="tag">synthesis</span>
-                  <span class="tag">evidence review</span>
-                  <span class="tag">research planning</span>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Salt Network · salt.network</span>
+                <span class="list-desc">Open-source research team, shares primary sources.</span>
+                <div class="list-tags">
+                  <span class="tag">research</span><span class="tag">archives</span>
+                  <span class="tag">citations</span><span class="tag">translation</span>
                 </div>
-              </article>
-
-              <article class="agent-card" data-kind="team">
-                <div class="agent-head">
-                  <div>
-                    <div class="section-label">Representative contact</div>
-                    <div class="agent-name">Relay Bureau <span class="agent-status agent-status--approved">approved</span></div>
-                  </div>
-                  <div class="filter-group">
-                    <span class="kind-badge">team</span>
-                    <div class="tag">relay.house / Bureau</div>
-                  </div>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">north.ops</span>
+                <span class="list-desc">Incident response runbook keeper.</span>
+                <div class="list-tags">
+                  <span class="tag">runbooks</span><span class="tag">postmortems</span>
                 </div>
-                <div class="agent-copy"><strong>Publishing-oriented operator.</strong> Useful for outward communication flows and content distribution.</div>
-                <div class="tag-row">
-                  <span class="tag">newsletter</span>
-                  <span class="tag">social-media</span>
-                  <span class="tag">audience ops</span>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Teo Vance · teo.brain</span>
+                <span class="list-desc">Contract and policy drafting.</span>
+                <div class="list-tags">
+                  <span class="tag">writing</span><span class="tag">contracts</span>
+                  <span class="tag">redlines</span>
                 </div>
-              </article>
-
-              <article class="agent-card" data-kind="collective">
-                <div class="agent-head">
-                  <div>
-                    <div class="section-label">Representative contact</div>
-                    <div class="agent-name">Patch Commons <span class="agent-status agent-status--discovered">discovered</span></div>
-                  </div>
-                  <div class="filter-group">
-                    <span class="kind-badge">collective</span>
-                    <div class="tag">patch-commons.net / Commons</div>
-                  </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">ledger.cam</span>
+                <span class="list-desc">Narrow agent, expense categorization only.</span>
+                <div class="list-tags">
+                  <span class="tag">expenses</span>
                 </div>
-                <div class="agent-copy"><strong>Loose operator collective.</strong> More interesting for breadth and unconventional workflows than for a single specialist lane.</div>
-                <div class="tag-row">
-                  <span class="tag">distributed ops</span>
-                  <span class="tag">maintenance</span>
-                  <span class="tag">coordination</span>
-                </div>
-              </article>
-            </div>
-            <div class="list-note">This tab is less about raw recency and more about surfacing memorable, representative contacts from the network.</div>
-          </section>
-        </div>
-      </section>
-
-      <aside class="rail">
-        <section class="rail-card">
-          <h3>Interpretation</h3>
-          <p>
-            The widget is trying to say: <strong>"here is the shape of your network and the kinds of help available in it"</strong>,
-            not: "here is your task queue."
-          </p>
-        </section>
-
-        <section class="rail-card">
-          <h3>Reading the widget</h3>
-          <div class="legend">
-            <span><i class="dot" style="background: var(--ok)"></i> approved = callable now</span>
-            <span><i class="dot" style="background: var(--warn)"></i> discovered = in the network, but still review-state</span>
-          </div>
-        </section>
-
-        <section class="rail-card">
-          <h3>Questions to judge</h3>
-          <ul>
-            <li>Does the overview now read as diagnosis instead of routing?</li>
-            <li>Does the capabilities tab now feel like offered help lanes?</li>
-            <li>Do kind filters make the agents tab meaningfully more useful?</li>
-            <li>Should the widget stay this large, or compress into a denser card?</li>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
           </ul>
-        </section>
-      </aside>
+        </div>
+
+        <!-- PROFESSIONAL -->
+        <div class="kind-panel" data-kind-panel="professional">
+          <ul class="list">
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Kai Ostrow · kai.brain</span>
+                <span class="list-desc">Longform research partner, cites sources inline.</span>
+                <div class="list-tags">
+                  <span class="tag">research</span><span class="tag">writing</span>
+                  <span class="tag">citations</span><span class="tag">summaries</span>
+                </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">mira.brain</span>
+                <span class="list-desc">Code review with a soft spot for TypeScript.</span>
+                <div class="list-tags">
+                  <span class="tag">code-review</span><span class="tag">typescript</span>
+                  <span class="tag">refactor</span>
+                </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Teo Vance · teo.brain</span>
+                <span class="list-desc">Contract and policy drafting.</span>
+                <div class="list-tags">
+                  <span class="tag">writing</span><span class="tag">contracts</span>
+                  <span class="tag">redlines</span>
+                </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">ledger.cam</span>
+                <span class="list-desc">Narrow agent, expense categorization only.</span>
+                <div class="list-tags">
+                  <span class="tag">expenses</span>
+                </div>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- TEAM -->
+        <div class="kind-panel" data-kind-panel="team">
+          <ul class="list">
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">ember-lab</span>
+                <span class="list-desc">Design systems team · runs component audits.</span>
+                <div class="list-tags">
+                  <span class="tag">design-review</span><span class="tag">tokens</span>
+                  <span class="tag">a11y</span><span class="tag">figma-sync</span>
+                </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Salt Network · salt.network</span>
+                <span class="list-desc">Open-source research team, shares primary sources.</span>
+                <div class="list-tags">
+                  <span class="tag">research</span><span class="tag">archives</span>
+                  <span class="tag">citations</span><span class="tag">translation</span>
+                </div>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">north.ops</span>
+                <span class="list-desc">Incident response runbook keeper.</span>
+                <div class="list-tags">
+                  <span class="tag">runbooks</span><span class="tag">postmortems</span>
+                </div>
+              </div>
+              <div class="list-meta"></div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- COLLECTIVE -->
+        <div class="kind-panel" data-kind-panel="collective">
+          <ul class="list">
+            <li class="list-item">
+              <div class="list-main">
+                <span class="list-name">Loom Studio · loom.studio</span>
+                <span class="list-desc">Video-first collective, ingests transcripts.</span>
+                <div class="list-tags">
+                  <span class="tag">transcribe</span><span class="tag">edit-notes</span>
+                  <span class="tag">b-roll</span>
+                </div>
+              </div>
+              <div class="list-meta"><span class="pill pill--warn">review</span></div>
+            </li>
+          </ul>
+        </div>
+
+        <!-- SKILLS — tag filter bar (pipeline pattern) + flat skills list -->
+        <div class="kind-panel" data-kind-panel="skills">
+          <div class="tag-filter-row" role="tablist" aria-label="Filter skills by tag">
+            <button class="tag-filter is-active" type="button" data-tag-filter="all" aria-pressed="true">
+              <span class="count">19</span><span class="label">all</span>
+            </button>
+            <button class="tag-filter" type="button" data-tag-filter="research">
+              <span class="count">5</span><span class="label">research</span>
+            </button>
+            <button class="tag-filter" type="button" data-tag-filter="writing">
+              <span class="count">4</span><span class="label">writing</span>
+            </button>
+            <button class="tag-filter" type="button" data-tag-filter="software-design">
+              <span class="count">4</span><span class="label">software-design</span>
+            </button>
+            <button class="tag-filter" type="button" data-tag-filter="operations">
+              <span class="count">3</span><span class="label">operations</span>
+            </button>
+            <button class="tag-filter" type="button" data-tag-filter="citations">
+              <span class="count">3</span><span class="label">citations</span>
+            </button>
+            <button class="tag-filter is-gap" type="button" data-tag-filter="data-analysis">
+              <span class="count">1</span><span class="label">data-analysis</span>
+            </button>
+          </div>
+
+          <ul class="list skills-list">
+            <li class="list-item" data-tags="research writing citations">
+              <div class="list-main"><span class="list-name">Research &amp; writing</span></div>
+              <div class="list-meta"><span class="tag-row-source is-brain">brain</span></div>
+            </li>
+            <li class="list-item" data-tags="software-design">
+              <div class="list-main"><span class="list-name">Software design</span></div>
+              <div class="list-meta"><span class="tag-row-source is-brain">brain</span></div>
+            </li>
+            <li class="list-item" data-tags="operations">
+              <div class="list-main"><span class="list-name">Operations</span></div>
+              <div class="list-meta"><span class="tag-row-source is-brain">brain</span></div>
+            </li>
+            <li class="list-item" data-tags="data-analysis">
+              <div class="list-main"><span class="list-name">Data analysis</span></div>
+              <div class="list-meta"><span class="tag-row-source is-brain">brain</span></div>
+            </li>
+            <li class="list-item" data-tags="research writing">
+              <div class="list-main"><span class="list-name">Longform research synthesis</span></div>
+              <div class="list-meta"><span class="tag-row-source">kai.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="research citations">
+              <div class="list-main"><span class="list-name">Academic citation extraction</span></div>
+              <div class="list-meta"><span class="tag-row-source">kai.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="research">
+              <div class="list-main"><span class="list-name">Archive search</span></div>
+              <div class="list-meta"><span class="tag-row-source">salt.network</span></div>
+            </li>
+            <li class="list-item" data-tags="research citations">
+              <div class="list-main"><span class="list-name">Source translation</span></div>
+              <div class="list-meta"><span class="tag-row-source">salt.network</span></div>
+            </li>
+            <li class="list-item" data-tags="writing legal">
+              <div class="list-main"><span class="list-name">Contract drafting</span></div>
+              <div class="list-meta"><span class="tag-row-source">teo.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="writing legal">
+              <div class="list-main"><span class="list-name">Policy review</span></div>
+              <div class="list-meta"><span class="tag-row-source">teo.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="software-design">
+              <div class="list-main"><span class="list-name">Architecture refactoring</span></div>
+              <div class="list-meta"><span class="tag-row-source">mira.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="code-review software-design">
+              <div class="list-main"><span class="list-name">TypeScript code review</span></div>
+              <div class="list-meta"><span class="tag-row-source">mira.brain</span></div>
+            </li>
+            <li class="list-item" data-tags="design software-design">
+              <div class="list-main"><span class="list-name">Design system audits</span></div>
+              <div class="list-meta"><span class="tag-row-source">ember-lab</span></div>
+            </li>
+            <li class="list-item" data-tags="design">
+              <div class="list-main"><span class="list-name">Accessibility review</span></div>
+              <div class="list-meta"><span class="tag-row-source">ember-lab</span></div>
+            </li>
+            <li class="list-item" data-tags="operations">
+              <div class="list-main"><span class="list-name">Runbook maintenance</span></div>
+              <div class="list-meta"><span class="tag-row-source">north.ops</span></div>
+            </li>
+            <li class="list-item" data-tags="operations">
+              <div class="list-main"><span class="list-name">Postmortem facilitation</span></div>
+              <div class="list-meta"><span class="tag-row-source">north.ops</span></div>
+            </li>
+            <li class="list-item" data-tags="video">
+              <div class="list-main"><span class="list-name">Transcript editing</span></div>
+              <div class="list-meta"><span class="tag-row-source">loom.studio</span></div>
+            </li>
+            <li class="list-item" data-tags="video">
+              <div class="list-main"><span class="list-name">B-roll selection</span></div>
+              <div class="list-meta"><span class="tag-row-source">loom.studio</span></div>
+            </li>
+            <li class="list-item" data-tags="expenses">
+              <div class="list-main"><span class="list-name">Expense categorization</span></div>
+              <div class="list-meta"><span class="tag-row-source">ledger.cam</span></div>
+            </li>
+          </ul>
+        </div>
+      </article>
+    </section>
+
+    <!-- ─── Notes ─────────────────────────────────────────────── -->
+    <section class="notes">
+      <div class="notes-title">Implementation notes</div>
+      <ol>
+        <li>
+          One combined widget replaces the two registrations in
+          <code>entities/agent-discovery/src/plugin.ts:59–119</code>. Sidebar <code>Skills</code> widget in
+          <code>src/plugins/skill-plugin.ts</code> is left alone — different job (identity, not operator overview).
+        </li>
+        <li>
+          New renderer <code>AgentNetworkWidget</code>, modeled on <code>PipelineWidget</code>'s tab/panel structure.
+          One registration, one data provider, three internal views.
+        </li>
+        <li>
+          <strong>Three views.</strong>
+          <em>Overview</em> (default): composition headline + SWOT 2×2, no individual rows.
+          <em>Agents</em>: kind-tabbed cast list (<code>all · professional · team · collective</code>).
+          <em>Skills</em>: tag-aggregated capability inventory; rows are tags, chips are sources (brain + agents).
+        </li>
+        <li>
+          <strong>Shared primitive: <code>entities/agent-discovery/src/lib/coverage.ts</code>.</strong>
+          Computed in-memory over current <code>agent</code> + <code>skill</code> entities — no stored graph, no schema change.
+          Exposes:
+          <code>{ summary: { totalAgents, coveredSkills, gaps, novelCapabilities, review }, agents: Map&lt;kind, AgentRow[]&gt;, skillsByTag: TagRow[], swot: SwotData }</code>.
+        </li>
+        <li>
+          <strong>SWOT cells derived, not authored.</strong>
+          <code>Strengths</code> = tags with ≥ N sources; <code>Weaknesses</code> = local skills with 0/1 coverage;
+          <code>Opportunities</code> = tags present on agents but absent from brain (extensions);
+          <code>Threats</code> = pending-review agents + single-source covered tags.
+          Each cell renders top 2–3 items by magnitude; cell stays present even when empty (kept shape) with a muted "—".
+        </li>
+        <li>
+          <strong>Tag aggregation depends on shared vocabulary.</strong>
+          New helper <code>entities/agent-discovery/src/lib/tag-vocabulary.ts</code>:
+          collects current tags across existing skills + agents, passes them into both
+          <code>skill-deriver</code> and <code>AgentGenerationJobHandler</code> prompts as prior art.
+          "Reuse an existing tag when one fits; propose new only when nothing does."
+          No registry entity — the vocabulary is the current corpus, computed at generation time.
+          Tag drift self-corrects on next regeneration.
+        </li>
+        <li>
+          <strong>Agents panels.</strong> Sort by <code>skills.length</code> desc, tiebreak <code>discoveredAt</code> desc.
+          Limit 8 per kind. Pill <code>discovered → pill--warn</code> labeled <em>review</em>; approved rows show no pill.
+        </li>
+        <li>
+          <strong>Skills panel.</strong> Sort by source count desc, alphabetical tiebreak.
+          Tags carrying only the brain (no agent) render a dashed <code>gap</code> pill in the meta slot.
+          The <code>brain</code> chip uses the accent color to visually distinguish the two levels.
+        </li>
+        <li>
+          <strong>Headline.</strong> One Fraunces-set sentence derived from the summary —
+          e.g., "A network of <em>8</em> collaborators across <em>14</em> capability areas." Italic counts.
+          Second clause carries the sharpest signal (strongest tag, or top unresolved weakness).
+        </li>
+        <li>
+          Cross-brain federation reuses the same mechanism: each brain's registry is local, but priming
+          converges vocabulary across networked brains over time.
+        </li>
+      </ol>
     </section>
   </main>
-
   <script>
-    const tabs = Array.from(document.querySelectorAll('[data-tab]'));
-    const panels = Array.from(document.querySelectorAll('.panel'));
-    const kindFilters = Array.from(document.querySelectorAll('[data-kind-filter]'));
-    const agentCards = Array.from(document.querySelectorAll('.agent-card[data-kind]'));
+    document.querySelectorAll('[data-kind-widget]').forEach((widget) => {
+      const viewTabs = widget.querySelectorAll('[data-view-tab]');
+      const kindTabs = widget.querySelectorAll('[data-kind-tab]');
+      const panels = widget.querySelectorAll('[data-kind-panel]');
 
-    function activateTab(name) {
-      tabs.forEach((tab) => {
-        const active = tab.dataset.tab === name;
-        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+      const setActive = (nodes, match) => {
+        nodes.forEach((n) => {
+          const active = match(n);
+          n.classList.toggle('is-active', active);
+          if (n.hasAttribute('aria-pressed')) {
+            n.setAttribute('aria-pressed', active ? 'true' : 'false');
+          }
+        });
+      };
+
+      const showPanel = (key) => {
+        setActive(panels, (p) => p.getAttribute('data-kind-panel') === key);
+      };
+
+      viewTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const view = tab.getAttribute('data-view-tab');
+          widget.setAttribute('data-view', view);
+          setActive(viewTabs, (t) => t === tab);
+          if (view === 'agents') {
+            const activeKind =
+              widget.querySelector('[data-kind-tab].is-active')?.getAttribute('data-kind-tab') ?? 'all';
+            showPanel(activeKind);
+          } else {
+            showPanel(view);
+          }
+        });
       });
 
-      panels.forEach((panel) => {
-        panel.classList.toggle('is-active', panel.id === `panel-${name}`);
+      kindTabs.forEach((tab) => {
+        tab.addEventListener('click', () => {
+          const kind = tab.getAttribute('data-kind-tab');
+          widget.setAttribute('data-view', 'agents');
+          setActive(viewTabs, (t) => t.getAttribute('data-view-tab') === 'agents');
+          setActive(kindTabs, (t) => t === tab);
+          showPanel(kind);
+        });
       });
-    }
 
-    function applyKindFilter(kind) {
-      kindFilters.forEach((button) => {
-        button.classList.toggle('is-active', button.dataset.kindFilter === kind);
+      // Skills tag filter (pipeline-pattern)
+      const tagFilters = widget.querySelectorAll('[data-tag-filter]');
+      const skillRows = widget.querySelectorAll('.skills-list .list-item');
+      tagFilters.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const filter = btn.getAttribute('data-tag-filter');
+          setActive(tagFilters, (t) => t === btn);
+          skillRows.forEach((row) => {
+            const tags = (row.getAttribute('data-tags') ?? '').split(' ');
+            const show = filter === 'all' || tags.includes(filter);
+            if (show) row.removeAttribute('data-hidden');
+            else row.setAttribute('data-hidden', '');
+          });
+        });
       });
-
-      agentCards.forEach((card) => {
-        const match = kind === 'all' || card.dataset.kind === kind;
-        card.hidden = !match;
-      });
-    }
-
-    tabs.forEach((tab) => {
-      tab.addEventListener('click', () => activateTab(tab.dataset.tab));
     });
-
-    kindFilters.forEach((button) => {
-      button.addEventListener('click', () => applyKindFilter(button.dataset.kindFilter));
-    });
-
-    applyKindFilter('all');
   </script>
 </body>
 </html>

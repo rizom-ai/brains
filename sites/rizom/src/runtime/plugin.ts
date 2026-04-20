@@ -83,7 +83,7 @@ export class RizomRuntimePlugin extends ServicePlugin<RizomRuntimeConfig> {
     if (themeProfile) {
       const themeProfileJson = JSON.stringify(themeProfile);
       scripts.unshift(
-        `<script>window.__RIZOM_THEME_PROFILE__=${themeProfileJson};</script>`,
+        `<script>document.documentElement.setAttribute("data-theme-profile", ${themeProfileJson});</script>`,
       );
     }
 

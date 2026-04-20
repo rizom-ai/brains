@@ -8,7 +8,7 @@ import themeCSSOnly from "./theme.css" with { type: "text" };
  *
  * Shared by the Rizom site family. Theme profiles switch accent shade,
  * secondary purple, and typography via `[data-theme-profile]` attribute
- * selectors that the site plugin sets on <body> at boot.
+ * selectors that the site runtime sets on <html> during head init.
  *
  * Dark mode is the designed experience (the marketing sites are built
  * to be read dark-first). Light mode is a supported fallback.

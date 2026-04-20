@@ -1,9 +1,9 @@
 /*
  * Rizom brand theme — amber + purple bioluminescent palette.
  *
- * Shared by the Rizom site family. The site plugin sets
- * `data-theme-profile="..."` on <body> at boot, and the selectors below
- * switch accent shade + secondary purple per profile.
+ * Shared by the Rizom site family. The site runtime sets
+ * `data-theme-profile="..."` on <html> during head init, and the selectors
+ * below switch accent shade + secondary purple per profile.
  *
  * Mode handling:
  *   :root                      → dark mode (designed default)

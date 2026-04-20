@@ -120,7 +120,7 @@ Unless there is a strong reason to choose different neutral names, use this targ
 - config key: `themeProfile`
 - type name: `RizomThemeProfile`
 - DOM attribute: `data-theme-profile`
-- boot global: `window.__RIZOM_THEME_PROFILE__`
+- head init behavior: inline script writes the profile to `<html>` before `/boot.js` runs
 
 Recommended profile values:
 
@@ -144,13 +144,13 @@ Rename mapping for the hard cut:
   - `product` → current `tree.canvas.js`
   - `editorial` → current `roots.canvas.js`
   - `studio` → current `constellation.canvas.js`
-- [x] Update `buildHeadScript()` to emit `window.__RIZOM_THEME_PROFILE__`
+- [x] Update `buildHeadScript()` to write `data-theme-profile` onto `<html>` before `/boot.js` runs
 - [x] Remove the old `variant` / `__RIZOM_VARIANT__` API from the Rizom runtime
 
 ### Phase 2 — switch the DOM contract to a neutral attribute
 
-- [x] In `sites/rizom/src/runtime/boot/boot.boot.js`, read `window.__RIZOM_THEME_PROFILE__`
-- [x] Write `data-theme-profile` on `<body>`
+- [x] In `sites/rizom/src/runtime/boot/boot.boot.js`, remove theme-profile handoff logic so boot only handles client behavior
+- [x] Write `data-theme-profile` on `<html>` via inline head init
 - [x] Remove `data-rizom-variant` from the boot/runtime contract
 - [x] Update comments in the boot script so they describe profile semantics rather than app semantics
 
