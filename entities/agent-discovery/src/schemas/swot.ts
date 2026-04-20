@@ -37,10 +37,32 @@ export const swotDerivationJobSchema = z.object({
 
 export type SwotDerivationJobData = z.infer<typeof swotDerivationJobSchema>;
 
+export const swotDraftGenerationItemSchema = z.object({
+  theme: z.string(),
+  evidence: z.string(),
+  action: z.string(),
+});
+
+export type SwotDraftGenerationItem = z.infer<
+  typeof swotDraftGenerationItemSchema
+>;
+
+export const swotDraftGenerationSchema = z.object({
+  strengths: z.array(swotDraftGenerationItemSchema),
+  weaknesses: z.array(swotDraftGenerationItemSchema),
+  opportunities: z.array(swotDraftGenerationItemSchema),
+  threats: z.array(swotDraftGenerationItemSchema),
+});
+
+export type SwotDraftGeneration = z.infer<typeof swotDraftGenerationSchema>;
+
 export const swotGenerationItemSchema = z.object({
+  sourceTheme: z.string(),
   title: z.string(),
   detail: z.string().nullable(),
 });
+
+export type SwotGenerationItem = z.infer<typeof swotGenerationItemSchema>;
 
 export const swotGenerationSchema = z.object({
   strengths: z.array(swotGenerationItemSchema),

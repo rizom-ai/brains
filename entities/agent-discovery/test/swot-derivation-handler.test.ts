@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { resetPromptCache } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SkillAdapter, SwotAdapter, SwotPlugin } from "../src";
+import { AgentAdapter, SkillAdapter, SwotAdapter, SwotPlugin } from "../src";
 import { SwotDerivationHandler } from "../src/handlers/swot-derivation-handler";
 
+const agentAdapter = new AgentAdapter();
 const skillAdapter = new SkillAdapter();
 const swotAdapter = new SwotAdapter();
 
@@ -31,20 +32,45 @@ describe("SwotDerivationHandler", () => {
           callCount === 1
             ? {
                 strengths: [
-                  { title: "Research & writing", detail: "4 sources" },
-                ],
-                weaknesses: [{ title: "Data analysis", detail: "uncovered" }],
-                opportunities: [
-                  { title: "Video production", detail: "agent-only" },
-                ],
-                threats: [{ title: "Pending review", detail: "1 agent" }],
-              }
-            : {
-                strengths: [
-                  { title: "Research edge", detail: "Use it confidently." },
+                  {
+                    theme: "research",
+                    evidence: "clear owner strength reinforced by the network",
+                    action: "lean into it",
+                  },
                 ],
                 weaknesses: [
                   {
+                    theme: "analysis",
+                    evidence: "owner lacks dependable support",
+                    action: "strengthen it before promising it",
+                  },
+                ],
+                opportunities: [
+                  {
+                    theme: "video",
+                    evidence: "tentative network skill",
+                    action: "review it before relying on it",
+                  },
+                ],
+                threats: [
+                  {
+                    theme: "backlog",
+                    evidence: "tentative adjacent skill still needs review",
+                    action: "do not plan around it yet",
+                  },
+                ],
+              }
+            : {
+                strengths: [
+                  {
+                    sourceTheme: "research",
+                    title: "Research edge",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [
+                  {
+                    sourceTheme: "analysis",
                     title: "Analysis gap",
                     detail: "Strengthen it before promising it.",
                   },
@@ -103,19 +129,35 @@ describe("SwotDerivationHandler", () => {
       prompt: string,
       schema: { parse: (value: unknown) => T },
     ): Promise<{ object: T }> => ({
-      object: schema.parse({
-        strengths: [
-          {
-            title: "Research",
-            detail: prompt.includes("Grounded directory context:")
-              ? "ok"
-              : "missing",
-          },
-        ],
-        weaknesses: [],
-        opportunities: [],
-        threats: [],
-      }),
+      object: schema.parse(
+        prompt.includes("Draft SWOT:")
+          ? {
+              strengths: [
+                {
+                  sourceTheme: "research",
+                  title: "Research",
+                  detail: "ok",
+                },
+              ],
+              weaknesses: [],
+              opportunities: [],
+              threats: [],
+            }
+          : {
+              strengths: [
+                {
+                  theme: "research",
+                  evidence: "clear owner skill",
+                  action: prompt.includes("Grounded directory context:")
+                    ? "ok"
+                    : "missing",
+                },
+              ],
+              weaknesses: [],
+              opportunities: [],
+              threats: [],
+            },
+      ),
     });
 
     await harness.getEntityService().createEntity({
@@ -200,12 +242,33 @@ describe("SwotDerivationHandler", () => {
     ): Promise<{ object: T }> => {
       receivedPrompts.push(prompt);
       return {
-        object: schema.parse({
-          strengths: [{ title: "Research", detail: "Use it confidently." }],
-          weaknesses: [],
-          opportunities: [],
-          threats: [],
-        }),
+        object: schema.parse(
+          receivedPrompts.length === 1
+            ? {
+                strengths: [
+                  {
+                    theme: "research",
+                    evidence: "clear owner skill",
+                    action: "lean into it",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    sourceTheme: "research",
+                    title: "Research",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              },
+        ),
       };
     };
 
@@ -227,6 +290,209 @@ describe("SwotDerivationHandler", () => {
     expect(receivedPrompts[1]).toContain("Draft SWOT:");
   });
 
+  it("includes evidence cards with candidate matches and external skills in the draft prompt", async () => {
+    const plugin = new SwotPlugin();
+    await harness.installPlugin(plugin);
+
+    await harness.getEntityService().createEntity({
+      id: "skill-1",
+      entityType: "skill",
+      content: skillAdapter.createSkillContent({
+        name: "Research",
+        description: "Turn source material into grounded findings.",
+        tags: ["research", "synthesis"],
+        examples: ["Example"],
+      }),
+      metadata: {
+        name: "Research",
+        description: "Turn source material into grounded findings.",
+        tags: ["research", "synthesis"],
+        examples: ["Example"],
+      },
+    });
+
+    await harness.getEntityService().createEntity({
+      id: "agent-1",
+      entityType: "agent",
+      content: agentAdapter.createAgentContent({
+        name: "Signal Forge",
+        brainName: "signal-forge",
+        url: "https://signal-forge.example.com",
+        status: "approved",
+        kind: "professional",
+        discoveredAt: "2026-04-20T00:00:00.000Z",
+        about: "Research partner",
+        notes: "Approved and reliable.",
+        skills: [
+          {
+            name: "Research Operations",
+            description: "Deep source gathering and synthesis.",
+            tags: ["research", "synthesis"],
+          },
+          {
+            name: "Facilitation",
+            description: "Turns research into collaborative sessions.",
+            tags: ["facilitation", "workshops"],
+          },
+        ],
+      }),
+      metadata: {
+        name: "Signal Forge",
+        url: "https://signal-forge.example.com",
+        status: "approved",
+        slug: "signal-forge",
+      },
+    });
+
+    const receivedPrompts: string[] = [];
+    const shell = harness.getMockShell();
+    shell.generateObject = async <T>(
+      prompt: string,
+      schema: { parse: (value: unknown) => T },
+    ): Promise<{ object: T }> => {
+      receivedPrompts.push(prompt);
+      return {
+        object: schema.parse(
+          receivedPrompts.length === 1
+            ? {
+                strengths: [
+                  {
+                    theme: "research",
+                    evidence: "Research is reinforced by Research Operations.",
+                    action: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [
+                  {
+                    theme: "facilitation",
+                    evidence:
+                      "Facilitation appears as an external network skill.",
+                    action: "Test it in live sessions.",
+                  },
+                ],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    sourceTheme: "research",
+                    title: "Research",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [
+                  {
+                    sourceTheme: "facilitation",
+                    title: "Facilitation",
+                    detail: "Test it in live sessions.",
+                  },
+                ],
+                threats: [],
+              },
+        ),
+      };
+    };
+
+    const handler = new SwotDerivationHandler(
+      harness.getMockShell().getLogger(),
+      harness.getEntityContext("swot"),
+    );
+
+    const reporter = { report: async (): Promise<void> => {} };
+    await handler.process({ reason: "test" }, "job-1", reporter as never);
+
+    expect(receivedPrompts[0]).toContain('"candidateMatches"');
+    expect(receivedPrompts[0]).toContain('"Research Operations"');
+    expect(receivedPrompts[0]).toContain('"externalNetworkSkills"');
+    expect(receivedPrompts[0]).toContain('"Facilitation"');
+  });
+
+  it("includes exact allowed themes in the refinement prompt", async () => {
+    const plugin = new SwotPlugin();
+    await harness.installPlugin(plugin);
+
+    await harness.getEntityService().createEntity({
+      id: "skill-1",
+      entityType: "skill",
+      content: skillAdapter.createSkillContent({
+        name: "Research",
+        description: "Research skill",
+        tags: ["research"],
+        examples: ["Example"],
+      }),
+      metadata: {
+        name: "Research",
+        description: "Research skill",
+        tags: ["research"],
+        examples: ["Example"],
+      },
+    });
+
+    const receivedPrompts: string[] = [];
+    const shell = harness.getMockShell();
+    shell.generateObject = async <T>(
+      prompt: string,
+      schema: { parse: (value: unknown) => T },
+    ): Promise<{ object: T }> => {
+      receivedPrompts.push(prompt);
+      return {
+        object: schema.parse(
+          receivedPrompts.length === 1
+            ? {
+                strengths: [
+                  {
+                    theme: "research systems",
+                    evidence: "clear owner strength",
+                    action: "lean into it",
+                  },
+                ],
+                weaknesses: [
+                  {
+                    theme: "editorial writing",
+                    evidence: "thin support",
+                    action: "review before shipping",
+                  },
+                ],
+                opportunities: [],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    sourceTheme: "research systems",
+                    title: "Research systems",
+                    detail: "Use it confidently.",
+                  },
+                ],
+                weaknesses: [
+                  {
+                    sourceTheme: "editorial writing",
+                    title: "Editorial writing",
+                    detail: "Get review before shipping.",
+                  },
+                ],
+                opportunities: [],
+                threats: [],
+              },
+        ),
+      };
+    };
+
+    const handler = new SwotDerivationHandler(
+      harness.getMockShell().getLogger(),
+      harness.getEntityContext("swot"),
+    );
+
+    const reporter = { report: async (): Promise<void> => {} };
+    await handler.process({ reason: "test" }, "job-1", reporter as never);
+
+    expect(receivedPrompts[1]).toContain("Allowed themes by quadrant:");
+    expect(receivedPrompts[1]).toContain('"research systems"');
+    expect(receivedPrompts[1]).toContain('"editorial writing"');
+  });
+
   it("updates the existing swot entity instead of creating a duplicate", async () => {
     const plugin = new SwotPlugin();
     await harness.installPlugin(plugin);
@@ -240,12 +506,33 @@ describe("SwotDerivationHandler", () => {
       callCount += 1;
       const cycle = Math.ceil(callCount / 2);
       return {
-        object: schema.parse({
-          strengths: [{ title: `Strength ${cycle}`, detail: null }],
-          weaknesses: [],
-          opportunities: [],
-          threats: [],
-        }),
+        object: schema.parse(
+          callCount % 2 === 1
+            ? {
+                strengths: [
+                  {
+                    theme: `strength-${cycle}`,
+                    evidence: "clear owner strength",
+                    action: "keep using it",
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              }
+            : {
+                strengths: [
+                  {
+                    sourceTheme: `strength-${cycle}`,
+                    title: `Strength ${cycle}`,
+                    detail: null,
+                  },
+                ],
+                weaknesses: [],
+                opportunities: [],
+                threats: [],
+              },
+        ),
       };
     };
 
