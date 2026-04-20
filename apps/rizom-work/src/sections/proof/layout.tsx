@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
-import type { ProofContent } from "./schema";
 import { Section } from "@brains/site-rizom";
+import {
+  WORK_DISPLAY_QUOTE,
+  WORK_SECTION_HEADLINE,
+  WORK_SECTION_KICKER,
+} from "../styles";
+import type { ProofContent } from "./schema";
 
 export const ProofLayout = ({
   kicker,
@@ -15,16 +20,16 @@ export const ProofLayout = ({
       <div className="mx-auto max-w-[1120px]">
         <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />
-          <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
-            {kicker}
-          </span>
-          <h2 className="font-display text-[34px] tracking-[-1.2px] leading-[1.06] md:text-display-lg max-w-[12ch]">
+          <span className={`${WORK_SECTION_KICKER} mb-4`}>{kicker}</span>
+          <h2 className={`${WORK_SECTION_HEADLINE} max-w-[12ch]`}>
             {headline}
           </h2>
         </div>
 
         <blockquote className="relative mx-auto mb-14 max-w-[720px] bg-transparent px-0 py-8 text-left md:mb-24 md:px-10 md:py-10">
-          <p className="relative mb-7 max-w-[24ch] pl-0 font-display text-[clamp(24px,3vw,38px)] italic leading-[1.28] tracking-[-0.6px] text-theme md:pl-14">
+          <p
+            className={`${WORK_DISPLAY_QUOTE} relative mb-7 max-w-[24ch] pl-0 text-[clamp(24px,3vw,38px)] leading-[1.28] md:pl-14`}
+          >
             <span
               aria-hidden
               className="pointer-events-none absolute -top-7 -left-[10px] font-display text-[112px] leading-none text-accent/35 md:-top-10 md:-left-[6px] md:text-[180px]"

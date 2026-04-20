@@ -17,24 +17,13 @@ import { cn } from "@brains/ui-library";
  * stage is tallest.
  */
 
-const LABEL_STYLE = {
-  fill: "var(--color-accent)",
-  fontFamily: "var(--font-label)",
-  fontSize: "11px",
-  fontWeight: 600,
-  letterSpacing: "0.22em",
-  textTransform: "uppercase" as const,
-};
-
-const DESC_STYLE = {
-  fill: "var(--color-text-muted)",
-  fontFamily: "var(--font-body)",
-  fontSize: "12px",
-};
-
-const CONNECTOR_STYLE = { stroke: "var(--color-accent)" };
-const NODE_STYLE = { fill: "var(--color-accent)" };
-const RING_STYLE = { stroke: "var(--color-accent)" };
+const LABEL_CLASS =
+  "fill-accent [font-family:var(--font-label)] text-[11px] font-semibold uppercase tracking-[0.22em]";
+const DESC_CLASS =
+  "fill-[var(--color-text-muted)] [font-family:var(--font-body)] text-[12px]";
+const CONNECTOR_CLASS = "stroke-accent";
+const NODE_CLASS = "fill-accent";
+const RING_CLASS = "stroke-accent";
 
 const BAND_CENTER = 65;
 const LABEL_Y = 135;
@@ -111,7 +100,7 @@ export const ScalesDiagram = ({
         y1={BAND_CENTER}
         x2="304"
         y2={BAND_CENTER}
-        style={CONNECTOR_STYLE}
+        className={CONNECTOR_CLASS}
         strokeWidth="1"
         opacity="0.22"
       />
@@ -120,7 +109,7 @@ export const ScalesDiagram = ({
         y1={BAND_CENTER}
         x2="534"
         y2={BAND_CENTER}
-        style={CONNECTOR_STYLE}
+        className={CONNECTOR_CLASS}
         strokeWidth="1"
         opacity="0.22"
       />
@@ -132,7 +121,7 @@ export const ScalesDiagram = ({
           cy={BAND_CENTER}
           r="26"
           fill="none"
-          style={RING_STYLE}
+          className={RING_CLASS}
           strokeWidth="1.25"
           opacity="0.4"
         />
@@ -141,18 +130,18 @@ export const ScalesDiagram = ({
           cy={BAND_CENTER}
           r="16"
           fill="none"
-          style={RING_STYLE}
+          className={RING_CLASS}
           strokeWidth="1"
           opacity="0.65"
         />
-        <circle cx={colX.you} cy={BAND_CENTER} r="7" style={NODE_STYLE} />
+        <circle cx={colX.you} cy={BAND_CENTER} r="7" className={NODE_CLASS} />
         {showLabels ? (
           <>
             <text
               x={colX.you}
               y={LABEL_Y}
               textAnchor="middle"
-              style={LABEL_STYLE}
+              className={LABEL_CLASS}
             >
               You
             </text>
@@ -160,7 +149,7 @@ export const ScalesDiagram = ({
               x={colX.you}
               y={DESC_Y}
               textAnchor="middle"
-              style={DESC_STYLE}
+              className={DESC_CLASS}
             >
               Personal brain
             </text>
@@ -177,19 +166,19 @@ export const ScalesDiagram = ({
             y1={BAND_CENTER}
             x2={sat.cx}
             y2={sat.cy}
-            style={CONNECTOR_STYLE}
+            className={CONNECTOR_CLASS}
             strokeWidth="1"
             opacity="0.55"
           />
         ))}
-        <circle cx={colX.team} cy={BAND_CENTER} r="6" style={NODE_STYLE} />
+        <circle cx={colX.team} cy={BAND_CENTER} r="6" className={NODE_CLASS} />
         {teamSatellites.map((sat) => (
           <circle
             key={`sat-${sat.cx}-${sat.cy}`}
             cx={sat.cx}
             cy={sat.cy}
             r="4.5"
-            style={NODE_STYLE}
+            className={NODE_CLASS}
           />
         ))}
         {showLabels ? (
@@ -198,7 +187,7 @@ export const ScalesDiagram = ({
               x={colX.team}
               y={LABEL_Y}
               textAnchor="middle"
-              style={LABEL_STYLE}
+              className={LABEL_CLASS}
             >
               Team
             </text>
@@ -206,7 +195,7 @@ export const ScalesDiagram = ({
               x={colX.team}
               y={DESC_Y}
               textAnchor="middle"
-              style={DESC_STYLE}
+              className={DESC_CLASS}
             >
               Shared intelligence
             </text>
@@ -227,7 +216,7 @@ export const ScalesDiagram = ({
               y1={pa.cy}
               x2={pb.cx}
               y2={pb.cy}
-              style={CONNECTOR_STYLE}
+              className={CONNECTOR_CLASS}
               strokeWidth="0.9"
               opacity="0.45"
             />
@@ -239,7 +228,7 @@ export const ScalesDiagram = ({
             cx={node.cx}
             cy={node.cy}
             r={idx === 6 ? "5" : "4.5"}
-            style={NODE_STYLE}
+            className={NODE_CLASS}
           />
         ))}
         {showLabels ? (
@@ -248,7 +237,7 @@ export const ScalesDiagram = ({
               x={colX.network}
               y={LABEL_Y}
               textAnchor="middle"
-              style={LABEL_STYLE}
+              className={LABEL_CLASS}
             >
               Network
             </text>
@@ -256,7 +245,7 @@ export const ScalesDiagram = ({
               x={colX.network}
               y={DESC_Y}
               textAnchor="middle"
-              style={DESC_STYLE}
+              className={DESC_CLASS}
             >
               Distributed expertise
             </text>

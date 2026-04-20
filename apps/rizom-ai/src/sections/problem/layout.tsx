@@ -31,39 +31,24 @@ export const ProblemLayout = ({ cards }: ProblemContent): JSX.Element => {
       >
         <path
           d="M180,30 C380,25 580,22 780,25 C980,28 1080,32 1100,30"
-          style={{ stroke: "var(--color-accent)" }}
+          className="stroke-accent opacity-10"
           strokeWidth="1"
           fill="none"
-          opacity="0.1"
         />
         <path
           d="M180,35 C420,30 660,28 900,32 C1020,34 1080,35 1100,34"
-          style={{ stroke: "var(--palette-amber-light)" }}
+          className="stroke-[var(--palette-amber-light)] opacity-[0.07]"
           strokeWidth="0.6"
           fill="none"
-          opacity="0.07"
         />
-        <circle
-          cx="180"
-          cy="30"
-          r="2"
-          style={{ fill: "var(--color-accent)" }}
-          opacity="0.2"
-        />
+        <circle cx="180" cy="30" r="2" className="fill-accent opacity-20" />
         <circle
           cx="640"
           cy="25"
           r="1.5"
-          style={{ fill: "var(--palette-amber-light)" }}
-          opacity="0.15"
+          className="fill-[var(--palette-amber-light)] opacity-[0.15]"
         />
-        <circle
-          cx="1100"
-          cy="30"
-          r="2"
-          style={{ fill: "var(--color-accent)" }}
-          opacity="0.2"
-        />
+        <circle cx="1100" cy="30" r="2" className="fill-accent opacity-20" />
       </svg>
     </Section>
   );

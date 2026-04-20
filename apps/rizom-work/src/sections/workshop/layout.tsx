@@ -1,6 +1,11 @@
 import type { JSX } from "preact";
-import type { WorkshopContent } from "./schema";
 import { Button, Section } from "@brains/site-rizom";
+import {
+  WORK_OUTLINED_STEP_NUMBER,
+  WORK_SECTION_HEADLINE,
+  WORK_SECTION_KICKER,
+} from "../styles";
+import type { WorkshopContent } from "./schema";
 
 export const WorkshopLayout = ({
   kicker,
@@ -15,10 +20,8 @@ export const WorkshopLayout = ({
       <div className="mx-auto max-w-[1120px]">
         <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />
-          <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
-            {kicker}
-          </span>
-          <h2 className="font-display text-[34px] tracking-[-1.2px] leading-[1.06] md:text-display-lg max-w-[16ch]">
+          <span className={`${WORK_SECTION_KICKER} mb-4`}>{kicker}</span>
+          <h2 className={`${WORK_SECTION_HEADLINE} max-w-[16ch]`}>
             {headline}
           </h2>
           <p className="mx-auto mt-5 max-w-[640px] text-[18px] leading-[1.72] text-theme-muted">
@@ -33,9 +36,7 @@ export const WorkshopLayout = ({
               className={`reveal reveal-delay-${i + 1} grid items-start gap-[18px] border-t border-[var(--color-work-divider-soft)] py-8 md:grid-cols-[240px_1fr] md:gap-16 md:py-14 ${i === steps.length - 1 ? "border-b" : ""}`}
             >
               <div className="mb-5 flex items-center gap-4">
-                <span className="font-display text-[42px] leading-none tracking-[-1.5px] text-transparent [-webkit-text-stroke:1.2px_var(--color-accent)] md:text-[56px]">
-                  {step.num}
-                </span>
+                <span className={WORK_OUTLINED_STEP_NUMBER}>{step.num}</span>
                 <div className="flex-1">
                   <div className="h-px bg-white/12 mb-2" />
                   <div className="font-label text-label-sm uppercase tracking-[0.18em] text-theme-light">

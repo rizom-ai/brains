@@ -4,6 +4,49 @@ import { Button, Section, renderHighlightedText } from "@brains/site-rizom";
 
 /** rizom.work's highlight voice: italic + accent color. */
 const HIGHLIGHT_CLS = "italic text-accent";
+const RADAR_RING_CLASS = "fill-none stroke-white/13 [stroke-width:1.2]";
+const RADAR_OUTER_RING_CLASS = "fill-none stroke-white/26 [stroke-width:1.5]";
+const RADAR_AXIS_CLASS =
+  "stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]";
+const RADAR_SHAPE_CLASS =
+  "fill-accent/20 stroke-accent [stroke-width:2.5] [stroke-linejoin:round]";
+const RADAR_NODE_CLASS = "fill-white stroke-[var(--color-bg)] [stroke-width:2]";
+const RADAR_LABEL_CLASS =
+  "font-mono text-[10.5px] font-semibold uppercase tracking-[1.4px] fill-white/82";
+
+const RADAR_RINGS = [
+  "180,130 197.32,140 197.32,160 180,170 162.68,160 162.68,140",
+  "180,110 214.64,130 214.64,170 180,190 145.36,170 145.36,130",
+  "180,90 231.96,120 231.96,180 180,210 128.04,180 128.04,120",
+  "180,70 249.28,110 249.28,190 180,230 110.72,190 110.72,110",
+] as const;
+
+const RADAR_AXES = [
+  { x2: "180", y2: "50" },
+  { x2: "266.60", y2: "100" },
+  { x2: "266.60", y2: "200" },
+  { x2: "180", y2: "250" },
+  { x2: "93.40", y2: "200" },
+  { x2: "93.40", y2: "100" },
+] as const;
+
+const RADAR_NODES = [
+  { cx: "180", cy: "95" },
+  { cx: "233.69", cy: "119" },
+  { cx: "209.44", cy: "167" },
+  { cx: "180", cy: "171" },
+  { cx: "154.89", cy: "164.5" },
+  { cx: "143.63", cy: "129" },
+] as const;
+
+const RADAR_LABELS = [
+  { x: "180", y: "34", textAnchor: "middle", label: "Specialization" },
+  { x: "278", y: "94", textAnchor: "start", label: "Credibility" },
+  { x: "278", y: "214", textAnchor: "start", label: "Coordination" },
+  { x: "180", y: "282", textAnchor: "middle", label: "Info flow" },
+  { x: "82", y: "214", textAnchor: "end", label: "Authority" },
+  { x: "82", y: "94", textAnchor: "end", label: "AI ready" },
+] as const;
 
 export const WorkHeroLayout = ({
   kicker,
@@ -52,19 +95,8 @@ export const WorkHeroLayout = ({
           </div>
         </div>
 
-        <div
-          className="relative z-[2] ml-auto w-full max-w-[540px] rounded-2xl border border-accent/30 p-8 opacity-0 animate-hero-rise [animation-delay:0.75s] max-[1100px]:mx-auto max-[1100px]:max-w-[520px] max-[900px]:p-6"
-          style={{
-            backgroundImage: "var(--color-work-diagnostic-bg)",
-            backdropFilter: "blur(14px)",
-            WebkitBackdropFilter: "blur(14px)",
-            boxShadow: "var(--color-work-diagnostic-shadow)",
-          }}
-        >
-          <div
-            className="absolute inset-x-0 top-0 h-[2px] rounded-t-2xl"
-            style={{ backgroundImage: "var(--color-work-diagnostic-bar)" }}
-          />
+        <div className="rizom-diagnostic-panel relative z-[2] ml-auto w-full max-w-[540px] rounded-2xl border border-accent/30 p-8 opacity-0 animate-hero-rise [animation-delay:0.75s] max-[1100px]:mx-auto max-[1100px]:max-w-[520px] max-[900px]:p-6">
+          <div className="rizom-diagnostic-panel-bar absolute inset-x-0 top-0 h-[2px] rounded-t-2xl" />
           <div className="mb-4 flex items-baseline justify-between gap-4 border-b border-white/12 pb-4">
             <span className="font-mono text-[10.5px] uppercase tracking-[0.25em] text-[var(--color-work-diagnostic-label)]">
               {diagnosticTitle}
@@ -82,130 +114,49 @@ export const WorkHeroLayout = ({
               aria-label="Six-axis radar chart showing team coordination scores"
             >
               <g opacity="0.95">
+                {RADAR_RINGS.map((points) => (
+                  <polygon
+                    key={points}
+                    className={RADAR_RING_CLASS}
+                    points={points}
+                  />
+                ))}
                 <polygon
-                  className="fill-none stroke-white/13 [stroke-width:1.2]"
-                  points="180,130 197.32,140 197.32,160 180,170 162.68,160 162.68,140"
-                />
-                <polygon
-                  className="fill-none stroke-white/13 [stroke-width:1.2]"
-                  points="180,110 214.64,130 214.64,170 180,190 145.36,170 145.36,130"
-                />
-                <polygon
-                  className="fill-none stroke-white/13 [stroke-width:1.2]"
-                  points="180,90 231.96,120 231.96,180 180,210 128.04,180 128.04,120"
-                />
-                <polygon
-                  className="fill-none stroke-white/13 [stroke-width:1.2]"
-                  points="180,70 249.28,110 249.28,190 180,230 110.72,190 110.72,110"
-                />
-                <polygon
-                  className="fill-none stroke-white/26 [stroke-width:1.5]"
+                  className={RADAR_OUTER_RING_CLASS}
                   points="180,50 266.60,100 266.60,200 180,250 93.40,200 93.40,100"
                 />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="180"
-                  y2="50"
-                />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="266.60"
-                  y2="100"
-                />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="266.60"
-                  y2="200"
-                />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="180"
-                  y2="250"
-                />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="93.40"
-                  y2="200"
-                />
-                <line
-                  className="stroke-white/11 [stroke-width:1.2] [stroke-dasharray:2_4]"
-                  x1="180"
-                  y1="150"
-                  x2="93.40"
-                  y2="100"
-                />
+                {RADAR_AXES.map(({ x2, y2 }) => (
+                  <line
+                    key={`${x2}-${y2}`}
+                    className={RADAR_AXIS_CLASS}
+                    x1="180"
+                    y1="150"
+                    x2={x2}
+                    y2={y2}
+                  />
+                ))}
               </g>
               <g>
                 <polygon
-                  className="fill-accent/20 stroke-accent [stroke-width:2.5] [stroke-linejoin:round]"
+                  className={RADAR_SHAPE_CLASS}
                   points="180,95 233.69,119 209.44,167 180,171 154.89,164.5 143.63,129"
                 />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="180"
-                  cy="95"
-                  r="4"
-                />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="233.69"
-                  cy="119"
-                  r="4"
-                />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="209.44"
-                  cy="167"
-                  r="4"
-                />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="180"
-                  cy="171"
-                  r="4"
-                />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="154.89"
-                  cy="164.5"
-                  r="4"
-                />
-                <circle
-                  className="fill-white stroke-[var(--color-bg)] [stroke-width:2]"
-                  cx="143.63"
-                  cy="129"
-                  r="4"
-                />
+                {RADAR_NODES.map(({ cx, cy }) => (
+                  <circle
+                    key={`${cx}-${cy}`}
+                    className={RADAR_NODE_CLASS}
+                    cx={cx}
+                    cy={cy}
+                    r="4"
+                  />
+                ))}
               </g>
-              <g className="font-mono text-[10.5px] font-semibold uppercase tracking-[1.4px] fill-white/82">
-                <text x="180" y="34" text-anchor="middle">
-                  Specialization
-                </text>
-                <text x="278" y="94" text-anchor="start">
-                  Credibility
-                </text>
-                <text x="278" y="214" text-anchor="start">
-                  Coordination
-                </text>
-                <text x="180" y="282" text-anchor="middle">
-                  Info flow
-                </text>
-                <text x="82" y="214" text-anchor="end">
-                  Authority
-                </text>
-                <text x="82" y="94" text-anchor="end">
-                  AI ready
-                </text>
+              <g className={RADAR_LABEL_CLASS}>
+                {RADAR_LABELS.map(({ x, y, textAnchor, label }) => (
+                  <text key={label} x={x} y={y} textAnchor={textAnchor}>
+                    {label}
+                  </text>
+                ))}
               </g>
             </svg>
           </div>

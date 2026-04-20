@@ -374,7 +374,7 @@ site:
   theme: "@brains/theme-rizom"
 ```
 
-The brain resolver loads `site.package` and `site.theme` independently. `variant` flows to the site plugin; `theme` does not. Instead, the resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
+The brain resolver loads `site.package` and `site.theme` independently. Site-specific config (for example `variant`) flows to the site plugin; `theme` does not. Instead, the resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
 
 ### Site Builder Integration
 

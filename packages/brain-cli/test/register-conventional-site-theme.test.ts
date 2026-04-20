@@ -58,13 +58,13 @@ describe("registerConventionalSiteTheme", () => {
     );
 
     const overrides: InstanceOverrides = {
-      site: { variant: "foundation" },
+      site: { variant: "editorial" },
     };
 
     const result = await registerConventionalSiteTheme(testDir, overrides);
 
     expect(result.site).toEqual({
-      variant: "foundation",
+      variant: "editorial",
       package: CONVENTIONAL_SITE_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeDefined();
@@ -96,7 +96,7 @@ describe("registerConventionalSiteTheme", () => {
       site: {
         package: "@brains/site-explicit",
         theme: "@brains/theme-explicit",
-        variant: "work",
+        variant: "studio",
       },
     };
 
@@ -107,7 +107,7 @@ describe("registerConventionalSiteTheme", () => {
         package: "@brains/site-explicit",
         theme: "@brains/theme-explicit",
         themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
-        variant: "work",
+        variant: "studio",
       },
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeUndefined();
@@ -123,7 +123,7 @@ describe("registerConventionalSiteTheme", () => {
     const overrides: InstanceOverrides = {
       site: {
         package: "@brains/site-explicit",
-        variant: "ai",
+        variant: "product",
       },
     };
 
@@ -131,7 +131,7 @@ describe("registerConventionalSiteTheme", () => {
 
     expect(result.site).toEqual({
       package: "@brains/site-explicit",
-      variant: "ai",
+      variant: "product",
       themeOverride: CONVENTIONAL_THEME_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeUndefined();

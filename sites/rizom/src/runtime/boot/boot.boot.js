@@ -2,7 +2,7 @@
  * Rizom site boot script.
  *
  * Runs once at page load and wires up:
- *   1. `data-rizom-variant` on <body> (value substituted at load time)
+ *   1. `data-theme-profile` on <body> (value substituted at load time)
  *   2. Scroll-reveal IntersectionObserver → toggles `.visible` on `.reveal`
  *   3. Side-nav active-dot tracker (home route only)
  *   4. #themeToggle label sync on click (delegates theme flip to
@@ -10,14 +10,15 @@
  *      FOUC-prevention script — see plugins/site-builder html-generator.ts)
  *
  * Shipped as a static asset at /boot.js and loaded with <script defer>.
- * The variant name is injected by RizomSitePlugin via a tiny inline
- * <script> that sets `window.__RIZOM_VARIANT__` before this file runs.
+ * The theme profile is injected by RizomSitePlugin via a tiny inline
+ * <script> that sets `window.__RIZOM_THEME_PROFILE__` before this file runs.
  */
 (function () {
   function init() {
-    var variant = window.__RIZOM_VARIANT__;
-    if (document.body && variant) {
-      document.body.setAttribute("data-rizom-variant", variant);
+    var themeProfile = window.__RIZOM_THEME_PROFILE__;
+
+    if (document.body && themeProfile) {
+      document.body.setAttribute("data-theme-profile", themeProfile);
     }
 
     // Scroll reveal — toggle .visible on .reveal elements as they enter view

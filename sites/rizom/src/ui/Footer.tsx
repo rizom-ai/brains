@@ -1,4 +1,5 @@
 import type { JSX } from "preact";
+import { cn } from "@brains/ui-library";
 import type { RizomBrandSuffix, RizomFooterTagline, RizomLink } from "./types";
 import { GUTTER } from "./Section";
 
@@ -13,6 +14,7 @@ interface FooterProps {
   metaLabel: string;
   tagline?: RizomFooterTagline;
   links: RizomLink[];
+  className?: string;
 }
 
 export const Footer = ({
@@ -20,9 +22,13 @@ export const Footer = ({
   metaLabel,
   tagline,
   links,
+  className,
 }: FooterProps): JSX.Element => (
   <footer
-    className={`flex flex-col gap-4 ${GUTTER} py-8 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 border-t border-theme-light text-center md:text-left`}
+    className={cn(
+      `flex flex-col gap-4 ${GUTTER} py-8 md:flex-row md:items-center md:justify-between md:gap-6 md:py-6 border-t border-theme-light text-center md:text-left`,
+      className,
+    )}
   >
     <div className="flex flex-col items-center gap-1.5 md:items-start max-w-[560px]">
       <div className="flex flex-col items-center gap-1.5 md:flex-row md:items-center md:gap-3">

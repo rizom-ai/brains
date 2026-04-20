@@ -3,27 +3,20 @@ import { Badge, Divider, Section } from "../ui";
 import type { EcosystemContent, EcosystemSuffix } from "./schema";
 
 const BASE_CARD_CLASS =
-  "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-[12px] md:rounded-[16px] border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[2px] before:opacity-60 hover:before:opacity-100 before:transition-opacity";
+  "reveal relative overflow-hidden flex flex-col gap-2 p-6 md:p-8 rounded-[12px] md:rounded-[16px] border transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:border-white/12 [border-color:var(--rizom-ecosystem-card-border)] [background-image:var(--rizom-ecosystem-card-bg)] hover:[box-shadow:var(--rizom-ecosystem-card-hover-shadow)] before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-[var(--rizom-ecosystem-card-bar-height)] before:opacity-[var(--rizom-ecosystem-card-bar-opacity)] hover:before:opacity-100 before:transition-opacity before:[background-image:var(--rizom-ecosystem-card-bar)]";
 
-const ACTIVE_EXTRAS =
-  "border-[var(--color-card-panel-current-border)] bg-[image:var(--color-card-panel-current-bg)] before:!opacity-100 before:!h-[3px] before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)] hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-current)]";
+const ACTIVE_THEME =
+  "[--rizom-ecosystem-card-border:var(--color-card-panel-current-border)] [--rizom-ecosystem-card-bg:var(--color-card-panel-current-bg)] [--rizom-ecosystem-card-hover-shadow:0_16px_40px_-16px_var(--color-glow-panel-current)] [--rizom-ecosystem-card-bar-height:3px] [--rizom-ecosystem-card-bar-opacity:1] [--rizom-ecosystem-card-bar:linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]";
 
-const STANDARD_EXTRAS =
-  "border-[var(--color-card-panel-border)] bg-[image:var(--color-card-panel-bg)]";
+const STANDARD_THEME =
+  "[--rizom-ecosystem-card-border:var(--color-card-panel-border)] [--rizom-ecosystem-card-bg:var(--color-card-panel-bg)] [--rizom-ecosystem-card-bar-height:2px] [--rizom-ecosystem-card-bar-opacity:0.6]";
 
-const ACCENT_GLOW: Record<EcosystemSuffix, string> = {
-  ai: "hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-ai)]",
+const SUFFIX_THEME: Record<EcosystemSuffix, string> = {
+  ai: "[--rizom-ecosystem-card-hover-shadow:0_16px_40px_-16px_var(--color-glow-panel-ai)] [--rizom-ecosystem-card-bar:linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]",
   foundation:
-    "hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-foundation)]",
-  work: "hover:shadow-[0_16px_40px_-16px_var(--color-glow-panel-work)]",
-};
-
-const ACCENT_BAR: Record<EcosystemSuffix, string> = {
-  ai: "before:bg-[linear-gradient(90deg,transparent,var(--color-accent)_30%,var(--color-accent)_70%,transparent)]",
-  foundation:
-    "before:bg-[linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]",
+    "[--rizom-ecosystem-card-hover-shadow:0_16px_40px_-16px_var(--color-glow-panel-foundation)] [--rizom-ecosystem-card-bar:linear-gradient(90deg,transparent,var(--color-secondary)_30%,var(--color-secondary)_70%,transparent)]",
   // Mock work card uses an amber-light → purple-light blend
-  work: "before:bg-[linear-gradient(90deg,transparent,var(--palette-amber-light)_30%,var(--color-secondary)_70%,transparent)]",
+  work: "[--rizom-ecosystem-card-hover-shadow:0_16px_40px_-16px_var(--color-glow-panel-work)] [--rizom-ecosystem-card-bar:linear-gradient(90deg,transparent,var(--palette-amber-light)_30%,var(--color-secondary)_70%,transparent)]",
 };
 
 const ACCENT_LINK: Record<EcosystemSuffix, string> = {
@@ -55,15 +48,14 @@ export const EcosystemLayout = ({
           // empty string.
           const isActive = card.linkLabel === "You are here";
           const isDisabled = card.linkHref.trim().length === 0;
-          const extras = isActive ? ACTIVE_EXTRAS : STANDARD_EXTRAS;
-          const accentEffects = isActive
-            ? ""
-            : `${ACCENT_GLOW[card.suffix]} ${ACCENT_BAR[card.suffix]}`;
+          const themeClass = isActive
+            ? ACTIVE_THEME
+            : `${STANDARD_THEME} ${SUFFIX_THEME[card.suffix]}`;
           const linkClass = `mt-2 font-body text-[13px] md:text-[14px] font-medium ${isDisabled ? "text-theme-light opacity-70 cursor-default" : `transition-opacity hover:opacity-70 ${ACCENT_LINK[card.suffix]}`}`;
           return (
             <div
               key={card.suffix}
-              className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${extras} ${accentEffects}`}
+              className={`${BASE_CARD_CLASS} reveal-delay-${i + 1} ${themeClass}`}
             >
               <div className="mb-2 flex items-center gap-1 font-nav text-[16px]">
                 <span className="font-bold">rizom</span>

@@ -57,6 +57,7 @@ export const WorkLayout = ({
     <Footer
       brandSuffix="work"
       metaLabel={siteInfo.copyright}
+      className="items-center"
       links={[
         ...FOOTER_LINKS,
         ...socialLinksToRizomLinks(siteInfo, ["linkedin"]),

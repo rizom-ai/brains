@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-18
+Last updated: 2026-04-19
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths, and the extracted deployment repos now match the shared HTTP-host shape used by the current scaffold. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
 
 What already exists today:
 
@@ -38,41 +38,31 @@ These areas are effectively landed:
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
 - **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
+- **Extracted deploy convergence** — the checked-out external deployments now use the shared HTTP-host shape: `app_port: 8080`, no active in-container `Caddyfile`, and direct `brain start` boot
 - **Rizom site core consolidation** — `rizom.ai`, `rizom.foundation`, and `rizom.work` now own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate
 - **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
 
 ## Near-term priorities
 
-### 1. Deployment path polish
+### 1. Rizom site variant follow-through
 
-Keep tightening the self-hosted deployment story first, because it most directly affects whether new users can get a brain running reliably.
-
-Focus areas:
-
-- converge app-local deploy workflows with the newer `brain init --deploy` scaffold where they have drifted
-- operator-facing verification and troubleshooting guidance drawn from the now-live instances
-- polish the first-run deploy path for new external users
-
-Plan:
-
-- [rizom-site-composition.md](./plans/rizom-site-composition.md)
-
-### 2. Rizom site variant follow-through
-
-The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. Extraction into a separate `rizom-sites` repo is still a later decision, not the current target.
+The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. The next step is no longer a combined `rizom-sites` extraction. The current direction is to keep `sites/rizom` in `brains` as the shared reusable package, then extract the deployable Rizom apps into separate per-app repos.
 
 Focus areas:
 
-- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) without blocking engineering work
 - keep the shared/core boundary stable: `sites/rizom` for shared site structure, app-local `src/site.ts` for variants, `shared/theme-rizom` for theme
-- reconsider separate-repo extraction only if there is a concrete operational reason to move it later
+- complete the Rizom theme-hardening work before extraction so the shared theme/profile API no longer leaks app names
+- make the shared Rizom site/theme layer consumable by app repos without depending on monorepo-only workspace wiring
+- extract the Rizom apps one by one for deploy isolation, starting with the lowest-risk pilot
+- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) without blocking the extraction work
 
 Plans:
 
 - [rizom-site-composition.md](./plans/rizom-site-composition.md)
+- [rizom-theme-hardening.md](./plans/rizom-theme-hardening.md)
 - [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
 
-### 3. Documentation phase 2
+### 2. Documentation phase 2
 
 Fill the remaining user-facing docs in parallel with the product work above:
 

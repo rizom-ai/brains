@@ -1422,14 +1422,14 @@ logLevel: debug
 brain: "@brains/relay"
 site:
   package: "@brains/site-example"
-  variant: foundation
+  variant: editorial
   theme: github:rizom-ai/theme-foundation
   themeOverride: ./src/theme.css
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.site).toEqual({
       package: "@brains/site-example",
-      variant: "foundation",
+      variant: "editorial",
       theme: "github:rizom-ai/theme-foundation",
       themeOverride: "./src/theme.css",
     });
@@ -1493,7 +1493,7 @@ site:
       {},
       {
         site: {
-          variant: "foundation",
+          variant: "editorial",
           theme: "@brains/theme-foundation",
         },
       },
@@ -1503,7 +1503,7 @@ site:
     const sitePlugin = config.plugins?.find((p) => p.id === "rizom-site");
     expect(sitePlugin).toBeDefined();
     const cfg = getConfig(sitePlugin);
-    expect(cfg["variant"]).toBe("foundation");
+    expect(cfg["variant"]).toBe("editorial");
     expect(cfg["theme"]).toBeUndefined();
     expect(cfg["package"]).toBeUndefined();
   });

@@ -23,8 +23,4 @@
   }
 }
 
-@layer theme-override {
-  footer {
-    align-items: center;
-  }
-}
+@layer theme-override {}

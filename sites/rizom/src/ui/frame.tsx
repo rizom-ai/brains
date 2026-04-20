@@ -23,13 +23,9 @@ export const RizomFrame = ({ children }: RizomFrameProps): JSX.Element => (
   <>
     <div
       id="bgCanvasWrap"
-      className="fixed top-0 left-0 w-full h-full pointer-events-none"
-      style={{ zIndex: 0, opacity: 0.6 }}
+      className="rizom-frame-canvas-wrap fixed top-0 left-0 w-full h-full pointer-events-none"
     >
-      <canvas
-        id="heroCanvas"
-        style={{ width: "100%", height: "100%", display: "block" }}
-      />
+      <canvas id="heroCanvas" className="w-full h-full block" />
     </div>
 
     <div className="max-w-[1440px] mx-auto relative overflow-x-clip">

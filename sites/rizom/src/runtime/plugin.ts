@@ -7,18 +7,24 @@ import constellationCanvas from "./canvases/constellation.canvas.js" with { type
 import rootsCanvas from "./canvases/roots.canvas.js" with { type: "text" };
 import bootScript from "./boot/boot.boot.js" with { type: "text" };
 
+export const rizomThemeProfileSchema = z.enum([
+  "product",
+  "editorial",
+  "studio",
+]);
+
 export const rizomRuntimeConfigSchema = z.object({
-  variant: z.enum(["ai", "foundation", "work"]).optional(),
+  themeProfile: rizomThemeProfileSchema.optional(),
   theme: z.string().optional(),
 });
 
 export type RizomRuntimeConfig = z.infer<typeof rizomRuntimeConfigSchema>;
-export type RizomRuntimeVariant = NonNullable<RizomRuntimeConfig["variant"]>;
+export type RizomThemeProfile = NonNullable<RizomRuntimeConfig["themeProfile"]>;
 
-const CANVAS_BY_VARIANT: Record<RizomRuntimeVariant, string> = {
-  ai: "/canvases/tree.canvas.js",
-  foundation: "/canvases/roots.canvas.js",
-  work: "/canvases/constellation.canvas.js",
+const CANVAS_BY_THEME_PROFILE: Record<RizomThemeProfile, string> = {
+  product: "/canvases/tree.canvas.js",
+  editorial: "/canvases/roots.canvas.js",
+  studio: "/canvases/constellation.canvas.js",
 };
 
 export const rizomRuntimeStaticAssets: Record<string, string> = {
@@ -42,37 +48,42 @@ export class RizomRuntimePlugin extends ServicePlugin<RizomRuntimeConfig> {
   protected override async onRegister(
     context: ServicePluginContext,
   ): Promise<void> {
-    const variant = this.getVariant();
-    const canvasPath = this.getCanvasPath(variant);
+    const themeProfile = this.getThemeProfile();
+    const canvasPath = this.getCanvasPath(themeProfile);
 
     context.messaging.subscribe("system:plugins:ready", async () => {
       await context.messaging.send("plugin:site-builder:head-script:register", {
         pluginId: this.id,
-        script: this.buildHeadScript(variant, canvasPath),
+        script: this.buildHeadScript(themeProfile, canvasPath),
       });
       return { success: true };
     });
 
     this.logger.info(
-      `Rizom runtime plugin registered${variant ? ` (variant: ${variant})` : ""}`,
+      `Rizom runtime plugin registered${themeProfile ? ` (theme profile: ${themeProfile})` : ""}`,
     );
   }
 
-  protected getVariant(): RizomRuntimeVariant | undefined {
-    return this.config.variant;
+  protected getThemeProfile(): RizomThemeProfile | undefined {
+    return this.config.themeProfile;
   }
 
-  protected getCanvasPath(variant?: RizomRuntimeVariant): string | undefined {
-    return variant ? CANVAS_BY_VARIANT[variant] : undefined;
+  protected getCanvasPath(
+    themeProfile?: RizomThemeProfile,
+  ): string | undefined {
+    return themeProfile ? CANVAS_BY_THEME_PROFILE[themeProfile] : undefined;
   }
 
-  protected buildHeadScript(variant?: string, canvasPath?: string): string {
+  protected buildHeadScript(
+    themeProfile?: string,
+    canvasPath?: string,
+  ): string {
     const scripts = [`<script src="/boot.js" defer></script>`];
 
-    if (variant) {
-      const variantJson = JSON.stringify(variant);
+    if (themeProfile) {
+      const themeProfileJson = JSON.stringify(themeProfile);
       scripts.unshift(
-        `<script>window.__RIZOM_VARIANT__=${variantJson};</script>`,
+        `<script>window.__RIZOM_THEME_PROFILE__=${themeProfileJson};</script>`,
       );
     }
 

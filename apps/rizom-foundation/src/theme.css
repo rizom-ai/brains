@@ -1,9 +1,5 @@
 @layer theme {
   :root {
-    --color-foundation-cta-rule: rgb(from var(--color-accent) r g b / 0.35);
-    --color-foundation-cta-rule-strong: rgb(
-      from var(--color-accent) r g b / 0.55
-    );
     --color-foundation-meta-rule: rgb(from var(--color-accent) r g b / 0.4);
     --color-foundation-divider-soft: rgb(from var(--color-text) r g b / 0.06);
     --color-foundation-support-amber-hover-border: rgb(
@@ -28,46 +24,5 @@
 }
 
 @layer theme-override {
-  /* Foundation CTA treatment — editorial link-style buttons rather
-     than pill buttons. Keep shared Button component; restyle locally
-     so other Rizom apps keep the shared button treatment. */
-  .rizom-btn {
-    width: auto !important;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 2px 8px !important;
-    border: none !important;
-    border-radius: 0 !important;
-    background: transparent !important;
-    box-shadow: none !important;
-    font-family: var(--font-display);
-    font-size: 18px !important;
-    font-weight: 400;
-    font-style: italic;
-    letter-spacing: -0.2px;
-    text-transform: none;
-  }
-  .rizom-btn-primary {
-    color: var(--color-accent) !important;
-    border-bottom: 1px solid var(--color-accent) !important;
-  }
-  .rizom-btn-secondary {
-    color: var(--color-text) !important;
-    border-bottom: 1px solid var(--color-foundation-cta-rule) !important;
-  }
-  .rizom-btn:hover {
-    transform: translateY(-1px);
-    padding-bottom: 11px !important;
-    background: transparent !important;
-  }
-  .rizom-btn-primary:hover {
-    color: var(--color-accent) !important;
-    border-bottom-width: 2px !important;
-  }
-  .rizom-btn-secondary:hover {
-    color: var(--color-text) !important;
-    border-bottom-color: var(--color-foundation-cta-rule-strong) !important;
-  }
-
   /* Foundation editorial polish */
 }

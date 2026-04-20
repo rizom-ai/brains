@@ -1,6 +1,13 @@
 import type { JSX } from "preact";
-import type { SupportContent } from "./schema";
 import { Section } from "@brains/site-rizom";
+import {
+  FOUNDATION_SECTION_EYEBROW_ROW,
+  FOUNDATION_SECTION_EYEBROW_RULE,
+  FOUNDATION_SECTION_EYEBROW_TEXT,
+  FOUNDATION_SECTION_HEADER,
+  FOUNDATION_SECTION_HEADLINE,
+} from "../styles";
+import type { SupportContent } from "./schema";
 
 const CARD_BASE =
   "flex flex-col items-start gap-5 rounded-2xl border px-6 py-8 md:p-10 transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1";
@@ -23,14 +30,12 @@ export const SupportLayout = ({
   return (
     <Section id="support" className="reveal py-section">
       <div className="mx-auto max-w-[1120px]">
-        <div className="mb-10 md:mb-12">
-          <div className="flex items-center gap-3 text-accent mb-4">
-            <span className="block w-8 h-px bg-accent/80" />
-            <span className="font-label text-label-md font-semibold tracking-[0.16em] uppercase">
-              {kicker}
-            </span>
+        <div className={FOUNDATION_SECTION_HEADER}>
+          <div className={FOUNDATION_SECTION_EYEBROW_ROW}>
+            <span className={FOUNDATION_SECTION_EYEBROW_RULE} />
+            <span className={FOUNDATION_SECTION_EYEBROW_TEXT}>{kicker}</span>
           </div>
-          <h2 className="font-display text-[32px] tracking-[-1px] leading-[1.08] md:text-display-md text-theme max-w-[14ch]">
+          <h2 className={`${FOUNDATION_SECTION_HEADLINE} max-w-[14ch]`}>
             {headline}
           </h2>
         </div>

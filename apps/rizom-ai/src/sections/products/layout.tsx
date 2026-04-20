@@ -29,17 +29,29 @@ const WATERMARK_CLASS: Record<
 
 export const ProductsLayout = ({ cards }: ProductsContent): JSX.Element => (
   <>
-    {cards.map((card) => (
-      <ProductCard
-        key={card.variant}
-        {...card}
-        backgroundWatermark={
-          <ProductStageWatermark
-            stage={WATERMARK_STAGE[card.variant]}
-            className={WATERMARK_CLASS[card.variant]}
-          />
-        }
-      />
-    ))}
+    {cards.map((card) => {
+      const productCardProps = {
+        variant: card.variant,
+        label: card.label,
+        badge: card.badge,
+        headline: card.headline,
+        description: card.description,
+        tags: card.tags,
+        ...(card.tagline ? { tagline: card.tagline } : {}),
+      };
+
+      return (
+        <ProductCard
+          key={card.variant}
+          {...productCardProps}
+          backgroundWatermark={
+            <ProductStageWatermark
+              stage={WATERMARK_STAGE[card.variant]}
+              className={WATERMARK_CLASS[card.variant]}
+            />
+          }
+        />
+      );
+    })}
   </>
 );

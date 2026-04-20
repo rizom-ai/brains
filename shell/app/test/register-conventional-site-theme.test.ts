@@ -55,13 +55,13 @@ describe("registerConventionalSiteTheme", () => {
     );
 
     const overrides: InstanceOverrides = {
-      site: { variant: "foundation" },
+      site: { variant: "editorial" },
     };
 
     const result = await registerConventionalSiteTheme(testDir, overrides);
 
     expect(result.site).toEqual({
-      variant: "foundation",
+      variant: "editorial",
       package: CONVENTIONAL_SITE_PACKAGE_REF,
     });
     expect(getPackage(CONVENTIONAL_SITE_PACKAGE_REF)).toBeDefined();

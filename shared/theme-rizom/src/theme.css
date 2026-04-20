@@ -1,21 +1,20 @@
 /*
  * Rizom brand theme — amber + purple bioluminescent palette.
  *
- * Shared by rizom.ai (variant: ai), rizom.foundation (variant: foundation),
- * and rizom.work (variant: work). The site plugin sets
- * `data-rizom-variant="..."` on <body> at boot, and the selectors below
- * switch accent shade + secondary purple per variant.
+ * Shared by the Rizom site family. The site plugin sets
+ * `data-theme-profile="..."` on <body> at boot, and the selectors below
+ * switch accent shade + secondary purple per profile.
  *
  * Mode handling:
  *   :root                      → dark mode (designed default)
  *   [data-theme="light"]       → light mode fallback
  *
- * Variant handling:
- *   [data-rizom-variant="ai"]         → amber-light accent (#FFA366)
- *   [data-rizom-variant="foundation"] → amber-dark accent  (#C45A08)
- *   [data-rizom-variant="work"]       → amber accent       (#E87722)
+ * Theme profile handling:
+ *   [data-theme-profile="product"]   → amber-light accent (#FFA366)
+ *   [data-theme-profile="editorial"] → amber-dark accent  (#C45A08)
+ *   [data-theme-profile="studio"]    → amber accent       (#E87722)
  *
- * Light mode collapses all variants to amber-dark for contrast, per
+ * Light mode collapses all profiles to amber-dark for contrast, per
  * brand guide A2.
  */
 
@@ -261,6 +260,58 @@
     --color-glow-cta: rgb(from var(--palette-amber) r g b / 0.3);
     --color-glow-cta-strong: rgb(from var(--palette-amber) r g b / 0.4);
 
+    /* Shared Rizom button semantics */
+    --rizom-btn-gap: 8px;
+    --rizom-btn-radius: 10px;
+    --rizom-btn-font-family: var(--font-body);
+    --rizom-btn-font-style: normal;
+    --rizom-btn-letter-spacing: 0;
+    --rizom-btn-text-transform: none;
+    --rizom-btn-md-padding: 16px 32px;
+    --rizom-btn-lg-padding-mobile: 16px 24px;
+    --rizom-btn-lg-padding-desktop: 22px 48px;
+
+    --rizom-btn-primary-font-weight: 600;
+    --rizom-btn-primary-color: var(--color-on-accent);
+    --rizom-btn-primary-bg: var(--color-accent);
+    --rizom-btn-primary-border-color: transparent;
+    --rizom-btn-primary-border-width: 0px;
+    --rizom-btn-primary-shadow: none;
+    --rizom-btn-primary-hover-color: var(--color-on-accent);
+    --rizom-btn-primary-hover-bg: var(--color-accent-dark);
+    --rizom-btn-primary-hover-border-color: transparent;
+    --rizom-btn-primary-hover-border-width: 0px;
+    --rizom-btn-primary-hover-shadow: 0 8px 32px var(--color-glow-cta);
+    --rizom-btn-primary-hover-transform: translateY(-2px);
+
+    --rizom-btn-primary-strong-font-weight: 600;
+    --rizom-btn-primary-strong-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-bg: var(--color-accent);
+    --rizom-btn-primary-strong-border-color: transparent;
+    --rizom-btn-primary-strong-border-width: 0px;
+    --rizom-btn-primary-strong-shadow: 0 20px 60px -15px var(--color-glow-cta-strong);
+    --rizom-btn-primary-strong-hover-color: var(--color-on-accent);
+    --rizom-btn-primary-strong-hover-bg: var(--color-accent-dark);
+    --rizom-btn-primary-strong-hover-border-color: transparent;
+    --rizom-btn-primary-strong-hover-border-width: 0px;
+    --rizom-btn-primary-strong-hover-shadow:
+      0 0 0 8px var(--color-glow-cta),
+      0 30px 80px -15px var(--color-glow-cta-strong);
+    --rizom-btn-primary-strong-hover-transform: translateY(-3px) scale(1.02);
+
+    --rizom-btn-secondary-font-weight: 500;
+    --rizom-btn-secondary-color: var(--color-text);
+    --rizom-btn-secondary-bg: rgb(from var(--palette-white) r g b / 0.04);
+    --rizom-btn-secondary-border-color: rgb(from var(--palette-white) r g b / 0.15);
+    --rizom-btn-secondary-border-width: 1px;
+    --rizom-btn-secondary-shadow: none;
+    --rizom-btn-secondary-hover-color: var(--color-text);
+    --rizom-btn-secondary-hover-bg: rgb(from var(--palette-white) r g b / 0.08);
+    --rizom-btn-secondary-hover-border-color: rgb(from var(--palette-white) r g b / 0.4);
+    --rizom-btn-secondary-hover-border-width: 1px;
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: none;
+
     /* Decorative divider + highlight-underline gradients */
     --color-divider: linear-gradient(
       90deg,
@@ -398,6 +449,11 @@
 
     --color-footer: var(--palette-bg-light);
 
+    --rizom-btn-secondary-bg: rgb(from var(--palette-text-light) r g b / 0.04);
+    --rizom-btn-secondary-border-color: rgb(from var(--palette-text-light) r g b / 0.15);
+    --rizom-btn-secondary-hover-bg: rgb(from var(--palette-text-light) r g b / 0.08);
+    --rizom-btn-secondary-hover-border-color: rgb(from var(--palette-text-light) r g b / 0.3);
+
     /* Light-mode surface gradient overrides — product cards switch
        to warm paper-ish paired colors on a light background. Endpoint
        hexes here are hand-tuned paper tones that aren't worth separate
@@ -454,10 +510,11 @@
   }
 
   /* ============================================
-     VARIANT OVERRIDES — accent + secondary per site flavor.
-     Apply in dark mode; light mode collapses per above.
+     THEME PROFILE OVERRIDES — accent + secondary + typography
+     per shared visual profile. Apply in dark mode; light mode
+     collapses per above.
      ============================================ */
-  [data-rizom-variant="ai"] {
+  [data-theme-profile="product"] {
     --color-accent: var(--palette-amber-light);
     --color-accent-dark: var(--palette-amber);
     --color-secondary: var(--palette-purple-muted);
@@ -467,7 +524,7 @@
     --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
-  [data-rizom-variant="foundation"] {
+  [data-theme-profile="editorial"] {
     --color-accent: var(--palette-amber-dark);
     --color-accent-dark: #8b3a05;
     --color-secondary: var(--palette-purple);
@@ -475,9 +532,54 @@
     --color-brand-dark: var(--color-accent-dark);
     --font-display: "Fraunces", Georgia, serif;
     --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
+
+    --rizom-btn-font-family: var(--font-display);
+    --rizom-btn-font-style: italic;
+    --rizom-btn-letter-spacing: -0.2px;
+    --rizom-btn-md-padding: 10px 2px 8px;
+    --rizom-btn-lg-padding-mobile: 10px 2px 8px;
+    --rizom-btn-lg-padding-desktop: 10px 2px 8px;
+    --rizom-btn-radius: 0px;
+
+    --rizom-btn-primary-font-weight: 400;
+    --rizom-btn-primary-color: var(--color-accent);
+    --rizom-btn-primary-bg: transparent;
+    --rizom-btn-primary-border-color: var(--color-accent);
+    --rizom-btn-primary-border-width: 0 0 1px 0;
+    --rizom-btn-primary-hover-color: var(--color-accent);
+    --rizom-btn-primary-hover-bg: transparent;
+    --rizom-btn-primary-hover-border-color: var(--color-accent);
+    --rizom-btn-primary-hover-border-width: 0 0 2px 0;
+    --rizom-btn-primary-hover-shadow: none;
+    --rizom-btn-primary-hover-transform: translateY(-1px);
+
+    --rizom-btn-primary-strong-font-weight: 400;
+    --rizom-btn-primary-strong-color: var(--color-accent);
+    --rizom-btn-primary-strong-bg: transparent;
+    --rizom-btn-primary-strong-border-color: var(--color-accent);
+    --rizom-btn-primary-strong-border-width: 0 0 1px 0;
+    --rizom-btn-primary-strong-shadow: none;
+    --rizom-btn-primary-strong-hover-color: var(--color-accent);
+    --rizom-btn-primary-strong-hover-bg: transparent;
+    --rizom-btn-primary-strong-hover-border-color: var(--color-accent);
+    --rizom-btn-primary-strong-hover-border-width: 0 0 2px 0;
+    --rizom-btn-primary-strong-hover-shadow: none;
+    --rizom-btn-primary-strong-hover-transform: translateY(-1px);
+
+    --rizom-btn-secondary-font-weight: 400;
+    --rizom-btn-secondary-color: var(--color-text);
+    --rizom-btn-secondary-bg: transparent;
+    --rizom-btn-secondary-border-color: rgb(from var(--color-accent) r g b / 0.35);
+    --rizom-btn-secondary-border-width: 0 0 1px 0;
+    --rizom-btn-secondary-hover-color: var(--color-text);
+    --rizom-btn-secondary-hover-bg: transparent;
+    --rizom-btn-secondary-hover-border-color: rgb(from var(--color-accent) r g b / 0.55);
+    --rizom-btn-secondary-hover-border-width: 0 0 1px 0;
+    --rizom-btn-secondary-hover-shadow: none;
+    --rizom-btn-secondary-hover-transform: translateY(-1px);
   }
 
-  [data-rizom-variant="work"] {
+  [data-theme-profile="studio"] {
     --color-accent: var(--palette-amber);
     --color-accent-dark: var(--palette-amber-dark);
     --color-secondary: var(--palette-purple-light);
@@ -487,9 +589,9 @@
     --font-label: "Space Grotesk", system-ui, sans-serif;
   }
 
-  /* In light mode, ALL variants use amber-dark */
-  [data-theme="light"][data-rizom-variant],
-  [data-theme="light"] [data-rizom-variant] {
+  /* In light mode, ALL profiles use amber-dark */
+  [data-theme="light"][data-theme-profile],
+  [data-theme="light"] [data-theme-profile] {
     --color-accent: var(--palette-amber-dark);
     --color-accent-dark: #8b3a05;
     --color-brand: var(--color-accent);
@@ -617,6 +719,22 @@
   }
 
   /* Warning utilities live in theme-base. */
+
+  .rizom-frame-canvas-wrap {
+    z-index: 0;
+    opacity: 0.6;
+  }
+
+  .rizom-diagnostic-panel {
+    background-image: var(--color-work-diagnostic-bg);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    box-shadow: var(--color-work-diagnostic-shadow);
+  }
+
+  .rizom-diagnostic-panel-bar {
+    background-image: var(--color-work-diagnostic-bar);
+  }
 
   /* NOTE: .btn-primary / .btn-secondary / .badge-amber / .badge-purple /
      .divider / .section are intentionally NOT defined here. They are

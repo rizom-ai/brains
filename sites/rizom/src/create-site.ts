@@ -7,7 +7,7 @@ import { extendSite, type SitePackage } from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import rizomBaseSite from ".";
 import { ecosystemTemplate } from "./ecosystem";
-import { RizomRuntimePlugin, type RizomRuntimeVariant } from "./runtime/plugin";
+import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
 
 class RizomVariantPlugin extends RizomRuntimePlugin {
   constructor(
@@ -29,7 +29,7 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
 
 export interface CreateRizomSiteOptions {
   packageName: string;
-  variant: RizomRuntimeVariant;
+  themeProfile: RizomThemeProfile;
   layout: unknown;
   routes: RouteDefinitionInput[];
   templates: Record<string, Template>;
@@ -41,7 +41,7 @@ export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
   ): Plugin =>
     new RizomVariantPlugin(
       options.packageName,
-      { variant: options.variant, ...(config ?? {}) },
+      { themeProfile: options.themeProfile, ...(config ?? {}) },
       options.templates,
     );
 

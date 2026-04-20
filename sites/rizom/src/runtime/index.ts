@@ -5,4 +5,4 @@ export {
   rizomRuntimeConfigSchema,
   rizomRuntimeStaticAssets,
 } from "./plugin";
-export type { RizomRuntimeConfig, RizomRuntimeVariant } from "./plugin";
+export type { RizomRuntimeConfig, RizomThemeProfile } from "./plugin";

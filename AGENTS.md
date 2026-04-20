@@ -20,6 +20,7 @@ This file applies to the whole repository unless a more specific `AGENTS.md` exi
 - Use full repo checks only when the change crosses shared contracts or multiple workspaces.
 - Fix failing checks before continuing.
 - Do not bypass tests or commit hooks.
+- For app/site verification, remember this repo serves app-managed site-builder outputs, not just static site files. Start the app, then trigger a site rebuild **on the running app** via the app command surface (typically MCP HTTP via `--remote`, even for `localhost`) before inspecting generated output. When preview is configured, start with the default preview rebuild/output (`dist/site-preview`); production is separate (`dist/site-production`).
 
 ## Architecture defaults
 

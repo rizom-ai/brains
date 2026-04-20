@@ -1,6 +1,7 @@
 import type { JSX } from "preact";
-import type { BridgeContent } from "./schema";
 import { Divider, Section } from "@brains/site-rizom";
+import { WORK_SECTION_KICKER } from "../styles";
+import type { BridgeContent } from "./schema";
 
 export const BridgeLayout = ({
   kicker,
@@ -11,9 +12,7 @@ export const BridgeLayout = ({
   return (
     <Section id="bridge" className="reveal py-section text-center">
       <Divider className="mb-8 md:mb-10" />
-      <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
-        {kicker}
-      </span>
+      <span className={`${WORK_SECTION_KICKER} mb-4`}>{kicker}</span>
       <p className="max-w-[760px] mx-auto text-body-sm md:text-body-md text-theme-muted">
         {body}
       </p>

@@ -1,6 +1,12 @@
 import type { JSX } from "preact";
-import type { PersonasContent } from "./schema";
 import { Section } from "@brains/site-rizom";
+import {
+  WORK_BODY_COPY,
+  WORK_DISPLAY_QUOTE,
+  WORK_SECTION_HEADLINE,
+  WORK_SECTION_KICKER,
+} from "../styles";
+import type { PersonasContent } from "./schema";
 
 export const PersonasLayout = ({
   kicker,
@@ -12,10 +18,8 @@ export const PersonasLayout = ({
       <div className="mx-auto max-w-[1120px]">
         <div className="mx-auto mb-10 max-w-[720px] text-center md:mb-12">
           <div className="mb-6 h-px w-12 bg-accent/70" />
-          <span className="inline-flex items-center gap-3 font-label text-label-sm font-semibold uppercase tracking-[0.18em] text-accent mb-4">
-            {kicker}
-          </span>
-          <h2 className="font-display text-[34px] tracking-[-1.2px] leading-[1.06] md:text-display-lg max-w-[14ch]">
+          <span className={`${WORK_SECTION_KICKER} mb-4`}>{kicker}</span>
+          <h2 className={`${WORK_SECTION_HEADLINE} max-w-[14ch]`}>
             {headline}
           </h2>
         </div>
@@ -29,12 +33,12 @@ export const PersonasLayout = ({
               <div className="font-nav text-[11px] font-bold uppercase tracking-[2.5px] text-[var(--color-secondary)]">
                 {card.label}
               </div>
-              <p className="max-w-[500px] font-display text-[clamp(24px,2.6vw,32px)] italic leading-[1.2] tracking-[-0.6px] text-theme">
+              <p
+                className={`${WORK_DISPLAY_QUOTE} max-w-[500px] text-[clamp(24px,2.6vw,32px)] leading-[1.2]`}
+              >
                 {card.quote}
               </p>
-              <p className="max-w-[500px] text-[17px] leading-[1.75] text-theme-muted">
-                {card.body}
-              </p>
+              <p className={`${WORK_BODY_COPY} max-w-[500px]`}>{card.body}</p>
             </div>
           ))}
         </div>

@@ -5,7 +5,7 @@ import { foundationTemplates } from "./templates";
 
 export default createRizomSite({
   packageName: "rizom-foundation-site",
-  variant: "foundation",
+  themeProfile: "editorial",
   layout: FoundationLayout,
   routes: foundationRoutes,
   templates: foundationTemplates,

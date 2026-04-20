@@ -14,20 +14,20 @@ export interface ButtonProps {
 }
 
 const BASE =
-  "inline-flex items-center gap-2 font-body cursor-pointer transition-all";
-const PRIMARY_BASE =
-  "font-semibold text-[var(--color-on-accent)] bg-accent hover:bg-accent-dark";
+  "inline-flex items-center justify-center cursor-pointer border border-solid transition-all [gap:var(--rizom-btn-gap)] [border-radius:var(--rizom-btn-radius)] [font-family:var(--rizom-btn-font-family)] [font-style:var(--rizom-btn-font-style)] [letter-spacing:var(--rizom-btn-letter-spacing)] [text-transform:var(--rizom-btn-text-transform)]";
 const VARIANT: Record<ButtonVariant, string> = {
-  primary: `${PRIMARY_BASE} hover:-translate-y-0.5 hover:shadow-[0_8px_32px_var(--color-glow-cta)]`,
-  "primary-strong": `${PRIMARY_BASE} duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-[3px] hover:scale-[1.02] shadow-[0_20px_60px_-15px_var(--color-glow-cta-strong)] hover:shadow-[0_0_0_8px_var(--color-glow-cta),0_30px_80px_-15px_var(--color-glow-cta-strong)]`,
+  primary:
+    "[font-weight:var(--rizom-btn-primary-font-weight)] [color:var(--rizom-btn-primary-color)] [background:var(--rizom-btn-primary-bg)] [border-color:var(--rizom-btn-primary-border-color)] [border-width:var(--rizom-btn-primary-border-width)] [box-shadow:var(--rizom-btn-primary-shadow)] hover:[color:var(--rizom-btn-primary-hover-color)] hover:[background:var(--rizom-btn-primary-hover-bg)] hover:[border-color:var(--rizom-btn-primary-hover-border-color)] hover:[border-width:var(--rizom-btn-primary-hover-border-width)] hover:[box-shadow:var(--rizom-btn-primary-hover-shadow)] hover:[transform:var(--rizom-btn-primary-hover-transform)]",
+  "primary-strong":
+    "duration-400 ease-[cubic-bezier(0.2,0.8,0.2,1)] [font-weight:var(--rizom-btn-primary-strong-font-weight)] [color:var(--rizom-btn-primary-strong-color)] [background:var(--rizom-btn-primary-strong-bg)] [border-color:var(--rizom-btn-primary-strong-border-color)] [border-width:var(--rizom-btn-primary-strong-border-width)] [box-shadow:var(--rizom-btn-primary-strong-shadow)] hover:[color:var(--rizom-btn-primary-strong-hover-color)] hover:[background:var(--rizom-btn-primary-strong-hover-bg)] hover:[border-color:var(--rizom-btn-primary-strong-hover-border-color)] hover:[border-width:var(--rizom-btn-primary-strong-hover-border-width)] hover:[box-shadow:var(--rizom-btn-primary-strong-hover-shadow)] hover:[transform:var(--rizom-btn-primary-strong-hover-transform)]",
   secondary:
-    "font-medium text-theme bg-white/[0.04] border border-white/15 hover:border-white/40 hover:bg-white/[0.08]",
+    "[font-weight:var(--rizom-btn-secondary-font-weight)] [color:var(--rizom-btn-secondary-color)] [background:var(--rizom-btn-secondary-bg)] [border-color:var(--rizom-btn-secondary-border-color)] [border-width:var(--rizom-btn-secondary-border-width)] [box-shadow:var(--rizom-btn-secondary-shadow)] hover:[color:var(--rizom-btn-secondary-hover-color)] hover:[background:var(--rizom-btn-secondary-hover-bg)] hover:[border-color:var(--rizom-btn-secondary-hover-border-color)] hover:[border-width:var(--rizom-btn-secondary-hover-border-width)] hover:[box-shadow:var(--rizom-btn-secondary-hover-shadow)] hover:[transform:var(--rizom-btn-secondary-hover-transform)]",
 };
 const SIZE: Record<ButtonSize, string> = {
-  md: "text-base rounded-[10px] px-8 py-4",
-  lg: "text-body-md md:text-body-lg rounded-[10px] px-6 md:px-12 py-4 md:py-[22px]",
+  md: "text-base [padding:var(--rizom-btn-md-padding)]",
+  lg: "text-body-md md:text-body-lg [padding:var(--rizom-btn-lg-padding-mobile)] md:[padding:var(--rizom-btn-lg-padding-desktop)]",
 };
-const BLOCK = "w-full md:w-auto justify-center";
+const BLOCK = "w-full md:w-auto";
 
 export const Button = ({
   href,
