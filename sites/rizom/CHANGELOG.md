@@ -1,5 +1,17 @@
 # @brains/site-rizom
 
+## 0.2.0-alpha.36
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-builder-plugin@0.2.0-alpha.36
+  - @brains/site-composition@0.2.0-alpha.36
+  - @brains/ui-library@0.2.0-alpha.36
+  - @brains/utils@0.2.0-alpha.36
+  - @brains/plugins@0.2.0-alpha.36
+  - @brains/templates@0.2.0-alpha.36
+
 ## 0.2.0-alpha.35
 
 ### Patch Changes

@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.36
+
+### Patch Changes
+
+- [`a2f0317`](https://github.com/rizom-ai/brains/commit/a2f03174796d3e0dfc968ef01ae23f9936ffd585) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix shared-host route registration so routes from interfaces registered after the webserver, such as A2A, are still available on production deploys.
+
+  This restores endpoints like `/.well-known/agent-card.json` and `/a2a` in the no-Caddy shared-host deploy model.
+
 ## 0.2.0-alpha.35
 
 ### Patch Changes

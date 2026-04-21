@@ -1,5 +1,14 @@
 # @brains/site-content
 
+## 0.2.0-alpha.36
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-info@0.2.0-alpha.36
+  - @brains/utils@0.2.0-alpha.36
+  - @brains/plugins@0.2.0-alpha.36
+
 ## 0.2.0-alpha.35
 
 ### Patch Changes

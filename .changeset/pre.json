@@ -85,7 +85,8 @@
     "@rizom/ops": "0.2.0",
     "@brains/admin": "0.2.0-alpha.18",
     "@brains/cms-config": "0.2.0-alpha.18",
-    "@brains/cms": "0.2.0-alpha.29"
+    "@brains/cms": "0.2.0-alpha.29",
+    "@brains/rizom-ui": "0.2.0-alpha.34"
   },
   "changesets": [
     "align-preview-domain-routing",
@@ -104,6 +105,7 @@
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",
+    "fix-shared-host-late-routes",
     "fix-shared-local-env-browser-build",
     "fix-system-create-link-routing",
     "fixed-group-alpha-republish",
@@ -127,6 +129,7 @@
     "rizom-ops-publish-fix",
     "rizom-ops-render-live-status",
     "rizom-ops-restore-shared-secret-push",
+    "rizom-ui-package",
     "shared-kamal-template-sync",
     "shared-preview-host-and-workspace-runtime",
     "sharp-lazy-load",
