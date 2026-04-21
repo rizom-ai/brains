@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { HeroContent } from "./schema";
-import { Button, Section, renderHighlightedText } from "@brains/rizom-ui";
+import { Button, Section, renderHighlightedText } from "@rizom/ui";
 
 /** rizom.ai's highlight voice: accent color + thin mid-line decoration. */
 const HIGHLIGHT_CLS =

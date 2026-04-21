@@ -250,7 +250,7 @@ For each dependency, decide:
 | -------------------- | ------------------------------------------------------------------------------ | ----------------- | ------------------------------------------------------------------------------- |
 | `@rizom/brain`       | public CLI/runtime, tsconfig preset                                            | public, versioned | usable now once `workspace:*` is replaced with a real version                   |
 | `@brains/site-rizom` | Rizom site/default wiring package; currently also carrying app-facing UI usage | **private**       | should remain the site package, but stop being the app-facing shared UI surface |
-| `@brains/rizom-ui`   | planned shared Rizom UI/layout authoring package                               | not created yet   | intended destination for remaining app-visible shared Rizom UI imports          |
+| `@rizom/ui`          | shared Rizom UI/layout authoring package                                       | publish target    | intended destination for remaining app-visible shared Rizom UI imports          |
 
 #### Current constraint
 
@@ -309,7 +309,7 @@ The missing answer is now explicit:
 1. keep `@brains/site-rizom` as the actual Rizom site package
 2. keep durable content on `@brains/site-content`
 3. treat `site-content` and `theme-rizom` as runtime defaults/infrastructure, not app deps
-4. introduce a dedicated shared Rizom UI package (for example `@brains/rizom-ui`) for app-facing Rizom UI/layout primitives
+4. introduce a dedicated shared Rizom UI package (`@rizom/ui`) for app-facing Rizom UI/layout primitives
 5. move remaining app-visible Rizom UI imports there instead of repurposing the site package into UI-only authoring
 6. then finalize the remaining package pinning / deploy contract
 
@@ -340,7 +340,7 @@ Before dry-run extraction, define:
 
 **Shared Rizom UI package**
 
-- `@brains/rizom-ui` (name tentative)
+- `@rizom/ui`
   - owns only shared Rizom UI/layout authoring primitives
   - belongs in `shared/`, not `sites/`
   - should export only the minimum shared surface apps actually need
@@ -643,9 +643,9 @@ Deliverable:
 - [x] app-owned content namespace moved to `landing-page:*`
 - [ ] shared-package release/pinning strategy is chosen for the pilot
 - [ ] keep `@brains/site-rizom` as the real Rizom site package
-- [ ] create shared `@brains/rizom-ui` for the minimal app-facing Rizom UI/layout surface
-- [ ] localize `RizomLayoutProps` and social-link mapping in Rizom app layouts
-- [ ] switch remaining app-facing Rizom UI imports to `@brains/rizom-ui`
+- [x] create shared `@rizom/ui` for the minimal app-facing Rizom UI/layout surface
+- [x] localize `RizomLayoutProps` and social-link mapping in Rizom app layouts
+- [x] switch remaining app-facing Rizom UI imports to `@rizom/ui`
 - [x] durable `site-content` plugin/runtime contract is documented without app-level imports
 - [x] `@brains/site-content` is extended to own landing-page content definition/wiring for `rizom.ai`
 - [x] direct app imports of `@brains/templates` / `@brains/utils` are removed from `apps/rizom-ai/src`

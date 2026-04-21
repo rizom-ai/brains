@@ -1,11 +1,6 @@
 import type { JSX } from "preact";
 import type { MissionContent } from "./schema";
-import {
-  Button,
-  Divider,
-  Section,
-  renderHighlightedText,
-} from "@brains/rizom-ui";
+import { Button, Divider, Section, renderHighlightedText } from "@rizom/ui";
 
 /**
  * Mission's highlight uses wider negative insets so the mid-line

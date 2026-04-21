@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@rizom/brain": "workspace:*",
+    "@rizom/ui": "0.2.0-alpha.36",
     "preact": "^10.27.2"
   }
 }

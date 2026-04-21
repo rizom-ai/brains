@@ -1,11 +1,5 @@
 import type { ComponentChildren, JSX } from "preact";
-import {
-  Footer,
-  Header,
-  RizomFrame,
-  SideNav,
-  type RizomLink,
-} from "@brains/rizom-ui";
+import { Footer, Header, RizomFrame, SideNav, type RizomLink } from "@rizom/ui";
 
 interface AiSiteInfo {
   cta?: {

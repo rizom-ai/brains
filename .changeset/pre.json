@@ -86,7 +86,7 @@
     "@brains/admin": "0.2.0-alpha.18",
     "@brains/cms-config": "0.2.0-alpha.18",
     "@brains/cms": "0.2.0-alpha.29",
-    "@brains/rizom-ui": "0.2.0-alpha.34"
+    "@rizom/ui": "0.2.0-alpha.34"
   },
   "changesets": [
     "align-preview-domain-routing",

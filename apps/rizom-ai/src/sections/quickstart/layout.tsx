@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { QuickstartContent } from "./schema";
-import { Badge, Section } from "@brains/rizom-ui";
+import { Badge, Section } from "@rizom/ui";
 
 export const QuickstartLayout = ({
   badge,

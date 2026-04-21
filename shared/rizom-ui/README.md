@@ -1,4 +1,4 @@
-# @brains/rizom-ui
+# @rizom/ui
 
 Shared Rizom UI primitives for app-owned Rizom site variants.
 

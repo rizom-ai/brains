@@ -1,5 +1,5 @@
 {
-  "name": "@brains/rizom-ui",
+  "name": "@rizom/ui",
   "version": "0.2.0-alpha.36",
   "description": "Shared Rizom UI primitives for app-owned Rizom site variants.",
   "type": "module",

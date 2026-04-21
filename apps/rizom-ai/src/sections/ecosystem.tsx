@@ -1,4 +1,4 @@
-import { Badge, Divider, Section } from "@brains/rizom-ui";
+import { Badge, Divider, Section } from "@rizom/ui";
 
 export type EcosystemSuffix = "ai" | "foundation" | "work";
 

@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { ProductsContent } from "./schema";
-import { ProductCard } from "@brains/rizom-ui";
+import { ProductCard } from "@rizom/ui";
 import { ProductStageWatermark, type ProductStage } from "./stage-watermark";
 
 /**
