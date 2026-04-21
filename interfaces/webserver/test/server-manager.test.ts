@@ -178,6 +178,57 @@ describe("ServerManager (in-process)", () => {
     expect(await res.text()).toContain("owner/repo");
   });
 
+  it("should serve web routes registered after the webserver starts", async () => {
+    testDir = join(tmpdir(), `webserver-late-web-routes-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    let currentWebRoutes: Array<{
+      pluginId: string;
+      fullPath: string;
+      definition: {
+        path: string;
+        method: "GET";
+        public: true;
+        handler: () => Promise<Response>;
+      };
+    }> = [];
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getWebRoutes: () => currentWebRoutes,
+    } as ConstructorParameters<typeof ServerManager>[0]);
+
+    await manager.start();
+
+    currentWebRoutes = [
+      {
+        pluginId: "a2a",
+        fullPath: "/.well-known/agent-card.json",
+        definition: {
+          path: "/.well-known/agent-card.json",
+          method: "GET",
+          public: true,
+          handler: async (): Promise<Response> =>
+            Response.json({ name: "Late Agent Card" }),
+        },
+      },
+    ];
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/.well-known/agent-card.json`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ name: "Late Agent Card" });
+  });
+
   it("should serve plugin-contributed OPTIONS routes when configured", async () => {
     testDir = join(tmpdir(), `webserver-options-test-${Date.now()}`);
     const prodDir = join(testDir, "dist", "production");
@@ -280,6 +331,77 @@ describe("ServerManager (in-process)", () => {
     expect(await res.json()).toEqual({
       success: true,
       data: { subscribed: true },
+    });
+  });
+
+  it("should serve API routes registered after the webserver starts", async () => {
+    testDir = join(tmpdir(), `webserver-late-api-routes-${Date.now()}`);
+    const prodDir = join(testDir, "dist", "production");
+    const imagesDir = join(testDir, "dist", "images");
+    mkdirSync(prodDir, { recursive: true });
+    mkdirSync(imagesDir, { recursive: true });
+    writeFileSync(join(prodDir, "index.html"), "<h1>Hello</h1>");
+
+    let currentApiRoutes: Array<{
+      pluginId: string;
+      fullPath: string;
+      definition: {
+        path: string;
+        method: "POST";
+        tool: string;
+        public: true;
+      };
+    }> = [];
+
+    const messageBus = createMockMessageBus({
+      returns: {
+        send: {
+          success: true,
+          data: { success: true, data: { registeredLate: true } },
+        },
+      },
+    }) as unknown as IMessageBus;
+
+    manager = new ServerManager({
+      logger: createSilentLogger("test"),
+      productionDistDir: prodDir,
+      sharedImagesDir: imagesDir,
+      productionPort: 0,
+      getApiRoutes: () => currentApiRoutes,
+      messageBus,
+    } as ConstructorParameters<typeof ServerManager>[0]);
+
+    await manager.start();
+
+    currentApiRoutes = [
+      {
+        pluginId: "newsletter",
+        fullPath: "/api/newsletter/subscribe",
+        definition: {
+          path: "/subscribe",
+          method: "POST",
+          tool: "subscribe",
+          public: true,
+        },
+      },
+    ];
+
+    const status = manager.getStatus();
+    const url = status.productionUrl;
+    if (!url) return;
+    const res = await fetch(`${url}/api/newsletter/subscribe`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        accept: "application/json",
+      },
+      body: JSON.stringify({ email: "late@example.com" }),
+    });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({
+      success: true,
+      data: { registeredLate: true },
     });
   });
 

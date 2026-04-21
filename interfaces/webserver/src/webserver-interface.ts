@@ -66,8 +66,8 @@ export class WebserverInterface extends InterfacePlugin<WebserverConfig> {
         this.config.previewPort && { previewPort: this.config.previewPort }),
       getHealthData: (): Promise<Awaited<ReturnType<typeof context.appInfo>>> =>
         context.appInfo(),
-      webRoutes: context.webRoutes.getRoutes(),
-      apiRoutes: context.apiRoutes.getRoutes(),
+      getWebRoutes: () => context.webRoutes.getRoutes(),
+      getApiRoutes: () => context.apiRoutes.getRoutes(),
       messageBus: context.apiRoutes.getMessageBus(),
     });
   }

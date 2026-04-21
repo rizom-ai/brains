@@ -24,8 +24,12 @@ export interface ServerManagerOptions {
   getHealthData?: () => Promise<AppInfo>;
   /** Plugin-contributed web routes mounted on the shared host. */
   webRoutes?: RegisteredWebRoute[];
+  /** Dynamic accessor for plugin-contributed web routes on the shared host. */
+  getWebRoutes?: () => RegisteredWebRoute[];
   /** Plugin-contributed API routes mounted on the shared host. */
   apiRoutes?: RegisteredApiRoute[];
+  /** Dynamic accessor for plugin-contributed API routes on the shared host. */
+  getApiRoutes?: () => RegisteredApiRoute[];
   /** Message bus used to execute plugin API routes. */
   messageBus?: IMessageBus;
 }
@@ -168,48 +172,14 @@ export class ServerManager {
       });
     }
 
-    if (opts.healthEndpoint && this.options.webRoutes) {
-      for (const route of this.options.webRoutes) {
-        const handler = (c: HonoContext): Response | Promise<Response> =>
-          route.definition.handler(c.req.raw);
-
-        switch (route.definition.method ?? "GET") {
-          case "POST":
-            app.post(route.fullPath, handler);
-            break;
-          case "PUT":
-            app.put(route.fullPath, handler);
-            break;
-          case "DELETE":
-            app.delete(route.fullPath, handler);
-            break;
-          case "OPTIONS":
-            app.options(route.fullPath, handler);
-            break;
-          case "GET":
-          default:
-            app.get(route.fullPath, handler);
-            break;
-        }
+    app.use("/*", async (c, next) => {
+      const dynamicResponse = await this.handleDynamicRoute(c, opts);
+      if (dynamicResponse) {
+        return dynamicResponse;
       }
-    }
 
-    if (
-      opts.healthEndpoint &&
-      this.options.apiRoutes &&
-      this.options.messageBus
-    ) {
-      for (const route of this.options.apiRoutes) {
-        const handler = createApiRouteHandler(route, this.options.messageBus);
-        const method = route.definition.method.toLowerCase() as
-          | "get"
-          | "post"
-          | "put"
-          | "delete";
-
-        app[method](route.fullPath, handler);
-      }
-    }
+      return next();
+    });
 
     if (opts.compress) {
       app.use("/*", compress());
@@ -240,6 +210,44 @@ export class ServerManager {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
+
+  private getCurrentWebRoutes(): RegisteredWebRoute[] {
+    return this.options.getWebRoutes?.() ?? this.options.webRoutes ?? [];
+  }
+
+  private getCurrentApiRoutes(): RegisteredApiRoute[] {
+    return this.options.getApiRoutes?.() ?? this.options.apiRoutes ?? [];
+  }
+
+  private async handleDynamicRoute(
+    c: HonoContext,
+    opts: AppOptions,
+  ): Promise<Response | null> {
+    if (!opts.healthEndpoint) {
+      return null;
+    }
+
+    const requestMethod = c.req.method.toUpperCase();
+    const requestPath = c.req.path;
+
+    const webRoute = this.getCurrentWebRoutes().find((route) => {
+      const routeMethod = route.definition.method ?? "GET";
+      return route.fullPath === requestPath && routeMethod === requestMethod;
+    });
+    if (webRoute) {
+      return webRoute.definition.handler(c.req.raw);
+    }
+
+    const apiRoute = this.getCurrentApiRoutes().find((route) => {
+      const routeMethod = route.definition.method ?? "POST";
+      return route.fullPath === requestPath && routeMethod === requestMethod;
+    });
+    if (apiRoute && this.options.messageBus) {
+      return createApiRouteHandler(apiRoute, this.options.messageBus)(c);
+    }
+
+    return null;
+  }
 
   private async serveImageFastPath(req: Request): Promise<Response | null> {
     let url: URL;
