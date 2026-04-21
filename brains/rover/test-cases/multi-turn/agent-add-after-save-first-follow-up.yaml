@@ -1,0 +1,43 @@
+id: multi-turn-agent-add-after-save-first-follow-up
+name: Save Agent After Bare Save-First Follow-Up
+description: Verifies that after refusing an unsaved A2A call, the agent treats a bare affirmative follow-up as consent to save the same agent domain
+type: multi_turn
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - regression
+
+turns:
+  - userMessage: "Can you talk to mylittlephoney.com for me?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: false
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "add"
+        - "directory"
+      responseNotContains:
+        - "I called"
+        - "Calling mylittlephoney.com"
+
+  - userMessage: "Yes please"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "agent"
+            url: "mylittlephoney.com"
+      responseNotContains:
+        - "No URL or domain provided"
+        - "needs either content or a prompt"
+        - "short description"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 35000

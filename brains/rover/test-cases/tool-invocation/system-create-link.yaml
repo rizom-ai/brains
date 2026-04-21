@@ -17,6 +17,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
+        url: "https://anthropic.com/research"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

@@ -5,7 +5,7 @@ import {
   Divider,
   Section,
   renderHighlightedText,
-} from "@brains/site-rizom";
+} from "@brains/rizom-ui";
 
 /**
  * Mission's highlight uses wider negative insets so the mid-line

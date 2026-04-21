@@ -188,15 +188,16 @@ describe("LinkPlugin with Harness", () => {
       const registeredHandlers: string[] = [];
       const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
       const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue = {
-        ...origJobQueue,
-        registerHandler: (type: string): void => {
-          registeredHandlers.push(type);
-        },
-      };
-      mockShell.getJobQueueService = (): ReturnType<
-        typeof mockShell.getJobQueueService
-      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
+        {
+          ...origJobQueue,
+          registerHandler: (
+            ...args: Parameters<typeof origJobQueue.registerHandler>
+          ): void => {
+            registeredHandlers.push(args[0]);
+          },
+        };
+      mockShell.getJobQueueService = () => trackingJobQueue;
 
       await plugin.register(mockShell);
 
@@ -215,16 +216,18 @@ describe("LinkPlugin with Harness", () => {
       const enqueued: Array<{ type: string; data: unknown }> = [];
       const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
       const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue = {
-        ...origJobQueue,
-        enqueue: async (type: string, data: unknown): Promise<string> => {
-          enqueued.push({ type, data });
-          return "job-123";
-        },
-      };
-      mockShell.getJobQueueService = (): ReturnType<
-        typeof mockShell.getJobQueueService
-      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
+      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
+        {
+          ...origJobQueue,
+          enqueue: async (
+            ...args: Parameters<typeof origJobQueue.enqueue>
+          ): Promise<string> => {
+            const [type, data] = args;
+            enqueued.push({ type, data });
+            return "job-123";
+          },
+        };
+      mockShell.getJobQueueService = () => trackingJobQueue;
 
       await plugin.register(mockShell);
       const interceptor = mockShell
@@ -264,6 +267,63 @@ describe("LinkPlugin with Harness", () => {
           userId: "test-user",
           channelId: "!room:test",
           channelName: "#test",
+          timestamp: expect.any(String),
+        }),
+      });
+    });
+
+    it("should prefer top-level url from the registered interceptor", async () => {
+      const enqueued: Array<{ type: string; data: unknown }> = [];
+      const mockShell = createMockShell({ dataDir: "/tmp/test-datadir" });
+      const origJobQueue = mockShell.getJobQueueService();
+      const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
+        {
+          ...origJobQueue,
+          enqueue: async (
+            ...args: Parameters<typeof origJobQueue.enqueue>
+          ): Promise<string> => {
+            const [type, data] = args;
+            enqueued.push({ type, data });
+            return "job-123";
+          },
+        };
+      mockShell.getJobQueueService = () => trackingJobQueue;
+
+      await plugin.register(mockShell);
+      const interceptor = mockShell
+        .getEntityRegistry()
+        .getCreateInterceptor("link");
+      if (!interceptor) throw new Error("Expected link create interceptor");
+
+      const result = await interceptor(
+        {
+          entityType: "link",
+          url: "https://anthropic.com/research",
+          prompt: "Save this: https://different.example.com/ignored",
+        },
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      );
+
+      expect(result).toEqual({
+        kind: "handled",
+        result: {
+          success: true,
+          data: {
+            status: "generating",
+            jobId: "job-123",
+          },
+        },
+      });
+      expect(enqueued).toHaveLength(1);
+      expect(enqueued[0]?.type).toBe("link-capture");
+      expect(enqueued[0]?.data).toEqual({
+        url: "https://anthropic.com/research",
+        metadata: expect.objectContaining({
+          interfaceId: "test",
+          userId: "test-user",
           timestamp: expect.any(String),
         }),
       });

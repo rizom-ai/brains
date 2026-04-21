@@ -15,6 +15,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
+        url: "yeehaa.io"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

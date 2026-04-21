@@ -1,0 +1,30 @@
+id: tool-invocation-agent-add-no-description-needed
+name: Add Agent Without Extra Description
+description: Tests that an explicit agent-save request uses system_create immediately instead of asking for extra prompt or description text
+type: tool_invocation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+
+turns:
+  - userMessage: "Save mylittlephoney.com as an agent in my directory"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "agent"
+        url: "mylittlephoney.com"
+  responseNotContains:
+    - "No URL or domain provided"
+    - "needs either content or a prompt"
+    - "short description"
+    - "what this agent is for"
+
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

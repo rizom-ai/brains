@@ -114,6 +114,7 @@ export interface CreateInput {
   prompt?: string;
   title?: string;
   content?: string;
+  url?: string;
   targetEntityType?: string;
   targetEntityId?: string;
 }

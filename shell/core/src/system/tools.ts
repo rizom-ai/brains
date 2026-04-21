@@ -406,12 +406,13 @@ export function createSystemTools(services: SystemServices): Tool[] {
     // ── Create ──
     createSystemTool(
       "create",
-      "Create a new entity. Provide content for direct creation, or a prompt for AI generation.",
+      "Create a new entity. Provide content for direct creation, a prompt for AI generation, or a url for URL-first flows.",
       createInputSchema,
       async (input, toolContext) => {
         const prompt = normalizeOptionalString(input.prompt);
         const content = normalizeOptionalString(input.content);
         const title = normalizeOptionalString(input.title);
+        const url = normalizeOptionalString(input.url);
         const targetEntityType = normalizeOptionalString(
           input.targetEntityType,
         );
@@ -424,11 +425,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
               "Provide both 'targetEntityType' and 'targetEntityId' together, or omit both.",
           };
 
-        if (!content && !prompt)
+        if (!content && !prompt && !url)
           return {
             success: false,
             error:
-              "Provide 'content' (direct create) or 'prompt' (AI generation), or both.",
+              "Provide 'content' (direct create), 'prompt' (AI generation), or 'url' (URL-first create), or a supported combination.",
           };
 
         let createInput: CreateInput = {
@@ -436,6 +437,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
           ...(prompt && { prompt }),
           ...(title && { title }),
           ...(content && { content }),
+          ...(url && { url }),
           ...(targetEntityType && { targetEntityType }),
           ...(targetEntityId && { targetEntityId }),
         };
@@ -455,6 +457,14 @@ export function createSystemTools(services: SystemServices): Tool[] {
           const interception = await interceptor(createInput, executionContext);
           if (interception.kind === "handled") return interception.result;
           createInput = interception.input;
+        }
+
+        if (!createInput.content && !createInput.prompt) {
+          return {
+            success: false,
+            error:
+              "URL-only creation is supported only for entity types that explicitly handle it. Provide 'content' or 'prompt' for this entity type.",
+          };
         }
 
         if (createInput.prompt) {

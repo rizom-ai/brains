@@ -115,7 +115,8 @@ function registerLinkCreateInterceptor(services: MockServices): void {
         }
       }
 
-      const url = extractFirstUrl(input.content, input.prompt, input.title);
+      const url =
+        input.url ?? extractFirstUrl(input.content, input.prompt, input.title);
       if (url) {
         const jobId = await services.jobs.enqueue(
           "link-capture",
@@ -417,13 +418,71 @@ describe("system_create tool", () => {
     expect(data.jobId).toBeDefined();
   });
 
-  it("should require content or prompt", async () => {
+  it("should require content, prompt, or url", async () => {
     const result = await exec({
       entityType: "base",
       title: "Nothing else",
     });
 
     expect(result).toHaveProperty("success", false);
+  });
+
+  it("should reject url-only create for unsupported entity types", async () => {
+    const result = await exec({
+      entityType: "base",
+      url: "https://example.com/test",
+    });
+
+    expect(result).toHaveProperty("success", false);
+    expect((result as { error: string }).error).toContain(
+      "URL-only creation is supported only for entity types that explicitly handle it",
+    );
+  });
+
+  it("should queue agent generation from top-level url", async () => {
+    services.entityRegistry.registerCreateInterceptor(
+      "agent",
+      async (input) => ({
+        kind: "continue",
+        input:
+          input.url && !input.prompt && !input.content
+            ? { ...input, prompt: input.url }
+            : input,
+      }),
+    );
+
+    const result = await exec({
+      entityType: "agent",
+      url: "https://yeehaa.io",
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.status).toBe("generating");
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("agent:generation");
+    const rawJobData = z.record(z.unknown()).parse(enqueuedJob.data);
+    expect(rawJobData["prompt"]).toBe("https://yeehaa.io");
+  });
+
+  it("should route top-level url link creation to link capture", async () => {
+    const result = await exec({
+      entityType: "link",
+      url: "https://anthropic.com/research",
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data.status).toBe("generating");
+    expect(data.jobId).toBeDefined();
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    if (!enqueuedJob) throw new Error("No job was enqueued");
+    expect(enqueuedJob.type).toBe("link-capture");
+    const jobData = enqueuedLinkJobSchema.parse(enqueuedJob.data);
+    expect(jobData.url).toBe("https://anthropic.com/research");
   });
 
   it("should route prompted link creation with a URL to link capture", async () => {
@@ -612,12 +671,12 @@ A saved research link.`;
     );
   });
 
-  it("should not include options field in schema", () => {
+  it("should expose top-level url and not include options field in schema", () => {
     const tool = tools.find((t) => t.name === "system_create");
     if (!tool) throw new Error("system_create not found");
-    const schema = tool.inputSchema;
-    const shape = (schema as { shape?: Record<string, unknown> }).shape;
-    expect(shape).not.toHaveProperty("options");
+
+    expect(tool.inputSchema).toHaveProperty("url");
+    expect(tool.inputSchema).not.toHaveProperty("options");
   });
 
   it("should pass target fields as top-level (not nested in options)", async () => {

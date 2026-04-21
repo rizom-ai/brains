@@ -4,6 +4,9 @@ import type {
   DataSource,
   JobHandler,
   EntityPluginContext,
+  CreateInput,
+  CreateExecutionContext,
+  CreateInterceptionResult,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
@@ -27,6 +30,24 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
 
   constructor() {
     super("agent-discovery", packageJson);
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    _context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    if (input.url && !input.prompt && !input.content) {
+      return {
+        kind: "continue",
+        input: {
+          ...input,
+          prompt: input.url,
+        },
+      };
+    }
+
+    return { kind: "continue", input };
   }
 
   protected override createGenerationHandler(
@@ -71,7 +92,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
 
   protected override async getInstructions(): Promise<string | undefined> {
     return `## Agent directory
-- Add a new agent contact with \`system_create\` using \`entityType: "agent"\`.
+- Add a new agent contact with \`system_create\` using \`entityType: "agent"\` and pass the domain or URL in \`url\`.
 - List saved agents with \`system_list\` using \`entityType: "agent"\`.
 - Approve a discovered agent with \`system_update\` on the \`agent\` entity using \`fields\` (for example \`fields: { status: "approved" }\`). Do not replace the full content just to change status.
 - If the user gives an exact saved agent id like \`old-agent.io\`, call that single \`system_update\` directly instead of listing/searching first.

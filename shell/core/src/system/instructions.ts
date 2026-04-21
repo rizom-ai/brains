@@ -9,7 +9,7 @@ export function createSystemInstructions(services: SystemServices): string {
     "Use these system tools for ALL entity operations:",
     "",
     "- **system_create**: Create or generate any entity. " +
-      "Pass `content` for direct creation, or `prompt` for AI generation. " +
+      "Pass `content` for direct creation, `prompt` for AI generation, or `url` for URL-first flows like saving links or remote agents. " +
       `Available entity types: ${types.join(", ")}.`,
     "- **system_update**: Modify an entity's fields or content. " +
       "Requires confirmation before applying changes.",

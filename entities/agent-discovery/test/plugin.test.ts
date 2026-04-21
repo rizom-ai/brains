@@ -23,6 +23,40 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("should rewrite top-level url create input into prompt-based generation input", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+
+    await harness.installPlugin(plugin);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("agent");
+    if (!interceptor) throw new Error("Expected agent create interceptor");
+
+    const result = await interceptor(
+      {
+        entityType: "agent",
+        url: "https://yeehaa.io",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    );
+
+    expect(result).toEqual({
+      kind: "continue",
+      input: {
+        entityType: "agent",
+        url: "https://yeehaa.io",
+        prompt: "https://yeehaa.io",
+      },
+    });
+
+    harness.reset();
+  });
+
   it("should register dashboard widgets on plugins ready", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();

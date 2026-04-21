@@ -27,6 +27,12 @@ export const createInputSchema = z.object({
   title: z.string().optional().describe("Title for the entity"),
   prompt: z.string().optional().describe("Prompt for AI generation"),
   content: z.string().optional().describe("Direct content to store"),
+  url: z
+    .string()
+    .optional()
+    .describe(
+      "URL or domain for URL-first create flows such as saving a link or remote agent",
+    ),
   targetEntityType: z
     .string()
     .optional()

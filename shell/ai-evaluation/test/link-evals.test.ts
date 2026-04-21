@@ -35,7 +35,24 @@ describe("link evaluation test cases", () => {
 
       const expectedTool = testCase.successCriteria.expectedTools?.[0];
       expect(expectedTool?.toolName).toBe("system_create");
-      expect(expectedTool?.argsContain).toEqual({ entityType: "link" });
+      if (file === "tool-capture-basic.yaml") {
+        expect(expectedTool?.argsContain).toEqual({
+          entityType: "link",
+          url: "https://anthropic.com/research",
+        });
+      } else if (file === "tool-capture-bookmark.yaml") {
+        expect(expectedTool?.argsContain).toEqual({
+          entityType: "link",
+          url: "https://github.com/anthropics/claude-code",
+        });
+      } else if (file === "tool-capture-unreachable.yaml") {
+        expect(expectedTool?.argsContain).toEqual({
+          entityType: "link",
+          url: "https://this-domain-definitely-does-not-exist-12345.com/page",
+        });
+      } else {
+        expect(expectedTool?.argsContain).toEqual({ entityType: "link" });
+      }
       expect(testCase.successCriteria.responseNotContains).toContain(
         "link_capture",
       );

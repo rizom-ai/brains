@@ -17,6 +17,7 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
+        url: "https://this-domain-definitely-does-not-exist-12345.com/page"
   # Agent should indicate failure - don't require specific wording, just check it doesn't claim success
   responseNotContains:
     - "successfully captured"

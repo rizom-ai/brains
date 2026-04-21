@@ -126,7 +126,9 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       }
     }
 
-    const url = this.extractFirstUrl(input.content, input.prompt, input.title);
+    const url =
+      input.url ??
+      this.extractFirstUrl(input.content, input.prompt, input.title);
     if (url) {
       if (!this.shell) {
         throw new Error(
