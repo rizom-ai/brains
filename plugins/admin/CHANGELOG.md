@@ -1,5 +1,12 @@
 # @brains/admin
 
+## 0.2.0-alpha.35
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms@0.2.0-alpha.35
+
 ## 0.2.0-alpha.34
 
 ### Patch Changes

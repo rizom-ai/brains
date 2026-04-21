@@ -1,5 +1,13 @@
 # @brains/link
 
+## 0.2.0-alpha.35
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.35
+  - @brains/plugins@0.2.0-alpha.35
+
 ## 0.2.0-alpha.34
 
 ### Patch Changes
