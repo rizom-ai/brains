@@ -1,6 +1,6 @@
 {
   "name": "@brains/rover",
-  "version": "0.2.0-alpha.36",
+  "version": "0.2.0-alpha.37",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",

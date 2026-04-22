@@ -1,5 +1,13 @@
 # @rizom/brain
 
+## 0.2.0-alpha.37
+
+### Patch Changes
+
+- [`d0970f6`](https://github.com/rizom-ai/brains/commit/d0970f692e232d12698ffef4e2aca1338205a013) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix published deploy scaffolding so both CLIs generate deploy files from the shared template source instead of stale package-local copies.
+
+  This keeps standalone and rover-pilot scaffolds aligned with the shared deploy templates, including the persistent runtime mounts for `/data`, `/config`, and `/app/dist`.
+
 ## 0.2.0-alpha.36
 
 ### Patch Changes
