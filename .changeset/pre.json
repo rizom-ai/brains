@@ -89,6 +89,7 @@
     "@rizom/ui": "0.2.0-alpha.34"
   },
   "changesets": [
+    "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",

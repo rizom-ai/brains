@@ -1,7 +1,7 @@
 {
   "name": "@brains/image",
   "private": true,
-  "version": "0.2.0-alpha.38",
+  "version": "0.2.0-alpha.39",
   "description": "Image entity support with base64 storage - schemas, adapter, and utilities",
   "type": "module",
   "exports": {

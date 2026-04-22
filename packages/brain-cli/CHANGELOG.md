@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.39
+
+### Patch Changes
+
+- [`2dc037f`](https://github.com/rizom-ai/brains/commit/2dc037f9ef4925a1bb19d5d1dcc71d30f9223028) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix agent approval not sticking after directory-sync round-trip. `AgentAdapter.toMarkdown` now rebuilds the frontmatter from entity metadata on every write, so `system_update({ fields: { status: "approved" } })` produces disk markdown that matches the DB. Previously the stale `status: discovered` frontmatter stayed on disk, and the next import clobbered the DB back to discovered — causing agent calls to fail with "not approved yet" after a visibly successful approval.
+
 ## 0.2.0-alpha.38
 
 ### Patch Changes

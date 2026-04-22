@@ -1,7 +1,7 @@
 {
   "name": "@brains/theme-default",
   "private": true,
-  "version": "0.2.0-alpha.38",
+  "version": "0.2.0-alpha.39",
   "description": "Clean default theme — blue/orange palette, no decorative animations or gradients",
   "type": "module",
   "exports": {

@@ -1,6 +1,6 @@
 {
   "name": "@brains/eslint-config",
-  "version": "0.2.0-alpha.38",
+  "version": "0.2.0-alpha.39",
   "private": true,
   "main": "index.js",
   "dependencies": {

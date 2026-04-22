@@ -1,5 +1,7 @@
 # @rizom/ui
 
+## 0.2.0-alpha.39
+
 ## 0.2.0-alpha.38
 
 ## 0.2.0-alpha.37
