@@ -37,4 +37,7 @@ env:
 
 volumes:
   - /opt/brain-data:/app/brain-data
+  - /opt/brain-state:/data
+  - /opt/brain-config:/config
+  - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml

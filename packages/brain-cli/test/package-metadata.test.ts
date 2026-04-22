@@ -31,13 +31,7 @@ function readSharedTsConfigFile(relativePath: string): string {
 }
 
 describe("@rizom/brain package metadata", () => {
-  it("keeps package-local deploy templates synced from shared source", () => {
-    expect(readPackageFile("templates/deploy/Dockerfile")).toBe(
-      readSharedFile("deploy-templates/Dockerfile"),
-    );
-    expect(readPackageFile("templates/deploy/kamal-deploy.yml")).toBe(
-      readSharedFile("deploy-templates/kamal-deploy.yml"),
-    );
+  it("keeps package-local deploy scripts synced from shared source", () => {
     expect(
       readPackageFile("templates/deploy/scripts/provision-server.ts"),
     ).toBe(readSharedFile("deploy-scripts/provision-server.ts"));
@@ -47,6 +41,16 @@ describe("@rizom/brain package metadata", () => {
     expect(readPackageFile("templates/deploy/scripts/write-ssh-key.ts")).toBe(
       readSharedFile("deploy-scripts/write-ssh-key.ts"),
     );
+
+    const sharedDeployTemplate = readSharedFile(
+      "deploy-templates/kamal-deploy.yml",
+    );
+    const sharedDockerfile = readSharedFile("deploy-templates/Dockerfile");
+    expect(sharedDeployTemplate).toContain("/opt/brain-state:/data");
+    expect(sharedDeployTemplate).toContain("/opt/brain-config:/config");
+    expect(sharedDeployTemplate).toContain("/opt/brain-dist:/app/dist");
+    expect(sharedDockerfile).toContain("ENV XDG_DATA_HOME=/data");
+    expect(sharedDockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
   });
 
   it("keeps the public instance tsconfig preset synced from shared source", () => {
@@ -55,7 +59,7 @@ describe("@rizom/brain package metadata", () => {
     );
   });
 
-  it("publishes deploy templates in the packed artifact", () => {
+  it("publishes deploy helper scripts in the packed artifact", () => {
     const pack = spawnSync("npm", ["pack", "--json", "--dry-run"], {
       cwd: packageDir,
       encoding: "utf8",
@@ -71,8 +75,6 @@ describe("@rizom/brain package metadata", () => {
 
     expect(packageJson.files).toContain("templates");
     expect(packageJson.files).toContain("tsconfig.instance.json");
-    expect(filePaths.has("templates/deploy/Dockerfile")).toBeTrue();
-    expect(filePaths.has("templates/deploy/kamal-deploy.yml")).toBeTrue();
     expect(
       filePaths.has("templates/deploy/scripts/provision-server.ts"),
     ).toBeTrue();

@@ -25,30 +25,21 @@ const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
 mkdirSync(outdir, { recursive: true });
 
-const sharedDeployTemplatesDir = dirname(
-  fileURLToPath(
-    import.meta.resolve("@brains/utils/deploy-templates/Dockerfile"),
-  ),
-);
 const sharedDeployScriptsDir = dirname(
   fileURLToPath(
     import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
   ),
 );
-const packageDeployTemplatesDir = join(packageDir, "templates", "deploy");
-const packageDeployScriptsDir = join(packageDeployTemplatesDir, "scripts");
+const packageDeployScriptsDir = join(
+  packageDir,
+  "templates",
+  "deploy",
+  "scripts",
+);
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
-function syncDeployTemplates(): void {
+function syncDeployScripts(): void {
   mkdirSync(packageDeployScriptsDir, { recursive: true });
-  cpSync(
-    join(sharedDeployTemplatesDir, "Dockerfile"),
-    join(packageDeployTemplatesDir, "Dockerfile"),
-  );
-  cpSync(
-    join(sharedDeployTemplatesDir, "kamal-deploy.yml"),
-    join(packageDeployTemplatesDir, "kamal-deploy.yml"),
-  );
   cpSync(
     join(sharedDeployScriptsDir, "provision-server.ts"),
     join(packageDeployScriptsDir, "provision-server.ts"),
@@ -63,7 +54,7 @@ function syncDeployTemplates(): void {
   );
 }
 
-syncDeployTemplates();
+syncDeployScripts();
 
 // ─── Find monorepo root ───────────────────────────────────────────────────
 

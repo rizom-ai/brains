@@ -9,6 +9,9 @@ import {
 import { basename, dirname, join, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
 import pkg from "../../package.json" with { type: "json" };
+import deployDockerfileTemplate from "@brains/utils/deploy-templates/Dockerfile" with { type: "text" };
+import deployKamalTemplate from "@brains/utils/deploy-templates/kamal-deploy.yml" with { type: "text" };
+import { isStaleDeployMounts } from "@brains/utils/deploy-templates";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { buildInstanceEnvSchema } from "../lib/env-schema";
 
@@ -580,11 +583,7 @@ jobs:
 ];
 
 function writeDeployYml(dir: string, regen = false): void {
-  const template = readFileSync(
-    join(packageDeployTemplatesDir, "kamal-deploy.yml"),
-    "utf-8",
-  );
-  const content = template.replace("__SERVICE_NAME__", "brain");
+  const content = deployKamalTemplate.replace("__SERVICE_NAME__", "brain");
 
   writeReconcilableScaffoldFile({
     path: join(dir, "config", "deploy.yml"),
@@ -813,22 +812,22 @@ jobs:
   });
 }
 
-const packageDeployTemplatesDir = resolvePackageDeployTemplatesDir();
+const packageDeployScriptsDir = resolvePackageDeployScriptsDir();
 
-function resolvePackageDeployTemplatesDir(): string {
+function resolvePackageDeployScriptsDir(): string {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const candidates = [
-    join(currentDir, "..", "..", "templates", "deploy"),
-    join(currentDir, "..", "templates", "deploy"),
+    join(currentDir, "..", "..", "templates", "deploy", "scripts"),
+    join(currentDir, "..", "templates", "deploy", "scripts"),
   ];
 
   for (const candidate of candidates) {
-    if (existsSync(join(candidate, "Dockerfile"))) {
+    if (existsSync(join(candidate, "provision-server.ts"))) {
       return candidate;
     }
   }
 
-  throw new Error("Missing package-local deploy templates for brain init");
+  throw new Error("Missing package-local deploy scripts for brain init");
 }
 
 function isLegacyStandaloneDeployDockerfile(current: string): boolean {
@@ -842,10 +841,7 @@ function isLegacyStandaloneDeployDockerfile(current: string): boolean {
 }
 
 function writeDeployDockerfile(dir: string, regen = false): void {
-  const content = readFileSync(
-    join(packageDeployTemplatesDir, "Dockerfile"),
-    "utf-8",
-  );
+  const content = deployDockerfileTemplate;
 
   writeReconcilableScaffoldFile({
     path: join(dir, "deploy", "Dockerfile"),
@@ -1165,12 +1161,20 @@ function normalizeStandaloneDeployYmlForComparison(content: string): string {
     );
 }
 
+function isStaleStandaloneDeployMounts(current: string): boolean {
+  return isStaleDeployMounts(
+    current,
+    "brain",
+    normalizeStandaloneDeployYmlForComparison,
+  );
+}
+
 function matchesLegacyStandaloneDeployYml(current: string): boolean {
   const normalized = normalizeStandaloneDeployYmlForComparison(current);
 
   return (
     normalized ===
-    `service: brain
+      `service: brain
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
 servers:
@@ -1207,7 +1211,7 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-`
+` || isStaleStandaloneDeployMounts(current)
   );
 }
 
@@ -1228,7 +1232,7 @@ function removeLegacyGeneratedFile(
 }
 
 function writeSharedDeployScripts(dir: string, regen = false): void {
-  const scriptsDir = join(packageDeployTemplatesDir, "scripts");
+  const scriptsDir = packageDeployScriptsDir;
 
   writeScaffoldFile(
     join(dir, "deploy", "scripts", "helpers.ts"),

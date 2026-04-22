@@ -98,6 +98,48 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
+const staleStandaloneDeployYml = `service: brain
+image: <%= ENV['IMAGE_REPOSITORY'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>
+    - <%= ENV['PREVIEW_DOMAIN'] %>
+  app_port: 8080
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: <%= ENV['REGISTRY_USERNAME'] %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+
 const legacyStandaloneDockerfile = `FROM oven/bun:1.3.10-slim
 
 WORKDIR /app
@@ -791,6 +833,9 @@ describe("brain init", () => {
       );
       expect(deploy).toContain("IMAGE_REPOSITORY");
       expect(deploy).toContain("REGISTRY_USERNAME");
+      expect(deploy).toContain("/opt/brain-state:/data");
+      expect(deploy).toContain("/opt/brain-config:/config");
+      expect(deploy).toContain("/opt/brain-dist:/app/dist");
       expect(deploy).not.toContain("ssl: true");
       expect(deploy).not.toContain(":80");
       expect(deploy).not.toContain(":81");
@@ -818,6 +863,30 @@ describe("brain init", () => {
       );
       expect(workflow).not.toContain("VERSION: latest");
       expect(workflow).not.toContain("SERVER_IP: ${{ secrets.SERVER_IP }}");
+    });
+
+    it("should reconcile stale standalone deploy mounts when --deploy is used", () => {
+      writeFileSync(
+        join(testDir, "brain.yaml"),
+        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
+      );
+      mkdirSync(join(testDir, "config"), { recursive: true });
+      writeFileSync(
+        join(testDir, "config", "deploy.yml"),
+        staleStandaloneDeployYml,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true });
+
+      const deploy = readFileSync(
+        join(testDir, "config", "deploy.yml"),
+        "utf-8",
+      );
+      expect(deploy).toContain("/opt/brain-state:/data");
+      expect(deploy).toContain("/opt/brain-config:/config");
+      expect(deploy).toContain("/opt/brain-dist:/app/dist");
+      expect(deploy).toContain("/opt/brain-data:/app/brain-data");
+      expect(deploy).toContain("/opt/brain.yaml:/app/brain.yaml");
     });
 
     it("should reconcile old caddy Dockerfiles even when the generated header drifted", () => {

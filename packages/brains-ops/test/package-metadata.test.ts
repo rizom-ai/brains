@@ -12,10 +12,6 @@ const packageDir = dirname(
 );
 const monorepoRoot = dirname(dirname(packageDir));
 
-function readPackageFile(relativePath: string): string {
-  return readFileSync(join(packageDir, relativePath), "utf8");
-}
-
 function readSharedFile(relativePath: string): string {
   return readFileSync(
     join(monorepoRoot, "shared", "utils", "src", relativePath),
@@ -76,18 +72,15 @@ const legacyDeployWorkflowCommitStep = `      - name: Commit generated config
 `;
 
 describe("@rizom/ops package metadata", () => {
-  it("keeps package-local deploy templates synced from shared source", () => {
-    expect(readPackageFile("templates/rover-pilot/deploy/Dockerfile")).toBe(
-      readSharedFile("deploy-templates/Dockerfile"),
-    );
-    expect(
-      readPackageFile("templates/rover-pilot/deploy/kamal/deploy.yml"),
-    ).toBe(
-      readSharedFile("deploy-templates/kamal-deploy.yml").replace(
-        "__SERVICE_NAME__",
-        "rover",
-      ),
-    );
+  it("keeps the shared deploy template source up to date", () => {
+    const deployTemplate = readSharedFile("deploy-templates/kamal-deploy.yml");
+    const dockerfile = readSharedFile("deploy-templates/Dockerfile");
+
+    expect(deployTemplate).toContain("/opt/brain-state:/data");
+    expect(deployTemplate).toContain("/opt/brain-config:/config");
+    expect(deployTemplate).toContain("/opt/brain-dist:/app/dist");
+    expect(dockerfile).toContain("ENV XDG_DATA_HOME=/data");
+    expect(dockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
   });
 
   it("publishes built dist entrypoints and templates", () => {

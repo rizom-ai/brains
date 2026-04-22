@@ -10,6 +10,9 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import packageJson from "../package.json";
+import deployDockerfileTemplate from "@brains/utils/deploy-templates/Dockerfile" with { type: "text" };
+import deployKamalTemplate from "@brains/utils/deploy-templates/kamal-deploy.yml" with { type: "text" };
+import { isStaleDeployMounts } from "@brains/utils/deploy-templates";
 import { writeUsersTable } from "./render-users-table";
 
 const starterFilePaths = [
@@ -249,6 +252,10 @@ function isLegacyPilotDockerfile(current: string): boolean {
   );
 }
 
+function isStalePilotDeployYml(current: string): boolean {
+  return isStaleDeployMounts(current, "rover");
+}
+
 function isLegacyPilotDeployWorkflow(current: string): boolean {
   return current.includes(legacyDeployWorkflowFinalizeStep);
 }
@@ -332,6 +339,8 @@ async function writeStarterFileIfMissing(
   const matchesLegacyPredicate =
     (relativePath === "deploy/Dockerfile" &&
       isLegacyPilotDockerfile(current)) ||
+    (relativePath === "deploy/kamal/deploy.yml" &&
+      isStalePilotDeployYml(current)) ||
     (relativePath === ".github/workflows/deploy.yml" &&
       (isLegacyPilotDeployWorkflow(current) ||
         isStalePilotDeployWorkflow(current))) ||
@@ -370,6 +379,12 @@ async function removeLegacyGeneratedFile(
 async function renderStarterFile(relativePath: string): Promise<string> {
   if (relativePath === ".gitignore") {
     return "node_modules/\n.brains-ops/\nusers/*.secrets.yaml\n";
+  }
+  if (relativePath === "deploy/Dockerfile") {
+    return deployDockerfileTemplate;
+  }
+  if (relativePath === "deploy/kamal/deploy.yml") {
+    return deployKamalTemplate.replace("__SERVICE_NAME__", "rover");
   }
 
   const templatePath = join(templateRootDir, relativePath);

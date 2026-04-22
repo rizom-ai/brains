@@ -6,8 +6,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
@@ -78,32 +77,6 @@ if (dts.exitCode !== 0) {
 cpSync(
   join(packageDir, "src", "types", "deploy.d.ts"),
   join(outdir, "deploy.d.ts"),
-);
-
-const sharedDeployTemplatesDir = dirname(
-  fileURLToPath(
-    import.meta.resolve("@brains/utils/deploy-templates/Dockerfile"),
-  ),
-);
-const templateDeployDir = join(
-  packageDir,
-  "templates",
-  "rover-pilot",
-  "deploy",
-);
-cpSync(
-  join(sharedDeployTemplatesDir, "Dockerfile"),
-  join(templateDeployDir, "Dockerfile"),
-);
-
-const kamalTemplate = readFileSync(
-  join(sharedDeployTemplatesDir, "kamal-deploy.yml"),
-  "utf8",
-);
-mkdirSync(join(templateDeployDir, "kamal"), { recursive: true });
-writeFileSync(
-  join(templateDeployDir, "kamal", "deploy.yml"),
-  kamalTemplate.replace("__SERVICE_NAME__", "rover"),
 );
 
 console.log("Built dist/brains-ops.js");

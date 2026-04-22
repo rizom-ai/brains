@@ -59,6 +59,48 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
+const staleDeployYml = `service: rover
+image: <%= ENV['IMAGE_REPOSITORY'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>
+    - <%= ENV['PREVIEW_DOMAIN'] %>
+  app_port: 8080
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: <%= ENV['REGISTRY_USERNAME'] %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+`;
+
 const legacyDockerfile = `ARG BUN_VERSION=1.3.10
 FROM oven/bun:\${BUN_VERSION}-slim AS runtime
 
@@ -556,6 +598,9 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("app_port: 8080");
     expect(deployConfig).toContain("path: /health");
     expect(deployConfig).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
+    expect(deployConfig).toContain("/opt/brain-state:/data");
+    expect(deployConfig).toContain("/opt/brain-config:/config");
+    expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
 
     const preDeployHookPath = join(repo, ".kamal", "hooks", "pre-deploy");
@@ -627,6 +672,9 @@ describe("initPilotRepo", () => {
       "utf8",
     );
     expect(deployConfig).toContain("app_port: 8080");
+    expect(deployConfig).toContain("/opt/brain-state:/data");
+    expect(deployConfig).toContain("/opt/brain-config:/config");
+    expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).not.toContain("\n  app_port: 80\n");
 
     const dockerfile = await readFile(
@@ -639,6 +687,29 @@ describe("initPilotRepo", () => {
     expect(dockerfile).not.toContain("deploy/Caddyfile");
 
     expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(false);
+  });
+
+  it("reconciles stale deploy volume mounts on rerun", async () => {
+    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
+    const repo = join(root, "rover-pilot");
+
+    await initPilotRepo(repo);
+    await writeFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      staleDeployYml,
+    );
+
+    await initPilotRepo(repo);
+
+    const deployConfig = await readFile(
+      join(repo, "deploy", "kamal", "deploy.yml"),
+      "utf8",
+    );
+    expect(deployConfig).toContain("/opt/brain-state:/data");
+    expect(deployConfig).toContain("/opt/brain-config:/config");
+    expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
+    expect(deployConfig).toContain("/opt/brain-data:/app/brain-data");
+    expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
   });
 
   it("reconciles legacy workflow push steps on rerun", async () => {
