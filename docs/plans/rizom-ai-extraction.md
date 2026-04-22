@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed.
+Implemented locally for the pilot extraction path.
+
+`rizom.ai` now has a validated standalone repo shape outside this monorepo, and this file remains as the pilot decision/verification record.
 
 This plan covers **only** `rizom.ai` as the first apps-only extraction pilot.
 
@@ -641,7 +643,7 @@ Deliverable:
 - [x] required shared package dependencies are listed explicitly
 - [x] site logic vs site-content boundary is made explicit in code
 - [x] app-owned content namespace moved to `landing-page:*`
-- [ ] shared-package release/pinning strategy is chosen for the pilot
+- [x] shared-package release/pinning strategy is chosen for the pilot
 - [ ] keep `@brains/site-rizom` as the real Rizom site package
 - [x] create shared `@rizom/ui` for the minimal app-facing Rizom UI/layout surface
 - [x] localize `RizomLayoutProps` and social-link mapping in Rizom app layouts
@@ -650,17 +652,31 @@ Deliverable:
 - [x] `@brains/site-content` is extended to own landing-page content definition/wiring for `rizom.ai`
 - [x] direct app imports of `@brains/templates` / `@brains/utils` are removed from `apps/rizom-ai/src`
 - [ ] extraction choice is made: keep relying on `ranger` default preset vs define an explicit equivalent contract
-- [ ] standalone `package.json` shape is fully defined (`start` is now aligned; dependency pinning still remains)
+- [x] standalone `package.json` shape is fully defined (`start` aligned; `@rizom/brain` and `@rizom/ui` now pinned to published versions)
 - [ ] standalone `brain.yaml` shape is confirmed
 - [ ] deploy workflow/config needed by `rizom.ai` is identified
 - [ ] env/secrets list is documented
 - [ ] content repo linkage is documented
-- [ ] dry-run extraction is performed in a temp repo/directory
-- [ ] dry-run app can typecheck and build
-- [ ] dry-run app can start successfully
+- [x] dry-run extraction is performed in a temp repo/directory
+- [x] dry-run app can typecheck and build
+- [x] dry-run app can start successfully
 - [x] dry-run app can rebuild preview via `build-site --remote` in the current monorepo app flow
 - [x] rebuilt preview output is inspected and correct for the migrated `rizom.ai` app flow
-- [ ] remaining breakages are documented as follow-up tasks
+- [x] remaining breakages are documented as follow-up tasks
+
+### Published-package dry-run note
+
+The published-package dry-run now passes with a temp standalone copy of `apps/rizom-ai` using published `@rizom/brain@0.2.0-alpha.36` and `@rizom/ui@0.2.0-alpha.36`:
+
+- install succeeds
+- `bun x tsc --noEmit -p tsconfig.json` succeeds
+- app boot succeeds
+- remote preview rebuild succeeds via `brain --remote <url> build-site preview`
+- generated `dist/site-preview/index.html` contains real Rizom page content
+
+One follow-up found during the side-by-side local smoke:
+
+- top-level `port:` in `brain.yaml` does not currently move the webserver bind port by itself for this runtime path; the temp dry-run needed an explicit `plugins.webserver.productionPort` override to avoid clashing with an already running local app on `8080`
 
 ## Exit criteria
 

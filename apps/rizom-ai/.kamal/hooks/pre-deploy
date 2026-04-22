@@ -1,7 +1,0 @@
-#!/usr/bin/env bash
-# Upload brain.yaml to server before deploy
-SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
-IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
-for host in "${HOSTS[@]}"; do
-  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null brain.yaml "${SSH_USER}@${host}:/opt/brain.yaml"
-done

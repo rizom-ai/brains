@@ -8,7 +8,14 @@ import { registerModel, resetModels } from "../src/lib/model-registry";
 
 describe("brain start", () => {
   it("should detect brain.yaml in target directory", () => {
-    const appDir = join(import.meta.dir, "..", "..", "..", "apps", "rizom-ai");
+    const appDir = join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "apps",
+      "rizom-work",
+    );
     expect(existsSync(join(appDir, "brain.yaml"))).toBe(true);
   });
 
@@ -24,7 +31,14 @@ describe("brain start", () => {
 
 describe("start subprocess lifecycle", () => {
   it("forwards SIGINT to the spawned runner and cleans up listeners", async () => {
-    const appDir = join(import.meta.dir, "..", "..", "..", "apps", "rizom-ai");
+    const appDir = join(
+      import.meta.dir,
+      "..",
+      "..",
+      "..",
+      "apps",
+      "rizom-work",
+    );
 
     const fakeProcess = new EventEmitter() as EventEmitter & {
       env: NodeJS.ProcessEnv;

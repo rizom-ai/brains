@@ -1,9 +1,0 @@
-.env
-.env.*
-!.env.example
-node_modules
-brain.log
-brain-data/
-dist/
-cache/
-data/

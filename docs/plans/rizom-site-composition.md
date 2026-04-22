@@ -72,8 +72,8 @@ Current status:
 
 - repo-level CI exists and covers install, typecheck, lint, and tests
 - shared model-image publishing exists for the deployable brain models used by the Rizom sites
-- `rizom.ai` has an in-repo deploy workflow (`.github/workflows/rizom-ai-deploy.yml`) plus app-local deploy config
-- `rizom.foundation` and `rizom.work` are **not yet** fully converged on the same checked-in app-local deploy scaffold in this repo
+- `rizom.ai` now owns its deploy workflow/config in its extracted standalone repo
+- `rizom.foundation` and `rizom.work` are the remaining in-repo Rizom apps and are **not yet** fully converged on the same extracted deploy scaffold
 
 So the correct status is:
 

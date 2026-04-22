@@ -137,8 +137,7 @@ Standalone published packages.
 
 App instances are deployment configurations, not workspace members. Each directory is a `brain.yaml` + `.env` + optional `deploy/` bundle that the `brain` CLI loads at runtime.
 
-| Directory               | Purpose                                                                                       |
-| ----------------------- | --------------------------------------------------------------------------------------------- |
-| `apps/rizom-ai`         | Marketing site for the framework (ranger model + app-local `src/site.ts` over `sites/rizom`). |
-| `apps/rizom-foundation` | Manifesto / foundation site (relay model + app-local `src/site.ts` over `sites/rizom`).       |
-| `apps/rizom-work`       | Consultancy / network site (ranger model + app-local `src/site.ts` over `sites/rizom`).       |
+| Directory               | Purpose                                                                                 |
+| ----------------------- | --------------------------------------------------------------------------------------- |
+| `apps/rizom-foundation` | Manifesto / foundation site (relay model + app-local `src/site.ts` over `sites/rizom`). |
+| `apps/rizom-work`       | Consultancy / network site (ranger model + app-local `src/site.ts` over `sites/rizom`). |
