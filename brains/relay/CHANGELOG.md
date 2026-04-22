@@ -1,5 +1,32 @@
 # @brains/relay
 
+## 0.2.0-alpha.38
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/agent-discovery@0.2.0-alpha.38
+  - @brains/decks@0.2.0-alpha.38
+  - @brains/image-plugin@0.2.0-alpha.38
+  - @brains/link@0.2.0-alpha.38
+  - @brains/note@0.2.0-alpha.38
+  - @brains/prompt@0.2.0-alpha.38
+  - @brains/site-info@0.2.0-alpha.38
+  - @brains/summary@0.2.0-alpha.38
+  - @brains/topics@0.2.0-alpha.38
+  - @brains/a2a@0.2.0-alpha.38
+  - @brains/discord@0.2.0-alpha.38
+  - @brains/mcp@0.2.0-alpha.38
+  - @brains/webserver@0.2.0-alpha.38
+  - @brains/cms@0.2.0-alpha.38
+  - @brains/dashboard@0.2.0-alpha.38
+  - @brains/directory-sync@0.2.0-alpha.38
+  - @brains/site-builder-plugin@0.2.0-alpha.38
+  - @brains/site-content@0.2.0-alpha.38
+  - @brains/theme-rizom@0.2.0-alpha.38
+  - @brains/app@0.2.0-alpha.38
+  - @brains/site-rizom@0.2.0-alpha.38
+
 ## 0.2.0-alpha.37
 
 ### Patch Changes

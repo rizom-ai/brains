@@ -131,6 +131,7 @@
     "rizom-ops-render-live-status",
     "rizom-ops-restore-shared-secret-push",
     "rizom-ui-package",
+    "rover-agent-directory-approval",
     "shared-kamal-template-sync",
     "shared-preview-host-and-workspace-runtime",
     "sharp-lazy-load",

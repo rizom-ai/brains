@@ -1,7 +1,7 @@
 {
   "name": "@brains/mcp-service",
   "private": true,
-  "version": "0.2.0-alpha.37",
+  "version": "0.2.0-alpha.38",
   "description": "MCP (Model Context Protocol) service for tool and resource registration",
   "type": "module",
   "main": "./src/index.ts",

@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.38
+
+### Patch Changes
+
+- [`7ad4dca`](https://github.com/rizom-ai/brains/commit/7ad4dca2947e99f6fa03ad8f975db4b6e00261c0) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix rover's agent-directory save and approval flow so explicit add/save requests create approved agent entries, approval follow-ups succeed more reliably, and regressions are covered by focused rover evals.
+
 ## 0.2.0-alpha.37
 
 ### Patch Changes
