@@ -94,6 +94,98 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
+  it("coalesces repeated explicit saves for the same domain and disables retries", async () => {
+    const harness = createPluginHarness<AgentDiscoveryPlugin>({});
+    const plugin = new AgentDiscoveryPlugin();
+    const mockShell = harness.getMockShell();
+    const origJobQueue = mockShell.getJobQueueService();
+    const enqueued: Array<{
+      type: string;
+      options: unknown;
+      jobId: string;
+    }> = [];
+    const coalescedJobs = new Map<string, string>();
+
+    mockShell.getJobQueueService = (): ReturnType<
+      typeof mockShell.getJobQueueService
+    > =>
+      ({
+        ...origJobQueue,
+        enqueue: async (type: string, data: unknown, options?: unknown) => {
+          const jobOptions = options as Parameters<
+            typeof origJobQueue.enqueue
+          >[2];
+          const dedupeKey =
+            jobOptions?.deduplication === "coalesce"
+              ? `${type}:${jobOptions.deduplicationKey ?? ""}`
+              : undefined;
+
+          let jobId: string;
+          if (dedupeKey && coalescedJobs.has(dedupeKey)) {
+            jobId = coalescedJobs.get(dedupeKey) as string;
+          } else {
+            jobId = await origJobQueue.enqueue(type, data, jobOptions);
+            if (dedupeKey) {
+              coalescedJobs.set(dedupeKey, jobId);
+            }
+          }
+
+          enqueued.push({ type, options, jobId });
+          return jobId;
+        },
+      }) as ReturnType<typeof mockShell.getJobQueueService>;
+
+    await harness.installPlugin(plugin);
+
+    const interceptor = harness
+      .getEntityRegistry()
+      .getCreateInterceptor("agent");
+    if (!interceptor) throw new Error("Expected agent create interceptor");
+
+    const first = (await interceptor(
+      {
+        entityType: "agent",
+        url: "https://yeehaa.io",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    )) as { result?: { data?: { jobId?: string } } };
+
+    const second = (await interceptor(
+      {
+        entityType: "agent",
+        url: "yeehaa.io",
+      },
+      {
+        interfaceType: "test",
+        userId: "test-user",
+      },
+    )) as { result?: { data?: { jobId?: string } } };
+
+    expect(first.result?.data?.jobId).toBeDefined();
+    expect(second.result?.data?.jobId).toBe(first.result?.data?.jobId);
+    expect(enqueued).toHaveLength(2);
+    expect(enqueued[0]?.type).toBe("agent:generation");
+    expect(enqueued[0]?.options).toEqual(
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "yeehaa.io",
+        maxRetries: 0,
+      }),
+    );
+    expect(enqueued[1]?.options).toEqual(
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "yeehaa.io",
+        maxRetries: 0,
+      }),
+    );
+
+    harness.reset();
+  });
+
   it("should treat re-saving an existing approved agent as idempotent", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();

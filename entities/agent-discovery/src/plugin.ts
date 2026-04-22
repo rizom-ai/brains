@@ -40,6 +40,7 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
   ): Promise<CreateInterceptionResult> {
     if (input.url && !input.prompt && !input.content) {
       const domain = extractDomain(input.url);
+      const deduplicationKey = domain ?? input.url.trim().toLowerCase();
 
       if (domain) {
         const existing = await context.entityService.getEntity<AgentEntity>(
@@ -78,6 +79,13 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
           status: "approved",
         },
         executionContext,
+        {
+          source: this.id,
+          metadata: { operationType: "data_processing" },
+          deduplication: "coalesce",
+          deduplicationKey,
+          maxRetries: 0,
+        },
       );
 
       return {
