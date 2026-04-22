@@ -126,6 +126,7 @@ describe("rover agent directory evaluation test cases", () => {
     const cases = [
       "agent-approve-after-refusal-follow-up.yaml",
       "agent-approve-then-call.yaml",
+      "agent-approve-then-call-now.yaml",
     ];
 
     const loader = YAMLLoader.createFresh({ directory: import.meta.dir });
@@ -149,12 +150,39 @@ describe("rover agent directory evaluation test cases", () => {
         throw new Error("Expected an agent evaluation test case");
       }
 
+      if (file === "agent-approve-then-call-now.yaml") {
+        expect(
+          testCase.turns[0]?.successCriteria?.expectedTools?.[0],
+        ).toMatchObject({
+          toolName: "system_update",
+          shouldBeCalled: true,
+          argsContain: {
+            entityType: "agent",
+            id: "old-agent.io",
+          },
+        });
+        expect(
+          testCase.turns[1]?.successCriteria?.expectedTools?.[0],
+        ).toMatchObject({
+          toolName: "a2a_call",
+          shouldBeCalled: true,
+          argsContain: {
+            agent: "old-agent.io",
+          },
+        });
+        expect(
+          testCase.turns[1]?.successCriteria?.responseNotContains,
+        ).toContain("not approved yet");
+        continue;
+      }
+
       expect(
         testCase.turns[0]?.successCriteria?.expectedTools?.[0],
       ).toMatchObject({
         toolName: "a2a_call",
         shouldBeCalled: false,
       });
+
       const expectedUrl =
         file === "agent-approve-then-call.yaml"
           ? "save-it-regression.example"

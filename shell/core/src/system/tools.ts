@@ -589,12 +589,17 @@ export function createSystemTools(services: SystemServices): Tool[] {
           ...(input.content !== undefined ? { content: input.content } : {}),
         });
 
+        const isBlankContentApprovalAttempt =
+          normalizedInput.content !== undefined &&
+          normalizedInput.content.trim().length === 0 &&
+          normalizedInput.fields === undefined;
+
         if (
-          !normalizedInput.content &&
-          !normalizedInput.fields &&
           input.confirmed &&
           entity.entityType === "agent" &&
-          entity.metadata["status"] === "discovered"
+          entity.metadata["status"] === "discovered" &&
+          ((!normalizedInput.content && !normalizedInput.fields) ||
+            isBlankContentApprovalAttempt)
         ) {
           normalizedInput = {
             fields: { status: "approved" },

@@ -106,6 +106,23 @@ describe("system_update tool", () => {
     expect(updated?.metadata["status"]).toBe("approved");
   });
 
+  it("auto-approves discovered agents when the model sends blank content on a confirmed update", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "pending-agent.io",
+      content: " ",
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "pending-agent.io" },
+    });
+
+    const updated = services.getEntities().get("pending-agent.io");
+    expect(updated?.metadata["status"]).toBe("approved");
+  });
+
   it("rejects blank content replacement for frontmatter entities", async () => {
     const result = await exec({
       entityType: "agent",

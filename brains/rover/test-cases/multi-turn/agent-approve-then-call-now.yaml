@@ -1,0 +1,44 @@
+id: multi-turn-agent-approve-then-call-now
+name: Approve Then Call Uses Approved Status Immediately
+description: Verifies that after approving a discovered agent, an immediate follow-up call does not regress to a separate not-approved gate and proceeds to a2a_call
+type: multi_turn
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - regression
+
+turns:
+  - userMessage: "Approve old-agent.io"
+    successCriteria:
+      expectedTools:
+        - toolName: system_update
+          shouldBeCalled: true
+          argsContain:
+            entityType: "agent"
+            id: "old-agent.io"
+      responseContains:
+        - "Approved"
+      responseNotContains:
+        - "not approved yet"
+        - "approve it first"
+        - "still not approved"
+
+  - userMessage: "Can you talk to old-agent.io now?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: true
+          argsContain:
+            agent: "old-agent.io"
+      responseNotContains:
+        - "not approved yet"
+        - "approve it first"
+        - "still not approved"
+        - "discovered but not approved yet"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 5
+  maxTokens: 35000
