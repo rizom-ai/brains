@@ -1,0 +1,29 @@
+id: tool-invocation-agent-add-existing-idempotent
+name: Saving an Existing Agent Is Idempotent
+description: Tests that saving an agent that already exists in the directory does not enqueue a duplicate generation and does not return a failure message
+type: tool_invocation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+
+turns:
+  - userMessage: "Save yeehaa.io as an agent in my directory"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "agent"
+        url: "yeehaa.io"
+  responseNotContains:
+    - "already exists"
+    - "already saved"
+    - "duplicate"
+    - "failed"
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

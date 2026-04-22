@@ -14,6 +14,7 @@ describe("rover agent directory evaluation test cases", () => {
       "agent-call-archived.yaml",
       "agent-add-no-description-needed.yaml",
       "agent-add-explicit-save-no-approval-gate.yaml",
+      "agent-add-existing-idempotent.yaml",
       "agent-approve.yaml",
     ];
 
@@ -48,15 +49,23 @@ describe("rover agent directory evaluation test cases", () => {
 
       if (
         file === "agent-add-no-description-needed.yaml" ||
-        file === "agent-add-explicit-save-no-approval-gate.yaml"
+        file === "agent-add-explicit-save-no-approval-gate.yaml" ||
+        file === "agent-add-existing-idempotent.yaml"
       ) {
         const expectedCreateTool = testCase.successCriteria.expectedTools?.[0];
         expect(expectedCreateTool?.toolName).toBe("system_create");
         expect(expectedCreateTool?.shouldBeCalled).toBe(true);
-        expect(expectedCreateTool?.argsContain).toEqual({
-          entityType: "agent",
-          url: "mylittlephoney.com",
-        });
+        expect(expectedCreateTool?.argsContain).toEqual(
+          file === "agent-add-existing-idempotent.yaml"
+            ? {
+                entityType: "agent",
+                url: "yeehaa.io",
+              }
+            : {
+                entityType: "agent",
+                url: "mylittlephoney.com",
+              },
+        );
         continue;
       }
 

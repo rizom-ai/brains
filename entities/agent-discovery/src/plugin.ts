@@ -13,6 +13,7 @@ import { agentEntitySchema, type AgentEntity } from "./schemas/agent";
 import { AgentAdapter } from "./adapters/agent-adapter";
 import { AgentDataSource } from "./datasources/agent-datasource";
 import { AgentGenerationJobHandler } from "./handlers/agent-generation-handler";
+import { extractDomain } from "./lib/fetch-agent-card";
 import { buildAgentNetworkWidgetData } from "./lib/agent-network-widget";
 import { getTemplates } from "./lib/register-templates";
 import {
@@ -38,6 +39,37 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
     context: EntityPluginContext,
   ): Promise<CreateInterceptionResult> {
     if (input.url && !input.prompt && !input.content) {
+      const domain = extractDomain(input.url);
+
+      if (domain) {
+        const existing = await context.entityService.getEntity<AgentEntity>(
+          "agent",
+          domain,
+        );
+
+        if (existing) {
+          if (existing.metadata.status !== "approved") {
+            // Update metadata only. AgentAdapter.toMarkdown rebuilds
+            // frontmatter from metadata on write, so content stays in sync.
+            await context.entityService.updateEntity({
+              ...existing,
+              metadata: {
+                ...existing.metadata,
+                status: "approved",
+              },
+            });
+          }
+
+          return {
+            kind: "handled",
+            result: {
+              success: true,
+              data: { status: "created", entityId: existing.id },
+            },
+          };
+        }
+      }
+
       const jobId = await context.jobs.enqueue(
         "agent:generation",
         {

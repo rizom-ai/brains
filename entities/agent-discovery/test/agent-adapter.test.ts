@@ -261,4 +261,97 @@ Test agent.
       expect(parsed.notes).toContain("Central hub");
     });
   });
+
+  describe("toMarkdown", () => {
+    it("rebuilds frontmatter from metadata so approval stays in sync on disk", () => {
+      // Simulate the state after `system_update({ fields: { status: "approved" } })`:
+      // DB metadata says approved, but entity.content still carries the stale
+      // `status: discovered` frontmatter.
+      const staleContent = adapter.createAgentContent({
+        name: "Phoney",
+        kind: "professional",
+        brainName: "mylittlephoney.com",
+        url: "https://mylittlephoney.com/a2a",
+        status: "discovered",
+        discoveredAt: "2026-04-20T00:00:00.000Z",
+        about: "",
+        skills: [],
+        notes: "",
+      });
+
+      const entity = {
+        id: "mylittlephoney.com",
+        entityType: "agent" as const,
+        content: staleContent,
+        contentHash: "hash",
+        created: "2026-04-20T00:00:00.000Z",
+        updated: "2026-04-22T00:00:00.000Z",
+        metadata: {
+          name: "Phoney",
+          url: "https://mylittlephoney.com/a2a",
+          status: "approved" as const,
+          slug: "mylittlephoney-com",
+        },
+      };
+
+      const output = adapter.toMarkdown(entity);
+
+      expect(output).toContain("status: approved");
+      expect(output).not.toContain("status: discovered");
+    });
+
+    it("preserves frontmatter fields that live only on disk (not in metadata)", () => {
+      const staleContent = adapter.createAgentContent({
+        name: "Yeehaa",
+        kind: "team",
+        organization: "Rizom",
+        brainName: "Yeehaa's Brain",
+        url: "https://yeehaa.io",
+        did: "did:web:yeehaa.io",
+        status: "discovered",
+        discoveredAt: "2026-04-20T00:00:00.000Z",
+        about: "Founder of Rizom.",
+        skills: [
+          {
+            name: "Design",
+            description: "Design institutions",
+            tags: ["design"],
+          },
+        ],
+        notes: "Some note.",
+      });
+
+      const entity = {
+        id: "yeehaa-io",
+        entityType: "agent" as const,
+        content: staleContent,
+        contentHash: "hash",
+        created: "2026-04-20T00:00:00.000Z",
+        updated: "2026-04-22T00:00:00.000Z",
+        metadata: {
+          name: "Yeehaa",
+          url: "https://yeehaa.io",
+          status: "approved" as const,
+          slug: "yeehaa-io",
+        },
+      };
+
+      const output = adapter.toMarkdown(entity);
+
+      // Metadata-tracked fields reflect DB truth
+      expect(output).toContain("status: approved");
+      // Frontmatter-only fields survive the rebuild
+      expect(output).toContain("kind: team");
+      expect(output).toContain("organization: Rizom");
+      expect(output).toContain("brainName: Yeehaa's Brain");
+      expect(output).toContain("did:web:yeehaa.io");
+      expect(output).toContain("discoveredAt:");
+      // Body sections survive
+      expect(output).toContain("## About");
+      expect(output).toContain("Founder of Rizom.");
+      expect(output).toContain("## Skills");
+      expect(output).toContain("Design: Design institutions");
+      expect(output).toContain("Some note.");
+    });
+  });
 });
