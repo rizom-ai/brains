@@ -51,8 +51,15 @@ export const updateInputSchema = z.object({
   fields: z
     .record(z.unknown())
     .optional()
-    .describe("Partial frontmatter fields to update"),
-  content: z.string().optional().describe("Full markdown content replacement"),
+    .describe(
+      "Partial frontmatter fields to update. Use this for status, title, and metadata changes such as approving an agent.",
+    ),
+  content: z
+    .string()
+    .optional()
+    .describe(
+      "Full markdown content replacement only. Do not use this for status/title/frontmatter updates; use fields instead.",
+    ),
   confirmed: z.literal(true).optional().describe("Confirm the update"),
   contentHash: z
     .string()

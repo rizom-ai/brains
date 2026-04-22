@@ -584,10 +584,22 @@ export function createSystemTools(services: SystemServices): Tool[] {
         );
         if (!resolved.ok) return { success: false, error: resolved.error };
         const { entity } = resolved;
-        const normalizedInput = normalizeUpdateInput({
+        let normalizedInput = normalizeUpdateInput({
           ...(input.fields !== undefined ? { fields: input.fields } : {}),
           ...(input.content !== undefined ? { content: input.content } : {}),
         });
+
+        if (
+          !normalizedInput.content &&
+          !normalizedInput.fields &&
+          input.confirmed &&
+          entity.entityType === "agent" &&
+          entity.metadata["status"] === "discovered"
+        ) {
+          normalizedInput = {
+            fields: { status: "approved" },
+          };
+        }
 
         if (normalizedInput.content && normalizedInput.fields)
           return {

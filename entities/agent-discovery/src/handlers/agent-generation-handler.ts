@@ -13,6 +13,7 @@ export const agentGenerationJobSchema = z.object({
   url: z.string().optional(),
   content: z.string().optional(),
   skipAi: z.boolean().optional(),
+  status: z.enum(["discovered", "approved"]).optional(),
 });
 
 export type AgentGenerationJobData = z.infer<typeof agentGenerationJobSchema>;
@@ -64,7 +65,9 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
       );
     }
 
-    const { content, metadata, anchorName } = buildAgentFromCard(card);
+    const { content, metadata, anchorName } = buildAgentFromCard(card, {
+      ...(data.status !== undefined ? { status: data.status } : {}),
+    });
 
     return {
       id: domain,

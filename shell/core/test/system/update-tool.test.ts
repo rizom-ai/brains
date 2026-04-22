@@ -24,6 +24,20 @@ describe("system_update tool", () => {
         created: new Date("2026-03-10T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-10T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "pending-agent.io",
+        entityType: "agent",
+        content:
+          "---\nname: Pending Agent\nkind: professional\nurl: https://pending-agent.io/a2a\nstatus: discovered\ndiscoveredAt: 2026-03-11T10:00:00.000Z\ndiscoveredVia: manual\n---\n",
+        contentHash: "hash-2",
+        metadata: {
+          name: "Pending Agent",
+          url: "https://pending-agent.io/a2a",
+          status: "discovered",
+        },
+        created: new Date("2026-03-11T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-11T10:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -74,6 +88,22 @@ describe("system_update tool", () => {
     const updated = services.getEntities().get("old-agent.io");
     expect(updated?.metadata["status"]).toBe("archived");
     expect(updated?.content).toContain("name: Old Agent");
+  });
+
+  it("auto-approves discovered agents when the model omits fields on a confirmed agent update", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "pending-agent.io",
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "pending-agent.io" },
+    });
+
+    const updated = services.getEntities().get("pending-agent.io");
+    expect(updated?.metadata["status"]).toBe("approved");
   });
 
   it("rejects blank content replacement for frontmatter entities", async () => {

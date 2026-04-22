@@ -23,7 +23,7 @@ describe("AgentDiscoveryPlugin", () => {
     harness.reset();
   });
 
-  it("should rewrite top-level url create input into prompt-based generation input", async () => {
+  it("should treat explicit agent saves as approved generation jobs", async () => {
     const harness = createPluginHarness<AgentDiscoveryPlugin>({});
     const plugin = new AgentDiscoveryPlugin();
 
@@ -45,12 +45,11 @@ describe("AgentDiscoveryPlugin", () => {
       },
     );
 
-    expect(result).toEqual({
-      kind: "continue",
-      input: {
-        entityType: "agent",
-        url: "https://yeehaa.io",
-        prompt: "https://yeehaa.io",
+    expect(result).toMatchObject({
+      kind: "handled",
+      result: {
+        success: true,
+        data: { status: "generating" },
       },
     });
 

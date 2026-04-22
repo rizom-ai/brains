@@ -1,0 +1,42 @@
+id: multi-turn-agent-add-after-refusal-no-approval-gate
+name: Add Agent After Refusal Without Separate Approval Gate
+description: Verifies that after refusing an unsaved agent call, an explicit add follow-up saves the agent without telling the user they still need a separate approval step
+type: multi_turn
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - regression
+
+turns:
+  - userMessage: "Can you talk to mylittlephoney.com for me?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: false
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "add"
+        - "directory"
+
+  - userMessage: "please add"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "agent"
+            url: "mylittlephoney.com"
+      responseNotContains:
+        - "approve it first"
+        - "not approved yet"
+        - "Once it’s ready and approved"
+        - "Once it's ready and approved"
+        - "discovered rather than approved"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 35000

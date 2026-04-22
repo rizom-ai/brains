@@ -13,6 +13,8 @@ describe("rover agent directory evaluation test cases", () => {
       "agent-call-ambiguous-name.yaml",
       "agent-call-archived.yaml",
       "agent-add-no-description-needed.yaml",
+      "agent-add-explicit-save-no-approval-gate.yaml",
+      "agent-approve.yaml",
     ];
 
     const loader = YAMLLoader.createFresh({ directory: import.meta.dir });
@@ -44,7 +46,10 @@ describe("rover agent directory evaluation test cases", () => {
         continue;
       }
 
-      if (file === "agent-add-no-description-needed.yaml") {
+      if (
+        file === "agent-add-no-description-needed.yaml" ||
+        file === "agent-add-explicit-save-no-approval-gate.yaml"
+      ) {
         const expectedCreateTool = testCase.successCriteria.expectedTools?.[0];
         expect(expectedCreateTool?.toolName).toBe("system_create");
         expect(expectedCreateTool?.shouldBeCalled).toBe(true);
@@ -52,6 +57,18 @@ describe("rover agent directory evaluation test cases", () => {
           entityType: "agent",
           url: "mylittlephoney.com",
         });
+        continue;
+      }
+
+      if (file === "agent-approve.yaml") {
+        const expectedUpdateTool = testCase.successCriteria.expectedTools?.[0];
+        expect(expectedUpdateTool?.toolName).toBe("system_update");
+        expect(expectedUpdateTool?.shouldBeCalled).toBe(true);
+        expect(expectedUpdateTool?.argsContain).toEqual({
+          entityType: "agent",
+          id: "old-agent.io",
+        });
+        expect(testCase.successCriteria.responseContains).toContain("Approved");
         continue;
       }
 
@@ -94,6 +111,59 @@ describe("rover agent directory evaluation test cases", () => {
         url: "mylittlephoney.com",
       },
     });
+  });
+
+  it("loads the rover multi-turn add-follow-up no-approval-gate evals", async () => {
+    const cases = [
+      "agent-approve-after-refusal-follow-up.yaml",
+      "agent-approve-then-call.yaml",
+    ];
+
+    const loader = YAMLLoader.createFresh({ directory: import.meta.dir });
+
+    for (const file of cases) {
+      const filePath = join(
+        import.meta.dir,
+        "..",
+        "..",
+        "..",
+        "brains",
+        "rover",
+        "test-cases",
+        "multi-turn",
+        file,
+      );
+
+      const testCase = await loader.loadTestCase(filePath);
+      expect(testCase.type).toBe("multi_turn");
+      if (testCase.type === "plugin") {
+        throw new Error("Expected an agent evaluation test case");
+      }
+
+      expect(
+        testCase.turns[0]?.successCriteria?.expectedTools?.[0],
+      ).toMatchObject({
+        toolName: "a2a_call",
+        shouldBeCalled: false,
+      });
+      const expectedUrl =
+        file === "agent-approve-then-call.yaml"
+          ? "save-it-regression.example"
+          : "mylittlephoney.com";
+      expect(
+        testCase.turns[1]?.successCriteria?.expectedTools?.[0],
+      ).toMatchObject({
+        toolName: "system_create",
+        shouldBeCalled: true,
+        argsContain: {
+          entityType: "agent",
+          url: expectedUrl,
+        },
+      });
+      expect(testCase.turns[1]?.successCriteria?.responseNotContains).toContain(
+        "discovered rather than approved",
+      );
+    }
   });
 
   it("loads the basic rover agent-add eval with structured url args", async () => {

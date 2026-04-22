@@ -1,0 +1,30 @@
+id: tool-invocation-agent-approve
+name: Approve Discovered Agent
+description: Tests that the agent approves a discovered contact via system_update fields instead of trying full content replacement
+type: tool_invocation
+tags:
+  - agent-discovery
+  - a2a
+  - tool-invocation
+  - regression
+
+turns:
+  - userMessage: "Approve old-agent.io"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_update
+      shouldBeCalled: true
+      argsContain:
+        entityType: "agent"
+        id: "old-agent.io"
+  responseContains:
+    - "Approved"
+  responseNotContains:
+    - "field-based update rather than content replacement"
+    - "It’s still not approved yet"
+    - "It's still not approved yet"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

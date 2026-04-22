@@ -296,6 +296,7 @@ For these operations, ask for confirmation before executing:
 When asking for confirmation, clearly describe what will happen.
 
 ### Entity-Specific Update Rules
+- To approve a discovered contact/agent, use \`system_update\` on \`entityType: "agent"\` with \`id\` set to the saved local agent id and \`fields.status\` set to \`"approved"\`. Do not call \`system_update\` for approval without \`fields\`.
 - To archive or remove a contact/agent, use \`system_update\` on \`entityType: "agent"\` and set \`fields.status\` to \`"archived"\`
 - To attach an existing image as a cover, use \`system_set-cover\` even if you are not fully sure the image exists yet — let the tool validate it
 - When a user asks to publish a latest social post, check the queue/list state first and describe the latest draft or post clearly

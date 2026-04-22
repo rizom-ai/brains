@@ -6,7 +6,10 @@ import { normalizeTags } from "./tag-vocabulary";
 
 const agentAdapter = new AgentAdapter();
 
-export function buildAgentFromCard(card: ParsedAgentCard): {
+export function buildAgentFromCard(
+  card: ParsedAgentCard,
+  options: { status?: AgentStatus } = {},
+): {
   content: string;
   metadata: { name: string; url: string; status: AgentStatus; slug: string };
   anchorName: string;
@@ -18,6 +21,8 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
   if (card.anchor?.description) aboutParts.push(card.anchor.description);
   if (card.description) aboutParts.push(card.description);
 
+  const status = options.status ?? "discovered";
+
   const content = agentAdapter.createAgentContent({
     name: anchorName,
     kind,
@@ -26,7 +31,7 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
     }),
     brainName: card.brainName,
     url: card.url,
-    status: "discovered",
+    status,
     discoveredAt: new Date().toISOString(),
     about: aboutParts.join("\n\n"),
     skills: card.skills.map((s) => ({
@@ -42,7 +47,7 @@ export function buildAgentFromCard(card: ParsedAgentCard): {
     metadata: {
       name: anchorName,
       url: card.url,
-      status: "discovered",
+      status,
       slug: slugifyUrl(card.url),
     },
     anchorName,

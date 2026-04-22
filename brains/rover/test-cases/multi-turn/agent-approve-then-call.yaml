@@ -1,0 +1,42 @@
+id: multi-turn-agent-add-after-save-it-follow-up
+name: Save-It Follow-Up Uses Remembered Agent Without Separate Approval Gate
+description: Verifies that after refusing an unsaved agent call, a short save-it follow-up saves that same unsaved agent and does not tell the user a separate approval step is still required
+type: multi_turn
+tags:
+  - agent-discovery
+  - a2a
+  - multi-turn
+  - regression
+
+turns:
+  - userMessage: "Can you talk to save-it-regression.example for me?"
+    successCriteria:
+      expectedTools:
+        - toolName: a2a_call
+          shouldBeCalled: false
+        - toolName: system_create
+          shouldBeCalled: false
+      responseContains:
+        - "save"
+        - "directory"
+
+  - userMessage: "save it"
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "agent"
+            url: "save-it-regression.example"
+      responseNotContains:
+        - "approve it first"
+        - "not approved yet"
+        - "Once it’s ready and approved"
+        - "Once it's ready and approved"
+        - "discovered rather than approved"
+
+successCriteria: {}
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 35000
