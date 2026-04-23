@@ -105,18 +105,23 @@ export class EntitySerializer {
   }): T {
     const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
     const parsedContent = adapter.fromMarkdown(entityData.content);
+    // Strip parsed metadata — DB metadata is the source of truth.
+    // `system_update({ fields })` mutates DB metadata without touching
+    // markdown, so parsed frontmatter can be stale. Body-parsed top-level
+    // fields (e.g. `about`, `skills`) still land via parsedRest.
+    const { metadata: _parsedMeta, ...parsedRest } = parsedContent;
 
-    const entity = {
+    const entity: unknown = {
       id: entityData.id,
       entityType: entityData.entityType,
       content: entityData.content,
       contentHash: entityData.contentHash,
       created: new Date(entityData.created).toISOString(),
       updated: new Date(entityData.updated).toISOString(),
-      metadata: entityData.metadata,
+      ...parsedRest,
       ...entityData.metadata,
-      ...parsedContent,
-    } as T;
+      metadata: entityData.metadata,
+    };
 
     return this.entityRegistry.validateEntity<T>(entityData.entityType, entity);
   }

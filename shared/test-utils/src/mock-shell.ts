@@ -35,6 +35,7 @@ import type {
   BaseEntity,
   DataSourceRegistry,
   DataSource,
+  EntityAdapter,
 } from "@brains/entity-service";
 import { computeContentHash } from "@brains/utils/hash";
 import type { IJobQueueService, IJobsNamespace } from "@brains/job-queue";
@@ -70,6 +71,7 @@ export interface MockShellOptions {
   dataDir?: string;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
+  entityDisplay?: Record<string, { label: string; pluralName?: string }>;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -99,6 +101,30 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   // Stateful backing stores
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
+  const entityAdapters = new Map<string, EntityAdapter<BaseEntity>>();
+
+  // Serialize an entity the way the real EntityService would: adapter
+  // rebuilds markdown from entity fields, adapter extracts canonical
+  // metadata. Falls back to verbatim content when no adapter is registered
+  // (tests that register entity types by name only).
+  const serializeViaAdapter = (
+    entity: BaseEntity,
+  ): { content: string; metadata: Record<string, unknown> } => {
+    const adapter = entityAdapters.get(entity.entityType);
+    // Fall back to verbatim when no real adapter is registered.
+    // Some tests register entity types with a stub (`{} as never`) to
+    // satisfy the registry signature without caring about serialization.
+    if (typeof adapter?.toMarkdown !== "function") {
+      return {
+        content: entity.content,
+        metadata: entity.metadata,
+      };
+    }
+    return {
+      content: adapter.toMarkdown(entity),
+      metadata: adapter.extractMetadata(entity),
+    };
+  };
   const templates = new Map<string, Template>();
   const dataSources = new Map<string, DataSource>();
   const plugins = new Map<string, Plugin>();
@@ -155,16 +181,25 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     createEntity: async (entity: BaseEntity) => {
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
-      entities.set(id, { ...entity, id });
+      const { content, metadata } = serializeViaAdapter({ ...entity, id });
+      entities.set(id, {
+        ...entity,
+        id,
+        content,
+        metadata,
+        contentHash: computeContentHash(content),
+      });
       return { entityId: id, jobId: `job-${id}` };
     },
     updateEntity: async (entity: BaseEntity) => {
       if (!entity.id) throw new Error("Entity must have an id");
-      const updated = {
+      const { content, metadata } = serializeViaAdapter(entity);
+      entities.set(entity.id, {
         ...entity,
-        contentHash: computeContentHash(entity.content),
-      };
-      entities.set(entity.id, updated);
+        content,
+        metadata,
+        contentHash: computeContentHash(content),
+      });
       return { entityId: entity.id, jobId: `job-${entity.id}` };
     },
     deleteEntity: async (_type: string, id: string) => {
@@ -205,18 +240,17 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
     upsertEntity: async (entity: BaseEntity) => {
       entityTypes.add(entity.entityType);
-      const exists = entity.id ? entities.has(entity.id) : false;
-      if (exists) {
-        entities.set(entity.id, entity);
-        return {
-          entityId: entity.id,
-          jobId: `job-${entity.id}`,
-          created: false,
-        };
-      }
       const id = entity.id || `entity-${Date.now()}`;
-      entities.set(id, { ...entity, id });
-      return { entityId: id, jobId: `job-${id}`, created: true };
+      const exists = entities.has(id);
+      const { content, metadata } = serializeViaAdapter({ ...entity, id });
+      entities.set(id, {
+        ...entity,
+        id,
+        content,
+        metadata,
+        contentHash: computeContentHash(content),
+      });
+      return { entityId: id, jobId: `job-${id}`, created: !exists };
     },
     getWeightMap: () => ({}),
     countEntities: async () => 0,
@@ -230,14 +264,29 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   >();
 
   const entityRegistry: IEntityRegistry = {
-    registerEntityType: (type: string) => {
+    registerEntityType: (type, _schema, adapter) => {
       entityTypes.add(type);
+      if (adapter) {
+        entityAdapters.set(
+          type,
+          adapter as unknown as EntityAdapter<BaseEntity>,
+        );
+      }
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
     },
-    getAdapter: (): never => {
-      throw new Error("Not implemented");
+    getAdapter: <
+      TEntity extends BaseEntity<TMetadata>,
+      TMetadata = Record<string, unknown>,
+    >(
+      type: string,
+    ): EntityAdapter<TEntity, TMetadata> => {
+      const adapter = entityAdapters.get(type);
+      if (!adapter) {
+        throw new Error(`No adapter registered for entity type: ${type}`);
+      }
+      return adapter as unknown as EntityAdapter<TEntity, TMetadata>;
     },
     hasEntityType: (type: string) => entityTypes.has(type),
     validateEntity: <TData>(_type: string, entity: unknown) => entity as TData,
@@ -494,6 +543,9 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     // Data directory
     getDataDir: () => options.dataDir ?? "/tmp/mock-shell-test-data",
+
+    // Entity display metadata from the active site package
+    getEntityDisplay: () => options.entityDisplay,
 
     // App metadata
     getAppInfo: async (): Promise<AppInfo> => ({
