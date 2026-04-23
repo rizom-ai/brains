@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Divider, Section } from "@brains/site-rizom";
+import { Divider, Section } from "@rizom/ui";
 import { WORK_SECTION_KICKER } from "../styles";
 import type { BridgeContent } from "./schema";
 

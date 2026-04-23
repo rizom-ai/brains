@@ -1,6 +1,4 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
-
-export const workRoutes: RouteDefinitionInput[] = [
+export const workRoutes = [
   {
     id: "home",
     path: "/",
@@ -13,12 +11,12 @@ export const workRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "landing-page:work-hero",
+        template: "landing-page:hero",
         content: {},
       },
       {
         id: "problem",
-        template: "landing-page:work-problem",
+        template: "landing-page:problem",
         content: {},
       },
       {

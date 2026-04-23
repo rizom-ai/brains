@@ -1,11 +1,6 @@
 import type { JSX } from "preact";
 import type { CloserContent } from "./schema";
-import {
-  Button,
-  Divider,
-  Section,
-  renderHighlightedText,
-} from "@brains/site-rizom";
+import { Button, Divider, Section, renderHighlightedText } from "@rizom/ui";
 
 /** rizom.work's highlight voice: italic + accent color. */
 const HIGHLIGHT_CLS = "italic text-accent";

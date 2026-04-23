@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Section } from "@brains/site-rizom";
+import { Section } from "@rizom/ui";
 import {
   WORK_BODY_COPY,
   WORK_DISPLAY_QUOTE,

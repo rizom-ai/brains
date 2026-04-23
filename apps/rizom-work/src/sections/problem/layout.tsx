@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Section, renderHighlightedText } from "@brains/site-rizom";
+import { Section, renderHighlightedText } from "@rizom/ui";
 import { WORK_SECTION_HEADLINE, WORK_SECTION_KICKER } from "../styles";
 import type { WorkProblemContent } from "./schema";
 

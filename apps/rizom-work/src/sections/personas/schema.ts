@@ -1,16 +1,16 @@
-import { z } from "@brains/utils";
+/**
+ * Runtime schema/formatter for personas now live in `src/site-content.ts`.
+ * Keep the props type local to the layout so app code does not depend on
+ * low-level template authoring primitives here.
+ */
+export interface PersonaCard {
+  label: string;
+  quote: string;
+  body: string;
+}
 
-export const PersonaCardSchema = z.object({
-  label: z.string(),
-  quote: z.string(),
-  body: z.string(),
-});
-
-export const PersonasContentSchema = z.object({
-  kicker: z.string(),
-  headline: z.string(),
-  cards: z.array(PersonaCardSchema).min(1),
-});
-
-export type PersonaCard = z.infer<typeof PersonaCardSchema>;
-export type PersonasContent = z.infer<typeof PersonasContentSchema>;
+export interface PersonasContent {
+  kicker: string;
+  headline: string;
+  cards: PersonaCard[];
+}

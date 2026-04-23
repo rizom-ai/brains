@@ -1,13 +1,12 @@
-import { createRizomSite } from "@brains/site-rizom";
 import { WorkLayout } from "./layout";
 import { workRoutes } from "./routes";
-import { workTemplates } from "./templates";
 
-export default createRizomSite({
-  packageName: "rizom-work-site",
-  contentNamespace: "landing-page",
-  themeProfile: "studio",
-  layout: WorkLayout,
+export default {
+  pluginConfig: {
+    themeProfile: "studio",
+  },
+  layouts: {
+    default: WorkLayout,
+  },
   routes: workRoutes,
-  templates: workTemplates,
-});
+};

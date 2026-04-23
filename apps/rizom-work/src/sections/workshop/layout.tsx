@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@rizom/ui";
 import {
   WORK_OUTLINED_STEP_NUMBER,
   WORK_SECTION_HEADLINE,

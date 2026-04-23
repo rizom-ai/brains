@@ -1,12 +1,49 @@
-import type { JSX } from "preact";
-import {
-  Footer,
-  Header,
-  RizomFrame,
-  SideNav,
-  socialLinksToRizomLinks,
-  type RizomLayoutProps,
-} from "@brains/site-rizom";
+import type { JSX, ComponentChildren } from "preact";
+import { Footer, Header, RizomFrame, SideNav } from "@rizom/ui";
+
+interface WorkLayoutProps {
+  sections: ComponentChildren;
+  siteInfo: {
+    copyright?: string;
+    cta?: {
+      buttonLink: string;
+      buttonText: string;
+    };
+    socialLinks?: Array<{
+      platform: string;
+      url: string;
+      label?: string;
+    }>;
+  };
+}
+
+interface WorkFooterLink {
+  href: string;
+  label: string;
+}
+
+const DEFAULT_SOCIAL_LABELS: Record<string, string> = {
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  email: "Email",
+  website: "Website",
+};
+
+function socialLinksToWorkLinks(
+  siteInfo: WorkLayoutProps["siteInfo"],
+  allowedPlatforms?: string[],
+): WorkFooterLink[] {
+  const allowed = allowedPlatforms ? new Set(allowedPlatforms) : undefined;
+
+  return (siteInfo.socialLinks ?? [])
+    .filter((link) => (allowed ? allowed.has(link.platform) : true))
+    .map((link) => ({
+      href: link.url,
+      label:
+        link.label ?? DEFAULT_SOCIAL_LABELS[link.platform] ?? link.platform,
+    }));
+}
 
 const NAV_LINKS = [
   { href: "#problem", label: "Problem" },
@@ -38,7 +75,7 @@ const SIDE_NAV_ITEMS = [
 export const WorkLayout = ({
   sections,
   siteInfo,
-}: RizomLayoutProps): JSX.Element => (
+}: WorkLayoutProps): JSX.Element => (
   <RizomFrame>
     <Header
       brandSuffix="work"
@@ -56,11 +93,11 @@ export const WorkLayout = ({
     <main>{sections}</main>
     <Footer
       brandSuffix="work"
-      metaLabel={siteInfo.copyright}
+      metaLabel={siteInfo.copyright ?? ""}
       className="items-center"
       links={[
         ...FOOTER_LINKS,
-        ...socialLinksToRizomLinks(siteInfo, ["linkedin"]),
+        ...socialLinksToWorkLinks(siteInfo, ["linkedin"]),
       ]}
     />
   </RizomFrame>

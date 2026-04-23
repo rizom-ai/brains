@@ -1,6 +1,6 @@
 import type { JSX } from "preact";
 import type { WorkHeroContent } from "./schema";
-import { Button, Section, renderHighlightedText } from "@brains/site-rizom";
+import { Button, Section, renderHighlightedText } from "@rizom/ui";
 
 /** rizom.work's highlight voice: italic + accent color. */
 const HIGHLIGHT_CLS = "italic text-accent";
