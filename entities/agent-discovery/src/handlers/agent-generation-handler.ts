@@ -53,14 +53,14 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
     const domain = extractDomain(rawUrl);
 
     if (!domain) {
-      throw new Error(
+      this.failEarly(
         "No URL or domain provided. Use: system_create agent with a domain like yeehaa.io",
       );
     }
 
     const card = await fetchAgentCard(domain, globalThis.fetch);
     if (!card) {
-      throw new Error(
+      this.failEarly(
         `Could not fetch Agent Card from ${domain}. Make sure the agent is running and accessible.`,
       );
     }
