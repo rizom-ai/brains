@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-19
+Last updated: 2026-04-21
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -40,13 +40,14 @@ These areas are effectively landed:
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
 - **Extracted deploy convergence** — the checked-out external deployments now use the shared HTTP-host shape: `app_port: 8080`, no active in-container `Caddyfile`, and direct `brain start` boot
 - **Rizom site core consolidation** — `rizom.ai`, `rizom.foundation`, and `rizom.work` now own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate
-- **Monorepo cleanup** — transitional apps/packages removed; `mylittlephoney` and `yeehaa.io` extracted
+- **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
+- **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
 
 ## Near-term priorities
 
 ### 1. Rizom site variant follow-through
 
-The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. The next step is no longer a combined `rizom-sites` extraction. The current direction is to keep `sites/rizom` in `brains` as the shared reusable package, then extract the deployable Rizom apps into separate per-app repos.
+The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, plus the already-extracted `rizom.work`) and no forced `rizom-ai` theme fork. The next step is no longer a combined `rizom-sites` extraction. The current direction is to keep `sites/rizom` in `brains` as the shared reusable package, then extract the remaining deployable Rizom apps into separate per-app repos.
 
 Focus areas:
 

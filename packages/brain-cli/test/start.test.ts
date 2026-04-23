@@ -14,7 +14,7 @@ describe("brain start", () => {
       "..",
       "..",
       "apps",
-      "rizom-work",
+      "rizom-foundation",
     );
     expect(existsSync(join(appDir, "brain.yaml"))).toBe(true);
   });
@@ -37,7 +37,7 @@ describe("start subprocess lifecycle", () => {
       "..",
       "..",
       "apps",
-      "rizom-work",
+      "rizom-foundation",
     );
 
     const fakeProcess = new EventEmitter() as EventEmitter & {

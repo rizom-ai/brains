@@ -38,7 +38,7 @@ This rule is what prevents drift back into the old `sites/rizom` pattern. Withou
 - `sites/rizom` now owns the shared Rizom runtime, UI, and ecosystem seams.
 - `shared/theme-rizom` remains the separate shared theme.
 - additive app-local theme layering now exists via `site.themeOverride`, so local `src/theme.css` appends after the shared base theme instead of replacing it.
-- `apps/rizom-foundation/src/theme.css` and `apps/rizom-work/src/theme.css` now own app-specific polish; `rizom.ai` currently does not need a local theme override file.
+- `apps/rizom-foundation/src/theme.css` now owns the remaining in-repo app-specific polish; extracted `rizom.work` also keeps its own local theme override file, while `rizom.ai` currently does not need one.
 - `shared/theme-rizom` now keeps shared Rizom family tokens, utilities, variant semantics, and current-site ecosystem semantics rather than app-specific section styling.
 - All three apps are repo-backed via `directory-sync`; durable content lives in tracked `brain-data/site-content`.
 - The Rizom apps now use `brain-data/site-info/site-info.md` as the source of truth for site-wide title/description defaults, CTA data, and copyright/meta labels; app-local `routes.ts` stays focused on page structure and page-specific overrides.
@@ -73,14 +73,14 @@ Current status:
 - repo-level CI exists and covers install, typecheck, lint, and tests
 - shared model-image publishing exists for the deployable brain models used by the Rizom sites
 - `rizom.ai` now owns its deploy workflow/config in its extracted standalone repo
-- `rizom.foundation` and `rizom.work` are the remaining in-repo Rizom apps and are **not yet** fully converged on the same extracted deploy scaffold
+- `rizom.foundation` is the remaining in-repo Rizom app and is **not yet** fully converged on the same extracted deploy scaffold
 
 So the correct status is:
 
 - architecture: largely complete
 - extraction: active, with an apps-only target
 - CI: in place
-- CD: partially converged, with `rizom.ai` ahead of `rizom.foundation` and `rizom.work`
+- CD: partially converged, with `rizom.ai` and `rizom.work` extracted ahead of the remaining in-repo `rizom.foundation`
 
 The next infrastructure follow-through here is to complete the theme-hardening cleanup first, then make `sites/rizom` and `shared/theme-rizom` consumable outside the monorepo, then extract the Rizom apps one by one instead of expanding the current in-monorepo deploy setup.
 
@@ -91,10 +91,10 @@ The theme follow-through is now complete enough to stop treating it as a separat
 What landed:
 
 - minimal runtime support for shared base theme + additive local override layering
-- app-local theme ownership for the two apps that actually need it:
+- app-local theme ownership for the apps that actually need it:
   - `apps/rizom-foundation/src/theme.css`
-  - `apps/rizom-work/src/theme.css`
-- no forced `apps/rizom-ai/src/theme.css` fork; `rizom.ai` continues to use the shared theme directly
+  - extracted `rizom.work/src/theme.css`
+- no forced `rizom.ai/src/theme.css` fork; `rizom.ai` continues to use the shared theme directly
 - a reduction in bespoke `foundation-*` and `work-*` hook selectors by moving section-local styling into JSX/Tailwind and app-local CSS variables
 - a narrower `shared/theme-rizom` that now holds:
   - shared palette + semantic tokens

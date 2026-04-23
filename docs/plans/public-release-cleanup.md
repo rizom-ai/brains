@@ -13,8 +13,8 @@ Publish `rizom-ai/brains` as a clean public repo without exposing private histor
 - keep the current private repo as the long-term archive
 - stage the public release at `rizom-ai/brains-temp`
 - switch to the public URL only through the final double-rename
-- keep `apps/rizom-ai`, `apps/rizom-work`, and `apps/rizom-foundation` in scope for the public monorepo
-- keep `apps/yeehaa.io` and `apps/mylittlephoney` out of the public monorepo because they are already extracted
+- keep `apps/rizom-foundation` in scope for the public monorepo
+- keep `rizom-ai`, `rizom-work`, `yeehaa.io`, and `mylittlephoney` out of the public monorepo because they are already extracted
 - do not resume this plan until the public plugin work is done
 
 ## Open work

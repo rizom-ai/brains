@@ -140,4 +140,3 @@ App instances are deployment configurations, not workspace members. Each directo
 | Directory               | Purpose                                                                                 |
 | ----------------------- | --------------------------------------------------------------------------------------- |
 | `apps/rizom-foundation` | Manifesto / foundation site (relay model + app-local `src/site.ts` over `sites/rizom`). |
-| `apps/rizom-work`       | Consultancy / network site (ranger model + app-local `src/site.ts` over `sites/rizom`). |
