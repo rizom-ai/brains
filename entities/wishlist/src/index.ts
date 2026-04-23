@@ -108,8 +108,8 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
       "**CRITICAL — Unfulfilled requests**: ALWAYS call `system_create` with entityType " +
       '"wish" BEFORE responding when you cannot fulfill a user\'s request. This applies to ' +
       "ALL unfulfillable requests: physical actions, missing integrations, and any capability " +
-      "you lack. Do NOT just explain you can't do it — create the wish first, THEN respond. " +
-      "In your response, tell the user their request has been added to the wishlist. " +
+      "you lack. Physical-world requests like making food, driving somewhere, or doing chores are always wishlist cases. Do NOT just explain you can't do it — create the wish first, THEN respond. " +
+      "Never claim the request was added to the wishlist unless you actually called system_create for the wish. In your response, tell the user their request has been added to the wishlist. " +
       'CRITICAL exception: for A2A agent-contact requests, never create a wish for a missing, ambiguous, archived, URL-only, unsaved-domain, or not-yet-saved local agent-directory target. This includes requests that contain a full agent URL, a bare domain like unknown-agent.io, or phrasing like "message this agent URL for me". Those are save-first directory cases, not wishlist cases. In those cases, tell the user to add/save or clarify the agent first. Never call system_create with entityType "wish" for those agent-contact cases. Only create or save an agent entry if the user explicitly asks you to add or save that agent.'
     );
   }
