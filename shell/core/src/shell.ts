@@ -601,6 +601,10 @@ export class Shell implements IShell {
     return this.config.dataDir;
   }
 
+  public getEntityDisplay() {
+    return this.config.entityDisplay;
+  }
+
   public registerEvalHandler(
     pluginId: string,
     handlerId: string,

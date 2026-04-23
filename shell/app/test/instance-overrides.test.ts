@@ -1089,8 +1089,8 @@ describe("resolve with site package", () => {
     expect(getConfig(webserver)["enablePreview"]).toBe(false);
   });
 
-  test("should inject entityDisplay into admin", () => {
-    const [adminFactory] = createMockFactory("admin");
+  test("should keep entityDisplay in shell config instead of injecting it into cms", () => {
+    const [cmsFactory] = createMockFactory("cms");
     const site = createMockSitePackage("personal-site", {
       entityDisplay: { post: { label: "Essay", pluralName: "Essays" } },
     });
@@ -1099,71 +1099,42 @@ describe("resolve with site package", () => {
       name: "test",
       version: "1.0.0",
       site,
-      capabilities: [["admin", adminFactory, {}]],
+      capabilities: [["cms", cmsFactory, {}]],
       interfaces: [],
     });
 
     const config = resolve(def, {});
-    const admin = config.plugins?.find((p) => p.id === "admin");
+    const cms = config.plugins?.find((p) => p.id === "cms");
 
-    expect(getConfig(admin)["entityDisplay"]).toEqual({
+    expect(getConfig(cms)["entityDisplay"]).toBeUndefined();
+    expect(config.shellConfig?.entityDisplay).toEqual({
       post: { label: "Essay", pluralName: "Essays" },
     });
   });
 
-  test("should default admin routePath to root without site-builder", () => {
-    const [adminFactory] = createMockFactory("admin");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [["admin", adminFactory, {}]],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const admin = config.plugins?.find((p) => p.id === "admin");
-
-    expect(getConfig(admin)["routePath"]).toBe("/");
-  });
-
-  test("should default admin routePath to /cms when site-builder is active", () => {
-    const [adminFactory] = createMockFactory("admin");
+  test("should not inject cms routePath defaults in the resolver", () => {
+    const [cmsFactory] = createMockFactory("cms");
     const [siteBuilderFactory] = createMockFactory("site-builder");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [
-        ["admin", adminFactory, {}],
-        ["site-builder", siteBuilderFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const admin = config.plugins?.find((p) => p.id === "admin");
-
-    expect(getConfig(admin)["routePath"]).toBe("/cms");
-  });
-
-  test("should default dashboard routePath to root without site-builder", () => {
     const [dashboardFactory] = createMockFactory("dashboard");
 
     const def = defineBrain({
       name: "test",
       version: "1.0.0",
-      capabilities: [["dashboard", dashboardFactory, {}]],
+      capabilities: [
+        ["cms", cmsFactory, {}],
+        ["site-builder", siteBuilderFactory, {}],
+        ["dashboard", dashboardFactory, {}],
+      ],
       interfaces: [],
     });
 
     const config = resolve(def, {});
-    const dashboard = config.plugins?.find((p) => p.id === "dashboard");
+    const cms = config.plugins?.find((p) => p.id === "cms");
 
-    expect(getConfig(dashboard)["routePath"]).toBe("/");
+    expect(getConfig(cms)["routePath"]).toBeUndefined();
   });
 
-  test("should default dashboard routePath to /dashboard when site-builder is active", () => {
+  test("should not inject dashboard routePath defaults in the resolver", () => {
     const [dashboardFactory] = createMockFactory("dashboard");
     const [siteBuilderFactory] = createMockFactory("site-builder");
 
@@ -1180,27 +1151,7 @@ describe("resolve with site package", () => {
     const config = resolve(def, {});
     const dashboard = config.plugins?.find((p) => p.id === "dashboard");
 
-    expect(getConfig(dashboard)["routePath"]).toBe("/dashboard");
-  });
-
-  test("should move admin routePath to /cms when dashboard is active on core", () => {
-    const [adminFactory] = createMockFactory("admin");
-    const [dashboardFactory] = createMockFactory("dashboard");
-
-    const def = defineBrain({
-      name: "test",
-      version: "1.0.0",
-      capabilities: [
-        ["admin", adminFactory, {}],
-        ["dashboard", dashboardFactory, {}],
-      ],
-      interfaces: [],
-    });
-
-    const config = resolve(def, {});
-    const admin = config.plugins?.find((p) => p.id === "admin");
-
-    expect(getConfig(admin)["routePath"]).toBe("/cms");
+    expect(getConfig(dashboard)["routePath"]).toBeUndefined();
   });
 
   test("should inject staticAssets from site package into site-builder", () => {

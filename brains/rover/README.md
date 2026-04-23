@@ -73,15 +73,16 @@ You stay in control of what's in the brain. They get access to a knowledgeable c
 
 ## Talk to Rover Anywhere
 
-Rover meets you where you are. Currently available on:
+Rover meets you where you are.
 
-Coming soon:
+Available today:
 
-- Discord
-- Slack
-- And more
+- **MCP clients** like Claude Desktop and Cursor
+- **Browser routes** for presets that include the webserver/dashboard/CMS surface
+- **Discord** when configured
+- **A2A** for peer-brain communication when configured
 
-No special apps needed. Just start a conversation.
+No special Rover-only app is required. Start from the interface that fits your setup.
 
 ## Your Website, Handled
 
@@ -109,6 +110,18 @@ Your files sync bidirectionally. Edit in Obsidian, Rover sees it. Add something 
 
 Version control works too. Your brain is just files, so Git works exactly as you'd expect. Track changes, branch experiments, roll back mistakes.
 
+## Agent directory and peer brains
+
+Rover can also talk to other brains, but it does that through a local agent directory rather than by calling arbitrary URLs directly.
+
+Current model:
+
+- if you explicitly **add/save** an agent, Rover saves that local directory entry and treats that explicit save as approval
+- some discovery/review flows can still create **discovered** agents that need approval before calling
+- if you try to contact an unknown or raw-URL agent, Rover should tell you to **add/save it first** rather than turning that into a wishlist item
+
+This keeps peer-brain calling explicit and reviewable.
+
 ## Presets
 
 Pick a preset in your `brain.yaml` to control what Rover can do:
@@ -122,11 +135,13 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `topics`               | x      | x         | x      |
 | `directory-sync`       | x      | x         | x      |
 | `agents`               | x      | x         | x      |
+| `cms`                  | x      | x         | x      |
+| `dashboard`            | x      | x         | x      |
 | `mcp`                  | x      | x         | x      |
+| `webserver`            | x      | x         | x      |
 | `discord`              | x      | x         | x      |
 | `a2a`                  | x      | x         | x      |
 | `image`                |        | x         | x      |
-| `dashboard`            |        | x         | x      |
 | `blog`                 |        | x         | x      |
 | `series`               |        | x         | x      |
 | `decks`                |        | x         | x      |
@@ -134,14 +149,13 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `obsidian-vault`       |        | x         | x      |
 | `site-info`            |        | x         | x      |
 | `site-builder`         |        | x         | x      |
-| `webserver`            |        | x         | x      |
 | `portfolio`            |        |           | x      |
 | `content-pipeline`     |        |           | x      |
 | `social-media`         |        |           | x      |
 | `newsletter`           |        |           | x      |
 | `stock-photo`          |        |           | x      |
 
-- **`core`** — minimal on-ramp: capture, sync, MCP/A2A/Discord, no site
+- **`core`** — minimal on-ramp: capture, sync, dashboard + CMS, MCP/web/Discord/A2A, but no site-builder
 - **`default`** — adds the website and publishing surface
 - **`full`** — adds portfolio, automation, newsletter, and stock-photo workflows
 

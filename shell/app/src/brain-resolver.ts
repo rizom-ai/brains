@@ -177,30 +177,6 @@ export function resolve(
     );
   }
 
-  const dashboardEnabled = activeIds
-    ? activeIds.has("dashboard")
-    : definition.capabilities.some(([id]) => id === "dashboard");
-
-  if (dashboardEnabled) {
-    const dashboardExplicit = pluginOverrides["dashboard"] ?? {};
-    const dashboardDefaults: Record<string, unknown> = {
-      routePath: siteBuilderEnabled ? "/dashboard" : "/",
-    };
-
-    pluginOverrides["dashboard"] = deepMerge(
-      dashboardDefaults,
-      dashboardExplicit,
-    );
-  }
-
-  const adminExplicit = pluginOverrides["admin"] ?? {};
-  const adminDefaults: Record<string, unknown> = {
-    routePath: dashboardEnabled || siteBuilderEnabled ? "/cms" : "/",
-    ...(site?.entityDisplay && { entityDisplay: site.entityDisplay }),
-  };
-
-  pluginOverrides["admin"] = deepMerge(adminDefaults, adminExplicit);
-
   if (site) {
     const sitePlugin = site.plugin({
       entityDisplay: site.entityDisplay,

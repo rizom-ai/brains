@@ -126,7 +126,7 @@ export class SummaryAdapter extends BaseEntityAdapter<
   /**
    * Convert entity to markdown with frontmatter
    */
-  public toMarkdown(entity: SummaryEntity): string {
+  public override toMarkdown(entity: SummaryEntity): string {
     const contentBody = this.extractBody(entity.content);
     const entries = this.parseEntriesFromContent(contentBody);
     const cleanBody = this.createContentBody(entries);

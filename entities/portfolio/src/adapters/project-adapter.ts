@@ -30,7 +30,7 @@ export class ProjectAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: Project): string {
+  public override toMarkdown(entity: Project): string {
     const body = this.extractBody(entity.content);
     try {
       const frontmatter = this.parseFrontMatter(

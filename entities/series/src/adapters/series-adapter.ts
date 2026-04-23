@@ -25,7 +25,7 @@ export class SeriesAdapter extends BaseEntityAdapter<Series, SeriesMetadata> {
     });
   }
 
-  public toMarkdown(entity: Series): string {
+  public override toMarkdown(entity: Series): string {
     let existingCoverImageId: string | undefined;
     let existingBody: SeriesBody = {};
 

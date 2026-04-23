@@ -103,25 +103,6 @@ export class AgentAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: AgentEntity): string {
-    // Rebuild frontmatter from DB metadata so that `system_update({ fields })`
-    // (which only writes DB metadata) produces a disk file whose frontmatter
-    // matches the DB. Without this, directory-sync writes stale frontmatter
-    // and the next import clobbers the DB back to the pre-update value.
-    const body = this.extractBody(entity.content);
-    const existing = this.parseFrontMatter(
-      entity.content,
-      agentFrontmatterSchema,
-    );
-    const frontmatter: AgentFrontmatter = {
-      ...existing,
-      name: entity.metadata.name,
-      url: entity.metadata.url,
-      status: entity.metadata.status,
-    };
-    return this.buildMarkdown(body, frontmatter);
-  }
-
   public fromMarkdown(markdown: string): Partial<AgentEntity> {
     const frontmatter = this.parseFrontMatter(markdown, agentFrontmatterSchema);
     const slug = slugifyUrl(frontmatter.url);

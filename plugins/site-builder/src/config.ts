@@ -151,12 +151,6 @@ export const siteBuilderConfigSchema = z.object({
     .describe(
       "Static files to write to the output directory at build time. Keys are output paths (e.g. '/canvases/tree.js'), values are file contents as strings. Typically supplied by a SitePackage via text imports.",
     ),
-  cms: z
-    .object({})
-    .optional()
-    .describe(
-      "Sveltia CMS configuration (enables /admin/ CMS, requires git-sync plugin)",
-    ),
 });
 
 /** Zod-inferred parsed config — serializable fields only. */

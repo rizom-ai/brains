@@ -61,10 +61,6 @@ export class LinkAdapter extends BaseEntityAdapter<LinkEntity, LinkMetadata> {
     };
   }
 
-  public toMarkdown(entity: LinkEntity): string {
-    return entity.content;
-  }
-
   public fromMarkdown(markdown: string): Partial<LinkEntity> {
     const { frontmatter } = this.parseLinkContent(markdown);
     return {

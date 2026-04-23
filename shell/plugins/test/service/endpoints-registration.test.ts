@@ -24,7 +24,7 @@ describe("context.endpoints.register", () => {
 
   it("respects an explicit priority", () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "admin");
+    const context = createBasePluginContext(shell, "cms");
 
     context.endpoints.register({
       label: "CMS",
@@ -55,24 +55,24 @@ describe("context.endpoints.register", () => {
 
   it("appears in appInfo.endpoints", async () => {
     const shell = createMockShell({ logger });
-    const context = createBasePluginContext(shell, "admin");
+    const context = createBasePluginContext(shell, "cms");
     context.endpoints.register({ label: "CMS", url: "/cms", priority: 40 });
 
     const info = await shell.getAppInfo();
     expect(info.endpoints.map((e) => e.label)).toEqual(["CMS"]);
-    expect(info.endpoints[0]?.pluginId).toBe("admin");
+    expect(info.endpoints[0]?.pluginId).toBe("cms");
   });
 
   it("scopes pluginId per context", () => {
     const shell = createMockShell({ logger });
-    const adminCtx = createBasePluginContext(shell, "admin");
+    const cmsCtx = createBasePluginContext(shell, "cms");
     const mcpCtx = createBasePluginContext(shell, "mcp");
 
-    adminCtx.endpoints.register({ label: "CMS", url: "/cms" });
+    cmsCtx.endpoints.register({ label: "CMS", url: "/cms" });
     mcpCtx.endpoints.register({ label: "MCP", url: "/mcp" });
 
     const endpoints = shell.listEndpoints();
-    expect(endpoints.find((e) => e.label === "CMS")?.pluginId).toBe("admin");
+    expect(endpoints.find((e) => e.label === "CMS")?.pluginId).toBe("cms");
     expect(endpoints.find((e) => e.label === "MCP")?.pluginId).toBe("mcp");
   });
 });

@@ -18,6 +18,7 @@ import type {
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
 import type { AppInfo, EvalHandler } from "../interfaces";
+import type { EntityDisplayEntry } from "../types/routes";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
   createEnqueueJobFn,
@@ -151,6 +152,9 @@ export interface BasePluginContext {
   /** Preview site URL derived from domain (e.g. "https://preview.yeehaa.io" or "https://recall-preview.rizom.ai"), undefined if no domain */
   readonly previewUrl: string | undefined;
 
+  /** Entity display metadata from the active site package, if any */
+  readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
+
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
 
@@ -282,6 +286,7 @@ export function createBasePluginContext(
     domain,
     siteUrl: domain ? `https://${domain}` : undefined,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
+    entityDisplay: shell.getEntityDisplay(),
 
     messaging: {
       send: sendMessage,

@@ -21,7 +21,7 @@ export class PromptAdapter extends BaseEntityAdapter<Prompt, PromptMetadata> {
     });
   }
 
-  public toMarkdown(entity: Prompt): string {
+  public override toMarkdown(entity: Prompt): string {
     const body = this.extractBody(entity.content);
     const frontmatter = this.parseFrontMatter(
       entity.content,

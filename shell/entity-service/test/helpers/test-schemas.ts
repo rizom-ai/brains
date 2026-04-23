@@ -50,7 +50,7 @@ class NoteTestAdapter extends BaseEntityAdapter<Note> {
     });
   }
 
-  public toMarkdown(entity: Note): string {
+  public override toMarkdown(entity: Note): string {
     return `---\ntitle: ${entity.title}\ntags: ${JSON.stringify(entity.tags)}\n---\n\n${entity.content}`;
   }
 
@@ -93,7 +93,7 @@ class PostTestAdapter extends BaseEntityAdapter<Post, PostMetadata> {
     });
   }
 
-  public toMarkdown(entity: Post): string {
+  public override toMarkdown(entity: Post): string {
     return entity.content;
   }
 
@@ -121,7 +121,7 @@ class MinimalTestAdapter extends BaseEntityAdapter<BaseEntity> {
     });
   }
 
-  public toMarkdown(entity: BaseEntity): string {
+  public override toMarkdown(entity: BaseEntity): string {
     return entity.content;
   }
 
@@ -151,7 +151,7 @@ class ImageTestAdapter extends BaseEntityAdapter<ImageEntity> {
     });
   }
 
-  public toMarkdown(entity: ImageEntity): string {
+  public override toMarkdown(entity: ImageEntity): string {
     return entity.content;
   }
 

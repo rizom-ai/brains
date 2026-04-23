@@ -4,7 +4,7 @@
 
 `brains` is a Bun-first framework for self-hosted AI agents centered on durable content, MCP-native tooling, static-site publishing, and plugin-based composition. It lets you keep content as markdown files, expose that content to assistants over MCP, publish a site from the same source, and deploy the whole thing as one brain instance.
 
-> **Status:** `v0.1.0` is pre-stable. The framework is usable today, but APIs and package surfaces will keep changing before `1.0`. See [STABILITY.md](STABILITY.md).
+> **Status:** `brains` is pre-stable in the `0.x` series. The framework is usable today, but APIs and package surfaces will keep changing before `1.0`. See [STABILITY.md](STABILITY.md).
 
 ## What this is for
 

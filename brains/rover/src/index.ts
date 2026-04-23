@@ -53,7 +53,7 @@ const core = [
   "topics",
   "directory-sync",
   "agents",
-  "admin",
+  "cms",
   "dashboard",
   "mcp",
   "webserver",
@@ -100,7 +100,7 @@ export default defineBrain({
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
-    ["admin", cmsPlugin, {}],
+    ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],

@@ -6,6 +6,10 @@ import { createTemplate } from "@brains/templates";
 import { z } from "@brains/utils";
 import { h } from "preact";
 import { createTestConfig } from "../test-helpers";
+import { mkdtemp } from "fs/promises";
+import { existsSync } from "fs";
+import { tmpdir } from "os";
+import { join } from "path";
 
 describe("SiteBuilderPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness<SiteBuilderPlugin>>;
@@ -133,5 +137,56 @@ describe("SiteBuilderPlugin", () => {
     // The environment setting should be handled internally by the plugin
     // We can verify this by checking that the plugin registers successfully
     expect(capabilities.tools.length).toBeGreaterThan(0);
+  });
+
+  it("should ignore legacy cms config and not register a CMS route", async () => {
+    const config = {
+      ...createTestConfig(),
+      cms: {},
+    };
+
+    plugin = new SiteBuilderPlugin(config);
+    await harness.installPlugin(plugin);
+
+    const result = await harness.sendMessage<
+      { path: string },
+      { route?: { path: string } }
+    >("plugin:site-builder:route:get", { path: "/cms/" });
+
+    expect(result?.route).toBeUndefined();
+  });
+
+  it("should not generate CMS files on site:build:completed", async () => {
+    const outputDir = await mkdtemp(join(tmpdir(), "site-builder-no-cms-"));
+    const config = {
+      ...createTestConfig({
+        previewOutputDir: outputDir,
+        productionOutputDir: outputDir,
+      }),
+      cms: {},
+    };
+
+    harness.subscribe("git-sync:get-repo-info", async () => ({
+      success: true,
+      data: { repo: "owner/repo", branch: "main" },
+    }));
+
+    plugin = new SiteBuilderPlugin(config);
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage("site:build:completed", {
+      outputDir,
+      environment: "preview",
+      routesBuilt: 0,
+      siteConfig: {
+        title: "Test",
+        description: "Test",
+        url: "https://example.com",
+      },
+      generateEntityUrl: (_entityType: string, slug: string) => `/${slug}`,
+    });
+
+    expect(existsSync(join(outputDir, "cms"))).toBe(false);
+    expect(existsSync(join(outputDir, "admin"))).toBe(false);
   });
 });

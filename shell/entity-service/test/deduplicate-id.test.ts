@@ -115,7 +115,7 @@ describe("deduplicateId option", () => {
         });
       }
 
-      public toMarkdown(entity: Article): string {
+      public override toMarkdown(entity: Article): string {
         return `---\ntitle: ${entity.title}\n---\n\n${entity.content}`;
       }
 

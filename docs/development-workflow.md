@@ -43,16 +43,19 @@ Recommended VS Code extensions:
 
 ```bash
 # Typecheck everything
-bunx turbo typecheck
+bun run typecheck
 
 # Run all tests
-bunx turbo test
+bun run test
 
-# Run tests for a specific package
+# Run tests for a specific package or file
 bun test shell/core/test/
 
 # Lint everything
-bunx turbo lint
+bun run lint
+
+# Check markdown link health
+bun run docs:links
 ```
 
 ## Iteration Cycles
@@ -109,11 +112,7 @@ The project uses Husky hooks to enforce quality checks before commits:
 - **pre-commit**: Runs linting and formatting checks
 - **pre-push**: Runs type checking and tests
 
-To skip hooks in exceptional circumstances (not recommended):
-
-```bash
-git commit --no-verify -m "Your message"
-```
+Do not bypass hooks. Fix the failing checks instead.
 
 ## Environment Management
 
@@ -162,21 +161,24 @@ The project uses Turborepo with Bun workspaces for package management:
 
 ### Package Organization
 
-Workspace globs (`package.json` `workspaces`):
+The main workspace areas are:
 
 ```
-shell/*       # Core infrastructure (app, core, entity-service, ai-service, ...)
-shared/*      # Utilities, themes, UI library
-entities/*    # EntityPlugin packages (blog, decks, note, link, topics, ...)
-plugins/*     # ServicePlugin packages (directory-sync, site-builder, analytics, ...)
-layouts/*     # Layout building blocks (personal, professional)
-sites/*       # Site packages (default, rizom)
-interfaces/*  # Transport plugins (cli, mcp, webserver, discord, a2a, chat-repl)
-brains/*      # Brain model packages (rover, ranger, relay)
-packages/*    # Standalone npm packages (brain-cli → @rizom/brain)
+shell/*       # Core runtime, orchestration, and services
+shared/*      # Utilities, themes, UI, test helpers
+entities/*    # EntityPlugin packages
+plugins/*     # ServicePlugin packages
+interfaces/*  # InterfacePlugin packages
+brains/*      # Brain model packages
+sites/*       # Site packages
+packages/*    # Standalone distributable packages
 ```
 
-`apps/*` is **not** a workspace category. Each `apps/<name>/` is a lightweight instance package centered on `brain.yaml`, with conventional support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts, consumed by the `brain` CLI at runtime against the brain model package it references. See `docs/brain-model.md`.
+For the current package map and architecture boundaries, prefer:
+
+- `docs/architecture-overview.md`
+- `docs/architecture/package-structure.md`
+- the root `package.json` workspace list
 
 ### Working with Turborepo
 
@@ -212,18 +214,42 @@ bun install  # Installs all workspace dependencies
 
 ## Testing Strategy
 
-### Unit Testing Focus
+### Test Focus
 
-- Focus exclusively on unit tests
+- Prefer the smallest relevant check set first
 - Test behavior, not implementation details
-- Always mock dependencies
+- Mock external dependencies where practical
 - Keep tests minimal but effective
+- Use evals when the behavior is model- or transcript-shaped rather than purely unit-level
 
 ### Test Organization
 
-- Tests should mirror the directory structure of the source code
+- Tests should mirror the directory structure of the source code when practical
 - Test files should be named with `.test.ts` suffix
 - Use descriptive test names that explain the expected behavior
+- For Rover-specific agent behavior, run Rover evals from `brains/rover`, not from `shell/ai-evaluation`
+
+### Rover eval workflow
+
+For Rover behavior work, prefer the repo-standard eval entrypoint:
+
+```bash
+cd brains/rover
+bun run eval
+```
+
+Useful variants:
+
+```bash
+# Skip the LLM judge when judge credentials are unavailable
+bun run eval --skip-llm-judge
+
+# Run one or a few targeted cases
+bun run eval --skip-llm-judge --test tool-invocation-agent-approve
+
+# Reduce flakiness for broad runs
+bun run eval --skip-llm-judge --max-parallel 1
+```
 
 ### Example Unit Tests
 

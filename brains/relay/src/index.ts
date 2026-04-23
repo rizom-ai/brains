@@ -56,7 +56,7 @@ const core = [
   "link",
   "topics",
   "agents",
-  "admin",
+  "cms",
   "dashboard",
   "mcp",
   "webserver",
@@ -104,7 +104,7 @@ export default defineBrain({
     // presentation-heavy relay instances can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
-    ["admin", cmsPlugin, {}],
+    ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     [
       "directory-sync",

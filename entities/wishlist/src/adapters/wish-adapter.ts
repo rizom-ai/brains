@@ -36,10 +36,6 @@ export class WishAdapter extends BaseEntityAdapter<WishEntity, WishMetadata> {
     };
   }
 
-  public toMarkdown(entity: WishEntity): string {
-    return entity.content;
-  }
-
   public fromMarkdown(markdown: string): Partial<WishEntity> {
     const { frontmatter } = this.parseWishContent(markdown);
     const slug = slugify(frontmatter.title);

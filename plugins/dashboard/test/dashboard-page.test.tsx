@@ -1,3 +1,4 @@
+/** @jsxImportSource preact */
 import { describe, expect, it } from "bun:test";
 import type { JSX } from "preact";
 import {

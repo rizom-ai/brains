@@ -4,9 +4,15 @@ import { createMockShell, type MockShell } from "@brains/test-utils";
 import { fromYaml, z } from "@brains/utils";
 import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 
-function createCmsTestShell(options: { domain?: string } = {}): MockShell {
+function createCmsTestShell(
+  options: {
+    domain?: string;
+    entityDisplay?: Record<string, { label: string; pluralName?: string }>;
+  } = {},
+): MockShell {
   const shell = createMockShell({
     ...(options.domain && { domain: options.domain }),
+    ...(options.entityDisplay && { entityDisplay: options.entityDisplay }),
   });
   shell.getMessageBus().subscribe("git-sync:get-repo-info", async () => ({
     success: true,
@@ -52,7 +58,7 @@ function createCmsTestShell(options: { domain?: string } = {}): MockShell {
 describe("cms plugin", () => {
   it("buildCmsConfigYaml should generate yaml from the plugin context", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
-    const context = createServicePluginContext(shell, "admin");
+    const context = createServicePluginContext(shell, "cms");
     const yaml = await buildCmsConfigYaml(context, {
       entityDisplay: {
         post: { label: "Essay" },
@@ -74,9 +80,31 @@ describe("cms plugin", () => {
     ).toBe(true);
   });
 
-  it("should expose a cms shell route and a config route", async () => {
+  it("uses entityDisplay from plugin context when config does not provide it", async () => {
+    const shell = createCmsTestShell({
+      domain: "yeehaa.io",
+      entityDisplay: {
+        post: { label: "Essay" },
+      },
+    });
+    const plugin = cmsPlugin();
+
+    await plugin.register(shell);
+
+    const configRoute = plugin.getWebRoutes()[1];
+    const response = await configRoute?.handler(
+      new Request("http://brain/cms/config.yml"),
+    );
+    expect(response?.status).toBe(200);
+
+    const yaml = await response?.text();
+    expect(yaml).toContain("name: post");
+    expect(yaml).toContain("label: Essays");
+  });
+
+  it("should default to /cms for the shell route and config route", async () => {
     const shell = createCmsTestShell({ domain: "yeehaa.io" });
-    const plugin = cmsPlugin({ routePath: "/cms" });
+    const plugin = cmsPlugin();
 
     await plugin.register(shell);
 
@@ -122,7 +150,7 @@ describe("cms plugin", () => {
 
   it("advertises the CMS endpoint so the dashboard can link to it", async () => {
     const shell = createCmsTestShell();
-    const plugin = cmsPlugin({ routePath: "/cms" });
+    const plugin = cmsPlugin();
 
     await plugin.register(shell);
 
@@ -130,6 +158,6 @@ describe("cms plugin", () => {
     const cms = endpoints.find((e) => e.label === "CMS");
     expect(cms).toBeDefined();
     expect(cms?.url).toBe("/cms");
-    expect(cms?.pluginId).toBe("admin");
+    expect(cms?.pluginId).toBe("cms");
   });
 });

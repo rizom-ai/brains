@@ -27,7 +27,7 @@ export class TopicAdapter extends BaseEntityAdapter<
     return { title };
   }
 
-  public toMarkdown(entity: TopicEntity): string {
+  public override toMarkdown(entity: TopicEntity): string {
     const parsed = this.parseTopicBody(entity.content);
     return this.buildMarkdown(
       parsed.content,

@@ -27,7 +27,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
     });
   }
 
-  public toMarkdown(): string {
+  public override toMarkdown(): string {
     return "";
   }
 

@@ -55,7 +55,7 @@ describe("SiteInfoAdapter", () => {
   });
 
   describe("toMarkdown", () => {
-    it("should pass through entity content", () => {
+    it("preserves frontmatter fields present on disk when metadata is empty", () => {
       const entity = {
         id: "site-info" as const,
         entityType: "site-info" as const,
@@ -66,7 +66,9 @@ describe("SiteInfoAdapter", () => {
         updated: new Date().toISOString(),
       };
 
-      expect(adapter.toMarkdown(entity)).toBe(entity.content);
+      const output = adapter.toMarkdown(entity);
+      expect(output).toContain("title: Test");
+      expect(output).toContain("description: Desc");
     });
   });
 

@@ -36,7 +36,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity> {
       frontmatterSchema: testFrontmatterSchema,
     });
   }
-  toMarkdown(entity: TestEntity): string {
+  override toMarkdown(entity: TestEntity): string {
     return entity.content;
   }
   fromMarkdown(content: string): Partial<TestEntity> {

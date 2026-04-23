@@ -17,7 +17,7 @@ export class SiteContentAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: SiteContent): string {
+  public override toMarkdown(entity: SiteContent): string {
     const body = this.extractBody(entity.content);
     return this.buildMarkdown(body, entity.metadata);
   }

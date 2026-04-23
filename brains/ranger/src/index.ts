@@ -44,7 +44,7 @@ export default defineBrain({
   presets: {
     default: [
       "prompt",
-      "admin",
+      "cms",
       "dashboard",
       "note",
       "link",
@@ -66,7 +66,7 @@ export default defineBrain({
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
-    ["admin", cmsPlugin, {}],
+    ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],

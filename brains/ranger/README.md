@@ -13,7 +13,7 @@
 | Plugin           | Purpose                                     |
 | ---------------- | ------------------------------------------- |
 | `prompt`         | editable prompt/template entities           |
-| `admin`          | CMS/admin surface                           |
+| `cms`            | CMS surface                                 |
 | `dashboard`      | operator dashboard widgets                  |
 | `note`           | note capture and organization               |
 | `link`           | URL capture and metadata extraction         |
@@ -30,11 +30,11 @@ System tools such as create, update, search, extract, and status are framework-l
 
 ## Interfaces
 
-| Interface   | Purpose                               |
-| ----------- | ------------------------------------- |
-| `mcp`       | Model Context Protocol                |
-| `discord`   | community chat interface with capture |
-| `webserver` | HTTP host for site, admin, and health |
+| Interface   | Purpose                                        |
+| ----------- | ---------------------------------------------- |
+| `mcp`       | Model Context Protocol                         |
+| `discord`   | community chat interface with capture          |
+| `webserver` | HTTP host for site, CMS, dashboard, and health |
 
 ## Seed content
 

@@ -21,7 +21,7 @@ export class NoteAdapter extends BaseEntityAdapter<Note, NoteMetadata> {
     });
   }
 
-  public toMarkdown(entity: Note): string {
+  public override toMarkdown(entity: Note): string {
     const body = this.extractBody(entity.content);
     try {
       const frontmatter = this.parseFrontMatter(

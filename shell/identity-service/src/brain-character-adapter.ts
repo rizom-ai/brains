@@ -43,7 +43,7 @@ export class BrainCharacterAdapter extends BaseEntityAdapter<BrainCharacterEntit
   /**
    * Convert character entity to frontmatter markdown
    */
-  public toMarkdown(entity: BrainCharacterEntity): string {
+  public override toMarkdown(entity: BrainCharacterEntity): string {
     const data = this.parseFrontmatter(entity.content);
     return this.buildMarkdown("", data as Record<string, unknown>);
   }

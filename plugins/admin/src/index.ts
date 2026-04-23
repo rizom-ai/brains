@@ -1,8 +1,0 @@
-export {
-  CmsPlugin,
-  cmsPlugin,
-  buildCmsConfigYaml,
-  renderCmsShellHtml,
-  CmsPlugin as AdminPlugin,
-  cmsPlugin as adminPlugin,
-} from "@brains/cms";

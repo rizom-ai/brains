@@ -17,7 +17,7 @@ const defaultBodyFormatter: BodyTemplateProvider = {
 
 export interface BaseEntityAdapterConfig<
   TEntity extends BaseEntity<TMetadata>,
-  TMetadata,
+  TMetadata extends object,
 > {
   entityType: string;
   schema: z.ZodSchema<TEntity>;
@@ -39,10 +39,9 @@ export interface BaseEntityAdapterConfig<
  */
 export abstract class BaseEntityAdapter<
   TEntity extends BaseEntity<TMetadata>,
-  TMetadata = Record<string, unknown>,
+  TMetadata extends object = Record<string, unknown>,
   TFrontmatter = TMetadata,
-> implements EntityAdapter<TEntity, TMetadata>
-{
+> implements EntityAdapter<TEntity, TMetadata> {
   public readonly entityType: string;
   public readonly schema: z.ZodSchema<TEntity>;
   public readonly frontmatterSchema: z.ZodObject<z.ZodRawShape>;
@@ -72,10 +71,52 @@ export abstract class BaseEntityAdapter<
 
   // ── Abstract methods (subclasses must implement) ──
 
-  public abstract toMarkdown(entity: TEntity): string;
   public abstract fromMarkdown(markdown: string): Partial<TEntity>;
 
   // ── Default implementations (can be overridden) ──
+
+  /**
+   * Serialize an entity to markdown.
+   *
+   * Rebuilds frontmatter from entity.metadata overlaid on any existing
+   * frontmatter parsed from entity.content. Body comes from renderBody,
+   * which defaults to the body portion of entity.content (frontmatter
+   * stripped).
+   *
+   * Adapters that want the body to reflect typed fields (e.g. a
+   * structured about/skills section) override renderBody. Adapters that
+   * need entirely custom serialization override toMarkdown.
+   */
+  public toMarkdown(entity: TEntity): string {
+    const body = this.renderBody(entity);
+    const existing = this.readExistingFrontmatter(entity.content);
+    const frontmatter: Record<string, unknown> = { ...existing };
+    const schemaKeys = Object.keys(this.frontmatterSchema.shape);
+    for (const [key, value] of Object.entries(entity.metadata)) {
+      if (schemaKeys.includes(key)) frontmatter[key] = value;
+    }
+    return this.buildMarkdown(body, frontmatter);
+  }
+
+  /**
+   * Render the body section of the entity.
+   *
+   * Default returns the body portion of entity.content (frontmatter
+   * stripped). Override when the body should be rebuilt from typed
+   * fields on the entity.
+   */
+  protected renderBody(entity: TEntity): string {
+    return this.extractBody(entity.content);
+  }
+
+  private readExistingFrontmatter(content: string): Record<string, unknown> {
+    try {
+      return parseMarkdownWithFrontmatter(content, z.record(z.unknown()))
+        .metadata;
+    } catch {
+      return {};
+    }
+  }
 
   public extractMetadata(entity: TEntity): TMetadata {
     return entity.metadata;

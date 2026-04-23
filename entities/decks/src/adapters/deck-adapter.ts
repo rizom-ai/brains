@@ -42,7 +42,7 @@ export class DeckAdapter extends BaseEntityAdapter<
    * Convert entity to markdown with frontmatter
    * Parses existing frontmatter from content, merges slug from metadata
    */
-  public toMarkdown(entity: DeckEntity): string {
+  public override toMarkdown(entity: DeckEntity): string {
     const body = this.extractBody(entity.content);
     // Validate before serializing
     this.validateSlideStructure(body);

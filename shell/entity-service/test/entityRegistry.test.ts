@@ -144,7 +144,7 @@ class NoteAdapter extends BaseEntityAdapter<Note> {
     return yamlOutput.split("\n\n")[0] ?? "---\n---";
   }
 
-  public toMarkdown(entity: Note): string {
+  public override toMarkdown(entity: Note): string {
     const frontmatter = {
       title: entity.title,
       tags: entity.tags,
@@ -362,7 +362,7 @@ This note has frontmatter metadata.`;
         });
       }
 
-      public toMarkdown(entity: Note): string {
+      public override toMarkdown(entity: Note): string {
         return entity.content;
       }
 

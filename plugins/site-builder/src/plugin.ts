@@ -166,23 +166,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.rebuildManager.setupAutoRebuild();
     }
 
-    // Register CMS admin route if CMS is enabled. Operator-only —
-    // suppressed from public navigation; reachable via direct URL.
-    if (this.config.cms) {
-      this._routeRegistry.register({
-        id: "cms-admin",
-        path: "/admin/",
-        title: "Admin",
-        external: true,
-        navigation: {
-          show: false,
-          slot: "secondary",
-          label: "Admin",
-          priority: 100,
-        },
-      });
-    }
-
     // Re-register instructions when site-info changes so agent prompt stays fresh
     context.messaging.subscribe("entity:updated", async (message) => {
       const payload = message.payload as {
@@ -198,11 +181,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       return { success: true };
     });
 
-    // Subscribe to build-completed for SEO + CMS file generation
+    // Subscribe to build-completed for SEO file generation
     subscribeBuildCompleted({
       context,
       routeRegistry: this._routeRegistry,
-      config: this.config,
       logger: this.logger,
     });
   }

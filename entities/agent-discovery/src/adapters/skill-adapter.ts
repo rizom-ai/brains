@@ -23,10 +23,6 @@ export class SkillAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: SkillEntity): string {
-    return entity.content;
-  }
-
   public fromMarkdown(markdown: string): Partial<SkillEntity> {
     const frontmatter = this.parseFrontMatter(markdown, skillFrontmatterSchema);
 

@@ -24,7 +24,7 @@ Registered but opt-in for now:
 | `link`           | URL capture and metadata extraction          |
 | `topics`         | topic extraction and organization            |
 | `agents`         | peer-brain discovery entities                |
-| `admin`          | CMS/admin surface                            |
+| `cms`            | CMS surface                                  |
 | `dashboard`      | operator dashboard widgets                   |
 | `image`          | image handling for site-facing instances     |
 | `site-info`      | site identity metadata                       |
@@ -37,12 +37,12 @@ System tools such as create, update, search, extract, and status are framework-l
 
 ## Interfaces
 
-| Interface   | Purpose                               |
-| ----------- | ------------------------------------- |
-| `mcp`       | Model Context Protocol                |
-| `discord`   | team chat interface with URL capture  |
-| `a2a`       | agent-to-agent RPC surface            |
-| `webserver` | HTTP host for site, admin, and health |
+| Interface   | Purpose                                        |
+| ----------- | ---------------------------------------------- |
+| `mcp`       | Model Context Protocol                         |
+| `discord`   | team chat interface with URL capture           |
+| `a2a`       | agent-to-agent RPC surface                     |
+| `webserver` | HTTP host for site, CMS, dashboard, and health |
 
 ## Seed content
 

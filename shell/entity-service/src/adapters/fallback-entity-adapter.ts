@@ -19,7 +19,7 @@ export class FallbackEntityAdapter extends BaseEntityAdapter<BaseEntity> {
     });
   }
 
-  public toMarkdown(entity: BaseEntity): string {
+  public override toMarkdown(entity: BaseEntity): string {
     return entity.content;
   }
 

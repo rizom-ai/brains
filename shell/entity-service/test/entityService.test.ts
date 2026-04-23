@@ -51,7 +51,7 @@ class NoteSerializerAdapter extends BaseEntityAdapter<Note> {
     });
   }
 
-  public toMarkdown(entity: Note): string {
+  public override toMarkdown(entity: Note): string {
     return `# ${entity.title}\n\n${entity.content}`;
   }
 

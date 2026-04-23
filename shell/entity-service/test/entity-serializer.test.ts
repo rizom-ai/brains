@@ -29,7 +29,7 @@ class TestAdapter extends BaseEntityAdapter<TestEntity, TestMetadata> {
     });
   }
 
-  public toMarkdown(entity: TestEntity): string {
+  public override toMarkdown(entity: TestEntity): string {
     return entity.content;
   }
 

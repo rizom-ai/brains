@@ -45,7 +45,7 @@ class TestAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: TestEntity): string {
+  public override toMarkdown(entity: TestEntity): string {
     const body = this.extractBody(entity.content);
     return this.buildMarkdown(body, entity.metadata as Record<string, unknown>);
   }
@@ -130,7 +130,7 @@ describe("BaseEntityAdapter", () => {
             supportsCoverImage: true,
           });
         }
-        toMarkdown(): string {
+        override toMarkdown(): string {
           return "";
         }
         fromMarkdown(): Partial<TestEntity> {
@@ -214,6 +214,84 @@ describe("BaseEntityAdapter", () => {
       const parsed = adapter.fromMarkdown(markdown);
       expect(parsed.entityType).toBe("test");
       expect(parsed.metadata?.title).toBe("Hello World");
+    });
+  });
+
+  describe("toMarkdown (default, no override)", () => {
+    // Adapter that relies entirely on the base class default toMarkdown:
+    // no toMarkdown override, no renderBody override.
+    class DefaultingAdapter extends BaseEntityAdapter<
+      TestEntity,
+      TestMetadata,
+      TestFrontmatter
+    > {
+      constructor() {
+        super({
+          entityType: "test",
+          schema: testEntitySchema,
+          frontmatterSchema: testFrontmatterSchema,
+        });
+      }
+
+      public fromMarkdown(markdown: string): Partial<TestEntity> {
+        const frontmatter = this.parseFrontmatter(markdown);
+        return {
+          entityType: "test",
+          content: markdown,
+          metadata: { title: frontmatter.title },
+        };
+      }
+    }
+
+    const defaulting = new DefaultingAdapter();
+
+    it("rebuilds frontmatter from entity.metadata, overriding stale disk values", () => {
+      // Disk content has stale title; metadata has the canonical one.
+      const entity = createTestEntityFixture({
+        content: `---\ntitle: Stale On Disk\nstatus: draft\n---\nBody`,
+        metadata: { title: "Canonical From DB" },
+      });
+
+      const output = defaulting.toMarkdown(entity);
+
+      expect(output).toContain("title: Canonical From DB");
+      expect(output).not.toContain("title: Stale On Disk");
+    });
+
+    it("preserves frontmatter fields that live only on disk (not in metadata)", () => {
+      // `status` is in the frontmatter schema but not in metadata — it
+      // should survive the rebuild from the existing disk frontmatter.
+      const entity = createTestEntityFixture({
+        content: `---\ntitle: Old\nstatus: published\n---\nBody content`,
+        metadata: { title: "New" },
+      });
+
+      const output = defaulting.toMarkdown(entity);
+
+      expect(output).toContain("title: New");
+      expect(output).toContain("status: published");
+    });
+
+    it("preserves the body when rebuilding frontmatter", () => {
+      const entity = createTestEntityFixture({
+        content: `---\ntitle: Old\n---\nKeep this body text.`,
+        metadata: { title: "New" },
+      });
+
+      expect(defaulting.toMarkdown(entity)).toContain("Keep this body text.");
+    });
+
+    it("writes frontmatter even when the disk content has none", () => {
+      const entity = createTestEntityFixture({
+        content: `Just a body, no frontmatter.`,
+        metadata: { title: "Fresh" },
+      });
+
+      const output = defaulting.toMarkdown(entity);
+
+      expect(output).toMatch(/^---\n/);
+      expect(output).toContain("title: Fresh");
+      expect(output).toContain("Just a body, no frontmatter.");
     });
   });
 });

@@ -27,7 +27,7 @@ export class ProductAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: Product): string {
+  public override toMarkdown(entity: Product): string {
     const body = this.extractBody(entity.content);
     try {
       const frontmatter = this.parseFrontMatter(

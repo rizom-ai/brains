@@ -28,7 +28,7 @@ class SeriesTestAdapter extends BaseEntityAdapter<BaseEntity> {
     };
   }
 
-  public toMarkdown(entity: BaseEntity): string {
+  public override toMarkdown(entity: BaseEntity): string {
     const frontmatterMatch = entity.content.match(/^---\n([\s\S]*?)\n---/);
     if (frontmatterMatch) {
       return entity.content;

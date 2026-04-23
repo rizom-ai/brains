@@ -57,6 +57,7 @@ import type {
 } from "@brains/ai-service";
 import type { RegisteredApiRoute } from "./types/api-routes";
 import type { RegisteredWebRoute } from "./types/web-routes";
+import type { EntityDisplayEntry } from "./types/routes";
 
 /**
  * Handler function for plugin evaluations
@@ -193,6 +194,9 @@ export interface IShell {
   // Data directory - where plugins should store entity files
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;
+
+  // Site/entity display metadata derived from the active site package
+  getEntityDisplay(): Record<string, EntityDisplayEntry> | undefined;
 
   // App metadata
   getAppInfo(): Promise<AppInfo>;

@@ -45,14 +45,6 @@ export class SiteInfoAdapter extends BaseEntityAdapter<
   }
 
   /**
-   * Convert site info entity to markdown
-   * Content is already stored in frontmatter format — pass through as-is
-   */
-  public toMarkdown(entity: SiteInfoEntity): string {
-    return entity.content;
-  }
-
-  /**
    * Create partial entity from markdown content
    */
   public fromMarkdown(markdown: string): Partial<SiteInfoEntity> {

@@ -1,19 +1,15 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { toYaml } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
-import type { SiteBuilderConfig } from "../config";
 import type { SiteBuildCompletedPayload } from "../types/job-types";
 import type { RouteRegistry } from "./route-registry";
 import { generateRobotsTxt } from "./robots-generator";
 import { generateSitemap } from "./sitemap-generator";
-import { generateCmsConfig, CMS_ADMIN_HTML } from "./cms-config";
 
 interface SeoHandlerDeps {
   context: ServicePluginContext;
   routeRegistry: RouteRegistry;
-  config: SiteBuilderConfig;
   logger: Logger;
 }
 
@@ -38,56 +34,11 @@ async function generateSeoFiles(
 }
 
 /**
- * Generate CMS admin page and config.yml if CMS is enabled and git-sync info
- * is available.
- */
-async function generateCmsFiles(
-  payload: SiteBuildCompletedPayload,
-  context: ServicePluginContext,
-  config: SiteBuilderConfig,
-  logger: Logger,
-): Promise<void> {
-  if (!config.cms) return;
-
-  const repoInfo = await context.messaging.send<
-    Record<string, never>,
-    { repo: string; branch: string }
-  >("git-sync:get-repo-info", {});
-
-  if ("noop" in repoInfo || !repoInfo.success || !repoInfo.data?.repo) {
-    logger.warn(
-      "CMS enabled but git-sync repo info unavailable — skipping CMS generation",
-    );
-    return;
-  }
-
-  const entityTypes = context.entityService.getEntityTypes();
-  const cmsConfig = generateCmsConfig({
-    repo: repoInfo.data.repo,
-    branch: repoInfo.data.branch,
-    ...(context.siteUrl && { baseUrl: context.siteUrl }),
-    entityTypes,
-    getFrontmatterSchema: (type) =>
-      context.entities.getEffectiveFrontmatterSchema(type),
-    getAdapter: (type) => context.entities.getAdapter(type),
-    ...(config.entityDisplay && {
-      entityDisplay: config.entityDisplay,
-    }),
-  });
-
-  const adminDir = join(payload.outputDir, "admin");
-  await fs.mkdir(adminDir, { recursive: true });
-  await fs.writeFile(join(adminDir, "config.yml"), toYaml(cmsConfig), "utf-8");
-  await fs.writeFile(join(adminDir, "index.html"), CMS_ADMIN_HTML, "utf-8");
-  logger.info("Generated CMS admin page and config.yml");
-}
-
-/**
- * Subscribe to the site:build:completed event and generate SEO + CMS files
+ * Subscribe to the site:build:completed event and generate SEO files
  * into the build output directory.
  */
 export function subscribeBuildCompleted(deps: SeoHandlerDeps): void {
-  const { context, routeRegistry, config, logger } = deps;
+  const { context, routeRegistry, logger } = deps;
 
   context.messaging.subscribe<SiteBuildCompletedPayload, { success: boolean }>(
     "site:build:completed",
@@ -99,7 +50,6 @@ export function subscribeBuildCompleted(deps: SeoHandlerDeps): void {
         );
 
         await generateSeoFiles(payload, routeRegistry, logger);
-        await generateCmsFiles(payload, context, config, logger);
 
         return { success: true };
       } catch (error) {

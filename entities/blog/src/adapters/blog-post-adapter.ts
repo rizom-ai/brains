@@ -29,7 +29,7 @@ export class BlogPostAdapter extends BaseEntityAdapter<
    * Convert blog post entity to markdown with frontmatter
    * Merges auto-generated metadata (like slug) back into frontmatter
    */
-  public toMarkdown(entity: BlogPost): string {
+  public override toMarkdown(entity: BlogPost): string {
     const body = this.extractBody(entity.content);
     try {
       const frontmatter = this.parseFrontMatter(

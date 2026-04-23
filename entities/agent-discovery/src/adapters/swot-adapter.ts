@@ -16,10 +16,6 @@ export class SwotAdapter extends BaseEntityAdapter<SwotEntity, SwotMetadata> {
     });
   }
 
-  public toMarkdown(entity: SwotEntity): string {
-    return entity.content;
-  }
-
   public fromMarkdown(markdown: string): Partial<SwotEntity> {
     const frontmatter = this.parseFrontMatter(markdown, swotFrontmatterSchema);
 

@@ -18,7 +18,7 @@ const entityDisplayEntrySchema = z
 
 const cmsPluginConfigSchema = z.object({
   entityDisplay: z.record(entityDisplayEntrySchema).optional(),
-  routePath: z.string().default("/"),
+  routePath: z.string().default("/cms"),
 });
 
 type CmsPluginConfig = z.infer<typeof cmsPluginConfigSchema>;
@@ -27,10 +27,15 @@ function getCmsConfigPath(routePath: string): string {
   return `${routePath.endsWith("/") ? routePath : `${routePath}/`}config.yml`;
 }
 
-function getCmsConfigOptions(config: CmsPluginConfig): {
+function getCmsConfigOptions(
+  config: CmsPluginConfig,
+  context?: ServicePluginContext,
+): {
   entityDisplay?: EntityDisplayMap;
 } {
-  const entityDisplay = config.entityDisplay as EntityDisplayMap | undefined;
+  const entityDisplay =
+    (config.entityDisplay as EntityDisplayMap | undefined) ??
+    (context?.entityDisplay as EntityDisplayMap | undefined);
   return entityDisplay ? { entityDisplay } : {};
 }
 
@@ -80,7 +85,7 @@ export async function buildCmsConfigYaml(
 
 export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
   constructor(config: Partial<CmsPluginConfig> = {}) {
-    super("admin", packageJson, config, cmsPluginConfigSchema);
+    super("cms", packageJson, config, cmsPluginConfigSchema);
   }
 
   protected override async onRegister(
@@ -116,7 +121,7 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
           try {
             const yaml = await buildCmsConfigYaml(
               this.getContext(),
-              getCmsConfigOptions(this.config),
+              getCmsConfigOptions(this.config, this.getContext()),
             );
             return new Response(yaml, {
               headers: { "Content-Type": "application/yaml; charset=utf-8" },
@@ -139,5 +144,3 @@ export class CmsPlugin extends ServicePlugin<CmsPluginConfig> {
 export function cmsPlugin(config?: Partial<CmsPluginConfig>): CmsPlugin {
   return new CmsPlugin(config);
 }
-
-export { CmsPlugin as AdminPlugin, cmsPlugin as adminPlugin };

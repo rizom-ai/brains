@@ -27,12 +27,14 @@ examples:
   });
 
   describe("toMarkdown", () => {
-    it("should return entity content as-is", () => {
-      const content = "---\nname: Test\n---\n";
+    it("rebuilds markdown from entity metadata", () => {
+      // Stale frontmatter (only `name`) plus canonical metadata — the
+      // output should reflect the metadata, not the stale disk content.
+      const staleContent = "---\nname: Stale\n---\n";
       const entity = {
         id: "skill-test",
         entityType: "skill" as const,
-        content,
+        content: staleContent,
         created: "2026-04-02T00:00:00.000Z",
         updated: "2026-04-02T00:00:00.000Z",
         metadata: {
@@ -44,7 +46,10 @@ examples:
         contentHash: "abc",
       };
 
-      expect(adapter.toMarkdown(entity)).toBe(content);
+      const output = adapter.toMarkdown(entity);
+      expect(output).toContain("name: Test");
+      expect(output).toContain("description: Test skill");
+      expect(output).not.toContain("name: Stale");
     });
   });
 

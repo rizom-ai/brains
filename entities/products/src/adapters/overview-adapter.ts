@@ -27,7 +27,7 @@ export class OverviewAdapter extends BaseEntityAdapter<
     });
   }
 
-  public toMarkdown(entity: Overview): string {
+  public override toMarkdown(entity: Overview): string {
     const body = this.extractBody(entity.content);
     try {
       const frontmatter = this.parseFrontMatter(
