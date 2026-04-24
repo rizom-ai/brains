@@ -116,13 +116,15 @@ export const PresentationLayout = ({
         dangerouslySetInnerHTML={{
           __html: `
             .presentation-section {
-              width: 100%;
+              width: 100vw;
               height: 100vh;
               height: 100dvh;
               overflow: hidden;
             }
 
             .reveal {
+              width: 100%;
+              height: 100%;
               font-family: var(--font-sans);
               background: var(--color-bg-gradient);
             }
@@ -134,14 +136,21 @@ export const PresentationLayout = ({
             }
 
             .reveal .slides section:not(.stack) {
-              padding: 2rem;
+              box-sizing: border-box;
+              width: 100%;
+              max-width: none;
               height: 100%;
+              max-height: 100%;
+              padding: clamp(1.5rem, 4vw, 5rem);
               align-items: flex-start;
               justify-content: center;
               flex-direction: column;
-              max-width: 85vw;
+              overflow-y: auto;
+              overflow-x: hidden;
               color: var(--color-text);
               text-align: left;
+              scrollbar-width: thin;
+              scrollbar-color: var(--color-brand) transparent;
             }
 
             .reveal .slides > section,
@@ -178,13 +187,16 @@ export const PresentationLayout = ({
             .reveal .slides section:first-child h1 {
               text-align: center;
               font-family: var(--font-heading);
-              font-size: clamp(3.5rem, 8vw, 9rem);
+              font-size: clamp(3rem, 8vw, 8rem);
               font-weight: 700;
-              line-height: 1.0;
-              letter-spacing: -0.02em;
+              line-height: 0.95;
+              letter-spacing: -0.03em;
               color: var(--color-heading);
+              max-width: min(14ch, 100%);
               margin-bottom: 1.25rem;
               text-wrap: balance;
+              overflow-wrap: anywhere;
+              hyphens: auto;
             }
 
             .reveal .slides section:first-child p {
@@ -213,36 +225,42 @@ export const PresentationLayout = ({
             .reveal h6 {
               font-family: var(--font-heading);
               font-weight: 600;
+              max-width: 100%;
+              overflow-wrap: anywhere;
+              hyphens: auto;
             }
 
             .reveal h1 {
               color: var(--color-heading);
-              font-size: clamp(3rem, 6vw, 7rem);
-              line-height: 1.0;
+              font-size: clamp(2.75rem, 5.5vw, 6rem);
+              line-height: 0.98;
               font-weight: 700;
-              letter-spacing: -0.01em;
+              letter-spacing: -0.02em;
               margin-bottom: 0.75rem;
               text-align: left;
+              text-wrap: balance;
             }
 
             .reveal h2 {
               color: var(--color-heading);
-              font-size: clamp(2rem, 3.5vw, 4rem);
-              line-height: 1.1;
+              font-size: clamp(2rem, 3.8vw, 4.25rem);
+              line-height: 1.05;
               font-weight: 700;
-              letter-spacing: 0em;
+              letter-spacing: -0.02em;
               margin-bottom: 1.25rem;
               text-align: left;
+              text-wrap: balance;
             }
 
             .reveal h3 {
               color: var(--color-brand);
-              font-size: clamp(1.5rem, 2.5vw, 2.5rem);
-              line-height: 1.2;
+              font-size: clamp(1.35rem, 2.4vw, 2.5rem);
+              line-height: 1.15;
               font-weight: 600;
               letter-spacing: 0.01em;
               margin-bottom: 1.25rem;
               text-align: left;
+              text-wrap: balance;
             }
 
             .reveal h4 {
@@ -275,10 +293,11 @@ export const PresentationLayout = ({
             .reveal li {
               color: var(--color-text);
               font-family: var(--font-sans);
-              font-size: clamp(1.2rem, 1.6vw, 1.75rem);
-              line-height: 1.55;
-              margin-bottom: 0.65rem;
+              font-size: clamp(1.05rem, 1.45vw, 1.55rem);
+              line-height: 1.42;
+              margin-bottom: 0.6rem;
               text-align: left;
+              max-width: 52ch;
             }
 
             /* ---- INLINE EMPHASIS ---- */
@@ -373,7 +392,10 @@ export const PresentationLayout = ({
               border-radius: 6px;
               padding: 1.25em 1.5em;
               margin: 1rem 0;
-              overflow-x: auto;
+              max-width: 100%;
+              max-height: 45vh;
+              max-height: 45dvh;
+              overflow: auto;
               text-align: left;
             }
 
@@ -401,14 +423,17 @@ export const PresentationLayout = ({
             /* ---- TABLES ---- */
 
             .reveal table {
+              display: block;
               width: auto;
               max-width: 100%;
+              max-height: 50vh;
+              max-height: 50dvh;
               border-collapse: separate;
               border-spacing: 0;
               margin: 1.5rem 0;
               font-size: clamp(0.9rem, 1.3vw, 1.5rem);
               border-radius: 6px;
-              overflow: hidden;
+              overflow: auto;
             }
 
             .reveal table th {
@@ -519,6 +544,89 @@ export const PresentationLayout = ({
             .reveal .slides section:not(:first-child) div:not(.slide-columns):not(.mermaid),
             .reveal .slides section:not(:first-child) span {
               text-align: left;
+            }
+
+            @media (max-width: 760px) {
+              .reveal .slides section:not(.stack) {
+                width: 100%;
+                max-width: none;
+                height: 100%;
+                padding: max(1rem, env(safe-area-inset-top)) 1.1rem max(3.75rem, calc(env(safe-area-inset-bottom) + 3rem));
+                justify-content: center;
+              }
+
+              .reveal .slides section:not(.stack):has(pre),
+              .reveal .slides section:not(.stack):has(table),
+              .reveal .slides section:not(.stack):has(.slide-columns) {
+                justify-content: flex-start;
+              }
+
+              .reveal .slides section:first-child h1 {
+                font-size: clamp(1.85rem, 9.5vw, 3.1rem);
+                line-height: 0.96;
+                letter-spacing: -0.04em;
+                max-width: 100%;
+              }
+
+              .reveal .slides section:first-child p {
+                font-size: clamp(0.95rem, 4.2vw, 1.15rem);
+                max-width: 100%;
+              }
+
+              .reveal h1 {
+                font-size: clamp(1.9rem, 9.5vw, 3.2rem);
+              }
+
+              .reveal h2 {
+                font-size: clamp(1.65rem, 8vw, 2.55rem);
+                margin-bottom: 0.85rem;
+              }
+
+              .reveal h3 {
+                font-size: clamp(1.1rem, 5.8vw, 1.65rem);
+                margin-bottom: 0.75rem;
+              }
+
+              .reveal p,
+              .reveal li {
+                font-size: clamp(0.95rem, 4.1vw, 1.1rem);
+                line-height: 1.34;
+                margin-bottom: 0.42rem;
+                max-width: 100%;
+              }
+
+              .reveal .slides section ul li,
+              .reveal .slides section ol li {
+                padding-left: 1.25em;
+              }
+
+              .reveal .slide-columns {
+                flex-direction: column;
+                gap: 0.85rem;
+                margin-top: 0.5rem;
+              }
+
+              .reveal pre,
+              .reveal table,
+              .reveal .mermaid svg,
+              .reveal img {
+                max-height: 38vh;
+                max-height: 38dvh;
+              }
+
+              .reveal .controls {
+                transform: scale(0.72);
+                transform-origin: bottom right;
+                right: 0.65rem;
+                bottom: calc(env(safe-area-inset-bottom) + 0.65rem);
+              }
+
+              .reveal .slide-number {
+                left: 0.75rem;
+                right: auto;
+                bottom: calc(env(safe-area-inset-bottom) + 0.7rem);
+                font-size: 0.68rem;
+              }
             }
           `,
         }}
