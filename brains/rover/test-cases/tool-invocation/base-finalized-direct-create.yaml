@@ -1,0 +1,39 @@
+id: tool-invocation-base-finalized-direct-create
+name: Exact Note Uses Direct Create
+description: Verifies exact note/base content is persisted directly, not regenerated via prompt.
+type: tool_invocation
+tags:
+  - shell
+  - base
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Save this note exactly, without rewriting:
+
+      # Operating Notes
+
+      - Preserve the user's approved wording.
+      - Do not summarize finalized content.
+      - Store it as-is.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: base
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "I summarized"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

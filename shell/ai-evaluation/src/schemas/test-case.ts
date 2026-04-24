@@ -30,6 +30,12 @@ export type TestCaseType = z.infer<typeof testCaseTypeSchema>;
 export const expectedToolCallSchema = z.object({
   toolName: z.string(),
   argsContain: z.record(z.unknown()).optional(),
+  argsAbsent: z
+    .array(z.string())
+    .optional()
+    .describe(
+      "Tool argument paths that must be absent from all matching calls",
+    ),
   shouldBeCalled: z.boolean().default(true),
 });
 

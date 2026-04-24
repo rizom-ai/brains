@@ -180,6 +180,115 @@ describe("TestRunner", () => {
       expect(result.passed).toBe(true);
     });
 
+    it("should verify tool args with argsAbsent", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: { entityType: "deck", content: "# Final deck" },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-args-absent",
+        name: "Args Absent Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Create this finalized deck" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsContain: { entityType: "deck" },
+              argsAbsent: ["prompt"],
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(true);
+    });
+
+    it("should treat empty optional args as absent for argsAbsent", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: { entityType: "deck", prompt: "", content: "# Final" },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-args-absent-empty",
+        name: "Args Absent Empty Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Create this finalized deck" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsAbsent: ["prompt"],
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(true);
+    });
+
+    it("should fail when argsAbsent path exists", async () => {
+      mockAgentService.chat = mock(() =>
+        Promise.resolve(
+          createMockResponse({
+            toolResults: [
+              {
+                toolName: "system_create",
+                args: { entityType: "deck", prompt: "Generate a deck" },
+                data: "ok",
+              },
+            ],
+          }),
+        ),
+      );
+
+      const testCase: TestCase = {
+        id: "test-args-absent-fail",
+        name: "Args Absent Failure Test",
+        type: "tool_invocation",
+        turns: [{ userMessage: "Create this finalized deck" }],
+        successCriteria: {
+          expectedTools: [
+            {
+              toolName: "system_create",
+              shouldBeCalled: true,
+              argsAbsent: ["prompt"],
+            },
+          ],
+        },
+      };
+
+      const result = await testRunner.runTest(testCase);
+      expect(result.passed).toBe(false);
+      expect(
+        result.failures.some((f) => f.criterion === "toolArgsAbsent"),
+      ).toBe(true);
+    });
+
     it("should fail when argsContain value doesn't match", async () => {
       mockAgentService.chat = mock(() =>
         Promise.resolve(

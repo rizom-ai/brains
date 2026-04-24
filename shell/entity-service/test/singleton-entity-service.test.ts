@@ -38,6 +38,11 @@ function createMockEntityService(): EntityService {
       jobId: "job-123",
       skipped: false,
     }),
+    createEntityFromMarkdown: async () => ({
+      entityId: "test",
+      jobId: "job-123",
+      skipped: false,
+    }),
     updateEntity: async () => ({
       entityId: "test",
       jobId: "job-123",

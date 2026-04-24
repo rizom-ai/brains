@@ -47,6 +47,15 @@ export interface EntityMutationResult {
 }
 
 /**
+ * Input for adapter-validated direct creation from finalized markdown.
+ */
+export interface CreateEntityFromMarkdownInput {
+  entityType: string;
+  id: string;
+  markdown: string;
+}
+
+/**
  * Data for storing an embedding for an entity
  */
 export interface StoreEmbeddingData {
@@ -309,6 +318,10 @@ export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
     entity: EntityInput<T>,
+    options?: CreateEntityOptions,
+  ): Promise<EntityMutationResult>;
+  createEntityFromMarkdown(
+    input: CreateEntityFromMarkdownInput,
     options?: CreateEntityOptions,
   ): Promise<EntityMutationResult>;
   updateEntity<T extends BaseEntity>(

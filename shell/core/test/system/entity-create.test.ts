@@ -406,6 +406,59 @@ describe("system_create tool", () => {
     expect(entity).not.toBeNull();
   });
 
+  it("should use adapter-validated markdown creation for structured content", async () => {
+    services.addEntities([
+      {
+        id: "existing-deck",
+        entityType: "deck",
+        content: "Existing deck",
+        metadata: { title: "Existing Deck" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+        contentHash: "hash-existing-deck",
+      },
+    ]);
+    const markdown = `---
+title: Approved Deck
+slug: approved-deck
+status: draft
+---
+
+# Approved Deck
+
+---
+
+## Final Slide`;
+
+    const result = await exec({
+      entityType: "deck",
+      title: "Approved Deck",
+      content: markdown,
+    });
+
+    expect(result).toHaveProperty("success", true);
+    const data = createOutputSchema.parse((result as { data: unknown }).data);
+    expect(data).toEqual({ status: "created", entityId: "approved-deck" });
+    expect(services.getLastEnqueuedJob()).toBeUndefined();
+    expect(services.getLastMarkdownCreate()).toEqual({
+      entityType: "deck",
+      id: "approved-deck",
+      markdown,
+    });
+  });
+
+  it("should keep base direct content on the generic create path", async () => {
+    await exec({
+      entityType: "base",
+      title: "Plain Note",
+      content: "No frontmatter required.",
+    });
+
+    expect(services.getLastMarkdownCreate()).toBeUndefined();
+    const entity = await services.entityService.getEntity("base", "plain-note");
+    expect(entity?.content).toBe("No frontmatter required.");
+  });
+
   it("should queue generation job when prompt provided", async () => {
     const result = await exec({
       entityType: "base",

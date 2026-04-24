@@ -128,6 +128,26 @@ function normalizeUpdateInput(input: {
   return { content: input.content };
 }
 
+function getEntityDisplayLabel(entity: BaseEntity): string {
+  const candidates = [
+    entity.metadata["title"],
+    entity.metadata["name"],
+    entity.metadata["subject"],
+    entity.metadata["slug"],
+  ];
+  const label = candidates.find(
+    (value): value is string =>
+      typeof value === "string" && value.trim().length > 0,
+  );
+  return label ?? entity.id;
+}
+
+function hasStructuredFrontmatter(
+  schema: z.ZodObject<z.ZodRawShape> | undefined,
+): boolean {
+  return !!schema && Object.keys(schema.shape).length > 0;
+}
+
 export function createSystemTools(services: SystemServices): Tool[] {
   const { entityService, conversationService, logger, jobs, entityRegistry } =
     services;
@@ -499,16 +519,25 @@ export function createSystemTools(services: SystemServices): Tool[] {
         const id = slugify(
           createInput.title ?? `${createInput.entityType}-${Date.now()}`,
         );
-        const now = new Date().toISOString();
+        const frontmatterSchema = entityRegistry.getEffectiveFrontmatterSchema(
+          createInput.entityType,
+        );
         try {
-          const result = await entityService.createEntity({
-            id,
-            entityType: createInput.entityType,
-            content: createInput.content ?? "",
-            metadata: { title: createInput.title ?? id },
-            created: now,
-            updated: now,
-          });
+          const result =
+            createInput.content && hasStructuredFrontmatter(frontmatterSchema)
+              ? await entityService.createEntityFromMarkdown({
+                  entityType: createInput.entityType,
+                  id,
+                  markdown: createInput.content,
+                })
+              : await entityService.createEntity({
+                  id,
+                  entityType: createInput.entityType,
+                  content: createInput.content ?? "",
+                  metadata: { title: createInput.title ?? id },
+                  created: new Date().toISOString(),
+                  updated: new Date().toISOString(),
+                });
           return {
             success: true,
             data: { entityId: result.entityId, status: "created" },
@@ -556,14 +585,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
           return { success: true, data: { deleted: entity.id } };
         }
 
-        const title =
-          typeof entity.metadata["title"] === "string"
-            ? entity.metadata["title"]
-            : entity.id;
+        const label = getEntityDisplayLabel(entity);
         return {
           needsConfirmation: true,
           toolName: "system_delete",
-          description: `Delete "${title}"?\n\nPreview:\n${entity.content.slice(0, 200)}`,
+          description: `Delete "${label}"?\n\nPreview:\n${entity.content.slice(0, 200)}`,
           args: { ...input, id: entity.id, confirmed: true },
         };
       },
@@ -676,10 +702,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
           return { success: true, data: { updated: entity.id } };
         }
 
-        const title =
-          typeof entity.metadata["title"] === "string"
-            ? entity.metadata["title"]
-            : entity.id;
+        const label = getEntityDisplayLabel(entity);
         let diff: string;
         if (normalizedInput.fields) {
           diff = Object.entries(normalizedInput.fields)
@@ -703,7 +726,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
         return {
           needsConfirmation: true,
           toolName: "system_update",
-          description: `Update "${title}"?\n\nChanges:\n${diff}`,
+          description: `Update "${label}"?\n\nChanges:\n${diff}`,
           args: {
             ...input,
             ...normalizedInput,

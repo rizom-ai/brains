@@ -19,6 +19,7 @@ import type {
   BaseEntity,
   SearchResult,
   EntityInput,
+  CreateEntityFromMarkdownInput,
   SearchOptions,
   ListOptions,
   CreateEntityOptions,
@@ -214,6 +215,27 @@ export class EntityService implements IEntityService {
     options?: CreateEntityOptions,
   ): Promise<EntityMutationResult> {
     return this.entityMutations.createEntity(entity, options);
+  }
+
+  public async createEntityFromMarkdown(
+    input: CreateEntityFromMarkdownInput,
+    options?: CreateEntityOptions,
+  ): Promise<EntityMutationResult> {
+    const parsed = this.entitySerializer.deserializeEntity(
+      input.markdown,
+      input.entityType,
+    );
+
+    return this.entityMutations.createEntity(
+      {
+        ...parsed,
+        id: input.id,
+        entityType: input.entityType,
+        content: input.markdown,
+        metadata: parsed.metadata ?? {},
+      },
+      options,
+    );
   }
 
   public async updateEntity<T extends BaseEntity>(

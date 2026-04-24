@@ -38,6 +38,19 @@ describe("system_update tool", () => {
         created: new Date("2026-03-11T10:00:00.000Z").toISOString(),
         updated: new Date("2026-03-11T10:00:00.000Z").toISOString(),
       },
+      {
+        id: "newsletter-1",
+        entityType: "newsletter",
+        content:
+          "---\nsubject: Notes on Living Systems\nstatus: draft\n---\n\nNewsletter body.",
+        contentHash: "hash-4",
+        metadata: {
+          subject: "Notes on Living Systems",
+          status: "draft",
+        },
+        created: new Date("2026-03-13T10:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-13T10:00:00.000Z").toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -50,6 +63,46 @@ describe("system_update tool", () => {
       userId: "test",
     });
   }
+
+  async function execDelete(input: Record<string, unknown>): Promise<unknown> {
+    const tool = tools.find((t) => t.name === "system_delete");
+    if (!tool) throw new Error("system_delete not found");
+    return tool.handler(input, {
+      interfaceType: "test",
+      userId: "test",
+    });
+  }
+
+  it("uses non-title metadata as the display label in update confirmations", async () => {
+    const result = await exec({
+      entityType: "newsletter",
+      id: "newsletter-1",
+      fields: { status: "queued" },
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_update",
+    });
+    expect((result as { description: string }).description).toContain(
+      'Update "Notes on Living Systems"?',
+    );
+  });
+
+  it("uses non-title metadata as the display label in delete confirmations", async () => {
+    const result = await execDelete({
+      entityType: "newsletter",
+      id: "newsletter-1",
+    });
+
+    expect(result).toMatchObject({
+      needsConfirmation: true,
+      toolName: "system_delete",
+    });
+    expect((result as { description: string }).description).toContain(
+      'Delete "Notes on Living Systems"?',
+    );
+  });
 
   it("normalizes JSON-wrapped field updates passed via content", async () => {
     const result = await exec({

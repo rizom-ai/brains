@@ -1,0 +1,42 @@
+id: tool-invocation-social-post-finalized-direct-create
+name: Exact Social Post Uses Direct Create
+description: Verifies an explicitly exact social post is persisted directly, while preserving generation for non-exact social drafting flows.
+type: tool_invocation
+tags:
+  - social-media
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Save this LinkedIn post exactly as written. Do not rewrite or improve it:
+
+      ---
+      title: Knowledge Must Move
+      platform: linkedin
+      status: draft
+      ---
+
+      Knowledge does not become useful by being captured.
+      It becomes useful by moving through the work.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: social-post
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "generating a social post"
+    - "I improved"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

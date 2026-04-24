@@ -78,7 +78,7 @@ describe("buildInstructions", () => {
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {
     const instructions = buildInstructions(identity, "anchor");
     expect(instructions).toContain(
-      "Create a `base` entity immediately instead of asking for more detail unless the request is truly empty.",
+      "Create a `base` entity immediately with `content` instead of asking for more detail unless the request is truly empty.",
     );
     expect(instructions).toContain("save, or capture content");
   });

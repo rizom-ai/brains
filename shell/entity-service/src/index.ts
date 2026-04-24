@@ -43,6 +43,7 @@ export type {
   EntityTypeConfig,
   EntityJobOptions,
   CreateEntityOptions,
+  CreateEntityFromMarkdownInput,
   EntityMutationResult,
   StoreEmbeddingData,
   SortField,

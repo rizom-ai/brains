@@ -1,0 +1,41 @@
+id: tool-invocation-newsletter-finalized-direct-create
+name: Finalized Newsletter Uses Direct Create
+description: Verifies finalized newsletter copy is persisted with content, not regenerated via prompt.
+type: tool_invocation
+tags:
+  - newsletter
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Save this finalized newsletter exactly as written. Do not rewrite it:
+
+      ---
+      subject: Notes on Living Systems
+      status: draft
+      ---
+
+      This week we are looking at organizations as living systems, not machines.
+
+      The important question is how knowledge keeps moving.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: newsletter
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "generating a newsletter"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

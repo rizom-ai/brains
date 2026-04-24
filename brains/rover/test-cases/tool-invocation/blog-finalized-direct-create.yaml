@@ -1,0 +1,44 @@
+id: tool-invocation-blog-finalized-direct-create
+name: Finalized Blog Post Uses Direct Create
+description: Verifies finalized blog/post content is persisted with content, not regenerated via prompt.
+type: tool_invocation
+tags:
+  - blog
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Save this finalized blog post exactly. Do not rewrite it:
+
+      ---
+      title: The Shape of Shared Memory
+      slug: shape-of-shared-memory
+      status: draft
+      excerpt: Why organizations need living knowledge systems.
+      author: Test Author
+      ---
+
+      # The Shape of Shared Memory
+
+      Knowledge should move through an organization without being flattened.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: post
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "generating a post"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

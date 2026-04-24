@@ -1,0 +1,47 @@
+id: tool-invocation-decks-finalized-direct-create
+name: Finalized Deck Uses Direct Create
+description: Verifies finalized/approved deck content is persisted with content, not regenerated via prompt.
+type: tool_invocation
+tags:
+  - core
+  - decks
+  - finalized-content
+  - regression
+
+turns:
+  - userMessage: |
+      Create this finalized deck exactly. Do not rewrite or regenerate it:
+
+      ---
+      title: Approved Systems Deck
+      slug: approved-systems-deck
+      status: draft
+      ---
+
+      # Approved Systems Deck
+
+      ---
+
+      ## Closing
+
+      This final slide must be preserved exactly.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: deck
+      argsAbsent:
+        - prompt
+  toolCountRange:
+    min: 1
+  responseNotContains:
+    - "I'll generate"
+    - "generating a deck"
+    - "I generated"
+  minAccuracyScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 30000

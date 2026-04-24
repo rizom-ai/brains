@@ -17,6 +17,10 @@ export function createMockSystemServices(
   addEntities: (entities: BaseEntity[]) => void;
   /** Get the last job enqueued via jobs.enqueue */
   getLastEnqueuedJob: () => { type: string; data: unknown } | undefined;
+  /** Get the last direct markdown create call */
+  getLastMarkdownCreate: () =>
+    | { entityType: string; id: string; markdown: string }
+    | undefined;
 } {
   const entities = new Map<string, BaseEntity>();
   const entityTypes = new Set<string>();
@@ -116,6 +120,12 @@ export function createMockSystemServices(
     getCreateInterceptor: (type: string) => createInterceptors.get(type),
   } as unknown as SystemServices["entityRegistry"];
 
+  const markdownCreates: Array<{
+    entityType: string;
+    id: string;
+    markdown: string;
+  }> = [];
+
   const entityService = {
     search: async () => [],
     getEntity: async (type: string, id: string) => {
@@ -141,6 +151,24 @@ export function createMockSystemServices(
       entities.set(id, { ...entity, id });
       entityTypes.add(entity.entityType);
       return { entityId: id, jobId: `job-${id}` };
+    },
+    createEntityFromMarkdown: async (input: {
+      entityType: string;
+      id: string;
+      markdown: string;
+    }) => {
+      markdownCreates.push(input);
+      entities.set(input.id, {
+        id: input.id,
+        entityType: input.entityType,
+        content: input.markdown,
+        contentHash: "",
+        metadata: { title: input.id },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      });
+      entityTypes.add(input.entityType);
+      return { entityId: input.id, jobId: `job-${input.id}` };
     },
     updateEntity: async (entity: BaseEntity) => {
       entities.set(entity.id, entity);
@@ -232,5 +260,6 @@ export function createMockSystemServices(
     getEntities: () => entities,
     addEntities,
     getLastEnqueuedJob: () => enqueuedJobs[enqueuedJobs.length - 1],
+    getLastMarkdownCreate: () => markdownCreates[markdownCreates.length - 1],
   };
 }

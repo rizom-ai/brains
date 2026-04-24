@@ -196,27 +196,39 @@ export class TestRunner implements ITestRunner {
           });
         }
 
+        const matchingCalls = toolCalls.filter(
+          (tc) => tc.toolName === expected.toolName,
+        );
+        const resolvePath = (
+          obj: Record<string, unknown>,
+          path: string,
+        ): unknown => {
+          const parts = path.split(".");
+          let current: unknown = obj;
+          for (const part of parts) {
+            if (current == null || typeof current !== "object")
+              return undefined;
+            current = (current as Record<string, unknown>)[part];
+          }
+          return current;
+        };
+        const hasNonEmptyValue = (value: unknown): boolean =>
+          value !== undefined &&
+          value !== null &&
+          !(typeof value === "string" && value.trim().length === 0);
+        const collectActualValues = (
+          key: string,
+          options: { ignoreEmpty?: boolean } = {},
+        ): unknown[] =>
+          matchingCalls
+            .map((tc) => tc.args && resolvePath(tc.args, key))
+            .filter(
+              options.ignoreEmpty ? hasNonEmptyValue : (v) => v !== undefined,
+            );
+
         // Check args if specified - pass if ANY call to the tool has matching args
         // Supports dot-notation paths (e.g. "options.targetEntityType")
         if (expected.shouldBeCalled && wasCalled && expected.argsContain) {
-          const matchingCalls = toolCalls.filter(
-            (tc) => tc.toolName === expected.toolName,
-          );
-
-          const resolvePath = (
-            obj: Record<string, unknown>,
-            path: string,
-          ): unknown => {
-            const parts = path.split(".");
-            let current: unknown = obj;
-            for (const part of parts) {
-              if (current == null || typeof current !== "object")
-                return undefined;
-              current = (current as Record<string, unknown>)[part];
-            }
-            return current;
-          };
-
           for (const [key, expectedValue] of Object.entries(
             expected.argsContain,
           )) {
@@ -227,14 +239,29 @@ export class TestRunner implements ITestRunner {
             );
 
             if (!anyCallMatches) {
-              const actualValues = matchingCalls
-                .map((tc) => tc.args && resolvePath(tc.args, key))
-                .filter((v) => v !== undefined);
               results.push({
                 criterion: "toolArgsContain",
                 expected: `${expected.toolName}.${key} = ${JSON.stringify(expectedValue)}`,
-                actual: `${JSON.stringify(actualValues)} (across ${matchingCalls.length} calls)`,
+                actual: `${JSON.stringify(collectActualValues(key))} (across ${matchingCalls.length} calls)`,
                 message: `Tool arg mismatch for ${expected.toolName}.${key}`,
+                passed: false,
+              });
+            }
+          }
+        }
+
+        if (expected.shouldBeCalled && wasCalled && expected.argsAbsent) {
+          for (const key of expected.argsAbsent) {
+            const actualValues = collectActualValues(key, {
+              ignoreEmpty: true,
+            });
+
+            if (actualValues.length > 0) {
+              results.push({
+                criterion: "toolArgsAbsent",
+                expected: `${expected.toolName}.${key} absent`,
+                actual: `${JSON.stringify(actualValues)} (across ${matchingCalls.length} calls)`,
+                message: `Tool arg should be absent for ${expected.toolName}.${key}`,
                 passed: false,
               });
             }
