@@ -122,8 +122,8 @@ Brain models define what a brain IS — capabilities, interfaces, presets, ident
 | Package         | Purpose                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------ |
 | `brains/rover`  | Reference brain model. Personal knowledge + professional content. Published as docker image and npm package. |
-| `brains/ranger` | Internal brain model used by `apps/rizom-ai`. Public source, no published artifacts.                         |
-| `brains/relay`  | Internal brain model used by `apps/rizom-foundation`. Public source, no published artifacts.                 |
+| `brains/ranger` | Internal brain model used by the extracted `rizom.ai` app. Public source, no published artifacts.            |
+| `brains/relay`  | Internal brain model used by the extracted `rizom.foundation` app. Public source, no published artifacts.    |
 
 ## Packages
 
@@ -135,8 +135,4 @@ Standalone published packages.
 
 ## Apps (lightweight instance packages, NOT a workspace category)
 
-App instances are deployment configurations, not workspace members. Each directory is a `brain.yaml` + `.env` + optional `deploy/` bundle that the `brain` CLI loads at runtime.
-
-| Directory               | Purpose                                                                                 |
-| ----------------------- | --------------------------------------------------------------------------------------- |
-| `apps/rizom-foundation` | Manifesto / foundation site (relay model + app-local `src/site.ts` over `sites/rizom`). |
+Deployable Rizom app instances now live in standalone repos (`rizom.ai`, `rizom.foundation`, and `rizom.work`). Shared site/theme/model packages remain in this monorepo and are consumed by those app repos through the published runtime packages.
