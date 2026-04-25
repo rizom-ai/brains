@@ -1,12 +1,49 @@
-import type { JSX } from "preact";
-import {
-  Footer,
-  Header,
-  RizomFrame,
-  SideNav,
-  socialLinksToRizomLinks,
-  type RizomLayoutProps,
-} from "@brains/site-rizom";
+import type { ComponentChildren, JSX } from "preact";
+import { Footer, Header, RizomFrame, SideNav, type RizomLink } from "@rizom/ui";
+
+interface FoundationSiteInfo {
+  cta?: {
+    buttonLink: string;
+    buttonText: string;
+  };
+  copyright: string;
+  socialLinks?: Array<{
+    platform: string;
+    url: string;
+    label?: string;
+  }>;
+}
+
+interface FoundationLayoutProps {
+  sections: ComponentChildren[];
+  title: string;
+  description: string;
+  path: string;
+  siteInfo: FoundationSiteInfo;
+}
+
+const DEFAULT_SOCIAL_LABELS: Record<string, string> = {
+  github: "GitHub",
+  linkedin: "LinkedIn",
+  instagram: "Instagram",
+  email: "Email",
+  website: "Website",
+};
+
+function socialLinksToFoundationLinks(
+  siteInfo: FoundationSiteInfo,
+  allowedPlatforms?: string[],
+): RizomLink[] {
+  const allowed = allowedPlatforms ? new Set(allowedPlatforms) : undefined;
+
+  return (siteInfo.socialLinks ?? [])
+    .filter((link) => (allowed ? allowed.has(link.platform) : true))
+    .map((link) => ({
+      href: link.url,
+      label:
+        link.label ?? DEFAULT_SOCIAL_LABELS[link.platform] ?? link.platform,
+    }));
+}
 
 const NAV_LINKS = [
   { href: "#research", label: "Research" },
@@ -43,7 +80,7 @@ const SIDE_NAV_ITEMS = [
 export const FoundationLayout = ({
   sections,
   siteInfo,
-}: RizomLayoutProps): JSX.Element => (
+}: FoundationLayoutProps): JSX.Element => (
   <RizomFrame>
     <Header
       brandSuffix="foundation"
@@ -65,7 +102,7 @@ export const FoundationLayout = ({
       tagline={FOOTER_TAGLINE}
       links={[
         ...FOOTER_LINKS,
-        ...socialLinksToRizomLinks(siteInfo, ["linkedin"]),
+        ...socialLinksToFoundationLinks(siteInfo, ["linkedin"]),
       ]}
     />
   </RizomFrame>

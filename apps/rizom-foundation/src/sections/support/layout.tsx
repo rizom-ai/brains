@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Section } from "@brains/site-rizom";
+import { Section } from "@rizom/ui";
 import {
   FOUNDATION_SECTION_EYEBROW_ROW,
   FOUNDATION_SECTION_EYEBROW_RULE,
@@ -7,7 +7,20 @@ import {
   FOUNDATION_SECTION_HEADER,
   FOUNDATION_SECTION_HEADLINE,
 } from "../styles";
-import type { SupportContent } from "./schema";
+interface SupportCard {
+  tone: "amber" | "purple";
+  label: string;
+  headline: string;
+  body: string;
+  linkLabel: string;
+  linkHref: string;
+}
+
+interface SupportContent {
+  kicker: string;
+  headline: string;
+  cards: SupportCard[];
+}
 
 const CARD_BASE =
   "flex flex-col items-start gap-5 rounded-2xl border px-6 py-8 md:p-10 transition-[transform,border-color,box-shadow] duration-500 ease-[cubic-bezier(0.2,0.8,0.2,1)] hover:-translate-y-1";

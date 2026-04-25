@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@rizom/ui";
 import {
   FOUNDATION_OUTLINED_INDEX,
   FOUNDATION_SECTION_EYEBROW_ROW,
@@ -9,7 +9,26 @@ import {
   FOUNDATION_SECTION_HEADLINE,
   FOUNDATION_SECTION_SUBHEAD,
 } from "../styles";
-import type { EventsContent } from "./schema";
+interface EventItem {
+  num: string;
+  city: string;
+  description: string;
+  date: string;
+  anchor: string;
+  actionLabel: string;
+  href: string;
+}
+
+interface EventsContent {
+  kicker: string;
+  headline: string;
+  subhead: string;
+  events: EventItem[];
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+}
 
 export const EventsLayout = ({
   kicker,

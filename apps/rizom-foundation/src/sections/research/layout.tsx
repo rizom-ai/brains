@@ -1,5 +1,5 @@
 import type { JSX } from "preact";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@rizom/ui";
 import {
   FOUNDATION_OUTLINED_INDEX,
   FOUNDATION_SECTION_EYEBROW_ROW,
@@ -9,7 +9,22 @@ import {
   FOUNDATION_SECTION_HEADLINE,
   FOUNDATION_SECTION_SUBHEAD,
 } from "../styles";
-import type { ResearchContent } from "./schema";
+interface ResearchEssay {
+  num: string;
+  series: string;
+  title: string;
+  teaser: string;
+  href: string;
+}
+
+interface ResearchContent {
+  kicker: string;
+  headline: string;
+  subhead: string;
+  essays: ResearchEssay[];
+  ctaLabel: string;
+  ctaHref: string;
+}
 
 export const ResearchLayout = ({
   kicker,

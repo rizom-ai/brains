@@ -1,6 +1,4 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
-
-export const foundationRoutes: RouteDefinitionInput[] = [
+export const foundationRoutes = [
   {
     id: "home",
     path: "/",
@@ -13,11 +11,9 @@ export const foundationRoutes: RouteDefinitionInput[] = [
     sections: [
       {
         id: "hero",
-        template: "landing-page:foundation-hero",
+        template: "landing-page:hero",
         content: {},
       },
-      { id: "problem", template: "landing-page:problem", content: {} },
-      { id: "answer", template: "landing-page:answer", content: {} },
       {
         id: "pull-quote",
         template: "landing-page:pull-quote",

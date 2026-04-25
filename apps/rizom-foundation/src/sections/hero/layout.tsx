@@ -1,8 +1,24 @@
 import type { JSX } from "preact";
-import type { FoundationHeroContent } from "./schema";
-import { Button, Section } from "@brains/site-rizom";
+import { Button, Section } from "@rizom/ui";
 
-export const FoundationHeroLayout = ({
+interface HeroContent {
+  volumeLabel: string;
+  yearLabel: string;
+  metaLabel: string;
+  headline: string;
+  headlineTail: string;
+  tagline: string;
+  subtitle: string;
+  primaryCtaLabel: string;
+  primaryCtaHref: string;
+  secondaryCtaLabel: string;
+  secondaryCtaHref: string;
+  scrollLabel: string;
+  scrollHref: string;
+  colophon: string[];
+}
+
+export const HeroLayout = ({
   volumeLabel,
   yearLabel,
   metaLabel,
@@ -17,7 +33,7 @@ export const FoundationHeroLayout = ({
   scrollLabel,
   scrollHref,
   colophon,
-}: FoundationHeroContent): JSX.Element => {
+}: HeroContent): JSX.Element => {
   return (
     <Section
       id="hero"

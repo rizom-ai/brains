@@ -1,0 +1,53 @@
+import type { JSX } from "preact";
+import { Badge, Section } from "@rizom/ui";
+
+interface OwnershipFeature {
+  icon: string;
+  title: string;
+  body: string;
+}
+
+interface OwnershipContent {
+  badge: string;
+  headline: string;
+  features: OwnershipFeature[];
+}
+
+export const OwnershipLayout = ({
+  badge,
+  headline,
+  features,
+}: OwnershipContent): JSX.Element => {
+  return (
+    <Section id="ownership" className="reveal py-section">
+      <div className="flex flex-col items-start gap-9 md:flex-row md:gap-20">
+        <div className="w-full md:w-[45%]">
+          <Badge>{badge}</Badge>
+          <h2 className="font-display text-[28px] tracking-[-1px] leading-[1.1] md:text-display-md mt-4 md:mt-6">
+            {headline}
+          </h2>
+        </div>
+        <div className="flex w-full flex-col gap-8 md:w-[55%] md:pt-[60px]">
+          {features.map((row, i) => (
+            <div
+              key={row.icon + row.title}
+              className={`reveal reveal-delay-${i + 1} flex items-start gap-4 md:gap-5`}
+            >
+              <div className="shrink-0 min-w-[44px] md:min-w-[48px] h-11 md:h-12 flex items-center justify-center border border-accent rounded-lg font-nav text-[18px] md:text-heading-md font-bold text-accent">
+                {row.icon}
+              </div>
+              <div>
+                <div className="font-nav text-heading-sm md:text-heading-md font-bold mb-1.5">
+                  {row.title}
+                </div>
+                <p className="text-body-xs md:text-body-sm text-theme-muted">
+                  {row.body}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+};

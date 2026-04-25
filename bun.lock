@@ -28,6 +28,7 @@
       "name": "rizom-foundation",
       "dependencies": {
         "@rizom/brain": "workspace:*",
+        "@rizom/ui": "0.2.0-alpha.39",
         "preact": "^10.27.2",
       },
     },
