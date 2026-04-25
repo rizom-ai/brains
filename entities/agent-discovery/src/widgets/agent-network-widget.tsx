@@ -6,7 +6,6 @@ import {
   agentNetworkWidgetDataSchema,
   type AgentNetworkAgentRow,
   type AgentNetworkKind,
-  type AgentNetworkOverview,
   type AgentNetworkSkillRow,
   type AgentNetworkTagFilter,
 } from "../lib/agent-network-widget";
@@ -56,12 +55,10 @@ export const agentNetworkWidgetScript = `(function () {
       setActive(viewTabs, function (tab) {
         return tab.getAttribute("data-agent-network-view-tab") === view;
       });
-      if (view === "overview") {
-        showPanel("overview");
-      } else if (view === "agents") {
-        showPanel(activeKind());
-      } else {
+      if (view === "skills") {
         showPanel("skills");
+      } else {
+        showPanel(activeKind());
       }
     }
 
@@ -105,7 +102,7 @@ export const agentNetworkWidgetScript = `(function () {
       });
     });
 
-    setView("overview");
+    setView("agents");
     setTagFilter("all");
   });
 })();`;
@@ -153,51 +150,6 @@ function SkillListItem({ item }: { item: AgentNetworkSkillRow }): JSX.Element {
         </span>
       </div>
     </li>
-  );
-}
-
-function OverviewPanel({
-  overview,
-}: {
-  overview: AgentNetworkOverview;
-}): JSX.Element {
-  return (
-    <div
-      class="agent-network-panel is-active"
-      data-agent-network-panel="overview"
-    >
-      <div class="agent-network-overview">
-        <div class="agent-network-stat">
-          <span class="count">{overview.approvedAgents}</span>
-          <span class="label">approved agents</span>
-        </div>
-        <div class="agent-network-stat">
-          <span class="count">{overview.discoveredAgents}</span>
-          <span class="label">pending review</span>
-        </div>
-        <div class="agent-network-stat">
-          <span class="count">{overview.brainSkills}</span>
-          <span class="label">brain skills</span>
-        </div>
-        <div class="agent-network-stat">
-          <span class="count">{overview.networkSkills}</span>
-          <span class="label">network skills</span>
-        </div>
-      </div>
-      {overview.topTags.length > 0 && (
-        <div class="agent-network-overview-tags">
-          {overview.topTags.map((tag) => (
-            <span
-              key={tag.tag}
-              class={`agent-network-filter${tag.variant === "gap" ? " is-gap" : ""}`}
-            >
-              <span class="count">{tag.count}</span>
-              <span class="label">{tag.tag}</span>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }
 
@@ -292,7 +244,7 @@ export function AgentNetworkWidget({
   const widgetData = parsed.data;
 
   return (
-    <div data-agent-network-widget data-agent-network-view="overview">
+    <div data-agent-network-widget data-agent-network-view="agents">
       <div
         class="agent-network-view-tabs"
         role="tablist"
@@ -301,16 +253,8 @@ export function AgentNetworkWidget({
         <button
           class="agent-network-view-tab is-active"
           type="button"
-          data-agent-network-view-tab="overview"
-          aria-pressed="true"
-        >
-          Overview
-        </button>
-        <button
-          class="agent-network-view-tab"
-          type="button"
           data-agent-network-view-tab="agents"
-          aria-pressed="false"
+          aria-pressed="true"
         >
           Agents
           <span class="agent-network-view-count">
@@ -354,13 +298,12 @@ export function AgentNetworkWidget({
         })}
       </div>
 
-      <OverviewPanel overview={widgetData.overview} />
       {AGENT_NETWORK_KINDS.map((kind) => (
         <AgentPanel
           key={kind}
           kind={kind}
           items={widgetData.agents[kind]}
-          active={false}
+          active={kind === "all"}
         />
       ))}
       <SkillsPanel

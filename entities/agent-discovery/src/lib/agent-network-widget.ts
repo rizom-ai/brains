@@ -40,20 +40,11 @@ export const agentNetworkTagFilterSchema = z.object({
   variant: z.enum(["gap"]).optional(),
 });
 
-export const agentNetworkOverviewSchema = z.object({
-  approvedAgents: z.number(),
-  discoveredAgents: z.number(),
-  brainSkills: z.number(),
-  networkSkills: z.number(),
-  topTags: z.array(agentNetworkTagFilterSchema),
-});
-
 export const agentNetworkWidgetDataSchema = z.object({
   counts: z.object({
     agents: z.number(),
     skills: z.number(),
   }),
-  overview: agentNetworkOverviewSchema,
   agents: z.object({
     all: z.array(agentNetworkAgentRowSchema),
     professional: z.array(agentNetworkAgentRowSchema),
@@ -65,7 +56,6 @@ export const agentNetworkWidgetDataSchema = z.object({
 });
 
 export type AgentNetworkKind = (typeof AGENT_NETWORK_KINDS)[number];
-export type AgentNetworkOverview = z.infer<typeof agentNetworkOverviewSchema>;
 export type AgentNetworkAgentRow = z.infer<typeof agentNetworkAgentRowSchema>;
 export type AgentNetworkSkillRow = z.infer<typeof agentNetworkSkillRowSchema>;
 export type AgentNetworkTagFilter = z.infer<typeof agentNetworkTagFilterSchema>;
@@ -175,23 +165,6 @@ function buildSkillFilters(
   return filters;
 }
 
-function buildOverview(
-  agents: AgentNetworkAgentRow[],
-  skills: AgentNetworkSkillRow[],
-  filters: AgentNetworkTagFilter[],
-): AgentNetworkOverview {
-  return {
-    approvedAgents: agents.filter((agent) => agent.status === "approved")
-      .length,
-    discoveredAgents: agents.filter((agent) => agent.status === "discovered")
-      .length,
-    brainSkills: skills.filter((skill) => skill.sourceType === "brain").length,
-    networkSkills: skills.filter((skill) => skill.sourceType === "agent")
-      .length,
-    topTags: filters.slice(0, 4),
-  };
-}
-
 export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
 ): Promise<AgentNetworkWidgetData> {
@@ -260,7 +233,6 @@ export async function buildAgentNetworkWidgetData(
       agents: agentRows.length,
       skills: skillRows.length,
     },
-    overview: buildOverview(agentRows, skillRows, skillFilters),
     agents: {
       all: agentRows,
       professional: agentRows.filter((agent) => agent.kind === "professional"),

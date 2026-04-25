@@ -4,19 +4,12 @@ import { render } from "preact-render-to-string";
 import { AgentNetworkWidget } from "../src/widgets/agent-network-widget";
 
 describe("AgentNetworkWidget", () => {
-  it("renders overview, agents, and skills tabs in one widget", () => {
+  it("renders agents and skills tabs in one widget", () => {
     const html = render(
       <AgentNetworkWidget
         title="Agent Network"
         data={{
           counts: { agents: 2, skills: 3 },
-          overview: {
-            approvedAgents: 1,
-            discoveredAgents: 1,
-            brainSkills: 1,
-            networkSkills: 2,
-            topTags: [{ tag: "research", count: 2 }],
-          },
           agents: {
             all: [
               {
@@ -93,11 +86,9 @@ describe("AgentNetworkWidget", () => {
       />,
     );
 
-    expect(html).toContain('data-agent-network-view-tab="overview"');
+    expect(html).toContain('data-agent-network-view="agents"');
     expect(html).toContain('data-agent-network-view-tab="agents"');
     expect(html).toContain('data-agent-network-view-tab="skills"');
-    expect(html).toContain("approved agents");
-    expect(html).toContain("brain skills");
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
   });

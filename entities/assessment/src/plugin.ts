@@ -80,7 +80,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
           pluginId: this.id,
           title: "SWOT",
           section: "secondary",
-          priority: 16,
+          priority: 14,
           rendererName: "SwotWidget",
           component: SwotWidget,
           dataProvider: async () => {

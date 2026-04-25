@@ -56,7 +56,7 @@ const core = [
   "agents",
   "assessment",
   "cms",
-  "dashboard",
+  "dashboard-root",
   "mcp",
   "webserver",
   "discord",
@@ -64,7 +64,7 @@ const core = [
 ];
 
 const web = [
-  ...core,
+  ...core.filter((id) => id !== "dashboard-root"),
   "image",
   "dashboard",
   "blog",
@@ -97,13 +97,21 @@ export default defineBrain({
     full,
   },
 
-  evalDisable: ["discord", "webserver", "mcp", "analytics", "dashboard"],
+  evalDisable: [
+    "discord",
+    "webserver",
+    "mcp",
+    "analytics",
+    "dashboard",
+    "dashboard-root",
+  ],
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
+    ["dashboard-root", dashboardPlugin, { routePath: "/" }],
     ["blog", blogPlugin, {}],
     ["series", seriesPlugin, undefined],
     ["decks", decksPlugin, undefined],
