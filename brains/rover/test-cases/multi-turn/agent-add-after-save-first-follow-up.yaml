@@ -9,7 +9,7 @@ tags:
   - regression
 
 turns:
-  - userMessage: "Can you talk to mylittlephoney.com for me?"
+  - userMessage: "Can you talk to save-first-followup.example for me?"
     successCriteria:
       expectedTools:
         - toolName: a2a_call
@@ -21,7 +21,7 @@ turns:
         - "directory"
       responseNotContains:
         - "I called"
-        - "Calling mylittlephoney.com"
+        - "Calling save-first-followup.example"
 
   - userMessage: "Yes please"
     successCriteria:
@@ -30,7 +30,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "mylittlephoney.com"
+            url: "save-first-followup.example"
       responseNotContains:
         - "No URL or domain provided"
         - "needs either content or a prompt"

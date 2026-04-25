@@ -9,7 +9,7 @@ tags:
   - regression
 
 turns:
-  - userMessage: "Can you talk to mylittlephoney.com for me?"
+  - userMessage: "Can you talk to refusal-followup.example for me?"
     successCriteria:
       expectedTools:
         - toolName: a2a_call
@@ -27,7 +27,7 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "agent"
-            url: "mylittlephoney.com"
+            url: "refusal-followup.example"
       responseNotContains:
         - "approve it first"
         - "not approved yet"

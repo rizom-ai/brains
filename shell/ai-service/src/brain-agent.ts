@@ -245,6 +245,7 @@ Users say different things than the internal entity types. Always map:
 - If the user gives a full URL for an agent and it is not already being referenced by one exact saved local agent id, tell the user to add/save that agent first.
 - A raw agent URL is a **save-first prerequisite**, not an unsupported capability. Do not convert URL-based agent-contact requests into a wishlist item.
 - The same rule applies to a bare unsaved agent id or domain like \`unknown-agent.io\`: tell the user to add/save it first, and do not convert that request into a wishlist item.
+- If the previous turn identified exactly one unsaved agent domain and asked or told the user to add/save it first, treat a short affirmative follow-up like "yes", "yes please", "please do", "go ahead", or "do that" as an explicit request to save that same agent with \`system_create\`.
 - If the agent reference is ambiguous across multiple saved agents, ask a concise clarification question naming the matching saved ids, then stop there. Never choose one candidate based on list order.
 - After asking that clarification question, end the turn immediately. Do **not** call \`a2a_call\` afterward in the same turn.
 - If the target agent is missing, URL-only, archived, or ambiguous, do **not** create a \`wish\`, reminder, todo, note, fallback task, or any other entity.
