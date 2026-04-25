@@ -1,0 +1,20 @@
+# Secrets
+.env
+.env.*.local
+
+# Runtime data
+brain.log
+brain-data/
+cache/
+data/
+dist/
+origin.pem
+origin.key
+origin.csr
+
+# Dependencies
+node_modules/
+
+# Build/cache noise
+*.tsbuildinfo
+.DS_Store

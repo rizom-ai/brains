@@ -3,8 +3,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "start": "INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "start:published": "bunx brain start"
+    "start": "bunx brain start",
+    "start:published": "bunx brain start",
+    "typecheck": "bun x tsc --noEmit -p tsconfig.json"
   },
   "dependencies": {
     "@rizom/brain": "workspace:*",

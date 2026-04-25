@@ -8,7 +8,7 @@ A deployment instance of the [@brains/relay](../../brains/relay/) brain model �
 
 ## Setup
 
-This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
+This directory is a lightweight brain instance package — centered on `brain.yaml`, with conventional support files like `package.json`, `tsconfig.json`, `.env.example`, `.env.schema`, and optional deploy artifacts. The `brain` CLI from `@rizom/brain` reads `brain.yaml` from the current directory and runs the brain.
 
 ```bash
 # From the monorepo root, once
@@ -19,7 +19,10 @@ cp apps/rizom-foundation/.env.example apps/rizom-foundation/.env
 
 # Start
 cd apps/rizom-foundation
-bunx brain start
+bun run start
+
+# Check local app source
+bun run typecheck
 ```
 
 ## Local site source
@@ -48,6 +51,22 @@ This instance is now wired for directory-sync against:
 
 - `rizom-ai/rizom-foundation-content`
 
+## Standalone extraction shape
+
+The checked-in package stays monorepo-compatible for `@rizom/brain` via `workspace:*`, but the standalone extraction copy should pin the published runtime the same way `@rizom/ui` is pinned here:
+
+```json
+{
+  "dependencies": {
+    "@rizom/brain": "0.2.0-alpha.39",
+    "@rizom/ui": "0.2.0-alpha.39",
+    "preact": "^10.27.2"
+  }
+}
+```
+
+The app-local `.gitignore` is intentionally suitable for the extracted repo: secrets, runtime databases, generated site output, and the synced `brain-data/` checkout are local/runtime state.
+
 ## Deployment
 
-This instance currently stays in-repo for local content iteration. App-local `src/site.ts` and `src/site-content.ts` now match the extracted `rizom.ai` / `rizom.work` app shape, with `shared/theme-rizom` remaining the shared family theme.
+This instance currently stays in-repo for local content iteration. App-local `src/site.ts` and `src/site-content.ts` now match the extracted `rizom.ai` / `rizom.work` app shape, with `shared/theme-rizom` remaining the shared family theme. The remaining extraction follow-through is deploy scaffold convergence and a clean standalone boot/rebuild dry-run with real secrets.
