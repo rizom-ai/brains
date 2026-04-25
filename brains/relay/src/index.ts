@@ -20,6 +20,7 @@ import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
 import { promptPlugin } from "@brains/prompt";
 import { agentDiscovery } from "@brains/agent-discovery";
+import { assessment } from "@brains/assessment";
 import rizomSite from "@brains/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
 
@@ -56,6 +57,7 @@ const core = [
   "link",
   "topics",
   "agents",
+  "assessment",
   "cms",
   "dashboard",
   "mcp",
@@ -104,6 +106,7 @@ export default defineBrain({
     // presentation-heavy relay instances can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
+    ["assessment", assessment, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     [

@@ -1,8 +1,8 @@
 {
-  "name": "@brains/agent-discovery",
+  "name": "@brains/assessment",
   "private": true,
   "version": "0.2.0-alpha.39",
-  "description": "Agent discovery — brain+anchor contacts and skills",
+  "description": "Assessment outputs and capability-profile analysis",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -11,13 +11,12 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "lint": "eslint . --ext .ts,.tsx",
-    "lint:fix": "eslint . --ext .ts,.tsx --fix"
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "eval": "cd evals && bun run brain-eval"
   },
   "dependencies": {
     "@brains/dashboard": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/templates": "workspace:*",
-    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
     "preact": "^10.27.2"
   },

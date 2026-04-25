@@ -81,6 +81,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/topics`          | `topic`                        | Derived topic/tag entities            |
 | `entities/wishlist`        | `wish`                         | Unfulfilled requests / backlog        |
 | `entities/agent-discovery` | `agent`, `skill`               | Agent directory + discoverable skills |
+| `entities/assessment`      | `swot`                         | Derived assessment outputs            |
 
 ### Service plugins
 

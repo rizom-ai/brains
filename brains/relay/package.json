@@ -20,6 +20,7 @@
     "@brains/a2a": "workspace:*",
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
+    "@brains/assessment": "workspace:*",
     "@brains/cms": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",

@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
-import { SwotPlugin } from "../src";
+import { SwotAssessmentPlugin } from "../src";
 
-describe("SwotPlugin", () => {
+describe("SwotAssessmentPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
 
   beforeEach(() => {
@@ -10,31 +10,34 @@ describe("SwotPlugin", () => {
   });
 
   it("registers the swot entity type", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     expect(plugin.type).toBe("entity");
     expect(harness.getEntityService().getEntityTypes()).toContain("swot");
   });
 
-  it("does not register a standalone dashboard widget", async () => {
-    const plugin = new SwotPlugin();
-    const registrations: string[] = [];
+  it("registers the standalone SWOT dashboard widget", async () => {
+    const plugin = new SwotAssessmentPlugin();
+    const registrations: Array<{ id: string; rendererName: string }> = [];
 
     harness.subscribe("dashboard:register-widget", async (message) => {
-      const payload = message.payload as { id: string };
-      registrations.push(payload.id);
+      const payload = message.payload as { id: string; rendererName: string };
+      registrations.push({
+        id: payload.id,
+        rendererName: payload.rendererName,
+      });
       return { success: true };
     });
 
     await harness.installPlugin(plugin);
     await harness.sendMessage("system:plugins:ready", {}, "shell");
 
-    expect(registrations).toEqual([]);
+    expect(registrations).toEqual([{ id: "swot", rendererName: "SwotWidget" }]);
   });
 
   it("does not enqueue derivation before initial sync completes", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     const mockShell = harness.getMockShell();
     const origJobQueue = mockShell.getJobQueueService();
     const enqueued: string[] = [];
@@ -65,7 +68,7 @@ describe("SwotPlugin", () => {
   });
 
   it("coalesces first-run and follow-up derive requests through the job queue", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     const mockShell = harness.getMockShell();
     const origJobQueue = mockShell.getJobQueueService();
     const enqueued: Array<{
@@ -120,7 +123,7 @@ describe("SwotPlugin", () => {
   });
 
   it("enqueues derive on initial sync when swot is missing", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     const mockShell = harness.getMockShell();
     const origJobQueue = mockShell.getJobQueueService();
     const enqueued: Array<{ type: string; data: unknown }> = [];

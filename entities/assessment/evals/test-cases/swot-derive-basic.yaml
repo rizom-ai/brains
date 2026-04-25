@@ -1,4 +1,4 @@
-id: agent-discovery-swot-derive-basic
+id: assessment-swot-derive-basic
 name: Derive actionable SWOT from seeded agent directory data
 description: Exercises the real SWOT structured-generation path and expects operator-facing capability guidance rather than generic summary prose.
 type: plugin

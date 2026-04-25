@@ -4,14 +4,15 @@ import {
   swotEntitySchema,
   type SwotEntity,
   type SwotDerivationJobData,
-} from "../schemas/swot";
-import { SwotAdapter } from "../adapters/swot-adapter";
-import { SwotDerivationHandler } from "../handlers/swot-derivation-handler";
-import packageJson from "../../package.json";
+} from "./schemas/swot";
+import { SwotAdapter } from "./adapters/swot-adapter";
+import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
+import { SwotWidget } from "./widgets/swot-widget";
+import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
 
-export class SwotPlugin extends EntityPlugin<SwotEntity> {
+export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
   readonly entityType = "swot";
   readonly schema = swotEntitySchema;
   readonly adapter = swotAdapter;
@@ -71,6 +72,34 @@ export class SwotPlugin extends EntityPlugin<SwotEntity> {
       return { success: true };
     });
 
+    context.messaging.subscribe(
+      "system:plugins:ready",
+      async (): Promise<{ success: boolean }> => {
+        await context.messaging.send("dashboard:register-widget", {
+          id: "swot",
+          pluginId: this.id,
+          title: "SWOT",
+          section: "secondary",
+          priority: 16,
+          rendererName: "SwotWidget",
+          component: SwotWidget,
+          dataProvider: async () => {
+            const swot = await context.entityService.getEntity<SwotEntity>(
+              "swot",
+              "swot",
+            );
+
+            if (!swot) return { status: "generating" };
+
+            const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
+            return { status: "ready", ...frontmatter };
+          },
+        });
+
+        return { success: true };
+      },
+    );
+
     const handleEntityChange = async (message: {
       payload: { entityType: string };
     }): Promise<{ success: boolean }> => {
@@ -91,6 +120,6 @@ export class SwotPlugin extends EntityPlugin<SwotEntity> {
   }
 }
 
-export function swotPlugin(): Plugin {
-  return new SwotPlugin();
+export function swotAssessmentPlugin(): Plugin {
+  return new SwotAssessmentPlugin();
 }

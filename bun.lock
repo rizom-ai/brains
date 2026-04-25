@@ -60,6 +60,7 @@
         "@brains/a2a": "workspace:*",
         "@brains/agent-discovery": "workspace:*",
         "@brains/app": "workspace:*",
+        "@brains/assessment": "workspace:*",
         "@brains/cms": "workspace:*",
         "@brains/dashboard": "workspace:*",
         "@brains/decks": "workspace:*",
@@ -91,6 +92,7 @@
         "@brains/agent-discovery": "workspace:*",
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
+        "@brains/assessment": "workspace:*",
         "@brains/blog": "workspace:*",
         "@brains/cms": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
@@ -130,6 +132,24 @@
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",
+        "@brains/utils": "workspace:*",
+        "preact": "^10.27.2",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "bun-types": "latest",
+        "eslint": "^8.56.0",
+        "typescript": "^5.3.3",
+      },
+    },
+    "entities/assessment": {
+      "name": "@brains/assessment",
+      "version": "0.2.0-alpha.39",
+      "dependencies": {
+        "@brains/dashboard": "workspace:*",
+        "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
       },
@@ -1363,6 +1383,8 @@
     "@brains/analytics": ["@brains/analytics@workspace:plugins/analytics"],
 
     "@brains/app": ["@brains/app@workspace:shell/app"],
+
+    "@brains/assessment": ["@brains/assessment@workspace:entities/assessment"],
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
 

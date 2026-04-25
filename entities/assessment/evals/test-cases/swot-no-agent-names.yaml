@@ -1,4 +1,4 @@
-id: agent-discovery-swot-capability-language
+id: assessment-swot-capability-language
 name: SWOT uses capability language and clear next steps
 description: Checks that SWOT items stay grounded in capability areas, avoid agent-name storytelling, and explain what to do with the insight.
 type: plugin

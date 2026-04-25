@@ -11,14 +11,11 @@ describe("AgentNetworkWidget", () => {
         data={{
           counts: { agents: 2, skills: 3 },
           overview: {
-            status: "ready",
-            strengths: [{ title: "Research & writing", detail: "4 sources" }],
-            weaknesses: [{ title: "Data analysis", detail: "uncovered" }],
-            opportunities: [
-              { title: "Video production", detail: "agent-only" },
-            ],
-            threats: [{ title: "3 agents", detail: "pending review" }],
-            derivedAt: "2026-04-20T12:00:00.000Z",
+            approvedAgents: 1,
+            discoveredAgents: 1,
+            brainSkills: 1,
+            networkSkills: 2,
+            topTags: [{ tag: "research", count: 2 }],
           },
           agents: {
             all: [
@@ -99,8 +96,8 @@ describe("AgentNetworkWidget", () => {
     expect(html).toContain('data-agent-network-view-tab="overview"');
     expect(html).toContain('data-agent-network-view-tab="agents"');
     expect(html).toContain('data-agent-network-view-tab="skills"');
-    expect(html).toContain("data-swot-widget");
-    expect(html).toContain("Research &amp; writing");
+    expect(html).toContain("approved agents");
+    expect(html).toContain("brain skills");
     expect(html).toContain('data-agent-network-tag-filter="research"');
     expect(html).toContain(">review<");
   });

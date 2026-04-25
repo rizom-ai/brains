@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
-import type { AgentEntity, SkillEntity } from "../src";
-import { AgentAdapter, SkillAdapter } from "../src";
+import type {
+  TestAgentEntity as AgentEntity,
+  TestSkillEntity as SkillEntity,
+} from "./helpers";
+import { AgentAdapter, SkillAdapter } from "./helpers";
 import { buildSwotContextFromEntities } from "../src";
 
 const agentAdapter = new AgentAdapter();

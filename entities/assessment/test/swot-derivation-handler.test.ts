@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it } from "bun:test";
 import { resetPromptCache } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
-import { AgentAdapter, SkillAdapter, SwotAdapter, SwotPlugin } from "../src";
+import { SwotAdapter, SwotAssessmentPlugin } from "../src";
+import { AgentAdapter, SkillAdapter } from "./helpers";
 import { SwotDerivationHandler } from "../src/handlers/swot-derivation-handler";
 
 const agentAdapter = new AgentAdapter();
@@ -17,7 +18,7 @@ describe("SwotDerivationHandler", () => {
   });
 
   it("creates the swot entity from refined AI output", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     const shell = harness.getMockShell();
@@ -121,7 +122,7 @@ describe("SwotDerivationHandler", () => {
   });
 
   it("materializes the swot prompt entity when missing", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     const shell = harness.getMockShell();
@@ -187,33 +188,33 @@ describe("SwotDerivationHandler", () => {
 
     const derivationPromptEntity = await harness
       .getEntityService()
-      .getEntity("prompt", "agent-discovery-swot-derivation");
+      .getEntity("prompt", "assessment-swot-derivation");
     const refinementPromptEntity = await harness
       .getEntityService()
-      .getEntity("prompt", "agent-discovery-swot-refinement");
+      .getEntity("prompt", "assessment-swot-refinement");
 
     expect(derivationPromptEntity).not.toBeNull();
     expect(derivationPromptEntity?.content).toContain(
-      "agent-discovery:swot-derivation",
+      "assessment:swot-derivation",
     );
     expect(refinementPromptEntity).not.toBeNull();
     expect(refinementPromptEntity?.content).toContain(
-      "agent-discovery:swot-refinement",
+      "assessment:swot-refinement",
     );
   });
 
   it("materializes the swot prompt entity and uses prompt overrides", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
-      id: "agent-discovery-swot-derivation",
+      id: "assessment-swot-derivation",
       entityType: "prompt",
-      content: `---\ntitle: Agent Discovery Swot Derivation\ntarget: agent-discovery:swot-derivation\n---\nCustom SWOT prompt instructions.`,
+      content: `---\ntitle: Assessment Swot Derivation\ntarget: assessment:swot-derivation\n---\nCustom SWOT prompt instructions.`,
       metadata: {
-        title: "Agent Discovery Swot Derivation",
-        target: "agent-discovery:swot-derivation",
-        slug: "agent-discovery-swot-derivation",
+        title: "Assessment Swot Derivation",
+        target: "assessment:swot-derivation",
+        slug: "assessment-swot-derivation",
       },
     });
 
@@ -282,7 +283,7 @@ describe("SwotDerivationHandler", () => {
 
     const promptEntity = await harness
       .getEntityService()
-      .getEntity("prompt", "agent-discovery-swot-derivation");
+      .getEntity("prompt", "assessment-swot-derivation");
 
     expect(promptEntity).not.toBeNull();
     expect(receivedPrompts[0]).toContain("Custom SWOT prompt instructions.");
@@ -291,7 +292,7 @@ describe("SwotDerivationHandler", () => {
   });
 
   it("includes evidence cards with candidate matches and external skills in the draft prompt", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
@@ -410,7 +411,7 @@ describe("SwotDerivationHandler", () => {
   });
 
   it("includes exact allowed themes in the refinement prompt", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
@@ -494,7 +495,7 @@ describe("SwotDerivationHandler", () => {
   });
 
   it("updates the existing swot entity instead of creating a duplicate", async () => {
-    const plugin = new SwotPlugin();
+    const plugin = new SwotAssessmentPlugin();
     await harness.installPlugin(plugin);
 
     const shell = harness.getMockShell();

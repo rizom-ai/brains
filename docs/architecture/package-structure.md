@@ -73,6 +73,7 @@ Entity plugins define content types with schemas, adapters, generation handlers,
 | `entities/prompt`          | Editable AI prompts                  |
 | `entities/site-info`       | Site metadata                        |
 | `entities/agent-discovery` | Agent + skill entities (A2A)         |
+| `entities/assessment`      | Derived assessment outputs           |
 
 ## Plugins (ServicePlugin — tools + infrastructure)
 

@@ -10,7 +10,6 @@ import {
   type AgentNetworkSkillRow,
   type AgentNetworkTagFilter,
 } from "../lib/agent-network-widget";
-import { SwotWidget } from "./swot-widget";
 
 export const agentNetworkWidgetScript = `(function () {
   function setActive(nodes, match) {
@@ -167,7 +166,37 @@ function OverviewPanel({
       class="agent-network-panel is-active"
       data-agent-network-panel="overview"
     >
-      <SwotWidget data={overview} />
+      <div class="agent-network-overview">
+        <div class="agent-network-stat">
+          <span class="count">{overview.approvedAgents}</span>
+          <span class="label">approved agents</span>
+        </div>
+        <div class="agent-network-stat">
+          <span class="count">{overview.discoveredAgents}</span>
+          <span class="label">pending review</span>
+        </div>
+        <div class="agent-network-stat">
+          <span class="count">{overview.brainSkills}</span>
+          <span class="label">brain skills</span>
+        </div>
+        <div class="agent-network-stat">
+          <span class="count">{overview.networkSkills}</span>
+          <span class="label">network skills</span>
+        </div>
+      </div>
+      {overview.topTags.length > 0 && (
+        <div class="agent-network-overview-tags">
+          {overview.topTags.map((tag) => (
+            <span
+              key={tag.tag}
+              class={`agent-network-filter${tag.variant === "gap" ? " is-gap" : ""}`}
+            >
+              <span class="count">{tag.count}</span>
+              <span class="label">{tag.tag}</span>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

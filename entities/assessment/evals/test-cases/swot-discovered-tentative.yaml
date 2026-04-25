@@ -1,4 +1,4 @@
-id: agent-discovery-swot-status-as-confidence
+id: assessment-swot-status-as-confidence
 name: SWOT uses status as a confidence modifier, not the whole story
 description: Checks that approval status affects confidence and prioritization without turning the SWOT into a status report.
 type: plugin

@@ -1,7 +1,6 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { AgentAdapter } from "../adapters/agent-adapter";
-import { SwotAdapter } from "../adapters/swot-adapter";
 import {
   agentFrontmatterSchema,
   agentStatusSchema,
@@ -9,25 +8,13 @@ import {
   type AgentEntity,
 } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
-import type { SwotEntity } from "../schemas/swot";
-import { swotFrontmatterSchema } from "../schemas/swot";
 import { normalizeTags } from "./tag-vocabulary";
 
 const agentAdapter = new AgentAdapter();
-const swotAdapter = new SwotAdapter();
 
 const agentKindSchema = agentFrontmatterSchema.shape.kind;
 
 export const AGENT_NETWORK_KINDS = ["all", ...agentKindSchema.options] as const;
-
-export const agentNetworkOverviewSchema = z.discriminatedUnion("status", [
-  z.object({
-    status: z.literal("generating"),
-  }),
-  swotFrontmatterSchema.extend({
-    status: z.literal("ready"),
-  }),
-]);
 
 export const agentNetworkAgentRowSchema = z.object({
   id: z.string(),
@@ -51,6 +38,14 @@ export const agentNetworkTagFilterSchema = z.object({
   tag: z.string(),
   count: z.number(),
   variant: z.enum(["gap"]).optional(),
+});
+
+export const agentNetworkOverviewSchema = z.object({
+  approvedAgents: z.number(),
+  discoveredAgents: z.number(),
+  brainSkills: z.number(),
+  networkSkills: z.number(),
+  topTags: z.array(agentNetworkTagFilterSchema),
 });
 
 export const agentNetworkWidgetDataSchema = z.object({
@@ -180,25 +175,29 @@ function buildSkillFilters(
   return filters;
 }
 
-function buildOverview(swot: SwotEntity | null): AgentNetworkOverview {
-  if (!swot) {
-    return { status: "generating" };
-  }
-
-  const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
+function buildOverview(
+  agents: AgentNetworkAgentRow[],
+  skills: AgentNetworkSkillRow[],
+  filters: AgentNetworkTagFilter[],
+): AgentNetworkOverview {
   return {
-    status: "ready",
-    ...frontmatter,
+    approvedAgents: agents.filter((agent) => agent.status === "approved")
+      .length,
+    discoveredAgents: agents.filter((agent) => agent.status === "discovered")
+      .length,
+    brainSkills: skills.filter((skill) => skill.sourceType === "brain").length,
+    networkSkills: skills.filter((skill) => skill.sourceType === "agent")
+      .length,
+    topTags: filters.slice(0, 4),
   };
 }
 
 export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
 ): Promise<AgentNetworkWidgetData> {
-  const [agents, skills, swot] = await Promise.all([
+  const [agents, skills] = await Promise.all([
     context.entityService.listEntities<AgentEntity>("agent"),
     context.entityService.listEntities<SkillEntity>("skill"),
-    context.entityService.getEntity<SwotEntity>("swot", "swot"),
   ]);
 
   const parsedAgents = agents.map((entity) => ({
@@ -254,20 +253,21 @@ export async function buildAgentNetworkWidgetData(
   }
 
   skillRows.sort(compareSkillRows);
+  const skillFilters = buildSkillFilters(skillRows);
 
   return {
     counts: {
       agents: agentRows.length,
       skills: skillRows.length,
     },
-    overview: buildOverview(swot),
+    overview: buildOverview(agentRows, skillRows, skillFilters),
     agents: {
       all: agentRows,
       professional: agentRows.filter((agent) => agent.kind === "professional"),
       team: agentRows.filter((agent) => agent.kind === "team"),
       collective: agentRows.filter((agent) => agent.kind === "collective"),
     },
-    skillFilters: buildSkillFilters(skillRows),
+    skillFilters,
     skills: skillRows,
   };
 }

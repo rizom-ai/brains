@@ -70,18 +70,24 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
   const dependableNetworkSkills = contextData.approvedAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
+      agentDescription: agent.description,
+      agentNotes: agent.notes,
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
+      examples: skill.examples,
       signal: "dependable",
     })),
   );
   const tentativeNetworkSkills = contextData.discoveredAgents.flatMap((agent) =>
     agent.skills.map((skill) => ({
       agent: agent.brainName,
+      agentDescription: agent.description,
+      agentNotes: agent.notes,
       name: skill.name,
       description: skill.description,
       tags: skill.tags,
+      examples: skill.examples,
       signal: "tentative",
     })),
   );
@@ -91,6 +97,7 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
   ];
 
   return {
+    selfProfile: contextData.selfProfile,
     summary: {
       brainSkillCount: contextData.summary.brainSkillCount,
       uncoveredSkillCount: contextData.summary.uncoveredSkillCount,
@@ -102,6 +109,7 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
         name: skill.name,
         description: skill.description,
         tags: skill.tags,
+        examples: skill.examples,
         candidateMatches: allNetworkSkills
           .map((networkSkill) => {
             const matchSignals = getMatchSignals(skill, networkSkill);
@@ -139,12 +147,12 @@ function buildPromptContext(contextData: SwotContext): Record<string, unknown> {
 }
 
 function buildDraftPromptFallback(): string {
-  return `You are writing a concise SWOT analysis for a brain's agent directory.
+  return `You are writing a concise SWOT assessment for a brain's capability profile and agent network.
 
-Use ONLY the supplied directory context.
+Use ONLY the supplied capability-profile context.
 
 Goal:
-Produce actionable advice for the brain owner about their own skills and their network's skills.
+Produce actionable advice for the brain owner about their own profile, skills, and network's skills.
 Write like a trusted advisor, not like an internal diagnostics panel.
 
 Quadrant rules:
@@ -206,7 +214,7 @@ async function buildDraftPrompt(
 ): Promise<string> {
   const promptContext = buildPromptContext(contextData);
   const basePrompt = await context.prompts.resolve(
-    "agent-discovery:swot-derivation",
+    "assessment:swot-derivation",
     buildDraftPromptFallback(),
   );
 
@@ -258,7 +266,7 @@ async function buildRefinementPrompt(
     threats: draft.threats.map((item) => item.theme),
   };
   const basePrompt = await context.prompts.resolve(
-    "agent-discovery:swot-refinement",
+    "assessment:swot-refinement",
     buildRefinementPromptFallback(),
   );
 

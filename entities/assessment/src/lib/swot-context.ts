@@ -1,20 +1,25 @@
-import type { EntityPluginContext } from "@brains/plugins";
-import { AgentAdapter } from "../adapters/agent-adapter";
-import type { AgentEntity, AgentSkill } from "../schemas/agent";
-import type { SkillEntity } from "../schemas/skill";
-import { normalizeTags } from "./tag-vocabulary";
-
-const agentAdapter = new AgentAdapter();
+import type { BaseEntity, EntityPluginContext } from "@brains/plugins";
+import {
+  buildCapabilityProfiles,
+  buildCapabilityProfilesFromEntities,
+  normalizeTags,
+  type CapabilityProfile,
+  type CapabilityProfileSkill,
+} from "./capability-profile";
 
 export interface SwotContextSkill {
   name: string;
   description: string;
   tags: string[];
+  examples?: string[];
 }
 
 export interface SwotContextAgent {
   brainName: string;
+  name?: string;
   kind: "professional" | "team" | "collective";
+  description?: string;
+  notes?: string;
   skills: SwotContextSkill[];
 }
 
@@ -28,10 +33,16 @@ export interface SwotContext {
     singleSourceSkillCount: number;
     pendingReviewCount: number;
   };
+  selfProfile: {
+    name: string;
+    brainName?: string;
+    description?: string;
+  };
   brainSkills: Array<{
     name: string;
     description: string;
     tags: string[];
+    examples?: string[];
     approvedCoverageCount: number;
     approvedCoverageAgents: string[];
   }>;
@@ -49,29 +60,12 @@ function normalizeName(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
-function toContextSkill(
-  skill: AgentSkill | { name: string; description: string; tags: string[] },
-): SwotContextSkill {
+function toContextSkill(skill: CapabilityProfileSkill): SwotContextSkill {
   return {
     name: skill.name,
     description: skill.description,
     tags: normalizeTags(skill.tags),
-  };
-}
-
-function parseAgent(entity: AgentEntity): {
-  status: "approved" | "discovered";
-  brainName: string;
-  kind: "professional" | "team" | "collective";
-  skills: SwotContextSkill[];
-} {
-  const { frontmatter, body } = agentAdapter.parseEntity(entity);
-
-  return {
-    status: frontmatter.status,
-    brainName: frontmatter.brainName,
-    kind: frontmatter.kind,
-    skills: body.skills.map(toContextSkill),
+    ...(skill.examples && { examples: skill.examples }),
   };
 }
 
@@ -85,30 +79,38 @@ function skillOverlap(
   return left.tags.some((tag) => rightTags.has(tag));
 }
 
-export function buildSwotContextFromEntities(params: {
-  agents: AgentEntity[];
-  skills: SkillEntity[];
+function toContextAgent(profile: CapabilityProfile): SwotContextAgent {
+  return {
+    brainName: profile.brainName ?? profile.name,
+    name: profile.name,
+    kind: profile.kind ?? "professional",
+    ...(profile.description && { description: profile.description }),
+    ...(profile.notes && { notes: profile.notes }),
+    skills: profile.skills.map(toContextSkill),
+  };
+}
+
+export function buildSwotContextFromProfiles(params: {
+  selfProfile: CapabilityProfile;
+  networkProfiles: CapabilityProfile[];
 }): SwotContext {
-  const parsedAgents = params.agents.map(parseAgent);
-  const approvedAgents = parsedAgents.filter(
-    (agent) => agent.status === "approved",
+  const approvedProfiles = params.networkProfiles.filter(
+    (profile) => profile.status === "approved",
   );
-  const discoveredAgents = parsedAgents.filter(
-    (agent) => agent.status === "discovered",
+  const discoveredProfiles = params.networkProfiles.filter(
+    (profile) => profile.status === "discovered",
   );
 
-  const brainSkills = params.skills.map((skill) => ({
-    name: skill.metadata.name,
-    description: skill.metadata.description,
-    tags: normalizeTags(skill.metadata.tags),
-  }));
+  const brainSkills = params.selfProfile.skills.map(toContextSkill);
 
   const enrichedBrainSkills = brainSkills.map((brainSkill) => {
-    const approvedCoverageAgents = approvedAgents
-      .filter((agent) =>
-        agent.skills.some((agentSkill) => skillOverlap(brainSkill, agentSkill)),
+    const approvedCoverageAgents = approvedProfiles
+      .filter((profile) =>
+        profile.skills.some((agentSkill) =>
+          skillOverlap(brainSkill, agentSkill),
+        ),
       )
-      .map((agent) => agent.brainName);
+      .map((profile) => profile.brainName ?? profile.name);
 
     return {
       ...brainSkill,
@@ -128,16 +130,18 @@ export function buildSwotContextFromEntities(params: {
     const sourceKey = `brain:${normalizeName(skill.name)}`;
     for (const tag of skill.tags) addSource(tag, sourceKey);
   }
-  for (const agent of approvedAgents) {
-    const sourceKey = `agent:${normalizeName(agent.brainName)}`;
-    const agentTags = new Set(agent.skills.flatMap((skill) => skill.tags));
+  for (const profile of approvedProfiles) {
+    const sourceKey = `agent:${normalizeName(profile.brainName ?? profile.name)}`;
+    const agentTags = new Set(
+      profile.skills.flatMap((skill) => normalizeTags(skill.tags)),
+    );
     for (const tag of agentTags) addSource(tag, sourceKey);
   }
 
   const brainTagSet = new Set(brainSkills.flatMap((skill) => skill.tags));
   const approvedAgentTagSet = new Set(
-    approvedAgents.flatMap((agent) =>
-      agent.skills.flatMap((skill) => skill.tags),
+    approvedProfiles.flatMap((profile) =>
+      profile.skills.flatMap((skill) => normalizeTags(skill.tags)),
     ),
   );
 
@@ -151,8 +155,8 @@ export function buildSwotContextFromEntities(params: {
   return {
     summary: {
       brainSkillCount: brainSkills.length,
-      approvedAgentCount: approvedAgents.length,
-      discoveredAgentCount: discoveredAgents.length,
+      approvedAgentCount: approvedProfiles.length,
+      discoveredAgentCount: discoveredProfiles.length,
       approvedCoverageRatio:
         brainSkills.length === 0
           ? 0
@@ -161,19 +165,20 @@ export function buildSwotContextFromEntities(params: {
             ).length / brainSkills.length,
       uncoveredSkillCount: uncoveredSkills.length,
       singleSourceSkillCount: singleSourceSkills.length,
-      pendingReviewCount: discoveredAgents.length,
+      pendingReviewCount: discoveredProfiles.length,
+    },
+    selfProfile: {
+      name: params.selfProfile.name,
+      ...(params.selfProfile.brainName && {
+        brainName: params.selfProfile.brainName,
+      }),
+      ...(params.selfProfile.description && {
+        description: params.selfProfile.description,
+      }),
     },
     brainSkills: enrichedBrainSkills,
-    approvedAgents: approvedAgents.map((agent) => ({
-      brainName: agent.brainName,
-      kind: agent.kind,
-      skills: agent.skills,
-    })),
-    discoveredAgents: discoveredAgents.map((agent) => ({
-      brainName: agent.brainName,
-      kind: agent.kind,
-      skills: agent.skills,
-    })),
+    approvedAgents: approvedProfiles.map(toContextAgent),
+    discoveredAgents: discoveredProfiles.map(toContextAgent),
     hints: {
       strongestTags: Array.from(sourceCounts.entries())
         .map(([tag, sources]) => ({ tag, sourceCount: sources.size }))
@@ -191,13 +196,20 @@ export function buildSwotContextFromEntities(params: {
   };
 }
 
+export function buildSwotContextFromEntities(params: {
+  agents: BaseEntity[];
+  skills: BaseEntity[];
+}): SwotContext {
+  return buildSwotContextFromProfiles(
+    buildCapabilityProfilesFromEntities({
+      agents: params.agents,
+      skills: params.skills,
+    }),
+  );
+}
+
 export async function buildSwotContext(
   context: EntityPluginContext,
 ): Promise<SwotContext> {
-  const [agents, skills] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>("agent", { limit: 1000 }),
-    context.entityService.listEntities<SkillEntity>("skill", { limit: 1000 }),
-  ]);
-
-  return buildSwotContextFromEntities({ agents, skills });
+  return buildSwotContextFromProfiles(await buildCapabilityProfiles(context));
 }

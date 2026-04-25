@@ -1,4 +1,4 @@
-id: agent-discovery-swot-avoid-duplicate-capability-loops
+id: assessment-swot-avoid-duplicate-capability-loops
 name: SWOT avoids repeating the same capability pattern across quadrants
 description: Checks that the SWOT does not lazily restate one capability area in every quadrant unless the contrast is genuinely useful and operationally distinct.
 type: plugin

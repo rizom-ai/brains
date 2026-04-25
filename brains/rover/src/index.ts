@@ -26,6 +26,7 @@ import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
 import { agentDiscovery } from "@brains/agent-discovery";
+import { assessment } from "@brains/assessment";
 import defaultSite from "@brains/site-default";
 import defaultTheme from "@brains/theme-default";
 import { join } from "path";
@@ -53,6 +54,7 @@ const core = [
   "topics",
   "directory-sync",
   "agents",
+  "assessment",
   "cms",
   "dashboard",
   "mcp",
@@ -154,6 +156,7 @@ export default defineBrain({
     ["wishlist", wishlistPlugin, {}],
     ["stock-photo", stockPhotoPlugin, {}],
     ["agents", agentDiscovery, undefined],
+    ["assessment", assessment, undefined],
     [
       "directory-sync",
       directorySync,
