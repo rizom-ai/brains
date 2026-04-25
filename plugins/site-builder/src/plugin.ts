@@ -319,6 +319,10 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 
   protected override async getInstructions(): Promise<string | undefined> {
     const context = this.getContext();
+    const buildInstructions = `## Site Builder Actions
+- When the user asks to build, rebuild, publish, or build the website/site again, call \`site-builder_build-site\` immediately.
+- Every repeated build request requires a fresh \`site-builder_build-site\` call. Do not say a build was started, queued, or requested unless this turn invoked the tool.`;
+
     try {
       const siteInfo = await fetchSiteInfo(context.entityService);
       const parts = [
@@ -327,9 +331,9 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
         context.domain && `**Domain:** ${context.domain}`,
         context.siteUrl && `**URL:** ${context.siteUrl}`,
       ].filter(Boolean);
-      return `## Your Site\n${parts.join("\n")}`;
+      return `## Your Site\n${parts.join("\n")}\n\n${buildInstructions}`;
     } catch {
-      return undefined;
+      return buildInstructions;
     }
   }
 

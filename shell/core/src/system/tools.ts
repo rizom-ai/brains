@@ -620,10 +620,11 @@ export function createSystemTools(services: SystemServices): Tool[] {
           normalizedInput.content.trim().length === 0 &&
           normalizedInput.fields === undefined;
 
+        const agentStatus = entity.metadata["status"];
         if (
           input.confirmed &&
           entity.entityType === "agent" &&
-          entity.metadata["status"] === "discovered" &&
+          (agentStatus === "discovered" || agentStatus === "approved") &&
           ((!normalizedInput.content && !normalizedInput.fields) ||
             isBlankContentApprovalAttempt)
         ) {

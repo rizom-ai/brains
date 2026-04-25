@@ -25,6 +25,20 @@ describe("system_update tool", () => {
         updated: new Date("2026-03-10T10:00:00.000Z").toISOString(),
       },
       {
+        id: "approved-agent.io",
+        entityType: "agent",
+        content:
+          "---\nname: Approved Agent\nkind: professional\nurl: https://approved-agent.io/a2a\nstatus: approved\ndiscoveredAt: 2026-03-11T09:00:00.000Z\ndiscoveredVia: manual\n---\n",
+        contentHash: "hash-approved",
+        metadata: {
+          name: "Approved Agent",
+          url: "https://approved-agent.io/a2a",
+          status: "approved",
+        },
+        created: new Date("2026-03-11T09:00:00.000Z").toISOString(),
+        updated: new Date("2026-03-11T09:00:00.000Z").toISOString(),
+      },
+      {
         id: "pending-agent.io",
         entityType: "agent",
         content:
@@ -173,6 +187,22 @@ describe("system_update tool", () => {
     });
 
     const updated = services.getEntities().get("pending-agent.io");
+    expect(updated?.metadata["status"]).toBe("approved");
+  });
+
+  it("treats approval without fields as idempotent when the agent is already approved", async () => {
+    const result = await exec({
+      entityType: "agent",
+      id: "approved-agent.io",
+      confirmed: true,
+    });
+
+    expect(result).toEqual({
+      success: true,
+      data: { updated: "approved-agent.io" },
+    });
+
+    const updated = services.getEntities().get("approved-agent.io");
     expect(updated?.metadata["status"]).toBe("approved");
   });
 

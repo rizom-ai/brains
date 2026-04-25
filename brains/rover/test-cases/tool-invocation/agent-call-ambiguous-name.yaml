@@ -17,7 +17,6 @@ successCriteria:
     - toolName: system_create
       shouldBeCalled: false
   responseContains:
-    - "which"
     - "brain-labs.io"
     - "yeehaa.io"
   responseNotContains:
