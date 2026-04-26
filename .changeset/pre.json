@@ -125,6 +125,7 @@
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "rizom-brain-first-alpha",
+    "rizom-ecosystem-no-nested-anchor",
     "rizom-footer-ecosystem-polish",
     "rizom-ops-age-encrypted-pilot-secrets",
     "rizom-ops-bootstrap-commands",

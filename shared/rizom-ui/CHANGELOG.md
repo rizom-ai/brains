@@ -1,5 +1,11 @@
 # @rizom/ui
 
+## 0.2.0-alpha.41
+
+### Patch Changes
+
+- [`ffdbdd0`](https://github.com/rizom-ai/brains/commit/ffdbdd0c7a771d4382d9d3fa85d54f004211c2f4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix invalid HTML in `Ecosystem`: the linked card variant wrapped its content in an `<a>` and also nested another `<a>` for the link label. Render the inner label as a `<span>` so the outer card is the single click target.
+
 ## 0.2.0-alpha.40
 
 ### Patch Changes

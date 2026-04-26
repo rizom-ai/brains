@@ -1,5 +1,7 @@
 # @brains/ops
 
+## 0.2.0-alpha.41
+
 ## 0.2.0-alpha.40
 
 ## 0.2.0-alpha.39
