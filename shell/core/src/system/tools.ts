@@ -897,7 +897,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
     createTool(
       "system",
       "insights",
-      `Get content insights and analytics. Available types: ${services.insights.getTypes().join(", ")}.`,
+      `Get aggregate content insights and analytics only. For a general overview of actual content, use system_list instead. Available types: ${services.insights.getTypes().join(", ")}.`,
       insightsInputSchema,
       async (input) => {
         const data = await services.insights.get(input.type, entityService);
