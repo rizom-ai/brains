@@ -2,6 +2,7 @@ import type { JSX } from "preact";
 import { cn } from "./cn";
 import type { RizomBrandSuffix, RizomFooterTagline, RizomLink } from "./types";
 import { GUTTER } from "./Section";
+import { Wordmark } from "./Wordmark";
 
 const LINK_CLS =
   "text-label-md text-theme-light hover:text-theme transition-colors";
@@ -32,11 +33,7 @@ export const Footer = ({
   >
     <div className="flex flex-col items-center gap-1.5 md:items-start max-w-[560px]">
       <div className="flex flex-col items-center gap-1.5 md:flex-row md:items-center md:gap-3">
-        <span className="font-nav text-[15px]">
-          <span className="font-bold">rizom</span>
-          <span className="font-bold text-accent">.</span>
-          <span className="text-theme-muted">{brandSuffix}</span>
-        </span>
+        <Wordmark brandSuffix={brandSuffix} className="text-[16px]" />
         <span className="text-label-md text-theme-light">{metaLabel}</span>
       </div>
       {tagline ? (

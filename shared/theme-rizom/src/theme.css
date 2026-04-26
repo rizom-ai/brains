@@ -18,14 +18,11 @@
  * brand guide A2.
  */
 
-/* Font imports */
-@import url("https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,300..800;1,300..800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&display=swap");
+/* Font imports — shared across the rizom family. Profile selectors below
+   keep accent shade + canvas per site, but typography is unified. */
+@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300..700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
 
 /* Brand-specific Tailwind utilities — exposed via @theme inline so
    `bg-secondary`, `font-display`, `text-display-lg`, `py-section` etc.
@@ -36,6 +33,10 @@
   /* Secondary accent (purple companion to amber) */
   --color-secondary: var(--color-secondary);
   --color-secondary-dark: var(--color-secondary-dark);
+
+  /* Bright accent — the brighter golden amber used to differentiate
+     sibling sites in the ecosystem treatment (e.g. rizom.ai's dot). */
+  --color-accent-bright: var(--color-accent-bright);
 
   /* Brand fonts */
   --font-display: var(--font-display);
@@ -118,6 +119,7 @@
     --palette-amber: #e87722;
     --palette-amber-light: #ffa366;
     --palette-amber-glow: #ffd4a8;
+    --palette-amber-bright: #f3c14f;
 
     /* Purple spectrum */
     --palette-purple: #6b2fa0;
@@ -155,6 +157,7 @@
     /* Accent + secondary — default shade, overridden per variant below */
     --color-accent: var(--palette-amber);
     --color-accent-dark: var(--palette-amber-dark);
+    --color-accent-bright: var(--palette-amber-bright);
     --color-secondary: var(--palette-purple-light);
 
     /* Brand bridges — `brand` maps to accent so ui-library components
@@ -350,12 +353,14 @@
     --color-status-warning-bg: #713f12;
     --color-status-warning-text: #fde68a;
 
-    /* Typography */
-    --font-display: "Chakra Petch", system-ui, sans-serif;
+    /* Typography — shared across all profiles. Editorial × diagnostic
+       register: Fraunces for display, Barlow for body, JetBrains Mono for
+       labels and code/instrument readouts. */
+    --font-display: "Fraunces", Georgia, serif;
     --font-body: "Barlow", system-ui, sans-serif;
-    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
-    --font-nav: "Space Grotesk", system-ui, sans-serif;
-    --font-mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-label: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-nav: "Barlow", system-ui, sans-serif;
+    --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
     /* theme-base bridges (sans / heading / serif / mono) */
     --font-sans: var(--font-body);
@@ -366,7 +371,7 @@
        letter-spacing via Tailwind v4 modifiers (see theme-base @theme inline).
        Sizes derived from the Rizom marketing mocks; collapsed where similar. */
 
-    /* Display — large fluid headlines (font-display, Chakra Petch) */
+    /* Display — large fluid headlines (font-display, Fraunces) */
     --text-display-2xl: clamp(72px, 8vw, 120px); /* problem numbers   */
     --text-display-xl: clamp(52px, 8vw, 112px); /* mission headline  */
     --text-display-lg: clamp(40px, 5.5vw, 72px); /* hero h1           */
@@ -377,7 +382,7 @@
       36px
     ); /* product h3 / scales / quickstart h2 */
 
-    /* Heading — subsection labels (font-nav, Space Grotesk) */
+    /* Heading — subsection labels (font-nav, Barlow) */
     --text-heading-lg: 22px; /* eco-title              */
     --text-heading-md: 20px; /* feature/problem title  */
     --text-heading-sm: 17px; /* mobile feature/problem */
@@ -389,7 +394,7 @@
     --text-body-sm: 15px; /* feature/problem/quickstart desc */
     --text-body-xs: 14px; /* eco-desc / terminal / mobile body */
 
-    /* Label — small uppercase text (font-label, Plus Jakarta Sans) */
+    /* Label — small uppercase text (font-label, JetBrains Mono) */
     --text-label-md: 13px; /* badges / footer links / product tags */
     --text-label-sm: 12px; /* terminal labels / scroll cue         */
     --text-label-xs: 10px; /* product badges / side nav labels     */
@@ -520,8 +525,6 @@
     --color-secondary: var(--palette-purple-muted);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: "Chakra Petch", system-ui, sans-serif;
-    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
   }
 
   [data-theme-profile="editorial"] {
@@ -530,8 +533,6 @@
     --color-secondary: var(--palette-purple);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: "Fraunces", Georgia, serif;
-    --font-label: "Plus Jakarta Sans", system-ui, sans-serif;
 
     --rizom-btn-font-family: var(--font-display);
     --rizom-btn-font-style: italic;
@@ -585,8 +586,6 @@
     --color-secondary: var(--palette-purple-light);
     --color-brand: var(--color-accent);
     --color-brand-dark: var(--color-accent-dark);
-    --font-display: "Archivo", system-ui, sans-serif;
-    --font-label: "Space Grotesk", system-ui, sans-serif;
   }
 
   /* In light mode, ALL profiles use amber-dark */

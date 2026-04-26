@@ -23,6 +23,12 @@ export { SideNav } from "./SideNav";
 
 export { renderHighlightedText } from "./highlighted-text";
 
+export { Wordmark } from "./Wordmark";
+export type { WordmarkProps } from "./Wordmark";
+
+export { Ecosystem } from "./Ecosystem";
+export type { EcosystemCard, EcosystemContent } from "./Ecosystem";
+
 export type {
   ProductCardContent,
   ProductVariant,
