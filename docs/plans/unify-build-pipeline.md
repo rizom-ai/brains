@@ -208,7 +208,7 @@ becomes self-contained the same way the npm build is.
 Triggered by either:
 
 - A third consumer needing the same build steps (desktop app
-  per `desktop-app.md`, hosted rover per `standalone-apps.md`),
+  per `desktop-app.md`, hosted rover / app-repo deploy flows),
   OR
 - The next time someone has to debug a divergence between the
   two pipelines (e.g. CI fails on one but not the other, or
@@ -233,4 +233,4 @@ sync needed.
 
 - `docs/plans/external-plugin-api.md` — public library subpaths live in `build.ts`
 - `docs/plans/desktop-app.md` — potential third consumer
-- `docs/plans/standalone-apps.md` — potential fourth consumer
+- hosted rover / app-repo deploy flows — potential fourth consumer

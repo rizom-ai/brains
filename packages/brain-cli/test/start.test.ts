@@ -6,17 +6,25 @@ import { EventEmitter } from "events";
 import { resolveRunnerType, start } from "../src/commands/start";
 import { registerModel, resetModels } from "../src/lib/model-registry";
 
+function createTestBrainDir(): string {
+  const dir = join(
+    import.meta.dir,
+    "tmp",
+    `brain-start-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+  );
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, "brain.yaml"), "brain: rover\n");
+  return dir;
+}
+
 describe("brain start", () => {
   it("should detect brain.yaml in target directory", () => {
-    const appDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "apps",
-      "rizom-foundation",
-    );
-    expect(existsSync(join(appDir, "brain.yaml"))).toBe(true);
+    const appDir = createTestBrainDir();
+    try {
+      expect(existsSync(join(appDir, "brain.yaml"))).toBe(true);
+    } finally {
+      rmSync(appDir, { recursive: true, force: true });
+    }
   });
 
   it("should detect monorepo context by checking for bun.lock", () => {
@@ -31,14 +39,7 @@ describe("brain start", () => {
 
 describe("start subprocess lifecycle", () => {
   it("forwards SIGINT to the spawned runner and cleans up listeners", async () => {
-    const appDir = join(
-      import.meta.dir,
-      "..",
-      "..",
-      "..",
-      "apps",
-      "rizom-foundation",
-    );
+    const appDir = createTestBrainDir();
 
     const fakeProcess = new EventEmitter() as EventEmitter & {
       env: NodeJS.ProcessEnv;
@@ -60,33 +61,37 @@ describe("start subprocess lifecycle", () => {
 
     const spawnImpl = mock(() => child as never);
 
-    const resultPromise = start(
-      appDir,
-      { chat: false },
-      {
-        spawnImpl,
-        processImpl: fakeProcess as unknown as Pick<
-          NodeJS.Process,
-          "env" | "on" | "removeListener"
-        >,
-      },
-    );
+    try {
+      const resultPromise = start(
+        appDir,
+        { chat: false },
+        {
+          spawnImpl,
+          processImpl: fakeProcess as unknown as Pick<
+            NodeJS.Process,
+            "env" | "on" | "removeListener"
+          >,
+        },
+      );
 
-    expect(fakeProcess.listenerCount("SIGINT")).toBe(1);
-    expect(fakeProcess.listenerCount("SIGTERM")).toBe(1);
-    expect(fakeProcess.listenerCount("exit")).toBe(1);
+      expect(fakeProcess.listenerCount("SIGINT")).toBe(1);
+      expect(fakeProcess.listenerCount("SIGTERM")).toBe(1);
+      expect(fakeProcess.listenerCount("exit")).toBe(1);
 
-    fakeProcess.emit("SIGINT");
-    expect(child.kill).toHaveBeenCalledWith("SIGINT");
+      fakeProcess.emit("SIGINT");
+      expect(child.kill).toHaveBeenCalledWith("SIGINT");
 
-    child.emit("close", null, "SIGINT");
-    const result = await resultPromise;
+      child.emit("close", null, "SIGINT");
+      const result = await resultPromise;
 
-    expect(result.success).toBe(true);
-    expect(fakeProcess.listenerCount("SIGINT")).toBe(0);
-    expect(fakeProcess.listenerCount("SIGTERM")).toBe(0);
-    expect(fakeProcess.listenerCount("exit")).toBe(0);
-    expect(spawnImpl).toHaveBeenCalled();
+      expect(result.success).toBe(true);
+      expect(fakeProcess.listenerCount("SIGINT")).toBe(0);
+      expect(fakeProcess.listenerCount("SIGTERM")).toBe(0);
+      expect(fakeProcess.listenerCount("exit")).toBe(0);
+      expect(spawnImpl).toHaveBeenCalled();
+    } finally {
+      rmSync(appDir, { recursive: true, force: true });
+    }
   });
 });
 

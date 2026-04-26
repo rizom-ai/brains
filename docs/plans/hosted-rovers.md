@@ -77,7 +77,7 @@ Before treating this as the production destination, validate:
 ## Dependencies
 
 - `docs/plans/rover-pilot.md`
-- `docs/plans/standalone-apps.md`
+- current published-package / standalone app repo deploy contract
 - `docs/plans/monetization.md`
 
 ## Done when

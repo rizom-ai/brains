@@ -28,5 +28,3 @@ The architecture/extraction work is done for the current target:
 ## Related
 
 - `docs/plans/rizom-site-tbd.md`
-- `docs/plans/rizom-theme-hardening.md`
-- `docs/plans/standalone-apps.md`

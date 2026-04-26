@@ -83,7 +83,7 @@ Before calling this done, ship:
 
 ## Dependencies
 
-- `docs/plans/standalone-apps.md` (published-package contract)
+- current published `@rizom/brain` package contract
 
 ## Done when
 

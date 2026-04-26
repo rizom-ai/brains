@@ -8,7 +8,7 @@ Proposed.
 
 Rover has three presets (`core`, `default`, `full`) but no locally bootable instance for any of them. Developers iterating on rover code currently rely on `apps/*` wrappers, which carry deploy config and instance-specific concerns orthogonal to the model.
 
-The goal is fast local iteration against each rover preset, not release testing. Release testing lives in `standalone-apps.md` (clean-machine install path, `brain init` scaffold correctness).
+The goal is fast local iteration against each rover preset, not release testing. Release testing covers the published `@rizom/brain` install path, clean-machine install path, and `brain init` scaffold correctness.
 
 ## Design
 
@@ -86,7 +86,7 @@ Separate data dirs per preset because presets register different entity types. A
 
 ## Non-goals
 
-- Testing the published `@rizom/brain` install path — that's `standalone-apps.md`.
+- Testing the published `@rizom/brain` install path or `brain init` scaffold output — those are release-gate concerns, not local preset fixtures.
 - Testing `brain init --model rover` scaffold output — separate concern.
 - Replacing `apps/*` — these are different use cases.
 - Automated test runs — these are dev iteration targets, not CI tests.

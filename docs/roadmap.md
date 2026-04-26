@@ -63,7 +63,6 @@ Focus areas:
 Plans:
 
 - [rizom-site-composition.md](./plans/rizom-site-composition.md)
-- [rizom-theme-hardening.md](./plans/rizom-theme-hardening.md)
 - [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
 
 ### 2. Documentation phase 2
@@ -107,7 +106,7 @@ Tracked but not sequenced yet:
 - hosted rovers, multi-user infra, monetization
 - desktop app, chat interface SDK, atproto integration
 - local AI runtime (sidecar for embeddings + generation)
-- content-insights dashboard follow-up, entity-history diff/restore follow-up, topic auto-merge cleanup
+- topic auto-merge cleanup
 - memory reduction, parallel eval workers, unify build pipeline
 - relay presets, a2a authentication
 

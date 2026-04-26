@@ -603,11 +603,11 @@ Remaining immediate work:
 
 This plan is the **step before** `docs/plans/hosted-rovers.md`. The hosted-rover plan's validity depends on operational data from real users; the pilot generates that data.
 
-This plan depends on the standalone repo deploy model described in `docs/plans/standalone-apps.md`. Remaining pilot-specific work is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
+This plan depends on the current standalone repo deploy model: published `@rizom/brain` / `@rizom/ui` packages consumed by repo-local brain apps, with app-specific deploy/config in the app repo. Remaining pilot-specific work is a real `rizom.ai` subdomain rover deploy plus live operator use of the monorepo-owned `brains-ops` workflow.
 
 This plan **does not block** hosted-rover work from starting; it runs in parallel. But concrete architecture decisions for hosted-rover should wait on cohort 1-2 evidence.
 
 ## Related
 
 - `docs/plans/hosted-rovers.md` — long-term destination
-- `docs/plans/standalone-apps.md` — the per-user standalone deploy model this plan builds on
+- `docs/plans/rizom-site-composition.md` — current standalone app repo and published-package boundary

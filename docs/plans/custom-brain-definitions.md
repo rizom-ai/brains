@@ -80,5 +80,5 @@ Most users should never need `brain.ts`. It is the escape hatch when YAML is not
 
 ## Dependencies
 
-- `docs/plans/standalone-apps.md` (published-package contract)
+- current published `@rizom/brain` package contract
 - `docs/plans/external-plugin-api.md`
