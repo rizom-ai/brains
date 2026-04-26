@@ -62,12 +62,8 @@ const Card = ({ card }: { card: EcosystemCard }): JSX.Element => {
       <p className={TAGLINE_CLS}>{card.body}</p>
       {isHere ? (
         <span className={HERE_CLS}>{card.linkLabel}</span>
-      ) : isDisabled ? (
-        <span className={LINK_CLS}>{card.linkLabel}</span>
       ) : (
-        <a href={card.linkHref} className={LINK_CLS}>
-          {card.linkLabel}
-        </a>
+        <span className={LINK_CLS}>{card.linkLabel}</span>
       )}
     </>
   );
