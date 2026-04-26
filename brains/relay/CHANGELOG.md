@@ -1,5 +1,33 @@
 # @brains/relay
 
+## 0.2.0-alpha.42
+
+### Patch Changes
+
+- Updated dependencies [[`2d49d3e`](https://github.com/rizom-ai/brains/commit/2d49d3e2350e9f46b76cc056f0ee730e6215cd4d)]:
+  - @brains/theme-rizom@0.2.0-alpha.42
+  - @brains/agent-discovery@0.2.0-alpha.42
+  - @brains/assessment@0.2.0-alpha.42
+  - @brains/decks@0.2.0-alpha.42
+  - @brains/image-plugin@0.2.0-alpha.42
+  - @brains/link@0.2.0-alpha.42
+  - @brains/note@0.2.0-alpha.42
+  - @brains/prompt@0.2.0-alpha.42
+  - @brains/site-info@0.2.0-alpha.42
+  - @brains/summary@0.2.0-alpha.42
+  - @brains/topics@0.2.0-alpha.42
+  - @brains/a2a@0.2.0-alpha.42
+  - @brains/discord@0.2.0-alpha.42
+  - @brains/mcp@0.2.0-alpha.42
+  - @brains/webserver@0.2.0-alpha.42
+  - @brains/cms@0.2.0-alpha.42
+  - @brains/dashboard@0.2.0-alpha.42
+  - @brains/directory-sync@0.2.0-alpha.42
+  - @brains/site-builder-plugin@0.2.0-alpha.42
+  - @brains/site-content@0.2.0-alpha.42
+  - @brains/app@0.2.0-alpha.42
+  - @brains/site-rizom@0.2.0-alpha.42
+
 ## 0.2.0-alpha.41
 
 ### Patch Changes

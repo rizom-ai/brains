@@ -1,5 +1,14 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.42
+
+### Patch Changes
+
+- [`2d49d3e`](https://github.com/rizom-ai/brains/commit/2d49d3e2350e9f46b76cc056f0ee730e6215cd4d) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add a light-mode value for `--color-accent-bright` so the rizom.ai role color in `Ecosystem` cards (and any other consumer of the bright golden amber) keeps enough contrast on the paper background. Maps to `--palette-amber` in light mode, preserving the "ai is the brighter amber than work" relationship while staying readable.
+
+- Updated dependencies []:
+  - @brains/theme-base@0.2.0-alpha.42
+
 ## 0.2.0-alpha.41
 
 ### Patch Changes

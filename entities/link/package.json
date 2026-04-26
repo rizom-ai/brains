@@ -1,7 +1,7 @@
 {
   "name": "@brains/link",
   "private": true,
-  "version": "0.2.0-alpha.41",
+  "version": "0.2.0-alpha.42",
   "description": "Web content capture plugin with AI-powered extraction and structured storage",
   "type": "module",
   "exports": {

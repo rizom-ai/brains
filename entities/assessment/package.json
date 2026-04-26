@@ -1,7 +1,7 @@
 {
   "name": "@brains/assessment",
   "private": true,
-  "version": "0.2.0-alpha.41",
+  "version": "0.2.0-alpha.42",
   "description": "Assessment outputs and capability-profile analysis",
   "type": "module",
   "exports": {
