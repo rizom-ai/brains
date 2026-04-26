@@ -441,6 +441,7 @@
     /* All variants collapse to amber-dark in light mode for contrast (brand guide A2) */
     --color-accent: var(--palette-amber-dark);
     --color-accent-dark: #8b3a05;
+    --color-accent-bright: var(--palette-amber);
     --color-secondary: var(--palette-purple);
 
     --color-brand: var(--color-accent);
