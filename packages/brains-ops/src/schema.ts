@@ -25,6 +25,7 @@ export const pilotSchema = z
     preset: presetSchema,
     aiApiKey: secretNameSchema,
     gitSyncToken: secretNameSchema,
+    contentRepoAdminToken: secretNameSchema,
     mcpAuthToken: secretNameSchema,
     agePublicKey: agePublicKeySchema,
   })

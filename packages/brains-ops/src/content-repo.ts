@@ -24,6 +24,7 @@ export interface ContentRepoSyncOptions {
         token: string | undefined,
       ) => string | undefined)
     | undefined;
+  contentRepoAdminTokenSelector?: string | undefined;
 }
 
 const STALE_ANCHOR_PROFILE_MARKERS = [
@@ -44,7 +45,18 @@ export async function syncUserContentRepo(
 
   const env = options.env ?? process.env;
   const localEnvValues = readLocalEnvValues(rootDir);
-  const gitSyncToken = resolveGitSyncToken(env, localEnvValues);
+  const gitSyncToken = resolveSecretToken(
+    env,
+    localEnvValues,
+    user.effectiveGitSyncToken,
+  );
+  const contentRepoAdminToken = options.contentRepoAdminTokenSelector
+    ? resolveSecretToken(
+        env,
+        localEnvValues,
+        options.contentRepoAdminTokenSelector,
+      )
+    : undefined;
   const remoteUrl =
     options.contentRepoRemoteResolver?.(user, githubOrg, gitSyncToken) ??
     buildGitHubRemoteUrl(githubOrg, user.contentRepo, gitSyncToken);
@@ -60,11 +72,17 @@ export async function syncUserContentRepo(
   const fetchImpl = options.fetchImpl ?? fetch;
 
   try {
-    if (!options.contentRepoRemoteResolver && gitSyncToken) {
+    if (!options.contentRepoRemoteResolver) {
+      if (!contentRepoAdminToken) {
+        throw new Error(
+          `${options.contentRepoAdminTokenSelector ?? "CONTENT_REPO_ADMIN_TOKEN"} is required to check or create content repos`,
+        );
+      }
+
       await ensureGitHubRepoExists(
         githubOrg,
         user.contentRepo,
-        gitSyncToken,
+        contentRepoAdminToken,
         fetchImpl,
       );
     }
@@ -135,11 +153,12 @@ function isStaleAnchorProfile(content: string): boolean {
   );
 }
 
-function resolveGitSyncToken(
+function resolveSecretToken(
   env: NodeJS.ProcessEnv,
   localEnvValues: Record<string, string>,
+  selector: string,
 ): string | undefined {
-  return resolveLocalEnvValue("GIT_SYNC_TOKEN", env, localEnvValues);
+  return resolveLocalEnvValue(selector, env, localEnvValues);
 }
 
 function buildGitHubRemoteUrl(

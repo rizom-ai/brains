@@ -134,6 +134,9 @@ Any helper automation for this flow lives in **`brains-ops`** as a separate oper
 - `domainSuffix` — appended to handle for public FQDN
 - `preset` — default fleet preset, from enum `core | default | pro`
 - `aiApiKey` — secret name for the shared AI key (not the key itself)
+- `gitSyncToken` — secret selector for runtime directory-sync git pull/push
+- `contentRepoAdminToken` — secret selector for operator-side GitHub content repo check/create
+- `mcpAuthToken` — secret selector for MCP authentication
 
 `users/*.yaml` is the human-edited desired state. Minimum fields:
 
@@ -213,6 +216,9 @@ contentRepoPrefix: rover-
 domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
+gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
+mcpAuthToken: MCP_AUTH_TOKEN
 ```
 
 Rules:
@@ -224,6 +230,8 @@ Rules:
 - `contentRepoPrefix` and `domainSuffix` are non-empty strings
 - `preset` is a required fleet default preset from enum `core | default | pro`
 - `aiApiKey` is a required secret name (not the secret itself)
+- `gitSyncToken` and `contentRepoAdminToken` are required and must represent different permission boundaries: runtime content sync vs. operator repo administration
+- `mcpAuthToken` is a required secret name
 
 `users/<handle>.yaml`
 
@@ -341,7 +349,8 @@ Delivery contract:
 - `brains-ops onboard <repo> <handle>`
   - input: one existing handle from `users/<handle>.yaml`
   - resolves effective version, preset, and AI key from user/cohort/pilot config
-  - creates content repo in GitHub org if missing
+  - creates content repo in GitHub org if missing using `contentRepoAdminToken`
+  - seeds content repo over git using the user's effective `gitSyncToken`
   - provisions Hetzner server if missing
   - configures DNS (`<handle>.rizom.ai`) in existing Cloudflare zone
   - generates `users/<handle>/brain.yaml` and `users/<handle>/.env`
@@ -531,13 +540,13 @@ That breaks in the common case where:
 
 Those are different permission boundaries and should be modeled separately.
 
-### Remaining upstream fix
+### Fixed
 
-1. Split GitHub token responsibilities:
-   - dedicated repo-admin token for creating `rover-<handle>-content`
-   - existing sync token for runtime content sync
-2. Keep a backward-compatible fallback so older pilot repos continue to work during migration.
-3. Add regression coverage for the token split.
+`brains-ops` now models these token boundaries separately:
+
+- `contentRepoAdminToken` is required in `pilot.yaml` and is used only for GitHub repo check/create.
+- `gitSyncToken` remains the runtime directory-sync git token and is used for content repo clone/push.
+- Missing admin token values fail before GitHub API calls, with regression coverage for that path.
 
 ## Implementation checklist (one-time setup)
 
@@ -562,7 +571,7 @@ Those are different permission boundaries and should be modeled separately.
 - [x] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [x] Scaffold shared pilot deploy env contract and helper scripts in `brains-ops init`
 - [x] Add upstream `brains-ops` user scaffolding so operators do not hand-author new-user files
-- [ ] Split content-repo creation token from runtime directory-sync token in `brains-ops`
+- [x] Split content-repo creation token from runtime directory-sync token in `brains-ops`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
 - [ ] Provision cohort 1 gradually
@@ -586,10 +595,9 @@ Completed proof:
 
 Remaining immediate work:
 
-1. Land the `brains-ops` token separation follow-through.
-2. Set the shared AI spend cap before onboarding any non-throwaway user.
-3. Pick cohort 1 only after the spend-cap decision is complete.
-4. Provision cohort 1 gradually.
+1. Set the shared AI spend cap before onboarding any non-throwaway user.
+2. Pick cohort 1 only after the spend-cap decision is complete.
+3. Provision cohort 1 gradually.
 
 ## Relationship to other plans
 

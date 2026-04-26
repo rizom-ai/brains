@@ -7,7 +7,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 - `brains-ops init <repo>`
 - `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health`, unauthenticated `/mcp`)
 - `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
-- `brains-ops onboard <repo> <handle>`
+- `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo using `CONTENT_REPO_ADMIN_TOKEN` for GitHub repo administration and `GIT_SYNC_TOKEN` for git clone/push
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`
 - `brains-ops cert:bootstrap <repo>`

@@ -368,6 +368,9 @@ describe("initPilotRepo", () => {
     expect(pilotYaml).toContain("contentRepoPrefix: rover-");
     expect(pilotYaml).toContain("aiApiKey: AI_API_KEY");
     expect(pilotYaml).toContain("gitSyncToken: GIT_SYNC_TOKEN");
+    expect(pilotYaml).toContain(
+      "contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN",
+    );
     expect(pilotYaml).toContain("mcpAuthToken: MCP_AUTH_TOKEN");
     expect(pilotYaml).toContain(
       "agePublicKey: age1replace-with-your-public-key",
@@ -883,7 +886,7 @@ describe("initPilotRepo", () => {
     await mkdir(repo, { recursive: true });
     await writeFile(
       join(repo, "pilot.yaml"),
-      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\nmcpAuthToken: CUSTOM_MCP_AUTH_TOKEN\nagePublicKey: age1custompublickey\n",
+      "schemaVersion: 1\nbrainVersion: 0.1.1-alpha.99\nmodel: rover\ngithubOrg: custom-org\ncontentRepoPrefix: rover-\ndomainSuffix: .rizom.ai\npreset: core\naiApiKey: CUSTOM_AI_API_KEY\ngitSyncToken: CUSTOM_GIT_SYNC_TOKEN\ncontentRepoAdminToken: CUSTOM_CONTENT_REPO_ADMIN_TOKEN\nmcpAuthToken: CUSTOM_MCP_AUTH_TOKEN\nagePublicKey: age1custompublickey\n",
     );
 
     await initPilotRepo(repo);

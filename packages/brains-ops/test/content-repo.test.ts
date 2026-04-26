@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { execFileSync } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 
@@ -62,6 +62,23 @@ function readRemoteFile(remotePath: string, filePath: string): string {
   );
 }
 
+function getAuthorization(headers: RequestInit["headers"]): string | undefined {
+  if (!headers) {
+    return undefined;
+  }
+
+  if (headers instanceof Headers) {
+    return headers.get("Authorization") ?? undefined;
+  }
+
+  if (Array.isArray(headers)) {
+    return headers.find(([key]) => key === "Authorization")?.[1];
+  }
+
+  const value = headers["Authorization"];
+  return typeof value === "string" ? value : undefined;
+}
+
 const placeholderAnchorProfile = `---
 kind: professional
 name: Your Name Here
@@ -81,6 +98,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,
@@ -100,20 +118,29 @@ anchorProfile:
 } satisfies Record<string, string>;
 
 describe("content repo seeding", () => {
-  it("creates a missing GitHub content repo before seeding it", async () => {
+  it("creates a missing GitHub content repo with the admin token before seeding it with the sync token", async () => {
     const root = await createPilotRepo(baseFiles);
-    const fetchCalls: Array<{ url: string; method: string }> = [];
+    const fetchCalls: Array<{
+      url: string;
+      method: string;
+      authorization: string | undefined;
+    }> = [];
     const commandCalls: Array<{ command: string; args: string[] }> = [];
 
     await onboardUser(root, "alice", undefined, {
       env: {
         ...process.env,
-        GIT_SYNC_TOKEN: "test-token",
+        GIT_SYNC_TOKEN: "sync-token",
+        CONTENT_REPO_ADMIN_TOKEN: "admin-token",
       },
       fetchImpl: async (input, init) => {
         const url = String(input);
         const method = init?.method ?? "GET";
-        fetchCalls.push({ url, method });
+        fetchCalls.push({
+          url,
+          method,
+          authorization: getAuthorization(init?.headers),
+        });
 
         if (
           url === "https://api.github.com/repos/rizom-ai/rover-alice-content" &&
@@ -143,23 +170,55 @@ describe("content repo seeding", () => {
       {
         url: "https://api.github.com/repos/rizom-ai/rover-alice-content",
         method: "GET",
+        authorization: "Bearer admin-token",
       },
       {
         url: "https://api.github.com/orgs/rizom-ai/repos",
         method: "POST",
+        authorization: "Bearer admin-token",
       },
     ]);
     expect(commandCalls[0]?.command).toBe("git");
     expect(commandCalls[0]?.args[0]).toBe("clone");
     expect(commandCalls[0]?.args[1]).toBe(
-      "https://x-access-token:test-token@github.com/rizom-ai/rover-alice-content.git",
+      "https://x-access-token:sync-token@github.com/rizom-ai/rover-alice-content.git",
     );
     expect(typeof commandCalls[0]?.args[2]).toBe("string");
+    expect(
+      await readFile(join(root, "users/alice/brain.yaml"), "utf8"),
+    ).toContain("authToken: ${GIT_SYNC_TOKEN}");
     expect(
       commandCalls.some(
         ({ command, args }) => command === "git" && args[0] === "push",
       ),
     ).toBe(true);
+  });
+
+  it("fails before checking GitHub when the admin token env var is missing", async () => {
+    const root = await createPilotRepo(baseFiles);
+    const fetchCalls: string[] = [];
+
+    try {
+      await onboardUser(root, "alice", undefined, {
+        env: {
+          ...process.env,
+          GIT_SYNC_TOKEN: "sync-token",
+          CONTENT_REPO_ADMIN_TOKEN: "",
+        },
+        fetchImpl: async (input) => {
+          fetchCalls.push(String(input));
+          return new Response("Unexpected", { status: 500 });
+        },
+        runCommand: async () => {},
+      });
+      expect.unreachable("expected onboardUser to fail");
+    } catch (error) {
+      expect(String(error)).toContain(
+        "CONTENT_REPO_ADMIN_TOKEN is required to check or create content repos",
+      );
+    }
+
+    expect(fetchCalls).toEqual([]);
   });
 
   it("seeds a generated anchor profile into an empty content repo", async () => {

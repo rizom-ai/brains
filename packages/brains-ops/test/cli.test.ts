@@ -127,6 +127,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: age1testpublickey
 `,

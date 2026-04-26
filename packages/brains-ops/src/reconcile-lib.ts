@@ -56,7 +56,10 @@ export async function runUsers(
       registry.pilot.githubOrg,
       user,
       contentRepoFiles,
-      contentRepoOptions,
+      {
+        contentRepoAdminTokenSelector: registry.pilot.contentRepoAdminToken,
+        ...contentRepoOptions,
+      },
     );
 
     for (const file of contentRepoFiles) {

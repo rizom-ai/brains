@@ -50,6 +50,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: SHARED_MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
@@ -104,6 +105,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
@@ -143,6 +145,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: SHARED_AI_KEY
 gitSyncToken: SHARED_GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: SHARED_MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,
@@ -190,6 +193,7 @@ domainSuffix: .rizom.ai
 preset: core
 aiApiKey: AI_API_KEY
 gitSyncToken: GIT_SYNC_TOKEN
+contentRepoAdminToken: CONTENT_REPO_ADMIN_TOKEN
 mcpAuthToken: MCP_AUTH_TOKEN
 agePublicKey: ${agePublicKey}
 `,

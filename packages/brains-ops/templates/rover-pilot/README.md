@@ -29,6 +29,7 @@ The repo also checks in its deploy contract:
 - `.github/workflows/*`
 
 `.env.schema` is the single source of truth for required and sensitive deploy vars.
+Use separate GitHub tokens: `CONTENT_REPO_ADMIN_TOKEN` for operator-side content repo creation/checks, and `GIT_SYNC_TOKEN` for runtime directory-sync git access.
 The shared pilot image tag is `brain-${brainVersion}` end to end.
 When `pilot.yaml.brainVersion` changes and you push, CI rebuilds the shared tag, refreshes generated user env files, and redeploys affected users.
 When a push changes only deploy contract files, CI prints `No affected user configs; skipping deploy.` and stops before Kamal.
@@ -38,7 +39,7 @@ When a push changes only deploy contract files, CI prints `No affected user conf
 - `brains-ops init <repo>`
 - `brains-ops render <repo>` — regenerates `views/users.md` with live DNS, `/health`, and unauthenticated `/mcp` status checks
 - `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
-- `brains-ops onboard <repo> <handle>`
+- `brains-ops onboard <repo> <handle>` — creates/seeds the user's content repo with separate admin and sync tokens
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`
 - `brains-ops cert:bootstrap <repo>`

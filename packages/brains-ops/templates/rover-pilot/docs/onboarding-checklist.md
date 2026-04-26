@@ -4,7 +4,8 @@
 2. Run `bunx brains-ops age-key:bootstrap <repo> --push-to gh`.
 3. Fill in `pilot.yaml`.
    - keep your pinned `brainVersion`
-   - confirm shared selectors for `aiApiKey`, `gitSyncToken`, and `mcpAuthToken`
+   - confirm shared selectors for `aiApiKey`, `gitSyncToken`, `contentRepoAdminToken`, and `mcpAuthToken`
+   - use different tokens for `contentRepoAdminToken` and `gitSyncToken`: admin creates/checks content repos; sync is used by runtime directory-sync
    - confirm `agePublicKey`
 4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.
    - Discord is enabled by default for pilot users.
@@ -14,7 +15,7 @@
 6. Run `bunx brains-ops render <repo>`.
 7. Run `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`.
 8. Run `bunx brains-ops cert:bootstrap <repo> --push-to gh`.
-9. Keep raw user secret material locally for now (`.env.local`, file-backed env vars, or equivalent local inputs).
+9. Keep raw user secret material locally for now (`.env.local`, file-backed env vars, or equivalent local inputs), including `CONTENT_REPO_ADMIN_TOKEN` for operator onboarding.
 10. Run `bunx brains-ops secrets:encrypt <repo> <handle>`.
 11. Commit and push `users/<handle>.secrets.yaml.age`.
 12. Run `bunx brains-ops onboard <repo> <handle>`.
