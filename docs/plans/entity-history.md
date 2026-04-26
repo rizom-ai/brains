@@ -1,95 +1,56 @@
-# Plan: Entity History via Git
+# Plan: Entity History Follow-on
 
-## Context
+Last updated: 2026-04-26
 
-Entities change over time but there's no way to see previous versions. Git tracks every change — directory-sync commits on every entity create/update/delete. The history exists, it's just not accessible through the brain's tools.
+## Status
 
-## Design
+The core history feature has landed.
 
-A `directory-sync_history` tool in the directory-sync plugin. No new storage — just a read interface to what git already tracks.
+Current behavior:
 
-### Why directory-sync, not system tools?
+- `directory-sync_history` lists git commit history for an entity.
+- Passing `sha` returns the entity content at that version.
+- The tool lives in directory-sync because `GitSync` owns repository access and file-path resolution.
+- The agent can use the old content with `system_update` if the user asks to restore it.
 
-- `GitSync` class has `simple-git` and knows the data directory
-- `IGitSync` interface is the clean seam to add `log()` and `show()`
-- Same pattern as existing `directory-sync_sync` and `directory-sync_status`
-- No new cross-plugin dependencies — system tools don't know about git
-- The agent doesn't care about tool namespace — it calls whatever tool answers the question
+## Remaining optional work
 
-### Tool
+### Diff mode
 
-```
+Add a diff view only if users/operators need it often enough.
+
+Possible shape:
+
+```text
 directory-sync_history {
   entityType: "post",
   id: "my-post",
-  limit: 10           // optional, default 10
+  sha: "abc123",
+  compareTo: "def456"
 }
-→ [
-    { sha: "abc123", date: "2026-03-28T14:30:00Z", message: "Auto-sync: ...", summary: "+3 -1 lines" },
-    { sha: "def456", date: "2026-03-27T10:00:00Z", message: "Auto-sync: ...", summary: "+15 -0 lines" },
-  ]
-
-directory-sync_history {
-  entityType: "post",
-  id: "my-post",
-  sha: "def456"       // get content at specific version
-}
-→ { content: "---\ntitle: My Post\n---\nOriginal content..." }
 ```
 
-### Implementation
+Implementation would add `diff(sha1, sha2, filePath)` to `IGitSync` / `GitSync` and expose that through the existing history tool.
 
-Add methods to `IGitSync` / `GitSync`:
+### Restore UX
 
-- **`log(filePath, limit)`**: `git log --format=... -- {filePath}` → commit list
-- **`show(sha, filePath)`**: `git show {sha}:{filePath}` → file content at version
-- **`diff(sha1, sha2, filePath)`** (Phase 2): `git diff {sha1} {sha2} -- {filePath}` → diff output
+No dedicated restore tool is planned right now. Restore can remain an agent workflow:
 
-The tool resolves `entityType + id` to a file path (`{entityType}/{id}.md`) and delegates to GitSync.
+1. call `directory-sync_history` with `sha`
+2. review the old content with the user when appropriate
+3. call `system_update` with that content
 
-### What the agent can do
+Only add a specialized restore helper if this workflow proves too clumsy.
 
-- "Show me the history of this post" → list of changes with dates
-- "What did this note look like yesterday?" → content at a previous commit
-- "What changed in this post?" → diff between versions
-- "Revert this post to the previous version" → get old content, call system_update
+## Non-goals
 
-### Prerequisites
+- New history storage outside git.
+- A parallel system-level history tool.
+- A custom version-control model for entities.
 
-- Directory-sync with git configured (most brains have this)
-- If git is not configured, the tool returns "no history available"
+## Done when
 
-## Steps
+One of these is true:
 
-### Phase 1: History tool
-
-1. Add `log(filePath, limit)` and `show(sha, filePath)` to `IGitSync` interface and `GitSync` class
-2. Add `directory-sync_history` tool in `plugins/directory-sync/src/tools/`
-3. List mode: resolve entity path, call `gitSync.log()`, return commit list
-4. Version mode: call `gitSync.show()`, return content at commit
-5. Handle: entity not found, git not configured (no gitSync instance), file never committed
-6. Unit tests for GitSync.log() and GitSync.show()
-7. Unit tests for the tool handler (mock IGitSync)
-
-### Phase 2: Diff and restore (optional)
-
-1. Add `diff(sha1, sha2, filePath)` to `IGitSync` / `GitSync`
-2. Extend tool with diff mode: `sha` + `compareTo` params
-3. "Revert" is just the agent calling system_update with old content — no special tool needed
-4. Tests
-
-## Files affected
-
-| Phase | Files | Nature                                                 |
-| ----- | ----- | ------------------------------------------------------ |
-| 1     | ~4    | IGitSync interface, GitSync class, history tool, tests |
-| 2     | ~2    | GitSync diff method, tool diff mode                    |
-
-## Verification
-
-1. "Show me the history of post my-post" → returns commit list with dates
-2. "What did this post look like 3 versions ago?" → returns old content
-3. Works without git configured (returns "no history available")
-4. No new data storage — reads from existing git repo
-5. Existing directory-sync tests still pass
-6. `bun run typecheck` clean, `bun run lint` clean
+1. diff mode ships, or
+2. we decide list/version history is enough and delete this follow-on plan.

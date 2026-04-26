@@ -1,6 +1,6 @@
 # Plan: Agent Discovery Follow-up
 
-Last updated: 2026-04-21
+Last updated: 2026-04-26
 
 ## Status
 
@@ -22,6 +22,7 @@ Current behavior:
 - archive/remove uses `system_update` with `fields: { status: "archived" }`
 - approval persistence is durable end-to-end because agent frontmatter is rebuilt from metadata on write
 - repeated explicit saves are idempotent, and explicit-save generation jobs coalesce without retries
+- save-first follow-up eval fixtures use unique domains so multi-turn tests do not leak state through shared agent IDs
 
 ## Current status model
 
