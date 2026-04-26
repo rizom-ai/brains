@@ -33,6 +33,22 @@ describe("brains-ops parseArgs", () => {
     expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
   });
 
+  it("parses user:add with cohort and anchor id flags", () => {
+    const result = parseArgs([
+      "user:add",
+      "/tmp/rover-pilot",
+      "alice",
+      "--cohort",
+      "cohort-1",
+      "--anchor-id",
+      "1234567890",
+    ]);
+    expect(result.command).toBe("user:add");
+    expect(result.args).toEqual(["/tmp/rover-pilot", "alice"]);
+    expect(result.flags.cohort).toBe("cohort-1");
+    expect(result.flags.anchorId).toBe("1234567890");
+  });
+
   it("parses init command with repo path", () => {
     const result = parseArgs(["init", "/tmp/rover-pilot"]);
     expect(result.command).toBe("init");
@@ -252,6 +268,41 @@ discord:
     );
   });
 
+  it("adds a pilot user from the CLI", async () => {
+    const root = await createPilotRepo({
+      "pilot.yaml": baseFiles["pilot.yaml"],
+      "cohorts/cohort-1.yaml": `members:\n  - alice\n`,
+    });
+
+    const result = await runCommand({
+      command: "user:add",
+      args: [root, "bob"],
+      flags: { cohort: "cohort-1", anchorId: "1234567890" },
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.message).toBe("Added bob to cohort-1");
+    expect(await readFile(join(root, "users/bob.yaml"), "utf8")).toContain(
+      'anchorUserId: "1234567890"',
+    );
+    expect(await readFile(join(root, "cohorts/cohort-1.yaml"), "utf8")).toBe(
+      `members:\n  - alice\n  - bob\n`,
+    );
+  });
+
+  it("returns usage error when user:add is missing cohort", async () => {
+    const result = await runCommand({
+      command: "user:add",
+      args: ["/tmp/rover-pilot", "alice"],
+      flags: {},
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain(
+      "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
+    );
+  });
+
   it("returns usage error when onboard missing handle", async () => {
     const result = await runCommand({
       command: "onboard",
@@ -456,6 +507,9 @@ discord:
     expect(result.message).toContain("brains-ops — operator CLI");
     expect(result.message).toContain("init <repo>");
     expect(result.message).toContain("render <repo>");
+    expect(result.message).toContain(
+      "user:add <repo> <handle> --cohort <cohort>",
+    );
     expect(result.message).toContain("age-key:bootstrap <repo>");
     expect(result.message).toContain("ssh-key:bootstrap <repo>");
     expect(result.message).toContain("cert:bootstrap <repo>");

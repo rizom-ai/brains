@@ -18,6 +18,7 @@ import { encryptPilotSecrets } from "./secrets-encrypt";
 import { pushPilotSecrets } from "./secrets-push";
 import { type RunCommand as OpsRunCommand } from "./run-subprocess";
 import { runPilotSshKeyBootstrap, type SshKeygen } from "./ssh-key-bootstrap";
+import { addPilotUser } from "./user-add";
 import type { UserRunner } from "./user-runner";
 
 export interface CommandResult {
@@ -80,6 +81,28 @@ export async function runCommand(
       return {
         success: true,
         message: `Rendered ${repo}/views/users.md`,
+      };
+    }
+
+    case "user:add": {
+      const repo = parsed.args[0];
+      const handle = parsed.args[1];
+      const cohort = parsed.flags.cohort;
+      if (!repo || !handle || !cohort) {
+        return {
+          success: false,
+          message:
+            "Usage: brains-ops user:add <repo> <handle> --cohort <cohort>",
+        };
+      }
+
+      await addPilotUser(repo, handle, {
+        cohort,
+        ...(parsed.flags.anchorId ? { anchorId: parsed.flags.anchorId } : {}),
+      });
+      return {
+        success: true,
+        message: `Added ${handle} to ${cohort}`,
       };
     }
 
@@ -260,6 +283,7 @@ export async function runCommand(
           "Commands:",
           "  init <repo>",
           "  render <repo>",
+          "  user:add <repo> <handle> --cohort <cohort>",
           "  onboard <repo> <handle>",
           "  age-key:bootstrap <repo>",
           "  ssh-key:bootstrap <repo>",

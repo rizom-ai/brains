@@ -6,6 +6,7 @@ Operator CLI package for managing pilot brain fleet registry repos.
 
 - `brains-ops init <repo>`
 - `brains-ops render <repo>` — regenerates `views/users.md` and fills status columns from built-in live probes (`DNS`, `/health`, unauthenticated `/mcp`)
+- `brains-ops user:add <repo> <handle> --cohort <cohort>` — scaffolds a user file, per-user secrets template, and cohort membership
 - `brains-ops onboard <repo> <handle>`
 - `brains-ops age-key:bootstrap <repo>`
 - `brains-ops ssh-key:bootstrap <repo>`

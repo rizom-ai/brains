@@ -8,6 +8,8 @@ export interface ParsedArgs {
     version?: boolean | undefined;
     dryRun?: boolean | undefined;
     pushTo?: string | undefined;
+    cohort?: string | undefined;
+    anchorId?: string | undefined;
   };
 }
 
@@ -16,6 +18,8 @@ const options = {
   version: { type: "boolean" as const, short: "v" },
   "dry-run": { type: "boolean" as const },
   "push-to": { type: "string" as const },
+  cohort: { type: "string" as const },
+  "anchor-id": { type: "string" as const },
 };
 
 function getBoolean(
@@ -57,6 +61,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       version: getBoolean(values, "version"),
       dryRun: getBoolean(values, "dry-run"),
       pushTo: getString(values, "push-to"),
+      cohort: getString(values, "cohort"),
+      anchorId: getString(values, "anchor-id"),
     },
   };
 }

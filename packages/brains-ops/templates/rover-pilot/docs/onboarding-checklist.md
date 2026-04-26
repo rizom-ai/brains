@@ -6,10 +6,11 @@
    - keep your pinned `brainVersion`
    - confirm shared selectors for `aiApiKey`, `gitSyncToken`, and `mcpAuthToken`
    - confirm `agePublicKey`
-4. Add or edit `users/<handle>.yaml`.
-   - Discord is enabled by default for pilot users
-   - if the user should be an anchor there, set `discord.anchorUserId` to their Discord user ID
-5. Add the user to a cohort in `cohorts/*.yaml`.
+4. Run `bunx brains-ops user:add <repo> <handle> --cohort <cohort>`.
+   - Discord is enabled by default for pilot users.
+   - if the user should be an anchor there, add `--anchor-id <discord-user-id>`.
+   - the command creates `users/<handle>.yaml`, `users/<handle>.secrets.yaml`, and the cohort membership without duplicating existing entries.
+5. Edit the generated user file if the anchor profile needs richer metadata.
 6. Run `bunx brains-ops render <repo>`.
 7. Run `bunx brains-ops ssh-key:bootstrap <repo> --push-to gh`.
 8. Run `bunx brains-ops cert:bootstrap <repo> --push-to gh`.

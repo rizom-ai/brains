@@ -5,6 +5,7 @@ export {
 } from "./load-registry";
 export { writeUsersTable } from "./render-users-table";
 export { onboardUser } from "./onboard-user";
+export { addPilotUser } from "./user-add";
 export { reconcileCohort } from "./reconcile-cohort";
 export { reconcileAll } from "./reconcile-all";
 export { parseArgs, type ParsedArgs } from "./parse-args";

@@ -510,15 +510,15 @@ Until one of those fires: stay on per-user deploys.
 
 Real pilot use exposed two concrete `brains-ops` gaps that should be fixed upstream before broader cohort growth.
 
-### Bug 1: missing new-user scaffolding
+### Fixed: new-user scaffolding
 
-The current operator flow still requires handwritten user artifacts:
+`brains-ops user:add <repo> <handle> --cohort <cohort> [--anchor-id <id>]` now scaffolds the user inputs directly:
 
-- create `users/<handle>.yaml`
-- create `users/<handle>.secrets.yaml` or stage equivalent local inputs
-- edit `cohorts/<cohort>.yaml`
+- creates `users/<handle>.yaml`
+- creates `users/<handle>.secrets.yaml` as a local plaintext staging template when no encrypted secrets file exists yet
+- adds the user to the selected `cohorts/<cohort>.yaml`
 
-That is too manual for the intended pilot contract. The CLI should scaffold the user inputs directly instead of relying on ad hoc file creation.
+The command is replay-safe: it does not overwrite existing user YAML or secrets templates, and it does not duplicate cohort membership.
 
 ### Bug 2: repo-creation token and sync token are conflated
 
@@ -531,21 +531,13 @@ That breaks in the common case where:
 
 Those are different permission boundaries and should be modeled separately.
 
-### Planned upstream fix
+### Remaining upstream fix
 
-1. Add a narrow user scaffolding command to `brains-ops`, likely `brains-ops user:add <repo> <handle> --cohort <cohort> [--anchor-id <id>]`.
-2. Have that command create:
-   - `users/<handle>.yaml`
-   - `users/<handle>.secrets.yaml` template
-   - cohort membership entry in the selected `cohorts/<cohort>.yaml`
-3. Keep the command replay-safe:
-   - do not overwrite existing user YAML or secrets templates
-   - do not duplicate cohort membership
-4. Split GitHub token responsibilities:
+1. Split GitHub token responsibilities:
    - dedicated repo-admin token for creating `rover-<handle>-content`
    - existing sync token for runtime content sync
-5. Keep a backward-compatible fallback so older pilot repos continue to work during migration.
-6. Add regression coverage for both the new user scaffolding flow and the token split.
+2. Keep a backward-compatible fallback so older pilot repos continue to work during migration.
+3. Add regression coverage for the token split.
 
 ## Implementation checklist (one-time setup)
 
@@ -569,7 +561,7 @@ Those are different permission boundaries and should be modeled separately.
 - [x] Scaffold `rover-pilot` package metadata so CI can install pinned `@rizom/ops`
 - [x] Scaffold shared Kamal config with per-user destination support in `brains-ops init`
 - [x] Scaffold shared pilot deploy env contract and helper scripts in `brains-ops init`
-- [ ] Add upstream `brains-ops` user scaffolding so operators do not hand-author new-user files
+- [x] Add upstream `brains-ops` user scaffolding so operators do not hand-author new-user files
 - [ ] Split content-repo creation token from runtime directory-sync token in `brains-ops`
 - [ ] Set the shared AI provider spend cap and document the ceiling
 - [ ] Pick cohort 1 users (up to 5)
@@ -594,7 +586,7 @@ Completed proof:
 
 Remaining immediate work:
 
-1. Land the `brains-ops` follow-through fixes for user scaffolding and token separation.
+1. Land the `brains-ops` token separation follow-through.
 2. Set the shared AI spend cap before onboarding any non-throwaway user.
 3. Pick cohort 1 only after the spend-cap decision is complete.
 4. Provision cohort 1 gradually.
