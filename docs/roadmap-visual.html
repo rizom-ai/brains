@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Project Roadmap</h1>
-      <p>Last updated: 2026-04-15 — Click any item for details</p>
+      <p>Last updated: 2026-04-26 — Click any item for details</p>
     </div>
 
     <div class="legend">
@@ -620,7 +620,21 @@
           id: "evalcoverage",
           name: "Eval Coverage",
           status: "completed",
-          desc: "58 test cases. Claude haiku: 96.6%, GPT-4.1-mini: 89.7%. Multi-model eval support with per-provider keys.",
+          desc: "Full Rover suite is green at 86/86 on gpt-5.4-mini. Coverage includes shell quality, tool invocation, multi-turn agent flows, plugins, finalized-content direct create, and app summary accuracy. Multi-model reporting remains available through per-provider keys.",
+          date: "2026-04",
+        },
+        {
+          id: "finalizedcontent",
+          name: "Finalized Content Preservation",
+          status: "completed",
+          desc: "Exact/finalized/approved content now persists directly through system_create with content, backed by entity-service markdown creation and Rover evals for decks, posts, newsletters, notes, and social posts.",
+          date: "2026-04",
+        },
+        {
+          id: "assessmentpkg",
+          name: "Assessment Package Split",
+          status: "completed",
+          desc: "SWOT moved out of agent-discovery into entities/assessment. Agent discovery remains the evidence source; assessment owns interpretation outputs over in-memory capability profiles.",
           date: "2026-04",
         },
         {

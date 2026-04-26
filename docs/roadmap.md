@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-21
+Last updated: 2026-04-26
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -42,6 +42,9 @@ These areas are effectively landed:
 - **Rizom site core consolidation** — `rizom.ai`, `rizom.foundation`, and `rizom.work` now own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate
 - **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
 - **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
+- **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
+- **Rover eval stabilization** — the full Rover suite is green at 86/86, with agent follow-up fixtures isolated from shared mutable domains and YAML fixture tests reduced to broad integrity checks instead of brittle exact-path assertions
+- **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 
 ## Near-term priorities
 
