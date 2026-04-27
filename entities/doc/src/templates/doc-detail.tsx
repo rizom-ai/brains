@@ -8,6 +8,7 @@ import {
   groupDocs,
   hrefFor,
   romanNumeral,
+  sectionId,
   sortDocs,
 } from "./docs-design";
 
@@ -28,6 +29,12 @@ export const DocDetailTemplate = ({
   const orderedDocs = sortDocs(docs.length > 0 ? docs : [doc]);
   const currentIndex = orderedDocs.findIndex(
     (item) => item.metadata.slug === doc.metadata.slug,
+  );
+  const activeGroupIndex = Math.max(
+    groups.findIndex((group) =>
+      group.docs.some((item) => item.metadata.slug === doc.metadata.slug),
+    ),
+    0,
   );
 
   return (
@@ -56,33 +63,44 @@ export const DocDetailTemplate = ({
               <nav className="docs-rail">
                 <p className="docs-rail__heading">Documentation</p>
                 <ol>
-                  {groups.map((group, index) => (
-                    <li className="docs-rail__section" key={group.section}>
-                      <a className="docs-rail__section-title" href="/docs">
-                        <span className="docs-rail__num">
-                          {romanNumeral(index)}.
-                        </span>{" "}
-                        {group.section}
-                      </a>
-                      <ol>
-                        {group.docs.map((item) => {
-                          const active =
-                            item.metadata.slug === doc.metadata.slug;
-                          return (
-                            <li key={item.id}>
-                              <a
-                                className="docs-rail__doc"
-                                href={hrefFor(item)}
-                                aria-current={active ? "page" : undefined}
-                              >
-                                {item.metadata.title}
-                              </a>
-                            </li>
-                          );
-                        })}
-                      </ol>
-                    </li>
-                  ))}
+                  {groups.map((group, index) => {
+                    const isActiveGroup = index === activeGroupIndex;
+                    return (
+                      <li
+                        className={`docs-rail__section${isActiveGroup ? " is-active" : ""}`}
+                        key={group.section}
+                      >
+                        <a
+                          className="docs-rail__section-title"
+                          href={`/docs#${sectionId(index)}`}
+                        >
+                          <span className="docs-rail__num">
+                            {romanNumeral(index)}.
+                          </span>{" "}
+                          {group.section}
+                        </a>
+                        {isActiveGroup && (
+                          <ol>
+                            {group.docs.map((item) => {
+                              const active =
+                                item.metadata.slug === doc.metadata.slug;
+                              return (
+                                <li key={item.id}>
+                                  <a
+                                    className="docs-rail__doc"
+                                    href={hrefFor(item)}
+                                    aria-current={active ? "page" : undefined}
+                                  >
+                                    {item.metadata.title}
+                                  </a>
+                                </li>
+                              );
+                            })}
+                          </ol>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ol>
               </nav>
             </aside>
@@ -90,6 +108,9 @@ export const DocDetailTemplate = ({
             <article className="docs-article">
               <header className="docs-article__header">
                 <p className="docs-label docs-article__kicker">
+                  <span className="docs-label__numeral">
+                    {romanNumeral(activeGroupIndex)}.
+                  </span>{" "}
                   {doc.metadata.section}
                   {currentIndex >= 0
                     ? ` · ${currentIndex + 1}/${orderedDocs.length}`
