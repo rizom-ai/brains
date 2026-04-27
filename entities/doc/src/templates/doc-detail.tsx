@@ -1,38 +1,19 @@
 import type { JSX } from "preact";
-import { Head, MarkdownContent, Breadcrumb } from "@brains/ui-library";
+import { Head, MarkdownContent } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
+import {
+  DocsDesignStyles,
+  groupDocs,
+  hrefFor,
+  romanNumeral,
+  sortDocs,
+} from "./docs-design";
 
 export interface DocDetailProps {
   doc: DocWithData;
   docs: DocWithData[];
   prevDoc: DocWithData | null;
   nextDoc: DocWithData | null;
-}
-
-type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;
-
-function sortDocs(docs: DocWithData[]): DocWithData[] {
-  return [...docs].sort((a, b) => {
-    const order = a.metadata.order - b.metadata.order;
-    if (order !== 0) return order;
-    return a.metadata.title.localeCompare(b.metadata.title);
-  });
-}
-
-function groupDocs(docs: DocWithData[]): GroupedDocs {
-  const groups = new Map<string, DocWithData[]>();
-  for (const item of sortDocs(docs)) {
-    const section = item.metadata.section;
-    groups.set(section, [...(groups.get(section) ?? []), item]);
-  }
-  return [...groups.entries()].map(([section, sectionDocs]) => ({
-    section,
-    docs: sectionDocs,
-  }));
-}
-
-function hrefFor(doc: DocWithData): string {
-  return `/docs/${doc.metadata.slug}`;
 }
 
 export const DocDetailTemplate = ({
@@ -42,6 +23,10 @@ export const DocDetailTemplate = ({
   nextDoc,
 }: DocDetailProps): JSX.Element => {
   const groups = groupDocs(docs.length > 0 ? docs : [doc]);
+  const orderedDocs = sortDocs(docs.length > 0 ? docs : [doc]);
+  const currentIndex = orderedDocs.findIndex(
+    (item) => item.metadata.slug === doc.metadata.slug,
+  );
 
   return (
     <>
@@ -49,129 +34,106 @@ export const DocDetailTemplate = ({
         title={doc.metadata.title}
         description={doc.metadata.description ?? doc.metadata.section}
       />
-      <div className="bg-theme text-theme min-h-screen">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 py-10 md:grid-cols-[18rem_minmax(0,1fr)] md:px-10 md:py-14 lg:grid-cols-[19rem_minmax(0,48rem)_14rem]">
-          <aside className="hidden md:block">
-            <div className="sticky top-8">
-              <a
-                href="/docs"
-                className="text-brand mb-6 inline-flex text-xs font-semibold uppercase tracking-[0.25em]"
-              >
-                Documentation
-              </a>
-              <nav className="border-theme bg-bg-card/40 rounded-3xl border p-4">
-                {groups.map((group) => (
-                  <div key={group.section} className="mb-5 last:mb-0">
-                    <p className="text-theme-muted mb-2 px-3 text-xs font-semibold uppercase tracking-[0.18em]">
-                      {group.section}
-                    </p>
-                    <ol className="space-y-1">
-                      {group.docs.map((item) => {
-                        const active = item.metadata.slug === doc.metadata.slug;
-                        return (
-                          <li key={item.id}>
-                            <a
-                              href={hrefFor(item)}
-                              className={`block rounded-xl px-3 py-2 text-sm transition ${
-                                active
-                                  ? "bg-brand/10 text-brand"
-                                  : "text-theme-muted hover:bg-bg-card hover:text-heading"
-                              }`}
-                            >
-                              {item.metadata.title}
-                            </a>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  </div>
-                ))}
+      <DocsDesignStyles />
+      <div className="docs-handbook docs-handbook--detail">
+        <div className="docs-wrap docs-detail-wrap">
+          <nav className="docs-breadcrumb" aria-label="Breadcrumb">
+            <a href="/">Home</a>
+            <span>/</span>
+            <a href="/docs">Docs</a>
+            <span>/</span>
+            <span>{doc.metadata.title}</span>
+          </nav>
+
+          <div className="docs-detail-grid">
+            <aside
+              className="docs-detail-rail"
+              aria-label="Documentation navigation"
+            >
+              <nav className="docs-rail">
+                <p className="docs-rail__heading">Documentation</p>
+                <ol>
+                  {groups.map((group, index) => (
+                    <li className="docs-rail__section" key={group.section}>
+                      <a className="docs-rail__section-title" href="/docs">
+                        <span className="docs-rail__num">
+                          {romanNumeral(index)}.
+                        </span>{" "}
+                        {group.section}
+                      </a>
+                      <ol>
+                        {group.docs.map((item) => {
+                          const active =
+                            item.metadata.slug === doc.metadata.slug;
+                          return (
+                            <li key={item.id}>
+                              <a
+                                className="docs-rail__doc"
+                                href={hrefFor(item)}
+                                aria-current={active ? "page" : undefined}
+                              >
+                                {item.metadata.title}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </li>
+                  ))}
+                </ol>
               </nav>
-            </div>
-          </aside>
+            </aside>
 
-          <article>
-            <Breadcrumb
-              items={[
-                { label: "Home", href: "/" },
-                { label: "Docs", href: "/docs" },
-                { label: doc.metadata.title },
-              ]}
-            />
-
-            <header className="border-theme mt-8 border-b pb-10">
-              <p className="text-brand mb-4 text-xs font-semibold uppercase tracking-[0.25em]">
-                {doc.metadata.section}
-              </p>
-              <h1 className="text-heading text-5xl font-semibold tracking-[-0.045em] md:text-6xl">
-                {doc.metadata.title}
-              </h1>
-              {doc.metadata.description && (
-                <p className="text-theme-muted mt-5 text-xl leading-8">
-                  {doc.metadata.description}
-                </p>
-              )}
-            </header>
-
-            <div className="docs-prose py-10">
-              <MarkdownContent markdown={doc.body} />
-            </div>
-
-            {(prevDoc || nextDoc) && (
-              <nav className="border-theme mt-8 grid gap-4 border-t pt-8 md:grid-cols-2">
-                {prevDoc ? (
-                  <a
-                    className="border-theme hover:border-brand/60 rounded-2xl border p-5 transition"
-                    href={hrefFor(prevDoc)}
-                  >
-                    <span className="text-theme-muted block text-xs uppercase tracking-[0.2em]">
-                      Previous
-                    </span>
-                    <span className="text-heading mt-2 block font-semibold">
-                      ← {prevDoc.metadata.title}
-                    </span>
-                  </a>
-                ) : (
-                  <span />
-                )}
-                {nextDoc && (
-                  <a
-                    className="border-theme hover:border-brand/60 rounded-2xl border p-5 text-right transition"
-                    href={hrefFor(nextDoc)}
-                  >
-                    <span className="text-theme-muted block text-xs uppercase tracking-[0.2em]">
-                      Next
-                    </span>
-                    <span className="text-heading mt-2 block font-semibold">
-                      {nextDoc.metadata.title} →
-                    </span>
-                  </a>
-                )}
-              </nav>
-            )}
-          </article>
-
-          <aside className="hidden lg:block">
-            <div className="sticky top-8 space-y-4">
-              <div className="border-theme rounded-3xl border p-5">
-                <p className="text-theme-muted text-xs font-semibold uppercase tracking-[0.2em]">
-                  Current page
-                </p>
-                <p className="text-heading mt-3 font-semibold">
-                  {doc.metadata.title}
-                </p>
-                <p className="text-theme-muted mt-2 text-sm leading-6">
+            <article className="docs-article">
+              <header className="docs-article__header">
+                <p className="docs-label docs-article__kicker">
                   {doc.metadata.section}
+                  {currentIndex >= 0
+                    ? ` · ${currentIndex + 1}/${orderedDocs.length}`
+                    : ""}
                 </p>
+                <h1 className="docs-article__title">{doc.metadata.title}</h1>
+                {doc.metadata.description && (
+                  <p className="docs-article__desc">
+                    {doc.metadata.description}
+                  </p>
+                )}
+              </header>
+
+              <div className="docs-article__body">
+                <MarkdownContent markdown={doc.body} />
               </div>
-              <a
-                href="/docs"
-                className="border-theme hover:border-brand/60 text-heading block rounded-3xl border p-5 text-sm font-semibold transition"
-              >
-                Browse all docs →
-              </a>
-            </div>
-          </aside>
+
+              {(prevDoc || nextDoc) && (
+                <nav
+                  className="docs-article__footer"
+                  aria-label="Previous and next docs"
+                >
+                  {prevDoc ? (
+                    <a className="docs-page-link" href={hrefFor(prevDoc)}>
+                      <span className="docs-page-link__label">Previous</span>
+                      <span className="docs-page-link__title">
+                        ← {prevDoc.metadata.title}
+                      </span>
+                    </a>
+                  ) : (
+                    <span />
+                  )}
+                  {nextDoc && (
+                    <a
+                      className="docs-page-link docs-page-link--next"
+                      href={hrefFor(nextDoc)}
+                    >
+                      <span className="docs-page-link__label">Next</span>
+                      <span className="docs-page-link__title">
+                        {nextDoc.metadata.title} →
+                      </span>
+                    </a>
+                  )}
+                </nav>
+              )}
+            </article>
+          </div>
         </div>
       </div>
     </>

@@ -85,7 +85,13 @@ export class DocDataSource extends BaseEntityDataSource<Doc, DocWithData> {
     const params = this.parseQuery(query);
 
     if (!params.query.id) {
-      return super.fetch(query, outputSchema, context);
+      const list = await this.fetchList(
+        { ...params.query, limit: 1000, page: undefined, pageSize: undefined },
+        context.entityService,
+      );
+      return outputSchema.parse(
+        this.buildListResult(list.items, null, params.query),
+      );
     }
 
     const [detail, list] = await Promise.all([
