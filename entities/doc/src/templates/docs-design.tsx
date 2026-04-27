@@ -45,16 +45,38 @@ interface DocsHeaderProps {
   ecosystemHref?: string;
 }
 
+const wordmarkInk = "text-[var(--docs-text)] font-bold";
+const wordmarkDot = "text-[var(--docs-accent)] font-bold";
+const wordmarkSuffix = "text-[var(--docs-text-muted)]";
+const labelText =
+  "font-[var(--docs-font-label)] text-[var(--docs-label-sm)] uppercase tracking-[0.18em] text-[var(--docs-accent)]";
+const displayText =
+  "font-[var(--docs-font-display)] font-normal text-[var(--docs-heading)]";
+const buttonBase =
+  "inline-flex items-center justify-center rounded-lg border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-150";
+
+export const docsClasses = {
+  wrap: "mx-auto max-w-6xl px-6 pt-20 md:px-12 md:pt-24",
+  label: labelText,
+  display: displayText,
+  button: `${buttonBase} border-[var(--docs-text)] text-[var(--docs-text)] hover:border-[var(--docs-accent)] hover:text-[var(--docs-accent)]`,
+  primaryButton: `${buttonBase} border-[var(--docs-accent)] bg-[var(--docs-accent)] text-white hover:bg-transparent hover:text-[var(--docs-accent)]`,
+};
+
 export const DocsHeader = ({
   ecosystemHref = "/docs#ecosystem",
 }: DocsHeaderProps): JSX.Element => (
-  <nav className="docs-header">
-    <a href="/docs" className="docs-header__wordmark" aria-label="Brains docs">
-      <span className="docs-wordmark__ink">brains</span>
-      <span className="docs-wordmark__dot">.</span>
-      <span className="docs-wordmark__suffix">docs</span>
+  <nav className="docs-header fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 md:py-5 xl:px-20">
+    <a
+      href="/docs"
+      className="font-[var(--docs-font-body)] text-xl font-bold"
+      aria-label="Brains docs"
+    >
+      <span className={wordmarkInk}>brains</span>
+      <span className={wordmarkDot}>.</span>
+      <span className={wordmarkSuffix}>docs</span>
     </a>
-    <div className="docs-header__nav">
+    <div className="docs-header__nav flex items-center gap-4 md:gap-8">
       <a href="/docs/roadmap">Roadmap</a>
       <a href="https://github.com/rizom-ai/brains">GitHub</a>
       <a href={ecosystemHref}>Ecosystem</a>
@@ -66,21 +88,26 @@ export const DocsHeader = ({
 );
 
 export const DocsEcosystem = (): JSX.Element => (
-  <section className="docs-ecosystem" id="ecosystem">
-    <div className="docs-ecosystem__head">
-      <span className="docs-ecosystem__eyebrow">The Ecosystem</span>
-      <h2>
+  <section
+    className="border-t border-[var(--docs-border-light)] py-[72px] md:py-28"
+    id="ecosystem"
+  >
+    <div className="mx-auto mb-14 max-w-4xl text-center">
+      <span className="font-[var(--docs-font-label)] text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--docs-accent)]">
+        The Ecosystem
+      </span>
+      <h2 className="mt-4 font-[var(--docs-font-display)] text-[var(--docs-ecosystem-title)] font-[380] leading-[1.04] tracking-[-0.02em] text-[var(--docs-heading)]">
         One ecosystem. The <em>platform</em>, the <em>vision</em>, the{" "}
         <em>network</em>.
       </h2>
     </div>
-    <div className="docs-ecosystem__cards">
+    <div className="grid gap-7 md:grid-cols-3 md:gap-14">
       <a className="docs-ecosystem__card" href="https://rizom.ai">
         <span className="docs-ecosystem__wordmark">
-          rizom<span className="docs-wordmark__dot">.</span>
-          <span className="docs-wordmark__suffix">ai</span>
+          rizom<span className={wordmarkDot}>.</span>
+          <span className={wordmarkSuffix}>ai</span>
         </span>
-        <span className="docs-ecosystem__role docs-ecosystem__role--ai">
+        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-accent-bright)]">
           The platform
         </span>
         <p>
@@ -91,10 +118,10 @@ export const DocsEcosystem = (): JSX.Element => (
       </a>
       <a className="docs-ecosystem__card" href="https://rizom.foundation">
         <span className="docs-ecosystem__wordmark">
-          rizom<span className="docs-wordmark__dot">.</span>
-          <span className="docs-wordmark__suffix">foundation</span>
+          rizom<span className={wordmarkDot}>.</span>
+          <span className={wordmarkSuffix}>foundation</span>
         </span>
-        <span className="docs-ecosystem__role docs-ecosystem__role--foundation">
+        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-text-muted)]">
           The vision
         </span>
         <p>
@@ -105,10 +132,10 @@ export const DocsEcosystem = (): JSX.Element => (
       </a>
       <a className="docs-ecosystem__card" href="https://rizom.work">
         <span className="docs-ecosystem__wordmark">
-          rizom<span className="docs-wordmark__dot">.</span>
-          <span className="docs-wordmark__suffix">work</span>
+          rizom<span className={wordmarkDot}>.</span>
+          <span className={wordmarkSuffix}>work</span>
         </span>
-        <span className="docs-ecosystem__role docs-ecosystem__role--work">
+        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-accent)]">
           The network
         </span>
         <p>
@@ -122,16 +149,28 @@ export const DocsEcosystem = (): JSX.Element => (
 );
 
 export const DocsFooter = (): JSX.Element => (
-  <footer className="docs-footer">
-    <a href="https://rizom.ai" className="docs-footer__wordmark">
-      <span className="docs-wordmark__ink">rizom</span>
-      <span className="docs-wordmark__dot">.</span>
-      <span className="docs-wordmark__suffix">ai</span>
+  <footer className="flex flex-col items-center justify-between gap-4 border-t border-[var(--docs-border-light)] py-8 text-center md:flex-row md:gap-6 md:py-6 md:text-left">
+    <a
+      href="https://rizom.ai"
+      className="font-[var(--docs-font-body)] text-[15px] font-bold"
+    >
+      <span className={wordmarkInk}>rizom</span>
+      <span className={wordmarkDot}>.</span>
+      <span className={wordmarkSuffix}>ai</span>
     </a>
-    <div className="docs-footer__links">
-      <a href="/docs/roadmap">Roadmap</a>
-      <a href="https://github.com/rizom-ai/brains">GitHub</a>
-      <a href="https://rizom.ai">Rizom</a>
+    <div className="flex flex-wrap items-center justify-center gap-6 md:justify-end">
+      <a className="docs-footer__link" href="/docs/roadmap">
+        Roadmap
+      </a>
+      <a
+        className="docs-footer__link"
+        href="https://github.com/rizom-ai/brains"
+      >
+        GitHub
+      </a>
+      <a className="docs-footer__link" href="https://rizom.ai">
+        Rizom
+      </a>
       <button id="themeToggle" className="docs-footer__toggle" type="button">
         ☀ Light
       </button>
@@ -161,6 +200,7 @@ const docsDesignCss = `
   --docs-body-md: var(--text-body-md, 16px);
   --docs-body-sm: var(--text-body-sm, 15px);
   --docs-label-sm: var(--text-label-sm, 12px);
+  --docs-ecosystem-title: clamp(34px, 4.4vw, 60px);
   min-height: 100vh;
   color: var(--docs-text);
   background: transparent;
@@ -173,48 +213,12 @@ const docsDesignCss = `
 }
 
 .docs-header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 16px 24px;
   background: linear-gradient(
     180deg,
     color-mix(in srgb, var(--docs-bg) 95%, transparent) 0%,
     color-mix(in srgb, var(--docs-bg) 0%, transparent) 100%
   );
   backdrop-filter: blur(8px);
-}
-
-.docs-header__wordmark,
-.docs-footer__wordmark {
-  font-family: var(--docs-font-body);
-  font-size: 20px;
-  font-weight: 700;
-}
-
-.docs-wordmark__ink {
-  color: var(--docs-text);
-  font-weight: 700;
-}
-
-.docs-wordmark__dot {
-  color: var(--docs-accent);
-  font-weight: 700;
-}
-
-.docs-wordmark__suffix {
-  color: var(--docs-text-muted);
-}
-
-.docs-header__nav {
-  display: flex;
-  align-items: center;
-  gap: 32px;
 }
 
 .docs-header__nav a {
@@ -266,204 +270,6 @@ const docsDesignCss = `
   border-color: var(--docs-accent);
 }
 
-.docs-wrap {
-  max-width: var(--layout-max-width, 72rem);
-  margin: 0 auto;
-  padding: 96px 48px 0;
-}
-
-.docs-hero {
-  padding: 96px 0 72px;
-  border-bottom: 1px solid var(--docs-text);
-}
-
-.docs-hero__eyebrow,
-.docs-label {
-  font-family: var(--docs-font-label);
-  font-size: var(--docs-label-sm);
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--docs-accent);
-}
-
-.docs-hero__eyebrow {
-  margin: 0 0 32px;
-}
-
-.docs-hero h1,
-.docs-article__title,
-.docs-chapter__title,
-.docs-doc__title {
-  font-family: var(--docs-font-display);
-  font-weight: 400;
-  color: var(--docs-heading);
-}
-
-.docs-hero h1 {
-  font-size: var(--docs-display-lg);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0;
-  max-width: 16ch;
-}
-
-.docs-hero h1 em,
-.docs-article__title em {
-  color: var(--docs-accent);
-  font-style: italic;
-}
-
-.docs-hero__intro {
-  font-size: var(--docs-body-lg);
-  line-height: 1.65;
-  color: var(--docs-text-muted);
-  max-width: 52ch;
-  margin: 32px 0 0;
-}
-
-.docs-hero__meta {
-  margin: 56px 0 0;
-  display: flex;
-  gap: 48px;
-  font-family: var(--docs-font-label);
-  font-size: var(--docs-label-sm);
-  letter-spacing: 0.06em;
-  color: var(--docs-text-light);
-  flex-wrap: wrap;
-}
-
-.docs-hero__meta div {
-  margin: 0;
-}
-
-.docs-hero__meta strong {
-  color: var(--docs-text);
-  font-weight: 500;
-  display: block;
-  margin-bottom: 2px;
-}
-
-.docs-hero__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-  margin-top: 36px;
-}
-
-.docs-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 8px;
-  border: 1px solid var(--docs-text);
-  padding: 10px 18px;
-  font-size: 14px;
-  font-weight: 600;
-  transition: color 0.15s, border-color 0.15s, background 0.15s;
-}
-
-.docs-button:hover {
-  color: var(--docs-accent);
-  border-color: var(--docs-accent);
-}
-
-.docs-button--primary {
-  border-color: var(--docs-accent);
-  background: var(--docs-accent);
-  color: #fff;
-}
-
-.docs-button--primary:hover {
-  background: transparent;
-  color: var(--docs-accent);
-}
-
-.docs-library {
-  padding: 80px 0 120px;
-  display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
-  gap: 80px;
-  align-items: start;
-}
-
-.docs-rail {
-  position: sticky;
-  top: 32px;
-  font-family: var(--docs-font-label);
-  font-size: var(--docs-label-sm);
-  letter-spacing: 0.06em;
-  color: var(--docs-text-light);
-}
-
-.docs-rail__heading {
-  color: var(--docs-text);
-  font-weight: 500;
-  margin: 0 0 14px;
-}
-
-.docs-rail ol {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.docs-rail li {
-  padding: 6px 0;
-  display: grid;
-  grid-template-columns: 32px 1fr;
-  gap: 8px;
-}
-
-.docs-rail__num {
-  font-family: var(--docs-font-display);
-  font-style: italic;
-  color: var(--docs-text-light);
-  font-size: var(--docs-body-sm);
-}
-
-.docs-rail a {
-  color: var(--docs-text-muted);
-}
-
-.docs-rail a:hover,
-.docs-rail a[aria-current="page"] {
-  color: var(--docs-accent);
-}
-
-.docs-chapter {
-  margin-bottom: 64px;
-}
-
-.docs-chapter:last-child {
-  margin-bottom: 0;
-}
-
-.docs-chapter__head {
-  display: grid;
-  grid-template-columns: 48px auto 1fr auto;
-  align-items: baseline;
-  column-gap: 20px;
-  padding-bottom: 14px;
-  border-bottom: 1px solid var(--docs-border);
-  margin-bottom: 8px;
-}
-
-.docs-chapter__numeral {
-  font-family: var(--docs-font-display);
-  font-style: italic;
-  font-size: var(--docs-display-sm);
-  line-height: 1.1;
-  color: var(--docs-accent);
-  text-align: right;
-}
-
-.docs-chapter__title {
-  font-size: var(--docs-display-sm);
-  line-height: 1.1;
-  letter-spacing: -0.015em;
-  margin: 0;
-}
-
 .docs-chapter__leader {
   align-self: end;
   margin-bottom: 8px;
@@ -475,170 +281,6 @@ const docsDesignCss = `
   opacity: 0.5;
 }
 
-.docs-chapter__count {
-  font-family: var(--docs-font-label);
-  font-size: var(--docs-label-sm);
-  letter-spacing: 0.06em;
-  color: var(--docs-text-light);
-}
-
-.docs-chapter__list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.docs-chapter__list li {
-  border-bottom: 1px solid var(--docs-border-light);
-}
-
-.docs-chapter__list li:last-child {
-  border-bottom: none;
-}
-
-.docs-chapter__list a {
-  display: block;
-  padding: 18px 0 18px 68px;
-}
-
-.docs-doc__title {
-  font-size: 22px;
-  line-height: 1.2;
-  letter-spacing: -0.005em;
-  margin: 0;
-  transition: color 0.15s;
-}
-
-.docs-doc__desc {
-  font-size: var(--docs-body-sm);
-  line-height: 1.55;
-  color: var(--docs-text-muted);
-  margin: 5px 0 0;
-  max-width: 70ch;
-}
-
-.docs-chapter__list a:hover .docs-doc__title {
-  color: var(--docs-accent);
-}
-
-.docs-detail-wrap {
-  padding-top: 64px;
-}
-
-.docs-breadcrumb {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  align-items: baseline;
-  margin-bottom: 32px;
-  color: var(--docs-text-light);
-  font-family: var(--docs-font-label);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.docs-breadcrumb a {
-  color: var(--docs-text-muted);
-  transition: color 0.15s;
-}
-
-.docs-breadcrumb a:hover {
-  color: var(--docs-accent);
-}
-
-.docs-detail-grid {
-  display: grid;
-  grid-template-columns: 240px minmax(0, 1fr);
-  gap: 80px;
-  align-items: start;
-  padding: 32px 0 96px;
-}
-
-.docs-detail-rail {
-  position: sticky;
-  top: 96px;
-  max-height: calc(100vh - 120px);
-  overflow: auto;
-  padding-right: 8px;
-}
-
-.docs-detail-rail .docs-rail {
-  position: static;
-}
-
-.docs-detail-rail ol ol {
-  margin-top: 2px;
-}
-
-.docs-detail-rail li {
-  grid-template-columns: 1fr;
-  padding: 0;
-}
-
-.docs-detail-rail .docs-rail__heading {
-  margin: 0 0 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--docs-text);
-  color: var(--docs-text-light);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-}
-
-.docs-detail-rail .docs-rail__section {
-  margin: 0 0 14px;
-}
-
-.docs-detail-rail .docs-rail__section.is-active {
-  margin-bottom: 22px;
-}
-
-.docs-detail-rail .docs-rail__section-title {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin: 0 0 8px;
-  color: var(--docs-text-muted);
-  font-family: var(--docs-font-label);
-  font-size: 11px;
-  letter-spacing: 0.06em;
-  line-height: 1.4;
-  text-transform: uppercase;
-  transition: color 0.15s;
-}
-
-.docs-detail-rail .docs-rail__section-title:hover,
-.docs-detail-rail .docs-rail__section.is-active .docs-rail__section-title {
-  color: var(--docs-text);
-}
-
-.docs-detail-rail .docs-rail__num {
-  color: var(--docs-accent);
-  font-size: 14px;
-}
-
-.docs-detail-rail .docs-rail__doc {
-  position: relative;
-  display: block;
-  padding: 6px 0;
-  font-family: var(--docs-font-body);
-  font-size: 14px;
-  line-height: 1.4;
-  letter-spacing: 0;
-  color: var(--docs-text-muted);
-  transition: color 0.15s, padding-left 0.15s;
-}
-
-.docs-detail-rail .docs-rail__doc:hover {
-  color: var(--docs-text);
-}
-
-.docs-detail-rail .docs-rail__doc[aria-current="page"] {
-  color: var(--docs-accent);
-  font-weight: 500;
-  padding-left: 14px;
-}
-
 .docs-detail-rail .docs-rail__doc[aria-current="page"]::before {
   content: "";
   position: absolute;
@@ -647,50 +289,6 @@ const docsDesignCss = `
   width: 6px;
   height: 1px;
   background: var(--docs-accent);
-}
-
-.docs-article {
-  min-width: 0;
-}
-
-.docs-article__header {
-  padding: 0 0 32px;
-  margin-bottom: 40px;
-  border-bottom: 1px solid var(--docs-border);
-}
-
-.docs-article__kicker {
-  display: flex;
-  align-items: baseline;
-  gap: 12px;
-  margin: 0 0 24px;
-}
-
-.docs-label__numeral {
-  font-family: var(--docs-font-display);
-  font-size: 18px;
-  font-style: italic;
-  letter-spacing: 0;
-  line-height: 1;
-  text-transform: none;
-}
-
-.docs-article__title {
-  font-size: var(--docs-display-md);
-  line-height: 1.05;
-  letter-spacing: -0.02em;
-  margin: 0;
-  max-width: 18ch;
-}
-
-.docs-article__desc {
-  margin: 24px 0 0;
-  max-width: 56ch;
-  color: var(--docs-text-muted);
-  font-family: var(--docs-font-display);
-  font-size: 22px;
-  font-weight: 350;
-  line-height: 1.5;
 }
 
 .docs-article__body {
@@ -769,53 +367,9 @@ const docsDesignCss = `
   background: transparent;
 }
 
-.docs-article__footer {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 20px;
-  margin-top: 48px;
-  padding-top: 28px;
-  border-top: 1px solid var(--docs-border);
-}
-
-.docs-ecosystem {
-  padding: 112px 0 72px;
-  border-top: 1px solid var(--docs-border-light);
-}
-
-.docs-ecosystem__head {
-  text-align: center;
-  margin-bottom: 56px;
-}
-
-.docs-ecosystem__eyebrow {
-  color: var(--docs-accent);
-  font-family: var(--docs-font-label);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.24em;
-  text-transform: uppercase;
-}
-
-.docs-ecosystem__head h2 {
-  margin: 16px 0 0;
-  color: var(--docs-heading);
-  font-family: var(--docs-font-display);
-  font-size: clamp(34px, 4.4vw, 60px);
-  font-weight: 380;
-  line-height: 1.04;
-  letter-spacing: -0.02em;
-}
-
 .docs-ecosystem__head h2 em {
   color: var(--docs-accent);
   font-style: italic;
-}
-
-.docs-ecosystem__cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 56px;
 }
 
 .docs-ecosystem__card {
@@ -837,26 +391,6 @@ const docsDesignCss = `
   font-size: clamp(28px, 3vw, 40px);
   font-weight: 400;
   line-height: 1.1;
-}
-
-.docs-ecosystem__role {
-  margin-top: 4px;
-  font-family: var(--docs-font-label);
-  font-size: 10.5px;
-  letter-spacing: 0.26em;
-  text-transform: uppercase;
-}
-
-.docs-ecosystem__role--ai {
-  color: var(--docs-accent-bright);
-}
-
-.docs-ecosystem__role--foundation {
-  color: var(--docs-text-muted);
-}
-
-.docs-ecosystem__role--work {
-  color: var(--docs-accent);
 }
 
 .docs-ecosystem__card p {
@@ -883,39 +417,18 @@ const docsDesignCss = `
   color: var(--docs-text);
 }
 
-.docs-footer {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  padding: 32px 0;
-  border-top: 1px solid var(--docs-border-light);
-  text-align: center;
-}
-
-.docs-footer__wordmark {
-  font-size: 15px;
-}
-
-.docs-footer__links a,
+.docs-footer__link,
 .docs-footer__toggle {
   color: var(--docs-text-light);
   font-family: var(--docs-font-label);
   font-size: 13px;
 }
 
-.docs-footer__links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-
-.docs-footer__links a {
+.docs-footer__link {
   transition: color 0.15s;
 }
 
-.docs-footer__links a:hover {
+.docs-footer__link:hover {
   color: var(--docs-text);
 }
 
@@ -933,131 +446,25 @@ const docsDesignCss = `
   border-color: var(--docs-text);
 }
 
-.docs-page-link {
-  border-top: 1px solid var(--docs-border-light);
-  padding-top: 18px;
-  transition: border-color 0.15s;
-}
-
-.docs-page-link:hover {
-  border-top-color: var(--docs-accent);
-}
-
-.docs-page-link--next {
-  text-align: right;
-}
-
-.docs-page-link__label {
-  display: block;
-  font-family: var(--docs-font-label);
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  color: var(--docs-text-light);
-}
-
-.docs-page-link__title {
-  display: block;
-  margin-top: 8px;
-  color: var(--docs-heading);
-  font-family: var(--docs-font-display);
-  font-size: 22px;
-  line-height: 1.2;
-}
-
 .docs-page-link:hover .docs-page-link__title {
   color: var(--docs-accent);
 }
 
 @media (min-width: 768px) {
-  .docs-header {
-    padding: 20px 40px;
-  }
-
   .docs-header__nav a.docs-header__cta {
     padding: 10px 24px;
     font-size: 15px;
   }
-
-  .docs-footer {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 24px 0;
-    text-align: left;
-  }
-
-  .docs-footer__links {
-    justify-content: flex-end;
-  }
-}
-
-@media (min-width: 1280px) {
-  .docs-header {
-    padding-left: 80px;
-    padding-right: 80px;
-  }
 }
 
 @media (max-width: 860px) {
-  .docs-header__nav {
-    gap: 16px;
-  }
-
   .docs-header__nav a:not(.docs-header__cta) {
     display: none;
-  }
-
-  .docs-wrap {
-    padding: 80px 24px 0;
-  }
-
-  .docs-hero {
-    padding: 56px 0 48px;
-  }
-
-  .docs-hero__meta {
-    gap: 28px;
-    margin-top: 40px;
-  }
-
-  .docs-library,
-  .docs-detail-grid {
-    grid-template-columns: 1fr;
-    gap: 40px;
-    padding: 48px 0 80px;
   }
 
   .docs-rail,
   .docs-detail-rail {
     display: none;
-  }
-
-  .docs-chapter__head {
-    grid-template-columns: 36px auto 1fr auto;
-    column-gap: 12px;
-  }
-
-  .docs-chapter__list a {
-    padding-left: 48px;
-  }
-
-  .docs-article__footer {
-    grid-template-columns: 1fr;
-  }
-
-  .docs-page-link--next {
-    text-align: left;
-  }
-
-  .docs-ecosystem {
-    padding: 72px 0 48px;
-  }
-
-  .docs-ecosystem__cards {
-    grid-template-columns: 1fr;
-    gap: 28px;
   }
 }
 `;

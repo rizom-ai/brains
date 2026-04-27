@@ -7,6 +7,7 @@ import {
   DocsEcosystem,
   DocsFooter,
   DocsHeader,
+  docsClasses,
   formatCount,
   groupDocs,
   hrefFor,
@@ -35,55 +36,82 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
       <DocsDesignStyles />
       <div className="docs-handbook">
         <DocsHeader ecosystemHref="#ecosystem" />
-        <div className="docs-wrap">
-          <section className="docs-hero">
-            <p className="docs-hero__eyebrow">Handbook · Brains docs</p>
-            <h1>
-              Build, run, and publish <em>brains.</em>
+        <div className={docsClasses.wrap}>
+          <section className="border-b border-[var(--docs-text)] py-14 md:py-24 md:pb-[72px]">
+            <p className={`${docsClasses.label} mb-8`}>
+              Handbook · Brains docs
+            </p>
+            <h1
+              className={`${docsClasses.display} m-0 max-w-[16ch] text-[var(--docs-display-lg)] leading-[1.05] tracking-[-0.02em]`}
+            >
+              Build, run, and publish{" "}
+              <em className="text-[var(--docs-accent)]">brains.</em>
             </h1>
-            <p className="docs-hero__intro">
+            <p className="mt-8 max-w-[52ch] text-[var(--docs-body-lg)] leading-[1.65] text-[var(--docs-text-muted)]">
               Documentation for composing brain models, managing markdown
               entities, wiring interfaces, and shipping generated sites.
             </p>
-            <dl className="docs-hero__meta">
+            <dl className="mt-10 flex flex-wrap gap-7 font-[var(--docs-font-label)] text-[var(--docs-label-sm)] tracking-[0.06em] text-[var(--docs-text-light)] md:mt-14 md:gap-12">
               <div>
-                <strong>{docs.length}</strong>
+                <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+                  {docs.length}
+                </strong>
                 Documents
               </div>
               <div>
-                <strong>{groups.length}</strong>
+                <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+                  {groups.length}
+                </strong>
                 Sections
               </div>
               <div>
-                <strong>April 2026</strong>
+                <strong className="mb-0.5 block font-medium text-[var(--docs-text)]">
+                  April 2026
+                </strong>
                 Updated
               </div>
             </dl>
-            <div className="docs-hero__actions">
+            <div className="mt-9 flex flex-wrap gap-3.5">
               {firstDoc && (
                 <a
-                  className="docs-button docs-button--primary"
+                  className={docsClasses.primaryButton}
                   href={hrefFor(firstDoc)}
                 >
                   Start reading
                 </a>
               )}
-              <a className="docs-button" href="#sections">
+              <a className={docsClasses.button} href="#sections">
                 Browse sections
               </a>
             </div>
           </section>
 
-          <section className="docs-library" id="sections">
-            <aside className="docs-rail" aria-label="Documentation sections">
-              <p className="docs-rail__heading">Sections</p>
-              <ol>
+          <section
+            className="grid items-start gap-10 py-12 md:grid-cols-[200px_minmax(0,1fr)] md:gap-20 md:py-20 md:pb-[120px]"
+            id="sections"
+          >
+            <aside
+              className="docs-rail sticky top-8 font-[var(--docs-font-label)] text-[var(--docs-label-sm)] tracking-[0.06em] text-[var(--docs-text-light)]"
+              aria-label="Documentation sections"
+            >
+              <p className="m-0 mb-3.5 font-medium text-[var(--docs-text)]">
+                Sections
+              </p>
+              <ol className="m-0 list-none p-0">
                 {groups.map((group, index) => (
-                  <li key={group.section}>
-                    <span className="docs-rail__num">
+                  <li
+                    className="grid grid-cols-[32px_1fr] gap-2 py-1.5"
+                    key={group.section}
+                  >
+                    <span className="font-[var(--docs-font-display)] text-[var(--docs-text-light)] italic">
                       {romanNumeral(index)}.
                     </span>
-                    <a href={`#${sectionId(index)}`}>{group.section}</a>
+                    <a
+                      className="text-[var(--docs-text-muted)] hover:text-[var(--docs-accent)]"
+                      href={`#${sectionId(index)}`}
+                    >
+                      {group.section}
+                    </a>
                   </li>
                 ))}
               </ol>
@@ -92,29 +120,39 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
             <div>
               {groups.map((group, index) => (
                 <article
-                  className="docs-chapter"
+                  className="mb-16 last:mb-0"
                   id={sectionId(index)}
                   key={group.section}
                 >
-                  <header className="docs-chapter__head">
-                    <span className="docs-chapter__numeral">
+                  <header className="mb-2 grid grid-cols-[36px_auto_1fr_auto] items-baseline gap-x-3 border-b border-[var(--docs-border)] pb-3.5 md:grid-cols-[48px_auto_1fr_auto] md:gap-x-5">
+                    <span className="text-right font-[var(--docs-font-display)] text-[var(--docs-display-sm)] leading-[1.1] text-[var(--docs-accent)] italic">
                       {romanNumeral(index)}.
                     </span>
-                    <h2 className="docs-chapter__title">{group.section}</h2>
+                    <h2
+                      className={`${docsClasses.display} m-0 text-[var(--docs-display-sm)] leading-[1.1] tracking-[-0.015em]`}
+                    >
+                      {group.section}
+                    </h2>
                     <span className="docs-chapter__leader" />
-                    <span className="docs-chapter__count">
+                    <span className="font-[var(--docs-font-label)] text-[var(--docs-label-sm)] tracking-[0.06em] text-[var(--docs-text-light)]">
                       {formatCount(group.docs.length)}
                     </span>
                   </header>
-                  <ol className="docs-chapter__list">
+                  <ol className="m-0 list-none p-0">
                     {group.docs.map((doc) => (
-                      <li key={doc.id}>
-                        <a href={hrefFor(doc)}>
-                          <p className="docs-doc__title">
+                      <li
+                        className="border-b border-[var(--docs-border-light)] last:border-b-0"
+                        key={doc.id}
+                      >
+                        <a
+                          className="group block py-[18px] pl-12 md:pl-[68px]"
+                          href={hrefFor(doc)}
+                        >
+                          <p className="m-0 text-[22px] leading-[1.2] tracking-[-0.005em] transition-colors duration-150 group-hover:text-[var(--docs-accent)]">
                             {doc.metadata.title}
                           </p>
                           {doc.metadata.description && (
-                            <p className="docs-doc__desc">
+                            <p className="mt-1.5 mb-0 max-w-[70ch] text-[var(--docs-body-sm)] leading-[1.55] text-[var(--docs-text-muted)]">
                               {doc.metadata.description}
                             </p>
                           )}
