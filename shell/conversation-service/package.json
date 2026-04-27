@@ -1,7 +1,7 @@
 {
   "name": "@brains/conversation-service",
   "private": true,
-  "version": "0.2.0-alpha.42",
+  "version": "0.2.0-alpha.43",
   "description": "Conversation storage and retrieval service for Brains",
   "type": "module",
   "main": "./src/index.ts",

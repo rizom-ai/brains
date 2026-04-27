@@ -1,7 +1,7 @@
 {
   "name": "@brains/entity-service",
   "private": true,
-  "version": "0.2.0-alpha.42",
+  "version": "0.2.0-alpha.43",
   "description": "Entity service for managing brain entities with database persistence and serialization",
   "type": "module",
   "main": "src/index.ts",

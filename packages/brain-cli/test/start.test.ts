@@ -33,7 +33,16 @@ describe("brain start", () => {
   });
 
   it("should detect standalone context by absence of bun.lock", () => {
-    expect(existsSync("/tmp/bun.lock")).toBe(false);
+    const isolatedDir = join(
+      tmpdir(),
+      `brain-start-standalone-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(isolatedDir, { recursive: true });
+    try {
+      expect(existsSync(join(isolatedDir, "bun.lock"))).toBe(false);
+    } finally {
+      rmSync(isolatedDir, { recursive: true, force: true });
+    }
   });
 });
 

@@ -11,8 +11,6 @@ export { Footer } from "./Footer";
 
 export { Header } from "./Header";
 
-export { ProductCard } from "./ProductCard";
-
 export { RizomFrame } from "./frame";
 export type { RizomFrameProps } from "./frame";
 
@@ -30,8 +28,6 @@ export { Ecosystem } from "./Ecosystem";
 export type { EcosystemCard, EcosystemContent } from "./Ecosystem";
 
 export type {
-  ProductCardContent,
-  ProductVariant,
   RizomBrandSuffix,
   RizomFooterTagline,
   RizomLink,

@@ -40,6 +40,7 @@
 
   /* Brand fonts */
   --font-display: var(--font-display);
+  --font-display--font-variation-settings: "wght" 520;
   --font-body: var(--font-body);
   --font-label: var(--font-label);
   --font-nav: var(--font-nav);

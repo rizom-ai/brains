@@ -24,7 +24,6 @@ export {
   Divider,
   Footer,
   Header,
-  ProductCard,
   RizomFrame,
   Section,
   SideNav,
@@ -33,8 +32,6 @@ export {
   GUTTER,
 } from "./ui";
 export type {
-  ProductCardContent,
-  ProductVariant,
   RizomBrandSuffix,
   RizomFooterTagline,
   RizomLayoutProps,
