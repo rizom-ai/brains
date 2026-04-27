@@ -101,6 +101,14 @@
   --spacing-section: var(--spacing-section);
 }
 
+/* Default Fraunces weight on .font-display — survives arbitrary
+   `[font-variation-settings:'opsz'_X]` overrides which replace the
+   property entirely and let wght fall back to CSS font-weight. */
+@utility font-display {
+  font-family: var(--font-display);
+  font-weight: 520;
+}
+
 @layer theme {
   :root {
     /* Layout */

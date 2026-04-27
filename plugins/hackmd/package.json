@@ -1,7 +1,7 @@
 {
   "name": "@brains/hackmd",
   "private": true,
-  "version": "0.2.0-alpha.43",
+  "version": "0.2.0-alpha.44",
   "description": "Read-only HackMD integration via MCP bridge",
   "type": "module",
   "exports": {
