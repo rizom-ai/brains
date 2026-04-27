@@ -83,10 +83,17 @@ Body is copied from the source markdown, with links rewritten as needed.
 
 Initial package exists at `entities/doc` with schema, adapter, plugin registration, datasource, and index/detail templates.
 
+Current status:
+
+- `/docs` lists and groups docs by section/order
+- `/docs/:slug` renders markdown detail pages
+- detail pages include grouped sidebar navigation and previous/next links
+- Relay docs test app validates the route path with a running docs brain
+
 Remaining responsibilities:
 
-- docs navigation/sidebar beyond basic index/detail pages
-- route validation in a running docs brain
+- production docs-site repo sync/deploy path
+- docs search, syntax highlighting, and versioning if/when needed
 
 Suggested frontmatter:
 
@@ -111,11 +118,12 @@ When the `docs` capability is active:
 - `/docs` lists/group docs by section/order
 - `/docs/:slug` renders one doc page
 
-The detail page should include:
+The Relay docs test app also registers an explicit `/docs` route so docs-specific page sections can compose normally. The current `/docs` route contains:
 
-- main markdown content
-- sidebar grouped by section/order
-- previous/next links if easy
+1. `docs:doc-list` with doc entity data
+2. `docs:docs-ecosystem` with route-level fallback content from `@rizom/ui`
+
+This keeps ecosystem content on the normal site-builder content path: saved `site-content` can override a section, otherwise the route's `content` fallback is used.
 
 ## Markdown rendering
 
@@ -169,7 +177,7 @@ brains/relay/test-apps/default
 brains/relay/test-apps/docs
 ```
 
-The `docs` test app uses `brain: relay`, `preset: default`, and `add: [docs]`.
+The `docs` test app uses `brain: relay`, `preset: default`, and `add: [docs]`. It has app-local site composition in `src/site.ts` for the docs homepage and `/docs` route.
 
 ## Validation
 

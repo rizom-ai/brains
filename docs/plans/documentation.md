@@ -95,7 +95,7 @@ Plan: [`docs-site.md`](./docs-site.md)
 
 1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](../README.md)
 2. **Source manifest — DONE (2026-04)**: `docs/docs-manifest.yaml`
-3. **Generic `doc` entity package — STARTED (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; running-app route validation remains
+3. **Generic `doc` entity package — DONE (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; Relay docs test app validates list/detail routes and route-level ecosystem section composition
 4. Let the docs site repo own sync/deploy to `brain-data/doc/*.md`
 5. Deploy at docs.rizom.ai
 6. Auto-generate CLI reference from code
