@@ -87,7 +87,8 @@
     "@brains/cms-config": "0.2.0-alpha.18",
     "@brains/cms": "0.2.0-alpha.29",
     "@rizom/ui": "0.2.0-alpha.34",
-    "@brains/assessment": "0.2.0-alpha.39"
+    "@brains/assessment": "0.2.0-alpha.39",
+    "@brains/doc": "0.2.0-alpha.42"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
