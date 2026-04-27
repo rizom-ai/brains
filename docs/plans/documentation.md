@@ -80,19 +80,26 @@ Docs in `docs/`:
 3. CLI command reference
 4. Deployment guide (Docker + Kamal)
 
-### Phase 2: Complete docs
+### Phase 2: Complete docs — DONE (2026-04)
 
-1. Entity types reference
-2. Content management guide
-3. Interface setup guides (MCP, Discord, A2A)
-4. Customization guides (themes, layouts, plugins)
+1. **Entity types reference**: see [`docs/entity-types-reference.md`](../entity-types-reference.md)
+2. **Content management guide**: see [`docs/content-management.md`](../content-management.md)
+3. **Interface setup guide**: see [`docs/interface-setup.md`](../interface-setup.md)
+4. **Customization guide**: see [`docs/customization-guide.md`](../customization-guide.md)
 
 ### Phase 3: Doc site
 
-1. Choose doc framework
-2. Deploy at docs.rizom.ai
-3. Auto-generate CLI reference from code
-4. Auto-generate brain.yaml schema reference from Zod schemas
+Initial direction: dogfood the brain site-builder docs path with first-class `doc` entities rendered by a `docs` capability inside the active site/theme. Fall back to a dedicated docs framework such as Astro Starlight or VitePress only if this proves too limiting.
+
+Plan: [`docs-site.md`](./docs-site.md)
+
+1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](../README.md)
+2. **Source manifest — DONE (2026-04)**: `docs/docs-manifest.yaml`
+3. **Generic `doc` entity package — STARTED (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; running-app route validation remains
+4. Let the docs site repo own sync/deploy to `brain-data/doc/*.md`
+5. Deploy at docs.rizom.ai
+6. Auto-generate CLI reference from code
+7. Auto-generate brain.yaml schema reference from Zod schemas
 
 ## Verification
 

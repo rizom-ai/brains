@@ -18,7 +18,7 @@ bun start:default
 bun start:full
 ```
 
-Each command runs the matching test app via the in-repo `@rizom/brain` workspace package and seeds its local `brain-data/` from `../../eval-content` on first boot.
+Each command runs the matching test app via the in-repo `@rizom/brain` workspace package. `directory-sync` bootstraps the preset-specific local content remote from `../../eval-content` when the remote is missing or empty.
 
 ## Minimum local env
 
@@ -54,12 +54,12 @@ Missing optional integration secrets do not block the whole app from booting, bu
 
 ## Reset a preset
 
-Remove the matching test app data directory:
+Remove the matching test app state and local content remote:
 
 ```sh
-rm -rf brains/rover/test-apps/core/brain-data
-rm -rf brains/rover/test-apps/default/brain-data
-rm -rf brains/rover/test-apps/full/brain-data
+rm -rf brains/rover/test-apps/core/brain-data brains/rover/test-apps/core/data brains/rover/test-apps/core/dist /tmp/rover-core-test-content.git
+rm -rf brains/rover/test-apps/default/brain-data brains/rover/test-apps/default/data brains/rover/test-apps/default/dist /tmp/rover-default-test-content.git
+rm -rf brains/rover/test-apps/full/brain-data brains/rover/test-apps/full/data brains/rover/test-apps/full/dist /tmp/rover-full-test-content.git
 ```
 
-The next `bun start:*` re-seeds that preset from `brains/rover/eval-content/`.
+The next `bun start:*` recreates and seeds that preset's local content remote from `brains/rover/eval-content/`.

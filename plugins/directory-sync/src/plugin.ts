@@ -10,6 +10,7 @@ import { setupAutoSync, setupFileWatcher } from "./lib/auto-sync";
 import { setupInitialSync } from "./lib/initial-sync";
 import { setupGitAutoCommit } from "./lib/git-auto-commit";
 import { setupPeriodicGitSync } from "./lib/git-periodic-sync";
+import { bootstrapContentRemoteFromSeed } from "./lib/content-remote-bootstrap";
 import { registerMessageHandlers } from "./lib/message-handlers";
 import { createDirectorySyncTools } from "./tools";
 import "./types/job-augmentation";
@@ -106,6 +107,16 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
     }
 
     if (gitConfigured && this.config.git) {
+      await bootstrapContentRemoteFromSeed({
+        gitUrl: this.config.git.gitUrl,
+        branch: this.config.git.branch,
+        seedContentPath: this.config.seedContentPath,
+        bootstrapFromSeed: this.config.git.bootstrapFromSeed,
+        authorName: this.config.git.authorName,
+        authorEmail: this.config.git.authorEmail,
+        logger: this.logger.child("ContentRemoteBootstrap"),
+      });
+
       const gitSyncPath = this.config.syncPath ?? context.dataDir;
       this.gitSync = new GitSync({
         logger: this.logger.child("GitSync"),

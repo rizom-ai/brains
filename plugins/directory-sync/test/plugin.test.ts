@@ -155,6 +155,7 @@ describe("DirectorySyncPlugin", () => {
       branch: "main",
       authorName: "Test",
       authorEmail: "test@example.com",
+      bootstrapFromSeed: true,
     } as const;
 
     it("should not enable git when git block has no repo and no gitUrl", async () => {

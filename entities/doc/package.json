@@ -1,0 +1,29 @@
+{
+  "name": "@brains/doc",
+  "private": true,
+  "version": "0.2.0-alpha.42",
+  "description": "Documentation entity type — markdown docs as first-class brain content",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix"
+  },
+  "dependencies": {
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "bun-types": "latest",
+    "typescript": "^5.3.3"
+  }
+}

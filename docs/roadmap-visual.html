@@ -569,7 +569,7 @@
           name: "Rizom Site Follow-through",
           status: "short-term",
           step: 2,
-          desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each Rizom app owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom-foundation`, `rizom-work`) and no forced `rizom-ai` theme fork. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts). A separate `rizom-sites` repo is still a later decision, not the current target.",
+          desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each extracted Rizom app repo owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom.foundation`, `rizom.work`) and no forced `rizom.ai` theme fork. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts) in the extracted app/content repos.",
           deps: ["deploymentpath"],
         },
         {

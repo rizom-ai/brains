@@ -368,13 +368,13 @@ site:
 ```
 
 ```yaml
-# apps/rizom-ai/brain.yaml
+# brain.yaml in a standalone Rizom app repo
 brain: ranger
 site:
   theme: "@brains/theme-rizom"
 ```
 
-The brain resolver loads `site.package` and `site.theme` independently. Site-specific config (for example `variant`) flows to the site plugin; `theme` does not. Instead, the resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
+The brain resolver loads `site.package` and `site.theme` independently. App-specific composition belongs in the standalone app repo's local `src/site.ts`; the shared `sites/rizom` package and `shared/theme-rizom` stay single-sourced in this repo. The resolver validates the theme package, composes it once with `composeTheme(...)`, and injects the resulting CSS into site-builder.
 
 ### Site Builder Integration
 

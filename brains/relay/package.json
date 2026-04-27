@@ -12,6 +12,9 @@
     ".": "./src/index.ts"
   },
   "scripts": {
+    "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
+    "start:docs": "cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"

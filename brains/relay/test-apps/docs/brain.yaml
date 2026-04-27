@@ -1,0 +1,13 @@
+brain: relay
+preset: default
+add:
+  - docs
+
+plugins:
+  directory-sync:
+    seedContentPath: ../../eval-content
+    autoSync: true
+    initialSync: true
+    git:
+      repo: rizom-ai/relay-test-content
+      gitUrl: file:///tmp/relay-docs-test-content.git

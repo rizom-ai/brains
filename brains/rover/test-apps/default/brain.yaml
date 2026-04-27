@@ -8,4 +8,4 @@ plugins:
     initialSync: true
     git:
       repo: rizom-ai/rover-test-content
-      gitUrl: file:///tmp/rover-test-content.git
+      gitUrl: file:///tmp/rover-default-test-content.git

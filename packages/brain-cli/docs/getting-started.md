@@ -143,6 +143,11 @@ Once running, a brain can be accessed through several surfaces depending on the 
 
 ## Common next steps
 
+- [Documentation Index](../../../docs/README.md)
 - [brain.yaml Reference](./brain-yaml-reference.md)
+- [Entity Types Reference](../../../docs/entity-types-reference.md)
+- [Content Management Guide](../../../docs/content-management.md)
+- [Interface Setup Guide](../../../docs/interface-setup.md)
+- [Customization Guide](../../../docs/customization-guide.md)
 - [CLI Reference](./cli-reference.md)
 - [Deployment Guide](./deployment-guide.md)

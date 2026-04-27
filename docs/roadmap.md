@@ -67,13 +67,16 @@ Plans:
 
 ### 2. Documentation phase 2
 
-Fill the remaining user-facing docs in parallel with the product work above:
+The remaining pre-doc-site user-facing docs are now in place:
 
-- entity type reference
-- content-management guidance
-- interface setup guides
-- deeper customization docs for themes, layouts, and plugin authoring examples
-- keep architecture-level plugin docs thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`
+- [entity type reference](./entity-types-reference.md)
+- [content-management guidance](./content-management.md)
+- [interface setup guide](./interface-setup.md)
+- [customization guide](./customization-guide.md) for themes, layouts, and plugin boundaries
+
+Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
+
+A canonical [documentation index](./README.md) now exists. Next documentation work is Phase 3: implement the [`doc` entity/docs-site plan](./plans/docs-site.md) and automate generated references where useful.
 
 Plan:
 

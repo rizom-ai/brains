@@ -99,6 +99,13 @@ export const directorySyncConfigSchema = z.object({
         .string()
         .default("brain@localhost")
         .describe("Git commit author email"),
+      bootstrapFromSeed: z
+        .boolean()
+        .optional()
+        .default(true)
+        .describe(
+          "Bootstrap a missing/empty local file:// content remote from seedContentPath",
+        ),
     })
     .optional(),
 });

@@ -104,6 +104,7 @@ Use **`rover`** as the external reference model.
 
 ### Start here
 
+- [Documentation Index](docs/README.md)
 - [Getting Started](packages/brain-cli/docs/getting-started.md)
 - [brain.yaml Reference](packages/brain-cli/docs/brain-yaml-reference.md)
 - [CLI Reference](packages/brain-cli/docs/cli-reference.md)
@@ -114,6 +115,10 @@ Use **`rover`** as the external reference model.
 - [Architecture Overview](docs/architecture-overview.md)
 - [Brain Models](docs/brain-model.md)
 - [Entity Model](docs/entity-model.md)
+- [Entity Types Reference](docs/entity-types-reference.md)
+- [Content Management Guide](docs/content-management.md)
+- [Interface Setup Guide](docs/interface-setup.md)
+- [Customization Guide](docs/customization-guide.md)
 - [Plugin System](docs/plugin-system.md)
 - [Plugin Development Patterns](docs/plugin-development-patterns.md)
 - [Theming Guide](docs/theming-guide.md)

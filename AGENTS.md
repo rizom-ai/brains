@@ -8,14 +8,16 @@ This file applies to the whole repository unless a more specific `AGENTS.md` exi
 
 - Make the smallest correct change.
 - Prefer existing architecture and package boundaries.
+- Keep answers concise; avoid long explanatory replies unless explicitly requested.
 - Ask a clear yes/no question when requirements are ambiguous.
 - Keep edits isolated to one file when possible.
 - Preserve backward compatibility unless explicitly told otherwise.
+- Do not assume Python is available; this machine has neither `python` nor `python3` installed.
 
 ## Validation
 
 - Use the lightest relevant check set.
-- Docs-only changes usually do not need typecheck, lint, or tests; run formatting if the edited markdown needs it.
+- Docs-only changes usually do not need typecheck, lint, or tests; run formatting if the edited markdown needs it. Use `bun run docs:check` when docs links or `docs/docs-manifest.yaml` change.
 - For code changes, prefer targeted workspace checks first: `bun run typecheck`, relevant tests, and `bun run lint` or `bun run lint:fix`.
 - Use full repo checks only when the change crosses shared contracts or multiple workspaces.
 - Fix failing checks before continuing.

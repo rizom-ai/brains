@@ -18,6 +18,7 @@ import { notePlugin } from "@brains/note";
 import { imagePlugin } from "@brains/image-plugin";
 import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
+import { docsPlugin } from "@brains/doc";
 import { promptPlugin } from "@brains/prompt";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
@@ -105,6 +106,8 @@ export default defineBrain({
     // decks is not in core or default yet — kept registered so
     // presentation-heavy relay instances can opt in via `add: [decks]`.
     ["decks", decksPlugin, undefined],
+    // docs is opt-in for docs-focused relay instances such as docs.rizom.ai.
+    ["docs", docsPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["cms", cmsPlugin, {}],

@@ -28,6 +28,20 @@ describe("git config block", () => {
     expect(result.git?.gitUrl).toBe("file:///tmp/local-repo");
   });
 
+  it("should default bootstrapFromSeed to true", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { gitUrl: "file:///tmp/local-repo" },
+    });
+    expect(result.git?.bootstrapFromSeed).toBe(true);
+  });
+
+  it("should allow bootstrapFromSeed", () => {
+    const result = directorySyncConfigSchema.parse({
+      git: { gitUrl: "file:///tmp/local-repo", bootstrapFromSeed: true },
+    });
+    expect(result.git?.bootstrapFromSeed).toBe(true);
+  });
+
   it("should default branch to main", () => {
     const result = directorySyncConfigSchema.parse({
       git: { repo: "test/repo" },

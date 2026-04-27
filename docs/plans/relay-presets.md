@@ -174,9 +174,9 @@ scoping as separate plans before we lock in a `full` preset.
 
 ## Consumer app impact — snapshot
 
-| app                      | brain | preset    | `add:`    | result                                                                       |
+| consumer instance        | brain | preset    | `add:`    | result                                                                       |
 | ------------------------ | ----- | --------- | --------- | ---------------------------------------------------------------------------- |
-| `apps/rizom-foundation`  | relay | `default` | —         | minimal public site for the manifesto                                        |
+| `rizom.foundation` repo  | relay | `default` | —         | minimal public site for the manifesto                                        |
 | `example relay instance` | relay | `default` | `[decks]` | minimal site + decks (lost `summary` until rework, lost old implicit extras) |
 
 ## Known latent bugs surfaced this round

@@ -45,6 +45,8 @@
     "format": "prettier --write \"**/*.{ts,tsx,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md}\"",
     "docs:links": "bun scripts/check-markdown-links.ts",
+    "docs:manifest": "bun scripts/check-docs-manifest.ts",
+    "docs:check": "bun run docs:links && bun run docs:manifest",
     "typecheck": "turbo run typecheck",
     "clean": "turbo run clean",
     "clean:all": "turbo run clean && rm -rf node_modules .turbo",

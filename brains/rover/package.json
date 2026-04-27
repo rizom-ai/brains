@@ -10,12 +10,8 @@
     "env.schema.template"
   ],
   "scripts": {
-    "ensure:test-remote": "bun ./scripts/ensure-test-remote.ts",
-    "prestart:core": "bun run ensure:test-remote",
     "start:core": "cd test-apps/core && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "prestart:default": "bun run ensure:test-remote",
     "start:default": "cd test-apps/default && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
-    "prestart:full": "bun run ensure:test-remote",
     "start:full": "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",

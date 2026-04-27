@@ -1,0 +1,5 @@
+*/brain-data/
+*/.env*
+*/cache/
+*/dist/
+*/data/
