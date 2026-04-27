@@ -1,4 +1,8 @@
 import type { JSX } from "preact";
+import {
+  Ecosystem as RizomEcosystem,
+  getRizomEcosystemContent,
+} from "@rizom/ui";
 import type { DocWithData } from "../schemas/doc";
 
 export type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;
@@ -49,9 +53,8 @@ const wordmarkInk = "text-[var(--docs-text)] font-bold";
 const wordmarkDot = "text-[var(--docs-accent)] font-bold";
 const wordmarkSuffix = "text-[var(--docs-text-muted)]";
 const labelText =
-  "font-[var(--docs-font-label)] text-[var(--docs-label-sm)] uppercase tracking-[0.18em] text-[var(--docs-accent)]";
-const displayText =
-  "font-[var(--docs-font-display)] font-normal text-[var(--docs-heading)]";
+  "docs-font-label text-xs uppercase tracking-[0.18em] text-[var(--docs-accent)]";
+const displayText = "docs-font-display text-[var(--docs-heading)]";
 const buttonBase =
   "inline-flex items-center justify-center rounded-lg border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-150";
 
@@ -69,7 +72,7 @@ export const DocsHeader = ({
   <nav className="docs-header fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 md:py-5 xl:px-20">
     <a
       href="/docs"
-      className="font-[var(--docs-font-body)] text-xl font-bold"
+      className="docs-font-body text-xl font-bold"
       aria-label="Brains docs"
     >
       <span className={wordmarkInk}>brains</span>
@@ -88,72 +91,12 @@ export const DocsHeader = ({
 );
 
 export const DocsEcosystem = (): JSX.Element => (
-  <section
-    className="border-t border-[var(--docs-border-light)] py-[72px] md:py-28"
-    id="ecosystem"
-  >
-    <div className="mx-auto mb-14 max-w-4xl text-center">
-      <span className="font-[var(--docs-font-label)] text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--docs-accent)]">
-        The Ecosystem
-      </span>
-      <h2 className="mt-4 font-[var(--docs-font-display)] text-[var(--docs-ecosystem-title)] font-[380] leading-[1.04] tracking-[-0.02em] text-[var(--docs-heading)]">
-        One ecosystem. The <em>platform</em>, the <em>vision</em>, the{" "}
-        <em>network</em>.
-      </h2>
-    </div>
-    <div className="grid gap-7 md:grid-cols-3 md:gap-14">
-      <a className="docs-ecosystem__card" href="https://rizom.ai">
-        <span className="docs-ecosystem__wordmark">
-          rizom<span className={wordmarkDot}>.</span>
-          <span className={wordmarkSuffix}>ai</span>
-        </span>
-        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-accent-bright)]">
-          The platform
-        </span>
-        <p>
-          Open-source AI agents built from your own knowledge. The tools that
-          make everything else possible.
-        </p>
-        <span className="docs-ecosystem__link">See the platform →</span>
-      </a>
-      <a className="docs-ecosystem__card" href="https://rizom.foundation">
-        <span className="docs-ecosystem__wordmark">
-          rizom<span className={wordmarkDot}>.</span>
-          <span className={wordmarkSuffix}>foundation</span>
-        </span>
-        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-text-muted)]">
-          The vision
-        </span>
-        <p>
-          Essays, principles, and community. Why we believe knowledge work
-          should be distributed, owned, and playful.
-        </p>
-        <span className="docs-ecosystem__link">Read the manifesto →</span>
-      </a>
-      <a className="docs-ecosystem__card" href="https://rizom.work">
-        <span className="docs-ecosystem__wordmark">
-          rizom<span className={wordmarkDot}>.</span>
-          <span className={wordmarkSuffix}>work</span>
-        </span>
-        <span className="font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.26em] text-[var(--docs-accent)]">
-          The network
-        </span>
-        <p>
-          Distributed consultancy powered by brains. Specialized expertise that
-          mobilizes in hours, not months.
-        </p>
-        <span className="docs-ecosystem__link">Work with us →</span>
-      </a>
-    </div>
-  </section>
+  <RizomEcosystem {...getRizomEcosystemContent()} />
 );
 
 export const DocsFooter = (): JSX.Element => (
   <footer className="flex flex-col items-center justify-between gap-4 border-t border-[var(--docs-border-light)] py-8 text-center md:flex-row md:gap-6 md:py-6 md:text-left">
-    <a
-      href="https://rizom.ai"
-      className="font-[var(--docs-font-body)] text-[15px] font-bold"
-    >
+    <a href="https://rizom.ai" className="docs-font-body text-[15px] font-bold">
       <span className={wordmarkInk}>rizom</span>
       <span className={wordmarkDot}>.</span>
       <span className={wordmarkSuffix}>ai</span>
@@ -210,6 +153,19 @@ const docsDesignCss = `
 .docs-handbook a {
   color: inherit;
   text-decoration: none;
+}
+
+.docs-font-display {
+  font-family: var(--docs-font-display);
+  font-weight: 520;
+}
+
+.docs-font-body {
+  font-family: var(--docs-font-body);
+}
+
+.docs-font-label {
+  font-family: var(--docs-font-label);
 }
 
 .docs-header {
@@ -365,56 +321,6 @@ const docsDesignCss = `
 .docs-article__body pre code {
   border: 0;
   background: transparent;
-}
-
-.docs-ecosystem__head h2 em {
-  color: var(--docs-accent);
-  font-style: italic;
-}
-
-.docs-ecosystem__card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  border-top: 1px solid var(--docs-border-light);
-  padding-top: 28px;
-  transition: border-color 0.2s;
-}
-
-.docs-ecosystem__card:hover {
-  border-top-color: var(--docs-accent);
-}
-
-.docs-ecosystem__wordmark {
-  color: var(--docs-text);
-  font-family: var(--docs-font-display);
-  font-size: clamp(28px, 3vw, 40px);
-  font-weight: 400;
-  line-height: 1.1;
-}
-
-.docs-ecosystem__card p {
-  margin: 8px 0 0;
-  color: var(--docs-text-muted);
-  font-size: 15px;
-  line-height: 1.6;
-}
-
-.docs-ecosystem__link {
-  align-self: flex-start;
-  margin-top: 18px;
-  padding-bottom: 4px;
-  border-bottom: 1px solid var(--docs-border);
-  color: var(--docs-text-muted);
-  font-family: var(--docs-font-label);
-  font-size: 10.5px;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  transition: color 0.15s;
-}
-
-.docs-ecosystem__card:hover .docs-ecosystem__link {
-  color: var(--docs-text);
 }
 
 .docs-footer__link,

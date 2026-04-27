@@ -49,7 +49,7 @@ export const DocDetailTemplate = ({
         <DocsHeader />
         <div className={`${docsClasses.wrap} pt-16`}>
           <nav
-            className="mb-8 flex flex-wrap items-baseline gap-2.5 font-[var(--docs-font-label)] text-[11px] uppercase tracking-[0.06em] text-[var(--docs-text-light)]"
+            className="mb-8 flex flex-wrap items-baseline gap-2.5 docs-font-label text-[11px] uppercase tracking-[0.06em] text-[var(--docs-text-light)]"
             aria-label="Breadcrumb"
           >
             <a
@@ -74,7 +74,7 @@ export const DocDetailTemplate = ({
               className="docs-detail-rail sticky top-24 max-h-[calc(100vh-120px)] overflow-auto pr-2"
               aria-label="Documentation navigation"
             >
-              <nav className="font-[var(--docs-font-label)] text-[var(--docs-label-sm)] tracking-[0.06em] text-[var(--docs-text-light)]">
+              <nav className="docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)]">
                 <p className="m-0 mb-4 border-b border-[var(--docs-text)] pb-3 text-[11px] uppercase tracking-[0.08em] text-[var(--docs-text-light)]">
                   Documentation
                 </p>
@@ -87,10 +87,10 @@ export const DocDetailTemplate = ({
                         key={group.section}
                       >
                         <a
-                          className={`mb-2 flex items-baseline gap-2.5 font-[var(--docs-font-label)] text-[11px] uppercase leading-[1.4] tracking-[0.06em] transition-colors duration-150 hover:text-[var(--docs-text)] ${isActiveGroup ? "text-[var(--docs-text)]" : "text-[var(--docs-text-muted)]"}`}
+                          className={`mb-2 flex items-baseline gap-2.5 docs-font-label text-[11px] uppercase leading-[1.4] tracking-[0.06em] transition-colors duration-150 hover:text-[var(--docs-text)] ${isActiveGroup ? "text-[var(--docs-text)]" : "text-[var(--docs-text-muted)]"}`}
                           href={`/docs#${sectionId(index)}`}
                         >
-                          <span className="font-[var(--docs-font-display)] text-sm text-[var(--docs-accent)] italic">
+                          <span className="docs-font-display text-sm text-[var(--docs-accent)] italic">
                             {romanNumeral(index)}.
                           </span>{" "}
                           {group.section}
@@ -103,7 +103,7 @@ export const DocDetailTemplate = ({
                               return (
                                 <li key={item.id}>
                                   <a
-                                    className={`docs-rail__doc relative block py-1.5 font-[var(--docs-font-body)] text-sm leading-[1.4] tracking-normal transition-[color,padding-left] duration-150 hover:text-[var(--docs-text)] ${active ? "pl-3.5 font-medium text-[var(--docs-accent)]" : "text-[var(--docs-text-muted)]"}`}
+                                    className={`docs-rail__doc relative block py-1.5 docs-font-body text-sm leading-[1.4] tracking-normal transition-[color,padding-left] duration-150 hover:text-[var(--docs-text)] ${active ? "pl-3.5 font-medium text-[var(--docs-accent)]" : "text-[var(--docs-text-muted)]"}`}
                                     href={hrefFor(item)}
                                     aria-current={active ? "page" : undefined}
                                   >
@@ -126,7 +126,7 @@ export const DocDetailTemplate = ({
                 <p
                   className={`${docsClasses.label} m-0 mb-6 flex items-baseline gap-3`}
                 >
-                  <span className="font-[var(--docs-font-display)] text-lg leading-none tracking-normal normal-case text-[var(--docs-accent)] italic">
+                  <span className="docs-font-display text-lg leading-none tracking-normal normal-case text-[var(--docs-accent)] italic">
                     {romanNumeral(activeGroupIndex)}.
                   </span>{" "}
                   {doc.metadata.section}
@@ -135,12 +135,12 @@ export const DocDetailTemplate = ({
                     : ""}
                 </p>
                 <h1
-                  className={`${docsClasses.display} m-0 max-w-[18ch] text-[var(--docs-display-md)] leading-[1.05] tracking-[-0.02em]`}
+                  className={`${docsClasses.display} m-0 max-w-[18ch] text-4xl leading-[1.05] tracking-[-0.02em] md:text-6xl`}
                 >
                   {doc.metadata.title}
                 </h1>
                 {doc.metadata.description && (
-                  <p className="mt-6 max-w-[56ch] font-[var(--docs-font-display)] text-[22px] font-[350] leading-[1.5] text-[var(--docs-text-muted)]">
+                  <p className="mt-6 max-w-[56ch] docs-font-display text-[22px] font-[350] leading-[1.5] text-[var(--docs-text-muted)]">
                     {doc.metadata.description}
                   </p>
                 )}
@@ -160,10 +160,10 @@ export const DocDetailTemplate = ({
                       className="docs-page-link border-t border-[var(--docs-border-light)] pt-[18px] transition-colors duration-150 hover:border-[var(--docs-accent)]"
                       href={hrefFor(prevDoc)}
                     >
-                      <span className="block font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
+                      <span className="block docs-font-label text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
                         Previous
                       </span>
-                      <span className="docs-page-link__title mt-2 block font-[var(--docs-font-display)] text-[22px] leading-[1.2] text-[var(--docs-heading)]">
+                      <span className="docs-page-link__title mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)]">
                         ← {prevDoc.metadata.title}
                       </span>
                     </a>
@@ -175,10 +175,10 @@ export const DocDetailTemplate = ({
                       className="docs-page-link border-t border-[var(--docs-border-light)] pt-[18px] text-left transition-colors duration-150 hover:border-[var(--docs-accent)] md:text-right"
                       href={hrefFor(nextDoc)}
                     >
-                      <span className="block font-[var(--docs-font-label)] text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
+                      <span className="block docs-font-label text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
                         Next
                       </span>
-                      <span className="docs-page-link__title mt-2 block font-[var(--docs-font-display)] text-[22px] leading-[1.2] text-[var(--docs-heading)]">
+                      <span className="docs-page-link__title mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)]">
                         {nextDoc.metadata.title} →
                       </span>
                     </a>

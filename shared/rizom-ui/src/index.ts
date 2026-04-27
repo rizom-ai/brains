@@ -26,6 +26,10 @@ export type { WordmarkProps } from "./Wordmark";
 
 export { Ecosystem } from "./Ecosystem";
 export type { EcosystemCard, EcosystemContent } from "./Ecosystem";
+export {
+  getRizomEcosystemContent,
+  rizomEcosystemContent,
+} from "./ecosystem-content";
 
 export type {
   RizomBrandSuffix,
