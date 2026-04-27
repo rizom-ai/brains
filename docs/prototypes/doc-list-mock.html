@@ -1,0 +1,1099 @@
+<!doctype html>
+<html lang="en" data-theme-profile="editorial">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Documentation — Brains</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ───── theme tokens (mirrors shared/theme-rizom) ─────── */
+      :root {
+        /* palette */
+        --palette-bg-deep: #0d0a1a;
+        --palette-bg-card: #1a0a3e;
+        --palette-bg-light: #f2eee8;
+        --palette-amber: #e87722;
+        --palette-amber-dark: #c45a08;
+        --palette-amber-bright: #f3c14f;
+        --palette-text-light: #1a1625;
+        --palette-white: #ffffff;
+
+        /* dark mode (default) — editorial profile uses amber-dark */
+        --color-bg: var(--palette-bg-deep);
+        --color-bg-subtle: #0e0b1e;
+        --color-bg-card: var(--palette-bg-card);
+        --color-text: var(--palette-white);
+        --color-text-muted: rgb(from var(--palette-white) r g b / 0.6);
+        --color-text-light: rgb(from var(--palette-white) r g b / 0.4);
+        --color-heading: var(--palette-white);
+        --color-accent: var(--palette-amber-dark);
+        --color-accent-bright: var(--palette-amber);
+        --color-border: rgb(from var(--palette-white) r g b / 0.1);
+        --color-border-light: rgb(from var(--palette-white) r g b / 0.06);
+
+        /* fonts */
+        --font-display: "Fraunces", Georgia, serif;
+        --font-body: "Barlow", system-ui, sans-serif;
+        --font-label: "JetBrains Mono", ui-monospace, monospace;
+
+        /* type scale (from theme-rizom) */
+        --text-display-lg: clamp(40px, 5.5vw, 72px);
+        --text-display-md: clamp(32px, 4vw, 52px);
+        --text-display-sm: clamp(26px, 3vw, 36px);
+        --text-heading-lg: 22px;
+        --text-heading-md: 20px;
+        --text-body-lg: 18px;
+        --text-body-md: 16px;
+        --text-body-sm: 15px;
+        --text-label-md: 13px;
+        --text-label-sm: 12px;
+        --text-label-xs: 10px;
+
+        --layout-max-width: 72rem;
+
+        --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      }
+
+      [data-theme="light"] {
+        --color-bg: var(--palette-bg-light);
+        --color-bg-subtle: #eae5dd;
+        --color-bg-card: #f0ece5;
+        --color-text: var(--palette-text-light);
+        --color-text-muted: rgb(from var(--palette-text-light) r g b / 0.55);
+        --color-text-light: rgb(from var(--palette-text-light) r g b / 0.38);
+        --color-heading: var(--palette-text-light);
+        --color-accent: var(--palette-amber-dark);
+        --color-accent-bright: var(--palette-amber);
+        --color-border: rgb(from var(--palette-text-light) r g b / 0.1);
+        --color-border-light: rgb(from var(--palette-text-light) r g b / 0.06);
+
+        --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+      }
+
+      /* ───── reset ───────────────────────────────────────────── */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      html {
+        background-color: var(--color-bg);
+        background-image: var(--bg-noise);
+      }
+
+      body {
+        margin: 0;
+        color: var(--color-text);
+        font-family: var(--font-body);
+        font-size: var(--text-body-md);
+        line-height: 1.6;
+        -webkit-font-smoothing: antialiased;
+        text-rendering: optimizeLegibility;
+      }
+
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+
+      .wrap {
+        max-width: var(--layout-max-width);
+        margin: 0 auto;
+        padding: 96px 48px 0;
+      }
+
+      /* ───── header (mocks <Header> from sites/rizom/src/ui) ── */
+      .rizom-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+        background: linear-gradient(
+          180deg,
+          rgb(from var(--color-bg) r g b / 0.95) 0%,
+          rgb(from var(--color-bg) r g b / 0) 100%
+        );
+        backdrop-filter: blur(8px);
+      }
+
+      .rizom-header__inner {
+        max-width: var(--layout-max-width);
+        margin: 0 auto;
+        padding: 16px 24px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      @media (min-width: 768px) {
+        .rizom-header__inner {
+          padding: 20px 48px;
+        }
+      }
+
+      .rizom-header__wordmark {
+        font-family: var(--font-body);
+        font-size: 20px;
+        font-weight: 700;
+      }
+      .rizom-header__wordmark .ink {
+        color: var(--color-text);
+      }
+      .rizom-header__wordmark .dot {
+        color: var(--color-accent);
+      }
+      .rizom-header__wordmark .suffix {
+        color: var(--color-text-muted);
+        font-weight: 700;
+      }
+
+      .rizom-header__nav {
+        display: flex;
+        align-items: center;
+        gap: 32px;
+      }
+
+      .rizom-header__nav a {
+        font-family: var(--font-body);
+        font-size: 15px;
+        color: var(--color-text-muted);
+        position: relative;
+        padding: 4px 0;
+        transition: color 0.15s;
+      }
+
+      .rizom-header__nav a::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 1px;
+        width: 0;
+        background: var(--color-accent);
+        transition: width 0.3s;
+      }
+
+      .rizom-header__nav a:hover {
+        color: var(--color-text);
+      }
+      .rizom-header__nav a:hover::after {
+        width: 100%;
+      }
+
+      .rizom-header__nav a.rizom-header__cta {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--font-body);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text);
+        background: transparent;
+        border: 1px solid var(--color-text);
+        border-radius: 8px;
+        padding: 8px 16px;
+        transition:
+          color 0.15s,
+          border-color 0.15s;
+      }
+      .rizom-header__nav a.rizom-header__cta::after {
+        display: none;
+      }
+      .rizom-header__nav a.rizom-header__cta:hover {
+        color: var(--color-accent);
+        border-color: var(--color-accent);
+      }
+
+      @media (min-width: 768px) {
+        .rizom-header__nav a.rizom-header__cta {
+          padding: 10px 24px;
+          font-size: 15px;
+        }
+      }
+
+
+      /* ───── hero ────────────────────────────────────────────── */
+      .hero {
+        padding: 96px 0 72px;
+        border-bottom: 1px solid var(--color-text);
+      }
+
+      .hero__eyebrow {
+        font-family: var(--font-label);
+        font-size: var(--text-label-sm);
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        margin: 0 0 32px;
+      }
+
+      .hero h1 {
+        font-family: var(--font-display);
+        font-variation-settings:
+          "opsz" 144,
+          "wght" 400;
+        font-size: var(--text-display-lg);
+        line-height: 1.05;
+        letter-spacing: -0.02em;
+        margin: 0;
+        max-width: 16ch;
+        color: var(--color-heading);
+      }
+
+      .hero h1 em {
+        font-style: italic;
+        font-variation-settings:
+          "opsz" 144,
+          "wght" 400;
+        color: var(--color-accent);
+      }
+
+      .hero p {
+        font-family: var(--font-body);
+        font-size: var(--text-body-lg);
+        line-height: 1.65;
+        color: var(--color-text-muted);
+        max-width: 52ch;
+        margin: 32px 0 0;
+      }
+
+      .hero__meta {
+        margin: 56px 0 0;
+        display: flex;
+        gap: 48px;
+        font-family: var(--font-label);
+        font-size: var(--text-label-sm);
+        letter-spacing: 0.06em;
+        color: var(--color-text-light);
+        flex-wrap: wrap;
+      }
+
+      .hero__meta strong {
+        color: var(--color-text);
+        font-weight: 500;
+        display: block;
+        margin-bottom: 2px;
+      }
+
+      /* ───── library ─────────────────────────────────────────── */
+      .library {
+        padding: 80px 0 120px;
+        display: grid;
+        grid-template-columns: 200px minmax(0, 1fr);
+        gap: 80px;
+        align-items: start;
+      }
+
+      .rail {
+        position: sticky;
+        top: 32px;
+        font-family: var(--font-label);
+        font-size: var(--text-label-sm);
+        letter-spacing: 0.06em;
+        color: var(--color-text-light);
+      }
+
+      .rail__heading {
+        color: var(--color-text);
+        font-weight: 500;
+        margin: 0 0 14px;
+      }
+
+      .rail ol {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .rail li {
+        padding: 6px 0;
+        display: grid;
+        grid-template-columns: 32px 1fr;
+        gap: 8px;
+      }
+
+      .rail li .num {
+        font-family: var(--font-display);
+        font-style: italic;
+        color: var(--color-text-light);
+        font-size: var(--text-body-sm);
+      }
+
+      .rail a {
+        color: var(--color-text-muted);
+      }
+
+      .rail a:hover {
+        color: var(--color-accent);
+      }
+
+      .chapter {
+        margin-bottom: 64px;
+      }
+
+      .chapter:last-child {
+        margin-bottom: 0;
+      }
+
+      .chapter__head {
+        display: grid;
+        grid-template-columns: 48px auto 1fr auto;
+        align-items: baseline;
+        column-gap: 20px;
+        padding-bottom: 14px;
+        border-bottom: 1px solid var(--color-border);
+        margin-bottom: 8px;
+      }
+
+      .chapter__numeral {
+        font-family: var(--font-display);
+        font-variation-settings:
+          "opsz" 80,
+          "wght" 400;
+        font-style: italic;
+        font-size: var(--text-display-sm);
+        line-height: 1.1;
+        color: var(--color-accent);
+        text-align: right;
+      }
+
+      .chapter__title {
+        font-family: var(--font-display);
+        font-variation-settings:
+          "opsz" 80,
+          "wght" 400;
+        font-size: var(--text-display-sm);
+        line-height: 1.1;
+        letter-spacing: -0.015em;
+        margin: 0;
+        color: var(--color-heading);
+      }
+
+      .chapter__leader {
+        align-self: end;
+        margin-bottom: 8px;
+        height: 1px;
+        background-image: radial-gradient(
+          circle,
+          var(--color-text-light) 1px,
+          transparent 1.5px
+        );
+        background-size: 6px 2px;
+        background-repeat: repeat-x;
+        background-position: left center;
+        opacity: 0.5;
+      }
+
+      .chapter__count {
+        font-family: var(--font-label);
+        font-size: var(--text-label-sm);
+        letter-spacing: 0.06em;
+        color: var(--color-text-light);
+      }
+
+      .chapter__list {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .chapter__list li {
+        border-bottom: 1px solid var(--color-border-light);
+      }
+
+      .chapter__list li:last-child {
+        border-bottom: none;
+      }
+
+      .chapter__list a {
+        display: block;
+        padding: 18px 0 18px 68px;
+      }
+
+      .doc__title {
+        font-family: var(--font-display);
+        font-variation-settings:
+          "opsz" 24,
+          "wght" 450;
+        font-size: var(--text-heading-lg);
+        line-height: 1.2;
+        letter-spacing: -0.005em;
+        margin: 0;
+        color: var(--color-heading);
+        transition: color 0.15s;
+      }
+
+      .doc__desc {
+        font-size: var(--text-body-sm);
+        line-height: 1.55;
+        color: var(--color-text-muted);
+        margin: 5px 0 0;
+        max-width: 70ch;
+      }
+
+      .chapter__list a:hover .doc__title {
+        color: var(--color-accent);
+      }
+
+      /* ───── footer ──────────────────────────────────────────── */
+      /* ───── ecosystem (mocks <Ecosystem>) ──────────────────── */
+      .rizom-ecosystem {
+        padding: 112px 0 72px;
+        border-top: 1px solid var(--color-border-light);
+      }
+
+      .rizom-ecosystem__head {
+        text-align: center;
+        margin-bottom: 56px;
+      }
+
+      .rizom-ecosystem__eyebrow {
+        font-family: var(--font-label);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+      }
+
+      .rizom-ecosystem__head h2 {
+        font-family: var(--font-display);
+        font-variation-settings: "opsz" 96;
+        font-size: clamp(34px, 4.4vw, 60px);
+        font-weight: 380;
+        line-height: 1.04;
+        letter-spacing: -0.02em;
+        margin: 16px 0 0;
+        color: var(--color-heading);
+      }
+
+      .rizom-ecosystem__head h2 em {
+        font-style: italic;
+        color: var(--color-accent);
+      }
+
+      .rizom-ecosystem__cards {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 56px;
+      }
+
+      .rizom-ecosystem__card {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+        border-top: 1px solid var(--color-border-light);
+        padding-top: 28px;
+        transition: border-color 0.2s;
+      }
+
+      a.rizom-ecosystem__card:hover {
+        border-top-color: var(--color-accent);
+      }
+
+      .rizom-ecosystem__card.is-here {
+        border-top-color: var(--color-accent);
+      }
+
+      .rizom-ecosystem__wordmark {
+        font-family: var(--font-display);
+        font-variation-settings: "opsz" 96;
+        font-size: clamp(28px, 3vw, 40px);
+        font-weight: 400;
+        color: var(--color-text);
+      }
+      .rizom-ecosystem__wordmark .dot {
+        color: var(--color-accent);
+      }
+      .rizom-ecosystem__wordmark .suffix {
+        color: var(--color-text-muted);
+      }
+
+      .rizom-ecosystem__role {
+        font-family: var(--font-label);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.26em;
+        margin-top: 4px;
+      }
+      .rizom-ecosystem__role.role-ai {
+        color: var(--color-accent-bright);
+      }
+      .rizom-ecosystem__role.role-work {
+        color: var(--color-accent);
+      }
+      .rizom-ecosystem__role.role-foundation {
+        color: var(--color-text-muted);
+      }
+
+      .rizom-ecosystem__card p {
+        font-family: var(--font-body);
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--color-text-muted);
+        margin: 8px 0 0;
+      }
+
+      .rizom-ecosystem__link {
+        font-family: var(--font-label);
+        font-size: 10.5px;
+        text-transform: uppercase;
+        letter-spacing: 0.22em;
+        color: var(--color-text-muted);
+        align-self: flex-start;
+        margin-top: 18px;
+        padding-bottom: 4px;
+        border-bottom: 1px solid var(--color-border);
+        transition: color 0.15s;
+      }
+
+      a.rizom-ecosystem__card:hover .rizom-ecosystem__link {
+        color: var(--color-text);
+      }
+
+      .rizom-ecosystem__link.is-here {
+        color: var(--color-accent);
+      }
+
+      /* ───── footer (mocks <Footer>) ────────────────────────── */
+      .rizom-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        padding: 32px 0;
+        border-top: 1px solid var(--color-border-light);
+        text-align: center;
+      }
+
+      @media (min-width: 768px) {
+        .rizom-footer {
+          flex-direction: row;
+          align-items: center;
+          justify-content: space-between;
+          gap: 24px;
+          padding: 24px 0;
+          text-align: left;
+        }
+      }
+
+      .rizom-footer__brand {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        max-width: 560px;
+      }
+
+      @media (min-width: 768px) {
+        .rizom-footer__brand {
+          flex-direction: row;
+          align-items: center;
+          gap: 12px;
+        }
+      }
+
+      .rizom-footer__wordmark {
+        font-family: var(--font-body);
+        font-size: 15px;
+      }
+      .rizom-footer__wordmark .ink {
+        font-weight: 700;
+      }
+      .rizom-footer__wordmark .dot {
+        font-weight: 700;
+        color: var(--color-accent);
+      }
+      .rizom-footer__wordmark .suffix {
+        color: var(--color-text-muted);
+      }
+
+      .rizom-footer__meta {
+        font-family: var(--font-label);
+        font-size: 13px;
+        color: var(--color-text-light);
+      }
+
+      .rizom-footer__links {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 24px;
+        justify-content: center;
+      }
+      @media (min-width: 768px) {
+        .rizom-footer__links {
+          justify-content: flex-end;
+        }
+      }
+
+      .rizom-footer__links a {
+        font-family: var(--font-label);
+        font-size: 13px;
+        color: var(--color-text-light);
+        transition: color 0.15s;
+      }
+      .rizom-footer__links a:hover {
+        color: var(--color-text);
+      }
+
+      .rizom-footer__toggle {
+        background: transparent;
+        border: 1px solid var(--color-text-light);
+        border-radius: 6px;
+        padding: 6px 10px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--color-text-light);
+        cursor: pointer;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .rizom-footer__toggle:hover {
+        color: var(--color-text);
+        border-color: var(--color-text);
+      }
+
+      /* ───── responsive ─────────────────────────────────────── */
+      @media (max-width: 860px) {
+        .wrap {
+          padding: 80px 24px 0;
+        }
+        .hero {
+          padding: 56px 0 48px;
+        }
+        .library {
+          grid-template-columns: 1fr;
+          gap: 40px;
+          padding: 48px 0 80px;
+        }
+        .rail {
+          position: static;
+          display: none;
+        }
+        .rizom-ecosystem__cards {
+          grid-template-columns: 1fr;
+          gap: 28px;
+        }
+        .rizom-header__nav {
+          gap: 16px;
+        }
+        .rizom-header__nav a {
+          font-size: 14px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!--
+      The Header / Footer / Ecosystem markup below mirrors the existing
+      <Header>, <Footer>, and <Ecosystem> Preact components in
+      sites/rizom/src/ui and shared/rizom-ui/src. In the .tsx port we
+      use those directly — this HTML mock just approximates them so the
+      doc-list content sits in proper chrome.
+    -->
+    <nav class="rizom-header">
+      <div class="rizom-header__inner">
+        <a href="/" class="rizom-header__wordmark">
+          <span class="ink">brains</span><span class="dot">.</span><span class="suffix">docs</span>
+        </a>
+        <div class="rizom-header__nav">
+          <a href="#">Roadmap</a>
+          <a href="#">GitHub</a>
+          <a href="#ecosystem">Ecosystem</a>
+          <a href="https://rizom.ai" class="rizom-header__cta">Get Brains</a>
+        </div>
+      </div>
+    </nav>
+
+    <div class="wrap">
+
+      <section class="hero">
+        <p class="hero__eyebrow">Handbook · Edition 0.1.0</p>
+        <h1>Build, run, and publish <em>brains.</em></h1>
+        <p>
+          Documentation for composing brain models, managing markdown
+          entities, wiring interfaces, and shipping generated sites.
+        </p>
+        <dl class="hero__meta">
+          <div><strong>23</strong>Documents</div>
+          <div><strong>6</strong>Sections</div>
+          <div><strong>April 2026</strong>Updated</div>
+        </dl>
+      </section>
+
+      <section class="library">
+        <aside class="rail">
+          <p class="rail__heading">Sections</p>
+          <ol>
+            <li><span class="num">I.</span><a href="#s1">Start here</a></li>
+            <li><span class="num">II.</span><a href="#s2">Content & entities</a></li>
+            <li><span class="num">III.</span><a href="#s3">Interfaces</a></li>
+            <li><span class="num">IV.</span><a href="#s4">Customization</a></li>
+            <li><span class="num">V.</span><a href="#s5">Architecture</a></li>
+            <li><span class="num">VI.</span><a href="#s6">Planning & release</a></li>
+          </ol>
+        </aside>
+
+        <div>
+          <article class="chapter" id="s1">
+            <header class="chapter__head">
+              <span class="chapter__numeral">I.</span>
+              <h2 class="chapter__title">Start here</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">04</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Getting Started</p>
+                  <p class="doc__desc">
+                    A brain is an AI-powered knowledge agent built
+                    around markdown content, MCP-native tooling, and
+                    a plugin-based runtime.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">brain.yaml Reference</p>
+                  <p class="doc__desc">
+                    Instance-level configuration: select the brain
+                    model, choose a preset, override deployment
+                    settings, and pass plugin config.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">CLI Reference</p>
+                  <p class="doc__desc">
+                    Scaffold instances, boot them, run diagnostics
+                    and evals, and proxy commands to local or remote
+                    brains.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Deployment Guide</p>
+                  <p class="doc__desc">
+                    Deploy a brain to a server using the scaffolded
+                    GitHub Actions and Kamal flow.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+
+          <article class="chapter" id="s2">
+            <header class="chapter__head">
+              <span class="chapter__numeral">II.</span>
+              <h2 class="chapter__title">Content & entities</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">03</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Content Management</p>
+                  <p class="doc__desc">
+                    Brains treats content as typed markdown
+                    entities. Work with them through chat, MCP, the
+                    CMS, or direct edits.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Entity Types Reference</p>
+                  <p class="doc__desc">
+                    Each entity type is registered by an entity
+                    plugin, validated with Zod, indexed for search,
+                    and exposed to interfaces.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Entity Model</p>
+                  <p class="doc__desc">
+                    A unified, functional approach to data modeling
+                    using Zod schemas plus TypeScript interfaces.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+
+          <article class="chapter" id="s3">
+            <header class="chapter__head">
+              <span class="chapter__numeral">III.</span>
+              <h2 class="chapter__title">Interfaces</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">02</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Interface Setup</p>
+                  <p class="doc__desc">
+                    Built-in interfaces: MCP, webserver, Discord,
+                    A2A, and the local CLI. How users, tools, and
+                    peer agents talk to a running brain.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">MCP Inspector Guide</p>
+                  <p class="doc__desc">
+                    Connect the official Model Context Protocol
+                    inspector to a running brain for tool, resource,
+                    and prompt debugging.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+
+          <article class="chapter" id="s4">
+            <header class="chapter__head">
+              <span class="chapter__numeral">IV.</span>
+              <h2 class="chapter__title">Customization</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">04</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Customization Guide</p>
+                  <p class="doc__desc">
+                    Brains is customized in layers. Prefer the
+                    smallest layer that solves the problem.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Theming Guide</p>
+                  <p class="doc__desc">
+                    Complete guide to the Brains theming system,
+                    built on Tailwind v4 design tokens.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Plugin Development Patterns</p>
+                  <p class="doc__desc">
+                    Conventions for writing new plugins: lifecycle,
+                    schemas, datasources, templates, capabilities.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Plugin Quick Reference</p>
+                  <p class="doc__desc">
+                    Cheat sheet for the plugin API surface — for
+                    when you've read the patterns doc and just need
+                    the signatures.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+
+          <article class="chapter" id="s5">
+            <header class="chapter__head">
+              <span class="chapter__numeral">V.</span>
+              <h2 class="chapter__title">Architecture</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">06</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Architecture Overview</p>
+                  <p class="doc__desc">
+                    Brains is a modular, plugin-based system. Each
+                    running brain is an independently deployable MCP
+                    server with its own identity.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Brain Models</p>
+                  <p class="doc__desc">
+                    Brains follow a strict model/instance separation
+                    — what's shared vs. what each instance overrides.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Tech Stack</p>
+                  <p class="doc__desc">
+                    Bun, TypeScript, SQLite, Zod, MCP, Preact, and
+                    the rest of the runtime — what each piece does.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Package Structure</p>
+                  <p class="doc__desc">
+                    A monorepo with eight workspace directories.
+                    Each has a clear role in the architecture.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Hydration Pattern</p>
+                  <p class="doc__desc">
+                    The (now-removed) hydration pattern, recorded
+                    here so it can be recovered from git if needed.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Development Workflow</p>
+                  <p class="doc__desc">
+                    Day-to-day workflow and best practices for
+                    contributing to the Brains project.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+
+          <article class="chapter" id="s6">
+            <header class="chapter__head">
+              <span class="chapter__numeral">VI.</span>
+              <h2 class="chapter__title">Planning & release</h2>
+              <span class="chapter__leader"></span>
+              <span class="chapter__count">04</span>
+            </header>
+            <ol class="chapter__list">
+              <li>
+                <a href="#">
+                  <p class="doc__title">Roadmap</p>
+                  <p class="doc__desc">
+                    What's next, what's in flight, and what's on
+                    the long horizon.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Public Release Cleanup</p>
+                  <p class="doc__desc">
+                    Outstanding work before the first public
+                    release: docs, naming, defaults, examples.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Documentation Plan</p>
+                  <p class="doc__desc">
+                    The ongoing plan for the docs themselves —
+                    what's covered, what's missing, what's next.
+                  </p>
+                </a>
+              </li>
+              <li>
+                <a href="#">
+                  <p class="doc__title">Docs Site Plan</p>
+                  <p class="doc__desc">
+                    Docs are first-class brain content. Notes on the
+                    docs site itself: routes, themes, sync.
+                  </p>
+                </a>
+              </li>
+            </ol>
+          </article>
+        </div>
+      </section>
+
+      <section class="rizom-ecosystem" id="ecosystem">
+        <div class="rizom-ecosystem__head">
+          <span class="rizom-ecosystem__eyebrow">The Ecosystem</span>
+          <h2>
+            One ecosystem. The <em>platform</em>, the <em>vision</em>,
+            the <em>network</em>.
+          </h2>
+        </div>
+        <div class="rizom-ecosystem__cards">
+          <a class="rizom-ecosystem__card" href="https://rizom.ai">
+            <span class="rizom-ecosystem__wordmark">
+              rizom<span class="dot">.</span><span class="suffix">ai</span>
+            </span>
+            <span class="rizom-ecosystem__role role-ai">The platform</span>
+            <p>
+              Open-source AI agents built from your own knowledge. The
+              tools that make everything else possible.
+            </p>
+            <span class="rizom-ecosystem__link">See the platform →</span>
+          </a>
+          <a class="rizom-ecosystem__card" href="https://rizom.foundation">
+            <span class="rizom-ecosystem__wordmark">
+              rizom<span class="dot">.</span><span class="suffix">foundation</span>
+            </span>
+            <span class="rizom-ecosystem__role role-foundation">
+              The vision
+            </span>
+            <p>
+              Essays, principles, and community. Why we believe the
+              future of knowledge work is distributed, owned, and play.
+            </p>
+            <span class="rizom-ecosystem__link">Read the manifesto →</span>
+          </a>
+          <a class="rizom-ecosystem__card" href="https://rizom.work">
+            <span class="rizom-ecosystem__wordmark">
+              rizom<span class="dot">.</span><span class="suffix">work</span>
+            </span>
+            <span class="rizom-ecosystem__role role-work">The network</span>
+            <p>
+              Distributed consultancy powered by brains. Specialized
+              expertise that mobilizes in hours, not months. Teams
+              that assemble themselves.
+            </p>
+            <span class="rizom-ecosystem__link">Work with us →</span>
+          </a>
+        </div>
+      </section>
+
+      <footer class="rizom-footer">
+        <div class="rizom-footer__brand">
+          <span class="rizom-footer__wordmark">
+            <span class="ink">rizom</span><span class="dot">.</span><span class="suffix">ai</span>
+          </span>
+          <span class="rizom-footer__meta">
+            Brains docs · Edition 0.1.0 · Updated April 2026
+          </span>
+        </div>
+        <div class="rizom-footer__links">
+          <a href="#">Roadmap</a>
+          <a href="#">GitHub</a>
+          <a href="#">Privacy</a>
+          <button
+            class="rizom-footer__toggle"
+            onclick="document.documentElement.dataset.theme = document.documentElement.dataset.theme === 'light' ? '' : 'light';"
+          >
+            ☀ Light
+          </button>
+        </div>
+      </footer>
+    </div>
+  </body>
+</html>
