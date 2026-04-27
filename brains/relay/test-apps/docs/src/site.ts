@@ -1,5 +1,22 @@
 import { extendSite } from "@brains/site-composition";
 import rizomSite from "@brains/site-rizom";
+import { rizomEcosystemContent } from "@rizom/ui";
+
+const docsSections = [
+  {
+    id: "docs",
+    template: "docs:doc-list",
+    dataQuery: {
+      entityType: "doc",
+      query: { limit: 100 },
+    },
+  },
+  {
+    id: "ecosystem",
+    template: "docs:docs-ecosystem",
+    content: rizomEcosystemContent,
+  },
+];
 
 export default extendSite(rizomSite, {
   routes: [
@@ -15,16 +32,15 @@ export default extendSite(rizomSite, {
         slot: "primary",
         priority: 10,
       },
-      sections: [
-        {
-          id: "docs",
-          template: "docs:doc-list",
-          dataQuery: {
-            entityType: "doc",
-            query: { limit: 100 },
-          },
-        },
-      ],
+      sections: docsSections,
+    },
+    {
+      id: "docs",
+      path: "/docs",
+      title: "Documentation",
+      description: "Brains documentation",
+      layout: "default",
+      sections: docsSections,
     },
   ],
 });

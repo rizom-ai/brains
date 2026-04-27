@@ -29,6 +29,7 @@
     "@brains/decks": "workspace:*",
     "@brains/directory-sync": "workspace:*",
     "@brains/discord": "workspace:*",
+    "@brains/doc": "workspace:*",
     "@brains/image-plugin": "workspace:*",
     "@brains/link": "workspace:*",
     "@brains/mcp": "workspace:*",
@@ -41,7 +42,8 @@
     "@brains/summary": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
-    "@brains/webserver": "workspace:*"
+    "@brains/webserver": "workspace:*",
+    "@rizom/ui": "0.2.0-alpha.44"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

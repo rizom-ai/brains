@@ -113,15 +113,25 @@ export class DynamicRouteGenerator {
           sourceEntityType: entityType,
         };
 
-        try {
-          this.routeRegistry.register(indexRoute);
-          logger.debug(`Registered index route for ${entityType}`, {
-            path: indexRoute.path,
-          });
-        } catch (error) {
-          logger.warn(`Failed to register index route for ${entityType}`, {
-            error,
-          });
+        const existingRoute = this.routeRegistry.get(indexRoute.path);
+        if (existingRoute && !existingRoute.sourceEntityType) {
+          logger.debug(
+            `Skipping generated index route for ${entityType}; explicit route already exists`,
+            {
+              path: indexRoute.path,
+            },
+          );
+        } else {
+          try {
+            this.routeRegistry.register(indexRoute);
+            logger.debug(`Registered index route for ${entityType}`, {
+              path: indexRoute.path,
+            });
+          } catch (error) {
+            logger.warn(`Failed to register index route for ${entityType}`, {
+              error,
+            });
+          }
         }
       }
     }
@@ -256,6 +266,15 @@ export class DynamicRouteGenerator {
         ],
         sourceEntityType: entityType,
       };
+
+      const existingRoute = this.routeRegistry.get(pageRoute.path);
+      if (existingRoute && !existingRoute.sourceEntityType) {
+        logger.debug(
+          `Skipping generated paginated route for ${entityType}; explicit route already exists`,
+          { path: pageRoute.path, page },
+        );
+        continue;
+      }
 
       try {
         this.routeRegistry.register(pageRoute);

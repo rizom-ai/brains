@@ -1,8 +1,6 @@
 import type { JSX } from "preact";
-import {
-  Ecosystem as RizomEcosystem,
-  getRizomEcosystemContent,
-} from "@rizom/ui";
+import { Ecosystem as RizomEcosystem } from "@rizom/ui";
+import type { EcosystemContent } from "@rizom/ui";
 import type { DocWithData } from "../schemas/doc";
 
 export type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;
@@ -41,10 +39,6 @@ export function romanNumeral(index: number): string {
   return numerals[index] ?? String(index + 1);
 }
 
-export function formatCount(count: number): string {
-  return count.toString().padStart(2, "0");
-}
-
 interface DocsHeaderProps {
   ecosystemHref?: string;
 }
@@ -57,6 +51,10 @@ const labelText =
 const displayText = "docs-font-display text-[var(--docs-heading)]";
 const buttonBase =
   "inline-flex items-center justify-center rounded-lg border px-[18px] py-2.5 text-sm font-semibold transition-colors duration-150";
+const headerLink =
+  "relative hidden py-1 text-[15px] text-[var(--docs-text-muted)] transition-colors duration-150 after:absolute after:bottom-0 after:left-0 after:h-px after:w-0 after:bg-[var(--docs-accent)] after:transition-[width] after:duration-300 hover:text-[var(--docs-text)] hover:after:w-full min-[861px]:inline-block";
+const footerLink =
+  "docs-font-label text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:text-[var(--docs-text)]";
 
 export const docsClasses = {
   wrap: "mx-auto max-w-6xl px-6 pt-20 md:px-12 md:pt-24",
@@ -80,18 +78,35 @@ export const DocsHeader = ({
       <span className={wordmarkSuffix}>docs</span>
     </a>
     <div className="docs-header__nav flex items-center gap-4 md:gap-8">
-      <a href="/docs/roadmap">Roadmap</a>
-      <a href="https://github.com/rizom-ai/brains">GitHub</a>
-      <a href={ecosystemHref}>Ecosystem</a>
-      <a href="https://rizom.ai" className="docs-header__cta">
+      <a className={headerLink} href="/docs/roadmap">
+        Roadmap
+      </a>
+      <a className={headerLink} href="https://github.com/rizom-ai/brains">
+        GitHub
+      </a>
+      <a className={headerLink} href={ecosystemHref}>
+        Ecosystem
+      </a>
+      <a
+        href="https://rizom.ai"
+        className="inline-flex items-center justify-center rounded-lg border border-[var(--docs-text)] px-4 py-2 text-[13px] font-semibold text-[var(--docs-text)] transition-colors duration-150 hover:border-[var(--docs-accent)] hover:text-[var(--docs-accent)] md:px-6 md:py-2.5 md:text-[15px]"
+      >
         Get Brains
       </a>
     </div>
   </nav>
 );
 
-export const DocsEcosystem = (): JSX.Element => (
-  <RizomEcosystem {...getRizomEcosystemContent()} />
+export const DocsEcosystem = (content: EcosystemContent): JSX.Element => (
+  <>
+    <DocsDesignStyles />
+    <div className="docs-handbook">
+      <div className="mx-auto max-w-6xl px-6 md:px-12">
+        <RizomEcosystem {...content} />
+        <DocsFooter />
+      </div>
+    </div>
+  </>
 );
 
 export const DocsFooter = (): JSX.Element => (
@@ -102,19 +117,20 @@ export const DocsFooter = (): JSX.Element => (
       <span className={wordmarkSuffix}>ai</span>
     </a>
     <div className="flex flex-wrap items-center justify-center gap-6 md:justify-end">
-      <a className="docs-footer__link" href="/docs/roadmap">
+      <a className={footerLink} href="/docs/roadmap">
         Roadmap
       </a>
-      <a
-        className="docs-footer__link"
-        href="https://github.com/rizom-ai/brains"
-      >
+      <a className={footerLink} href="https://github.com/rizom-ai/brains">
         GitHub
       </a>
-      <a className="docs-footer__link" href="https://rizom.ai">
+      <a className={footerLink} href="https://rizom.ai">
         Rizom
       </a>
-      <button id="themeToggle" className="docs-footer__toggle" type="button">
+      <button
+        id="themeToggle"
+        className="docs-font-label cursor-pointer rounded-md border border-[var(--docs-text-light)] bg-transparent px-2.5 py-1.5 text-[13px] text-[var(--docs-text-light)] transition-colors duration-150 hover:border-[var(--docs-text)] hover:text-[var(--docs-text)]"
+        type="button"
+      >
         ☀ Light
       </button>
     </div>
@@ -175,55 +191,6 @@ const docsDesignCss = `
     color-mix(in srgb, var(--docs-bg) 0%, transparent) 100%
   );
   backdrop-filter: blur(8px);
-}
-
-.docs-header__nav a {
-  position: relative;
-  padding: 4px 0;
-  color: var(--docs-text-muted);
-  font-family: var(--docs-font-body);
-  font-size: 15px;
-  transition: color 0.15s;
-}
-
-.docs-header__nav a::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 1px;
-  width: 0;
-  background: var(--docs-accent);
-  transition: width 0.3s;
-}
-
-.docs-header__nav a:hover {
-  color: var(--docs-text);
-}
-
-.docs-header__nav a:hover::after {
-  width: 100%;
-}
-
-.docs-header__nav a.docs-header__cta {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid var(--docs-text);
-  border-radius: 8px;
-  padding: 8px 16px;
-  color: var(--docs-text);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.docs-header__nav a.docs-header__cta::after {
-  display: none;
-}
-
-.docs-header__nav a.docs-header__cta:hover {
-  color: var(--docs-accent);
-  border-color: var(--docs-accent);
 }
 
 .docs-chapter__leader {
@@ -323,56 +290,6 @@ const docsDesignCss = `
   background: transparent;
 }
 
-.docs-footer__link,
-.docs-footer__toggle {
-  color: var(--docs-text-light);
-  font-family: var(--docs-font-label);
-  font-size: 13px;
-}
-
-.docs-footer__link {
-  transition: color 0.15s;
-}
-
-.docs-footer__link:hover {
-  color: var(--docs-text);
-}
-
-.docs-footer__toggle {
-  border: 1px solid var(--docs-text-light);
-  border-radius: 6px;
-  background: transparent;
-  padding: 6px 10px;
-  cursor: pointer;
-  transition: color 0.15s, border-color 0.15s;
-}
-
-.docs-footer__toggle:hover {
-  color: var(--docs-text);
-  border-color: var(--docs-text);
-}
-
-.docs-page-link:hover .docs-page-link__title {
-  color: var(--docs-accent);
-}
-
-@media (min-width: 768px) {
-  .docs-header__nav a.docs-header__cta {
-    padding: 10px 24px;
-    font-size: 15px;
-  }
-}
-
-@media (max-width: 860px) {
-  .docs-header__nav a:not(.docs-header__cta) {
-    display: none;
-  }
-
-  .docs-rail,
-  .docs-detail-rail {
-    display: none;
-  }
-}
 `;
 
 export const DocsDesignStyles = (): JSX.Element => (

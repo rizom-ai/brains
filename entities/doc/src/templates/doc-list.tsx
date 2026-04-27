@@ -4,8 +4,6 @@ import type { PaginationInfo } from "@brains/plugins";
 import type { DocWithData } from "../schemas/doc";
 import {
   DocsDesignStyles,
-  DocsEcosystem,
-  DocsFooter,
   DocsHeader,
   docsClasses,
   groupDocs,
@@ -90,7 +88,7 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
             id="sections"
           >
             <aside
-              className="docs-rail sticky top-8 docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)]"
+              className="docs-rail sticky top-8 hidden docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)] min-[861px]:block"
               aria-label="Documentation sections"
             >
               <p className="m-0 mb-3.5 font-medium text-[var(--docs-text)]">
@@ -160,8 +158,6 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
               ))}
             </div>
           </section>
-          <DocsEcosystem />
-          <DocsFooter />
         </div>
       </div>
     </>

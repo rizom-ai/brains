@@ -128,6 +128,36 @@ describe("DynamicRouteGenerator", () => {
       expect(indexRoute?.id).toBe("topic-index");
     });
 
+    test("should not override explicit index routes", async () => {
+      entityTypes.push("topic");
+      templates.push({
+        name: "topics:topic-list",
+        pluginId: "topics",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      routeRegistry.register({
+        id: "custom-topics",
+        path: "/topics",
+        title: "Custom Topics",
+        description: "Custom topic index",
+        layout: "default",
+        sections: [
+          {
+            id: "custom",
+            template: "custom:section",
+            content: { ok: true },
+          },
+        ],
+      });
+
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.size()).toBe(1);
+      expect(routeRegistry.get("/topics")?.id).toBe("custom-topics");
+    });
+
     test("should handle multiple entity types", async () => {
       entityTypes.push("topic", "profile");
       entities.set("topic", [createMockEntity("topic1", "topic")]);

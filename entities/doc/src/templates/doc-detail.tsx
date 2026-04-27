@@ -71,7 +71,7 @@ export const DocDetailTemplate = ({
 
           <div className="grid items-start gap-10 py-8 pb-24 md:grid-cols-[240px_minmax(0,1fr)] md:gap-20">
             <aside
-              className="docs-detail-rail sticky top-24 max-h-[calc(100vh-120px)] overflow-auto pr-2"
+              className="docs-detail-rail sticky top-24 hidden max-h-[calc(100vh-120px)] overflow-auto pr-2 min-[861px]:block"
               aria-label="Documentation navigation"
             >
               <nav className="docs-font-label text-xs tracking-[0.06em] text-[var(--docs-text-light)]">
@@ -157,13 +157,13 @@ export const DocDetailTemplate = ({
                 >
                   {prevDoc ? (
                     <a
-                      className="docs-page-link border-t border-[var(--docs-border-light)] pt-[18px] transition-colors duration-150 hover:border-[var(--docs-accent)]"
+                      className="group border-t border-[var(--docs-border-light)] pt-[18px] transition-colors duration-150 hover:border-[var(--docs-accent)]"
                       href={hrefFor(prevDoc)}
                     >
                       <span className="block docs-font-label text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
                         Previous
                       </span>
-                      <span className="docs-page-link__title mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)]">
+                      <span className="mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)] transition-colors duration-150 group-hover:text-[var(--docs-accent)]">
                         ← {prevDoc.metadata.title}
                       </span>
                     </a>
@@ -172,13 +172,13 @@ export const DocDetailTemplate = ({
                   )}
                   {nextDoc && (
                     <a
-                      className="docs-page-link border-t border-[var(--docs-border-light)] pt-[18px] text-left transition-colors duration-150 hover:border-[var(--docs-accent)] md:text-right"
+                      className="group border-t border-[var(--docs-border-light)] pt-[18px] text-left transition-colors duration-150 hover:border-[var(--docs-accent)] md:text-right"
                       href={hrefFor(nextDoc)}
                     >
                       <span className="block docs-font-label text-[10.5px] uppercase tracking-[0.22em] text-[var(--docs-text-light)]">
                         Next
                       </span>
-                      <span className="docs-page-link__title mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)]">
+                      <span className="mt-2 block docs-font-display text-[22px] leading-[1.2] text-[var(--docs-heading)] transition-colors duration-150 group-hover:text-[var(--docs-accent)]">
                         {nextDoc.metadata.title} →
                       </span>
                     </a>

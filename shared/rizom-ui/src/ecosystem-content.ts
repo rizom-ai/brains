@@ -4,10 +4,10 @@ import type { RizomBrandSuffix } from "./types";
 const HERE_LABEL = "You are here";
 
 /**
- * Canonical ecosystem copy, sourced from rizom.work brain-data:
+ * Default ecosystem content, sourced from rizom.work brain-data:
  * ../rizom-work/brain-data/site-content/home/ecosystem.md
  */
-const CANONICAL_CARDS = [
+const DEFAULT_CARDS = [
   {
     suffix: "work",
     title: "The service",
@@ -37,7 +37,7 @@ export function getRizomEcosystemContent(
   return {
     eyebrow: "The Ecosystem",
     headline: "One practice. *Three faces.*",
-    cards: CANONICAL_CARDS.map((card) =>
+    cards: DEFAULT_CARDS.map((card) =>
       card.suffix === current
         ? { ...card, linkLabel: HERE_LABEL, linkHref: "" }
         : card,
