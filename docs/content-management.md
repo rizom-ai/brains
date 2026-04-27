@@ -21,7 +21,7 @@ Directory sync maps paths to entities:
 
 - root markdown files are note entities with `entityType: "base"`
 - files under `brain-data/<entity-type>/` use that directory as their entity type
-- nested paths become colon-separated ids, for example `site-content/home/hero.md` becomes id `home:hero`
+- nested paths below the entity-type directory become colon-separated ids, for example `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
 
 For the full list of built-in entity types and frontmatter fields, see [Entity Types Reference](./entity-types-reference.md).
@@ -121,7 +121,7 @@ plugins:
       authToken: ${GIT_SYNC_TOKEN}
 ```
 
-`directory-sync` also handles seed content on first run for shipped brain models. Seed content is copied only when the target brain-data directory is effectively empty.
+`directory-sync` also handles seed content on first run for shipped brain models. Seed content is copied only when the target `brain-data/` directory is effectively empty. For local `file://` git remotes, `git.bootstrapFromSeed` defaults to `true` and can create/seed a missing or empty bare remote from `seedContentPath`.
 
 ### Generation jobs
 

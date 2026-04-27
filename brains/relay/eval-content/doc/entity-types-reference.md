@@ -17,7 +17,7 @@ Directory sync maps files in `brain-data/` to entities by path:
 
 - root markdown files are note entities with `entityType: "base"`
 - files under `brain-data/<entity-type>/` use that directory name as the entity type
-- nested paths become colon-separated ids: `site-content/home/hero.md` becomes `site-content:home:hero`
+- nested paths below the entity-type directory become colon-separated ids: `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
 
 Most content entities use YAML frontmatter plus a markdown body:
@@ -50,6 +50,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `image`             | `@brains/image-plugin`    | default, full | default     | —           | Uploaded or generated image assets.                                              |
 | `site-info`         | `@brains/site-info`       | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
 | `site-content`      | `@brains/site-content`    | —             | default     | default     | Route/section content blocks for configurable sites.                             |
+| `doc`               | `@brains/doc`             | —             | opt-in      | —           | Documentation pages. Relay registers it for docs-focused instances via `add`.    |
 | `post`              | `@brains/blog`            | default, full | —           | —           | Blog posts.                                                                      |
 | `series`            | `@brains/series`          | default, full | —           | —           | Blog/content series pages.                                                       |
 | `deck`              | `@brains/decks`           | default, full | opt-in      | —           | Presentation decks. Relay registers it for `add: [decks]`.                       |
@@ -58,7 +59,7 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `newsletter`        | `@brains/newsletter`      | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
 | `product`           | `@brains/products`        | —             | —           | default     | Product detail pages.                                                            |
 | `products-overview` | `@brains/products`        | —             | —           | default     | Products landing/overview page.                                                  |
-| `summary`           | `@brains/summary`         | —             | opt-in      | —           | Conversation summaries. Relay registers it for `add: [summary]` after rework.    |
+| `summary`           | `@brains/summary`         | —             | opt-in      | —           | Conversation summaries. Relay registers it for opt-in use via `add`.             |
 
 `all presets` means the entity type is available in every preset currently declared by that model. A type marked `opt-in` is registered as a capability but is not included in the model's preset list by default.
 
@@ -250,6 +251,21 @@ Key metadata:
 - `routeId`
 - `sectionId`
 - optional `template`
+
+### `doc`
+
+Doc entities render documentation list/detail pages.
+
+Key frontmatter:
+
+- `title`
+- `section`
+- `order`
+- `sourcePath`
+- `description`
+- `slug`
+
+The body contains the documentation markdown.
 
 ### `image`
 

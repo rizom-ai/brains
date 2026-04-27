@@ -41,7 +41,7 @@ These areas are effectively landed:
 - **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
 - **Eval overhaul** — app/model/shell eval layering and comparison reporting
 - **Theme/site decoupling** — site packages are structural-only; themes resolve independently
-- **Standalone authoring** — local `src/site.ts`, `src/theme.css`, and deploy scaffolding conventions, scaffolded by `brain init`
+- **Standalone authoring** — local `src/site.ts` / `src/theme.css` conventions for models that scaffold site/theme authoring, plus deploy scaffolding through `brain init --deploy`
 - **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
 - **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape
@@ -78,14 +78,14 @@ Plans:
 
 The remaining pre-doc-site user-facing docs are now in place:
 
-- [entity type reference](/docs/entity-types-reference)
-- [content-management guidance](/docs/content-management)
-- [interface setup guide](/docs/interface-setup)
-- [customization guide](/docs/customization-guide) for themes, layouts, and plugin boundaries
+- [entity type reference](./entity-types-reference.md)
+- [content-management guidance](./content-management.md)
+- [interface setup guide](./interface-setup.md)
+- [customization guide](./customization-guide.md) for themes, layouts, and plugin boundaries
 
 Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
 
-A canonical [documentation index](/docs/index) now exists. Next documentation work is Phase 3: implement the [`doc` entity/docs-site plan](/docs/docs-site-plan) and automate generated references where useful.
+A canonical [documentation index](/docs) now exists. Next documentation work is Phase 3: implement the [`doc` entity/docs-site plan](/docs/docs-site-plan) and automate generated references where useful.
 
 Plan:
 
@@ -162,9 +162,9 @@ See:
 
 ## Related docs
 
-- [README](https://github.com/rizom-ai/brains/blob/main/README.md)
-- [Architecture Overview](/docs/architecture-overview)
-- [Brain Models](/docs/brain-model)
-- [Entity Model](/docs/entity-model)
-- [Plugin System](/docs/plugin-system)
-- [Theming Guide](/docs/theming-guide)
+- [README](../README.md)
+- [Architecture Overview](./architecture-overview.md)
+- [Brain Models](./brain-model.md)
+- [Entity Model](./entity-model.md)
+- [Plugin System](./plugin-system.md)
+- [Theming Guide](./theming-guide.md)

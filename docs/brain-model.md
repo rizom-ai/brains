@@ -5,7 +5,7 @@
 Brains follow a **model/instance** separation:
 
 - **Brain model** (`brains/`) — a reusable workspace package that defines what a brain _is_: its capabilities, interfaces, identity, permissions, and content model.
-- **Brain instance** (`apps/<name>/`) — a lightweight instance package centered on `brain.yaml`, with per-instance support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts.
+- **Brain instance** (for example `~/mybrain/` or an in-repo `apps/<name>/`) — a lightweight instance package centered on `brain.yaml`, with per-instance support files like `.env`, `.env.example`, `.gitignore`, `tsconfig.json`, `package.json`, and optional deploy artifacts.
 
 The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
 
@@ -53,7 +53,10 @@ site:
   theme: "@brains/theme-default"
 
 # Preset — selects a curated subset of capabilities + interfaces
-preset: full # core | default | full | eval
+preset: full # model-specific, commonly core | default | full
+
+# Runtime mode override
+mode: eval
 
 # Fine-tune: add/remove individual plugins on top of the preset
 add: [decks]
@@ -93,13 +96,13 @@ The `plugins:` section lets you override config for specific plugins without cha
 plugins:
   webserver:
     productionPort: 9090
-  git-sync:
+  directory-sync:
     autoSync: false
 ```
 
 The override is shallow-merged with the plugin's resolved config. The plugin is instantiated once to read its ID, then re-instantiated with the merged config if overrides exist.
 
-Common plugin IDs: `system`, `topics`, `summary`, `link`, `decks`, `directory-sync`, `git-sync`, `site-content`, `site-builder`, `mcp`, `discord`, `webserver`, `a2a`, `blog`, `newsletter`, `analytics`, `social-media`, `wishlist`.
+Common plugin/interface IDs include `prompt`, `note`, `link`, `topics`, `summary`, `agents`, `assessment`, `docs`, `decks`, `directory-sync`, `site-info`, `site-content`, `site-builder`, `cms`, `dashboard`, `mcp`, `discord`, `webserver`, `a2a`, `blog`, `newsletter`, `analytics`, `social-media`, and `wishlist`. System CRUD/search tools are framework-level; there is no separate `system` plugin to configure.
 
 ## .env — Secrets Only
 
@@ -120,22 +123,24 @@ Everything else belongs in `brain.yaml`. Non-secret config like homeserver URLs,
 
 Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If no → `brain.yaml`.
 
-| Secret (`.env`)     | Config (`brain.yaml`)                |
-| ------------------- | ------------------------------------ |
-| `AI_API_KEY`        | `domain: recall.rizom.ai`            |
-| `GIT_SYNC_TOKEN`    | `plugins.directory-sync.git.repo`    |
-| `MCP_AUTH_TOKEN`    | `plugins.webserver.productionDomain` |
-| `DISCORD_BOT_TOKEN` | `plugins.discord.guildId`            |
-| `CF_API_TOKEN`      | `brain cert:bootstrap`               |
-| `CF_ZONE_ID`        | `brain cert:bootstrap`               |
+| Secret (`.env`)     | Config (`brain.yaml`)             |
+| ------------------- | --------------------------------- |
+| `AI_API_KEY`        | `domain: recall.rizom.ai`         |
+| `GIT_SYNC_TOKEN`    | `plugins.directory-sync.git.repo` |
+| `MCP_AUTH_TOKEN`    | `plugins.mcp.transport`           |
+| `DISCORD_BOT_TOKEN` | `plugins.discord.guildId`         |
+| `CF_API_TOKEN`      | `brain cert:bootstrap`            |
+| `CF_ZONE_ID`        | `brain cert:bootstrap`            |
 
 ## Brain Model Definition
 
 Brain models use `defineBrain()` from `@brains/app`:
 
 ```typescript
-import { defineBrain, type BrainEnvironment } from "@brains/app";
-import { systemPlugin } from "@brains/system";
+import { defineBrain, type PluginConfig } from "@brains/app";
+import { directorySync } from "@brains/directory-sync";
+import { notePlugin } from "@brains/note";
+import { linkPlugin } from "@brains/link";
 import { MCPInterface } from "@brains/mcp";
 import { WebserverInterface } from "@brains/webserver";
 
@@ -152,22 +157,26 @@ export default defineBrain({
 
   capabilities: [
     // [id, factory, config] tuples
-    // Use env mappers ONLY for actual secrets
-    ["system", systemPlugin, {}],
+    ["note", notePlugin, {}],
+    ["link", linkPlugin, {}],
     [
-      "git-sync",
-      gitSyncPlugin,
-      (env: BrainEnvironment) => ({
-        authToken: env["GIT_SYNC_TOKEN"],
-        autoSync: true,
-      }),
+      "directory-sync",
+      directorySync,
+      {
+        seedContent: true,
+        initialSync: true,
+      },
     ],
   ],
 
   interfaces: [
     // [id, constructor, envMapper] tuples
-    ["mcp", MCPInterface, (env) => ({ authToken: env["MCP_AUTH_TOKEN"] })],
-    ["webserver", WebserverInterface, () => ({})],
+    [
+      "mcp",
+      MCPInterface,
+      (env): PluginConfig => ({ authToken: env["MCP_AUTH_TOKEN"] }),
+    ],
+    ["webserver", WebserverInterface, (): PluginConfig => ({})],
   ],
 
   permissions: {
@@ -197,15 +206,19 @@ Env mapper functions receive a `BrainEnvironment` (a `Record<string, string | un
 
 ```typescript
 // ✅ Good: env mapper only wires the secret
-["git-sync", gitSyncPlugin, (env: BrainEnvironment) => ({
-  authToken: env["GIT_SYNC_TOKEN"],  // secret from .env
+["directory-sync", directorySync, (env) => ({
+  git: {
+    authToken: env["GIT_SYNC_TOKEN"], // secret from .env
+  },
   autoSync: true,
 })],
 
 // ❌ Bad: using env for non-secret config
-["git-sync", gitSyncPlugin, (env: BrainEnvironment) => ({
-  repo: env["GIT_SYNC_REPO"] || "default/repo",  // not a secret!
-  authToken: env["GIT_SYNC_TOKEN"],
+["directory-sync", directorySync, (env) => ({
+  git: {
+    repo: env["GIT_SYNC_REPO"] || "default/repo", // not a secret!
+    authToken: env["GIT_SYNC_TOKEN"],
+  },
 })],
 ```
 
@@ -213,8 +226,9 @@ To override non-secret defaults per instance, use `brain.yaml`:
 
 ```yaml
 plugins:
-  git-sync:
-    repo: "other-org/other-repo"
+  directory-sync:
+    git:
+      repo: "other-org/other-repo"
 ```
 
 ## Running
@@ -273,7 +287,7 @@ brain start
 - `.env` — only when an API key was supplied (interactive prompt or `--api-key`)
 - `.gitignore`, `tsconfig.json` (JSX runtime hint for Bun)
 - `package.json` — local execution boundary + dependency pinning for `@rizom/brain` and `preact`
-- `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `.github/workflows/deploy.yml` — only with `--deploy`
+- `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml` — only with `--deploy`
 
 So the instance remains lightweight, but it is not a pure config blob.
 
@@ -306,15 +320,15 @@ Only needed when you want a different curated capability set than `rover` / `ran
 4. Create an instance that pins the new model:
 
    ```bash
-   mkdir apps/my-brain-prod
-   cat > apps/my-brain-prod/brain.yaml <<EOF
+   mkdir my-brain-prod
+   cat > my-brain-prod/brain.yaml <<EOF
    brain: my-brain
    domain: my-brain.example.com
    preset: core
    EOF
    ```
 
-5. Add secrets in `apps/my-brain-prod/.env` and run `cd apps/my-brain-prod && brain start`.
+5. Add secrets in `my-brain-prod/.env` and run `cd my-brain-prod && brain start`.
 
 ## Dev vs Production Instances
 

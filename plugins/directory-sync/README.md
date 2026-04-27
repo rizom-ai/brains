@@ -1,250 +1,97 @@
 # @brains/directory-sync
 
-File system synchronization plugin for Brain applications.
+File-backed content synchronization for brain instances.
 
-## Overview
+`directory-sync` maps files in a sync directory, usually `brain-data/`, to typed markdown entities and can optionally keep that directory synchronized with git.
 
-This plugin monitors directories for changes and automatically syncs markdown files to the Brain's entity system. It enables bidirectional synchronization between your file system and the Brain database.
+## What it does
 
-## Features
+- imports markdown files into the entity database
+- exports entity changes back to files
+- watches files and entity events for bidirectional auto-sync
+- supports images under `image/`
+- copies seed content on first run
+- optionally pulls, commits, and pushes a git-backed content repo
+- can bootstrap a missing/empty local `file://` bare remote from seed content
 
-- Watch directories for file changes
-- Auto-import markdown files as entities
-- Bidirectional sync (file ↔ entity)
-- Frontmatter metadata extraction
-- Ignore patterns support
-- Batch import capabilities
-- Real-time file monitoring
+## Path conventions
 
-## Installation
+```text
+brain-data/
+  README.md                    # entityType: base, id: README
+  post/my-first-post.md         # entityType: post, id: my-first-post
+  site-content/home/hero.md     # entityType: site-content, id: home:hero
+  image/cover.png               # entityType: image
+```
+
+Root markdown files become `base` note entities. Files under `brain-data/<entity-type>/` use the first path segment as the entity type. Nested paths below that directory become colon-separated ids.
+
+## Typical brain.yaml config
+
+```yaml
+plugins:
+  directory-sync:
+    seedContent: true
+    seedContentPath: ./seed-content
+    initialSync: true
+    autoSync: true
+    git:
+      repo: your-org/brain-data
+      authToken: ${GIT_SYNC_TOKEN}
+```
+
+For a full git URL instead of `repo`:
+
+```yaml
+plugins:
+  directory-sync:
+    git:
+      gitUrl: file:///tmp/mybrain-content.git
+      branch: main
+```
+
+## Config reference
+
+| Field                   | Default           | Notes                                                             |
+| ----------------------- | ----------------- | ----------------------------------------------------------------- |
+| `syncPath`              | shell data dir    | Directory to sync, usually `brain-data/`                          |
+| `autoSync`              | `true`            | Watch files and export entity changes                             |
+| `watchInterval`         | `1000`            | File watcher polling interval in ms                               |
+| `includeMetadata`       | `true`            | Include frontmatter metadata                                      |
+| `entityTypes`           | unset             | Optional list of entity types to sync                             |
+| `initialSync`           | `true`            | Queue initial import/export work on startup                       |
+| `initialSyncDelay`      | `1000`            | Startup delay before initial sync in ms                           |
+| `syncBatchSize`         | `10`              | Batch size for sync jobs                                          |
+| `syncPriority`          | `3`               | Job priority, 1–10                                                |
+| `seedContent`           | `true`            | Copy seed content when the target directory is effectively empty  |
+| `seedContentPath`       | cwd seed path     | Seed content directory                                            |
+| `deleteOnFileRemoval`   | `true`            | Delete entities when synced files are removed                     |
+| `syncInterval`          | `2`               | Periodic git pull/import interval in minutes                      |
+| `commitDebounce`        | `5000`            | Debounce before auto-commit after entity changes                  |
+| `git.repo`              | unset             | GitHub-style `owner/name` repo                                    |
+| `git.gitUrl`            | unset             | Full remote URL; overrides `repo`                                 |
+| `git.branch`            | `main`            | Branch to sync                                                    |
+| `git.authToken`         | unset             | Token for private remotes                                         |
+| `git.authorName`        | `Brain`           | Commit author name                                                |
+| `git.authorEmail`       | `brain@localhost` | Commit author email                                               |
+| `git.bootstrapFromSeed` | `true`            | Seed missing/empty local `file://` remotes from `seedContentPath` |
+
+## Tools
+
+The plugin registers CLI/MCP tools through the shell:
 
 ```bash
-bun add @brains/directory-sync
+brain tool sync
+brain tool status
+brain tool directory-sync_history '{"path":"post/my-first-post.md"}'
 ```
 
-## Usage
+`sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. `status` reports sync and git state. `directory-sync_history` reads git history for synced files.
 
-```typescript
-import { DirectorySyncPlugin } from "@brains/directory-sync";
+## Seed and local remote bootstrap
 
-const plugin = new DirectorySyncPlugin({
-  directories: [
-    {
-      path: "~/Documents/notes",
-      pattern: "**/*.md",
-      entityType: "base",
-    },
-    {
-      path: "~/Documents/articles",
-      pattern: "**/*.md",
-      entityType: "article",
-    },
-  ],
-  watch: true,
-  syncInterval: 5000,
-});
+On startup, shipped brain models usually configure `seedContentPath` to their package seed content. Seed files are copied only when the target data directory is effectively empty.
 
-// Register with shell
-await shell.registerPlugin(plugin);
-```
+When `git.gitUrl` is a local `file://` remote, `git.bootstrapFromSeed` defaults to `true`. If the bare remote is missing or does not yet have the configured branch, directory-sync creates/seeds it from `seedContentPath`. Existing remote branches are left untouched.
 
-## Configuration
-
-```typescript
-interface DirectorySyncConfig {
-  directories: DirectoryConfig[];
-  watch?: boolean; // Enable file watching
-  syncInterval?: number; // Sync check interval (ms)
-  ignorePatterns?: string[]; // Glob patterns to ignore
-  preserveFrontmatter?: boolean;
-  autoImport?: boolean; // Auto-import new files
-}
-
-interface DirectoryConfig {
-  path: string; // Directory path
-  pattern?: string; // File pattern (glob)
-  entityType?: string; // Default entity type
-  recursive?: boolean; // Scan subdirectories
-}
-```
-
-## File Format
-
-Markdown files with optional frontmatter:
-
-```markdown
----
-title: My Note
-tags: [typescript, tutorial]
-type: note
-created: 2024-01-01
----
-
-# Content
-
-Your markdown content here...
-```
-
-## Sync Operations
-
-### Import Files
-
-```typescript
-// Import single file
-await plugin.importFile("/path/to/file.md");
-
-// Import directory
-await plugin.importDirectory("/path/to/directory", {
-  pattern: "**/*.md",
-  entityType: "base",
-});
-
-// Batch import
-await plugin.batchImport(["/path/to/file1.md", "/path/to/file2.md"]);
-```
-
-### Export Entities
-
-```typescript
-// Export entity to file
-await plugin.exportEntity(entityId, "/path/to/file.md");
-
-// Export all entities of type
-await plugin.exportByType("base", "/path/to/directory");
-```
-
-## File Watching
-
-Real-time monitoring of file changes:
-
-```typescript
-const plugin = new DirectorySyncPlugin({
-  directories: [{ path: "~/notes" }],
-  watch: true,
-});
-
-// File changes are automatically synced
-// - New files → Create entities
-// - Modified files → Update entities
-// - Deleted files → Mark entities as deleted
-```
-
-## Ignore Patterns
-
-Exclude files from sync:
-
-```typescript
-const plugin = new DirectorySyncPlugin({
-  ignorePatterns: [
-    "**/.git/**",
-    "**/node_modules/**",
-    "**/*.tmp",
-    ".DS_Store",
-    "**/_drafts/**",
-  ],
-});
-```
-
-## Conflict Resolution
-
-Handle sync conflicts:
-
-```typescript
-plugin.on("conflict", async (conflict) => {
-  // conflict.type: "file-newer" | "entity-newer" | "both-modified"
-  // conflict.file: File information
-  // conflict.entity: Entity information
-
-  // Resolve strategy
-  return "use-file"; // or "use-entity" or "merge"
-});
-```
-
-## Metadata Mapping
-
-Map file metadata to entity properties:
-
-```typescript
-const plugin = new DirectorySyncPlugin({
-  metadataMapper: (frontmatter) => ({
-    title: frontmatter.title,
-    tags: frontmatter.tags || [],
-    metadata: {
-      author: frontmatter.author,
-      published: frontmatter.published,
-    },
-  }),
-});
-```
-
-## Events
-
-```typescript
-plugin.on("file:imported", (event) => {
-  console.log(`Imported: ${event.file} → ${event.entityId}`);
-});
-
-plugin.on("file:updated", (event) => {
-  console.log(`Updated: ${event.file}`);
-});
-
-plugin.on("sync:complete", (stats) => {
-  console.log(`Synced: ${stats.imported} imported, ${stats.updated} updated`);
-});
-```
-
-## Commands
-
-The plugin provides these commands:
-
-```typescript
-// Import directory
-shell.execute("directory-sync:import", {
-  path: "/path/to/directory",
-});
-
-// Export entities
-shell.execute("directory-sync:export", {
-  type: "note",
-  path: "/export/directory",
-});
-
-// Check sync status
-shell.execute("directory-sync:status");
-```
-
-## Performance
-
-- Uses file watching for efficient monitoring
-- Batches database operations
-- Caches file metadata
-- Incremental sync based on modification times
-
-## Testing
-
-```typescript
-import { DirectorySyncPlugin } from "@brains/directory-sync";
-import { createTestDirectory } from "@brains/directory-sync/test";
-
-const testDir = await createTestDirectory({
-  "note1.md": "# Note 1",
-  "note2.md": "# Note 2",
-});
-
-const plugin = new DirectorySyncPlugin({
-  directories: [{ path: testDir }],
-});
-
-await plugin.importDirectory(testDir);
-```
-
-## Exports
-
-- `DirectorySyncPlugin` - Main plugin class
-- `FileWatcher` - File monitoring utility
-- `MetadataExtractor` - Frontmatter parser
-- Types and configuration schemas
-
-## License
-
-Apache-2.0
+Set `bootstrapFromSeed: false` to opt out.

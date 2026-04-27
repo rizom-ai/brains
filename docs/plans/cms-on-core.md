@@ -23,7 +23,7 @@ That is the wrong dependency direction for `preset: core`.
 The real requirements are much smaller:
 
 - schema-driven config generation
-- repo/branch info from git-sync
+- repo/branch info from directory-sync/git config
 - a browser-facing operator surface
 - one HTTP endpoint the browser can visit
 
@@ -99,7 +99,7 @@ The operator surface is broader than CMS, but the CMS-specific browser capabilit
 
 This plugin may depend on:
 
-- `git-sync:get-repo-info`
+- directory-sync git repo info
 - entity registry/frontmatter callbacks
 - site/entity display metadata
 

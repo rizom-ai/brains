@@ -301,14 +301,19 @@ Notes:
 
 These are not usually interpolated directly inside `brain.yaml`, but they show up in the deploy and bootstrap docs for `brain init <dir> --deploy` + `brain cert:bootstrap`.
 
-| Variable                  | Typical use                                  |
-| ------------------------- | -------------------------------------------- |
-| `KAMAL_REGISTRY_PASSWORD` | GHCR auth for Kamal                          |
-| `SERVER_IP`               | Instance server IP in deploy workflows       |
-| `CF_API_TOKEN`            | Cloudflare API token for Origin CA bootstrap |
-| `CF_ZONE_ID`              | Cloudflare zone ID for Origin CA bootstrap   |
-| `CERTIFICATE_PEM`         | Origin CA certificate secret                 |
-| `PRIVATE_KEY_PEM`         | Origin CA private key secret                 |
+| Variable                     | Typical use                                             |
+| ---------------------------- | ------------------------------------------------------- |
+| `KAMAL_REGISTRY_PASSWORD`    | GHCR auth for Kamal                                     |
+| `HCLOUD_TOKEN`               | Hetzner provisioning                                    |
+| `HCLOUD_SSH_KEY_NAME`        | Hetzner SSH key registration name                       |
+| `HCLOUD_SERVER_TYPE`         | Hetzner server type                                     |
+| `HCLOUD_LOCATION`            | Hetzner location                                        |
+| `KAMAL_SSH_PRIVATE_KEY_FILE` | Local source path for `brain ssh-key:bootstrap`         |
+| `KAMAL_SSH_PRIVATE_KEY`      | Deploy SSH private key stored in GitHub Actions secrets |
+| `CF_API_TOKEN`               | Cloudflare API token for Origin CA bootstrap            |
+| `CF_ZONE_ID`                 | Cloudflare zone ID for Origin CA bootstrap              |
+| `CERTIFICATE_PEM`            | Origin CA certificate secret                            |
+| `PRIVATE_KEY_PEM`            | Origin CA private key secret                            |
 
 ## Examples
 

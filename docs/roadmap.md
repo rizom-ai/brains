@@ -32,7 +32,7 @@ These areas are effectively landed:
 - **Search and embeddings** — SQLite FTS + online embeddings + diagnostics
 - **Eval overhaul** — app/model/shell eval layering and comparison reporting
 - **Theme/site decoupling** — site packages are structural-only; themes resolve independently
-- **Standalone authoring** — local `src/site.ts`, `src/theme.css`, and deploy scaffolding conventions, scaffolded by `brain init`
+- **Standalone authoring** — local `src/site.ts` / `src/theme.css` conventions for models that scaffold site/theme authoring, plus deploy scaffolding through `brain init --deploy`
 - **Alpha npm publishing** — `@rizom/brain` is already shipping public alpha releases with automated Changesets-based publishing
 - **Library exports Tier 1** — `@rizom/brain/site` and `@rizom/brain/themes`
 - **Deployment foundation** — `brain cert:bootstrap`, app-local `.env.schema` generation, init artifact reconciliation, and the first standalone Kamal workflow shape

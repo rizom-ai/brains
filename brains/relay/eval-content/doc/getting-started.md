@@ -62,7 +62,7 @@ The generated `brain.yaml` defaults to `preset: core`, which is the minimal, usa
 
 ## What `brain init` creates
 
-A new brain instance is a **lightweight instance package**. It is not a workspace package, but it does carry conventional support files for local execution, local site/theme authoring, and deploy scaffolding.
+A new brain instance is a **lightweight instance package**. It is not a workspace package, but it does carry conventional support files for local execution and optional deploy scaffolding.
 
 Typical scaffold:
 
@@ -74,11 +74,17 @@ mybrain/
   .env.example      # environment variables to fill in
   .gitignore        # ignores .env, cache, build artifacts
   tsconfig.json     # JSX runtime hints for Preact-based site code
-  src/site.ts       # local site scaffold built on @rizom/brain/site
-  src/theme.css     # local theme scaffold
 ```
 
-The generated `brain.yaml` stays pinned to the model's built-in site and theme at first. Edit `src/site.ts` and `src/theme.css`, then remove the explicit `site.package` ref from `brain.yaml` when you want to switch to the local site convention. Local `src/theme.css` layers on top of the active base theme automatically.
+Some models also scaffold local site/theme authoring files:
+
+```text
+mybrain/
+  src/site.ts       # local site composition built on @rizom/brain/site
+  src/theme.css     # additive local theme override
+```
+
+When these files exist, `src/theme.css` layers on top of the active base theme. A local `src/site.ts` is discovered by convention when `brain.yaml` does not set `site.package`.
 
 With `--deploy`, the scaffold also includes deployment helpers for the Kamal flow: `config/deploy.yml`, `.kamal/hooks/pre-deploy`, `deploy/Dockerfile`, `.github/workflows/publish-image.yml`, and `.github/workflows/deploy.yml`. The generated `.env.schema` defaults to `--backend none`, which means varlock validates and normalizes values supplied directly from local env files or GitHub Actions secrets.
 
@@ -109,6 +115,8 @@ Options:
   --backend <name>       Secret backend plugin (default: none)
   --deploy               Include deployment scaffolding
   --regen                Refresh generated deploy scaffolding files
+  --ai-api-key <key>     Write an initial .env with AI_API_KEY
+  --no-interactive       Skip prompts and use supplied/default values
 ```
 
 ## Configuration
@@ -136,7 +144,7 @@ plugins:
 
 Secrets are referenced with `${ENV_VAR}` interpolation and loaded from `.env`.
 
-For the full schema, see [brain.yaml Reference](/docs/brain-yaml-reference).
+For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
 
 ## Interfaces
 
@@ -152,7 +160,7 @@ Once running, a brain can be accessed through several surfaces depending on the 
 
 ## Common next steps
 
-- [Documentation Index](/docs/index)
+- [Documentation Index](/docs)
 - [brain.yaml Reference](/docs/brain-yaml-reference)
 - [Entity Types Reference](/docs/entity-types-reference)
 - [Content Management Guide](/docs/content-management)

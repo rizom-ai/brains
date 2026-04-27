@@ -33,7 +33,7 @@ brain init mybrain --no-interactive
 | `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                         |
 | `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                 |
 | `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, from GitHub Actions secrets). Pass any other name to emit a generic `@plugin(@varlock/<name>-plugin)` line you can hand-tune; no other backend is verified end-to-end today. |
-| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, and GitHub workflow                                                                                                                                                                                                                                              |
+| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                         |
 | `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                   |
 | `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                      |
 
@@ -159,6 +159,7 @@ brain diagnostics search
 Currently documented subcommands:
 
 - `search` — inspect search distance distribution for threshold tuning
+- `usage` — aggregate `ai:usage` events from the configured log file
 
 ### `brain pin`
 

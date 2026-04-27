@@ -37,9 +37,11 @@ brain start
 That gives you a runnable brain instance with:
 
 - `brain.yaml` for instance config
-- `brain-data/` for markdown content
 - `package.json` pinned to `@rizom/brain`
-- `src/site.ts` and `src/theme.css` for local site/theme authoring
+- `.env.example`, `.gitignore`, and `tsconfig.json`
+- `brain-data/` markdown content created/seeded on first run when directory-sync is active
+
+Some models also scaffold `src/site.ts` and `src/theme.css` for local site/theme authoring.
 
 For the full setup flow, see [packages/brain-cli/docs/getting-started.md](packages/brain-cli/docs/getting-started.md).
 

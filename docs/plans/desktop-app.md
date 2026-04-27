@@ -72,7 +72,7 @@ The desktop is where the owner _creates_ content. The deployed site is where the
 1. Electrobun serves Sveltia CMS from the app bundle (no network)
 2. CMS reads/writes markdown files in brain-data directory (local git backend, no GitHub API)
 3. Directory-sync watches for file changes → imports to entity service
-4. If git-sync is configured, changes push to remote repo
+4. If directory-sync git is configured, changes push to the remote content repo
 5. If site-builder is active, site rebuilds automatically
 
 No OAuth flow. No server. Files on disk.
