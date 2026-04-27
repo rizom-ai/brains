@@ -4,6 +4,9 @@ import type { PaginationInfo } from "@brains/plugins";
 import type { DocWithData } from "../schemas/doc";
 import {
   DocsDesignStyles,
+  DocsEcosystem,
+  DocsFooter,
+  DocsHeader,
   formatCount,
   groupDocs,
   hrefFor,
@@ -31,6 +34,7 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
       <Head title="Documentation" description="Brains documentation" />
       <DocsDesignStyles />
       <div className="docs-handbook">
+        <DocsHeader ecosystemHref="#ecosystem" />
         <div className="docs-wrap">
           <section className="docs-hero">
             <p className="docs-hero__eyebrow">Handbook · Brains docs</p>
@@ -122,6 +126,8 @@ export const DocListTemplate = ({ docs }: DocListProps): JSX.Element => {
               ))}
             </div>
           </section>
+          <DocsEcosystem />
+          <DocsFooter />
         </div>
       </div>
     </>

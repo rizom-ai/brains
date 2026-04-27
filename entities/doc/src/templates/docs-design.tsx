@@ -41,6 +41,104 @@ export function formatCount(count: number): string {
   return count.toString().padStart(2, "0");
 }
 
+interface DocsHeaderProps {
+  ecosystemHref?: string;
+}
+
+export const DocsHeader = ({
+  ecosystemHref = "/docs#ecosystem",
+}: DocsHeaderProps): JSX.Element => (
+  <nav className="docs-header">
+    <a href="/docs" className="docs-header__wordmark" aria-label="Brains docs">
+      <span className="docs-wordmark__ink">brains</span>
+      <span className="docs-wordmark__dot">.</span>
+      <span className="docs-wordmark__suffix">docs</span>
+    </a>
+    <div className="docs-header__nav">
+      <a href="/docs/roadmap">Roadmap</a>
+      <a href="https://github.com/rizom-ai/brains">GitHub</a>
+      <a href={ecosystemHref}>Ecosystem</a>
+      <a href="https://rizom.ai" className="docs-header__cta">
+        Get Brains
+      </a>
+    </div>
+  </nav>
+);
+
+export const DocsEcosystem = (): JSX.Element => (
+  <section className="docs-ecosystem" id="ecosystem">
+    <div className="docs-ecosystem__head">
+      <span className="docs-ecosystem__eyebrow">The Ecosystem</span>
+      <h2>
+        One ecosystem. The <em>platform</em>, the <em>vision</em>, the{" "}
+        <em>network</em>.
+      </h2>
+    </div>
+    <div className="docs-ecosystem__cards">
+      <a className="docs-ecosystem__card" href="https://rizom.ai">
+        <span className="docs-ecosystem__wordmark">
+          rizom<span className="docs-wordmark__dot">.</span>
+          <span className="docs-wordmark__suffix">ai</span>
+        </span>
+        <span className="docs-ecosystem__role docs-ecosystem__role--ai">
+          The platform
+        </span>
+        <p>
+          Open-source AI agents built from your own knowledge. The tools that
+          make everything else possible.
+        </p>
+        <span className="docs-ecosystem__link">See the platform →</span>
+      </a>
+      <a className="docs-ecosystem__card" href="https://rizom.foundation">
+        <span className="docs-ecosystem__wordmark">
+          rizom<span className="docs-wordmark__dot">.</span>
+          <span className="docs-wordmark__suffix">foundation</span>
+        </span>
+        <span className="docs-ecosystem__role docs-ecosystem__role--foundation">
+          The vision
+        </span>
+        <p>
+          Essays, principles, and community. Why we believe knowledge work
+          should be distributed, owned, and playful.
+        </p>
+        <span className="docs-ecosystem__link">Read the manifesto →</span>
+      </a>
+      <a className="docs-ecosystem__card" href="https://rizom.work">
+        <span className="docs-ecosystem__wordmark">
+          rizom<span className="docs-wordmark__dot">.</span>
+          <span className="docs-wordmark__suffix">work</span>
+        </span>
+        <span className="docs-ecosystem__role docs-ecosystem__role--work">
+          The network
+        </span>
+        <p>
+          Distributed consultancy powered by brains. Specialized expertise that
+          mobilizes in hours, not months.
+        </p>
+        <span className="docs-ecosystem__link">Work with us →</span>
+      </a>
+    </div>
+  </section>
+);
+
+export const DocsFooter = (): JSX.Element => (
+  <footer className="docs-footer">
+    <a href="https://rizom.ai" className="docs-footer__wordmark">
+      <span className="docs-wordmark__ink">rizom</span>
+      <span className="docs-wordmark__dot">.</span>
+      <span className="docs-wordmark__suffix">ai</span>
+    </a>
+    <div className="docs-footer__links">
+      <a href="/docs/roadmap">Roadmap</a>
+      <a href="https://github.com/rizom-ai/brains">GitHub</a>
+      <a href="https://rizom.ai">Rizom</a>
+      <button id="themeToggle" className="docs-footer__toggle" type="button">
+        ☀ Light
+      </button>
+    </div>
+  </footer>
+);
+
 const docsDesignCss = `
 .docs-handbook {
   --docs-bg: var(--color-bg, #0d0a1a);
@@ -65,13 +163,107 @@ const docsDesignCss = `
   --docs-label-sm: var(--text-label-sm, 12px);
   min-height: 100vh;
   color: var(--docs-text);
-  background: var(--docs-bg);
+  background: transparent;
   font-family: var(--docs-font-body);
 }
 
 .docs-handbook a {
   color: inherit;
   text-decoration: none;
+}
+
+.docs-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--docs-bg) 95%, transparent) 0%,
+    color-mix(in srgb, var(--docs-bg) 0%, transparent) 100%
+  );
+  backdrop-filter: blur(8px);
+}
+
+.docs-header__wordmark,
+.docs-footer__wordmark {
+  font-family: var(--docs-font-body);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.docs-wordmark__ink {
+  color: var(--docs-text);
+  font-weight: 700;
+}
+
+.docs-wordmark__dot {
+  color: var(--docs-accent);
+  font-weight: 700;
+}
+
+.docs-wordmark__suffix {
+  color: var(--docs-text-muted);
+}
+
+.docs-header__nav {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.docs-header__nav a {
+  position: relative;
+  padding: 4px 0;
+  color: var(--docs-text-muted);
+  font-family: var(--docs-font-body);
+  font-size: 15px;
+  transition: color 0.15s;
+}
+
+.docs-header__nav a::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 1px;
+  width: 0;
+  background: var(--docs-accent);
+  transition: width 0.3s;
+}
+
+.docs-header__nav a:hover {
+  color: var(--docs-text);
+}
+
+.docs-header__nav a:hover::after {
+  width: 100%;
+}
+
+.docs-header__nav a.docs-header__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--docs-text);
+  border-radius: 8px;
+  padding: 8px 16px;
+  color: var(--docs-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.docs-header__nav a.docs-header__cta::after {
+  display: none;
+}
+
+.docs-header__nav a.docs-header__cta:hover {
+  color: var(--docs-accent);
+  border-color: var(--docs-accent);
 }
 
 .docs-wrap {
@@ -511,6 +703,161 @@ const docsDesignCss = `
   border-top: 1px solid var(--docs-border);
 }
 
+.docs-ecosystem {
+  padding: 112px 0 72px;
+  border-top: 1px solid var(--docs-border-light);
+}
+
+.docs-ecosystem__head {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.docs-ecosystem__eyebrow {
+  color: var(--docs-accent);
+  font-family: var(--docs-font-label);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.24em;
+  text-transform: uppercase;
+}
+
+.docs-ecosystem__head h2 {
+  margin: 16px 0 0;
+  color: var(--docs-heading);
+  font-family: var(--docs-font-display);
+  font-size: clamp(34px, 4.4vw, 60px);
+  font-weight: 380;
+  line-height: 1.04;
+  letter-spacing: -0.02em;
+}
+
+.docs-ecosystem__head h2 em {
+  color: var(--docs-accent);
+  font-style: italic;
+}
+
+.docs-ecosystem__cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 56px;
+}
+
+.docs-ecosystem__card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border-top: 1px solid var(--docs-border-light);
+  padding-top: 28px;
+  transition: border-color 0.2s;
+}
+
+.docs-ecosystem__card:hover {
+  border-top-color: var(--docs-accent);
+}
+
+.docs-ecosystem__wordmark {
+  color: var(--docs-text);
+  font-family: var(--docs-font-display);
+  font-size: clamp(28px, 3vw, 40px);
+  font-weight: 400;
+  line-height: 1.1;
+}
+
+.docs-ecosystem__role {
+  margin-top: 4px;
+  font-family: var(--docs-font-label);
+  font-size: 10.5px;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+}
+
+.docs-ecosystem__role--ai {
+  color: var(--docs-accent-bright);
+}
+
+.docs-ecosystem__role--foundation {
+  color: var(--docs-text-muted);
+}
+
+.docs-ecosystem__role--work {
+  color: var(--docs-accent);
+}
+
+.docs-ecosystem__card p {
+  margin: 8px 0 0;
+  color: var(--docs-text-muted);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.docs-ecosystem__link {
+  align-self: flex-start;
+  margin-top: 18px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--docs-border);
+  color: var(--docs-text-muted);
+  font-family: var(--docs-font-label);
+  font-size: 10.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  transition: color 0.15s;
+}
+
+.docs-ecosystem__card:hover .docs-ecosystem__link {
+  color: var(--docs-text);
+}
+
+.docs-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 32px 0;
+  border-top: 1px solid var(--docs-border-light);
+  text-align: center;
+}
+
+.docs-footer__wordmark {
+  font-size: 15px;
+}
+
+.docs-footer__links a,
+.docs-footer__toggle {
+  color: var(--docs-text-light);
+  font-family: var(--docs-font-label);
+  font-size: 13px;
+}
+
+.docs-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.docs-footer__links a {
+  transition: color 0.15s;
+}
+
+.docs-footer__links a:hover {
+  color: var(--docs-text);
+}
+
+.docs-footer__toggle {
+  border: 1px solid var(--docs-text-light);
+  border-radius: 6px;
+  background: transparent;
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.docs-footer__toggle:hover {
+  color: var(--docs-text);
+  border-color: var(--docs-text);
+}
+
 .docs-page-link {
   border-top: 1px solid var(--docs-border-light);
   padding-top: 18px;
@@ -547,7 +894,46 @@ const docsDesignCss = `
   color: var(--docs-accent);
 }
 
+@media (min-width: 768px) {
+  .docs-header {
+    padding: 20px 40px;
+  }
+
+  .docs-header__nav a.docs-header__cta {
+    padding: 10px 24px;
+    font-size: 15px;
+  }
+
+  .docs-footer {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 24px 0;
+    text-align: left;
+  }
+
+  .docs-footer__links {
+    justify-content: flex-end;
+  }
+}
+
+@media (min-width: 1280px) {
+  .docs-header {
+    padding-left: 80px;
+    padding-right: 80px;
+  }
+}
+
 @media (max-width: 860px) {
+  .docs-header__nav {
+    gap: 16px;
+  }
+
+  .docs-header__nav a:not(.docs-header__cta) {
+    display: none;
+  }
+
   .docs-wrap {
     padding: 80px 24px 0;
   }
@@ -588,6 +974,15 @@ const docsDesignCss = `
 
   .docs-page-link--next {
     text-align: left;
+  }
+
+  .docs-ecosystem {
+    padding: 72px 0 48px;
+  }
+
+  .docs-ecosystem__cards {
+    grid-template-columns: 1fr;
+    gap: 28px;
   }
 }
 `;

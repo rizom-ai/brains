@@ -3,6 +3,8 @@ import { Head, MarkdownContent } from "@brains/ui-library";
 import type { DocWithData } from "../schemas/doc";
 import {
   DocsDesignStyles,
+  DocsFooter,
+  DocsHeader,
   groupDocs,
   hrefFor,
   romanNumeral,
@@ -36,6 +38,7 @@ export const DocDetailTemplate = ({
       />
       <DocsDesignStyles />
       <div className="docs-handbook docs-handbook--detail">
+        <DocsHeader />
         <div className="docs-wrap docs-detail-wrap">
           <nav className="docs-breadcrumb" aria-label="Breadcrumb">
             <a href="/">Home</a>
@@ -134,6 +137,7 @@ export const DocDetailTemplate = ({
               )}
             </article>
           </div>
+          <DocsFooter />
         </div>
       </div>
     </>
