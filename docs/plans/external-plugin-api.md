@@ -18,7 +18,7 @@ What plugin authors need but cannot reach:
 
 - no `./plugins`, `./entities`, `./services`, `./interfaces`, `./utils`, or `./templates` subpath
 - no public re-export of `defineBrain` (lives at `@brains/app`, internal)
-- `brain.yaml` parses `brain`, `domain`, `preset`, `model` only — no `plugins:` field, no node_modules resolution path
+- `brain.yaml` parsing is split: `packages/brain-cli/src/lib/brain-yaml.ts` only validates `brain`, `domain`, `preset`, `model`, while `shell/app/src/instance-overrides.ts` already treats `plugins:` as a per-plugin config override map; neither path loads plugins from `node_modules`
 - no plugin API version constant published anywhere
 
 `docs/plans/custom-brain-definitions.md` (the `brain.ts` escape hatch) depends on this plan: `defineBrain` and preset spread targets need to be importable from `@rizom/brain` before `brain.ts` is usable by external authors.
@@ -27,15 +27,25 @@ What plugin authors need but cannot reach:
 
 The §0 audit lives in this plan, not a separate document. Record each decision here before implementing public exports.
 
-| Area                      | Decision | Rationale                                                                                       |
-| ------------------------- | -------- | ----------------------------------------------------------------------------------------------- |
-| Plugin type split         | Pending  | Decide before freezing public base classes.                                                     |
-| Context consistency       | Pending  | Compare entity/service/interface contexts for intentional vs accidental differences.            |
-| Lifecycle hooks           | Pending  | Commit only to minimal hooks external authors need.                                             |
-| Registration model        | Pending  | Choose class-method, context-registration, or documented hybrid model.                          |
-| Cross-plugin dependencies | Pending  | Decide whether composite plugins are enough or explicit dependency declarations are public API. |
-| Type-safety surface       | Pending  | Decide whether service/interface plugins need generic narrowing like entity plugins.            |
-| Versioning policy         | Pending  | Define when plugin API version bumps.                                                           |
+| Area                               | Decision                                                                                                                                                                                                                                                                                                                                                                            | Rationale                                                                                                                                                                                                                                         |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Plugin type split                  | Keep `EntityPlugin`, `ServicePlugin`, and `InterfacePlugin` as the public top-level classes. Also publish `MessageInterfacePlugin` as a public convenience subclass for chat/channel transports. Do not add composite, derived-data, or daemon-only plugin classes.                                                                                                                 | Existing packages fit the three-way split. Composite capabilities are factory-level composition, derived data is `EntityPlugin.derive()`, and daemon ownership belongs in `InterfacePlugin` when user-facing or `ServicePlugin` when operational. |
+| Context consistency                | Publish context **types** with a shared `BasePluginContext`; keep shell/context factory functions private. Preserve intentional sibling differences: entity plugins get AI/entity registration/prompt resolution, service plugins get entity writes/templates/views/instructions, interface plugins get transport/permissions/daemons/conversation writes/routes/plugin visibility. | The shared base is already coherent. The differences map to plugin responsibilities. Exposing `create*Context()` or `IShell` would leak shell internals.                                                                                          |
+| Lifecycle hooks                    | Public minimal set: `onRegister`, `onReady`, `onShutdown`. Land `onReady` before public exports. Defer `onPostReady`, `onConfigChange`, and `onDependencyResolved`.                                                                                                                                                                                                                 | `onRegister` is for capability registration. External authors need a ready-state hook because identity/profile seeding currently races registration. Shutdown is needed for cleanup. Other hooks are additive later.                              |
+| Registration model                 | Keep a documented hybrid. Use class methods/properties for static declarations auto-registered at boot; use `context.*.register()` for dynamic registration or explicit namespace control.                                                                                                                                                                                          | Current entity/service/site code uses both patterns. Forcing one style would create churn without simplifying external authoring enough.                                                                                                          |
+| Cross-plugin dependencies          | Publish both composite factories and `plugin.dependencies`. Composite factories bundle capabilities that should be enabled together; `dependencies` only orders and validates already-loaded plugins. No peer-dependency autoload in v1.                                                                                                                                            | This preserves current resolver behavior and avoids surprising installs/boot-time package loading. External authors can choose bundle vs ordering contract.                                                                                       |
+| Type-safety surface                | Keep `EntityPlugin<TEntity, TConfig>`, `ServicePlugin<TConfig>`, and `InterfacePlugin<TConfig, TTrackingInfo>`. Do not add service/interface domain generics for v1. Tighten examples around Zod config schemas and typed factory inputs instead.                                                                                                                                   | Entity plugins own a durable entity type, so entity narrowing matters. Service/interface plugins expose heterogeneous tools/routes/transports; config and tracking generics are the useful public type parameters.                                |
+| Versioning policy                  | Start `PLUGIN_API_VERSION` at `1.0.0` when public subpaths ship. Major bump for breaking public types or runtime lifecycle/context behavior; minor for additive exports/hooks/context fields; patch for docs/bug fixes. External plugin packages declare a semver range in `package.json` under `rizomBrain.pluginApi`. Warn when range is unsatisfied.                             | Ties compatibility to the curated public API, not internal workspace package versions. Allows additive evolution without breaking old plugins.                                                                                                    |
+| `brain.yaml` external plugin shape | Preserve existing `plugins:` map semantics. External packages use keyed map entries with a reserved `package` field and nested `config`, not the list shape.                                                                                                                                                                                                                        | Existing docs and runtime already use `plugins:` as config overrides. A list would be incompatible and ambiguous.                                                                                                                                 |
+
+Audit-derived implementation gates before §1 public exports:
+
+- Add `onReady` lifecycle support and migrate any ready-state work out of `onRegister`.
+- Keep `IShell`, `createBasePluginContext`, `createEntityPluginContext`, `createServicePluginContext`, and `createInterfacePluginContext` out of `@rizom/brain/*` public exports.
+- Treat `MessageInterfacePlugin` as public API, but document it as optional sugar over `InterfacePlugin`.
+- Document the hybrid registration model in plugin author docs before publishing examples.
+- Define `PLUGIN_API_VERSION` and `rizomBrain.pluginApi` package metadata before loading external packages.
+- Update both brain-yaml parsers/schemas together; do not introduce the incompatible list-form `plugins:` shape.
 
 ## Open work
 
@@ -59,7 +69,7 @@ Audit areas:
 
 Output of this phase:
 
-- a written audit document (live in `docs/plans/` alongside this plan, or as an ADR-style note) covering each area above with a decision and rationale
+- audit decisions recorded in this plan
 - targeted refactors landing the decisions in the codebase
 - a frozen design for the public subpath surface that §1 then implements mechanically
 
@@ -88,22 +98,29 @@ Requirements:
 
 ### 2. Load external plugins from `brain.yaml`
 
-`brain.yaml` should be able to declare plugins installed from `node_modules`. Today the schema in `packages/brain-cli/src/lib/brain-yaml.ts` accepts `brain`, `domain`, `preset`, `model`; unknown keys pass through but are not consumed.
+`brain.yaml` should be able to declare plugins installed from `node_modules`. Today the CLI schema only validates a small subset of fields, and the runtime schema treats `plugins:` as per-plugin config overrides.
 
-Target shape:
+Target shape keeps `plugins:` as a keyed map:
 
 ```yaml
 plugins:
-  - @rizom/brain-plugin-calendar
-  - @rizom/brain-plugin-stripe:
+  directory-sync:
+    git:
+      repo: your-org/brain-data
+      authToken: "${GIT_SYNC_TOKEN}"
+  calendar:
+    package: "@rizom/brain-plugin-calendar"
+  stripe:
+    package: "@rizom/brain-plugin-stripe"
+    config:
       apiKey: "${STRIPE_API_KEY}"
 ```
 
 Needed behavior:
 
-- extend the `brain.yaml` schema with a typed `plugins:` field
-- resolve plugin entries from `node_modules` at boot
-- support config objects per plugin entry
+- extend the `brain.yaml` schemas with typed support for external plugin map entries while preserving existing config override entries
+- resolve plugin entries with `package` from `node_modules` at boot
+- support config objects per external plugin entry under `config`
 - support env-var interpolation in plugin config (`${VAR}`), reusing varlock-resolved env where possible
 - fail clearly when a declared plugin is missing or its API version mismatches (see §3)
 
