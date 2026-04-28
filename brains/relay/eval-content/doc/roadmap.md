@@ -99,7 +99,7 @@ Remaining Phase 3 work:
 Plans:
 
 - [documentation.md](/docs/documentation-plan)
-- [docs-site.md](/docs/docs-site-plan)
+- [`doc-brain` remaining work](https://github.com/rizom-ai/doc-brain/blob/main/docs/remaining-work.md)
 
 ### 3. External plugin API
 

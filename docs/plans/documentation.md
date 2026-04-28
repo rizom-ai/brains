@@ -91,7 +91,7 @@ Docs in `docs/`:
 
 Initial direction: dogfood the brain site-builder docs path with first-class `doc` entities rendered by a `docs` capability inside the active site/theme. Fall back to a dedicated docs framework such as Astro Starlight or VitePress only if this proves too limiting.
 
-Plan: [`docs-site.md`](./docs-site.md)
+Remaining docs app/deploy work now lives in [`rizom-ai/doc-brain`](https://github.com/rizom-ai/doc-brain/blob/main/docs/remaining-work.md).
 
 1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](../README.md)
 2. **Source manifest — DONE (2026-04)**: `docs/docs-manifest.yaml`

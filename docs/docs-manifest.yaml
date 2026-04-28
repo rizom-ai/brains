@@ -137,12 +137,6 @@ docs:
     order: 220
     source: docs/plans/documentation.md
 
-  - id: docs-site-plan
-    title: Docs Site Plan
-    section: Planning and release readiness
-    order: 230
-    source: docs/plans/docs-site.md
-
   - id: public-release-cleanup
     title: Public Release Cleanup Plan
     section: Planning and release readiness
