@@ -54,7 +54,7 @@ These areas are effectively landed:
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
 - **Rover eval stabilization** — the full Rover suite is green at 86/86, with agent follow-up fixtures isolated from shared mutable domains and YAML fixture tests reduced to broad integrity checks instead of brittle exact-path assertions
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
-- **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; shared docs ecosystem chrome rendered as a route-level section over `@rizom/ui`; Relay docs test app validates the path end-to-end against a running docs brain
+- **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; Relay docs test app validates the path end-to-end against a running docs brain
 - **Docs publishing ownership clarified** — release-driven sync from this repo into `rizom-ai/doc-brain-content`, with a separate docs app repo likely named `rizom-ai/doc-brain` owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
 
@@ -88,7 +88,7 @@ Phase 2 user-facing docs are in place:
 
 Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
 
-The Phase 3 docs site is partially landed: the [docs index](/docs), [source manifest](https://github.com/rizom-ai/brains/blob/main/docs/docs-manifest.yaml), and the `entities/doc` package (schema, adapter, plugin, datasource, componentized list/detail templates) are in place, and the Relay docs test app validates list/detail routing and route-level ecosystem composition.
+The Phase 3 docs site is partially landed: the [docs index](/docs), [source manifest](https://github.com/rizom-ai/brains/blob/main/docs/docs-manifest.yaml), and the `entities/doc` package (schema, adapter, plugin, datasource, componentized list/detail templates) are in place, and the Relay docs test app validates list/detail routing.
 
 Remaining Phase 3 work:
 

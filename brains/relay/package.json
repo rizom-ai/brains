@@ -42,8 +42,7 @@
     "@brains/summary": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
-    "@brains/webserver": "workspace:*",
-    "@rizom/ui": "0.2.0-alpha.44"
+    "@brains/webserver": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.3.3"

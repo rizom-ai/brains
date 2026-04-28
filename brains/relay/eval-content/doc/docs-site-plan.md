@@ -160,12 +160,9 @@ When the `docs` capability is active:
 - `/docs` lists/group docs by section/order
 - `/docs/:slug` renders one doc page
 
-The Relay docs test app also registers an explicit `/docs` route so docs-specific page sections can compose normally. The current `/docs` route contains:
+The Relay docs test app also registers an explicit `/docs` route so docs-specific page sections can compose normally. The current `/docs` route contains `docs:doc-list` with doc entity data.
 
-1. `docs:doc-list` with doc entity data
-2. `docs:docs-ecosystem` with route-level fallback content from `@rizom/ui`
-
-This keeps ecosystem content on the normal site-builder content path: saved `site-content` can override a section, otherwise the route's `content` fallback is used.
+Rizom ecosystem/chrome composition is intentionally out of scope for `entities/doc` for now. Finish the docs content/rendering path first, then reintroduce ecosystem from the Rizom site layer if needed.
 
 ## Markdown rendering
 

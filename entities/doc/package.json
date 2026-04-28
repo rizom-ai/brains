@@ -18,7 +18,6 @@
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*",
-    "@rizom/ui": "0.2.0-alpha.44",
     "preact": "^10.27.2"
   },
   "devDependencies": {

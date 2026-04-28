@@ -1,6 +1,4 @@
 import type { JSX } from "preact";
-import { Ecosystem as RizomEcosystem } from "@rizom/ui";
-import type { EcosystemContent } from "@rizom/ui";
 import type { DocWithData } from "../schemas/doc";
 
 export type GroupedDocs = Array<{ section: string; docs: DocWithData[] }>;
@@ -39,10 +37,6 @@ export function romanNumeral(index: number): string {
   return numerals[index] ?? String(index + 1);
 }
 
-interface DocsHeaderProps {
-  ecosystemHref?: string | undefined;
-}
-
 const wordmarkInk = "text-[var(--docs-text)] font-bold";
 const wordmarkDot = "text-[var(--docs-accent)] font-bold";
 const wordmarkSuffix = "text-[var(--docs-text-muted)]";
@@ -64,9 +58,7 @@ export const docsClasses = {
   primaryButton: `${buttonBase} border-[var(--docs-accent)] bg-[var(--docs-accent)] text-white hover:bg-transparent hover:text-[var(--docs-accent)]`,
 };
 
-export const DocsHeader = ({
-  ecosystemHref = "/docs#ecosystem",
-}: DocsHeaderProps): JSX.Element => (
+export const DocsHeader = (): JSX.Element => (
   <nav className="docs-header fixed inset-x-0 top-0 z-[100] flex items-center justify-between px-6 py-4 md:px-10 md:py-5 xl:px-20">
     <a
       href="/docs"
@@ -84,9 +76,6 @@ export const DocsHeader = ({
       <a className={headerLink} href="https://github.com/rizom-ai/brains">
         GitHub
       </a>
-      <a className={headerLink} href={ecosystemHref}>
-        Ecosystem
-      </a>
       <a
         href="https://rizom.ai"
         className="inline-flex items-center justify-center rounded-lg border border-[var(--docs-text)] px-4 py-2 text-[13px] font-semibold text-[var(--docs-text)] transition-colors duration-150 hover:border-[var(--docs-accent)] hover:text-[var(--docs-accent)] md:px-6 md:py-2.5 md:text-[15px]"
@@ -95,18 +84,6 @@ export const DocsHeader = ({
       </a>
     </div>
   </nav>
-);
-
-export const DocsEcosystem = (content: EcosystemContent): JSX.Element => (
-  <>
-    <DocsDesignStyles />
-    <div className="docs-handbook">
-      <div className="mx-auto max-w-6xl px-6 md:px-12">
-        <RizomEcosystem {...content} />
-        <DocsFooter />
-      </div>
-    </div>
-  </>
 );
 
 export const DocsFooter = (): JSX.Element => (
@@ -159,7 +136,6 @@ const docsDesignCss = `
   --docs-body-md: var(--text-body-md, 16px);
   --docs-body-sm: var(--text-body-sm, 15px);
   --docs-label-sm: var(--text-label-sm, 12px);
-  --docs-ecosystem-title: clamp(34px, 4.4vw, 60px);
   min-height: 100vh;
   color: var(--docs-text);
   background: transparent;

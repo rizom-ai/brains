@@ -1,6 +1,5 @@
 import { extendSite } from "@brains/site-composition";
 import rizomSite from "@brains/site-rizom";
-import { rizomEcosystemContent } from "@rizom/ui";
 
 const docsSections = [
   {
@@ -10,11 +9,6 @@ const docsSections = [
       entityType: "doc",
       query: { limit: 100 },
     },
-  },
-  {
-    id: "ecosystem",
-    template: "docs:docs-ecosystem",
-    content: rizomEcosystemContent,
   },
 ];
 
