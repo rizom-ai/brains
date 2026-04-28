@@ -102,7 +102,7 @@ export const HomepageLayout = ({
               <h2 className="font-heading font-bold text-[clamp(2.25rem,5vw,3.75rem)] leading-none tracking-[-0.03em] text-heading m-0 [font-variation-settings:'wdth'_92,'opsz'_64]">
                 Recent{" "}
                 <em className="font-sans italic font-medium text-brand [font-variation-settings:'opsz'_60]">
-                  scribbles
+                  posts
                 </em>
               </h2>
             </div>
@@ -176,21 +176,21 @@ export const HomepageLayout = ({
 
       {/* CTA — dark theme bookend with the hero. `flex-grow` consumes any
           leftover viewport space so the footer sits flush at the bottom. */}
-      <section className="cta-decor bg-theme-dark text-theme-inverse flex-grow flex flex-col items-center justify-center py-24 px-6 md:px-12 gap-5">
+      <section className="cta-decor bg-theme-dark text-theme-on-dark flex-grow flex flex-col items-center justify-center py-24 px-6 md:px-12 gap-5">
         <span className="font-heading font-medium text-xs uppercase tracking-[0.24em] text-accent [font-variation-settings:'wdth'_85,'opsz'_12]">
           Get in touch
         </span>
-        <h2 className="text-center font-heading font-bold text-[clamp(2rem,4vw,3rem)] leading-none tracking-[-0.03em] text-theme-inverse m-0 [font-variation-settings:'wdth'_90,'opsz'_64]">
+        <h2 className="text-center font-heading font-bold text-[clamp(2rem,4vw,3rem)] leading-none tracking-[-0.03em] text-theme-on-dark m-0 [font-variation-settings:'wdth'_90,'opsz'_64]">
           {cta.heading}
         </h2>
         {cta.subtitle && (
-          <p className="text-center text-base leading-[1.55] text-theme-inverse opacity-80 max-w-[480px] m-0">
+          <p className="text-center text-base leading-[1.55] text-theme-on-dark opacity-80 max-w-[480px] m-0">
             {cta.subtitle}
           </p>
         )}
         <a
           href={cta.buttonLink}
-          className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-theme text-brand border-2 border-theme font-heading font-semibold text-[15px] hover:bg-theme-subtle hover:-translate-y-0.5 transition-all mt-2 [font-variation-settings:'wdth'_92,'opsz'_18]"
+          className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-brand text-theme-inverse border-2 border-brand font-heading font-semibold text-[15px] hover:bg-brand-dark hover:-translate-y-0.5 transition-all mt-2 [font-variation-settings:'wdth'_92,'opsz'_18]"
         >
           {cta.buttonText} <span aria-hidden="true">→</span>
         </a>

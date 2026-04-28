@@ -84,7 +84,7 @@ The Phase 3 docs site is partially landed: the [docs index](./README.md), [sourc
 Remaining Phase 3 work:
 
 - configure production secrets/deploy target for `rizom-ai/doc-brain`
-- keep generated docs pushed to `rizom-ai/doc-brain-content` for each release ref
+- add `DOCS_CONTENT_SYNC_TOKEN` to `rizom-ai/brains` so releases can push generated docs to `rizom-ai/doc-brain-content`
 - auto-generate CLI reference from code and `brain.yaml` schema reference from Zod schemas
 
 Plans:
@@ -92,17 +92,32 @@ Plans:
 - [documentation.md](./plans/documentation.md)
 - [docs-site.md](./plans/docs-site.md)
 
+### 3. External plugin API
+
+External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` has no `plugins:` field.
+
+Starts with an audit of the abstractions, not with publishing them. The plugin framework has grown organically alongside the entity/service/interface split; freezing whatever shape happens to exist today would force the first real external authors to absorb the breaking changes that an internal review would surface anyway. The audit decides which asymmetries between the three plugin types are intentional, what the minimal lifecycle hook set should be, and what the versioning policy is — then publishing follows mechanically.
+
+Scope after the audit: public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`, `/utils`, `/templates`), `brain.yaml` `plugins:` schema with env-var interpolation, plugin API version constant, and at least one reference external plugin proving the path end-to-end.
+
+Plans:
+
+- [external-plugin-api.md](./plans/external-plugin-api.md) — §0 audit gates §1-§5
+- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — downstream `brain.ts` escape hatch that depends on the public surface
+
 ## Long-term
 
 These areas are intentionally post-`v0.2.0`. They are tracked but not gating launch.
 
-### Public plugin surface
+### Framework consolidation
 
-A cleaner external extension story — public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, etc.), loading plugins from `brain.yaml`, a plugin API version contract, and at least one reference external plugin.
+Independent internal cleanup items — each removes a fragile coupling held together by discipline rather than by the type system or package boundaries. They don't depend on each other, and none is gating the external plugin API: lifecycle hooks added later are additive (backwards-compatible), env declarations external plugins make live in their own packages, and deploy scaffolding is unrelated to the plugin surface. Pick up between feature cycles in any order.
 
-Plan:
+Plans:
 
-- [external-plugin-api.md](./plans/external-plugin-api.md)
+- [shell-init-coordination.md](./plans/shell-init-coordination.md) — split `Shell` into runtime facade + `ShellBootloader`; replace the `sync:initial:completed` race with explicit `onRegister`/`onReady`/`onPostReady` lifecycle phases. Landing this before the public plugin surface is frozen avoids a later additive bump but is not required.
+- [env-schema-canonical.md](./plans/env-schema-canonical.md) — co-locate env declarations next to the consuming service; aggregate via `shellEnvVars()` in `shell/core`; have `brain-cli` consume that single source instead of `bundled-model-env-schemas.ts`.
+- [deploy-scaffolding-consolidation.md](./plans/deploy-scaffolding-consolidation.md) — extract `@brains/deploy-templates` as the canonical home for Caddyfile/Dockerfile/Kamal/scripts/workflow content; cut `brain-cli/src/commands/init.ts` from 1400+ lines; keep `@rizom/ops` fleet-only.
 
 ### Public repo cleanup
 

@@ -560,15 +560,14 @@
           id: "deploymentpath",
           name: "Deployment Path",
           status: "short-term",
-          step: 1,
-          desc: "Single track covering both the published @rizom/brain package and the remaining Rizom follow-through. Alpha publishing already runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, and keep the Rizom-specific site cleanup from drifting into unnecessary extraction churn.",
+          desc: "Ongoing track covering both the published @rizom/brain package and the remaining Rizom follow-through. Alpha publishing runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, and keep the Rizom-specific site cleanup from drifting into unnecessary extraction churn. Not a numbered priority in the markdown roadmap — described under 'Current status' since the deploy-validation gate has been cleared.",
           blocks: [],
         },
         {
           id: "rizomsites",
           name: "Rizom Site Follow-through",
           status: "short-term",
-          step: 2,
+          step: 1,
           desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each extracted Rizom app repo owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom.foundation`, `rizom.work`) and no forced `rizom.ai` theme fork. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts) in the extracted app/content repos.",
           deps: ["deploymentpath"],
         },
@@ -661,9 +660,30 @@
         {
           id: "pluginapi",
           name: "External Plugin API",
+          status: "short-term",
+          step: 3,
+          desc: "Starts with an audit of the abstractions, not with publishing them. The plugin framework has grown organically alongside the entity/service/interface split — freezing whatever shape happens to exist today would force the first real external authors to absorb breaking changes that internal review would surface anyway. Audit covers plugin type split, context consistency, lifecycle hooks, registration model, cross-plugin deps, type safety, and versioning policy. After the audit: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
+          blocks: [],
+        },
+        {
+          id: "shellinitcoord",
+          name: "Shell Init Coordination",
           status: "long-term",
-          desc: "A cleaner external extension story — public subpath exports (@rizom/brain/plugins, /entities, /services, etc.), loading plugins from brain.yaml with env-var interpolation, a plugin API version contract, and at least one reference external plugin with author docs. Not gating v0.2.0 stable.",
-          deps: ["deploymentpath"],
+          desc: "Split shell/core/src/shell.ts (682 lines) into a runtime facade plus a ShellBootloader that owns the phased init sequence. Replace the implicit sync:initial:completed message-bus race with explicit onRegister / onReady / onPostReady plugin lifecycle phases. Independent cleanup; landing it before the public plugin surface is frozen avoids a later additive version bump but is not required.",
+          blocks: [],
+        },
+        {
+          id: "envschemacanonical",
+          name: "Canonical Env Schema",
+          status: "long-term",
+          desc: "Co-locate env-var declarations next to the consuming shell service, aggregate via shellEnvVars() in shell/core, and have brain-cli's env-schema.ts consume that single source instead of the bundled-model-env-schemas.ts snapshot. Removes silent CLI/shell drift when adding new env vars.",
+          blocks: [],
+        },
+        {
+          id: "deploytemplates",
+          name: "Deploy Scaffolding Consolidation",
+          status: "long-term",
+          desc: "Extract @brains/deploy-templates as the canonical home for Caddyfile/Dockerfile/.kamal/GitHub-workflow/deploy-script content. Cut brain-cli/src/commands/init.ts from 1400+ lines by replacing inlined string-literal templates with typed render*() calls. Keep @rizom/ops focused on fleet-only concerns; delete @brains/utils/deploy-templates.",
           blocks: [],
         },
         {
@@ -719,8 +739,8 @@
           id: "documentation3",
           name: "Documentation Phase 3 — Docs Site",
           status: "short-term",
-          step: 3,
-          desc: "Partially landed: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), and scripts/sync-docs-content.ts which generates doc/*.md from the manifest. Relay docs test app validates list/detail routing. Ownership clarified: release-driven sync from this repo into rizom-ai/doc-brain-content, with rizom-ai/doc-brain owning standalone deploy/rebuild of docs.rizom.ai. Release workflow now syncs generated docs content and triggers the docs app deploy workflow. Remaining: configure production docs app secrets/deploy target, auto-generated CLI reference and brain.yaml schema reference.",
+          step: 2,
+          desc: "Partially landed: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), and scripts/sync-docs-content.ts which generates doc/*.md from the manifest. Relay docs test app validates list/detail routing. Ownership clarified: release-driven sync from this repo into rizom-ai/doc-brain-content, with rizom-ai/doc-brain owning standalone deploy/rebuild of docs.rizom.ai. Release workflow now syncs generated docs content only; docs app deploy stays owned by rizom-ai/doc-brain like any other brain. Remaining: configure production docs app secrets/deploy target, add DOCS_CONTENT_SYNC_TOKEN to rizom-ai/brains, auto-generated CLI reference and brain.yaml schema reference.",
         },
 
         {
@@ -944,10 +964,10 @@
 
         const completed = items.filter((i) => i.status === "completed");
         const inProgress = items.filter((i) => i.status === "in-progress");
-        const pipeline = items
+        const prioritized = items
           .filter((i) => i.status === "short-term" && i.step)
           .sort((a, b) => a.step - b.step);
-        const independent = items.filter(
+        const otherShortTerm = items.filter(
           (i) => i.status === "short-term" && !i.step,
         );
         const medium = items.filter((i) => i.status === "medium-term");
@@ -963,29 +983,22 @@
     </div>`;
         }
 
-        // Pipeline (only shown if any items carry explicit step numbers)
-        if (pipeline.length) {
+        // Near-term priorities — step-numbered short-term items.
+        // Step numbers are priority indicators (matching the markdown roadmap's
+        // "1. 2. 3." sections), not dependency arrows. Real dependencies live in
+        // each item's deps[] and are rendered in the dep graph below.
+        if (prioritized.length) {
           html += `<div class="section">
-      <div class="section-title">Short-term Pipeline (sequential)</div>
-      <div class="pipeline">
-        ${pipeline
-          .map(
-            (item, i) =>
-              renderCard(item) +
-              (i < pipeline.length - 1
-                ? '<span class="pipeline-arrow">→</span>'
-                : ""),
-          )
-          .join("")}
-      </div>
+      <div class="section-title">Near-term priorities</div>
+      <div class="card-row">${prioritized.map(renderCard).join("")}</div>
     </div>`;
         }
 
-        // Independent
-        if (independent.length) {
+        // Other short-term work without an assigned priority slot
+        if (otherShortTerm.length) {
           html += `<div class="section">
-      <div class="section-title">Short-term (independent)</div>
-      <div class="card-row">${independent.map(renderCard).join("")}</div>
+      <div class="section-title">Other short-term</div>
+      <div class="card-row">${otherShortTerm.map(renderCard).join("")}</div>
     </div>`;
         }
 
@@ -995,16 +1008,16 @@
     <div class="dep-group">
       <div class="dep-group-title">Near-term priorities</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('deploymentpath')">deployment path</span>
-        <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
-        <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('documentation3')">docs phase 3</span>
-        <span class="dep-label">alpha-publishing rolls in parallel; cycle is 0.2.0-alpha.x → 0.2.0 stable</span>
+        <span class="dep-label">priority 1 — depends on the deployment path track (ongoing)</span>
       </div>
       <div class="dep-row">
-        <span class="dep-node s-far" onclick="selectItem('pluginapi')">external plugin api</span>
-        <span class="dep-label">post-v0.2.0; not gating launch</span>
+        <span class="dep-node s-next" onclick="selectItem('documentation3')">docs phase 3</span>
+        <span class="dep-label">priority 2 — independent of the others</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('pluginapi')">external plugin api</span>
+        <span class="dep-label">priority 3 — independent; framework consolidation items can land in any order alongside or after</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>

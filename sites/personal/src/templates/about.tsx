@@ -43,11 +43,11 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
 
       {/* CONTACT — dark theme bookend, matches homepage CTA. */}
       {hasContact && (
-        <section className="cta-decor bg-theme-dark text-theme-inverse flex-grow flex flex-col items-center justify-center py-24 px-6 md:px-12 gap-5">
+        <section className="cta-decor bg-theme-dark text-theme-on-dark flex-grow flex flex-col items-center justify-center py-24 px-6 md:px-12 gap-5">
           <span className="font-heading font-medium text-xs uppercase tracking-[0.24em] text-accent [font-variation-settings:'wdth'_85,'opsz'_12]">
             Get in touch
           </span>
-          <h2 className="text-center font-heading font-bold text-[clamp(2rem,4vw,3rem)] leading-none tracking-[-0.03em] text-theme-inverse m-0 [font-variation-settings:'wdth'_90,'opsz'_64]">
+          <h2 className="text-center font-heading font-bold text-[clamp(2rem,4vw,3rem)] leading-none tracking-[-0.03em] text-theme-on-dark m-0 [font-variation-settings:'wdth'_90,'opsz'_64]">
             Say{" "}
             <em className="font-sans italic font-medium text-accent [font-variation-settings:'opsz'_72]">
               hi.
@@ -57,7 +57,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
             {profile.email && (
               <a
                 href={`mailto:${profile.email}`}
-                className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-theme text-brand border-2 border-theme font-heading font-semibold text-[15px] hover:bg-theme-subtle hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
+                className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-brand text-theme-inverse border-2 border-brand font-heading font-semibold text-[15px] hover:bg-brand-dark hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
               >
                 Get in Touch <span aria-hidden="true">→</span>
               </a>
@@ -65,7 +65,7 @@ export const AboutPageLayout = ({ profile }: AboutPageData): JSX.Element => {
             {profile.website && (
               <a
                 href={profile.website}
-                className="rounded-full py-3.5 px-7 border-2 border-theme-light text-theme-inverse font-heading font-semibold text-[15px] hover:bg-brand-dark hover:border-theme hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
+                className="rounded-full py-3.5 px-7 border-2 border-theme-light text-theme-on-dark font-heading font-semibold text-[15px] hover:bg-brand-dark hover:border-theme hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
               >
                 Website
               </a>

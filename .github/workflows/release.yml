@@ -29,7 +29,7 @@ jobs:
        github.event.workflow_run.conclusion == 'success')
     runs-on: ubuntu-latest
     env:
-      DOCS_PUBLISH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+      DOCS_CONTENT_SYNC_TOKEN: ${{ secrets.DOCS_CONTENT_SYNC_TOKEN }}
     permissions:
       contents: write
       id-token: write
@@ -94,9 +94,9 @@ jobs:
           bun run changeset:publish
 
       - name: Sync docs content repo
-        if: env.DOCS_PUBLISH_TOKEN != ''
+        if: env.DOCS_CONTENT_SYNC_TOKEN != ''
         env:
-          GH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
+          GH_TOKEN: ${{ secrets.DOCS_CONTENT_SYNC_TOKEN }}
         run: |
           set -euo pipefail
           source_sha="$(git rev-parse HEAD)"
@@ -117,8 +117,3 @@ jobs:
             git -C "$workdir/content" push origin HEAD:main
           fi
 
-      - name: Trigger docs app deploy
-        if: env.DOCS_PUBLISH_TOKEN != ''
-        env:
-          GH_TOKEN: ${{ secrets.DOCS_PUBLISH_TOKEN }}
-        run: gh workflow run deploy.yml --repo rizom-ai/doc-brain --ref main

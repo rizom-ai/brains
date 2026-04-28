@@ -51,6 +51,7 @@
     --color-text-muted: var(--palette-ink-muted);
     --color-text-light: var(--palette-ink-subtle);
     --color-text-inverse: var(--palette-paper-soft);
+    --color-text-on-dark: var(--palette-paper-soft);
     --color-heading: var(--palette-ink);
 
     --color-bg: var(--palette-paper);
@@ -131,6 +132,7 @@
     --color-text-muted: rgb(251 247 239 / 0.68);
     --color-text-light: rgb(251 247 239 / 0.46);
     --color-text-inverse: var(--palette-dark-bg);
+    --color-text-on-dark: var(--palette-paper-soft);
     --color-heading: var(--palette-paper-soft);
 
     --color-bg: var(--palette-dark-bg);

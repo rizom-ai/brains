@@ -151,6 +151,7 @@
   .text-theme-muted { color: var(--color-text-muted); }
   .text-theme-light { color: var(--color-text-light); }
   .text-theme-inverse { color: var(--color-text-inverse); }
+  .text-theme-on-dark { color: var(--color-text-on-dark, var(--color-text-inverse)); }
   .text-heading { color: var(--color-heading); }
   .text-selection { color: var(--color-selection); }
   .border-theme { border-color: var(--color-border); }

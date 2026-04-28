@@ -52,9 +52,9 @@ On release, this repo:
 
 1. generates docs entities from `docs/docs-manifest.yaml` for the release commit/ref
 2. pushes generated content to `rizom-ai/doc-brain-content`
-3. triggers the docs app repo's normal deploy/rebuild workflow
+3. leaves deploy/rebuild ownership with the standalone docs brain
 
-The release workflow expects `DOCS_PUBLISH_TOKEN` to have access to push `rizom-ai/doc-brain-content` and dispatch `rizom-ai/doc-brain` workflows. This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
+The release workflow expects `DOCS_CONTENT_SYNC_TOKEN` in `rizom-ai/brains` to have content write access to `rizom-ai/doc-brain-content`. `rizom-ai/doc-brain` keeps its own runtime `GIT_SYNC_TOKEN` and deploy workflow like any other brain. This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
 
 ## Source manifest
 
@@ -224,8 +224,7 @@ Release/docs publishing:
 
 1. release workflow runs sync from this repo into a docs content checkout
 2. generated `doc/*.md` is committed/pushed to `rizom-ai/doc-brain-content` when changed
-3. release workflow triggers `rizom-ai/doc-brain`'s deploy workflow
-4. docs app starts/pulls its `brain-data` content repo
-5. trigger preview rebuild on the running app
-6. inspect `dist/site-preview`
-7. deploy only after preview is correct
+3. docs app starts/pulls its `brain-data` content repo through normal runtime sync
+4. trigger preview rebuild on the running app
+5. inspect `dist/site-preview`
+6. deploy only after preview is correct
