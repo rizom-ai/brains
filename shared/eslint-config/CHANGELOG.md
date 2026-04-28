@@ -1,5 +1,7 @@
 # @brains/eslint-config
 
+## 0.2.0-alpha.45
+
 ## 0.2.0-alpha.44
 
 ## 0.2.0-alpha.43

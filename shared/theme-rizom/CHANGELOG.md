@@ -1,5 +1,17 @@
 # @brains/theme-rizom
 
+## 0.2.0-alpha.45
+
+### Patch Changes
+
+- [`823e2cb`](https://github.com/rizom-ai/brains/commit/823e2cba7631f4e10dfb00d9e6cd5d351f146907) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Redesign the personal site template with an editorial homepage/about layout, semantic theme colors, preserved post cover cards, sticky-footer CTA sections, and markdown italic tagline accents. Update the rover default test app to use the personal site template.
+
+  Rework the default theme into a simplified Rizom-inspired editorial base and layer the full Rizom brand theme on top of it. Add shared theme-base support for font utilities, dark-surface text, sticky-footer body hygiene, and reusable hero/CTA decoration hooks.
+
+- Updated dependencies [[`823e2cb`](https://github.com/rizom-ai/brains/commit/823e2cba7631f4e10dfb00d9e6cd5d351f146907)]:
+  - @brains/theme-base@0.2.0-alpha.45
+  - @brains/theme-default@0.2.0-alpha.45
+
 ## 0.2.0-alpha.44
 
 ### Patch Changes

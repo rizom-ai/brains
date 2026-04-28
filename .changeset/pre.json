@@ -121,6 +121,7 @@
     "ops-per-user-plaintext-secrets",
     "ops-workflow-race-reconcile",
     "personal-layout-mobile-correctness",
+    "personal-template-editorial-theme",
     "pilot-deploy-reconcile-chain",
     "pipeline-tabs-last-widget",
     "plugin-owned-create-interceptors",
