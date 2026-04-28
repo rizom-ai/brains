@@ -19,18 +19,42 @@ Do **not** create `sites/docs` initially. Docs should render inside the active s
 
 - canonical markdown docs
 - `docs/docs-manifest.yaml`
-- generic `doc` entity plugin, if implemented here
-- generic docs route/template rendering, if implemented here
+- generic `doc` entity plugin
+- generic docs route/template rendering
+- docs sync/generation script used by release workflows
+- release trigger that publishes generated docs content for the release ref
 
-### docs site/brain repo owns
+### docs content repo owns
 
-- sync script
-- deploy workflow
-- source repo/ref selection
-- generated `brain-data/doc/*.md`
-- running/rebuilding/deploying the docs brain
+A separate content repo, e.g. `rizom-ai/docs-content`, owns generated docs brain content:
 
-The docs site repo pulls/clones this repo during sync/deploy. This repo does not push docs into the docs site repo.
+```text
+doc/<id>.md
+site-content/...
+```
+
+`brain-data` remains a normal standalone content checkout and is not committed inside this monorepo.
+
+### docs app repo owns
+
+A separate docs app/brain repo owns:
+
+- `brain.yaml`
+- app-local site composition (`src/site.ts`)
+- deploy workflow and deploy secrets
+- running/rebuilding/deploying `docs.rizom.ai`
+
+The docs app should use the same standalone app/deploy tooling as other deployed brains. Avoid a special in-monorepo deploy path for docs.
+
+### Release publishing flow
+
+On release, this repo should:
+
+1. generate docs entities from `docs/docs-manifest.yaml` for the release commit/ref
+2. push generated content to the docs content repo
+3. trigger the docs app repo's normal deploy/rebuild workflow
+
+This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
 
 ## Source manifest
 
@@ -60,11 +84,13 @@ The manifest is the source-side contract. It avoids brittle directory scraping.
 
 ## Generated doc entities
 
-The docs site repo sync writes:
+The docs sync writes into a docs content checkout:
 
 ```text
-brain-data/doc/<id>.md
+doc/<id>.md
 ```
+
+At runtime the docs app checks that content repo out as its local `brain-data`.
 
 Each generated file gets normalized frontmatter:
 
@@ -92,7 +118,7 @@ Current status:
 
 Remaining responsibilities:
 
-- production docs-site repo sync/deploy path
+- production docs-content sync path and docs-app deploy trigger
 - docs search, syntax highlighting, and versioning if/when needed
 
 Suggested frontmatter:
@@ -163,7 +189,8 @@ External links and non-manifest markdown links should remain unchanged or fail s
 - no runtime cross-repo reads
 - no `sites/docs` unless a generic docs entity route is insufficient
 - no sync service plugin unless sync must become runtime-managed later
-- docs site repo owns sync/deploy
+- docs app repo owns deploy/runtime
+- docs content repo owns generated `brain-data` history
 - missing manifest sources fail sync
 - generated output must be deterministic
 
@@ -187,11 +214,13 @@ Source repo:
 bun run docs:check
 ```
 
-Docs site repo:
+Release/docs publishing:
 
-1. run sync
-2. verify `brain-data/doc/*.md`
-3. start the docs brain
-4. trigger preview rebuild on the running app
-5. inspect `dist/site-preview`
-6. deploy only after preview is correct
+1. run sync from this repo into a docs content checkout
+2. verify generated `doc/*.md`
+3. push generated content to docs content repo
+4. trigger docs app repo deploy/rebuild workflow
+5. docs app starts/pulls its `brain-data` content repo
+6. trigger preview rebuild on the running app
+7. inspect `dist/site-preview`
+8. deploy only after preview is correct
