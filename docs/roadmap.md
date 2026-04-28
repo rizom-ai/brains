@@ -46,7 +46,7 @@ These areas are effectively landed:
 - **Rover eval stabilization** — the full Rover suite is green at 86/86, with agent follow-up fixtures isolated from shared mutable domains and YAML fixture tests reduced to broad integrity checks instead of brittle exact-path assertions
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; shared docs ecosystem chrome rendered as a route-level section over `@rizom/ui`; Relay docs test app validates the path end-to-end against a running docs brain
-- **Docs publishing ownership clarified** — release-driven sync from this repo into a separate docs content repo, with a separate docs app repo owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
+- **Docs publishing ownership clarified** — release-driven sync from this repo into `rizom-ai/doc-brain-content`, with a separate docs app repo likely named `rizom-ai/doc-brain` owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
 
 ## Near-term priorities
@@ -83,8 +83,8 @@ The Phase 3 docs site is partially landed: the [docs index](./README.md), [sourc
 
 Remaining Phase 3 work:
 
-- wire `scripts/sync-docs-content.ts` into the release workflow so generated docs are pushed to a separate docs content repo for each release ref
-- separate docs app repo owns standalone deploy/rebuild of `docs.rizom.ai` using the same scaffolding as other deployed brains
+- wire `scripts/sync-docs-content.ts` into the release workflow so generated docs are pushed to `rizom-ai/doc-brain-content` for each release ref
+- separate docs app repo, likely `rizom-ai/doc-brain`, owns standalone deploy/rebuild of `docs.rizom.ai` using the same scaffolding as other deployed brains
 - auto-generate CLI reference from code and `brain.yaml` schema reference from Zod schemas
 
 Plans:

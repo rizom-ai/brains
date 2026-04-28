@@ -33,9 +33,9 @@ Do **not** create `sites/docs` initially. Docs should render inside the active s
 - docs sync/generation script used by release workflows
 - release trigger that publishes generated docs content for the release ref
 
-### docs content repo owns
+### `rizom-ai/doc-brain-content` owns
 
-A separate content repo, e.g. `rizom-ai/docs-content`, owns generated docs brain content:
+The separate docs content repo, `rizom-ai/doc-brain-content`, owns generated docs brain content:
 
 ```text
 doc/<id>.md
@@ -46,7 +46,7 @@ site-content/...
 
 ### docs app repo owns
 
-A separate docs app/brain repo owns:
+A separate docs app/brain repo, likely `rizom-ai/doc-brain`, owns:
 
 - `brain.yaml`
 - app-local site composition (`src/site.ts`)
@@ -60,7 +60,7 @@ The docs app should use the same standalone app/deploy tooling as other deployed
 On release, this repo should:
 
 1. generate docs entities from `docs/docs-manifest.yaml` for the release commit/ref
-2. push generated content to the docs content repo
+2. push generated content to `rizom-ai/doc-brain-content`
 3. trigger the docs app repo's normal deploy/rebuild workflow
 
 This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
@@ -134,7 +134,7 @@ Current status:
 
 Remaining responsibilities:
 
-- production docs-content sync path and docs-app deploy trigger
+- production `doc-brain-content` sync path and docs-app deploy trigger
 - docs search, syntax highlighting, and versioning if/when needed
 
 Suggested frontmatter:
@@ -206,7 +206,7 @@ External links and non-manifest markdown links should remain unchanged or fail s
 - no `sites/docs` unless a generic docs entity route is insufficient
 - no sync service plugin unless sync must become runtime-managed later
 - docs app repo owns deploy/runtime
-- docs content repo owns generated `brain-data` history
+- `rizom-ai/doc-brain-content` owns generated `brain-data` history
 - missing manifest sources fail sync
 - generated output must be deterministic
 
@@ -236,7 +236,7 @@ Release/docs publishing:
 
 1. run sync from this repo into a docs content checkout
 2. verify generated `doc/*.md`
-3. push generated content to docs content repo
+3. push generated content to `rizom-ai/doc-brain-content`
 4. trigger docs app repo deploy/rebuild workflow
 5. docs app starts/pulls its `brain-data` content repo
 6. trigger preview rebuild on the running app

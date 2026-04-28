@@ -105,8 +105,8 @@ Plan: [`docs-site.md`](/docs/docs-site-plan)
 1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](/docs)
 2. **Source manifest — DONE (2026-04)**: `docs/docs-manifest.yaml`
 3. **Generic `doc` entity package — DONE (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; Relay docs test app validates list/detail routes and route-level ecosystem section composition
-4. **Docs sync script — DONE (2026-04)**: `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml`; release workflow should use it to push generated docs to a separate docs content repo
-5. Let the separate docs app repo own normal deploy/rebuild of `docs.rizom.ai`
+4. **Docs sync script — DONE (2026-04)**: `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml`; release workflow should use it to push generated docs to `rizom-ai/doc-brain-content`
+5. Let the separate docs app repo, likely `rizom-ai/doc-brain`, own normal deploy/rebuild of `docs.rizom.ai`
 6. Auto-generate CLI reference from code
 7. Auto-generate brain.yaml schema reference from Zod schemas
 
