@@ -18,11 +18,8 @@
  * brand guide A2.
  */
 
-/* Font imports — shared across the rizom family. Profile selectors below
-   keep accent shade + canvas per site, but typography is unified. */
-@import url("https://fonts.googleapis.com/css2?family=Barlow:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap");
+/* Font imports come from @brains/theme-default, which this package layers
+   underneath the full Rizom brand overrides. */
 
 /* Brand-specific Tailwind utilities — exposed via @theme inline so
    `bg-secondary`, `font-display`, `text-display-lg`, `py-section` etc.

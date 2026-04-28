@@ -49,6 +49,8 @@
      fonts (`font-display`, `font-body`, `font-label`, `font-nav`)
      and the typography scale live in the brand theme that uses them
      so non-brand themes don't ship broken utilities. */
+  --font-sans: var(--font-sans);
+  --font-heading: var(--font-heading);
   --font-mono: var(--font-mono);
 
   /* Typography scale — each entry bundles font-size + line-height +
@@ -184,6 +186,82 @@
   ::selection {
     background-color: var(--color-selection-bg);
     color: var(--color-selection-text);
+  }
+
+  /* Sticky-footer hygiene for site layouts that use flex-grow mains. */
+  body {
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Reusable editorial decoration hooks. Themes provide colors through
+     semantic tokens; these classes only define layering and gradients. */
+  .hero-decor,
+  .cta-decor {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .hero-decor > *,
+  .cta-decor > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero-decor::before,
+  .hero-decor::after,
+  .cta-decor::before,
+  .cta-decor::after {
+    content: "";
+    position: absolute;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero-decor::before {
+    inset: -30% -20% auto;
+    height: 120%;
+    background:
+      radial-gradient(circle at 50% 20%, rgb(from var(--color-accent) r g b / 0.5), transparent 28%),
+      radial-gradient(circle at 68% 38%, rgb(from var(--color-brand-dark) r g b / 0.35), transparent 36%);
+    filter: blur(8px);
+  }
+
+  .hero-decor::after,
+  .cta-decor::before {
+    inset: 0;
+    opacity: 0.12;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160' viewBox='0 0 160 160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='.65'/%3E%3C/svg%3E");
+  }
+
+  .cta-decor::after {
+    width: min(48rem, 70vw);
+    aspect-ratio: 1;
+    right: -18rem;
+    bottom: -28rem;
+    border-radius: 9999px;
+    background: radial-gradient(circle, rgb(from var(--color-brand) r g b / 0.42), transparent 66%);
+    filter: blur(6px);
+  }
+
+  .pulse-sparkle {
+    animation: hero-pulse 2.8s ease-in-out infinite;
+  }
+
+  @keyframes hero-pulse {
+    0%, 100% {
+      opacity: 0.55;
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgb(from var(--color-accent) r g b / 0.28);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.18);
+      box-shadow: 0 0 0 10px rgb(from var(--color-accent) r g b / 0);
+    }
   }
 }
 

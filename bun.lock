@@ -975,6 +975,7 @@
       "version": "0.2.0-alpha.42",
       "dependencies": {
         "@brains/theme-base": "workspace:*",
+        "@brains/theme-default": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",

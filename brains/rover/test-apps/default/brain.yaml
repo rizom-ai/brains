@@ -1,6 +1,9 @@
 brain: rover
 preset: default
 
+site:
+  package: "@brains/site-personal"
+
 plugins:
   directory-sync:
     seedContentPath: ../../eval-content

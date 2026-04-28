@@ -5,7 +5,7 @@ Local rover preset apps for fast iteration during development.
 ## Available now
 
 - `core` — minimal capture + sync + MCP/A2A surface, with webserver but no site-builder
-- `default` — adds the website surface, dashboard, blog, decks, analytics, and site-builder
+- `default` — adds the website surface, dashboard, blog, decks, analytics, and site-builder; uses `@brains/site-personal` with the rover model's default theme
 - `full` — adds portfolio, content automation, newsletter, social-media, and stock-photo workflows
 
 ## Start a preset

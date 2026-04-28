@@ -20,6 +20,27 @@ function formatDate(dateString: string): string {
   });
 }
 
+/**
+ * Parse `*foo*` markers in a tagline and render the wrapped span as an
+ * italic accent at max optical size.
+ * Plain taglines without markers render unchanged.
+ */
+function renderTagline(tagline: string): (string | JSX.Element)[] {
+  return tagline.split(/(\*[^*]+\*)/).map((part, i) => {
+    if (part.startsWith("*") && part.endsWith("*") && part.length > 2) {
+      return (
+        <em
+          key={i}
+          className="font-sans italic font-medium text-theme-inverse tracking-[-0.015em] [font-variation-settings:'opsz'_72]"
+        >
+          {part.slice(1, -1)}
+        </em>
+      );
+    }
+    return part;
+  });
+}
+
 export const HomepageLayout = ({
   profile,
   posts,
@@ -27,6 +48,7 @@ export const HomepageLayout = ({
   cta,
 }: HomepageData): JSX.Element => {
   const tagline = profile.tagline ?? profile.description;
+  const firstName = profile.name.split(" ")[0];
 
   return (
     <>
@@ -36,105 +58,141 @@ export const HomepageLayout = ({
         ogType="website"
       />
 
-      {/* Hero — gradient bg, centered, generous vertical padding */}
-      <header className="hero-bg-pattern relative flex flex-col items-center pt-20 pb-[60px] px-6 md:px-12 gap-5 bg-theme-gradient overflow-hidden">
-        <div className="relative z-10 w-full max-w-[700px] mx-auto text-center">
+      {/* HERO — brand surface, inverse ink, halo + grain.
+          The H1 carries the design; one bold typographic move. */}
+      <header className="hero-decor bg-brand text-theme-inverse relative flex flex-col items-center justify-center px-6 md:px-12 pt-32 pb-24 gap-7">
+        <div className="w-full max-w-[1100px] mx-auto text-center flex flex-col items-center gap-7">
           {tagline && (
-            <h1 className="text-2xl sm:text-4xl md:text-[56px] md:leading-[1.15] font-bold text-brand mb-5 font-heading tracking-[-0.03em] text-balance">
-              {tagline}
+            <h1 className="font-heading font-bold text-[clamp(2.5rem,6vw,5rem)] leading-[1.05] tracking-[-0.035em] text-theme-inverse text-balance m-0 [font-variation-settings:'wdth'_90,'opsz'_96]">
+              {renderTagline(tagline)}
             </h1>
           )}
+
           {profile.description && (
-            <p className="text-lg leading-[1.6] text-theme max-w-[520px] mx-auto mb-6">
+            <p className="text-[clamp(1.0625rem,1.4vw,1.3125rem)] leading-[1.5] text-theme-inverse opacity-95 max-w-[600px] mx-auto m-0">
               {profile.description}
             </p>
           )}
-          <div className="flex flex-wrap justify-center gap-3">
+
+          <div className="flex flex-wrap justify-center gap-3.5 mt-2">
             <a
               href={postsListUrl}
-              className="rounded-full py-3.5 px-8 bg-brand text-theme-inverse font-bold text-[15px] hover:bg-brand-dark transition-colors"
+              className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-theme text-brand border-2 border-theme font-heading font-semibold text-[15px] hover:bg-theme-subtle hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
             >
-              Read the Blog
+              Read the Blog <span aria-hidden="true">→</span>
             </a>
             <a
               href="/about"
-              className="rounded-full py-3.5 px-8 border-2 border-accent text-accent font-bold text-[15px] hover:bg-accent hover:text-theme-inverse transition-colors"
+              className="rounded-full py-3.5 px-7 border-2 border-theme-light text-theme-inverse font-heading font-semibold text-[15px] hover:bg-brand-dark hover:border-theme hover:-translate-y-0.5 transition-all [font-variation-settings:'wdth'_92,'opsz'_18]"
             >
-              About {profile.name.split(" ")[0]}
+              About {firstName}
             </a>
           </div>
         </div>
       </header>
 
-      {/* Recent Posts — same bg as page, no contrast shift */}
+      {/* RECENT POSTS — soft theme surface, editorial cards with cover images. */}
       {posts.length > 0 && (
-        <section className="flex flex-col py-[60px] px-6 md:px-12 gap-8 bg-theme">
-          <div className="flex justify-between items-baseline max-w-layout mx-auto w-full">
-            <h2 className="text-2xl md:text-[32px] font-bold text-heading font-heading">
-              Recent Posts
-            </h2>
+        <section className="flex flex-col py-24 px-6 md:px-12 gap-11 bg-theme-subtle">
+          <div className="flex justify-between items-end max-w-layout mx-auto w-full gap-6 flex-wrap">
+            <div>
+              <span className="block font-heading font-semibold text-[13px] uppercase tracking-[0.22em] text-brand mb-3 [font-variation-settings:'wdth'_85,'opsz'_12]">
+                The Archive
+              </span>
+              <h2 className="font-heading font-bold text-[clamp(2.25rem,5vw,3.75rem)] leading-none tracking-[-0.03em] text-heading m-0 [font-variation-settings:'wdth'_92,'opsz'_64]">
+                Recent{" "}
+                <em className="font-sans italic font-medium text-brand [font-variation-settings:'opsz'_60]">
+                  scribbles
+                </em>
+              </h2>
+            </div>
             <a
               href={postsListUrl}
-              className="text-brand font-semibold text-sm hover:text-brand-dark transition-colors"
+              className="font-heading font-semibold text-[15px] text-brand inline-flex items-center gap-1.5 pb-1.5 border-b-2 border-current hover:text-brand-dark transition-colors [font-variation-settings:'wdth'_88,'opsz'_16]"
             >
-              View all →
+              View the whole archive <span aria-hidden="true">→</span>
             </a>
           </div>
-          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,280px),360px))] justify-center gap-6 max-w-layout mx-auto w-full">
+
+          <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-8 max-w-layout mx-auto w-full">
             {posts.map((post) => (
               <a
                 key={post.id}
                 href={post.url}
-                className="flex flex-col rounded-[20px] gap-4 bg-white border border-theme p-6 hover:shadow-lg transition-shadow no-underline"
+                className="group flex flex-col bg-theme border border-theme rounded-md overflow-hidden hover:-translate-y-1 hover:border-brand/50 transition-all no-underline shadow-sm hover:shadow-lg"
               >
                 {post.coverImageUrl ? (
                   <img
                     src={post.coverImageUrl}
                     alt={post.metadata.title}
-                    className="card-cover-gradient w-full h-40 rounded-[14px] object-cover shrink-0 text-transparent"
+                    className="w-full aspect-[16/10] object-cover bg-theme-muted"
                   />
                 ) : (
-                  <div className="w-full h-40 rounded-[14px] shrink-0 card-cover-gradient" />
+                  <div
+                    className="w-full aspect-[16/10] bg-gradient-to-br from-brand to-accent"
+                    aria-hidden="true"
+                  />
                 )}
-                {post.frontmatter.seriesName && (
-                  <div className="flex gap-2">
-                    <span className="rounded-full py-0.5 px-2.5 bg-bg-muted text-brand text-[11px] font-semibold leading-[14px]">
-                      {post.frontmatter.seriesName}
-                    </span>
+                <div className="flex flex-col gap-4 p-7 flex-1">
+                  <div className="flex flex-wrap items-center gap-3.5 font-heading text-[11px] font-semibold uppercase tracking-[0.18em] text-theme-muted [font-variation-settings:'wdth'_85,'opsz'_11]">
+                    {post.frontmatter.seriesName && (
+                      <>
+                        <span className="text-brand">
+                          {post.frontmatter.seriesName}
+                        </span>
+                        <span
+                          className="w-[3px] h-[3px] rounded-full bg-current opacity-50"
+                          aria-hidden="true"
+                        />
+                      </>
+                    )}
+                    <time>
+                      {formatDate(post.metadata.publishedAt ?? post.created)}
+                    </time>
                   </div>
-                )}
-                <h3 className="text-heading font-heading font-bold text-xl leading-6">
-                  {post.metadata.title}
-                </h3>
-                {post.frontmatter.excerpt && (
-                  <p className="text-sm text-theme-muted leading-[1.5]">
-                    {post.frontmatter.excerpt}
-                  </p>
-                )}
-                <span className="text-theme-light text-xs leading-4">
-                  {formatDate(post.metadata.publishedAt ?? post.created)}
-                </span>
+                  <h3 className="font-sans font-semibold text-[clamp(1.375rem,1.8vw,1.625rem)] leading-[1.18] tracking-[-0.012em] text-heading m-0 text-balance">
+                    {post.metadata.title}
+                  </h3>
+                  {post.frontmatter.excerpt && (
+                    <p className="text-base leading-[1.55] text-theme-muted m-0 flex-1">
+                      {post.frontmatter.excerpt}
+                    </p>
+                  )}
+                  <span className="inline-flex items-center gap-1.5 font-heading font-semibold text-[13px] uppercase tracking-[0.14em] text-brand mt-1 [font-variation-settings:'wdth'_88,'opsz'_14]">
+                    Read the post{" "}
+                    <span
+                      aria-hidden="true"
+                      className="transition-transform group-hover:translate-x-1"
+                    >
+                      →
+                    </span>
+                  </span>
+                </div>
               </a>
             ))}
           </div>
         </section>
       )}
 
-      {/* CTA — brand bg with subtitle and pill button */}
-      <section className="cta-bg-pattern relative flex flex-col items-center py-[60px] px-6 md:px-12 gap-4 bg-brand overflow-hidden">
-        <h2 className="text-center text-theme-inverse font-heading font-bold text-2xl md:text-[28px]">
+      {/* CTA — dark theme bookend with the hero. `flex-grow` consumes any
+          leftover viewport space so the footer sits flush at the bottom. */}
+      <section className="cta-decor bg-theme-dark text-theme-inverse flex-grow flex flex-col items-center justify-center py-24 px-6 md:px-12 gap-5">
+        <span className="font-heading font-medium text-xs uppercase tracking-[0.24em] text-accent [font-variation-settings:'wdth'_85,'opsz'_12]">
+          Get in touch
+        </span>
+        <h2 className="text-center font-heading font-bold text-[clamp(2rem,4vw,3rem)] leading-none tracking-[-0.03em] text-theme-inverse m-0 [font-variation-settings:'wdth'_90,'opsz'_64]">
           {cta.heading}
         </h2>
         {cta.subtitle && (
-          <p className="text-center text-cta-subtitle text-base max-w-[400px]">
+          <p className="text-center text-base leading-[1.55] text-theme-inverse opacity-80 max-w-[480px] m-0">
             {cta.subtitle}
           </p>
         )}
         <a
           href={cta.buttonLink}
-          className="rounded-full py-3.5 px-8 bg-white text-brand font-bold text-[15px] hover:bg-theme-subtle transition-colors"
+          className="inline-flex items-center gap-2 rounded-full py-3.5 px-7 bg-theme text-brand border-2 border-theme font-heading font-semibold text-[15px] hover:bg-theme-subtle hover:-translate-y-0.5 transition-all mt-2 [font-variation-settings:'wdth'_92,'opsz'_18]"
         >
-          {cta.buttonText}
+          {cta.buttonText} <span aria-hidden="true">→</span>
         </a>
       </section>
     </>

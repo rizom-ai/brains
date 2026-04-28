@@ -14,11 +14,13 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
   "dependencies": {
-    "@brains/theme-base": "workspace:*"
+    "@brains/theme-base": "workspace:*",
+    "@brains/theme-default": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

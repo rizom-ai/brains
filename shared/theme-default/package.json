@@ -2,7 +2,7 @@
   "name": "@brains/theme-default",
   "private": true,
   "version": "0.2.0-alpha.44",
-  "description": "Clean default theme — blue/orange palette, no decorative animations or gradients",
+  "description": "Simplified editorial default theme — warm neutral surfaces with restrained Rizom-inspired accents",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "test": "bun test",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
