@@ -662,15 +662,16 @@
           name: "External Plugin API",
           status: "short-term",
           step: 3,
-          desc: "Starts with an audit of the abstractions, not with publishing them. The plugin framework has grown organically alongside the entity/service/interface split — freezing whatever shape happens to exist today would force the first real external authors to absorb breaking changes that internal review would surface anyway. Audit covers plugin type split, context consistency, lifecycle hooks, registration model, cross-plugin deps, type safety, and versioning policy. After the audit: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
+          desc: "Starts with an audit of the abstractions and shell lifecycle, not with publishing exports. The plugin framework has grown organically alongside the entity/service/interface split — freezing whatever shape happens to exist today would force the first real external authors to absorb breaking changes that internal review would surface anyway. Audit covers plugin type split, context consistency, lifecycle hooks, registration model, cross-plugin deps, type safety, and versioning policy. Shell-init coordination lands before publishing so onRegister/onReady semantics are real, not aspirational — identity/profile seeding currently races registration and external authors are the most likely to trip on it. After the audit and lifecycle work: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
+          deps: ["shellinitcoord"],
           blocks: [],
         },
         {
           id: "shellinitcoord",
           name: "Shell Init Coordination",
-          status: "long-term",
-          desc: "Split shell/core/src/shell.ts (682 lines) into a runtime facade plus a ShellBootloader that owns the phased init sequence. Replace the implicit sync:initial:completed message-bus race with explicit onRegister / onReady / onPostReady plugin lifecycle phases. Independent cleanup; landing it before the public plugin surface is frozen avoids a later additive version bump but is not required.",
-          blocks: [],
+          status: "short-term",
+          desc: "Prereq for the public plugin surface. Split shell/core/src/shell.ts (682 lines) into a runtime facade plus a ShellBootloader that owns the phased init sequence. Replace the implicit sync:initial:completed message-bus race with explicit onRegister / onReady lifecycle phases; keep any post-ready phase internal unless plugin-author need appears. Lands before publishing so public lifecycle hooks are real semantics, not aspirational — the existing identity/profile seeding race would otherwise be a known v1 bug external authors hit first.",
+          blocks: ["pluginapi"],
         },
         {
           id: "envschemacanonical",
@@ -1016,8 +1017,10 @@
         <span class="dep-label">priority 2 — independent of the others</span>
       </div>
       <div class="dep-row">
+        <span class="dep-node s-next" onclick="selectItem('shellinitcoord')">shell init coordination</span>
+        <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('pluginapi')">external plugin api</span>
-        <span class="dep-label">priority 3 — independent; framework consolidation items can land in any order alongside or after</span>
+        <span class="dep-label">priority 3 — shell-init lands before publishing so onRegister/onReady semantics are real; remaining framework consolidation items stay long-term</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>

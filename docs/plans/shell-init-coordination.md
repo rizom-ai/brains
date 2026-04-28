@@ -2,7 +2,9 @@
 
 ## Status
 
-Proposed.
+Proposed. This gates the external plugin API so public lifecycle semantics are stable before plugin authoring exports ship.
+
+External API gate scope: this plan must land far enough to provide a real `onReady` hook and explicit boot ordering. A public `onPostReady` hook is not required for the first external plugin API; keep any post-ready phase internal unless implementation proves plugin authors need it.
 
 ## Problem
 
@@ -28,12 +30,15 @@ Make initialization phases explicit at the API level instead of implicit in the 
 
 ### Explicit lifecycle phases
 
+Public plugin hook contract for the first external plugin API:
+
 ```ts
-type PluginLifecycle =
-  | "register" // capabilities registered; no shell services available
-  | "ready" // shell services available; identity/profile seeded
-  | "post-ready"; // background services started; jobs may run
+type PublicPluginLifecycle =
+  | "register" // capability registration only; do not rely on seeded identity/profile
+  | "ready"; // shell services available; identity/profile seeded
 ```
+
+The bootloader may still have an internal post-ready/background-started phase, but that does not become public API unless a concrete plugin-author need appears.
 
 Plugins opt in:
 
@@ -60,9 +65,9 @@ Bootloader sequence:
 3. seed identity/profile (synchronously if no directory-sync; otherwise wait for sync once, here)
 4. dispatch `onReady` for all plugins
 5. start background services
-6. dispatch `onPostReady` (optional)
+6. optionally run internal post-ready observers if needed later
 
-After step 5, `Shell.getInstance()` returns the live facade.
+After step 5, `Shell.getInstance()` returns the live facade. For external plugin authors, the stable promise is `onReady` after identity/profile seeding and before background behavior that depends on ready-state assumptions.
 
 ### What this replaces
 
@@ -72,25 +77,29 @@ After step 5, `Shell.getInstance()` returns the live facade.
 
 ## Steps
 
-1. Inventory current `onRegister` callers — which actually need ready-state services? Move them to `onReady`.
-2. Add an optional `onReady` hook on the three plugin base classes; default no-op.
-3. Introduce `ShellBootloader` adjacent to `Shell`; move `initialize()` body there.
-4. Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
-5. Drop the `sync:initial:completed` ordering trick once plugins migrate.
-6. Bench startup timing — phased dispatch should not regress.
+1. Add lifecycle tests first: `onRegister` before ready, identity/profile seeded before `onReady`, daemon/job startup still ordered.
+2. Inventory current `onRegister` callers — which actually need ready-state services? Move them to `onReady`.
+3. Add an optional `onReady` hook on the three plugin base classes; default no-op.
+4. Introduce `ShellBootloader` adjacent to `Shell`; move `initialize()` body there.
+5. Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
+6. Drop the `sync:initial:completed` ordering trick once plugins migrate.
+7. Bench startup timing — phased dispatch should not regress.
 
 ## Non-goals
 
-- Changing plugin authoring API beyond a single optional hook
+- Changing plugin authoring API beyond a single optional public hook (`onReady`)
+- Publishing `onPostReady` for the first external plugin API
 - Changing the message bus or its semantics
 - Adding ordering between plugins within a phase
 
 ## Verification
 
-1. No plugin calls `context.identity` during `onRegister` after migration
-2. `shell.ts` shrinks to a runtime facade with no `initialize()` body
-3. Existing tests pass; one new test asserts `onReady` runs after identity/profile is seeded
-4. Startup is no slower than before
+1. No plugin calls `context.identity` during `onRegister` after migration.
+2. `shell.ts` shrinks to a runtime facade with no `initialize()` body.
+3. Tests assert phase order: `onRegister` before ready, identity/profile seeded before `onReady`, daemon/job startup remains ordered.
+4. No public `onPostReady` API is required by the implementation.
+5. Existing tests pass.
+6. Startup is no slower than before.
 
 ## Related
 

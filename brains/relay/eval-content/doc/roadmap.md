@@ -103,15 +103,16 @@ Plans:
 
 ### 3. External plugin API
 
-External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` has no `plugins:` field.
+External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` cannot load plugins from `node_modules`.
 
-Starts with an audit of the abstractions, not with publishing them. The plugin framework has grown organically alongside the entity/service/interface split; freezing whatever shape happens to exist today would force the first real external authors to absorb the breaking changes that an internal review would surface anyway. The audit decides which asymmetries between the three plugin types are intentional, what the minimal lifecycle hook set should be, and what the versioning policy is — then publishing follows mechanically.
+Starts with an audit of the abstractions and shell lifecycle, not with publishing exports. The plugin framework has grown organically alongside the entity/service/interface split; freezing whatever shape happens to exist today would force the first real external authors to absorb the breaking changes that an internal review would surface anyway. The audit decides which asymmetries between the three plugin types are intentional, what the minimal lifecycle hook set should be, and what the versioning policy is. Shell initialization coordination lands before publishing so `onRegister`/`onReady` semantics are real, not aspirational.
 
 Scope after the audit: public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`, `/utils`, `/templates`), `brain.yaml` `plugins:` schema with env-var interpolation, plugin API version constant, and at least one reference external plugin proving the path end-to-end.
 
 Plans:
 
-- [external-plugin-api.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/external-plugin-api.md) — §0 audit gates §1-§5
+- [shell-init-coordination.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/shell-init-coordination.md) — prerequisite lifecycle work before public plugin exports
+- [external-plugin-api.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/external-plugin-api.md) — §0 audit plus shell lifecycle coordination gate §1-§5
 - [custom-brain-definitions.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/custom-brain-definitions.md) — downstream `brain.ts` escape hatch that depends on the public surface
 
 ## Long-term
@@ -120,11 +121,10 @@ These areas are intentionally post-`v0.2.0`. They are tracked but not gating lau
 
 ### Framework consolidation
 
-Independent internal cleanup items — each removes a fragile coupling held together by discipline rather than by the type system or package boundaries. They don't depend on each other, and none is gating the external plugin API: lifecycle hooks added later are additive (backwards-compatible), env declarations external plugins make live in their own packages, and deploy scaffolding is unrelated to the plugin surface. Pick up between feature cycles in any order.
+Independent internal cleanup items — each removes a fragile coupling held together by discipline rather than by the type system or package boundaries. These do not gate the plugin surface: env declarations external plugins make live in their own packages, and deploy scaffolding is unrelated. Pick those up between feature cycles in any order.
 
 Plans:
 
-- [shell-init-coordination.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/shell-init-coordination.md) — split `Shell` into runtime facade + `ShellBootloader`; replace the `sync:initial:completed` race with explicit `onRegister`/`onReady`/`onPostReady` lifecycle phases. Landing this before the public plugin surface is frozen avoids a later additive bump but is not required.
 - [env-schema-canonical.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/env-schema-canonical.md) — co-locate env declarations next to the consuming service; aggregate via `shellEnvVars()` in `shell/core`; have `brain-cli` consume that single source instead of `bundled-model-env-schemas.ts`.
 - [deploy-scaffolding-consolidation.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/deploy-scaffolding-consolidation.md) — extract `@brains/deploy-templates` as the canonical home for Caddyfile/Dockerfile/Kamal/scripts/workflow content; cut `brain-cli/src/commands/init.ts` from 1400+ lines; keep `@rizom/ops` fleet-only.
 
