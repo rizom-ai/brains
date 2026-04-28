@@ -40,7 +40,7 @@ export function romanNumeral(index: number): string {
 }
 
 interface DocsHeaderProps {
-  ecosystemHref?: string;
+  ecosystemHref?: string | undefined;
 }
 
 const wordmarkInk = "text-[var(--docs-text)] font-bold";
