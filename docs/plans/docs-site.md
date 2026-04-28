@@ -37,7 +37,7 @@ site-content/...
 
 ### docs app repo owns
 
-A separate docs app/brain repo, likely `rizom-ai/doc-brain`, owns:
+The separate docs app/brain repo, `rizom-ai/doc-brain`, owns:
 
 - `brain.yaml`
 - app-local site composition (`src/site.ts`)
@@ -48,13 +48,13 @@ The docs app should use the same standalone app/deploy tooling as other deployed
 
 ### Release publishing flow
 
-On release, this repo should:
+On release, this repo:
 
-1. generate docs entities from `docs/docs-manifest.yaml` for the release commit/ref
-2. push generated content to `rizom-ai/doc-brain-content`
-3. trigger the docs app repo's normal deploy/rebuild workflow
+1. generates docs entities from `docs/docs-manifest.yaml` for the release commit/ref
+2. pushes generated content to `rizom-ai/doc-brain-content`
+3. triggers the docs app repo's normal deploy/rebuild workflow
 
-This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
+The release workflow expects `DOCS_PUBLISH_TOKEN` to have access to push `rizom-ai/doc-brain-content` and dispatch `rizom-ai/doc-brain` workflows. This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
 
 ## Source manifest
 
@@ -125,7 +125,7 @@ Current status:
 
 Remaining responsibilities:
 
-- production `doc-brain-content` sync path and docs-app deploy trigger
+- configure production docs app secrets/deploy target
 - docs search, syntax highlighting, and versioning if/when needed
 
 Suggested frontmatter:
@@ -222,11 +222,10 @@ bun run docs:check
 
 Release/docs publishing:
 
-1. run sync from this repo into a docs content checkout
-2. verify generated `doc/*.md`
-3. push generated content to `rizom-ai/doc-brain-content`
-4. trigger docs app repo deploy/rebuild workflow
-5. docs app starts/pulls its `brain-data` content repo
-6. trigger preview rebuild on the running app
-7. inspect `dist/site-preview`
-8. deploy only after preview is correct
+1. release workflow runs sync from this repo into a docs content checkout
+2. generated `doc/*.md` is committed/pushed to `rizom-ai/doc-brain-content` when changed
+3. release workflow triggers `rizom-ai/doc-brain`'s deploy workflow
+4. docs app starts/pulls its `brain-data` content repo
+5. trigger preview rebuild on the running app
+6. inspect `dist/site-preview`
+7. deploy only after preview is correct

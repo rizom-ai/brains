@@ -720,7 +720,7 @@
           name: "Documentation Phase 3 — Docs Site",
           status: "short-term",
           step: 3,
-          desc: "Partially landed: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), and scripts/sync-docs-content.ts which generates doc/*.md from the manifest. Relay docs test app validates list/detail routing. Ownership clarified: release-driven sync from this repo into rizom-ai/doc-brain-content, with a separate docs app repo likely named rizom-ai/doc-brain owning standalone deploy/rebuild of docs.rizom.ai. Remaining: wire sync script into release workflow, docs app repo deploy trigger, auto-generated CLI reference and brain.yaml schema reference.",
+          desc: "Partially landed: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), and scripts/sync-docs-content.ts which generates doc/*.md from the manifest. Relay docs test app validates list/detail routing. Ownership clarified: release-driven sync from this repo into rizom-ai/doc-brain-content, with rizom-ai/doc-brain owning standalone deploy/rebuild of docs.rizom.ai. Release workflow now syncs generated docs content and triggers the docs app deploy workflow. Remaining: configure production docs app secrets/deploy target, auto-generated CLI reference and brain.yaml schema reference.",
         },
 
         {
