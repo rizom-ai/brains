@@ -92,9 +92,19 @@ Needed public subpaths:
 Requirements:
 
 - each subpath has a deliberate exports contract; the build replaces workspace `@brains/*` imports with subpath-relative ones
-- internal shell-only types (`Shell`, `ShellInitializer`, `ShellBootloader`, raw service singletons) stay private
+- internal shell-only types (`Shell`, `ShellInitializer`, `ShellBootloader`, raw service singletons, `IShell`, context factory functions) stay private
 - `.d.ts` output remains usable for external authors — no `@brains/*` paths in the published types
 - the public type surface is committed under `packages/brain-cli/src/types/` (existing convention for `./site` and `./themes`) so drift is reviewable
+
+Frozen public surface sketch:
+
+- root `@rizom/brain` — `defineBrain`, `definePreset`, built-in preset composition exports, `PLUGIN_API_VERSION`
+- `@rizom/brain/plugins` — plugin base classes, public context types, `Plugin`, `PluginFactory`, `PluginConfig`, tool/resource helpers; no `IShell` or context factories
+- `@rizom/brain/entities` — entity base types, adapters, markdown/frontmatter helpers, datasource types
+- `@rizom/brain/services` — datasource/job-handler base classes and route types used by service plugins
+- `@rizom/brain/interfaces` — interface route, daemon, permission, and message-interface types
+- `@rizom/brain/templates` — template/view/renderer/permission types and `createTemplate`
+- `@rizom/brain/utils` — only stable utility exports needed by plugin authors (`z`, logger/error helpers, ids, env interpolation helpers)
 
 ### 2. Load external plugins from `brain.yaml`
 
@@ -124,6 +134,17 @@ Needed behavior:
 - support env-var interpolation in plugin config (`${VAR}`), reusing varlock-resolved env where possible
 - fail clearly when a declared plugin is missing or its API version mismatches (see §3)
 
+External package module contract:
+
+```ts
+import type { PluginFactory } from "@rizom/brain/plugins";
+
+export const plugin: PluginFactory = (config) => new CalendarPlugin(config);
+export default plugin;
+```
+
+Loader rule: import the package entry, use `default` if present, otherwise named `plugin`. The factory receives only the nested `config` object. The `plugins:` map key is the capability id used for add/remove and diagnostics; returned plugin instances keep their own `plugin.id`.
+
 ### 3. Add a plugin API compatibility contract
 
 External plugins need a versioned contract so breaking changes are detectable.
@@ -135,13 +156,36 @@ Needed behavior:
 - warn on mismatch at load time
 - document deprecation and breaking-change policy
 
+Package metadata shape:
+
+```json
+{
+  "name": "@rizom/brain-plugin-calendar",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "peerDependencies": {
+    "@rizom/brain": "^0.2.0"
+  },
+  "rizomBrain": {
+    "pluginApi": "^1.0.0"
+  }
+}
+```
+
+Compatibility checks use `rizomBrain.pluginApi` against `PLUGIN_API_VERSION`. Missing metadata warns during alpha, then fails once plugin API v1 is declared stable.
+
 ### 4. Add basic plugin CLI ergonomics
 
 Optional but useful follow-on CLI work:
 
 - `brain search` for npm plugin discovery
-- `brain add` to install and write `brain.yaml`
-- `brain remove` to uninstall and remove config
+- `brain add` to install and write a keyed `plugins.<id>.package` entry in `brain.yaml`
+- `brain remove` to uninstall and remove the keyed plugin entry/config
 
 This should only land if it materially improves the operator path.
 
@@ -167,7 +211,7 @@ Before calling this done, ship:
 
 ## Done when
 
-1. the audit document exists with decisions on every §0 area, and those decisions are reflected in the codebase
+1. audit decisions are recorded in this plan for every §0 area, and those decisions are reflected in the codebase
 2. external plugin authors can import the required public APIs from `@rizom/brain`
 3. installed plugins can be declared in `brain.yaml` and loaded at runtime
 4. plugin API version mismatches are detectable
