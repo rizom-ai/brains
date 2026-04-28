@@ -8,6 +8,10 @@ export interface PluginManager {
 
   initializePlugins(): Promise<void>;
 
+  readyPlugins(): Promise<void>;
+
+  startPluginDaemons(): Promise<void>;
+
   getPlugin(id: string): Plugin | undefined;
 
   getPluginStatus(id: string): PluginStatus | undefined;

@@ -29,6 +29,7 @@ export class PluginManager implements IPluginManager {
   private events = new EventEmitter();
   private daemonRegistry: IDaemonRegistry;
   private shell: IShell | null = null;
+  private initializedPluginIds: string[] = [];
   private pluginLifecycle: PluginLifecycle;
   private dependencyResolver: DependencyResolver;
   private capabilityRegistrar: CapabilityRegistrar;
@@ -142,6 +143,8 @@ export class PluginManager implements IPluginManager {
   }): Promise<void> {
     this.logger.debug("Initializing plugins...");
 
+    this.initializedPluginIds = [];
+
     // Use dependency resolver to handle initialization order
     const result = await this.dependencyResolver.resolveInitializationOrder(
       async (pluginId) => {
@@ -182,6 +185,30 @@ export class PluginManager implements IPluginManager {
       pluginId,
       capabilities,
     );
+
+    this.initializedPluginIds.push(pluginId);
+  }
+
+  /**
+   * Dispatch ready hooks for all initialized plugins.
+   */
+  public async readyPlugins(): Promise<void> {
+    this.logger.debug("Dispatching plugin ready hooks...");
+
+    for (const pluginId of this.initializedPluginIds) {
+      await this.pluginLifecycle.readyPlugin(pluginId);
+    }
+  }
+
+  /**
+   * Start daemons for all initialized plugins.
+   */
+  public async startPluginDaemons(): Promise<void> {
+    this.logger.debug("Starting plugin daemons...");
+
+    for (const pluginId of this.initializedPluginIds) {
+      await this.pluginLifecycle.startPluginDaemons(pluginId);
+    }
   }
 
   /**

@@ -46,25 +46,23 @@ describe("Startup Initialization Order", () => {
     });
   });
 
-  describe("ShellInitializer must load identity caches on plugins:ready", () => {
-    const shellInitializerPath = join(
+  describe("ShellBootloader must prepare identity caches before ready hooks", () => {
+    const shellBootloaderPath = join(
       __dirname,
-      "../src/initialization/shellInitializer.ts",
+      "../src/initialization/shellBootloader.ts",
     );
 
-    it("should call refreshCache() on identity and profile services in system:plugins:ready handler", () => {
-      const source = readFileSync(shellInitializerPath, "utf-8");
+    it("should refresh identity and profile before plugin ready hooks", () => {
+      const source = readFileSync(shellBootloaderPath, "utf-8");
 
-      const pluginsReadyIndex = source.indexOf('"system:plugins:ready"');
-      expect(pluginsReadyIndex).toBeGreaterThan(-1);
+      const prepareCallIndex = source.indexOf("await this.prepareReadyState()");
+      const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
 
-      const handlerBlock = source.slice(
-        pluginsReadyIndex,
-        pluginsReadyIndex + 500,
-      );
-
-      expect(handlerBlock).toContain("identityService.refreshCache()");
-      expect(handlerBlock).toContain("profileService.refreshCache()");
+      expect(source).toContain("identityService.refreshCache()");
+      expect(source).toContain("profileService.refreshCache()");
+      expect(prepareCallIndex).toBeGreaterThan(-1);
+      expect(readyCallIndex).toBeGreaterThan(-1);
+      expect(prepareCallIndex).toBeLessThan(readyCallIndex);
     });
   });
 

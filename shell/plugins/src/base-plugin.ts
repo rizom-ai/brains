@@ -204,11 +204,29 @@ export abstract class BasePlugin<
   }
 
   /**
-   * Lifecycle hook called during registration
-   * Override this to perform initialization
+   * Lifecycle hook called during registration.
+   * Override this for capability registration and subscriptions that must exist
+   * before the system-wide "all plugins registered" signal.
    */
   protected async onRegister(_context: TContext): Promise<void> {
     // Default implementation does nothing
+  }
+
+  /**
+   * Lifecycle hook called after all plugins have registered and the shell has
+   * completed ready-state preparation.
+   * Override this for work that reads identity/profile or depends on other
+   * plugins having completed registration.
+   */
+  protected async onReady(_context: TContext): Promise<void> {
+    // Default implementation does nothing
+  }
+
+  /**
+   * Dispatch the ready lifecycle hook.
+   */
+  public async ready(): Promise<void> {
+    await this.onReady(this.getContext());
   }
 
   /**

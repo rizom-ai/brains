@@ -404,26 +404,6 @@ export class ShellInitializer {
       );
     }
 
-    // Load identity and profile caches as soon as plugins are ready.
-    // This is a non-destructive DB read — no default entity is materialized
-    // here, so there's no race with a later remote sync. If the DB is empty,
-    // `get()` falls back to the in-memory default and consumers see correct
-    // behavior immediately. Brains without directory-sync (or with
-    // `initialSync: false`) stop silently returning defaults for seeded data.
-    messageBus.subscribe<void, { success: boolean }>(
-      "system:plugins:ready",
-      async () => {
-        logger.debug(
-          "system:plugins:ready received, loading identity and profile caches",
-        );
-        await Promise.all([
-          identityService.refreshCache(),
-          profileService.refreshCache(),
-        ]);
-        return { success: true };
-      },
-    );
-
     // Initialize identity and profile services after sync completes.
     // This materializes a default entity when the DB is still empty after
     // remote sync, so the CMS has something to edit for fresh brains.

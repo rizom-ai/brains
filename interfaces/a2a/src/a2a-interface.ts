@@ -38,7 +38,6 @@ const A2A_CORS_HEADERS = {
 export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
-  private unsubscribeReady: (() => void) | undefined;
   private unsubscribeSyncCompleted: (() => void) | undefined;
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
@@ -59,19 +58,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     this.agentService = context.agentService;
     this.permissionContext = context.permissions;
 
-    // Build Agent Card after all plugins have registered
-    // so we can see the full tool registry
-    this.unsubscribeReady = context.messaging.subscribe(
-      "system:plugins:ready",
-      () => {
-        void this.rebuildAgentCard(context);
-        return { noop: true as const };
-      },
-    );
-
-    // Rebuild after identity/profile services initialize.
-    // Profile service loads from DB on sync:initial:completed (after plugins:ready),
-    // so the first card build has "Unknown" as the anchor name.
+    // Rebuild after identity/profile services initialize from initial sync.
     this.unsubscribeSyncCompleted = context.messaging.subscribe(
       "sync:initial:completed",
       () => {
@@ -89,6 +76,12 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         domain: context.domain,
       });
     }
+  }
+
+  protected override async onReady(
+    context: InterfacePluginContext,
+  ): Promise<void> {
+    await this.rebuildAgentCard(context);
   }
 
   /**
@@ -371,7 +364,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         }
       },
       stop: async (): Promise<void> => {
-        this.unsubscribeReady?.();
         this.unsubscribeSyncCompleted?.();
         this.logger.info("A2A server stopped");
       },

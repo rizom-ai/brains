@@ -29,7 +29,7 @@ export class PluginLifecycle {
    */
   public async initializePlugin(
     pluginId: string,
-    options: { registerOnly?: boolean } | undefined,
+    _options: { registerOnly?: boolean } | undefined,
     shell: IShell,
   ): Promise<PluginCapabilities> {
     const pluginInfo = this.plugins.get(pluginId);
@@ -55,20 +55,8 @@ export class PluginLifecycle {
       pluginInfo.status = PluginStatus.INITIALIZED;
       this.logger.debug(`Initialized plugin: ${pluginId}`);
 
-      // Start any daemons registered by this plugin (skip in registerOnly mode)
-      if (!options?.registerOnly) {
-        try {
-          await this.daemonRegistry.startPlugin(pluginId);
-          this.logger.debug(`Started daemons for plugin: ${pluginId}`);
-        } catch (error) {
-          if (plugin.requiresDaemonStartup?.()) {
-            throw error;
-          }
-          this.logger.warn(
-            `Daemon ${pluginId} failed to start: ${getErrorMessage(error)}`,
-          );
-        }
-      }
+      // Daemons start in a later shell phase after all plugins have registered
+      // and ready hooks have run.
 
       // Emit initialized event
       this.events.emit(PluginEvent.INITIALIZED, pluginId, plugin);
@@ -89,6 +77,56 @@ export class PluginLifecycle {
 
       // Re-throw for dependency resolution
       throw error;
+    }
+  }
+
+  /**
+   * Dispatch ready hook for a plugin.
+   */
+  public async readyPlugin(pluginId: string): Promise<void> {
+    const pluginInfo = this.plugins.get(pluginId);
+    if (!pluginInfo) {
+      throw new PluginError(pluginId, "Ready failed: Plugin is not registered");
+    }
+
+    if (pluginInfo.status !== PluginStatus.INITIALIZED) {
+      this.logger.debug(
+        `Skipping ready hook for non-initialized plugin: ${pluginId}`,
+      );
+      return;
+    }
+
+    try {
+      await pluginInfo.plugin.ready?.();
+      this.logger.debug(`Ready hook completed for plugin: ${pluginId}`);
+    } catch (error) {
+      const readyError = toError(error);
+      pluginInfo.status = PluginStatus.ERROR;
+      pluginInfo.error = readyError;
+      this.events.emit(PluginEvent.ERROR, pluginId, readyError);
+      throw readyError;
+    }
+  }
+
+  /**
+   * Start any daemons registered by a plugin.
+   */
+  public async startPluginDaemons(pluginId: string): Promise<void> {
+    const pluginInfo = this.plugins.get(pluginId);
+    if (pluginInfo?.status !== PluginStatus.INITIALIZED) {
+      return;
+    }
+
+    try {
+      await this.daemonRegistry.startPlugin(pluginId);
+      this.logger.debug(`Started daemons for plugin: ${pluginId}`);
+    } catch (error) {
+      if (pluginInfo.plugin.requiresDaemonStartup?.()) {
+        throw error;
+      }
+      this.logger.warn(
+        `Daemon ${pluginId} failed to start: ${getErrorMessage(error)}`,
+      );
     }
   }
 

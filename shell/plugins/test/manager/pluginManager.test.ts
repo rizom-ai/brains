@@ -19,7 +19,9 @@ class TestPlugin implements Plugin {
   public name: string;
   public dependencies: string[];
   public registerCalled = false;
+  public readyCalled = false;
   public registerError = false;
+  public readyError = false;
 
   constructor(opts: {
     id: string;
@@ -28,6 +30,7 @@ class TestPlugin implements Plugin {
     name?: string;
     dependencies?: string[];
     registerError?: boolean;
+    readyError?: boolean;
   }) {
     this.id = opts.id;
     this.version = opts.version;
@@ -35,6 +38,7 @@ class TestPlugin implements Plugin {
     this.name = opts.name ?? this.id;
     this.dependencies = opts.dependencies ?? [];
     this.registerError = opts.registerError ?? false;
+    this.readyError = opts.readyError ?? false;
   }
 
   async register(_shell: IShell): Promise<PluginCapabilities> {
@@ -48,6 +52,14 @@ class TestPlugin implements Plugin {
       tools: [],
       resources: [],
     };
+  }
+
+  async ready(): Promise<void> {
+    if (this.readyError) {
+      throw new Error(`Plugin ${this.id} ready failed`);
+    }
+
+    this.readyCalled = true;
   }
 }
 
@@ -107,6 +119,86 @@ describe("PluginManager", (): void => {
     // Check register was called
     expect(pluginA.registerCalled).toBe(true);
     expect(pluginB.registerCalled).toBe(true);
+  });
+
+  test("plugin ready hooks run after initialization", async (): Promise<void> => {
+    const plugin = new TestPlugin({
+      id: "plugin-ready",
+      version: "1.0.0",
+    });
+
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    expect(plugin.readyCalled).toBe(false);
+
+    await pluginManager.readyPlugins();
+
+    expect(plugin.readyCalled).toBe(true);
+    expect(pluginManager.getPluginStatus("plugin-ready")).toBe(
+      PluginStatus.INITIALIZED,
+    );
+  });
+
+  test("plugin ready hooks follow dependency initialization order", async (): Promise<void> => {
+    const readyOrder: string[] = [];
+
+    class OrderedReadyPlugin extends TestPlugin {
+      override async ready(): Promise<void> {
+        readyOrder.push(this.id);
+        await super.ready();
+      }
+    }
+
+    const pluginA = new OrderedReadyPlugin({
+      id: "plugin-a",
+      version: "1.0.0",
+    });
+    const pluginB = new OrderedReadyPlugin({
+      id: "plugin-b",
+      version: "1.0.0",
+      dependencies: ["plugin-a"],
+    });
+    const pluginC = new OrderedReadyPlugin({
+      id: "plugin-c",
+      version: "1.0.0",
+      dependencies: ["plugin-b"],
+    });
+
+    pluginManager.registerPlugin(pluginC);
+    pluginManager.registerPlugin(pluginB);
+    pluginManager.registerPlugin(pluginA);
+
+    await pluginManager.initializePlugins();
+    await pluginManager.readyPlugins();
+
+    expect(readyOrder).toEqual(["plugin-a", "plugin-b", "plugin-c"]);
+  });
+
+  test("plugin ready hook failures mark plugin as errored", async (): Promise<void> => {
+    const plugin = new TestPlugin({
+      id: "plugin-ready-error",
+      version: "1.0.0",
+      readyError: true,
+    });
+
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    let readyError: unknown;
+    try {
+      await pluginManager.readyPlugins();
+    } catch (error) {
+      readyError = error;
+    }
+
+    expect(readyError).toBeInstanceOf(Error);
+    expect((readyError as Error).message).toBe(
+      "Plugin plugin-ready-error ready failed",
+    );
+    expect(pluginManager.getPluginStatus("plugin-ready-error")).toBe(
+      PluginStatus.ERROR,
+    );
   });
 
   test("plugin dependencies are respected during initialization", async (): Promise<void> => {
@@ -245,6 +337,40 @@ describe("PluginManager", (): void => {
     expect(errorPlugin.registerCalled).toBe(false); // Throws before setting flag
     expect(pluginC.registerCalled).toBe(false); // Never called due to dependency
     expect(pluginD.registerCalled).toBe(true);
+  });
+
+  test("plugin daemons start only after explicit daemon phase", async (): Promise<void> => {
+    const daemonStarts: string[] = [];
+    const plugin = new TestPlugin({
+      id: "daemon-plugin",
+      version: "1.0.0",
+    });
+
+    const originalRegister = plugin.register.bind(plugin);
+    plugin.register = async (shell: IShell): Promise<PluginCapabilities> => {
+      shell.registerDaemon(
+        "daemon-plugin:daemon",
+        {
+          start: async () => {
+            daemonStarts.push("started");
+          },
+          stop: async () => {},
+        },
+        "daemon-plugin",
+      );
+      return originalRegister(shell);
+    };
+
+    pluginManager.registerPlugin(plugin);
+    await pluginManager.initializePlugins();
+
+    expect(daemonStarts).toEqual([]);
+
+    await pluginManager.readyPlugins();
+    expect(daemonStarts).toEqual([]);
+
+    await pluginManager.startPluginDaemons();
+    expect(daemonStarts).toEqual(["started"]);
   });
 
   test("plugin disable and enable functionality", async (): Promise<void> => {

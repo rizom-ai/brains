@@ -14,6 +14,7 @@ import type {
   QueryContext,
   RegisteredApiRoute,
   RegisteredWebRoute,
+  EntityDisplayEntry,
 } from "@brains/plugins";
 import { endpointInfoSchema } from "@brains/plugins";
 
@@ -66,6 +67,7 @@ import {
   resetServiceSingletons,
   type ShellServices,
 } from "./initialization/shellInitializer";
+import { ShellBootloader } from "./initialization/shellBootloader";
 import { registerSystemCapabilities } from "./system/register";
 import { createInsightsRegistry } from "./system/insights";
 import type { IInsightsRegistry } from "@brains/plugins";
@@ -81,6 +83,7 @@ export type { ShellDependencies };
 export class Shell implements IShell {
   private static instance: Shell | null = null;
   private readonly services: ShellServices;
+  private readonly bootloader: ShellBootloader;
   private initialized = false;
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
@@ -142,6 +145,10 @@ export class Shell implements IShell {
     };
 
     this.insightsRegistry = createInsightsRegistry();
+    this.bootloader = new ShellBootloader(this.config, this.services, {
+      registerCoreDataSources: (): void => this.registerCoreDataSources(),
+      registerSystemCapabilities: (): void => this.registerSystemCapabilities(),
+    });
 
     shellInitializer.wireShell(this.services, this);
   }
@@ -164,71 +171,9 @@ export class Shell implements IShell {
       return;
     }
 
-    this.services.logger.debug("Starting Shell initialization");
     try {
-      const shellInitializer = ShellInitializer.getInstance(
-        this.services.logger,
-        this.config,
-      );
-
-      // Initialize databases (WAL mode, migrations, indexes, ATTACH)
-      // before plugins load — they need search and embeddings to work.
-      await this.services.entityService.initialize();
-
-      await shellInitializer.initializeAll(
-        this.services.templateRegistry,
-        this.services.entityRegistry,
-        this.services.pluginManager,
-        options?.registerOnly ? { registerOnly: true } : undefined,
-      );
-
-      // Register job handlers for content operations BEFORE emitting ready event
-      // This ensures handlers are registered before plugins start enqueueing jobs
-      shellInitializer.registerJobHandlers(
-        this.services.jobQueueService,
-        this.services.contentService,
-        this.services.entityService,
-      );
-
-      this.registerCoreDataSources();
-      this.registerSystemCapabilities();
-
+      await this.bootloader.boot(options);
       this.initialized = true;
-
-      // In registerOnly mode, stop here — no events, no background services.
-      // Tools, resources, and entity types are registered and discoverable.
-      if (options?.registerOnly) {
-        this.services.logger.debug("Shell initialized (registerOnly mode)");
-        return;
-      }
-
-      // NOTE: Identity and profile services are initialized via sync:initial:completed
-      // subscription in shellInitializer. This ensures remote data is pulled by
-      // git-sync before defaults are created for empty DB.
-
-      this.services.logger.debug("Shell initialized successfully");
-
-      // Emit system:plugins:ready BEFORE starting background services.
-      // Plugins must complete their ready handlers before any background
-      // processing begins, so sync-style plugins can prepare initial state
-      // and pending jobs from previous runs don't execute prematurely.
-      await this.services.messageBus.send(
-        "system:plugins:ready",
-        {
-          timestamp: new Date().toISOString(),
-          pluginCount: this.services.pluginManager.getAllPluginIds().length,
-        },
-        "shell",
-        undefined,
-        undefined,
-        true, // broadcast
-      );
-      this.services.logger.debug("Emitted system:plugins:ready event");
-
-      // Start background services AFTER plugins:ready handlers complete
-      // This ensures pending jobs from previous runs don't execute prematurely
-      await this.services.jobQueueWorker.start();
-      this.services.jobProgressMonitor.start();
     } catch (error) {
       this.services.logger.error("Failed to initialize Shell", error);
       throw error;
@@ -601,7 +546,9 @@ export class Shell implements IShell {
     return this.config.dataDir;
   }
 
-  public getEntityDisplay() {
+  // TODO(shell-facade): Move site presentation metadata out of IShell.
+  // Plugin contexts need this today, but Shell should not stay a config grab-bag.
+  public getEntityDisplay(): Record<string, EntityDisplayEntry> | undefined {
     return this.config.entityDisplay;
   }
 

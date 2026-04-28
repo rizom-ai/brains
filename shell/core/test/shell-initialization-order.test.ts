@@ -4,7 +4,7 @@ import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
-import type { Plugin } from "@brains/plugins";
+import type { Daemon, Plugin } from "@brains/plugins";
 import { PluginManager } from "@brains/plugins";
 import { EntityRegistry } from "@brains/entity-service";
 import {
@@ -145,6 +145,83 @@ describe("Shell initialization order", () => {
 
     expect(adapterRegistered).toBe(true);
     expect(initOrder).toContain("entity-adapter-registered-in-onRegister");
+  });
+
+  it("should call ready hooks after system:plugins:ready and before daemon startup", async () => {
+    const daemon: Daemon = {
+      start: async () => {
+        initOrder.push("daemon-started");
+      },
+      stop: async () => {
+        initOrder.push("daemon-stopped");
+      },
+    };
+
+    const lifecyclePlugin: Plugin = {
+      id: "lifecycle-plugin",
+      version: "1.0.0",
+      type: "interface",
+      description: "Checks lifecycle ordering",
+      packageName: "@test/lifecycle",
+      register: async (shellInstance) => {
+        initOrder.push("register");
+        shellInstance
+          .getMessageBus()
+          .subscribe("system:plugins:ready", async () => {
+            initOrder.push("plugins-ready");
+            return { success: true };
+          });
+        shellInstance.registerDaemon(
+          "lifecycle-daemon",
+          daemon,
+          "lifecycle-plugin",
+        );
+        return { tools: [], resources: [] };
+      },
+      ready: async () => {
+        initOrder.push("ready");
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [lifecyclePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    expect(initOrder.indexOf("register")).toBeLessThan(
+      initOrder.indexOf("plugins-ready"),
+    );
+    expect(initOrder.indexOf("plugins-ready")).toBeLessThan(
+      initOrder.indexOf("ready"),
+    );
+    expect(initOrder.indexOf("ready")).toBeLessThan(
+      initOrder.indexOf("daemon-started"),
+    );
+  });
+
+  it("should not call ready hooks in registerOnly mode", async () => {
+    const lifecyclePlugin: Plugin = {
+      id: "register-only-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Checks registerOnly lifecycle",
+      packageName: "@test/register-only",
+      register: async () => {
+        initOrder.push("register");
+        return { tools: [], resources: [] };
+      },
+      ready: async () => {
+        initOrder.push("ready");
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [lifecyclePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ registerOnly: true });
+
+    expect(initOrder).toContain("register");
+    expect(initOrder).not.toContain("ready");
   });
 
   it("should emit system:plugins:ready BEFORE any background services start", async () => {
