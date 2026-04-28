@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Project Roadmap</h1>
-      <p>Last updated: 2026-04-26 — Click any item for details</p>
+      <p>Last updated: 2026-04-28 — Click any item for details</p>
     </div>
 
     <div class="legend">
@@ -711,9 +711,16 @@
         {
           id: "documentation2",
           name: "Documentation Phase 2",
+          status: "completed",
+          desc: "User-facing docs landed: entity type reference, content-management guidance, interface setup guide, and customization guide for themes, layouts, and plugins. Architecture-level plugin docs stay thin and point implementation detail to the relevant AGENTS.md files and plugins/examples/.",
+          date: "2026-04",
+        },
+        {
+          id: "documentation3",
+          name: "Documentation Phase 3 — Docs Site",
           status: "short-term",
           step: 3,
-          desc: "Fill the remaining user-facing docs in parallel with deployment polish and rizom site follow-through: entity type reference, content-management guidance, interface setup guides, and deeper customization docs for themes, layouts, and plugins.",
+          desc: "Partially landed: docs index, source manifest (docs/docs-manifest.yaml), and the entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates) are in place; Relay docs test app validates list/detail routing and route-level ecosystem composition; ownership clarified (release-driven sync from this repo into a separate docs content repo, with a separate docs app repo owning standalone deploy/rebuild of docs.rizom.ai). Remaining: release-driven sync script, docs app repo deploy trigger, auto-generated CLI reference and brain.yaml schema reference.",
         },
 
         {
@@ -992,7 +999,7 @@
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('documentation2')">docs phase 2</span>
+        <span class="dep-node s-next" onclick="selectItem('documentation3')">docs phase 3</span>
         <span class="dep-label">alpha-publishing rolls in parallel; cycle is 0.2.0-alpha.x → 0.2.0 stable</span>
       </div>
       <div class="dep-row">

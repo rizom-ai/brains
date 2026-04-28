@@ -4,7 +4,7 @@ section: "Interfaces"
 order: 90
 sourcePath: "docs/mcp-inspector-guide.md"
 slug: "mcp-inspector-guide"
-description: "1. Go to: https://modelcontextprotocol.io/inspector 2. Configure connection: - Server URL: http://localhost:8080/mcp - Transport: Streamable HTTP - Authenticati"
+description: "Note: MCP Inspector will automatically combine these into the header:"
 ---
 
 # MCP Inspector Quick Guide

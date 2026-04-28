@@ -67,6 +67,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | -------------------------- | ------------------------------ | ------------------------------------- |
 | `entities/blog`            | `post`                         | Essays, long-form publishing          |
 | `entities/decks`           | `deck`                         | Presentation/deck content             |
+| `entities/doc`             | `doc`                          | Generic docs entity backing `/docs`   |
 | `entities/image`           | `image`                        | AI image generation                   |
 | `entities/link`            | `link`                         | URL capture and extraction            |
 | `entities/newsletter`      | `newsletter`                   | Newsletter content                    |

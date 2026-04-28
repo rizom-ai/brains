@@ -32,7 +32,7 @@ At runtime, the shell loads the selected plugins, wires them into shared service
 - [entities/AGENTS.md](https://github.com/rizom-ai/brains/blob/main/entities/AGENTS.md)
 - [plugins/AGENTS.md](https://github.com/rizom-ai/brains/blob/main/plugins/AGENTS.md)
 - [interfaces/AGENTS.md](https://github.com/rizom-ai/brains/blob/main/interfaces/AGENTS.md)
-- [plugins/examples/](https://github.com/rizom-ai/brains/tree/main/plugins/examples)
+- [plugins/examples/](https://github.com/rizom-ai/brains/tree/main/plugins/examples/)
 
 ## Note on plugin authoring docs
 

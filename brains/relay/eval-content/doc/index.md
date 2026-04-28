@@ -63,9 +63,9 @@ If you are new, start with the quickstart and then read the content, interface, 
 
 The repository also contains design/prototype HTML files and planning notes that are useful for maintainers but are not the primary user documentation path:
 
-- [`docs/design/`](https://github.com/rizom-ai/brains/tree/main/docs/design)
-- [`docs/prototypes/`](https://github.com/rizom-ai/brains/tree/main/docs/prototypes)
-- [`docs/plans/`](https://github.com/rizom-ai/brains/tree/main/docs/plans)
+- [`docs/design/`](https://github.com/rizom-ai/brains/tree/main/docs/design/)
+- [`docs/prototypes/`](https://github.com/rizom-ai/brains/tree/main/docs/prototypes/)
+- [`docs/plans/`](https://github.com/rizom-ai/brains/tree/main/docs/plans/)
 
 ## External status files
 

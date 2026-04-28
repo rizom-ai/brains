@@ -102,11 +102,11 @@ Initial direction: dogfood the brain site-builder docs path with first-class `do
 
 Plan: [`docs-site.md`](/docs/docs-site-plan)
 
-1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](/docs/index)
+1. **Docs index — DONE (2026-04)**: see [`docs/README.md`](/docs)
 2. **Source manifest — DONE (2026-04)**: `docs/docs-manifest.yaml`
-3. **Generic `doc` entity package — STARTED (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; running-app route validation remains
-4. Let the docs site repo own sync/deploy to `brain-data/doc/*.md`
-5. Deploy at docs.rizom.ai
+3. **Generic `doc` entity package — DONE (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; Relay docs test app validates list/detail routes and route-level ecosystem section composition
+4. **Docs sync script — DONE (2026-04)**: `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml`; release workflow should use it to push generated docs to a separate docs content repo
+5. Let the separate docs app repo own normal deploy/rebuild of `docs.rizom.ai`
 6. Auto-generate CLI reference from code
 7. Auto-generate brain.yaml schema reference from Zod schemas
 

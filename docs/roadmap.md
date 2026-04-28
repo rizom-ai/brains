@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-26
+Last updated: 2026-04-28
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -45,6 +45,8 @@ These areas are effectively landed:
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
 - **Rover eval stabilization** — the full Rover suite is green at 86/86, with agent follow-up fixtures isolated from shared mutable domains and YAML fixture tests reduced to broad integrity checks instead of brittle exact-path assertions
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
+- **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; shared docs ecosystem chrome rendered as a route-level section over `@rizom/ui`; Relay docs test app validates the path end-to-end against a running docs brain
+- **Docs publishing ownership clarified** — release-driven sync from this repo into a separate docs content repo, with a separate docs app repo owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
 
 ## Near-term priorities
 
@@ -65,9 +67,9 @@ Plans:
 - [rizom-site-composition.md](./plans/rizom-site-composition.md)
 - [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
 
-### 2. Documentation phase 2
+### 2. Documentation phase 3
 
-The remaining pre-doc-site user-facing docs are now in place:
+Phase 2 user-facing docs are in place:
 
 - [entity type reference](./entity-types-reference.md)
 - [content-management guidance](./content-management.md)
@@ -76,11 +78,18 @@ The remaining pre-doc-site user-facing docs are now in place:
 
 Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
 
-A canonical [documentation index](./README.md) now exists. Next documentation work is Phase 3: implement the [`doc` entity/docs-site plan](./plans/docs-site.md) and automate generated references where useful.
+The Phase 3 docs site is partially landed: the [docs index](./README.md), [source manifest](./docs-manifest.yaml), and the `entities/doc` package (schema, adapter, plugin, datasource, componentized list/detail templates) are in place, and the Relay docs test app validates list/detail routing and route-level ecosystem composition.
 
-Plan:
+Remaining Phase 3 work:
+
+- release-driven sync script that publishes generated docs entities from `docs/docs-manifest.yaml` into a separate docs content repo
+- separate docs app repo owns standalone deploy/rebuild of `docs.rizom.ai` using the same scaffolding as other deployed brains
+- auto-generate CLI reference from code and `brain.yaml` schema reference from Zod schemas
+
+Plans:
 
 - [documentation.md](./plans/documentation.md)
+- [docs-site.md](./plans/docs-site.md)
 
 ## Long-term
 

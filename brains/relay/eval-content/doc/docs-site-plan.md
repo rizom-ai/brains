@@ -28,18 +28,42 @@ Do **not** create `sites/docs` initially. Docs should render inside the active s
 
 - canonical markdown docs
 - `docs/docs-manifest.yaml`
-- generic `doc` entity plugin, if implemented here
-- generic docs route/template rendering, if implemented here
+- generic `doc` entity plugin
+- generic docs route/template rendering
+- docs sync/generation script used by release workflows
+- release trigger that publishes generated docs content for the release ref
 
-### docs site/brain repo owns
+### docs content repo owns
 
-- sync script
-- deploy workflow
-- source repo/ref selection
-- generated `brain-data/doc/*.md`
-- running/rebuilding/deploying the docs brain
+A separate content repo, e.g. `rizom-ai/docs-content`, owns generated docs brain content:
 
-The docs site repo pulls/clones this repo during sync/deploy. This repo does not push docs into the docs site repo.
+```text
+doc/<id>.md
+site-content/...
+```
+
+`brain-data` remains a normal standalone content checkout and is not committed inside this monorepo.
+
+### docs app repo owns
+
+A separate docs app/brain repo owns:
+
+- `brain.yaml`
+- app-local site composition (`src/site.ts`)
+- deploy workflow and deploy secrets
+- running/rebuilding/deploying `docs.rizom.ai`
+
+The docs app should use the same standalone app/deploy tooling as other deployed brains. Avoid a special in-monorepo deploy path for docs.
+
+### Release publishing flow
+
+On release, this repo should:
+
+1. generate docs entities from `docs/docs-manifest.yaml` for the release commit/ref
+2. push generated content to the docs content repo
+3. trigger the docs app repo's normal deploy/rebuild workflow
+
+This keeps docs publishing tied to releases without making docs deployment a monorepo-only snowflake.
 
 ## Source manifest
 
@@ -69,11 +93,20 @@ The manifest is the source-side contract. It avoids brittle directory scraping.
 
 ## Generated doc entities
 
-The docs site repo sync writes:
+The source repo provides `scripts/sync-docs-content.ts`:
+
+```bash
+bun scripts/sync-docs-content.ts --out <content-checkout>
+bun scripts/sync-docs-content.ts --check --out <content-checkout>
+```
+
+The docs sync writes into a docs content checkout:
 
 ```text
-brain-data/doc/<id>.md
+doc/<id>.md
 ```
+
+At runtime the docs app checks that content repo out as its local `brain-data`.
 
 Each generated file gets normalized frontmatter:
 
@@ -92,10 +125,17 @@ Body is copied from the source markdown, with links rewritten as needed.
 
 Initial package exists at `entities/doc` with schema, adapter, plugin registration, datasource, and index/detail templates.
 
+Current status:
+
+- `/docs` lists and groups docs by section/order
+- `/docs/:slug` renders markdown detail pages
+- detail pages include grouped sidebar navigation and previous/next links
+- Relay docs test app validates the route path with a running docs brain
+
 Remaining responsibilities:
 
-- docs navigation/sidebar beyond basic index/detail pages
-- route validation in a running docs brain
+- production docs-content sync path and docs-app deploy trigger
+- docs search, syntax highlighting, and versioning if/when needed
 
 Suggested frontmatter:
 
@@ -120,11 +160,12 @@ When the `docs` capability is active:
 - `/docs` lists/group docs by section/order
 - `/docs/:slug` renders one doc page
 
-The detail page should include:
+The Relay docs test app also registers an explicit `/docs` route so docs-specific page sections can compose normally. The current `/docs` route contains:
 
-- main markdown content
-- sidebar grouped by section/order
-- previous/next links if easy
+1. `docs:doc-list` with doc entity data
+2. `docs:docs-ecosystem` with route-level fallback content from `@rizom/ui`
+
+This keeps ecosystem content on the normal site-builder content path: saved `site-content` can override a section, otherwise the route's `content` fallback is used.
 
 ## Markdown rendering
 
@@ -164,7 +205,8 @@ External links and non-manifest markdown links should remain unchanged or fail s
 - no runtime cross-repo reads
 - no `sites/docs` unless a generic docs entity route is insufficient
 - no sync service plugin unless sync must become runtime-managed later
-- docs site repo owns sync/deploy
+- docs app repo owns deploy/runtime
+- docs content repo owns generated `brain-data` history
 - missing manifest sources fail sync
 - generated output must be deterministic
 
@@ -178,7 +220,7 @@ brains/relay/test-apps/default
 brains/relay/test-apps/docs
 ```
 
-The `docs` test app uses `brain: relay`, `preset: default`, and `add: [docs]`.
+The `docs` test app uses `brain: relay`, `preset: default`, and `add: [docs]`. It has app-local site composition in `src/site.ts` for the docs homepage and `/docs` route.
 
 ## Validation
 
@@ -188,11 +230,15 @@ Source repo:
 bun run docs:check
 ```
 
-Docs site repo:
+`docs:check` validates markdown links, validates `docs/docs-manifest.yaml`, and verifies the committed Relay docs fixture is in sync with the manifest/source docs.
 
-1. run sync
-2. verify `brain-data/doc/*.md`
-3. start the docs brain
-4. trigger preview rebuild on the running app
-5. inspect `dist/site-preview`
-6. deploy only after preview is correct
+Release/docs publishing:
+
+1. run sync from this repo into a docs content checkout
+2. verify generated `doc/*.md`
+3. push generated content to docs content repo
+4. trigger docs app repo deploy/rebuild workflow
+5. docs app starts/pulls its `brain-data` content repo
+6. trigger preview rebuild on the running app
+7. inspect `dist/site-preview`
+8. deploy only after preview is correct

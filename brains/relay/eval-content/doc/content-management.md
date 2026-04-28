@@ -33,7 +33,7 @@ Directory sync maps paths to entities:
 - nested paths below the entity-type directory become colon-separated ids, for example `site-content/home/hero.md` becomes entity type `site-content` with id `home:hero`
 - image files are supported under `brain-data/image/`
 
-For the full list of built-in entity types and frontmatter fields, see [Entity Types Reference](./entity-types-reference.md).
+For the full list of built-in entity types and frontmatter fields, see [Entity Types Reference](/docs/entity-types-reference).
 
 ## Markdown shape
 

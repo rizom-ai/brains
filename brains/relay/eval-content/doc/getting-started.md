@@ -144,7 +144,7 @@ plugins:
 
 Secrets are referenced with `${ENV_VAR}` interpolation and loaded from `.env`.
 
-For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
+For the full schema, see [brain.yaml Reference](/docs/brain-yaml-reference).
 
 ## Interfaces
 

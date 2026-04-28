@@ -84,6 +84,13 @@ The manifest is the source-side contract. It avoids brittle directory scraping.
 
 ## Generated doc entities
 
+The source repo provides `scripts/sync-docs-content.ts`:
+
+```bash
+bun scripts/sync-docs-content.ts --out <content-checkout>
+bun scripts/sync-docs-content.ts --check --out <content-checkout>
+```
+
 The docs sync writes into a docs content checkout:
 
 ```text
@@ -213,6 +220,8 @@ Source repo:
 ```bash
 bun run docs:check
 ```
+
+`docs:check` validates markdown links, validates `docs/docs-manifest.yaml`, and verifies the committed Relay docs fixture is in sync with the manifest/source docs.
 
 Release/docs publishing:
 

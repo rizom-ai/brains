@@ -4,7 +4,7 @@ section: "Customization"
 order: 110
 sourcePath: "docs/theming-guide.md"
 slug: "theming-guide"
-description: " Complete guide to the Brains theming system using Tailwind v4"
+description: "Complete guide to the Brains theming system using Tailwind v4"
 ---
 
 # Theming Guide
