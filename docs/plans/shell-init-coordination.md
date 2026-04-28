@@ -62,18 +62,20 @@ Bootloader sequence:
 
 1. construct services
 2. dispatch `onRegister` for all plugins
-3. seed identity/profile (synchronously if no directory-sync; otherwise wait for sync once, here)
-4. dispatch `onReady` for all plugins
-5. start background services
-6. optionally run internal post-ready observers if needed later
+3. emit `system:plugins:ready` as an internal "all registrations complete" signal for existing subscribers such as directory-sync
+4. wait for initial sync completion when a sync plugin is active; otherwise continue immediately
+5. seed/refresh identity and profile in the bootloader
+6. dispatch `onReady` for all plugins
+7. start background services
+8. optionally run internal post-ready observers if needed later
 
-After step 5, `Shell.getInstance()` returns the live facade. For external plugin authors, the stable promise is `onReady` after identity/profile seeding and before background behavior that depends on ready-state assumptions.
+After step 7, `Shell.getInstance()` returns the live facade. For external plugin authors, the stable promise is `onReady` after identity/profile seeding and before background behavior that depends on ready-state assumptions.
 
 ### What this replaces
 
-- the `sync:initial:completed` subscription in `shellInitializer.ts`
+- the identity/profile initialization work currently attached to `sync:initial:completed` in `shellInitializer.ts`
 - the comment-driven ordering at `shell.ts:205-225`
-- the implicit "ready" via broadcast (the broadcast can stay for observers; it stops being load-bearing)
+- the implicit "ready" meaning of `system:plugins:ready`; the broadcast can stay, but means "all plugins registered" rather than "safe to read ready-state identity/profile"
 
 ## Steps
 
@@ -81,9 +83,19 @@ After step 5, `Shell.getInstance()` returns the live facade. For external plugin
 2. Inventory current `onRegister` callers — which actually need ready-state services? Move them to `onReady`.
 3. Add an optional `onReady` hook on the three plugin base classes; default no-op.
 4. Introduce `ShellBootloader` adjacent to `Shell`; move `initialize()` body there.
-5. Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
-6. Drop the `sync:initial:completed` ordering trick once plugins migrate.
-7. Bench startup timing — phased dispatch should not regress.
+5. Keep `system:plugins:ready` as the internal all-registered signal, but stop treating it as public lifecycle readiness.
+6. Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
+7. Drop the `sync:initial:completed` ordering trick once plugins migrate.
+8. Bench startup timing — phased dispatch should not regress.
+
+## Inventory notes
+
+Known migration hotspots from current code search:
+
+- Identity/profile reads that should move to `onReady` or later: `interfaces/a2a`, dashboard widget data, assessment/capability profile builders, generation handlers that already run as jobs.
+- `system:plugins:ready` producers/consumers used only for "all subscribers are installed" ordering can stay on the message bus: analytics/head scripts, publish provider registration, dashboard widget registration.
+- `sync:initial:completed` consumers that rebuild derived state after files land need a replacement bootloader-owned initial-sync barrier or an internal post-sync event with clear semantics: topics, series, site-info, assessment, content-pipeline, site-builder, agent-discovery skills.
+- Directory-sync may still emit a sync completion event for observers, but identity/profile initialization should no longer depend on subscribers racing that event.
 
 ## Non-goals
 
@@ -96,7 +108,7 @@ After step 5, `Shell.getInstance()` returns the live facade. For external plugin
 
 1. No plugin calls `context.identity` during `onRegister` after migration.
 2. `shell.ts` shrinks to a runtime facade with no `initialize()` body.
-3. Tests assert phase order: `onRegister` before ready, identity/profile seeded before `onReady`, daemon/job startup remains ordered.
+3. Tests assert phase order: `onRegister` before `system:plugins:ready`, initial sync barrier before identity/profile seeding, identity/profile seeded before `onReady`, daemon/job startup remains ordered.
 4. No public `onPostReady` API is required by the implementation.
 5. Existing tests pass.
 6. Startup is no slower than before.
