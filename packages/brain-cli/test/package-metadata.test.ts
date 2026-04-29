@@ -10,53 +10,41 @@ import packageJson from "../package.json";
 const packageDir = dirname(
   fileURLToPath(new URL("../package.json", import.meta.url)),
 );
-const monorepoRoot = dirname(dirname(packageDir));
-
 function readPackageFile(relativePath: string): string {
   return readFileSync(join(packageDir, relativePath), "utf8");
 }
 
-function readSharedFile(relativePath: string): string {
-  return readFileSync(
-    join(monorepoRoot, "shared", "utils", "src", relativePath),
-    "utf8",
-  );
-}
-
-function readSharedTsConfigFile(relativePath: string): string {
-  return readFileSync(
-    join(monorepoRoot, "shared", "typescript-config", relativePath),
-    "utf8",
-  );
-}
-
 describe("@rizom/brain package metadata", () => {
-  it("keeps package-local deploy scripts synced from shared source", () => {
-    expect(
-      readPackageFile("templates/deploy/scripts/provision-server.ts"),
-    ).toBe(readSharedFile("deploy-scripts/provision-server.ts"));
-    expect(readPackageFile("templates/deploy/scripts/update-dns.ts")).toBe(
-      readSharedFile("deploy-scripts/update-dns.ts"),
+  it("publishes package-owned deploy scripts with expected runtime hooks", () => {
+    const provisionServer = readPackageFile(
+      "templates/deploy/scripts/provision-server.ts",
     );
-    expect(readPackageFile("templates/deploy/scripts/write-ssh-key.ts")).toBe(
-      readSharedFile("deploy-scripts/write-ssh-key.ts"),
+    const updateDns = readPackageFile("templates/deploy/scripts/update-dns.ts");
+    const writeSshKey = readPackageFile(
+      "templates/deploy/scripts/write-ssh-key.ts",
     );
 
-    const sharedDeployTemplate = readSharedFile(
-      "deploy-templates/kamal-deploy.yml",
-    );
-    const sharedDockerfile = readSharedFile("deploy-templates/Dockerfile");
-    expect(sharedDeployTemplate).toContain("/opt/brain-state:/data");
-    expect(sharedDeployTemplate).toContain("/opt/brain-config:/config");
-    expect(sharedDeployTemplate).toContain("/opt/brain-dist:/app/dist");
-    expect(sharedDockerfile).toContain("ENV XDG_DATA_HOME=/data");
-    expect(sharedDockerfile).toContain("ENV XDG_CONFIG_HOME=/config");
+    expect(provisionServer).toContain('requireEnv("HCLOUD_TOKEN")');
+    expect(provisionServer).toContain("https://api.hetzner.cloud/v1");
+    expect(updateDns).toContain('requireEnv("CF_API_TOKEN")');
+    expect(updateDns).toContain("https://api.cloudflare.com/client/v4");
+    expect(writeSshKey).toContain('requireEnv("KAMAL_SSH_PRIVATE_KEY")');
+    expect(writeSshKey).toContain("mode: 0o600");
   });
 
-  it("keeps the public instance tsconfig preset synced from shared source", () => {
-    expect(readPackageFile("tsconfig.instance.json")).toBe(
-      readSharedTsConfigFile("instance.json"),
-    );
+  it("publishes a package-owned public instance tsconfig preset", () => {
+    const tsconfig = JSON.parse(readPackageFile("tsconfig.instance.json"));
+
+    expect(tsconfig).toMatchObject({
+      display: "Rizom Brain Instance",
+      compilerOptions: {
+        strict: true,
+        moduleResolution: "bundler",
+        jsx: "react-jsx",
+        jsxImportSource: "preact",
+        noEmit: true,
+      },
+    });
   });
 
   it("publishes deploy helper scripts in the packed artifact", () => {
