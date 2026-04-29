@@ -41,7 +41,7 @@ describe("Startup Initialization Order", () => {
     it("should initialize identity and profile before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
-      const prepareCallIndex = source.indexOf("await this.prepareReadyState()");
+      const prepareCallIndex = source.indexOf("this.prepareReadyState()");
       const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
 
       expect(source).toContain("identityService.initialize()");

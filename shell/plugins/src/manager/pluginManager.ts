@@ -191,24 +191,32 @@ export class PluginManager implements IPluginManager {
 
   /**
    * Dispatch ready hooks for all initialized plugins.
+   *
+   * Hooks run concurrently — no ordering guarantees between plugins in this
+   * phase. Plugins that need cross-plugin coordination must use the message
+   * bus.
    */
   public async readyPlugins(): Promise<void> {
     this.logger.debug("Dispatching plugin ready hooks...");
 
-    for (const pluginId of this.initializedPluginIds) {
-      await this.pluginLifecycle.readyPlugin(pluginId);
-    }
+    await Promise.all(
+      this.initializedPluginIds.map((id) =>
+        this.pluginLifecycle.readyPlugin(id),
+      ),
+    );
   }
 
   /**
-   * Start daemons for all initialized plugins.
+   * Start daemons for all initialized plugins concurrently.
    */
   public async startPluginDaemons(): Promise<void> {
     this.logger.debug("Starting plugin daemons...");
 
-    for (const pluginId of this.initializedPluginIds) {
-      await this.pluginLifecycle.startPluginDaemons(pluginId);
-    }
+    await Promise.all(
+      this.initializedPluginIds.map((id) =>
+        this.pluginLifecycle.startPluginDaemons(id),
+      ),
+    );
   }
 
   /**

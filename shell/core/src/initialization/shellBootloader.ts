@@ -63,8 +63,13 @@ export class ShellBootloader {
       return;
     }
 
-    await this.emitPluginsRegistered();
-    await this.prepareReadyState();
+    // Run initial sync (driven by pluginsRegistered subscribers) concurrently
+    // with prepareReadyState. Both are independent: sync imports markdown into
+    // the entity DB; prepareReadyState creates default identity/profile/prompt
+    // entities only if missing, and the entity service uses upsert semantics
+    // so a concurrent file import wins.
+    await Promise.all([this.emitPluginsRegistered(), this.prepareReadyState()]);
+
     await this.services.pluginManager.readyPlugins();
     await this.startRuntimeServices();
 
