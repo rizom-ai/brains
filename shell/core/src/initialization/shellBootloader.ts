@@ -1,3 +1,4 @@
+import { resolvePrompt } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
@@ -82,9 +83,24 @@ export class ShellBootloader {
 
   private async prepareReadyState(): Promise<void> {
     await Promise.all([
-      this.services.identityService.refreshCache(),
-      this.services.profileService.refreshCache(),
+      this.services.identityService.initialize(),
+      this.services.profileService.initialize(),
     ]);
+    this.services.logger.debug("Identity and profile services initialized");
+
+    const promptTemplates = this.services.templateRegistry
+      .list()
+      .filter((t): t is typeof t & { basePrompt: string } => !!t.basePrompt);
+    if (promptTemplates.length > 0) {
+      await Promise.all(
+        promptTemplates.map((t) =>
+          resolvePrompt(this.services.entityService, t.name, t.basePrompt),
+        ),
+      );
+      this.services.logger.debug(
+        `Materialized ${promptTemplates.length} prompt entities`,
+      );
+    }
   }
 
   private async startRuntimeServices(): Promise<void> {

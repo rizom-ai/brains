@@ -38,7 +38,6 @@ const A2A_CORS_HEADERS = {
 export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
-  private unsubscribeSyncCompleted: (() => void) | undefined;
   private taskManager = new TaskManager();
   private agentService: IAgentService | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
@@ -57,15 +56,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     this.hasWebserver = context.plugins.has("webserver");
     this.agentService = context.agentService;
     this.permissionContext = context.permissions;
-
-    // Rebuild after identity/profile services initialize from initial sync.
-    this.unsubscribeSyncCompleted = context.messaging.subscribe(
-      "sync:initial:completed",
-      () => {
-        void this.rebuildAgentCard(context);
-        return { success: true };
-      },
-    );
 
     if (this.hasWebserver) {
       this.logger.info("A2A interface registered", {
@@ -364,7 +354,6 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
         }
       },
       stop: async (): Promise<void> => {
-        this.unsubscribeSyncCompleted?.();
         this.logger.info("A2A server stopped");
       },
     };

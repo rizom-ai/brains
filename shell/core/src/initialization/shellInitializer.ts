@@ -49,7 +49,7 @@ import {
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
-import { PluginManager, resolvePrompt, type IShell } from "@brains/plugins";
+import { PluginManager, type IShell } from "@brains/plugins";
 import {
   PermissionService,
   RenderService,
@@ -403,40 +403,6 @@ export class ShellInitializer {
         logger,
       );
     }
-
-    // Initialize identity and profile services after sync completes.
-    // This materializes a default entity when the DB is still empty after
-    // remote sync, so the CMS has something to edit for fresh brains.
-    messageBus.subscribe<{ success: boolean }, void>(
-      "sync:initial:completed",
-      async () => {
-        logger.debug(
-          "sync:initial:completed received, initializing identity and profile services",
-        );
-        await identityService.initialize();
-        await profileService.initialize();
-        logger.debug("Identity and profile services initialized");
-
-        // Materialize prompt entities for all templates with basePrompt.
-        // This makes prompts visible in CMS/files immediately, not just on first generation.
-        const promptTemplates = templateRegistry
-          .list()
-          .filter(
-            (t): t is typeof t & { basePrompt: string } => !!t.basePrompt,
-          );
-        if (promptTemplates.length > 0) {
-          await Promise.all(
-            promptTemplates.map((t) =>
-              resolvePrompt(entityService, t.name, t.basePrompt),
-            ),
-          );
-          logger.debug(
-            `Materialized ${promptTemplates.length} prompt entities`,
-          );
-        }
-        return { success: true };
-      },
-    );
 
     const batchJobManager = BatchJobManager.getInstance(
       jobQueueService,

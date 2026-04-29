@@ -7,7 +7,7 @@ import { tmpdir } from "os";
 import { existsSync, rmSync, mkdirSync, writeFileSync } from "fs";
 import { MockEntityAdapter } from "./fixtures";
 
-describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
+describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   let harness: ReturnType<typeof createPluginHarness<DirectorySyncPlugin>>;
   let syncPath: string;
   let seedContentPath: string;
@@ -40,8 +40,7 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
 
   /**
    * Subscribe to sync:initial:completed, install plugin, trigger
-   * system:plugins:ready, and wait for async processing. Returns
-   * the collected events array.
+   * system:plugins:ready, and return the collected events array.
    */
   async function installAndWaitForSync(config: {
     seedContent: boolean;
@@ -67,11 +66,10 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
       pluginCount: 1,
     });
 
-    await new Promise((resolve) => setTimeout(resolve, 300));
     return events;
   }
 
-  it("should collect job IDs from imported entities", async () => {
+  it("should emit completion after importing seed content", async () => {
     writeFileSync(
       join(seedContentPath, "base", "test.md"),
       "# Test\n\nTest content",
@@ -82,13 +80,13 @@ describe("DirectorySyncPlugin - Initial Sync Job Waiting", () => {
     expect(events).toContain("sync:initial:completed");
   });
 
-  it("should handle empty sync (no seed content) without waiting", async () => {
+  it("should handle empty sync (no seed content)", async () => {
     const events = await installAndWaitForSync({ seedContent: false });
 
     expect(events).toContain("sync:initial:completed");
   });
 
-  it("should handle timeout gracefully if jobs take too long", async () => {
+  it("should emit completion for seed-content sync", async () => {
     writeFileSync(
       join(seedContentPath, "base", "test.md"),
       "# Test\n\nTest content",

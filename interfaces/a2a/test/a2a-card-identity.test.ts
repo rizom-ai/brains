@@ -7,20 +7,18 @@ import type { AnchorProfile, BrainCharacter } from "@brains/plugins";
  *
  * Timeline:
  * 1. Shell creates AnchorProfileService with default { name: "Unknown" }
- * 2. Plugins register → A2A subscribes to plugins:ready
- * 3. system:plugins:ready fires → A2A builds Agent Card
- *    → getProfile() returns "Unknown" (cache is null, returns default)
- * 4. sync:initial:completed fires → profileService.initialize() → loads from DB
+ * 2. Initial sync imports profile data
+ * 3. Bootloader initializes profile service from DB
  *    → getProfile() now returns "Jan Hein"
- * 5. Agent Card is NEVER rebuilt → stays "Unknown"
+ * 4. A2A onReady builds the Agent Card from initialized services
  *
- * The fix must rebuild the card after the profile service initializes.
+ * The fix must build the card from the ready lifecycle, after the profile service initializes.
  * entity:created/updated won't help because the entity already exists —
  * the issue is that the service cache hasn't been populated yet.
  */
 describe("Agent Card identity timing", () => {
   test("card shows 'Unknown' when profile service has not initialized", () => {
-    // This is what happens at step 3 — profile service returns default
+    // This is what used to happen before ready-state initialization.
     const uninitializedProfile: AnchorProfile = {
       name: "Unknown",
       kind: "professional",
@@ -45,7 +43,7 @@ describe("Agent Card identity timing", () => {
   });
 
   test("card shows real name when profile service has initialized", () => {
-    // This is what step 4 would produce — but the card is never rebuilt
+    // This is what A2A should use when onReady builds the card.
     const initializedProfile: AnchorProfile = {
       name: "Jan Hein",
       kind: "professional",

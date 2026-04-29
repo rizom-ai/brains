@@ -199,6 +199,58 @@ describe("Shell initialization order", () => {
     );
   });
 
+  it("should complete sync:initial:completed handlers before ready hooks", async () => {
+    const lifecyclePlugin: Plugin = {
+      id: "sync-barrier-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Checks initial sync barrier ordering",
+      packageName: "@test/sync-barrier",
+      register: async (shellInstance) => {
+        shellInstance
+          .getMessageBus()
+          .subscribe("sync:initial:completed", async () => {
+            initOrder.push("sync-completed-handler-started");
+            await new Promise((resolve) => setTimeout(resolve, 20));
+            initOrder.push("sync-completed-handler-completed");
+            return { success: true };
+          });
+        shellInstance
+          .getMessageBus()
+          .subscribe("system:plugins:ready", async () => {
+            initOrder.push("plugins-ready");
+            await shellInstance
+              .getMessageBus()
+              .send(
+                "sync:initial:completed",
+                { success: true },
+                "test",
+                undefined,
+                undefined,
+                true,
+              );
+            return { success: true };
+          });
+        return { tools: [], resources: [] };
+      },
+      ready: async () => {
+        initOrder.push("ready");
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [lifecyclePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    expect(initOrder.indexOf("plugins-ready")).toBeLessThan(
+      initOrder.indexOf("sync-completed-handler-started"),
+    );
+    expect(initOrder.indexOf("sync-completed-handler-completed")).toBeLessThan(
+      initOrder.indexOf("ready"),
+    );
+  });
+
   it("should not call ready hooks in registerOnly mode", async () => {
     const lifecyclePlugin: Plugin = {
       id: "register-only-plugin",

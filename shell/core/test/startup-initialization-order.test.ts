@@ -17,49 +17,35 @@ describe("Startup Initialization Order", () => {
     AnchorProfileService.resetInstance();
   });
 
-  describe("ShellInitializer must subscribe to sync:initial:completed", () => {
+  describe("ShellInitializer must not own ready-state identity initialization", () => {
     const shellInitializerPath = join(
       __dirname,
       "../src/initialization/shellInitializer.ts",
     );
 
-    it("should have a sync:initial:completed subscription in shellInitializer.ts", () => {
+    it("should not subscribe to sync:initial:completed for identity/profile initialization", () => {
       const source = readFileSync(shellInitializerPath, "utf-8");
 
-      expect(source).toContain("subscribe");
-      expect(source).toContain('"sync:initial:completed"');
-    });
-
-    it("should call initialize() on identity and profile services in sync:initial:completed handler", () => {
-      const source = readFileSync(shellInitializerPath, "utf-8");
-
-      const syncCompletedIndex = source.indexOf('"sync:initial:completed"');
-      expect(syncCompletedIndex).toBeGreaterThan(-1);
-
-      const handlerBlock = source.slice(
-        syncCompletedIndex,
-        syncCompletedIndex + 500,
-      );
-
-      expect(handlerBlock).toContain("identityService.initialize()");
-      expect(handlerBlock).toContain("profileService.initialize()");
+      expect(source).not.toContain('"sync:initial:completed"');
+      expect(source).not.toContain("identityService.initialize()");
+      expect(source).not.toContain("profileService.initialize()");
     });
   });
 
-  describe("ShellBootloader must prepare identity caches before ready hooks", () => {
+  describe("ShellBootloader must prepare ready-state identity before ready hooks", () => {
     const shellBootloaderPath = join(
       __dirname,
       "../src/initialization/shellBootloader.ts",
     );
 
-    it("should refresh identity and profile before plugin ready hooks", () => {
+    it("should initialize identity and profile before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
       const prepareCallIndex = source.indexOf("await this.prepareReadyState()");
       const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
 
-      expect(source).toContain("identityService.refreshCache()");
-      expect(source).toContain("profileService.refreshCache()");
+      expect(source).toContain("identityService.initialize()");
+      expect(source).toContain("profileService.initialize()");
       expect(prepareCallIndex).toBeGreaterThan(-1);
       expect(readyCallIndex).toBeGreaterThan(-1);
       expect(prepareCallIndex).toBeLessThan(readyCallIndex);
