@@ -222,7 +222,7 @@ export class ShellInitializer {
       pluginManager.registerPlugin(plugin);
     }
 
-    await pluginManager.initializePlugins(options);
+    await pluginManager.initializePlugins();
 
     if (!options?.registerOnly) {
       for (const { id, error } of pluginManager.getFailedPlugins()) {
@@ -492,7 +492,7 @@ export class ShellInitializer {
         this.registerFallbackBaseEntity(entityRegistry);
       }
 
-      this.logger.debug("Shell ready");
+      this.logger.debug("Shell registration phase complete");
     } catch (error) {
       this.logger.error("Shell initialization failed", error);
       throw error;
@@ -500,10 +500,6 @@ export class ShellInitializer {
   }
 }
 
-/**
- * Reset all service singletons. Required when creating multiple Shell
- * instances sequentially (e.g., multi-model eval runs).
- */
 /**
  * Reset all service singletons (sync).
  * Closes DB connections and nulls static references so the next

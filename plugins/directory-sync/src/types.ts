@@ -34,13 +34,8 @@ export const directorySyncConfigSchema = z.object({
   initialSync: z
     .boolean()
     .optional()
-    .describe("Queue initial sync job on startup")
+    .describe("Run initial directory import during startup coordination")
     .default(true),
-  initialSyncDelay: z
-    .number()
-    .optional()
-    .describe("Delay before initial sync (ms)")
-    .default(1000),
   syncBatchSize: z
     .number()
     .optional()

@@ -48,7 +48,6 @@ const baseConfig: DirectorySyncConfig = {
   watchInterval: 1000,
   includeMetadata: true,
   initialSync: true,
-  initialSyncDelay: 0,
   syncBatchSize: 10,
   syncPriority: 3,
   seedContent: false,

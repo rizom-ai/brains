@@ -5,7 +5,7 @@ import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Daemon, Plugin } from "@brains/plugins";
-import { PluginManager } from "@brains/plugins";
+import { PluginManager, SYSTEM_CHANNELS } from "@brains/plugins";
 import { EntityRegistry } from "@brains/entity-service";
 import {
   JobQueueWorker,
@@ -89,8 +89,8 @@ describe("Shell initialization order", () => {
     await testDir.cleanup();
   });
 
-  it("should complete all system:plugins:ready handlers before job processing can start", async () => {
-    let readyHandlerCompleted = false;
+  it("should complete plugins-registered handlers before job processing can start", async () => {
+    let pluginsRegisteredHandlerCompleted = false;
 
     const testPlugin: Plugin = {
       id: "test-plugin",
@@ -101,10 +101,10 @@ describe("Shell initialization order", () => {
       register: async (shellInstance) => {
         shellInstance
           .getMessageBus()
-          .subscribe("system:plugins:ready", async () => {
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             initOrder.push("ready-handler-started");
             await new Promise((resolve) => setTimeout(resolve, 50));
-            readyHandlerCompleted = true;
+            pluginsRegisteredHandlerCompleted = true;
             initOrder.push("ready-handler-completed");
             return { success: true };
           });
@@ -117,7 +117,7 @@ describe("Shell initialization order", () => {
     shell = Shell.createFresh(config, deps);
     await shell.initialize();
 
-    expect(readyHandlerCompleted).toBe(true);
+    expect(pluginsRegisteredHandlerCompleted).toBe(true);
     expect(initOrder).toContain("ready-handler-started");
     expect(initOrder).toContain("ready-handler-completed");
   });
@@ -147,7 +147,7 @@ describe("Shell initialization order", () => {
     expect(initOrder).toContain("entity-adapter-registered-in-onRegister");
   });
 
-  it("should call ready hooks after system:plugins:ready and before daemon startup", async () => {
+  it("should call ready hooks after plugins-registered signal and before daemon startup", async () => {
     const daemon: Daemon = {
       start: async () => {
         initOrder.push("daemon-started");
@@ -167,7 +167,7 @@ describe("Shell initialization order", () => {
         initOrder.push("register");
         shellInstance
           .getMessageBus()
-          .subscribe("system:plugins:ready", async () => {
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             initOrder.push("plugins-ready");
             return { success: true };
           });
@@ -199,7 +199,7 @@ describe("Shell initialization order", () => {
     );
   });
 
-  it("should complete sync:initial:completed handlers before ready hooks", async () => {
+  it("should complete initial-sync-completed handlers before ready hooks", async () => {
     const lifecyclePlugin: Plugin = {
       id: "sync-barrier-plugin",
       version: "1.0.0",
@@ -209,7 +209,7 @@ describe("Shell initialization order", () => {
       register: async (shellInstance) => {
         shellInstance
           .getMessageBus()
-          .subscribe("sync:initial:completed", async () => {
+          .subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
             initOrder.push("sync-completed-handler-started");
             await new Promise((resolve) => setTimeout(resolve, 20));
             initOrder.push("sync-completed-handler-completed");
@@ -217,12 +217,12 @@ describe("Shell initialization order", () => {
           });
         shellInstance
           .getMessageBus()
-          .subscribe("system:plugins:ready", async () => {
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             initOrder.push("plugins-ready");
             await shellInstance
               .getMessageBus()
               .send(
-                "sync:initial:completed",
+                SYSTEM_CHANNELS.initialSyncCompleted,
                 { success: true },
                 "test",
                 undefined,
@@ -276,19 +276,19 @@ describe("Shell initialization order", () => {
     expect(initOrder).not.toContain("ready");
   });
 
-  it("should emit system:plugins:ready BEFORE any background services start", async () => {
+  it("should emit plugins-registered signal before background services start", async () => {
     let jobQueueWorkerRunning = false;
 
     const orderCheckPlugin: Plugin = {
       id: "order-check-plugin",
       version: "1.0.0",
       type: "service",
-      description: "Checks service state when plugins:ready fires",
+      description: "Checks service state when plugins-registered signal fires",
       packageName: "@test/order-check",
       register: async (shellInstance) => {
         shellInstance
           .getMessageBus()
-          .subscribe("system:plugins:ready", async () => {
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             const shellAny = shellInstance as unknown as {
               jobQueueWorker?: { isWorkerRunning(): boolean };
             };

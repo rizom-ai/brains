@@ -29,7 +29,6 @@ export class PluginLifecycle {
    */
   public async initializePlugin(
     pluginId: string,
-    _options: { registerOnly?: boolean } | undefined,
     shell: IShell,
   ): Promise<PluginCapabilities> {
     const pluginInfo = this.plugins.get(pluginId);

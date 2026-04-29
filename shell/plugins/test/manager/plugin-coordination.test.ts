@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { createPluginHarness } from "@brains/plugins/test";
 
 /**
@@ -54,21 +55,21 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     });
   }
 
-  async function sendPluginsReady(): Promise<void> {
-    await harness.sendMessage("system:plugins:ready", {
+  async function sendPluginsRegistered(): Promise<void> {
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {
       timestamp: new Date().toISOString(),
       pluginCount: 2,
     });
   }
 
   it("should demonstrate widget producer pattern: wait for all-registered signal before sending", async () => {
-    let systemPluginsReadyReceived = false;
+    let pluginsRegisteredReceived = false;
     let widgetSentTime = 0;
-    let readyReceivedTime = 0;
+    let pluginsRegisteredTime = 0;
 
-    harness.subscribe("system:plugins:ready", async () => {
-      readyReceivedTime = Date.now();
-      systemPluginsReadyReceived = true;
+    harness.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+      pluginsRegisteredTime = Date.now();
+      pluginsRegisteredReceived = true;
 
       await harness.sendMessage(
         "dashboard:register-widget",
@@ -83,10 +84,10 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
 
     expect(registeredWidgets).toHaveLength(0);
 
-    await sendPluginsReady();
+    await sendPluginsRegistered();
 
-    expect(systemPluginsReadyReceived).toBe(true);
-    expect(widgetSentTime).toBeGreaterThanOrEqual(readyReceivedTime);
+    expect(pluginsRegisteredReceived).toBe(true);
+    expect(widgetSentTime).toBeGreaterThanOrEqual(pluginsRegisteredTime);
     expect(registeredWidgets).toContainEqual({
       id: "test-widget",
       pluginId: "test-producer",
@@ -105,7 +106,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
       return { success: true };
     });
 
-    harness.subscribe("system:plugins:ready", async () => {
+    harness.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await harness.sendMessage(
         "dashboard:register-widget",
         createWidgetPayload("delayed-widget", "test-producer"),
@@ -115,14 +116,14 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
 
     expect(registeredWidgets).toHaveLength(0);
 
-    await sendPluginsReady();
+    await sendPluginsRegistered();
 
     expect(widgetReceivedTime).toBeGreaterThanOrEqual(consumerSubscribedTime);
     expect(registeredWidgets).toHaveLength(1);
   });
 
   it("should receive all widgets from a producer after all-registered signal", async () => {
-    harness.subscribe("system:plugins:ready", async () => {
+    harness.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await harness.sendMessage(
         "dashboard:register-widget",
         createWidgetPayload("entity-stats", "system"),
@@ -146,7 +147,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
 
     expect(registeredWidgets).toHaveLength(0);
 
-    await sendPluginsReady();
+    await sendPluginsRegistered();
 
     expect(registeredWidgets).toHaveLength(3);
     expect(registeredWidgets).toContainEqual({
@@ -166,7 +167,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
   it("should NOT lose widgets due to timing when using all-registered coordination", async () => {
     subscribeToWidgets();
 
-    harness.subscribe("system:plugins:ready", async () => {
+    harness.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
       await harness.sendMessage(
         "dashboard:register-widget",
         createWidgetPayload("critical-widget", "system"),
@@ -174,7 +175,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
       return { success: true };
     });
 
-    await sendPluginsReady();
+    await sendPluginsRegistered();
 
     expect(registeredWidgets).toContainEqual({
       id: "critical-widget",

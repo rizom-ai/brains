@@ -161,8 +161,9 @@ export class Shell implements IShell {
    * Initialize the shell.
    *
    * @param options.registerOnly - If true, only registers plugins and system
-   *   capabilities (tools, resources, etc.) without emitting system:plugins:ready
-   *   or starting background services. Used by CLI for command discovery.
+   *   capabilities (tools, resources, etc.) without emitting the internal
+   *   plugins-registered coordination signal or starting background services.
+   *   Used by CLI for command discovery.
    */
   public async initialize(options?: { registerOnly?: boolean }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");

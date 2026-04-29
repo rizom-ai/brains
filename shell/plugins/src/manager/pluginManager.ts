@@ -138,9 +138,7 @@ export class PluginManager implements IPluginManager {
    * Initialize all registered plugins in dependency order
    * Plugins with no dependencies are initialized first
    */
-  public async initializePlugins(options?: {
-    registerOnly?: boolean;
-  }): Promise<void> {
+  public async initializePlugins(): Promise<void> {
     this.logger.debug("Initializing plugins...");
 
     this.initializedPluginIds = [];
@@ -148,7 +146,7 @@ export class PluginManager implements IPluginManager {
     // Use dependency resolver to handle initialization order
     const result = await this.dependencyResolver.resolveInitializationOrder(
       async (pluginId) => {
-        await this.initializePlugin(pluginId, options);
+        await this.initializePlugin(pluginId);
       },
     );
 
@@ -160,10 +158,7 @@ export class PluginManager implements IPluginManager {
   /**
    * Initialize a specific plugin
    */
-  private async initializePlugin(
-    pluginId: string,
-    options?: { registerOnly?: boolean },
-  ): Promise<void> {
+  private async initializePlugin(pluginId: string): Promise<void> {
     if (!this.shell) {
       throw new PluginError(
         pluginId,
@@ -175,7 +170,6 @@ export class PluginManager implements IPluginManager {
     // Use plugin lifecycle to initialize
     const capabilities = await this.pluginLifecycle.initializePlugin(
       pluginId,
-      options,
       shell,
     );
 

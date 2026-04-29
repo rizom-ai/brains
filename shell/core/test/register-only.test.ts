@@ -5,7 +5,11 @@ import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
 import { createTestDirectory } from "./helpers/test-db";
 import type { Plugin, Daemon } from "@brains/plugins";
-import { InterfacePlugin, PluginManager } from "@brains/plugins";
+import {
+  InterfacePlugin,
+  PluginManager,
+  SYSTEM_CHANNELS,
+} from "@brains/plugins";
 import { EntityRegistry } from "@brains/entity-service";
 import {
   JobQueueWorker,
@@ -79,8 +83,8 @@ describe("Shell registerOnly mode", () => {
     await testDir.cleanup();
   });
 
-  it("should register tools without emitting system:plugins:ready", async () => {
-    let readyFired = false;
+  it("should register tools without emitting plugins-registered signal", async () => {
+    let pluginsRegisteredFired = false;
 
     const testPlugin: Plugin = {
       id: "test-plugin",
@@ -91,8 +95,8 @@ describe("Shell registerOnly mode", () => {
       register: async (shellInstance) => {
         shellInstance
           .getMessageBus()
-          .subscribe("system:plugins:ready", async () => {
-            readyFired = true;
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+            pluginsRegisteredFired = true;
             return { success: true };
           });
         return {
@@ -119,8 +123,8 @@ describe("Shell registerOnly mode", () => {
     const cliTools = shell.getMCPService().getCliTools();
     expect(cliTools.some((t) => t.tool.cli?.name === "test")).toBe(true);
 
-    // system:plugins:ready should NOT have fired
-    expect(readyFired).toBe(false);
+    // Internal plugins-registered coordination signal should NOT have fired
+    expect(pluginsRegisteredFired).toBe(false);
   });
 
   it("should not start background job worker in registerOnly mode", async () => {
