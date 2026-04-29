@@ -5,7 +5,12 @@
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
 export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
-export type { EntityPluginContext, IPromptsNamespace } from "./entity/context";
+export type {
+  EntityPluginContext,
+  IEntitiesNamespace,
+  IEntityAINamespace,
+  IPromptsNamespace,
+} from "./entity/context";
 export { createEntityPluginContext } from "./entity/context";
 export {
   resolvePrompt,
@@ -16,11 +21,32 @@ export {
 export { InterfacePlugin } from "./interface/interface-plugin";
 
 export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+export { defineChannel, type Channel } from "./utils/channels";
 
 // Plugin contexts (needed for plugin initialization)
-export type { ServicePluginContext } from "./service/context";
-export type { BasePluginContext } from "./base/context";
-export type { InterfacePluginContext } from "./interface/context";
+export type {
+  ServicePluginContext,
+  IServiceTemplatesNamespace,
+  IViewsNamespace,
+} from "./service/context";
+export type {
+  BasePluginContext,
+  IMessagingNamespace,
+  IIdentityNamespace,
+  IConversationsNamespace,
+  IEvalNamespace,
+  IInsightsNamespace,
+} from "./base/context";
+export type {
+  InterfacePluginContext,
+  IPermissionsNamespace,
+  IDaemonsNamespace,
+  IToolsNamespace,
+  IApiRoutesNamespace,
+  IWebRoutesNamespace,
+  IPluginsNamespace,
+  IInterfaceConversationsNamespace,
+} from "./interface/context";
 
 export { createServicePluginContext } from "./service/context";
 export { createBasePluginContext } from "./base/context";
@@ -170,7 +196,9 @@ export type { ProgressCallback, ContentFormatter } from "@brains/utils";
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
   MessageInterfacePlugin,
+  type MessageJobTrackingInfo,
   parseConfirmationResponse,
+  formatConfirmationPrompt,
   urlCaptureConfigSchema,
 } from "./message-interface";
 

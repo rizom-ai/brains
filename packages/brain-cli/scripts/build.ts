@@ -158,6 +158,41 @@ async function bundle(opts: {
 
 const libraryEntries = [
   {
+    name: "index",
+    source: join(import.meta.dir, "..", "src", "entries", "index.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "index.d.ts"),
+  },
+  {
+    name: "plugins",
+    source: join(import.meta.dir, "..", "src", "entries", "plugins.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "plugins.d.ts"),
+  },
+  {
+    name: "entities",
+    source: join(import.meta.dir, "..", "src", "entries", "entities.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "entities.d.ts"),
+  },
+  {
+    name: "services",
+    source: join(import.meta.dir, "..", "src", "entries", "services.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "services.d.ts"),
+  },
+  {
+    name: "interfaces",
+    source: join(import.meta.dir, "..", "src", "entries", "interfaces.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "interfaces.d.ts"),
+  },
+  {
+    name: "templates",
+    source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "templates.d.ts"),
+  },
+  {
+    name: "utils",
+    source: join(import.meta.dir, "..", "src", "entries", "utils.ts"),
+    types: join(import.meta.dir, "..", "src", "types", "utils.d.ts"),
+  },
+  {
     name: "site",
     source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
     types: join(import.meta.dir, "..", "src", "types", "site.d.ts"),

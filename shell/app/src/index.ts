@@ -30,6 +30,8 @@ export type {
   BrainDefinition,
   BrainIdentity,
   BrainEnvironment,
+  BrainMode,
+  PresetName,
   PluginConfig,
   CapabilityEntry,
   CapabilityConfig,
