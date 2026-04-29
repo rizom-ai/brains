@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
@@ -55,7 +56,7 @@ describe("Seed Content Git Detection", () => {
     });
 
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "test");
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {}, "test");
     harness.reset();
   }
 

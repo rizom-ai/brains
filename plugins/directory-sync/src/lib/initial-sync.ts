@@ -1,5 +1,5 @@
 import { getErrorMessage } from "@brains/utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import { SYSTEM_CHANNELS, type ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { DirectorySyncConfig, IDirectorySync, IGitSync } from "../types";
 import { copySeedContentIfNeeded } from "./seed-content";
@@ -51,14 +51,14 @@ export function setupInitialSync(
       });
 
       await context.messaging.send(
-        "sync:initial:completed",
+        SYSTEM_CHANNELS.initialSyncCompleted,
         { success: true },
         { broadcast: true },
       );
     } catch (error) {
       logger.error("Initial sync failed", error);
       await context.messaging.send(
-        "sync:initial:completed",
+        SYSTEM_CHANNELS.initialSyncCompleted,
         {
           success: false,
           error: getErrorMessage(error),
@@ -68,8 +68,8 @@ export function setupInitialSync(
     }
   };
 
-  context.messaging.subscribe("system:plugins:ready", async () => {
-    logger.debug("system:plugins:ready received, starting initial sync");
+  context.messaging.subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+    logger.debug("Plugins registered, starting initial sync");
     await runInitialSync();
     return { success: true };
   });

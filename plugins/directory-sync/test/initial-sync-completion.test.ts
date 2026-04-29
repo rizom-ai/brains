@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { DirectorySyncPlugin } from "../src/plugin";
 import { createPluginHarness } from "@brains/plugins/test";
 import { baseEntitySchema } from "@brains/plugins/test";
@@ -47,8 +48,8 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   }): Promise<string[]> {
     const events: string[] = [];
 
-    harness.subscribe("sync:initial:completed", async () => {
-      events.push("sync:initial:completed");
+    harness.subscribe(SYSTEM_CHANNELS.initialSyncCompleted, async () => {
+      events.push(SYSTEM_CHANNELS.initialSyncCompleted);
       return { success: true };
     });
 
@@ -61,7 +62,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
     await harness.installPlugin(plugin);
 
-    await harness.sendMessage("system:plugins:ready", {
+    await harness.sendMessage(SYSTEM_CHANNELS.pluginsRegistered, {
       timestamp: new Date().toISOString(),
       pluginCount: 1,
     });
@@ -77,13 +78,13 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
     const events = await installAndTriggerInitialSync({ seedContent: true });
 
-    expect(events).toContain("sync:initial:completed");
+    expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
   });
 
   it("should handle empty sync (no seed content)", async () => {
     const events = await installAndTriggerInitialSync({ seedContent: false });
 
-    expect(events).toContain("sync:initial:completed");
+    expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
   });
 
   it("should emit completion for seed-content sync", async () => {
@@ -94,6 +95,6 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
     const events = await installAndTriggerInitialSync({ seedContent: true });
 
-    expect(events).toContain("sync:initial:completed");
+    expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
   });
 });

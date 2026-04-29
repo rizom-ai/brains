@@ -1,4 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
+import { SYSTEM_CHANNELS } from "@brains/plugins";
 import { setupInitialSync } from "../../src/lib/initial-sync";
 import { createSilentLogger } from "@brains/test-utils";
 import type { DirectorySyncConfig } from "../../src/types";
@@ -87,7 +88,7 @@ describe("setupInitialSync with git", () => {
       gs,
     );
 
-    const handler = handlers.get("system:plugins:ready");
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     expect(handler).toBeDefined();
     if (handler) await handler();
 
@@ -111,7 +112,7 @@ describe("setupInitialSync with git", () => {
       createSilentLogger(),
     );
 
-    const handler = handlers.get("system:plugins:ready");
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
     expect(syncMock).toHaveBeenCalledTimes(1);
@@ -131,11 +132,11 @@ describe("setupInitialSync with git", () => {
       gs,
     );
 
-    const handler = handlers.get("system:plugins:ready");
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
     expect(context.messaging.send).toHaveBeenCalledWith(
-      "sync:initial:completed",
+      SYSTEM_CHANNELS.initialSyncCompleted,
       { success: true },
       { broadcast: true },
     );
@@ -159,11 +160,11 @@ describe("setupInitialSync with git", () => {
       gs,
     );
 
-    const handler = handlers.get("system:plugins:ready");
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
     expect(context.messaging.send).toHaveBeenCalledWith(
-      "sync:initial:completed",
+      SYSTEM_CHANNELS.initialSyncCompleted,
       expect.objectContaining({ success: false, error: "Network timeout" }),
       { broadcast: true },
     );
@@ -185,11 +186,11 @@ describe("setupInitialSync with git", () => {
       createSilentLogger(),
     );
 
-    const handler = handlers.get("system:plugins:ready");
+    const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
     expect(context.messaging.send).toHaveBeenCalledWith(
-      "sync:initial:completed",
+      SYSTEM_CHANNELS.initialSyncCompleted,
       expect.objectContaining({ success: false, error: "DB locked" }),
       { broadcast: true },
     );

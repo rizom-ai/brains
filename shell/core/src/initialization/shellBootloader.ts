@@ -1,4 +1,4 @@
-import { resolvePrompt } from "@brains/plugins";
+import { resolvePrompt, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
@@ -68,7 +68,7 @@ export class ShellBootloader {
 
   private async emitPluginsRegistered(): Promise<void> {
     await this.services.messageBus.send(
-      "system:plugins:ready",
+      SYSTEM_CHANNELS.pluginsRegistered,
       {
         timestamp: new Date().toISOString(),
         pluginCount: this.services.pluginManager.getAllPluginIds().length,
@@ -78,7 +78,7 @@ export class ShellBootloader {
       undefined,
       true,
     );
-    this.services.logger.debug("Emitted system:plugins:ready event");
+    this.services.logger.debug("Emitted plugins registered event");
   }
 
   private async prepareReadyState(): Promise<void> {

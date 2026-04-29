@@ -11,6 +11,8 @@ export { resolvePrompt, resetPromptCache } from "./entity/prompt-resolver";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 
+export { SYSTEM_CHANNELS, type SystemChannelName } from "./system-channels";
+
 // Plugin contexts (needed for plugin initialization)
 export type { ServicePluginContext } from "./service/context";
 export type { BasePluginContext } from "./base/context";
