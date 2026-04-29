@@ -10,7 +10,9 @@ import {
  * references at runtime. Defaults to the native dynamic `import()`,
  * overridable for tests.
  */
-export type PackageImportFn = (ref: string) => Promise<{ default: unknown }>;
+export type PackageImportFn = (
+  ref: string,
+) => Promise<{ default?: unknown; plugin?: unknown }>;
 
 /**
  * Walk the brain.yaml overrides for `@scope/name` package references
@@ -41,7 +43,7 @@ export async function registerOverridePackages(
 
     try {
       const mod = await importFn(ref);
-      registerPackage(ref, mod.default);
+      registerPackage(ref, mod.default ?? mod);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       console.error(

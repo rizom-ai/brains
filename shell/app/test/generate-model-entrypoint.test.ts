@@ -23,10 +23,14 @@ describe("generateModelEntrypoint", () => {
       "@example/site-beta",
     ]);
 
-    expect(code).toContain('import __pkg0 from "@example/site-alpha"');
-    expect(code).toContain('import __pkg1 from "@example/site-beta"');
-    expect(code).toContain('registerPackage("@example/site-alpha", __pkg0)');
-    expect(code).toContain('registerPackage("@example/site-beta", __pkg1)');
+    expect(code).toContain('import * as __pkg0 from "@example/site-alpha"');
+    expect(code).toContain('import * as __pkg1 from "@example/site-beta"');
+    expect(code).toContain(
+      'registerPackage("@example/site-alpha", __pkg0.default ?? __pkg0)',
+    );
+    expect(code).toContain(
+      'registerPackage("@example/site-beta", __pkg1.default ?? __pkg1)',
+    );
   });
 
   test("should not include registerPackage when no extra packages", () => {
@@ -48,7 +52,7 @@ describe("generateModelEntrypoint", () => {
     expect(defImports).toHaveLength(1);
 
     // Only example site as __pkg0
-    expect(code).toContain('import __pkg0 from "@example/site-alpha"');
+    expect(code).toContain('import * as __pkg0 from "@example/site-alpha"');
     expect(code).not.toContain("__pkg1");
   });
 });

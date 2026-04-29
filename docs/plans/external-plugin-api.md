@@ -2,7 +2,7 @@
 
 ## Status
 
-Public surface contract is determined below. Shell initialization coordination is complete; §1 can now implement the curated exports mechanically.
+Shell initialization coordination and §1 public plugin authoring exports are complete. §2 `brain.yaml plugins:` loading is partially implemented: external plugin declarations parse, package refs register, and runtime loading supports default or named `plugin` factory exports. §3 API compatibility checks remain next.
 
 ## Current state
 
@@ -14,12 +14,10 @@ What `@rizom/brain` exposes today (`packages/brain-cli/package.json` exports):
 - `./deploy` — deploy helper re-exports from `@brains/utils`
 - `./tsconfig.instance.json`
 
-What plugin authors need but cannot reach:
+What plugin authors still need:
 
-- no `./plugins`, `./entities`, `./services`, `./interfaces`, `./utils`, or `./templates` subpath
-- no public re-export of `defineBrain` (lives at `@brains/app`, internal)
-- `brain.yaml` parsing is split: `packages/brain-cli/src/lib/brain-yaml.ts` only validates `brain`, `domain`, `preset`, `model`, while `shell/app/src/instance-overrides.ts` already treats `plugins:` as a per-plugin config override map; neither path loads plugins from `node_modules`
-- no plugin API version constant published anywhere
+- plugin API compatibility checking against package metadata (`rizomBrain.pluginApi`)
+- plugin author docs and at least one reference external plugin
 
 `docs/plans/custom-brain-definitions.md` (the `brain.ts` escape hatch) depends on this plan: `defineBrain` and preset spread targets need to be importable from `@rizom/brain` before `brain.ts` is usable by external authors.
 
@@ -35,7 +33,7 @@ The §0 audit lives in this plan, not a separate document. Record each decision 
 | Registration model                 | Keep a documented hybrid. Use class methods/properties for static declarations auto-registered at boot; use `context.*.register()` for dynamic registration or explicit namespace control.                                                                                                                                                                                          | Current entity/service/site code uses both patterns. Forcing one style would create churn without simplifying external authoring enough.                                                                                                          |
 | Cross-plugin dependencies          | Publish both composite factories and `plugin.dependencies`. Composite factories bundle capabilities that should be enabled together; `dependencies` only orders and validates already-loaded plugins. No peer-dependency autoload in v1.                                                                                                                                            | This preserves current resolver behavior and avoids surprising installs/boot-time package loading. External authors can choose bundle vs ordering contract.                                                                                       |
 | Type-safety surface                | Keep `EntityPlugin<TEntity, TConfig>`, `ServicePlugin<TConfig>`, and `InterfacePlugin<TConfig, TTrackingInfo>`. Do not add service/interface domain generics for v1. Tighten examples around Zod config schemas and typed factory inputs instead.                                                                                                                                   | Entity plugins own a durable entity type, so entity narrowing matters. Service/interface plugins expose heterogeneous tools/routes/transports; config and tracking generics are the useful public type parameters.                                |
-| Versioning policy                  | Start `PLUGIN_API_VERSION` at `1.0.0` when public subpaths ship. Major bump for breaking public types or runtime lifecycle/context behavior; minor for additive exports/hooks/context fields; patch for docs/bug fixes. External plugin packages declare a semver range in `package.json` under `rizomBrain.pluginApi`. Warn when range is unsatisfied.                             | Ties compatibility to the curated public API, not internal workspace package versions. Allows additive evolution without breaking old plugins.                                                                                                    |
+| Versioning policy                  | During alpha, `PLUGIN_API_VERSION` tracks the published `@rizom/brain` package version. Once plugin API v1 is declared stable, it can become an independent semantic API version. External plugin packages declare a semver range in `package.json` under `rizomBrain.pluginApi`; missing or unsatisfied metadata warns during alpha.                                               | Avoids falsely claiming a stable `1.0.0` contract while the package is still alpha, while keeping a path to independent public API versioning later.                                                                                              |
 | `brain.yaml` external plugin shape | Preserve existing `plugins:` map semantics. External packages use keyed map entries with a reserved `package` field and nested `config`, not the list shape.                                                                                                                                                                                                                        | Existing docs and runtime already use `plugins:` as config overrides. A list would be incompatible and ambiguous.                                                                                                                                 |
 
 Audit-derived implementation gates before §1 public exports:
@@ -44,12 +42,12 @@ Audit-derived implementation gates before §1 public exports:
 - Keep `IShell`, `createBasePluginContext`, `createEntityPluginContext`, `createServicePluginContext`, and `createInterfacePluginContext` out of `@rizom/brain/*` public exports.
 - Treat `MessageInterfacePlugin` as public API, but document it as optional sugar over `InterfacePlugin`.
 - Document the hybrid registration model in plugin author docs before publishing examples.
-- Define `PLUGIN_API_VERSION` and `rizomBrain.pluginApi` package metadata before loading external packages.
+- Define `PLUGIN_API_VERSION` and `rizomBrain.pluginApi` package metadata before enforcing compatibility for external packages.
 - Update both brain-yaml parsers/schemas together; do not introduce the incompatible list-form `plugins:` shape.
 
 ## Open work
 
-External developers still cannot build and load full plugins against `@rizom/brain`.
+External developers can import the public authoring surface and declare installed plugin packages in `brain.yaml`, but compatibility checks and reference docs/plugins are still outstanding.
 
 The work breaks into six parts. §0 is gating — publishing the surface before stabilizing the abstractions would freeze whatever shape happens to exist today and force the first real external authors to absorb breaking changes once internal review surfaces gaps.
 
@@ -135,13 +133,18 @@ plugins:
       apiKey: "${STRIPE_API_KEY}"
 ```
 
-Needed behavior:
+Implemented behavior:
 
 - extend the `brain.yaml` schemas with typed support for external plugin map entries while preserving existing config override entries
-- resolve plugin entries with `package` from `node_modules` at boot
+- collect external plugin package refs for static/dynamic registration
+- resolve plugin entries with `package` from registered `node_modules` modules at boot
 - support config objects per external plugin entry under `config`
-- support env-var interpolation in plugin config (`${VAR}`), reusing varlock-resolved env where possible
-- fail clearly when a declared plugin is missing or its API version mismatches (see §3)
+- support env-var interpolation in plugin config (`${VAR}`), reusing the existing override interpolation path
+- fail clearly when a declared plugin package is missing or has an invalid export shape
+
+Remaining behavior:
+
+- fail clearly when a declared plugin's API version mismatches (see §3)
 
 External package module contract:
 

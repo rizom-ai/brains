@@ -223,6 +223,19 @@ plugins:
 
 These values are merged into the selected capability or interface config.
 
+External plugin packages use the same keyed map with a reserved `package` field and optional nested `config` object:
+
+```yaml
+plugins:
+  calendar:
+    package: "@rizom/brain-plugin-calendar"
+    config:
+      apiKey: ${CALENDAR_API_KEY}
+      timezone: UTC
+```
+
+The package version belongs in the instance `package.json`; `brain.yaml` only declares and configures the plugin. List-form `plugins:` is not supported.
+
 ### `permissions`
 
 Explicit permission configuration.

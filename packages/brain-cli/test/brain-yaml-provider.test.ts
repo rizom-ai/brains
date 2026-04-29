@@ -64,6 +64,37 @@ describe("parseBrainYaml model field", () => {
     expect(config.model).toBeUndefined();
   });
 
+  it("should parse external plugin declarations", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      `brain: rover
+plugins:
+  calendar:
+    package: "@rizom/brain-plugin-calendar"
+    config:
+      timezone: UTC
+`,
+    );
+    const config = parseBrainYaml(testDir);
+    expect(config.plugins?.["calendar"]).toEqual({
+      package: "@rizom/brain-plugin-calendar",
+      config: {
+        timezone: "UTC",
+      },
+    });
+  });
+
+  it("should reject list-form plugins", () => {
+    writeFileSync(
+      join(testDir, "brain.yaml"),
+      `brain: rover
+plugins:
+  - package: "@rizom/brain-plugin-calendar"
+`,
+    );
+    expect(() => parseBrainYaml(testDir)).toThrow("Invalid brain.yaml");
+  });
+
   it("should throw for empty yaml", () => {
     writeFileSync(join(testDir, "brain.yaml"), "");
     expect(() => parseBrainYaml(testDir)).toThrow("brain");

@@ -88,7 +88,7 @@ async function registerPackageRefs(
   for (const ref of refs) {
     try {
       const mod = await import(ref);
-      registerPackage(ref, mod.default);
+      registerPackage(ref, mod.default ?? mod);
     } catch {
       // TODO: Use a bootstrap logger instead of console (logger isn't available yet)
       console.error(`❌ brain.yaml: failed to import package "${ref}"`);

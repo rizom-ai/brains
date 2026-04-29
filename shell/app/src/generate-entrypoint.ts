@@ -26,11 +26,11 @@ export function generateModelEntrypoint(
   const extras = extraPackages.filter((pkg) => pkg !== brainPackage);
 
   const packageImportLines = extras.map(
-    (pkg, i) => `import __pkg${i} from "${pkg}";`,
+    (pkg, i) => `import * as __pkg${i} from "${pkg}";`,
   );
 
   const registrationLines = extras.map(
-    (pkg, i) => `registerPackage("${pkg}", __pkg${i});`,
+    (pkg, i) => `registerPackage("${pkg}", __pkg${i}.default ?? __pkg${i});`,
   );
 
   const hasRefs = extras.length > 0;
@@ -99,17 +99,16 @@ export function generateEntrypoint(
     : `@brains/${rawBrain}`;
 
   // Find all @-prefixed package refs in the validated override shape.
-  // TODO: Currently only supports workspace packages. Eventually site/plugin
-  // refs should resolve to git repos, npm packages, or URLs.
+  // Includes site/theme refs, plugin config refs, and external plugin packages.
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );
 
   const packageImportLines = extraImports.map(
-    (pkg, i) => `import __pkg${i} from "${pkg}";`,
+    (pkg, i) => `import * as __pkg${i} from "${pkg}";`,
   );
   const registrationLines = extraImports.map(
-    (pkg, i) => `registerPackage("${pkg}", __pkg${i});`,
+    (pkg, i) => `registerPackage("${pkg}", __pkg${i}.default ?? __pkg${i});`,
   );
 
   const conventionalImports: string[] = [];

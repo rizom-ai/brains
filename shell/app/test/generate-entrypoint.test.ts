@@ -23,8 +23,10 @@ plugins:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/theme-default"');
-    expect(code).toContain('registerPackage("@brains/theme-default", __pkg0)');
+    expect(code).toContain('import * as __pkg0 from "@brains/theme-default"');
+    expect(code).toContain(
+      'registerPackage("@brains/theme-default", __pkg0.default ?? __pkg0)',
+    );
   });
 
   test("should handle multiple package refs across plugins", () => {
@@ -38,10 +40,14 @@ plugins:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/theme-pink"');
-    expect(code).toContain('import __pkg1 from "@brains/site-personal"');
-    expect(code).toContain('registerPackage("@brains/theme-pink", __pkg0)');
-    expect(code).toContain('registerPackage("@brains/site-personal", __pkg1)');
+    expect(code).toContain('import * as __pkg0 from "@brains/theme-pink"');
+    expect(code).toContain('import * as __pkg1 from "@brains/site-personal"');
+    expect(code).toContain(
+      'registerPackage("@brains/theme-pink", __pkg0.default ?? __pkg0)',
+    );
+    expect(code).toContain(
+      'registerPackage("@brains/site-personal", __pkg1.default ?? __pkg1)',
+    );
   });
 
   test("should not duplicate brain package in imports", () => {
@@ -92,8 +98,10 @@ site:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/site-default"');
-    expect(code).toContain('registerPackage("@brains/site-default", __pkg0)');
+    expect(code).toContain('import * as __pkg0 from "@brains/site-default"');
+    expect(code).toContain(
+      'registerPackage("@brains/site-default", __pkg0.default ?? __pkg0)',
+    );
   });
 
   test("should include both site and plugin package refs", () => {
@@ -108,8 +116,8 @@ plugins:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg0 from "@brains/site-default"');
-    expect(code).toContain('import __pkg1 from "@brains/theme-override"');
+    expect(code).toContain('import * as __pkg0 from "@brains/site-default"');
+    expect(code).toContain('import * as __pkg1 from "@brains/theme-override"');
   });
 
   test("should include a static import for site.theme package refs", () => {
@@ -122,8 +130,10 @@ site:
     const code = generateEntrypoint(yaml);
 
     expect(code).not.toBeNull();
-    expect(code).toContain('import __pkg1 from "@brains/theme-default"');
-    expect(code).toContain('registerPackage("@brains/theme-default", __pkg1)');
+    expect(code).toContain('import * as __pkg1 from "@brains/theme-default"');
+    expect(code).toContain(
+      'registerPackage("@brains/theme-default", __pkg1.default ?? __pkg1)',
+    );
   });
 
   test("should import registerPackage from @brains/app", () => {

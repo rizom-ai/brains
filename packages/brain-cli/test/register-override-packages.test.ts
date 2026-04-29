@@ -84,6 +84,30 @@ describe("registerOverridePackages", () => {
     expect(getPackage(pluginRef)).toBe(fakePlugin);
   });
 
+  it("registers external plugin package declarations with named plugin exports", async () => {
+    const pluginRef = createRef("external-plugin-fixture");
+    const pluginFactory = (): never => {
+      throw new Error("not called by registration");
+    };
+    const overrides: InstanceOverrides = {
+      plugins: {
+        calendar: {
+          package: pluginRef,
+          config: { timezone: "UTC" },
+        },
+      },
+    };
+    const importFn: PackageImportFn = async (ref) => {
+      if (ref === pluginRef) return { plugin: pluginFactory };
+      throw new Error(`unexpected ref: ${ref}`);
+    };
+
+    await registerOverridePackages(overrides, importFn);
+
+    expect(hasPackage(pluginRef)).toBe(true);
+    expect(getPackage(pluginRef)).toEqual({ plugin: pluginFactory });
+  });
+
   it("registers both site.package and plugin refs in one pass", async () => {
     const siteRef = createRef("site-fixture");
     const pluginRef = createRef("plugin-fixture");

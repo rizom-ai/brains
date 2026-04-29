@@ -7,6 +7,32 @@ import { logLevelSchema } from "./types";
  *
  * Validates the structure after YAML parsing + env interpolation.
  */
+const pluginConfigOverrideSchema = z.record(z.unknown());
+
+const externalPluginDeclarationSchema = z
+  .object({
+    /** npm package name to import from node_modules */
+    package: z.string().min(1),
+    /** Config object passed to the external plugin factory */
+    config: z.record(z.unknown()).optional(),
+  })
+  .strict();
+
+const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
+  (entry, ctx) => {
+    if (typeof entry["package"] !== "string") return;
+
+    const parsed = externalPluginDeclarationSchema.safeParse(entry);
+    if (!parsed.success) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          'external plugin declarations may only contain "package" and optional nested "config"',
+      });
+    }
+  },
+);
+
 const instanceOverridesSchema = z.object({
   /** Brain package name (required) */
   brain: z.string().optional(),
@@ -75,8 +101,17 @@ const instanceOverridesSchema = z.object({
   /** Trusted users (elevated access) */
   trusted: z.array(z.string()).optional(),
 
-  /** Per-plugin config overrides, keyed by plugin ID */
-  plugins: z.record(z.record(z.unknown())).optional(),
+  /**
+   * Per-plugin config overrides and external plugin declarations, keyed by plugin ID.
+   *
+   * Existing built-in override shape remains:
+   *   plugins.directory-sync.git.repo: ...
+   *
+   * External packages reserve `package` and optional nested `config`:
+   *   plugins.calendar.package: "@rizom/brain-plugin-calendar"
+   *   plugins.calendar.config.apiKey: "${CALENDAR_API_KEY}"
+   */
+  plugins: z.record(pluginOverrideEntrySchema).optional(),
 
   /** Permission rules */
   permissions: z
@@ -102,7 +137,54 @@ const instanceOverridesSchema = z.object({
  * of the same brain model. Secrets stay in .env; everything else
  * goes here (with ${ENV_VAR} interpolation for referencing secrets).
  */
+export type ExternalPluginDeclaration = z.infer<
+  typeof externalPluginDeclarationSchema
+>;
+export type PluginConfigOverride = Record<string, unknown>;
+export type PluginOverrideEntry =
+  | PluginConfigOverride
+  | ExternalPluginDeclaration;
 export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
+
+export function isExternalPluginDeclaration(
+  entry: PluginOverrideEntry | undefined,
+): entry is ExternalPluginDeclaration {
+  return (
+    !!entry &&
+    typeof entry === "object" &&
+    !Array.isArray(entry) &&
+    typeof (entry as Record<string, unknown>)["package"] === "string" &&
+    (Object.keys(entry).length === 1 ||
+      (Object.keys(entry).length === 2 &&
+        Object.prototype.hasOwnProperty.call(entry, "config")))
+  );
+}
+
+/** Return only built-in plugin config overrides, excluding external packages. */
+export function getPluginConfigOverrides(
+  plugins: InstanceOverrides["plugins"] | undefined,
+): Record<string, PluginConfigOverride> {
+  const result: Record<string, PluginConfigOverride> = {};
+  for (const [id, entry] of Object.entries(plugins ?? {})) {
+    if (!isExternalPluginDeclaration(entry)) {
+      result[id] = entry;
+    }
+  }
+  return result;
+}
+
+/** Return only external plugin package declarations. */
+export function getExternalPluginDeclarations(
+  plugins: InstanceOverrides["plugins"] | undefined,
+): Record<string, ExternalPluginDeclaration> {
+  const result: Record<string, ExternalPluginDeclaration> = {};
+  for (const [id, entry] of Object.entries(plugins ?? {})) {
+    if (isExternalPluginDeclaration(entry)) {
+      result[id] = entry;
+    }
+  }
+  return result;
+}
 
 export const CONVENTIONAL_SITE_PACKAGE_REF = "@brains/local-site";
 export const CONVENTIONAL_THEME_PACKAGE_REF = "@brains/local-theme";

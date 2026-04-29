@@ -4,12 +4,16 @@ import { ensureArray, z, ZodError, type Logger } from "@brains/utils";
 import type {
   BrainDefinition,
   BrainEnvironment,
+  PluginFactory,
   PresetName,
 } from "./brain-definition";
 import type { AppConfig, DeploymentConfigInput } from "./types";
 import {
   CONVENTIONAL_SITE_PACKAGE_REF,
+  getExternalPluginDeclarations,
+  getPluginConfigOverrides,
   stripSiteConfig,
+  type ExternalPluginDeclaration,
   type InstanceOverrides,
 } from "./instance-overrides";
 import {
@@ -128,7 +132,12 @@ export function resolve(
   logger?: Logger,
 ): AppConfig {
   const activeIds = resolveActiveIds(definition, overrides);
-  const pluginOverrides = resolveAllPackageRefs(overrides?.plugins ?? {});
+  const pluginOverrides = resolveAllPackageRefs(
+    getPluginConfigOverrides(overrides?.plugins),
+  );
+  const externalPluginDeclarations = getExternalPluginDeclarations(
+    overrides?.plugins,
+  );
   const effectiveModel = overrides?.model ?? definition.model;
   const webserverEnabled = activeIds
     ? activeIds.has("webserver")
@@ -204,6 +213,15 @@ export function resolve(
         throw error;
       }
     }
+  }
+
+  // Instantiate external plugin packages declared in brain.yaml.
+  for (const [id, declaration] of Object.entries(externalPluginDeclarations)) {
+    if (overrides?.remove?.includes(id)) continue;
+
+    const factory = resolveExternalPluginFactory(id, declaration);
+    const result = factory(declaration.config ?? {});
+    capabilities.push(...ensureArray(result));
   }
 
   // Instantiate interfaces
@@ -385,6 +403,38 @@ function resolveAllPackageRefs(
   }
   return resolved;
 }
+
+function resolveExternalPluginFactory(
+  pluginId: string,
+  declaration: ExternalPluginDeclaration,
+): PluginFactory {
+  const packageName = declaration.package;
+  if (!hasPackage(packageName)) {
+    throw new Error(
+      `External plugin package "${packageName}" for plugins.${pluginId} is not registered. Install it and ensure it is imported before resolve().`,
+    );
+  }
+
+  const pkg = getPackage(packageName);
+  if (typeof pkg === "function") {
+    return pkg as PluginFactory;
+  }
+
+  if (pkg && typeof pkg === "object") {
+    const moduleLike = pkg as { default?: unknown; plugin?: unknown };
+    if (typeof moduleLike.default === "function") {
+      return moduleLike.default as PluginFactory;
+    }
+    if (typeof moduleLike.plugin === "function") {
+      return moduleLike.plugin as PluginFactory;
+    }
+  }
+
+  throw new Error(
+    `External plugin package "${packageName}" for plugins.${pluginId} must export a plugin factory as default or named "plugin".`,
+  );
+}
+
 /**
  * Resolve the site package from brain.yaml override or brain definition default.
  * brain.yaml `site.package` (a @-prefixed package ref) takes priority.
@@ -485,14 +535,3 @@ function resolveTheme(
 
   return composeTheme([baseTheme, themeOverride].filter(Boolean).join("\n\n"));
 }
-
-/**
- * Construct a plugin with targeted override matching.
- *
- * 1. Construct with base config → get plugin.id
- * 2. If disabled → skip
- * 3. If a matching override exists → reconstruct with merged config
- *
- * Only the override keyed by the plugin's own ID is applied,
- * so overrides for other plugins never leak in.
- */
