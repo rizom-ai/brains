@@ -9,7 +9,7 @@ Proposed.
 Deploy artifact templates are split across three packages with no canonical home:
 
 - **`packages/brain-cli/templates/deploy/scripts/`** — `provision-server.ts`, `update-dns.ts`, `write-ssh-key.ts` (per-instance scaffolding scripts).
-- **`packages/brain-cli/src/commands/init.ts`** — 1400+ lines that inline Caddyfile, Dockerfile, `.kamal/secrets`, and the GitHub release workflow as string literals interleaved with scaffolding logic.
+- **`packages/brain-cli/src/commands/init.ts`** — 1400+ lines that inline Dockerfile, `.kamal/secrets`, and the GitHub release workflow as string literals interleaved with scaffolding logic.
 - **`@brains/utils/deploy-templates/`** — the `kamal-deploy.yml` template, imported by `init.ts` via `with { type: "text" }` (`init.ts:13`).
 - **`packages/brains-ops/templates/`** — fleet-operator templates (`rover-pilot/`) plus parallel bootstrap routines (cert, SSH key, age key, secrets, content repo provisioning).
 
@@ -30,7 +30,6 @@ One canonical home for deploy artifact templates, consumed by both `brain init -
 
 A new shared package owns the template surface:
 
-- Caddyfile (preview + production variants)
 - Dockerfile (with and without site-builder)
 - `.kamal/` config and hook scripts
 - `kamal-deploy.yml` (moved out of `@brains/utils`)
@@ -42,13 +41,12 @@ Public API: render functions, not raw strings.
 
 ```ts
 import {
-  renderCaddyfile,
   renderKamalDeploy,
   renderDockerfile,
   deployScripts,
 } from "@brains/deploy-templates";
 
-const caddyfile = renderCaddyfile({ domain, preview: true });
+const dockerfile = renderDockerfile();
 ```
 
 Templates get rendered with explicit, typed inputs — not string concatenation in the caller.
@@ -77,8 +75,8 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 
 1. Inventory: build a manifest of every deploy template/string across the three packages — file → owner → consumers.
 2. Create `shared/deploy-templates/` skeleton; move `kamal-deploy.yml` first as the smallest cut. Update `init.ts` import path.
-3. Extract Caddyfile contents into `renderCaddyfile()`. Replace the string literal in `init.ts` with the call. Diff scaffold output to confirm byte-identical.
-4. Repeat for Dockerfile, `.kamal/secrets`, GitHub workflow, deploy scripts — one move per change.
+3. Extract Dockerfile contents into `renderDockerfile()`. Replace the string literal/import in callers with the call. Diff scaffold output to confirm byte-identical.
+4. Repeat for `.kamal/secrets`, GitHub workflow, deploy scripts — one move per change.
 5. Move env-schema fragments (`deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`) into the new package; have `brain-cli/src/lib/env-schema.ts` import them.
 6. Audit `brains-ops/templates/rover-pilot/` for overlap; deduplicate against `@brains/deploy-templates`.
 7. Delete `@brains/utils/deploy-templates/`.
@@ -87,7 +85,7 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 
 - Merging `@rizom/brain` and `@rizom/ops`
 - Changing the runtime contract between deploy artifacts and the brain at boot
-- Re-templating Caddy/Kamal config in a different DSL
+- Re-templating Kamal config in a different DSL
 - Moving fleet operator concerns out of `@rizom/ops`
 
 ## Verification
@@ -104,5 +102,5 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 - `packages/brain-cli/templates/deploy/`
 - `packages/brains-ops/templates/rover-pilot/`
 - `shared/utils/src/deploy-templates/` (current Kamal home)
-- `docs/plans/unified-http-surface.md` — adjacent Caddy/Kamal work
+- `docs/plans/unified-http-surface.md` — adjacent Kamal/shared HTTP surface work
 - `docs/plans/env-schema-canonical.md` — shares the env-schema-fragment touch points

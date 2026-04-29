@@ -4,7 +4,6 @@ import {
   chmodSync,
   existsSync,
   readFileSync,
-  unlinkSync,
 } from "fs";
 import { basename, dirname, join, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
@@ -104,10 +103,6 @@ export function scaffold(dir: string, options: ScaffoldOptions): void {
     writePublishWorkflow(dir, options.regen);
     writeDeployWorkflow(dir, options.regen);
     writeSharedDeployScripts(dir, options.regen);
-    removeLegacyGeneratedFile(
-      join(dir, "deploy", "Caddyfile"),
-      legacyCaddyfileContents,
-    );
   }
 }
 
@@ -193,21 +188,6 @@ function writeReconcilableScaffoldFile(options: {
   if (executable) {
     chmodSync(path, 0o755);
   }
-}
-
-/**
- * Match a file against a content fingerprint:
- * every string in `must` must appear in `current`, and every string
- * in `mustNot` (when provided) must not.
- */
-function matchesFingerprint(
-  current: string,
-  fingerprint: { must: string[]; mustNot?: string[] },
-): boolean {
-  return (
-    fingerprint.must.every((s) => current.includes(s)) &&
-    (fingerprint.mustNot?.every((s) => !current.includes(s)) ?? true)
-  );
 }
 
 function shouldScaffoldLocalSiteTheme(model: string): boolean {
@@ -339,246 +319,6 @@ volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml
-`,
-];
-
-const legacyDockerfileContents = [
-  `ARG BUN_VERSION=1.3.10
-FROM oven/bun:\${BUN_VERSION}-slim AS runtime
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
-    && setcap cap_net_bind_service=+ep $(which caddy) \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-
-RUN mkdir -p /srv/fallback && \
-    printf '<!doctype html><html><head><meta charset="utf-8"><title>brain</title></head><body></body></html>\n' \
-    > /srv/fallback/index.html
-
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
-RUN mkdir -p /app/data /app/cache /app/brain-data && \
-    chmod -R 777 /app/data /app/cache /app/brain-data
-
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
-
-# --- standalone: bake full project into image (brain-cli deploy) ---
-FROM runtime AS standalone
-COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
-COPY . .
-
-# --- fleet: install published brain at pinned version (ops deploy) ---
-FROM runtime AS fleet
-ARG BRAIN_VERSION
-RUN test -n "$BRAIN_VERSION" \
- && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
- && bun add @rizom/brain@$BRAIN_VERSION
-`,
-  `FROM oven/bun:1.3.10-slim
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
-    && setcap cap_net_bind_service=+ep $(which caddy) \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
-
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-COPY . .
-
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
-RUN mkdir -p /app/data /app/cache /app/brain-data && \
-    chmod -R 777 /app/data /app/cache /app/brain-data
-
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
-`,
-];
-
-const legacyCaddyfileContents = [
-  `# Internal Caddy — path-based routing to brain services.
-# kamal-proxy terminates TLS externally; this runs inside the container.
-:80 {
-	@preview header_regexp preview_host Host ^(?:preview\\..+|.+-preview\\..+)$
-	handle @preview {
-		reverse_proxy localhost:4321
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-
-	# Health endpoint
-	handle /health {
-		reverse_proxy localhost:3333
-	}
-
-	# MCP endpoint
-	handle /mcp* {
-		reverse_proxy localhost:3333
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:3334
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
-	# Production site: prefer the webserver when present; otherwise fall back
-	# to the A2A interface so core-only deployments never return a bare 502.
-	handle {
-		reverse_proxy localhost:8080 localhost:3334 {
-			lb_policy first
-			lb_retries 1
-		}
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-}
-`,
-  `# Internal Caddy — path-based routing to brain services.
-# kamal-proxy terminates TLS externally; this runs inside the container.
-:80 {
-	@preview host preview.mylittlephoney.com *-preview.*
-	handle @preview {
-		reverse_proxy localhost:4321
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-
-	# Health endpoint
-	handle /health {
-		reverse_proxy localhost:3333
-	}
-
-	# MCP endpoint
-	handle /mcp* {
-		reverse_proxy localhost:3333
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:3334
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
-	# Production site: prefer the webserver when present; otherwise fall back
-	# to the A2A interface so core-only deployments never return a bare 502.
-	handle {
-		reverse_proxy localhost:8080 localhost:3334 {
-			lb_policy first
-			lb_retries 1
-		}
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-}
-`,
-];
-
-const legacyDeployWorkflowContents = [
-  `name: Deploy
-
-on:
-  push:
-    branches: ["main"]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract config from brain.yaml
-        run: |
-          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains${"\\///"}' | tr -d '"' | tr -d "'")
-          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
-          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
-
-      - name: Install Kamal
-        run: gem install kamal
-
-      - name: Deploy
-        env:
-          KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SERVER_IP: \${{ secrets.SERVER_IP }}
-          AI_API_KEY: \${{ secrets.AI_API_KEY }}
-          GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
-          MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
-        run: kamal deploy --skip-push
 `,
 ];
 
@@ -738,20 +478,6 @@ function buildWorkflowSecretsEnvBlock(dir: string): string {
     .join("\n");
 }
 
-function isLegacyStandalonePublishWorkflow(current: string): boolean {
-  return matchesFingerprint(current, {
-    must: [
-      "name: Publish Image",
-      "uses: docker/build-push-action@v6",
-      "file: deploy/Dockerfile",
-      "type=raw,value=latest",
-      "type=raw,value=${{ github.sha }}",
-      "service=brain",
-    ],
-    mustNot: ["target: standalone"],
-  });
-}
-
 function writePublishWorkflow(dir: string, regen = false): void {
   const content = `name: Publish Image
 
@@ -807,7 +533,6 @@ jobs:
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "publish-image.yml"),
     content,
-    shouldReconcile: isLegacyStandalonePublishWorkflow,
     regen,
   });
 }
@@ -830,51 +555,13 @@ function resolvePackageDeployScriptsDir(): string {
   throw new Error("Missing package-local deploy scripts for brain init");
 }
 
-function isLegacyStandaloneDeployDockerfile(current: string): boolean {
-  return matchesFingerprint(current, {
-    must: [
-      "apt-get install -y --no-install-recommends caddy",
-      "COPY deploy/Caddyfile /etc/caddy/Caddyfile",
-      'CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]',
-    ],
-  });
-}
-
 function writeDeployDockerfile(dir: string, regen = false): void {
   const content = deployDockerfileTemplate;
 
   writeReconcilableScaffoldFile({
     path: join(dir, "deploy", "Dockerfile"),
     content,
-    legacyContents: legacyDockerfileContents,
-    shouldReconcile: isLegacyStandaloneDeployDockerfile,
     regen,
-  });
-}
-
-function isLegacyStandaloneDeployWorkflow(current: string): boolean {
-  return matchesFingerprint(current, {
-    must: [
-      "name: Deploy",
-      'workflows: ["Publish Image"]',
-      'echo "IMAGE_REPOSITORY=ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}" >> "$GITHUB_ENV"',
-      "const baseUrl = 'https://api.hetzner.cloud/v1';",
-      "await upsertRecord('preview.' + domain);",
-      'curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"',
-    ],
-    mustNot: ["run: ./scripts/extract-brain-config.rb"],
-  });
-}
-
-function isScriptDeployWorkflowMissingBunSetup(current: string): boolean {
-  return matchesFingerprint(current, {
-    must: [
-      "name: Deploy",
-      "run: ./scripts/extract-brain-config.rb",
-      "run: bun deploy/scripts/provision-server.ts",
-      'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
-    ],
-    mustNot: ["uses: oven-sh/setup-bun@v2"],
   });
 }
 
@@ -1112,21 +799,6 @@ ${workflowSecretsEnv}
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "deploy.yml"),
     content,
-    legacyContents: legacyDeployWorkflowContents,
-    shouldReconcile: (current) =>
-      [
-        (c: string) =>
-          matchesFingerprint(c, {
-            must: [
-              "name: Deploy",
-              "run: kamal deploy --skip-push",
-              "SERVER_IP: ${{ secrets.SERVER_IP }}",
-            ],
-            mustNot: ['workflows: ["Publish Image"]'],
-          }),
-        isLegacyStandaloneDeployWorkflow,
-        isScriptDeployWorkflowMissingBunSetup,
-      ].some((p) => p(current)),
     regen,
   });
 }
@@ -1213,22 +885,6 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 ` || isStaleStandaloneDeployMounts(current)
   );
-}
-
-function removeLegacyGeneratedFile(
-  path: string,
-  legacyContents: string[],
-): void {
-  if (!existsSync(path)) {
-    return;
-  }
-
-  const current = readFileSync(path, "utf-8");
-  if (!legacyContents.includes(current)) {
-    return;
-  }
-
-  unlinkSync(path);
 }
 
 function writeSharedDeployScripts(dir: string, regen = false): void {

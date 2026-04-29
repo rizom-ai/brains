@@ -101,196 +101,6 @@ volumes:
   - /opt/brain.yaml:/app/brain.yaml
 `;
 
-const legacyDockerfile = `ARG BUN_VERSION=1.3.10
-FROM oven/bun:\${BUN_VERSION}-slim AS runtime
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
-    && setcap cap_net_bind_service=+ep $(which caddy) \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-
-RUN mkdir -p /srv/fallback && \
-    printf '<!doctype html><html><head><meta charset="utf-8"><title>brain</title></head><body></body></html>\n' \
-    > /srv/fallback/index.html
-
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
-RUN mkdir -p /app/data /app/cache /app/brain-data && \
-    chmod -R 777 /app/data /app/cache /app/brain-data
-
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
-
-# --- standalone: bake full project into image (brain-cli deploy) ---
-FROM runtime AS standalone
-COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
-COPY . .
-
-# --- fleet: install published brain at pinned version (ops deploy) ---
-FROM runtime AS fleet
-ARG BRAIN_VERSION
-RUN test -n "$BRAIN_VERSION" \
- && printf '{"name":"rover-pilot-runtime","private":true}\n' > package.json \
- && bun add @rizom/brain@$BRAIN_VERSION
-`;
-
-const legacyCaddyfile = `# Internal Caddy — path-based routing to brain services.
-# kamal-proxy terminates TLS externally; this runs inside the container.
-:80 {
-	@preview host *-preview.*
-	handle @preview {
-		reverse_proxy localhost:4321
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-
-	# Health endpoint
-	handle /health {
-		reverse_proxy localhost:3333
-	}
-
-	# MCP endpoint
-	handle /mcp* {
-		reverse_proxy localhost:3333
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:3334
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
-	@root path /
-	handle @root {
-		redir /.well-known/agent-card.json 302
-	}
-
-	# Production site: prefer the webserver when present; otherwise fall back
-	# to the A2A interface so core-only deployments never return a bare 502.
-	handle {
-		reverse_proxy localhost:8080 localhost:3334 {
-			lb_policy first
-			lb_retries 1
-		}
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-}
-`;
-
-const legacyDeployWorkflowCommitStep = `      - name: Commit generated config
-        run: |
-          if git diff --quiet -- users views; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add users views
-          git commit -m "chore(ops): reconcile generated config"
-          git push origin HEAD:\${{ github.ref_name }}
-`;
-
-const updatedDeployWorkflowCommitStep = `      - name: Commit generated config
-        run: |
-          if git diff --quiet -- users views; then
-            exit 0
-          fi
-
-          git fetch origin "\${{ github.ref_name }}"
-          if git diff --quiet "origin/\${{ github.ref_name }}" -- users views; then
-            exit 0
-          fi
-
-          patch_file="$(mktemp)"
-          git diff --binary -- users views > "$patch_file"
-          git reset --hard "origin/\${{ github.ref_name }}"
-          git apply --3way --index "$patch_file"
-
-          if git diff --cached --quiet -- users views; then
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(ops): reconcile generated config"
-          git push origin HEAD:\${{ github.ref_name }}
-`;
-
-const legacyReconcileWorkflowCommitStep = `      - name: Commit generated outputs
-        run: |
-          if git diff --quiet -- views users; then
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add views users
-          git commit -m "chore(ops): reconcile pilot outputs"
-          git push origin HEAD:\${{ github.ref_name }}
-`;
-
-const updatedReconcileWorkflowCommitStep = `      - name: Commit generated outputs
-        run: |
-          if git diff --quiet -- views users; then
-            exit 0
-          fi
-
-          git fetch origin "\${{ github.ref_name }}"
-          if git diff --quiet "origin/\${{ github.ref_name }}" -- views users; then
-            exit 0
-          fi
-
-          patch_file="$(mktemp)"
-          git diff --binary -- views users > "$patch_file"
-          git reset --hard "origin/\${{ github.ref_name }}"
-          git apply --3way --index "$patch_file"
-
-          if git diff --cached --quiet -- views users; then
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit -m "chore(ops): reconcile pilot outputs"
-          git push origin HEAD:\${{ github.ref_name }}
-`;
-
 async function linkOpsPackage(repoDir: string): Promise<void> {
   const target = join(repoDir, "node_modules", "@rizom", "ops");
   await mkdir(dirname(target), { recursive: true });
@@ -586,8 +396,6 @@ describe("initPilotRepo", () => {
     expect(dockerfile).toContain("bun add @rizom/brain@$BRAIN_VERSION");
     expect(dockerfile).toContain("EXPOSE 8080");
     expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
-    expect(dockerfile).not.toContain("caddy start");
-    expect(dockerfile).not.toContain("deploy/Caddyfile");
 
     const deployConfig = await readFile(
       join(repo, "deploy", "kamal", "deploy.yml"),
@@ -665,8 +473,6 @@ describe("initPilotRepo", () => {
       join(repo, "deploy", "kamal", "deploy.yml"),
       legacyDeployYml,
     );
-    await writeFile(join(repo, "deploy", "Dockerfile"), legacyDockerfile);
-    await writeFile(join(repo, "deploy", "Caddyfile"), legacyCaddyfile);
 
     await initPilotRepo(repo);
 
@@ -679,17 +485,6 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain-config:/config");
     expect(deployConfig).toContain("/opt/brain-dist:/app/dist");
     expect(deployConfig).not.toContain("\n  app_port: 80\n");
-
-    const dockerfile = await readFile(
-      join(repo, "deploy", "Dockerfile"),
-      "utf8",
-    );
-    expect(dockerfile).toContain("EXPOSE 8080");
-    expect(dockerfile).toContain('CMD ["./node_modules/.bin/brain", "start"]');
-    expect(dockerfile).not.toContain("caddy start");
-    expect(dockerfile).not.toContain("deploy/Caddyfile");
-
-    expect(existsSync(join(repo, "deploy", "Caddyfile"))).toBe(false);
   });
 
   it("reconciles stale deploy volume mounts on rerun", async () => {
@@ -715,145 +510,6 @@ describe("initPilotRepo", () => {
     expect(deployConfig).toContain("/opt/brain.yaml:/app/brain.yaml");
   });
 
-  it("reconciles legacy workflow push steps on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
-    const repo = join(root, "rover-pilot");
-
-    await initPilotRepo(repo);
-
-    const deployWorkflowPath = join(repo, ".github", "workflows", "deploy.yml");
-    const deployWorkflow = await readFile(deployWorkflowPath, "utf8");
-    expect(deployWorkflow).toContain(updatedDeployWorkflowCommitStep);
-    await writeFile(
-      deployWorkflowPath,
-      deployWorkflow.replace(
-        updatedDeployWorkflowCommitStep,
-        legacyDeployWorkflowCommitStep,
-      ),
-    );
-
-    const reconcileWorkflowPath = join(
-      repo,
-      ".github",
-      "workflows",
-      "reconcile.yml",
-    );
-    const reconcileWorkflow = await readFile(reconcileWorkflowPath, "utf8");
-    expect(reconcileWorkflow).toContain(updatedReconcileWorkflowCommitStep);
-    await writeFile(
-      reconcileWorkflowPath,
-      reconcileWorkflow.replace(
-        updatedReconcileWorkflowCommitStep,
-        legacyReconcileWorkflowCommitStep,
-      ),
-    );
-
-    await initPilotRepo(repo);
-
-    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
-      'git fetch origin "${{ github.ref_name }}"',
-    );
-    expect(await readFile(deployWorkflowPath, "utf8")).not.toContain(
-      legacyDeployWorkflowCommitStep,
-    );
-    expect(await readFile(reconcileWorkflowPath, "utf8")).toContain(
-      'git fetch origin "${{ github.ref_name }}"',
-    );
-    expect(await readFile(reconcileWorkflowPath, "utf8")).not.toContain(
-      legacyReconcileWorkflowCommitStep,
-    );
-  });
-
-  it("reconciles stale deploy workflow recursion fixes on rerun", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
-    const repo = join(root, "rover-pilot");
-
-    await initPilotRepo(repo);
-
-    const deployWorkflowPath = join(repo, ".github", "workflows", "deploy.yml");
-    const deployWorkflow = await readFile(deployWorkflowPath, "utf8");
-    await writeFile(
-      deployWorkflowPath,
-      deployWorkflow
-        .replace(
-          / {2}workflow_run:\n {4}workflows: \[Reconcile\]\n {4}types: \[completed\]\n {4}branches: \[main\]\n/,
-          "",
-        )
-        .replace(
-          / {4}if: >\n {6}github\.event_name != 'workflow_run' \|\|\n {6}github\.event\.workflow_run\.conclusion == 'success'\n {4}runs-on:/,
-          "    runs-on:",
-        )
-        .replaceAll(
-          "ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.sha }}",
-          "ref: ${{ github.sha }}",
-        )
-        .replace(
-          "BEFORE_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.event.before || '' }}",
-          "BEFORE_SHA: ${{ github.event.before || '' }}",
-        ),
-    );
-
-    const resolveHandlesPath = join(
-      repo,
-      "deploy",
-      "scripts",
-      "resolve-deploy-handles.ts",
-    );
-    const resolveHandlesScript = await readFile(resolveHandlesPath, "utf8");
-    await writeFile(
-      resolveHandlesPath,
-      resolveHandlesScript
-        .replace(
-          'if (eventName !== "push" && eventName !== "workflow_run") {',
-          'if (eventName !== "push") {',
-        )
-        .replace(
-          /const currentSha =[\s\S]*? {4}: requireEnv\("GITHUB_SHA"\);/,
-          'const currentSha = requireEnv("GITHUB_SHA");',
-        )
-        .replace(/\n {2}beforeSha === currentSha/, ""),
-    );
-
-    await initPilotRepo(repo);
-
-    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
-      "workflow_run:",
-    );
-    expect(await readFile(deployWorkflowPath, "utf8")).toContain(
-      "github.event.workflow_run.conclusion == 'success'",
-    );
-    expect(await readFile(resolveHandlesPath, "utf8")).toContain(
-      'if (eventName !== "push" && eventName !== "workflow_run")',
-    );
-    expect(await readFile(resolveHandlesPath, "utf8")).toContain(
-      'eventName === "workflow_run"',
-    );
-  });
-
-  it("reconciles old caddy Dockerfiles even when the generated formatting drifted", async () => {
-    const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
-    const repo = join(root, "rover-pilot");
-
-    await initPilotRepo(repo);
-    await writeFile(
-      join(repo, "deploy", "Dockerfile"),
-      legacyDockerfile.replace(
-        "ARG BUN_VERSION=1.3.10",
-        "ARG BUN_VERSION=1.3.11",
-      ),
-    );
-
-    await initPilotRepo(repo);
-
-    const dockerfile = await readFile(
-      join(repo, "deploy", "Dockerfile"),
-      "utf8",
-    );
-    expect(dockerfile).toContain("EXPOSE 8080");
-    expect(dockerfile).not.toContain("caddy start");
-    expect(dockerfile).not.toContain("deploy/Caddyfile");
-  });
-
   it("preserves custom deploy artifacts on rerun", async () => {
     const root = await mkdtemp(join(tmpdir(), "brains-ops-init-"));
     const repo = join(root, "rover-pilot");
@@ -864,7 +520,6 @@ describe("initPilotRepo", () => {
       "service: custom\nimage: custom/image\n",
     );
     await writeFile(join(repo, "deploy", "Dockerfile"), "FROM scratch\n");
-    await writeFile(join(repo, "deploy", "Caddyfile"), "custom caddy\n");
 
     await initPilotRepo(repo);
 
@@ -873,9 +528,6 @@ describe("initPilotRepo", () => {
     ).toBe("service: custom\nimage: custom/image\n");
     expect(await readFile(join(repo, "deploy", "Dockerfile"), "utf8")).toBe(
       "FROM scratch\n",
-    );
-    expect(await readFile(join(repo, "deploy", "Caddyfile"), "utf8")).toBe(
-      "custom caddy\n",
     );
   });
 

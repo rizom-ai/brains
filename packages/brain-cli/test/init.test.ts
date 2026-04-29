@@ -24,38 +24,6 @@ CLOUDFLARE_API_TOKEN=
 CLOUDFLARE_ZONE_ID=
 `;
 
-const legacyDeployWorkflow = `name: Deploy
-
-on:
-  push:
-    branches: ["main"]
-
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Extract config from brain.yaml
-        run: |
-          BRAIN_MODEL=$(grep '^brain:' brain.yaml | sed 's/.*@brains${"\\///"}' | tr -d '"' | tr -d "'")
-          BRAIN_DOMAIN=$(grep '^domain:' brain.yaml | awk '{print $2}')
-          echo "BRAIN_MODEL=$BRAIN_MODEL" >> $GITHUB_ENV
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> $GITHUB_ENV
-
-      - name: Install Kamal
-        run: gem install kamal
-
-      - name: Deploy
-        env:
-          KAMAL_REGISTRY_PASSWORD: \${{ secrets.KAMAL_REGISTRY_PASSWORD }}
-          SERVER_IP: \${{ secrets.SERVER_IP }}
-          AI_API_KEY: \${{ secrets.AI_API_KEY }}
-          GIT_SYNC_TOKEN: \${{ secrets.GIT_SYNC_TOKEN }}
-          MCP_AUTH_TOKEN: \${{ secrets.MCP_AUTH_TOKEN }}
-        run: kamal deploy --skip-push
-`;
-
 const legacyStandaloneDeployYml = `service: brain
 image: <%= ENV['IMAGE_REPOSITORY'] %>
 
@@ -138,262 +106,6 @@ env:
 volumes:
   - /opt/brain-data:/app/brain-data
   - /opt/brain.yaml:/app/brain.yaml
-`;
-
-const legacyStandaloneDockerfile = `FROM oven/bun:1.3.10-slim
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl ca-certificates git gnupg debian-keyring debian-archive-keyring apt-transport-https \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/gpg.key' | gpg --dearmor -o /usr/share/keyrings/caddy-stable-archive-keyring.gpg \
-    && curl -1sLf 'https://dl.cloudsmith.io/public/caddy/stable/debian.deb.txt' | tee /etc/apt/sources.list.d/caddy-stable.list \
-    && apt-get update && apt-get install -y --no-install-recommends caddy libcap2-bin \
-    && setcap cap_net_bind_service=+ep $(which caddy) \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY package.json ./package.json
-RUN bun install --production --ignore-scripts
-
-COPY deploy/Caddyfile /etc/caddy/Caddyfile
-COPY . .
-
-ENV XDG_DATA_HOME=/data
-ENV XDG_CONFIG_HOME=/config
-RUN mkdir -p /app/data /app/cache /app/brain-data && \
-    chmod -R 777 /app/data /app/cache /app/brain-data
-
-CMD ["sh", "-c", "caddy start --config /etc/caddy/Caddyfile && exec ./node_modules/.bin/brain start"]
-`;
-
-const legacyStandaloneDeployWorkflow = `name: Deploy
-
-on:
-  workflow_run:
-    workflows: ["Publish Image"]
-    branches: ["main"]
-    types: [completed]
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: \
-${"${{ github.event.workflow_run.head_sha || github.sha }}"}
-
-      - name: Extract config from brain.yaml
-        run: |
-          INSTANCE_NAME="$(basename "$PWD")"
-          BRAIN_MODEL="$(grep '^brain:' brain.yaml | sed 's/^brain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
-          BRAIN_DOMAIN="$(grep '^domain:' brain.yaml | sed 's/^domain:[[:space:]]*//' | tr -d '"' | tr -d "'")"
-          echo "INSTANCE_NAME=$INSTANCE_NAME" >> "$GITHUB_ENV"
-          echo "BRAIN_MODEL=$BRAIN_MODEL" >> "$GITHUB_ENV"
-          echo "BRAIN_DOMAIN=$BRAIN_DOMAIN" >> "$GITHUB_ENV"
-          echo "IMAGE_REPOSITORY=ghcr.io/${"${{ github.repository_owner }}"}/${"${{ github.event.repository.name }}"}" >> "$GITHUB_ENV"
-          echo "REGISTRY_USERNAME=${"${{ github.repository_owner }}"}" >> "$GITHUB_ENV"
-
-      - name: Provision server
-        id: provision
-        env:
-          HCLOUD_TOKEN: ${"${{ secrets.HCLOUD_TOKEN }}"}
-          HCLOUD_SSH_KEY_NAME: ${"${{ secrets.HCLOUD_SSH_KEY_NAME }}"}
-          HCLOUD_SERVER_TYPE: ${"${{ secrets.HCLOUD_SERVER_TYPE }}"}
-          HCLOUD_LOCATION: ${"${{ secrets.HCLOUD_LOCATION }}"}
-        run: |
-          node <<'NODE'
-          const baseUrl = 'https://api.hetzner.cloud/v1';
-          NODE
-
-      - name: Update Cloudflare DNS
-        env:
-          CF_API_TOKEN: ${"${{ secrets.CF_API_TOKEN }}"}
-          CF_ZONE_ID: ${"${{ secrets.CF_ZONE_ID }}"}
-          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
-        run: |
-          node <<'NODE'
-          await upsertRecord('preview.' + domain);
-          NODE
-
-      - name: Deploy
-        env:
-          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
-          VERSION: ${"${{ github.event.workflow_run.head_sha || github.sha }}"}
-        run: kamal setup --skip-push
-
-      - name: Verify origin TLS
-        env:
-          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
-        run: |
-          curl -I -k --max-time 20 --resolve "preview.$BRAIN_DOMAIN:443:$SERVER_IP" "https://preview.$BRAIN_DOMAIN"
-`;
-
-const legacyStandalonePublishWorkflow = `name: Publish Image
-
-on:
-  push:
-    branches: ["main"]
-  workflow_dispatch:
-
-permissions:
-  contents: read
-  packages: write
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-        with:
-          ref: ${"${{ github.sha }}"}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Extract image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ghcr.io/${"${{ github.repository_owner }}"}/${"${{ github.event.repository.name }}"}
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${"${{ github.sha }}"}
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${"${{ github.actor }}"}
-          password: ${"${{ secrets.GITHUB_TOKEN }}"}
-
-      - name: Build and push image
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: deploy/Dockerfile
-          push: true
-          tags: ${"${{ steps.meta.outputs.tags }}"}
-          labels: |
-            ${"${{ steps.meta.outputs.labels }}"}
-            service=brain
-`;
-
-const scriptDeployWorkflowWithoutBunSetup = `name: Deploy
-
-on:
-  workflow_run:
-    workflows: ["Publish Image"]
-    branches: ["main"]
-    types: [completed]
-  workflow_dispatch:
-
-jobs:
-  deploy:
-    if: |
-      github.event_name == 'workflow_dispatch' ||
-      github.event.workflow_run.conclusion == 'success'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${"${{ github.event.workflow_run.head_sha || github.sha }}"}
-
-      - name: Extract config from brain.yaml
-        run: ./scripts/extract-brain-config.rb
-        env:
-          INSTANCE_NAME: ${"${{ github.event.repository.name }}"}
-
-      - name: Provision server
-        id: provision
-        env:
-          HCLOUD_TOKEN: ${"${{ secrets.HCLOUD_TOKEN }}"}
-          HCLOUD_SSH_KEY_NAME: ${"${{ secrets.HCLOUD_SSH_KEY_NAME }}"}
-          HCLOUD_SERVER_TYPE: ${"${{ secrets.HCLOUD_SERVER_TYPE }}"}
-          HCLOUD_LOCATION: ${"${{ secrets.HCLOUD_LOCATION }}"}
-        run: bun deploy/scripts/provision-server.ts
-
-      - name: Update Cloudflare DNS
-        env:
-          CF_API_TOKEN: ${"${{ secrets.CF_API_TOKEN }}"}
-          CF_ZONE_ID: ${"${{ secrets.CF_ZONE_ID }}"}
-          SERVER_IP: ${"${{ steps.provision.outputs.server_ip }}"}
-        run: |
-          BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
-          BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
-`;
-
-const legacyStandaloneCaddyfile = `# Internal Caddy — path-based routing to brain services.
-# kamal-proxy terminates TLS externally; this runs inside the container.
-:80 {
-	@preview host preview.mylittlephoney.com *-preview.*
-	handle @preview {
-		reverse_proxy localhost:4321
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-
-	# Health endpoint
-	handle /health {
-		reverse_proxy localhost:3333
-	}
-
-	# MCP endpoint
-	handle /mcp* {
-		reverse_proxy localhost:3333
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, DELETE, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization, MCP-Session-Id"
-		}
-	}
-
-	# A2A endpoints
-	handle /.well-known/agent-card.json {
-		reverse_proxy localhost:3334
-	}
-
-	handle /a2a {
-		reverse_proxy localhost:3334
-
-		header {
-			X-Content-Type-Options "nosniff"
-			Access-Control-Allow-Origin "*"
-			Access-Control-Allow-Methods "GET, POST, OPTIONS"
-			Access-Control-Allow-Headers "Content-Type, Authorization"
-		}
-	}
-
-	# Plugin API routes
-	handle /api/* {
-		reverse_proxy localhost:3335
-	}
-
-	# Production site: prefer the webserver when present; otherwise fall back
-	# to the A2A interface so core-only deployments never return a bare 502.
-	handle {
-		reverse_proxy localhost:8080 localhost:3334 {
-			lb_policy first
-			lb_retries 1
-		}
-
-		header {
-			X-Frame-Options "SAMEORIGIN"
-			X-Content-Type-Options "nosniff"
-			Referrer-Policy "strict-origin-when-cross-origin"
-		}
-	}
-}
 `;
 
 describe("brain init", () => {
@@ -778,7 +490,6 @@ describe("brain init", () => {
         existsSync(join(testDir, ".github", "workflows", "publish-image.yml")),
       ).toBe(true);
       expect(existsSync(join(testDir, "deploy", "Dockerfile"))).toBe(true);
-      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(false);
     });
 
     it("should derive generated artifact content from existing brain.yaml", () => {
@@ -804,20 +515,6 @@ describe("brain init", () => {
       writeFileSync(
         join(testDir, "config", "deploy.yml"),
         legacyStandaloneDeployYml,
-      );
-      mkdirSync(join(testDir, "deploy"), { recursive: true });
-      writeFileSync(
-        join(testDir, "deploy", "Dockerfile"),
-        legacyStandaloneDockerfile,
-      );
-      writeFileSync(
-        join(testDir, "deploy", "Caddyfile"),
-        legacyStandaloneCaddyfile,
-      );
-      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
-      writeFileSync(
-        join(testDir, ".github", "workflows", "deploy.yml"),
-        legacyDeployWorkflow,
       );
 
       scaffold(testDir, { model: "rover", deploy: true });
@@ -848,10 +545,6 @@ describe("brain init", () => {
       expect(dockerfile).toContain(
         'CMD ["./node_modules/.bin/brain", "start"]',
       );
-      expect(dockerfile).not.toContain("caddy start");
-      expect(dockerfile).not.toContain("deploy/Caddyfile");
-
-      expect(existsSync(join(testDir, "deploy", "Caddyfile"))).toBe(false);
 
       const workflow = readFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -889,108 +582,6 @@ describe("brain init", () => {
       expect(deploy).toContain("/opt/brain.yaml:/app/brain.yaml");
     });
 
-    it("should reconcile old caddy Dockerfiles even when the generated header drifted", () => {
-      writeFileSync(
-        join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
-      );
-      mkdirSync(join(testDir, "deploy"), { recursive: true });
-      writeFileSync(
-        join(testDir, "deploy", "Dockerfile"),
-        legacyStandaloneDockerfile.replace(
-          "FROM oven/bun:1.3.10-slim",
-          "FROM oven/bun:1.3.11-slim",
-        ),
-      );
-
-      scaffold(testDir, { model: "rover", deploy: true });
-
-      const dockerfile = readFileSync(
-        join(testDir, "deploy", "Dockerfile"),
-        "utf-8",
-      );
-      expect(dockerfile).toContain("EXPOSE 8080");
-      expect(dockerfile).not.toContain("caddy start");
-      expect(dockerfile).not.toContain("deploy/Caddyfile");
-    });
-
-    it("should reconcile stale standalone deploy workflows when --deploy is used", () => {
-      writeFileSync(
-        join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
-      );
-      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
-      writeFileSync(
-        join(testDir, ".github", "workflows", "deploy.yml"),
-        legacyStandaloneDeployWorkflow,
-      );
-
-      scaffold(testDir, { model: "rover", deploy: true });
-
-      const workflow = readFileSync(
-        join(testDir, ".github", "workflows", "deploy.yml"),
-        "utf-8",
-      );
-      expect(workflow).toContain("run: ./scripts/extract-brain-config.rb");
-      expect(workflow).toContain("run: bun deploy/scripts/provision-server.ts");
-      expect(workflow).toContain(
-        'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
-      );
-      expect(workflow).toContain(
-        'curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"',
-      );
-      expect(workflow).toContain("uses: oven-sh/setup-bun@v2");
-      expect(workflow).not.toContain(
-        "await upsertRecord('preview.' + domain);",
-      );
-      expect(workflow).not.toContain("preview.$BRAIN_DOMAIN");
-    });
-
-    it("should reconcile script deploy workflows that are missing bun setup", () => {
-      writeFileSync(
-        join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
-      );
-      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
-      writeFileSync(
-        join(testDir, ".github", "workflows", "deploy.yml"),
-        scriptDeployWorkflowWithoutBunSetup,
-      );
-
-      scaffold(testDir, { model: "rover", deploy: true });
-
-      const workflow = readFileSync(
-        join(testDir, ".github", "workflows", "deploy.yml"),
-        "utf-8",
-      );
-      expect(workflow).toContain("uses: oven-sh/setup-bun@v2");
-      expect(workflow).toContain("run: bun deploy/scripts/provision-server.ts");
-    });
-
-    it("should reconcile stale standalone publish workflows when --deploy is used", () => {
-      writeFileSync(
-        join(testDir, "brain.yaml"),
-        ["brain: rover", "domain: mylittlephoney.com", ""].join("\n"),
-      );
-      mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
-      writeFileSync(
-        join(testDir, ".github", "workflows", "publish-image.yml"),
-        legacyStandalonePublishWorkflow,
-      );
-
-      scaffold(testDir, { model: "rover", deploy: true });
-
-      const workflow = readFileSync(
-        join(testDir, ".github", "workflows", "publish-image.yml"),
-        "utf-8",
-      );
-      expect(workflow).toContain("file: deploy/Dockerfile");
-      expect(workflow).toContain("target: standalone");
-      expect(workflow).not.toContain(
-        "file: deploy/Dockerfile\n          push: true",
-      );
-    });
-
     it("should preserve custom deploy artifacts when --deploy is used", () => {
       writeFileSync(
         join(testDir, "brain.yaml"),
@@ -999,7 +590,6 @@ describe("brain init", () => {
       const customEnvExample = "AI_API_KEY=\nCUSTOM_ONLY=1\n";
       const customDeployYml = "service: custom\nimage: custom/image\n";
       const customDockerfile = "FROM scratch\n";
-      const customCaddyfile = "custom caddy\n";
       const customWorkflow = "name: Custom Deploy\n";
       const customPublishWorkflow = "name: Custom Publish\n";
       writeFileSync(join(testDir, ".env.example"), customEnvExample);
@@ -1007,7 +597,6 @@ describe("brain init", () => {
       writeFileSync(join(testDir, "config", "deploy.yml"), customDeployYml);
       mkdirSync(join(testDir, "deploy"), { recursive: true });
       writeFileSync(join(testDir, "deploy", "Dockerfile"), customDockerfile);
-      writeFileSync(join(testDir, "deploy", "Caddyfile"), customCaddyfile);
       mkdirSync(join(testDir, ".github", "workflows"), { recursive: true });
       writeFileSync(
         join(testDir, ".github", "workflows", "deploy.yml"),
@@ -1028,9 +617,6 @@ describe("brain init", () => {
       );
       expect(readFileSync(join(testDir, "deploy", "Dockerfile"), "utf-8")).toBe(
         customDockerfile,
-      );
-      expect(readFileSync(join(testDir, "deploy", "Caddyfile"), "utf-8")).toBe(
-        customCaddyfile,
       );
       expect(
         readFileSync(
