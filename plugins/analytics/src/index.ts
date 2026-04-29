@@ -38,22 +38,18 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
       "traffic-overview",
       createTrafficOverviewInsight(this.cloudflareClient),
     );
+  }
 
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
     const siteTag = this.config.cloudflare?.siteTag;
-    if (siteTag) {
-      // Wait until all plugins are registered so site-builder's
-      // head-script handler is subscribed before we send the message
-      context.messaging.subscribe("system:plugins:ready", async () => {
-        await context.messaging.send(
-          "plugin:site-builder:head-script:register",
-          {
-            pluginId: this.id,
-            script: generateCloudflareBeaconScript(siteTag),
-          },
-        );
-        return { success: true };
-      });
-    }
+    if (!siteTag) return;
+
+    await context.messaging.send("plugin:site-builder:head-script:register", {
+      pluginId: this.id,
+      script: generateCloudflareBeaconScript(siteTag),
+    });
   }
 
   protected override async getTools(): Promise<Tool[]> {

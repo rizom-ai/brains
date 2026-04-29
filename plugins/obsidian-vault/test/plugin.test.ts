@@ -57,6 +57,7 @@ function createMockDeps(): MockDeps {
 describe("ObsidianVaultPlugin", () => {
   let harness: ReturnType<typeof createPluginHarness>;
   let deps: ReturnType<typeof createMockDeps>;
+  let plugin: ObsidianVaultPlugin;
 
   beforeEach(async () => {
     deps = createMockDeps();
@@ -83,8 +84,17 @@ describe("ObsidianVaultPlugin", () => {
       return { getBodyTemplate: (): string => "" } as never;
     };
 
-    const plugin = new ObsidianVaultPlugin({}, deps);
+    plugin = new ObsidianVaultPlugin({}, deps);
     await harness.installPlugin(plugin);
+  });
+
+  it("should auto-sync templates during ready lifecycle", async () => {
+    await plugin.ready();
+
+    const writeCalls = deps.writeFile.mock.calls;
+    const paths = writeCalls.map((call) => call[0]);
+    expect(paths).toContain("/tmp/test-vault/_obsidian/templates/post.md");
+    expect(paths).toContain("/tmp/test-vault/_obsidian/fileClasses/post.md");
   });
 
   it("should register the sync-templates tool", () => {

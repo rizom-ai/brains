@@ -32,6 +32,15 @@ describe("ContentPipelinePlugin", () => {
       expect(plugin.getRetryTracker()).toBeDefined();
       expect(plugin.getScheduler()).toBeDefined();
     });
+
+    it("should start scheduler during ready lifecycle", async () => {
+      expect(plugin.getScheduler().isRunning()).toBe(false);
+
+      await plugin.ready();
+
+      expect(plugin.getScheduler().isRunning()).toBe(true);
+      await plugin.cleanup();
+    });
   });
 
   describe("queue operations via message bus", () => {

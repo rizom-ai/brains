@@ -6,11 +6,11 @@ import type { TemplateRegistry } from "@brains/templates";
 /**
  * Tests for prompt materialization at startup.
  *
- * On sync:initial:completed, the shell should iterate all registered
- * templates and create prompt entities for those with basePrompt.
+ * During bootloader ready-state preparation, the shell should iterate all
+ * registered templates and create prompt entities for those with basePrompt.
  */
 
-// Inline the materialization logic we'll add to the shell
+// Inline the materialization logic owned by ShellBootloader.
 async function materializePrompts(
   templateRegistry: TemplateRegistry,
   entityService: IEntityService,

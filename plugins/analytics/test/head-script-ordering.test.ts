@@ -6,8 +6,8 @@ import { AnalyticsPlugin } from "../src/index";
  * Regression test: analytics plugin must inject its head script
  * regardless of plugin registration order.
  *
- * Fix: analytics defers sending until system:plugins:ready, which fires
- * after ALL plugins have registered their message handlers.
+ * Fix: analytics sends from onReady, which runs after ALL plugins have
+ * registered their message handlers.
  */
 describe("Analytics head script with plugin ordering", () => {
   let harness: ReturnType<typeof createPluginHarness>;
@@ -40,7 +40,7 @@ describe("Analytics head script with plugin ordering", () => {
       },
     );
 
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    await analytics.ready();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -68,7 +68,7 @@ describe("Analytics head script with plugin ordering", () => {
     });
     await harness.installPlugin(analytics);
 
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    await analytics.ready();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");

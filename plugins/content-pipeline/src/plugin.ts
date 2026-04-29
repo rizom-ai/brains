@@ -65,58 +65,62 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       );
       return { success: true };
     });
+  }
 
-    // Register dashboard widget after all plugins are ready
-    context.messaging.subscribe("system:plugins:ready", async () => {
-      await context.messaging.send("dashboard:register-widget", {
-        id: "publication-pipeline",
-        pluginId: this.id,
-        title: "Publication Pipeline",
-        section: "secondary",
-        priority: 100,
-        rendererName: "PipelineWidget",
-        dataProvider: async () => {
-          const entityTypes = context.entityService.getEntityTypes();
-          const allEntries: Array<{
-            id: string;
-            title: string;
-            type: string;
-            status: "draft" | "queued" | "published" | "failed";
-          }> = [];
-          const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
-
-          for (const entityType of entityTypes) {
-            const entities =
-              await context.entityService.listEntities(entityType);
-            for (const entity of entities) {
-              const status = entity.metadata["status"];
-              if (
-                status !== "draft" &&
-                status !== "queued" &&
-                status !== "published" &&
-                status !== "failed"
-              )
-                continue;
-              summary[status]++;
-              const title = entity.metadata["title"];
-              allEntries.push({
-                id: entity.id,
-                title: typeof title === "string" ? title : entity.id,
-                type: entityType,
-                status,
-              });
-            }
-          }
-
-          return { summary, items: allEntries };
-        },
-      });
-      return { success: true };
-    });
-
+  protected override async onReady(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await this.registerDashboardWidget(context);
     await this.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");
+  }
+
+  private async registerDashboardWidget(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await context.messaging.send("dashboard:register-widget", {
+      id: "publication-pipeline",
+      pluginId: this.id,
+      title: "Publication Pipeline",
+      section: "secondary",
+      priority: 100,
+      rendererName: "PipelineWidget",
+      dataProvider: async () => {
+        const entityTypes = context.entityService.getEntityTypes();
+        const allEntries: Array<{
+          id: string;
+          title: string;
+          type: string;
+          status: "draft" | "queued" | "published" | "failed";
+        }> = [];
+        const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
+
+        for (const entityType of entityTypes) {
+          const entities = await context.entityService.listEntities(entityType);
+          for (const entity of entities) {
+            const status = entity.metadata["status"];
+            if (
+              status !== "draft" &&
+              status !== "queued" &&
+              status !== "published" &&
+              status !== "failed"
+            )
+              continue;
+            summary[status]++;
+            const title = entity.metadata["title"];
+            allEntries.push({
+              id: entity.id,
+              title: typeof title === "string" ? title : entity.id,
+              type: entityType,
+              status,
+            });
+          }
+        }
+
+        return { summary, items: allEntries };
+      },
+    });
   }
 
   protected override async getTools(): Promise<Tool[]> {
@@ -159,6 +163,7 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
   }
 
   protected override async onShutdown(): Promise<void> {
+    await this.scheduler.stop();
     QueueManager.resetInstance();
     ProviderRegistry.resetInstance();
     RetryTracker.resetInstance();

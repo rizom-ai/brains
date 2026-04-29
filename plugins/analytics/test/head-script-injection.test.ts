@@ -32,7 +32,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    await plugin.ready();
 
     expect(receivedPayload).toBeDefined();
     expect(receivedPayload?.pluginId).toBe("analytics");
@@ -52,7 +52,7 @@ describe("Analytics head script injection", () => {
 
     const plugin = new AnalyticsPlugin({});
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    await plugin.ready();
 
     expect(receivedPayload).toBeUndefined();
   });
@@ -75,13 +75,17 @@ describe("Analytics head script injection", () => {
       },
     });
 
+    let installed = false;
     try {
       await harness.installPlugin(plugin);
+      installed = true;
     } catch {
       // Config validation may reject empty siteTag
     }
 
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    if (installed) {
+      await plugin.ready();
+    }
 
     expect(receivedPayload).toBeUndefined();
   });
@@ -105,7 +109,7 @@ describe("Analytics head script injection", () => {
     });
 
     await harness.installPlugin(plugin);
-    await harness.sendMessage("system:plugins:ready", {}, "system");
+    await plugin.ready();
 
     expect(receivedScript).toBe(
       `<script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token":"my-site-tag"}'></script>`,

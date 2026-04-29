@@ -49,16 +49,11 @@ export class ObsidianVaultPlugin extends ServicePlugin<ObsidianVaultConfig> {
     this.deps = { ...defaultDeps, ...deps };
   }
 
-  protected override async onRegister(
+  protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
-    context.messaging.subscribe("system:plugins:ready", async () => {
-      this.logger.info(
-        "Auto-syncing Obsidian templates, fileClasses, and bases",
-      );
-      await this.sync(context);
-      return { success: true };
-    });
+    this.logger.info("Auto-syncing Obsidian templates, fileClasses, and bases");
+    await this.sync(context);
   }
 
   protected override async getTools(): Promise<Tool[]> {

@@ -2,9 +2,9 @@
 
 ## Status
 
-Proposed. This gates the external plugin API so public lifecycle semantics are stable before plugin authoring exports ship.
+Implemented for the external plugin API gate. Public lifecycle semantics now have a real `onReady` hook and explicit boot ordering. Remaining facade slimming in `shell.ts` is a follow-up cleanup, not a blocker for plugin-authoring exports.
 
-External API gate scope: this plan must land far enough to provide a real `onReady` hook and explicit boot ordering. A public `onPostReady` hook is not required for the first external plugin API; keep any post-ready phase internal unless implementation proves plugin authors need it.
+External API gate scope: this plan landed far enough to provide a real `onReady` hook and explicit boot ordering. A public `onPostReady` hook is not required for the first external plugin API; keep any post-ready phase internal unless implementation proves plugin authors need it.
 
 ## Problem
 
@@ -79,14 +79,14 @@ After step 7, `Shell.getInstance()` returns the live facade. For external plugin
 
 ## Steps
 
-1. Add lifecycle tests first: `onRegister` before ready, identity/profile seeded before `onReady`, daemon/job startup still ordered.
-2. Inventory current `onRegister` callers — which actually need ready-state services? Move them to `onReady`.
-3. Add an optional `onReady` hook on the three plugin base classes; default no-op.
-4. Introduce `ShellBootloader` adjacent to `Shell`; move `initialize()` body there.
-5. Keep `system:plugins:ready` as the internal all-registered signal, but stop treating it as public lifecycle readiness.
-6. Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
-7. Drop the `sync:initial:completed` ordering trick once plugins migrate.
-8. Bench startup timing — phased dispatch should not regress.
+1. [x] Add lifecycle tests first: `onRegister` before ready, identity/profile seeded before `onReady`, daemon/job startup still ordered.
+2. [x] Inventory current `onRegister` callers — which actually need ready-state services? Move them to `onReady`.
+3. [x] Add an optional `onReady` hook on the three plugin base classes; default no-op.
+4. [x] Introduce `ShellBootloader` adjacent to `Shell`; move startup coordination there.
+5. [x] Keep `system:plugins:ready` as the internal all-registered signal, but stop treating it as public lifecycle readiness.
+6. [x] Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
+7. [x] Drop the identity/profile `sync:initial:completed` ordering trick once plugins migrate.
+8. [ ] Bench startup timing — phased dispatch should not regress.
 
 ## Inventory notes
 

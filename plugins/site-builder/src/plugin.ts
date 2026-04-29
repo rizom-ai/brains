@@ -104,11 +104,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger,
     );
 
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      await this.profileService?.initialize();
-      this.logger.info("AnchorProfileService initialized");
-      return { success: true };
-    });
+    // Bootloader initializes identity/profile before plugin ready hooks.
 
     // Wire up route message handlers and register config routes
     setupRouteHandlers(context, this._routeRegistry, this.logger);
