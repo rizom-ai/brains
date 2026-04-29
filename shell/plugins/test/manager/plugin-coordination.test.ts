@@ -9,9 +9,11 @@ import { createPluginHarness } from "@brains/plugins/test";
  * but Dashboard initializes later (depends on site-builder). By the time Dashboard
  * subscribes, the messages have already been sent and lost.
  *
- * Fix: Use the `system:plugins:ready` pattern. Producers wait for the ready signal
- * before sending widget registrations. Dashboard subscribes in `onRegister()` before
- * the ready signal fires, so it receives all messages.
+ * Fix: use an all-plugins-registered coordination signal. Producers wait until
+ * every plugin has had a chance to subscribe before sending widget registrations.
+ * Dashboard subscribes in `onRegister()` before the signal fires, so it receives
+ * all messages. Public plugins should prefer `onReady`; this test documents the
+ * lower-level message-bus coordination primitive.
  */
 
 function createWidgetPayload(
@@ -59,7 +61,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     });
   }
 
-  it("should demonstrate widget producer pattern: wait for system:plugins:ready before sending", async () => {
+  it("should demonstrate widget producer pattern: wait for all-registered signal before sending", async () => {
     let systemPluginsReadyReceived = false;
     let widgetSentTime = 0;
     let readyReceivedTime = 0;
@@ -91,7 +93,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     });
   });
 
-  it("should demonstrate widget consumer pattern: subscribe in onRegister before system:plugins:ready", async () => {
+  it("should demonstrate widget consumer pattern: subscribe in onRegister before all-registered signal", async () => {
     let consumerSubscribedTime = 0;
     let widgetReceivedTime = 0;
 
@@ -119,7 +121,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     expect(registeredWidgets).toHaveLength(1);
   });
 
-  it("should receive all widgets from a producer after system:plugins:ready", async () => {
+  it("should receive all widgets from a producer after all-registered signal", async () => {
     harness.subscribe("system:plugins:ready", async () => {
       await harness.sendMessage(
         "dashboard:register-widget",
@@ -161,7 +163,7 @@ describe("Plugin Coordination: Dashboard Widget Registration Timing", () => {
     });
   });
 
-  it("should NOT lose widgets due to timing when using system:plugins:ready pattern", async () => {
+  it("should NOT lose widgets due to timing when using all-registered coordination", async () => {
     subscribeToWidgets();
 
     harness.subscribe("system:plugins:ready", async () => {

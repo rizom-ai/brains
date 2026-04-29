@@ -24,7 +24,7 @@ Add `process.memoryUsage()` logging at startup milestones to establish baselines
 **Files to modify:**
 
 - `shell/core/src/initialization/shellInitializer.ts` — log after `initializeServices()` (line 224) and after `initializeAll()`
-- `shell/core/src/shell.ts` — log after `system:plugins:ready` event
+- `shell/core/src/initialization/shellBootloader.ts` — log after the internal `system:plugins:ready` emission and after ready hooks
 
 **Also create a standalone script** that measures per-import cost:
 
@@ -143,7 +143,7 @@ Several services created eagerly at line 224+ are not needed until runtime event
 - `ConversationService` — only needed when chat starts
 - `AgentService` — only needed for agent conversations
 - `BatchJobManager` + `JobProgressMonitor` — only needed for batch operations
-- `BrainCharacterService` + `AnchorProfileService` — can defer until `sync:initial:completed`
+- `BrainCharacterService` + `AnchorProfileService` — currently initialized during `ShellBootloader` ready-state preparation; any future laziness must preserve the guarantee that identity/profile are ready before plugin `onReady`
 
 Use a lazy proxy pattern:
 

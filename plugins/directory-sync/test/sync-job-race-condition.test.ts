@@ -292,7 +292,7 @@ slug: test-series
       const importFn = mockSync.importEntitiesWithProgress;
       const exportFn = mockSync.exportEntitiesWithProgress;
 
-      // BUG SCENARIO: sync() doesn't wait for jobs
+      // HISTORICAL BUG SCENARIO: sync() didn't wait for import-side work
       await importFn();
       // Export runs immediately (job hasn't completed)
       await exportFn();
@@ -306,7 +306,7 @@ slug: test-series
       fileWrittenContent = "";
       importJobCompleted = false;
 
-      // FIXED SCENARIO: sync() waits for jobs before export
+      // HISTORICAL FIXED SCENARIO: import-side work completed before export
       await importFn();
       // Wait for import job to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -319,18 +319,17 @@ slug: test-series
     });
   });
 
-  describe("sync() method job waiting", () => {
-    it("sync() should wait for import jobs to complete before running export", async () => {
-      // This test verifies that sync() properly waits for import jobs
-      // before starting the export phase
+  describe("historical import/export ordering", () => {
+    it("documents the old requirement to complete import work before export", async () => {
+      // sync() no longer performs export, but this documents the ordering
+      // invariant that fixed the historical import/export race.
 
       const importJobIds = ["job-1", "job-2"];
       let jobsWaitedFor: string[] = [];
       let exportStartedBeforeWait = false;
       let waitForJobsCalled = false;
 
-      // We need to test that sync() calls a waitForJobs helper
-      // after import and before export
+      // The historical fix inserted a wait phase after import and before export.
 
       // Create a mock that tracks the order of operations
       const operationOrder: string[] = [];
@@ -380,14 +379,14 @@ slug: test-series
         jobIds: importJobIds,
       };
 
-      // Wait for jobs before export (this is what sync() should do)
+      // Wait for import-side work before export (historical behavior).
       if (importResult.jobIds.length > 0) {
         await mockWaitForJobs(importResult.jobIds);
       }
 
       await mockExportEntities();
 
-      // Verify correct order: import -> waitForJobs -> export
+      // Verify correct historical order: import -> waitForJobs -> export
       expect(operationOrder).toEqual(["import", "waitForJobs", "export"]);
       expect(waitForJobsCalled).toBe(true);
       expect(jobsWaitedFor).toEqual(importJobIds);

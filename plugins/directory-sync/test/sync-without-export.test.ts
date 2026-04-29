@@ -6,7 +6,7 @@ import { createTestEntity } from "@brains/test-utils";
 /**
  * Tests for sync() behavior when export is removed and subscribers handle file writes.
  *
- * The proposed fix:
+ * Current behavior:
  * 1. sync() only does import (no export)
  * 2. entity:updated subscribers handle export after jobs complete
  * 3. This eliminates the race condition where export writes old content
@@ -228,33 +228,22 @@ slug: ecosystem-architecture
   });
 
   describe("sync:initial:completed timing", () => {
-    it("should emit sync:initial:completed only after all files are written", async () => {
-      // The plugin waits for jobs before emitting sync:initial:completed.
-      // With subscriber-based export, files are written when jobs complete,
-      // so sync:initial:completed should be emitted after all files are correct.
+    it("should emit sync:initial:completed only after imported files are durable", async () => {
+      // Initial sync imports directly and emits sync:initial:completed after
+      // the direct import path has finished, so observers see durable content.
 
       const events: string[] = [];
       let allFilesWritten = false;
 
-      // Simulate the full flow
+      // Simulate the full direct import flow.
       const simulateInitialSync = async (): Promise<void> => {
-        // Import queues jobs (would return jobIds: ["job-1", "job-2"])
+        events.push("import:start");
+        events.push("subscriber-1:write");
+        events.push("subscriber-2:write");
+        allFilesWritten = true;
         events.push("import:complete");
 
-        // Wait for jobs (simulated)
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            // Jobs complete, subscribers write files
-            events.push("job-1:complete");
-            events.push("subscriber-1:write");
-            events.push("job-2:complete");
-            events.push("subscriber-2:write");
-            allFilesWritten = true;
-            resolve();
-          }, 50);
-        });
-
-        // Only now emit sync:initial:completed
+        // Only after direct import completes, emit sync:initial:completed.
         events.push("sync:initial:completed");
       };
 
@@ -290,21 +279,11 @@ slug: test-series
       const simulatePluginInitialSync = async (): Promise<
         Map<string, string>
       > => {
-        // Step 1: Plugin calls directorySync.sync() which only does import
-        // Import reads file with coverImageId, queues job
-        // (importResult would contain jobIds for waitForJobs)
+        // Step 1: Plugin calls directorySync.sync() which only does import.
+        // Import reads file with coverImageId and entity subscribers write files.
+        filesOnDisk.set("series-test-series.md", contentWithCover);
 
-        // Step 2: Plugin calls waitForJobs()
-        // During this wait, jobs complete and subscribers write files
-        await new Promise<void>((resolve) => {
-          setTimeout(() => {
-            // Job completes, entity:updated fires, subscriber writes
-            filesOnDisk.set("series-test-series.md", contentWithCover);
-            resolve();
-          }, 50);
-        });
-
-        // Step 3: Plugin emits sync:initial:completed
+        // Step 2: Plugin emits sync:initial:completed.
         // git-sync receives this and commits
 
         // Simulate git-sync receiving the event and reading files for commit
@@ -319,8 +298,8 @@ slug: test-series
       );
     });
 
-    it("should NOT commit stale content when sync() exports before jobs complete (demonstrating the bug)", async () => {
-      // This demonstrates why the current behavior is buggy
+    it("should document the historical stale-content window from sync export", async () => {
+      // This documents why sync() no longer performs an export phase.
 
       const oldContent = `---
 name: Test Series
@@ -338,16 +317,15 @@ slug: test-series
       let dbContent = oldContent;
       const filesOnDisk: Map<string, string> = new Map();
 
-      // BUGGY FLOW: sync() with export
+      // HISTORICAL BUGGY FLOW: sync() with export
       const simulateBuggyPluginInitialSync = async (): Promise<
         Map<string, string>
       > => {
-        // Step 1: sync() does import then export immediately
-        // Import queues job
-        // Export reads OLD db content and writes to file
+        // Step 1: old sync() did import then export immediately.
+        // Export read OLD db content and wrote it to file.
         filesOnDisk.set("series-test-series.md", dbContent); // OLD content!
 
-        // Step 2: Plugin calls waitForJobs()
+        // Step 2: asynchronous import-side work later catches up.
         await new Promise<void>((resolve) => {
           setTimeout(() => {
             // Job completes, updates DB
@@ -367,7 +345,7 @@ slug: test-series
 
       // In the buggy flow, the file DOES end up correct because subscriber overwrites
       // But there's a window where the file had wrong content
-      // And if waitForJobs didn't work correctly, git might commit wrong content
+      // If completion were emitted during that window, git could commit wrong content.
       expect(gitSyncCommitContent.get("series-test-series.md")).toContain(
         "coverImageId: series-test-cover",
       );

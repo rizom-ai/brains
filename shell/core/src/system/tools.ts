@@ -616,8 +616,7 @@ export function createSystemTools(services: SystemServices): Tool[] {
         });
 
         const isBlankContentApprovalAttempt =
-          normalizedInput.content !== undefined &&
-          normalizedInput.content.trim().length === 0 &&
+          normalizedInput.content?.trim().length === 0 &&
           normalizedInput.fields === undefined;
 
         const agentStatus = entity.metadata["status"];

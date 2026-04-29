@@ -31,7 +31,7 @@ describe("Seed Content Git Detection", () => {
 
   /**
    * Sets up harness, registers an entity type, installs the plugin,
-   * emits system:plugins:ready, and cleans up afterward.
+   * sends the internal all-plugins-registered signal, and cleans up afterward.
    */
   async function installAndTriggerReady(entityType: string): Promise<void> {
     const harness = createPluginHarness<DirectorySyncPlugin>({

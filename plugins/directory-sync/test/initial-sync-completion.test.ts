@@ -39,10 +39,10 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
   });
 
   /**
-   * Subscribe to sync:initial:completed, install plugin, trigger
-   * system:plugins:ready, and return the collected events array.
+   * Subscribe to sync:initial:completed, install plugin, send the internal
+   * all-plugins-registered signal, and return the collected events array.
    */
-  async function installAndWaitForSync(config: {
+  async function installAndTriggerInitialSync(config: {
     seedContent: boolean;
   }): Promise<string[]> {
     const events: string[] = [];
@@ -75,13 +75,13 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
       "# Test\n\nTest content",
     );
 
-    const events = await installAndWaitForSync({ seedContent: true });
+    const events = await installAndTriggerInitialSync({ seedContent: true });
 
     expect(events).toContain("sync:initial:completed");
   });
 
   it("should handle empty sync (no seed content)", async () => {
-    const events = await installAndWaitForSync({ seedContent: false });
+    const events = await installAndTriggerInitialSync({ seedContent: false });
 
     expect(events).toContain("sync:initial:completed");
   });
@@ -92,7 +92,7 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
       "# Test\n\nTest content",
     );
 
-    const events = await installAndWaitForSync({ seedContent: true });
+    const events = await installAndTriggerInitialSync({ seedContent: true });
 
     expect(events).toContain("sync:initial:completed");
   });
