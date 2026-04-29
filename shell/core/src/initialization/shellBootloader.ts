@@ -1,4 +1,4 @@
-import { resolvePrompt, SYSTEM_CHANNELS } from "@brains/plugins";
+import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
@@ -42,11 +42,9 @@ export class ShellBootloader {
       this.services.pluginManager,
       {
         ...(options?.registerOnly && { registerOnly: true }),
-        registrationContext: {
-          ...(this.config.entityDisplay !== undefined && {
-            entityDisplay: this.config.entityDisplay,
-          }),
-        },
+        ...(this.config.entityDisplay !== undefined && {
+          registrationContext: { entityDisplay: this.config.entityDisplay },
+        }),
       },
     );
 
@@ -95,18 +93,12 @@ export class ShellBootloader {
     ]);
     this.services.logger.debug("Identity and profile services initialized");
 
-    const promptTemplates = this.services.templateRegistry
-      .list()
-      .filter((t): t is typeof t & { basePrompt: string } => !!t.basePrompt);
-    if (promptTemplates.length > 0) {
-      await Promise.all(
-        promptTemplates.map((t) =>
-          resolvePrompt(this.services.entityService, t.name, t.basePrompt),
-        ),
-      );
-      this.services.logger.debug(
-        `Materialized ${promptTemplates.length} prompt entities`,
-      );
+    const count = await materializePrompts(
+      this.services.templateRegistry,
+      this.services.entityService,
+    );
+    if (count > 0) {
+      this.services.logger.debug(`Materialized ${count} prompt entities`);
     }
   }
 

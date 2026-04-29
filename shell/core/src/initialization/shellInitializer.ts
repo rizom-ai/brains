@@ -65,6 +65,11 @@ import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies } from "../types/shell-types";
 
+export interface PluginInitializeOptions {
+  registerOnly?: boolean;
+  registrationContext?: PluginRegistrationContext;
+}
+
 /**
  * Services initialized by ShellInitializer
  */
@@ -215,10 +220,7 @@ export class ShellInitializer {
 
   public async initializePlugins(
     pluginManager: PluginManager,
-    options?: {
-      registerOnly?: boolean;
-      registrationContext?: PluginRegistrationContext;
-    },
+    options?: PluginInitializeOptions,
   ): Promise<void> {
     this.logger.debug(
       `Found ${this.config.plugins.length} plugins to register`,
@@ -483,10 +485,7 @@ export class ShellInitializer {
     templateRegistry: TemplateRegistry,
     entityRegistry: IEntityRegistry,
     pluginManager: PluginManager,
-    options?: {
-      registerOnly?: boolean;
-      registrationContext?: PluginRegistrationContext;
-    },
+    options?: PluginInitializeOptions,
   ): Promise<void> {
     this.logger.debug("Starting Shell initialization");
 

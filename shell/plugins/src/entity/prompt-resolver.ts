@@ -3,6 +3,7 @@ import {
   generateMarkdownWithFrontmatter,
   parseMarkdownWithFrontmatter,
 } from "@brains/entity-service";
+import type { TemplateRegistry } from "@brains/templates";
 import { z } from "@brains/utils";
 
 function targetToEntityId(target: string): string {
@@ -82,4 +83,25 @@ export async function resolvePrompt(
  */
 export function resetPromptCache(): void {
   promptCache.clear();
+}
+
+/**
+ * Materialize prompt entities for every registered template that carries a
+ * basePrompt. Returns the number of templates materialized.
+ */
+export async function materializePrompts(
+  templateRegistry: TemplateRegistry,
+  entityService: IEntityService,
+): Promise<number> {
+  const promptTemplates = templateRegistry
+    .list()
+    .filter((t): t is typeof t & { basePrompt: string } => !!t.basePrompt);
+
+  await Promise.all(
+    promptTemplates.map((t) =>
+      resolvePrompt(entityService, t.name, t.basePrompt),
+    ),
+  );
+
+  return promptTemplates.length;
 }

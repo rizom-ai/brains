@@ -7,7 +7,11 @@ export { ServicePlugin } from "./service/service-plugin";
 export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
 export type { EntityPluginContext, IPromptsNamespace } from "./entity/context";
 export { createEntityPluginContext } from "./entity/context";
-export { resolvePrompt, resetPromptCache } from "./entity/prompt-resolver";
+export {
+  resolvePrompt,
+  resetPromptCache,
+  materializePrompts,
+} from "./entity/prompt-resolver";
 
 export { InterfacePlugin } from "./interface/interface-plugin";
 

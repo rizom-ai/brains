@@ -160,7 +160,6 @@ export class DirectorySyncPlugin extends ServicePlugin<DirectorySyncConfig> {
         context,
         () => this.requireDirectorySync(),
         this.config,
-        this.id,
         this.logger,
         this.gitSync,
       );

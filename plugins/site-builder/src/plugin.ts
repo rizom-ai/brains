@@ -104,9 +104,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       context.logger,
     );
 
-    // Bootloader initializes identity/profile before plugin ready hooks.
-
-    // Wire up route message handlers and register config routes
     setupRouteHandlers(context, this._routeRegistry, this.logger);
 
     if (this.config.templates) {

@@ -1,37 +1,9 @@
 import { describe, it, expect, beforeEach, mock } from "bun:test";
-import { resetPromptCache } from "@brains/plugins";
+import { materializePrompts, resetPromptCache } from "@brains/plugins";
 import type { IEntityService } from "@brains/entity-service";
 import type { TemplateRegistry } from "@brains/templates";
 
-/**
- * Tests for prompt materialization at startup.
- *
- * During bootloader ready-state preparation, the shell should iterate all
- * registered templates and create prompt entities for those with basePrompt.
- */
-
-// Inline the materialization logic owned by ShellBootloader.
-async function materializePrompts(
-  templateRegistry: TemplateRegistry,
-  entityService: IEntityService,
-  resolvePromptFn: (
-    entityService: IEntityService,
-    target: string,
-    fallback: string,
-  ) => Promise<string>,
-): Promise<number> {
-  const templates = templateRegistry.list();
-  let count = 0;
-  for (const template of templates) {
-    if (template.basePrompt) {
-      await resolvePromptFn(entityService, template.name, template.basePrompt);
-      count++;
-    }
-  }
-  return count;
-}
-
-describe("prompt materialization at startup", () => {
+describe("materializePrompts", () => {
   let mockEntityService: {
     getEntity: ReturnType<typeof mock>;
     createEntity: ReturnType<typeof mock>;
@@ -39,7 +11,6 @@ describe("prompt materialization at startup", () => {
   let mockTemplateRegistry: {
     list: ReturnType<typeof mock>;
   };
-  let resolvePromptFn: ReturnType<typeof mock>;
 
   beforeEach(() => {
     resetPromptCache();
@@ -50,36 +21,28 @@ describe("prompt materialization at startup", () => {
         Promise.resolve({ entityId: "test", jobId: "" }),
       ),
     };
-
-    resolvePromptFn = mock(
-      async (
-        _es: IEntityService,
-        _target: string,
-        fallback: string,
-      ): Promise<string> => fallback,
-    );
   });
 
-  it("should call resolvePrompt for each template with basePrompt", async () => {
+  it("should resolve a prompt for each template with basePrompt", async () => {
     mockTemplateRegistry = {
       list: mock(() => [
         { name: "blog:generation", basePrompt: "Write blog posts." },
         { name: "blog:excerpt", basePrompt: "Generate excerpts." },
-        { name: "blog:post-list", basePrompt: undefined }, // no basePrompt
+        { name: "blog:post-list", basePrompt: undefined },
       ]),
     };
 
     const count = await materializePrompts(
       mockTemplateRegistry as unknown as TemplateRegistry,
       mockEntityService as unknown as IEntityService,
-      resolvePromptFn,
     );
 
-    expect(resolvePromptFn).toHaveBeenCalledTimes(2);
     expect(count).toBe(2);
+    expect(mockEntityService.getEntity).toHaveBeenCalledTimes(2);
+    expect(mockEntityService.createEntity).toHaveBeenCalledTimes(2);
   });
 
-  it("should pass correct target and fallback to resolvePrompt", async () => {
+  it("should pass target as the entity id (colons replaced with dashes)", async () => {
     mockTemplateRegistry = {
       list: mock(() => [
         {
@@ -92,13 +55,11 @@ describe("prompt materialization at startup", () => {
     await materializePrompts(
       mockTemplateRegistry as unknown as TemplateRegistry,
       mockEntityService as unknown as IEntityService,
-      resolvePromptFn,
     );
 
-    expect(resolvePromptFn).toHaveBeenCalledWith(
-      mockEntityService,
-      "blog:generation",
-      "Write blog posts in a distinctive voice.",
+    expect(mockEntityService.getEntity).toHaveBeenCalledWith(
+      "prompt",
+      "blog-generation",
     );
   });
 
@@ -113,11 +74,10 @@ describe("prompt materialization at startup", () => {
     const count = await materializePrompts(
       mockTemplateRegistry as unknown as TemplateRegistry,
       mockEntityService as unknown as IEntityService,
-      resolvePromptFn,
     );
 
-    expect(resolvePromptFn).not.toHaveBeenCalled();
     expect(count).toBe(0);
+    expect(mockEntityService.getEntity).not.toHaveBeenCalled();
   });
 
   it("should handle empty template registry", async () => {
@@ -128,7 +88,6 @@ describe("prompt materialization at startup", () => {
     const count = await materializePrompts(
       mockTemplateRegistry as unknown as TemplateRegistry,
       mockEntityService as unknown as IEntityService,
-      resolvePromptFn,
     );
 
     expect(count).toBe(0);

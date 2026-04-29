@@ -13,7 +13,6 @@ export function setupInitialSync(
   context: ServicePluginContext,
   getDirectorySync: () => IDirectorySync,
   config: DirectorySyncConfig,
-  _pluginId: string,
   logger: Logger,
   gitSync?: IGitSync,
 ): void {

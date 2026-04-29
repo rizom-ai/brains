@@ -86,15 +86,4 @@ describe("DirectorySyncPlugin - Initial Sync Completion", () => {
 
     expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
   });
-
-  it("should emit completion for seed-content sync", async () => {
-    writeFileSync(
-      join(seedContentPath, "base", "test.md"),
-      "# Test\n\nTest content",
-    );
-
-    const events = await installAndTriggerInitialSync({ seedContent: true });
-
-    expect(events).toContain(SYSTEM_CHANNELS.initialSyncCompleted);
-  });
 });

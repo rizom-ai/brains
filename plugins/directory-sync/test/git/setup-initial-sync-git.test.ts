@@ -78,14 +78,7 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      "directory-sync",
-      createSilentLogger(),
-      gs,
-    );
+    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     expect(handler).toBeDefined();
@@ -103,13 +96,7 @@ describe("setupInitialSync with git", () => {
     }));
     const ds = createMockDirectorySync({ sync: syncMock });
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      "directory-sync",
-      createSilentLogger(),
-    );
+    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
@@ -122,14 +109,7 @@ describe("setupInitialSync with git", () => {
     const ds = createMockDirectorySync();
     const gs = createMockGitSync();
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      "directory-sync",
-      createSilentLogger(),
-      gs,
-    );
+    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
@@ -150,14 +130,7 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      "directory-sync",
-      createSilentLogger(),
-      gs,
-    );
+    setupInitialSync(context, () => ds, baseConfig, createSilentLogger(), gs);
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
@@ -177,13 +150,7 @@ describe("setupInitialSync with git", () => {
       }),
     });
 
-    setupInitialSync(
-      context,
-      () => ds,
-      baseConfig,
-      "directory-sync",
-      createSilentLogger(),
-    );
+    setupInitialSync(context, () => ds, baseConfig, createSilentLogger());
 
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();

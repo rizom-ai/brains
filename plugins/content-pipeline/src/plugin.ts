@@ -137,11 +137,6 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
 - When users ask about their "publish queue", "publishing queue", or "what's queued", use \`content-pipeline_queue\`.`;
   }
 
-  public async cleanup(): Promise<void> {
-    await this.scheduler.stop();
-    this.logger.info("Content pipeline plugin stopped");
-  }
-
   public getQueueManager(): QueueManager {
     return this.queueManager;
   }

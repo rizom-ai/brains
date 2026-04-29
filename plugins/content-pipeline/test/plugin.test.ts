@@ -18,7 +18,7 @@ describe("ContentPipelinePlugin", () => {
   });
 
   afterEach(async () => {
-    await plugin.cleanup();
+    await plugin.shutdown?.();
   });
 
   describe("initialization", () => {
