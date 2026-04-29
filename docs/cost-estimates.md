@@ -41,17 +41,17 @@ Most brains generate 0–5 images/day (cover images for posts, social media).
 
 ## Eval Costs
 
-Running the eval suite (58 test cases):
+Running the Rover eval suite (86 test cases):
 
 | Component        | Model            | Cost per run |
 | ---------------- | ---------------- | ------------ |
-| Agent under test | gpt-4.1-mini     | ~$0.17       |
-| LLM judge        | claude-haiku-4-5 | ~$0.70       |
-| **Total**        |                  | **~$0.87**   |
+| Agent under test | gpt-4.1-mini     | ~$0.25       |
+| LLM judge        | claude-haiku-4-5 | ~$1.05       |
+| **Total**        |                  | **~$1.30**   |
 
 ## Model Comparison
 
-Measured from eval runs (58 test cases, avg tokens per test):
+Measured from eval runs (86 test cases, avg tokens per test):
 
 | Model            | Avg tokens/test | Input price | Output price | Cost/test | Relative |
 | ---------------- | --------------- | ----------- | ------------ | --------- | -------- |

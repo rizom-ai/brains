@@ -150,7 +150,7 @@ docs:
     source: docs/plans/rizom-site-composition.md
 
   - id: rizom-site-tbd
-    title: Rizom Site TBD
+    title: Rizom Site Follow-ups
     section: Planning and release readiness
     order: 260
     source: docs/plans/rizom-site-tbd.md

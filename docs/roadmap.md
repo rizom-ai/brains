@@ -8,7 +8,7 @@ It focuses on product direction and release readiness, not internal task-by-task
 
 ## Current status
 
-`brains` is approaching its first stable `v0.2.0` release. The deploy-validation gate has been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths, and the extracted deployment repos now match the shared HTTP-host shape used by the current scaffold. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
+`brains` is approaching its first stable `v0.2.0` release. The deploy-validation, Rizom site, and docs-site gates have been cleared: `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths, the extracted deployment repos match the shared HTTP-host shape used by the current scaffold, the Rizom site variants are owned by their standalone app repos over the shared `sites/rizom` core, and `docs.rizom.ai` is owned by the standalone docs brain path. `@rizom/brain` is already publishing public alpha releases via changesets, so "launch" here means the current alpha cycle matures into a stable `v0.2.0` — not a repo-rename ceremony.
 
 What already exists today:
 
@@ -39,59 +39,19 @@ These areas are effectively landed:
 - **Multi-user fleet operations** — `@rizom/ops` for operator-managed rover fleets: shared wildcard TLS with `<handle>-preview.<zone>` preview routing, age-encrypted per-user secret files, content repo auto-create with anchor profile seeding, Discord anchor support, preview-domain routing aligned across deploy paths
 - **Production deploy validation** — `rizom.ai`, `mylittlephoney.com`, and `yeehaa.io` are live on their intended production paths
 - **Extracted deploy convergence** — the checked-out external deployments now use the shared HTTP-host shape: `app_port: 8080`, no active in-container `Caddyfile`, and direct `brain start` boot
-- **Rizom site core consolidation** — `rizom.ai`, `rizom.foundation`, and `rizom.work` now own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate
+- **Rizom site follow-through** — `rizom.ai`, `rizom.foundation`, and `rizom.work` own their final route composition from app-local `src/site.ts`, over the shared `sites/rizom` core with `shared/theme-rizom` kept separate; remaining CTA/content polish belongs to the extracted app/content repos, not this monorepo roadmap
 - **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
 - **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
 - **Rover eval stabilization** — the full Rover suite covers 86 cases across shell quality, tool invocation, multi-turn agent flows, and plugin behavior; latest full run with `--skip-llm-judge` is 84/86, with remaining failures in search argument matching and ambiguous saved-agent response text
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
-- **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; Relay docs test app validates the path end-to-end against a running docs brain
-- **Docs publishing ownership clarified** — release-driven sync from this repo into `rizom-ai/doc-brain-content`, with `rizom-ai/doc-brain` owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
+- **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, Relay docs fixtures, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
 - **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
 
 ## Near-term priorities
 
-### 1. Rizom site variant follow-through
-
-The Rizom architecture cleanup is now in place: `sites/rizom` owns the shared site core, each Rizom app owns its final composition from local `src/site.ts`, and `shared/theme-rizom` remains the separate shared theme. The deployable Rizom apps (`rizom.ai`, `rizom.foundation`, and `rizom.work`) now live in separate per-app repos for deploy isolation, while the shared Rizom site/theme/model packages remain in `brains`.
-
-Focus areas:
-
-- keep the shared/core boundary stable: `sites/rizom` for shared site structure, app-local `src/site.ts` for variants, `shared/theme-rizom` for theme
-- keep the shared Rizom site/theme layer consumable by app repos without depending on monorepo-only workspace wiring
-- keep app repos pinned to published `@rizom/brain` / `@rizom/ui` versions and validate with running-app preview rebuilds
-- avoid reintroducing in-monorepo deploy app packages for the extracted Rizom sites
-- finish the product/content backlog tracked in [rizom-site-tbd.md](./plans/rizom-site-tbd.md) without blocking the extraction work
-
-Plans:
-
-- [rizom-site-composition.md](./plans/rizom-site-composition.md)
-- [rizom-site-tbd.md](./plans/rizom-site-tbd.md)
-
-### 2. Documentation phase 3
-
-Phase 2 user-facing docs are in place:
-
-- [entity type reference](./entity-types-reference.md)
-- [content-management guidance](./content-management.md)
-- [interface setup guide](./interface-setup.md)
-- [customization guide](./customization-guide.md) for themes, layouts, and plugin boundaries
-
-Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
-
-The Phase 3 docs site path is in place: the [docs index](./README.md), [source manifest](./docs-manifest.yaml), `entities/doc` package, release-driven content sync to `rizom-ai/doc-brain-content`, and standalone `rizom-ai/doc-brain` deployment are all working.
-
-Remaining Phase 3 work:
-
-- auto-generate CLI reference from code and `brain.yaml` schema reference from Zod schemas
-
-Plans:
-
-- [documentation.md](./plans/documentation.md)
-- [`doc-brain` remaining work](https://github.com/rizom-ai/doc-brain/blob/main/docs/remaining-work.md)
-
-### 3. External plugin API
+### 1. External plugin API
 
 External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` cannot load plugins from `node_modules`.
 
@@ -120,7 +80,7 @@ Plans:
 
 ### Public repo cleanup
 
-A separate project from version stability. Archive-and-rename the private repo to `rizom-ai/brains` with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the plugin and docs stories are settled.
+A separate project from version stability. Archive-and-rename the private repo to `rizom-ai/brains` with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the external plugin API story is settled.
 
 Plan:
 

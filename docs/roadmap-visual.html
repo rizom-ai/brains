@@ -560,16 +560,16 @@
           id: "deploymentpath",
           name: "Deployment Path",
           status: "short-term",
-          desc: "Ongoing track covering both the published @rizom/brain package and the remaining Rizom follow-through. Alpha publishing runs continuously via Changesets (current cycle 0.2.0-alpha.x → 0.2.0 stable). Remaining work: keep the published scaffold contract aligned, hold the clean-machine install path as a release gate, and keep the Rizom-specific site cleanup from drifting into unnecessary extraction churn. Not a numbered priority in the markdown roadmap — described under 'Current status' since the deploy-validation gate has been cleared.",
+          desc: "Ongoing track for maturing the published @rizom/brain package from alpha to stable v0.2.0. Deploy validation, Rizom site follow-through, and docs-site ownership are complete; remaining release work is keeping the published scaffold contract aligned and holding the clean-machine install path as a release gate.",
           blocks: [],
         },
         {
           id: "rizomsites",
           name: "Rizom Site Follow-through",
-          status: "short-term",
-          step: 1,
-          desc: "The shared Rizom site cleanup is now in place: `sites/rizom` owns the shared core, each extracted Rizom app repo owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is also in place, with app-local overrides only where needed (`rizom.foundation`, `rizom.work`) and no forced `rizom.ai` theme fork. Remaining work is product polish (CTA destinations, newsletter/quiz links, contacts) in the extracted app/content repos.",
+          status: "completed",
+          desc: "The shared Rizom site cleanup is complete: `sites/rizom` owns the shared core, each extracted Rizom app repo owns its local `src/site.ts` composition, and `shared/theme-rizom` stays separate. Additive local theme layering is in place, with app-local overrides only where needed (`rizom.foundation`, `rizom.work`) and no forced `rizom.ai` theme fork. Remaining product polish belongs to the extracted app/content repos, not this monorepo roadmap.",
           deps: ["deploymentpath"],
+          date: "2026-04",
         },
         {
           id: "monitoring3",
@@ -661,7 +661,7 @@
           id: "pluginapi",
           name: "External Plugin API",
           status: "short-term",
-          step: 3,
+          step: 1,
           desc: "The abstraction audit and shell lifecycle foundation are complete enough to proceed. onRegister/onReady semantics are now real: onRegister is for capability registration, onReady runs after identity/profile and startup coordination, and background daemons/jobs start afterward. Remaining work: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
           deps: ["shellinitcoord"],
           blocks: [],
@@ -739,16 +739,16 @@
         {
           id: "documentation3",
           name: "Documentation Phase 3 — Docs Site",
-          status: "short-term",
-          step: 2,
-          desc: "Docs site path is in place: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), scripts/sync-docs-content.ts, release-driven sync into rizom-ai/doc-brain-content, and standalone rizom-ai/doc-brain deploy/rebuild for docs.rizom.ai. Remaining: auto-generated CLI reference and brain.yaml schema reference.",
+          status: "completed",
+          desc: "Docs site path is complete for the current target: docs index, source manifest (docs/docs-manifest.yaml), entities/doc package (schema, adapter, plugin, datasource, componentized list/detail templates), scripts/sync-docs-content.ts, release-driven sync into rizom-ai/doc-brain-content, Relay docs fixtures, and standalone rizom-ai/doc-brain deploy/rebuild for docs.rizom.ai. CLI and brain.yaml references exist; schema/code generation is maintenance backlog.",
+          date: "2026-04",
         },
 
         {
           id: "publicrelease",
           name: "Public Repo Cleanup",
           status: "long-term",
-          desc: "A separate project from version stability. Archive-and-rename the private repo to rizom-ai/brains with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the plugin and docs stories are settled.",
+          desc: "A separate project from version stability. Archive-and-rename the private repo to rizom-ai/brains with gitleaks sweep, orphan-commit staging, and clean-machine smoke tests. Only meaningful after the external plugin API story is settled.",
           blocks: [],
         },
 
@@ -1009,22 +1009,18 @@
     <div class="dep-group">
       <div class="dep-group-title">Near-term priorities</div>
       <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('rizomsites')">rizom sites</span>
-        <span class="dep-label">priority 1 — depends on the deployment path track (ongoing)</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('documentation3')">docs phase 3</span>
-        <span class="dep-label">priority 2 — independent of the others</span>
-      </div>
-      <div class="dep-row">
-        <span class="dep-node s-next" onclick="selectItem('shellinitcoord')">shell init coordination</span>
+        <span class="dep-node s-done" onclick="selectItem('rizomsites')">rizom sites ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('documentation3')">docs phase 3 ✓</span>
+        <span class="dep-plus">+</span>
+        <span class="dep-node s-done" onclick="selectItem('shellinitcoord')">shell init ✓</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('pluginapi')">external plugin api</span>
-        <span class="dep-label">priority 3 — shell-init is complete; external plugin API can now proceed on real onRegister/onReady semantics</span>
+        <span class="dep-label">priority 1 — remaining near-term gate now that site, docs, and shell lifecycle work are complete</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>
-        <span class="dep-label">post-v0.2.0; only meaningful after plugin and docs stories are settled</span>
+        <span class="dep-label">post-v0.2.0; only meaningful after external plugin API is settled</span>
       </div>
     </div>
     <div class="dep-group">
@@ -1088,7 +1084,7 @@
         <span class="dep-plus">+</span>
         <span class="dep-node s-done" onclick="selectItem('monitoring12')">monitoring 1-2 ✓</span>
         <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval 86/86 ✓</span>
+        <span class="dep-node s-done" onclick="selectItem('evalcoverage')">eval suite stabilized</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-done" onclick="selectItem('documentation')">docs ✓</span>

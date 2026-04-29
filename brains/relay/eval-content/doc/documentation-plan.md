@@ -4,18 +4,16 @@ section: "Planning and release readiness"
 order: 220
 sourcePath: "docs/plans/documentation.md"
 slug: "documentation-plan"
-description: "The repo now has a real base layer of user-facing documentation: getting started, CLI reference, brain.yaml reference, deployment guidance, theming docs, and ar"
+description: "The repo now has a real user-facing documentation layer: getting started, CLI reference, brain.yaml reference, deployment guidance, theming docs, architecture d"
 ---
 
 # Plan: User-Facing Documentation
 
 ## Context
 
-The repo now has a real base layer of user-facing documentation: getting started, CLI reference, brain.yaml reference, deployment guidance, theming docs, and architecture docs all exist.
+The repo now has a real user-facing documentation layer: getting started, CLI reference, brain.yaml reference, deployment guidance, theming docs, architecture docs, curated docs manifest, synced docs content, and a standalone docs brain path for `docs.rizom.ai` all exist.
 
-What is still missing is a more complete and better-organized user-facing docs set for people who are not already familiar with the repo.
-
-That means this is no longer about creating docs from zero. It is about closing the remaining gaps before and after Rover 1.0.
+This plan is no longer a launch blocker. Remaining work is maintenance: keeping generated/synced docs current and, later, replacing hand-maintained references with schema/code-generated output where useful.
 
 ## What's needed
 
@@ -96,9 +94,9 @@ Docs in `docs/`:
 3. **Interface setup guide**: see [`docs/interface-setup.md`](/docs/interface-setup)
 4. **Customization guide**: see [`docs/customization-guide.md`](/docs/customization-guide)
 
-### Phase 3: Doc site
+### Phase 3: Doc site — DONE (2026-04)
 
-Initial direction: dogfood the brain site-builder docs path with first-class `doc` entities rendered by a `docs` capability inside the active site/theme. Fall back to a dedicated docs framework such as Astro Starlight or VitePress only if this proves too limiting.
+The project dogfoods the brain site-builder docs path with first-class `doc` entities rendered by a `docs` capability inside the active site/theme. Dedicated docs-framework fallback is not needed for the current target.
 
 Docs app operational follow-up lives in [`rizom-ai/doc-brain`](https://github.com/rizom-ai/doc-brain/blob/main/docs/remaining-work.md).
 
@@ -107,8 +105,11 @@ Docs app operational follow-up lives in [`rizom-ai/doc-brain`](https://github.co
 3. **Generic `doc` entity package — DONE (2026-04)**: schema/adapter/plugin/datasource/templates exist in `entities/doc`; Relay docs test app validates list/detail routes
 4. **Docs sync script — DONE (2026-04)**: `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml`; release workflow pushes generated docs to `rizom-ai/doc-brain-content`
 5. **Standalone docs app repo — DONE (2026-04)**: `rizom-ai/doc-brain` owns normal deploy/rebuild of `docs.rizom.ai`
-6. Auto-generate CLI reference from code
-7. Auto-generate brain.yaml schema reference from Zod schemas
+
+### Maintenance backlog
+
+1. Auto-generate CLI reference from code instead of maintaining the reference by hand
+2. Auto-generate brain.yaml schema reference from Zod schemas instead of maintaining the reference by hand
 
 ## Verification
 
@@ -116,3 +117,4 @@ Docs app operational follow-up lives in [`rizom-ai/doc-brain`](https://github.co
 2. brain.yaml reference covers every field with examples
 3. Deployment guide works on a fresh Hetzner VPS
 4. CLI reference matches actual commands
+5. Docs sync and docs-site fixtures stay green via `bun run docs:check`

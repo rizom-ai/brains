@@ -1,6 +1,6 @@
-# Rizom Sites — Open Product/Content Items
+# Rizom Sites — External Product/Content Follow-ups
 
-These are product/content follow-ups only. They should be handled in the extracted app repos or their content repos unless a shared package change is genuinely required.
+The monorepo Rizom site architecture task is complete. The items below are product/content follow-ups only; they should be handled in the extracted app repos or their content repos unless a shared package change is genuinely required.
 
 ## `rizom.ai`
 

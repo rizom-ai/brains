@@ -4,14 +4,14 @@ section: "Planning and release readiness"
 order: 250
 sourcePath: "docs/plans/rizom-site-composition.md"
 slug: "rizom-site-composition"
-description: "The architecture/extraction work is done for the current target:"
+description: "The architecture/extraction work is done for the current target and is no longer a monorepo roadmap blocker:"
 ---
 
-# Rizom Site Composition — Open Items
+# Rizom Site Composition — Complete
 
 ## Current shape
 
-The architecture/extraction work is done for the current target:
+The architecture/extraction work is done for the current target and is no longer a monorepo roadmap blocker:
 
 - `sites/rizom` stays in `brains` as the shared Rizom site core.
 - `shared/theme-rizom` stays in `brains` as the shared family theme.
@@ -19,13 +19,13 @@ The architecture/extraction work is done for the current target:
 - App-specific composition, copy wiring, and local theme overrides live in those app repos.
 - Shared packages are consumed through published runtime/UI packages, not workspace-only app packages.
 
-## Open items
+## Ongoing guardrails
 
 - Keep `@rizom/brain` and `@rizom/ui` release/pinning aligned across the extracted app repos.
 - Validate app repo changes with the running-app flow: install, typecheck, start, remote preview rebuild, inspect generated preview output.
 - Keep `sites/rizom` and `shared/theme-rizom` single-sourced in `brains`; do not copy them into app repos.
 - Keep product/content polish in the app or content repos, not in new monorepo app packages.
-- Remove any remaining docs or scripts that still imply `apps/rizom-*` is the active deploy boundary.
+- Do not add docs or scripts that imply `apps/rizom-*` is the active deploy boundary.
 
 ## Guardrails
 
