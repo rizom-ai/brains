@@ -207,7 +207,7 @@ Before calling this done, ship:
 ## Dependencies
 
 - current published `@rizom/brain` package contract
-- `docs/plans/shell-init-coordination.md` — must land first so the public plugin lifecycle is stable before exports ship
+- `docs/plans/shell-init-coordination.md` — completed lifecycle foundation; public plugin exports can now build on stable `onRegister`/`onReady` semantics
 - `docs/plans/custom-brain-definitions.md` — the `brain.ts` programmatic-mode plan, which assumes the public subpath surface from §1 already exists
 
 ## Done when

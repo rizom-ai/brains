@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Project Roadmap</h1>
-      <p>Last updated: 2026-04-28 — Click any item for details</p>
+      <p>Last updated: 2026-04-29 — Click any item for details</p>
     </div>
 
     <div class="legend">
@@ -619,7 +619,7 @@
           id: "evalcoverage",
           name: "Eval Coverage",
           status: "completed",
-          desc: "Full Rover suite is green at 86/86 on gpt-5.4-mini. Coverage includes shell quality, tool invocation, multi-turn agent flows, plugins, finalized-content direct create, and app summary accuracy. Multi-model reporting remains available through per-provider keys.",
+          desc: "Full Rover suite now covers 86 cases across shell quality, tool invocation, multi-turn agent flows, plugins, finalized-content direct create, and app summary accuracy. Latest full gpt-5.4-mini run with --skip-llm-judge is 84/86; remaining failures are search argument matching and ambiguous saved-agent response text. Multi-model reporting remains available through per-provider keys.",
           date: "2026-04",
         },
         {
@@ -662,15 +662,15 @@
           name: "External Plugin API",
           status: "short-term",
           step: 3,
-          desc: "Starts with an audit of the abstractions and shell lifecycle, not with publishing exports. The plugin framework has grown organically alongside the entity/service/interface split — freezing whatever shape happens to exist today would force the first real external authors to absorb breaking changes that internal review would surface anyway. Audit covers plugin type split, context consistency, lifecycle hooks, registration model, cross-plugin deps, type safety, and versioning policy. Shell-init coordination lands before publishing so onRegister/onReady semantics are real, not aspirational — identity/profile seeding currently races registration and external authors are the most likely to trip on it. After the audit and lifecycle work: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
+          desc: "The abstraction audit and shell lifecycle foundation are complete enough to proceed. onRegister/onReady semantics are now real: onRegister is for capability registration, onReady runs after identity/profile and startup coordination, and background daemons/jobs start afterward. Remaining work: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
           deps: ["shellinitcoord"],
           blocks: [],
         },
         {
           id: "shellinitcoord",
           name: "Shell Init Coordination",
-          status: "short-term",
-          desc: "Prereq for the public plugin surface. Split shell/core/src/shell.ts (682 lines) into a runtime facade plus a ShellBootloader that owns the phased init sequence. Replace the implicit sync:initial:completed message-bus race with explicit onRegister / onReady lifecycle phases; keep any post-ready phase internal unless plugin-author need appears. Lands before publishing so public lifecycle hooks are real semantics, not aspirational — the existing identity/profile seeding race would otherwise be a known v1 bug external authors hit first.",
+          status: "completed",
+          desc: "Lifecycle foundation for the public plugin surface is complete. ShellBootloader owns the phased init sequence, plugin onReady is backed by real boot ordering, identity/profile initialize before ready hooks, daemons/job processing start afterward, and site presentation metadata no longer lives on the shell facade.",
           blocks: ["pluginapi"],
         },
         {
@@ -1020,7 +1020,7 @@
         <span class="dep-node s-next" onclick="selectItem('shellinitcoord')">shell init coordination</span>
         <span class="dep-arrow">→</span>
         <span class="dep-node s-next" onclick="selectItem('pluginapi')">external plugin api</span>
-        <span class="dep-label">priority 3 — shell-init lands before publishing so onRegister/onReady semantics are real; remaining framework consolidation items stay long-term</span>
+        <span class="dep-label">priority 3 — shell-init is complete; external plugin API can now proceed on real onRegister/onReady semantics</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>

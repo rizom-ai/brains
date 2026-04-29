@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-28
+Last updated: 2026-04-29
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -43,11 +43,12 @@ These areas are effectively landed:
 - **Monorepo cleanup** — transitional apps/packages removed; `rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, and `yeehaa.io` extracted
 - **Agent directory tightening** — outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain `discovered`, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced
 - **Finalized content preservation** — exact/finalized/approved content now persists directly through `system_create` without being routed through generation, with entity-service markdown creation and Rover eval coverage for decks, posts, newsletters, notes, and social posts
-- **Rover eval stabilization** — the full Rover suite is green at 86/86, with agent follow-up fixtures isolated from shared mutable domains and YAML fixture tests reduced to broad integrity checks instead of brittle exact-path assertions
+- **Rover eval stabilization** — the full Rover suite covers 86 cases across shell quality, tool invocation, multi-turn agent flows, and plugin behavior; latest full run with `--skip-llm-judge` is 84/86, with remaining failures in search argument matching and ambiguous saved-agent response text
 - **Assessment package split** — SWOT moved out of agent discovery into `entities/assessment`, keeping agent discovery as the evidence source and assessment as the interpretation/output boundary
 - **Doc entity and docs-site bootstrap** — `entities/doc` package with schema, adapter, plugin, datasource, and componentized list/detail templates; `/docs` and `/docs/:slug` routes with grouped sidebar nav and previous/next links; Relay docs test app validates the path end-to-end against a running docs brain
 - **Docs publishing ownership clarified** — release-driven sync from this repo into `rizom-ai/doc-brain-content`, with `rizom-ai/doc-brain` owning the standalone deploy/rebuild of `docs.rizom.ai`; no in-monorepo docs deploy path
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
+- **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
 
 ## Near-term priorities
 
@@ -94,14 +95,14 @@ Plans:
 
 External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` cannot load plugins from `node_modules`.
 
-Starts with an audit of the abstractions and shell lifecycle, not with publishing exports. The plugin framework has grown organically alongside the entity/service/interface split; freezing whatever shape happens to exist today would force the first real external authors to absorb the breaking changes that an internal review would surface anyway. The audit decides which asymmetries between the three plugin types are intentional, what the minimal lifecycle hook set should be, and what the versioning policy is. Shell initialization coordination lands before publishing so `onRegister`/`onReady` semantics are real, not aspirational.
+The abstraction audit and shell lifecycle foundation are complete enough to proceed. The plugin framework now has real `onRegister`/`onReady` semantics before public exports are frozen: `onRegister` is for capability registration, `onReady` runs after identity/profile and startup coordination are complete, and background daemons/jobs start afterward.
 
-Scope after the audit: public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`, `/utils`, `/templates`), `brain.yaml` `plugins:` schema with env-var interpolation, plugin API version constant, and at least one reference external plugin proving the path end-to-end.
+Remaining scope: public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`, `/utils`, `/templates`), `brain.yaml` `plugins:` schema with env-var interpolation, plugin API version constant, and at least one reference external plugin proving the path end-to-end.
 
 Plans:
 
-- [shell-init-coordination.md](./plans/shell-init-coordination.md) — prerequisite lifecycle work before public plugin exports
-- [external-plugin-api.md](./plans/external-plugin-api.md) — §0 audit plus shell lifecycle coordination gate §1-§5
+- [shell-init-coordination.md](./plans/shell-init-coordination.md) — completed lifecycle foundation before public plugin exports
+- [external-plugin-api.md](./plans/external-plugin-api.md) — remaining public export/loading/versioning work
 - [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — downstream `brain.ts` escape hatch that depends on the public surface
 
 ## Long-term
