@@ -2,7 +2,7 @@
 
 ## Status
 
-Shell initialization coordination and §1 public plugin authoring exports are complete. §2 `brain.yaml plugins:` loading is partially implemented: external plugin declarations parse, package refs register, and runtime loading supports default or named `plugin` factory exports. §3 API compatibility checks remain next.
+Shell initialization coordination, §1 public plugin authoring exports, and §2 `brain.yaml plugins:` loading are complete. External plugin declarations parse, package refs register, and runtime loading supports default or named `plugin` factory exports. Runtime plugin API compatibility checks are deferred while `PLUGIN_API_VERSION` tracks the `@rizom/brain` package version during alpha; package-manager `peerDependencies` are the compatibility source of truth for now.
 
 ## Current state
 
@@ -16,8 +16,8 @@ What `@rizom/brain` exposes today (`packages/brain-cli/package.json` exports):
 
 What plugin authors still need:
 
-- plugin API compatibility checking against package metadata (`rizomBrain.pluginApi`)
 - plugin author docs and at least one reference external plugin
+- future plugin API compatibility checks only if/when the plugin API version diverges from the `@rizom/brain` package version
 
 `docs/plans/custom-brain-definitions.md` (the `brain.ts` escape hatch) depends on this plan: `defineBrain` and preset spread targets need to be importable from `@rizom/brain` before `brain.ts` is usable by external authors.
 
@@ -157,16 +157,20 @@ export default plugin;
 
 Loader rule: import the package entry, use `default` if present, otherwise named `plugin`. The factory receives only the nested `config` object. The `plugins:` map key is the capability id used for add/remove and diagnostics; returned plugin instances keep their own `plugin.id`.
 
-### 3. Add a plugin API compatibility contract
+### 3. Compatibility contract during alpha
 
-External plugins need a versioned contract so breaking changes are detectable.
+External plugins use normal package metadata for compatibility during alpha. Because `PLUGIN_API_VERSION` currently tracks the `@rizom/brain` package version, a separate runtime semver check would duplicate package-manager peer dependency resolution.
 
-Needed behavior:
+Current behavior:
 
-- publish a plugin API version constant
-- let plugins declare target API version in `package.json`
-- warn on mismatch at load time
-- document deprecation and breaking-change policy
+- publish `PLUGIN_API_VERSION` for author visibility and future compatibility work
+- plugin packages declare compatible `@rizom/brain` versions with `peerDependencies`
+- plugin package versions stay in the instance `package.json`, not `brain.yaml`
+
+Deferred behavior:
+
+- add `rizomBrain.pluginApi` runtime checks only if/when the public plugin API version diverges from the package version
+- document deprecation and breaking-change policy before declaring plugin API v1 stable
 
 Package metadata shape:
 
@@ -181,15 +185,12 @@ Package metadata shape:
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0"
-  },
-  "rizomBrain": {
-    "pluginApi": "^1.0.0"
+    "@rizom/brain": "^0.2.0-alpha.45"
   }
 }
 ```
 
-Compatibility checks use `rizomBrain.pluginApi` against `PLUGIN_API_VERSION`. Missing metadata warns during alpha, then fails once plugin API v1 is declared stable.
+Package managers enforce or warn on this compatibility through peer dependency resolution. A future independent `rizomBrain.pluginApi` field can be added once it carries information that package version ranges cannot.
 
 ### 4. Add basic plugin CLI ergonomics
 
@@ -227,6 +228,6 @@ Before calling this done, ship:
 1. audit decisions are recorded in this plan for every §0 area, and those decisions are reflected in the codebase
 2. external plugin authors can import the required public APIs from `@rizom/brain`
 3. installed plugins can be declared in `brain.yaml` and loaded at runtime
-4. plugin API version mismatches are detectable
+4. plugin package compatibility expectations are documented through `peerDependencies`
 5. at least one external reference plugin proves the full path
 6. plugin author documentation exists and matches reality

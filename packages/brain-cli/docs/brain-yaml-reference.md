@@ -236,6 +236,24 @@ plugins:
 
 The package version belongs in the instance `package.json`; `brain.yaml` only declares and configures the plugin. List-form `plugins:` is not supported.
 
+```json
+{
+  "dependencies": {
+    "@rizom/brain-plugin-calendar": "^0.1.0"
+  }
+}
+```
+
+External plugin packages should declare their compatible runtime with a peer dependency:
+
+```json
+{
+  "peerDependencies": {
+    "@rizom/brain": "^0.2.0-alpha.45"
+  }
+}
+```
+
 ### `permissions`
 
 Explicit permission configuration.
