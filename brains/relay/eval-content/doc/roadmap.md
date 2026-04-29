@@ -88,12 +88,10 @@ Phase 2 user-facing docs are in place:
 
 Architecture-level plugin docs stay intentionally thin and point implementation detail to the relevant `AGENTS.md` files and `plugins/examples/`.
 
-The Phase 3 docs site is partially landed: the [docs index](/docs), [source manifest](https://github.com/rizom-ai/brains/blob/main/docs/docs-manifest.yaml), and the `entities/doc` package (schema, adapter, plugin, datasource, componentized list/detail templates) are in place, and the Relay docs test app validates list/detail routing.
+The Phase 3 docs site path is in place: the [docs index](/docs), [source manifest](https://github.com/rizom-ai/brains/blob/main/docs/docs-manifest.yaml), `entities/doc` package, release-driven content sync to `rizom-ai/doc-brain-content`, and standalone `rizom-ai/doc-brain` deployment are all working.
 
 Remaining Phase 3 work:
 
-- configure production secrets/deploy target for `rizom-ai/doc-brain`
-- add `DOCS_CONTENT_SYNC_TOKEN` to `rizom-ai/brains` so releases can push generated docs to `rizom-ai/doc-brain-content`
 - auto-generate CLI reference from code and `brain.yaml` schema reference from Zod schemas
 
 Plans:
