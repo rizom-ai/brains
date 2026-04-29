@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { ContentPipelinePlugin } from "../src/plugin";
 import { PUBLISH_MESSAGES } from "../src/types/messages";
 import type { PublishProvider } from "@brains/utils";
@@ -15,6 +15,10 @@ describe("ContentPipelinePlugin", () => {
     harness = createPluginHarness({ dataDir: "/tmp/test-datadir" });
     plugin = new ContentPipelinePlugin({});
     await harness.installPlugin(plugin);
+  });
+
+  afterEach(async () => {
+    await plugin.cleanup();
   });
 
   describe("initialization", () => {
@@ -39,7 +43,6 @@ describe("ContentPipelinePlugin", () => {
       await plugin.ready();
 
       expect(plugin.getScheduler().isRunning()).toBe(true);
-      await plugin.cleanup();
     });
   });
 
@@ -92,7 +95,7 @@ describe("ContentPipelinePlugin", () => {
   });
 
   describe("queue rebuild on startup", () => {
-    it("should rebuild queue from queued entities after sync:initial:completed", async () => {
+    it("should rebuild queue from queued entities during ready lifecycle", async () => {
       harness.addEntities([
         {
           id: "post-1",
@@ -114,7 +117,7 @@ describe("ContentPipelinePlugin", () => {
         },
       ]);
 
-      await harness.sendMessage("sync:initial:completed", {});
+      await plugin.ready();
 
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue.length).toBe(2);
@@ -133,14 +136,14 @@ describe("ContentPipelinePlugin", () => {
         },
       ]);
 
-      await harness.sendMessage("sync:initial:completed", {});
+      await plugin.ready();
 
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue.length).toBe(0);
     });
 
     it("should handle no queued entities gracefully", async () => {
-      await harness.sendMessage("sync:initial:completed", {});
+      await plugin.ready();
 
       const queue = await plugin.getQueueManager().list("social-post");
       expect(queue.length).toBe(0);

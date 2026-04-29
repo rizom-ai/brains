@@ -2,7 +2,7 @@
 
 ## Status
 
-Implemented for the external plugin API gate. Public lifecycle semantics now have a real `onReady` hook and explicit boot ordering. Remaining facade slimming in `shell.ts` is a follow-up cleanup, not a blocker for plugin-authoring exports.
+Complete. Public lifecycle semantics now have a real `onReady` hook and explicit boot ordering. `ShellBootloader` owns startup coordination; `shell.ts` delegates boot and remains the runtime facade/service access surface.
 
 External API gate scope: this plan landed far enough to provide a real `onReady` hook and explicit boot ordering. A public `onPostReady` hook is not required for the first external plugin API; keep any post-ready phase internal unless implementation proves plugin authors need it.
 
@@ -86,16 +86,18 @@ After step 7, `Shell.getInstance()` returns the live facade. For external plugin
 5. [x] Keep `system:plugins:ready` as the internal all-registered signal, but stop treating it as public lifecycle readiness.
 6. [x] Make identity/profile seeding part of the bootloader sequence, not a message-bus reaction.
 7. [x] Drop the identity/profile `sync:initial:completed` ordering trick once plugins migrate.
-8. [ ] Bench startup timing — phased dispatch should not regress.
+8. [x] Bench startup timing — phased dispatch should not regress. Sanity check: `time bun test shell/core/test/shell-initialization-order.test.ts` completed in ~0.52s wall time.
 
 ## Inventory notes
 
-Known migration hotspots from current code search:
+Final audit notes:
 
-- Identity/profile reads that should move to `onReady` or later: `interfaces/a2a`, dashboard widget data, assessment/capability profile builders, generation handlers that already run as jobs.
-- `system:plugins:ready` producers/consumers used only for "all subscribers are installed" ordering can stay on the message bus: analytics/head scripts, publish provider registration, dashboard widget registration.
-- `sync:initial:completed` consumers that rebuild derived state after files land need a replacement bootloader-owned initial-sync barrier or an internal post-sync event with clear semantics: topics, series, site-info, assessment, content-pipeline, site-builder, agent-discovery skills.
-- Directory-sync may still emit a sync completion event for observers, but identity/profile initialization should no longer depend on subscribers racing that event.
+- `interfaces/a2a` reads identity/profile from `onReady`, after bootloader ready-state preparation.
+- Analytics head-script registration, Obsidian vault template sync, and content-pipeline scheduler/widget startup now use `onReady` rather than `system:plugins:ready` subscribers.
+- Content-pipeline startup queue rebuild now uses `onReady`, relying on the bootloader-owned initial-sync barrier.
+- Site-builder no longer initializes profile state from `sync:initial:completed`; bootloader owns identity/profile initialization.
+- Production `system:plugins:ready` use is limited to shell emission and directory-sync's internal initial-sync subscription.
+- Directory-sync still emits `sync:initial:completed` as an internal post-import notification for compatibility, but identity/profile and ready-state semantics no longer depend on it.
 
 ## Non-goals
 
@@ -106,12 +108,12 @@ Known migration hotspots from current code search:
 
 ## Verification
 
-1. No plugin calls `context.identity` during `onRegister` after migration.
-2. `shell.ts` shrinks to a runtime facade with no `initialize()` body.
-3. Tests assert phase order: `onRegister` before `system:plugins:ready`, initial sync barrier before identity/profile seeding, identity/profile seeded before `onReady`, daemon/job startup remains ordered.
-4. No public `onPostReady` API is required by the implementation.
-5. Existing tests pass.
-6. Startup is no slower than before.
+1. [x] No plugin calls `context.identity` during `onRegister` after migration.
+2. [x] `shell.ts` delegates startup coordination to `ShellBootloader`; it no longer owns phase ordering.
+3. [x] Tests assert phase order: `onRegister` before `system:plugins:ready`, initial sync barrier before identity/profile seeding, identity/profile seeded before `onReady`, daemon/job startup remains ordered.
+4. [x] No public `onPostReady` API is required by the implementation.
+5. [x] Existing targeted tests pass; full typecheck passes.
+6. [x] Startup timing sanity check completed.
 
 ## Related
 

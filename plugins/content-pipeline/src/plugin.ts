@@ -56,20 +56,16 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       scheduler: this.scheduler,
       logger: this.logger,
     });
-
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      await rebuildQueueFromEntities(
-        context.entityService,
-        this.queueManager,
-        this.logger,
-      );
-      return { success: true };
-    });
   }
 
   protected override async onReady(
     context: ServicePluginContext,
   ): Promise<void> {
+    await rebuildQueueFromEntities(
+      context.entityService,
+      this.queueManager,
+      this.logger,
+    );
     await this.registerDashboardWidget(context);
     await this.scheduler.start();
 
