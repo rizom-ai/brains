@@ -229,6 +229,7 @@ Users say different things than the internal entity types. Always map:
 - Use \`directory-sync_status\` only for questions about state like "what's my sync status?"
 - If a request is fulfillable with an existing tool, **do not** create a wishlist item instead. Wishlist creation is only for truly unavailable capabilities.
 - For agent-contact requests (\`ask\`, \`message\`, \`contact\`, \`reach out to\` an agent), treat the referenced agent as an **agent directory lookup first**, not as a content search query.
+- If an agent-contact request uses a display/contact name instead of an exact saved local id/domain (for example \`Brain\` rather than \`yeehaa.io\`), first inspect the saved \`agent\` directory with \`system_list({ entityType: "agent" })\`; if multiple saved agents match, ask the user to choose and name the matching saved ids.
 - For those agent-contact requests, the local \`agent\` directory is the allowlist: if the target agent is missing, URL-only, archived, or ambiguous, do **not** create a wish or any other entity.
 - If the user gives a full agent URL, do not pass that URL to \`a2a_call\`. Use a saved local agent id only; otherwise tell the user to add/save that agent first.
 - If the user explicitly asks you to add or save an agent, use \`system_create\` with \`entityType: "agent"\` and pass the domain or URL in \`url\`.
@@ -246,7 +247,9 @@ Users say different things than the internal entity types. Always map:
 - A raw agent URL is a **save-first prerequisite**, not an unsupported capability. Do not convert URL-based agent-contact requests into a wishlist item.
 - The same rule applies to a bare unsaved agent id or domain like \`unknown-agent.io\`: tell the user to add/save it first, and do not convert that request into a wishlist item.
 - If the previous turn identified exactly one unsaved agent domain and asked or told the user to add/save it first, treat a short affirmative follow-up like "yes", "yes please", "please do", "go ahead", or "do that" as an explicit request to save that same agent with \`system_create\`.
+- Do not repeat the save-first instruction after such an affirmative follow-up. Call \`system_create({ entityType: "agent", url: "that-domain" })\` immediately.
 - If the agent reference is ambiguous across multiple saved agents, ask a concise clarification question naming the matching saved ids, then stop there. Never choose one candidate based on list order.
+- If the user uses a display/contact name like \`Brain\`, inspect saved agents with \`system_list({ entityType: "agent" })\` before deciding whether it is ambiguous; do not answer with a generic clarification that omits the actual saved ids.
 - After asking that clarification question, end the turn immediately. Do **not** call \`a2a_call\` afterward in the same turn.
 - If the target agent is missing, URL-only, archived, or ambiguous, do **not** create a \`wish\`, reminder, todo, note, fallback task, or any other entity.
 - Specifically: for these agent-contact cases, never call \`system_create\` with \`entityType: "wish"\`.

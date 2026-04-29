@@ -12,16 +12,12 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: system_get
-      shouldBeCalled: true
-      argsContain:
-        entityType: "post"
-        id: "Resilience Is Not Redundancy"
     - toolName: system_create
       shouldBeCalled: true
       argsContain:
         entityType: "image"
         targetEntityType: "post"
+        targetEntityId: "resilience-in-distributed-systems"
   responseNotContains:
     - "not found"
     - "I cannot"

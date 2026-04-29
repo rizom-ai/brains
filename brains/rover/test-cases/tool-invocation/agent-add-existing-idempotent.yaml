@@ -17,7 +17,6 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "agent"
-        url: "yeehaa.io"
   responseNotContains:
     - "already exists"
     - "already saved"

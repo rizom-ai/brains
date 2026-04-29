@@ -1,6 +1,6 @@
 id: tool-invocation-search
 name: System Search Invocation
-description: Verifies that the agent correctly uses system_search with appropriate query
+description: Verifies that the agent uses system_search scoped to blog posts
 type: tool_invocation
 tags:
   - core
@@ -14,7 +14,7 @@ successCriteria:
     - toolName: system_search
       shouldBeCalled: true
       argsContain:
-        query: "programming"
+        entityType: "post"
   responseContains:
     - "programming"
   responseNotContains:
