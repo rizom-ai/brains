@@ -103,6 +103,7 @@ jobs:
           workdir="$(mktemp -d)"
           trap 'rm -rf "$workdir"' EXIT
 
+          gh auth setup-git
           gh repo clone rizom-ai/doc-brain-content "$workdir/content"
           git -C "$workdir/content" config user.name "github-actions[bot]"
           git -C "$workdir/content" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
