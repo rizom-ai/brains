@@ -1,6 +1,6 @@
 import { getErrorMessage, toError } from "@brains/utils";
 import type { Logger } from "@brains/utils";
-import type { IShell } from "../interfaces";
+import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { EventEmitter } from "events";
 import type { PluginCapabilities } from "../interfaces";
 import type { IDaemonRegistry } from "./daemon-types";
@@ -30,6 +30,7 @@ export class PluginLifecycle {
   public async initializePlugin(
     pluginId: string,
     shell: IShell,
+    registrationContext?: PluginRegistrationContext,
   ): Promise<PluginCapabilities> {
     const pluginInfo = this.plugins.get(pluginId);
     if (!pluginInfo) {
@@ -48,7 +49,7 @@ export class PluginLifecycle {
 
     try {
       // Register the plugin and get capabilities
-      const capabilities = await plugin.register(shell);
+      const capabilities = await plugin.register(shell, registrationContext);
 
       // Update plugin status
       pluginInfo.status = PluginStatus.INITIALIZED;

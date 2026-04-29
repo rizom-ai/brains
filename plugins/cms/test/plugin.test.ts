@@ -7,12 +7,10 @@ import { cmsPlugin, buildCmsConfigYaml, renderCmsShellHtml } from "../src";
 function createCmsTestShell(
   options: {
     domain?: string;
-    entityDisplay?: Record<string, { label: string; pluralName?: string }>;
   } = {},
 ): MockShell {
   const shell = createMockShell({
     ...(options.domain && { domain: options.domain }),
-    ...(options.entityDisplay && { entityDisplay: options.entityDisplay }),
   });
   shell.getMessageBus().subscribe("git-sync:get-repo-info", async () => ({
     success: true,
@@ -81,15 +79,14 @@ describe("cms plugin", () => {
   });
 
   it("uses entityDisplay from plugin context when config does not provide it", async () => {
-    const shell = createCmsTestShell({
-      domain: "yeehaa.io",
+    const shell = createCmsTestShell({ domain: "yeehaa.io" });
+    const plugin = cmsPlugin();
+
+    await plugin.register(shell, {
       entityDisplay: {
         post: { label: "Essay" },
       },
     });
-    const plugin = cmsPlugin();
-
-    await plugin.register(shell);
 
     const configRoute = plugin.getWebRoutes()[1];
     const response = await configRoute?.handler(

@@ -40,7 +40,14 @@ export class ShellBootloader {
       this.services.templateRegistry,
       this.services.entityRegistry,
       this.services.pluginManager,
-      options?.registerOnly ? { registerOnly: true } : undefined,
+      {
+        ...(options?.registerOnly && { registerOnly: true }),
+        registrationContext: {
+          ...(this.config.entityDisplay !== undefined && {
+            entityDisplay: this.config.entityDisplay,
+          }),
+        },
+      },
     );
 
     // Register job handlers for content operations before any ready signals.

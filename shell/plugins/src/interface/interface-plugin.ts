@@ -3,6 +3,7 @@ import type {
   PluginCapabilities,
   IShell,
   BaseJobTrackingInfo,
+  PluginRegistrationContext,
 } from "../interfaces";
 import type { Daemon } from "../manager/daemon-types";
 import type { InterfacePluginContext } from "./context";
@@ -62,9 +63,16 @@ export abstract class InterfacePlugin<
   /**
    * Register the plugin with shell - creates InterfacePluginContext internally
    */
-  override async register(shell: IShell): Promise<PluginCapabilities> {
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
     // Create typed context from shell
-    const context = createInterfacePluginContext(shell, this.id);
+    const context = createInterfacePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
     this.context = context;
 
     // Initialize daemon before registration

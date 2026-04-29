@@ -59,8 +59,7 @@ plugins:
 | `watchInterval`         | `1000`            | File watcher polling interval in ms                               |
 | `includeMetadata`       | `true`            | Include frontmatter metadata                                      |
 | `entityTypes`           | unset             | Optional list of entity types to sync                             |
-| `initialSync`           | `true`            | Queue initial import/export work on startup                       |
-| `initialSyncDelay`      | `1000`            | Startup delay before initial sync in ms                           |
+| `initialSync`           | `true`            | Run startup import during shell coordination                      |
 | `syncBatchSize`         | `10`              | Batch size for sync jobs                                          |
 | `syncPriority`          | `3`               | Job priority, 1–10                                                |
 | `seedContent`           | `true`            | Copy seed content when the target directory is effectively empty  |

@@ -28,6 +28,7 @@ export { createInterfacePluginContext } from "./interface/context";
 
 export type {
   Plugin,
+  PluginRegistrationContext,
   PluginCapabilities,
   Tool,
   Resource,

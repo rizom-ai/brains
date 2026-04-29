@@ -7,7 +7,7 @@ import { copySeedContentIfNeeded } from "./seed-content";
 /**
  * Wire up initial-sync orchestration: subscribe to startup messages,
  * optionally copy seed content, import files synchronously, then broadcast
- * sync:initial:completed.
+ * SYSTEM_CHANNELS.initialSyncCompleted.
  */
 export function setupInitialSync(
   context: ServicePluginContext,

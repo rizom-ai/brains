@@ -14,7 +14,6 @@ import type {
   QueryContext,
   RegisteredApiRoute,
   RegisteredWebRoute,
-  EntityDisplayEntry,
 } from "@brains/plugins";
 import { endpointInfoSchema } from "@brains/plugins";
 
@@ -545,12 +544,6 @@ export class Shell implements IShell {
 
   public getDataDir(): string {
     return this.config.dataDir;
-  }
-
-  // TODO(shell-facade): Move site presentation metadata out of IShell.
-  // Plugin contexts need this today, but Shell should not stay a config grab-bag.
-  public getEntityDisplay(): Record<string, EntityDisplayEntry> | undefined {
-    return this.config.entityDisplay;
   }
 
   public registerEvalHandler(

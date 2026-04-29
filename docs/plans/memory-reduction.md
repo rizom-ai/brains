@@ -24,7 +24,7 @@ Add `process.memoryUsage()` logging at startup milestones to establish baselines
 **Files to modify:**
 
 - `shell/core/src/initialization/shellInitializer.ts` — log after `initializeServices()` (line 224) and after `initializeAll()`
-- `shell/core/src/initialization/shellBootloader.ts` — log after the internal `system:plugins:ready` emission and after ready hooks
+- `shell/core/src/initialization/shellBootloader.ts` — log after `SYSTEM_CHANNELS.pluginsRegistered` emission and after ready hooks
 
 **Also create a standalone script** that measures per-import cost:
 

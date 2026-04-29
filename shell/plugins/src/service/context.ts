@@ -1,6 +1,6 @@
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type { IShell } from "../interfaces";
+import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IEntitiesNamespace, IPromptsNamespace } from "../entity/context";
 import { resolvePrompt } from "../entity/prompt-resolver";
 import type {
@@ -95,8 +95,13 @@ export interface ServicePluginContext extends BasePluginContext {
 export function createServicePluginContext(
   shell: IShell,
   pluginId: string,
+  registrationContext?: PluginRegistrationContext,
 ): ServicePluginContext {
-  const baseContext = createBasePluginContext(shell, pluginId);
+  const baseContext = createBasePluginContext(
+    shell,
+    pluginId,
+    registrationContext,
+  );
   const entityService = shell.getEntityService();
   const entityRegistry = shell.getEntityRegistry();
   const renderService = shell.getRenderService();

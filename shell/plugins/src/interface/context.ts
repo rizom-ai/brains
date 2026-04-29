@@ -3,7 +3,11 @@ import type {
   IConversationsNamespace,
 } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type { IShell, IMCPTransport } from "../interfaces";
+import type {
+  IShell,
+  IMCPTransport,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type { Daemon } from "../manager/daemon-types";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { IAgentService } from "@brains/ai-service";
@@ -179,8 +183,13 @@ export interface InterfacePluginContext extends BasePluginContext {
 export function createInterfacePluginContext(
   shell: IShell,
   pluginId: string,
+  registrationContext?: PluginRegistrationContext,
 ): InterfacePluginContext {
-  const baseContext = createBasePluginContext(shell, pluginId);
+  const baseContext = createBasePluginContext(
+    shell,
+    pluginId,
+    registrationContext,
+  );
 
   // Get interface-specific components
   const mcpTransport = shell.getMCPService();

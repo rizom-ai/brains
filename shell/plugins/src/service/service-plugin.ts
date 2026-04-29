@@ -1,5 +1,10 @@
 import { BasePlugin } from "../base-plugin";
-import type { PluginCapabilities, IShell, ToolContext } from "../interfaces";
+import type {
+  PluginCapabilities,
+  IShell,
+  ToolContext,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type {
   IEntityService,
   BaseEntity,
@@ -36,9 +41,16 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
   /**
    * Register the plugin with shell - creates ServicePluginContext internally
    */
-  override async register(shell: IShell): Promise<PluginCapabilities> {
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
     // Create typed context from shell
-    const context = createServicePluginContext(shell, this.id);
+    const context = createServicePluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
     this.context = context;
 
     // Set up message handlers

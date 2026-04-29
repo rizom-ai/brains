@@ -49,7 +49,11 @@ import {
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
 import { MessageBus, type IMessageBus } from "@brains/messaging-service";
-import { PluginManager, type IShell } from "@brains/plugins";
+import {
+  PluginManager,
+  type IShell,
+  type PluginRegistrationContext,
+} from "@brains/plugins";
 import {
   PermissionService,
   RenderService,
@@ -211,7 +215,10 @@ export class ShellInitializer {
 
   public async initializePlugins(
     pluginManager: PluginManager,
-    options?: { registerOnly?: boolean },
+    options?: {
+      registerOnly?: boolean;
+      registrationContext?: PluginRegistrationContext;
+    },
   ): Promise<void> {
     this.logger.debug(
       `Found ${this.config.plugins.length} plugins to register`,
@@ -222,7 +229,7 @@ export class ShellInitializer {
       pluginManager.registerPlugin(plugin);
     }
 
-    await pluginManager.initializePlugins();
+    await pluginManager.initializePlugins(options?.registrationContext);
 
     if (!options?.registerOnly) {
       for (const { id, error } of pluginManager.getFailedPlugins()) {
@@ -476,7 +483,10 @@ export class ShellInitializer {
     templateRegistry: TemplateRegistry,
     entityRegistry: IEntityRegistry,
     pluginManager: PluginManager,
-    options?: { registerOnly?: boolean },
+    options?: {
+      registerOnly?: boolean;
+      registrationContext?: PluginRegistrationContext;
+    },
   ): Promise<void> {
     this.logger.debug("Starting Shell initialization");
 

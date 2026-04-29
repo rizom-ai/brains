@@ -1,7 +1,7 @@
 import type { Logger } from "@brains/utils";
 import type { IShell } from "../interfaces";
 import { EventEmitter } from "events";
-import type { Plugin } from "../interfaces";
+import type { Plugin, PluginRegistrationContext } from "../interfaces";
 import type { IDaemonRegistry } from "./daemon-types";
 import type {
   PluginManager as IPluginManager,
@@ -138,7 +138,9 @@ export class PluginManager implements IPluginManager {
    * Initialize all registered plugins in dependency order
    * Plugins with no dependencies are initialized first
    */
-  public async initializePlugins(): Promise<void> {
+  public async initializePlugins(
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
     this.logger.debug("Initializing plugins...");
 
     this.initializedPluginIds = [];
@@ -146,7 +148,7 @@ export class PluginManager implements IPluginManager {
     // Use dependency resolver to handle initialization order
     const result = await this.dependencyResolver.resolveInitializationOrder(
       async (pluginId) => {
-        await this.initializePlugin(pluginId);
+        await this.initializePlugin(pluginId, registrationContext);
       },
     );
 
@@ -158,7 +160,10 @@ export class PluginManager implements IPluginManager {
   /**
    * Initialize a specific plugin
    */
-  private async initializePlugin(pluginId: string): Promise<void> {
+  private async initializePlugin(
+    pluginId: string,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<void> {
     if (!this.shell) {
       throw new PluginError(
         pluginId,
@@ -171,6 +176,7 @@ export class PluginManager implements IPluginManager {
     const capabilities = await this.pluginLifecycle.initializePlugin(
       pluginId,
       shell,
+      registrationContext,
     );
 
     // Register capabilities

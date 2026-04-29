@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. The audit (§0) and shell initialization coordination are gating workstreams; §1–§5 follow them.
+Proposed. Shell initialization coordination is complete; §1–§5 can now build on the stabilized lifecycle semantics.
 
 ## Current state
 
@@ -31,7 +31,7 @@ The §0 audit lives in this plan, not a separate document. Record each decision 
 | ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Plugin type split                  | Keep `EntityPlugin`, `ServicePlugin`, and `InterfacePlugin` as the public top-level classes. Also publish `MessageInterfacePlugin` as a public convenience subclass for chat/channel transports. Do not add composite, derived-data, or daemon-only plugin classes.                                                                                                                 | Existing packages fit the three-way split. Composite capabilities are factory-level composition, derived data is `EntityPlugin.derive()`, and daemon ownership belongs in `InterfacePlugin` when user-facing or `ServicePlugin` when operational. |
 | Context consistency                | Publish context **types** with a shared `BasePluginContext`; keep shell/context factory functions private. Preserve intentional sibling differences: entity plugins get AI/entity registration/prompt resolution, service plugins get entity writes/templates/views/instructions, interface plugins get transport/permissions/daemons/conversation writes/routes/plugin visibility. | The shared base is already coherent. The differences map to plugin responsibilities. Exposing `create*Context()` or `IShell` would leak shell internals.                                                                                          |
-| Lifecycle hooks                    | Public minimal set: `onRegister`, `onReady`, `onShutdown`. Land shell initialization coordination before public exports so `onReady` is backed by real boot ordering. Keep `system:plugins:ready` internal as an all-registered signal. Defer public `onPostReady`, `onConfigChange`, and `onDependencyResolved`.                                                                   | `onRegister` is for capability registration. External authors need a ready-state hook because identity/profile seeding currently races registration. Shutdown is needed for cleanup. Other hooks are additive later.                              |
+| Lifecycle hooks                    | Public minimal set: `onRegister`, `onReady`, `onShutdown`. Shell initialization coordination has landed, so `onReady` is backed by real boot ordering. Keep `SYSTEM_CHANNELS.pluginsRegistered` internal as an all-registered signal. Defer public `onPostReady`, `onConfigChange`, and `onDependencyResolved`.                                                                     | `onRegister` is for capability registration. External authors need a ready-state hook for identity/profile and cross-plugin startup work. Shutdown is needed for cleanup. Other hooks are additive later.                                         |
 | Registration model                 | Keep a documented hybrid. Use class methods/properties for static declarations auto-registered at boot; use `context.*.register()` for dynamic registration or explicit namespace control.                                                                                                                                                                                          | Current entity/service/site code uses both patterns. Forcing one style would create churn without simplifying external authoring enough.                                                                                                          |
 | Cross-plugin dependencies          | Publish both composite factories and `plugin.dependencies`. Composite factories bundle capabilities that should be enabled together; `dependencies` only orders and validates already-loaded plugins. No peer-dependency autoload in v1.                                                                                                                                            | This preserves current resolver behavior and avoids surprising installs/boot-time package loading. External authors can choose bundle vs ordering contract.                                                                                       |
 | Type-safety surface                | Keep `EntityPlugin<TEntity, TConfig>`, `ServicePlugin<TConfig>`, and `InterfacePlugin<TConfig, TTrackingInfo>`. Do not add service/interface domain generics for v1. Tighten examples around Zod config schemas and typed factory inputs instead.                                                                                                                                   | Entity plugins own a durable entity type, so entity narrowing matters. Service/interface plugins expose heterogeneous tools/routes/transports; config and tracking generics are the useful public type parameters.                                |
@@ -40,7 +40,7 @@ The §0 audit lives in this plan, not a separate document. Record each decision 
 
 Audit-derived implementation gates before §1 public exports:
 
-- Complete `shell-init-coordination` enough to make lifecycle phases explicit, including `onReady`, before §1 public exports.
+- Shell initialization coordination is complete: lifecycle phases are explicit and `onReady` is backed by boot ordering.
 - Keep `IShell`, `createBasePluginContext`, `createEntityPluginContext`, `createServicePluginContext`, and `createInterfacePluginContext` out of `@rizom/brain/*` public exports.
 - Treat `MessageInterfacePlugin` as public API, but document it as optional sugar over `InterfacePlugin`.
 - Document the hybrid registration model in plugin author docs before publishing examples.
@@ -73,7 +73,7 @@ Output of this phase:
 - targeted refactors landing the decisions in the codebase
 - a frozen design for the public subpath surface that §1 then implements mechanically
 
-This phase surfaced `shell-init-coordination` as required before public exports. `env-schema-canonical` remains non-blocking because external plugin env declarations live in plugin packages.
+This phase surfaced `shell-init-coordination` as required before public exports; that work is now complete. `env-schema-canonical` remains non-blocking because external plugin env declarations live in plugin packages.
 
 ### 1. Expand the public library surface for plugin authors
 

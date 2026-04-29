@@ -17,7 +17,11 @@ import type {
 } from "@brains/conversation-service";
 import type { BrainCharacter } from "@brains/identity-service";
 import type { AnchorProfile } from "@brains/identity-service";
-import type { AppInfo, EvalHandler } from "../interfaces";
+import type {
+  AppInfo,
+  EvalHandler,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type { EntityDisplayEntry } from "../types/routes";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
@@ -252,6 +256,7 @@ export interface IEndpointsNamespace {
 export function createBasePluginContext(
   shell: IShell,
   pluginId: string,
+  registrationContext?: PluginRegistrationContext,
 ): BasePluginContext {
   const messageBus = shell.getMessageBus();
   const entityService = shell.getEntityService();
@@ -286,7 +291,7 @@ export function createBasePluginContext(
     domain,
     siteUrl: domain ? `https://${domain}` : undefined,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
-    entityDisplay: shell.getEntityDisplay(),
+    entityDisplay: registrationContext?.entityDisplay,
 
     messaging: {
       send: sendMessage,

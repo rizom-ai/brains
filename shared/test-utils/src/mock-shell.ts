@@ -71,7 +71,6 @@ export interface MockShellOptions {
   dataDir?: string;
   /** Bare domain string (e.g. "yeehaa.io") for identity.getSiteUrl/getPreviewUrl */
   domain?: string;
-  entityDisplay?: Record<string, { label: string; pluralName?: string }>;
 }
 
 function createDefaultMockAgentService(): IAgentService {
@@ -266,12 +265,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
   const entityRegistry: IEntityRegistry = {
     registerEntityType: (type, _schema, adapter) => {
       entityTypes.add(type);
-      if (adapter) {
-        entityAdapters.set(
-          type,
-          adapter as unknown as EntityAdapter<BaseEntity>,
-        );
-      }
+      entityAdapters.set(type, adapter as unknown as EntityAdapter<BaseEntity>);
     },
     getSchema: (): never => {
       throw new Error("Not implemented");
@@ -543,9 +537,6 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
     // Data directory
     getDataDir: () => options.dataDir ?? "/tmp/mock-shell-test-data",
-
-    // Entity display metadata from the active site package
-    getEntityDisplay: () => options.entityDisplay,
 
     // App metadata
     getAppInfo: async (): Promise<AppInfo> => ({

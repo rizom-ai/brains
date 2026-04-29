@@ -1,4 +1,9 @@
-import type { Plugin, Tool, Resource } from "../interfaces";
+import type {
+  Plugin,
+  PluginRegistrationContext,
+  Tool,
+  Resource,
+} from "../interfaces";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle
@@ -6,7 +11,7 @@ import type { Plugin, Tool, Resource } from "../interfaces";
 export interface PluginManager {
   registerPlugin(plugin: Plugin): void;
 
-  initializePlugins(): Promise<void>;
+  initializePlugins(context?: PluginRegistrationContext): Promise<void>;
 
   readyPlugins(): Promise<void>;
 

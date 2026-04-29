@@ -1,6 +1,10 @@
 import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
-import type { IShell, ContentGenerationConfig } from "../interfaces";
+import type {
+  IShell,
+  ContentGenerationConfig,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type {
   IEntityService,
   BaseEntity,
@@ -116,8 +120,13 @@ export interface EntityPluginContext extends BasePluginContext {
 export function createEntityPluginContext(
   shell: IShell,
   pluginId: string,
+  registrationContext?: PluginRegistrationContext,
 ): EntityPluginContext {
-  const baseContext = createBasePluginContext(shell, pluginId);
+  const baseContext = createBasePluginContext(
+    shell,
+    pluginId,
+    registrationContext,
+  );
   const entityService = shell.getEntityService();
   const entityRegistry = shell.getEntityRegistry();
   const dataSourceRegistry = shell.getDataSourceRegistry();

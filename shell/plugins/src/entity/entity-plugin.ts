@@ -1,5 +1,9 @@
 import { BasePlugin } from "../base-plugin";
-import type { PluginCapabilities, IShell } from "../interfaces";
+import type {
+  PluginCapabilities,
+  IShell,
+  PluginRegistrationContext,
+} from "../interfaces";
 import type {
   CreateExecutionContext,
   CreateInput,
@@ -53,8 +57,15 @@ export abstract class EntityPlugin<
    * Register the plugin with shell — creates context and auto-registers
    * entity type, handlers, templates, and datasources.
    */
-  override async register(shell: IShell): Promise<PluginCapabilities> {
-    const context = createEntityPluginContext(shell, this.id);
+  override async register(
+    shell: IShell,
+    registrationContext?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    const context = createEntityPluginContext(
+      shell,
+      this.id,
+      registrationContext,
+    );
     this.context = context;
 
     // Set up message handlers (tool/resource execution via message bus)

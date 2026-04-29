@@ -168,6 +168,11 @@ export interface IInsightsRegistry {
   ): Promise<Record<string, unknown>>;
 }
 
+export interface PluginRegistrationContext {
+  /** Site/entity display metadata derived from the active site package. */
+  entityDisplay?: Record<string, EntityDisplayEntry>;
+}
+
 export interface IShell {
   // Core service accessors
   getMessageBus(): IMessageBus;
@@ -194,9 +199,6 @@ export interface IShell {
   // Data directory - where plugins should store entity files
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;
-
-  // Site/entity display metadata derived from the active site package
-  getEntityDisplay(): Record<string, EntityDisplayEntry> | undefined;
 
   // App metadata
   getAppInfo(): Promise<AppInfo>;
@@ -348,7 +350,10 @@ export interface PluginCapabilities {
  * Plugin interface - combines validated metadata with the register function
  */
 export type Plugin = z.infer<typeof pluginMetadataSchema> & {
-  register(shell: IShell): Promise<PluginCapabilities>;
+  register(
+    shell: IShell,
+    context?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities>;
   ready?(): Promise<void>;
   shutdown?(): Promise<void>;
   requiresDaemonStartup?(): boolean;
