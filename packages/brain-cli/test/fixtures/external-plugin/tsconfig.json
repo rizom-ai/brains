@@ -9,5 +9,6 @@
       "@rizom/brain/*": ["../../../src/types/*.d.ts"]
     }
   },
-  "include": ["src/**/*.ts"]
+  "include": ["src/**/*.ts"],
+  "exclude": []
 }
