@@ -139,6 +139,25 @@ description: Existing description
       expect(mockEntityService.createEntity).not.toHaveBeenCalled();
     });
 
+    it("should not create default when site info appears after initial cache miss", async () => {
+      const importedEntity = createMockSiteInfo({
+        content: `---
+title: Imported Site
+description: Imported description
+---
+`,
+      });
+      spyOn(mockEntityService, "getEntity")
+        .mockResolvedValueOnce(null)
+        .mockResolvedValue(importedEntity);
+
+      await siteInfoService.initialize();
+
+      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
+      const siteInfo = await siteInfoService.getSiteInfo();
+      expect(siteInfo.title).toBe("Imported Site");
+    });
+
     it("should handle errors during entity creation gracefully", async () => {
       spyOn(mockEntityService, "createEntity").mockRejectedValue(
         new Error("Database error"),

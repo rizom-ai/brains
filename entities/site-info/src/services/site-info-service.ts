@@ -89,8 +89,16 @@ export class SiteInfoService {
         "site-info",
       )) as SiteInfoEntity | null;
 
-      // If no site info exists, create one with default values
+      // If no site info exists, create one with default values. Re-check
+      // immediately before creating defaults because startup directory sync may
+      // import the singleton after the first DB miss on cold boot.
       if (!siteInfo) {
+        const recheckedSiteInfo = (await this.entityService.getEntity(
+          "site-info",
+          "site-info",
+        )) as SiteInfoEntity | null;
+        if (recheckedSiteInfo) return;
+
         this.logger.info("No site info found, creating default site info");
         const content = this.adapter.createSiteInfoContent(
           this.defaultSiteInfo,

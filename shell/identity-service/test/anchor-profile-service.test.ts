@@ -163,6 +163,31 @@ kind: professional
       expect(mockEntityService.createEntity).not.toHaveBeenCalled();
     });
 
+    it("should not create default when profile appears after initial cache miss", async () => {
+      const importedContent = `---
+name: Imported Profile
+kind: professional
+---
+`;
+      const importedEntity = createTestEntity<AnchorProfileEntity>(
+        "anchor-profile",
+        {
+          id: "anchor-profile",
+          content: importedContent,
+        },
+      );
+      let getCalls = 0;
+      mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => {
+        getCalls++;
+        return getCalls === 1 ? null : importedEntity;
+      };
+
+      await profileService.initialize();
+
+      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
+      expect(profileService.getProfile().name).toBe("Imported Profile");
+    });
+
     it("should handle errors during entity creation gracefully", async () => {
       // Mock behavior: no existing entity
       mockGetEntityImpl = async (): Promise<AnchorProfileEntity | null> => null;

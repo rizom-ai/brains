@@ -1,5 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { Shell, type ShellDependencies } from "../src/shell";
+import {
+  AnchorProfileService,
+  BrainCharacterService,
+} from "@brains/identity-service";
 import type { ShellConfigInput } from "../src/config";
 import { ShellInitializer } from "../src/initialization/shellInitializer";
 import { createSilentLogger } from "@brains/test-utils";
@@ -27,6 +31,8 @@ async function resetAllSingletons(): Promise<void> {
   BatchJobManager.resetInstance();
   JobProgressMonitor.resetInstance();
   DataSourceRegistry.resetInstance();
+  BrainCharacterService.resetInstance();
+  AnchorProfileService.resetInstance();
 }
 
 function createTestConfig(dir: string): ShellConfigInput {
@@ -87,6 +93,63 @@ describe("Shell initialization order", () => {
     await shell.shutdown();
     await resetAllSingletons();
     await testDir.cleanup();
+  });
+
+  it("should start webserver before plugins-registered initial sync handlers complete", async () => {
+    const order: string[] = [];
+
+    const webserverPlugin: Plugin = {
+      id: "webserver-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Registers the shared webserver daemon",
+      packageName: "@test/webserver-plugin",
+      register: async (shellInstance) => {
+        shellInstance.registerDaemon(
+          "webserver:webserver",
+          {
+            start: async () => {
+              order.push("webserver-started");
+            },
+            stop: async () => {
+              order.push("webserver-stopped");
+            },
+          },
+          "webserver",
+        );
+        return { tools: [], resources: [] };
+      },
+    };
+
+    const directorySyncLikePlugin: Plugin = {
+      id: "directory-sync-like-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Simulates slow initial sync",
+      packageName: "@test/directory-sync-like-plugin",
+      register: async (shellInstance) => {
+        shellInstance
+          .getMessageBus()
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+            order.push("initial-sync-started");
+            await new Promise((resolve) => setTimeout(resolve, 50));
+            order.push("initial-sync-completed");
+            return { success: true };
+          });
+        return { tools: [], resources: [] };
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [webserverPlugin, directorySyncLikePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize();
+
+    expect(order.indexOf("webserver-started")).toBeGreaterThanOrEqual(0);
+    expect(order.indexOf("webserver-started")).toBeLessThan(
+      order.indexOf("initial-sync-started"),
+    );
+    expect(order).not.toContain("webserver-stopped");
   });
 
   it("should complete plugins-registered handlers before job processing can start", async () => {

@@ -50,6 +50,12 @@ export abstract class SingletonEntityService<TBody> {
     await this.load();
 
     if (!this.cache) {
+      // Initial sync/import may populate singleton markdown after the first
+      // cache miss. Re-check immediately before creating defaults so cold
+      // starts with existing brain-data do not overwrite real identity files.
+      await this.load();
+      if (this.cache) return;
+
       this.logger.info(
         `No ${this.entityType} found, creating default ${this.entityType}`,
       );

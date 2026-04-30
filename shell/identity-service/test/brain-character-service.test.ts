@@ -161,6 +161,34 @@ values:
       expect(mockEntityService.createEntity).not.toHaveBeenCalled();
     });
 
+    it("should not create default when character appears after initial cache miss", async () => {
+      const importedContent = `---
+name: Imported Brain
+role: Imported role
+purpose: Imported purpose
+values:
+  - imported
+---
+`;
+      const importedEntity = createTestEntity<BrainCharacterEntity>(
+        "brain-character",
+        {
+          id: "brain-character",
+          content: importedContent,
+        },
+      );
+      let getCalls = 0;
+      mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> => {
+        getCalls++;
+        return getCalls === 1 ? null : importedEntity;
+      };
+
+      await characterService.initialize();
+
+      expect(mockEntityService.createEntity).not.toHaveBeenCalled();
+      expect(characterService.getCharacter().name).toBe("Imported Brain");
+    });
+
     it("should handle errors during entity creation gracefully", async () => {
       // Mock behavior: no existing character
       mockGetEntityImpl = async (): Promise<BrainCharacterEntity | null> =>

@@ -38,16 +38,29 @@ describe("Startup Initialization Order", () => {
       "../src/initialization/shellBootloader.ts",
     );
 
-    it("should initialize identity and profile before plugin ready hooks", () => {
+    it("should initialize identity and profile after plugins-registered sync and before plugin ready hooks", () => {
       const source = readFileSync(shellBootloaderPath, "utf-8");
 
+      const earlyWebserverCallIndex = source.indexOf(
+        "this.startEarlyWebserver()",
+      );
+      const pluginsRegisteredCallIndex = source.indexOf(
+        "this.emitPluginsRegistered()",
+      );
       const prepareCallIndex = source.indexOf("this.prepareReadyState()");
       const readyCallIndex = source.indexOf("pluginManager.readyPlugins()");
 
       expect(source).toContain("identityService.initialize()");
       expect(source).toContain("profileService.initialize()");
+      expect(source).not.toContain(
+        "Promise.all([this.emitPluginsRegistered(), this.prepareReadyState()])",
+      );
+      expect(earlyWebserverCallIndex).toBeGreaterThan(-1);
+      expect(pluginsRegisteredCallIndex).toBeGreaterThan(-1);
       expect(prepareCallIndex).toBeGreaterThan(-1);
       expect(readyCallIndex).toBeGreaterThan(-1);
+      expect(earlyWebserverCallIndex).toBeLessThan(pluginsRegisteredCallIndex);
+      expect(pluginsRegisteredCallIndex).toBeLessThan(prepareCallIndex);
       expect(prepareCallIndex).toBeLessThan(readyCallIndex);
     });
   });

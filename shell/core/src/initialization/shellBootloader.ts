@@ -63,17 +63,27 @@ export class ShellBootloader {
       return;
     }
 
-    // Run initial sync (driven by pluginsRegistered subscribers) concurrently
-    // with prepareReadyState. Both are independent: sync imports markdown into
-    // the entity DB; prepareReadyState creates default identity/profile/prompt
-    // entities only if missing, and the entity service uses upsert semantics
-    // so a concurrent file import wins.
-    await Promise.all([this.emitPluginsRegistered(), this.prepareReadyState()]);
+    await this.startEarlyWebserver();
+
+    // Run initial sync (driven by pluginsRegistered subscribers) before
+    // materializing ready-state defaults. Singleton defaults must not be
+    // created while a directory import may still populate existing markdown
+    // from brain-data into the entity DB.
+    await this.emitPluginsRegistered();
+    await this.prepareReadyState();
 
     await this.services.pluginManager.readyPlugins();
     await this.startRuntimeServices();
 
     this.services.logger.debug("Shell boot complete");
+  }
+
+  private async startEarlyWebserver(): Promise<void> {
+    const webserverDaemonName = "webserver:webserver";
+    if (!this.services.daemonRegistry.has(webserverDaemonName)) return;
+
+    await this.services.daemonRegistry.start(webserverDaemonName);
+    this.services.logger.debug("Started webserver before initial sync");
   }
 
   private async emitPluginsRegistered(): Promise<void> {
