@@ -48,6 +48,7 @@ These areas are effectively landed:
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, Relay docs fixtures, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
 - **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
+- **Deploy template consolidation** — `@brains/deploy-templates` is the canonical source for shared Dockerfile, Kamal, deploy-script, workflow, env-schema, and reconciliation templates; `@rizom/brain` and `@rizom/ops` copy/render package-local artifacts for published runtime availability
 
 ## Near-term priorities
 
@@ -74,7 +75,6 @@ Independent internal cleanup items — each removes a fragile coupling held toge
 Plans:
 
 - [env-schema-canonical.md](./plans/env-schema-canonical.md) — co-locate env declarations next to the consuming service; aggregate via `shellEnvVars()` in `shell/core`; have `brain-cli` consume that single source instead of `bundled-model-env-schemas.ts`.
-- [deploy-scaffolding-consolidation.md](./plans/deploy-scaffolding-consolidation.md) — extract `@brains/deploy-templates` as the canonical home for Caddyfile/Dockerfile/Kamal/scripts/workflow content; cut `brain-cli/src/commands/init.ts` from 1400+ lines; keep `@rizom/ops` fleet-only.
 
 ### Public repo cleanup
 
