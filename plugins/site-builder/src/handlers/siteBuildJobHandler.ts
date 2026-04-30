@@ -1,5 +1,5 @@
 import { BaseJobHandler } from "@brains/plugins";
-import type { MessageSender } from "@brains/plugins";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type { ISiteBuilder } from "../types/site-builder-types";
 import type {
@@ -38,7 +38,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
 > {
   constructor(
     logger: Logger,
-    private sendMessage: MessageSender,
+    private sendMessage: ServicePluginContext["messaging"]["send"],
     private cfg: SiteBuildJobHandlerConfig,
   ) {
     super(logger, {

@@ -4,7 +4,7 @@ import {
   type Tool,
   type WebRouteDefinition,
 } from "@brains/plugins";
-import type { Daemon, IAgentService } from "@brains/plugins";
+import type { Daemon, AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { AgentCard } from "@a2a-js/sdk";
 import { Hono } from "hono";
@@ -39,7 +39,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
   declare protected config: A2AConfig;
   private agentCard: AgentCard | undefined;
   private taskManager = new TaskManager();
-  private agentService: IAgentService | undefined;
+  private agentService: AgentNamespace | undefined;
   private permissionContext: InterfacePluginContext["permissions"] | undefined;
   private app: Hono | undefined;
   private hasWebserver = false;
@@ -54,7 +54,7 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     await super.onRegister(context);
 
     this.hasWebserver = context.plugins.has("webserver");
-    this.agentService = context.agentService;
+    this.agentService = context.agent;
     this.permissionContext = context.permissions;
 
     if (this.hasWebserver) {

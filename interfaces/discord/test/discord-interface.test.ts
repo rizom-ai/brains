@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test";
 import { createPluginHarness, PermissionService } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type { AgentResponse, ChatContext } from "@brains/plugins";
+import type { ChatContext } from "@brains/plugins";
 import type { Mock } from "bun:test";
 
 interface MockAgentService {
@@ -10,10 +10,37 @@ interface MockAgentService {
       message: string,
       conversationId: string,
       context?: ChatContext,
-    ) => Promise<AgentResponse>
+    ) => Promise<{
+      text: string;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+      pendingConfirmation?: {
+        toolName: string;
+        description: string;
+        args: unknown;
+      };
+    }>
   >;
   confirmPendingAction: Mock<
-    (conversationId: string, confirmed: boolean) => Promise<AgentResponse>
+    (
+      conversationId: string,
+      confirmed: boolean,
+    ) => Promise<{
+      text: string;
+      usage: {
+        promptTokens: number;
+        completionTokens: number;
+        totalTokens: number;
+      };
+      pendingConfirmation?: {
+        toolName: string;
+        description: string;
+        args: unknown;
+      };
+    }>
   >;
   invalidateAgent: () => void;
 }
@@ -120,22 +147,17 @@ const mockFetchText = mock(() => Promise.resolve(""));
 
 const createMockAgentService = (): MockAgentService => ({
   chat: mock(
-    (
-      _message: string,
-      _conversationId: string,
-      _context?: ChatContext,
-    ): Promise<AgentResponse> =>
+    (_message: string, _conversationId: string, _context?: ChatContext) =>
       Promise.resolve({
         text: "Agent response text.",
         usage: { promptTokens: 50, completionTokens: 100, totalTokens: 150 },
       }),
   ),
-  confirmPendingAction: mock(
-    (_conversationId: string, _confirmed: boolean): Promise<AgentResponse> =>
-      Promise.resolve({
-        text: "Action confirmed.",
-        usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
-      }),
+  confirmPendingAction: mock((_conversationId: string, _confirmed: boolean) =>
+    Promise.resolve({
+      text: "Action confirmed.",
+      usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
+    }),
   ),
   invalidateAgent: (): void => {},
 });

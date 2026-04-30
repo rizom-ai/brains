@@ -6,7 +6,7 @@ import {
 } from "@brains/plugins";
 import type { Daemon, DaemonHealth } from "@brains/plugins";
 import type { JobProgressEvent } from "@brains/plugins";
-import type { IAgentService } from "@brains/plugins";
+import type { AgentNamespace } from "@brains/plugins";
 import type { Instance } from "ink";
 import { cliConfigSchema, type CLIConfig } from "./config";
 import packageJson from "../package.json";
@@ -24,7 +24,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   declare protected config: CLIConfig;
   private inkApp: Instance | null = null;
   private responseCallback: ((response: string) => void) | undefined;
-  private agentService?: IAgentService;
+  private agentService?: AgentNamespace;
 
   // Track pending confirmations
   private pendingConfirmation = false;
@@ -36,7 +36,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
   /**
    * Get AgentService, throwing if not initialized
    */
-  private getAgentService(): IAgentService {
+  private getAgentService(): AgentNamespace {
     if (!this.agentService) {
       throw new Error("AgentService not initialized - plugin not registered");
     }
@@ -53,7 +53,7 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     await super.onRegister(context);
 
     // Get AgentService from context
-    this.agentService = context.agentService;
+    this.agentService = context.agent;
 
     this.logger.debug("CLI interface registered with AgentService");
   }

@@ -2,11 +2,12 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { CLIInterface } from "../src/cli-interface";
 import { createPluginHarness } from "@brains/plugins/test";
 import type { PluginTestHarness } from "@brains/plugins/test";
-import type {
-  IAgentService,
-  AgentResponse,
-  ChatContext,
-} from "@brains/plugins";
+import type { ChatContext } from "@brains/plugins";
+
+type MockAgentService = Parameters<
+  PluginTestHarness<CLIInterface>["setAgentService"]
+>[0];
+type MockAgentResponse = Awaited<ReturnType<MockAgentService["chat"]>>;
 
 describe("CLI Interface - Agent Context Integration", () => {
   let cliInterface: CLIInterface;
@@ -23,15 +24,15 @@ describe("CLI Interface - Agent Context Integration", () => {
         _message: string,
         _conversationId: string,
         _context?: ChatContext,
-      ): Promise<AgentResponse> => ({
+      ): Promise<MockAgentResponse> => ({
         text: "Mock response",
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       }),
     );
 
-    const mockAgentService: IAgentService = {
+    const mockAgentService: MockAgentService = {
       chat: chatMock,
-      confirmPendingAction: async (): Promise<AgentResponse> => ({
+      confirmPendingAction: async (): Promise<MockAgentResponse> => ({
         text: "Confirmed",
         usage: { promptTokens: 10, completionTokens: 20, totalTokens: 30 },
       }),

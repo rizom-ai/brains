@@ -1,8 +1,11 @@
-import type { EntityPluginContext } from "@brains/plugins";
+import {
+  reconcileDerivedEntities,
+  type EntityPluginContext,
+} from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { generateIdFromText, getErrorMessage } from "@brains/utils";
 import { SkillAdapter } from "../adapters/skill-adapter";
-import type { SkillFrontmatter } from "../schemas/skill";
+import type { SkillEntity, SkillFrontmatter } from "../schemas/skill";
 import {
   collectTagVocabulary,
   formatVocabularyForPrompt,
@@ -117,75 +120,32 @@ export async function deriveSkills(
     skills.map((skill) => [generateIdFromText(skill.name), skill] as const),
   );
   if (desired.size !== skills.length) {
-    logger.info("Dropped skills with duplicate slug ids", {
+    logger.warn("Dropped skills with duplicate slug ids", {
       received: skills.length,
       unique: desired.size,
     });
   }
-  const existingSkills = await context.entityService.listEntities("skill");
-  const existingById = new Map(
-    existingSkills.map((skill) => [skill.id, skill]),
-  );
-
-  let created = 0;
-  let updated = 0;
-  let deleted = 0;
-  let skipped = 0;
-
-  // Delete only stale skills on replace-all. Keep this sequential so initial
-  // sync cannot fan out DB mutations and message-bus side effects.
-  if (options?.replaceAll) {
-    for (const existing of existingSkills) {
-      if (desired.has(existing.id)) continue;
-      try {
-        await context.entityService.deleteEntity("skill", existing.id);
-        deleted++;
-      } catch (error) {
-        logger.error("Failed to delete stale skill entity", {
-          id: existing.id,
-          error: getErrorMessage(error),
-        });
-      }
-    }
-  }
-
-  for (const [id, skill] of desired) {
-    const content = adapter.createSkillContent(skill);
-    const existing = existingById.get(id);
-
-    try {
-      if (!existing) {
-        await context.entityService.createEntity({
-          id,
-          entityType: "skill",
-          content,
-          metadata: skill,
-        });
-        created++;
-        continue;
-      }
-
-      if (
-        Bun.deepEquals(existing.metadata, skill) &&
-        existing.content === content
-      ) {
-        skipped++;
-        continue;
-      }
-
-      await context.entityService.updateEntity({
-        ...existing,
-        content,
-        metadata: skill,
-      });
-      updated++;
-    } catch (error) {
-      logger.error("Failed to upsert skill entity", {
-        name: skill.name,
-        error: getErrorMessage(error),
-      });
-    }
-  }
+  const { created, updated, deleted, skipped } = await reconcileDerivedEntities<
+    SkillFrontmatter,
+    SkillEntity
+  >({
+    context,
+    targetType: "skill",
+    desired: desired.values(),
+    getId: (skill) => generateIdFromText(skill.name),
+    toEntityInput: (skill, id) => ({
+      id,
+      entityType: "skill",
+      content: adapter.createSkillContent(skill),
+      metadata: skill,
+    }),
+    equals: (existing, skill) =>
+      Bun.deepEquals(existing.metadata, skill) &&
+      existing.content === adapter.createSkillContent(skill),
+    deleteStale: options?.replaceAll ?? false,
+    deleteConcurrency: 1,
+    logger,
+  });
 
   logger.info("Skill derivation complete", {
     created,

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 
@@ -25,13 +26,11 @@ import { join } from "path";
  * Source checks on:
  *   1. packages/brain-cli/src/entries/themes.ts exists and re-exports
  *      composeTheme from @brains/theme-base
- *   2. packages/brain-cli/src/types/themes.d.ts exists with a
- *      composeTheme(themeCSS: string): string declaration
- *   3. packages/brain-cli/package.json declares the ./themes subpath
+ *   2. packages/brain-cli/package.json declares the ./themes subpath
  *      in the exports map with both types and import
- *   4. packages/brain-cli/scripts/build.ts libraryEntries list
+ *   3. packages/brain-cli/scripts/build.ts libraryEntries list
  *      includes themes so the build produces dist/themes.js and
- *      copies the hand-written dist/themes.d.ts
+ *      generates dist/themes.d.ts
  */
 describe("@rizom/brain/themes export", () => {
   const pkgDir = join(import.meta.dir, "..");
@@ -45,14 +44,21 @@ describe("@rizom/brain/themes export", () => {
     );
   });
 
-  it("src/types/themes.d.ts declares composeTheme without coupling themes to SitePackage", () => {
-    const path = join(pkgDir, "src", "types", "themes.d.ts");
+  it("generated dist/themes.d.ts declares composeTheme without coupling themes to SitePackage", () => {
+    const build = spawnSync("bun", ["scripts/build.ts"], {
+      cwd: pkgDir,
+      encoding: "utf-8",
+    });
+    expect(build.status).toBe(0);
+
+    const path = join(pkgDir, "dist", "themes.d.ts");
     expect(existsSync(path)).toBe(true);
     const src = readFileSync(path, "utf-8");
-    expect(src).toMatch(/export\s+function\s+composeTheme\s*\(/);
+    expect(src).toMatch(/declare\s+function\s+composeTheme\s*\(/);
+    expect(src).not.toContain("@brains/");
     expect(src).not.toContain("SitePackage.theme");
     expect(src).not.toContain("theme: composeTheme");
-  });
+  }, 60_000);
 
   it("package.json exports ./themes with types + import", () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));

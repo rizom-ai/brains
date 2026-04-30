@@ -4,7 +4,16 @@
 
 // Base plugin classes
 export { ServicePlugin } from "./service/service-plugin";
-export { EntityPlugin, type DeriveEvent } from "./entity/entity-plugin";
+export { EntityPlugin } from "./entity/entity-plugin";
+export {
+  hasPersistedTargets,
+  reconcileDerivedEntities,
+  registerDerivedEntityProjection,
+  type DerivedEntityProjection,
+  type DerivedEntityProjectionController,
+  type EntityChangePayload,
+  type ReconcileDerivedEntitiesResult,
+} from "./entity/derived-entity-projection";
 export type {
   EntityPluginContext,
   IEntitiesNamespace,
@@ -68,7 +77,7 @@ export type {
   ToolResponse,
   ToolConfirmation,
   ToolVisibility,
-  AppInfo,
+  RuntimeAppInfo,
   EndpointInfo,
   DefaultQueryResponse,
   BaseJobTrackingInfo,
@@ -176,20 +185,47 @@ export type { ResolutionOptions } from "@brains/content-service";
 // Communication & Messaging
 // ============================================================================
 
+export {
+  AgentResponseSchema,
+  ChatContextSchema,
+  PendingConfirmationSchema,
+  ToolResultDataSchema,
+  type AgentResponse,
+  type ChatContext,
+  type AgentNamespace,
+  type PendingConfirmation,
+  type ToolResultData,
+} from "./contracts/agent";
+export { AppInfoSchema, type AppInfo } from "./contracts/app-info";
+export {
+  ConversationSchema,
+  MessageSchema,
+  type Conversation,
+  type Message,
+} from "./contracts/conversations";
+export {
+  AnchorProfileSchema,
+  BrainCharacterSchema,
+  type AnchorProfile,
+  type BrainCharacter,
+} from "./contracts/identity";
+export {
+  BaseMessageSchema,
+  MessageResponseSchema,
+  type BaseMessage,
+  type MessageContext,
+  type MessageResponse,
+  type MessageSendOptions,
+  type MessageSender,
+  type MessageWithPayload,
+} from "./contracts/messaging";
 export type {
-  Conversation,
-  Message,
   ConversationDigestPayload,
+  GetMessagesOptions,
 } from "@brains/conversation-service";
 export { conversationDigestPayloadSchema } from "@brains/conversation-service";
 
-export type {
-  MessageResponse,
-  MessageSender,
-  MessageWithPayload,
-  IMessageBus,
-  MessageContext,
-} from "@brains/messaging-service";
+export type { IMessageBus } from "@brains/messaging-service";
 
 export type { ProgressCallback, ContentFormatter } from "@brains/utils";
 
@@ -201,8 +237,6 @@ export {
   formatConfirmationPrompt,
   urlCaptureConfigSchema,
 } from "./message-interface";
-
-export type { AgentResponse, ChatContext } from "@brains/ai-service";
 
 // ============================================================================
 // Tools & Utilities
@@ -263,11 +297,7 @@ export {
   type PluginConfigInput,
 } from "./config";
 
-export type {
-  BrainCharacter,
-  AnchorProfile,
-  IAnchorProfileService,
-} from "@brains/identity-service";
+export type { IAnchorProfileService } from "@brains/identity-service";
 export {
   AnchorProfileService,
   anchorProfileBodySchema,
@@ -289,12 +319,6 @@ export {
   skillDataSchema,
   type SkillData,
 } from "./a2a/agent-card-schema";
-
-// ============================================================================
-// AI Services (for MCP interface)
-// ============================================================================
-
-export type { IAgentService } from "@brains/ai-service";
 
 // ============================================================================
 // System Integration (Daemons, Interface Plugins)

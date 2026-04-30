@@ -5,7 +5,7 @@ import {
   handleStreamMessage,
   type JsonRpcResponse,
 } from "../src/jsonrpc-handler";
-import type { IAgentService, AgentResponse } from "@brains/plugins";
+import type { AgentNamespace, AgentResponse } from "@brains/plugins";
 import type { Task } from "@a2a-js/sdk";
 
 const OK_USAGE = { promptTokens: 0, completionTokens: 0, totalTokens: 0 };
@@ -13,7 +13,7 @@ const OK_RESPONSE: AgentResponse = { text: "ok", usage: OK_USAGE };
 
 function createMockAgentService(
   response?: Partial<AgentResponse>,
-): IAgentService {
+): AgentNamespace {
   const r: AgentResponse = {
     text: response?.text ?? "Hello from the agent",
     usage: response?.usage ?? {
@@ -27,13 +27,13 @@ function createMockAgentService(
   return {
     chat: async () => r,
     confirmPendingAction: async () => r,
-    invalidateAgent: (): void => {},
+    invalidate: (): void => {},
   };
 }
 
 function createCustomAgentService(
-  overrides: Partial<IAgentService>,
-): IAgentService {
+  overrides: Partial<AgentNamespace>,
+): AgentNamespace {
   const base = createMockAgentService();
   return { ...base, ...overrides };
 }
@@ -107,7 +107,7 @@ function userMessage(
 
 describe("JSON-RPC Handler", () => {
   let taskManager: TaskManager;
-  let agentService: IAgentService;
+  let agentService: AgentNamespace;
 
   beforeEach(() => {
     taskManager = new TaskManager();
@@ -437,13 +437,13 @@ describe("JSON-RPC Handler", () => {
       });
 
       // Agent responds after a short delay
-      const delayedAgent: IAgentService = {
+      const delayedAgent: AgentNamespace = {
         chat: async (...args) => {
           await new Promise((r) => setTimeout(r, 50));
           return agentDone.chat(...args);
         },
         confirmPendingAction: agentDone.confirmPendingAction,
-        invalidateAgent: (): void => {},
+        invalidate: (): void => {},
       };
 
       const request = rpcRequest("message/send", userMessage("Hello"));

@@ -6,7 +6,7 @@ Base classes and utilities for Brain plugin development.
 
 ### EntityPlugin
 
-Content types — schema, adapter, AI generation, derive().
+Content types — schema, adapter, AI generation, and explicit derived-entity projections.
 
 ```typescript
 import { EntityPlugin } from "@brains/plugins";

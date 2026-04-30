@@ -3,7 +3,6 @@ import type {
   JobHandler,
   DataSource,
   Template,
-  BaseEntity,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import { socialPostSchema, type SocialPost } from "./schemas/social-post";
@@ -78,37 +77,6 @@ export class SocialMediaPlugin extends EntityPlugin<
     registerEvalHandlers(context);
 
     this.logger.info("Social media plugin registered successfully");
-  }
-
-  /**
-   * Derive social post from a published source entity.
-   */
-  public override async derive(
-    source: BaseEntity,
-    _event: string,
-    context: EntityPluginContext,
-  ): Promise<void> {
-    const metadata = source.metadata as Record<string, unknown>;
-    if (metadata["status"] !== "published") return;
-
-    // Queue social post generation for the published entity
-    await context.jobs.enqueue(
-      `${this.entityType}:generation`,
-      {
-        sourceEntityId: source.id,
-        sourceEntityType: source.entityType,
-      },
-      null,
-      {
-        priority: 5,
-        source: "social-media-plugin",
-        metadata: {
-          operationType: "content_operations" as const,
-          operationTarget: `social-post:${source.entityType}:${source.id}`,
-          pluginId: "social-media",
-        },
-      },
-    );
   }
 
   private initializeProviders(): void {

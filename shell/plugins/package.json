@@ -7,6 +7,17 @@
   "types": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
+    "./contracts/agent": "./src/contracts/agent.ts",
+    "./contracts/app-info": "./src/contracts/app-info.ts",
+    "./contracts/conversations": "./src/contracts/conversations.ts",
+    "./contracts/identity": "./src/contracts/identity.ts",
+    "./contracts/messaging": "./src/contracts/messaging.ts",
+    "./contracts/routes": "./src/types/routes.ts",
+    "./contracts/api-routes": "./src/types/api-routes.ts",
+    "./contracts/web-routes": "./src/types/web-routes.ts",
+    "./contracts/daemons": "./src/manager/daemon-types.ts",
+    "./services/base-entity-datasource": "./src/service/base-entity-datasource.ts",
+    "./public/plugin-api": "./src/public/plugin-api.ts",
     "./test": "./test.ts"
   },
   "scripts": {

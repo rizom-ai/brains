@@ -3,11 +3,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "rootDir": ".",
-    "noEmit": true,
-    "paths": {
-      "@rizom/brain": ["../../../src/types/index.d.ts"],
-      "@rizom/brain/*": ["../../../src/types/*.d.ts"]
-    }
+    "noEmit": true
   },
   "include": ["src/**/*.ts"],
   "exclude": []

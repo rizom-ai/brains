@@ -95,6 +95,8 @@
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",
     "@types/bun": "latest",
+    "rollup": "^4.60.2",
+    "rollup-plugin-dts": "^6.4.1",
     "typescript": "^5.3.3"
   },
   "publishConfig": {

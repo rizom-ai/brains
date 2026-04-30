@@ -28,6 +28,15 @@ describe("system_extract tool", () => {
         created: new Date().toISOString(),
         updated: new Date().toISOString(),
       },
+      {
+        id: "post-1",
+        entityType: "post",
+        content: "# Post",
+        contentHash: "post-hash",
+        metadata: { title: "Post" },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
     ]);
     tools = createSystemTools(services);
   });
@@ -58,22 +67,38 @@ describe("system_extract tool", () => {
     expect(result).toHaveProperty("data.mode", "rebuild");
 
     const enqueuedJob = services.getLastEnqueuedJob();
-    expect(enqueuedJob?.type).toBe("topic:extract");
+    expect(enqueuedJob?.type).toBe("topic:project");
     expect(enqueuedJob?.data).toEqual({ mode: "rebuild" });
   });
 
-  it("falls back to derive for unsupported rebuild requests", async () => {
+  it("queues single-source extraction through the projection job", async () => {
+    const result = await exec({ entityType: "topic", source: "post-1" });
+
+    expect(result).toHaveProperty("success", true);
+    expect(result).toHaveProperty("data.mode", "derive");
+    expect(result).toHaveProperty("data.source", "post-1");
+
+    const enqueuedJob = services.getLastEnqueuedJob();
+    expect(enqueuedJob?.type).toBe("topic:project");
+    expect(enqueuedJob?.data).toEqual({
+      mode: "source",
+      entityId: "post-1",
+      entityType: "post",
+    });
+  });
+
+  it("falls back to projection for unsupported rebuild requests", async () => {
     const result = await exec({ entityType: "series", mode: "rebuild" });
 
     expect(result).toHaveProperty("success", true);
     expect(result).toHaveProperty("data.mode", "derive");
     expect(result).toHaveProperty(
       "message",
-      "Rebuild is currently only supported for batch topic extraction. Ran normal derive mode for series instead.",
+      "Rebuild is currently only supported for batch topic extraction. Ran normal projection mode for series instead.",
     );
 
     const enqueuedJob = services.getLastEnqueuedJob();
-    expect(enqueuedJob?.type).toBe("series:extract");
-    expect(enqueuedJob?.data).toEqual({});
+    expect(enqueuedJob?.type).toBe("series:project");
+    expect(enqueuedJob?.data).toEqual({ mode: "derive" });
   });
 });

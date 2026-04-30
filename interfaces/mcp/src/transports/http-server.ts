@@ -6,7 +6,7 @@ import type { IMCPTransport } from "@brains/mcp-service";
 import type { TransportLogger } from "./types";
 import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
-import type { IAgentService } from "@brains/plugins";
+import type { AgentNamespace } from "@brains/plugins";
 
 export interface AuthConfig {
   disabled?: boolean;
@@ -38,7 +38,7 @@ export class StreamableHTTPServer {
     {};
   private mcpServer: McpServer | null = null;
   private mcpTransport: IMCPTransport | null = null;
-  private agentService: IAgentService | null = null;
+  private agentService: AgentNamespace | null = null;
   private server: ReturnType<typeof Bun.serve> | null = null;
   private boundPort: number | null = null;
   private readonly config: StreamableHTTPServerConfig;
@@ -345,7 +345,7 @@ export class StreamableHTTPServer {
     this.logger.debug("MCP server connected to StreamableHTTP transport");
   }
 
-  public connectAgentService(agentService: IAgentService): void {
+  public connectAgentService(agentService: AgentNamespace): void {
     this.agentService = agentService;
     this.logger.debug("Agent service connected to StreamableHTTP transport");
   }

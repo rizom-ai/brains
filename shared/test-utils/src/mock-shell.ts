@@ -13,7 +13,7 @@ import type {
   RegisteredWebRoute,
   ToolInfo,
   IMCPTransport,
-  AppInfo,
+  RuntimeAppInfo,
   Daemon,
   EndpointInfo,
   IDaemonRegistry,
@@ -43,8 +43,8 @@ import type { RenderService } from "@brains/templates";
 import type { IConversationService } from "@brains/conversation-service";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type {
-  IAgentService,
   AgentResponse,
+  IAgentService,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "@brains/ai-service";
@@ -539,7 +539,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     getDataDir: () => options.dataDir ?? "/tmp/mock-shell-test-data",
 
     // App metadata
-    getAppInfo: async (): Promise<AppInfo> => ({
+    getAppInfo: async (): Promise<RuntimeAppInfo> => ({
       model: "test-brain",
       version: "1.0.0",
       uptime: 0,

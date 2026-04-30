@@ -24,25 +24,6 @@ export const linkCaptureOptionsSchema = z.object({
 
 export type LinkCaptureOptions = z.infer<typeof linkCaptureOptionsSchema>;
 
-const conversationMetadataSchema = z
-  .object({
-    channelName: z.string().optional(),
-  })
-  .passthrough();
-
-function parseConversationMetadata(
-  metadata: string | null | undefined,
-): z.infer<typeof conversationMetadataSchema> {
-  if (!metadata) return {};
-  try {
-    const parsed: unknown = JSON.parse(metadata);
-    const result = conversationMetadataSchema.safeParse(parsed);
-    return result.success ? result.data : {};
-  } catch {
-    return {};
-  }
-}
-
 export interface LinkServiceOptions {
   /** Jina Reader API key for higher rate limits */
   jinaApiKey?: string;
@@ -79,9 +60,7 @@ export class LinkService {
       try {
         const conversation =
           await this.context.conversations.get(conversationId);
-        const metadata = parseConversationMetadata(conversation?.metadata);
-        label =
-          metadata.channelName ?? conversation?.channelId ?? conversationId;
+        label = conversation?.channelName ?? conversationId;
       } catch (error) {
         this.context.logger.debug("Could not resolve conversation metadata", {
           conversationId,

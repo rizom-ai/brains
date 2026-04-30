@@ -1,13 +1,11 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPluginHarness } from "../../src/test/harness";
 import { createSilentLogger } from "@brains/test-utils";
-import { EntityPlugin, type DeriveEvent } from "../../src/entity/entity-plugin";
+import { EntityPlugin } from "../../src/entity/entity-plugin";
 import type { EntityPluginContext } from "../../src/entity/context";
+import type { DerivedEntityProjection } from "../../src/entity/derived-entity-projection";
 import { z } from "@brains/utils";
-import type {
-  BaseEntity,
-  CreateInterceptionResult,
-} from "@brains/entity-service";
+import type { CreateInterceptionResult } from "@brains/entity-service";
 import { baseEntitySchema, BaseEntityAdapter } from "@brains/entity-service";
 
 // Test schema
@@ -78,47 +76,35 @@ class InterceptingEntityPlugin extends EntityPlugin<TestEntity> {
   }
 }
 
-// EntityPlugin subclass with derive() implementation
-class DerivedEntityPlugin extends EntityPlugin<TestEntity> {
-  readonly entityType = "derived-item";
+class ProjectionEntityPlugin extends EntityPlugin<TestEntity> {
+  readonly entityType = "projection-item";
   readonly schema = testSchema;
   readonly adapter = new TestAdapter();
-  public deriveCalls: Array<{
-    source: BaseEntity;
-    event: DeriveEvent;
-  }> = [];
 
   constructor() {
-    super("derived-item", testPkg);
+    super("projection-item", testPkg);
   }
 
-  public deriveAllCalled = false;
-
-  public override async derive(
-    source: BaseEntity,
-    event: DeriveEvent,
+  protected override getDerivedEntityProjections(
     _context: EntityPluginContext,
-  ): Promise<void> {
-    this.deriveCalls.push({ source, event });
+  ): DerivedEntityProjection[] {
+    return [
+      {
+        id: "projection-item-sync",
+        targetType: "projection-item",
+        job: {
+          type: "project",
+          handler: {
+            process: async () => ({ success: true }),
+            validateAndParse: (data) => data as { reason: string },
+          },
+        },
+        initialSync: {
+          jobData: { reason: "initial-sync" },
+        },
+      },
+    ];
   }
-
-  public override async deriveAll(
-    _context: EntityPluginContext,
-  ): Promise<void> {
-    this.deriveAllCalled = true;
-  }
-}
-
-function createTestSourceEntity(): BaseEntity {
-  return {
-    id: "source-1",
-    entityType: "post",
-    content: "# Hello World\n\nSome content here.",
-    contentHash: "abc123",
-    metadata: { title: "Hello World" },
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  };
 }
 
 describe("EntityPlugin", () => {
@@ -188,68 +174,40 @@ describe("EntityPlugin", () => {
         },
       });
     });
-  });
 
-  describe("derive()", () => {
-    it("should be optional — plugins without derive() work normally", async () => {
-      const plugin = new TestEntityPlugin();
+    it("should auto-register declared derived entity projections", async () => {
+      const registerHandler = mock(() => {});
+      const enqueue = mock(async () => "job-1");
+      harness.getMockShell().getJobQueueService = (): never =>
+        ({
+          enqueue,
+          registerHandler,
+          getActiveJobs: async () => [],
+          getActiveBatches: async () => [],
+          getBatchStatus: async () => null,
+          getStatus: async () => null,
+        }) as never;
+
+      const plugin = new ProjectionEntityPlugin();
       await harness.installPlugin(plugin);
 
-      expect(plugin.hasDeriveHandler()).toBe(false);
-    });
+      expect(registerHandler).toHaveBeenCalledWith(
+        "projection-item:project",
+        expect.any(Object),
+        "projection-item",
+      );
 
-    it("should report hasDeriveHandler() = true when derive() is overridden", async () => {
-      const plugin = new DerivedEntityPlugin();
-      await harness.installPlugin(plugin);
+      await harness.sendMessage(
+        "sync:initial:completed",
+        { success: true },
+        "directory-sync",
+      );
 
-      expect(plugin.hasDeriveHandler()).toBe(true);
-    });
-
-    it("should call derive() with source entity and event", async () => {
-      const plugin = new DerivedEntityPlugin();
-      await harness.installPlugin(plugin);
-
-      const source = createTestSourceEntity();
-      const context = harness.getEntityContext(plugin.id);
-      await plugin.derive(source, "created", context);
-
-      expect(plugin.deriveCalls).toHaveLength(1);
-      expect(plugin.deriveCalls[0]?.source.id).toBe("source-1");
-      expect(plugin.deriveCalls[0]?.event).toBe("created");
-    });
-
-    it("should support multiple derive() calls", async () => {
-      const plugin = new DerivedEntityPlugin();
-      await harness.installPlugin(plugin);
-
-      const source1 = createTestSourceEntity();
-      const source2 = { ...createTestSourceEntity(), id: "source-2" };
-      const context = harness.getEntityContext(plugin.id);
-
-      await plugin.derive(source1, "created", context);
-      await plugin.derive(source2, "updated", context);
-
-      expect(plugin.deriveCalls).toHaveLength(2);
-      expect(plugin.deriveCalls[1]?.event).toBe("updated");
-    });
-
-    it("should call deriveAll() directly", async () => {
-      const plugin = new DerivedEntityPlugin();
-      await harness.installPlugin(plugin);
-
-      const context = harness.getEntityContext(plugin.id);
-      await plugin.deriveAll(context);
-
-      expect(plugin.deriveAllCalled).toBe(true);
-    });
-
-    it("should default deriveAll() to no-op for plugins without it", async () => {
-      const plugin = new TestEntityPlugin();
-      await harness.installPlugin(plugin);
-
-      const context = harness.getEntityContext(plugin.id);
-      // Should not throw
-      await plugin.deriveAll(context);
+      expect(enqueue).toHaveBeenCalledWith(
+        "projection-item:project",
+        { reason: "initial-sync" },
+        expect.objectContaining({ source: "projection-item" }),
+      );
     });
   });
 
@@ -277,8 +235,8 @@ describe("EntityPlugin", () => {
     });
   });
 
-  describe("extract handler auto-registration", () => {
-    it("should not register extract handler for plugins without derive()", async () => {
+  describe("projection-only extraction", () => {
+    it("should not auto-register legacy extract handlers", async () => {
       const registeredHandlers: string[] = [];
       const mockShell = harness.getMockShell();
       const origJobQueue = mockShell.getJobQueueService();
@@ -296,26 +254,6 @@ describe("EntityPlugin", () => {
       await plugin.register(mockShell);
 
       expect(registeredHandlers).not.toContain("test-item:extract");
-    });
-
-    it("should auto-register extract handler for plugins with derive()", async () => {
-      const registeredHandlers: string[] = [];
-      const mockShell = harness.getMockShell();
-      const origJobQueue = mockShell.getJobQueueService();
-      const trackingJobQueue = {
-        ...origJobQueue,
-        registerHandler: (type: string): void => {
-          registeredHandlers.push(type);
-        },
-      };
-      mockShell.getJobQueueService = (): ReturnType<
-        typeof mockShell.getJobQueueService
-      > => trackingJobQueue as ReturnType<typeof mockShell.getJobQueueService>;
-
-      const plugin = new DerivedEntityPlugin();
-      await plugin.register(mockShell);
-
-      expect(registeredHandlers).toContain("derived-item:extract");
     });
   });
 });

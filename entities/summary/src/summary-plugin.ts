@@ -2,7 +2,6 @@ import { getErrorMessage } from "@brains/utils";
 import {
   EntityPlugin,
   conversationDigestPayloadSchema,
-  type BaseEntity,
   type EntityPluginContext,
   type ConversationDigestPayload,
   type MessageWithPayload,
@@ -71,19 +70,6 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
       });
       this.logger.debug("Summary plugin subscribed to digest events");
     }
-  }
-
-  /**
-   * Derive summary from a conversation digest payload (via event).
-   * Note: source is the digest payload entity, not used directly.
-   */
-  public override async derive(
-    _source: BaseEntity,
-    _event: string,
-    _context: EntityPluginContext,
-  ): Promise<void> {
-    // Summary derivation is conversation-driven, not entity-driven.
-    // Actual work happens via conversation:digest subscription.
   }
 
   private async handleDigestMessage(

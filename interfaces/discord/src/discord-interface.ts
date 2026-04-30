@@ -294,7 +294,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   ): Promise<void> {
     if (!this.context) return;
 
-    const agentService = this.context.agentService;
+    const agentService = this.context.agent;
     let replyChannelId = channelId;
 
     if (
@@ -395,7 +395,7 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       return;
     }
     this.pendingConfirmations.delete(conversationId);
-    const response = await this.context?.agentService.confirmPendingAction(
+    const response = await this.context?.agent.confirmPendingAction(
       conversationId,
       parsed.confirmed,
     );

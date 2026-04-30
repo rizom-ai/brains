@@ -27,7 +27,7 @@ function installWithJobQueue(): {
 }
 
 describe("Skill derivation on initial sync", () => {
-  it("should queue deriveAll after sync:initial:completed", async () => {
+  it("should queue projection after sync:initial:completed", async () => {
     const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
@@ -42,14 +42,14 @@ describe("Skill derivation on initial sync", () => {
 
     expect(plugin.hasRunInitialDerivation()).toBe(true);
     expect(registerHandler).toHaveBeenCalledWith(
-      "skill:derive",
+      "skill:project",
       expect.any(Object),
       "skill",
     );
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(enqueue).toHaveBeenCalledWith(
-      "skill:derive",
-      { replaceAll: true, reason: "initial-sync" },
+      "skill:project",
+      { mode: "derive", replaceAll: true, reason: "initial-sync" },
       expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "skill-derivation:initial-sync",
@@ -59,7 +59,7 @@ describe("Skill derivation on initial sync", () => {
     harness.reset();
   });
 
-  it("should only queue deriveAll once across multiple sync events", async () => {
+  it("should only queue projection once across multiple sync events", async () => {
     const { harness, plugin, enqueue } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
@@ -108,11 +108,53 @@ describe("Skill derivation on initial sync", () => {
       "directory-sync",
     );
 
-    // Flag is only set after work is enqueued — when persisted skills
-    // already exist we skip the enqueue, so the flag stays false and a
-    // future sync can still trigger derivation if skills are deleted.
     expect(plugin.hasRunInitialDerivation()).toBe(false);
     expect(enqueue).not.toHaveBeenCalled();
+
+    harness.reset();
+  });
+
+  it("should queue topic-change derivation after initial sync even when bootstrap is skipped", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue();
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-skill",
+        entityType: "skill",
+        content:
+          "---\nname: Existing\ndescription: Existing skill\ntags: []\nexamples: []\n---\n",
+        metadata: {
+          name: "Existing",
+          description: "Existing skill",
+          tags: [],
+          examples: [],
+        },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
+
+    await harness.sendMessage(
+      "entity:updated",
+      { entityType: "topic", entityId: "topic-1" },
+      "entity-service",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith(
+      "skill:project",
+      { mode: "derive", replaceAll: false, reason: "topic-change" },
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "skill-derivation:topic-change",
+      }),
+    );
 
     harness.reset();
   });

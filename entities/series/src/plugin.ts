@@ -3,12 +3,13 @@ import type {
   EntityPluginContext,
   EntityTypeConfig,
   JobHandler,
-  DeriveEvent,
   DataSource,
   Template,
   BaseEntity,
+  DerivedEntityProjection,
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
+import { z } from "@brains/utils";
 import { seriesSchema, type Series } from "./schemas/series";
 import { seriesAdapter } from "./adapters/series-adapter";
 import { SeriesManager } from "./services/series-manager";
@@ -18,11 +19,31 @@ import { getTemplates } from "./lib/register-templates";
 import { seriesDescriptionTemplate } from "./templates/description-template";
 import packageJson from "../package.json";
 
+const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("derive"),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("source"),
+    entityId: z.string(),
+    entityType: z.string(),
+  }),
+]);
+
+type SeriesProjectionJobData = z.infer<typeof seriesProjectionJobDataSchema>;
+
+interface SeriesSourceMetadata extends Record<string, unknown> {
+  seriesName: string;
+}
+
+type SeriesSourceEntity = BaseEntity<SeriesSourceMetadata>;
+
 /**
  * Series EntityPlugin — auto-derives series from entities with seriesName metadata.
  *
  * Cross-content: watches entity events across ALL types, not just blog posts.
- * Uses derive() for event-driven creation and manual batch extraction.
+ * Uses explicit projection jobs for event-driven and batch synchronization.
  */
 export class SeriesPlugin extends EntityPlugin<Series> {
   readonly entityType = "series";
@@ -58,9 +79,53 @@ export class SeriesPlugin extends EntityPlugin<Series> {
     return [new SeriesDataSource(this.logger.child("SeriesDataSource"))];
   }
 
-  /**
-   * Subscribe to entity events to auto-derive series.
-   */
+  protected override getDerivedEntityProjections(
+    context: EntityPluginContext,
+  ): DerivedEntityProjection[] {
+    return [
+      {
+        id: "series-projection",
+        targetType: "series",
+        job: {
+          type: "series:project",
+          handler: this.createSeriesProjectionHandler(context),
+        },
+        initialSync: {
+          jobData: { mode: "derive", reason: "initial-sync" },
+          jobOptions: this.getSyncProjectionJobOptions("initial-sync"),
+        },
+        sourceChange: {
+          sourceTypes: ["*"],
+          events: ["entity:created", "entity:updated", "entity:deleted"],
+          requireInitialSync: true,
+          jobData: (payload): SeriesProjectionJobData | null => {
+            if (payload.entityType === "series") return null;
+            if (!payload.entity) {
+              return { mode: "derive", reason: "entity-deleted" };
+            }
+            if (!this.hasSeriesName(payload.entity)) return null;
+            return {
+              mode: "source",
+              entityId: payload.entity.id,
+              entityType: payload.entity.entityType,
+            };
+          },
+          jobOptions: (
+            payload,
+          ): ReturnType<SeriesPlugin["getSyncProjectionJobOptions"]> => {
+            if (!payload.entity) {
+              return this.getSyncProjectionJobOptions("entity-deleted");
+            }
+            if (!this.hasSeriesName(payload.entity)) {
+              return this.getSyncProjectionJobOptions("source-without-series");
+            }
+            return this.getSourceProjectionJobOptions(payload.entity);
+          },
+        },
+      },
+    ];
+  }
+
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
@@ -68,81 +133,92 @@ export class SeriesPlugin extends EntityPlugin<Series> {
       context.entityService,
       this.logger.child("SeriesManager"),
     );
-    const manager = this.manager;
-
-    // Watch entity create/update for any type with seriesName
-    for (const event of ["entity:created", "entity:updated"] as const) {
-      context.messaging.subscribe(event, async (message) => {
-        try {
-          const payload = message.payload as {
-            entityType: string;
-            entity?: BaseEntity;
-          };
-          if (payload.entityType === "series") return { success: true };
-          if (payload.entity) {
-            const seriesName = manager.getSeriesName(payload.entity);
-            if (seriesName) {
-              await manager.handleEntityChange(payload.entity);
-            }
-          }
-          return { success: true };
-        } catch (error) {
-          this.logger.error("Failed to handle entity event for series", {
-            error,
-          });
-          return { success: false, error: "Series derivation failed" };
-        }
-      });
-    }
-
-    // Watch entity deletion to clean up orphaned series
-    context.messaging.subscribe("entity:deleted", async (message) => {
-      try {
-        const payload = message.payload as { entityType: string };
-        if (payload.entityType === "series") return { success: true };
-        await manager.handleEntityDeleted();
-        return { success: true };
-      } catch (error) {
-        this.logger.error("Failed to handle entity deletion for series", {
-          error,
-        });
-        return { success: false, error: "Series cleanup failed" };
-      }
-    });
-
-    // Full resync after initial directory sync
-    context.messaging.subscribe("sync:initial:completed", async () => {
-      try {
-        this.logger.info("Initial sync completed, syncing series");
-        await manager.syncAllSeries();
-        return { success: true };
-      } catch (error) {
-        this.logger.error("Failed to sync series after initial sync", {
-          error,
-        });
-        return { success: false, error: "Series sync failed" };
-      }
-    });
   }
 
-  /**
-   * Derive series from a source entity.
-   * Called by event subscriptions and by system_extract for single-source extraction.
-   */
+  private createSeriesProjectionHandler(
+    context: EntityPluginContext,
+  ): JobHandler<string, unknown> {
+    return {
+      process: async (data): Promise<{ success: true }> => {
+        const parsed = seriesProjectionJobDataSchema.parse(data);
+        if (parsed.mode === "derive") {
+          await this.projectAll(context);
+          return { success: true };
+        }
+
+        const source = await context.entityService.getEntity(
+          parsed.entityType,
+          parsed.entityId,
+        );
+        if (source) {
+          await this.projectSource(source);
+        }
+        return { success: true };
+      },
+      validateAndParse: (data: unknown): SeriesProjectionJobData | null => {
+        const result = seriesProjectionJobDataSchema.safeParse(data ?? {});
+        return result.success ? result.data : null;
+      },
+    };
+  }
+
   private requireManager(): SeriesManager {
     if (!this.manager) throw new Error("SeriesPlugin not registered");
     return this.manager;
   }
 
-  public override async derive(
-    source: BaseEntity,
-    _event: DeriveEvent,
-    _context: EntityPluginContext,
-  ): Promise<void> {
+  private hasSeriesName(entity: BaseEntity): entity is SeriesSourceEntity {
+    return typeof entity.metadata["seriesName"] === "string";
+  }
+
+  private getSyncProjectionJobOptions(reason: string): {
+    source: string;
+    deduplication: "coalesce";
+    deduplicationKey: string;
+    metadata: {
+      operationType: "data_processing";
+      operationTarget: string;
+    };
+  } {
+    return {
+      source: this.id,
+      deduplication: "coalesce",
+      deduplicationKey: `series-sync:${reason}`,
+      metadata: {
+        operationType: "data_processing",
+        operationTarget: "series",
+      },
+    };
+  }
+
+  private getSourceProjectionJobOptions(entity: SeriesSourceEntity): {
+    source: string;
+    deduplication: "coalesce";
+    deduplicationKey: string;
+    metadata: {
+      operationType: "data_processing";
+      operationTarget: string;
+    };
+  } {
+    return {
+      source: this.id,
+      deduplication: "coalesce",
+      deduplicationKey: `series-source:${entity.entityType}:${entity.id}`,
+      metadata: {
+        operationType: "data_processing",
+        operationTarget: `series:${entity.entityType}:${entity.id}`,
+      },
+    };
+  }
+
+  /**
+   * Project series from one source entity.
+   */
+  private async projectSource(source: BaseEntity): Promise<void> {
     await this.requireManager().handleEntityChange(source);
   }
 
-  public override async deriveAll(context: EntityPluginContext): Promise<void> {
+  private async projectAll(context: EntityPluginContext): Promise<void> {
     await this.requireManager().syncAllSeries();
 
     // Enrich series that lack a description

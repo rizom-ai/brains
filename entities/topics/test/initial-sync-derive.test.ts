@@ -29,8 +29,8 @@ function installWithJobQueue(): {
   return { harness, plugin, enqueue, registerHandler };
 }
 
-describe("Initial sync triggers batch deriveAll", () => {
-  it("should queue deriveAll after sync:initial:completed", async () => {
+describe("Initial sync triggers batch projection", () => {
+  it("should queue projection after sync:initial:completed", async () => {
     const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
@@ -46,14 +46,14 @@ describe("Initial sync triggers batch deriveAll", () => {
     expect(plugin.hasRunInitialDerivation()).toBe(true);
     expect(plugin.isAutoExtractionEnabled()).toBe(true);
     expect(registerHandler).toHaveBeenCalledWith(
-      "topics:extract",
+      "topic:project",
       expect.any(Object),
       "topics",
     );
     expect(enqueue).toHaveBeenCalledTimes(1);
     expect(enqueue).toHaveBeenCalledWith(
-      "topics:extract",
-      { mode: "derive" },
+      "topic:project",
+      { mode: "derive", reason: "initial-sync" },
       expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "topics-initial-derivation",
@@ -63,7 +63,7 @@ describe("Initial sync triggers batch deriveAll", () => {
     harness.reset();
   });
 
-  it("should not run deriveAll when auto-extraction is disabled", async () => {
+  it("should not queue projection when auto-extraction is disabled", async () => {
     const harness = createPluginHarness<TopicsPlugin>({});
     const plugin = new TopicsPlugin({ enableAutoExtraction: false });
 
@@ -80,7 +80,7 @@ describe("Initial sync triggers batch deriveAll", () => {
     harness.reset();
   });
 
-  it("should only queue deriveAll once across multiple sync events", async () => {
+  it("should only queue projection once across multiple sync events", async () => {
     const { harness, plugin, enqueue } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
@@ -100,6 +100,57 @@ describe("Initial sync triggers batch deriveAll", () => {
     );
     expect(plugin.hasRunInitialDerivation()).toBe(true);
     expect(enqueue).toHaveBeenCalledTimes(1);
+
+    harness.reset();
+  });
+
+  it("should queue source projection after initial sync", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue();
+
+    await harness.installPlugin(plugin);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+
+    await harness.sendMessage(
+      "entity:updated",
+      {
+        entityType: "post",
+        entityId: "post-1",
+        entity: {
+          id: "post-1",
+          entityType: "post",
+          content: "Published post",
+          metadata: { status: "published" },
+          contentHash: "hash-1",
+          created: new Date().toISOString(),
+          updated: new Date().toISOString(),
+        },
+      },
+      "entity-service",
+    );
+
+    expect(enqueue).toHaveBeenCalledTimes(2);
+    expect(enqueue).toHaveBeenLastCalledWith(
+      "topic:project",
+      {
+        mode: "source",
+        entityId: "post-1",
+        entityType: "post",
+        contentHash: "hash-1",
+        minRelevanceScore: expect.any(Number),
+        autoMerge: expect.any(Boolean),
+        mergeSimilarityThreshold: expect.any(Number),
+      },
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "topics-source:post:post-1:hash-1",
+      }),
+    );
 
     harness.reset();
   });

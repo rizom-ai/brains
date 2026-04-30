@@ -10,7 +10,8 @@ import type {
 } from "../interfaces";
 import type { Daemon } from "../manager/daemon-types";
 import type { UserPermissionLevel } from "@brains/templates";
-import type { IAgentService } from "@brains/ai-service";
+import type { AgentNamespace } from "../contracts/agent";
+import { createPublicAgentNamespace } from "../base/public-agent-service";
 import type {
   MessageRole,
   ConversationMetadata,
@@ -95,7 +96,7 @@ export interface IInterfaceConversationsNamespace extends IConversationsNamespac
  * Extends BasePluginContext with daemon support, job creation, and conversation management
  *
  * ## Method Naming Conventions
- * - Properties: Direct access to services (e.g., `mcpTransport`, `agentService`)
+ * - Properties: Direct access to public namespaces (e.g., `mcpTransport`, `agent`)
  * - `get*`: Retrieve data (e.g., `getUserPermissionLevel`)
  * - `register*`: Register handlers/daemons (e.g., `registerDaemon`, `registerJobHandler`)
  * - Action verbs: Operations with side effects (e.g., `enqueueJob`, `addMessage`)
@@ -108,8 +109,8 @@ export interface InterfacePluginContext extends BasePluginContext {
   /** MCP transport for tool execution */
   readonly mcpTransport: IMCPTransport;
 
-  /** Agent service for AI-powered interaction */
-  readonly agentService: IAgentService;
+  /** Public agent namespace for AI-powered interaction */
+  readonly agent: AgentNamespace;
 
   // ============================================================================
   // Permissions
@@ -194,14 +195,14 @@ export function createInterfacePluginContext(
   // Get interface-specific components
   const mcpTransport = shell.getMCPService();
   const permissionService = shell.getPermissionService();
-  const agentService = shell.getAgentService();
+  const agent = createPublicAgentNamespace(shell.getAgentService());
 
   return {
     ...baseContext,
 
     mcpTransport,
 
-    agentService,
+    agent,
 
     permissions: {
       getUserLevel: (

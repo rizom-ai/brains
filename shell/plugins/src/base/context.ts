@@ -10,18 +10,17 @@ import type { Channel } from "../utils/channels";
 import { isChannel } from "../utils/channels";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { InsightHandler } from "../interfaces";
-import type {
-  Conversation,
-  Message,
-  GetMessagesOptions,
-} from "@brains/conversation-service";
-import type { BrainCharacter } from "@brains/identity-service";
-import type { AnchorProfile } from "@brains/identity-service";
-import type {
-  AppInfo,
-  EvalHandler,
-  PluginRegistrationContext,
-} from "../interfaces";
+import type { GetMessagesOptions } from "@brains/conversation-service";
+import type { Conversation, Message } from "../contracts/conversations";
+import { toPublicConversation, toPublicMessage } from "./public-conversations";
+import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
+import {
+  toPublicAnchorProfile,
+  toPublicBrainCharacter,
+} from "./public-identity";
+import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
+import type { AppInfo } from "../contracts/app-info";
+import { toPublicAppInfo } from "./public-app-info";
 import type { EntityDisplayEntry } from "../types/routes";
 import type { JobsNamespace } from "@brains/job-queue";
 import {
@@ -275,18 +274,22 @@ export function createBasePluginContext(
     );
   };
 
+  const getAppInfo = async (): Promise<AppInfo> => {
+    return toPublicAppInfo(await shell.getAppInfo());
+  };
+
   return {
     pluginId,
     logger,
     entityService,
 
     identity: {
-      get: () => shell.getIdentity(),
-      getProfile: () => shell.getProfile(),
-      getAppInfo: () => shell.getAppInfo(),
+      get: () => toPublicBrainCharacter(shell.getIdentity()),
+      getProfile: () => toPublicAnchorProfile(shell.getProfile()),
+      getAppInfo,
     },
 
-    appInfo: () => shell.getAppInfo(),
+    appInfo: getAppInfo,
 
     domain,
     siteUrl: domain ? `https://${domain}` : undefined,
@@ -338,18 +341,26 @@ export function createBasePluginContext(
     conversations: {
       get: async (conversationId: string): Promise<Conversation | null> => {
         const conversationService = shell.getConversationService();
-        return conversationService.getConversation(conversationId);
+        const conversation =
+          await conversationService.getConversation(conversationId);
+        return conversation ? toPublicConversation(conversation) : null;
       },
       search: async (query: string): Promise<Conversation[]> => {
         const conversationService = shell.getConversationService();
-        return conversationService.searchConversations(query);
+        const conversations =
+          await conversationService.searchConversations(query);
+        return conversations.map(toPublicConversation);
       },
       getMessages: async (
         conversationId: string,
         options?: GetMessagesOptions,
       ): Promise<Message[]> => {
         const conversationService = shell.getConversationService();
-        return conversationService.getMessages(conversationId, options);
+        const messages = await conversationService.getMessages(
+          conversationId,
+          options,
+        );
+        return messages.map(toPublicMessage);
       },
     },
 

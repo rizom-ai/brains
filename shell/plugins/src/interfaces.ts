@@ -129,7 +129,7 @@ export const appInfoSchema = z.object({
   endpoints: z.array(endpointInfoSchema),
 });
 
-export type AppInfo = z.infer<typeof appInfoSchema>;
+export type RuntimeAppInfo = z.infer<typeof appInfoSchema>;
 
 /**
  * Query context for shell queries
@@ -201,7 +201,7 @@ export interface IShell {
   getDataDir(): string;
 
   // App metadata
-  getAppInfo(): Promise<AppInfo>;
+  getAppInfo(): Promise<RuntimeAppInfo>;
 
   // High-level operations
   generateContent<T = unknown>(config: ContentGenerationConfig): Promise<T>;

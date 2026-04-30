@@ -2,22 +2,31 @@
 
 ## Status
 
-Proposed follow-up work. The immediate OOM-loop root causes were fixed in the topic and skill derivation paths, but those fixes exposed a repeated architectural pattern that should be made explicit before more derived entity plugins are added.
+Implemented. The immediate OOM-loop root causes were fixed in topic and skill derivation, and true derived-entity lifecycle work now uses first-class projection declarations plus projection-owned jobs instead of legacy `EntityPlugin.derive()` hooks.
 
 ## Context
 
-Topics and skills are both **materialized projections**:
+Several plugins maintain **derived/materialized entities**:
 
 ```text
-source entities -> expensive derivation -> persisted derived entities
+source events / initial sync / manual rebuild
+  -> queued projection job
+  -> derive desired target state
+  -> reconcile persisted target entities
 ```
 
-Current examples:
+Current projection users:
 
-- `@brains/topics`: source content entities -> topic entities
-- `@brains/agent-discovery`: topic entities -> skill entities
+- `@brains/topics`: source content entities -> topic entities via `topic:project`
+- `@brains/series`: source entities with series metadata -> series entities via `series:project`
+- `@brains/agent-discovery` skills: topic entities -> skill entities via `skill:project`
 
-The recent production failure showed that every projection needs the same lifecycle guarantees:
+Projection-adjacent plugins remain explicit generation/event flows rather than projections:
+
+- `@brains/social-media`: published entity -> social post generation job
+- `@brains/summary`: conversation digest -> summary handler
+
+The production OOM failure showed that true projections need shared lifecycle guarantees:
 
 - no heavy inline work during startup or `sync:initial:completed`
 - durable idempotency across process restarts
@@ -28,115 +37,126 @@ The recent production failure showed that every projection needs the same lifecy
 - predictable stale cleanup
 - observability around queued/running/skipped projection work
 
-The point fix added these guarantees locally for topics and skills. This plan extracts the shared pattern so the same class of OOM/churn bug cannot recur in the next projection.
-
 ## Problem
 
-Projection lifecycle logic is currently owned independently by each plugin. That leads to local reimplementation of hard-to-get-right behavior:
+`EntityPlugin.derive()` is an older, implicit projection hook. It is useful, but it mixes several concerns:
 
-- in-memory `initialDerivationDone` flags that reset on every deploy
-- plugin event handlers doing expensive derivation inline
-- unbounded mutation fanout via `Promise.all(...)`
-- replace-all strategies that delete/recreate unchanged derived entities
-- no shared notion of projection idempotency, source freshness, or durable completion
+- manual `system_extract` routing
+- batch derivation
+- source-entity derivation
+- plugin-local event subscriptions
+- job handler registration
 
-The missing abstraction is a small shared projection runner/coordinator for **derived entities**.
+Because it is implicit, each plugin still owns its own scheduling and lifecycle. That leads to local reimplementation of hard-to-get-right behavior:
+
+- in-memory `initialDerivationDone` flags
+- heavy work in event handlers
+- unbounded mutation fanout
+- replace-all strategies that delete/recreate unchanged entities
+- no shared durable projection state or source freshness model
+
+The missing abstraction is not just a helper around the existing hooks. The missing abstraction is an explicit, projection-owned lifecycle.
+
+## Architectural decision
+
+A **derived entity projection owns its projection job**.
+
+That means:
+
+- the projection definition always provides/registers its job handler
+- startup/entity-change handlers only enqueue the projection job
+- the projection job does the expensive work
+- the projection job uses a shared reconciler for target mutation
+- old `EntityPlugin.derive()` hooks are not the foundation for new projection lifecycle behavior
+
+Do **not** make projection handlers optional to support “queue an already registered extract job.” That hides the ownership boundary and preserves the ambiguity we are trying to remove.
 
 ## Goals
 
-- Provide a shared abstraction for source-to-derived entity projections.
+- Establish an explicit projection pattern before migrating plugins.
 - Make queued, idempotent, bounded derivation the default.
-- Preserve plugin boundaries: plugins still own schemas and derivation logic.
-- Keep the first implementation small enough to migrate topics and skills without a broad refactor.
-- Support future projections without copying the topic/skill lifecycle code.
+- Make job ownership unambiguous.
+- Preserve plugin domain boundaries: plugins own schemas and domain derivation logic.
+- Migrate true projection plugins to the new pattern.
+- Remove legacy `derive()`/`deriveAll()` routing from projection lifecycle and manual extraction.
 
 ## Non-goals
 
 - Rewriting the entity service.
-- Introducing a new database or workflow engine.
-- Making every derived entity eventually consistent in exactly the same way.
+- Introducing a new database or external workflow engine.
 - Building a full DAG scheduler in the first iteration.
-- Changing topic or skill schemas unless needed for durable projection metadata.
+- Treating all generation side effects as derived entity projections.
+- Forcing social-media and summary into the projection model unless their semantics actually match.
 
-## Proposed abstraction
-
-Introduce a shared projection definition and runner, probably in `shell/plugins` or a small shared package if it needs to be consumed outside plugin internals.
-
-Sketch:
+## Correct projection model
 
 ```ts
-defineDerivedEntityProjection({
-  id: "skills-from-topics",
-  sourceTypes: ["topic"],
-  targetType: "skill",
-  jobType: "skill:derive",
-  queueKey: "skill:derive:all",
+interface DerivedEntityProjection<TJobData, TDesired, TTarget> {
+  id: string;
+  targetType: string;
 
-  shouldRunOnInitialSync: async (ctx) => {
-    return !(await ctx.hasPersistedTargets());
-  },
+  job: {
+    type: string;
+    handler: JobHandler<string, TJobData>;
+  };
 
-  deriveDesiredState: async (ctx) => {
-    return ctx.plugin.deriveSkillsFromTopics();
-  },
+  initialSync?: {
+    shouldEnqueue?: (ctx: ProjectionContext) => Promise<boolean>;
+    jobData: TJobData;
+    jobOptions?: JobOptions;
+  };
 
-  getStableId: (skill) => skill.id,
-  equals: (existing, desired) => stableSkillEquals(existing, desired),
-  reconcile: "diff",
-  deleteConcurrency: 1,
-});
-```
+  sourceChange?: {
+    sourceTypes: string[];
+    requireInitialSync?: boolean;
+    toJobData: (event: EntityChangeEvent) => TJobData | null;
+    jobOptions?: (event: EntityChangeEvent) => JobOptions;
+  };
 
-The runner owns lifecycle and safety; the plugin owns domain derivation.
-
-## Core responsibilities
-
-### 1. Initial-sync scheduling
-
-`sync:initial:completed` should enqueue projection jobs, never run expensive derivation inline.
-
-The abstraction should provide:
-
-- durable `shouldRunOnInitialSync` checks
-- coalesced initial job enqueueing
-- skip logging when persisted targets already exist
-- optional `force` mode for manual rebuilds
-
-### 2. Change-triggered scheduling
-
-When relevant source entities change, the projection should enqueue a deduped job rather than running inline.
-
-Controls:
-
-- source entity type filters
-- debounce/coalescing key
-- optional source ID targeting for incremental projections
-- max queue concurrency inherited from job queue
-
-### 3. Durable idempotency
-
-The projection should not rely on process memory to know whether bootstrap work has already happened.
-
-Minimum viable approach:
-
-- use persisted target existence as the first durable gate
-- optionally store projection metadata later: last run, last success, source watermark, source content hash
-
-Future metadata entity/table could look like:
-
-```ts
-interface ProjectionState {
-  projectionId: string;
-  lastStartedAt?: string;
-  lastCompletedAt?: string;
-  lastSuccessfulSourceHash?: string;
-  status: "idle" | "running" | "failed";
+  reconcile?: {
+    getStableId: (desired: TDesired) => string;
+    toEntityInput: (desired: TDesired, id: string) => EntityInput<TTarget>;
+    equals: (existing: TTarget, desired: TDesired) => boolean;
+    deleteStale?: boolean;
+    createConcurrency?: number;
+    updateConcurrency?: number;
+    deleteConcurrency?: number;
+  };
 }
 ```
 
-### 4. Diff-based reconciliation
+The runner owns lifecycle and safety. The plugin owns domain derivation.
 
-Projection output should be reconciled by stable IDs:
+## Core rules
+
+### 1. No heavy work in message handlers
+
+`sync:initial:completed`, `entity:created`, `entity:updated`, and `entity:deleted` handlers enqueue jobs only.
+
+### 2. Projection-owned jobs only
+
+A projection must register the job it enqueues. No optional handler field. No “assume another abstraction registered this job.”
+
+### 3. Explicit job names
+
+Use explicit projection job names instead of overloading generic extract jobs:
+
+- `skills:project` or `skill:derive`
+- `topic:project`
+- `series:project`
+
+Names should be target-entity scoped and ownership must be clear.
+
+### 4. Durable initial-sync gates
+
+Initial projections must use durable checks:
+
+- persisted target existence as the minimum gate
+- projection state later if needed for zero-result projections, source hashes, and failure visibility
+
+### 5. Diff-based reconciliation
+
+Projection output is reconciled by stable ID:
 
 - unchanged target -> skip
 - changed target -> update
@@ -145,15 +165,11 @@ Projection output should be reconciled by stable IDs:
 
 No projection should implement delete-all/recreate-all as its default path.
 
-### 5. Bounded mutation concurrency
+### 6. Bounded mutation concurrency
 
-The runner should centralize mutation limits:
+The shared reconciler centralizes limits. Deletes default to sequential. Creates/updates may be bounded later.
 
-- creates/updates can be bounded, not unbounded `Promise.all`
-- deletes should default to sequential or a very small concurrency
-- per-projection lock prevents overlapping reconciles for the same target type
-
-### 6. Observability
+### 7. Observability
 
 Every projection run should log/report:
 
@@ -165,105 +181,158 @@ Every projection run should log/report:
 - duration
 - failure reason
 
-This should make future OOM-risk patterns visible before they hit production.
+## Relationship to `EntityPlugin.derive()`
 
-## Candidate API shape
+`EntityPlugin.derive()` / `deriveAll()` are no longer part of the entity plugin base class. Manual extraction is routed to projection-owned `{entityType}:project` jobs, and automatic lifecycle scheduling is declared through `getDerivedEntityProjections()`.
 
-```ts
-interface DerivedEntityProjection<TSource, TTarget> {
-  id: string;
-  sourceTypes: string[];
-  targetType: string;
-  jobType: string;
-  queueKey: (event: ProjectionEvent) => string;
+## Plugin classification
 
-  shouldRunOnInitialSync?: (ctx: ProjectionContext) => Promise<boolean>;
-  deriveDesiredState: (ctx: ProjectionContext) => Promise<TTarget[]>;
+### True projections — migrated
 
-  getStableId: (target: TTarget) => string;
-  equals?: (existing: TTarget, desired: TTarget) => boolean;
+#### Skills
 
-  reconcile?: "diff";
-  createConcurrency?: number;
-  updateConcurrency?: number;
-  deleteConcurrency?: number;
-}
-```
+- Source: topics
+- Target: skills
+- Uses `skill:project` with shared initial-sync/source-change scheduling and diff-based reconciliation.
 
-Plugin usage:
+#### Topics
 
-```ts
-registerDerivedEntityProjection(context, skillsFromTopicsProjection);
-```
+- Source: configured content entity types
+- Target: topics
+- Uses `topic:project` for initial, source, derive, and rebuild modes.
 
-The registration would:
+#### Series
 
-- register the job handler
-- subscribe to initial sync events
-- subscribe to relevant source entity CRUD events
-- enqueue deduped jobs
-- run reconciliation safely inside the job handler
+- Source: source entities with series metadata
+- Target: series
+- Uses `series:project` for initial/source projection jobs.
+
+### Projection-adjacent — explicit non-projections
+
+#### Social media
+
+- Source: published entities
+- Target/effect: generated social posts
+- Uses explicit generation/publish subscriptions; not a reconciled derived-entity projection.
+
+#### Summary
+
+- Source/effect: conversation digests -> summary entities
+- Uses the conversation digest handler directly; not an entity-source projection.
 
 ## Implementation phases
 
-### Phase 1: Extract the minimal runner
+### Phase 0: Tests and API contract
 
-Create the abstraction with only what topics and skills need now:
+Before implementation, add failing tests that encode the architecture:
 
+- projection registration requires a handler
+- initial sync enqueues, never runs handler inline
+- duplicate initial-sync events do not enqueue duplicate jobs
+- persisted targets skip bootstrap enqueue
+- source changes enqueue only after initial sync is observed
+- reconciliation skips unchanged, updates changed, creates new, deletes stale with bounded concurrency
+- `EntityPlugin` can expose projection definitions without relying on legacy `derive()` ownership
+
+### Phase 1: Projection runner and reconciler
+
+Add the core implementation:
+
+- `shell/plugins/src/entity/derived-entity-projection.ts`
 - projection registration helper
 - initial-sync enqueue helper
 - source-change enqueue helper
-- per-projection in-process coalescing
-- diff reconciler
-- bounded delete loop
+- shared `hasPersistedTargets()` helper
+- shared `reconcileDerivedEntities()` helper
+- required job handler in the projection definition
 
-Likely files/packages:
+Do not migrate topics in this phase.
 
-- `shell/plugins/src/entity/derived-entity-projection.ts` or equivalent
-- tests in `shell/plugins/test/` or package-local tests if placed elsewhere
+### Phase 2: EntityPlugin integration
 
-### Phase 2: Migrate skills
+Add an explicit extension point to `EntityPlugin`, for example:
 
-Move the lifecycle code out of `entities/agent-discovery/src/plugins/skill-plugin.ts` and keep domain logic in:
+```ts
+protected getDerivedEntityProjections(
+  context: EntityPluginContext,
+): DerivedEntityProjection[] {
+  return [];
+}
+```
 
-- `entities/agent-discovery/src/lib/skill-deriver.ts`
+`EntityPlugin.register()` should register those projections after entity type/template/datasource setup.
 
-Expected result:
+This makes projections part of the plugin architecture instead of ad hoc calls from `onRegister()`.
 
-- skill plugin declares projection config
-- runner handles initial sync, topic change queueing, coalescing, and job handling
-- existing skill regression tests continue passing
+### Phase 3: Migrate skills
 
-### Phase 3: Migrate topics
+Move skill lifecycle onto the new projection API:
 
-Move initial-sync and entity-change extraction scheduling from `entities/topics/src/index.ts` into a projection definition.
+- source change: topic create/update
+- initial sync: queue skill projection when no persisted skills exist
+- job handler: derives desired skills and reconciles with shared diff helper
+- tests: existing skill initial-sync and replace-all churn regressions continue passing
 
-Expected result:
+### Phase 4: Migrate topics
 
-- topics plugin declares projection config
-- extraction still uses existing topic extraction handler/domain code
-- existing initial sync derive tests continue passing
+Define explicit topic projection ownership.
 
-### Phase 4: Add durable projection state, if needed
+Expected changes:
 
-After topics and skills use the shared runner, decide whether target-existence checks are enough or whether we need explicit projection state.
+- add a projection-owned batch job, e.g. `topic:project`
+- initial sync enqueues that job when no persisted topics exist
+- source entity changes enqueue incremental extraction/projection jobs
+- remove legacy `derive()`/`deriveAll()` routing in favor of projection jobs
+- no startup/event handler performs extraction inline
 
-Add only if it solves concrete problems:
+### Phase 5: Migrate series
 
-- distinguishing "never ran" from "ran and produced zero targets"
+Move series event/initial-sync work behind projection-owned jobs:
+
+- entity create/update/delete enqueue series projection jobs
+- initial sync enqueues full series projection
+- series cleanup/reconciliation is bounded and observable
+
+### Phase 6: Audit social-media and summary
+
+Decide whether each should:
+
+- use only queue scheduling helpers,
+- become a different kind of projection/generation trigger,
+- or remove the entity-level derive hook.
+
+### Phase 7: Durable projection state, if needed
+
+Add explicit projection state only after migrations reveal concrete need:
+
+```ts
+interface ProjectionState {
+  projectionId: string;
+  lastStartedAt?: string;
+  lastCompletedAt?: string;
+  lastSuccessfulSourceHash?: string;
+  status: "idle" | "running" | "failed";
+}
+```
+
+Use this for:
+
+- distinguishing “never ran” from “ran and produced zero targets”
 - manual rebuild UX
 - source watermarking
 - failure recovery visibility
 
-### Phase 5: Document projection plugin authoring
+### Phase 8: Documentation
 
-Add docs for plugin authors:
+Document projection authoring:
 
 - when to use derived entity projections
+- when not to use them
 - how to choose stable IDs
 - how to write equality checks
 - how to avoid replace-all churn
-- how to configure initial sync behavior
+- how to configure initial sync/source-change behavior
+- how manual extract/rebuild maps to projection jobs
 
 ## Testing plan
 
@@ -272,42 +341,53 @@ Add docs for plugin authors:
 - initial-sync event enqueues a job instead of running inline
 - duplicate events coalesce to one queued job
 - persisted targets cause initial projection skip
-- changed source entity queues projection job
+- changed source entity queues projection job only after initial sync observation
+- projection definitions require a job handler
 - diff reconcile skips unchanged targets
 - diff reconcile updates changed targets
 - diff reconcile creates new targets
 - diff reconcile deletes stale targets sequentially/bounded
-- failed run does not poison future runs
+- failed enqueue does not poison future runs
+
+### EntityPlugin integration tests
+
+- entity plugin registers declared projections
+- projection-owned jobs are registered through the plugin context
+- projection jobs remain queued through explicit handlers
+- manual extract can be routed to projection jobs after migration
 
 ### Plugin migration tests
 
-Keep or adapt current regression tests:
+Keep/adapt current regression tests:
 
 - `entities/agent-discovery/test/skill-deriver.test.ts`
 - `entities/agent-discovery/test/skill-initial-sync.test.ts`
 - `entities/topics/test/initial-sync-derive.test.ts`
-
-Add targeted tests proving both migrated plugins use queued projection paths instead of inline derivation.
+- add series projection tests before migration
 
 ## Rollout plan
 
-1. Land the abstraction behind existing behavior.
-2. Migrate skills first; it has the clearest replace-all churn failure mode.
-3. Migrate topics second; it has the clearest startup fanout failure mode.
-4. Keep all existing public APIs stable.
-5. Watch logs/metrics on yeehaa.io after release for projection queue counts and memory stability.
+1. Land the projection API and tests with no plugin behavior change.
+2. Add `EntityPlugin` projection registration hook.
+3. Migrate skills first.
+4. Migrate topics with explicit job ownership, not optional handler scheduling.
+5. Migrate series.
+6. Audit social-media and summary.
+7. Watch logs/metrics on yeehaa.io after each migration.
 
 ## Open questions
 
-- Where should projection state live if/when we need durable metadata: entity service, job queue metadata, or a small shell-level table?
-- Should source-change projections support true incremental derivation, or is queued full reconcile acceptable for the current scale?
-- Should manual `force rebuild` be standardized as a tool per projection?
-- Should projection definitions be part of the plugin SDK/public API, or remain internal until it stabilizes?
+- Should manual `system_extract` remain a generic interface, or become a projection/job routing surface?
+- Where should projection state live if/when needed: entity service, job queue metadata, or a shell-level table?
+- Should source-change projections support true incremental reconciliation, or is queued full reconcile acceptable for current scale?
+- Should projection definitions become part of the public plugin SDK immediately, or stay internal until topics/series migration validates the shape?
 
 ## Success criteria
 
-- Topics and skills no longer contain custom initial-sync derivation lifecycle code.
-- No projection runs heavy work inline during startup events.
+- True projection plugins declare explicit projection definitions.
+- Projection handlers are required and job ownership is unambiguous.
+- No projection runs heavy work inline during startup/entity events.
+- Skills, topics, and series no longer contain custom initial-sync derivation lifecycle code.
 - Reconciliation is diff-based and bounded by default.
 - Restarting a process with persisted derived entities does not re-run bootstrap derivation.
-- New derived entity plugins can use the abstraction without copying topic/skill lifecycle code.
+- Legacy `EntityPlugin.derive()` has been removed from the base entity plugin contract.

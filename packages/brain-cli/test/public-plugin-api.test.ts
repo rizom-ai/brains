@@ -1,7 +1,7 @@
-import { describe, expect, it } from "bun:test";
+import { beforeAll, describe, expect, it } from "bun:test";
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync } from "fs";
-import { join } from "path";
+import { existsSync, readdirSync, readFileSync, statSync } from "fs";
+import { join, relative } from "path";
 
 const pkgDir = join(import.meta.dir, "..");
 const externalPluginFixtureDir = join(
@@ -18,7 +18,28 @@ const subpaths = [
   "templates",
 ] as const;
 
+function listDeclarationFiles(dir: string): string[] {
+  return readdirSync(dir).flatMap((entry) => {
+    const path = join(dir, entry);
+    if (statSync(path).isDirectory()) {
+      return listDeclarationFiles(path);
+    }
+    return path.endsWith(".d.ts") ? [path] : [];
+  });
+}
+
 describe("@rizom/brain public plugin API surface", () => {
+  beforeAll(() => {
+    const result = spawnSync("bun", ["scripts/build.ts"], {
+      cwd: pkgDir,
+      encoding: "utf-8",
+    });
+
+    if (result.status !== 0) {
+      throw new Error(`${result.stdout}\n${result.stderr}`);
+    }
+  }, 60_000);
+
   it("declares root and plugin-author subpath exports", () => {
     const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));
 
@@ -35,35 +56,53 @@ describe("@rizom/brain public plugin API surface", () => {
     }
   });
 
-  it("has entry files and hand-written type contracts for every public subpath", () => {
+  it("has entry files and generated declarations for every plugin-author subpath", () => {
     for (const subpath of ["index", ...subpaths]) {
       expect(
         existsSync(join(pkgDir, "src", "entries", `${subpath}.ts`)),
       ).toBeTrue();
+      expect(existsSync(join(pkgDir, "dist", `${subpath}.d.ts`))).toBeTrue();
       expect(
         existsSync(join(pkgDir, "src", "types", `${subpath}.d.ts`)),
-      ).toBeTrue();
+      ).toBeFalse();
     }
   });
 
-  it("keeps public type contracts free of internal @brains/* imports", () => {
-    for (const subpath of ["index", ...subpaths]) {
-      const types = readFileSync(
-        join(pkgDir, "src", "types", `${subpath}.d.ts`),
-        "utf-8",
-      );
+  it("does not leave emitted declarations in source directories", () => {
+    const declarations = listDeclarationFiles(join(pkgDir, "src"))
+      .map((path) => relative(pkgDir, path))
+      .filter((path) => path !== join("src", "types", "site.d.ts"));
+
+    expect(declarations).toEqual([]);
+  });
+
+  it("keeps published declarations free of internal @brains/* imports", () => {
+    const pkg = JSON.parse(readFileSync(join(pkgDir, "package.json"), "utf-8"));
+    const typeFiles = Object.values(pkg.exports)
+      .map((entry) =>
+        typeof entry === "object" && entry && "types" in entry
+          ? String(entry.types)
+          : null,
+      )
+      .filter((path): path is string => path !== null);
+
+    for (const typeFile of typeFiles) {
+      const types = readFileSync(join(pkgDir, typeFile), "utf-8");
       expect(types).not.toContain("@brains/");
     }
   });
 
   it("keeps shell internals out of public plugin types", () => {
     const pluginsTypes = readFileSync(
-      join(pkgDir, "src", "types", "plugins.d.ts"),
+      join(pkgDir, "dist", "plugins.d.ts"),
       "utf-8",
     );
 
     expect(pluginsTypes).not.toContain("IShell");
     expect(pluginsTypes).not.toContain("PluginManager");
+    expect(pluginsTypes).not.toContain("PluginRegistrationContext");
+    expect(pluginsTypes).not.toContain("PluginCapabilities");
+    expect(pluginsTypes).not.toContain("register(shell");
     expect(pluginsTypes).not.toContain("SYSTEM_CHANNELS");
     expect(pluginsTypes).not.toContain("createEntityPluginContext");
     expect(pluginsTypes).not.toContain("createServicePluginContext");
@@ -84,6 +123,13 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(source).not.toContain("@brains/");
     expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
     expect(packageJson.peerDependencies?.["zod"]).toBeDefined();
+
+    const tsconfig = readFileSync(
+      join(externalPluginFixtureDir, "tsconfig.json"),
+      "utf-8",
+    );
+    expect(tsconfig).not.toContain("../../../src");
+    expect(tsconfig).not.toContain('"paths"');
   });
 
   it("typechecks the package-local external plugin fixture", () => {
@@ -96,8 +142,11 @@ describe("@rizom/brain public plugin API surface", () => {
       },
     );
 
-    expect(result.status).toBe(0);
-    expect(`${result.stdout}\n${result.stderr}`).not.toContain("@brains/");
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+    expect(output).not.toContain("@brains/");
   });
 
   it("build script includes every public plugin API library entry", () => {

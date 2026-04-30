@@ -1,6 +1,8 @@
-import { describe, it, expect, beforeEach } from "bun:test";
+import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { createSilentLogger } from "@brains/test-utils";
+import { type JobHandler } from "@brains/plugins";
+import { ProgressReporter } from "@brains/utils";
 import { SeriesPlugin } from "../src/plugin";
 
 describe("SeriesPlugin", () => {
@@ -11,6 +13,33 @@ describe("SeriesPlugin", () => {
       logger: createSilentLogger("series-plugin-test"),
     });
   });
+
+  function useMockJobQueue(): {
+    enqueue: ReturnType<typeof mock>;
+    handlers: Map<string, JobHandler<string, unknown>>;
+  } {
+    const enqueue = mock(async () => "job-1");
+    const handlers = new Map<string, JobHandler<string, unknown>>();
+    const originalJobQueue = harness.getMockShell().getJobQueueService();
+    harness.getMockShell().getJobQueueService =
+      (): typeof originalJobQueue => ({
+        ...originalJobQueue,
+        enqueue,
+        registerHandler: (type, handler): void => {
+          handlers.set(type, handler);
+        },
+      });
+    return { enqueue, handlers };
+  }
+
+  async function processSeriesProjection(
+    handler: JobHandler<string, unknown>,
+    data: unknown,
+  ): Promise<unknown> {
+    const progress = ProgressReporter.from(async (): Promise<void> => {});
+    if (!progress) throw new Error("Failed to create progress reporter");
+    return handler.process(data, "test-job", progress);
+  }
 
   describe("registration", () => {
     it("should register as entity plugin", async () => {
@@ -35,11 +64,12 @@ describe("SeriesPlugin", () => {
       expect(capabilities.tools).toHaveLength(0);
     });
 
-    it("should have derive handler", async () => {
+    it("should register explicit projection job", async () => {
+      const { handlers } = useMockJobQueue();
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
 
-      expect(plugin.hasDeriveHandler()).toBe(true);
+      expect(handlers.has("series:project")).toBe(true);
     });
 
     it("should register templates including description", async () => {
@@ -63,13 +93,12 @@ describe("SeriesPlugin", () => {
     });
   });
 
-  describe("derive()", () => {
+  describe("projection job", () => {
     it("should create series when source entity has seriesName", async () => {
+      const { handlers } = useMockJobQueue();
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
-      const context = harness.getEntityContext("series");
 
-      // Add the source entity with seriesName
       harness.addEntities([
         {
           id: "post-1",
@@ -79,33 +108,25 @@ describe("SeriesPlugin", () => {
         },
       ]);
 
-      await plugin.derive(
-        {
-          id: "post-1",
-          entityType: "post",
-          content: "# Post 1",
-          contentHash: "abc",
-          metadata: { title: "Post 1", seriesName: "My Series" },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
-        },
-        "created",
-        context,
-      );
+      const handler = handlers.get("series:project");
+      if (!handler) throw new Error("series projection handler not registered");
+      await processSeriesProjection(handler, {
+        mode: "source",
+        entityId: "post-1",
+        entityType: "post",
+      });
 
-      // Series should be created
       const series = await harness
         .getEntityService()
         .getEntity("series", "my-series");
       expect(series).not.toBeNull();
     });
 
-    it("should sync all series via deriveAll()", async () => {
+    it("should sync all series", async () => {
+      const { handlers } = useMockJobQueue();
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
-      const context = harness.getEntityContext("series");
 
-      // Add multiple entities with different series names
       harness.addEntities([
         {
           id: "post-a",
@@ -121,7 +142,12 @@ describe("SeriesPlugin", () => {
         },
       ]);
 
-      await plugin.deriveAll(context);
+      const handler = handlers.get("series:project");
+      if (!handler) throw new Error("series projection handler not registered");
+      await processSeriesProjection(handler, {
+        mode: "derive",
+        reason: "test",
+      });
 
       const alpha = await harness
         .getEntityService()
@@ -132,49 +158,39 @@ describe("SeriesPlugin", () => {
     });
 
     it("should not create series when source has no seriesName", async () => {
+      const { handlers } = useMockJobQueue();
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
-      const context = harness.getEntityContext("series");
-
-      await plugin.derive(
+      harness.addEntities([
         {
           id: "post-2",
           entityType: "post",
           content: "# Post 2",
-          contentHash: "def",
           metadata: { title: "Post 2" },
-          created: new Date().toISOString(),
-          updated: new Date().toISOString(),
         },
-        "created",
-        context,
-      );
+      ]);
 
-      // No series should exist
-      const types = harness.getEntityService().getEntityTypes();
-      if (types.includes("series")) {
-        const entities = await harness
-          .getEntityService()
-          .listEntities("series");
-        expect(entities).toHaveLength(0);
-      }
+      const handler = handlers.get("series:project");
+      if (!handler) throw new Error("series projection handler not registered");
+      await processSeriesProjection(handler, {
+        mode: "source",
+        entityId: "post-2",
+        entityType: "post",
+      });
+
+      const entities = await harness.getEntityService().listEntities("series");
+      expect(entities).toHaveLength(0);
     });
   });
 
   describe("event subscriptions", () => {
-    it("should subscribe to entity:created events", async () => {
+    it("should queue series projection on entity:created events", async () => {
+      const { enqueue } = useMockJobQueue();
+
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
-
-      // Add entity with seriesName via event
-      harness.addEntities([
-        {
-          id: "post-3",
-          entityType: "post",
-          content: "# Post 3",
-          metadata: { title: "Post 3", seriesName: "Event Series" },
-        },
-      ]);
+      await harness.sendMessage("sync:initial:completed", { success: true });
+      enqueue.mockClear();
 
       await harness.sendMessage("entity:created", {
         entityType: "post",
@@ -190,24 +206,27 @@ describe("SeriesPlugin", () => {
         },
       });
 
-      const series = await harness
-        .getEntityService()
-        .getEntity("series", "event-series");
-      expect(series).not.toBeNull();
+      expect(enqueue).toHaveBeenCalledWith(
+        "series:project",
+        {
+          mode: "source",
+          entityId: "post-3",
+          entityType: "post",
+        },
+        expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: "series-source:post:post-3",
+        }),
+      );
     });
 
-    it("should work with non-post entity types", async () => {
+    it("should queue projection for non-post entity types", async () => {
+      const { enqueue } = useMockJobQueue();
+
       const plugin = new SeriesPlugin();
       await harness.installPlugin(plugin);
-
-      harness.addEntities([
-        {
-          id: "deck-1",
-          entityType: "deck",
-          content: "# Deck 1",
-          metadata: { title: "Deck 1", seriesName: "Deck Series" },
-        },
-      ]);
+      await harness.sendMessage("sync:initial:completed", { success: true });
+      enqueue.mockClear();
 
       await harness.sendMessage("entity:created", {
         entityType: "deck",
@@ -223,10 +242,37 @@ describe("SeriesPlugin", () => {
         },
       });
 
-      const series = await harness
-        .getEntityService()
-        .getEntity("series", "deck-series");
-      expect(series).not.toBeNull();
+      expect(enqueue).toHaveBeenCalledWith(
+        "series:project",
+        {
+          mode: "source",
+          entityId: "deck-1",
+          entityType: "deck",
+        },
+        expect.objectContaining({
+          deduplicationKey: "series-source:deck:deck-1",
+        }),
+      );
+    });
+
+    it("should queue full series projection on initial sync", async () => {
+      const { enqueue } = useMockJobQueue();
+
+      const plugin = new SeriesPlugin();
+      await harness.installPlugin(plugin);
+
+      await harness.sendMessage("sync:initial:completed", {
+        success: true,
+      });
+
+      expect(enqueue).toHaveBeenCalledWith(
+        "series:project",
+        { mode: "derive", reason: "initial-sync" },
+        expect.objectContaining({
+          deduplication: "coalesce",
+          deduplicationKey: "series-sync:initial-sync",
+        }),
+      );
     });
 
     it("should ignore events from series entity type", async () => {

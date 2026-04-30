@@ -28,7 +28,7 @@ Entity packages do not expose CRUD tools.
 
 - `schema`: validate the entity shape
 - `adapter`: serialize and deserialize markdown
-- `derive()`: maintain derived entities when needed
+- `getDerivedEntityProjections()`: maintain derived entities with explicit projection jobs
 - `generation handler`: only for AI-generated content types
 - `templates` / `data sources`: only when the entity needs them
 

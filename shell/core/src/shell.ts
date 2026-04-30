@@ -1,6 +1,6 @@
 // Plugin framework types
 import type {
-  AppInfo,
+  RuntimeAppInfo,
   ContentGenerationConfig,
   DefaultQueryResponse,
   EndpointInfo,
@@ -554,7 +554,7 @@ export class Shell implements IShell {
     this.config.evalHandlerRegistry?.register(pluginId, handlerId, handler);
   }
 
-  public async getAppInfo(): Promise<AppInfo> {
+  public async getAppInfo(): Promise<RuntimeAppInfo> {
     const entityCounts = await this.services.entityService.getEntityCounts();
     const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
     const embeddingCount = await this.services.entityService.countEmbeddings();

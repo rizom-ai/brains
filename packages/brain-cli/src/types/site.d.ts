@@ -5,8 +5,8 @@
  *
  * It is hand-maintained as a stopgap because both auto-bundlers we
  * tried (`dts-bundle-generator` and `rollup-plugin-dts`) choke on the
- * size and edge cases of the internal `@brains/*` workspace type
- * graph. See `docs/plans/external-plugin-api.md` for
+ * size and edge cases of the internal workspace type graph. See
+ * `docs/plans/external-plugin-api.md` for
  * the longer story.
  *
  * **Sync rules:**
@@ -19,11 +19,11 @@
  *   never introspect. Do NOT expand them to mirror internal shapes.
  * - `EntityDisplayEntry` is the exception: consumers _construct_ it
  *   in their `SitePackage`, so its fields must mirror the canonical
- *   `EntityDisplayEntry` in `@brains/plugins` exactly. Likewise,
- *   `Plugin["type"]` must mirror the `PluginType` union in
- *   `@brains/plugins`. Update both here whenever those change.
+ *   internal plugin package exactly. Likewise, `Plugin["type"]` must
+ *   mirror the internal `PluginType` union. Update both here whenever
+ *   those change.
  * - The runtime side (`../entries/site.ts`) re-exports the real
- *   implementations from `@brains/*`. The .js bundle produced by
+ *   implementations from internal workspaces. The .js bundle produced by
  *   `scripts/build.ts` is what consumers actually execute. This
  *   .d.ts file is what their tsc sees. They live in separate
  *   directories so TypeScript doesn't shadow one with the other.

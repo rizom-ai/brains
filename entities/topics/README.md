@@ -49,9 +49,9 @@ When `enableAutoExtraction` is enabled, the plugin waits until initial sync fini
 
 Each qualifying entity queues a topic extraction job with the configured relevance threshold and merge settings.
 
-### Batch derive
+### Batch projection
 
-`deriveAll()` re-extracts topics from all configured published source entities using batched prompts.
+The `topic:project` job re-extracts topics from all configured published source entities using batched prompts.
 
 This is what normal batch `system_extract` uses:
 
@@ -63,7 +63,7 @@ This is what normal batch `system_extract` uses:
 
 ### Replace-all rebuild
 
-`rebuildAll()` deletes all existing topics, then re-derives them from the current source entities.
+The rebuild projection deletes all existing topics, then re-derives them from the current source entities.
 
 Use the shared system tool:
 
@@ -82,7 +82,7 @@ The topics package does **not** expose its own CRUD or extract tools.
 
 Use the shared system tools instead:
 
-- `system_extract` — derive or rebuild topics
+- `system_extract` — queue topic projection/rebuild jobs
 - `system_get` / `system_list` / `system_search` — read topics
 - `system_update` / `system_delete` — edit or remove topics
 - `system_create` — manual topic creation if you really want it

@@ -1,30 +1,14 @@
-/** Curated public service plugin authoring surface. */
+/** Curated public service plugin contract surface. */
 
 export {
   BaseEntityDataSource,
-  baseQuerySchema,
   baseInputSchema,
-  BaseGenerationJobHandler,
-  BaseJobHandler,
-  JobProgressEventSchema,
-  ensureUniqueTitle,
-} from "@brains/plugins";
+  baseQuerySchema,
+} from "@brains/plugins/services/base-entity-datasource";
 
 export type {
-  EntityDataSourceConfig,
   BaseQuery,
+  EntityDataSourceConfig,
   NavigationResult,
   SortField,
-  GenerationJobHandlerConfig,
-  GeneratedContent,
-  JobHandler,
-  JobContext,
-  JobOptions,
-  JobInfo,
-  JobProgressEvent,
-  Batch,
-  BatchOperation,
-  BatchJobStatus,
-  ApiRouteDefinition,
-  WebRouteDefinition,
-} from "@brains/plugins";
+} from "@brains/plugins/services/base-entity-datasource";

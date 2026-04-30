@@ -168,7 +168,7 @@ export abstract class MessageInterfacePlugin<
       interfaceType,
       authorId,
     );
-    await this.context.agentService.chat(
+    await this.context.agent.chat(
       `Save this link: ${url}`,
       `links-${channelId}`,
       {

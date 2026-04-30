@@ -20,13 +20,18 @@ const conversationMetadataSchema = z
   .passthrough();
 
 function parseConversationMetadata(
-  metadata: string | null,
+  metadata: string | Record<string, unknown> | null,
 ): z.infer<typeof conversationMetadataSchema> {
   if (!metadata) return {};
+  const parsed: unknown =
+    typeof metadata === "string" ? safeParseJson(metadata) : metadata;
+  const result = conversationMetadataSchema.safeParse(parsed);
+  return result.success ? result.data : {};
+}
+
+function safeParseJson(value: string): unknown {
   try {
-    const parsed: unknown = JSON.parse(metadata);
-    const result = conversationMetadataSchema.safeParse(parsed);
-    return result.success ? result.data : {};
+    return JSON.parse(value);
   } catch {
     return {};
   }

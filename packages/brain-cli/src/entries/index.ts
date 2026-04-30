@@ -1,6 +1,6 @@
 /** Public root library export for brain definitions and plugin API compatibility. */
 
-export { defineBrain } from "@brains/app";
+export { defineBrain } from "@brains/app/contracts/brain-definition";
 export type {
   BrainDefinition,
   BrainIdentity,
@@ -13,5 +13,5 @@ export type {
   InterfaceConstructor,
   PluginFactory,
   PluginConfig,
-} from "@brains/app";
+} from "@brains/app/contracts/brain-definition";
 export { PLUGIN_API_VERSION } from "../plugin-api-version";

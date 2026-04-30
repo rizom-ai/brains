@@ -2,10 +2,11 @@ import type {
   Plugin,
   EntityPluginContext,
   Template,
-  BaseEntity,
   JobHandler,
+  JobOptions,
+  DerivedEntityProjection,
 } from "@brains/plugins";
-import { EntityPlugin } from "@brains/plugins";
+import { EntityPlugin, hasPersistedTargets } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { skillEntitySchema, type SkillEntity } from "../schemas/skill";
 import { SkillAdapter } from "../adapters/skill-adapter";
@@ -16,6 +17,7 @@ import packageJson from "../../package.json";
 const skillAdapter = new SkillAdapter();
 
 const skillDerivationJobDataSchema = z.object({
+  mode: z.literal("derive"),
   replaceAll: z.boolean().default(false),
   reason: z.string().optional(),
 });
@@ -26,8 +28,6 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
   readonly entityType = "skill";
   readonly schema = skillEntitySchema;
   readonly adapter = skillAdapter;
-
-  private initialDerivationDone = false;
 
   constructor() {
     super("skill", packageJson);
@@ -41,15 +41,16 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
 
   private createSkillDerivationHandler(
     context: EntityPluginContext,
-  ): JobHandler<"skill:derive", SkillDerivationJobData> {
+  ): JobHandler<string, unknown> {
     return {
       process: async (data): ReturnType<typeof deriveSkills> => {
+        const parsed = skillDerivationJobDataSchema.parse(data);
         this.logger.info("Deriving skills from topics", {
-          replaceAll: data.replaceAll,
-          reason: data.reason,
+          replaceAll: parsed.replaceAll,
+          reason: parsed.reason,
         });
         return deriveSkills(context, this.logger, {
-          replaceAll: data.replaceAll,
+          replaceAll: parsed.replaceAll,
         });
       },
       validateAndParse: (data: unknown): SkillDerivationJobData | null => {
@@ -59,50 +60,40 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
     };
   }
 
+  protected override getDerivedEntityProjections(
+    context: EntityPluginContext,
+  ): DerivedEntityProjection[] {
+    return [
+      {
+        id: "skill-derivation",
+        targetType: "skill",
+        job: {
+          type: "skill:project",
+          handler: this.createSkillDerivationHandler(context),
+        },
+        initialSync: {
+          shouldEnqueue: async () =>
+            !(await hasPersistedTargets(context, "skill")),
+          jobData: { mode: "derive", replaceAll: true, reason: "initial-sync" },
+          jobOptions: this.getDerivationJobOptions("initial-sync"),
+        },
+        sourceChange: {
+          sourceTypes: ["topic"],
+          requireInitialSync: true,
+          jobData: () => ({
+            mode: "derive",
+            replaceAll: false,
+            reason: "topic-change",
+          }),
+          jobOptions: () => this.getDerivationJobOptions("topic-change"),
+        },
+      },
+    ];
+  }
+
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    context.jobs.registerHandler(
-      "derive",
-      this.createSkillDerivationHandler(context),
-    );
-
-    context.messaging.subscribe(
-      "sync:initial:completed",
-      async (): Promise<{ success: boolean }> => {
-        if (!this.initialDerivationDone) {
-          const existingSkills =
-            await context.entityService.listEntities<SkillEntity>("skill", {
-              limit: 1,
-            });
-          if (existingSkills.length > 0) {
-            this.logger.info(
-              "Skipping initial skill derivation; skills already exist",
-            );
-            return { success: true };
-          }
-          await this.enqueueDerivation(context, true, "initial-sync");
-          this.initialDerivationDone = true;
-        }
-        return { success: true };
-      },
-    );
-
-    // Re-derive skills when topic entities change (after initial sync)
-    const handleTopicChange = async (message: {
-      payload: { entityType: string; entity?: BaseEntity };
-    }): Promise<{ success: boolean }> => {
-      if (!this.initialDerivationDone) return { success: true };
-      if (message.payload.entityType !== "topic") return { success: true };
-
-      this.logger.info("Topic changed, queueing skill derivation");
-      await this.enqueueDerivation(context, false, "topic-change");
-      return { success: true };
-    };
-
-    context.messaging.subscribe("entity:created", handleTopicChange);
-    context.messaging.subscribe("entity:updated", handleTopicChange);
-
     // Dashboard widget — sidebar placement, name-only rendering.
     // Skills are the brain's A2A-advertised capabilities, so they sit
     // alongside Character (persona) in the sidebar rather than in the
@@ -173,12 +164,8 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
     });
   }
 
-  private async enqueueDerivation(
-    context: EntityPluginContext,
-    replaceAll: boolean,
-    reason: string,
-  ): Promise<void> {
-    await context.jobs.enqueue("derive", { replaceAll, reason }, null, {
+  private getDerivationJobOptions(reason: string): JobOptions {
+    return {
       source: this.id,
       deduplication: "coalesce",
       deduplicationKey: `skill-derivation:${reason}`,
@@ -186,26 +173,15 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
         operationType: "data_processing",
         operationTarget: "skills",
       },
-    });
-  }
-
-  /**
-   * Skills are cross-cutting — no per-entity derive().
-   * Only deriveAll() makes sense (reads all topics + tools).
-   */
-  /**
-   * Manual extract — replace-all. Operator reset.
-   */
-  public override async deriveAll(context: EntityPluginContext): Promise<void> {
-    this.logger.info("Deriving skills from topics (replace-all)");
-    const result = await deriveSkills(context, this.logger, {
-      replaceAll: true,
-    });
-    this.logger.info("Skill derivation complete", result);
+    };
   }
 
   public hasRunInitialDerivation(): boolean {
-    return this.initialDerivationDone;
+    return (
+      this.getDerivedEntityProjectionController(
+        "skill-derivation",
+      )?.hasQueuedInitialSync() ?? false
+    );
   }
 }
 

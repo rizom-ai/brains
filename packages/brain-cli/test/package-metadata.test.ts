@@ -162,5 +162,5 @@ describe("@rizom/brain package metadata", () => {
         jsxImportSource: "preact",
       },
     });
-  }, 15000);
+  }, 60000);
 });

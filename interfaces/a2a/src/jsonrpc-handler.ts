@@ -1,5 +1,5 @@
 import { z } from "@brains/utils";
-import type { IAgentService } from "@brains/plugins";
+import type { AgentNamespace } from "@brains/plugins";
 import type { UserPermissionLevel } from "@brains/templates";
 import type { Task } from "@a2a-js/sdk";
 import { TERMINAL_STATES, type TaskManager } from "./task-manager";
@@ -80,7 +80,7 @@ export type JsonRpcRequest = z.infer<typeof jsonrpcRequestSchema>;
 
 export interface JsonRpcHandlerContext {
   taskManager: TaskManager;
-  agentService: IAgentService;
+  agentService: AgentNamespace;
   callerPermissionLevel: UserPermissionLevel;
 }
 

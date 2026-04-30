@@ -265,7 +265,7 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       this.httpServer.connectMCPServer(mcpServer, this.mcpTransport);
 
       // Connect agent service for /api/chat endpoint
-      this.httpServer.connectAgentService(context.agentService);
+      this.httpServer.connectAgentService(context.agent);
 
       this.logger.debug("MCP HTTP transport mounted on shared webserver host");
     }

@@ -79,7 +79,7 @@ export const extractInputSchema = z.object({
   mode: z
     .enum(["derive", "rebuild"])
     .optional()
-    .describe("Batch mode: derive incrementally or rebuild from scratch"),
+    .describe("Batch mode: project incrementally or rebuild from scratch"),
   confirmed: z.literal(true).optional().describe("Confirm destructive rebuild"),
 });
 

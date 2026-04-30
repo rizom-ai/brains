@@ -5,8 +5,11 @@ import {
   type DataSource,
   type Template,
   type BaseEntity,
+  type DerivedEntityProjection,
+  type JobHandler,
+  hasPersistedTargets,
 } from "@brains/plugins";
-import { getErrorMessage, ProgressReporter, z } from "@brains/utils";
+import { ProgressReporter, z } from "@brains/utils";
 import {
   topicsPluginConfigSchema,
   type TopicsPluginConfig,
@@ -28,6 +31,28 @@ import { createTopicDistributionInsight } from "./insights/topic-distribution";
 import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
+
+const topicProjectionJobDataSchema = z.discriminatedUnion("mode", [
+  z.object({
+    mode: z.literal("derive"),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("rebuild"),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    mode: z.literal("source"),
+    entityId: z.string(),
+    entityType: z.string(),
+    contentHash: z.string().optional(),
+    minRelevanceScore: z.number().min(0).max(1).optional(),
+    autoMerge: z.boolean().optional(),
+    mergeSimilarityThreshold: z.number().min(0).max(1).optional(),
+  }),
+]);
+
+type TopicProjectionJobData = z.infer<typeof topicProjectionJobDataSchema>;
 
 /** First sentence of a text block, capped at 200 chars with ellipsis. */
 function firstSentence(text: string): string | undefined {
@@ -52,8 +77,6 @@ export class TopicsPlugin extends EntityPlugin<
    * Auto-extraction starts disabled and is enabled after initial sync completes.
    */
   private autoExtractionEnabled = false;
-  private initialDerivationDone = false;
-
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super("topics", packageJson, config, topicsPluginConfigSchema);
   }
@@ -75,15 +98,114 @@ export class TopicsPlugin extends EntityPlugin<
     return [new TopicsDataSource(this.logger.child("TopicsDataSource"))];
   }
 
+  protected override getDerivedEntityProjections(
+    context: EntityPluginContext,
+  ): DerivedEntityProjection[] {
+    if (!this.config.enableAutoExtraction) return [];
+
+    return [
+      {
+        id: "topics-projection",
+        targetType: "topic",
+        job: {
+          type: "topic:project",
+          handler: this.createTopicProjectionHandler(context),
+        },
+        initialSync: {
+          before: () => this.enableAutoExtraction(),
+          shouldEnqueue: async () =>
+            !(await hasPersistedTargets(context, "topic")),
+          jobData: { mode: "derive", reason: "initial-sync" },
+          jobOptions: this.getInitialProjectionJobOptions(),
+        },
+        sourceChange: {
+          sourceTypes: this.config.includeEntityTypes,
+          requireInitialSync: true,
+          jobData: (payload): TopicProjectionJobData | null => {
+            const entity = payload.entity;
+            if (!entity) return null;
+            if (!this.shouldProcessEntityType(entity.entityType)) return null;
+            if (!this.isEntityPublished(entity)) return null;
+            return {
+              mode: "source",
+              entityId: entity.id,
+              entityType: entity.entityType,
+              contentHash: entity.contentHash,
+              minRelevanceScore: this.config.minRelevanceScore,
+              autoMerge: this.config.autoMerge,
+              mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
+            };
+          },
+          jobOptions: (payload) => ({
+            priority: 5,
+            source: "topics-plugin",
+            deduplication: "coalesce",
+            deduplicationKey: `topics-source:${payload.entityType}:${payload.entityId}:${payload.entity?.contentHash ?? "unknown"}`,
+            metadata: {
+              operationType: "data_processing" as const,
+              operationTarget: `topic-projection:${payload.entityType}:${payload.entityId}`,
+              pluginId: "topics",
+            },
+          }),
+        },
+      },
+    ];
+  }
+
+  private createTopicProjectionHandler(
+    context: EntityPluginContext,
+  ): JobHandler<string, TopicProjectionJobData, unknown> {
+    return {
+      process: async (data): Promise<unknown> => {
+        if (data.mode === "derive") {
+          await this.extractAllTopics(context);
+          return { success: true };
+        }
+        if (data.mode === "rebuild") {
+          await this.rebuildAllTopics(context);
+          return { success: true };
+        }
+
+        const entity = await context.entityService.getEntity(
+          data.entityType,
+          data.entityId,
+        );
+        if (!entity) return { success: false, topicsExtracted: 0 };
+
+        const progressReporter = ProgressReporter.from(async () => {});
+        if (!progressReporter) {
+          throw new Error("Failed to create progress reporter");
+        }
+        const handler = new TopicExtractionHandler(context, this.logger);
+        return handler.process(
+          {
+            entityId: data.entityId,
+            entityType: data.entityType,
+            contentHash: data.contentHash ?? entity.contentHash,
+            minRelevanceScore:
+              data.minRelevanceScore ?? this.config.minRelevanceScore,
+            autoMerge: data.autoMerge ?? this.config.autoMerge,
+            mergeSimilarityThreshold:
+              data.mergeSimilarityThreshold ??
+              this.config.mergeSimilarityThreshold,
+          },
+          `topic-projection:${data.entityType}:${data.entityId}`,
+          progressReporter,
+        );
+      },
+      validateAndParse: (data: unknown): TopicProjectionJobData | null => {
+        const result = topicProjectionJobDataSchema.safeParse(data ?? {});
+        return result.success ? result.data : null;
+      },
+    };
+  }
+
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
     // Job handlers
     const processingHandler = new TopicProcessingHandler(context, this.logger);
     context.jobs.registerHandler("process-single", processingHandler);
-
-    const extractionHandler = new TopicExtractionHandler(context, this.logger);
-    context.jobs.registerHandler("extract", extractionHandler);
 
     // Insights
     context.insights.register(
@@ -127,81 +249,15 @@ export class TopicsPlugin extends EntityPlugin<
 
     // Eval handlers
     this.registerEvalHandler(context);
-
-    // Event subscriptions for auto-extraction
-    if (this.config.enableAutoExtraction) {
-      context.messaging.subscribe(
-        "sync:initial:completed",
-        async (): Promise<{ success: boolean }> => {
-          this.enableAutoExtraction();
-
-          if (!this.initialDerivationDone) {
-            const existingTopics =
-              await context.entityService.listEntities<TopicEntity>("topic", {
-                limit: 1,
-              });
-            if (existingTopics.length > 0) {
-              this.logger.info(
-                "Skipping initial topic extraction; topics already exist",
-              );
-              return { success: true };
-            }
-            await this.enqueueInitialDerivation(context);
-            this.initialDerivationDone = true;
-          }
-
-          return { success: true };
-        },
-      );
-
-      const handleEntityEvent = async (message: {
-        payload: {
-          entityType: string;
-          entityId: string;
-          entity?: BaseEntity;
-        };
-      }): Promise<{ success: boolean }> => {
-        if (!this.autoExtractionEnabled) {
-          return { success: true };
-        }
-
-        const { entityType, entity } = message.payload;
-        if (!this.shouldProcessEntityType(entityType)) {
-          return { success: true };
-        }
-        if (!entity) {
-          return { success: true };
-        }
-
-        await this.handleEntityChanged(context, entity);
-        return { success: true };
-      };
-
-      context.messaging.subscribe("entity:created", handleEntityEvent);
-      context.messaging.subscribe("entity:updated", handleEntityEvent);
-    }
   }
 
-  // ── derive() / deriveAll() ──
-
-  /**
-   * Extract topics from a single source entity.
-   */
-  public override async derive(
-    source: BaseEntity,
-    _event: string,
-    context: EntityPluginContext,
-  ): Promise<void> {
-    if (!this.shouldProcessEntityType(source.entityType)) return;
-    if (!this.isEntityPublished(source)) return;
-    await this.handleEntityChanged(context, source);
-  }
+  // ── Projection internals ──
 
   /**
    * Batch re-extract topics from all source entities.
    * Uses token-budget-aware batching — one LLM call per batch instead of per entity.
    */
-  public override async deriveAll(context: EntityPluginContext): Promise<void> {
+  private async extractAllTopics(context: EntityPluginContext): Promise<void> {
     const toExtract = await this.getEntitiesToExtract(context);
 
     if (toExtract.length === 0) {
@@ -219,9 +275,7 @@ export class TopicsPlugin extends EntityPlugin<
   /**
    * Operator reset — delete all topics and rebuild from current source entities.
    */
-  public override async rebuildAll(
-    context: EntityPluginContext,
-  ): Promise<void> {
+  private async rebuildAllTopics(context: EntityPluginContext): Promise<void> {
     const toExtract = await this.getEntitiesToExtract(context);
     const result = await this.replaceAllTopics(toExtract, context);
     this.logger.info("Topic rebuild complete", result);
@@ -234,7 +288,11 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   public hasRunInitialDerivation(): boolean {
-    return this.initialDerivationDone;
+    return (
+      this.getDerivedEntityProjectionController(
+        "topics-projection",
+      )?.hasQueuedInitialSync() ?? false
+    );
   }
 
   public enableAutoExtraction(): void {
@@ -257,20 +315,28 @@ export class TopicsPlugin extends EntityPlugin<
 
   // ── Private helpers ──
 
-  private async enqueueInitialDerivation(
-    context: EntityPluginContext,
-  ): Promise<void> {
-    await context.jobs.enqueue("extract", { mode: "derive" }, null, {
+  private getInitialProjectionJobOptions(): {
+    priority: number;
+    source: string;
+    deduplication: "coalesce";
+    deduplicationKey: string;
+    metadata: {
+      operationType: "data_processing";
+      operationTarget: string;
+      pluginId: string;
+    };
+  } {
+    return {
       priority: 5,
       source: "topics-plugin",
       deduplication: "coalesce",
       deduplicationKey: "topics-initial-derivation",
       metadata: {
-        operationType: "data_processing" as const,
+        operationType: "data_processing",
         operationTarget: "topics-initial-derivation",
         pluginId: "topics",
       },
-    });
+    };
   }
 
   private async replaceAllTopics(
@@ -325,43 +391,6 @@ export class TopicsPlugin extends EntityPlugin<
   private getExtractableEntityTypes(context: EntityPluginContext): string[] {
     const allTypes = context.entityService.getEntityTypes();
     return allTypes.filter((type) => this.shouldProcessEntityType(type));
-  }
-
-  private async handleEntityChanged(
-    context: EntityPluginContext,
-    entity: BaseEntity,
-  ): Promise<void> {
-    if (!this.isEntityPublished(entity)) return;
-
-    try {
-      await context.jobs.enqueue(
-        "extract",
-        {
-          entityId: entity.id,
-          entityType: entity.entityType,
-          contentHash: entity.contentHash,
-          minRelevanceScore: this.config.minRelevanceScore,
-          autoMerge: this.config.autoMerge,
-          mergeSimilarityThreshold: this.config.mergeSimilarityThreshold,
-        },
-        null,
-        {
-          priority: 5,
-          source: "topics-plugin",
-          metadata: {
-            operationType: "data_processing" as const,
-            operationTarget: `topic-extraction:${entity.entityType}:${entity.id}`,
-            pluginId: "topics",
-          },
-        },
-      );
-    } catch (error) {
-      this.logger.error("Failed to queue topic extraction job", {
-        error: getErrorMessage(error),
-        entityId: entity.id,
-        entityType: entity.entityType,
-      });
-    }
   }
 
   private registerEvalHandler(context: EntityPluginContext): void {

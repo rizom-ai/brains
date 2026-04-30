@@ -17,8 +17,11 @@ import {
   cpSync,
   existsSync,
   readdirSync,
+  mkdtempSync,
+  rmSync,
 } from "fs";
 import { join } from "path";
+import { tmpdir } from "os";
 import { copyDeployScripts } from "@brains/deploy-templates";
 
 const packageDir = join(import.meta.dir, "..");
@@ -75,10 +78,10 @@ if (envSchemaResult.exitCode !== 0) {
 
 // ─── Bundle CLI + library exports ─────────────────────────────────────────
 //
-// The CLI bundle (brain.js) and one bundle per library subpath export
-// (currently site/themes public subpaths; see docs/plans/external-plugin-api.md)
-// are built in parallel — they're independent and write to different
-// filenames in the same outdir.
+// The CLI bundle (brain.js) and one bundle per library subpath export are built
+// in parallel — they're independent and write to different filenames in the
+// same outdir. Public declarations are emitted from the matching source entries
+// instead of copied from hand-written stubs.
 
 console.log("Building @rizom/brain...");
 
@@ -137,49 +140,98 @@ const libraryEntries = [
   {
     name: "index",
     source: join(import.meta.dir, "..", "src", "entries", "index.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "index.d.ts"),
   },
   {
     name: "plugins",
     source: join(import.meta.dir, "..", "src", "entries", "plugins.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "plugins.d.ts"),
   },
   {
     name: "entities",
     source: join(import.meta.dir, "..", "src", "entries", "entities.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "entities.d.ts"),
   },
   {
     name: "services",
     source: join(import.meta.dir, "..", "src", "entries", "services.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "services.d.ts"),
   },
   {
     name: "interfaces",
     source: join(import.meta.dir, "..", "src", "entries", "interfaces.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "interfaces.d.ts"),
   },
   {
     name: "templates",
     source: join(import.meta.dir, "..", "src", "entries", "templates.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "templates.d.ts"),
   },
   {
     name: "site",
     source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "site.d.ts"),
   },
   {
     name: "themes",
     source: join(import.meta.dir, "..", "src", "entries", "themes.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "themes.d.ts"),
   },
   {
     name: "deploy",
     source: join(import.meta.dir, "..", "src", "entries", "deploy.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "deploy.d.ts"),
   },
 ] as const;
+
+function emitLibraryDeclarations(): void {
+  const declarationOutDir = mkdtempSync(join(tmpdir(), "brain-cli-dts-"));
+  try {
+    for (const entry of libraryEntries) {
+      if (entry.name === "site") {
+        cpSync(
+          join(packageDir, "src", "types", "site.d.ts"),
+          join(outdir, "site.d.ts"),
+        );
+        continue;
+      }
+
+      const result = Bun.spawnSync(
+        [
+          "bun",
+          "x",
+          "rollup",
+          "-c",
+          join(import.meta.dir, "bundle-declarations.mjs"),
+        ],
+        {
+          cwd: packageDir,
+          env: {
+            ...process.env,
+            INPUT: entry.source,
+            OUTPUT: join(declarationOutDir, `${entry.name}.d.ts`),
+          },
+          stdout: "inherit",
+          stderr: "inherit",
+        },
+      );
+
+      if (result.exitCode !== 0) {
+        console.error(`Declaration generation failed for '${entry.name}'`);
+        process.exit(1);
+      }
+
+      cpSync(
+        join(declarationOutDir, `${entry.name}.d.ts`),
+        join(outdir, `${entry.name}.d.ts`),
+      );
+    }
+
+    for (const entry of libraryEntries) {
+      const declarationPath = join(outdir, `${entry.name}.d.ts`);
+      const declaration = readFileSync(declarationPath, "utf8");
+      if (declaration.includes("@brains/")) {
+        console.error(
+          `Generated declaration '${entry.name}.d.ts' leaks an internal @brains/* import`,
+        );
+        process.exit(1);
+      }
+    }
+  } finally {
+    rmSync(declarationOutDir, { recursive: true, force: true });
+  }
+}
 
 const cliBuild = bundle({
   name: "brain",
@@ -197,14 +249,11 @@ const libraryBuilds = libraryEntries.map((entry) =>
     name: entry.name,
     source: entry.source,
     sourcemap: "linked",
-  }).then(() => {
-    // TEMPORARY: copy hand-written .d.ts. See entry.types and
-    // docs/plans/external-plugin-api.md for the replacement plan.
-    cpSync(entry.types, join(outdir, `${entry.name}.d.ts`));
   }),
 );
 
 await Promise.all([cliBuild, ...libraryBuilds]);
+emitLibraryDeclarations();
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 

@@ -18,10 +18,13 @@ import type { JobHandler } from "@brains/job-queue";
 import { z } from "@brains/utils";
 import type { EntityPluginContext } from "./context";
 import { createEntityPluginContext } from "./context";
+import {
+  registerDerivedEntityProjection,
+  type DerivedEntityProjection,
+  type DerivedEntityProjectionController,
+} from "./derived-entity-projection";
 
 const emptyConfigSchema = z.object({});
-
-export type DeriveEvent = "created" | "updated" | "deleted" | "extract";
 
 /**
  * Base class for entity plugins — plugins that define an entity type
@@ -37,6 +40,11 @@ export abstract class EntityPlugin<
 
   /** The entity type name (e.g. "post", "deck", "note") */
   abstract readonly entityType: string;
+
+  private readonly derivedEntityProjectionControllers = new Map<
+    string,
+    DerivedEntityProjectionController
+  >();
 
   constructor(
     id: string,
@@ -93,15 +101,6 @@ export abstract class EntityPlugin<
       context.jobs.registerHandler(`${this.entityType}:generation`, handler);
     }
 
-    // Auto-register extract handler if derive() is overridden
-    if (this.hasDeriveHandler()) {
-      const extractHandler = this.createExtractHandler(context);
-      context.jobs.registerHandler(
-        `${this.entityType}:extract`,
-        extractHandler,
-      );
-    }
-
     // Auto-register templates if provided
     const templates = this.getTemplates();
     if (templates && Object.keys(templates).length > 0) {
@@ -112,6 +111,17 @@ export abstract class EntityPlugin<
     const dataSources = this.getDataSources();
     for (const ds of dataSources) {
       context.entities.registerDataSource(ds);
+    }
+
+    // Auto-register derived entity projections if provided
+    const projections = this.getDerivedEntityProjections(context);
+    for (const projection of projections) {
+      const controller = registerDerivedEntityProjection(
+        context,
+        this.logger,
+        projection,
+      );
+      this.derivedEntityProjectionControllers.set(projection.id, controller);
     }
 
     // Call subclass hook for additional registration
@@ -169,89 +179,17 @@ export abstract class EntityPlugin<
   }
 
   /**
-   * Create the extract handler that wraps derive() for job queue routing.
-   * Called automatically during registration when hasDeriveHandler() is true.
+   * Override to declare derived entity projections owned by this plugin.
    */
-  private createExtractHandler(context: EntityPluginContext): JobHandler {
-    const extractDataSchema = z.object({
-      sourceId: z.string().optional(),
-      sourceType: z.string().optional(),
-      mode: z.enum(["derive", "rebuild"]).optional(),
-    });
-
-    return {
-      process: async (
-        data: z.infer<typeof extractDataSchema>,
-      ): Promise<{ extracted: number }> => {
-        if (data.sourceId && data.sourceType) {
-          const source = await context.entityService.getEntity(
-            data.sourceType,
-            data.sourceId,
-          );
-          if (source) {
-            await this.derive(source, "extract", context);
-            return { extracted: 1 };
-          }
-          return { extracted: 0 };
-        }
-        // Batch mode — no source specified
-        if (data.mode === "rebuild") {
-          await this.rebuildAll(context);
-        } else {
-          await this.deriveAll(context);
-        }
-        return { extracted: 0 };
-      },
-      validateAndParse(
-        data: unknown,
-      ): z.infer<typeof extractDataSchema> | null {
-        const result = extractDataSchema.safeParse(data ?? {});
-        return result.success ? result.data : null;
-      },
-    };
-  }
-
-  /**
-   * Override to derive entities from a source entity in response to events.
-   *
-   * Used for entity types that are automatically maintained (e.g. topics
-   * extracted from posts, series grouped from posts/decks). The plugin
-   * subscribes to events in onRegister() and calls derive() itself.
-   *
-   * Also callable via `system_extract` for batch reprocessing.
-   */
-  public async derive(
-    _source: BaseEntity,
-    _event: string,
+  protected getDerivedEntityProjections(
     _context: EntityPluginContext,
-  ): Promise<void> {
-    // No-op by default — subclasses override to implement derivation logic
+  ): DerivedEntityProjection[] {
+    return [];
   }
 
-  /**
-   * Override to batch-derive all entities of this type.
-   * Called by `system_extract` when no source is specified.
-   *
-   * Subclasses implement full resync logic here (e.g. series syncs
-   * from all entities with seriesName, topics re-extracts from all posts).
-   */
-  public async deriveAll(_context: EntityPluginContext): Promise<void> {
-    // No-op by default — subclasses override for batch derivation
-  }
-
-  /**
-   * Override to fully rebuild derived entities from source entities.
-   * Default implementation falls back to deriveAll().
-   */
-  public async rebuildAll(context: EntityPluginContext): Promise<void> {
-    await this.deriveAll(context);
-  }
-
-  /**
-   * Check whether this plugin has a derive() implementation.
-   * Used by system_extract to determine if extraction is supported.
-   */
-  public hasDeriveHandler(): boolean {
-    return this.derive !== EntityPlugin.prototype.derive;
+  protected getDerivedEntityProjectionController(
+    projectionId: string,
+  ): DerivedEntityProjectionController | undefined {
+    return this.derivedEntityProjectionControllers.get(projectionId);
   }
 }
