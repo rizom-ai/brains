@@ -227,3 +227,53 @@ Phase 4 (structural — only if target not met)
 ```
 
 **Estimated total savings: 100-300MB** (from ~860MB to ~560-760MB), with Phase 4 potentially bringing it under 500MB.
+
+---
+
+## Production observation (2026-04-30)
+
+After deploying alpha.46 (which fixed an unbounded `Promise.all` in skill replace-all that was OOM-looping yeehaa.io), steady-state RSS across two brains:
+
+| Brain | Entities (rough) | Resident | per-entity overhead |
+| --- | --- | --- | --- |
+| mylittlephoney | ~30-50 | 363 MB | ~7-12 MB |
+| yeehaa.io | ~270 | 1.04-1.61 GB | ~4 MB |
+
+**Implication:** the current plan targets the ~860MB baseline (registries, templates, eager plugins, AI SDK). It does **not** address the dataset-proportional component. With the rough fit `RSS ≈ 200-300 MB baseline + ~3 MB/entity`, scaling to 1000 entities projects ~3 GB; to 5000 entities, ~15 GB. Steady-state alone exceeds the 7.6 GB Hetzner box well before 5000 entities.
+
+The bigger risk is non-steady-state spikes that scale with N:
+
+- **Cold-start initial sync** — alpha.46 backpressured the skill `Promise.all`, but allocation during bulk import still tracks dataset size.
+- **Bulk re-derivations / replace-all paths** — even with sequential `for...of`, holding all reconstructed entities in scope during the loop is a large transient.
+- **Vector index hydration** during embedding store events — working set scales with library size.
+- **FTS reindex** during bulk entity writes — temp buffers grow with batch size.
+
+---
+
+## Phase 5: Dataset-proportional growth (proposed)
+
+Out of scope of the original plan. Add explicit budget for per-N operations.
+
+### 5A. Audit and bound large-N entity loops
+
+**Goal:** no init/sync/derivation path holds more than O(batch) entities in memory at once.
+
+**Files to survey:** anywhere that does `entityService.listEntities("type")` followed by a loop. Known sites include `entities/agent-discovery/src/lib/skill-deriver.ts` (alpha.46 made deletes sequential — good, but creates still loop over the full LLM-returned skill list); the topics initial extraction batch (45 entities → single LLM call → response held in memory); any `replaceAll*` in the entity plugins.
+
+**Pattern:** stream via `for await` over a paginated cursor (add to entity-service if missing), or chunk into fixed-size batches. Avoid materializing the full result array.
+
+### 5B. Default `includeContent: false` for non-content paths
+
+Promote Phase 4C from "deferred" to actionable. Many sync/derivation paths only need entity metadata + id, not the markdown body. Add the option to `listEntities` / `searchEntities`, and audit call sites to pass it where content isn't read.
+
+**Expected savings:** for a brain with 1000 entities × avg 5 KB content, this saves ~5 MB per traversal. Cumulative across concurrent loops, much more.
+
+### 5C. Vector and FTS write batching
+
+Bulk embedding inserts and FTS index updates should commit in chunks (e.g., 50 at a time) with explicit allocation release between chunks, rather than one large transaction holding all temp buffers.
+
+### 5D. Memory budget assertions in tests
+
+Add a test that builds a brain with N synthetic entities (e.g., 500, 1000) and asserts steady-state RSS stays under a threshold per entity. Catches regressions before they hit prod.
+
+**Expected savings:** the goal isn't a fixed MB number; it's bounding the *slope* of `MB per entity` to a known constant, ideally well under 1 MB/entity steady-state and under a defined transient ceiling during sync/derivation.
