@@ -50,6 +50,26 @@ plugins:
     );
   });
 
+  test("should include static imports for external plugin declarations", () => {
+    const yaml = `
+brain: "@brains/rover"
+plugins:
+  calendar:
+    package: "@rizom/brain-plugin-calendar"
+    config:
+      timezone: UTC
+`;
+    const code = generateEntrypoint(yaml);
+
+    expect(code).not.toBeNull();
+    expect(code).toContain(
+      'import * as __pkg0 from "@rizom/brain-plugin-calendar"',
+    );
+    expect(code).toContain(
+      'registerPackage("@rizom/brain-plugin-calendar", __pkg0.default ?? __pkg0)',
+    );
+  });
+
   test("should not duplicate brain package in imports", () => {
     const yaml = `
 brain: "@brains/rover"

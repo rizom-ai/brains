@@ -2,7 +2,7 @@
 
 ## Status
 
-Shell initialization coordination, §1 public plugin authoring exports, and §2 `brain.yaml plugins:` loading are complete. External plugin declarations parse, package refs register, and runtime loading supports default or named `plugin` factory exports. Runtime plugin API compatibility checks are deferred while `PLUGIN_API_VERSION` tracks the `@rizom/brain` package version during alpha; package-manager `peerDependencies` are the compatibility source of truth for now.
+Shell initialization coordination, §1 public plugin authoring exports, §2 `brain.yaml plugins:` loading, and package-local external authoring proof are complete. External plugin declarations parse, package refs register, runtime loading supports default or named `plugin` factory exports, the public fixture typechecks against `@rizom/brain/*`, and author docs cover the supported package shape. Runtime plugin API compatibility checks are deferred while `PLUGIN_API_VERSION` tracks the `@rizom/brain` package version during alpha; package-manager `peerDependencies` are the compatibility source of truth for now.
 
 ## Current state
 
@@ -16,7 +16,7 @@ What `@rizom/brain` exposes today (`packages/brain-cli/package.json` exports):
 
 What plugin authors still need:
 
-- plugin author docs and at least one reference external plugin
+- a separate-repo reference plugin once the public package is published
 - future plugin API compatibility checks only if/when the plugin API version diverges from the `@rizom/brain` package version
 
 `docs/plans/custom-brain-definitions.md` (the `brain.ts` escape hatch) depends on this plan: `defineBrain` and preset spread targets need to be importable from `@rizom/brain` before `brain.ts` is usable by external authors.
@@ -206,9 +206,9 @@ This should only land if it materially improves the operator path.
 
 Before calling this done, ship:
 
-- one reference external plugin in a separate repo
-- tests proving authoring + loading work end-to-end
-- plugin author docs covering setup, config, testing, and publishing
+- one reference external plugin in a separate repo after the public package is published
+- tests proving authoring + loading work end-to-end (package-local compile fixture and runtime loading tests are in place)
+- plugin author docs covering setup, config, testing, and publishing (initial authoring docs are in place; publishing docs can be refined from the separate-repo reference)
 
 ## Non-goals
 

@@ -1009,6 +1009,43 @@ describe("resolve with instance overrides", () => {
     expect(seenConfigs).toEqual([{ timezone: "UTC" }]);
   });
 
+  test("should parse brain.yaml and load an external plugin with interpolated config", () => {
+    const seenConfigs: PluginConfig[] = [];
+    const externalFactory: PluginFactory = (config) => {
+      seenConfigs.push(config);
+      return createMockPlugin("yaml-calendar-plugin", config);
+    };
+    registerPackage("@rizom/brain-plugin-yaml-calendar", externalFactory);
+
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    process.env["CALENDAR_API_KEY"] = "cal-secret";
+    try {
+      const overrides = parseInstanceOverrides(`brain: "@brains/rover"
+plugins:
+  calendar:
+    package: "@rizom/brain-plugin-yaml-calendar"
+    config:
+      apiKey: "\${CALENDAR_API_KEY}"
+      timezone: UTC
+`);
+
+      const config = resolve(def, {}, overrides);
+
+      expect(config.plugins?.map((plugin) => plugin.id)).toContain(
+        "yaml-calendar-plugin",
+      );
+      expect(seenConfigs).toEqual([{ apiKey: "cal-secret", timezone: "UTC" }]);
+    } finally {
+      delete process.env["CALENDAR_API_KEY"];
+    }
+  });
+
   test("should support named plugin exports for external plugin packages", () => {
     const externalFactory: PluginFactory = (config) =>
       createMockPlugin("named-calendar-plugin", config);

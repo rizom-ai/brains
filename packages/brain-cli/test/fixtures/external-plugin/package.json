@@ -1,0 +1,19 @@
+{
+  "name": "@rizom/brain-plugin-example-fixture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "peerDependencies": {
+    "@rizom/brain": "^0.2.0-alpha.45"
+  },
+  "devDependencies": {
+    "@rizom/brain": "workspace:*",
+    "typescript": "^5.3.3"
+  }
+}

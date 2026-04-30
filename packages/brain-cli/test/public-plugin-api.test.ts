@@ -1,8 +1,15 @@
 import { describe, expect, it } from "bun:test";
+import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "fs";
 import { join } from "path";
 
 const pkgDir = join(import.meta.dir, "..");
+const externalPluginFixtureDir = join(
+  pkgDir,
+  "test",
+  "fixtures",
+  "external-plugin",
+);
 const subpaths = [
   "plugins",
   "entities",
@@ -62,6 +69,35 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("createEntityPluginContext");
     expect(pluginsTypes).not.toContain("createServicePluginContext");
     expect(pluginsTypes).not.toContain("createInterfacePluginContext");
+  });
+
+  it("keeps the external plugin fixture on public @rizom/brain subpaths", () => {
+    const source = readFileSync(
+      join(externalPluginFixtureDir, "src", "index.ts"),
+      "utf-8",
+    );
+    const packageJson = JSON.parse(
+      readFileSync(join(externalPluginFixtureDir, "package.json"), "utf-8"),
+    );
+
+    expect(source).toContain('from "@rizom/brain/plugins"');
+    expect(source).toContain('from "@rizom/brain/utils"');
+    expect(source).not.toContain("@brains/");
+    expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
+  });
+
+  it("typechecks the package-local external plugin fixture", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+      {
+        cwd: externalPluginFixtureDir,
+        encoding: "utf-8",
+      },
+    );
+
+    expect(result.status).toBe(0);
+    expect(`${result.stdout}\n${result.stderr}`).not.toContain("@brains/");
   });
 
   it("build script includes every public plugin API library entry", () => {

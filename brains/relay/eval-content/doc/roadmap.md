@@ -62,16 +62,14 @@ These areas are effectively landed:
 
 ### 1. External plugin API
 
-External plugin authors still cannot build and load full plugins against `@rizom/brain`. The published surface today is `./cli`, `./site`, `./themes`, and `./deploy` — none of the plugin/entity/service/interface authoring exports exist, and `brain.yaml` cannot load plugins from `node_modules`.
+External plugin authors can now import the curated authoring surface from `@rizom/brain` and declare installed plugin packages in `brain.yaml` with keyed `plugins.<id>.package` entries. The plugin framework has real `onRegister`/`onReady` semantics: `onRegister` is for capability registration, `onReady` runs after identity/profile and startup coordination are complete, and background daemons/jobs start afterward.
 
-The abstraction audit and shell lifecycle foundation are complete enough to proceed. The plugin framework now has real `onRegister`/`onReady` semantics before public exports are frozen: `onRegister` is for capability registration, `onReady` runs after identity/profile and startup coordination are complete, and background daemons/jobs start afterward.
-
-Remaining scope: public subpath exports (`@rizom/brain/plugins`, `/entities`, `/services`, `/interfaces`, `/utils`, `/templates`), `brain.yaml` `plugins:` schema with env-var interpolation, plugin API version constant, and at least one reference external plugin proving the path end-to-end.
+Remaining scope: one reference external plugin proving the path end-to-end, plugin author docs that match the public surface, and any follow-up CLI ergonomics if they materially improve installation/configuration. During alpha, compatibility uses normal package-manager `peerDependencies`; runtime `rizomBrain.pluginApi` checks are deferred until the plugin API version diverges from the package version.
 
 Plans:
 
 - [shell-init-coordination.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/shell-init-coordination.md) — completed lifecycle foundation before public plugin exports
-- [external-plugin-api.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/external-plugin-api.md) — remaining public export/loading/versioning work
+- [external-plugin-api.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/external-plugin-api.md) — remaining reference plugin and authoring docs work
 - [custom-brain-definitions.md](https://github.com/rizom-ai/brains/blob/main/docs/plans/custom-brain-definitions.md) — downstream `brain.ts` escape hatch that depends on the public surface
 
 ## Long-term

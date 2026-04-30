@@ -1,0 +1,13 @@
+{
+  "extends": "../../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "rootDir": ".",
+    "noEmit": true,
+    "paths": {
+      "@rizom/brain": ["../../../src/types/index.d.ts"],
+      "@rizom/brain/*": ["../../../src/types/*.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}
