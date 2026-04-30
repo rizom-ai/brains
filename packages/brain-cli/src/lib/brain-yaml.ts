@@ -1,29 +1,8 @@
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
 import { z, parseYamlDocument } from "@brains/utils";
+import { pluginOverrideEntrySchema } from "@brains/app";
 import { resolveModelName } from "./model-registry";
-
-const externalPluginDeclarationSchema = z
-  .object({
-    package: z.string().min(1),
-    config: z.record(z.unknown()).optional(),
-  })
-  .strict();
-
-const pluginOverrideEntrySchema = z
-  .record(z.unknown())
-  .superRefine((entry, ctx) => {
-    if (typeof entry["package"] !== "string") return;
-
-    const parsed = externalPluginDeclarationSchema.safeParse(entry);
-    if (!parsed.success) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message:
-          'external plugin declarations may only contain "package" and optional nested "config"',
-      });
-    }
-  });
 
 const brainYamlSchema = z
   .object({

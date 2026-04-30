@@ -36,19 +36,19 @@ export async function registerOverridePackages(
 ): Promise<void> {
   const refs = collectOverridePackageRefs(overrides);
 
-  for (const ref of refs) {
-    if (hasPackage(ref)) {
-      continue;
-    }
+  await Promise.all(
+    refs.map(async (ref) => {
+      if (hasPackage(ref)) return;
 
-    try {
-      const mod = await importFn(ref);
-      registerPackage(ref, mod.default ?? mod);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      console.error(
-        `❌ brain.yaml: failed to import package "${ref}": ${message}`,
-      );
-    }
-  }
+      try {
+        const mod = await importFn(ref);
+        registerPackage(ref, mod.default ?? mod);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        console.error(
+          `❌ brain.yaml: failed to import package "${ref}": ${message}`,
+        );
+      }
+    }),
+  );
 }

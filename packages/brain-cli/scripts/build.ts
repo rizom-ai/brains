@@ -165,11 +165,6 @@ const libraryEntries = [
     types: join(import.meta.dir, "..", "src", "types", "templates.d.ts"),
   },
   {
-    name: "utils",
-    source: join(import.meta.dir, "..", "src", "entries", "utils.ts"),
-    types: join(import.meta.dir, "..", "src", "types", "utils.d.ts"),
-  },
-  {
     name: "site",
     source: join(import.meta.dir, "..", "src", "entries", "site.ts"),
     types: join(import.meta.dir, "..", "src", "types", "site.d.ts"),

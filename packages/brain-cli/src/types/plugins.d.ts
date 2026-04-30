@@ -1,12 +1,24 @@
-import type { z, Logger } from "./utils";
+import type { z } from "zod";
+
+export interface Logger {
+  debug(message: string, data?: unknown): void;
+  info(message: string, data?: unknown): void;
+  warn(message: string, data?: unknown): void;
+  error(message: string, data?: unknown): void;
+  child(context: string): Logger;
+}
 import type {
   BaseEntity,
   CreateExecutionContext,
   CreateInput,
   CreateInterceptionResult,
+  CreateInterceptor,
   EntityAdapter,
   EntityTypeConfig,
   DataSource,
+  ListOptions,
+  SearchOptions,
+  SearchResult,
 } from "./entities";
 import type { Template, ViewTemplate, WebRenderer } from "./templates";
 import type {
@@ -117,6 +129,138 @@ export interface MessageJobTrackingInfo extends BaseJobTrackingInfo {
   channelId?: string;
 }
 
+export interface BrainCharacter {
+  name: string;
+  role: string;
+  purpose: string;
+  values: string[];
+}
+
+export interface AnchorProfile {
+  name: string;
+  kind: "professional" | "team" | "collective";
+  organization?: string;
+  description?: string;
+  avatar?: string;
+  website?: string;
+  email?: string;
+  socialLinks?: Array<{
+    platform: "github" | "instagram" | "linkedin" | "email" | "website";
+    url: string;
+    label?: string;
+  }>;
+}
+
+export interface AppInfo {
+  model: string;
+  version: string;
+  uptime: number;
+  entities: number;
+  embeddings: number;
+  ai: { model: string; embeddingModel: string };
+  daemons: unknown[];
+  endpoints: Array<{
+    label: string;
+    url: string;
+    pluginId: string;
+    priority: number;
+  }>;
+}
+
+export interface Conversation {
+  id: string;
+  sessionId: string;
+  interfaceType: string;
+  channelId: string;
+  channelName: string;
+  metadata: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Message {
+  id: string;
+  conversationId: string;
+  role: string;
+  content: string;
+  timestamp: string;
+  metadata: string | null;
+}
+
+export interface GetMessagesOptions {
+  limit?: number;
+  range?: { start: number; end: number };
+}
+
+export interface IEntityService {
+  getEntity<T extends BaseEntity>(
+    entityType: string,
+    id: string,
+  ): Promise<T | null>;
+  listEntities<T extends BaseEntity>(
+    type: string,
+    options?: ListOptions,
+  ): Promise<T[]>;
+  search<T extends BaseEntity = BaseEntity>(
+    query: string,
+    options?: SearchOptions,
+  ): Promise<SearchResult<T>[]>;
+  getEntityTypes(): string[];
+  hasEntityType(type: string): boolean;
+  countEntities(
+    entityType: string,
+    options?: Pick<ListOptions, "publishedOnly">,
+  ): Promise<number>;
+  getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
+}
+
+export type EvalHandler<TInput = unknown, TOutput = unknown> = (
+  input: TInput,
+) => Promise<TOutput>;
+
+export type InsightHandler = (
+  entityService: IEntityService,
+) => Promise<Record<string, unknown>>;
+
+export interface PendingConfirmation {
+  toolName: string;
+  description: string;
+  args: unknown;
+}
+
+export interface ToolResultData {
+  toolName: string;
+  args?: Record<string, unknown>;
+  jobId?: string;
+  data?: unknown;
+}
+
+export interface AgentResponse {
+  text: string;
+  toolResults?: ToolResultData[];
+  pendingConfirmation?: PendingConfirmation;
+  usage: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+}
+
+export interface ChatContext {
+  userPermissionLevel?: UserPermissionLevel;
+  interfaceType?: string;
+  channelId?: string;
+  channelName?: string;
+}
+
+export interface IAgentService {
+  chat(
+    message: string,
+    conversationId: string,
+    context?: ChatContext,
+  ): Promise<AgentResponse>;
+}
+
 export interface BasePluginContext {
   readonly pluginId: string;
   readonly logger: Logger;
@@ -124,12 +268,12 @@ export interface BasePluginContext {
   readonly domain: string | undefined;
   readonly siteUrl: string | undefined;
   readonly previewUrl: string | undefined;
-  readonly appInfo: () => Promise<unknown>;
-  readonly entityService: unknown;
+  readonly appInfo: () => Promise<AppInfo>;
+  readonly entityService: IEntityService;
   readonly identity: {
-    get: () => unknown;
-    getProfile: () => unknown;
-    getAppInfo: () => Promise<unknown>;
+    get: () => BrainCharacter;
+    getProfile: () => AnchorProfile;
+    getAppInfo: () => Promise<AppInfo>;
   };
   readonly messaging: {
     send: MessageSender;
@@ -154,24 +298,21 @@ export interface BasePluginContext {
     registerHandler(type: string, handler: JobHandler): void;
   };
   readonly conversations: {
-    get(conversationId: string): Promise<unknown>;
-    search(query: string): Promise<unknown[]>;
+    get(conversationId: string): Promise<Conversation | null>;
+    search(query: string): Promise<Conversation[]>;
     getMessages(
       conversationId: string,
-      options?: Record<string, unknown>,
-    ): Promise<unknown[]>;
+      options?: GetMessagesOptions,
+    ): Promise<Message[]>;
   };
   readonly eval: {
-    registerHandler(
+    registerHandler<TInput = unknown, TOutput = unknown>(
       handlerId: string,
-      handler: (input: unknown) => Promise<unknown>,
+      handler: EvalHandler<TInput, TOutput>,
     ): void;
   };
   readonly insights: {
-    register(
-      type: string,
-      handler: (entityService: unknown) => Promise<Record<string, unknown>>,
-    ): void;
+    register(type: string, handler: InsightHandler): void;
   };
   readonly endpoints: {
     register(endpoint: { label: string; url: string; priority?: number }): void;
@@ -179,7 +320,7 @@ export interface BasePluginContext {
 }
 
 export interface EntityPluginContext extends BasePluginContext {
-  readonly entityService: unknown;
+  readonly entityService: IEntityService;
   readonly entities: {
     register<T extends BaseEntity>(
       entityType: string,
@@ -201,10 +342,13 @@ export interface EntityPluginContext extends BasePluginContext {
       entity: T,
     ): Promise<{ entityId: string; jobId: string }>;
     registerDataSource(dataSource: DataSource): void;
-    registerCreateInterceptor(entityType: string, interceptor: unknown): void;
+    registerCreateInterceptor(
+      entityType: string,
+      interceptor: CreateInterceptor,
+    ): void;
   };
   readonly ai: {
-    query(prompt: string, context?: Record<string, unknown>): Promise<unknown>;
+    query(prompt: string, context?: ChatContext): Promise<AgentResponse>;
     generate<T = unknown>(config: Record<string, unknown>): Promise<T>;
     generateObject<T>(
       prompt: string,
@@ -213,7 +357,7 @@ export interface EntityPluginContext extends BasePluginContext {
     generateImage(
       prompt: string,
       options?: Record<string, unknown>,
-    ): Promise<unknown>;
+    ): Promise<{ url?: string; data?: Uint8Array; mimeType?: string }>;
     canGenerateImages(): boolean;
   };
   readonly prompts: {
@@ -221,7 +365,7 @@ export interface EntityPluginContext extends BasePluginContext {
   };
 }
 export interface ServicePluginContext extends BasePluginContext {
-  readonly entityService: unknown;
+  readonly entityService: IEntityService;
   readonly entities: EntityPluginContext["entities"];
   readonly templates: {
     register(templates: Record<string, Template>, namespace?: string): void;
@@ -244,7 +388,7 @@ export interface ServicePluginContext extends BasePluginContext {
 }
 export interface InterfacePluginContext extends BasePluginContext {
   readonly mcpTransport: unknown;
-  readonly agentService: unknown;
+  readonly agentService: IAgentService;
   readonly permissions: {
     getUserLevel(interfaceType: string, userId: string): UserPermissionLevel;
   };

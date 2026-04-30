@@ -1,4 +1,4 @@
-import type { z } from "./utils";
+import type { z } from "zod";
 
 export type ComponentType<P = Record<string, unknown>> = (props: P) => unknown;
 export interface RuntimeScript {

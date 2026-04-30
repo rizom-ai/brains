@@ -1,4 +1,4 @@
-import type { z } from "./utils";
+import type { z } from "zod";
 
 export interface BaseEntity {
   id: string;

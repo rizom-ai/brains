@@ -9,7 +9,7 @@ import { logLevelSchema } from "./types";
  */
 const pluginConfigOverrideSchema = z.record(z.unknown());
 
-const externalPluginDeclarationSchema = z
+export const externalPluginDeclarationSchema = z
   .object({
     /** npm package name to import from node_modules */
     package: z.string().min(1),
@@ -18,7 +18,7 @@ const externalPluginDeclarationSchema = z
   })
   .strict();
 
-const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
+export const pluginOverrideEntrySchema = pluginConfigOverrideSchema.superRefine(
   (entry, ctx) => {
     if (typeof entry["package"] !== "string") return;
 
@@ -149,15 +149,7 @@ export type InstanceOverrides = z.infer<typeof instanceOverridesSchema>;
 export function isExternalPluginDeclaration(
   entry: PluginOverrideEntry | undefined,
 ): entry is ExternalPluginDeclaration {
-  return (
-    !!entry &&
-    typeof entry === "object" &&
-    !Array.isArray(entry) &&
-    typeof (entry as Record<string, unknown>)["package"] === "string" &&
-    (Object.keys(entry).length === 1 ||
-      (Object.keys(entry).length === 2 &&
-        Object.prototype.hasOwnProperty.call(entry, "config")))
-  );
+  return externalPluginDeclarationSchema.safeParse(entry).success;
 }
 
 /** Return only built-in plugin config overrides, excluding external packages. */

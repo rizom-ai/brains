@@ -41,5 +41,5 @@ export function collectOverridePackageRefs(
     }
   }
 
-  return refs;
+  return [...new Set(refs)];
 }

@@ -6,7 +6,7 @@ import {
   type ServicePluginContext,
   type Tool,
 } from "@rizom/brain/plugins";
-import { z } from "@rizom/brain/utils";
+import { z } from "zod";
 
 interface ExamplePluginConfig {
   greeting?: string;

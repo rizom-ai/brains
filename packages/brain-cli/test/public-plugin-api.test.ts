@@ -16,7 +16,6 @@ const subpaths = [
   "services",
   "interfaces",
   "templates",
-  "utils",
 ] as const;
 
 describe("@rizom/brain public plugin API surface", () => {
@@ -81,9 +80,10 @@ describe("@rizom/brain public plugin API surface", () => {
     );
 
     expect(source).toContain('from "@rizom/brain/plugins"');
-    expect(source).toContain('from "@rizom/brain/utils"');
+    expect(source).toContain('from "zod"');
     expect(source).not.toContain("@brains/");
     expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
+    expect(packageJson.peerDependencies?.["zod"]).toBeDefined();
   });
 
   it("typechecks the package-local external plugin fixture", () => {

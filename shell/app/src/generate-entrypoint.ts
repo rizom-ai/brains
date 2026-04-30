@@ -98,8 +98,6 @@ export function generateEntrypoint(
     ? rawBrain
     : `@brains/${rawBrain}`;
 
-  // Find all @-prefixed package refs in the validated override shape.
-  // Includes site/theme refs, plugin config refs, and external plugin packages.
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );

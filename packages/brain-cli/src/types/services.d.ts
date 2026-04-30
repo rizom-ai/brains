@@ -1,4 +1,4 @@
-import type { z } from "./utils";
+import type { z } from "zod";
 import type { DataSource, BaseDataSourceContext, BaseEntity } from "./entities";
 import type { ApiRouteDefinition, WebRouteDefinition } from "./interfaces";
 

@@ -1,4 +1,4 @@
-import type { z } from "./utils";
+import type { z } from "zod";
 
 export const UserPermissionLevelSchema: z.ZodSchema<UserPermissionLevel>;
 export type UserPermissionLevel = "public" | "trusted" | "anchor";

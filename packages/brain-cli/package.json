@@ -32,10 +32,6 @@
       "types": "./dist/templates.d.ts",
       "import": "./dist/templates.js"
     },
-    "./utils": {
-      "types": "./dist/utils.d.ts",
-      "import": "./dist/utils.js"
-    },
     "./site": {
       "types": "./dist/site.d.ts",
       "import": "./dist/site.js"

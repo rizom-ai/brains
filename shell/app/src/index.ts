@@ -20,10 +20,13 @@ export {
   parseInstanceOverrides,
   InstanceOverridesParseError,
   applyConventionalSiteRefs,
+  externalPluginDeclarationSchema,
+  pluginOverrideEntrySchema,
   CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
 } from "./instance-overrides";
+export type { ExternalPluginDeclaration } from "./instance-overrides";
 export { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 export type { InstanceOverrides } from "./instance-overrides";
 export type {

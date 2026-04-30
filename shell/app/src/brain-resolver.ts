@@ -420,14 +420,12 @@ function resolveExternalPluginFactory(
     return pkg as PluginFactory;
   }
 
-  if (pkg && typeof pkg === "object") {
-    const moduleLike = pkg as { default?: unknown; plugin?: unknown };
-    if (typeof moduleLike.default === "function") {
-      return moduleLike.default as PluginFactory;
-    }
-    if (typeof moduleLike.plugin === "function") {
-      return moduleLike.plugin as PluginFactory;
-    }
+  if (
+    pkg &&
+    typeof pkg === "object" &&
+    typeof (pkg as { plugin?: unknown }).plugin === "function"
+  ) {
+    return (pkg as { plugin: PluginFactory }).plugin;
   }
 
   throw new Error(
