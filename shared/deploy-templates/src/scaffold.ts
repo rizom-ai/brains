@@ -2,14 +2,25 @@ export interface DeployWorkflowTemplateOptions {
   workflowSecretsEnv: string;
 }
 
-export function renderPreDeployHook(): string {
+export interface PreDeployHookTemplateOptions {
+  deployConfigPath?: string;
+  brainYamlPath?: string;
+}
+
+export function renderPreDeployHook(
+  options: PreDeployHookTemplateOptions = {},
+): string {
+  const deployConfigPath = options.deployConfigPath ?? "config/deploy.yml";
+  const brainYamlPath = options.brainYamlPath ?? "brain.yaml";
+
   return `#!/usr/bin/env bash
 set -euo pipefail
 
-SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("config/deploy.yml") || {}; puts(config.dig("ssh", "user") || "root")')"
+BRAIN_FILE="${brainYamlPath}"
+SSH_USER="$(ruby -e 'require "yaml"; config = YAML.load_file("${deployConfigPath}") || {}; puts(config.dig("ssh", "user") || "root")')"
 IFS=',' read -ra HOSTS <<< "$KAMAL_HOSTS"
 for host in "\${HOSTS[@]}"; do
-  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null brain.yaml "\${SSH_USER}@\${host}:/opt/brain.yaml"
+  scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$BRAIN_FILE" "\${SSH_USER}@\${host}:/opt/brain.yaml"
 done
 `;
 }

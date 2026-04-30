@@ -7,6 +7,7 @@ import {
   isStaleDeployMounts,
   renderDockerfile,
   renderKamalDeploy,
+  renderPreDeployHook,
 } from "@brains/deploy-templates";
 import { writeUsersTable } from "./render-users-table";
 
@@ -181,6 +182,12 @@ async function renderStarterFile(relativePath: string): Promise<string> {
   }
   if (relativePath === "deploy/kamal/deploy.yml") {
     return renderKamalDeploy({ serviceName: "rover" });
+  }
+  if (relativePath === ".kamal/hooks/pre-deploy") {
+    return renderPreDeployHook({
+      deployConfigPath: "deploy/kamal/deploy.yml",
+      brainYamlPath: "${BRAIN_YAML_PATH:-brain.yaml}",
+    });
   }
 
   const templatePath = join(templateRootDir, relativePath);

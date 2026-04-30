@@ -9,7 +9,10 @@ export {
   renderPreDeployHook,
   renderPublishImageWorkflow,
 } from "./scaffold";
-export type { DeployWorkflowTemplateOptions } from "./scaffold";
+export type {
+  DeployWorkflowTemplateOptions,
+  PreDeployHookTemplateOptions,
+} from "./scaffold";
 
 export interface KamalDeployTemplateOptions {
   serviceName: string;
