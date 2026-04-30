@@ -13,14 +13,6 @@ import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
 
-const conversationMetadataSchema = z
-  .object({
-    channelName: z.string(),
-    channelId: z.string(),
-    interfaceType: z.string(),
-  })
-  .passthrough();
-
 /**
  * Handler for conversation digest events
  * Processes digests and updates summary entities
@@ -133,17 +125,14 @@ export class DigestHandler {
       // Create the content body (without frontmatter)
       const contentBody = this.adapter.createContentBody(updatedEntries);
 
-      // Fetch conversation to get channel name
       const conversation = await this.context.conversations.get(
         digest.conversationId,
       );
-      if (!conversation?.metadata) {
-        throw new Error(
-          `Conversation ${digest.conversationId} not found or missing metadata`,
-        );
+      if (!conversation) {
+        throw new Error(`Conversation ${digest.conversationId} not found`);
       }
-      const { channelName, channelId, interfaceType } =
-        conversationMetadataSchema.parse(conversation.metadata);
+      const { channelId, interfaceType } = conversation;
+      const channelName = conversation.channelName ?? channelId;
 
       // Prepare metadata
       const metadata = {
