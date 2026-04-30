@@ -93,12 +93,11 @@ describe("DigestHandler", () => {
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "CLI Terminal",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "CLI Terminal" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       // Mock upsert to succeed
@@ -200,12 +199,11 @@ User asked about project setup
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "Test Channel",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       // Mock content generation - single AI call returns both decision and content
@@ -311,12 +309,11 @@ Window End: 50
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "Test Channel",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       // Mock content generation for AI decision and summary
@@ -377,12 +374,11 @@ Window End: 50
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "Test Channel",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       // Should not throw, but log error
@@ -405,12 +401,11 @@ Window End: 50
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "Test Channel",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       // Mock content generation for empty messages
@@ -473,12 +468,11 @@ Window End: 50
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
-        channelName: "Test Channel",
-        startedAt: "2025-01-01T00:00:00Z",
-        lastActiveAt: "2025-01-01T00:00:00Z",
-        metadata: {},
-        createdAt: "2025-01-01T00:00:00Z",
-        updatedAt: "2025-01-01T00:00:00Z",
+        started: "2025-01-01T00:00:00Z",
+        lastActive: "2025-01-01T00:00:00Z",
+        metadata: JSON.stringify({ channelName: "Test Channel" }),
+        created: "2025-01-01T00:00:00Z",
+        updated: "2025-01-01T00:00:00Z",
       });
 
       const generateSpy = spyOn(context.ai, "generate");

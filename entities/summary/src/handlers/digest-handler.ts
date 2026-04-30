@@ -13,6 +13,25 @@ import { SummaryExtractor } from "../lib/summary-extractor";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity, SummaryLogEntry } from "../schemas/summary";
 
+const conversationMetadataSchema = z
+  .object({
+    channelName: z.string().optional(),
+  })
+  .passthrough();
+
+function parseConversationMetadata(
+  metadata: string | null,
+): z.infer<typeof conversationMetadataSchema> {
+  if (!metadata) return {};
+  try {
+    const parsed: unknown = JSON.parse(metadata);
+    const result = conversationMetadataSchema.safeParse(parsed);
+    return result.success ? result.data : {};
+  } catch {
+    return {};
+  }
+}
+
 /**
  * Handler for conversation digest events
  * Processes digests and updates summary entities
@@ -132,7 +151,10 @@ export class DigestHandler {
         throw new Error(`Conversation ${digest.conversationId} not found`);
       }
       const { channelId, interfaceType } = conversation;
-      const channelName = conversation.channelName ?? channelId;
+      const conversationMetadata = parseConversationMetadata(
+        conversation.metadata,
+      );
+      const channelName = conversationMetadata.channelName ?? channelId;
 
       // Prepare metadata
       const metadata = {
