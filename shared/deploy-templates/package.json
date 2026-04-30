@@ -1,0 +1,33 @@
+{
+  "name": "@brains/deploy-templates",
+  "version": "0.2.0-alpha.45",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./deploy-scripts/*": {
+      "types": "./src/deploy-scripts/*",
+      "default": "./src/deploy-scripts/*"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "test": "bun test",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/bun": "latest",
+    "typescript": "^5.3.3"
+  }
+}

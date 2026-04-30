@@ -12,17 +12,17 @@ const packageDir = dirname(
 );
 const monorepoRoot = dirname(dirname(packageDir));
 
-function readSharedFile(relativePath: string): string {
+function readDeployTemplateFile(relativePath: string): string {
   return readFileSync(
-    join(monorepoRoot, "shared", "utils", "src", relativePath),
+    join(monorepoRoot, "shared", "deploy-templates", "src", relativePath),
     "utf8",
   );
 }
 
 describe("@rizom/ops package metadata", () => {
   it("keeps the shared deploy template source up to date", () => {
-    const deployTemplate = readSharedFile("deploy-templates/kamal-deploy.yml");
-    const dockerfile = readSharedFile("deploy-templates/Dockerfile");
+    const deployTemplate = readDeployTemplateFile("kamal-deploy.yml");
+    const dockerfile = readDeployTemplateFile("Dockerfile");
 
     expect(deployTemplate).toContain("/opt/brain-state:/data");
     expect(deployTemplate).toContain("/opt/brain-config:/config");

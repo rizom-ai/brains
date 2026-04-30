@@ -16,18 +16,6 @@
     "./origin-ca": {
       "types": "./src/origin-ca.ts",
       "default": "./src/origin-ca.ts"
-    },
-    "./deploy-scripts/*": {
-      "types": "./src/deploy-scripts/*",
-      "default": "./src/deploy-scripts/*"
-    },
-    "./deploy-templates": {
-      "types": "./src/deploy-templates/index.ts",
-      "default": "./src/deploy-templates/index.ts"
-    },
-    "./deploy-templates/*": {
-      "types": "./src/deploy-templates/*.d.ts",
-      "default": "./src/deploy-templates/*"
     }
   },
   "scripts": {

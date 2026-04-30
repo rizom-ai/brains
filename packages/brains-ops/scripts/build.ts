@@ -6,10 +6,42 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
+const sharedDeployScriptsDir = dirname(
+  fileURLToPath(
+    import.meta
+      .resolve("@brains/deploy-templates/deploy-scripts/provision-server.ts"),
+  ),
+);
+const pilotDeployScriptsDir = join(
+  packageDir,
+  "templates",
+  "rover-pilot",
+  "deploy",
+  "scripts",
+);
+
+function syncSharedDeployScripts(): void {
+  mkdirSync(pilotDeployScriptsDir, { recursive: true });
+  for (const script of [
+    "provision-server.ts",
+    "update-dns.ts",
+    "validate-secrets.ts",
+    "write-kamal-secrets.ts",
+    "write-ssh-key.ts",
+  ]) {
+    cpSync(
+      join(sharedDeployScriptsDir, script),
+      join(pilotDeployScriptsDir, script),
+    );
+  }
+}
+
+syncSharedDeployScripts();
 
 rmSync(outdir, { recursive: true, force: true });
 mkdirSync(outdir, { recursive: true });

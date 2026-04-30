@@ -3,9 +3,11 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import packageJson from "../package.json";
-import deployDockerfileTemplate from "@brains/utils/deploy-templates/Dockerfile" with { type: "text" };
-import deployKamalTemplate from "@brains/utils/deploy-templates/kamal-deploy.yml" with { type: "text" };
-import { isStaleDeployMounts } from "@brains/utils/deploy-templates";
+import {
+  isStaleDeployMounts,
+  renderDockerfile,
+  renderKamalDeploy,
+} from "@brains/deploy-templates";
 import { writeUsersTable } from "./render-users-table";
 
 const starterFilePaths = [
@@ -175,10 +177,10 @@ async function renderStarterFile(relativePath: string): Promise<string> {
     return "node_modules/\n.brains-ops/\nusers/*.secrets.yaml\n";
   }
   if (relativePath === "deploy/Dockerfile") {
-    return deployDockerfileTemplate;
+    return renderDockerfile();
   }
   if (relativePath === "deploy/kamal/deploy.yml") {
-    return deployKamalTemplate.replace("__SERVICE_NAME__", "rover");
+    return renderKamalDeploy({ serviceName: "rover" });
   }
 
   const templatePath = join(templateRootDir, relativePath);

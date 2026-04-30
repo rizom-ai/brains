@@ -38,6 +38,7 @@
     "age-encryption": "^0.3.0"
   },
   "devDependencies": {
+    "@brains/deploy-templates": "workspace:*",
     "@brains/eslint-config": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@brains/utils": "workspace:*",

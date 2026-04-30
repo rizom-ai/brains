@@ -1,5 +1,11 @@
 import { existsSync, readFileSync } from "fs";
 import { dirname, join } from "path";
+import {
+  BOOTSTRAP_SECTION_HEADER,
+  backendBootstrapEnvSchema,
+  deployProvisionEnvSchema,
+  tlsCertEnvSchema,
+} from "@brains/deploy-templates";
 import { bundledModelEnvSchemas } from "./generated/bundled-model-env-schemas";
 
 // "none" means: no varlock plugin in the schema. Values resolve from
@@ -13,10 +19,7 @@ import { bundledModelEnvSchemas } from "./generated/bundled-model-env-schemas";
 // fallthrough that they can hand-tune.
 const DEFAULT_SECRET_BACKEND = "none";
 
-// Section header reserved for future bootstrap-credential sections.
-// secrets-push uses this marker to skip backend-bootstrap secrets so a
-// CI token never gets pushed back into the backend it unlocks.
-export const BOOTSTRAP_SECTION_HEADER = "# ---- secret backend bootstrap ----";
+export { BOOTSTRAP_SECTION_HEADER };
 
 function normalizeSecretBackend(backend?: string): string {
   const value = backend?.trim();
@@ -50,53 +53,6 @@ function secretBackendPrelude(_instanceName: string, backend: string): string {
 
   const pluginName = resolvePluginName(backend);
   return `# @plugin(${pluginName})
-`;
-}
-
-const deployProvisionEnvSchema = `# ---- deploy/provision vars (written by brain init --deploy) ----
-
-# @required @sensitive
-HCLOUD_TOKEN=
-
-# @required
-HCLOUD_SSH_KEY_NAME=
-
-# @required
-HCLOUD_SERVER_TYPE=
-
-# @required
-HCLOUD_LOCATION=
-
-# @required @sensitive
-KAMAL_SSH_PRIVATE_KEY=
-
-# @required @sensitive
-KAMAL_REGISTRY_PASSWORD=
-
-# @required @sensitive
-CF_API_TOKEN=
-
-# @required
-CF_ZONE_ID=
-`;
-
-const tlsCertEnvSchema = `# ---- TLS cert vars (written by brain cert:bootstrap, consumed by kamal-proxy) ----
-
-# @required @sensitive
-CERTIFICATE_PEM=
-
-# @required @sensitive
-PRIVATE_KEY_PEM=
-`;
-
-function backendBootstrapEnvSchema(backend: string): string {
-  if (backend === "none") {
-    return "";
-  }
-
-  return `${BOOTSTRAP_SECTION_HEADER}
-
-# Configure the bootstrap credential(s) for the selected backend.
 `;
 }
 

@@ -8,9 +8,11 @@ import {
 import { basename, dirname, join, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
 import pkg from "../../package.json" with { type: "json" };
-import deployDockerfileTemplate from "@brains/utils/deploy-templates/Dockerfile" with { type: "text" };
-import deployKamalTemplate from "@brains/utils/deploy-templates/kamal-deploy.yml" with { type: "text" };
-import { isStaleDeployMounts } from "@brains/utils/deploy-templates";
+import {
+  isStaleDeployMounts,
+  renderDockerfile,
+  renderKamalDeploy,
+} from "@brains/deploy-templates";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import { buildInstanceEnvSchema } from "../lib/env-schema";
 
@@ -323,7 +325,7 @@ volumes:
 ];
 
 function writeDeployYml(dir: string, regen = false): void {
-  const content = deployKamalTemplate.replace("__SERVICE_NAME__", "brain");
+  const content = renderKamalDeploy({ serviceName: "brain" });
 
   writeReconcilableScaffoldFile({
     path: join(dir, "config", "deploy.yml"),
@@ -556,7 +558,7 @@ function resolvePackageDeployScriptsDir(): string {
 }
 
 function writeDeployDockerfile(dir: string, regen = false): void {
-  const content = deployDockerfileTemplate;
+  const content = renderDockerfile();
 
   writeReconcilableScaffoldFile({
     path: join(dir, "deploy", "Dockerfile"),

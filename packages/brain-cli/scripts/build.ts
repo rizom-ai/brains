@@ -27,7 +27,8 @@ mkdirSync(outdir, { recursive: true });
 
 const sharedDeployScriptsDir = dirname(
   fileURLToPath(
-    import.meta.resolve("@brains/utils/deploy-scripts/provision-server.ts"),
+    import.meta
+      .resolve("@brains/deploy-templates/deploy-scripts/provision-server.ts"),
   ),
 );
 const packageDeployScriptsDir = join(
