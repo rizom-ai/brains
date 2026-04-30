@@ -1,4 +1,6 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
+import { MessageBus } from "@brains/messaging-service";
+import { createSilentLogger } from "@brains/test-utils";
 import {
   noteSchema,
   noteAdapter,
@@ -147,6 +149,51 @@ describe("Immediate Entity Persistence", () => {
         entityId,
       );
       expect(afterDelete).toBeNull();
+    });
+  });
+
+  describe("deleteEntity - prior entity in event payload", () => {
+    test("entity:deleted event carries the deleted entity so subscribers can gate on its metadata", async () => {
+      MessageBus.resetInstance();
+      const messageBus = MessageBus.createFresh(createSilentLogger());
+      const eventCtx = await setupEntityService(
+        [{ name: "note", schema: noteSchema, adapter: noteAdapter }],
+        { messageBus },
+      );
+
+      try {
+        const captured: Array<{ entityId?: unknown; entity?: unknown }> = [];
+        messageBus.subscribe(
+          "entity:deleted",
+          (message: { payload: { entityId?: unknown; entity?: unknown } }) => {
+            captured.push(message.payload);
+            return { success: true };
+          },
+        );
+
+        const noteInput = createNoteInput({
+          title: "Tagged Note",
+          content: "Body",
+          tags: [],
+        });
+        const { entityId } = await eventCtx.entityService.createEntity<Note>({
+          ...noteInput,
+          metadata: { seriesName: "My Series" },
+        });
+
+        await eventCtx.entityService.deleteEntity("note", entityId);
+
+        expect(captured).toHaveLength(1);
+        const payload = captured[0];
+        expect(payload?.entityId).toBe(entityId);
+        const entity = payload?.entity as Note | undefined;
+        expect(entity?.id).toBe(entityId);
+        expect(entity?.title).toBe("Tagged Note");
+        expect(entity?.metadata["seriesName"]).toBe("My Series");
+      } finally {
+        await eventCtx.cleanup();
+        MessageBus.resetInstance();
+      }
     });
   });
 

@@ -175,48 +175,51 @@ const libraryEntries = [
   },
 ] as const;
 
-function emitLibraryDeclarations(): void {
+async function emitLibraryDeclarations(): Promise<void> {
   const declarationOutDir = mkdtempSync(join(tmpdir(), "brain-cli-dts-"));
   try {
-    for (const entry of libraryEntries) {
-      if (entry.name === "site") {
-        cpSync(
-          join(packageDir, "src", "types", "site.d.ts"),
-          join(outdir, "site.d.ts"),
-        );
-        continue;
-      }
+    await Promise.all(
+      libraryEntries.map(async (entry) => {
+        if (entry.name === "site") {
+          cpSync(
+            join(packageDir, "src", "types", "site.d.ts"),
+            join(outdir, "site.d.ts"),
+          );
+          return;
+        }
 
-      const result = Bun.spawnSync(
-        [
-          "bun",
-          "x",
-          "rollup",
-          "-c",
-          join(import.meta.dir, "bundle-declarations.mjs"),
-        ],
-        {
-          cwd: packageDir,
-          env: {
-            ...process.env,
-            INPUT: entry.source,
-            OUTPUT: join(declarationOutDir, `${entry.name}.d.ts`),
+        const proc = Bun.spawn(
+          [
+            "bun",
+            "x",
+            "rollup",
+            "-c",
+            join(import.meta.dir, "bundle-declarations.mjs"),
+          ],
+          {
+            cwd: packageDir,
+            env: {
+              ...process.env,
+              INPUT: entry.source,
+              OUTPUT: join(declarationOutDir, `${entry.name}.d.ts`),
+            },
+            stdout: "inherit",
+            stderr: "inherit",
           },
-          stdout: "inherit",
-          stderr: "inherit",
-        },
-      );
+        );
+        const exitCode = await proc.exited;
 
-      if (result.exitCode !== 0) {
-        console.error(`Declaration generation failed for '${entry.name}'`);
-        process.exit(1);
-      }
+        if (exitCode !== 0) {
+          console.error(`Declaration generation failed for '${entry.name}'`);
+          process.exit(1);
+        }
 
-      cpSync(
-        join(declarationOutDir, `${entry.name}.d.ts`),
-        join(outdir, `${entry.name}.d.ts`),
-      );
-    }
+        cpSync(
+          join(declarationOutDir, `${entry.name}.d.ts`),
+          join(outdir, `${entry.name}.d.ts`),
+        );
+      }),
+    );
 
     for (const entry of libraryEntries) {
       const declarationPath = join(outdir, `${entry.name}.d.ts`);
@@ -252,8 +255,8 @@ const libraryBuilds = libraryEntries.map((entry) =>
   }),
 );
 
-await Promise.all([cliBuild, ...libraryBuilds]);
-emitLibraryDeclarations();
+// Declarations only need source files; run them concurrently with bundling.
+await Promise.all([cliBuild, ...libraryBuilds, emitLibraryDeclarations()]);
 
 // ─── Copy migrations ──────────────────────────────────────────────────────
 

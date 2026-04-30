@@ -93,6 +93,7 @@ describe("DigestHandler", () => {
         sessionId: "session-123",
         interfaceType: "cli",
         channelId: "cli-terminal",
+        channelName: "CLI Terminal",
         startedAt: "2025-01-01T00:00:00Z",
         lastActiveAt: "2025-01-01T00:00:00Z",
         metadata: { channelName: "CLI Terminal" },

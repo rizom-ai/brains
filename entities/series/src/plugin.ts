@@ -28,6 +28,7 @@ const seriesProjectionJobDataSchema = z.discriminatedUnion("mode", [
     mode: z.literal("source"),
     entityId: z.string(),
     entityType: z.string(),
+    seriesName: z.string(),
   }),
 ]);
 
@@ -95,29 +96,35 @@ export class SeriesPlugin extends EntityPlugin<Series> {
           jobOptions: this.getSyncProjectionJobOptions("initial-sync"),
         },
         sourceChange: {
+          // Stays "*" because seriesName is opt-in metadata that any entity
+          // type can carry — we filter per-event below by inspecting the
+          // entity itself rather than its type.
           sourceTypes: ["*"],
           events: ["entity:created", "entity:updated", "entity:deleted"],
           requireInitialSync: true,
           jobData: (payload): SeriesProjectionJobData | null => {
             if (payload.entityType === "series") return null;
-            if (!payload.entity) {
-              return { mode: "derive", reason: "entity-deleted" };
+            // Both create/update and (since entity-mutations.deleteEntity now
+            // attaches the prior entity) delete events carry payload.entity.
+            // No seriesName → not relevant to this projection, skip.
+            if (!payload.entity || !this.hasSeriesName(payload.entity)) {
+              return null;
             }
-            if (!this.hasSeriesName(payload.entity)) return null;
+            const seriesName = payload.entity.metadata.seriesName;
             return {
               mode: "source",
               entityId: payload.entity.id,
               entityType: payload.entity.entityType,
+              seriesName,
             };
           },
           jobOptions: (
             payload,
-          ): ReturnType<SeriesPlugin["getSyncProjectionJobOptions"]> => {
-            if (!payload.entity) {
-              return this.getSyncProjectionJobOptions("entity-deleted");
-            }
-            if (!this.hasSeriesName(payload.entity)) {
-              return this.getSyncProjectionJobOptions("source-without-series");
+          ):
+            | ReturnType<SeriesPlugin["getSourceProjectionJobOptions"]>
+            | undefined => {
+            if (!payload.entity || !this.hasSeriesName(payload.entity)) {
+              return undefined;
             }
             return this.getSourceProjectionJobOptions(payload.entity);
           },
@@ -152,6 +159,10 @@ export class SeriesPlugin extends EntityPlugin<Series> {
         );
         if (source) {
           await this.projectSource(source);
+        } else {
+          // Source no longer exists — this was a delete event. Targeted
+          // cleanup of just this series is much cheaper than a full resync.
+          await this.requireManager().cleanupOrphanedSeries(parsed.seriesName);
         }
         return { success: true };
       },

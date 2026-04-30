@@ -143,7 +143,7 @@ export async function deriveSkills(
       Bun.deepEquals(existing.metadata, skill) &&
       existing.content === adapter.createSkillContent(skill),
     deleteStale: options?.replaceAll ?? false,
-    deleteConcurrency: 1,
+    concurrency: 1,
     logger,
   });
 

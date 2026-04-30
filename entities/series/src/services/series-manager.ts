@@ -127,7 +127,7 @@ export class SeriesManager {
     this.logger.debug(`Created series: ${seriesName}`);
   }
 
-  private async cleanupOrphanedSeries(seriesName: string): Promise<void> {
+  async cleanupOrphanedSeries(seriesName: string): Promise<void> {
     const seriesId = slugify(seriesName);
     const series = await this.entityService.getEntity<Series>(
       "series",

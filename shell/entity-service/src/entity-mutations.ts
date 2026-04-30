@@ -245,10 +245,19 @@ export class EntityMutations {
    * Delete an entity by type and ID
    */
   public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+    // Fetch prior entity so subscribers can gate on its metadata (e.g. the
+    // `seriesName` field that drives the series projection). Without this,
+    // every delete forces subscribers into a full resync because they can't
+    // tell whether the deleted entity was relevant to them.
+    const priorData = await this.entityQueries.getEntityData(entityType, id);
+    const prior = priorData
+      ? ((await this.entitySerializer.convertToEntity(priorData)) ?? undefined)
+      : undefined;
+
     const deleted = await this.entityQueries.deleteEntity(entityType, id);
 
     if (deleted) {
-      await this.emitEntityEvent("entity:deleted", entityType, id);
+      await this.emitEntityEvent("entity:deleted", entityType, id, prior);
     }
 
     return deleted;

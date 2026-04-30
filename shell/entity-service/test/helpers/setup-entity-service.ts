@@ -5,6 +5,7 @@ import {
   createMockJobQueueService,
 } from "@brains/test-utils";
 import type { IJobQueueService } from "@brains/job-queue";
+import type { MessageBus } from "@brains/messaging-service";
 import type {
   EntityDbConfig,
   EntityAdapter,
@@ -39,6 +40,7 @@ interface EntityTypeRegistration {
  */
 export async function setupEntityService(
   registrations: EntityTypeRegistration[],
+  options?: { messageBus?: MessageBus },
 ): Promise<EntityServiceTestContext> {
   EntityService.resetInstance();
   EntityRegistry.resetInstance();
@@ -66,6 +68,7 @@ export async function setupEntityService(
     jobQueueService: mockJobQueueService,
     dbConfig: testDb.config,
     embeddingDbConfig: testDb.embeddingConfig,
+    ...(options?.messageBus && { messageBus: options.messageBus }),
   });
 
   const cleanup = async (): Promise<void> => {

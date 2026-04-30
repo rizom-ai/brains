@@ -296,7 +296,7 @@ describe("derived entity projections", () => {
         existing.content === `content:${desired.id}` &&
         (existing.metadata as { name?: string }).name === desired.name,
       deleteStale: true,
-      deleteConcurrency: 1,
+      concurrency: 1,
     });
 
     expect(result).toEqual({

@@ -1,27 +1,57 @@
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import dts from "rollup-plugin-dts";
 
 const root = resolve(import.meta.dirname, "../../..");
 
-const aliases = new Map([
-  ["@brains/app/contracts/brain-definition", resolve(root, "shell/app/src/contracts/brain-definition.ts")],
-  ["@brains/app", resolve(root, "shell/app/src/brain-definition.ts")],
-  ["@brains/entity-service", resolve(root, "shell/entity-service/src/index.ts")],
-  ["@brains/templates", resolve(root, "shell/templates/src/index.ts")],
-  ["@brains/utils", resolve(root, "shared/utils/src/index.ts")],
-  ["@brains/theme-base", resolve(root, "shared/theme-base/src/index.ts")],
-  ["@brains/plugins/contracts/agent", resolve(root, "shell/plugins/src/contracts/agent.ts")],
-  ["@brains/plugins/contracts/app-info", resolve(root, "shell/plugins/src/contracts/app-info.ts")],
-  ["@brains/plugins/contracts/conversations", resolve(root, "shell/plugins/src/contracts/conversations.ts")],
-  ["@brains/plugins/contracts/identity", resolve(root, "shell/plugins/src/contracts/identity.ts")],
-  ["@brains/plugins/contracts/messaging", resolve(root, "shell/plugins/src/contracts/messaging.ts")],
-  ["@brains/plugins/contracts/routes", resolve(root, "shell/plugins/src/types/routes.ts")],
-  ["@brains/plugins/contracts/api-routes", resolve(root, "shell/plugins/src/types/api-routes.ts")],
-  ["@brains/plugins/contracts/web-routes", resolve(root, "shell/plugins/src/types/web-routes.ts")],
-  ["@brains/plugins/contracts/daemons", resolve(root, "shell/plugins/src/manager/daemon-types.ts")],
-  ["@brains/plugins/services/base-entity-datasource", resolve(root, "shell/plugins/src/service/base-entity-datasource.ts")],
-  ["@brains/plugins/public/plugin-api", resolve(root, "shell/plugins/src/public/plugin-api.ts")],
+// Source-of-truth mapping from npm name → workspace dir. Subpath aliases come
+// from each package.json's `exports`, so adding/renaming a public subpath only
+// requires editing that package.
+const publicPackages = [
+  { name: "@brains/app", dir: "shell/app" },
+  { name: "@brains/entity-service", dir: "shell/entity-service" },
+  { name: "@brains/templates", dir: "shell/templates" },
+  { name: "@brains/utils", dir: "shared/utils" },
+  { name: "@brains/theme-base", dir: "shared/theme-base" },
+  { name: "@brains/plugins", dir: "shell/plugins" },
+];
+
+// Subpaths that exist for runtime/tooling reasons but must not be inlined into
+// the public .d.ts surface.
+const excludedSubpaths = new Set([
+  "./test",
+  "./migrate",
+  "./hash",
+  "./origin-ca",
+  "./types",
 ]);
+
+function resolveExportTarget(target) {
+  if (typeof target === "string") return target;
+  if (target && typeof target === "object") {
+    return target.types ?? target.default ?? null;
+  }
+  return null;
+}
+
+function buildAliases() {
+  const aliases = new Map();
+  for (const { name, dir } of publicPackages) {
+    const pkgPath = resolve(root, dir, "package.json");
+    const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
+    const exportsField = pkg.exports ?? {};
+    for (const [subpath, target] of Object.entries(exportsField)) {
+      if (excludedSubpaths.has(subpath)) continue;
+      const file = resolveExportTarget(target);
+      if (!file) continue;
+      const alias = subpath === "." ? name : `${name}${subpath.slice(1)}`;
+      aliases.set(alias, resolve(root, dir, file));
+    }
+  }
+  return aliases;
+}
+
+const aliases = buildAliases();
 
 export default {
   input: process.env.INPUT,

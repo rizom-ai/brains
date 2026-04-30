@@ -155,6 +155,11 @@ export class TopicsPlugin extends EntityPlugin<
   private createTopicProjectionHandler(
     context: EntityPluginContext,
   ): JobHandler<string, TopicProjectionJobData, unknown> {
+    const extractionHandler = new TopicExtractionHandler(context, this.logger);
+    const progressReporter = ProgressReporter.from(async () => {});
+    if (!progressReporter) {
+      throw new Error("Failed to create progress reporter");
+    }
     return {
       process: async (data): Promise<unknown> => {
         if (data.mode === "derive") {
@@ -172,12 +177,7 @@ export class TopicsPlugin extends EntityPlugin<
         );
         if (!entity) return { success: false, topicsExtracted: 0 };
 
-        const progressReporter = ProgressReporter.from(async () => {});
-        if (!progressReporter) {
-          throw new Error("Failed to create progress reporter");
-        }
-        const handler = new TopicExtractionHandler(context, this.logger);
-        return handler.process(
+        return extractionHandler.process(
           {
             entityId: data.entityId,
             entityType: data.entityType,

@@ -161,6 +161,9 @@ export interface ReconcileDerivedEntitiesOptions<
   toEntityInput: (desired: TDesired, id: string) => EntityInput<TEntity>;
   equals?: (existing: TEntity, desired: TDesired) => boolean;
   deleteStale?: boolean;
+  /** Bounded concurrency for create/update/delete. Default 1 — derivation usually fans out DB mutations and message-bus side effects. */
+  concurrency?: number;
+  /** @deprecated Use concurrency. */
   deleteConcurrency?: number;
   logger?: Logger;
 }
@@ -183,7 +186,8 @@ export async function reconcileDerivedEntities<
   toEntityInput,
   equals,
   deleteStale = false,
-  deleteConcurrency = 1,
+  concurrency,
+  deleteConcurrency,
   logger,
 }: ReconcileDerivedEntitiesOptions<
   TDesired,
@@ -203,9 +207,14 @@ export async function reconcileDerivedEntities<
   let deleted = 0;
   let skipped = 0;
 
+  const mutationConcurrency = Math.max(
+    1,
+    concurrency ?? deleteConcurrency ?? 1,
+  );
+
   if (deleteStale) {
     const stale = existing.filter((entity) => !desiredById.has(entity.id));
-    await runBounded(stale, Math.max(1, deleteConcurrency), async (entity) => {
+    await runBounded(stale, mutationConcurrency, async (entity) => {
       await context.entityService.deleteEntity(targetType, entity.id);
       deleted++;
     });
