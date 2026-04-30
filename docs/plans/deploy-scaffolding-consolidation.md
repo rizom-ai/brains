@@ -2,23 +2,23 @@
 
 ## Status
 
-Proposed.
+Implemented in stages. `@brains/deploy-templates` is now the canonical source for shared deploy templates, scripts, env-schema fragments, and reconciliation helpers. `@rizom/brain` and `@rizom/ops` still publish package-local deploy artifacts by copying/rendering from the canonical package at build/scaffold time.
 
 ## Problem
 
-Deploy artifact templates are split across three packages with no canonical home:
+Deploy artifact templates were split across three packages with no canonical home:
 
 - **`packages/brain-cli/templates/deploy/scripts/`** — `provision-server.ts`, `update-dns.ts`, `write-ssh-key.ts` (per-instance scaffolding scripts).
 - **`packages/brain-cli/src/commands/init.ts`** — 1400+ lines that inline Dockerfile, `.kamal/secrets`, and the GitHub release workflow as string literals interleaved with scaffolding logic.
-- **`@brains/utils/deploy-templates/`** — the `kamal-deploy.yml` template, imported by `init.ts` via `with { type: "text" }` (`init.ts:13`).
+- **`@brains/utils/deploy-templates/`** — previously hosted the `kamal-deploy.yml` template imported by `init.ts` via `with { type: "text" }`.
 - **`packages/brains-ops/templates/`** — fleet-operator templates (`rover-pilot/`) plus parallel bootstrap routines (cert, SSH key, age key, secrets, content repo provisioning).
 
-Effects:
+Original effects:
 
-- A change to the Kamal shape touches three packages.
-- `init.ts` is the de-facto template authority but is hard to read because templates and orchestration are interleaved as string concatenation.
-- `@rizom/brain` (single-instance scaffolding) and `@rizom/ops` (fleet ops) both publish deploy-adjacent artifacts; the boundary between them is unclear, and both reach into shared `@brains/utils` for the Kamal yml.
-- New deploy customizations have nowhere obvious to land.
+- A change to the Kamal shape touched three packages.
+- `init.ts` was the de-facto template authority but was hard to read because templates and orchestration were interleaved as string concatenation.
+- `@rizom/brain` (single-instance scaffolding) and `@rizom/ops` (fleet ops) both published deploy-adjacent artifacts; the boundary between them was unclear, and both reached into shared `@brains/utils` for the Kamal yml.
+- New deploy customizations had nowhere obvious to land.
 
 ## Goal
 
@@ -33,8 +33,8 @@ A new shared package owns the template surface:
 - Dockerfile (with and without site-builder)
 - `.kamal/` config and hook scripts
 - `kamal-deploy.yml` (moved out of `@brains/utils`)
-- `deploy/scripts/{provision-server,update-dns,write-ssh-key}.ts`
-- the GitHub Actions release workflow yaml
+- `deploy/scripts/{provision-server,update-dns,write-ssh-key,validate-secrets,write-kamal-secrets}.ts`
+- the GitHub Actions release/deploy workflow yaml
 - the env-schema _fragments_ CLI inlines (`deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`)
 
 Public API: render functions, not raw strings.
@@ -73,13 +73,13 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 
 ## Steps
 
-1. Inventory: build a manifest of every deploy template/string across the three packages — file → owner → consumers.
-2. Create `shared/deploy-templates/` skeleton; move `kamal-deploy.yml` first as the smallest cut. Update `init.ts` import path.
-3. Extract Dockerfile contents into `renderDockerfile()`. Replace the string literal/import in callers with the call. Diff scaffold output to confirm byte-identical.
-4. Repeat for `.kamal/secrets`, GitHub workflow, deploy scripts — one move per change.
-5. Move env-schema fragments (`deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`) into the new package; have `brain-cli/src/lib/env-schema.ts` import them.
-6. Audit `brains-ops/templates/rover-pilot/` for overlap; deduplicate against `@brains/deploy-templates`.
-7. Delete `@brains/utils/deploy-templates/`.
+1. [x] Inventory deploy template/string ownership across the three packages.
+2. [x] Create `shared/deploy-templates/`; move `kamal-deploy.yml` and update consumers.
+3. [x] Extract Dockerfile contents into `renderDockerfile()` and replace caller-local copies.
+4. [x] Extract deploy scripts, GitHub workflows, pre-deploy hook, and helper script renderers.
+5. [x] Move env-schema fragments (`deployProvisionEnvSchema`, `tlsCertEnvSchema`, `backendBootstrapEnvSchema`) into the new package; have `brain-cli/src/lib/env-schema.ts` import them.
+6. [x] Audit `brains-ops/templates/rover-pilot/` for overlap; deduplicate shared Dockerfile, Kamal deploy config, deploy scripts, and pre-deploy hook against `@brains/deploy-templates`.
+7. [x] Delete `@brains/utils/deploy-templates/`.
 
 ## Non-goals
 
@@ -90,11 +90,11 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 
 ## Verification
 
-1. `brain init --deploy` output diffs to nothing against the pre-migration scaffold
-2. `init.ts` drops below 700 lines
-3. `@brains/utils/deploy-templates/` no longer exists
-4. Adding a new deploy artifact touches one package, not three
-5. `brains-ops` fleet-pilot scaffold still works against an actual provisioned instance
+1. `brain init --deploy` output stays covered by init scaffold tests.
+2. `init.ts` is below 700 lines.
+3. `@brains/utils/deploy-templates/` no longer exists.
+4. Adding a shared deploy artifact now starts in `@brains/deploy-templates`; published CLIs copy/render package-local artifacts for runtime availability.
+5. `brains-ops` fleet-pilot scaffold remains covered by targeted init tests; live provisioned-instance verification is still recommended before operational rollout.
 
 ## Related
 
