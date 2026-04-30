@@ -1,10 +1,12 @@
 import { describe, it, expect } from "bun:test";
 import {
   registerOverridePackages,
+  getPackage,
+  hasPackage,
+  registerPackage,
+  type InstanceOverrides,
   type PackageImportFn,
-} from "../src/lib/register-override-packages";
-import type { InstanceOverrides } from "@brains/app";
-import { getPackage, hasPackage, registerPackage } from "@brains/app";
+} from "@brains/app";
 
 /**
  * Regression guard for the bug where the published `@rizom/brain`

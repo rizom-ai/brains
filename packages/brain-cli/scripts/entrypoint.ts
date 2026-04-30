@@ -46,9 +46,8 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
     InstanceOverridesParseError,
     App,
     handleCLI,
+    registerOverridePackages,
   } = await import("@brains/app");
-  const { registerOverridePackages } =
-    await import("../src/lib/register-override-packages");
   const { registerConventionalSiteTheme } =
     await import("../src/lib/register-conventional-site-theme");
 

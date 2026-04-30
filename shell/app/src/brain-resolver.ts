@@ -420,16 +420,15 @@ function resolveExternalPluginFactory(
     return pkg as PluginFactory;
   }
 
-  if (
-    pkg &&
-    typeof pkg === "object" &&
-    typeof (pkg as { plugin?: unknown }).plugin === "function"
-  ) {
-    return (pkg as { plugin: PluginFactory }).plugin;
+  if (pkg && typeof pkg === "object") {
+    const namedPlugin = (pkg as { plugin?: unknown }).plugin;
+    if (typeof namedPlugin === "function") {
+      return namedPlugin as PluginFactory;
+    }
   }
 
   throw new Error(
-    `External plugin package "${packageName}" for plugins.${pluginId} must export a plugin factory as default or named "plugin".`,
+    `External plugin package "${packageName}" for plugins.${pluginId} must export a plugin factory as the package default or as a named "plugin" export.`,
   );
 }
 

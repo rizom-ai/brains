@@ -11,8 +11,7 @@ import {
 import { registerConventionalSiteTheme } from "./register-conventional-site-theme";
 import type { InstanceOverrides } from "./instance-overrides";
 import type { BrainDefinition } from "./brain-definition";
-import { registerPackage } from "./package-registry";
-import { collectOverridePackageRefs } from "./override-package-refs";
+import { registerOverridePackages } from "./register-override-packages";
 import { internal } from "varlock";
 
 /**
@@ -75,30 +74,6 @@ async function loadBrainDefinition(
 }
 
 /**
- * Dynamically import all @-prefixed package references from brain.yaml
- * overrides and register them in the package registry.
- *
- * Covers top-level keys (site) and plugin config values.
- */
-async function registerPackageRefs(
-  overrides: InstanceOverrides,
-): Promise<void> {
-  const refs = collectOverridePackageRefs(overrides);
-
-  await Promise.all(
-    refs.map(async (ref) => {
-      try {
-        const mod = await import(ref);
-        registerPackage(ref, mod.default ?? mod);
-      } catch {
-        // TODO: Use a bootstrap logger instead of console (logger isn't available yet)
-        console.error(`❌ brain.yaml: failed to import package "${ref}"`);
-      }
-    }),
-  );
-}
-
-/**
  * Main entry point for the `brains` CLI.
  *
  * Reads brain.yaml → validates env → imports brain definition → resolves with overrides → runs.
@@ -134,8 +109,7 @@ async function main(): Promise<void> {
 
   const definition = await loadBrainDefinition(brainPackage);
 
-  // Pre-register @-prefixed package references from plugin overrides
-  await registerPackageRefs(overrides);
+  await registerOverridePackages(overrides);
 
   const effectiveOverrides = await registerConventionalSiteTheme(
     process.cwd(),

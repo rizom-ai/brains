@@ -1,9 +1,6 @@
-import type { InstanceOverrides } from "@brains/app";
-import {
-  collectOverridePackageRefs,
-  hasPackage,
-  registerPackage,
-} from "@brains/app";
+import type { InstanceOverrides } from "./instance-overrides";
+import { collectOverridePackageRefs } from "./override-package-refs";
+import { hasPackage, registerPackage } from "./package-registry";
 
 /**
  * Import function signature used to resolve `@-prefixed` package
@@ -16,19 +13,12 @@ export type PackageImportFn = (
 
 /**
  * Walk the brain.yaml overrides for `@scope/name` package references
- * (`site.package`, plugin config values) and register each one in the
- * package registry so `resolve()` can look them up.
- *
- * The dev runner in `shell/app/src/runner.ts` does the same thing;
- * the published `@rizom/brain` entrypoint used to skip this step
- * entirely, which meant brain.yaml overrides like `site.package:
- * "@brains/site-mylittlephoney"` silently fell back to the brain
- * definition's default site. This function is the shared
- * implementation wired into both paths.
+ * (`site.package`, plugin config values, external plugin packages)
+ * and register each one in the package registry so `resolve()` can
+ * look them up.
  *
  * Errors importing a referenced package are logged to stderr and
- * skipped — the caller proceeds with whatever did resolve. This
- * matches the dev runner's behavior.
+ * skipped — the caller proceeds with whatever did resolve.
  */
 export async function registerOverridePackages(
   overrides: InstanceOverrides,
