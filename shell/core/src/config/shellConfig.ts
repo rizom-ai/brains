@@ -10,8 +10,8 @@ import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { mkdir } from "fs/promises";
 
 export const STANDARD_PATHS = {
-  dataDir: "./data",
-  cacheDir: "./cache",
+  dataDir: process.env["XDG_DATA_HOME"] ?? "./data",
+  cacheDir: process.env["XDG_CACHE_HOME"] ?? "./cache",
   distDir: "./dist",
 } as const;
 

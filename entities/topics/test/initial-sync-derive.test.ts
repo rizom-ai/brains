@@ -1,14 +1,37 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
 
+function installWithJobQueue(): {
+  harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>;
+  plugin: TopicsPlugin;
+  enqueue: ReturnType<typeof mock>;
+  registerHandler: ReturnType<typeof mock>;
+} {
+  const harness = createPluginHarness<TopicsPlugin>({});
+  const enqueue = mock(async () => "job-1");
+  const registerHandler = mock(() => {});
+
+  harness.getMockShell().getJobQueueService = (): never =>
+    ({
+      enqueue,
+      registerHandler,
+      getActiveJobs: async () => [],
+      getActiveBatches: async () => [],
+      getBatchStatus: async () => null,
+      getStatus: async () => null,
+    }) as never;
+
+  const plugin = new TopicsPlugin({
+    enableAutoExtraction: true,
+    includeEntityTypes: ["post"],
+  });
+  return { harness, plugin, enqueue, registerHandler };
+}
+
 describe("Initial sync triggers batch deriveAll", () => {
-  it("should run deriveAll after sync:initial:completed", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
-    const plugin = new TopicsPlugin({
-      enableAutoExtraction: true,
-      includeEntityTypes: ["post"],
-    });
+  it("should queue deriveAll after sync:initial:completed", async () => {
+    const { harness, plugin, enqueue, registerHandler } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
 
@@ -22,6 +45,20 @@ describe("Initial sync triggers batch deriveAll", () => {
 
     expect(plugin.hasRunInitialDerivation()).toBe(true);
     expect(plugin.isAutoExtractionEnabled()).toBe(true);
+    expect(registerHandler).toHaveBeenCalledWith(
+      "topic:extract",
+      expect.any(Object),
+      "topics",
+    );
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith(
+      "topics:extract",
+      { mode: "derive" },
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "topics-initial-derivation",
+      }),
+    );
 
     harness.reset();
   });
@@ -43,12 +80,8 @@ describe("Initial sync triggers batch deriveAll", () => {
     harness.reset();
   });
 
-  it("should only run deriveAll once across multiple sync events", async () => {
-    const harness = createPluginHarness<TopicsPlugin>({});
-    const plugin = new TopicsPlugin({
-      enableAutoExtraction: true,
-      includeEntityTypes: ["post"],
-    });
+  it("should only queue deriveAll once across multiple sync events", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue();
 
     await harness.installPlugin(plugin);
 
@@ -66,6 +99,33 @@ describe("Initial sync triggers batch deriveAll", () => {
       "directory-sync",
     );
     expect(plugin.hasRunInitialDerivation()).toBe(true);
+    expect(enqueue).toHaveBeenCalledTimes(1);
+
+    harness.reset();
+  });
+
+  it("should not queue initial extraction when persisted topics already exist", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue();
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-topic",
+        entityType: "topic",
+        content: "---\ntitle: Existing Topic\n---\nExisting topic",
+        metadata: { title: "Existing Topic" },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+
+    expect(plugin.hasRunInitialDerivation()).toBe(true);
+    expect(plugin.isAutoExtractionEnabled()).toBe(true);
+    expect(enqueue).not.toHaveBeenCalled();
 
     harness.reset();
   });

@@ -137,7 +137,17 @@ export class TopicsPlugin extends EntityPlugin<
 
           if (!this.initialDerivationDone) {
             this.initialDerivationDone = true;
-            await this.deriveAll(context);
+            const existingTopics =
+              await context.entityService.listEntities<TopicEntity>("topic", {
+                limit: 1,
+              });
+            if (existingTopics.length > 0) {
+              this.logger.info(
+                "Skipping initial topic extraction; topics already exist",
+              );
+              return { success: true };
+            }
+            await this.enqueueInitialDerivation(context);
           }
 
           return { success: true };
@@ -246,6 +256,22 @@ export class TopicsPlugin extends EntityPlugin<
   }
 
   // ── Private helpers ──
+
+  private async enqueueInitialDerivation(
+    context: EntityPluginContext,
+  ): Promise<void> {
+    await context.jobs.enqueue("extract", { mode: "derive" }, null, {
+      priority: 5,
+      source: "topics-plugin",
+      deduplication: "coalesce",
+      deduplicationKey: "topics-initial-derivation",
+      metadata: {
+        operationType: "data_processing" as const,
+        operationTarget: "topics-initial-derivation",
+        pluginId: "topics",
+      },
+    });
+  }
 
   private async replaceAllTopics(
     entities: BaseEntity[],

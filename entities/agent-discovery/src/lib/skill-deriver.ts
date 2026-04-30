@@ -64,7 +64,12 @@ export async function deriveSkills(
   context: EntityPluginContext,
   logger: Logger,
   options?: { replaceAll?: boolean },
-): Promise<{ created: number; deleted: number; skipped: number }> {
+): Promise<{
+  created: number;
+  updated: number;
+  deleted: number;
+  skipped: number;
+}> {
   const adapter = new SkillAdapter();
 
   const topics = await context.entityService.listEntities("topic");
@@ -80,7 +85,7 @@ export async function deriveSkills(
 
   if (topicTitles.length === 0) {
     logger.info("No topics found — skipping skill derivation");
-    return { created: 0, deleted: 0, skipped: 0 };
+    return { created: 0, updated: 0, deleted: 0, skipped: 0 };
   }
 
   // Tool descriptions could be added here when EntityPluginContext
@@ -105,51 +110,92 @@ export async function deriveSkills(
     logger.error("Skill derivation LLM call failed", {
       error: getErrorMessage(error),
     });
-    return { created: 0, deleted: 0, skipped: 0 };
+    return { created: 0, updated: 0, deleted: 0, skipped: 0 };
   }
 
-  let deleted = 0;
-  if (options?.replaceAll) {
-    const existingSkills = await context.entityService.listEntities("skill");
-    await Promise.all(
-      existingSkills.map((skill) =>
-        context.entityService.deleteEntity("skill", skill.id),
-      ),
-    );
-    deleted = existingSkills.length;
-  }
+  const desired = new Map(
+    skills.map((skill) => [generateIdFromText(skill.name), skill] as const),
+  );
+  const existingSkills = await context.entityService.listEntities("skill");
+  const existingById = new Map(
+    existingSkills.map((skill) => [skill.id, skill]),
+  );
 
   let created = 0;
+  let updated = 0;
+  let deleted = 0;
   let skipped = 0;
-  for (const skill of skills) {
-    const id = generateIdFromText(skill.name);
 
-    if (!options?.replaceAll) {
-      const existing = await context.entityService.getEntity("skill", id);
-      if (existing) {
+  // Delete only stale skills on replace-all. Keep this sequential so initial
+  // sync cannot fan out DB mutations and message-bus side effects.
+  if (options?.replaceAll) {
+    for (const existing of existingSkills) {
+      if (desired.has(existing.id)) continue;
+      await context.entityService.deleteEntity("skill", existing.id);
+      deleted++;
+    }
+  }
+
+  for (const [id, skill] of desired) {
+    const content = adapter.createSkillContent(skill);
+    const existing = existingById.get(id);
+
+    try {
+      if (!existing) {
+        await context.entityService.createEntity({
+          id,
+          entityType: "skill",
+          content,
+          metadata: skill,
+        });
+        created++;
+        continue;
+      }
+
+      if (
+        skillsEqual(existing.metadata, skill) &&
+        existing.content === content
+      ) {
         skipped++;
         continue;
       }
-    }
 
-    const content = adapter.createSkillContent(skill);
-
-    try {
-      await context.entityService.createEntity({
-        id,
-        entityType: "skill",
+      await context.entityService.updateEntity({
+        ...existing,
         content,
         metadata: skill,
       });
-      created++;
+      updated++;
     } catch (error) {
-      logger.error("Failed to create skill entity", {
+      logger.error("Failed to upsert skill entity", {
         name: skill.name,
         error: getErrorMessage(error),
       });
     }
   }
 
-  logger.info("Skill derivation complete", { created, deleted, skipped });
-  return { created, deleted, skipped };
+  logger.info("Skill derivation complete", {
+    created,
+    updated,
+    deleted,
+    skipped,
+  });
+  return { created, updated, deleted, skipped };
+}
+
+function skillsEqual(left: unknown, right: unknown): boolean {
+  return stableStringify(left) === stableStringify(right);
+}
+
+function stableStringify(value: unknown): string {
+  if (Array.isArray(value)) {
+    return `[${value.map(stableStringify).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, val]) => `${JSON.stringify(key)}:${stableStringify(val)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
 }
