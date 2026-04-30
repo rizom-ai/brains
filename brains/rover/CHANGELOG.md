@@ -1,5 +1,40 @@
 # @brains/rover
 
+## 0.2.0-alpha.47
+
+### Patch Changes
+
+- Updated dependencies [[`a37e19e`](https://github.com/rizom-ai/brains/commit/a37e19e25194f9c8def483fd9dbc68159754229a)]:
+  - @brains/site-info@0.2.0-alpha.47
+  - @brains/discord@0.2.0-alpha.47
+  - @brains/app@0.2.0-alpha.47
+  - @brains/image-plugin@0.2.0-alpha.47
+  - @brains/series@0.2.0-alpha.47
+  - @brains/site-builder-plugin@0.2.0-alpha.47
+  - @brains/blog@0.2.0-alpha.47
+  - @brains/decks@0.2.0-alpha.47
+  - @brains/link@0.2.0-alpha.47
+  - @brains/note@0.2.0-alpha.47
+  - @brains/portfolio@0.2.0-alpha.47
+  - @brains/topics@0.2.0-alpha.47
+  - @brains/newsletter@0.2.0-alpha.47
+  - @brains/cms@0.2.0-alpha.47
+  - @brains/directory-sync@0.2.0-alpha.47
+  - @brains/stock-photo@0.2.0-alpha.47
+  - @brains/agent-discovery@0.2.0-alpha.47
+  - @brains/assessment@0.2.0-alpha.47
+  - @brains/prompt@0.2.0-alpha.47
+  - @brains/social-media@0.2.0-alpha.47
+  - @brains/wishlist@0.2.0-alpha.47
+  - @brains/a2a@0.2.0-alpha.47
+  - @brains/mcp@0.2.0-alpha.47
+  - @brains/webserver@0.2.0-alpha.47
+  - @brains/analytics@0.2.0-alpha.47
+  - @brains/content-pipeline@0.2.0-alpha.47
+  - @brains/dashboard@0.2.0-alpha.47
+  - @brains/obsidian-vault@0.2.0-alpha.47
+  - @brains/site-default@0.2.0-alpha.47
+
 ## 0.2.0-alpha.46
 
 ### Patch Changes

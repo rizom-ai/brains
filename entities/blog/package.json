@@ -1,7 +1,7 @@
 {
   "name": "@brains/blog",
   "private": true,
-  "version": "0.2.0-alpha.46",
+  "version": "0.2.0-alpha.47",
   "description": "AI-powered blog post generation from existing brain content",
   "type": "module",
   "exports": {

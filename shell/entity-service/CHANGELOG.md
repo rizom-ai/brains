@@ -1,5 +1,17 @@
 # @brains/entity-service
 
+## 0.2.0-alpha.47
+
+### Patch Changes
+
+- [`a37e19e`](https://github.com/rizom-ai/brains/commit/a37e19e25194f9c8def483fd9dbc68159754229a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix startup ordering so the webserver listens before heavy initial sync and singleton defaults are only created after initial content imports have had a chance to populate existing brain-data.
+
+  This prevents cold starts with an empty runtime database from writing default anchor-profile, brain-character, or site-info entities over real markdown content, while preserving default creation for truly empty brains.
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.47
+  - @brains/job-queue@0.2.0-alpha.47
+
 ## 0.2.0-alpha.46
 
 ### Patch Changes
