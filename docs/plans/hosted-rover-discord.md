@@ -143,11 +143,9 @@ Gateway (`interfaces/chat/` + `rover-gateway` plugin):
 - handle attachments and file uploads through Chat SDK
 - thread/channel placement (DM-only here, but adapter contract is generic)
 
-## Why Vercel Chat SDK fits one half and not the other
+## Why Chat SDK is gateway-only
 
-**Gateway side: yes.** Chat SDK owns the Discord platform plumbing — webhook verification, message parsing, posting, editing, distributed locking via Redis/Postgres so multiple gateway instances don't double-process a webhook, configurable concurrency. Adapters for Slack/Teams/Matrix come for free if we add other surfaces later. This is the future-proof bet.
-
-**Gateway↔rover hop: no.** Chat SDK adapters are designed for external chat platforms — webhook signatures, platform-API calls, format conversion to/from mdast, platform thread-id encoding. Internal forwarding has none of those concerns: no webhook verification (internal trust), no platform format translation (we own both ends), no platform id encoding (we mint our own conversation ids). A "rover-forwarding" Chat SDK adapter would invent the same wire protocol we're designing here, just wrapped in adapter conventions that don't fit. And the rover side already has `MessageInterfacePlugin` — Chat SDK on top would be a redundant abstraction layer.
+Chat SDK adapters are designed for external chat platforms: webhook signatures, platform-API calls, mdast↔platform format conversion, platform thread-id encoding. The gateway↔rover hop has none of those concerns — no webhook verification (internal trust), no platform format translation (we own both ends), no platform id encoding (we mint conversation ids). A "rover-forwarding" Chat SDK adapter would invent the same wire protocol we're designing here, wrapped in adapter conventions that don't fit. The rover side already has `MessageInterfacePlugin` for chat semantics; layering Chat SDK on top would duplicate that abstraction.
 
 ## Gateway ↔ rover wire protocol
 
@@ -193,11 +191,7 @@ Auth: shared per-rover secret in env, issued by the provisioner alongside other 
 
 ## Hosted-rover input path
 
-In hosted mode, per-user rovers must **not** register their own Discord interface. Currently `brains/rover/src/index.ts:188-193` registers `DiscordInterface` directly. For hosted rovers:
-
-- remove `DiscordInterface` from the interface set (or make it conditional on environment)
-- register the new `ForwardedChatInterface` instead
-- keep `A2AInterface` registered (peer-agent calls still work)
+In hosted mode, per-user rovers do not register their own Discord interface. They register `ForwardedChatInterface` and keep `A2AInterface`. The rover provisioning toggle is captured in Open Work §5.
 
 `ForwardedChatInterface` extends `MessageInterfacePlugin` — same conversation IDs, agent service routing, confirmation flow, progress tracking, file upload validation. Only the transport differs: instead of Discord gateway socket, it listens on an internal HTTP+SSE endpoint mounted on the rover's existing webserver.
 
@@ -218,7 +212,6 @@ The simplification is "the SSE channel emits only `final` events"; the rover-sid
 - **Direct mode is unchanged.** Standalone self-hosted brains still register their own Discord interface with their own bot token — `interfaces/chat/` falls back to direct mode when no router callback is registered.
 - **Webhook impersonation** drops from the design space.
 - **Per-user Discord bot tokens** drop from hosted-fleet onboarding.
-- **No rover-side rework needed for content abstraction.** `AgentResponse` is already platform-agnostic; the gateway slots in at the existing boundary.
 
 ## Non-goals
 
