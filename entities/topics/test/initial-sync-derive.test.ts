@@ -46,7 +46,7 @@ describe("Initial sync triggers batch deriveAll", () => {
     expect(plugin.hasRunInitialDerivation()).toBe(true);
     expect(plugin.isAutoExtractionEnabled()).toBe(true);
     expect(registerHandler).toHaveBeenCalledWith(
-      "topic:extract",
+      "topics:extract",
       expect.any(Object),
       "topics",
     );
@@ -123,7 +123,10 @@ describe("Initial sync triggers batch deriveAll", () => {
       "directory-sync",
     );
 
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
+    // Flag is only set after work is enqueued — when persisted topics
+    // already exist we skip the enqueue, so the flag stays false and a
+    // future sync can still trigger derivation if topics are deleted.
+    expect(plugin.hasRunInitialDerivation()).toBe(false);
     expect(plugin.isAutoExtractionEnabled()).toBe(true);
     expect(enqueue).not.toHaveBeenCalled();
 

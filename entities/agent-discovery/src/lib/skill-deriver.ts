@@ -116,6 +116,12 @@ export async function deriveSkills(
   const desired = new Map(
     skills.map((skill) => [generateIdFromText(skill.name), skill] as const),
   );
+  if (desired.size !== skills.length) {
+    logger.info("Dropped skills with duplicate slug ids", {
+      received: skills.length,
+      unique: desired.size,
+    });
+  }
   const existingSkills = await context.entityService.listEntities("skill");
   const existingById = new Map(
     existingSkills.map((skill) => [skill.id, skill]),
@@ -131,8 +137,15 @@ export async function deriveSkills(
   if (options?.replaceAll) {
     for (const existing of existingSkills) {
       if (desired.has(existing.id)) continue;
-      await context.entityService.deleteEntity("skill", existing.id);
-      deleted++;
+      try {
+        await context.entityService.deleteEntity("skill", existing.id);
+        deleted++;
+      } catch (error) {
+        logger.error("Failed to delete stale skill entity", {
+          id: existing.id,
+          error: getErrorMessage(error),
+        });
+      }
     }
   }
 
@@ -153,7 +166,7 @@ export async function deriveSkills(
       }
 
       if (
-        skillsEqual(existing.metadata, skill) &&
+        Bun.deepEquals(existing.metadata, skill) &&
         existing.content === content
       ) {
         skipped++;
@@ -181,21 +194,4 @@ export async function deriveSkills(
     skipped,
   });
   return { created, updated, deleted, skipped };
-}
-
-function skillsEqual(left: unknown, right: unknown): boolean {
-  return stableStringify(left) === stableStringify(right);
-}
-
-function stableStringify(value: unknown): string {
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(",")}]`;
-  }
-  if (value && typeof value === "object") {
-    return `{${Object.entries(value as Record<string, unknown>)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([key, val]) => `${JSON.stringify(key)}:${stableStringify(val)}`)
-      .join(",")}}`;
-  }
-  return JSON.stringify(value);
 }

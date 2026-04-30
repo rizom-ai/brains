@@ -60,9 +60,9 @@ export class LinkService {
       try {
         const conversation =
           await this.context.conversations.get(conversationId);
-        if (conversation?.metadata) {
-          const metadata = JSON.parse(conversation.metadata);
-          label = metadata.channelName ?? conversationId;
+        const channelName = conversation?.metadata?.["channelName"];
+        if (typeof channelName === "string") {
+          label = channelName;
         }
       } catch (error) {
         this.context.logger.debug("Could not resolve conversation metadata", {

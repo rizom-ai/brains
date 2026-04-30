@@ -16,7 +16,7 @@ import packageJson from "../../package.json";
 const skillAdapter = new SkillAdapter();
 
 const skillDerivationJobDataSchema = z.object({
-  replaceAll: z.boolean().optional().default(false),
+  replaceAll: z.boolean().default(false),
   reason: z.string().optional(),
 });
 
@@ -71,7 +71,6 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
       "sync:initial:completed",
       async (): Promise<{ success: boolean }> => {
         if (!this.initialDerivationDone) {
-          this.initialDerivationDone = true;
           const existingSkills =
             await context.entityService.listEntities<SkillEntity>("skill", {
               limit: 1,
@@ -83,6 +82,7 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
             return { success: true };
           }
           await this.enqueueDerivation(context, true, "initial-sync");
+          this.initialDerivationDone = true;
         }
         return { success: true };
       },

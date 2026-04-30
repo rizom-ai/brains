@@ -136,7 +136,6 @@ export class TopicsPlugin extends EntityPlugin<
           this.enableAutoExtraction();
 
           if (!this.initialDerivationDone) {
-            this.initialDerivationDone = true;
             const existingTopics =
               await context.entityService.listEntities<TopicEntity>("topic", {
                 limit: 1,
@@ -148,6 +147,7 @@ export class TopicsPlugin extends EntityPlugin<
               return { success: true };
             }
             await this.enqueueInitialDerivation(context);
+            this.initialDerivationDone = true;
           }
 
           return { success: true };

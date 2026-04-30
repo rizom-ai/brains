@@ -108,7 +108,10 @@ describe("Skill derivation on initial sync", () => {
       "directory-sync",
     );
 
-    expect(plugin.hasRunInitialDerivation()).toBe(true);
+    // Flag is only set after work is enqueued — when persisted skills
+    // already exist we skip the enqueue, so the flag stays false and a
+    // future sync can still trigger derivation if skills are deleted.
+    expect(plugin.hasRunInitialDerivation()).toBe(false);
     expect(enqueue).not.toHaveBeenCalled();
 
     harness.reset();
