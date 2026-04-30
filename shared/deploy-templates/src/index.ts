@@ -99,6 +99,49 @@ export function renderKamalDeploy(options: KamalDeployTemplateOptions): string {
   return kamalDeployTemplate.replace("__SERVICE_NAME__", options.serviceName);
 }
 
+export const legacyStandaloneDeployYmlContents = [
+  `service: brain
+image: rizom-ai/<%= ENV['BRAIN_MODEL'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl: true
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>:80
+    - preview.<%= ENV['BRAIN_DOMAIN'] %>:81
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: rizom-ai
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - AI_API_KEY
+    - GIT_SYNC_TOKEN
+    - MCP_AUTH_TOKEN
+    - DISCORD_BOT_TOKEN
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain-dist:/app/dist
+  - /opt/brain.yaml:/app/brain.yaml
+`,
+];
+
 export const REQUIRED_DEPLOY_MOUNTS = [
   "/opt/brain-state:/data",
   "/opt/brain-config:/config",
@@ -128,5 +171,71 @@ export function isStaleDeployMounts(
     !hasAllRequiredMounts &&
     stripDeployVolumes(normalizedCurrent) ===
       stripDeployVolumes(normalizedTemplate)
+  );
+}
+
+function normalizeStandaloneDeployYmlForComparison(content: string): string {
+  return content
+    .replace(
+      /\n {2}secret:\n(?: {4}- .*\n)+\nvolumes:\n/,
+      "\n  secret:\n    - __DYNAMIC_SECRETS__\n\nvolumes:\n",
+    )
+    .replace(
+      /\n {4}- <%= ENV\['BRAIN_DOMAIN'\] %>\n {4}- [^\n]+\n {2}app_port: /,
+      "\n    - <%= ENV['BRAIN_DOMAIN'] %>\n    - __PREVIEW_HOST__\n  app_port: ",
+    );
+}
+
+function isStaleStandaloneDeployMounts(current: string): boolean {
+  return isStaleDeployMounts(
+    current,
+    "brain",
+    normalizeStandaloneDeployYmlForComparison,
+  );
+}
+
+export function matchesLegacyStandaloneDeployYml(current: string): boolean {
+  const normalized = normalizeStandaloneDeployYmlForComparison(current);
+
+  return (
+    normalized ===
+      `service: brain
+image: <%= ENV['IMAGE_REPOSITORY'] %>
+
+servers:
+  web:
+    hosts:
+      - <%= ENV['SERVER_IP'] %>
+
+proxy:
+  ssl:
+    certificate_pem: CERTIFICATE_PEM
+    private_key_pem: PRIVATE_KEY_PEM
+  hosts:
+    - <%= ENV['BRAIN_DOMAIN'] %>
+    - __PREVIEW_HOST__
+  app_port: 80
+  healthcheck:
+    path: /health
+
+registry:
+  server: ghcr.io
+  username: <%= ENV['REGISTRY_USERNAME'] %>
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+
+env:
+  clear:
+    NODE_ENV: production
+  secret:
+    - __DYNAMIC_SECRETS__
+
+volumes:
+  - /opt/brain-data:/app/brain-data
+  - /opt/brain.yaml:/app/brain.yaml
+` || isStaleStandaloneDeployMounts(current)
   );
 }
