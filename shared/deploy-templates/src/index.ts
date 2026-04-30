@@ -1,6 +1,15 @@
+import { cpSync, mkdirSync } from "fs";
+import { join } from "path";
 import { fileURLToPath } from "url";
 import dockerfileTemplate from "./Dockerfile" with { type: "text" };
 import kamalDeployTemplate from "./kamal-deploy.yml" with { type: "text" };
+export {
+  renderDeployWorkflow,
+  renderExtractBrainConfigScript,
+  renderPreDeployHook,
+  renderPublishImageWorkflow,
+} from "./scaffold";
+export type { DeployWorkflowTemplateOptions } from "./scaffold";
 
 export interface KamalDeployTemplateOptions {
   serviceName: string;
@@ -70,6 +79,16 @@ export type DeployScriptName = (typeof deployScriptNames)[number];
 
 export function resolveDeployScriptPath(scriptName: DeployScriptName): string {
   return fileURLToPath(import.meta.resolve(`./deploy-scripts/${scriptName}`));
+}
+
+export function copyDeployScripts(
+  targetDir: string,
+  scriptNames: readonly DeployScriptName[] = deployScriptNames,
+): void {
+  mkdirSync(targetDir, { recursive: true });
+  for (const script of scriptNames) {
+    cpSync(resolveDeployScriptPath(script), join(targetDir, script));
+  }
 }
 
 export function renderDockerfile(): string {

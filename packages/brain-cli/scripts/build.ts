@@ -18,44 +18,20 @@ import {
   existsSync,
   readdirSync,
 } from "fs";
-import { dirname, join } from "path";
-import { fileURLToPath } from "url";
+import { join } from "path";
+import { copyDeployScripts } from "@brains/deploy-templates";
 
 const packageDir = join(import.meta.dir, "..");
 const outdir = join(packageDir, "dist");
 mkdirSync(outdir, { recursive: true });
 
-const sharedDeployScriptsDir = dirname(
-  fileURLToPath(
-    import.meta
-      .resolve("@brains/deploy-templates/deploy-scripts/provision-server.ts"),
-  ),
-);
-const packageDeployScriptsDir = join(
-  packageDir,
-  "templates",
-  "deploy",
-  "scripts",
-);
 const packageInstanceTsConfigPath = join(packageDir, "tsconfig.instance.json");
 
-function syncDeployScripts(): void {
-  mkdirSync(packageDeployScriptsDir, { recursive: true });
-  cpSync(
-    join(sharedDeployScriptsDir, "provision-server.ts"),
-    join(packageDeployScriptsDir, "provision-server.ts"),
-  );
-  cpSync(
-    join(sharedDeployScriptsDir, "update-dns.ts"),
-    join(packageDeployScriptsDir, "update-dns.ts"),
-  );
-  cpSync(
-    join(sharedDeployScriptsDir, "write-ssh-key.ts"),
-    join(packageDeployScriptsDir, "write-ssh-key.ts"),
-  );
-}
-
-syncDeployScripts();
+copyDeployScripts(join(packageDir, "templates", "deploy", "scripts"), [
+  "provision-server.ts",
+  "update-dns.ts",
+  "write-ssh-key.ts",
+]);
 
 // ─── Find monorepo root ───────────────────────────────────────────────────
 
