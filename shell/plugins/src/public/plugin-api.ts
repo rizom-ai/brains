@@ -1,11 +1,23 @@
+import { EntityPlugin as RuntimeEntityPlugin } from "../entity/entity-plugin";
+import { InterfacePlugin as RuntimeInterfacePlugin } from "../interface/interface-plugin";
 import { ServicePlugin as RuntimeServicePlugin } from "../service/service-plugin";
 import type {
   IShell,
   PluginCapabilities,
   PluginRegistrationContext,
 } from "../interfaces";
+import type {
+  BaseEntity,
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
+  DataSource,
+  EntityAdapter,
+  EntityTypeConfig,
+} from "@brains/entity-service";
 import type { z } from "zod";
 import type { AgentNamespace } from "../contracts/agent";
+import type { WebRouteDefinition } from "../types/web-routes";
 import type { AppInfo } from "../contracts/app-info";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
@@ -207,7 +219,26 @@ export interface BasePluginContext {
 }
 
 export interface IEntitiesNamespace {
-  register(...args: unknown[]): void;
+  register<TEntity extends BaseEntity>(
+    entityType: string,
+    schema: z.ZodSchema<TEntity>,
+    adapter: EntityAdapter<TEntity>,
+    config?: EntityTypeConfig,
+  ): void;
+  getAdapter<TEntity extends BaseEntity>(
+    entityType: string,
+  ): EntityAdapter<TEntity> | undefined;
+  update<TEntity extends BaseEntity>(
+    entity: TEntity,
+  ): Promise<{ entityId: string; jobId: string }>;
+  registerDataSource(dataSource: DataSource): void;
+  registerCreateInterceptor(
+    entityType: string,
+    interceptor: (
+      input: CreateInput,
+      executionContext: CreateExecutionContext,
+    ) => Promise<CreateInterceptionResult>,
+  ): void;
 }
 
 export interface IPromptsNamespace {
@@ -237,6 +268,314 @@ export interface EntityPluginContext extends BasePluginContext {
 
 export interface InterfacePluginContext extends BasePluginContext {
   readonly agent: AgentNamespace;
+}
+
+interface EntityPluginHooks<TEntity extends BaseEntity> {
+  getEntityType(): string;
+  getSchema(): z.ZodSchema<TEntity>;
+  getAdapter(): EntityAdapter<TEntity>;
+  onRegister(context: EntityPluginContext): Promise<void>;
+  onReady(context: EntityPluginContext): Promise<void>;
+  onShutdown(): Promise<void>;
+  getEntityTypeConfig(): EntityTypeConfig | undefined;
+  getDataSources(): DataSource[];
+  getInstructions(): Promise<string | undefined>;
+  interceptCreate(
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult>;
+}
+
+class EntityPluginDelegate<
+  TEntity extends BaseEntity,
+  TConfig,
+> extends RuntimeEntityPlugin<TEntity, TConfig> {
+  constructor(
+    id: string,
+    packageJson: { name: string; version: string; description?: string },
+    config: Partial<TConfig>,
+    configSchema: z.ZodTypeAny,
+    private readonly hooks: EntityPluginHooks<TEntity>,
+  ) {
+    super(id, packageJson, config, configSchema);
+  }
+
+  override get entityType(): string {
+    return this.hooks.getEntityType();
+  }
+
+  override get schema(): z.ZodSchema<TEntity> {
+    return this.hooks.getSchema();
+  }
+
+  override get adapter(): EntityAdapter<TEntity> {
+    return this.hooks.getAdapter();
+  }
+
+  protected override onRegister(context: never): Promise<void> {
+    return this.hooks.onRegister(context as EntityPluginContext);
+  }
+
+  protected override onReady(context: never): Promise<void> {
+    return this.hooks.onReady(context as EntityPluginContext);
+  }
+
+  protected override onShutdown(): Promise<void> {
+    return this.hooks.onShutdown();
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return this.hooks.getEntityTypeConfig();
+  }
+
+  protected override getDataSources(): DataSource[] {
+    return this.hooks.getDataSources();
+  }
+
+  protected override getInstructions(): Promise<string | undefined> {
+    return this.hooks.getInstructions();
+  }
+
+  protected override interceptCreate(
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+    context: never,
+  ): Promise<CreateInterceptionResult> {
+    return this.hooks.interceptCreate(
+      input,
+      executionContext,
+      context as EntityPluginContext,
+    );
+  }
+}
+
+export abstract class EntityPlugin<
+  TEntity extends BaseEntity = BaseEntity,
+  TConfig = unknown,
+> implements Plugin {
+  public readonly type = "entity" as const;
+  public readonly id: string;
+  public readonly version: string;
+  public readonly packageName: string;
+  public readonly description?: string;
+  public abstract readonly entityType: string;
+  public abstract readonly schema: z.ZodSchema<TEntity>;
+  public abstract readonly adapter: EntityAdapter<TEntity>;
+  private readonly delegate: EntityPluginDelegate<TEntity, TConfig>;
+
+  protected constructor(
+    id: string,
+    packageJson: { name: string; version: string; description?: string },
+    config: Partial<TConfig>,
+    configSchema: z.ZodTypeAny,
+  ) {
+    this.id = id;
+    this.version = packageJson.version;
+    this.packageName = packageJson.name;
+    if (packageJson.description !== undefined) {
+      this.description = packageJson.description;
+    }
+    this.delegate = new EntityPluginDelegate(
+      id,
+      packageJson,
+      config,
+      configSchema,
+      {
+        getEntityType: (): string => this.entityType,
+        getSchema: (): z.ZodSchema<TEntity> => this.schema,
+        getAdapter: (): EntityAdapter<TEntity> => this.adapter,
+        onRegister: (context): Promise<void> => this.onRegister(context),
+        onReady: (context): Promise<void> => this.onReady(context),
+        onShutdown: (): Promise<void> => this.onShutdown(),
+        getEntityTypeConfig: (): EntityTypeConfig | undefined =>
+          this.getEntityTypeConfig(),
+        getDataSources: (): DataSource[] => this.getDataSources(),
+        getInstructions: (): Promise<string | undefined> =>
+          this.getInstructions(),
+        interceptCreate: (
+          input,
+          executionContext,
+          context,
+        ): Promise<CreateInterceptionResult> =>
+          this.interceptCreate(input, executionContext, context),
+      },
+    );
+  }
+
+  /** @internal */
+  register(
+    shell: IShell,
+    context?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    return this.delegate.register(shell, context);
+  }
+
+  protected async onRegister(_context: EntityPluginContext): Promise<void> {}
+  protected async onReady(_context: EntityPluginContext): Promise<void> {}
+  protected async onShutdown(): Promise<void> {}
+  protected async getInstructions(): Promise<string | undefined> {
+    return undefined;
+  }
+  protected getEntityTypeConfig(): EntityTypeConfig | undefined {
+    return undefined;
+  }
+  protected getDataSources(): DataSource[] {
+    return [];
+  }
+  protected async interceptCreate(
+    input: CreateInput,
+    _executionContext: CreateExecutionContext,
+    _context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    return { kind: "continue", input };
+  }
+
+  ready(): Promise<void> {
+    return this.delegate.ready();
+  }
+
+  shutdown(): Promise<void> {
+    return this.delegate.shutdown?.() ?? Promise.resolve();
+  }
+}
+
+interface InterfacePluginHooks {
+  onRegister(context: InterfacePluginContext): Promise<void>;
+  onReady(context: InterfacePluginContext): Promise<void>;
+  onShutdown(): Promise<void>;
+  getTools(): Promise<Tool[]>;
+  getResources(): Promise<Resource[]>;
+  getInstructions(): Promise<string | undefined>;
+  getWebRoutes(): WebRouteDefinition[];
+  requiresDaemonStartup(): boolean;
+}
+
+class InterfacePluginDelegate<
+  TConfig,
+  TTrackingInfo extends BaseJobTrackingInfo,
+> extends RuntimeInterfacePlugin<TConfig, TTrackingInfo> {
+  constructor(
+    id: string,
+    packageJson: { name: string; version: string; description?: string },
+    config: Partial<TConfig>,
+    configSchema: z.ZodTypeAny,
+    private readonly hooks: InterfacePluginHooks,
+  ) {
+    super(id, packageJson, config, configSchema);
+  }
+
+  protected override onRegister(context: never): Promise<void> {
+    return this.hooks.onRegister(context as InterfacePluginContext);
+  }
+
+  protected override onReady(context: never): Promise<void> {
+    return this.hooks.onReady(context as InterfacePluginContext);
+  }
+
+  protected override onShutdown(): Promise<void> {
+    return this.hooks.onShutdown();
+  }
+
+  protected override getTools(): Promise<never[]> {
+    return this.hooks.getTools() as Promise<never[]>;
+  }
+
+  protected override getResources(): Promise<never[]> {
+    return this.hooks.getResources() as Promise<never[]>;
+  }
+
+  protected override getInstructions(): Promise<string | undefined> {
+    return this.hooks.getInstructions();
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return this.hooks.getWebRoutes();
+  }
+
+  override requiresDaemonStartup(): boolean {
+    return this.hooks.requiresDaemonStartup();
+  }
+}
+
+export abstract class InterfacePlugin<
+  TConfig = unknown,
+  TTrackingInfo extends BaseJobTrackingInfo = BaseJobTrackingInfo,
+> implements Plugin {
+  public readonly type = "interface" as const;
+  public readonly id: string;
+  public readonly version: string;
+  public readonly packageName: string;
+  public readonly description?: string;
+  private readonly delegate: InterfacePluginDelegate<TConfig, TTrackingInfo>;
+
+  protected constructor(
+    id: string,
+    packageJson: { name: string; version: string; description?: string },
+    config: Partial<TConfig>,
+    configSchema: z.ZodTypeAny,
+  ) {
+    this.id = id;
+    this.version = packageJson.version;
+    this.packageName = packageJson.name;
+    if (packageJson.description !== undefined) {
+      this.description = packageJson.description;
+    }
+    this.delegate = new InterfacePluginDelegate(
+      id,
+      packageJson,
+      config,
+      configSchema,
+      {
+        onRegister: (context): Promise<void> => this.onRegister(context),
+        onReady: (context): Promise<void> => this.onReady(context),
+        onShutdown: (): Promise<void> => this.onShutdown(),
+        getTools: (): Promise<Tool[]> => this.getTools(),
+        getResources: (): Promise<Resource[]> => this.getResources(),
+        getInstructions: (): Promise<string | undefined> =>
+          this.getInstructions(),
+        getWebRoutes: (): WebRouteDefinition[] => this.getWebRoutes(),
+        requiresDaemonStartup: (): boolean => this.requiresDaemonStartup(),
+      },
+    );
+  }
+
+  /** @internal */
+  register(
+    shell: IShell,
+    context?: PluginRegistrationContext,
+  ): Promise<PluginCapabilities> {
+    return this.delegate.register(shell, context);
+  }
+
+  protected async onRegister(_context: InterfacePluginContext): Promise<void> {}
+  protected async onReady(_context: InterfacePluginContext): Promise<void> {}
+  protected async onShutdown(): Promise<void> {}
+  protected async getTools(): Promise<Tool[]> {
+    return [];
+  }
+  protected async getResources(): Promise<Resource[]> {
+    return [];
+  }
+  protected async getInstructions(): Promise<string | undefined> {
+    return undefined;
+  }
+
+  getWebRoutes(): WebRouteDefinition[] {
+    return [];
+  }
+
+  requiresDaemonStartup(): boolean {
+    return false;
+  }
+
+  ready(): Promise<void> {
+    return this.delegate.ready();
+  }
+
+  shutdown(): Promise<void> {
+    return this.delegate.shutdown?.() ?? Promise.resolve();
+  }
 }
 
 interface ServicePluginHooks {

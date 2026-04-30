@@ -24,7 +24,7 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
 }
 ```
 
-Do not import internal `@brains/*` workspaces from external plugins. Use the curated public subpaths:
+Do not import internal `@brains/*` workspaces from external plugins. `ServicePlugin`, `EntityPlugin`, and `InterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
 
 - `@rizom/brain/plugins`
 - `@rizom/brain/entities`

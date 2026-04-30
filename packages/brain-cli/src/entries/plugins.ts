@@ -1,6 +1,8 @@
 /** Curated public plugin contract surface. */
 
 export {
+  EntityPlugin,
+  InterfacePlugin,
   ServicePlugin,
   createResource,
   createTool,

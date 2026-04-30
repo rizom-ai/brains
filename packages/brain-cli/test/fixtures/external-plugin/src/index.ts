@@ -1,4 +1,6 @@
 import {
+  EntityPlugin,
+  InterfacePlugin,
   ServicePlugin,
   createTool,
   toolSuccess,
@@ -13,16 +15,49 @@ import {
   type Conversation,
   type Message,
   type MessageResponse,
+  type InterfacePluginContext,
   type MessageSender,
   type PluginFactory,
   type ServicePluginContext,
   type Tool,
 } from "@rizom/brain/plugins";
+import type {
+  BaseEntity,
+  EntityAdapter,
+  EntityTypeConfig,
+} from "@rizom/brain/entities";
+import type { WebRouteDefinition } from "@rizom/brain/interfaces";
 import { z } from "zod";
 
 interface ExamplePluginConfig {
   greeting?: string;
 }
+
+interface ExampleEntity extends BaseEntity<{ title: string }> {
+  entityType: "example";
+  metadata: { title: string };
+}
+
+const exampleEntitySchema: z.ZodSchema<ExampleEntity> = z.object({
+  id: z.string(),
+  entityType: z.literal("example"),
+  content: z.string(),
+  created: z.string(),
+  updated: z.string(),
+  metadata: z.object({ title: z.string() }),
+  contentHash: z.string(),
+});
+
+const exampleEntityAdapter: EntityAdapter<ExampleEntity, { title: string }> = {
+  entityType: "example",
+  schema: exampleEntitySchema,
+  toMarkdown: (entity) => entity.content,
+  fromMarkdown: (markdown) => ({ content: markdown }),
+  extractMetadata: (entity) => entity.metadata,
+  parseFrontMatter: (_markdown, schema) => schema.parse({ title: "Example" }),
+  generateFrontMatter: (entity) => `title: ${entity.metadata.title}`,
+  getBodyTemplate: () => "",
+};
 
 const configSchema = z.object({
   greeting: z.optional(z.string()),
@@ -45,6 +80,46 @@ const exampleSender: MessageSender<
   return response;
 };
 void exampleSender;
+
+export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
+  readonly entityType = "example";
+  readonly schema = exampleEntitySchema;
+  readonly adapter = exampleEntityAdapter;
+
+  constructor() {
+    super("example-entity", packageJson, {}, z.object({}));
+  }
+
+  protected override getEntityTypeConfig(): EntityTypeConfig {
+    return { weight: 1 };
+  }
+}
+
+export class ExampleInterfacePlugin extends InterfacePlugin {
+  constructor() {
+    super("example-interface", packageJson, {}, z.object({}));
+  }
+
+  protected override async onReady(
+    context: InterfacePluginContext,
+  ): Promise<void> {
+    const response = await context.agent.chat("hello", "fixture", {
+      interfaceType: "example",
+      userPermissionLevel: "trusted",
+    });
+    AgentResponseSchema.parse(response);
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    return [
+      {
+        path: "/example-external",
+        public: true,
+        handler: () => new Response("ok"),
+      },
+    ];
+  }
+}
 
 export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
   private readonly greeting: string;
@@ -117,7 +192,10 @@ export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
   }
 }
 
-export const plugin: PluginFactory = (config) =>
-  new ExampleExternalPlugin(config);
+export const plugin: PluginFactory = (config) => [
+  new ExampleExternalPlugin(config),
+  new ExampleEntityPlugin(),
+  new ExampleInterfacePlugin(),
+];
 
 export default plugin;
