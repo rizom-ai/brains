@@ -101,6 +101,7 @@ If `rover-pilot/` duplicates content from `@brains/deploy-templates`, replace th
 - `packages/brain-cli/src/commands/init.ts`
 - `packages/brain-cli/templates/deploy/`
 - `packages/brains-ops/templates/rover-pilot/`
-- `shared/utils/src/deploy-templates/` (current Kamal home)
+- `shared/deploy-templates/` — canonical deploy template package
+- `shared/utils/src/deploy-templates/` — former Kamal template home
 - `docs/plans/unified-http-surface.md` — adjacent Kamal/shared HTTP surface work
 - `docs/plans/env-schema-canonical.md` — shares the env-schema-fragment touch points
