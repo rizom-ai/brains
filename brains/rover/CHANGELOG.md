@@ -1,5 +1,40 @@
 # @brains/rover
 
+## 0.2.0-alpha.46
+
+### Patch Changes
+
+- Updated dependencies [[`f88e0ce`](https://github.com/rizom-ai/brains/commit/f88e0ce108a5e82aaa2412639718edd117b027cb)]:
+  - @brains/agent-discovery@0.2.0-alpha.46
+  - @brains/topics@0.2.0-alpha.46
+  - @brains/discord@0.2.0-alpha.46
+  - @brains/app@0.2.0-alpha.46
+  - @brains/blog@0.2.0-alpha.46
+  - @brains/decks@0.2.0-alpha.46
+  - @brains/link@0.2.0-alpha.46
+  - @brains/note@0.2.0-alpha.46
+  - @brains/portfolio@0.2.0-alpha.46
+  - @brains/assessment@0.2.0-alpha.46
+  - @brains/image-plugin@0.2.0-alpha.46
+  - @brains/prompt@0.2.0-alpha.46
+  - @brains/series@0.2.0-alpha.46
+  - @brains/site-info@0.2.0-alpha.46
+  - @brains/social-media@0.2.0-alpha.46
+  - @brains/wishlist@0.2.0-alpha.46
+  - @brains/a2a@0.2.0-alpha.46
+  - @brains/mcp@0.2.0-alpha.46
+  - @brains/webserver@0.2.0-alpha.46
+  - @brains/analytics@0.2.0-alpha.46
+  - @brains/cms@0.2.0-alpha.46
+  - @brains/content-pipeline@0.2.0-alpha.46
+  - @brains/dashboard@0.2.0-alpha.46
+  - @brains/directory-sync@0.2.0-alpha.46
+  - @brains/newsletter@0.2.0-alpha.46
+  - @brains/obsidian-vault@0.2.0-alpha.46
+  - @brains/site-builder-plugin@0.2.0-alpha.46
+  - @brains/stock-photo@0.2.0-alpha.46
+  - @brains/site-default@0.2.0-alpha.46
+
 ## 0.2.0-alpha.45
 
 ### Patch Changes

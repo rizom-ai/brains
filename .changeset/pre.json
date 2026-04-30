@@ -88,7 +88,8 @@
     "@brains/cms": "0.2.0-alpha.29",
     "@rizom/ui": "0.2.0-alpha.34",
     "@brains/assessment": "0.2.0-alpha.39",
-    "@brains/doc": "0.2.0-alpha.42"
+    "@brains/doc": "0.2.0-alpha.42",
+    "@brains/deploy-templates": "0.2.0-alpha.45"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -144,6 +145,7 @@
     "shared-kamal-template-sync",
     "shared-preview-host-and-workspace-runtime",
     "sharp-lazy-load",
+    "skill-derivation-backpressure",
     "smoke-a2a-root-caddy-fallback",
     "ssh-key-bootstrap-and-local-secret-paths",
     "standalone-deploy-bun-setup",

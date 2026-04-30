@@ -1,5 +1,18 @@
 # @brains/agent-discovery
 
+## 0.2.0-alpha.46
+
+### Patch Changes
+
+- [`f88e0ce`](https://github.com/rizom-ai/brains/commit/f88e0ce108a5e82aaa2412639718edd117b027cb) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Run initial topic and skill derivation through the job queue instead of doing heavy work inline during startup. Skill replace-all is now diff-based, unchanged skills are no longer deleted/recreated, and stale skill deletes run sequentially to avoid init-time mutation fanout and embedding-job storms. Initial topic/skill bootstrap derivation now skips when persisted derived entities already exist. Standard state database paths now honor `XDG_DATA_HOME` so container `/data` mounts are used by default.
+
+- Updated dependencies []:
+  - @brains/dashboard@0.2.0-alpha.46
+  - @brains/ui-library@0.2.0-alpha.46
+  - @brains/utils@0.2.0-alpha.46
+  - @brains/plugins@0.2.0-alpha.46
+  - @brains/templates@0.2.0-alpha.46
+
 ## 0.2.0-alpha.45
 
 ### Patch Changes
