@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the legacy `packages/brain-cli/src/types/site.d.ts` surface has been replaced by a curated generated site entry. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
+Core decisions made. Declaration generation is wired for published subpaths, public declarations are generated from curated source entries/contracts, and the former site hand-stub has been replaced by a curated generated site entry. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
 
 ## Problem
 
@@ -31,13 +31,13 @@ Declaration-generation infrastructure is in place. Do **not** expand, redesign, 
 
 This slice is complete when:
 
-- `packages/brain-cli/src/types/` is gone for plugin-author subpaths that have moved to generated declarations.
+- the legacy source type-stub directory is gone.
 - `packages/brain-cli/src/entries/*.ts` are the public API source files for generated `@rizom/brain` subpaths.
 - the build emits declarations from those real source files.
 - generated/published declarations contain no `@brains/*` imports.
 - the package-local external plugin fixture typechecks against the generated/published plugin contract surface only.
 
-Current first pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` have been added back through real public wrappers with generated declarations. `MessageInterfacePlugin` is exposed as optional sugar over `InterfacePlugin`, not as a replacement for non-chat interfaces.
+Current pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are exposed through real public wrappers with generated declarations. `MessageInterfacePlugin` is exposed as optional sugar over `InterfacePlugin`, not as a replacement for non-chat interfaces.
 
 If generation exposes leaks or unusable types, shrink the entry export surface. Do not replace generated declarations with handwritten interfaces, casts, broad `unknown` placeholders, or copied `.d.ts` blocks.
 
@@ -45,7 +45,7 @@ If generation exposes leaks or unusable types, shrink the entry export surface. 
 
 The iterative shape:
 
-1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove `packages/brain-cli/src/types/*.d.ts` for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. The site surface now follows the same pattern through a curated entry that keeps plugin instances and route internals opaque.
+1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove source `.d.ts` stubs for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. The site surface now follows the same pattern through a curated entry that keeps plugin instances and route internals opaque.
 
 2. **Expose less first.** When generation reveals internal leakage (imports of `@brains/*`, transitive type graphs), the answer is to **shrink what `entries/*.ts` re-exports**, not to patch the generated output. For the first clean pass, prefer contracts-only exports over wholesale `@brains/plugins` re-exports.
 
@@ -70,11 +70,11 @@ The iterative shape:
 ## Open work
 
 - **Generation mechanism follow-through.** Keep declaration bundling as the source of published `.d.ts` output. Constraint: published `.d.ts` is self-contained (no `@brains/*` imports) and matches what the schemas/contracts declare.
-- **Next context surface.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
+- **Next context surface.** Daemon registration, tool registration, route registration, or another. Add only when a concrete external plugin need justifies expanding the contract.
 
 ## Acceptance criteria
 
-- Migrated plugin-author subpaths no longer have files in `packages/brain-cli/src/types/`; `site` declarations are generated from the curated public entry.
+- Public subpaths no longer have source type stubs; declarations are generated from curated public entries.
 - Generated/published declarations contain no `@brains/*` import paths.
 - The external plugin fixture (`packages/brain-cli/test/fixtures/external-plugin/`) typechecks against the published surface only.
 - A CI check fails if generated declarations diverge from source-of-truth (or, equivalently, generation is part of the build and there are no committed declarations to drift against).

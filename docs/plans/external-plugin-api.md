@@ -33,7 +33,7 @@ The §0 audit lives in this plan, not a separate document. Record each decision 
 | Registration model                 | Keep a documented hybrid. Use class methods/properties for static declarations auto-registered at boot; use `context.*.register()` for dynamic registration or explicit namespace control.                                                                                                                                                                                          | Current entity/service/site code uses both patterns. Forcing one style would create churn without simplifying external authoring enough.                                                                                                                           |
 | Cross-plugin dependencies          | Publish both composite factories and `plugin.dependencies`. Composite factories bundle capabilities that should be enabled together; `dependencies` only orders and validates already-loaded plugins. No peer-dependency autoload in v1.                                                                                                                                            | This preserves current resolver behavior and avoids surprising installs/boot-time package loading. External authors can choose bundle vs ordering contract.                                                                                                        |
 | Type-safety surface                | Keep `EntityPlugin<TEntity, TConfig>`, `ServicePlugin<TConfig>`, and `InterfacePlugin<TConfig, TTrackingInfo>`. Do not add service/interface domain generics for v1. Tighten examples around Zod config schemas and typed factory inputs instead.                                                                                                                                   | Entity plugins own a durable entity type, so entity narrowing matters. Service/interface plugins expose heterogeneous tools/routes/transports; config and tracking generics are the useful public type parameters.                                                 |
-| Versioning policy                  | During alpha, `PLUGIN_API_VERSION` tracks the published `@rizom/brain` package version. Once plugin API v1 is declared stable, it can become an independent semantic API version. External plugin packages declare a semver range in `package.json` under `rizomBrain.pluginApi`; missing or unsatisfied metadata warns during alpha.                                               | Avoids falsely claiming a stable `1.0.0` contract while the package is still alpha, while keeping a path to independent public API versioning later.                                                                                                               |
+| Versioning policy                  | During alpha, `PLUGIN_API_VERSION` tracks the published `@rizom/brain` package version and external plugin packages declare compatible `@rizom/brain` ranges with `peerDependencies`. Do not add `rizomBrain.pluginApi` metadata until the plugin API version diverges from the package version.                                                                                    | Avoids duplicating package-manager peer dependency resolution while the API marker equals the package version, while keeping a path to independent public API versioning later.                                                                                    |
 | `brain.yaml` external plugin shape | Preserve existing `plugins:` map semantics. External packages use keyed map entries with a reserved `package` field and nested `config`, not the list shape.                                                                                                                                                                                                                        | Existing docs and runtime already use `plugins:` as config overrides. A list would be incompatible and ambiguous.                                                                                                                                                  |
 
 Audit-derived implementation gates before §1 public exports:
@@ -42,12 +42,12 @@ Audit-derived implementation gates before §1 public exports:
 - Keep `IShell`, `createBasePluginContext`, `createEntityPluginContext`, `createServicePluginContext`, and `createInterfacePluginContext` out of `@rizom/brain/*` public exports.
 - Treat `MessageInterfacePlugin` as public API, but document it as optional sugar over `InterfacePlugin`.
 - Document the hybrid registration model in plugin author docs before publishing examples.
-- Define `PLUGIN_API_VERSION` and `rizomBrain.pluginApi` package metadata before enforcing compatibility for external packages.
+- `PLUGIN_API_VERSION` is published; compatibility is documented through `peerDependencies` during alpha.
 - Update both brain-yaml parsers/schemas together; do not introduce the incompatible list-form `plugins:` shape.
 
 ## Open work
 
-External developers can import the public authoring surface and declare installed plugin packages in `brain.yaml`, but compatibility checks and reference docs/plugins are still outstanding.
+External developers can import the public authoring surface and declare installed plugin packages in `brain.yaml`. Remaining work is limited to a separate-repo reference plugin after publication and optional CLI ergonomics if they materially improve installation/configuration.
 
 The work breaks into six parts. §0 is gating — publishing the surface before stabilizing the abstractions would freeze whatever shape happens to exist today and force the first real external authors to absorb breaking changes once internal review surfaces gaps.
 
@@ -93,7 +93,7 @@ Requirements:
 - each subpath has a deliberate exports contract; the build replaces workspace `@brains/*` imports with subpath-relative ones
 - internal shell-only types (`Shell`, `ShellInitializer`, `ShellBootloader`, raw service singletons, `IShell`, context factory functions) stay private
 - `.d.ts` output remains usable for external authors — no `@brains/*` paths in the published types
-- public declarations are generated from curated entry/contract source; legacy hand-written `src/types` files are not used for plugin-author or site subpaths
+- public declarations are generated from curated entry/contract source; legacy hand-written source type stubs are not used for plugin-author or site subpaths
 
 Frozen public surface contract for §1:
 
@@ -142,10 +142,6 @@ Implemented behavior:
 - support env-var interpolation in plugin config (`${VAR}`), reusing the existing override interpolation path
 - fail clearly when a declared plugin package is missing or has an invalid export shape
 
-Remaining behavior:
-
-- fail clearly when a declared plugin's API version mismatches (see §3)
-
 External package module contract:
 
 ```ts
@@ -167,7 +163,7 @@ Current behavior:
 - plugin packages declare compatible `@rizom/brain` versions with `peerDependencies`
 - plugin package versions stay in the instance `package.json`, not `brain.yaml`
 
-Deferred behavior:
+Future behavior:
 
 - add `rizomBrain.pluginApi` runtime checks only if/when the public plugin API version diverges from the package version
 - document deprecation and breaking-change policy before declaring plugin API v1 stable
