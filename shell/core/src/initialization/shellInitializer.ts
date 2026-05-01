@@ -1,23 +1,16 @@
-import { AgentService, type IAgentService } from "@brains/ai-service";
 import {
+  AgentService,
   AIService,
-  type IAIService,
-  type AIModelConfig,
+  OnlineEmbeddingProvider,
 } from "@brains/ai-service";
 import {
   ContentGenerationJobHandler,
-  ContentService as ContentServiceClass,
   knowledgeQueryTemplate,
 } from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
-import {
-  ConversationService,
-  type IConversationService,
-} from "@brains/conversation-service";
+import { ConversationService } from "@brains/conversation-service";
 import { DaemonRegistry } from "../daemon-registry";
 import { DataSourceRegistry } from "@brains/entity-service";
-import { type IEmbeddingService } from "@brains/entity-service";
-import { OnlineEmbeddingProvider } from "@brains/ai-service";
 import {
   BaseEntityFormatter,
   EntityRegistry,
@@ -40,63 +33,28 @@ import {
   JobProgressMonitor,
   JobQueueService,
   JobQueueWorker,
-  type IBatchJobManager,
   type IJobQueueService,
-  type IJobQueueWorker,
-  type JobQueueDbConfig,
 } from "@brains/job-queue";
-import { MCPService, type IMCPService } from "@brains/mcp-service";
+import { MCPService } from "@brains/mcp-service";
 import { MessageBus } from "@brains/messaging-service";
 import {
   PluginManager,
   type IShell,
   type PluginRegistrationContext,
 } from "@brains/plugins";
-import {
-  PermissionService,
-  RenderService,
-  TemplateRegistry,
-} from "@brains/templates";
-import { Logger, LogLevel, type IJobProgressMonitor } from "@brains/utils";
+import { RenderService, TemplateRegistry } from "@brains/templates";
+import type { Logger } from "@brains/utils";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
-import type { ShellDependencies } from "../types/shell-types";
-import { initializeIdentityAndAgentServices } from "./identity-agent-services";
-import { initializeJobServices } from "./job-services";
+import type { ShellDependencies, ShellServices } from "../types/shell-types";
+import { createShellServices } from "./service-factory";
+
+export type { ShellServices } from "../types/shell-types";
 
 export interface PluginInitializeOptions {
   registerOnly?: boolean;
   registrationContext?: PluginRegistrationContext;
-}
-
-/**
- * Services initialized by ShellInitializer
- */
-export interface ShellServices {
-  logger: Logger;
-  disposables: Array<() => void>;
-  entityRegistry: EntityRegistry;
-  messageBus: MessageBus;
-  renderService: RenderService;
-  daemonRegistry: DaemonRegistry;
-  pluginManager: PluginManager;
-  templateRegistry: TemplateRegistry;
-  dataSourceRegistry: DataSourceRegistry;
-  mcpService: IMCPService;
-  embeddingService: IEmbeddingService;
-  entityService: EntityService;
-  aiService: IAIService;
-  conversationService: IConversationService;
-  contentService: ContentService;
-  jobQueueService: IJobQueueService;
-  jobQueueWorker: IJobQueueWorker;
-  batchJobManager: IBatchJobManager;
-  jobProgressMonitor: IJobProgressMonitor;
-  permissionService: PermissionService;
-  identityService: BrainCharacterService;
-  profileService: AnchorProfileService;
-  agentService: IAgentService;
 }
 
 export class ShellInitializer {
@@ -212,162 +170,11 @@ export class ShellInitializer {
   }
 
   public initializeServices(dependencies?: ShellDependencies): ShellServices {
-    this.logger.debug("Initializing Shell services");
-
-    const logLevel = {
-      debug: LogLevel.DEBUG,
-      info: LogLevel.INFO,
-      warn: LogLevel.WARN,
-      error: LogLevel.ERROR,
-    }[this.config.logging.level];
-
-    const logger =
-      dependencies?.logger ??
-      Logger.createFresh({
-        level: logLevel,
-        context: this.config.logging.context,
-        format: this.config.logging.format === "json" ? "json" : "text",
-        ...(this.config.logging.file
-          ? { logFile: this.config.logging.file }
-          : {}),
-      });
-    const disposables: Array<() => void> = [];
-
-    const embeddingService =
-      dependencies?.embeddingService ??
-      OnlineEmbeddingProvider.getInstance({
-        apiKey: this.config.ai.apiKey,
-        logger,
-      });
-    const aiConfig: AIModelConfig = {
-      apiKey: this.config.ai.apiKey,
-      model: this.config.ai.model,
-      temperature: this.config.ai.temperature,
-      maxTokens: this.config.ai.maxTokens,
-      webSearch: this.config.ai.webSearch,
-      ...(this.config.ai.imageApiKey
-        ? { imageApiKey: this.config.ai.imageApiKey }
-        : {}),
-    };
-    const aiService =
-      dependencies?.aiService ?? AIService.getInstance(aiConfig, logger);
-    const entityRegistry = EntityRegistry.getInstance(logger);
-    const messageBus =
-      dependencies?.messageBus ?? MessageBus.getInstance(logger);
-    const templateRegistry =
-      dependencies?.templateRegistry ?? TemplateRegistry.getInstance(logger);
-    const dataSourceRegistry =
-      dependencies?.dataSourceRegistry ??
-      DataSourceRegistry.getInstance(logger);
-    const renderService =
-      dependencies?.renderService ??
-      RenderService.getInstance(templateRegistry);
-    const daemonRegistry =
-      dependencies?.daemonRegistry ?? DaemonRegistry.getInstance(logger);
-    const pluginManager =
-      dependencies?.pluginManager ??
-      PluginManager.getInstance(logger, daemonRegistry);
-    const permissionService =
-      dependencies?.permissionService ??
-      new PermissionService(this.config.permissions);
-    const mcpService =
-      dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
-
-    const jobQueueDbConfig: JobQueueDbConfig = {
-      url: this.config.jobQueueDatabase.url,
-      ...(this.config.jobQueueDatabase.authToken && {
-        authToken: this.config.jobQueueDatabase.authToken,
-      }),
-    };
-
-    const jobQueueService =
-      dependencies?.jobQueueService ??
-      JobQueueService.getInstance(jobQueueDbConfig, logger);
-
-    const entityService = EntityService.getInstance({
-      embeddingService,
-      entityRegistry,
-      logger,
-      jobQueueService,
-      messageBus,
-      dbConfig: {
-        url: this.config.database.url,
-        ...(this.config.database.authToken && {
-          authToken: this.config.database.authToken,
-        }),
-      },
-      embeddingDbConfig: {
-        url: this.config.embeddingDatabase.url,
-        ...(this.config.embeddingDatabase.authToken && {
-          authToken: this.config.embeddingDatabase.authToken,
-        }),
-      },
+    return createShellServices({
+      config: this.config,
+      dependencies,
+      initializerLogger: this.logger,
     });
-
-    const conversationService =
-      dependencies?.conversationService ??
-      ConversationService.getInstance(logger, messageBus, {
-        url: this.config.conversationDatabase.url,
-        ...(this.config.conversationDatabase.authToken && {
-          authToken: this.config.conversationDatabase.authToken,
-        }),
-      });
-
-    const contentService =
-      dependencies?.contentService ??
-      new ContentServiceClass({
-        logger,
-        entityService,
-        aiService,
-        templateRegistry,
-        dataSourceRegistry,
-      });
-
-    const { identityService, profileService, agentService } =
-      initializeIdentityAndAgentServices({
-        config: this.config,
-        entityService,
-        logger,
-        messageBus,
-        aiService,
-        mcpService,
-        conversationService,
-        disposables,
-      });
-
-    const { batchJobManager, jobProgressMonitor, jobQueueWorker } =
-      initializeJobServices({
-        dependencies,
-        jobQueueService,
-        messageBus,
-        logger,
-      });
-
-    return {
-      logger,
-      disposables,
-      entityRegistry,
-      messageBus,
-      renderService,
-      daemonRegistry,
-      pluginManager,
-      templateRegistry,
-      dataSourceRegistry,
-      mcpService,
-      embeddingService,
-      entityService,
-      aiService,
-      conversationService,
-      contentService,
-      jobQueueService,
-      jobQueueWorker,
-      batchJobManager,
-      jobProgressMonitor,
-      permissionService,
-      identityService,
-      profileService,
-      agentService,
-    };
   }
 
   public registerJobHandlers(

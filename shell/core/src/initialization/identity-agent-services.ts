@@ -5,7 +5,7 @@ import {
   type IAIService,
 } from "@brains/ai-service";
 import type { IConversationService } from "@brains/conversation-service";
-import type { EntityService } from "@brains/entity-service";
+import type { IEntityService } from "@brains/entity-service";
 import {
   AnchorProfileService,
   BrainCharacterService,
@@ -24,7 +24,7 @@ export interface IdentityAndAgentServices {
 
 export interface IdentityAndAgentServiceOptions {
   config: ShellConfig;
-  entityService: EntityService;
+  entityService: IEntityService;
   logger: Logger;
   messageBus: MessageBus;
   aiService: IAIService;
