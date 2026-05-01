@@ -135,6 +135,7 @@ describe("@rizom/brain public plugin API surface", () => {
       readFileSync(join(externalPluginFixtureDir, "package.json"), "utf-8"),
     );
 
+    expect(source).toContain('from "@rizom/brain"');
     expect(source).toContain('from "@rizom/brain/plugins"');
     expect(source).toContain('from "@rizom/brain/entities"');
     expect(source).toContain('from "@rizom/brain/interfaces"');
@@ -142,6 +143,7 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(source).not.toContain("@brains/");
     expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
     expect(packageJson.peerDependencies?.["zod"]).toBeDefined();
+    expect(packageJson.rizomBrain?.pluginApi).toBeUndefined();
 
     const tsconfig = readFileSync(
       join(externalPluginFixtureDir, "tsconfig.json"),
@@ -183,6 +185,11 @@ describe("@rizom/brain public plugin API surface", () => {
     if (result.status !== 0) {
       throw new Error(output);
     }
+
+    expect(output).toContain(
+      "Module name '@rizom/brain' was successfully resolved",
+    );
+    expect(output).toContain("dist/index.d.ts");
 
     for (const subpath of ["plugins", "entities", "interfaces"]) {
       expect(output).toContain(

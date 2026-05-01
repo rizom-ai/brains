@@ -1,3 +1,4 @@
+import { PLUGIN_API_VERSION } from "@rizom/brain";
 import {
   EntityPlugin,
   InterfacePlugin,
@@ -84,7 +85,7 @@ const exampleSender: MessageSender<
   };
   return response;
 };
-void [exampleSender, extensionMetadata];
+void [exampleSender, extensionMetadata, PLUGIN_API_VERSION];
 
 export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
   readonly entityType = "example";
