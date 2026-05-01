@@ -93,7 +93,7 @@ Requirements:
 - each subpath has a deliberate exports contract; the build replaces workspace `@brains/*` imports with subpath-relative ones
 - internal shell-only types (`Shell`, `ShellInitializer`, `ShellBootloader`, raw service singletons, `IShell`, context factory functions) stay private
 - `.d.ts` output remains usable for external authors — no `@brains/*` paths in the published types
-- public declarations are generated from curated entry/contract source; legacy hand-written `src/types` files are not used for plugin-author subpaths
+- public declarations are generated from curated entry/contract source; legacy hand-written `src/types` files are not used for plugin-author or site subpaths
 
 Frozen public surface contract for §1:
 

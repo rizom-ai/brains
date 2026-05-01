@@ -69,9 +69,9 @@ describe("@rizom/brain public plugin API surface", () => {
   });
 
   it("does not leave emitted declarations in source directories", () => {
-    const declarations = listDeclarationFiles(join(pkgDir, "src"))
-      .map((path) => relative(pkgDir, path))
-      .filter((path) => path !== join("src", "types", "site.d.ts"));
+    const declarations = listDeclarationFiles(join(pkgDir, "src")).map((path) =>
+      relative(pkgDir, path),
+    );
 
     expect(declarations).toEqual([]);
   });

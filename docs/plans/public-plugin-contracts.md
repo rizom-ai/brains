@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the remaining `packages/brain-cli/src/types/site.d.ts` file is a tracked legacy site surface. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
+In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the legacy `packages/brain-cli/src/types/site.d.ts` surface has been replaced by a curated generated site entry. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
 
 ## Problem
 
@@ -45,7 +45,7 @@ If generation exposes leaks or unusable types, shrink the entry export surface. 
 
 The iterative shape:
 
-1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove `packages/brain-cli/src/types/*.d.ts` for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. `site` remains a separate legacy surface until its site-package graph is migrated.
+1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove `packages/brain-cli/src/types/*.d.ts` for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. The site surface now follows the same pattern through a curated entry that keeps plugin instances and route internals opaque.
 
 2. **Expose less first.** When generation reveals internal leakage (imports of `@brains/*`, transitive type graphs), the answer is to **shrink what `entries/*.ts` re-exports**, not to patch the generated output. For the first clean pass, prefer contracts-only exports over wholesale `@brains/plugins` re-exports.
 
@@ -74,7 +74,7 @@ The iterative shape:
 
 ## Acceptance criteria
 
-- Migrated plugin-author subpaths no longer have files in `packages/brain-cli/src/types/`; the remaining legacy `site` surface is tracked separately.
+- Migrated plugin-author subpaths no longer have files in `packages/brain-cli/src/types/`; `site` declarations are generated from the curated public entry.
 - Generated/published declarations contain no `@brains/*` import paths.
 - The external plugin fixture (`packages/brain-cli/test/fixtures/external-plugin/`) typechecks against the published surface only.
 - A CI check fails if generated declarations diverge from source-of-truth (or, equivalently, generation is part of the build and there are no committed declarations to drift against).
