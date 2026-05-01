@@ -1,20 +1,10 @@
 import {
-  AgentService,
-  AIService,
-  OnlineEmbeddingProvider,
-} from "@brains/ai-service";
-import {
   ContentGenerationJobHandler,
   knowledgeQueryTemplate,
 } from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
-import { ConversationService } from "@brains/conversation-service";
-import { DaemonRegistry } from "../daemon-registry";
-import { DataSourceRegistry } from "@brains/entity-service";
 import {
   BaseEntityFormatter,
-  EntityRegistry,
-  EntityService,
   FallbackEntityAdapter,
   baseEntitySchema,
   type IEntityRegistry,
@@ -22,33 +12,22 @@ import {
 } from "@brains/entity-service";
 import {
   BrainCharacterAdapter,
-  BrainCharacterService,
-} from "@brains/identity-service";
-import {
   AnchorProfileAdapter,
-  AnchorProfileService,
 } from "@brains/identity-service";
-import {
-  BatchJobManager,
-  JobProgressMonitor,
-  JobQueueService,
-  JobQueueWorker,
-  type IJobQueueService,
-} from "@brains/job-queue";
-import { MCPService } from "@brains/mcp-service";
-import { MessageBus } from "@brains/messaging-service";
-import {
+import type { IJobQueueService } from "@brains/job-queue";
+import type {
   PluginManager,
-  type IShell,
-  type PluginRegistrationContext,
+  IShell,
+  PluginRegistrationContext,
 } from "@brains/plugins";
-import { RenderService, TemplateRegistry } from "@brains/templates";
+import type { TemplateRegistry } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
+import { resetCoreServiceSingletons } from "./service-singletons";
 
 export type { ShellServices } from "../types/shell-types";
 
@@ -235,25 +214,7 @@ export class ShellInitializer {
  */
 export function resetServiceSingletons(): void {
   ShellInitializer.resetInstance();
-  EntityService.resetInstance();
-  EntityRegistry.resetInstance();
-  DataSourceRegistry.resetInstance();
-  OnlineEmbeddingProvider.resetInstance();
-  ConversationService.resetInstance();
-  PluginManager.resetInstance();
-  MCPService.resetInstance();
-  MessageBus.resetInstance();
-  TemplateRegistry.resetInstance();
-  RenderService.resetInstance();
-  DaemonRegistry.resetInstance();
-  AIService.resetInstance();
-  AgentService.resetInstance();
-  BrainCharacterService.resetInstance();
-  AnchorProfileService.resetInstance();
-  JobQueueService.resetInstance();
-  BatchJobManager.resetInstance();
-  JobQueueWorker.resetInstance();
-  JobProgressMonitor.resetInstance();
+  resetCoreServiceSingletons();
 }
 
 export async function resetAllSingletons(): Promise<void> {
