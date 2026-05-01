@@ -24,7 +24,7 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
 }
 ```
 
-Do not import internal `@brains/*` workspaces from external plugins. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
+Do not import internal `@brains/*` workspaces from external plugins. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. The minimal reference package is [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello). `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
 
 - `@rizom/brain`
 - `@rizom/brain/plugins`
