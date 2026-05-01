@@ -61,6 +61,7 @@ import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
 import { registerCoreDataSources } from "./core-data-sources";
+import { generateShellContent } from "./shell-content";
 import {
   ShellInitializer,
   resetServiceSingletons,
@@ -75,6 +76,7 @@ import {
   collectPluginApiRoutes,
   collectPluginWebRoutes,
 } from "./plugin-routes";
+import { shutdownShellServices } from "./shell-shutdown";
 import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies } from "./types/shell-types";
 
@@ -192,31 +194,7 @@ export class Shell implements IShell {
 
   public async shutdown(): Promise<void> {
     this.services.logger.debug("Shutting down Shell");
-
-    // Stop background services in reverse order of initialization
-    this.services.jobProgressMonitor.stop();
-    await this.services.jobQueueWorker.stop();
-
-    for (const [pluginId] of this.services.pluginManager.getAllPlugins()) {
-      await this.services.pluginManager.disablePlugin(pluginId);
-    }
-
-    for (const dispose of this.services.disposables.splice(0)) {
-      try {
-        dispose();
-      } catch (error) {
-        this.services.logger.warn(
-          "Failed to dispose shell subscription",
-          error,
-        );
-      }
-    }
-
-    // Close all database connections
-    this.services.entityService.close();
-    this.services.jobQueueService.close();
-    this.services.conversationService.close();
-
+    await shutdownShellServices(this.services);
     this.initialized = false;
     this.services.logger.debug("Shell shutdown complete");
   }
@@ -225,38 +203,7 @@ export class Shell implements IShell {
     config: ContentGenerationConfig,
   ): Promise<T> {
     this.requireInitialized("Shell content generation");
-
-    const template = this.services.contentService.getTemplate(
-      config.templateName,
-    );
-    if (!template) {
-      throw new Error(`Template not found: ${config.templateName}`);
-    }
-
-    const grantedPermission = config.interfacePermissionGrant ?? "public";
-    if (
-      !this.services.permissionService.hasPermission(
-        grantedPermission,
-        template.requiredPermission,
-      )
-    ) {
-      throw new Error(
-        `Insufficient permissions: ${template.requiredPermission} required, but interface granted ${grantedPermission} for template: ${config.templateName}`,
-      );
-    }
-
-    const context = {
-      prompt: config.prompt,
-      ...(config.conversationHistory && {
-        conversationHistory: config.conversationHistory,
-      }),
-      ...(config.data && { data: config.data }),
-    };
-
-    return this.services.contentService.generateContent<T>(
-      config.templateName,
-      context,
-    );
+    return generateShellContent<T>(this.services, config);
   }
 
   public async query(
