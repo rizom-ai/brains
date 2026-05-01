@@ -10,6 +10,12 @@ const externalPluginFixtureDir = join(
   "fixtures",
   "external-plugin",
 );
+const brainDefinitionFixtureDir = join(
+  pkgDir,
+  "test",
+  "fixtures",
+  "brain-definition",
+);
 const subpaths = [
   "plugins",
   "entities",
@@ -170,6 +176,31 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(output).not.toContain("@brains/");
   });
 
+  it("typechecks the package-local brain definition fixture", () => {
+    const source = readFileSync(
+      join(brainDefinitionFixtureDir, "src", "index.ts"),
+      "utf-8",
+    );
+    expect(source).toContain('from "@rizom/brain"');
+    expect(source).toContain("defineBrain");
+    expect(source).not.toContain("@brains/");
+
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+      {
+        cwd: brainDefinitionFixtureDir,
+        encoding: "utf-8",
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+    expect(output).not.toContain("@brains/");
+  });
+
   it("resolves the external plugin fixture against generated dist declarations", () => {
     const result = spawnSync(
       "bun",
@@ -197,6 +228,28 @@ describe("@rizom/brain public plugin API surface", () => {
       );
       expect(output).toContain(`dist/${subpath}.d.ts`);
     }
+  });
+
+  it("resolves the brain definition fixture against generated root declarations", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
+      {
+        cwd: brainDefinitionFixtureDir,
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+
+    expect(output).toContain(
+      "Module name '@rizom/brain' was successfully resolved",
+    );
+    expect(output).toContain("dist/index.d.ts");
   });
 
   it("build script includes every public plugin API library entry", () => {

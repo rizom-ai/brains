@@ -11,6 +11,7 @@ export type {
   CapabilityEntry,
   InterfaceEntry,
   InterfaceConstructor,
+  Plugin,
   PluginFactory,
   PluginConfig,
 } from "@brains/app/contracts/brain-definition";
