@@ -75,9 +75,35 @@ The `brain` CLI commands documented in the README are stable:
 
 Internal subcommands and flags not documented in the README are not stable.
 
+### Public plugin authoring API
+
+External plugin authors should use the generated public `@rizom/brain/*` subpaths:
+
+- `@rizom/brain/plugins`
+- `@rizom/brain/entities`
+- `@rizom/brain/interfaces`
+- `@rizom/brain/services`
+- `@rizom/brain/templates`
+
+The public plugin base classes (`ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`) and lifecycle hooks (`onRegister`, `onReady`, `onShutdown`) are stable enough to build external plugins on during alpha. Published declarations are generated from source and guarded so they do not expose internal `@brains/*` imports.
+
+### External plugin loading shape
+
+The external plugin declaration shape in `brain.yaml` is stable during alpha:
+
+```yaml
+plugins:
+  calendar:
+    package: "@rizom/brain-plugin-calendar"
+    config:
+      apiKey: ${CALENDAR_API_KEY}
+```
+
+`plugins:` remains a keyed map, package versions live in the instance `package.json`, and external plugin packages declare compatible `@rizom/brain` versions through `peerDependencies`.
+
 ### `defineBrain()` API
 
-The `defineBrain()` function from `@brains/app` is the stable way to declare a brain model. Its top-level fields (`name`, `model`, `site`, `preset`, `plugins`, etc.) are stable.
+The `defineBrain()` function from `@rizom/brain` is the stable public way to declare a brain model. Its top-level fields (`name`, `model`, `site`, `preset`, `plugins`, etc.) are stable.
 
 ### License and provenance
 
@@ -89,16 +115,19 @@ Apache-2.0, with author metadata in `package.json`. The license itself is stable
 
 These are explicitly **not** stable. Don't depend on them without expecting churn. If you need to, vendor the relevant code or pin a specific version.
 
-### Plugin context shapes
+### Plugin context expansion
 
-The internals of plugin context types are **unstable**:
+The currently published public context contracts are usable for external plugins, but additive context expansion is still in progress. Depend on documented public namespace methods and DTO schemas, not on internal shell services or workspace-private types.
 
-- `EntityPluginContext`
-- `ServicePluginContext`
-- `InterfacePluginContext`
-- `BasePluginContext`
+Internal context factories and shell-only types remain unstable and are not public API:
 
-The base classes (`EntityPlugin`, `ServicePlugin`, `InterfacePlugin`, `MCPBridgePlugin`) and their public lifecycle methods (`onRegister`, `onShutdown`, etc.) are stable enough to build plugins on, but the _shape_ of what's available on `context` may change as services are added, refactored, or split.
+- `createBasePluginContext`
+- `createEntityPluginContext`
+- `createServicePluginContext`
+- `createInterfacePluginContext`
+- `IShell`
+- `PluginManager`
+- `SYSTEM_CHANNELS`
 
 ### Internal services
 
