@@ -69,7 +69,8 @@ Only build it if team/operator workflows actually need it.
 ## Dependencies
 
 - `docs/plans/hosted-rovers.md`
-- `docs/plans/2026-03-15-a2a-authentication.md`
+- `docs/plans/brain-oauth-provider.md`
+- `docs/plans/a2a-request-signing.md`
 
 ## Done when
 
