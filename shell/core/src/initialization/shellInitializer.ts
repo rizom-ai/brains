@@ -1,40 +1,20 @@
-import {
-  ContentGenerationJobHandler,
-  knowledgeQueryTemplate,
-} from "@brains/content-service";
+import { ContentGenerationJobHandler } from "@brains/content-service";
 import type { ContentService } from "@brains/content-service";
-import {
-  BaseEntityFormatter,
-  FallbackEntityAdapter,
-  baseEntitySchema,
-  type IEntityRegistry,
-  type IEntityService,
-} from "@brains/entity-service";
-import {
-  BrainCharacterAdapter,
-  AnchorProfileAdapter,
-} from "@brains/identity-service";
+import type { IEntityRegistry, IEntityService } from "@brains/entity-service";
 import type { IJobQueueService } from "@brains/job-queue";
-import type {
-  PluginManager,
-  IShell,
-  PluginRegistrationContext,
-} from "@brains/plugins";
+import type { PluginManager, IShell } from "@brains/plugins";
 import type { TemplateRegistry } from "@brains/templates";
 import type { Logger } from "@brains/utils";
 
-import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
+import { SHELL_ENTITY_TYPES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies, ShellServices } from "../types/shell-types";
 import { createShellServices } from "./service-factory";
+import * as shellRegistration from "./shell-registration";
 import { resetCoreServiceSingletons } from "./service-singletons";
 
 export type { ShellServices } from "../types/shell-types";
-
-export interface PluginInitializeOptions {
-  registerOnly?: boolean;
-  registrationContext?: PluginRegistrationContext;
-}
+export type { PluginInitializeOptions } from "./shell-registration";
 
 export class ShellInitializer {
   private static instance: ShellInitializer | null = null;
@@ -67,24 +47,16 @@ export class ShellInitializer {
   }
 
   public registerShellTemplates(templateRegistry: TemplateRegistry): void {
-    templateRegistry.register(
-      knowledgeQueryTemplate.name,
-      knowledgeQueryTemplate,
-    );
-    this.logger.debug("Shell system templates registered");
+    shellRegistration.registerShellTemplates(templateRegistry, this.logger);
   }
 
   public registerBaseEntityDisplayTemplate(
     templateRegistry: TemplateRegistry,
   ): void {
-    templateRegistry.register(SHELL_TEMPLATE_NAMES.BASE_ENTITY_DISPLAY, {
-      name: "base-entity-display",
-      description: "Display template for base entities",
-      schema: baseEntitySchema,
-      formatter: new BaseEntityFormatter(),
-      requiredPermission: "public",
-    });
-    this.logger.debug("Base entity display template registered");
+    shellRegistration.registerBaseEntityDisplayTemplate(
+      templateRegistry,
+      this.logger,
+    );
   }
 
   /**
@@ -92,60 +64,30 @@ export class ShellInitializer {
    * Only called if no plugin (e.g. note plugin) has already registered "base".
    */
   public registerFallbackBaseEntity(entityRegistry: IEntityRegistry): void {
-    entityRegistry.registerEntityType(
-      SHELL_ENTITY_TYPES.BASE,
-      baseEntitySchema,
-      new FallbackEntityAdapter(),
-    );
-
-    this.logger.debug("Fallback base entity adapter registered");
+    shellRegistration.registerFallbackBaseEntity(entityRegistry, this.logger);
   }
 
   public registerBrainCharacterSupport(entityRegistry: IEntityRegistry): void {
-    const characterAdapter = new BrainCharacterAdapter();
-    entityRegistry.registerEntityType(
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      characterAdapter.schema,
-      characterAdapter,
+    shellRegistration.registerBrainCharacterSupport(
+      entityRegistry,
+      this.logger,
     );
-    this.logger.debug("Brain character entity support registered");
   }
 
   public registerAnchorProfileSupport(entityRegistry: IEntityRegistry): void {
-    const profileAdapter = new AnchorProfileAdapter();
-    entityRegistry.registerEntityType(
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-      profileAdapter.schema,
-      profileAdapter,
-    );
-    this.logger.debug("Anchor profile entity support registered");
+    shellRegistration.registerAnchorProfileSupport(entityRegistry, this.logger);
   }
 
   public async initializePlugins(
     pluginManager: PluginManager,
-    options?: PluginInitializeOptions,
+    options?: shellRegistration.PluginInitializeOptions,
   ): Promise<void> {
-    this.logger.debug(
-      `Found ${this.config.plugins.length} plugins to register`,
-    );
-
-    for (const plugin of this.config.plugins) {
-      this.logger.debug(`Registering plugin: ${plugin.id}`);
-      pluginManager.registerPlugin(plugin);
-    }
-
-    await pluginManager.initializePlugins(options?.registrationContext);
-
-    if (!options?.registerOnly) {
-      for (const { id, error } of pluginManager.getFailedPlugins()) {
-        const plugin = pluginManager.getPlugin(id);
-        if (plugin?.requiresDaemonStartup?.()) {
-          throw error;
-        }
-      }
-    }
-
-    this.logger.debug("Plugin initialization complete");
+    await shellRegistration.initializeConfiguredPlugins({
+      plugins: this.config.plugins,
+      pluginManager,
+      logger: this.logger,
+      initOptions: options,
+    });
   }
 
   public initializeServices(dependencies?: ShellDependencies): ShellServices {
@@ -180,7 +122,7 @@ export class ShellInitializer {
     templateRegistry: TemplateRegistry,
     entityRegistry: IEntityRegistry,
     pluginManager: PluginManager,
-    options?: PluginInitializeOptions,
+    options?: shellRegistration.PluginInitializeOptions,
   ): Promise<void> {
     this.logger.debug("Starting Shell initialization");
 
