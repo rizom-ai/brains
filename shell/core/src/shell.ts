@@ -205,6 +205,17 @@ export class Shell implements IShell {
       await this.services.pluginManager.disablePlugin(pluginId);
     }
 
+    for (const dispose of this.services.disposables.splice(0)) {
+      try {
+        dispose();
+      } catch (error) {
+        this.services.logger.warn(
+          "Failed to dispose shell subscription",
+          error,
+        );
+      }
+    }
+
     // Close all database connections
     this.services.entityService.close();
     this.services.jobQueueService.close();
@@ -596,7 +607,7 @@ export class Shell implements IShell {
 
   private registerSystemCapabilities(): void {
     const jqs = this.services.jobQueueService;
-    registerSystemCapabilities(
+    const unsubscribe = registerSystemCapabilities(
       {
         entityService: this.services.entityService,
         entityRegistry: this.services.entityRegistry,
@@ -619,5 +630,6 @@ export class Shell implements IShell {
       this.services.messageBus,
       this.services.logger.child("system"),
     );
+    this.services.disposables.push(unsubscribe);
   }
 }

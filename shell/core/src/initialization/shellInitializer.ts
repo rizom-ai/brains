@@ -44,7 +44,9 @@ import {
   JobProgressMonitor,
   JobQueueService,
   JobQueueWorker,
+  type IBatchJobManager,
   type IJobQueueService,
+  type IJobQueueWorker,
   type JobQueueDbConfig,
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
@@ -59,7 +61,7 @@ import {
   RenderService,
   TemplateRegistry,
 } from "@brains/templates";
-import { Logger, LogLevel } from "@brains/utils";
+import { Logger, LogLevel, type IJobProgressMonitor } from "@brains/utils";
 
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
@@ -75,6 +77,7 @@ export interface PluginInitializeOptions {
  */
 export interface ShellServices {
   logger: Logger;
+  disposables: Array<() => void>;
   entityRegistry: EntityRegistry;
   messageBus: MessageBus;
   renderService: RenderService;
@@ -88,10 +91,10 @@ export interface ShellServices {
   aiService: IAIService;
   conversationService: IConversationService;
   contentService: ContentService;
-  jobQueueService: JobQueueService;
-  jobQueueWorker: JobQueueWorker;
-  batchJobManager: BatchJobManager;
-  jobProgressMonitor: JobProgressMonitor;
+  jobQueueService: IJobQueueService;
+  jobQueueWorker: IJobQueueWorker;
+  batchJobManager: IBatchJobManager;
+  jobProgressMonitor: IJobProgressMonitor;
   permissionService: PermissionService;
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
@@ -265,6 +268,7 @@ export class ShellInitializer {
           ? { logFile: this.config.logging.file }
           : {}),
       });
+    const disposables: Array<() => void> = [];
 
     const embeddingService =
       dependencies?.embeddingService ??
@@ -287,8 +291,11 @@ export class ShellInitializer {
     const entityRegistry = EntityRegistry.getInstance(logger);
     const messageBus =
       dependencies?.messageBus ?? MessageBus.getInstance(logger);
-    const templateRegistry = TemplateRegistry.getInstance(logger);
-    const dataSourceRegistry = DataSourceRegistry.getInstance(logger);
+    const templateRegistry =
+      dependencies?.templateRegistry ?? TemplateRegistry.getInstance(logger);
+    const dataSourceRegistry =
+      dependencies?.dataSourceRegistry ??
+      DataSourceRegistry.getInstance(logger);
     const renderService =
       dependencies?.renderService ??
       RenderService.getInstance(templateRegistry);
@@ -297,7 +304,9 @@ export class ShellInitializer {
     const pluginManager =
       dependencies?.pluginManager ??
       PluginManager.getInstance(logger, daemonRegistry);
-    const permissionService = new PermissionService(this.config.permissions);
+    const permissionService =
+      dependencies?.permissionService ??
+      new PermissionService(this.config.permissions);
     const mcpService =
       dependencies?.mcpService ?? MCPService.getInstance(messageBus, logger);
 
@@ -308,10 +317,9 @@ export class ShellInitializer {
       }),
     };
 
-    const jobQueueService = JobQueueService.getInstance(
-      jobQueueDbConfig,
-      logger,
-    );
+    const jobQueueService =
+      dependencies?.jobQueueService ??
+      JobQueueService.getInstance(jobQueueDbConfig, logger);
 
     const entityService = EntityService.getInstance({
       embeddingService,
@@ -358,12 +366,14 @@ export class ShellInitializer {
       this.config.identity,
     );
 
-    subscribeToEntityCacheInvalidation(
-      messageBus,
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      () => identityService.refreshCache(),
-      logger,
+    disposables.push(
+      ...subscribeToEntityCacheInvalidation(
+        messageBus,
+        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
+        () => identityService.refreshCache(),
+        logger,
+      ),
     );
 
     const profileService = AnchorProfileService.getInstance(
@@ -390,12 +400,14 @@ export class ShellInitializer {
       { agentFactory },
     );
 
-    subscribeToEntityCacheInvalidation(
-      messageBus,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-      () => profileService.refreshCache(),
-      logger,
+    disposables.push(
+      ...subscribeToEntityCacheInvalidation(
+        messageBus,
+        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
+        () => profileService.refreshCache(),
+        logger,
+      ),
     );
 
     // Invalidate cached agent when identity or profile changes.
@@ -404,39 +416,40 @@ export class ShellInitializer {
       SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
       SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
     ]) {
-      subscribeToEntityCacheInvalidation(
-        messageBus,
-        entityType,
-        entityType,
-        async () => agentService.invalidateAgent(),
-        logger,
+      disposables.push(
+        ...subscribeToEntityCacheInvalidation(
+          messageBus,
+          entityType,
+          entityType,
+          async () => agentService.invalidateAgent(),
+          logger,
+        ),
       );
     }
 
-    const batchJobManager = BatchJobManager.getInstance(
-      jobQueueService,
-      logger,
-    );
-    const jobProgressMonitor = JobProgressMonitor.getInstance(
-      jobQueueService,
-      messageBus,
-      batchJobManager,
-      logger,
-    );
+    const batchJobManager =
+      dependencies?.batchJobManager ??
+      BatchJobManager.getInstance(jobQueueService, logger);
+    const jobProgressMonitor =
+      dependencies?.jobProgressMonitor ??
+      JobProgressMonitor.getInstance(
+        jobQueueService,
+        messageBus,
+        batchJobManager,
+        logger,
+      );
 
-    const jobQueueWorker = JobQueueWorker.getInstance(
-      jobQueueService,
-      jobProgressMonitor,
-      logger,
-      {
+    const jobQueueWorker =
+      dependencies?.jobQueueWorker ??
+      JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
         pollInterval: 100,
         concurrency: 1,
         autoStart: false,
-      },
-    );
+      });
 
     return {
       logger,
+      disposables,
       entityRegistry,
       messageBus,
       renderService,

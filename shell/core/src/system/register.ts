@@ -1,5 +1,5 @@
 import type { IMCPService, ToolContext } from "@brains/mcp-service";
-import type { MessageBus } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import type { SystemServices } from "./types";
 import { createSystemTools } from "./tools";
@@ -17,9 +17,9 @@ const SYSTEM_ID = "system";
 export function registerSystemCapabilities(
   services: SystemServices,
   mcpService: IMCPService,
-  messageBus: MessageBus,
+  messageBus: IMessageBus,
   logger: Logger,
-): void {
+): () => void {
   // ── Tools ──
   const tools = createSystemTools(services);
   for (const tool of tools) {
@@ -32,32 +32,35 @@ export function registerSystemCapabilities(
   }
 
   // Subscribe to tool execution (same message bus pattern as plugins)
-  messageBus.subscribe(`plugin:${SYSTEM_ID}:tool:execute`, async (message) => {
-    const { toolName, args, interfaceType, userId, channelId } =
-      message.payload as {
-        toolName: string;
-        args: unknown;
-        interfaceType?: string;
-        userId?: string;
-        channelId?: string;
-      };
+  const unsubscribeToolExecution = messageBus.subscribe(
+    `plugin:${SYSTEM_ID}:tool:execute`,
+    async (message) => {
+      const { toolName, args, interfaceType, userId, channelId } =
+        message.payload as {
+          toolName: string;
+          args: unknown;
+          interfaceType?: string;
+          userId?: string;
+          channelId?: string;
+        };
 
-    const tool = tools.find((t) => t.name === toolName);
-    if (!tool) {
-      return {
-        success: false,
-        error: `System tool not found: ${toolName}`,
-      };
-    }
+      const tool = tools.find((t) => t.name === toolName);
+      if (!tool) {
+        return {
+          success: false,
+          error: `System tool not found: ${toolName}`,
+        };
+      }
 
-    const toolContext: ToolContext = {
-      interfaceType: interfaceType ?? "system",
-      userId: userId ?? "system",
-    };
-    if (channelId) toolContext.channelId = channelId;
-    const result = await tool.handler(args, toolContext);
-    return { success: true, data: result };
-  });
+      const toolContext: ToolContext = {
+        interfaceType: interfaceType ?? "system",
+        userId: userId ?? "system",
+      };
+      if (channelId) toolContext.channelId = channelId;
+      const result = await tool.handler(args, toolContext);
+      return { success: true, data: result };
+    },
+  );
 
   logger.debug(`Registered ${tools.length} system tools`);
 
@@ -108,4 +111,6 @@ export function registerSystemCapabilities(
     logger.debug("System instructions already registered, skipping");
   }
   logger.debug("Registered system instructions");
+
+  return unsubscribeToolExecution;
 }
