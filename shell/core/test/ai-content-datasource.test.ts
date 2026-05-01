@@ -224,6 +224,33 @@ describe("AIContentDataSource", () => {
       expect(getUserPrompt()).toContain("https://yeehaa.io/posts/my-blog-post");
     });
 
+    it("should normalize siteBaseUrl with protocol", async () => {
+      const ds = createDataSourceWithSearch(
+        [
+          createSearchEntity({
+            id: "my-blog-post",
+            entityType: "post",
+            content: "Test content",
+            metadata: { slug: "my-blog-post" },
+            excerpt: "This is a test blog post about AI",
+          }),
+        ],
+        mockAIService,
+        mockTemplateRegistry,
+        mockGetIdentityContent,
+        mockGetProfileContent,
+        "https://yeehaa.io/",
+      );
+
+      await ds.generate(
+        { templateName: "test-template", prompt: "Tell me about AI" },
+        messageSchema,
+      );
+
+      expect(getUserPrompt()).toContain("https://yeehaa.io/posts/my-blog-post");
+      expect(getUserPrompt()).not.toContain("https://https://");
+    });
+
     it("should use entity slug for URL when available", async () => {
       const ds = createDataSourceWithSearch(
         [

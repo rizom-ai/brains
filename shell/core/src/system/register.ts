@@ -1,4 +1,11 @@
-import type { IMCPService, ToolContext } from "@brains/mcp-service";
+import type {
+  IMCPService,
+  Prompt,
+  Resource,
+  ResourceTemplate,
+  Tool,
+  ToolContext,
+} from "@brains/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import type { SystemServices } from "./types";
@@ -9,6 +16,24 @@ import { createSystemPrompts } from "./prompts";
 import { createSystemInstructions } from "./instructions";
 
 const SYSTEM_ID = "system";
+
+function registerSkippingDuplicates<T>(
+  items: T[],
+  register: (item: T) => void,
+  getLabel: (item: T) => string,
+  noun: string,
+  logger: Logger,
+): void {
+  for (const item of items) {
+    try {
+      register(item);
+    } catch {
+      logger.debug(
+        `System ${noun} ${getLabel(item)} already registered, skipping`,
+      );
+    }
+  }
+}
 
 /**
  * Register system tools, resources, prompts, and instructions.
@@ -22,14 +47,13 @@ export function registerSystemCapabilities(
 ): () => void {
   // ── Tools ──
   const tools = createSystemTools(services);
-  for (const tool of tools) {
-    try {
-      mcpService.registerTool(SYSTEM_ID, tool);
-    } catch {
-      // Tool already registered (e.g., singleton not fully reset in tests)
-      logger.debug(`System tool ${tool.name} already registered, skipping`);
-    }
-  }
+  registerSkippingDuplicates<Tool>(
+    tools,
+    (tool) => mcpService.registerTool(SYSTEM_ID, tool),
+    (tool) => tool.name,
+    "tool",
+    logger,
+  );
 
   // Subscribe to tool execution (same message bus pattern as plugins)
   const unsubscribeToolExecution = messageBus.subscribe(
@@ -66,41 +90,37 @@ export function registerSystemCapabilities(
 
   // ── Resources ──
   const resources = createSystemResources(services);
-  for (const resource of resources) {
-    try {
-      mcpService.registerResource(SYSTEM_ID, resource);
-    } catch {
-      logger.debug(
-        `System resource ${resource.uri} already registered, skipping`,
-      );
-    }
-  }
+  registerSkippingDuplicates<Resource>(
+    resources,
+    (resource) => mcpService.registerResource(SYSTEM_ID, resource),
+    (resource) => resource.uri,
+    "resource",
+    logger,
+  );
   logger.debug(`Registered ${resources.length} system resources`);
 
   // ── Resource Templates ──
   const resourceTemplates = createSystemResourceTemplates(services);
-  for (const template of resourceTemplates) {
-    try {
-      mcpService.registerResourceTemplate(SYSTEM_ID, template);
-    } catch {
-      logger.debug(
-        `System resource template ${template.uriTemplate} already registered, skipping`,
-      );
-    }
-  }
+  registerSkippingDuplicates<ResourceTemplate>(
+    resourceTemplates,
+    (template) => mcpService.registerResourceTemplate(SYSTEM_ID, template),
+    (template) => template.uriTemplate,
+    "resource template",
+    logger,
+  );
   logger.debug(
     `Registered ${resourceTemplates.length} system resource templates`,
   );
 
   // ── Prompts ──
   const prompts = createSystemPrompts(services);
-  for (const prompt of prompts) {
-    try {
-      mcpService.registerPrompt(SYSTEM_ID, prompt);
-    } catch {
-      logger.debug(`System prompt ${prompt.name} already registered, skipping`);
-    }
-  }
+  registerSkippingDuplicates<Prompt>(
+    prompts,
+    (prompt) => mcpService.registerPrompt(SYSTEM_ID, prompt),
+    (prompt) => prompt.name,
+    "prompt",
+    logger,
+  );
   logger.debug(`Registered ${prompts.length} system prompts`);
 
   // ── Instructions ──

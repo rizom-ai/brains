@@ -14,6 +14,15 @@ export const GenerationContextSchema = z.object({
 
 export type GenerationContext = z.infer<typeof GenerationContextSchema>;
 
+const entitySlugSchema = z.object({ slug: z.string() });
+
+function normalizeSiteBaseUrl(
+  siteBaseUrl: string | undefined,
+): string | undefined {
+  if (!siteBaseUrl) return undefined;
+  return siteBaseUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
+}
+
 export class AIContentDataSource implements DataSource {
   readonly id = "ai-content";
   readonly name = "AI Content Generator";
@@ -26,8 +35,12 @@ export class AIContentDataSource implements DataSource {
     private readonly templateRegistry: TemplateRegistry,
     private readonly getIdentityContent: () => string,
     private readonly getProfileContent: () => string,
-    private readonly siteBaseUrl?: string,
-  ) {}
+    siteBaseUrl?: string,
+  ) {
+    this.siteBaseUrl = normalizeSiteBaseUrl(siteBaseUrl);
+  }
+
+  private readonly siteBaseUrl: string | undefined;
 
   async generate<T>(request: unknown, schema: z.ZodSchema<T>): Promise<T> {
     const context = GenerationContextSchema.parse(request);
@@ -108,21 +121,7 @@ export class AIContentDataSource implements DataSource {
     if (relevantEntities.length > 0) {
       const urlGenerator = EntityUrlGenerator.getInstance();
       const entityContext = relevantEntities
-        .map((result) => {
-          const { entity, excerpt } = result;
-          const entityType = entity.entityType;
-          const slugSchema = z.object({ slug: z.string() });
-          const parsed = slugSchema.safeParse(entity.metadata);
-          const slug = parsed.success ? parsed.data.slug : entity.id;
-
-          if (this.siteBaseUrl && urlGenerator.hasRoute(entityType)) {
-            const path = urlGenerator.generateUrl(entityType, slug);
-            const url = `https://${this.siteBaseUrl}${path}`;
-            return `[${entityType}] ${entity.id}: ${excerpt} (${url})`;
-          }
-
-          return `[${entityType}] ${entity.id}: ${excerpt}`;
-        })
+        .map((result) => this.formatRelevantEntity(result, urlGenerator))
         .join("\n");
       prompt += `\n\nRelevant context from your knowledge base:\n${entityContext}`;
     }
@@ -136,5 +135,23 @@ export class AIContentDataSource implements DataSource {
     }
 
     return prompt;
+  }
+
+  private formatRelevantEntity(
+    result: SearchResult,
+    urlGenerator: EntityUrlGenerator,
+  ): string {
+    const { entity, excerpt } = result;
+    const entityType = entity.entityType;
+    const parsed = entitySlugSchema.safeParse(entity.metadata);
+    const slug = parsed.success ? parsed.data.slug : entity.id;
+
+    if (this.siteBaseUrl && urlGenerator.hasRoute(entityType)) {
+      const path = urlGenerator.generateUrl(entityType, slug);
+      const url = `https://${this.siteBaseUrl}${path}`;
+      return `[${entityType}] ${entity.id}: ${excerpt} (${url})`;
+    }
+
+    return `[${entityType}] ${entity.id}: ${excerpt}`;
   }
 }
