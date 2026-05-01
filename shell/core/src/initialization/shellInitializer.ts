@@ -1,8 +1,4 @@
-import {
-  AgentService,
-  createBrainAgentFactory,
-  type IAgentService,
-} from "@brains/ai-service";
+import { AgentService, type IAgentService } from "@brains/ai-service";
 import {
   AIService,
   type IAIService,
@@ -50,7 +46,7 @@ import {
   type JobQueueDbConfig,
 } from "@brains/job-queue";
 import { MCPService, type IMCPService } from "@brains/mcp-service";
-import { MessageBus, type IMessageBus } from "@brains/messaging-service";
+import { MessageBus } from "@brains/messaging-service";
 import {
   PluginManager,
   type IShell,
@@ -66,6 +62,8 @@ import { Logger, LogLevel, type IJobProgressMonitor } from "@brains/utils";
 import { SHELL_ENTITY_TYPES, SHELL_TEMPLATE_NAMES } from "../constants";
 import type { ShellConfig } from "../config";
 import type { ShellDependencies } from "../types/shell-types";
+import { initializeIdentityAndAgentServices } from "./identity-agent-services";
+import { initializeJobServices } from "./job-services";
 
 export interface PluginInitializeOptions {
   registerOnly?: boolean;
@@ -99,41 +97,6 @@ export interface ShellServices {
   identityService: BrainCharacterService;
   profileService: AnchorProfileService;
   agentService: IAgentService;
-}
-
-/**
- * Subscribe to entity lifecycle events (created, updated, deleted) for cache invalidation.
- * Calls the provided refresh callback when the specified entity type/id changes.
- */
-function subscribeToEntityCacheInvalidation(
-  messageBus: IMessageBus,
-  entityType: string,
-  entityId: string,
-  refreshCache: () => Promise<void>,
-  logger: Logger,
-): (() => void)[] {
-  const events = [
-    "entity:created",
-    "entity:updated",
-    "entity:deleted",
-  ] as const;
-
-  return events.map((event) =>
-    messageBus.subscribe<{ entityType: string; entityId: string }, void>(
-      event,
-      async (message) => {
-        if (
-          message.payload.entityType === entityType &&
-          message.payload.entityId === entityId
-        ) {
-          await refreshCache();
-          const action = event.replace("entity:", "");
-          logger.debug(`${entityType} entity ${action}, cache refreshed`);
-        }
-        return { success: true };
-      },
-    ),
-  );
 }
 
 export class ShellInitializer {
@@ -360,91 +323,24 @@ export class ShellInitializer {
         dataSourceRegistry,
       });
 
-    const identityService = BrainCharacterService.getInstance(
-      entityService,
-      logger,
-      this.config.identity,
-    );
-
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
-        messageBus,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-        () => identityService.refreshCache(),
+    const { identityService, profileService, agentService } =
+      initializeIdentityAndAgentServices({
+        config: this.config,
+        entityService,
         logger,
-      ),
-    );
-
-    const profileService = AnchorProfileService.getInstance(
-      entityService,
-      logger,
-      this.config.profile,
-    );
-
-    const agentFactory = createBrainAgentFactory({
-      model: aiService.getModel(),
-      modelId: aiService.getConfig().model,
-      webSearch: aiService.getConfig().webSearch,
-      temperature: aiService.getConfig().temperature,
-      maxTokens: aiService.getConfig().maxTokens,
-      messageBus,
-    });
-
-    const agentService = AgentService.getInstance(
-      mcpService,
-      conversationService,
-      identityService,
-      profileService,
-      logger,
-      { agentFactory },
-    );
-
-    disposables.push(
-      ...subscribeToEntityCacheInvalidation(
         messageBus,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-        () => profileService.refreshCache(),
-        logger,
-      ),
-    );
+        aiService,
+        mcpService,
+        conversationService,
+        disposables,
+      });
 
-    // Invalidate cached agent when identity or profile changes.
-    // Next conversation will rebuild with fresh data.
-    for (const entityType of [
-      SHELL_ENTITY_TYPES.BRAIN_CHARACTER,
-      SHELL_ENTITY_TYPES.ANCHOR_PROFILE,
-    ]) {
-      disposables.push(
-        ...subscribeToEntityCacheInvalidation(
-          messageBus,
-          entityType,
-          entityType,
-          async () => agentService.invalidateAgent(),
-          logger,
-        ),
-      );
-    }
-
-    const batchJobManager =
-      dependencies?.batchJobManager ??
-      BatchJobManager.getInstance(jobQueueService, logger);
-    const jobProgressMonitor =
-      dependencies?.jobProgressMonitor ??
-      JobProgressMonitor.getInstance(
+    const { batchJobManager, jobProgressMonitor, jobQueueWorker } =
+      initializeJobServices({
+        dependencies,
         jobQueueService,
         messageBus,
-        batchJobManager,
         logger,
-      );
-
-    const jobQueueWorker =
-      dependencies?.jobQueueWorker ??
-      JobQueueWorker.getInstance(jobQueueService, jobProgressMonitor, logger, {
-        pollInterval: 100,
-        concurrency: 1,
-        autoStart: false,
       });
 
     return {
