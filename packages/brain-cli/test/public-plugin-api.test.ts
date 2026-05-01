@@ -104,6 +104,8 @@ describe("@rizom/brain public plugin API surface", () => {
       "declare abstract class MessageInterfacePlugin",
     );
     expect(pluginsTypes).toContain("declare abstract class ServicePlugin");
+    expect(pluginsTypes).toContain("ExtensionMetadataSchema");
+    expect(pluginsTypes).toContain("ExtensionMetadata");
     expect(pluginsTypes).not.toContain("IShell");
     expect(pluginsTypes).not.toContain("PluginManager");
     expect(pluginsTypes).not.toContain("PluginRegistrationContext");

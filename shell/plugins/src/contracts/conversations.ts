@@ -1,6 +1,5 @@
 import { z } from "zod";
-
-const metadataSchema = z.record(z.unknown());
+import { ExtensionMetadataSchema } from "./metadata";
 
 export const ConversationSchema = z.object({
   id: z.string(),
@@ -12,7 +11,7 @@ export const ConversationSchema = z.object({
   lastActiveAt: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  metadata: metadataSchema,
+  metadata: ExtensionMetadataSchema,
 });
 
 export type Conversation = z.infer<typeof ConversationSchema>;
@@ -27,7 +26,7 @@ export const MessageSchema = z.object({
   role: messageRoleSchema,
   content: z.string(),
   timestamp: z.string(),
-  metadata: metadataSchema,
+  metadata: ExtensionMetadataSchema,
 });
 
 export type Message = z.infer<typeof MessageSchema>;

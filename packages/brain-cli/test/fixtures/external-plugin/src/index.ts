@@ -10,6 +10,7 @@ import {
   BrainCharacterSchema,
   ConversationSchema,
   MessageSchema,
+  ExtensionMetadataSchema,
   type AgentResponse,
   type AppInfo,
   type BrainCharacter,
@@ -65,6 +66,8 @@ const configSchema = z.object({
   greeting: z.optional(z.string()),
 });
 
+const extensionMetadata = ExtensionMetadataSchema.parse({ source: "fixture" });
+
 const packageJson = {
   name: "@rizom/brain-plugin-example-fixture",
   version: "0.1.0",
@@ -81,7 +84,7 @@ const exampleSender: MessageSender<
   };
   return response;
 };
-void exampleSender;
+void [exampleSender, extensionMetadata];
 
 export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
   readonly entityType = "example";

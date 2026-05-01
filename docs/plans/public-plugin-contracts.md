@@ -18,6 +18,7 @@ Hand-editing the stubs to fix these is symptom-patching. The fix is to stop hand
 
 - **Zod schemas in `shell/plugins/src/contracts/` are the source of truth** for every public data DTO crossing the plugin boundary. Public TS data types come from `z.infer<typeof Schema>`.
 - **Callable APIs are TypeScript interfaces.** Namespaces such as `AgentNamespace` describe methods over trusted in-process services; they are not runtime data payloads and do not need object schemas unless/until they cross an untrusted boundary.
+- **Metadata bags use `ExtensionMetadataSchema`.** They are best-effort extension data, not stable per-key contracts. Hoist any meaningful stable field to a typed top-level schema field before documenting it.
 - **Manual `.d.ts` stubs are deleted for migrated subpaths.** Published declarations are derived from source via a build step. No human-edited public plugin-author types.
 - **Translators in `shell/plugins/src/base/public-*.ts`** convert internal/runtime shapes to contract shapes at the boundary (DB row → parsed metadata, column renames, `Date` → ISO string, internal method names → namespace method names). Translators are the runtime half of the contract; the schema is the typing half.
 - **Bare names for public types** (`Conversation`, `Message`, `AppInfo`); internal/public-boundary aliases use the `Runtime*` prefix (`RuntimeConversation`, `RuntimeMessage`, `RuntimeAppInfo`, etc.) when a public counterpart exists.
@@ -69,7 +70,6 @@ The iterative shape:
 ## Open work
 
 - **Generation mechanism follow-through.** Keep declaration bundling as the source of published `.d.ts` output. Constraint: published `.d.ts` is self-contained (no `@brains/*` imports) and matches what the schemas/contracts declare.
-- **Metadata escape-hatch follow-through.** Public `metadata: z.record(z.unknown())` bags are explicitly best-effort extension data, not stable per-key contracts. Hoist any meaningful field to a typed top-level schema field before documenting it as stable.
 - **Next context surface.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
 
 ## Acceptance criteria

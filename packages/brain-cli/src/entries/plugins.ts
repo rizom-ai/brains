@@ -82,6 +82,9 @@ export type {
   BrainCharacter,
 } from "@brains/plugins/contracts/identity";
 
+export { ExtensionMetadataSchema } from "@brains/plugins/contracts/metadata";
+export type { ExtensionMetadata } from "@brains/plugins/contracts/metadata";
+
 export {
   BaseMessageSchema,
   MessageResponseSchema,
