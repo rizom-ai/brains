@@ -27,7 +27,7 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.45",
+    "@rizom/brain": "^0.2.0-alpha.47",
     "zod": "^3.0.0"
   }
 }

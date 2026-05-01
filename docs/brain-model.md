@@ -15,7 +15,7 @@ The same brain model can power multiple instances (dev, staging, prod) with diff
 
 ```
 brains/
-  rover/                    # Brain model package (@brains/rover)
+  rover/                    # Built-in brain model workspace package
     src/index.ts            # Brain definition (defineBrain)
     seed-content/           # Default content
     package.json            # Workspace member
@@ -49,8 +49,8 @@ database: file:./data/brain.db # database URL
 # Site package override (optional — overrides brain model default)
 # Object form supports variant + theme overrides for sites that ship multiple flavors
 site:
-  package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  package: "@acme/brain-site"
+  theme: "@acme/brain-theme"
 
 # Preset — selects a curated subset of capabilities + interfaces
 preset: full # model-specific, commonly core | default | full
@@ -134,15 +134,23 @@ Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If n
 
 ## Brain Model Definition
 
-Brain models use `defineBrain()` from `@brains/app`:
+Public/custom brain models use `defineBrain()` from the root `@rizom/brain` package. Built-in models in this repository may still use internal workspace packages, but external model packages should not import `@brains/*` modules.
 
 ```typescript
-import { defineBrain, type PluginConfig } from "@brains/app";
-import { directorySync } from "@brains/directory-sync";
-import { notePlugin } from "@brains/note";
-import { linkPlugin } from "@brains/link";
-import { MCPInterface } from "@brains/mcp";
-import { WebserverInterface } from "@brains/webserver";
+import {
+  defineBrain,
+  type BrainEnvironment,
+  type Plugin,
+  type PluginConfig,
+} from "@rizom/brain";
+import { calendarPlugin } from "@rizom/brain-plugin-calendar";
+
+const localPlugin = (_config: PluginConfig): Plugin => ({
+  id: "local-notes",
+  version: "1.0.0",
+  type: "service",
+  packageName: "@acme/my-brain",
+});
 
 export default defineBrain({
   name: "my-brain",
@@ -157,27 +165,24 @@ export default defineBrain({
 
   capabilities: [
     // [id, factory, config] tuples
-    ["note", notePlugin, {}],
-    ["link", linkPlugin, {}],
+    ["local-notes", localPlugin, {}],
     [
-      "directory-sync",
-      directorySync,
-      {
-        seedContent: true,
-        initialSync: true,
-      },
+      "calendar",
+      calendarPlugin,
+      (env: BrainEnvironment): PluginConfig => ({
+        apiKey: env["CALENDAR_API_KEY"],
+        timezone: "UTC",
+      }),
     ],
   ],
 
-  interfaces: [
-    // [id, constructor, envMapper] tuples
-    [
-      "mcp",
-      MCPInterface,
-      (env): PluginConfig => ({ authToken: env["MCP_AUTH_TOKEN"] }),
-    ],
-    ["webserver", WebserverInterface, (): PluginConfig => ({})],
-  ],
+  interfaces: [],
+
+  defaultPreset: "core",
+  presets: {
+    core: ["local-notes"],
+    default: ["local-notes", "calendar"],
+  },
 
   permissions: {
     anchors: ["discord:123456789"],
@@ -301,18 +306,21 @@ Only needed when you want a different curated capability set than `rover` / `ran
    mkdir -p brains/my-brain/src
    ```
 
-2. Define the brain in `brains/my-brain/src/index.ts` using `defineBrain()` (see example above).
+2. Define the brain in `brains/my-brain/src/index.ts` using `defineBrain()` from `@rizom/brain` (see example above).
 
 3. Add `brains/my-brain/package.json`:
 
    ```json
    {
-     "name": "@brains/my-brain",
+     "name": "@acme/my-brain",
      "version": "1.0.0",
      "type": "module",
      "main": "src/index.ts",
-     "dependencies": {
-       "@brains/app": "workspace:*"
+     "peerDependencies": {
+       "@rizom/brain": "^0.2.0-alpha.47"
+     },
+     "devDependencies": {
+       "@rizom/brain": "^0.2.0-alpha.47"
      }
    }
    ```

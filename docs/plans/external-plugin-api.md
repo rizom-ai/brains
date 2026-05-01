@@ -181,7 +181,7 @@ Package metadata shape:
     }
   },
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.45"
+    "@rizom/brain": "^0.2.0-alpha.47"
   }
 }
 ```

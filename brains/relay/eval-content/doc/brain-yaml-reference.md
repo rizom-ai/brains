@@ -23,7 +23,7 @@ preset: core
 anchors: []
 
 site:
-  package: "@brains/site-default"
+  package: "@acme/brain-site"
 
 plugins:
   # Uncomment to enable git-backed sync of brain content:
@@ -40,8 +40,8 @@ plugins:
 ```yaml
 brain: rover
 site:
-  package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  package: "@acme/brain-site"
+  theme: "@acme/brain-theme"
 name: "My Brain"
 logLevel: info
 logFile: ./brain.log
@@ -90,8 +90,8 @@ Optional site override.
 
 ```yaml
 site:
-  package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  package: "@acme/brain-site"
+  theme: "@acme/brain-theme"
 ```
 
 Fields:
@@ -258,7 +258,7 @@ External plugin packages should declare their compatible runtime with a peer dep
 ```json
 {
   "peerDependencies": {
-    "@rizom/brain": "^0.2.0-alpha.45"
+    "@rizom/brain": "^0.2.0-alpha.47"
   }
 }
 ```
@@ -369,7 +369,7 @@ domain: mybrain.example.com
 preset: full
 
 site:
-  package: "@brains/site-default"
+  package: "@acme/brain-site"
 
 anchors:
   - "discord:000000000000000000"
@@ -412,8 +412,8 @@ preset: default
 domain: rizom.ai
 
 site:
-  package: "@brains/site-rizom"
-  theme: "@brains/theme-rizom"
+  package: "@acme/rizom-site"
+  theme: "@acme/rizom-theme"
 
 plugins:
   mcp:
