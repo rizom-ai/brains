@@ -73,10 +73,6 @@ export class TopicsPlugin extends EntityPlugin<
 
   declare protected config: TopicsPluginConfig;
 
-  /**
-   * Auto-extraction starts disabled and is enabled after initial sync completes.
-   */
-  private autoExtractionEnabled = false;
   constructor(config: Partial<TopicsPluginConfig> = {}) {
     super("topics", packageJson, config, topicsPluginConfigSchema);
   }
@@ -112,7 +108,6 @@ export class TopicsPlugin extends EntityPlugin<
           handler: this.createTopicProjectionHandler(context),
         },
         initialSync: {
-          before: () => this.enableAutoExtraction(),
           shouldEnqueue: async () =>
             !(await hasPersistedTargets(context, "topic")),
           jobData: { mode: "derive", reason: "initial-sync" },
@@ -283,23 +278,12 @@ export class TopicsPlugin extends EntityPlugin<
 
   // ── Public helpers (used by tests) ──
 
-  public isAutoExtractionEnabled(): boolean {
-    return this.autoExtractionEnabled;
-  }
-
   public hasRunInitialDerivation(): boolean {
     return (
       this.getDerivedEntityProjectionController(
         "topics-projection",
       )?.hasQueuedInitialSync() ?? false
     );
-  }
-
-  public enableAutoExtraction(): void {
-    if (this.config.enableAutoExtraction) {
-      this.autoExtractionEnabled = true;
-      this.logger.info("Auto-extraction enabled after initial sync");
-    }
   }
 
   public shouldProcessEntityType(entityType: string): boolean {

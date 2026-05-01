@@ -1,6 +1,6 @@
 import type {
-  Conversation as ConversationRow,
-  Message as MessageRow,
+  Conversation as RuntimeConversation,
+  Message as RuntimeMessage,
 } from "@brains/conversation-service";
 import {
   messageRoleSchema,
@@ -32,7 +32,7 @@ function toPublicRole(role: string): MessageRole {
 }
 
 export function toPublicConversation(
-  conversation: ConversationRow,
+  conversation: RuntimeConversation,
 ): Conversation {
   const metadata = parseMetadata(conversation.metadata);
   const channelName =
@@ -54,7 +54,7 @@ export function toPublicConversation(
   };
 }
 
-export function toPublicMessage(message: MessageRow): Message {
+export function toPublicMessage(message: RuntimeMessage): Message {
   return {
     id: message.id,
     conversationId: message.conversationId,

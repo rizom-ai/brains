@@ -44,7 +44,6 @@ describe("Initial sync triggers batch projection", () => {
     );
 
     expect(plugin.hasRunInitialDerivation()).toBe(true);
-    expect(plugin.isAutoExtractionEnabled()).toBe(true);
     expect(registerHandler).toHaveBeenCalledWith(
       "topic:project",
       expect.any(Object),
@@ -174,11 +173,10 @@ describe("Initial sync triggers batch projection", () => {
       "directory-sync",
     );
 
-    // Flag is only set after work is enqueued — when persisted topics
-    // already exist we skip the enqueue, so the flag stays false and a
-    // future sync can still trigger derivation if topics are deleted.
+    // Initial derivation is only marked after work is enqueued. Persisted
+    // topics skip the initial job while still allowing source-change jobs
+    // after the initial sync event has been observed.
     expect(plugin.hasRunInitialDerivation()).toBe(false);
-    expect(plugin.isAutoExtractionEnabled()).toBe(true);
     expect(enqueue).not.toHaveBeenCalled();
 
     harness.reset();
