@@ -56,6 +56,7 @@ import type { IMCPService, ToolInfo } from "@brains/mcp-service";
 import type { Template } from "@brains/templates";
 import { Logger, type z } from "@brains/utils";
 
+import { getRuntimeAppInfo } from "./app-info";
 import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
@@ -516,23 +517,11 @@ export class Shell implements IShell {
   }
 
   public async getAppInfo(): Promise<RuntimeAppInfo> {
-    const entityCounts = await this.services.entityService.getEntityCounts();
-    const totalEntities = entityCounts.reduce((sum, c) => sum + c.count, 0);
-    const embeddingCount = await this.services.entityService.countEmbeddings();
-    const daemons = await this.services.daemonRegistry.getStatuses();
-
-    return {
-      model: this.config.name || "brain-app",
-      version: this.config.version || "1.0.0",
-      uptime: Math.floor((Date.now() - this.bootTime) / 1000),
-      entities: totalEntities,
-      embeddings: embeddingCount,
-      ai: {
-        model: this.config.ai.model,
-        embeddingModel: "text-embedding-3-small",
-      },
-      daemons,
-      endpoints: this.listEndpoints(),
-    };
+    return getRuntimeAppInfo({
+      config: this.config,
+      services: this.services,
+      bootTime: this.bootTime,
+      endpoints: () => this.listEndpoints(),
+    });
   }
 }
