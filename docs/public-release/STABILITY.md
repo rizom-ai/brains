@@ -85,7 +85,9 @@ External plugin authors should use the generated public `@rizom/brain/*` subpath
 - `@rizom/brain/services`
 - `@rizom/brain/templates`
 
-The public plugin base classes (`ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`) and lifecycle hooks (`onRegister`, `onReady`, `onShutdown`) are stable enough to build external plugins on during alpha. Published declarations are generated from source and guarded so they do not expose internal `@brains/*` imports.
+The public plugin base classes (`ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`) and lifecycle hooks (`onRegister`, `onReady`, `onShutdown`) are stable enough to build external plugins on during alpha. Public data contracts are schema-backed DTOs; callable context namespaces are TypeScript interfaces. Published declarations are generated from source and guarded so they do not expose internal `@brains/*` imports.
+
+Public DTO `metadata` bags are best-effort extension data, not stable per-key contracts. Stable fields are hoisted to typed top-level properties before being documented.
 
 ### External plugin loading shape
 
@@ -118,6 +120,8 @@ These are explicitly **not** stable. Don't depend on them without expecting chur
 ### Plugin context expansion
 
 The currently published public context contracts are usable for external plugins, but additive context expansion is still in progress. Depend on documented public namespace methods and DTO schemas, not on internal shell services or workspace-private types.
+
+Message interface file-upload formatting, URL extraction, URL-capture helper internals, and related protected utility methods remain unstable unless they appear in generated public declarations without `@internal` filtering.
 
 Internal context factories and shell-only types remain unstable and are not public API:
 

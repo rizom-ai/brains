@@ -16,7 +16,8 @@ Hand-editing the stubs to fix these is symptom-patching. The fix is to stop hand
 
 ## Direction (decided)
 
-- **Zod schemas in `shell/plugins/src/contracts/` are the source of truth** for every public DTO crossing the plugin boundary. Public TS types come from `z.infer<typeof Schema>`.
+- **Zod schemas in `shell/plugins/src/contracts/` are the source of truth** for every public data DTO crossing the plugin boundary. Public TS data types come from `z.infer<typeof Schema>`.
+- **Callable APIs are TypeScript interfaces.** Namespaces such as `AgentNamespace` describe methods over trusted in-process services; they are not runtime data payloads and do not need object schemas unless/until they cross an untrusted boundary.
 - **Manual `.d.ts` stubs are deleted for migrated subpaths.** Published declarations are derived from source via a build step. No human-edited public plugin-author types.
 - **Translators in `shell/plugins/src/base/public-*.ts`** convert internal/runtime shapes to contract shapes at the boundary (DB row → parsed metadata, column renames, `Date` → ISO string, internal method names → namespace method names). Translators are the runtime half of the contract; the schema is the typing half.
 - **Bare names for public types** (`Conversation`, `Message`, `AppInfo`); internal types carry an explicit prefix or suffix. Pick one and apply uniformly — see open work.
@@ -49,7 +50,7 @@ The iterative shape:
 
 3. **Add back iteratively after generation is clean.** One namespace or DTO at a time. Each addition: contract schema in `contracts/`, translator if internal shape differs, exposure via the right entry. Generated declarations prove the addition is clean. If something can't go through cleanly, the answer is contract redesign, not stub patching.
 
-4. **Wrapper baseline complete.** `MessageInterfacePlugin` is public API for chat/channel integrations, documented as optional sugar over `InterfacePlugin`. The generated public surface is intentionally minimal: constructor, stable lifecycle hooks, channel-send abstract method(s), and stable chat helpers that prevent external authors from copy-pasting Discord/Matrix-style routing/progress/upload/URL-capture logic. Keep future additions contract-backed and prove them with the external fixture before expanding any additional namespaces.
+4. **Wrapper baseline complete.** `MessageInterfacePlugin` is public API for chat/channel integrations, documented as optional sugar over `InterfacePlugin`. The generated public surface is intentionally minimal: constructor, stable lifecycle hooks, channel-send abstract method(s), and progress/tracking helpers already proven by the fixture. File-upload formatting, URL extraction, size/type checks, and URL-capture helper implementation details stay `@internal` until their exact behavior is deliberately stabilized. Keep future additions contract-backed and prove them with the external fixture before expanding any additional namespaces.
 
 ## Goals
 
@@ -69,8 +70,7 @@ The iterative shape:
 
 - **Generation mechanism follow-through.** Keep declaration bundling as the source of published `.d.ts` output. Constraint: published `.d.ts` is self-contained (no `@brains/*` imports) and matches what the schemas/contracts declare.
 - **Internal naming convention.** Currently mixed: `RuntimeAppInfo`, `ConversationRow`, `RuntimeAgentResponse`. Pick `Runtime*` prefix or `*Row` suffix and apply across all internal types that have a public counterpart.
-- **`metadata: z.record(z.unknown())` policy.** Each contract that exposes a `metadata` bag is a future drift point. Decide: every meaningful metadata field is hoisted to a typed top-level field, OR `metadata` is an explicit "do not depend on this" escape hatch documented as such.
-- **Schemas vs interfaces consistency.** Data DTOs are zod schemas; the `AgentNamespace` callable API is a TS interface. Commit to "schemas for data, interfaces for callable APIs" as a documented rule, or unify on schemas.
+- **Metadata escape-hatch follow-through.** Public `metadata: z.record(z.unknown())` bags are explicitly best-effort extension data, not stable per-key contracts. Hoist any meaningful field to a typed top-level schema field before documenting it as stable.
 - **Test-introspection cleanup.** Plugins still expose state for tests to read (e.g., `autoExtractionEnabled`), and the projection layer accommodates this via a `before` lifecycle hook. Replace with observable-behavior tests, then drop the hook.
 - **Next context surface.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
 
