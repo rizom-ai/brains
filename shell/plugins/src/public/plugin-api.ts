@@ -867,6 +867,7 @@ export abstract class MessageInterfacePlugin<
   }
   protected async onProgressUpdate(_event: JobProgressEvent): Promise<void> {}
 
+  /** @internal */
   protected isUploadableTextFile(filename: string, mimetype?: string): boolean {
     const textFileExtensions = [".md", ".txt", ".markdown"];
     const textMimeTypes = ["text/plain", "text/markdown", "text/x-markdown"];
@@ -878,6 +879,7 @@ export abstract class MessageInterfacePlugin<
     );
   }
 
+  /** @internal */
   protected isFileSizeAllowed(size: number): boolean {
     return size <= 100_000;
   }
@@ -906,6 +908,7 @@ export abstract class MessageInterfacePlugin<
     });
   }
 
+  /** @internal */
   protected captureUrlViaAgent(
     url: string,
     channelId: string,

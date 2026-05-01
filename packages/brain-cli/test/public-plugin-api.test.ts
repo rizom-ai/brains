@@ -110,8 +110,11 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("PluginCapabilities");
     expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
     expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
+    expect(pluginsTypes).not.toContain("isUploadableTextFile");
+    expect(pluginsTypes).not.toContain("isFileSizeAllowed");
     expect(pluginsTypes).not.toContain("formatFileUploadMessage");
     expect(pluginsTypes).not.toContain("extractCaptureableUrls");
+    expect(pluginsTypes).not.toContain("captureUrlViaAgent");
     expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("register(shell");
