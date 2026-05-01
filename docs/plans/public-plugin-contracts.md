@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the remaining `packages/brain-cli/src/types/site.d.ts` file is a tracked legacy site surface.
+In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the remaining `packages/brain-cli/src/types/site.d.ts` file is a tracked legacy site surface. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
 
 ## Problem
 
@@ -35,7 +35,7 @@ This slice is complete when:
 - generated/published declarations contain no `@brains/*` imports.
 - the package-local external plugin fixture typechecks against the generated/published plugin contract surface only.
 
-Current first pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin` has been added back through a real public wrapper with generated declarations; remaining base classes and richer context/capability APIs are added back only after they can generate clean declarations without leaking internals.
+Current first pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` have been added back through real public wrappers with generated declarations. `MessageInterfacePlugin` is exposed as optional sugar over `InterfacePlugin`, not as a replacement for non-chat interfaces.
 
 If generation exposes leaks or unusable types, shrink the entry export surface. Do not replace generated declarations with handwritten interfaces, casts, broad `unknown` placeholders, or copied `.d.ts` blocks.
 
@@ -48,6 +48,8 @@ The iterative shape:
 2. **Expose less first.** When generation reveals internal leakage (imports of `@brains/*`, transitive type graphs), the answer is to **shrink what `entries/*.ts` re-exports**, not to patch the generated output. For the first clean pass, prefer contracts-only exports over wholesale `@brains/plugins` re-exports.
 
 3. **Add back iteratively after generation is clean.** One namespace or DTO at a time. Each addition: contract schema in `contracts/`, translator if internal shape differs, exposure via the right entry. Generated declarations prove the addition is clean. If something can't go through cleanly, the answer is contract redesign, not stub patching.
+
+4. **Wrapper baseline complete.** `MessageInterfacePlugin` is public API for chat/channel integrations, documented as optional sugar over `InterfacePlugin`. The generated public surface is intentionally minimal: constructor, stable lifecycle hooks, channel-send abstract method(s), and stable chat helpers that prevent external authors from copy-pasting Discord/Matrix-style routing/progress/upload/URL-capture logic. Keep future additions contract-backed and prove them with the external fixture before expanding any additional namespaces.
 
 ## Goals
 
@@ -70,7 +72,7 @@ The iterative shape:
 - **`metadata: z.record(z.unknown())` policy.** Each contract that exposes a `metadata` bag is a future drift point. Decide: every meaningful metadata field is hoisted to a typed top-level field, OR `metadata` is an explicit "do not depend on this" escape hatch documented as such.
 - **Schemas vs interfaces consistency.** Data DTOs are zod schemas; the `AgentNamespace` callable API is a TS interface. Commit to "schemas for data, interfaces for callable APIs" as a documented rule, or unify on schemas.
 - **Test-introspection cleanup.** Plugins still expose state for tests to read (e.g., `autoExtractionEnabled`), and the projection layer accommodates this via a `before` lifecycle hook. Replace with observable-behavior tests, then drop the hook.
-- **Next context surface to migrate.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
+- **Next context surface.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
 
 ## Acceptance criteria
 

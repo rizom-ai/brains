@@ -100,13 +100,18 @@ describe("@rizom/brain public plugin API surface", () => {
 
     expect(pluginsTypes).toContain("declare abstract class EntityPlugin");
     expect(pluginsTypes).toContain("declare abstract class InterfacePlugin");
+    expect(pluginsTypes).toContain(
+      "declare abstract class MessageInterfacePlugin",
+    );
     expect(pluginsTypes).toContain("declare abstract class ServicePlugin");
     expect(pluginsTypes).not.toContain("IShell");
     expect(pluginsTypes).not.toContain("PluginManager");
     expect(pluginsTypes).not.toContain("PluginRegistrationContext");
     expect(pluginsTypes).not.toContain("PluginCapabilities");
     expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
+    expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
     expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
+    expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("register(shell");
     expect(pluginsTypes).not.toContain("SYSTEM_CHANNELS");
     expect(pluginsTypes).not.toContain("createEntityPluginContext");

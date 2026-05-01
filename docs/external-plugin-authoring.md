@@ -24,7 +24,7 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
 }
 ```
 
-Do not import internal `@brains/*` workspaces from external plugins. `ServicePlugin`, `EntityPlugin`, and `InterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
+Do not import internal `@brains/*` workspaces from external plugins. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
 
 - `@rizom/brain/plugins`
 - `@rizom/brain/entities`
@@ -95,6 +95,10 @@ export default plugin;
 ```
 
 The repository keeps a package-local compile fixture at [`packages/brain-cli/test/fixtures/external-plugin`](../packages/brain-cli/test/fixtures/external-plugin). It typechecks against the public `.d.ts` contracts and must not import `@brains/*`.
+
+## Messaging interfaces
+
+Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
 
 ## Loading from `brain.yaml`
 

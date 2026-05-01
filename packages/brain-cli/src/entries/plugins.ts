@@ -3,12 +3,14 @@
 export {
   EntityPlugin,
   InterfacePlugin,
+  MessageInterfacePlugin,
   ServicePlugin,
   createResource,
   createTool,
   defineChannel,
   toolError,
   toolSuccess,
+  urlCaptureConfigSchema,
 } from "@brains/plugins/public/plugin-api";
 export type {
   BaseJobTrackingInfo,
@@ -25,6 +27,10 @@ export type {
   IServiceTemplatesNamespace,
   IViewsNamespace,
   InterfacePluginContext,
+  JobProgressEvent,
+  JobProgressContext,
+  JobProgressStatus,
+  MessageJobTrackingInfo,
   Plugin,
   PluginConfig,
   PluginConfigInput,

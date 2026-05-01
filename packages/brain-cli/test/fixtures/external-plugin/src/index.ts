@@ -1,6 +1,7 @@
 import {
   EntityPlugin,
   InterfacePlugin,
+  MessageInterfacePlugin,
   ServicePlugin,
   createTool,
   toolSuccess,
@@ -16,6 +17,7 @@ import {
   type Message,
   type MessageResponse,
   type InterfacePluginContext,
+  type JobProgressEvent,
   type MessageSender,
   type PluginFactory,
   type ServicePluginContext,
@@ -121,6 +123,58 @@ export class ExampleInterfacePlugin extends InterfacePlugin {
   }
 }
 
+export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
+  private readonly sentMessages: string[] = [];
+
+  constructor() {
+    super("example-message-interface", packageJson, {}, z.object({}));
+  }
+
+  protected sendMessageToChannel(
+    channelId: string | null,
+    message: string,
+  ): void {
+    this.sentMessages.push(`${channelId ?? "local"}:${message}`);
+  }
+
+  protected override sendMessageWithId(
+    channelId: string | null,
+    message: string,
+  ): Promise<string | undefined> {
+    this.sendMessageToChannel(channelId, message);
+    return Promise.resolve("message-1");
+  }
+
+  protected override editMessage(
+    _channelId: string,
+    _messageId: string,
+    _newMessage: string,
+  ): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  protected override supportsMessageEditing(): boolean {
+    return true;
+  }
+
+  protected override async onProgressUpdate(
+    event: JobProgressEvent,
+  ): Promise<void> {
+    void event.id;
+  }
+
+  public exerciseMessageHelpers(): void {
+    const uploadable = this.isUploadableTextFile("notes.md", "text/markdown");
+    const smallEnough = this.isFileSizeAllowed(1024);
+    const uploadMessage = this.formatFileUploadMessage("notes.md", "hello");
+    const urls = this.extractCaptureableUrls("see https://example.com", []);
+    this.trackAgentResponseForJob("job-1", "message-1", "channel-1");
+    this.startProcessingInput("channel-1");
+    this.endProcessingInput();
+    void [uploadable, smallEnough, uploadMessage, urls];
+  }
+}
+
 export class ExampleExternalPlugin extends ServicePlugin<ExamplePluginConfig> {
   private readonly greeting: string;
 
@@ -196,6 +250,7 @@ export const plugin: PluginFactory = (config) => [
   new ExampleExternalPlugin(config),
   new ExampleEntityPlugin(),
   new ExampleInterfacePlugin(),
+  new ExampleMessageInterfacePlugin(),
 ];
 
 export default plugin;

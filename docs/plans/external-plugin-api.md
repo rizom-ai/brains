@@ -2,7 +2,7 @@
 
 ## Status
 
-Shell initialization coordination, §1 public plugin authoring exports, §2 `brain.yaml plugins:` loading, and package-local external authoring proof are complete. External plugin declarations parse, package refs register, runtime loading supports default or named `plugin` factory exports, the public fixture typechecks against `@rizom/brain/*`, and author docs cover the supported package shape. Runtime plugin API compatibility checks are deferred while `PLUGIN_API_VERSION` tracks the `@rizom/brain` package version during alpha; package-manager `peerDependencies` are the compatibility source of truth for now.
+Shell initialization coordination, §1 public plugin authoring exports, §2 `brain.yaml plugins:` loading, and package-local external authoring proof are complete for `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`. External plugin declarations parse, package refs register, runtime loading supports default or named `plugin` factory exports, the public fixture typechecks against `@rizom/brain/*`, and author docs cover the supported package shape. `MessageInterfacePlugin` is public optional chat-interface sugar over `InterfacePlugin`. Runtime plugin API compatibility checks are deferred while `PLUGIN_API_VERSION` tracks the `@rizom/brain` package version during alpha; package-manager `peerDependencies` are the compatibility source of truth for now.
 
 ## Current state
 
@@ -79,7 +79,7 @@ The package needs a curated plugin-authoring surface beyond the existing `./cli`
 
 Needed public subpaths:
 
-- `@rizom/brain/plugins` — `EntityPlugin`, `ServicePlugin`, `InterfacePlugin`, `MessageInterfacePlugin` base classes plus their context types
+- `@rizom/brain/plugins` — `EntityPlugin`, `ServicePlugin`, `InterfacePlugin`, `MessageInterfacePlugin` base classes plus their context types. `MessageInterfacePlugin` is explicitly public, but documented as optional sugar for messaging surfaces; non-chat integrations should extend `InterfacePlugin` directly.
 - `@rizom/brain/entities` — `BaseEntity`, `EntityAdapter`, `EntityTypeConfig`, schema helpers
 - `@rizom/brain/services` — `BaseEntityDataSource`, `BaseGenerationJobHandler`, shared service utilities
 - `@rizom/brain/interfaces` — `Daemon` types, route registration types, permission helpers
@@ -111,6 +111,7 @@ Implementation notes:
 - Runtime entry files should re-export from curated contract source where possible; published type files must not expose `@brains/*` import paths.
 - Shared types that are useful in more than one subpath should be exported from explicit contract modules rather than forcing authors to import from unrelated subpaths.
 - If a public type currently references an explicit non-export such as `IShell`, shrink the public surface or introduce a real public contract instead of leaking the internal dependency.
+- Add `MessageInterfacePlugin` after the current base-wrapper slice, not as a broad internal re-export. Keep its public surface minimal: constructor, stable lifecycle hooks, the abstract channel-send method(s) external chat adapters must implement, and stable chat helpers such as upload validation, URL capture extraction, and progress-message support. Mark uncertain/non-load-bearing inherited helpers `@internal` so declaration bundling strips them. Add a fixture compile-test that extends it.
 
 ### 2. Load external plugins from `brain.yaml`
 
