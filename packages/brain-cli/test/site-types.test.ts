@@ -4,6 +4,7 @@ import { join } from "path";
 import { spawnSync } from "node:child_process";
 
 const pkgDir = join(import.meta.dir, "..");
+const siteAuthorFixtureDir = join(pkgDir, "test", "fixtures", "site-author");
 
 describe("@rizom/brain/site type contract", () => {
   const siteTypesPath = join(pkgDir, "dist", "site.d.ts");
@@ -51,5 +52,44 @@ describe("@rizom/brain/site type contract", () => {
       expect(types).toContain(symbol);
       expect(entry).toContain(symbol);
     }
+  });
+
+  it("typechecks the package-local site authoring fixture", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+      {
+        cwd: siteAuthorFixtureDir,
+        encoding: "utf-8",
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+    expect(output).not.toContain("@brains/");
+  });
+
+  it("resolves the site authoring fixture against generated dist declarations", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
+      {
+        cwd: siteAuthorFixtureDir,
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+
+    expect(output).toContain(
+      "Module name '@rizom/brain/site' was successfully resolved",
+    );
+    expect(output).toContain("dist/site.d.ts");
   });
 });
