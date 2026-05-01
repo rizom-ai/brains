@@ -2,6 +2,7 @@ import { getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { Logger } from "@brains/utils";
+import type { EntityData } from "./entity-data";
 
 /**
  * EntitySerializer handles conversion between entities and markdown
@@ -39,15 +40,9 @@ export class EntitySerializer {
   /**
    * Convert a database row to a validated entity, or null if parsing/validation fails
    */
-  public async convertToEntity<T extends BaseEntity>(entityData: {
-    id: string;
-    entityType: string;
-    content: string;
-    contentHash: string;
-    created: number;
-    updated: number;
-    metadata: Record<string, unknown>;
-  }): Promise<T | null> {
+  public async convertToEntity<T extends BaseEntity>(
+    entityData: EntityData,
+  ): Promise<T | null> {
     try {
       return this.reconstructEntity<T>(entityData);
     } catch (error) {
@@ -63,15 +58,7 @@ export class EntitySerializer {
    * Convert multiple database rows to entities, skipping any that fail validation
    */
   public async convertToEntities<T extends BaseEntity>(
-    rows: Array<{
-      id: string;
-      entityType: string;
-      content: string;
-      contentHash: string;
-      created: number;
-      updated: number;
-      metadata: Record<string, unknown>;
-    }>,
+    rows: EntityData[],
     entityType: string,
   ): Promise<T[]> {
     const entityList: T[] = [];
@@ -94,15 +81,7 @@ export class EntitySerializer {
    * Reconstruct a typed entity from a database row by merging DB fields,
    * metadata, and adapter-parsed content, then validating against the schema
    */
-  public reconstructEntity<T extends BaseEntity>(entityData: {
-    id: string;
-    entityType: string;
-    content: string;
-    contentHash: string;
-    created: number;
-    updated: number;
-    metadata: Record<string, unknown>;
-  }): T {
+  public reconstructEntity<T extends BaseEntity>(entityData: EntityData): T {
     const adapter = this.entityRegistry.getAdapter<T>(entityData.entityType);
     const parsedContent = adapter.fromMarkdown(entityData.content);
     // Strip parsed metadata — DB metadata is the source of truth.

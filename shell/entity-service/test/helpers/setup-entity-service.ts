@@ -5,11 +5,11 @@ import {
   createMockJobQueueService,
 } from "@brains/test-utils";
 import type { IJobQueueService } from "@brains/job-queue";
-import type { MessageBus } from "@brains/messaging-service";
 import type {
   EntityDbConfig,
   EntityAdapter,
   BaseEntity,
+  EntityEventBus,
 } from "../../src/types";
 import type { z } from "@brains/utils";
 import { mockEmbeddingService } from "./mock-services";
@@ -40,7 +40,7 @@ interface EntityTypeRegistration {
  */
 export async function setupEntityService(
   registrations: EntityTypeRegistration[],
-  options?: { messageBus?: MessageBus },
+  options?: { messageBus?: EntityEventBus },
 ): Promise<EntityServiceTestContext> {
   EntityService.resetInstance();
   EntityRegistry.resetInstance();

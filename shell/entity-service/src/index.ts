@@ -42,6 +42,7 @@ export type {
   EntityDbConfig,
   EntityTypeConfig,
   EntityJobOptions,
+  EntityEventBus,
   CreateEntityOptions,
   CreateEntityFromMarkdownInput,
   EntityMutationResult,

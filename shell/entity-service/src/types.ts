@@ -162,6 +162,21 @@ export type CreateInterceptor = (
 ) => Promise<CreateInterceptionResult>;
 
 /**
+ * Minimal event bus contract used by entity-service for lifecycle events.
+ * Kept structural to avoid coupling this package to a concrete messaging service.
+ */
+export interface EntityEventBus {
+  send(
+    type: string,
+    payload: Record<string, unknown>,
+    sender: string,
+    target?: string,
+    metadata?: Record<string, unknown>,
+    broadcast?: boolean,
+  ): Promise<unknown>;
+}
+
+/**
  * Interface for entity adapter - handles conversion between entities and markdown
  * following the hybrid storage model
  *
@@ -249,6 +264,7 @@ export interface SearchOptions {
   limit?: number;
   offset?: number;
   types?: string[];
+  excludeTypes?: string[];
   sortBy?: "relevance" | "created" | "updated";
   sortDirection?: "asc" | "desc";
   /** Score multipliers per entity type - applied after initial search */

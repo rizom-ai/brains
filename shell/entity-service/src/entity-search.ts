@@ -85,17 +85,12 @@ export class EntitySearch {
     // Convert Float32Array to JSON array for SQL
     const embeddingArray = JSON.stringify(Array.from(queryEmbedding));
 
-    // Build weight CASE expression if weights provided
-    let weightCase = "1.0";
-    if (hasWeights) {
-      const cases = Object.entries(weight)
-        .map(([entityType, w]) => `WHEN entityType = '${entityType}' THEN ${w}`)
-        .join(" ");
-      weightCase = `CASE ${cases} ELSE 1.0 END`;
-    }
+    const weightMultiplier = this.buildWeightMultiplier(
+      hasWeights ? weight : undefined,
+    );
 
     // Build type filter conditions for drizzle
-    const typeConditions = [];
+    const typeConditions: SQL[] = [];
     if (types.length > 0) {
       typeConditions.push(
         sql`${entities.entityType} IN (${sql.join(
@@ -115,7 +110,7 @@ export class EntitySearch {
 
     return this.searchWithAttachedDb<T>(
       embeddingArray,
-      weightCase,
+      weightMultiplier,
       typeConditions,
       limit,
       offset,
@@ -124,19 +119,39 @@ export class EntitySearch {
   }
 
   /**
-   * Execute search against an attached embedding database (aliased as "emb").
-   * Uses raw SQL because Drizzle doesn't know about cross-DB table references.
-   */
-  /**
    * FTS5 boost weight. When a keyword match is found, this fraction of the
    * final score comes from FTS5 rank, the rest from vector similarity.
    * 0.3 = 30% keyword, 70% semantic.
    */
   private static readonly FTS_ALPHA = 0.3;
 
+  /**
+   * Build a parameterized CASE expression for entity-type score multipliers.
+   * Weight keys may be caller-provided, so avoid raw SQL string interpolation.
+   */
+  private buildWeightMultiplier(weight?: Record<string, number>): SQL {
+    const entries = Object.entries(weight ?? {}).filter(([, multiplier]) =>
+      Number.isFinite(multiplier),
+    );
+
+    if (entries.length === 0) {
+      return sql`1.0`;
+    }
+
+    const cases = entries.map(
+      ([entityType, multiplier]) =>
+        sql`WHEN ${entities.entityType} = ${entityType} THEN ${multiplier}`,
+    );
+
+    return sql`CASE ${sql.join(cases, sql` `)} ELSE 1.0 END`;
+  }
+
+  /**
+   * Execute search against an attached embedding database (aliased as "emb").
+   */
   private async searchWithAttachedDb<T extends BaseEntity = BaseEntity>(
     embeddingArray: string,
-    weightCase: string,
+    weightMultiplier: SQL,
     typeConditions: SQL[],
     limit: number,
     offset: number,
@@ -145,7 +160,7 @@ export class EntitySearch {
     const alpha = EntitySearch.FTS_ALPHA;
 
     // Vector similarity score (0..1, higher is better)
-    const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * ${sql.raw(weightCase)}`;
+    const vectorScore = sql<number>`(1.0 - vector_distance_cos(emb_e.embedding, vector32(${embeddingArray})) / 2.0) * (${weightMultiplier})`;
     const distanceExpr = sql<number>`vector_distance_cos(emb_e.embedding, vector32(${embeddingArray}))`;
 
     // FTS5 keyword boost via subquery: 1.0 when matched, 0.0 when not.

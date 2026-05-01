@@ -2,11 +2,10 @@ import { z, Logger, type ProgressReporter } from "@brains/utils";
 import type {
   EntityService as IEntityService,
   EmbeddingJobData,
+  EntityEventBus,
 } from "../types";
 import type { IEmbeddingService } from "../embedding-types";
 import type { JobHandler } from "@brains/job-queue";
-import type { MessageBus } from "@brains/messaging-service";
-
 /**
  * Zod schema for embedding job data validation
  * Content is NOT in job data - fetched fresh from entity when processing
@@ -28,7 +27,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   private logger: Logger;
   private embeddingService: IEmbeddingService;
   private entityService: IEntityService;
-  private messageBus?: MessageBus;
+  private messageBus?: EntityEventBus;
 
   /**
    * Get the singleton instance
@@ -36,7 +35,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public static getInstance(
     entityService: IEntityService,
     embeddingService: IEmbeddingService,
-    messageBus?: MessageBus,
+    messageBus?: EntityEventBus,
   ): EmbeddingJobHandler {
     EmbeddingJobHandler.instance ??= new EmbeddingJobHandler(
       entityService,
@@ -59,7 +58,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   public static createFresh(
     entityService: IEntityService,
     embeddingService: IEmbeddingService,
-    messageBus?: MessageBus,
+    messageBus?: EntityEventBus,
   ): EmbeddingJobHandler {
     return new EmbeddingJobHandler(entityService, embeddingService, messageBus);
   }
@@ -70,7 +69,7 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
   private constructor(
     entityService: IEntityService,
     embeddingService: IEmbeddingService,
-    messageBus?: MessageBus,
+    messageBus?: EntityEventBus,
   ) {
     this.logger = Logger.getInstance().child("EmbeddingJobHandler");
     this.embeddingService = embeddingService;

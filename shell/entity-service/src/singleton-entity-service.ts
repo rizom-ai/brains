@@ -47,35 +47,36 @@ export abstract class SingletonEntityService<TBody> {
    * Creates a default entity if none exists.
    */
   public async initialize(): Promise<void> {
-    await this.load();
+    if (await this.load()) {
+      return;
+    }
 
-    if (!this.cache) {
-      // Initial sync/import may populate singleton markdown after the first
-      // cache miss. Re-check immediately before creating defaults so cold
-      // starts with existing brain-data do not overwrite real identity files.
+    // Initial sync/import may populate singleton markdown after the first
+    // cache miss. Re-check immediately before creating defaults so cold
+    // starts with existing brain-data do not overwrite real identity files.
+    if (await this.load()) {
+      return;
+    }
+
+    this.logger.info(
+      `No ${this.entityType} found, creating default ${this.entityType}`,
+    );
+    try {
+      const content = this.createContent(this.defaultBody);
+
+      await this.entityService.createEntity({
+        id: this.entityType,
+        entityType: this.entityType,
+        content,
+        metadata: {},
+      });
+
       await this.load();
-      if (this.cache) return;
-
-      this.logger.info(
-        `No ${this.entityType} found, creating default ${this.entityType}`,
-      );
-      try {
-        const content = this.createContent(this.defaultBody);
-
-        await this.entityService.createEntity({
-          id: this.entityType,
-          entityType: this.entityType,
-          content,
-          metadata: {},
-        });
-
-        await this.load();
-        this.logger.info(`Default ${this.entityType} created successfully`);
-      } catch (error) {
-        this.logger.error(`Failed to create default ${this.entityType}`, {
-          error,
-        });
-      }
+      this.logger.info(`Default ${this.entityType} created successfully`);
+    } catch (error) {
+      this.logger.error(`Failed to create default ${this.entityType}`, {
+        error,
+      });
     }
   }
 
@@ -120,7 +121,7 @@ export abstract class SingletonEntityService<TBody> {
    * of re-throwing on every call. The parse error is logged once with the
    * full validation message so users can fix their data.
    */
-  private async load(): Promise<void> {
+  private async load(): Promise<boolean> {
     try {
       const entity = await this.entityService.getEntity<BaseEntity>(
         this.entityType,
@@ -134,6 +135,7 @@ export abstract class SingletonEntityService<TBody> {
         try {
           this.parseBody(entity.content);
           this.logger.debug(`${this.entityType} loaded`);
+          return true;
         } catch (parseError) {
           this.cacheParseError =
             parseError instanceof Error
@@ -143,6 +145,7 @@ export abstract class SingletonEntityService<TBody> {
             `Failed to parse ${this.entityType} — using default. Fix the entity content to clear this error.`,
             { error: this.cacheParseError.message },
           );
+          return true;
         }
       } else {
         this.logger.debug(`No ${this.entityType} found in database`);
@@ -152,5 +155,7 @@ export abstract class SingletonEntityService<TBody> {
       this.cache = null;
       this.cacheParseError = null;
     }
+
+    return false;
   }
 }
