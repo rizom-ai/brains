@@ -180,14 +180,6 @@ async function emitLibraryDeclarations(): Promise<void> {
   try {
     await Promise.all(
       libraryEntries.map(async (entry) => {
-        if (entry.name === "site") {
-          cpSync(
-            join(packageDir, "src", "types", "site.d.ts"),
-            join(outdir, "site.d.ts"),
-          );
-          return;
-        }
-
         const proc = Bun.spawn(
           [
             "bun",

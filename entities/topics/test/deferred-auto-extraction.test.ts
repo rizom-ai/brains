@@ -1,81 +1,131 @@
-import { describe, it, expect } from "bun:test";
+import { describe, it, expect, mock } from "bun:test";
 import { TopicsPlugin } from "../src";
 import { createPluginHarness } from "@brains/plugins/test";
 
+function installWithJobQueue(
+  config: ConstructorParameters<typeof TopicsPlugin>[0],
+): {
+  harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>;
+  plugin: TopicsPlugin;
+  enqueue: ReturnType<typeof mock>;
+  registerHandler: ReturnType<typeof mock>;
+} {
+  const harness = createPluginHarness<TopicsPlugin>({});
+  const enqueue = mock(async () => "job-1");
+  const registerHandler = mock(() => {});
+
+  harness.getMockShell().getJobQueueService = (): never =>
+    ({
+      enqueue,
+      registerHandler,
+      getActiveJobs: async () => [],
+      getActiveBatches: async () => [],
+      getBatchStatus: async () => null,
+      getStatus: async () => null,
+    }) as never;
+
+  const plugin = new TopicsPlugin(config);
+  return { harness, plugin, enqueue, registerHandler };
+}
+
+async function sendPostUpdate(
+  harness: ReturnType<typeof createPluginHarness<TopicsPlugin>>,
+): Promise<void> {
+  await harness.sendMessage(
+    "entity:updated",
+    {
+      entityType: "post",
+      entityId: "post-1",
+      entity: {
+        id: "post-1",
+        entityType: "post",
+        content: "Published post",
+        metadata: { status: "published" },
+        contentHash: "hash-1",
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
+    },
+    "entity-service",
+  );
+}
+
 describe("Deferred Auto-Extraction", () => {
-  describe("isAutoExtractionEnabled", () => {
-    it("should return false initially when config enables auto-extraction", () => {
-      const plugin = new TopicsPlugin({ enableAutoExtraction: true });
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
+  it("does not queue source projections before initial sync completes", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue({
+      enableAutoExtraction: true,
+      includeEntityTypes: ["post"],
     });
 
-    it("should return false initially when config disables auto-extraction", () => {
-      const plugin = new TopicsPlugin({ enableAutoExtraction: false });
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
-    });
+    await harness.installPlugin(plugin);
+    await sendPostUpdate(harness);
+
+    expect(enqueue).not.toHaveBeenCalled();
+
+    harness.reset();
   });
 
-  describe("enableAutoExtraction", () => {
-    it("should set autoExtractionEnabled to true", () => {
-      const plugin = new TopicsPlugin({ enableAutoExtraction: true });
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
-
-      plugin.enableAutoExtraction();
-
-      expect(plugin.isAutoExtractionEnabled()).toBe(true);
+  it("queues source projections after initial sync when auto-extraction is enabled", async () => {
+    const { harness, plugin, enqueue } = installWithJobQueue({
+      enableAutoExtraction: true,
+      includeEntityTypes: ["post"],
     });
+
+    await harness.installPlugin(plugin);
+    harness.addEntities([
+      {
+        id: "existing-topic",
+        entityType: "topic",
+        content: "---\ntitle: Existing Topic\n---\nExisting topic",
+        metadata: { title: "Existing Topic" },
+      },
+    ]);
+
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    await sendPostUpdate(harness);
+
+    expect(enqueue).toHaveBeenCalledTimes(1);
+    expect(enqueue).toHaveBeenCalledWith(
+      "topic:project",
+      expect.objectContaining({
+        mode: "source",
+        entityId: "post-1",
+        entityType: "post",
+      }),
+      expect.objectContaining({
+        deduplication: "coalesce",
+        deduplicationKey: "topics-source:post:post-1:hash-1",
+      }),
+    );
+
+    harness.reset();
   });
 
-  describe("sync:initial:completed event", () => {
-    it("should enable auto-extraction after sync completes when config allows", async () => {
-      const harness = createPluginHarness<TopicsPlugin>({});
-      const plugin = new TopicsPlugin({ enableAutoExtraction: true });
-
-      await harness.installPlugin(plugin);
-
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
-
-      await harness.sendMessage(
-        "sync:initial:completed",
-        { success: true },
-        "directory-sync",
-      );
-
-      expect(plugin.isAutoExtractionEnabled()).toBe(true);
-
-      harness.reset();
+  it("does not register projection behavior when auto-extraction is disabled", async () => {
+    const { harness, plugin, enqueue, registerHandler } = installWithJobQueue({
+      enableAutoExtraction: false,
+      includeEntityTypes: ["post"],
     });
 
-    it("should NOT enable auto-extraction after sync when config disables it", async () => {
-      const harness = createPluginHarness<TopicsPlugin>({});
-      const plugin = new TopicsPlugin({ enableAutoExtraction: false });
+    await harness.installPlugin(plugin);
+    await harness.sendMessage(
+      "sync:initial:completed",
+      { success: true },
+      "directory-sync",
+    );
+    await sendPostUpdate(harness);
 
-      await harness.installPlugin(plugin);
+    expect(registerHandler).not.toHaveBeenCalledWith(
+      "topic:project",
+      expect.any(Object),
+      "topics",
+    );
+    expect(enqueue).not.toHaveBeenCalled();
 
-      await harness.sendMessage(
-        "sync:initial:completed",
-        { success: true },
-        "directory-sync",
-      );
-
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
-
-      harness.reset();
-    });
-  });
-
-  describe("when enableAutoExtraction config is false", () => {
-    it("should never enable auto-extraction regardless of sync events", async () => {
-      const harness = createPluginHarness<TopicsPlugin>({});
-      const plugin = new TopicsPlugin({ enableAutoExtraction: false });
-
-      await harness.installPlugin(plugin);
-
-      plugin.enableAutoExtraction();
-
-      expect(plugin.isAutoExtractionEnabled()).toBe(false);
-
-      harness.reset();
-    });
+    harness.reset();
   });
 });

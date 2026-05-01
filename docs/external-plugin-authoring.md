@@ -24,8 +24,9 @@ A plugin package should declare `@rizom/brain` as a peer dependency. The instanc
 }
 ```
 
-Do not import internal `@brains/*` workspaces from external plugins. `ServicePlugin`, `EntityPlugin`, and `InterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
+Do not import internal `@brains/*` workspaces from external plugins. `PLUGIN_API_VERSION` is available from the root `@rizom/brain` export for diagnostics; compatibility during alpha is enforced through `peerDependencies`. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are available from the curated public API; use public subpaths for supporting contracts:
 
+- `@rizom/brain`
 - `@rizom/brain/plugins`
 - `@rizom/brain/entities`
 - `@rizom/brain/services`
@@ -95,6 +96,48 @@ export default plugin;
 ```
 
 The repository keeps a package-local compile fixture at [`packages/brain-cli/test/fixtures/external-plugin`](../packages/brain-cli/test/fixtures/external-plugin). It typechecks against the public `.d.ts` contracts and must not import `@brains/*`.
+
+## Messaging interfaces
+
+Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
+
+```ts
+import {
+  MessageInterfacePlugin,
+  type JobProgressEvent,
+  type PluginFactory,
+} from "@rizom/brain/plugins";
+import { z } from "zod";
+
+const packageJson = {
+  name: "@rizom/brain-plugin-chat-example",
+  version: "0.1.0",
+};
+
+class ChatExamplePlugin extends MessageInterfacePlugin {
+  constructor() {
+    super("chat-example", packageJson, {}, z.object({}));
+  }
+
+  protected sendMessageToChannel(
+    channelId: string | null,
+    message: string,
+  ): void {
+    // Send `message` through your platform SDK.
+    console.log(channelId, message);
+  }
+
+  protected override async onProgressUpdate(
+    event: JobProgressEvent,
+  ): Promise<void> {
+    // Optional: mirror progress into platform-specific UI state.
+    void event.id;
+  }
+}
+
+export const plugin: PluginFactory = () => new ChatExamplePlugin();
+export default plugin;
+```
 
 ## Loading from `brain.yaml`
 

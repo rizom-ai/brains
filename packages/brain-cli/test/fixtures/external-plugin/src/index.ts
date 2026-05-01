@@ -1,6 +1,8 @@
+import { PLUGIN_API_VERSION } from "@rizom/brain";
 import {
   EntityPlugin,
   InterfacePlugin,
+  MessageInterfacePlugin,
   ServicePlugin,
   createTool,
   toolSuccess,
@@ -9,6 +11,7 @@ import {
   BrainCharacterSchema,
   ConversationSchema,
   MessageSchema,
+  ExtensionMetadataSchema,
   type AgentResponse,
   type AppInfo,
   type BrainCharacter,
@@ -16,6 +19,7 @@ import {
   type Message,
   type MessageResponse,
   type InterfacePluginContext,
+  type JobProgressEvent,
   type MessageSender,
   type PluginFactory,
   type ServicePluginContext,
@@ -63,6 +67,8 @@ const configSchema = z.object({
   greeting: z.optional(z.string()),
 });
 
+const extensionMetadata = ExtensionMetadataSchema.parse({ source: "fixture" });
+
 const packageJson = {
   name: "@rizom/brain-plugin-example-fixture",
   version: "0.1.0",
@@ -79,7 +85,7 @@ const exampleSender: MessageSender<
   };
   return response;
 };
-void exampleSender;
+void [exampleSender, extensionMetadata, PLUGIN_API_VERSION];
 
 export class ExampleEntityPlugin extends EntityPlugin<ExampleEntity> {
   readonly entityType = "example";
@@ -118,6 +124,53 @@ export class ExampleInterfacePlugin extends InterfacePlugin {
         handler: () => new Response("ok"),
       },
     ];
+  }
+}
+
+export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
+  private readonly sentMessages: string[] = [];
+
+  constructor() {
+    super("example-message-interface", packageJson, {}, z.object({}));
+  }
+
+  protected sendMessageToChannel(
+    channelId: string | null,
+    message: string,
+  ): void {
+    this.sentMessages.push(`${channelId ?? "local"}:${message}`);
+  }
+
+  protected override sendMessageWithId(
+    channelId: string | null,
+    message: string,
+  ): Promise<string | undefined> {
+    this.sendMessageToChannel(channelId, message);
+    return Promise.resolve("message-1");
+  }
+
+  protected override editMessage(
+    _channelId: string,
+    _messageId: string,
+    _newMessage: string,
+  ): Promise<boolean> {
+    return Promise.resolve(true);
+  }
+
+  protected override supportsMessageEditing(): boolean {
+    return true;
+  }
+
+  protected override async onProgressUpdate(
+    event: JobProgressEvent,
+  ): Promise<void> {
+    void event.id;
+  }
+
+  public exerciseMessageHelpers(): void {
+    this.trackAgentResponseForJob("job-1", "message-1", "channel-1");
+    this.startProcessingInput("channel-1");
+    this.endProcessingInput();
   }
 }
 
@@ -196,6 +249,7 @@ export const plugin: PluginFactory = (config) => [
   new ExampleExternalPlugin(config),
   new ExampleEntityPlugin(),
   new ExampleInterfacePlugin(),
+  new ExampleMessageInterfacePlugin(),
 ];
 
 export default plugin;

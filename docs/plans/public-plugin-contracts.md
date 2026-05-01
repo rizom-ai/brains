@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. Core decisions made. Declaration generation is wired for published subpaths, migrated public declarations are generated from source, and the remaining `packages/brain-cli/src/types/site.d.ts` file is a tracked legacy site surface.
+Core decisions made. Declaration generation is wired for published subpaths, public declarations are generated from curated source entries/contracts, and the former site hand-stub has been replaced by a curated generated site entry. Public authoring wrappers now cover `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin`.
 
 ## Problem
 
@@ -16,10 +16,12 @@ Hand-editing the stubs to fix these is symptom-patching. The fix is to stop hand
 
 ## Direction (decided)
 
-- **Zod schemas in `shell/plugins/src/contracts/` are the source of truth** for every public DTO crossing the plugin boundary. Public TS types come from `z.infer<typeof Schema>`.
+- **Zod schemas in `shell/plugins/src/contracts/` are the source of truth** for every public data DTO crossing the plugin boundary. Public TS data types come from `z.infer<typeof Schema>`.
+- **Callable APIs are TypeScript interfaces.** Namespaces such as `AgentNamespace` describe methods over trusted in-process services; they are not runtime data payloads and do not need object schemas unless/until they cross an untrusted boundary.
+- **Metadata bags use `ExtensionMetadataSchema`.** They are best-effort extension data, not stable per-key contracts. Hoist any meaningful stable field to a typed top-level schema field before documenting it.
 - **Manual `.d.ts` stubs are deleted for migrated subpaths.** Published declarations are derived from source via a build step. No human-edited public plugin-author types.
 - **Translators in `shell/plugins/src/base/public-*.ts`** convert internal/runtime shapes to contract shapes at the boundary (DB row → parsed metadata, column renames, `Date` → ISO string, internal method names → namespace method names). Translators are the runtime half of the contract; the schema is the typing half.
-- **Bare names for public types** (`Conversation`, `Message`, `AppInfo`); internal types carry an explicit prefix or suffix. Pick one and apply uniformly — see open work.
+- **Bare names for public types** (`Conversation`, `Message`, `AppInfo`); internal/public-boundary aliases use the `Runtime*` prefix (`RuntimeConversation`, `RuntimeMessage`, `RuntimeAppInfo`, etc.) when a public counterpart exists.
 - **Validation happens at seams, not per-request.** Schemas validate at test boundaries and untrusted-input edges. Translator outputs cross the boundary by structural typing; no per-request `.parse()`.
 - **No internal `@brains/*` imports in published declarations.** This is the structural test.
 
@@ -29,13 +31,13 @@ Declaration-generation infrastructure is in place. Do **not** expand, redesign, 
 
 This slice is complete when:
 
-- `packages/brain-cli/src/types/` is gone for plugin-author subpaths that have moved to generated declarations.
+- the legacy source type-stub directory is gone.
 - `packages/brain-cli/src/entries/*.ts` are the public API source files for generated `@rizom/brain` subpaths.
 - the build emits declarations from those real source files.
 - generated/published declarations contain no `@brains/*` imports.
 - the package-local external plugin fixture typechecks against the generated/published plugin contract surface only.
 
-Current first pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin` has been added back through a real public wrapper with generated declarations; remaining base classes and richer context/capability APIs are added back only after they can generate clean declarations without leaking internals.
+Current pass: published declarations are generated and clean of internal `@brains/*` imports. Several surfaces are intentionally narrowed to contract exports while declaration bundling is proven. `ServicePlugin`, `EntityPlugin`, `InterfacePlugin`, and `MessageInterfacePlugin` are exposed through real public wrappers with generated declarations. `MessageInterfacePlugin` is exposed as optional sugar over `InterfacePlugin`, not as a replacement for non-chat interfaces.
 
 If generation exposes leaks or unusable types, shrink the entry export surface. Do not replace generated declarations with handwritten interfaces, casts, broad `unknown` placeholders, or copied `.d.ts` blocks.
 
@@ -43,11 +45,13 @@ If generation exposes leaks or unusable types, shrink the entry export surface. 
 
 The iterative shape:
 
-1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove `packages/brain-cli/src/types/*.d.ts` for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. `site` remains a separate legacy surface until its site-package graph is migrated.
+1. **Delete manual stubs for generated subpaths and wire declaration generation together.** Remove source `.d.ts` stubs for each migrated subpath and replace the copy step with generated declarations from `packages/brain-cli/src/entries/*.ts`. These land together; the published package must always have types. The site surface now follows the same pattern through a curated entry that keeps plugin instances and route internals opaque.
 
 2. **Expose less first.** When generation reveals internal leakage (imports of `@brains/*`, transitive type graphs), the answer is to **shrink what `entries/*.ts` re-exports**, not to patch the generated output. For the first clean pass, prefer contracts-only exports over wholesale `@brains/plugins` re-exports.
 
 3. **Add back iteratively after generation is clean.** One namespace or DTO at a time. Each addition: contract schema in `contracts/`, translator if internal shape differs, exposure via the right entry. Generated declarations prove the addition is clean. If something can't go through cleanly, the answer is contract redesign, not stub patching.
+
+4. **Wrapper baseline complete.** `MessageInterfacePlugin` is public API for chat/channel integrations, documented as optional sugar over `InterfacePlugin`. The generated public surface is intentionally minimal: constructor, stable lifecycle hooks, channel-send abstract method(s), and progress/tracking helpers already proven by the fixture. File-upload formatting, URL extraction, size/type checks, and URL-capture helper implementation details stay `@internal` until their exact behavior is deliberately stabilized. Keep future additions contract-backed and prove them with the external fixture before expanding any additional namespaces.
 
 ## Goals
 
@@ -66,15 +70,11 @@ The iterative shape:
 ## Open work
 
 - **Generation mechanism follow-through.** Keep declaration bundling as the source of published `.d.ts` output. Constraint: published `.d.ts` is self-contained (no `@brains/*` imports) and matches what the schemas/contracts declare.
-- **Internal naming convention.** Currently mixed: `RuntimeAppInfo`, `ConversationRow`, `RuntimeAgentResponse`. Pick `Runtime*` prefix or `*Row` suffix and apply across all internal types that have a public counterpart.
-- **`metadata: z.record(z.unknown())` policy.** Each contract that exposes a `metadata` bag is a future drift point. Decide: every meaningful metadata field is hoisted to a typed top-level field, OR `metadata` is an explicit "do not depend on this" escape hatch documented as such.
-- **Schemas vs interfaces consistency.** Data DTOs are zod schemas; the `AgentNamespace` callable API is a TS interface. Commit to "schemas for data, interfaces for callable APIs" as a documented rule, or unify on schemas.
-- **Test-introspection cleanup.** Plugins still expose state for tests to read (e.g., `autoExtractionEnabled`), and the projection layer accommodates this via a `before` lifecycle hook. Replace with observable-behavior tests, then drop the hook.
-- **Next context surface to migrate.** Daemon registration, tool registration, route registration, or another. Pick one and apply the iterative path.
+- **Next context surface.** Daemon registration, tool registration, route registration, or another. Add only when a concrete external plugin need justifies expanding the contract.
 
 ## Acceptance criteria
 
-- Migrated plugin-author subpaths no longer have files in `packages/brain-cli/src/types/`; the remaining legacy `site` surface is tracked separately.
+- Public subpaths no longer have source type stubs; declarations are generated from curated public entries.
 - Generated/published declarations contain no `@brains/*` import paths.
 - The external plugin fixture (`packages/brain-cli/test/fixtures/external-plugin/`) typechecks against the published surface only.
 - A CI check fails if generated declarations diverge from source-of-truth (or, equivalently, generation is part of the build and there are no committed declarations to drift against).

@@ -242,7 +242,7 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 ### Plugin Architecture
 
 - **Three sibling plugin types** with isolated contexts:
-  - **EntityPlugin** — content types (schema, adapter, generation handler, `derive()`); zero tools
+  - **EntityPlugin** — content types (schema, adapter, generation handler, projection declarations); zero tools
   - **ServicePlugin** — integrations (tools, job handlers, API routes, daemons)
   - **InterfacePlugin** — transports (MCP, Discord, A2A, webserver, CLI)
 - **Composite plugins** — factories may return `Plugin | Plugin[]`, letting one capability id register multiple sub-plugins (e.g. `@brains/newsletter` bundles entity + service)

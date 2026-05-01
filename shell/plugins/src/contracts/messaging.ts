@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ExtensionMetadataSchema } from "./metadata";
 
 export const MessageResponseSchema = z.union([
   z.object({
@@ -21,7 +22,7 @@ export const BaseMessageSchema = z.object({
   type: z.string(),
   source: z.string(),
   target: z.string().optional(),
-  metadata: z.record(z.unknown()).optional(),
+  metadata: ExtensionMetadataSchema.optional(),
 });
 
 export type BaseMessage = z.infer<typeof BaseMessageSchema>;

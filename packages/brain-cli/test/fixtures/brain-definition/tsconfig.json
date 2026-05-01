@@ -1,0 +1,9 @@
+{
+  "extends": "../../../tsconfig.instance.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "types": ["bun-types"],
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts"]
+}

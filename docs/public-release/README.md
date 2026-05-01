@@ -81,11 +81,14 @@ A **brain instance** is a deployment of a brain model on your infrastructure, co
 
 **Entities** are typed content with a Zod schema, a markdown adapter, and an AI generation handler. Every entity is a markdown file with frontmatter, stored on disk and indexed in SQLite for search.
 
-**Plugins** extend the brain. Three flavors:
+**Plugins** extend the brain. Public authoring base classes:
 
-- `EntityPlugin` — defines a content type (e.g. `@brains/blog`, `@brains/link`)
-- `ServicePlugin` — provides tools, jobs, and external integrations (e.g. `@brains/site-builder`, `@brains/directory-sync`)
-- `InterfacePlugin` — exposes the brain via a transport (e.g. `@brains/mcp`, `@brains/discord`)
+- `EntityPlugin` — defines a content type (e.g. blog posts, links, topics)
+- `ServicePlugin` — provides tools, jobs, and external integrations (e.g. site building, sync, analytics)
+- `InterfacePlugin` — exposes the brain via a non-chat transport or daemon (e.g. MCP, A2A, webserver)
+- `MessageInterfacePlugin` — optional chat/channel transport base for integrations like Discord, Slack, Teams, Matrix, or Telegram
+
+External plugins import these from `@rizom/brain/plugins` and are loaded through keyed `brain.yaml plugins:` entries.
 
 **Interfaces** are how users and other agents talk to your brain. Built-in: MCP, A2A, Discord, webserver, CLI.
 

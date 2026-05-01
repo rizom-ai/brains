@@ -16,8 +16,6 @@ export interface ProjectionJobConfig {
 }
 
 export interface ProjectionInitialSyncConfig {
-  /** Called before durable gating; useful for enabling post-sync event handling. */
-  before?: () => void | Promise<void>;
   /** Durable gate. Return false to skip enqueueing for this process/restart. */
   shouldEnqueue?: () => boolean | Promise<boolean>;
   jobData: unknown;
@@ -65,8 +63,6 @@ export function registerDerivedEntityProjection(
       async (): Promise<{ success: boolean }> => {
         if (observedInitialSync) return { success: true };
         observedInitialSync = true;
-
-        await initialSyncConfig.before?.();
 
         const shouldEnqueue =
           (await initialSyncConfig.shouldEnqueue?.()) ?? true;

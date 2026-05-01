@@ -11,6 +11,7 @@
     "./contracts/app-info": "./src/contracts/app-info.ts",
     "./contracts/conversations": "./src/contracts/conversations.ts",
     "./contracts/identity": "./src/contracts/identity.ts",
+    "./contracts/metadata": "./src/contracts/metadata.ts",
     "./contracts/messaging": "./src/contracts/messaging.ts",
     "./contracts/routes": "./src/types/routes.ts",
     "./contracts/api-routes": "./src/types/api-routes.ts",

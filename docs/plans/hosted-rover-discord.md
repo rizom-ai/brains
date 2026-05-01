@@ -293,7 +293,7 @@ The simplification is "the SSE channel emits only `final` events"; the rover-sid
 - `docs/plans/chat-interface-sdk.md` — provides `interfaces/chat/`; this plan narrows its hosted-mode routing surface and concretizes the gateway role
 - `docs/plans/hosted-rovers.md` — rover provisioning and the rover-endpoint registry the gateway queries
 - `docs/plans/multi-user.md` — Discord identity linked into the user record (§1, §5)
-- `docs/plans/2026-03-15-a2a-authentication.md` — auth boundary for inter-rover (peer A2A) calls; separate from the internal forwarding auth in this plan
+- `docs/plans/a2a-request-signing.md` — auth boundary for inter-rover (peer A2A) calls; separate from the internal forwarding auth in this plan
 - `docs/plans/agent-discovery.md` — outbound A2A allowlist semantics for `a2a_call`
 
 ## Done when

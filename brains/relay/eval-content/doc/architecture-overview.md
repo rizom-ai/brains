@@ -152,7 +152,7 @@ They can automatically register:
 - generation handlers (`{entityType}:generation`)
 - templates
 - site datasources
-- extract/derive handlers when `derive()` is implemented
+- explicit projection jobs declared by entity plugins
 
 Entity plugins intentionally do **not** expose their own CRUD tools. Creation, update, deletion, and extraction flow through shared system tools like `system_create`, `system_update`, `system_delete`, and `system_extract`.
 

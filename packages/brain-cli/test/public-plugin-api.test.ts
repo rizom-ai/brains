@@ -10,6 +10,12 @@ const externalPluginFixtureDir = join(
   "fixtures",
   "external-plugin",
 );
+const brainDefinitionFixtureDir = join(
+  pkgDir,
+  "test",
+  "fixtures",
+  "brain-definition",
+);
 const subpaths = [
   "plugins",
   "entities",
@@ -69,9 +75,9 @@ describe("@rizom/brain public plugin API surface", () => {
   });
 
   it("does not leave emitted declarations in source directories", () => {
-    const declarations = listDeclarationFiles(join(pkgDir, "src"))
-      .map((path) => relative(pkgDir, path))
-      .filter((path) => path !== join("src", "types", "site.d.ts"));
+    const declarations = listDeclarationFiles(join(pkgDir, "src")).map((path) =>
+      relative(pkgDir, path),
+    );
 
     expect(declarations).toEqual([]);
   });
@@ -100,13 +106,25 @@ describe("@rizom/brain public plugin API surface", () => {
 
     expect(pluginsTypes).toContain("declare abstract class EntityPlugin");
     expect(pluginsTypes).toContain("declare abstract class InterfacePlugin");
+    expect(pluginsTypes).toContain(
+      "declare abstract class MessageInterfacePlugin",
+    );
     expect(pluginsTypes).toContain("declare abstract class ServicePlugin");
+    expect(pluginsTypes).toContain("ExtensionMetadataSchema");
+    expect(pluginsTypes).toContain("ExtensionMetadata");
     expect(pluginsTypes).not.toContain("IShell");
     expect(pluginsTypes).not.toContain("PluginManager");
     expect(pluginsTypes).not.toContain("PluginRegistrationContext");
     expect(pluginsTypes).not.toContain("PluginCapabilities");
     expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
+    expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
+    expect(pluginsTypes).not.toContain("isUploadableTextFile");
+    expect(pluginsTypes).not.toContain("isFileSizeAllowed");
+    expect(pluginsTypes).not.toContain("formatFileUploadMessage");
+    expect(pluginsTypes).not.toContain("extractCaptureableUrls");
+    expect(pluginsTypes).not.toContain("captureUrlViaAgent");
     expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
+    expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("register(shell");
     expect(pluginsTypes).not.toContain("SYSTEM_CHANNELS");
     expect(pluginsTypes).not.toContain("createEntityPluginContext");
@@ -123,6 +141,7 @@ describe("@rizom/brain public plugin API surface", () => {
       readFileSync(join(externalPluginFixtureDir, "package.json"), "utf-8"),
     );
 
+    expect(source).toContain('from "@rizom/brain"');
     expect(source).toContain('from "@rizom/brain/plugins"');
     expect(source).toContain('from "@rizom/brain/entities"');
     expect(source).toContain('from "@rizom/brain/interfaces"');
@@ -130,6 +149,7 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(source).not.toContain("@brains/");
     expect(packageJson.peerDependencies?.["@rizom/brain"]).toBeDefined();
     expect(packageJson.peerDependencies?.["zod"]).toBeDefined();
+    expect(packageJson.rizomBrain?.pluginApi).toBeUndefined();
 
     const tsconfig = readFileSync(
       join(externalPluginFixtureDir, "tsconfig.json"),
@@ -154,6 +174,82 @@ describe("@rizom/brain public plugin API surface", () => {
       throw new Error(output);
     }
     expect(output).not.toContain("@brains/");
+  });
+
+  it("typechecks the package-local brain definition fixture", () => {
+    const source = readFileSync(
+      join(brainDefinitionFixtureDir, "src", "index.ts"),
+      "utf-8",
+    );
+    expect(source).toContain('from "@rizom/brain"');
+    expect(source).toContain("defineBrain");
+    expect(source).not.toContain("@brains/");
+
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "-p", "tsconfig.json"],
+      {
+        cwd: brainDefinitionFixtureDir,
+        encoding: "utf-8",
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+    expect(output).not.toContain("@brains/");
+  });
+
+  it("resolves the external plugin fixture against generated dist declarations", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
+      {
+        cwd: externalPluginFixtureDir,
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+
+    expect(output).toContain(
+      "Module name '@rizom/brain' was successfully resolved",
+    );
+    expect(output).toContain("dist/index.d.ts");
+
+    for (const subpath of ["plugins", "entities", "interfaces"]) {
+      expect(output).toContain(
+        `Module name '@rizom/brain/${subpath}' was successfully resolved`,
+      );
+      expect(output).toContain(`dist/${subpath}.d.ts`);
+    }
+  });
+
+  it("resolves the brain definition fixture against generated root declarations", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
+      {
+        cwd: brainDefinitionFixtureDir,
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+
+    expect(output).toContain(
+      "Module name '@rizom/brain' was successfully resolved",
+    );
+    expect(output).toContain("dist/index.d.ts");
   });
 
   it("build script includes every public plugin API library entry", () => {
