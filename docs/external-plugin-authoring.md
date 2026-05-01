@@ -100,6 +100,44 @@ The repository keeps a package-local compile fixture at [`packages/brain-cli/tes
 
 Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
 
+```ts
+import {
+  MessageInterfacePlugin,
+  type JobProgressEvent,
+  type PluginFactory,
+} from "@rizom/brain/plugins";
+import { z } from "zod";
+
+const packageJson = {
+  name: "@rizom/brain-plugin-chat-example",
+  version: "0.1.0",
+};
+
+class ChatExamplePlugin extends MessageInterfacePlugin {
+  constructor() {
+    super("chat-example", packageJson, {}, z.object({}));
+  }
+
+  protected sendMessageToChannel(
+    channelId: string | null,
+    message: string,
+  ): void {
+    // Send `message` through your platform SDK.
+    console.log(channelId, message);
+  }
+
+  protected override async onProgressUpdate(
+    event: JobProgressEvent,
+  ): Promise<void> {
+    // Optional: mirror progress into platform-specific UI state.
+    void event.id;
+  }
+}
+
+export const plugin: PluginFactory = () => new ChatExamplePlugin();
+export default plugin;
+```
+
 ## Loading from `brain.yaml`
 
 Install the plugin in the instance package:
