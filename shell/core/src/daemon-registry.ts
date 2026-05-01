@@ -1,10 +1,16 @@
-import { getErrorMessage, Logger, toError } from "@brains/utils";
+import { Logger, toError } from "@brains/utils";
 import type {
   Daemon,
   DaemonHealth,
   DaemonInfo,
   DaemonStatusInfo,
 } from "@brains/plugins";
+import {
+  checkDaemonInfoHealth,
+  getDaemonStatusInfo,
+  startDaemonInfo,
+  stopDaemonInfo,
+} from "./daemon-operations";
 
 /**
  * Daemon registry for managing long-running interface processes
@@ -89,27 +95,7 @@ export class DaemonRegistry {
       throw new Error(`Daemon not registered: ${name}`);
     }
 
-    if (daemonInfo.status === "running") {
-      this.logger.warn(`Daemon already running: ${name}`);
-      return;
-    }
-
-    daemonInfo.status = "starting";
-    delete daemonInfo.error;
-
-    try {
-      await daemonInfo.daemon.start();
-      daemonInfo.status = "running";
-      daemonInfo.startedAt = new Date();
-      this.logger.debug(`Daemon started successfully: ${name}`);
-    } catch (error) {
-      daemonInfo.status = "error";
-      daemonInfo.error = toError(error);
-      this.logger.warn(
-        `Daemon ${name} failed to start: ${getErrorMessage(error)}`,
-      );
-      throw error;
-    }
+    await startDaemonInfo(daemonInfo, this.logger);
   }
 
   /**
@@ -121,24 +107,7 @@ export class DaemonRegistry {
       throw new Error(`Daemon not registered: ${name}`);
     }
 
-    if (daemonInfo.status === "stopped") {
-      this.logger.warn(`Daemon already stopped: ${name}`);
-      return;
-    }
-
-    daemonInfo.status = "stopping";
-
-    try {
-      await daemonInfo.daemon.stop();
-      daemonInfo.status = "stopped";
-      daemonInfo.stoppedAt = new Date();
-      this.logger.debug(`Daemon stopped successfully: ${name}`);
-    } catch (error) {
-      daemonInfo.status = "error";
-      daemonInfo.error = toError(error);
-      this.logger.error(`Failed to stop daemon: ${name}`, error);
-      throw error;
-    }
+    await stopDaemonInfo(daemonInfo, this.logger);
   }
 
   /**
@@ -150,23 +119,7 @@ export class DaemonRegistry {
       throw new Error(`Daemon not registered: ${name}`);
     }
 
-    if (!daemonInfo.daemon.healthCheck) {
-      return undefined;
-    }
-
-    try {
-      const health = await daemonInfo.daemon.healthCheck();
-      daemonInfo.health = health;
-      return health;
-    } catch (error) {
-      const errorHealth: DaemonHealth = {
-        status: "error",
-        message: getErrorMessage(error),
-        lastCheck: new Date(),
-      };
-      daemonInfo.health = errorHealth;
-      return errorHealth;
-    }
+    return checkDaemonInfoHealth(daemonInfo);
   }
 
   /**
@@ -206,12 +159,7 @@ export class DaemonRegistry {
     }
 
     // Return fresh status info
-    return allDaemons.map((daemon) => ({
-      name: daemon.name,
-      pluginId: daemon.pluginId,
-      status: daemon.status,
-      health: daemon.health,
-    }));
+    return allDaemons.map(getDaemonStatusInfo);
   }
 
   /**
