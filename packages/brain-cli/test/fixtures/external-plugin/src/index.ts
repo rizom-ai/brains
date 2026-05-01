@@ -166,12 +166,10 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
   public exerciseMessageHelpers(): void {
     const uploadable = this.isUploadableTextFile("notes.md", "text/markdown");
     const smallEnough = this.isFileSizeAllowed(1024);
-    const uploadMessage = this.formatFileUploadMessage("notes.md", "hello");
-    const urls = this.extractCaptureableUrls("see https://example.com", []);
     this.trackAgentResponseForJob("job-1", "message-1", "channel-1");
     this.startProcessingInput("channel-1");
     this.endProcessingInput();
-    void [uploadable, smallEnough, uploadMessage, urls];
+    void [uploadable, smallEnough];
   }
 }
 

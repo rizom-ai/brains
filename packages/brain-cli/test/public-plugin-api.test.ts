@@ -110,6 +110,8 @@ describe("@rizom/brain public plugin API surface", () => {
     expect(pluginsTypes).not.toContain("PluginCapabilities");
     expect(pluginsTypes).not.toContain("RuntimeInterfacePlugin");
     expect(pluginsTypes).not.toContain("RuntimeMessageInterfacePlugin");
+    expect(pluginsTypes).not.toContain("formatFileUploadMessage");
+    expect(pluginsTypes).not.toContain("extractCaptureableUrls");
     expect(pluginsTypes).not.toContain("InterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("MessageInterfacePluginDelegate");
     expect(pluginsTypes).not.toContain("register(shell");
@@ -159,6 +161,30 @@ describe("@rizom/brain public plugin API surface", () => {
       throw new Error(output);
     }
     expect(output).not.toContain("@brains/");
+  });
+
+  it("resolves the external plugin fixture against generated dist declarations", () => {
+    const result = spawnSync(
+      "bun",
+      ["x", "tsc", "--noEmit", "--traceResolution", "-p", "tsconfig.json"],
+      {
+        cwd: externalPluginFixtureDir,
+        encoding: "utf-8",
+        maxBuffer: 10 * 1024 * 1024,
+      },
+    );
+
+    const output = `${result.stdout}\n${result.stderr}`;
+    if (result.status !== 0) {
+      throw new Error(output);
+    }
+
+    for (const subpath of ["plugins", "entities", "interfaces"]) {
+      expect(output).toContain(
+        `Module name '@rizom/brain/${subpath}' was successfully resolved`,
+      );
+      expect(output).toContain(`dist/${subpath}.d.ts`);
+    }
   });
 
   it("build script includes every public plugin API library entry", () => {

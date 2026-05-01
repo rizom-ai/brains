@@ -882,10 +882,12 @@ export abstract class MessageInterfacePlugin<
     return size <= 100_000;
   }
 
+  /** @internal */
   protected formatFileUploadMessage(filename: string, content: string): string {
     return `User uploaded a file "${filename}":\n\n${content}`;
   }
 
+  /** @internal */
   protected extractCaptureableUrls(
     content: string,
     blockedDomains: string[],
