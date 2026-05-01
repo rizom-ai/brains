@@ -59,27 +59,22 @@ import { Logger, type z } from "@brains/utils";
 import type { ShellConfig, ShellConfigInput } from "./config";
 import { createShellConfig } from "./config";
 import { SHELL_TEMPLATE_NAMES } from "./constants";
-import { AIContentDataSource, EntityDataSource } from "./datasources";
+import { registerCoreDataSources } from "./core-data-sources";
 import {
   ShellInitializer,
   resetServiceSingletons,
   type ShellServices,
 } from "./initialization/shellInitializer";
 import { ShellBootloader } from "./initialization/shellBootloader";
-import { registerSystemCapabilities } from "./system/register";
 import { createInsightsRegistry } from "./system/insights";
 import type { IInsightsRegistry } from "@brains/plugins";
-import {
-  createEnqueueJobFn,
-  createEnqueueBatchFn,
-  createRegisterHandlerFn,
-} from "@brains/job-queue";
 import { EndpointRegistry } from "./endpoint-registry";
 import { createJobsNamespace } from "./jobs-namespace";
 import {
   collectPluginApiRoutes,
   collectPluginWebRoutes,
 } from "./plugin-routes";
+import { registerShellSystemCapabilities } from "./shell-system-capabilities";
 import type { ShellDependencies } from "./types/shell-types";
 
 export type { ShellDependencies };
@@ -137,8 +132,16 @@ export class Shell implements IShell {
 
     this.insightsRegistry = createInsightsRegistry();
     this.bootloader = new ShellBootloader(this.config, this.services, {
-      registerCoreDataSources: (): void => this.registerCoreDataSources(),
-      registerSystemCapabilities: (): void => this.registerSystemCapabilities(),
+      registerCoreDataSources: (): void =>
+        registerCoreDataSources(this.services, this.config),
+      registerSystemCapabilities: (): void =>
+        registerShellSystemCapabilities({
+          services: this.services,
+          jobs: this.jobs,
+          insights: this.insightsRegistry,
+          query: (prompt, context) => this.query(prompt, context),
+          getAppInfo: () => this.getAppInfo(),
+        }),
     });
 
     shellInitializer.wireShell(this.services, this);
@@ -531,52 +534,5 @@ export class Shell implements IShell {
       daemons,
       endpoints: this.listEndpoints(),
     };
-  }
-
-  private registerCoreDataSources(): void {
-    this.services.dataSourceRegistry.register(
-      new AIContentDataSource(
-        this.services.aiService,
-        this.services.entityService,
-        this.services.templateRegistry,
-        () => this.services.identityService.getCharacterContent(),
-        () => this.services.profileService.getProfileContent(),
-        this.config.siteBaseUrl,
-      ),
-    );
-
-    this.services.dataSourceRegistry.register(
-      new EntityDataSource(this.services.entityService),
-    );
-
-    this.services.logger.debug("Core DataSources registered");
-  }
-
-  private registerSystemCapabilities(): void {
-    const jqs = this.services.jobQueueService;
-    const unsubscribe = registerSystemCapabilities(
-      {
-        entityService: this.services.entityService,
-        entityRegistry: this.services.entityRegistry,
-        jobs: {
-          ...this.jobs,
-          enqueue: createEnqueueJobFn(jqs, "system", false),
-          enqueueBatch: createEnqueueBatchFn(this.jobs, "system"),
-          registerHandler: createRegisterHandlerFn(jqs, "system"),
-        },
-        conversationService: this.services.conversationService,
-        logger: this.services.logger.child("system"),
-        query: (prompt, context) => this.query(prompt, context),
-        getIdentity: () => this.services.identityService.getCharacter(),
-        getProfile: () => this.services.profileService.getProfile(),
-        getAppInfo: () => this.getAppInfo(),
-        searchLimit: 10,
-        insights: this.insightsRegistry,
-      },
-      this.services.mcpService,
-      this.services.messageBus,
-      this.services.logger.child("system"),
-    );
-    this.services.disposables.push(unsubscribe);
   }
 }
