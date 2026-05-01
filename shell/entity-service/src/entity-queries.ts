@@ -6,6 +6,7 @@ import { embeddings } from "./schema/embeddings";
 import { eq, and, desc, asc, sql, isNotNull, type SQL } from "drizzle-orm";
 import { z, type Logger } from "@brains/utils";
 import type { EntitySerializer } from "./entity-serializer";
+import { normalizeEntityRow, type EntityData } from "./entity-data";
 
 /**
  * Schema for sort field
@@ -65,15 +66,7 @@ export class EntityQueries {
   public async getEntityData(
     entityType: string,
     id: string,
-  ): Promise<{
-    id: string;
-    entityType: string;
-    content: string;
-    contentHash: string;
-    created: number;
-    updated: number;
-    metadata: Record<string, unknown>;
-  } | null> {
+  ): Promise<EntityData | null> {
     this.logger.debug(`Getting entity of type ${entityType} with ID ${id}`);
 
     // Query database
@@ -93,15 +86,7 @@ export class EntityQueries {
       return null;
     }
 
-    return {
-      id: row.id,
-      entityType: row.entityType,
-      content: row.content,
-      contentHash: row.contentHash,
-      created: row.created,
-      updated: row.updated,
-      metadata: (row.metadata as Record<string, unknown> | null) ?? {},
-    };
+    return normalizeEntityRow(row);
   }
 
   /**
@@ -137,15 +122,7 @@ export class EntityQueries {
 
     // Convert from database format to entities
     const entityList = await this.serializer.convertToEntities<T>(
-      result.map((row) => ({
-        id: row.id,
-        entityType: row.entityType,
-        content: row.content,
-        contentHash: row.contentHash,
-        created: row.created,
-        updated: row.updated,
-        metadata: (row.metadata as Record<string, unknown> | null) ?? {},
-      })),
+      result.map(normalizeEntityRow),
       entityType,
     );
 

@@ -27,6 +27,7 @@ import type {
   EntityMutationResult,
   StoreEmbeddingData,
   EntityService as IEntityService,
+  EntityEventBus,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -34,7 +35,6 @@ import { sql } from "drizzle-orm";
 import { Logger } from "@brains/utils";
 import type { IEmbeddingService } from "./embedding-types";
 import type { IJobQueueService } from "@brains/job-queue";
-import type { MessageBus } from "@brains/messaging-service";
 import { EmbeddingJobHandler } from "./handlers/embeddingJobHandler";
 import { EntitySearch } from "./entity-search";
 import { EntitySerializer } from "./entity-serializer";
@@ -50,7 +50,7 @@ export interface EntityServiceOptions {
   entityRegistry?: EntityRegistry;
   logger?: Logger;
   jobQueueService?: IJobQueueService;
-  messageBus?: MessageBus;
+  messageBus?: EntityEventBus;
   dbConfig: EntityDbConfig;
   /** Embedding database config. Embeddings are stored in a dedicated
    *  database file, separate from entities. */

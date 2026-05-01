@@ -1,6 +1,4 @@
 import { describe, expect, test, beforeEach, afterEach } from "bun:test";
-import { MessageBus } from "@brains/messaging-service";
-import { createSilentLogger } from "@brains/test-utils";
 import {
   noteSchema,
   noteAdapter,
@@ -11,6 +9,33 @@ import {
   setupEntityService,
   type EntityServiceTestContext,
 } from "./helpers/setup-entity-service";
+import type { EntityEventBus } from "../src/types";
+
+interface CapturedEntityPayload extends Record<string, unknown> {
+  entityId?: unknown;
+  entity?: unknown;
+}
+
+interface CapturedEntityEvent {
+  type: string;
+  payload: CapturedEntityPayload;
+}
+
+function createCapturingEventBus(): {
+  eventBus: EntityEventBus;
+  events: CapturedEntityEvent[];
+} {
+  const events: CapturedEntityEvent[] = [];
+  return {
+    events,
+    eventBus: {
+      send: async (type, payload): Promise<{ success: true }> => {
+        events.push({ type, payload });
+        return { success: true };
+      },
+    },
+  };
+}
 
 describe("Immediate Entity Persistence", () => {
   let ctx: EntityServiceTestContext;
@@ -154,23 +179,13 @@ describe("Immediate Entity Persistence", () => {
 
   describe("deleteEntity - prior entity in event payload", () => {
     test("entity:deleted event carries the deleted entity so subscribers can gate on its metadata", async () => {
-      MessageBus.resetInstance();
-      const messageBus = MessageBus.createFresh(createSilentLogger());
+      const { eventBus, events } = createCapturingEventBus();
       const eventCtx = await setupEntityService(
         [{ name: "note", schema: noteSchema, adapter: noteAdapter }],
-        { messageBus },
+        { messageBus: eventBus },
       );
 
       try {
-        const captured: Array<{ entityId?: unknown; entity?: unknown }> = [];
-        messageBus.subscribe(
-          "entity:deleted",
-          (message: { payload: { entityId?: unknown; entity?: unknown } }) => {
-            captured.push(message.payload);
-            return { success: true };
-          },
-        );
-
         const noteInput = createNoteInput({
           title: "Tagged Note",
           content: "Body",
@@ -183,8 +198,11 @@ describe("Immediate Entity Persistence", () => {
 
         await eventCtx.entityService.deleteEntity("note", entityId);
 
-        expect(captured).toHaveLength(1);
-        const payload = captured[0];
+        const deletedEvents = events.filter(
+          (event) => event.type === "entity:deleted",
+        );
+        expect(deletedEvents).toHaveLength(1);
+        const payload = deletedEvents[0]?.payload;
         expect(payload?.entityId).toBe(entityId);
         const entity = payload?.entity as Note | undefined;
         expect(entity?.id).toBe(entityId);
@@ -192,7 +210,6 @@ describe("Immediate Entity Persistence", () => {
         expect(entity?.metadata["seriesName"]).toBe("My Series");
       } finally {
         await eventCtx.cleanup();
-        MessageBus.resetInstance();
       }
     });
   });

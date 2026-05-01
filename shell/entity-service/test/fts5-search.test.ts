@@ -123,6 +123,25 @@ describe("FTS5 full-text search", () => {
     }
   });
 
+  test("search parameterizes caller-provided weight keys", async () => {
+    const entity = createTestEntity("test", {
+      content: "Weighted search content",
+    });
+    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.storeEmbedding({
+      entityId: entity.id,
+      entityType: "test",
+      embedding: new Float32Array(MOCK_DIMENSIONS).fill(0.1),
+      contentHash: entity.contentHash,
+    });
+
+    const results = await ctx.entityService.search("weighted", {
+      weight: { "test' THEN 999 ELSE 1 END --": 10 },
+    });
+
+    expect(Array.isArray(results)).toBe(true);
+  });
+
   test("keyword search boosts exact matches over semantic similarity", async () => {
     // Entity with exact keyword
     const exact = createTestEntity("test", {

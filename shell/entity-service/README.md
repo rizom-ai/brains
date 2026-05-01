@@ -1,225 +1,239 @@
 # @brains/entity-service
 
-Entity management service with vector search capabilities for Brain applications.
+Entity persistence, markdown serialization, embeddings, and search for Brain applications.
 
 ## Overview
 
-The entity service provides unified CRUD operations, vector search, and markdown serialization for all entity types in Brain applications. It includes built-in support for embeddings and similarity search.
+`@brains/entity-service` provides a typed entity registry plus CRUD operations backed by SQLite/libSQL. Entities are stored as markdown with frontmatter-derived metadata, while embeddings are generated asynchronously and stored in a separate embedding database.
 
 ## Features
 
-- Unified entity CRUD operations
-- Vector embeddings with 384 dimensions
-- Similarity search across entities
-- Tag-based filtering and search
-- Markdown storage with frontmatter
-- Entity type registry
-- Batch operations support
-- SQLite with vector extension
+- Typed entity registration with Zod schemas and markdown adapters
+- Entity CRUD with immediate persistence
+- Async embedding job enqueueing through `@brains/job-queue`
+- Vector + FTS5 keyword search
+- Metadata filtering, published filtering, pagination, and multi-field sorting
+- Markdown/frontmatter serialization helpers
+- Optional structural event bus for entity lifecycle notifications
+- Separate entity and embedding databases
 
-## Installation
-
-```bash
-bun add @brains/entity-service
-```
-
-## Usage
+## Basic usage
 
 ```typescript
-import { EntityService, EntityRegistry } from "@brains/entity-service";
+import { EntityRegistry, EntityService } from "@brains/entity-service";
+import { Logger } from "@brains/utils";
 
-// Initialize service
-const entityService = EntityService.getInstance({
-  database: db,
-  embeddingService: embeddings,
-  messageBus: bus,
+const logger = Logger.getInstance();
+const registry = EntityRegistry.createFresh(logger);
+
+registry.registerEntityType("note", noteSchema, noteAdapter, {
+  weight: 1.2,
+  embeddable: true,
 });
 
-// Register an entity type
-entityRegistry.registerType("note", noteSchema, noteAdapter);
-
-// Create entity
-const note = await entityService.create({
-  type: "note",
-  title: "My Note",
-  content: "Note content...",
-  tags: ["important"],
+const entityService = EntityService.createFresh({
+  embeddingService,
+  entityRegistry: registry,
+  logger,
+  jobQueueService,
+  dbConfig: { url: "file:./entities.db" },
+  embeddingDbConfig: { url: "file:./embeddings.db" },
+  // Optional. Structural contract; does not require importing a concrete message bus here.
+  messageBus: eventBus,
 });
 
-// Search entities
-const results = await entityService.search({
-  query: "important notes about AI",
+await entityService.initialize();
+
+const { entityId, jobId } = await entityService.createEntity({
+  entityType: "note",
+  content: "---\ntitle: My Note\n---\n\nNote content...",
+  metadata: { title: "My Note", tags: ["important"] },
+});
+
+const note = await entityService.getEntity("note", entityId);
+
+const results = await entityService.search("important notes about AI", {
   types: ["note"],
   limit: 10,
 });
 
-// Update entity
-await entityService.update(note.id, {
-  content: "Updated content",
-});
+if (note) {
+  await entityService.updateEntity({
+    ...note,
+    content: "Updated content",
+  });
+}
 
-// Delete entity
-await entityService.delete(note.id);
+await entityService.deleteEntity("note", entityId);
 ```
 
-## Entity Schema
+## Entity model
 
-All entities extend the base entity schema:
+All entities extend `BaseEntity`:
 
 ```typescript
-interface BaseEntity {
-  id: string; // Unique identifier
-  type: string; // Entity type
-  content: string; // Main content
-  created: Date; // Creation timestamp
-  updated: Date; // Last update timestamp
-  tags: string[]; // Associated tags
-  metadata?: unknown; // Type-specific metadata
+interface BaseEntity<TMetadata = Record<string, unknown>> {
+  id: string;
+  entityType: string;
+  content: string;
+  created: string; // ISO datetime
+  updated: string; // ISO datetime
+  metadata: TMetadata;
+  contentHash: string;
 }
 ```
 
-## Entity Registry
+Creation inputs omit system-managed fields such as `id`, timestamps, and `contentHash`; the service fills them in and computes hashes from serialized markdown.
 
-Register custom entity types with their schemas and adapters:
+## Entity registry
 
 ```typescript
 import { EntityRegistry } from "@brains/entity-service";
+import { Logger } from "@brains/utils";
 
-const registry = EntityRegistry.getInstance();
+const registry = EntityRegistry.createFresh(Logger.getInstance());
 
-// Register a new entity type
-registry.registerType(
-  "task",
-  taskSchema, // Zod schema
-  taskAdapter, // Markdown adapter
-);
+registry.registerEntityType("task", taskSchema, taskAdapter, {
+  weight: 0.8,
+  embeddable: true,
+});
 
-// Get registered types
-const types = registry.getEntityTypes(); // ["note", "task", ...]
-
-// Validate entity
-const isValid = registry.validateEntity("task", taskData);
+const types = registry.getAllEntityTypes();
+const task = registry.validateEntity("task", taskData);
+const adapter = registry.getAdapter("task");
 ```
 
-## Entity Adapters
+## Entity adapters
 
-Adapters handle markdown serialization for each entity type:
+Adapters define how an entity type is serialized to markdown and parsed back from markdown.
 
 ```typescript
-interface EntityAdapter<T extends BaseEntity> {
-  toMarkdown(entity: T): string;
-  fromMarkdown(markdown: string, type: string): T;
-  getTitle(entity: T): string;
+interface EntityAdapter<
+  TEntity extends BaseEntity,
+  TMetadata = Record<string, unknown>,
+> {
+  entityType: string;
+  schema: z.ZodSchema<TEntity>;
+  toMarkdown(entity: TEntity): string;
+  fromMarkdown(markdown: string): Partial<TEntity>;
+  extractMetadata(entity: TEntity): TMetadata;
+  parseFrontMatter<TFrontmatter>(
+    markdown: string,
+    schema: z.ZodSchema<TFrontmatter>,
+  ): TFrontmatter;
+  generateFrontMatter(entity: TEntity): string;
+  getBodyTemplate(): string;
 }
 ```
 
-## Vector Search
+Use `BaseEntityAdapter` for common frontmatter/body behavior.
 
-Built-in similarity search using embeddings:
+## Search
 
 ```typescript
-// Search by semantic similarity
-const similar = await entityService.search({
-  query: "machine learning concepts",
+const results = await entityService.search("machine learning concepts", {
   types: ["note", "article"],
+  excludeTypes: ["image"],
   limit: 20,
-  threshold: 0.7, // Similarity threshold
+  offset: 0,
+  weight: { article: 1.5, note: 1.0 },
 });
-
-// Find related entities
-const related = await entityService.findRelated(entityId, { limit: 10 });
 ```
 
-## Database Schema
+Search combines vector similarity with an FTS5 keyword boost. Entity type weights are applied inside the SQL score expression.
 
-### Entities Table
+## Event bus contract
+
+Entity lifecycle events are optional. To avoid coupling this package to a concrete messaging implementation, pass any object that satisfies `EntityEventBus`:
+
+```typescript
+interface EntityEventBus {
+  send(
+    type: string,
+    payload: Record<string, unknown>,
+    sender: string,
+    target?: string,
+    metadata?: Record<string, unknown>,
+    broadcast?: boolean,
+  ): Promise<unknown>;
+}
+```
+
+Emitted events include:
+
+- `entity:created`
+- `entity:updated`
+- `entity:deleted`
+- `entity:embedding:ready`
+
+## Database schema
+
+### Entities database
 
 ```sql
 CREATE TABLE entities (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL,
+  id TEXT NOT NULL,
+  entityType TEXT NOT NULL,
   content TEXT NOT NULL,
+  contentHash TEXT NOT NULL,
+  metadata TEXT NOT NULL DEFAULT '{}',
   created INTEGER NOT NULL,
   updated INTEGER NOT NULL,
-  metadata TEXT
+  PRIMARY KEY (id, entityType)
 );
 ```
 
-### Vectors Table
+The service also ensures an `entity_fts` FTS5 table for keyword search.
+
+### Embedding database
 
 ```sql
-CREATE VIRTUAL TABLE vectors USING vec0(
-  entity_id TEXT PRIMARY KEY,
-  embedding FLOAT[384]
+CREATE TABLE embeddings (
+  entity_id TEXT NOT NULL,
+  entity_type TEXT NOT NULL,
+  embedding F32_BLOB(<provider dimensions>) NOT NULL,
+  content_hash TEXT NOT NULL,
+  PRIMARY KEY (entity_id, entity_type)
 );
 ```
 
-### Tags Table
+The embedding database is attached to the entity database as `emb` for search queries.
 
-```sql
-CREATE TABLE entity_tags (
-  entity_id TEXT,
-  tag TEXT,
-  PRIMARY KEY (entity_id, tag)
-);
-```
-
-## Frontmatter Utilities
-
-Parse and serialize YAML frontmatter:
+## Frontmatter utilities
 
 ```typescript
-import { parseFrontmatter, serializeFrontmatter } from "@brains/entity-service";
+import {
+  generateMarkdownWithFrontmatter,
+  parseMarkdownWithFrontmatter,
+} from "@brains/entity-service";
 
-// Parse markdown with frontmatter
-const { attributes, body } = parseFrontmatter(markdown);
-
-// Serialize to markdown
-const markdown = serializeFrontmatter(attributes, body);
-```
-
-## Background Jobs
-
-Automatic embedding generation via job queue:
-
-- Embeddings are generated asynchronously
-- Failed embeddings are retried
-- Progress tracked through job queue
-
-## Configuration
-
-```typescript
-interface EntityServiceConfig {
-  database: Database;
-  embeddingService: EmbeddingService;
-  messageBus: MessageBus;
-  jobQueue?: JobQueueService;
-}
-```
-
-## Testing
-
-```typescript
-import { createTestEntityDb } from "@brains/entity-service/test";
-
-// Create test database
-const db = await createTestEntityDb();
-
-// Use in tests
-const service = EntityService.createFresh({
-  database: db,
-  // ... other services
+const parsed = parseMarkdownWithFrontmatter(markdown, frontmatterSchema);
+const markdown = generateMarkdownWithFrontmatter("Body", {
+  title: "Example",
 });
 ```
 
-## Exports
+## Validation
 
-- `EntityService` - Main service class
-- `EntityRegistry` - Type registry
-- `BaseEntityAdapter` - Base adapter class
-- `entitySchema` - Base entity Zod schema
-- `parseFrontmatter`, `serializeFrontmatter` - Frontmatter utilities
-- Database utilities and schemas
+From this package directory:
+
+```bash
+bun run lint
+bun run typecheck
+bun test
+```
+
+## Key exports
+
+- `EntityService`
+- `EntityRegistry`
+- `BaseEntityAdapter`
+- `FallbackEntityAdapter`
+- `EmbeddingJobHandler`
+- `SingletonEntityService`
+- `BaseEntity`, `EntityAdapter`, `SearchOptions`, `ListOptions`, `EntityEventBus`
+- `parseMarkdownWithFrontmatter`, `generateMarkdownWithFrontmatter`, `generateFrontmatter`
+- Entity and embedding database helpers
 
 ## License
 

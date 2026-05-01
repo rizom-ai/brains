@@ -8,12 +8,12 @@ import type {
   EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
+  EntityEventBus,
 } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
 import type { EntityQueries } from "./entity-queries";
 import type { IJobQueueService } from "@brains/job-queue";
-import type { MessageBus } from "@brains/messaging-service";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
@@ -28,7 +28,7 @@ export interface EntityMutationDeps {
   entityQueries: EntityQueries;
   jobQueueService: IJobQueueService;
   logger: Logger;
-  messageBus?: MessageBus;
+  messageBus?: EntityEventBus;
   /** Embedding DB for writes (separate from entity DB). */
   embeddingDb: EmbeddingDB;
 }
@@ -44,7 +44,7 @@ export class EntityMutations {
   private entitySerializer: EntitySerializer;
   private entityQueries: EntityQueries;
   private jobQueueService: IJobQueueService;
-  private messageBus?: MessageBus;
+  private messageBus?: EntityEventBus;
   private logger: Logger;
 
   constructor(deps: EntityMutationDeps) {
