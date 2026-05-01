@@ -150,6 +150,8 @@ export class Shell implements IShell {
     shellInitializer.wireShell(this.services, this);
   }
 
+  // Lifecycle
+
   public getInsightsRegistry(): IInsightsRegistry {
     return this.insightsRegistry;
   }
@@ -199,6 +201,8 @@ export class Shell implements IShell {
     this.services.logger.debug("Shell shutdown complete");
   }
 
+  // Content generation and query
+
   public async generateContent<T = unknown>(
     config: ContentGenerationConfig,
   ): Promise<T> {
@@ -244,6 +248,8 @@ export class Shell implements IShell {
       throw new Error(`${operation} attempted before initialization`);
     }
   }
+
+  // Service accessors
 
   public getEntityService(): IEntityService {
     return this.services.entityService;
@@ -331,6 +337,8 @@ export class Shell implements IShell {
     return this.services.agentService;
   }
 
+  // Capability registration
+
   public registerTools(pluginId: string, tools: Tool[]): void {
     for (const tool of tools) {
       try {
@@ -375,6 +383,8 @@ export class Shell implements IShell {
     }
   }
 
+  // Plugin, daemon, and endpoint registration
+
   public getPluginPackageName(pluginId: string): string | undefined {
     return this.services.pluginManager.getPluginPackageName(pluginId);
   }
@@ -403,6 +413,8 @@ export class Shell implements IShell {
     return this.endpointRegistry.list();
   }
 
+  // Public runtime context
+
   public getPublicContext(): {
     entityService: ShellServices["entityService"];
     generateContent: <T = unknown>(
@@ -419,6 +431,8 @@ export class Shell implements IShell {
         this.services.batchJobManager.getBatchStatus(batchId),
     };
   }
+
+  // Templates, data, identity, and app metadata
 
   public registerTemplate(
     name: string,

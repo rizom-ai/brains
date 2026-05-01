@@ -1,4 +1,4 @@
-import { z, dbConfigSchema, type DbConfig } from "@brains/utils";
+import { z, dbConfigSchema } from "@brains/utils";
 import type {
   Plugin,
   IEvalHandlerRegistry,
@@ -8,45 +8,18 @@ import { pluginMetadataSchema } from "@brains/plugins";
 import type { PermissionConfig } from "@brains/templates";
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import { mkdir } from "fs/promises";
+import {
+  createStandardConfig,
+  createStandardPaths,
+  type StandardConfig,
+} from "./standardConfig";
 
-export const STANDARD_PATHS = {
-  dataDir: process.env["XDG_DATA_HOME"] ?? "./data",
-  cacheDir: process.env["XDG_CACHE_HOME"] ?? "./cache",
-  distDir: "./dist",
-} as const;
+export type { StandardConfig } from "./standardConfig";
 
-export interface StandardConfig {
-  database: DbConfig;
-  jobQueueDatabase: DbConfig;
-  conversationDatabase: DbConfig;
-  embeddingDatabase: DbConfig;
-  embedding: {
-    cacheDir: string;
-  };
-}
+export const STANDARD_PATHS = createStandardPaths();
 
 export function getStandardConfig(): StandardConfig {
-  return {
-    database: {
-      url: `file:${STANDARD_PATHS.dataDir}/brain.db`,
-      authToken: process.env["DATABASE_AUTH_TOKEN"],
-    },
-    jobQueueDatabase: {
-      url: `file:${STANDARD_PATHS.dataDir}/brain-jobs.db`,
-      authToken: process.env["JOB_QUEUE_DATABASE_AUTH_TOKEN"],
-    },
-    conversationDatabase: {
-      url: `file:${STANDARD_PATHS.dataDir}/conversations.db`,
-      authToken: process.env["CONVERSATION_DATABASE_AUTH_TOKEN"],
-    },
-    embeddingDatabase: {
-      url: `file:${STANDARD_PATHS.dataDir}/embeddings.db`,
-      authToken: process.env["DATABASE_AUTH_TOKEN"],
-    },
-    embedding: {
-      cacheDir: `${STANDARD_PATHS.cacheDir}/embeddings`,
-    },
-  };
+  return createStandardConfig(STANDARD_PATHS);
 }
 
 export async function getStandardConfigWithDirectories(): Promise<StandardConfig> {

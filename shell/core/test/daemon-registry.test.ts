@@ -69,6 +69,41 @@ describe("DaemonRegistry", () => {
     expect(health).toEqual(mockHealth);
   });
 
+  it("should store error health when daemon health check throws", async () => {
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {},
+      healthCheck: async () => {
+        throw new Error("unhealthy");
+      },
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+
+    const health = await registry.checkHealth("test-daemon");
+    expect(health?.status).toBe("error");
+    expect(health?.message).toBe("unhealthy");
+    expect(registry.get("test-daemon")?.health).toEqual(health);
+  });
+
+  it("should refresh health checks when listing statuses", async () => {
+    let checks = 0;
+    const mockDaemon: Daemon = {
+      start: async () => {},
+      stop: async () => {},
+      healthCheck: async () => {
+        checks += 1;
+        return { status: "healthy" as const, message: `check-${checks}` };
+      },
+    };
+
+    registry.register("test-daemon", mockDaemon, "test-plugin");
+
+    const statuses = await registry.getStatuses();
+    expect(checks).toBe(1);
+    expect(statuses[0]?.health?.message).toBe("check-1");
+  });
+
   it("should throw from startPlugin when a daemon fails to start", async () => {
     const mockDaemon: Daemon = {
       start: async () => {

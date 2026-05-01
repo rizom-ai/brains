@@ -34,4 +34,19 @@ describe("standard shell paths", () => {
     expect(config.conversationDatabase.url).toBe("file:/data/conversations.db");
     expect(config.embeddingDatabase.url).toBe("file:/data/embeddings.db");
   });
+
+  it("does not read database auth tokens from ambient env", async () => {
+    const { getStandardConfig } = await loadConfigWithEnv({
+      DATABASE_AUTH_TOKEN: "db-secret",
+      JOB_QUEUE_DATABASE_AUTH_TOKEN: "jobs-secret",
+      CONVERSATION_DATABASE_AUTH_TOKEN: "conversation-secret",
+    });
+
+    const config = getStandardConfig();
+
+    expect(config.database.authToken).toBeUndefined();
+    expect(config.embeddingDatabase.authToken).toBeUndefined();
+    expect(config.jobQueueDatabase.authToken).toBeUndefined();
+    expect(config.conversationDatabase.authToken).toBeUndefined();
+  });
 });
