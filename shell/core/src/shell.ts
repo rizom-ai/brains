@@ -15,7 +15,6 @@ import type {
   RegisteredApiRoute,
   RegisteredWebRoute,
 } from "@brains/plugins";
-import { endpointInfoSchema } from "@brains/plugins";
 
 // Plugin manager
 import type { PluginManager } from "@brains/plugins";
@@ -75,6 +74,12 @@ import {
   createEnqueueBatchFn,
   createRegisterHandlerFn,
 } from "@brains/job-queue";
+import { EndpointRegistry } from "./endpoint-registry";
+import { createJobsNamespace } from "./jobs-namespace";
+import {
+  collectPluginApiRoutes,
+  collectPluginWebRoutes,
+} from "./plugin-routes";
 import type { ShellDependencies } from "./types/shell-types";
 
 export type { ShellDependencies };
@@ -86,7 +91,7 @@ export class Shell implements IShell {
   private initialized = false;
   private readonly insightsRegistry: IInsightsRegistry;
   private readonly bootTime = Date.now();
-  private readonly endpoints: EndpointInfo[] = [];
+  private readonly endpointRegistry = new EndpointRegistry();
 
   public readonly jobs: IJobsNamespace;
 
@@ -125,23 +130,10 @@ export class Shell implements IShell {
 
     this.services = shellInitializer.initializeServices(dependencies);
 
-    this.jobs = {
-      enqueueBatch: this.services.batchJobManager.enqueueBatch.bind(
-        this.services.batchJobManager,
-      ),
-      getActiveBatches: this.services.batchJobManager.getActiveBatches.bind(
-        this.services.batchJobManager,
-      ),
-      getBatchStatus: this.services.batchJobManager.getBatchStatus.bind(
-        this.services.batchJobManager,
-      ),
-      getActiveJobs: this.services.jobQueueService.getActiveJobs.bind(
-        this.services.jobQueueService,
-      ),
-      getStatus: this.services.jobQueueService.getStatus.bind(
-        this.services.jobQueueService,
-      ),
-    };
+    this.jobs = createJobsNamespace(
+      this.services.batchJobManager,
+      this.services.jobQueueService,
+    );
 
     this.insightsRegistry = createInsightsRegistry();
     this.bootloader = new ShellBootloader(this.config, this.services, {
@@ -441,53 +433,11 @@ export class Shell implements IShell {
   }
 
   public getPluginApiRoutes(): RegisteredApiRoute[] {
-    const routes: RegisteredApiRoute[] = [];
-
-    for (const [
-      pluginId,
-      info,
-    ] of this.services.pluginManager.getAllPlugins()) {
-      const { plugin } = info;
-      if (
-        "getApiRoutes" in plugin &&
-        typeof plugin.getApiRoutes === "function"
-      ) {
-        for (const definition of plugin.getApiRoutes()) {
-          routes.push({
-            pluginId,
-            fullPath: `/api/${pluginId}${definition.path}`,
-            definition,
-          });
-        }
-      }
-    }
-
-    return routes;
+    return collectPluginApiRoutes(this.services.pluginManager);
   }
 
   public getPluginWebRoutes(): RegisteredWebRoute[] {
-    const routes: RegisteredWebRoute[] = [];
-
-    for (const [
-      pluginId,
-      info,
-    ] of this.services.pluginManager.getAllPlugins()) {
-      const { plugin } = info;
-      if (
-        "getWebRoutes" in plugin &&
-        typeof plugin.getWebRoutes === "function"
-      ) {
-        for (const definition of plugin.getWebRoutes()) {
-          routes.push({
-            pluginId,
-            fullPath: definition.path,
-            definition,
-          });
-        }
-      }
-    }
-
-    return routes;
+    return collectPluginWebRoutes(this.services.pluginManager);
   }
 
   public registerDaemon(name: string, daemon: Daemon, pluginId: string): void {
@@ -495,14 +445,11 @@ export class Shell implements IShell {
   }
 
   public registerEndpoint(endpoint: EndpointInfo): void {
-    const parsed = endpointInfoSchema.parse(endpoint);
-    this.endpoints.push(parsed);
+    this.endpointRegistry.register(endpoint);
   }
 
   public listEndpoints(): EndpointInfo[] {
-    return [...this.endpoints].sort(
-      (a, b) => a.priority - b.priority || a.label.localeCompare(b.label),
-    );
+    return this.endpointRegistry.list();
   }
 
   public getPublicContext(): {
