@@ -5,7 +5,6 @@ import { BaseJobHandler } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
 import {
   getErrorMessage,
-  z,
   fetchImageAsBase64,
   parseMarkdown,
   generateMarkdown,
@@ -17,28 +16,17 @@ import {
   detectImageFormat,
   detectImageDimensions,
 } from "@brains/image";
+import { coverImageConversionJobSchema } from "../types";
+import type { CoverImageConversionJobData } from "../types";
 
 /**
- * Schema for cover image conversion job data
+ * Schema for cover image conversion job data.
+ * Alias the canonical schema from types.ts for backward-compatible imports.
  */
-export const coverImageConversionJobDataSchema = z.object({
-  /** Path to the markdown file to update */
-  filePath: z.string(),
-  /** URL of the image to fetch */
-  sourceUrl: z.string().url(),
-  /** Title of the post (used for image title/alt) */
-  postTitle: z.string(),
-  /** Slug of the post (used for image ID) */
-  postSlug: z.string(),
-  /** Optional custom alt text */
-  customAlt: z.string().optional(),
-});
+export const coverImageConversionJobDataSchema = coverImageConversionJobSchema;
+export type { CoverImageConversionJobData };
 
-export type CoverImageConversionJobData = z.infer<
-  typeof coverImageConversionJobDataSchema
->;
-
-interface ImageConversionResult {
+export interface ImageConversionResult {
   success: boolean;
   imageId?: string;
   skipped?: boolean;

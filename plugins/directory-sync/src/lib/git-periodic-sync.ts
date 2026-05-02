@@ -30,18 +30,20 @@ export function setupPeriodicGitSync(
     running = true;
 
     try {
-      const { files } = await gitSync.withLock(() => gitSync.pull());
+      const { files, result } = await gitSync.withLock(async () => {
+        const pullResult = await gitSync.pull();
+        const batchResult = await directorySync.queueSyncBatch(
+          pluginContext,
+          "periodic-sync",
+        );
+        return { files: pullResult.files, result: batchResult };
+      });
 
       if (files.length > 0) {
         logger.info("Periodic sync: pulled changes", {
           filesChanged: files.length,
         });
       }
-
-      const result = await directorySync.queueSyncBatch(
-        pluginContext,
-        "periodic-sync",
-      );
 
       if (result) {
         logger.debug("Periodic sync: queued imports", {

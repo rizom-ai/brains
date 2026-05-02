@@ -2,9 +2,10 @@ import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import type { Logger } from "@brains/utils";
 import { IMAGE_EXTENSIONS } from "./file-operations";
+import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
 function isImageInImageDir(path: string, syncPath: string): boolean {
-  const relativePath = path.replace(syncPath + "/", "");
+  const relativePath = toSyncRelativePath(syncPath, path);
   if (!relativePath.startsWith("image/")) return false;
   return IMAGE_EXTENSIONS.some((ext) => path.toLowerCase().endsWith(ext));
 }
@@ -15,7 +16,7 @@ function isImageInImageDir(path: string, syncPath: string): boolean {
  * and non-entity files (non-.md, non-image).
  */
 export function shouldProcessPath(path: string, syncPath: string): boolean {
-  const relativePath = path.replace(syncPath + "/", "");
+  const relativePath = toSyncRelativePath(syncPath, path);
   const firstSegment = relativePath.split("/")[0];
   if (firstSegment?.startsWith("_")) return false;
   if (path.endsWith(".md")) return true;
@@ -111,7 +112,7 @@ export class FileWatcher {
 
     this.logger.debug("File change detected", { event, path });
 
-    const relativePath = path.replace(this.syncPath + "/", "");
+    const relativePath = toSyncRelativePath(this.syncPath, path);
     this.pendingChanges.set(relativePath, event);
 
     if (this.batchTimeout) {
@@ -137,7 +138,7 @@ export class FileWatcher {
     });
 
     for (const [path, event] of changes) {
-      const fullPath = `${this.syncPath}/${path}`;
+      const fullPath = resolveInSyncPath(this.syncPath, path);
 
       try {
         if (this.onFileChange) {

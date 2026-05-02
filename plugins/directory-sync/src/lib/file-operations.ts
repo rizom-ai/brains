@@ -1,5 +1,6 @@
 import type { BaseEntity } from "@brains/plugins";
 import { join, dirname, extname } from "path";
+import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 import {
   mkdir,
   readFile,
@@ -86,11 +87,7 @@ export class FileOperations {
   }
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
-    const fullPath = filePath.startsWith(this.syncPath)
-      ? filePath
-      : join(this.syncPath, filePath);
-
-    const relativePath = fullPath.replace(this.syncPath + "/", "");
+    const relativePath = toSyncRelativePath(this.syncPath, filePath);
     const pathParts = relativePath.split("/");
 
     // Base entities are in root; subdirectory name is the entity type
@@ -135,9 +132,7 @@ export class FileOperations {
   }
 
   async readEntity(filePath: string): Promise<RawEntity> {
-    const fullPath = filePath.startsWith(this.syncPath)
-      ? filePath
-      : join(this.syncPath, filePath);
+    const fullPath = resolveInSyncPath(this.syncPath, filePath);
 
     const stats = await stat(fullPath);
 

@@ -237,6 +237,7 @@ export class DirectorySync implements IDirectorySync {
       typesToExport,
       reporter,
       batchSize,
+      this.exportEntities.bind(this),
     );
   }
 

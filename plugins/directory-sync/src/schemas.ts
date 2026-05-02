@@ -27,13 +27,11 @@ export const directorySyncStatusSchema = z
 
 /**
  * Schema for directory sync config
+ *
+ * Keep this re-export for callers that import schemas from this module; the
+ * canonical config schema lives with DirectorySyncConfig in types.ts.
  */
-export const directorySyncConfigSchema = z.object({
-  syncPath: z.string(),
-  watchEnabled: z.boolean().optional(),
-  watchInterval: z.number().optional(),
-  entityTypes: z.array(z.string()).optional(),
-});
+export { directorySyncConfigSchema } from "./types";
 
 /**
  * Schema for export result

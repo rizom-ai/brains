@@ -13,7 +13,7 @@ import type { InlineImageConversionJobData } from "../types";
 import { MarkdownImageConverter } from "../lib/markdown-image-converter";
 import type { ImageFetcher } from "../lib/frontmatter-image-converter";
 
-interface InlineImageConversionResult {
+export interface InlineImageConversionResult {
   success: boolean;
   convertedCount?: number;
   skipped?: boolean;

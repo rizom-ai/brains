@@ -82,7 +82,7 @@ The plugin registers CLI/MCP tools through the shell:
 ```bash
 brain tool sync
 brain tool status
-brain tool directory-sync_history '{"path":"post/my-first-post.md"}'
+brain tool directory-sync_history '{"entityType":"post","id":"my-first-post"}'
 ```
 
 `sync` pulls from git when configured, imports changed files, and lets auto-export/auto-commit handle entity changes. `status` reports sync and git state. `directory-sync_history` reads git history for synced files.

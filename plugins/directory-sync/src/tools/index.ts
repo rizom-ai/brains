@@ -27,18 +27,18 @@ export function createDirectorySyncTools(
             channelId: context.channelId,
           };
 
-          // Pull under lock so the file listing sees post-pull state
-          let gitPulled = false;
-          if (gitSync) {
-            await gitSync.withLock(() => gitSync.pull());
-            gitPulled = true;
-          }
+          // Pull and queue under the same lock so file listing sees the
+          // post-pull state and no auto-commit interleaves with the scan.
+          const gitPulled = gitSync !== undefined;
+          const queueSync = (): ReturnType<IDirectorySync["queueSyncBatch"]> =>
+            directorySync.queueSyncBatch(pluginContext, source, metadata);
 
-          const result = await directorySync.queueSyncBatch(
-            pluginContext,
-            source,
-            metadata,
-          );
+          const result = gitSync
+            ? await gitSync.withLock(async () => {
+                await gitSync.pull();
+                return queueSync();
+              })
+            : await queueSync();
 
           if (!result) {
             return toolSuccess({ gitPulled }, "No files to sync");
