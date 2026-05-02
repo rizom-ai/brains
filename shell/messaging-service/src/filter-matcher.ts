@@ -1,6 +1,33 @@
 import type { MessageWithPayload, SubscriptionFilter } from "./types";
 
 /**
+ * Pre-compile any wildcard string patterns in a filter to anchored RegExp,
+ * so the per-publish hot path doesn't recompile them on every match call.
+ * Idempotent: RegExp inputs and literal strings (no `*`) pass through unchanged.
+ */
+export function compileFilter(filter: SubscriptionFilter): SubscriptionFilter {
+  return {
+    ...filter,
+    ...(filter.source !== undefined && {
+      source: compilePattern(filter.source),
+    }),
+    ...(filter.target !== undefined && {
+      target: compilePattern(filter.target),
+    }),
+  };
+}
+
+function compilePattern(pattern: string | RegExp): string | RegExp {
+  if (pattern instanceof RegExp) return pattern;
+  if (!pattern.includes("*")) return pattern;
+  const regexBody = pattern
+    .split("*")
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join(".*");
+  return new RegExp(`^${regexBody}$`);
+}
+
+/**
  * Check if a message matches a subscription filter.
  */
 export function matchesFilter(
@@ -49,7 +76,9 @@ function matchesMetadata(
 }
 
 /**
- * Check if a value matches a pattern (string or RegExp).
+ * Check if a value matches a pattern. RegExp patterns are tested directly;
+ * string patterns are compared by equality. Wildcard strings are normalized
+ * to RegExp at subscribe time via `compileFilter`, so they never reach here.
  */
 function matchesPattern(
   value: string | undefined,
@@ -62,15 +91,6 @@ function matchesPattern(
     const matches = pattern.test(value);
     pattern.lastIndex = 0;
     return matches;
-  }
-
-  // Support simple wildcards for string patterns
-  if (pattern.includes("*")) {
-    const regexPattern = pattern
-      .split("*")
-      .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-      .join(".*");
-    return new RegExp(`^${regexPattern}$`).test(value);
   }
 
   return value === pattern;

@@ -8,7 +8,7 @@ import type {
   MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
-import { matchesFilter } from "./filter-matcher";
+import { compileFilter, matchesFilter } from "./filter-matcher";
 import { createMessage, toInternalResponse } from "./message-factory";
 import {
   validateMessage as validateWithSchema,
@@ -216,7 +216,7 @@ export class MessageBus implements IMessageBus {
       originalHandler: handler,
     };
 
-    return filter ? { ...entry, filter } : entry;
+    return filter ? { ...entry, filter: compileFilter(filter) } : entry;
   }
 
   private wrapHandler<T, R>(handler: MessageHandler<T, R>): WrappedHandler {
