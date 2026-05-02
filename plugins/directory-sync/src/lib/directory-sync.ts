@@ -16,15 +16,16 @@ import type {
   SyncResult,
 } from "../types";
 import type { FileWatcher } from "./file-watcher";
-import { FileOperations } from "./file-operations";
-import { ProgressOperations } from "./progress-operations";
+import type { FileOperations } from "./file-operations";
+import type { ProgressOperations } from "./progress-operations";
 import { startDirectoryWatcher } from "./directory-watcher";
 import { runDirectorySync } from "./directory-sync-runner";
-import { FrontmatterImageConverter } from "./frontmatter-image-converter";
-import { MarkdownImageConverter } from "./markdown-image-converter";
-import { Quarantine } from "./quarantine";
+import type { FrontmatterImageConverter } from "./frontmatter-image-converter";
+import type { MarkdownImageConverter } from "./markdown-image-converter";
+import type { Quarantine } from "./quarantine";
 import type { ImageJobQueueDeps } from "./image-job-queue";
-import { DirectoryBatchQueue } from "./directory-batch-queue";
+import type { DirectoryBatchQueue } from "./directory-batch-queue";
+import { createDirectorySyncDependencies } from "./directory-dependencies";
 import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
@@ -76,26 +77,18 @@ export class DirectorySync implements IDirectorySync {
     this.watchInterval = options.watchInterval ?? 5000;
     this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
     this.entityTypes = options.entityTypes;
-    this.fileOperations = new FileOperations(this.syncPath, this.entityService);
-    this.batchQueue = new DirectoryBatchQueue(
+
+    const dependencies = createDirectorySyncDependencies(
       this.logger,
+      this.entityService,
       this.syncPath,
-      this.fileOperations,
     );
-    this.progressOperations = new ProgressOperations(
-      this.logger,
-      this.entityService,
-      this.fileOperations,
-    );
-    this.coverImageConverter = new FrontmatterImageConverter(
-      this.entityService,
-      this.logger,
-    );
-    this.inlineImageConverter = new MarkdownImageConverter(
-      this.entityService,
-      this.logger,
-    );
-    this.quarantine = new Quarantine(this.logger, this.syncPath);
+    this.fileOperations = dependencies.fileOperations;
+    this.batchQueue = dependencies.batchQueue;
+    this.progressOperations = dependencies.progressOperations;
+    this.coverImageConverter = dependencies.coverImageConverter;
+    this.inlineImageConverter = dependencies.inlineImageConverter;
+    this.quarantine = dependencies.quarantine;
 
     this.logger.debug("Initialized with path", {
       originalPath: options.syncPath,
