@@ -1,5 +1,5 @@
 import type { BaseEntity } from "@brains/plugins";
-import { join, dirname, extname } from "path";
+import { dirname, extname } from "path";
 import { resolveInSyncPath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
@@ -7,31 +7,18 @@ import {
   getEntityFileExtension,
   parseEntityPath,
 } from "./entity-paths";
-import {
-  mkdir,
-  readFile,
-  writeFile,
-  readdir,
-  stat,
-  utimes,
-  access,
-} from "fs/promises";
+import { mkdir, readFile, writeFile, stat, utimes } from "fs/promises";
 import { computeContentHash } from "@brains/utils/hash";
 import type { RawEntity, DirectorySyncStatus } from "../types";
+import {
+  ensureDirectoryStructure as ensureSyncDirectoryStructure,
+  gatherFileStatus as gatherSyncFileStatus,
+  getAllMarkdownFiles as findMarkdownFiles,
+  getAllSyncFiles as findSyncFiles,
+} from "./file-discovery";
+import { pathExists } from "./fs-utils";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
-
-/**
- * Check if a path exists (async replacement for existsSync)
- */
-async function pathExists(path: string): Promise<boolean> {
-  try {
-    await access(path);
-    return true;
-  } catch {
-    return false;
-  }
-}
 
 export interface FileOperationsEntityService {
   serializeEntity(entity: BaseEntity): string;
@@ -157,71 +144,21 @@ export class FileOperations {
   }
 
   async getAllMarkdownFiles(): Promise<string[]> {
-    return this.findFiles({ includeImages: false });
+    return findMarkdownFiles(this.syncPath, this.entityService);
   }
 
   /**
    * Get all syncable files in sync directory (markdown + images in image/ dir)
    */
   async getAllSyncFiles(): Promise<string[]> {
-    return this.findFiles({ includeImages: true });
-  }
-
-  private async findFiles(opts: { includeImages: boolean }): Promise<string[]> {
-    const files: string[] = [];
-    if (!(await pathExists(this.syncPath))) return files;
-
-    const walk = async (
-      currentPath: string,
-      relativePath: string = "",
-      inImageDir: boolean = false,
-    ): Promise<void> => {
-      const entries = await readdir(currentPath, { withFileTypes: true });
-      for (const entry of entries) {
-        const rel = relativePath ? join(relativePath, entry.name) : entry.name;
-
-        if (entry.isFile() && !entry.name.endsWith(".invalid")) {
-          if (entry.name.endsWith(".md")) {
-            files.push(rel);
-          } else if (
-            opts.includeImages &&
-            inImageDir &&
-            isImageFile(entry.name)
-          ) {
-            files.push(rel);
-          }
-        } else if (entry.isDirectory() && !entry.name.startsWith(".")) {
-          // At root level, only walk into registered entity type directories
-          if (
-            relativePath === "" &&
-            !this.entityService.hasEntityType(entry.name)
-          ) {
-            continue;
-          }
-          const entryPath = join(currentPath, entry.name);
-          const isImgDir = entry.name === "image" && relativePath === "";
-          await walk(entryPath, rel, inImageDir || isImgDir);
-        }
-      }
-    };
-
-    await walk(this.syncPath);
-    return files;
+    return findSyncFiles(this.syncPath, this.entityService);
   }
 
   /**
    * Ensure directory structure exists
    */
   async ensureDirectoryStructure(entityTypes: string[]): Promise<void> {
-    if (!(await pathExists(this.syncPath))) {
-      await mkdir(this.syncPath, { recursive: true });
-    }
-
-    for (const entityType of entityTypes) {
-      if (entityType !== "base") {
-        await mkdir(join(this.syncPath, entityType), { recursive: true });
-      }
-    }
+    await ensureSyncDirectoryStructure(this.syncPath, entityTypes);
   }
 
   /**
@@ -240,40 +177,7 @@ export class FileOperations {
     files: DirectorySyncStatus["files"];
     stats: DirectorySyncStatus["stats"];
   }> {
-    const files: DirectorySyncStatus["files"] = [];
-    const stats: DirectorySyncStatus["stats"] = {
-      totalFiles: 0,
-      byEntityType: {},
-    };
-
-    if (!(await pathExists(this.syncPath))) {
-      return { files, stats };
-    }
-
-    const allFiles = await this.getAllMarkdownFiles();
-
-    for (const filePath of allFiles) {
-      try {
-        const fullPath = join(this.syncPath, filePath);
-        const fileStat = await stat(fullPath);
-        const { entityType } = this.parseEntityFromPath(filePath);
-
-        files.push({
-          path: filePath,
-          entityType,
-          modified: fileStat.mtime,
-        });
-
-        stats.totalFiles++;
-        stats.byEntityType[entityType] =
-          (stats.byEntityType[entityType] ?? 0) + 1;
-      } catch {
-        // Skip files that can't be read
-        continue;
-      }
-    }
-
-    return { files, stats };
+    return gatherSyncFileStatus(this.syncPath, this.entityService);
   }
 
   async syncDirectoryExists(): Promise<boolean> {
