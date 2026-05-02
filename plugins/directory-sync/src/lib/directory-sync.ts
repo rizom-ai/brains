@@ -16,10 +16,10 @@ import type {
   ImportResult,
   JobRequest,
 } from "../types";
-import { FileWatcher } from "./file-watcher";
+import type { FileWatcher } from "./file-watcher";
 import { FileOperations } from "./file-operations";
 import { ProgressOperations } from "./progress-operations";
-import { EventHandler } from "./event-handler";
+import { startDirectoryWatcher } from "./directory-watcher";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 import { Quarantine } from "./quarantine";
@@ -335,24 +335,15 @@ export class DirectorySync implements IDirectorySync {
       return;
     }
 
-    const eventHandler = new EventHandler(
-      this.logger,
-      this.importEntities.bind(this),
-      this.jobQueueCallback,
-      this.fileOperations,
-      this.deleteOnFileRemoval,
-    );
-
-    this.fileWatcher = new FileWatcher({
+    this.fileWatcher = await startDirectoryWatcher({
+      logger: this.logger,
       syncPath: this.syncPath,
       watchInterval: this.watchInterval,
-      logger: this.logger,
-      onFileChange: async (event: string, path: string): Promise<void> => {
-        await eventHandler.handleFileChange(event, path);
-      },
+      importEntities: this.importEntities.bind(this),
+      jobQueueCallback: this.jobQueueCallback,
+      fileOperations: this.fileOperations,
+      deleteOnFileRemoval: this.deleteOnFileRemoval,
     });
-
-    await this.fileWatcher.start();
   }
 
   stopWatching(): void {
