@@ -23,8 +23,11 @@ import {
 } from "./directory-watcher";
 import { runDirectorySync } from "./directory-sync-runner";
 import type { DirectoryBatchQueue } from "./directory-batch-queue";
-import { createDirectorySyncDependencies } from "./directory-dependencies";
-import { DirectoryOperationDeps } from "./directory-operation-deps";
+import {
+  createDirectoryOperationDeps,
+  createDirectorySyncDependencies,
+} from "./directory-dependencies";
+import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import {
   initializeDirectoryStructure,
   initializeDirectorySync,
@@ -82,18 +85,14 @@ export class DirectorySync implements IDirectorySync {
     this.fileOperations = dependencies.fileOperations;
     this.batchQueue = dependencies.batchQueue;
     this.progressOperations = dependencies.progressOperations;
-    this.operationDeps = new DirectoryOperationDeps({
-      entityService: this.entityService,
-      logger: this.logger,
-      syncPath: this.syncPath,
-      fileOperations: this.fileOperations,
-      quarantine: dependencies.quarantine,
-      coverImageConverter: dependencies.coverImageConverter,
-      inlineImageConverter: dependencies.inlineImageConverter,
-      getJobQueueCallback: ():
-        | ((job: JobRequest) => Promise<string>)
-        | undefined => this.jobQueueCallback,
-    });
+    this.operationDeps = createDirectoryOperationDeps(
+      this.logger,
+      this.entityService,
+      this.syncPath,
+      dependencies,
+      (): ((job: JobRequest) => Promise<string>) | undefined =>
+        this.jobQueueCallback,
+    );
 
     this.logger.debug("Initialized with path", {
       originalPath: normalizedOptions.originalSyncPath,

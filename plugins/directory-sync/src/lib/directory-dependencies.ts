@@ -1,6 +1,8 @@
 import type { IEntityService } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import type { JobRequest } from "../types";
 import { DirectoryBatchQueue } from "./directory-batch-queue";
+import { DirectoryOperationDeps } from "./directory-operation-deps";
 import { FileOperations } from "./file-operations";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
@@ -35,4 +37,23 @@ export function createDirectorySyncDependencies(
     inlineImageConverter: new MarkdownImageConverter(entityService, logger),
     quarantine: new Quarantine(logger, syncPath),
   };
+}
+
+export function createDirectoryOperationDeps(
+  logger: Logger,
+  entityService: IEntityService,
+  syncPath: string,
+  dependencies: DirectorySyncDependencies,
+  getJobQueueCallback: () => ((job: JobRequest) => Promise<string>) | undefined,
+): DirectoryOperationDeps {
+  return new DirectoryOperationDeps({
+    entityService,
+    logger,
+    syncPath,
+    fileOperations: dependencies.fileOperations,
+    quarantine: dependencies.quarantine,
+    coverImageConverter: dependencies.coverImageConverter,
+    inlineImageConverter: dependencies.inlineImageConverter,
+    getJobQueueCallback,
+  });
 }
