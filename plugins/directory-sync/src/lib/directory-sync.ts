@@ -29,6 +29,10 @@ import {
 } from "./directory-dependencies";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import {
+  ensureDirectoryEntityStructure,
+  getDirectoryMarkdownFiles,
+} from "./directory-files";
+import {
   initializeDirectoryStructure,
   initializeDirectorySync,
 } from "./directory-lifecycle";
@@ -211,12 +215,15 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async getAllMarkdownFiles(): Promise<string[]> {
-    return this.fileOperations.getAllMarkdownFiles();
+    return getDirectoryMarkdownFiles(this.fileOperations);
   }
 
   async ensureDirectoryStructure(): Promise<void> {
-    const entityTypes = this.entityTypes ?? this.entityService.getEntityTypes();
-    await this.fileOperations.ensureDirectoryStructure(entityTypes);
+    await ensureDirectoryEntityStructure(
+      this.fileOperations,
+      this.entityService,
+      this.entityTypes,
+    );
   }
 
   async getStatus(): Promise<DirectorySyncStatus> {
