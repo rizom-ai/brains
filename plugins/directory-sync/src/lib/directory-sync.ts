@@ -41,8 +41,6 @@ export const directorySyncOptionsSchema = z.object({
   includeMetadata: z.boolean().optional(),
   entityTypes: z.array(z.string()).optional(),
   deleteOnFileRemoval: z.boolean().optional(),
-  entityService: z.any(), // We can't validate these complex types with Zod
-  logger: z.any(),
 });
 
 export type DirectorySyncOptions = z.infer<
@@ -73,9 +71,7 @@ export class DirectorySync implements IDirectorySync {
 
   constructor(options: DirectorySyncOptions) {
     const { entityService, logger, ...validatableOptions } = options;
-    directorySyncOptionsSchema
-      .omit({ entityService: true, logger: true })
-      .parse(validatableOptions);
+    directorySyncOptionsSchema.parse(validatableOptions);
 
     this.entityService = entityService;
     this.logger = logger.child("DirectorySync");

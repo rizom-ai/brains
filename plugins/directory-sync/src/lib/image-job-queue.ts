@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils";
 import type { JobRequest } from "../types";
 import type { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import type { MarkdownImageConverter } from "./markdown-image-converter";
+import { resolveInSyncPath } from "./path-utils";
 
 export interface ImageJobQueueDeps {
   logger: Logger;
@@ -10,10 +11,6 @@ export interface ImageJobQueueDeps {
   jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
   coverImageConverter: FrontmatterImageConverter;
   inlineImageConverter: MarkdownImageConverter;
-}
-
-function resolveFilePath(syncPath: string, filePath: string): string {
-  return filePath.startsWith(syncPath) ? filePath : `${syncPath}/${filePath}`;
 }
 
 function queueJob(
@@ -46,7 +43,7 @@ export function queueCoverImageConversionIfNeeded(
     {
       type: "cover-image-convert",
       data: {
-        filePath: resolveFilePath(deps.syncPath, filePath),
+        filePath: resolveInSyncPath(deps.syncPath, filePath),
         sourceUrl: detection.sourceUrl,
         postTitle: detection.postTitle,
         postSlug: detection.postSlug,
@@ -82,7 +79,7 @@ export function queueInlineImageConversionIfNeeded(
     {
       type: "inline-image-convert",
       data: {
-        filePath: resolveFilePath(deps.syncPath, filePath),
+        filePath: resolveInSyncPath(deps.syncPath, filePath),
         postSlug,
       },
     },

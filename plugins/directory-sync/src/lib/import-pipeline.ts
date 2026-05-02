@@ -10,6 +10,7 @@ import {
   queueCoverImageConversionIfNeeded,
   queueInlineImageConversionIfNeeded,
 } from "./image-job-queue";
+import { resolveInSyncPath } from "./path-utils";
 
 export interface ImportPipelineDeps {
   entityService: IEntityService;
@@ -155,10 +156,7 @@ async function processEntityImport(
         filePath,
         error,
         result,
-        (fp) =>
-          fp.startsWith(deps.imageJobQueue.syncPath)
-            ? fp
-            : `${deps.imageJobQueue.syncPath}/${fp}`,
+        (fp) => resolveInSyncPath(deps.imageJobQueue.syncPath, fp),
       );
       return;
     }
@@ -236,10 +234,7 @@ async function processEntityImport(
         filePath,
         error,
         result,
-        (fp) =>
-          fp.startsWith(deps.imageJobQueue.syncPath)
-            ? fp
-            : `${deps.imageJobQueue.syncPath}/${fp}`,
+        (fp) => resolveInSyncPath(deps.imageJobQueue.syncPath, fp),
       );
       return;
     }
