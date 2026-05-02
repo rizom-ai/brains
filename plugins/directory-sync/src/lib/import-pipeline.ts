@@ -10,6 +10,10 @@ import {
   queueCoverImageConversionIfNeeded,
   queueInlineImageConversionIfNeeded,
 } from "./image-job-queue";
+import {
+  getImportContentSkipMessage,
+  getImportContentSkipReason,
+} from "./import-content-filter";
 import { getImportPathDecision } from "./import-path-filter";
 import { resolveInSyncPath } from "./path-utils";
 
@@ -93,24 +97,12 @@ async function processEntityImport(
   filePath: string,
   result: ImportResult,
 ): Promise<void> {
-  // Skip files with empty or near-empty content — this happens when a file
-  // is read mid-write during a git pull (transient state, not invalid data)
-  if (!rawEntity.content || rawEntity.content.trim().length === 0) {
-    deps.logger.debug("Skipping file with empty content (likely mid-write)", {
+  const contentSkipReason = getImportContentSkipReason(rawEntity);
+  if (contentSkipReason) {
+    deps.logger.debug(getImportContentSkipMessage(contentSkipReason), {
       path: filePath,
       entityType: rawEntity.entityType,
     });
-    result.skipped++;
-    return;
-  }
-
-  // Skip files where frontmatter is just delimiters with no actual fields
-  const trimmed = rawEntity.content.trim();
-  if (trimmed === "---" || trimmed === "---\n---" || trimmed === "---\r\n---") {
-    deps.logger.debug(
-      "Skipping file with empty frontmatter (likely mid-write)",
-      { path: filePath, entityType: rawEntity.entityType },
-    );
     result.skipped++;
     return;
   }
