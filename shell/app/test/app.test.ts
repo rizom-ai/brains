@@ -1,17 +1,18 @@
 import { describe, it, expect, mock } from "bun:test";
 import { App } from "../src/app";
+import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
-import type { Shell } from "@brains/core";
+import { Shell, type Shell as ShellInstance } from "@brains/core";
 
 // Create a mock Shell
-const createMockShell = (): Shell => {
+const createMockShell = (): ShellInstance => {
   return {
     initialize: mock(() => Promise.resolve()),
     shutdown: mock(() => Promise.resolve()),
     getPluginManager: mock(() => ({
       registerPlugin: mock(() => {}),
     })),
-  } as unknown as Shell;
+  } as unknown as ShellInstance;
 };
 
 describe("App", () => {
@@ -77,6 +78,35 @@ describe("App", () => {
       await app.initialize();
 
       expect(mockShell.initialize).toHaveBeenCalled();
+    });
+
+    it("should provide a startup-check API key placeholder when no key is configured", async () => {
+      const originalCreateFresh = Shell.createFresh;
+      const originalRunAllMigrations =
+        MigrationManager.prototype.runAllMigrations;
+      const mockShell = createMockShell();
+      let shellConfig: Parameters<typeof Shell.createFresh>[0];
+
+      MigrationManager.prototype.runAllMigrations = mock(() =>
+        Promise.resolve(),
+      ) as typeof MigrationManager.prototype.runAllMigrations;
+      Shell.createFresh = mock((config) => {
+        shellConfig = config;
+        return mockShell;
+      }) as typeof Shell.createFresh;
+
+      try {
+        const app = App.create({});
+        await app.initialize({ startupCheck: true });
+
+        expect(shellConfig?.ai?.apiKey).toBe("startup-check");
+        expect(mockShell.initialize).toHaveBeenCalledWith({
+          startupCheck: true,
+        });
+      } finally {
+        Shell.createFresh = originalCreateFresh;
+        MigrationManager.prototype.runAllMigrations = originalRunAllMigrations;
+      }
     });
   });
 

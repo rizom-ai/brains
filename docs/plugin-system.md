@@ -49,6 +49,10 @@ Public plugin lifecycle hooks are:
 
 The shell calls all plugin registration hooks first, prepares ready state, then calls ready hooks. Background daemons and job processing start after ready hooks.
 
+## Registration model
+
+Plugins register capabilities through a hybrid: override class methods (`getTools`, `getResources`, `getInstructions`, `getApiRoutes`, `getWebRoutes`, and on `ServicePlugin` the `registerEntityTypes` / `registerJobHandlers` hooks) for static declarations the shell collects automatically, and call `context.*.register*()` inside `onRegister` for dynamic, conditional, or namespaced registration (entity types, templates, data sources, daemons, instructions). See [External Plugin Authoring → Registration model](./external-plugin-authoring.md#registration-model) for the full breakdown.
+
 ## Plugin factory contract
 
 External packages export a default or named `plugin` factory. Exporting both is fine.

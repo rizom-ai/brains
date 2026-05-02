@@ -97,6 +97,37 @@ export default plugin;
 
 The repository keeps a package-local compile fixture at [`packages/brain-cli/test/fixtures/external-plugin`](../packages/brain-cli/test/fixtures/external-plugin). It typechecks against the public `.d.ts` contracts and must not import `@brains/*`. For a durable entity example, see [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes).
 
+## Registration model
+
+Capabilities are registered through a documented hybrid: **class methods** for static declarations the shell collects automatically, and **`context.*.register*()` calls** inside `onRegister` for anything dynamic, conditional, or namespaced.
+
+Class-method registration (auto-collected at boot):
+
+| Override                                                | Use for                                                                                       |
+| ------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| `getTools()`                                            | Tools exposed through the plugin's namespace                                                  |
+| `getResources()`                                        | Static resources                                                                              |
+| `getInstructions()`                                     | A string appended to the agent's system prompt                                                |
+| `getApiRoutes()` / `getWebRoutes()` (interface/service) | Route definitions                                                                             |
+| `registerEntityTypes(context)` (`ServicePlugin`)        | Default `onRegister` calls this for you so subclasses can register entity types declaratively |
+| `registerJobHandlers(context)` (`ServicePlugin`)        | Same pattern for job handlers                                                                 |
+
+Reach for class methods when the set of capabilities is fixed at construction time — the example in [Plugin factory contract](#plugin-factory-contract) above uses `getTools()` for exactly that reason.
+
+Context-call registration (inside `onRegister`):
+
+```ts
+protected override async onRegister(context: ServicePluginContext): Promise<void> {
+  context.entities.register("note", noteSchema, noteAdapter);
+  context.entities.registerCreateInterceptor("note", interceptor);
+  context.entities.registerDataSource(myDataSource);
+  context.templates.register({ "note-card": noteCardTemplate }, "notes");
+  context.registerInstructions("Notes use ISO-8601 timestamps in frontmatter.");
+}
+```
+
+Reach for context calls when registration is conditional on config, when you need a namespace different from the plugin id (the optional second arg to `templates.register`), or when the capability isn't a fit for one of the static class methods. For long-running background work, `InterfacePlugin` subclasses typically override `createDaemon()` (static-style) and the base class registers it during `register()`; for ad-hoc cases, call `context.daemons.register(...)` directly. If you override `onRegister` on `ServicePlugin`, call `super.onRegister(context)` first so `registerEntityTypes` / `registerJobHandlers` still fire.
+
 ## Messaging interfaces
 
 Use `InterfacePlugin` for generic/non-chat interfaces. Use `MessageInterfacePlugin` when building a channel/chat surface such as Slack, Teams, Matrix, Telegram, or Discord. It extends `InterfacePlugin` with shared message-routing helpers, progress-message tracking, URL capture helpers, and text-upload validation.
@@ -177,6 +208,16 @@ Rules:
 - `onShutdown` handles cleanup.
 
 Background daemons and job processing start after ready hooks, so `onReady` is the place for startup work that needs the coordinated shell state.
+
+## Smoke testing
+
+Use startup-check mode for external plugin CI smoke tests:
+
+```bash
+brain start --startup-check
+```
+
+This boots far enough to load external `brain.yaml` plugins and run their `onRegister`/`onReady` lifecycle hooks, then exits without starting daemons or job workers and without requiring `AI_API_KEY`.
 
 ## See also
 

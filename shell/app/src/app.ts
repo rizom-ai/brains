@@ -75,10 +75,13 @@ export class App {
       if (
         this.config.aiApiKey ||
         this.config.aiImageKey ||
-        this.config.aiModel
+        this.config.aiModel ||
+        options?.startupCheck
       ) {
         shellConfig.ai = {
           ...shellConfig.ai,
+          ...(options?.startupCheck &&
+            !shellConfig.ai?.apiKey && { apiKey: "startup-check" }),
           ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
           ...(this.config.aiImageKey && {
             imageApiKey: this.config.aiImageKey,
