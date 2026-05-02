@@ -7,36 +7,15 @@ import {
   formatCompletionMessage,
   formatProgressMessage,
 } from "./progress-handler";
-import { z } from "@brains/utils";
+import {
+  extractCaptureableUrls,
+  formatFileUploadMessage,
+  isFileSizeAllowed,
+  isUploadableTextFile,
+  urlCaptureConfigSchema,
+} from "./message-content-utils";
 
-/**
- * Shared URL capture config schema — spread into any MessageInterfacePlugin config.
- * Interfaces add platform-specific options (e.g. captureUrlEmoji for Discord).
- */
-export const urlCaptureConfigSchema = z.object({
-  /** Auto-capture URLs shared in channels (without mention) */
-  captureUrls: z.boolean().default(false),
-  /** Domains to skip for URL auto-capture (meetings, scheduling, media, etc.) */
-  blockedUrlDomains: z
-    .array(z.string())
-    .default([
-      "meet.google.com",
-      "zoom.us",
-      "teams.microsoft.com",
-      "whereby.com",
-      "gather.town",
-      "calendly.com",
-      "cal.com",
-      "discord.com",
-      "discord.gg",
-      "cdn.discordapp.com",
-      "media.discordapp.net",
-      "giphy.com",
-      "tenor.com",
-      "wetransfer.com",
-      "file.io",
-    ]),
-});
+export { urlCaptureConfigSchema };
 
 /**
  * Tracked progress message for editing
@@ -84,52 +63,28 @@ export abstract class MessageInterfacePlugin<
   TConfig = unknown,
   TTrackingInfo extends MessageJobTrackingInfo = MessageJobTrackingInfo,
 > extends InterfacePlugin<TConfig, TTrackingInfo> {
-  /** Max file size for text uploads (100KB) */
-  protected static readonly MAX_FILE_UPLOAD_SIZE = 100_000;
-
-  /** Allowed text-based file extensions */
-  private static readonly TEXT_FILE_EXTENSIONS = [".md", ".txt", ".markdown"];
-
-  /** Allowed text-based MIME types */
-  private static readonly TEXT_MIME_TYPES = [
-    "text/plain",
-    "text/markdown",
-    "text/x-markdown",
-  ];
-
   /**
    * Check if a file is a supported text file for upload
    */
   protected isUploadableTextFile(filename: string, mimetype?: string): boolean {
-    if (
-      mimetype &&
-      MessageInterfacePlugin.TEXT_MIME_TYPES.some((t) => mimetype.startsWith(t))
-    ) {
-      return true;
-    }
-    return MessageInterfacePlugin.TEXT_FILE_EXTENSIONS.some((ext) =>
-      filename.toLowerCase().endsWith(ext),
-    );
+    return isUploadableTextFile(filename, mimetype);
   }
 
   /**
    * Validate file size for upload
    */
   protected isFileSizeAllowed(size: number): boolean {
-    return size <= MessageInterfacePlugin.MAX_FILE_UPLOAD_SIZE;
+    return isFileSizeAllowed(size);
   }
 
   /**
    * Format uploaded file content as an agent message
    */
   protected formatFileUploadMessage(filename: string, content: string): string {
-    return `User uploaded a file "${filename}":\n\n${content}`;
+    return formatFileUploadMessage(filename, content);
   }
 
   // ── URL capture ──
-
-  private static readonly URL_PATTERN =
-    /https?:\/\/[^\s<>"{}|\\^`[\]]+?(?=[,;:\s]|$)/gi;
 
   /**
    * Extract HTTP(S) URLs from message content, filtering out blocked domains.
@@ -139,17 +94,7 @@ export abstract class MessageInterfacePlugin<
     content: string,
     blockedDomains: string[],
   ): string[] {
-    const matches = content.match(MessageInterfacePlugin.URL_PATTERN) ?? [];
-    return [...new Set(matches)].filter((url) => {
-      try {
-        const { hostname } = new URL(url);
-        return !blockedDomains.some(
-          (d) => hostname === d || hostname.endsWith(`.${d}`),
-        );
-      } catch {
-        return false;
-      }
-    });
+    return extractCaptureableUrls(content, blockedDomains);
   }
 
   /**
