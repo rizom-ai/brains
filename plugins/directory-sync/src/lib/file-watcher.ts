@@ -1,13 +1,13 @@
 import type { FSWatcher } from "chokidar";
 import chokidar from "chokidar";
 import type { Logger } from "@brains/utils";
-import { IMAGE_EXTENSIONS } from "./file-operations";
+import { isImageFile } from "./image-file-utils";
 import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
 
 function isImageInImageDir(path: string, syncPath: string): boolean {
   const relativePath = toSyncRelativePath(syncPath, path);
   if (!relativePath.startsWith("image/")) return false;
-  return IMAGE_EXTENSIONS.some((ext) => path.toLowerCase().endsWith(ext));
+  return isImageFile(path);
 }
 
 /**
