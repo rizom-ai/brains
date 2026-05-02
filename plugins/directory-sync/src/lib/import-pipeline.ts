@@ -10,6 +10,7 @@ import {
   getImportContentSkipMessage,
   getImportContentSkipReason,
 } from "./import-content-filter";
+import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
 import { resolveInSyncPath } from "./path-utils";
@@ -106,43 +107,13 @@ async function processEntityImport(
 
   queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
 
-  // Deserialize -- validation errors quarantine the file, transient errors just fail
-  let parsedEntity;
-  try {
-    parsedEntity = deps.entityService.deserializeEntity(
-      rawEntity.content,
-      rawEntity.entityType,
-    );
-  } catch (error) {
-    if (deps.quarantine.isValidationError(error)) {
-      await deps.quarantine.quarantineInvalidFile(
-        filePath,
-        error,
-        result,
-        (fp) => resolveInSyncPath(deps.imageJobQueue.syncPath, fp),
-      );
-      return;
-    }
-
-    // Non-validation errors (e.g., "No adapter registered") are transient —
-    // don't quarantine the file, just record the failure
-    result.failed++;
-    result.errors.push({
-      path: filePath,
-      error:
-        error instanceof Error
-          ? `Deserialization error (file not quarantined): ${error.message}`
-          : String(error),
-    });
-    deps.logger.warn(
-      "Failed to deserialize entity (transient error, not quarantined)",
-      {
-        path: filePath,
-        entityType: rawEntity.entityType,
-        id: rawEntity.id,
-        error: getErrorMessage(error),
-      },
-    );
+  const parsedEntity = await deserializeImportEntity(
+    deps,
+    rawEntity,
+    filePath,
+    result,
+  );
+  if (!parsedEntity) {
     return;
   }
 
