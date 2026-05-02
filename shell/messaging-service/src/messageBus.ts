@@ -1,4 +1,5 @@
 import type { Logger } from "@brains/utils";
+import type { z } from "@brains/utils";
 import type {
   InternalMessageResponse,
   MessageHandler,
@@ -7,7 +8,12 @@ import type {
   MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
-import { z } from "@brains/utils";
+import { matchesFilter } from "./filter-matcher";
+import { createMessage, toInternalResponse } from "./message-factory";
+import {
+  validateMessage as validateWithSchema,
+  type MessageValidationResult,
+} from "./message-validator";
 
 // Internal type for wrapped handlers
 type WrappedHandler = (
@@ -94,7 +100,7 @@ export class MessageBus implements IMessageBus {
     metadata?: Record<string, unknown>,
     broadcast?: boolean,
   ): Promise<MessageResponse<R>> {
-    const message = this.createMessage(type, payload, sender, target, metadata);
+    const message = createMessage(type, payload, sender, target, metadata);
     const response = await this.publish(message, broadcast);
 
     // Handle successful response
@@ -146,7 +152,7 @@ export class MessageBus implements IMessageBus {
 
     // Filter handlers based on their subscription filters
     const matchingHandlers = Array.from(handlers).filter((entry) =>
-      this.matchesFilter(message, entry.filter),
+      matchesFilter(message, entry.filter),
     );
 
     if (matchingHandlers.length === 0) {
@@ -217,76 +223,8 @@ export class MessageBus implements IMessageBus {
     return async (message: MessageWithPayload<unknown>) => {
       const typedMessage = message as MessageWithPayload<T>;
       const result = await handler(typedMessage);
-      return this.toInternalResponse(message.id, result);
+      return toInternalResponse(message.id, result);
     };
-  }
-
-  private toInternalResponse(
-    requestId: string,
-    result: MessageResponse<unknown>,
-  ): InternalMessageResponse {
-    // Handle noop responses for broadcast events
-    if ("noop" in result) {
-      return this.createInternalResponse(requestId, true);
-    }
-
-    // Type guard: if we get here, result must have success/data/error properties
-    if ("success" in result) {
-      return this.createInternalResponse(
-        requestId,
-        result.success,
-        result.data,
-        result.error,
-      );
-    }
-
-    throw new Error("Invalid message response format");
-  }
-
-  private createInternalResponse(
-    requestId: string,
-    success: boolean,
-    data?: unknown,
-    error?: string,
-  ): InternalMessageResponse {
-    return {
-      id: this.createResponseId(),
-      requestId,
-      timestamp: this.createTimestamp(),
-      success,
-      data,
-      error: error ? { message: error } : undefined,
-    };
-  }
-
-  private createMessage<T>(
-    type: string,
-    payload: T,
-    sender: string,
-    target?: string,
-    metadata?: Record<string, unknown>,
-  ): MessageWithPayload<T> {
-    return {
-      id: this.createMessageId(),
-      type,
-      timestamp: this.createTimestamp(),
-      source: sender,
-      target,
-      metadata,
-      payload,
-    };
-  }
-
-  private createMessageId(): string {
-    return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-  }
-
-  private createResponseId(): string {
-    return `resp-${Date.now()}`;
-  }
-
-  private createTimestamp(): string {
-    return new Date().toISOString();
   }
 
   private getOrCreateHandlers(type: string): Set<HandlerEntry> {
@@ -310,101 +248,13 @@ export class MessageBus implements IMessageBus {
   }
 
   /**
-   * Check if a message matches a subscription filter
-   */
-  private matchesFilter(
-    message: MessageWithPayload,
-    filter?: SubscriptionFilter,
-  ): boolean {
-    if (!filter) {
-      return true; // No filter means accept all messages
-    }
-
-    // Check source filter
-    if (filter.source) {
-      if (!this.matchesPattern(message.source, filter.source)) {
-        return false;
-      }
-    }
-
-    // Check target filter
-    if (filter.target) {
-      if (
-        !message.target ||
-        !this.matchesPattern(message.target, filter.target)
-      ) {
-        return false;
-      }
-    }
-
-    // Check metadata filter
-    if (filter.metadata) {
-      if (!message.metadata) {
-        return false;
-      }
-      // Check if all filter metadata keys match
-      for (const [key, value] of Object.entries(filter.metadata)) {
-        if (message.metadata[key] !== value) {
-          return false;
-        }
-      }
-    }
-
-    // Check custom predicate
-    if (filter.predicate) {
-      return filter.predicate(message);
-    }
-
-    return true;
-  }
-
-  /**
-   * Check if a value matches a pattern (string or RegExp)
-   */
-  private matchesPattern(
-    value: string | undefined,
-    pattern: string | RegExp,
-  ): boolean {
-    if (!value) return false;
-
-    if (pattern instanceof RegExp) {
-      pattern.lastIndex = 0;
-      const matches = pattern.test(value);
-      pattern.lastIndex = 0;
-      return matches;
-    }
-
-    // Support simple wildcards for string patterns
-    if (pattern.includes("*")) {
-      const regexPattern = pattern
-        .split("*")
-        .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
-        .join(".*");
-      return new RegExp(`^${regexPattern}$`).test(value);
-    }
-
-    return value === pattern;
-  }
-
-  /**
    * Validate a message against a schema
    */
   validateMessage<T>(
     message: unknown,
     schema: z.ZodSchema<T>,
-  ): { valid: true; data: T } | { valid: false; error: string } {
-    try {
-      const data = schema.parse(message);
-      return { valid: true, data };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return {
-          valid: false,
-          error: error.issues[0]?.message ?? "Validation failed",
-        };
-      }
-      return { valid: false, error: "Unknown validation error" };
-    }
+  ): MessageValidationResult<T> {
+    return validateWithSchema(message, schema);
   }
 
   /**
