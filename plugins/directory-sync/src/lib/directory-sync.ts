@@ -13,11 +13,13 @@ import type {
   IDirectorySync,
   ImportResult,
   JobRequest,
+  SyncResult,
 } from "../types";
 import type { FileWatcher } from "./file-watcher";
 import { FileOperations } from "./file-operations";
 import { ProgressOperations } from "./progress-operations";
 import { startDirectoryWatcher } from "./directory-watcher";
+import { runDirectorySync } from "./directory-sync-runner";
 import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 import { Quarantine } from "./quarantine";
@@ -141,34 +143,15 @@ export class DirectorySync implements IDirectorySync {
    * NOTE: This method only imports (files -> DB). Export (DB -> files) is handled
    * by entity:created/entity:updated subscribers when autoSync is enabled.
    */
-  async sync(): Promise<{
-    export: ExportResult;
-    import: ImportResult;
-    duration: number;
-  }> {
-    const startTime = Date.now();
-    this.logger.debug("Starting sync (import only)");
-
-    const importResult = await this.importEntities();
-
-    // Remove DB entities whose files no longer exist on disk
-    // (e.g., files deleted via git pull before the file watcher started)
-    const cleanupResult = await this.removeOrphanedEntities();
-
-    const duration = Date.now() - startTime;
-    this.lastSync = new Date();
-
-    this.logger.debug("Sync completed", {
-      duration,
-      imported: importResult.imported,
-      orphansDeleted: cleanupResult.deleted,
+  async sync(): Promise<SyncResult> {
+    return runDirectorySync({
+      logger: this.logger,
+      importEntities: this.importEntities.bind(this),
+      removeOrphanedEntities: this.removeOrphanedEntities.bind(this),
+      markSynced: (syncedAt) => {
+        this.lastSync = syncedAt;
+      },
     });
-
-    return {
-      export: { exported: 0, failed: 0, errors: [] },
-      import: importResult,
-      duration,
-    };
   }
 
   async processEntityExport(entity: BaseEntity): Promise<{
