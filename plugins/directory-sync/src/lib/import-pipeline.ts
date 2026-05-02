@@ -7,13 +7,10 @@ import type { FileOperations } from "./file-operations";
 import type { Quarantine } from "./quarantine";
 import type { ImageJobQueueDeps } from "./image-job-queue";
 import {
-  queueCoverImageConversionIfNeeded,
-  queueInlineImageConversionIfNeeded,
-} from "./image-job-queue";
-import {
   getImportContentSkipMessage,
   getImportContentSkipReason,
 } from "./import-content-filter";
+import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
 import { resolveInSyncPath } from "./path-utils";
 
@@ -107,18 +104,7 @@ async function processEntityImport(
     return;
   }
 
-  // Queue non-blocking image conversions
-  queueCoverImageConversionIfNeeded(
-    deps.imageJobQueue,
-    rawEntity.content,
-    filePath,
-  );
-  queueInlineImageConversionIfNeeded(
-    deps.imageJobQueue,
-    rawEntity.content,
-    filePath,
-    rawEntity.id,
-  );
+  queueImportImageConversions(deps.imageJobQueue, rawEntity, filePath);
 
   // Deserialize -- validation errors quarantine the file, transient errors just fail
   let parsedEntity;
