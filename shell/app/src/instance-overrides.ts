@@ -183,6 +183,67 @@ export const CONVENTIONAL_THEME_PACKAGE_REF = "@brains/local-theme";
 export const CONVENTIONAL_SITE_CONTENT_PACKAGE_REF =
   "@brains/local-site-content";
 
+interface ConventionalSiteRefs {
+  sitePackageRef?: string;
+  themeRef?: string;
+  themeOverrideRef?: string;
+  siteContentDefinitionsRef?: string;
+}
+
+type SiteOverrides = NonNullable<InstanceOverrides["site"]>;
+type PluginOverrides = NonNullable<InstanceOverrides["plugins"]>;
+
+function hasConventionalSiteRefs(conventions: ConventionalSiteRefs): boolean {
+  return [
+    conventions.sitePackageRef,
+    conventions.themeRef,
+    conventions.themeOverrideRef,
+    conventions.siteContentDefinitionsRef,
+  ].some(Boolean);
+}
+
+function applyConventionalSiteBlock(
+  site: SiteOverrides,
+  conventions: ConventionalSiteRefs,
+): SiteOverrides {
+  const nextSite = { ...site };
+
+  if (!nextSite.package && conventions.sitePackageRef) {
+    nextSite.package = conventions.sitePackageRef;
+  }
+
+  if (!nextSite.theme && conventions.themeRef) {
+    nextSite.theme = conventions.themeRef;
+  }
+
+  if (!nextSite.themeOverride && conventions.themeOverrideRef) {
+    nextSite.themeOverride = conventions.themeOverrideRef;
+  }
+
+  return nextSite;
+}
+
+function applyConventionalSiteContentDefinitions(
+  plugins: PluginOverrides,
+  conventions: ConventionalSiteRefs,
+): PluginOverrides {
+  const nextPlugins = { ...plugins };
+  const siteContentConfig = { ...(nextPlugins["site-content"] ?? {}) };
+
+  if (
+    siteContentConfig["definitions"] === undefined &&
+    conventions.siteContentDefinitionsRef
+  ) {
+    siteContentConfig["definitions"] = conventions.siteContentDefinitionsRef;
+  }
+
+  if (Object.keys(siteContentConfig).length > 0) {
+    nextPlugins["site-content"] = siteContentConfig;
+  }
+
+  return nextPlugins;
+}
+
 /**
  * Apply convention-discovered local authoring refs only when brain.yaml does
  * not explicitly choose them.
@@ -196,49 +257,17 @@ export const CONVENTIONAL_SITE_CONTENT_PACKAGE_REF =
  */
 export function applyConventionalSiteRefs(
   overrides: InstanceOverrides,
-  conventions: {
-    sitePackageRef?: string;
-    themeRef?: string;
-    themeOverrideRef?: string;
-    siteContentDefinitionsRef?: string;
-  },
+  conventions: ConventionalSiteRefs,
 ): InstanceOverrides {
-  if (
-    !conventions.sitePackageRef &&
-    !conventions.themeRef &&
-    !conventions.themeOverrideRef &&
-    !conventions.siteContentDefinitionsRef
-  ) {
+  if (!hasConventionalSiteRefs(conventions)) {
     return overrides;
   }
 
-  const site = { ...(overrides.site ?? {}) };
-
-  if (!site.package && conventions.sitePackageRef) {
-    site.package = conventions.sitePackageRef;
-  }
-
-  if (!site.theme && conventions.themeRef) {
-    site.theme = conventions.themeRef;
-  }
-
-  if (!site.themeOverride && conventions.themeOverrideRef) {
-    site.themeOverride = conventions.themeOverrideRef;
-  }
-
-  const plugins = { ...(overrides.plugins ?? {}) };
-  const siteContentConfig = { ...(plugins["site-content"] ?? {}) };
-
-  if (
-    siteContentConfig["definitions"] === undefined &&
-    conventions.siteContentDefinitionsRef
-  ) {
-    siteContentConfig["definitions"] = conventions.siteContentDefinitionsRef;
-  }
-
-  if (Object.keys(siteContentConfig).length > 0) {
-    plugins["site-content"] = siteContentConfig;
-  }
+  const site = applyConventionalSiteBlock(overrides.site ?? {}, conventions);
+  const plugins = applyConventionalSiteContentDefinitions(
+    overrides.plugins ?? {},
+    conventions,
+  );
 
   return {
     ...overrides,
