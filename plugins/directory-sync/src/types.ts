@@ -4,12 +4,20 @@ export {
 } from "./types/config";
 
 export type {
+  BatchMetadata,
+  BatchOperationResult,
+  BatchResult,
+} from "./types/batch";
+
+export type {
   CleanupResult,
   DeleteResult,
   DirectorySyncStatus,
   ExportResult,
   GitLogEntry,
+  GitSyncStatus,
   ImportResult,
+  PullResult,
   RawEntity,
   SyncResult,
 } from "./types/results";

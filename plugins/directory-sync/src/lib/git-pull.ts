@@ -1,14 +1,8 @@
 import type { SimpleGit } from "simple-git";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
+import type { PullResult } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
-
-/**
- * Pull result — files changed by the pull operation.
- */
-export interface PullResult {
-  files: string[];
-}
 
 /**
  * Pull changes from remote. Returns the list of changed file paths.

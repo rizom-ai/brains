@@ -18,6 +18,27 @@ export interface DirectorySyncStatus {
 }
 
 /**
+ * Git sync status.
+ */
+export interface GitSyncStatus {
+  isRepo: boolean;
+  hasChanges: boolean;
+  ahead: number;
+  behind: number;
+  branch: string;
+  lastCommit?: string | undefined;
+  remote?: string | undefined;
+  files: Array<{ path: string; status: string }>;
+}
+
+/**
+ * Pull result — files changed by the pull operation.
+ */
+export interface PullResult {
+  files: string[];
+}
+
+/**
  * Export result
  */
 export interface ExportResult {

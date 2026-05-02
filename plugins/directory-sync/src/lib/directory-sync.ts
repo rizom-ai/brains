@@ -3,7 +3,7 @@ import type {
   IEntityService,
   ServicePluginContext,
 } from "@brains/plugins";
-import type { BatchMetadata, BatchResult } from "./batch-operations";
+import type { BatchMetadata, BatchResult } from "../types";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type {
   CleanupResult,

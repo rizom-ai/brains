@@ -1,7 +1,12 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
 import type { Logger } from "@brains/utils";
-import type { IGitSync, GitLogEntry } from "../types";
+import type {
+  GitLogEntry,
+  GitSyncStatus,
+  IGitSync,
+  PullResult,
+} from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
@@ -9,13 +14,10 @@ import { GitOperationLock } from "./git-lock";
 import { getAuthenticatedGitUrl, resolveGitRemoteUrl } from "./git-options";
 import type { GitSyncOptions } from "./git-options";
 import { pullGitChanges } from "./git-pull";
-import type { PullResult } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-import type { GitSyncStatus } from "./git-status";
 
 export type { GitSyncOptions } from "./git-options";
-export type { PullResult } from "./git-pull";
-export type { GitSyncStatus } from "./git-status";
+export type { GitSyncStatus, PullResult } from "../types";
 
 /**
  * Pure git operations class — no messaging, no timers.

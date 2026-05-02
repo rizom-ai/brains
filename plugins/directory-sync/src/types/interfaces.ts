@@ -1,14 +1,14 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import type { PullResult } from "../lib/git-pull";
-import type { GitSyncStatus } from "../lib/git-status";
-import type { BatchMetadata } from "../lib/batch-operations";
+import type { BatchMetadata } from "./batch";
 import type {
   CleanupResult,
   DirectorySyncStatus,
   ExportResult,
   GitLogEntry,
+  GitSyncStatus,
   ImportResult,
+  PullResult,
   RawEntity,
 } from "./results";
 import type { JobRequest } from "./jobs";

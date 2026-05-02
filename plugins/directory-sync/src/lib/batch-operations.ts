@@ -1,30 +1,17 @@
 import type { ServicePluginContext, BatchOperation } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/plugins";
+import type {
+  BatchMetadata,
+  BatchOperationResult,
+  BatchResult,
+} from "../types";
 
-export interface BatchOperationResult {
-  operations: BatchOperation[];
-  exportOperationsCount: number;
-  importOperationsCount: number;
-  totalFiles: number;
-}
-
-export interface BatchMetadata {
-  progressToken?: string | undefined;
-  pluginId?: string | undefined;
-  rootJobId?: string | undefined;
-  // Routing context for progress messages
-  interfaceType?: string | undefined;
-  channelId?: string | undefined;
-}
-
-export interface BatchResult {
-  batchId: string;
-  operationCount: number;
-  exportOperationsCount: number;
-  importOperationsCount: number;
-  totalFiles: number;
-}
+export type {
+  BatchMetadata,
+  BatchOperationResult,
+  BatchResult,
+} from "../types";
 
 /**
  * Manages batch operations for directory sync

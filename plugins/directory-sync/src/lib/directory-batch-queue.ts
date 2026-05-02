@@ -1,7 +1,7 @@
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
+import type { BatchMetadata, BatchResult } from "../types";
 import { BatchOperationsManager } from "./batch-operations";
-import type { BatchMetadata, BatchResult } from "./batch-operations";
 import type { FileOperations } from "./file-operations";
 
 export class DirectoryBatchQueue {
