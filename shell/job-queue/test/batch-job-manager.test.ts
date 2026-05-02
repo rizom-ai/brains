@@ -408,9 +408,21 @@ describe("BatchJobManager", () => {
       await driveBatchToCompletion(batchId);
       // Note: getBatchStatus is intentionally not called — terminalAt stays unset.
 
-      const cleaned = await batchManager.cleanup(0);
-      expect(cleaned).toBe(1);
-      expect(peekEntry(batchId)).toBeUndefined();
+      let getStatusCalls = 0;
+      const originalGetStatus = jobQueueService.getStatus.bind(jobQueueService);
+      jobQueueService.getStatus = async (id: string) => {
+        getStatusCalls++;
+        return originalGetStatus(id);
+      };
+
+      try {
+        const cleaned = await batchManager.cleanup(0);
+        expect(cleaned).toBe(1);
+        expect(getStatusCalls).toBeGreaterThan(0);
+        expect(peekEntry(batchId)).toBeUndefined();
+      } finally {
+        jobQueueService.getStatus = originalGetStatus;
+      }
     });
   });
 
