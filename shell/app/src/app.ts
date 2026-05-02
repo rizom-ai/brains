@@ -3,6 +3,9 @@ import { Logger, LogLevel } from "@brains/utils";
 import { appConfigSchema, type AppConfig } from "./types";
 import { MigrationManager } from "./migration-manager";
 
+type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
+type InitializeOptions = Parameters<Shell["initialize"]>[0];
+
 export class App {
   private shell: Shell | null = null;
   private config: AppConfig;
@@ -48,84 +51,104 @@ export class App {
     });
   }
 
-  public async initialize(options?: {
-    registerOnly?: boolean;
-    startupCheck?: boolean;
-  }): Promise<void> {
+  private createShell(): void {
+    // Let shellInitializer build the logger from shellConfig.logging so
+    // logFile, format, and level take effect. Logger.getInstance() ignores
+    // options on a pre-existing singleton.
+    this.shell = Shell.createFresh(this.buildShellConfig());
+  }
+
+  private buildShellConfig(): ShellConfig {
+    const shellConfig: ShellConfig = {
+      plugins: this.config.plugins ?? [],
+      ...this.config.shellConfig, // Allow overriding for tests/advanced use
+    };
+
+    this.applySimpleConfigOverrides(shellConfig);
+    this.applyAIConfig(shellConfig);
+    this.applyLoggingConfig(shellConfig);
+    this.applyPermissionConfig(shellConfig);
+    this.applyIdentityConfig(shellConfig);
+    this.applyAppMetadata(shellConfig);
+
+    return shellConfig;
+  }
+
+  private applySimpleConfigOverrides(shellConfig: ShellConfig): void {
+    // Apply simple app config (these override shellConfig if both are provided)
+    if (this.config.database) {
+      shellConfig.database = { url: this.config.database };
+    }
+
+    // Set feature flags (none currently)
+    shellConfig.features = {};
+  }
+
+  private applyAIConfig(shellConfig: ShellConfig): void {
+    if (!this.config.aiApiKey && !this.config.aiImageKey && !this.config.aiModel) {
+      return;
+    }
+
+    shellConfig.ai = {
+      ...shellConfig.ai,
+      ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
+      ...(this.config.aiImageKey && {
+        imageApiKey: this.config.aiImageKey,
+      }),
+      ...(this.config.aiModel && { model: this.config.aiModel }),
+    };
+  }
+
+  private applyLoggingConfig(shellConfig: ShellConfig): void {
+    if (!this.config.logLevel && !this.config.logFile) return;
+
+    shellConfig.logging = {
+      level: this.config.logLevel ?? "info",
+      format: "text",
+      context: this.config.name,
+      ...(this.config.logFile && { file: this.config.logFile }),
+    };
+  }
+
+  private applyPermissionConfig(shellConfig: ShellConfig): void {
+    if (this.config.permissions) {
+      shellConfig.permissions = this.config.permissions;
+    }
+  }
+
+  private applyIdentityConfig(shellConfig: ShellConfig): void {
+    if (this.config.identity) {
+      shellConfig.identity = this.config.identity;
+    }
+  }
+
+  private applyAppMetadata(shellConfig: ShellConfig): void {
+    shellConfig.name = this.config.name;
+    shellConfig.version = this.config.version;
+
+    // Set site base URL from deployment domain for entity link generation
+    if (this.config.deployment?.domain) {
+      shellConfig.siteBaseUrl = this.config.deployment.domain;
+    }
+  }
+
+  private async registerCLIInterface(): Promise<void> {
+    if (!this.hasCLI) return;
+
+    const pluginManager = this.getShell().getPluginManager();
+    const { CLIInterface } = await import("@brains/chat-repl");
+    const plugin = new CLIInterface(this.config.cliConfig);
+    pluginManager.registerPlugin(plugin);
+  }
+
+  public async initialize(options?: InitializeOptions): Promise<void> {
     // Only run migrations when we're creating a shell (not when using mock shell for tests)
     if (!this.shell) {
       await this.runMigrations();
+      this.createShell();
     }
 
-    // Create shell if not provided in constructor
-    if (!this.shell) {
-      const shellConfig: Parameters<typeof Shell.createFresh>[0] = {
-        plugins: this.config.plugins ?? [],
-        ...this.config.shellConfig, // Allow overriding for tests/advanced use
-      };
-
-      // Apply simple app config (these override shellConfig if both are provided)
-      if (this.config.database) {
-        shellConfig.database = { url: this.config.database };
-      }
-
-      // Set feature flags (none currently)
-      shellConfig.features = {};
-
-      if (
-        this.config.aiApiKey ||
-        this.config.aiImageKey ||
-        this.config.aiModel
-      ) {
-        shellConfig.ai = {
-          ...shellConfig.ai,
-          ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
-          ...(this.config.aiImageKey && {
-            imageApiKey: this.config.aiImageKey,
-          }),
-          ...(this.config.aiModel && { model: this.config.aiModel }),
-        };
-      }
-
-      if (this.config.logLevel || this.config.logFile) {
-        shellConfig.logging = {
-          level: this.config.logLevel ?? "info",
-          format: "text",
-          context: this.config.name,
-          ...(this.config.logFile && { file: this.config.logFile }),
-        };
-      }
-
-      if (this.config.permissions) {
-        shellConfig.permissions = this.config.permissions;
-      }
-
-      if (this.config.identity) {
-        shellConfig.identity = this.config.identity;
-      }
-
-      // Set app name and version
-      shellConfig.name = this.config.name;
-      shellConfig.version = this.config.version;
-
-      // Set site base URL from deployment domain for entity link generation
-      if (this.config.deployment?.domain) {
-        shellConfig.siteBaseUrl = this.config.deployment.domain;
-      }
-
-      // Let shellInitializer build the logger from shellConfig.logging so
-      // logFile, format, and level take effect. Logger.getInstance() ignores
-      // options on a pre-existing singleton.
-      this.shell = Shell.createFresh(shellConfig);
-    }
-
-    // Register CLI interface if --cli flag is present
-    if (this.hasCLI) {
-      const pluginManager = this.getShell().getPluginManager();
-      const { CLIInterface } = await import("@brains/chat-repl");
-      const plugin = new CLIInterface(this.config.cliConfig);
-      pluginManager.registerPlugin(plugin);
-    }
+    await this.registerCLIInterface();
 
     // Initialize shell (which will initialize all plugins including interfaces)
     await this.getShell().initialize(options);
