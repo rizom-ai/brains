@@ -3,6 +3,7 @@ import simpleGit from "simple-git";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IGitSync, GitLogEntry } from "../types";
+import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
@@ -133,64 +134,12 @@ export class GitSync implements IGitSync {
     return hasGitLocalChanges(this.git);
   }
 
-  /**
-   * Stage and commit all changes.
-   */
   async commit(message?: string): Promise<void> {
-    const finalMessage = message ?? `Auto-sync: ${new Date().toISOString()}`;
-
-    // Resolve any conflicts by taking local version
-    const status = await this.git.status();
-    if (status.conflicted.length > 0) {
-      this.logger.warn("Resolving conflicts with local version", {
-        files: status.conflicted,
-      });
-      for (const file of status.conflicted) {
-        await this.git.raw(["checkout", "--ours", file]);
-      }
-    }
-
-    await this.git.add(["-A"]);
-
-    // Check for conflict markers in staged files
-    const diff = await this.git.diff(["--cached", "--name-only"]);
-    for (const file of diff.split("\n").filter((f) => f.trim())) {
-      try {
-        const content = await this.git.show([`:${file}`]);
-        if (
-          content.includes("<<<<<<<") ||
-          content.includes("=======") ||
-          content.includes(">>>>>>>")
-        ) {
-          throw new Error(
-            `Conflict markers found in ${file}. Manual intervention required.`,
-          );
-        }
-      } catch (error) {
-        if (error?.toString().includes("Conflict markers found")) throw error;
-        // Can't read file (deleted, binary) — skip check
-      }
-    }
-
-    try {
-      await this.git.commit(finalMessage);
-      this.logger.info("Committed changes", { message: finalMessage });
-    } catch (error) {
-      // "nothing to commit" is not an error
-      if (!getErrorMessage(error).includes("nothing to commit")) {
-        throw error;
-      }
-    }
+    await commitGitChanges(this.git, this.logger, message);
   }
 
   async push(): Promise<void> {
-    this.logger.debug("Pushing to origin", { branch: this.branch });
-    try {
-      await this.git.push("origin", this.branch, ["--set-upstream"]);
-    } catch {
-      await this.git.push("origin", this.branch);
-    }
-    this.logger.info("Pushed changes to remote");
+    await pushGitChanges(this.git, this.logger, this.branch);
   }
 
   /**
