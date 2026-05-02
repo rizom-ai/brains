@@ -10,6 +10,7 @@ import {
   queueCoverImageConversionIfNeeded,
   queueInlineImageConversionIfNeeded,
 } from "./image-job-queue";
+import { getImportPathDecision } from "./import-path-filter";
 import { resolveInSyncPath } from "./path-utils";
 
 export interface ImportPipelineDeps {
@@ -52,27 +53,11 @@ async function importFile(
   filePath: string,
   result: ImportResult,
 ): Promise<void> {
-  if (filePath.endsWith(".invalid")) {
-    return;
-  }
-
-  // Skip git rename-format paths (e.g., "{old.md => new.md}")
-  if (filePath.includes("{")) {
-    result.skipped++;
-    return;
-  }
-
-  // Validate entity type before reading file to avoid noisy errors
-  // for paths in non-entity directories (e.g., _obsidian/)
-  const { entityType } = deps.fileOperations.parseEntityFromPath(filePath);
-
-  if (deps.entityTypes && !deps.entityTypes.includes(entityType)) {
-    result.skipped++;
-    return;
-  }
-
-  if (!deps.entityService.hasEntityType(entityType)) {
-    result.skipped++;
+  const pathDecision = getImportPathDecision(deps, filePath);
+  if (pathDecision.skip) {
+    if (pathDecision.countSkipped) {
+      result.skipped++;
+    }
     return;
   }
 
