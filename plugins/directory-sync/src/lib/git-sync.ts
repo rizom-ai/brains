@@ -5,6 +5,7 @@ import type { IGitSync, GitLogEntry } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
+import { GitOperationLock } from "./git-lock";
 import { getAuthenticatedGitUrl, resolveGitRemoteUrl } from "./git-options";
 import type { GitSyncOptions } from "./git-options";
 import { pullGitChanges } from "./git-pull";
@@ -31,26 +32,14 @@ export class GitSync implements IGitSync {
   private readonly authorEmail: string | undefined;
   private readonly authToken: string | undefined;
   private readonly dataDir: string;
-  private lockQueue: Promise<void> = Promise.resolve();
+  private readonly lock = new GitOperationLock();
 
   /**
    * Serialize git operations — prevents auto-commit and periodic-sync
    * from racing each other on commit/push/pull.
    */
   withLock<T>(fn: () => Promise<T>): Promise<T> {
-    let resolve: (() => void) | undefined;
-    const next = new Promise<void>((r) => {
-      resolve = r;
-    });
-    const prev = this.lockQueue;
-    this.lockQueue = next;
-    return prev.then(async () => {
-      try {
-        return await fn();
-      } finally {
-        resolve?.();
-      }
-    });
+    return this.lock.run(fn);
   }
 
   constructor(options: GitSyncOptions) {
