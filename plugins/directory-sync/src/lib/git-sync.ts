@@ -8,22 +8,10 @@ import { initializeGitRepository } from "./git-init";
 import { pullGitChanges } from "./git-pull";
 import type { PullResult } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
-
-/**
- * Git sync status
- */
-export interface GitSyncStatus {
-  isRepo: boolean;
-  hasChanges: boolean;
-  ahead: number;
-  behind: number;
-  branch: string;
-  lastCommit?: string | undefined;
-  remote?: string | undefined;
-  files: Array<{ path: string; status: string }>;
-}
+import type { GitSyncStatus } from "./git-status";
 
 export type { PullResult } from "./git-pull";
+export type { GitSyncStatus } from "./git-status";
 
 export interface GitSyncOptions {
   logger: Logger;

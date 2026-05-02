@@ -1,6 +1,19 @@
 import type { SimpleGit } from "simple-git";
 import type { Logger } from "@brains/utils";
-import type { GitSyncStatus } from "./git-sync";
+
+/**
+ * Git sync status.
+ */
+export interface GitSyncStatus {
+  isRepo: boolean;
+  hasChanges: boolean;
+  ahead: number;
+  behind: number;
+  branch: string;
+  lastCommit?: string | undefined;
+  remote?: string | undefined;
+  files: Array<{ path: string; status: string }>;
+}
 
 export async function getGitStatus(
   git: SimpleGit,
