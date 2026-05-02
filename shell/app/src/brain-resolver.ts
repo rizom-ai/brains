@@ -559,6 +559,9 @@ function getRegisteredExternalPluginPackage(
   return getPackage(packageName);
 }
 
+// External plugin packages may export the factory as either the default export
+// or a named `plugin` export — the public authoring contract documented in
+// docs/external-plugin-authoring.md accepts both.
 function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
   if (typeof pkg === "function") {
     return pkg as PluginFactory;
