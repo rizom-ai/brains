@@ -14,7 +14,37 @@ export interface DirectoryWatcherOptions {
   deleteOnFileRemoval: boolean;
 }
 
-export async function startDirectoryWatcher(
+export async function startDirectoryWatcherIfNeeded(
+  fileWatcher: FileWatcher | undefined,
+  options: DirectoryWatcherOptions,
+): Promise<FileWatcher | undefined> {
+  if (fileWatcher?.isWatching()) {
+    options.logger.debug("Already watching directory");
+    return fileWatcher;
+  }
+
+  return startDirectoryWatcher(options);
+}
+
+export function stopDirectoryWatcher(
+  fileWatcher: FileWatcher | undefined,
+): FileWatcher | undefined {
+  if (fileWatcher) {
+    fileWatcher.stop();
+  }
+  return undefined;
+}
+
+export function setDirectoryWatchCallback(
+  fileWatcher: FileWatcher | undefined,
+  callback: (event: string, path: string) => void,
+): void {
+  if (fileWatcher) {
+    fileWatcher.setCallback(callback);
+  }
+}
+
+async function startDirectoryWatcher(
   options: DirectoryWatcherOptions,
 ): Promise<FileWatcher> {
   const {

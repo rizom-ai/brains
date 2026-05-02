@@ -16,7 +16,11 @@ import type {
 import type { FileWatcher } from "./file-watcher";
 import type { FileOperations } from "./file-operations";
 import type { ProgressOperations } from "./progress-operations";
-import { startDirectoryWatcher } from "./directory-watcher";
+import {
+  setDirectoryWatchCallback,
+  startDirectoryWatcherIfNeeded,
+  stopDirectoryWatcher,
+} from "./directory-watcher";
 import { runDirectorySync } from "./directory-sync-runner";
 import type { DirectoryBatchQueue } from "./directory-batch-queue";
 import { createDirectorySyncDependencies } from "./directory-dependencies";
@@ -251,12 +255,7 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async startWatching(): Promise<void> {
-    if (this.fileWatcher?.isWatching()) {
-      this.logger.debug("Already watching directory");
-      return;
-    }
-
-    this.fileWatcher = await startDirectoryWatcher({
+    this.fileWatcher = await startDirectoryWatcherIfNeeded(this.fileWatcher, {
       logger: this.logger,
       syncPath: this.syncPath,
       watchInterval: this.watchInterval,
@@ -268,15 +267,10 @@ export class DirectorySync implements IDirectorySync {
   }
 
   stopWatching(): void {
-    if (this.fileWatcher) {
-      this.fileWatcher.stop();
-      this.fileWatcher = undefined;
-    }
+    this.fileWatcher = stopDirectoryWatcher(this.fileWatcher);
   }
 
   setWatchCallback(callback: (event: string, path: string) => void): void {
-    if (this.fileWatcher) {
-      this.fileWatcher.setCallback(callback);
-    }
+    setDirectoryWatchCallback(this.fileWatcher, callback);
   }
 }
