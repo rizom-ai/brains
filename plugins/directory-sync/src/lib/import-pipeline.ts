@@ -12,6 +12,12 @@ import { deserializeImportEntity } from "./import-deserialization";
 import { queueImportImageConversions } from "./import-image-conversions";
 import { getImportPathDecision } from "./import-path-filter";
 import { persistImportEntity } from "./import-persistence";
+import {
+  createImportResult,
+  logImportSummary,
+  recordImportReadError,
+  recordSkippedImport,
+} from "./import-result";
 
 export interface ImportPipelineDeps {
   entityService: IEntityService;
@@ -28,15 +34,7 @@ export async function importEntities(
 ): Promise<ImportResult> {
   deps.logger.debug("Importing entities from directory");
 
-  const result: ImportResult = {
-    imported: 0,
-    skipped: 0,
-    failed: 0,
-    quarantined: 0,
-    quarantinedFiles: [],
-    errors: [],
-    jobIds: [],
-  };
+  const result = createImportResult();
 
   const filesToProcess = paths ?? (await deps.fileOperations.getAllSyncFiles());
 
@@ -56,7 +54,7 @@ async function importFile(
   const pathDecision = getImportPathDecision(deps, filePath);
   if (pathDecision.skip) {
     if (pathDecision.countSkipped) {
-      result.skipped++;
+      recordSkippedImport(result);
     }
     return;
   }
@@ -66,24 +64,7 @@ async function importFile(
 
     await processEntityImport(deps, rawEntity, filePath, result);
   } catch (error) {
-    // File disappeared between scan and read (e.g., git-sync pull race)
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      deps.logger.debug("File disappeared before import, skipping", {
-        path: filePath,
-      });
-      result.skipped++;
-      return;
-    }
-
-    result.failed++;
-    result.errors.push({
-      path: filePath,
-      error: error instanceof Error ? error.message : "Failed to import entity",
-    });
-    deps.logger.error("Failed to import entity", {
-      path: filePath,
-      error,
-    });
+    recordImportReadError(deps.logger, filePath, error, result);
   }
 }
 
@@ -99,7 +80,7 @@ async function processEntityImport(
       path: filePath,
       entityType: rawEntity.entityType,
     });
-    result.skipped++;
+    recordSkippedImport(result);
     return;
   }
 
@@ -116,22 +97,4 @@ async function processEntityImport(
   }
 
   await persistImportEntity(deps, rawEntity, parsedEntity, filePath, result);
-}
-
-function logImportSummary(
-  logger: Logger,
-  fileCount: number,
-  result: ImportResult,
-): void {
-  if (fileCount > 1) {
-    logger.debug("Import completed", {
-      filesProcessed: fileCount,
-      imported: result.imported,
-      skipped: result.skipped,
-      failed: result.failed,
-      quarantined: result.quarantined,
-    });
-  } else {
-    logger.debug("Import completed", result);
-  }
 }
