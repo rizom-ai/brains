@@ -41,6 +41,10 @@ import {
   type CleanupResult,
 } from "./directory-operations";
 import {
+  exportDirectoryEntitiesWithProgress,
+  importDirectoryEntitiesWithProgress,
+} from "./directory-progress";
+import {
   normalizeDirectorySyncOptions,
   type DirectorySyncOptions,
 } from "./directory-options";
@@ -161,7 +165,8 @@ export class DirectorySync implements IDirectorySync {
     reporter: ProgressReporter,
     batchSize: number,
   ): Promise<ImportResult> {
-    return this.progressOperations.importEntitiesWithProgress(
+    return importDirectoryEntitiesWithProgress(
+      this.progressOperations,
       paths,
       reporter,
       batchSize,
@@ -174,9 +179,10 @@ export class DirectorySync implements IDirectorySync {
     reporter: ProgressReporter,
     batchSize: number,
   ): Promise<ExportResult> {
-    const typesToExport = entityTypes ?? this.entityTypes;
-    return this.progressOperations.exportEntitiesWithProgress(
-      typesToExport,
+    return exportDirectoryEntitiesWithProgress(
+      this.progressOperations,
+      this.entityTypes,
+      entityTypes,
       reporter,
       batchSize,
       this.exportEntities.bind(this),
