@@ -20,12 +20,9 @@ import type { FileOperations } from "./file-operations";
 import type { ProgressOperations } from "./progress-operations";
 import { startDirectoryWatcher } from "./directory-watcher";
 import { runDirectorySync } from "./directory-sync-runner";
-import type { FrontmatterImageConverter } from "./frontmatter-image-converter";
-import type { MarkdownImageConverter } from "./markdown-image-converter";
-import type { Quarantine } from "./quarantine";
-import type { ImageJobQueueDeps } from "./image-job-queue";
 import type { DirectoryBatchQueue } from "./directory-batch-queue";
 import { createDirectorySyncDependencies } from "./directory-dependencies";
+import { DirectoryOperationDeps } from "./directory-operation-deps";
 import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
@@ -57,9 +54,7 @@ export class DirectorySync implements IDirectorySync {
   private batchQueue: DirectoryBatchQueue;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
-  private coverImageConverter: FrontmatterImageConverter;
-  private inlineImageConverter: MarkdownImageConverter;
-  private quarantine: Quarantine;
+  private operationDeps: DirectoryOperationDeps;
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
@@ -86,24 +81,23 @@ export class DirectorySync implements IDirectorySync {
     this.fileOperations = dependencies.fileOperations;
     this.batchQueue = dependencies.batchQueue;
     this.progressOperations = dependencies.progressOperations;
-    this.coverImageConverter = dependencies.coverImageConverter;
-    this.inlineImageConverter = dependencies.inlineImageConverter;
-    this.quarantine = dependencies.quarantine;
+    this.operationDeps = new DirectoryOperationDeps({
+      entityService: this.entityService,
+      logger: this.logger,
+      syncPath: this.syncPath,
+      fileOperations: this.fileOperations,
+      quarantine: dependencies.quarantine,
+      coverImageConverter: dependencies.coverImageConverter,
+      inlineImageConverter: dependencies.inlineImageConverter,
+      getJobQueueCallback: ():
+        | ((job: JobRequest) => Promise<string>)
+        | undefined => this.jobQueueCallback,
+    });
 
     this.logger.debug("Initialized with path", {
       originalPath: options.syncPath,
       resolvedPath: this.syncPath,
     });
-  }
-
-  private getImageJobQueueDeps(): ImageJobQueueDeps {
-    return {
-      logger: this.logger,
-      syncPath: this.syncPath,
-      jobQueueCallback: this.jobQueueCallback,
-      coverImageConverter: this.coverImageConverter,
-      inlineImageConverter: this.inlineImageConverter,
-    };
   }
 
   async initialize(): Promise<void> {
@@ -153,26 +147,20 @@ export class DirectorySync implements IDirectorySync {
     error?: string;
   }> {
     return runProcessEntityExport(
-      {
-        entityService: this.entityService,
-        logger: this.logger,
-        fileOperations: this.fileOperations,
-        deleteOnFileRemoval: this.deleteOnFileRemoval,
-        entityTypes: this.entityTypes,
-      },
+      this.operationDeps.createExportDeps(
+        this.deleteOnFileRemoval,
+        this.entityTypes,
+      ),
       entity,
     );
   }
 
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
     return runExport(
-      {
-        entityService: this.entityService,
-        logger: this.logger,
-        fileOperations: this.fileOperations,
-        deleteOnFileRemoval: this.deleteOnFileRemoval,
-        entityTypes: this.entityTypes,
-      },
+      this.operationDeps.createExportDeps(
+        this.deleteOnFileRemoval,
+        this.entityTypes,
+      ),
       entityTypes,
     );
   }
@@ -206,26 +194,18 @@ export class DirectorySync implements IDirectorySync {
 
   async importEntities(paths?: string[]): Promise<ImportResult> {
     return runImport(
-      {
-        entityService: this.entityService,
-        logger: this.logger,
-        fileOperations: this.fileOperations,
-        quarantine: this.quarantine,
-        imageJobQueue: this.getImageJobQueueDeps(),
-        entityTypes: this.entityTypes,
-      },
+      this.operationDeps.createImportDeps(this.entityTypes),
       paths,
     );
   }
 
   async removeOrphanedEntities(): Promise<CleanupResult> {
-    const result = await runCleanup({
-      entityService: this.entityService,
-      logger: this.logger,
-      fileOperations: this.fileOperations,
-      deleteOnFileRemoval: this.deleteOnFileRemoval,
-      entityTypes: this.entityTypes,
-    });
+    const result = await runCleanup(
+      this.operationDeps.createCleanupDeps(
+        this.deleteOnFileRemoval,
+        this.entityTypes,
+      ),
+    );
 
     if (result.deleted > 0) {
       this.logger.info("Cleaned up orphaned entities", {
