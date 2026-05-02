@@ -21,7 +21,11 @@ import { runDirectorySync } from "./directory-sync-runner";
 import type { DirectoryBatchQueue } from "./directory-batch-queue";
 import { createDirectorySyncDependencies } from "./directory-dependencies";
 import { DirectoryOperationDeps } from "./directory-operation-deps";
-import { ensureSyncPath, resolveSyncPath } from "./directory-path";
+import {
+  initializeDirectoryStructure,
+  initializeDirectorySync,
+} from "./directory-lifecycle";
+import { resolveSyncPath } from "./directory-path";
 import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
@@ -98,23 +102,16 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async initialize(): Promise<void> {
-    this.logger.debug("Initializing directory sync", { path: this.syncPath });
-    await this.ensureSyncPath();
-
-    if (this.autoSync) {
-      void this.startWatching();
-    }
+    await initializeDirectorySync(
+      this.logger,
+      this.syncPath,
+      this.autoSync,
+      this.startWatching.bind(this),
+    );
   }
 
   async initializeDirectory(): Promise<void> {
-    this.logger.debug("Initializing directory structure", {
-      path: this.syncPath,
-    });
-    await this.ensureSyncPath();
-  }
-
-  private async ensureSyncPath(): Promise<void> {
-    await ensureSyncPath(this.syncPath);
+    await initializeDirectoryStructure(this.logger, this.syncPath);
   }
 
   setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
