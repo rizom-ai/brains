@@ -24,6 +24,7 @@ import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 import { Quarantine } from "./quarantine";
 import type { ImageJobQueueDeps } from "./image-job-queue";
+import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
   exportEntities as runExport,
@@ -287,16 +288,12 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async getStatus(): Promise<DirectorySyncStatus> {
-    const { files, stats } = await this.fileOperations.gatherFileStatus();
-
-    return {
-      syncPath: this.syncPath,
-      exists: await this.fileOperations.syncDirectoryExists(),
-      watching: this.fileWatcher?.isWatching() ?? false,
-      lastSync: this.lastSync,
-      files,
-      stats,
-    };
+    return getDirectorySyncStatus(
+      this.fileOperations,
+      this.syncPath,
+      this.fileWatcher,
+      this.lastSync,
+    );
   }
 
   async queueSyncBatch(
