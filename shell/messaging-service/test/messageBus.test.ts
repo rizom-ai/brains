@@ -626,7 +626,10 @@ describe("MessageBus", () => {
         }
       ).handlers.get("test.event");
       const entry = handlers ? [...handlers][0] : undefined;
-      expect(entry?.filter?.source).toBeInstanceOf(RegExp);
+      const compiled = entry?.filter?.source;
+      expect(compiled).toBeInstanceOf(RegExp);
+      expect((compiled as RegExp).test("plugin:foo")).toBe(true);
+      expect((compiled as RegExp).test("other:bar")).toBe(false);
     });
   });
 

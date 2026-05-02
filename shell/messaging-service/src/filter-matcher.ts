@@ -22,7 +22,7 @@ function compilePattern(pattern: string | RegExp): string | RegExp {
   if (!pattern.includes("*")) return pattern;
   const regexBody = pattern
     .split("*")
-    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .map((part) => part.replace(/[.+?^${}()|[\]\\]/g, "\\$&"))
     .join(".*");
   return new RegExp(`^${regexBody}$`);
 }
