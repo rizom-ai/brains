@@ -3,8 +3,7 @@ import type {
   IEntityService,
   ServicePluginContext,
 } from "@brains/plugins";
-import { BatchOperationsManager } from "./batch-operations";
-import type { BatchMetadata } from "./batch-operations";
+import type { BatchMetadata, BatchResult } from "./batch-operations";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { resolve, isAbsolute } from "path";
 import { mkdir } from "fs/promises";
@@ -23,6 +22,7 @@ import { FrontmatterImageConverter } from "./frontmatter-image-converter";
 import { MarkdownImageConverter } from "./markdown-image-converter";
 import { Quarantine } from "./quarantine";
 import type { ImageJobQueueDeps } from "./image-job-queue";
+import { DirectoryBatchQueue } from "./directory-batch-queue";
 import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
@@ -51,8 +51,7 @@ export class DirectorySync implements IDirectorySync {
   private entityTypes: string[] | undefined;
   private fileWatcher: FileWatcher | undefined;
   private lastSync: Date | undefined;
-  private syncInProgress = false;
-  private batchOperationsManager: BatchOperationsManager;
+  private batchQueue: DirectoryBatchQueue;
   private fileOperations: FileOperations;
   private progressOperations: ProgressOperations;
   private coverImageConverter: FrontmatterImageConverter;
@@ -75,11 +74,12 @@ export class DirectorySync implements IDirectorySync {
     this.watchInterval = options.watchInterval ?? 5000;
     this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
     this.entityTypes = options.entityTypes;
-    this.batchOperationsManager = new BatchOperationsManager(
+    this.fileOperations = new FileOperations(this.syncPath, this.entityService);
+    this.batchQueue = new DirectoryBatchQueue(
       this.logger,
       this.syncPath,
+      this.fileOperations,
     );
-    this.fileOperations = new FileOperations(this.syncPath, this.entityService);
     this.progressOperations = new ProgressOperations(
       this.logger,
       this.entityService,
@@ -291,32 +291,13 @@ export class DirectorySync implements IDirectorySync {
     source: string,
     metadata?: BatchMetadata,
     options?: { includeCleanup?: boolean },
-  ): Promise<{
-    batchId: string;
-    operationCount: number;
-    exportOperationsCount: number;
-    importOperationsCount: number;
-    totalFiles: number;
-  } | null> {
-    if (this.syncInProgress) {
-      this.logger.debug("Sync already in progress, skipping", { source });
-      return null;
-    }
-
-    this.syncInProgress = true;
-    try {
-      const files = await this.fileOperations.getAllSyncFiles();
-
-      return await this.batchOperationsManager.queueSyncBatch(
-        pluginContext,
-        source,
-        files,
-        metadata,
-        options,
-      );
-    } finally {
-      this.syncInProgress = false;
-    }
+  ): Promise<BatchResult | null> {
+    return this.batchQueue.queueSyncBatch(
+      pluginContext,
+      source,
+      metadata,
+      options,
+    );
   }
 
   async startWatching(): Promise<void> {
