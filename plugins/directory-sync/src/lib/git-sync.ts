@@ -1,11 +1,10 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { mkdir, writeFile, access } from "fs/promises";
-import { join, basename } from "path";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IGitSync, GitLogEntry } from "../types";
 import { getFileHistory, showFileAtCommit } from "./git-history";
+import { initializeGitRepository } from "./git-init";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
 
 /**
@@ -108,103 +107,15 @@ export class GitSync implements IGitSync {
    * Initialize git repository — clone, init, or update remote.
    */
   async initialize(): Promise<void> {
-    this.logger.debug("Initializing git repository", {
-      gitUrl: this.remoteUrl,
+    this._git = await initializeGitRepository({
+      logger: this.logger,
+      dataDir: this.dataDir,
+      remoteUrl: this.remoteUrl,
+      authenticatedUrl: this.getAuthenticatedUrl(),
+      branch: this.branch,
+      authorName: this.authorName,
+      authorEmail: this.authorEmail,
     });
-
-    await mkdir(this.dataDir, { recursive: true });
-
-    const gitDirExists = await access(join(this.dataDir, ".git")).then(
-      () => true,
-      () => false,
-    );
-    if (!gitDirExists) {
-      if (this.remoteUrl) {
-        // Try to clone
-        this.logger.info("Cloning repository", { gitUrl: this.remoteUrl });
-        const parentDir = join(this.dataDir, "..");
-        const repoName = basename(this.dataDir);
-        try {
-          await simpleGit(parentDir).clone(
-            this.getAuthenticatedUrl(),
-            repoName,
-          );
-          this._git = simpleGit(this.dataDir);
-        } catch {
-          // Clone failed (empty repo?) — init locally and add remote
-          this.logger.info("Clone failed, initializing locally");
-          await this.git.init();
-          await this.git.addRemote("origin", this.getAuthenticatedUrl());
-        }
-      } else {
-        await this.git.init();
-      }
-    } else if (this.remoteUrl) {
-      // Repo exists — update remote URL
-      const remotes = await this.git.getRemotes(true);
-      const origin = remotes.find((r) => r.name === "origin");
-      if (origin) {
-        await this.git.remote([
-          "set-url",
-          "origin",
-          this.getAuthenticatedUrl(),
-        ]);
-      } else {
-        await this.git.addRemote("origin", this.getAuthenticatedUrl());
-      }
-    }
-
-    // Configure git identity
-    if (this.authorName) {
-      await this.git.addConfig("user.name", this.authorName);
-    }
-    if (this.authorEmail) {
-      await this.git.addConfig("user.email", this.authorEmail);
-    }
-    await this.git.addConfig("pull.rebase", "false");
-
-    // Ensure we're on the configured branch. Only create it when the
-    // checkout failed because the branch does not exist yet.
-    try {
-      await this.git.checkout(this.branch);
-    } catch (error) {
-      const message = getErrorMessage(error);
-      const branchMissing =
-        message.includes(`pathspec '${this.branch}' did not match`) ||
-        message.includes(`invalid reference: ${this.branch}`) ||
-        message.includes("did not match any file(s) known to git");
-
-      if (!branchMissing) {
-        throw error;
-      }
-
-      await this.git.checkoutLocalBranch(this.branch);
-
-      // Create initial commit if empty. Stage ANY existing files in the
-      // working tree (seed content, pre-populated brain-data) so the
-      // first commit captures them — otherwise the initial commit would
-      // contain only .gitkeep and the seed files would sit uncommitted
-      // forever until the first entity change triggered auto-commit.
-      const log = await this.git.log().catch(() => ({ all: [] }));
-      if (log.all.length === 0) {
-        await this.git.add("-A");
-        const status = await this.git.status();
-        if (status.staged.length === 0 && status.created.length === 0) {
-          // Truly empty working tree — fall back to .gitkeep so we have
-          // something to commit and a branch to check out.
-          const gitkeepPath = join(this.dataDir, ".gitkeep");
-          const gitkeepExists = await access(gitkeepPath).then(
-            () => true,
-            () => false,
-          );
-          if (!gitkeepExists) {
-            await writeFile(gitkeepPath, "");
-          }
-          await this.git.add(".gitkeep");
-        }
-        await this.git.commit("Initial commit");
-      }
-    }
   }
 
   hasRemote(): boolean {
