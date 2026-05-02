@@ -347,4 +347,35 @@ describe("BatchJobManager", () => {
       expect(activeBatches[0]?.status.status).toBe("processing");
     });
   });
+
+  describe("lifecycle", () => {
+    it("should run cleanup on the configured interval and stop when stopped", async () => {
+      let cleanupCalls = 0;
+      const originalCleanup = batchManager.cleanup.bind(batchManager);
+      batchManager.cleanup = async (olderThanMs: number): Promise<number> => {
+        cleanupCalls++;
+        return originalCleanup(olderThanMs);
+      };
+
+      try {
+        batchManager.start(5);
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        expect(cleanupCalls).toBeGreaterThan(0);
+
+        batchManager.stop();
+        const callsAtStop = cleanupCalls;
+        await new Promise((resolve) => setTimeout(resolve, 25));
+        expect(cleanupCalls).toBe(callsAtStop);
+      } finally {
+        batchManager.stop();
+      }
+    });
+
+    it("should be idempotent for both start and stop", () => {
+      batchManager.start(60_000);
+      batchManager.start(60_000);
+      batchManager.stop();
+      batchManager.stop();
+    });
+  });
 });

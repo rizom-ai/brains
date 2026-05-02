@@ -185,10 +185,7 @@ export type { DbConfig as JobQueueDbConfig } from "@brains/utils";
 /**
  * Configuration for the JobQueueService.
  */
-export interface JobQueueServiceConfig extends DbConfig {
-  /** Number of ready candidates to inspect when claiming a job. */
-  dequeueCandidateLimit?: number;
-}
+export type JobQueueServiceConfig = DbConfig;
 
 /**
  * Configuration for the JobQueueWorker
@@ -240,6 +237,12 @@ export interface IJobQueueWorker {
  * Interface for batch job manager
  */
 export interface IBatchJobManager {
+  /** Start periodic cleanup of terminal batch metadata. Idempotent. */
+  start(intervalMs?: number): void;
+
+  /** Stop periodic cleanup. Safe to call without a prior `start`. */
+  stop(): void;
+
   /** Register a batch for tracking */
   registerBatch(
     batchId: string,

@@ -4,6 +4,7 @@ import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils";
 
 const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 /**
  * Batch job manager for tracking groups of related jobs
@@ -28,6 +29,11 @@ export class BatchJobManager {
     }
   >();
 
+  // Timer that sweeps terminal batches older than the retention window. Runs
+  // independently of enqueue activity so the map stays bounded even when no
+  // new batches are arriving.
+  private cleanupTimer: ReturnType<typeof setInterval> | undefined;
+
   public static getInstance(
     jobQueue: IJobQueueService,
     logger: Logger,
@@ -51,6 +57,25 @@ export class BatchJobManager {
     private jobQueue: IJobQueueService,
     private logger: Logger,
   ) {}
+
+  /**
+   * Start the periodic cleanup timer. Idempotent — repeated calls reuse the
+   * existing interval. The timer is `unref()`-ed so it never blocks process
+   * exit on its own.
+   */
+  public start(intervalMs: number = CLEANUP_INTERVAL_MS): void {
+    if (this.cleanupTimer) return;
+    this.cleanupTimer = setInterval(() => {
+      this.scheduleTerminalBatchCleanup();
+    }, intervalMs);
+    this.cleanupTimer.unref?.();
+  }
+
+  public stop(): void {
+    if (!this.cleanupTimer) return;
+    clearInterval(this.cleanupTimer);
+    this.cleanupTimer = undefined;
+  }
 
   private scheduleTerminalBatchCleanup(): void {
     void this.cleanup(TERMINAL_BATCH_RETENTION_MS).catch((error) => {
