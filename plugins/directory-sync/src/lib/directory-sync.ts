@@ -8,7 +8,6 @@ import type { BatchMetadata } from "./batch-operations";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import { resolve, isAbsolute } from "path";
 import { mkdir } from "fs/promises";
-import { z } from "@brains/utils";
 import type {
   DirectorySyncStatus,
   ExportResult,
@@ -34,22 +33,13 @@ import {
   removeOrphanedEntities as runCleanup,
   type CleanupResult,
 } from "./cleanup-pipeline";
+import {
+  directorySyncOptionsSchema,
+  type DirectorySyncOptions,
+} from "./directory-options";
 
-export const directorySyncOptionsSchema = z.object({
-  syncPath: z.string(),
-  autoSync: z.boolean().optional(),
-  watchInterval: z.number().optional(),
-  includeMetadata: z.boolean().optional(),
-  entityTypes: z.array(z.string()).optional(),
-  deleteOnFileRemoval: z.boolean().optional(),
-});
-
-export type DirectorySyncOptions = z.infer<
-  typeof directorySyncOptionsSchema
-> & {
-  entityService: IEntityService;
-  logger: Logger;
-};
+export { directorySyncOptionsSchema } from "./directory-options";
+export type { DirectorySyncOptions } from "./directory-options";
 
 export class DirectorySync implements IDirectorySync {
   private entityService: IEntityService;
