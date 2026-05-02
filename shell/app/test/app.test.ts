@@ -97,11 +97,11 @@ describe("App", () => {
 
       try {
         const app = App.create({});
-        await app.initialize({ startupCheck: true });
+        await app.initialize({ mode: "startup-check" });
 
         expect(shellConfig?.ai?.apiKey).toBe(STARTUP_CHECK_API_KEY);
         expect(mockShell.initialize).toHaveBeenCalledWith({
-          startupCheck: true,
+          mode: "startup-check",
         });
       } finally {
         Shell.createFresh = originalCreateFresh;

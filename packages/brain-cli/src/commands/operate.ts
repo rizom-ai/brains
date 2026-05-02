@@ -67,10 +67,10 @@ async function operateBuiltin(
   try {
     const { bootBrain } = await import("../lib/boot");
 
-    // Boot in registerOnly mode — no daemons, no events
+    // Boot in register-only mode — no daemons, no events
     await bootBrain(cwd, config.brain, definition, {
       chat: false,
-      registerOnly: true,
+      mode: "register-only",
     });
 
     // After boot, the shell is initialized with tools registered.

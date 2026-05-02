@@ -1,3 +1,5 @@
+import type { BootMode } from "@brains/core";
+
 /**
  * In-process brain boot.
  *
@@ -15,7 +17,7 @@ type BootFn = (
   cwd: string,
   modelName: string,
   definition: unknown,
-  flags: { chat: boolean; registerOnly?: boolean; startupCheck?: boolean },
+  flags: { chat: boolean; mode?: BootMode },
 ) => Promise<void>;
 
 let registeredBootFn: BootFn | undefined;
@@ -34,7 +36,7 @@ export async function bootBrain(
   cwd: string,
   modelName: string,
   definition: unknown,
-  flags: { chat: boolean; registerOnly?: boolean; startupCheck?: boolean },
+  flags: { chat: boolean; mode?: BootMode },
 ): Promise<void> {
   if (!registeredBootFn) {
     throw new Error(

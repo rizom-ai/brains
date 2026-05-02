@@ -95,18 +95,19 @@ export class App {
     shellConfig: ShellConfig,
     options?: InitializeOptions,
   ): void {
+    const isStartupCheck = options?.mode === "startup-check";
     if (
       !this.config.aiApiKey &&
       !this.config.aiImageKey &&
       !this.config.aiModel &&
-      !options?.startupCheck
+      !isStartupCheck
     ) {
       return;
     }
 
     shellConfig.ai = {
       ...shellConfig.ai,
-      ...(options?.startupCheck &&
+      ...(isStartupCheck &&
         !shellConfig.ai?.apiKey && { apiKey: STARTUP_CHECK_API_KEY }),
       ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
       ...(this.config.aiImageKey && {

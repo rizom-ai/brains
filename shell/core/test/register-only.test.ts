@@ -53,7 +53,7 @@ function createTestConfig(dir: string): ShellConfigInput {
   };
 }
 
-describe("Shell registerOnly mode", () => {
+describe("Shell register-only mode", () => {
   let testDir: TestDir;
   let shell: Shell;
 
@@ -117,7 +117,7 @@ describe("Shell registerOnly mode", () => {
     const config = createTestConfig(testDir.dir);
     config.plugins = [testPlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize({ registerOnly: true });
+    await shell.initialize({ mode: "register-only" });
 
     // Tools should be registered and discoverable
     const cliTools = shell.getMCPService().getCliTools();
@@ -127,10 +127,10 @@ describe("Shell registerOnly mode", () => {
     expect(pluginsRegisteredFired).toBe(false);
   });
 
-  it("should not start background job worker in registerOnly mode", async () => {
+  it("should not start background job worker in register-only mode", async () => {
     const config = createTestConfig(testDir.dir);
     shell = Shell.createFresh(config, deps);
-    await shell.initialize({ registerOnly: true });
+    await shell.initialize({ mode: "register-only" });
 
     // System tools should be registered
     const tools = shell.getMCPService().listTools();
@@ -173,7 +173,7 @@ describe("Shell registerOnly mode", () => {
     expect(shell.isInitialized()).toBe(false);
   });
 
-  it("should not start daemons in registerOnly mode", async () => {
+  it("should not start daemons in register-only mode", async () => {
     let daemonStarted = false;
 
     // Real InterfacePlugin subclass — matches how webserver/mcp/a2a work
@@ -200,7 +200,7 @@ describe("Shell registerOnly mode", () => {
     const config = createTestConfig(testDir.dir);
     config.plugins = [new TestDaemonInterface()];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize({ registerOnly: true });
+    await shell.initialize({ mode: "register-only" });
 
     // Daemon should NOT have started
     expect(daemonStarted).toBe(false);

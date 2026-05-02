@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, writeFileSync, rmSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { EventEmitter } from "events";
+import type { BootMode } from "@brains/core";
 import { resolveRunnerType, start } from "../src/commands/start";
 import { registerModel, resetModels } from "../src/lib/model-registry";
 import { resetBootFn, setBootFn } from "../src/lib/boot";
@@ -148,7 +149,7 @@ describe("resolveRunnerType", () => {
     expect(resolveRunnerType(import.meta.dir)).toBe("monorepo");
   });
 
-  it("should pass startupCheck through to builtin boot without requiring AI_API_KEY", async () => {
+  it("should pass startup-check mode through to builtin boot without requiring AI_API_KEY", async () => {
     const previousApiKey = process.env["AI_API_KEY"];
     delete process.env["AI_API_KEY"];
 
@@ -161,8 +162,7 @@ describe("resolveRunnerType", () => {
 
     const seenFlags: Array<{
       chat: boolean;
-      registerOnly?: boolean;
-      startupCheck?: boolean;
+      mode?: BootMode;
     }> = [];
     registerModel("rover", { name: "rover" });
     setBootFn(async (_cwd, _modelName, _definition, flags) => {
@@ -172,11 +172,11 @@ describe("resolveRunnerType", () => {
     try {
       const result = await start(brainDir, {
         chat: false,
-        startupCheck: true,
+        mode: "startup-check",
       });
 
       expect(result.success).toBe(true);
-      expect(seenFlags).toEqual([{ chat: false, startupCheck: true }]);
+      expect(seenFlags).toEqual([{ chat: false, mode: "startup-check" }]);
     } finally {
       if (previousApiKey === undefined) {
         delete process.env["AI_API_KEY"];
@@ -207,7 +207,7 @@ describe("resolveRunnerType", () => {
     try {
       const resultPromise = start(
         appDir,
-        { chat: false, startupCheck: true },
+        { chat: false, mode: "startup-check" },
         { spawnImpl },
       );
 

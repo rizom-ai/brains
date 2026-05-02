@@ -2,9 +2,22 @@ import { materializePrompts, SYSTEM_CHANNELS } from "@brains/plugins";
 import type { ShellConfig } from "../config";
 import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
+/**
+ * Boot mode variants. Mutually exclusive — encoded as a single field so callers
+ * can't accidentally combine them.
+ *
+ * - `register-only`: load plugins and register capabilities, then return.
+ *   No ready hooks, no daemons, no jobs. Used by `brain operate` for command
+ *   discovery.
+ * - `startup-check`: run registration and ready hooks, then return without
+ *   starting daemons or job workers. Used by external-package smoke tests to
+ *   verify plugin loading without side effects (and without requiring an AI
+ *   API key).
+ */
+export type BootMode = "register-only" | "startup-check";
+
 export interface ShellBootloaderOptions {
-  registerOnly?: boolean;
-  startupCheck?: boolean;
+  mode?: BootMode;
 }
 
 export interface ShellBootloaderHooks {
@@ -42,7 +55,7 @@ export class ShellBootloader {
       this.services.entityRegistry,
       this.services.pluginManager,
       {
-        ...(options?.registerOnly && { registerOnly: true }),
+        ...(options?.mode === "register-only" && { registerOnly: true }),
         ...(this.config.entityDisplay !== undefined && {
           registrationContext: { entityDisplay: this.config.entityDisplay },
         }),
@@ -59,12 +72,12 @@ export class ShellBootloader {
     this.hooks.registerCoreDataSources();
     this.hooks.registerSystemCapabilities();
 
-    if (options?.registerOnly) {
-      this.services.logger.debug("Shell boot complete (registerOnly mode)");
+    if (options?.mode === "register-only") {
+      this.services.logger.debug("Shell boot complete (register-only mode)");
       return;
     }
 
-    if (!options?.startupCheck) {
+    if (options?.mode !== "startup-check") {
       await this.startEarlyWebserver();
 
       // Run initial sync (driven by pluginsRegistered subscribers) before
@@ -78,8 +91,8 @@ export class ShellBootloader {
 
     await this.services.pluginManager.readyPlugins();
 
-    if (options?.startupCheck) {
-      this.services.logger.debug("Shell boot complete (startupCheck mode)");
+    if (options?.mode === "startup-check") {
+      this.services.logger.debug("Shell boot complete (startup-check mode)");
       return;
     }
 

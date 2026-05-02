@@ -191,7 +191,7 @@ export async function handleCLI(config: AppConfig): Promise<void> {
     // Startup check: register plugins and run ready hooks, but do not start
     // daemons or job workers. Used by external plugin smoke tests.
     const app = App.create(config);
-    await app.initialize({ startupCheck: true });
+    await app.initialize({ mode: "startup-check" });
     await app.stop();
   } else if (args.includes("--list-cli-commands")) {
     // List CLI-enabled tools for dynamic help
@@ -222,7 +222,9 @@ async function listCliCommands(
   config: AppConfig,
   App: AppFactory,
 ): Promise<void> {
-  const app = await initializeHeadlessApp(config, App, { registerOnly: true });
+  const app = await initializeHeadlessApp(config, App, {
+    mode: "register-only",
+  });
 
   const cliTools = app.getShell().getMCPService().getCliTools();
   for (const { tool } of cliTools) {
@@ -351,10 +353,10 @@ async function runDiagnostics(
     process.exit(1);
   }
 
-  // Boot in registerOnly mode — no daemons, no sync, no builds.
+  // Boot in register-only mode — no daemons, no sync, no builds.
   // We only need access to the existing entity + embedding data.
   const app = App.create(createHeadlessConfig(config));
-  await app.initialize({ registerOnly: true });
+  await app.initialize({ mode: "register-only" });
 
   const shell = app.getShell();
   const entityService = shell.getEntityService();

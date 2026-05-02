@@ -314,7 +314,7 @@ describe("Shell initialization order", () => {
     );
   });
 
-  it("should run ready hooks without signals, daemons, or jobs in startupCheck mode", async () => {
+  it("should run ready hooks without signals, daemons, or jobs in startup-check mode", async () => {
     const daemon: Daemon = {
       start: async () => {
         initOrder.push("daemon-started");
@@ -328,7 +328,7 @@ describe("Shell initialization order", () => {
       id: "startup-check-plugin",
       version: "1.0.0",
       type: "service",
-      description: "Checks startupCheck lifecycle",
+      description: "Checks startup-check lifecycle",
       packageName: "@test/startup-check",
       register: async (shellInstance) => {
         initOrder.push("register");
@@ -353,7 +353,7 @@ describe("Shell initialization order", () => {
     const config = createTestConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize({ startupCheck: true });
+    await shell.initialize({ mode: "startup-check" });
 
     expect(initOrder).toContain("register");
     expect(initOrder).toContain("ready");
@@ -368,12 +368,12 @@ describe("Shell initialization order", () => {
     );
   });
 
-  it("should not call ready hooks in registerOnly mode", async () => {
+  it("should not call ready hooks in register-only mode", async () => {
     const lifecyclePlugin: Plugin = {
       id: "register-only-plugin",
       version: "1.0.0",
       type: "service",
-      description: "Checks registerOnly lifecycle",
+      description: "Checks register-only lifecycle",
       packageName: "@test/register-only",
       register: async () => {
         initOrder.push("register");
@@ -387,7 +387,7 @@ describe("Shell initialization order", () => {
     const config = createTestConfig(testDir.dir);
     config.plugins = [lifecyclePlugin];
     shell = Shell.createFresh(config, deps);
-    await shell.initialize({ registerOnly: true });
+    await shell.initialize({ mode: "register-only" });
 
     expect(initOrder).toContain("register");
     expect(initOrder).not.toContain("ready");

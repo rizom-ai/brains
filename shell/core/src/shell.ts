@@ -67,7 +67,10 @@ import {
   resetServiceSingletons,
   type ShellServices,
 } from "./initialization/shellInitializer";
-import { ShellBootloader } from "./initialization/shellBootloader";
+import {
+  ShellBootloader,
+  type BootMode,
+} from "./initialization/shellBootloader";
 import { createInsightsRegistry } from "./system/insights";
 import type { IInsightsRegistry } from "@brains/plugins";
 import { EndpointRegistry } from "./endpoint-registry";
@@ -157,20 +160,10 @@ export class Shell implements IShell {
   }
 
   /**
-   * Initialize the shell.
-   *
-   * @param options.registerOnly - If true, only registers plugins and system
-   *   capabilities (tools, resources, etc.) without emitting the internal
-   *   plugins-registered coordination signal or starting background services.
-   *   Used by CLI for command discovery.
-   * @param options.startupCheck - If true, runs registration and ready hooks
-   *   without starting daemons or job workers. Used by external package smoke
-   *   tests to verify plugin loading without side effects.
+   * Initialize the shell. See `BootMode` for the supported boot variants;
+   * omit `mode` for normal boot (everything runs).
    */
-  public async initialize(options?: {
-    registerOnly?: boolean;
-    startupCheck?: boolean;
-  }): Promise<void> {
+  public async initialize(options?: { mode?: BootMode }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");
     if (this.initialized) {
       this.services.logger.warn("Shell already initialized");
