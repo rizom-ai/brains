@@ -86,7 +86,7 @@ These are enforced by the pre-commit hook and CI. If your PR isn't following the
 If you want to extend `brains` without contributing upstream, the plugin system is the right path. See:
 
 - [Plugin System](../plugin-system.md) — architecture and lifecycle
-- [Plugin Development Patterns](../plugin-development-patterns.md) — common patterns
+- [External Plugin Authoring](../external-plugin-authoring.md) — package shape, factory contract, registration model, `brain.yaml` loading
 - [Plugin Quick Reference](../plugin-quick-reference.md) — API cheat sheet
 - [`plugins/examples/`](../../plugins/examples/) — minimal working examples
 

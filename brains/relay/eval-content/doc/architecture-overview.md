@@ -265,6 +265,6 @@ Each deployed instance stays lightweight at the source level: a brain model pack
 - [Brain model guide](/docs/brain-model)
 - [Entity model](/docs/entity-model)
 - [Theming guide](/docs/theming-guide)
-- [Plugin development patterns](/docs/plugin-development-patterns)
+- [External plugin authoring](/docs/external-plugin-authoring)
 - [Plugin quick reference](/docs/plugin-quick-reference)
 - [User-facing CLI docs](/docs/getting-started)

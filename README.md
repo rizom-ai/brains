@@ -122,7 +122,7 @@ Use **`rover`** as the external reference model.
 - [Interface Setup Guide](docs/interface-setup.md)
 - [Customization Guide](docs/customization-guide.md)
 - [Plugin System](docs/plugin-system.md)
-- [Plugin Development Patterns](docs/plugin-development-patterns.md)
+- [External Plugin Authoring](docs/external-plugin-authoring.md)
 - [Theming Guide](docs/theming-guide.md)
 - [Roadmap](docs/roadmap.md)
 
