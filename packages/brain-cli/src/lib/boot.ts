@@ -15,7 +15,7 @@ type BootFn = (
   cwd: string,
   modelName: string,
   definition: unknown,
-  flags: { chat: boolean; registerOnly?: boolean },
+  flags: { chat: boolean; registerOnly?: boolean; startupCheck?: boolean },
 ) => Promise<void>;
 
 let registeredBootFn: BootFn | undefined;
@@ -34,7 +34,7 @@ export async function bootBrain(
   cwd: string,
   modelName: string,
   definition: unknown,
-  flags: { chat: boolean; registerOnly?: boolean },
+  flags: { chat: boolean; registerOnly?: boolean; startupCheck?: boolean },
 ): Promise<void> {
   if (!registeredBootFn) {
     throw new Error(

@@ -1,8 +1,14 @@
-import { spawn, type ChildProcess } from "child_process";
+import { spawn, type ChildProcess, type SpawnOptions } from "child_process";
 import type { CommandResult } from "../run-command";
 
+export type SpawnImpl = (
+  command: string,
+  args: string[],
+  options: SpawnOptions,
+) => ChildProcess;
+
 export interface SpawnBunRunnerDependencies {
-  spawnImpl?: typeof spawn;
+  spawnImpl?: SpawnImpl;
   processImpl?: Pick<NodeJS.Process, "env" | "on" | "removeListener">;
 }
 

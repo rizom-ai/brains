@@ -85,6 +85,12 @@ export async function handleCLI(config: AppConfig): Promise<void> {
   } else if (args.includes("--version") || args.includes("-v")) {
     console.log(`${config.name} v${config.version}`);
     process.exit(0);
+  } else if (args.includes("--startup-check")) {
+    // Startup check: register plugins and run ready hooks, but do not start
+    // daemons or job workers. Used by external plugin smoke tests.
+    const app = App.create(config);
+    await app.initialize({ startupCheck: true });
+    await app.stop();
   } else if (args.includes("--list-cli-commands")) {
     // List CLI-enabled tools for dynamic help
     await listCliCommands(config, App);

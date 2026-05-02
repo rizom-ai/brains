@@ -314,6 +314,60 @@ describe("Shell initialization order", () => {
     );
   });
 
+  it("should run ready hooks without signals, daemons, or jobs in startupCheck mode", async () => {
+    const daemon: Daemon = {
+      start: async () => {
+        initOrder.push("daemon-started");
+      },
+      stop: async () => {
+        initOrder.push("daemon-stopped");
+      },
+    };
+
+    const lifecyclePlugin: Plugin = {
+      id: "startup-check-plugin",
+      version: "1.0.0",
+      type: "service",
+      description: "Checks startupCheck lifecycle",
+      packageName: "@test/startup-check",
+      register: async (shellInstance) => {
+        initOrder.push("register");
+        shellInstance
+          .getMessageBus()
+          .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
+            initOrder.push("plugins-ready");
+            return { success: true };
+          });
+        shellInstance.registerDaemon(
+          "startup-check-daemon",
+          daemon,
+          "startup-check-plugin",
+        );
+        return { tools: [], resources: [] };
+      },
+      ready: async () => {
+        initOrder.push("ready");
+      },
+    };
+
+    const config = createTestConfig(testDir.dir);
+    config.plugins = [lifecyclePlugin];
+    shell = Shell.createFresh(config, deps);
+    await shell.initialize({ startupCheck: true });
+
+    expect(initOrder).toContain("register");
+    expect(initOrder).toContain("ready");
+    expect(initOrder).not.toContain("plugins-ready");
+    expect(initOrder).not.toContain("daemon-started");
+
+    const shellWithServices = shell as unknown as {
+      services: { jobQueueWorker: { isWorkerRunning(): boolean } };
+    };
+    expect(shellWithServices.services.jobQueueWorker.isWorkerRunning()).toBe(
+      false,
+    );
+  });
+
   it("should not call ready hooks in registerOnly mode", async () => {
     const lifecyclePlugin: Plugin = {
       id: "register-only-plugin",

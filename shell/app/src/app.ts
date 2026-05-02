@@ -48,7 +48,10 @@ export class App {
     });
   }
 
-  public async initialize(options?: { registerOnly?: boolean }): Promise<void> {
+  public async initialize(options?: {
+    registerOnly?: boolean;
+    startupCheck?: boolean;
+  }): Promise<void> {
     // Only run migrations when we're creating a shell (not when using mock shell for tests)
     if (!this.shell) {
       await this.runMigrations();

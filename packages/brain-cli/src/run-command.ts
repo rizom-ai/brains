@@ -39,9 +39,15 @@ export async function runCommand(
     case "init":
       return runInit(parsed, dir);
     case "start":
-      return start(dir, { chat: false });
+      return start(dir, {
+        chat: false,
+        ...(parsed.flags["startup-check"] && { startupCheck: true }),
+      });
     case "chat":
-      return start(dir, { chat: true });
+      return start(dir, {
+        chat: true,
+        ...(parsed.flags["startup-check"] && { startupCheck: true }),
+      });
     case "eval":
       return runEval(dir, process.argv.slice(2));
     case "pin":
@@ -250,6 +256,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --all                  Include extra keys from the local .env file",
     "  --only <keys>          Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
     "  --dry-run              Show what would be pushed without writing anything",
+    "  --startup-check        Boot through plugin ready hooks, then exit without daemons/jobs",
   );
 
   console.log(lines.join("\n"));

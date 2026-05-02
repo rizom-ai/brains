@@ -5,6 +5,7 @@ import { tmpdir } from "os";
 import { EventEmitter } from "events";
 import { resolveRunnerType, start } from "../src/commands/start";
 import { registerModel, resetModels } from "../src/lib/model-registry";
+import { resetBootFn, setBootFn } from "../src/lib/boot";
 
 function createTestBrainDir(): string {
   const dir = join(
@@ -117,6 +118,7 @@ describe("resolveRunnerType", () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    resetBootFn();
     resetModels();
   });
 
@@ -144,5 +146,79 @@ describe("resolveRunnerType", () => {
 
   it("should return 'monorepo' for a directory inside the current repo", () => {
     expect(resolveRunnerType(import.meta.dir)).toBe("monorepo");
+  });
+
+  it("should pass startupCheck through to builtin boot without requiring AI_API_KEY", async () => {
+    const previousApiKey = process.env["AI_API_KEY"];
+    delete process.env["AI_API_KEY"];
+
+    const brainDir = join(
+      tmpdir(),
+      `brain-start-startup-check-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    );
+    mkdirSync(brainDir, { recursive: true });
+    writeFileSync(join(brainDir, "brain.yaml"), "brain: rover\n");
+
+    const seenFlags: Array<{
+      chat: boolean;
+      registerOnly?: boolean;
+      startupCheck?: boolean;
+    }> = [];
+    registerModel("rover", { name: "rover" });
+    setBootFn(async (_cwd, _modelName, _definition, flags) => {
+      seenFlags.push(flags);
+    });
+
+    try {
+      const result = await start(brainDir, {
+        chat: false,
+        startupCheck: true,
+      });
+
+      expect(result.success).toBe(true);
+      expect(seenFlags).toEqual([{ chat: false, startupCheck: true }]);
+    } finally {
+      if (previousApiKey === undefined) {
+        delete process.env["AI_API_KEY"];
+      } else {
+        process.env["AI_API_KEY"] = previousApiKey;
+      }
+      rmSync(brainDir, { recursive: true, force: true });
+    }
+  });
+
+  it("should forward --startup-check to subprocess runners", async () => {
+    const appDir = createTestBrainDir();
+    const child = new EventEmitter() as EventEmitter & {
+      kill: ReturnType<typeof mock>;
+      exitCode: number | null;
+      killed: boolean;
+    };
+    child.exitCode = null;
+    child.killed = false;
+    child.kill = mock(() => true);
+
+    let spawnedArgs: string[] = [];
+    const spawnImpl = mock((_command: string, args: string[]) => {
+      spawnedArgs = args;
+      return child as never;
+    });
+
+    try {
+      const resultPromise = start(
+        appDir,
+        { chat: false, startupCheck: true },
+        { spawnImpl },
+      );
+
+      child.emit("close", 0, null);
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+      expect(spawnImpl).toHaveBeenCalled();
+      expect(spawnedArgs).toContain("--startup-check");
+    } finally {
+      rmSync(appDir, { recursive: true, force: true });
+    }
   });
 });

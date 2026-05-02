@@ -16,6 +16,7 @@ describe("handleCLI", () => {
   const originalExit = process.exit;
   const originalConsoleLog = console.log;
   const originalConsoleError = console.error;
+  const originalCreate = App.create;
 
   // Mock console and process.exit
   const mockExit = mock((_code?: number): never => {
@@ -48,6 +49,7 @@ describe("handleCLI", () => {
     process.exit = originalExit;
     console.log = originalConsoleLog;
     console.error = originalConsoleError;
+    App.create = originalCreate;
   });
 
   it("should run the app by default", async () => {
@@ -119,6 +121,21 @@ describe("handleCLI", () => {
       expect.stringContaining("Usage:"),
     );
     expect(mockExit).toHaveBeenCalledWith(0);
+  });
+
+  it("should handle --startup-check by initializing without running", async () => {
+    const initialize = mock(() => Promise.resolve());
+    const stop = mock(() => Promise.resolve());
+    const createSpy = mock(() => ({ initialize, stop }));
+    App.create = createSpy as unknown as typeof App.create;
+    process.argv = ["bun", "brain.config.ts", "--startup-check"];
+
+    await handleCLI(testConfig);
+
+    expect(createSpy).toHaveBeenCalledWith(testConfig);
+    expect(initialize).toHaveBeenCalledWith({ startupCheck: true });
+    expect(stop).toHaveBeenCalled();
+    expect(runSpy).not.toHaveBeenCalled();
   });
 
   it("should handle unknown flags by running app", async () => {

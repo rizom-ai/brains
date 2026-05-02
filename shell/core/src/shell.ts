@@ -163,8 +163,14 @@ export class Shell implements IShell {
    *   capabilities (tools, resources, etc.) without emitting the internal
    *   plugins-registered coordination signal or starting background services.
    *   Used by CLI for command discovery.
+   * @param options.startupCheck - If true, runs registration and ready hooks
+   *   without starting daemons or job workers. Used by external package smoke
+   *   tests to verify plugin loading without side effects.
    */
-  public async initialize(options?: { registerOnly?: boolean }): Promise<void> {
+  public async initialize(options?: {
+    registerOnly?: boolean;
+    startupCheck?: boolean;
+  }): Promise<void> {
     this.services.logger.debug("Shell.initialize() called");
     if (this.initialized) {
       this.services.logger.warn("Shell already initialized");

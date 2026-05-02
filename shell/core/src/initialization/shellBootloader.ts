@@ -4,6 +4,7 @@ import { ShellInitializer, type ShellServices } from "./shellInitializer";
 
 export interface ShellBootloaderOptions {
   registerOnly?: boolean;
+  startupCheck?: boolean;
 }
 
 export interface ShellBootloaderHooks {
@@ -63,16 +64,25 @@ export class ShellBootloader {
       return;
     }
 
-    await this.startEarlyWebserver();
+    if (!options?.startupCheck) {
+      await this.startEarlyWebserver();
 
-    // Run initial sync (driven by pluginsRegistered subscribers) before
-    // materializing ready-state defaults. Singleton defaults must not be
-    // created while a directory import may still populate existing markdown
-    // from brain-data into the entity DB.
-    await this.emitPluginsRegistered();
+      // Run initial sync (driven by pluginsRegistered subscribers) before
+      // materializing ready-state defaults. Singleton defaults must not be
+      // created while a directory import may still populate existing markdown
+      // from brain-data into the entity DB.
+      await this.emitPluginsRegistered();
+    }
+
     await this.prepareReadyState();
 
     await this.services.pluginManager.readyPlugins();
+
+    if (options?.startupCheck) {
+      this.services.logger.debug("Shell boot complete (startupCheck mode)");
+      return;
+    }
+
     await this.startRuntimeServices();
 
     this.services.logger.debug("Shell boot complete");

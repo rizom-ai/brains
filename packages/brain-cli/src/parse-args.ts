@@ -17,6 +17,7 @@ export interface ParsedArgs {
     all?: boolean | undefined;
     only?: string | undefined;
     "dry-run"?: boolean | undefined;
+    "startup-check"?: boolean | undefined;
     remote?: string | undefined;
     token?: string | undefined;
     help?: boolean | undefined;
@@ -38,6 +39,7 @@ const options = {
   all: { type: "boolean" as const },
   only: { type: "string" as const },
   "dry-run": { type: "boolean" as const },
+  "startup-check": { type: "boolean" as const },
   remote: { type: "string" as const },
   token: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
@@ -100,6 +102,7 @@ export function parseArgs(argv: string[]): ParsedArgs {
       all: getBoolean(values, "all"),
       only: getString(values, "only"),
       "dry-run": getBoolean(values, "dry-run"),
+      "startup-check": getBoolean(values, "startup-check"),
       remote: getString(values, "remote"),
       token: getString(values, "token"),
     },
