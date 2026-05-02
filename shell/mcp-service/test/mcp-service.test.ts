@@ -3,7 +3,18 @@ import { MCPService } from "../src/mcp-service";
 import type { IMessageBus } from "@brains/messaging-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
+
+interface InspectableMcpServer {
+  _registeredTools: Record<string, unknown>;
+}
+
+function listProtocolToolNames(server: McpServer): string[] {
+  return Object.keys(
+    (server as unknown as InspectableMcpServer)._registeredTools,
+  );
+}
 
 describe("MCPService", () => {
   let mcpService: MCPService;
@@ -285,6 +296,87 @@ describe("MCPService", () => {
           .listToolsForPermissionLevel("anchor")
           .map((t) => t.tool.name),
       ).toEqual(["public_tool", "trusted_tool", "anchor_tool"]);
+    });
+  });
+
+  describe("createMcpServer", () => {
+    it("should create fresh servers with tools filtered by explicit permission", () => {
+      const publicTool: Tool = {
+        name: "fresh_public_tool",
+        description: "Public tool",
+        inputSchema: {},
+        visibility: "public",
+        handler: async () => ({ success: true, data: "public" }),
+      };
+
+      const trustedTool: Tool = {
+        name: "fresh_trusted_tool",
+        description: "Trusted tool",
+        inputSchema: {},
+        visibility: "trusted",
+        handler: async () => ({ success: true, data: "trusted" }),
+      };
+
+      const anchorTool: Tool = {
+        name: "fresh_anchor_tool",
+        description: "Anchor tool",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async () => ({ success: true, data: "anchor" }),
+      };
+
+      const defaultTool: Tool = {
+        name: "fresh_default_tool",
+        description: "Default visibility tool",
+        inputSchema: {},
+        handler: async () => ({ success: true, data: "default" }),
+      };
+
+      mcpService.registerTool("plugin", publicTool);
+      mcpService.registerTool("plugin", trustedTool);
+      mcpService.registerTool("plugin", anchorTool);
+      mcpService.registerTool("plugin", defaultTool);
+
+      expect(
+        listProtocolToolNames(mcpService.createMcpServer("public")),
+      ).toEqual(["fresh_public_tool"]);
+      expect(
+        listProtocolToolNames(mcpService.createMcpServer("trusted")),
+      ).toEqual(["fresh_public_tool", "fresh_trusted_tool"]);
+      expect(
+        listProtocolToolNames(mcpService.createMcpServer("anchor")),
+      ).toEqual([
+        "fresh_public_tool",
+        "fresh_trusted_tool",
+        "fresh_anchor_tool",
+        "fresh_default_tool",
+      ]);
+    });
+
+    it("should use the current service permission when permission is omitted", () => {
+      const publicTool: Tool = {
+        name: "current_public_tool",
+        description: "Public tool",
+        inputSchema: {},
+        visibility: "public",
+        handler: async () => ({ success: true, data: "public" }),
+      };
+
+      const anchorTool: Tool = {
+        name: "current_anchor_tool",
+        description: "Anchor tool",
+        inputSchema: {},
+        visibility: "anchor",
+        handler: async () => ({ success: true, data: "anchor" }),
+      };
+
+      mcpService.setPermissionLevel("public");
+      mcpService.registerTool("plugin", publicTool);
+      mcpService.registerTool("plugin", anchorTool);
+
+      expect(listProtocolToolNames(mcpService.createMcpServer())).toEqual([
+        "current_public_tool",
+      ]);
     });
   });
 
