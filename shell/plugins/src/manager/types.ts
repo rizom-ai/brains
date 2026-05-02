@@ -1,9 +1,4 @@
-import type {
-  Plugin,
-  PluginRegistrationContext,
-  Tool,
-  Resource,
-} from "../interfaces";
+import type { Plugin, PluginRegistrationContext } from "../interfaces";
 
 /**
  * Plugin Manager interface for managing plugin lifecycle
@@ -81,8 +76,6 @@ export enum PluginEvent {
   ERROR = "plugin:error",
   DISABLED = "plugin:disabled",
   ENABLED = "plugin:enabled",
-  TOOL_REGISTER = "plugin:tool:register",
-  RESOURCE_REGISTER = "plugin:resource:register",
 }
 
 /**
@@ -95,22 +88,4 @@ export interface PluginManagerEventMap {
   [PluginEvent.ERROR]: [pluginId: string, error: Error];
   [PluginEvent.DISABLED]: [pluginId: string];
   [PluginEvent.ENABLED]: [pluginId: string];
-  [PluginEvent.TOOL_REGISTER]: [event: ToolRegisterEvent];
-  [PluginEvent.RESOURCE_REGISTER]: [event: ResourceRegisterEvent];
-}
-
-/**
- * Event data for plugin tool registration
- */
-export interface ToolRegisterEvent {
-  pluginId: string;
-  tool: Tool;
-}
-
-/**
- * Event data for plugin resource registration
- */
-export interface ResourceRegisterEvent {
-  pluginId: string;
-  resource: Resource;
 }
