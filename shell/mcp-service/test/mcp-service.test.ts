@@ -6,14 +6,36 @@ import { z } from "@brains/utils";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { Tool, Resource, ResourceTemplate, Prompt } from "../src/types";
 
+interface ProtocolToolHandlerExtra {
+  _meta?: Record<string, unknown>;
+}
+
+interface InspectableRegisteredTool {
+  handler: (
+    params: Record<string, unknown>,
+    extra: ProtocolToolHandlerExtra,
+  ) => Promise<unknown>;
+}
+
 interface InspectableMcpServer {
-  _registeredTools: Record<string, unknown>;
+  _registeredTools: Record<string, InspectableRegisteredTool>;
+}
+
+function inspectMcpServer(server: McpServer): InspectableMcpServer {
+  return server as unknown as InspectableMcpServer;
 }
 
 function listProtocolToolNames(server: McpServer): string[] {
-  return Object.keys(
-    (server as unknown as InspectableMcpServer)._registeredTools,
-  );
+  return Object.keys(inspectMcpServer(server)._registeredTools);
+}
+
+async function callProtocolTool(
+  server: McpServer,
+  name: string,
+  params: Record<string, unknown>,
+  extra: ProtocolToolHandlerExtra,
+): Promise<unknown> {
+  return inspectMcpServer(server)._registeredTools[name]?.handler(params, extra);
 }
 
 describe("MCPService", () => {
@@ -109,6 +131,51 @@ describe("MCPService", () => {
       // Per-call filtering respects permissions
       expect(mcpService.listToolsForPermissionLevel("public")).toHaveLength(0);
       expect(mcpService.listToolsForPermissionLevel("trusted")).toHaveLength(1);
+    });
+
+    it("should forward protocol metadata when executing a tool", async () => {
+      const tool: Tool = {
+        name: "metadata_tool",
+        description: "Metadata tool",
+        inputSchema: {
+          input: z.string(),
+        },
+        visibility: "anchor",
+        handler: async () => ({ success: true, data: "ok" }),
+      };
+
+      mcpService.setPermissionLevel("anchor");
+      mcpService.registerTool("metadata-plugin", tool);
+
+      await callProtocolTool(
+        mcpService.getMcpServer(),
+        "metadata_tool",
+        { input: "value" },
+        {
+          _meta: {
+            interfaceType: "matrix",
+            userId: "user-1",
+            channelId: "room-1",
+            channelName: "Room One",
+            progressToken: "progress-1",
+          },
+        },
+      );
+
+      expect(mockMessageBus.send).toHaveBeenCalledWith(
+        "plugin:metadata-plugin:tool:execute",
+        {
+          toolName: "metadata_tool",
+          args: { input: "value" },
+          progressToken: "progress-1",
+          hasProgress: true,
+          interfaceType: "matrix",
+          userId: "user-1",
+          channelId: "room-1",
+          channelName: "Room One",
+        },
+        "MCPService",
+      );
     });
 
     it("should register multiple tools from different plugins", () => {

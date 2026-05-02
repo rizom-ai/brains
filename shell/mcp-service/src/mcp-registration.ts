@@ -82,6 +82,7 @@ export function registerToolOnServer(
       const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
       const userId = extra._meta?.["userId"] ?? "mcp-user";
       const channelId = extra._meta?.["channelId"];
+      const channelName = extra._meta?.["channelName"];
       const progressToken = extra._meta?.progressToken;
 
       logger.debug("MCP client metadata", {
@@ -90,6 +91,7 @@ export function registerToolOnServer(
         interfaceType,
         userId,
         channelId,
+        channelName,
         progressToken,
       });
 
@@ -104,6 +106,7 @@ export function registerToolOnServer(
             interfaceType,
             userId,
             channelId,
+            channelName,
           },
           "MCPService",
         );
