@@ -31,15 +31,13 @@ import {
 } from "./directory-lifecycle";
 import { resolveSyncPath } from "./directory-path";
 import { getDirectorySyncStatus } from "./directory-status";
-import { importEntities as runImport } from "./import-pipeline";
 import {
-  exportEntities as runExport,
-  processEntityExport as runProcessEntityExport,
-} from "./export-pipeline";
-import {
-  removeOrphanedEntities as runCleanup,
+  exportDirectoryEntities,
+  importDirectoryEntities,
+  processDirectoryEntityExport,
+  removeOrphanedDirectoryEntities,
   type CleanupResult,
-} from "./cleanup-pipeline";
+} from "./directory-operations";
 import {
   directorySyncOptionsSchema,
   type DirectorySyncOptions,
@@ -144,21 +142,19 @@ export class DirectorySync implements IDirectorySync {
     deleted?: boolean;
     error?: string;
   }> {
-    return runProcessEntityExport(
-      this.operationDeps.createExportDeps(
-        this.deleteOnFileRemoval,
-        this.entityTypes,
-      ),
+    return processDirectoryEntityExport(
+      this.operationDeps,
+      this.deleteOnFileRemoval,
+      this.entityTypes,
       entity,
     );
   }
 
   async exportEntities(entityTypes?: string[]): Promise<ExportResult> {
-    return runExport(
-      this.operationDeps.createExportDeps(
-        this.deleteOnFileRemoval,
-        this.entityTypes,
-      ),
+    return exportDirectoryEntities(
+      this.operationDeps,
+      this.deleteOnFileRemoval,
+      this.entityTypes,
       entityTypes,
     );
   }
@@ -191,27 +187,16 @@ export class DirectorySync implements IDirectorySync {
   }
 
   async importEntities(paths?: string[]): Promise<ImportResult> {
-    return runImport(
-      this.operationDeps.createImportDeps(this.entityTypes),
-      paths,
-    );
+    return importDirectoryEntities(this.operationDeps, this.entityTypes, paths);
   }
 
   async removeOrphanedEntities(): Promise<CleanupResult> {
-    const result = await runCleanup(
-      this.operationDeps.createCleanupDeps(
-        this.deleteOnFileRemoval,
-        this.entityTypes,
-      ),
+    return removeOrphanedDirectoryEntities(
+      this.operationDeps,
+      this.logger,
+      this.deleteOnFileRemoval,
+      this.entityTypes,
     );
-
-    if (result.deleted > 0) {
-      this.logger.info("Cleaned up orphaned entities", {
-        deleted: result.deleted,
-      });
-    }
-
-    return result;
   }
 
   get fileOps(): FileOperations {
