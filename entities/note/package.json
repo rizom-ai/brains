@@ -1,7 +1,7 @@
 {
   "name": "@brains/note",
   "private": true,
-  "version": "0.2.0-alpha.47",
+  "version": "0.2.0-alpha.48",
   "description": "Personal knowledge capture with markdown-first workflow",
   "type": "module",
   "exports": {

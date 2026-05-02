@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.48
+
+### Patch Changes
+
+- [`14e74d9`](https://github.com/rizom-ai/brains/commit/14e74d997e92b7cdf32d55c4ab6782c328addee8) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add `brain start --startup-check` for external plugin smoke tests. Startup-check mode loads configured plugins, runs `onRegister` and `onReady`, then exits without starting daemons or job workers and without requiring a real AI API key.
+
 ## 0.2.0-alpha.47
 
 ## 0.2.0-alpha.46

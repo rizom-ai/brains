@@ -1,7 +1,7 @@
 {
   "name": "@brains/analytics",
   "private": true,
-  "version": "0.2.0-alpha.47",
+  "version": "0.2.0-alpha.48",
   "description": "Analytics plugin for collecting website and social media metrics",
   "type": "module",
   "exports": {
