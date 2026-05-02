@@ -26,13 +26,17 @@ export class BatchJobManager {
       source: string;
       startedAt: string;
       metadata: JobContext;
+      // First Date.now() at which this batch was observed terminal via
+      // getBatchStatus. Lets cleanup() decide on a batch without re-fetching
+      // every job's status. Stays unset for batches nobody has observed.
+      terminalAt?: number;
     }
   >();
 
   // Timer that sweeps terminal batches older than the retention window. Runs
   // independently of enqueue activity so the map stays bounded even when no
   // new batches are arriving.
-  private cleanupTimer: ReturnType<typeof setInterval> | undefined;
+  private cleanupTimer: NodeJS.Timeout | null = null;
 
   public static getInstance(
     jobQueue: IJobQueueService,
@@ -68,13 +72,13 @@ export class BatchJobManager {
     this.cleanupTimer = setInterval(() => {
       this.scheduleTerminalBatchCleanup();
     }, intervalMs);
-    this.cleanupTimer.unref?.();
+    this.cleanupTimer.unref();
   }
 
   public stop(): void {
     if (!this.cleanupTimer) return;
     clearInterval(this.cleanupTimer);
-    this.cleanupTimer = undefined;
+    this.cleanupTimer = null;
   }
 
   private scheduleTerminalBatchCleanup(): void {
@@ -227,6 +231,13 @@ export class BatchJobManager {
         status = JOB_STATUS.COMPLETED;
       }
 
+      if (
+        batch.terminalAt === undefined &&
+        (status === JOB_STATUS.COMPLETED || status === JOB_STATUS.FAILED)
+      ) {
+        batch.terminalAt = Date.now();
+      }
+
       // Find current operation (first non-completed job)
       let currentOperation: string | undefined;
       for (let i = 0; i < batch.jobIds.length; i++) {
@@ -258,16 +269,31 @@ export class BatchJobManager {
   }
 
   /**
-   * Clean up old batch metadata
+   * Clean up old batch metadata.
+   *
+   * Fast path: batches whose terminal status was already observed via
+   * `getBatchStatus` carry a `terminalAt` timestamp; we drop them as soon as
+   * that timestamp is older than the cutoff, with no DB reads.
+   *
+   * Slow path: batches that nobody has ever observed fall back to fetching
+   * status once they are at least cutoff-old, matching the pre-memoization
+   * behavior. This keeps un-observed terminal batches from leaking forever.
    */
   async cleanup(olderThanMs: number): Promise<number> {
     const cutoffTime = Date.now() - olderThanMs;
     let cleaned = 0;
 
     for (const [batchId, batch] of this.batches.entries()) {
+      if (batch.terminalAt !== undefined) {
+        if (batch.terminalAt <= cutoffTime) {
+          this.batches.delete(batchId);
+          cleaned++;
+        }
+        continue;
+      }
+
       const batchTime = new Date(batch.startedAt).getTime();
-      if (batchTime < cutoffTime) {
-        // Check if all jobs are completed
+      if (batchTime <= cutoffTime) {
         const status = await this.getBatchStatus(batchId);
         if (
           status &&
