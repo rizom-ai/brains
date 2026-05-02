@@ -265,38 +265,6 @@ export interface IShell {
   getPluginWebRoutes(): RegisteredWebRoute[];
 }
 
-/**
- * System event schemas for plugin capability registration
- */
-export const systemToolRegisterSchema = z.object({
-  pluginId: z.string(),
-  tool: z.object({
-    name: z.string(),
-    description: z.string(),
-    inputSchema: z.record(z.string(), z.unknown()), // ZodRawShape
-    handler: z.function(),
-    visibility: z.enum(["public", "trusted", "anchor"]).optional(),
-  }),
-  timestamp: z.number(),
-});
-
-export const systemResourceRegisterSchema = z.object({
-  pluginId: z.string(),
-  resource: z.object({
-    uri: z.string(),
-    name: z.string(),
-    description: z.string().optional(),
-    mimeType: z.string().optional(),
-    handler: z.function(),
-  }),
-  timestamp: z.number(),
-});
-
-export type SystemToolRegisterEvent = z.infer<typeof systemToolRegisterSchema>;
-export type SystemResourceRegisterEvent = z.infer<
-  typeof systemResourceRegisterSchema
->;
-
 // Re-export response schemas for backward compatibility
 export {
   defaultQueryResponseSchema,

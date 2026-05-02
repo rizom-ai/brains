@@ -59,12 +59,7 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
     // Call lifecycle hook with typed context
     await this.onRegister(context);
 
-    const instructions = await this.getInstructions();
-    return {
-      tools: await this.getTools(),
-      resources: await this.getResources(),
-      ...(instructions && { instructions }),
-    };
+    return this.getCapabilities();
   }
 
   /**
