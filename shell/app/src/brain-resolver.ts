@@ -125,36 +125,43 @@ function deepMerge(
   return result;
 }
 
-export function resolve(
+type ActiveIds = Set<string> | null;
+type PluginOverrides = Record<string, Record<string, unknown>>;
+
+function isActive(activeIds: ActiveIds, id: string): boolean {
+  return !activeIds || activeIds.has(id);
+}
+
+function hasActiveInterface(
   definition: BrainDefinition,
-  env: BrainEnvironment,
-  overrides?: Omit<InstanceOverrides, "brain">,
-  logger?: Logger,
-): AppConfig {
-  const activeIds = resolveActiveIds(definition, overrides);
-  const pluginOverrides = resolveAllPackageRefs(
-    getPluginConfigOverrides(overrides?.plugins),
-  );
-  const externalPluginDeclarations = getExternalPluginDeclarations(
-    overrides?.plugins,
-  );
-  const effectiveModel = overrides?.model ?? definition.model;
-  const webserverEnabled = activeIds
-    ? activeIds.has("webserver")
-    : definition.interfaces.some(([id]) => id === "webserver");
-  const siteBuilderEnabled = activeIds
-    ? activeIds.has("site-builder")
-    : definition.capabilities.some(([id]) => id === "site-builder");
+  activeIds: ActiveIds,
+  id: string,
+): boolean {
+  return activeIds
+    ? activeIds.has(id)
+    : definition.interfaces.some(([interfaceId]) => interfaceId === id);
+}
 
-  const site: SitePackage | undefined = resolveSitePackage(
-    definition,
-    overrides,
-  );
-  const theme = resolveTheme(definition, overrides);
+function hasActiveCapability(
+  definition: BrainDefinition,
+  activeIds: ActiveIds,
+  id: string,
+): boolean {
+  return activeIds
+    ? activeIds.has(id)
+    : definition.capabilities.some(([capabilityId]) => capabilityId === id);
+}
 
-  // Instantiate capabilities — each plugin gets only its own
-  // matching override (by plugin ID), never other plugins' overrides.
-  const capabilities: Plugin[] = [];
+function applyPluginDefaults(
+  pluginOverrides: PluginOverrides,
+  options: {
+    webserverEnabled: boolean;
+    siteBuilderEnabled: boolean;
+    site: SitePackage | undefined;
+    theme: string | undefined;
+  },
+): void {
+  const { webserverEnabled, siteBuilderEnabled, site, theme } = options;
 
   if (webserverEnabled) {
     const webserverExplicit = pluginOverrides["webserver"] ?? {};
@@ -185,19 +192,34 @@ export function resolve(
       siteBuilderExplicit,
     );
   }
+}
 
-  if (site) {
-    const sitePlugin = site.plugin({
-      entityDisplay: site.entityDisplay,
-      ...stripSiteConfig(overrides?.site),
-    });
-    if (!activeIds || activeIds.has("site-builder")) {
-      capabilities.push(sitePlugin);
-    }
-  }
+function instantiateSitePlugin(
+  site: SitePackage | undefined,
+  overrides: Omit<InstanceOverrides, "brain"> | undefined,
+  activeIds: ActiveIds,
+): Plugin[] {
+  if (!site) return [];
+
+  const sitePlugin = site.plugin({
+    entityDisplay: site.entityDisplay,
+    ...stripSiteConfig(overrides?.site),
+  });
+
+  return isActive(activeIds, "site-builder") ? [sitePlugin] : [];
+}
+
+function instantiateCapabilities(
+  definition: BrainDefinition,
+  env: BrainEnvironment,
+  activeIds: ActiveIds,
+  pluginOverrides: PluginOverrides,
+  logger?: Logger,
+): Plugin[] {
+  const capabilities: Plugin[] = [];
 
   for (const [id, factory, config] of definition.capabilities) {
-    if (activeIds && !activeIds.has(id)) continue;
+    if (!isActive(activeIds, id)) continue;
 
     const baseConfig =
       typeof config === "function" ? config(env) : (config ?? {});
@@ -215,19 +237,37 @@ export function resolve(
     }
   }
 
-  // Instantiate external plugin packages declared in brain.yaml.
-  for (const [id, declaration] of Object.entries(externalPluginDeclarations)) {
+  return capabilities;
+}
+
+function instantiateExternalPlugins(
+  declarations: Record<string, ExternalPluginDeclaration>,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): Plugin[] {
+  const plugins: Plugin[] = [];
+
+  for (const [id, declaration] of Object.entries(declarations)) {
     if (overrides?.remove?.includes(id)) continue;
 
     const factory = resolveExternalPluginFactory(id, declaration);
     const result = factory(declaration.config ?? {});
-    capabilities.push(...ensureArray(result));
+    plugins.push(...ensureArray(result));
   }
 
-  // Instantiate interfaces
+  return plugins;
+}
+
+function instantiateInterfaces(
+  definition: BrainDefinition,
+  env: BrainEnvironment,
+  activeIds: ActiveIds,
+  pluginOverrides: PluginOverrides,
+  logger?: Logger,
+): Plugin[] {
   const interfaces: Plugin[] = [];
+
   for (const [id, ctor, envMapper] of definition.interfaces) {
-    if (activeIds && !activeIds.has(id)) continue;
+    if (!isActive(activeIds, id)) continue;
 
     const baseConfig = envMapper(env);
     if (!baseConfig) continue;
@@ -245,9 +285,13 @@ export function resolve(
     }
   }
 
-  // Map identity to the format AppConfig expects
+  return interfaces;
+}
 
-  const identity = definition.identity
+function buildIdentity(
+  definition: BrainDefinition,
+): AppConfig["identity"] | undefined {
+  return definition.identity
     ? {
         name: definition.identity.characterName,
         role: definition.identity.role,
@@ -255,11 +299,16 @@ export function resolve(
         values: definition.identity.values,
       }
     : undefined;
+}
 
-  // Start with definition's deployment config, apply overrides
+function buildDeployment(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): DeploymentConfigInput {
   const deployment: DeploymentConfigInput = {
     ...(definition.deployment ?? {}),
   };
+
   if (overrides?.domain) {
     deployment.domain = overrides.domain;
   }
@@ -270,23 +319,14 @@ export function resolve(
     };
   }
 
-  // Build the app config
-  const appConfig: AppConfig = {
-    name: overrides?.name ?? definition.name,
-    version: definition.version,
-    plugins: [...capabilities, ...interfaces],
+  return deployment;
+}
 
-    // AI config from environment + brain/instance model
-    ...resolveAIConfig(
-      env,
-      effectiveModel ? { model: effectiveModel } : undefined,
-    ),
-
-    // Optional fields
-    ...(identity && { identity }),
-    ...buildPermissions(definition.permissions, overrides),
-    deployment,
-
+function buildRuntimeOverrides(
+  env: BrainEnvironment,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): Partial<Pick<AppConfig, "database" | "logFile" | "logLevel">> {
+  return {
     // Log level: yaml overrides > env > undefined
     ...(overrides?.logLevel
       ? { logLevel: overrides.logLevel }
@@ -308,23 +348,119 @@ export function resolve(
         ? { database: env["DATABASE_URL"] }
         : {}),
   };
+}
 
-  // Merge any extra config (escape hatch)
+function applyExtraConfig(
+  appConfig: AppConfig,
+  definition: BrainDefinition,
+): void {
   if (definition.extra) {
     Object.assign(appConfig, definition.extra);
   }
+}
 
-  if (site) {
-    const existingShellConfig = appConfig.shellConfig ?? {};
-    const existingEntityDisplay = existingShellConfig.entityDisplay ?? {};
-    appConfig.shellConfig = {
-      ...existingShellConfig,
-      entityDisplay: {
-        ...site.entityDisplay,
-        ...existingEntityDisplay,
-      },
-    };
-  }
+function applySiteEntityDisplay(
+  appConfig: AppConfig,
+  site: SitePackage | undefined,
+): void {
+  if (!site) return;
+
+  const existingShellConfig = appConfig.shellConfig ?? {};
+  const existingEntityDisplay = existingShellConfig.entityDisplay ?? {};
+  appConfig.shellConfig = {
+    ...existingShellConfig,
+    entityDisplay: {
+      ...site.entityDisplay,
+      ...existingEntityDisplay,
+    },
+  };
+}
+
+export function resolve(
+  definition: BrainDefinition,
+  env: BrainEnvironment,
+  overrides?: Omit<InstanceOverrides, "brain">,
+  logger?: Logger,
+): AppConfig {
+  const activeIds = resolveActiveIds(definition, overrides);
+  const pluginOverrides = resolveAllPackageRefs(
+    getPluginConfigOverrides(overrides?.plugins),
+  );
+  const externalPluginDeclarations = getExternalPluginDeclarations(
+    overrides?.plugins,
+  );
+  const effectiveModel = overrides?.model ?? definition.model;
+  const webserverEnabled = hasActiveInterface(
+    definition,
+    activeIds,
+    "webserver",
+  );
+  const siteBuilderEnabled = hasActiveCapability(
+    definition,
+    activeIds,
+    "site-builder",
+  );
+
+  const site: SitePackage | undefined = resolveSitePackage(
+    definition,
+    overrides,
+  );
+  const theme = resolveTheme(definition, overrides);
+
+  applyPluginDefaults(pluginOverrides, {
+    webserverEnabled,
+    siteBuilderEnabled,
+    site,
+    theme,
+  });
+
+  // Instantiate capabilities — each plugin gets only its own
+  // matching override (by plugin ID), never other plugins' overrides.
+  const capabilities: Plugin[] = [
+    ...instantiateSitePlugin(site, overrides, activeIds),
+    ...instantiateCapabilities(
+      definition,
+      env,
+      activeIds,
+      pluginOverrides,
+      logger,
+    ),
+    ...instantiateExternalPlugins(externalPluginDeclarations, overrides),
+  ];
+
+  const interfaces = instantiateInterfaces(
+    definition,
+    env,
+    activeIds,
+    pluginOverrides,
+    logger,
+  );
+
+  const identity = buildIdentity(definition);
+  const deployment = buildDeployment(definition, overrides);
+
+  // Build the app config
+  const appConfig: AppConfig = {
+    name: overrides?.name ?? definition.name,
+    version: definition.version,
+    plugins: [...capabilities, ...interfaces],
+
+    // AI config from environment + brain/instance model
+    ...resolveAIConfig(
+      env,
+      effectiveModel ? { model: effectiveModel } : undefined,
+    ),
+
+    // Optional fields
+    ...(identity && { identity }),
+    ...buildPermissions(definition.permissions, overrides),
+    deployment,
+    ...buildRuntimeOverrides(env, overrides),
+  };
+
+  // Merge any extra config (escape hatch)
+  applyExtraConfig(appConfig, definition);
+  applySiteEntityDisplay(appConfig, site);
 
   return defineConfig(appConfig);
 }
@@ -375,20 +511,25 @@ export function isScopedPackageRef(value: string): boolean {
  * Resolve scoped package references in a config object.
  * Looks up values in the package registry (populated before resolve() is called).
  */
+function isRegisteredScopedPackageRef(value: unknown): value is string {
+  return (
+    typeof value === "string" && isScopedPackageRef(value) && hasPackage(value)
+  );
+}
+
+function resolvePackageRefValue(value: unknown): unknown {
+  return isRegisteredScopedPackageRef(value) ? getPackage(value) : value;
+}
+
 function resolvePackageRefs(
   config: Record<string, unknown>,
 ): Record<string, unknown> {
-  const resolved = { ...config };
-  for (const [key, value] of Object.entries(resolved)) {
-    if (
-      typeof value === "string" &&
-      isScopedPackageRef(value) &&
-      hasPackage(value)
-    ) {
-      resolved[key] = getPackage(value);
-    }
-  }
-  return resolved;
+  return Object.fromEntries(
+    Object.entries(config).map(([key, value]) => [
+      key,
+      resolvePackageRefValue(value),
+    ]),
+  );
 }
 
 /**
@@ -397,25 +538,28 @@ function resolvePackageRefs(
 function resolveAllPackageRefs(
   pluginOverrides: Record<string, Record<string, unknown>>,
 ): Record<string, Record<string, unknown>> {
-  const resolved: Record<string, Record<string, unknown>> = {};
-  for (const [pluginId, config] of Object.entries(pluginOverrides)) {
-    resolved[pluginId] = resolvePackageRefs(config);
-  }
-  return resolved;
+  return Object.fromEntries(
+    Object.entries(pluginOverrides).map(([pluginId, config]) => [
+      pluginId,
+      resolvePackageRefs(config),
+    ]),
+  );
 }
 
-function resolveExternalPluginFactory(
+function getRegisteredExternalPluginPackage(
   pluginId: string,
-  declaration: ExternalPluginDeclaration,
-): PluginFactory {
-  const packageName = declaration.package;
+  packageName: string,
+): unknown {
   if (!hasPackage(packageName)) {
     throw new Error(
       `External plugin package "${packageName}" for plugins.${pluginId} is not registered. Install it and ensure it is imported before resolve().`,
     );
   }
 
-  const pkg = getPackage(packageName);
+  return getPackage(packageName);
+}
+
+function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
   if (typeof pkg === "function") {
     return pkg as PluginFactory;
   }
@@ -425,6 +569,21 @@ function resolveExternalPluginFactory(
     if (typeof namedPlugin === "function") {
       return namedPlugin as PluginFactory;
     }
+  }
+
+  return undefined;
+}
+
+function resolveExternalPluginFactory(
+  pluginId: string,
+  declaration: ExternalPluginDeclaration,
+): PluginFactory {
+  const packageName = declaration.package;
+  const pkg = getRegisteredExternalPluginPackage(pluginId, packageName);
+  const factory = pluginFactoryFromPackage(pkg);
+
+  if (factory) {
+    return factory;
   }
 
   throw new Error(
@@ -459,47 +618,78 @@ const sitePackageOverridesSchema = z
   })
   .passthrough();
 
+function applySitePluginConfig(
+  site: SitePackage,
+  pluginConfig: Record<string, unknown> | undefined,
+): SitePackage {
+  if (!pluginConfig) return site;
+
+  return {
+    ...site,
+    plugin: (config?: Record<string, unknown>) =>
+      site.plugin({
+        ...pluginConfig,
+        ...(config ?? {}),
+      }),
+  };
+}
+
+function resolveConventionalSitePackage(
+  pkg: unknown,
+  definition: BrainDefinition,
+): SitePackage | undefined {
+  if (!definition.site) return undefined;
+
+  const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
+  if (!parsedOverrides.success) return undefined;
+
+  const conventionalOverrides =
+    parsedOverrides.data as unknown as ConventionalSiteOverrides;
+  const { pluginConfig, ...siteOverrides } = conventionalOverrides;
+  const siteWithStructure = extendSite(
+    definition.site,
+    siteOverrides as SitePackageOverrides,
+  );
+
+  return applySitePluginConfig(siteWithStructure, pluginConfig);
+}
+
+function resolveRegisteredSitePackage(
+  pkgRef: string,
+  pkg: unknown,
+  definition: BrainDefinition,
+): SitePackage | undefined {
+  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
+  if (parsedSitePackage.success) {
+    return parsedSitePackage.data;
+  }
+
+  if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF) {
+    return resolveConventionalSitePackage(pkg, definition);
+  }
+
+  return undefined;
+}
+
 function resolveSitePackage(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
-  if (pkgRef && hasPackage(pkgRef)) {
-    const pkg = getPackage(pkgRef);
-    const parsedSitePackage = sitePackageSchema.safeParse(pkg);
-    if (parsedSitePackage.success) {
-      return parsedSitePackage.data;
-    }
-
-    if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF && definition.site) {
-      const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
-      if (parsedOverrides.success) {
-        const conventionalOverrides =
-          parsedOverrides.data as unknown as ConventionalSiteOverrides;
-        const { pluginConfig, ...siteOverrides } = conventionalOverrides;
-        const siteWithStructure = extendSite(
-          definition.site,
-          siteOverrides as SitePackageOverrides,
-        );
-
-        if (!pluginConfig) {
-          return siteWithStructure;
-        }
-
-        return {
-          ...siteWithStructure,
-          plugin: (config?: Record<string, unknown>) =>
-            siteWithStructure.plugin({
-              ...pluginConfig,
-              ...(config ?? {}),
-            }),
-        };
-      }
-    }
-
-    throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
+  if (!pkgRef || !hasPackage(pkgRef)) {
+    return definition.site;
   }
-  return definition.site;
+
+  const sitePackage = resolveRegisteredSitePackage(
+    pkgRef,
+    getPackage(pkgRef),
+    definition,
+  );
+  if (sitePackage) {
+    return sitePackage;
+  }
+
+  throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
 }
 
 function resolveThemeCssRef(refOrCss: string): string {

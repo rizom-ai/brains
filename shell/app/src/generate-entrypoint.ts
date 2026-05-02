@@ -6,6 +6,7 @@ import {
   CONVENTIONAL_SITE_PACKAGE_REF,
   CONVENTIONAL_THEME_PACKAGE_REF,
   parseInstanceOverrides,
+  type InstanceOverrides,
 } from "./instance-overrides";
 
 /**
@@ -24,33 +25,16 @@ export function generateModelEntrypoint(
   extraPackages: string[],
 ): string {
   const extras = extraPackages.filter((pkg) => pkg !== brainPackage);
+  const packageRefs = buildPackageRefLines(extras);
+  const appImports = buildAppImports({ hasRefs: extras.length > 0 });
 
-  const packageImportLines = extras.map(
-    (pkg, i) => `import * as __pkg${i} from "${pkg}";`,
-  );
-
-  const registrationLines = extras.map(
-    (pkg, i) => `registerPackage("${pkg}", __pkg${i}.default ?? __pkg${i});`,
-  );
-
-  const hasRefs = extras.length > 0;
-
-  return [
-    `import definition from "${brainPackage}";`,
-    `import { resolve, handleCLI, parseInstanceOverrides } from "@brains/app";`,
-    ...(hasRefs ? [`import { registerPackage } from "@brains/app";`] : []),
-    `import { readFileSync } from "fs";`,
-    `import { join } from "path";`,
-    ...packageImportLines,
-    "",
-    ...registrationLines,
-    "",
-    `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
-    `const overrides = parseInstanceOverrides(yaml);`,
-    `const config = resolve(definition, process.env, overrides);`,
-    `await handleCLI(config);`,
-    "",
-  ].join("\n");
+  return buildEntrypointSource({
+    brainPackage,
+    appImports,
+    packageImportLines: packageRefs.importLines,
+    registrationLines: packageRefs.registrationLines,
+    configOverridesVariable: "overrides",
+  });
 }
 
 export interface GenerateEntrypointOptions {
@@ -60,6 +44,139 @@ export interface GenerateEntrypointOptions {
 function toImportPath(fromDir: string, filePath: string): string {
   const normalized = relative(fromDir, filePath).split(sep).join("/");
   return normalized.startsWith(".") ? normalized : `./${normalized}`;
+}
+
+function normalizeBrainPackage(rawBrain: string): string {
+  return rawBrain.startsWith("@") ? rawBrain : `@brains/${rawBrain}`;
+}
+
+function packageImportLine(pkg: string, index: number): string {
+  return `import * as __pkg${index} from "${pkg}";`;
+}
+
+function packageRegistrationLine(pkg: string, index: number): string {
+  return `registerPackage("${pkg}", __pkg${index}.default ?? __pkg${index});`;
+}
+
+function buildPackageRefLines(packageRefs: string[]): {
+  importLines: string[];
+  registrationLines: string[];
+} {
+  return {
+    importLines: packageRefs.map(packageImportLine),
+    registrationLines: packageRefs.map(packageRegistrationLine),
+  };
+}
+
+function buildAppImports(options: {
+  hasRefs: boolean;
+  hasConventions?: boolean;
+}): string[] {
+  const appImports = ["resolve", "handleCLI", "parseInstanceOverrides"];
+
+  if (options.hasRefs) {
+    appImports.push("registerPackage");
+  }
+  if (options.hasConventions) {
+    appImports.push("applyConventionalSiteRefs");
+  }
+
+  return appImports;
+}
+
+interface EntrypointSourceOptions {
+  brainPackage: string;
+  appImports: string[];
+  packageImportLines: string[];
+  registrationLines: string[];
+  configOverridesVariable: string;
+  effectiveOverridesLine?: string;
+}
+
+function buildEntrypointSource(options: EntrypointSourceOptions): string {
+  return [
+    `import definition from "${options.brainPackage}";`,
+    `import { ${options.appImports.join(", ")} } from "@brains/app";`,
+    `import { readFileSync } from "fs";`,
+    `import { join } from "path";`,
+    ...options.packageImportLines,
+    "",
+    ...options.registrationLines,
+    "",
+    `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
+    `const overrides = parseInstanceOverrides(yaml);`,
+    ...(options.effectiveOverridesLine ? [options.effectiveOverridesLine] : []),
+    `const config = resolve(definition, process.env, ${options.configOverridesVariable});`,
+    `await handleCLI(config);`,
+    "",
+  ].join("\n");
+}
+
+interface ConventionalEntrypointParts {
+  imports: string[];
+  registrations: string[];
+  args: string[];
+}
+
+function collectConventionalEntrypointParts(
+  cwd: string | undefined,
+  overrides: InstanceOverrides,
+  startIndex: number,
+): ConventionalEntrypointParts {
+  const parts: ConventionalEntrypointParts = {
+    imports: [],
+    registrations: [],
+    args: [],
+  };
+
+  if (!cwd) return parts;
+
+  let importIndex = startIndex;
+  const addConvention = (options: {
+    packageRef: string;
+    importLine: string;
+    arg: string;
+  }): void => {
+    parts.imports.push(options.importLine);
+    parts.registrations.push(
+      `registerPackage("${options.packageRef}", __pkg${importIndex});`,
+    );
+    parts.args.push(options.arg);
+    importIndex += 1;
+  };
+
+  const sitePath = `${cwd}/src/site.ts`;
+  if (!overrides.site?.package && existsSync(sitePath)) {
+    addConvention({
+      packageRef: CONVENTIONAL_SITE_PACKAGE_REF,
+      importLine: `import __pkg${importIndex} from "${toImportPath(cwd, sitePath)}";`,
+      arg: `sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
+    });
+  }
+
+  const themePath = `${cwd}/src/theme.css`;
+  if (!overrides.site?.themeOverride && existsSync(themePath)) {
+    addConvention({
+      packageRef: CONVENTIONAL_THEME_PACKAGE_REF,
+      importLine: `import __pkg${importIndex} from "${toImportPath(cwd, themePath)}" with { type: "text" };`,
+      arg: `themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
+    });
+  }
+
+  const siteContentPath = `${cwd}/src/site-content.ts`;
+  const siteContentConfig = overrides.plugins?.["site-content"];
+  if (
+    siteContentConfig?.["definitions"] === undefined &&
+    existsSync(siteContentPath)
+  ) {
+    addConvention({
+      packageRef: CONVENTIONAL_SITE_CONTENT_PACKAGE_REF,
+      importLine: `import __pkg${importIndex} from "${toImportPath(cwd, siteContentPath)}";`,
+      arg: `siteContentDefinitionsRef: "${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}"`,
+    });
+  }
+
+  return parts;
 }
 
 /**
@@ -94,106 +211,35 @@ export function generateEntrypoint(
   if (typeof rawBrain !== "string") return null;
 
   // Normalize short names: "rover" → "@brains/rover"
-  const brainPackage = rawBrain.startsWith("@")
-    ? rawBrain
-    : `@brains/${rawBrain}`;
-
+  const brainPackage = normalizeBrainPackage(rawBrain);
   const extraImports = collectOverridePackageRefs(overrides).filter(
     (ref) => ref !== brainPackage,
   );
-
-  const packageImportLines = extraImports.map(
-    (pkg, i) => `import * as __pkg${i} from "${pkg}";`,
+  const packageRefs = buildPackageRefLines(extraImports);
+  const conventions = collectConventionalEntrypointParts(
+    options.cwd,
+    overrides,
+    extraImports.length,
   );
-  const registrationLines = extraImports.map(
-    (pkg, i) => `registerPackage("${pkg}", __pkg${i}.default ?? __pkg${i});`,
-  );
+  const hasConventions = conventions.args.length > 0;
+  const appImports = buildAppImports({
+    hasRefs: extraImports.length > 0 || conventions.registrations.length > 0,
+    hasConventions,
+  });
 
-  const conventionalImports: string[] = [];
-  const conventionalRegistrations: string[] = [];
-  const conventionalArgs: string[] = [];
-  let importIndex = extraImports.length;
-
-  if (options.cwd) {
-    const sitePath = `${options.cwd}/src/site.ts`;
-    if (!overrides.site?.package && existsSync(sitePath)) {
-      conventionalImports.push(
-        `import __pkg${importIndex} from "${toImportPath(options.cwd, sitePath)}";`,
-      );
-      conventionalRegistrations.push(
-        `registerPackage("${CONVENTIONAL_SITE_PACKAGE_REF}", __pkg${importIndex});`,
-      );
-      conventionalArgs.push(
-        `sitePackageRef: "${CONVENTIONAL_SITE_PACKAGE_REF}"`,
-      );
-      importIndex += 1;
-    }
-
-    const themePath = `${options.cwd}/src/theme.css`;
-    if (!overrides.site?.themeOverride && existsSync(themePath)) {
-      conventionalImports.push(
-        `import __pkg${importIndex} from "${toImportPath(options.cwd, themePath)}" with { type: "text" };`,
-      );
-      conventionalRegistrations.push(
-        `registerPackage("${CONVENTIONAL_THEME_PACKAGE_REF}", __pkg${importIndex});`,
-      );
-      conventionalArgs.push(
-        `themeOverrideRef: "${CONVENTIONAL_THEME_PACKAGE_REF}"`,
-      );
-      importIndex += 1;
-    }
-
-    const siteContentPath = `${options.cwd}/src/site-content.ts`;
-    const siteContentConfig = overrides.plugins?.["site-content"];
-    if (
-      siteContentConfig?.["definitions"] === undefined &&
-      existsSync(siteContentPath)
-    ) {
-      conventionalImports.push(
-        `import __pkg${importIndex} from "${toImportPath(options.cwd, siteContentPath)}";`,
-      );
-      conventionalRegistrations.push(
-        `registerPackage("${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}", __pkg${importIndex});`,
-      );
-      conventionalArgs.push(
-        `siteContentDefinitionsRef: "${CONVENTIONAL_SITE_CONTENT_PACKAGE_REF}"`,
-      );
-      importIndex += 1;
-    }
-  }
-
-  const hasRefs =
-    extraImports.length > 0 || conventionalRegistrations.length > 0;
-  const hasConventions = conventionalArgs.length > 0;
-  const appImports = ["resolve", "handleCLI", "parseInstanceOverrides"];
-
-  if (hasRefs) {
-    appImports.push("registerPackage");
-  }
-  if (hasConventions) {
-    appImports.push("applyConventionalSiteRefs");
-  }
-
-  return [
-    `import definition from "${brainPackage}";`,
-    `import { ${appImports.join(", ")} } from "@brains/app";`,
-    `import { readFileSync } from "fs";`,
-    `import { join } from "path";`,
-    ...packageImportLines,
-    ...conventionalImports,
-    "",
-    ...registrationLines,
-    ...conventionalRegistrations,
-    "",
-    `const yaml = readFileSync(join(process.cwd(), "brain.yaml"), "utf-8");`,
-    `const overrides = parseInstanceOverrides(yaml);`,
-    ...(hasConventions
-      ? [
-          `const effectiveOverrides = applyConventionalSiteRefs(overrides, { ${conventionalArgs.join(", ")} });`,
-        ]
-      : []),
-    `const config = resolve(definition, process.env, ${hasConventions ? "effectiveOverrides" : "overrides"});`,
-    `await handleCLI(config);`,
-    "",
-  ].join("\n");
+  return buildEntrypointSource({
+    brainPackage,
+    appImports,
+    packageImportLines: [...packageRefs.importLines, ...conventions.imports],
+    registrationLines: [
+      ...packageRefs.registrationLines,
+      ...conventions.registrations,
+    ],
+    configOverridesVariable: hasConventions
+      ? "effectiveOverrides"
+      : "overrides",
+    ...(hasConventions && {
+      effectiveOverridesLine: `const effectiveOverrides = applyConventionalSiteRefs(overrides, { ${conventions.args.join(", ")} });`,
+    }),
+  });
 }

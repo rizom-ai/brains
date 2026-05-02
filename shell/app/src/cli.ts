@@ -5,6 +5,108 @@ interface AppFactory {
   create: typeof AppClass.create;
 }
 
+type InitializeOptions = Parameters<
+  ReturnType<typeof AppClass.create>["initialize"]
+>[0];
+
+type CliToolResult =
+  | { needsConfirmation: true; description: string }
+  | { success: false; error: string }
+  | { success: true; message?: string | undefined; data?: unknown };
+
+function getArgValue(args: string[], flag: string): string | undefined {
+  const flagIdx = args.indexOf(flag);
+  return flagIdx !== -1 ? args[flagIdx + 1] : undefined;
+}
+
+function requireArgValue(
+  args: string[],
+  flag: string,
+  message: string,
+): string {
+  const value = getArgValue(args, flag);
+  if (value === undefined) {
+    console.error(message);
+    process.exit(1);
+  }
+  return value;
+}
+
+function parseJsonFlag<T>(args: string[], flag: string, defaultValue: T): T {
+  const value = getArgValue(args, flag);
+  return value ? (JSON.parse(value) as T) : defaultValue;
+}
+
+function createHeadlessConfig(config: AppConfig): AppConfig {
+  return {
+    ...config,
+    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
+  };
+}
+
+async function routeLogsToStderr(): Promise<void> {
+  const { Logger } = await import("@brains/utils");
+  Logger.getInstance().setUseStderr(true);
+}
+
+async function initializeHeadlessApp(
+  config: AppConfig,
+  App: AppFactory,
+  options?: InitializeOptions,
+): Promise<ReturnType<typeof AppClass.create>> {
+  await routeLogsToStderr();
+
+  const app = App.create(createHeadlessConfig(config));
+  await app.initialize(options);
+  return app;
+}
+
+function printToolResult(result: CliToolResult): void {
+  if ("needsConfirmation" in result) {
+    console.log(`Confirmation needed: ${result.description}`);
+    process.exit(0);
+  }
+
+  if (!result.success) {
+    console.error(`❌ ${result.error}`);
+    process.exit(1);
+  }
+
+  if (result.message) {
+    console.log(result.message);
+  }
+  if (result.data !== undefined) {
+    console.log(
+      typeof result.data === "string"
+        ? result.data
+        : JSON.stringify(result.data, null, 2),
+    );
+  }
+}
+
+async function invokeCliTool(
+  handler: (
+    input: unknown,
+    context: { interfaceType: string; userId: string },
+  ) => Promise<CliToolResult>,
+  input: unknown,
+  failureLabel: string,
+): Promise<void> {
+  try {
+    const result = await handler(input, {
+      interfaceType: "cli",
+      userId: "cli-anchor",
+    });
+    printToolResult(result);
+  } catch (error) {
+    console.error(
+      `❌ ${failureLabel} failed:`,
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  }
+}
+
 /**
  * Export deployment config as JSON for shell scripts
  * This is used by deploy scripts to extract config without starting the app
@@ -120,17 +222,7 @@ async function listCliCommands(
   config: AppConfig,
   App: AppFactory,
 ): Promise<void> {
-  // Force all logging to stderr so stdout is clean for command listing
-  const { Logger } = await import("@brains/utils");
-  Logger.getInstance().setUseStderr(true);
-
-  const headlessConfig: AppConfig = {
-    ...config,
-    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
-  };
-
-  const app = App.create(headlessConfig);
-  await app.initialize({ registerOnly: true });
+  const app = await initializeHeadlessApp(config, App, { registerOnly: true });
 
   const cliTools = app.getShell().getMCPService().getCliTools();
   for (const { tool } of cliTools) {
@@ -154,38 +246,20 @@ async function runCliCommand(
   args: string[],
   App: AppFactory,
 ): Promise<void> {
-  // Force all logging to stderr so stdout is clean for command output
-  const { Logger } = await import("@brains/utils");
-  Logger.getInstance().setUseStderr(true);
+  const commandName = requireArgValue(
+    args,
+    "--cli-command",
+    "❌ --cli-command requires a command name",
+  );
+  const cliArgs = parseJsonFlag<string[]>(args, "--cli-args", []);
+  const cliFlags = parseJsonFlag<Record<string, unknown>>(
+    args,
+    "--cli-flags",
+    {},
+  );
 
-  const cmdIdx = args.indexOf("--cli-command");
-  const commandName = args[cmdIdx + 1];
-  if (commandName === undefined) {
-    console.error("❌ --cli-command requires a command name");
-    process.exit(1);
-  }
-
-  const argsIdx = args.indexOf("--cli-args");
-  const argsJson = argsIdx !== -1 ? args[argsIdx + 1] : undefined;
-  const cliArgs: string[] = argsJson ? (JSON.parse(argsJson) as string[]) : [];
-
-  const flagsIdx = args.indexOf("--cli-flags");
-  const flagsJson = flagsIdx !== -1 ? args[flagsIdx + 1] : undefined;
-  const cliFlags: Record<string, unknown> = flagsJson
-    ? (JSON.parse(flagsJson) as Record<string, unknown>)
-    : {};
-
-  // Boot headless (no interfaces)
-  const headlessConfig: AppConfig = {
-    ...config,
-    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
-  };
-
-  const app = App.create(headlessConfig);
-  await app.initialize();
-
-  const shell = app.getShell();
-  const cliTools = shell.getMCPService().getCliTools();
+  const app = await initializeHeadlessApp(config, App);
+  const cliTools = app.getShell().getMCPService().getCliTools();
   const match = cliTools.find((t) => t.tool.cli?.name === commandName);
 
   if (!match?.tool.cli) {
@@ -200,40 +274,7 @@ async function runCliCommand(
 
   const { mapArgsToInput } = await import("@brains/mcp-service");
   const toolInput = mapArgsToInput(match.tool.inputSchema, cliArgs, cliFlags);
-
-  try {
-    const result = await match.tool.handler(toolInput, {
-      interfaceType: "cli",
-      userId: "cli-anchor",
-    });
-
-    if ("needsConfirmation" in result) {
-      console.log(`Confirmation needed: ${result.description}`);
-      process.exit(0);
-    }
-
-    if (!result.success) {
-      console.error(`❌ ${result.error}`);
-      process.exit(1);
-    }
-
-    if (result.message) {
-      console.log(result.message);
-    }
-    if (result.data !== undefined) {
-      console.log(
-        typeof result.data === "string"
-          ? result.data
-          : JSON.stringify(result.data, null, 2),
-      );
-    }
-  } catch (error) {
-    console.error(
-      `❌ Command ${commandName} failed:`,
-      error instanceof Error ? error.message : error,
-    );
-    process.exit(1);
-  }
+  await invokeCliTool(match.tool.handler, toolInput, `Command ${commandName}`);
 
   process.exit(0);
 }
@@ -250,41 +291,26 @@ async function runTool(
   args: string[],
   App: AppFactory,
 ): Promise<void> {
-  // Force all logging to stderr so stdout is clean for tool output
-  const { Logger } = await import("@brains/utils");
-  Logger.getInstance().setUseStderr(true);
+  const toolName = requireArgValue(
+    args,
+    "--tool",
+    "❌ --tool requires a tool name",
+  );
 
-  const toolIdx = args.indexOf("--tool");
-  const toolName: string | undefined = args[toolIdx + 1];
-  if (toolName === undefined) {
-    console.error("❌ --tool requires a tool name");
+  let toolInput: Record<string, unknown> = {};
+  try {
+    toolInput = parseJsonFlag<Record<string, unknown>>(
+      args,
+      "--tool-input",
+      {},
+    );
+  } catch {
+    console.error("❌ --tool-input must be valid JSON");
     process.exit(1);
   }
 
-  const inputIdx = args.indexOf("--tool-input");
-  const inputJson = inputIdx !== -1 ? args[inputIdx + 1] : undefined;
-  let toolInput: Record<string, unknown> = {};
-  if (inputJson) {
-    try {
-      toolInput = JSON.parse(inputJson) as Record<string, unknown>;
-    } catch {
-      console.error("❌ --tool-input must be valid JSON");
-      process.exit(1);
-    }
-  }
-
-  // Strip all interfaces from config to prevent daemons from starting
-  const headlessConfig: AppConfig = {
-    ...config,
-    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
-  };
-
-  const app = App.create(headlessConfig);
-  await app.initialize();
-
-  const shell = app.getShell();
-  const mcpService = shell.getMCPService();
-  const tools = mcpService.listTools();
+  const app = await initializeHeadlessApp(config, App);
+  const tools = app.getShell().getMCPService().listTools();
   const match = tools.find((t) => t.tool.name === toolName);
 
   if (!match) {
@@ -295,40 +321,7 @@ async function runTool(
     process.exit(1);
   }
 
-  try {
-    const result = await match.tool.handler(toolInput, {
-      interfaceType: "cli",
-      userId: "cli-anchor",
-    });
-
-    if ("needsConfirmation" in result) {
-      console.log(`Confirmation needed: ${result.description}`);
-      process.exit(0);
-    }
-
-    if (!result.success) {
-      console.error(`❌ ${result.error}`);
-      process.exit(1);
-    }
-
-    // Print data as formatted JSON or message
-    if (result.message) {
-      console.log(result.message);
-    }
-    if (result.data !== undefined) {
-      console.log(
-        typeof result.data === "string"
-          ? result.data
-          : JSON.stringify(result.data, null, 2),
-      );
-    }
-  } catch (error) {
-    console.error(
-      `❌ Tool ${toolName} failed:`,
-      error instanceof Error ? error.message : error,
-    );
-    process.exit(1);
-  }
+  await invokeCliTool(match.tool.handler, toolInput, `Tool ${toolName}`);
 
   process.exit(0);
 }
@@ -360,12 +353,7 @@ async function runDiagnostics(
 
   // Boot in registerOnly mode — no daemons, no sync, no builds.
   // We only need access to the existing entity + embedding data.
-  const headlessConfig: AppConfig = {
-    ...config,
-    plugins: (config.plugins ?? []).filter((p) => p.type !== "interface"),
-  };
-
-  const app = App.create(headlessConfig);
+  const app = App.create(createHeadlessConfig(config));
   await app.initialize({ registerOnly: true });
 
   const shell = app.getShell();
