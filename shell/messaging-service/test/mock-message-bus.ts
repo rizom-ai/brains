@@ -1,0 +1,41 @@
+import { mock } from "bun:test";
+import type { MessageBus, MessageResponse } from "../src";
+
+/**
+ * Options for configuring mock message bus return values.
+ */
+export interface MockMessageBusReturns {
+  send?: MessageResponse;
+  hasHandlers?: boolean;
+  getHandlerCount?: number;
+  getTargetedHandlerCount?: number;
+}
+
+/**
+ * Options for creating a mock message bus.
+ */
+export interface MockMessageBusOptions {
+  returns?: MockMessageBusReturns;
+}
+
+/**
+ * Create a mock message bus with all methods pre-configured.
+ */
+export function createMockMessageBus(
+  options: MockMessageBusOptions = {},
+): MessageBus {
+  const { returns = {} } = options;
+  const defaultSendResult = returns.send ?? { success: true };
+
+  return {
+    subscribe: mock(() => mock(() => {})),
+    unsubscribe: mock(() => {}),
+    send: mock(() => Promise.resolve(defaultSendResult)),
+    hasHandlers: mock(() => returns.hasHandlers ?? false),
+    clearHandlers: mock(() => {}),
+    clearAllHandlers: mock(() => {}),
+    getHandlerCount: mock(() => returns.getHandlerCount ?? 0),
+    getTargetedHandlerCount: mock(() => returns.getTargetedHandlerCount ?? 0),
+    validateMessage: mock(() => ({ valid: true, data: {} })),
+  } as unknown as MessageBus;
+}

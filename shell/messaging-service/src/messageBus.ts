@@ -14,9 +14,10 @@ type WrappedHandler = (
   message: MessageWithPayload<unknown>,
 ) => Promise<InternalMessageResponse | null>;
 
-// Handler entry with filter
+// Handler entry with original handler reference for exact unsubscription
 interface HandlerEntry {
   handler: WrappedHandler;
+  originalHandler: unknown;
   filter?: SubscriptionFilter;
 }
 
@@ -68,67 +69,17 @@ export class MessageBus implements IMessageBus {
     handler: MessageHandler<T, R>,
     filter?: SubscriptionFilter,
   ): () => void {
-    const wrappedHandler: WrappedHandler = async (
-      message: MessageWithPayload<unknown>,
-    ): Promise<InternalMessageResponse | null> => {
-      // Cast the message to the expected type for this specific handler
-      const typedMessage = message as MessageWithPayload<T>;
-      const result = await handler(typedMessage);
+    const entry = this.createHandlerEntry(handler, filter);
+    this.getOrCreateHandlers(type).add(entry);
 
-      // Handle noop responses for broadcast events
-      if ("noop" in result) {
-        return {
-          id: `resp-${Date.now()}`,
-          requestId: message.id,
-          timestamp: new Date().toISOString(),
-          success: true,
-          data: undefined,
-          error: undefined,
-        };
-      }
-
-      // Type guard: if we get here, result must have success/data/error properties
-      if ("success" in result) {
-        return {
-          id: `resp-${Date.now()}`,
-          requestId: message.id,
-          timestamp: new Date().toISOString(),
-          success: result.success,
-          data: result.data,
-          error: result.error ? { message: result.error } : undefined,
-        };
-      }
-
-      // This should never happen, but TypeScript needs it
-      throw new Error("Invalid message response format");
-    };
-
-    const entry: HandlerEntry = filter
-      ? { handler: wrappedHandler, filter }
-      : { handler: wrappedHandler };
-
-    if (!this.handlers.has(type)) {
-      this.handlers.set(type, new Set());
-    }
-
-    const handlers = this.handlers.get(type);
-    if (handlers) {
-      handlers.add(entry);
-    }
     this.logger.debug(`Registered handler for message type: ${type}`, {
       hasFilter: !!filter,
       filterTarget: filter?.target,
     });
 
-    // Return unsubscribe function for this specific handler
+    // Return unsubscribe function for this specific subscription
     return () => {
-      const handlers = this.handlers.get(type);
-      if (handlers) {
-        handlers.delete(entry);
-        if (handlers.size === 0) {
-          this.handlers.delete(type);
-        }
-      }
+      this.removeHandlerEntry(type, entry);
     };
   }
 
@@ -143,16 +94,7 @@ export class MessageBus implements IMessageBus {
     metadata?: Record<string, unknown>,
     broadcast?: boolean,
   ): Promise<MessageResponse<R>> {
-    const message: MessageWithPayload<T> = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      type,
-      timestamp: new Date().toISOString(),
-      source: sender,
-      target,
-      metadata,
-      payload,
-    };
-
+    const message = this.createMessage(type, payload, sender, target, metadata);
     const response = await this.publish(message, broadcast);
 
     // Handle successful response
@@ -188,7 +130,7 @@ export class MessageBus implements IMessageBus {
     }
 
     const { type } = message;
-    const handlers = this.handlers.get(type) ?? new Set();
+    const handlers = this.handlers.get(type);
 
     this.logger.debug(`Publishing message of type: ${type}`, {
       source: message.source,
@@ -197,7 +139,7 @@ export class MessageBus implements IMessageBus {
     });
 
     // If no handlers, log warning and return null
-    if (handlers.size === 0) {
+    if (!handlers || handlers.size === 0) {
       this.logger.debug(`No handlers found for message type: ${type}`);
       return null;
     }
@@ -215,33 +157,156 @@ export class MessageBus implements IMessageBus {
       return null;
     }
 
-    // Check if this is a broadcast message
-    const isBroadcast = broadcast === true;
+    return broadcast === true
+      ? this.publishBroadcast(message, matchingHandlers)
+      : this.publishRequest(message, matchingHandlers);
+  }
 
-    if (isBroadcast) {
-      // For broadcast messages, call ALL matching handlers regardless of responses
-      for (const entry of matchingHandlers) {
-        try {
-          await entry.handler(message);
-        } catch (error) {
-          this.logger.error(`Error in message handler for ${type}`, error);
-        }
+  private async publishBroadcast(
+    message: MessageWithPayload<unknown>,
+    handlers: HandlerEntry[],
+  ): Promise<null> {
+    // For broadcast messages, call ALL matching handlers regardless of responses
+    for (const entry of handlers) {
+      try {
+        await entry.handler(message);
+      } catch (error) {
+        this.logger.error(
+          `Error in message handler for ${message.type}`,
+          error,
+        );
       }
-      return null; // Broadcast messages don't return responses
-    } else {
-      // For regular messages, call handlers until one returns a response
-      for (const entry of matchingHandlers) {
-        try {
-          const response = await entry.handler(message);
-          if (response) {
-            return response;
-          }
-        } catch (error) {
-          this.logger.error(`Error in message handler for ${type}`, error);
-        }
-      }
-      return null;
     }
+    return null; // Broadcast messages don't return responses
+  }
+
+  private async publishRequest(
+    message: MessageWithPayload<unknown>,
+    handlers: HandlerEntry[],
+  ): Promise<InternalMessageResponse | null> {
+    // For regular messages, call handlers until one returns a response
+    for (const entry of handlers) {
+      try {
+        const response = await entry.handler(message);
+        if (response) {
+          return response;
+        }
+      } catch (error) {
+        this.logger.error(
+          `Error in message handler for ${message.type}`,
+          error,
+        );
+      }
+    }
+    return null;
+  }
+
+  private createHandlerEntry<T, R>(
+    handler: MessageHandler<T, R>,
+    filter?: SubscriptionFilter,
+  ): HandlerEntry {
+    const entry = {
+      handler: this.wrapHandler(handler),
+      originalHandler: handler,
+    };
+
+    return filter ? { ...entry, filter } : entry;
+  }
+
+  private wrapHandler<T, R>(handler: MessageHandler<T, R>): WrappedHandler {
+    return async (message: MessageWithPayload<unknown>) => {
+      const typedMessage = message as MessageWithPayload<T>;
+      const result = await handler(typedMessage);
+      return this.toInternalResponse(message.id, result);
+    };
+  }
+
+  private toInternalResponse(
+    requestId: string,
+    result: MessageResponse<unknown>,
+  ): InternalMessageResponse {
+    // Handle noop responses for broadcast events
+    if ("noop" in result) {
+      return this.createInternalResponse(requestId, true);
+    }
+
+    // Type guard: if we get here, result must have success/data/error properties
+    if ("success" in result) {
+      return this.createInternalResponse(
+        requestId,
+        result.success,
+        result.data,
+        result.error,
+      );
+    }
+
+    throw new Error("Invalid message response format");
+  }
+
+  private createInternalResponse(
+    requestId: string,
+    success: boolean,
+    data?: unknown,
+    error?: string,
+  ): InternalMessageResponse {
+    return {
+      id: this.createResponseId(),
+      requestId,
+      timestamp: this.createTimestamp(),
+      success,
+      data,
+      error: error ? { message: error } : undefined,
+    };
+  }
+
+  private createMessage<T>(
+    type: string,
+    payload: T,
+    sender: string,
+    target?: string,
+    metadata?: Record<string, unknown>,
+  ): MessageWithPayload<T> {
+    return {
+      id: this.createMessageId(),
+      type,
+      timestamp: this.createTimestamp(),
+      source: sender,
+      target,
+      metadata,
+      payload,
+    };
+  }
+
+  private createMessageId(): string {
+    return `msg-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  }
+
+  private createResponseId(): string {
+    return `resp-${Date.now()}`;
+  }
+
+  private createTimestamp(): string {
+    return new Date().toISOString();
+  }
+
+  private getOrCreateHandlers(type: string): Set<HandlerEntry> {
+    let handlers = this.handlers.get(type);
+    if (!handlers) {
+      handlers = new Set();
+      this.handlers.set(type, handlers);
+    }
+    return handlers;
+  }
+
+  private removeHandlerEntry(type: string, entry: HandlerEntry): boolean {
+    const handlers = this.handlers.get(type);
+    if (!handlers) return false;
+
+    const removed = handlers.delete(entry);
+    if (handlers.size === 0) {
+      this.handlers.delete(type);
+    }
+    return removed;
   }
 
   /**
@@ -303,7 +368,10 @@ export class MessageBus implements IMessageBus {
     if (!value) return false;
 
     if (pattern instanceof RegExp) {
-      return pattern.test(value);
+      pattern.lastIndex = 0;
+      const matches = pattern.test(value);
+      pattern.lastIndex = 0;
+      return matches;
     }
 
     // Support simple wildcards for string patterns
@@ -352,11 +420,20 @@ export class MessageBus implements IMessageBus {
    */
   unsubscribe<T = unknown, R = unknown>(
     type: string,
-    _handler: MessageHandler<T, R>,
+    handler: MessageHandler<T, R>,
   ): void {
-    // Since we wrap handlers, we need to clear all handlers for this type
-    // This is a limitation of the current design
-    this.clearHandlers(type);
+    const handlers = this.handlers.get(type);
+    if (!handlers) return;
+
+    for (const entry of Array.from(handlers)) {
+      if (entry.originalHandler === handler) {
+        handlers.delete(entry);
+      }
+    }
+
+    if (handlers.size === 0) {
+      this.handlers.delete(type);
+    }
   }
 
   /**

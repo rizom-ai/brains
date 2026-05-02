@@ -44,6 +44,29 @@ describe("MessageBus", () => {
       expect(messageBus.hasHandlers("test.message")).toBe(false);
     });
 
+    it("should unsubscribe only the provided handler", async () => {
+      const handler1 = mock(() => ({ success: true, data: "handler1" }));
+      const handler2 = mock(() => ({ success: true, data: "handler2" }));
+
+      messageBus.subscribe("test.message", handler1);
+      messageBus.subscribe("test.message", handler2);
+
+      messageBus.unsubscribe("test.message", handler1);
+
+      expect(messageBus.getHandlerCount("test.message")).toBe(1);
+
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toBe("handler2");
+    });
+
     it("should clear all handlers for a message type", () => {
       const handler = mock(() => ({ success: true }));
 
@@ -373,6 +396,29 @@ describe("MessageBus", () => {
       );
       expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
+    });
+
+    it("should support stateful regex patterns across repeated matches", async () => {
+      const handler = mock(() => ({ success: true }));
+
+      messageBus.subscribe("test.message", handler, {
+        source: /^plugin:\w+$/g,
+      });
+
+      const result1 = await messageBus.send(
+        "test.message",
+        { content: "test" },
+        "plugin:note",
+      );
+      const result2 = await messageBus.send(
+        "test.message",
+        { content: "test" },
+        "plugin:note",
+      );
+
+      expect("success" in result1 && result1.success).toBe(true);
+      expect("success" in result2 && result2.success).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(2);
     });
 
     it("should support custom predicate filters", async () => {
