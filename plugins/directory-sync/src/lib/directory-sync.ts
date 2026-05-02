@@ -5,8 +5,6 @@ import type {
 } from "@brains/plugins";
 import type { BatchMetadata, BatchResult } from "./batch-operations";
 import type { Logger, ProgressReporter } from "@brains/utils";
-import { resolve, isAbsolute } from "path";
-import { mkdir } from "fs/promises";
 import type {
   DirectorySyncStatus,
   ExportResult,
@@ -23,6 +21,7 @@ import { runDirectorySync } from "./directory-sync-runner";
 import type { DirectoryBatchQueue } from "./directory-batch-queue";
 import { createDirectorySyncDependencies } from "./directory-dependencies";
 import { DirectoryOperationDeps } from "./directory-operation-deps";
+import { ensureSyncPath, resolveSyncPath } from "./directory-path";
 import { getDirectorySyncStatus } from "./directory-status";
 import { importEntities as runImport } from "./import-pipeline";
 import {
@@ -64,9 +63,7 @@ export class DirectorySync implements IDirectorySync {
     this.entityService = entityService;
     this.logger = logger.child("DirectorySync");
 
-    this.syncPath = isAbsolute(options.syncPath)
-      ? options.syncPath
-      : resolve(process.cwd(), options.syncPath);
+    this.syncPath = resolveSyncPath(options.syncPath);
 
     this.autoSync = options.autoSync ?? true;
     this.watchInterval = options.watchInterval ?? 5000;
@@ -117,7 +114,7 @@ export class DirectorySync implements IDirectorySync {
   }
 
   private async ensureSyncPath(): Promise<void> {
-    await mkdir(this.syncPath, { recursive: true });
+    await ensureSyncPath(this.syncPath);
   }
 
   setJobQueueCallback(callback: (job: JobRequest) => Promise<string>): void {
