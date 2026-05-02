@@ -5,24 +5,16 @@ import type { IGitSync, GitLogEntry } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
+import { getAuthenticatedGitUrl, resolveGitRemoteUrl } from "./git-options";
+import type { GitSyncOptions } from "./git-options";
 import { pullGitChanges } from "./git-pull";
 import type { PullResult } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
 import type { GitSyncStatus } from "./git-status";
 
+export type { GitSyncOptions } from "./git-options";
 export type { PullResult } from "./git-pull";
 export type { GitSyncStatus } from "./git-status";
-
-export interface GitSyncOptions {
-  logger: Logger;
-  dataDir: string;
-  repo?: string | undefined;
-  gitUrl?: string | undefined;
-  branch?: string | undefined;
-  authToken?: string | undefined;
-  authorName?: string | undefined;
-  authorEmail?: string | undefined;
-}
 
 /**
  * Pure git operations class — no messaging, no timers.
@@ -64,9 +56,7 @@ export class GitSync implements IGitSync {
   constructor(options: GitSyncOptions) {
     this.logger = options.logger;
     this.dataDir = options.dataDir;
-    this.remoteUrl =
-      options.gitUrl ??
-      (options.repo ? `https://github.com/${options.repo}.git` : "");
+    this.remoteUrl = resolveGitRemoteUrl(options);
     this.branch = options.branch ?? "main";
     this.authorName = options.authorName;
     this.authorEmail = options.authorEmail;
@@ -78,16 +68,6 @@ export class GitSync implements IGitSync {
     return this._git;
   }
 
-  private getAuthenticatedUrl(): string {
-    if (!this.authToken || !this.remoteUrl.startsWith("https://")) {
-      return this.remoteUrl;
-    }
-    const url = new URL(this.remoteUrl);
-    url.username = this.authToken;
-    url.password = "";
-    return url.toString();
-  }
-
   /**
    * Initialize git repository — clone, init, or update remote.
    */
@@ -96,7 +76,7 @@ export class GitSync implements IGitSync {
       logger: this.logger,
       dataDir: this.dataDir,
       remoteUrl: this.remoteUrl,
-      authenticatedUrl: this.getAuthenticatedUrl(),
+      authenticatedUrl: getAuthenticatedGitUrl(this.remoteUrl, this.authToken),
       branch: this.branch,
       authorName: this.authorName,
       authorEmail: this.authorEmail,
