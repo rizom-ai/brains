@@ -67,13 +67,6 @@ export {
   type MockTemplateRegistryReturns,
 } from "./mock-template-registry";
 
-// Message bus mocks
-export {
-  createMockMessageBus,
-  type MockMessageBusOptions,
-  type MockMessageBusReturns,
-} from "./mock-message-bus";
-
 // Batch job manager mocks
 export {
   createMockBatchJobManager,
