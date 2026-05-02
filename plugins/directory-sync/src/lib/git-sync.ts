@@ -5,6 +5,7 @@ import { join, basename } from "path";
 import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IGitSync, GitLogEntry } from "../types";
+import { getFileHistory, showFileAtCommit } from "./git-history";
 
 /**
  * Git sync status
@@ -395,47 +396,12 @@ export class GitSync implements IGitSync {
     }
   }
 
-  /**
-   * Get commit history for a specific file.
-   * Returns commits in reverse chronological order (newest first).
-   */
   async log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
-    try {
-      const args = ["log", "--format=%H%n%aI%n%s"];
-      if (limit) {
-        args.push(`-${limit}`);
-      }
-      args.push("--", filePath);
-
-      const result = await this.git.raw(args);
-      if (!result.trim()) return [];
-
-      const lines = result.trim().split("\n");
-      const entries: GitLogEntry[] = [];
-
-      // Every 3 lines is one commit: sha, date, message
-      for (let i = 0; i + 2 < lines.length; i += 3) {
-        const sha = lines[i];
-        const date = lines[i + 1];
-        const message = lines[i + 2];
-        if (sha && date && message !== undefined) {
-          entries.push({ sha, date, message });
-        }
-      }
-
-      return entries;
-    } catch {
-      // No commits for this file (or file never existed)
-      return [];
-    }
+    return getFileHistory(this.git, filePath, limit);
   }
 
-  /**
-   * Get file content at a specific commit.
-   * Throws if the sha or file path is invalid.
-   */
   async show(sha: string, filePath: string): Promise<string> {
-    return this.git.show([`${sha}:${filePath}`]);
+    return showFileAtCommit(this.git, sha, filePath);
   }
 
   cleanup(): void {
