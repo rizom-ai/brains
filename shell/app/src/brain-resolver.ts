@@ -288,6 +288,94 @@ function instantiateInterfaces(
   return interfaces;
 }
 
+function buildIdentity(
+  definition: BrainDefinition,
+): AppConfig["identity"] | undefined {
+  return definition.identity
+    ? {
+        name: definition.identity.characterName,
+        role: definition.identity.role,
+        purpose: definition.identity.purpose,
+        values: definition.identity.values,
+      }
+    : undefined;
+}
+
+function buildDeployment(
+  definition: BrainDefinition,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): DeploymentConfigInput {
+  const deployment: DeploymentConfigInput = {
+    ...(definition.deployment ?? {}),
+  };
+
+  if (overrides?.domain) {
+    deployment.domain = overrides.domain;
+  }
+  if (overrides?.port) {
+    deployment.ports = {
+      ...(deployment.ports ?? {}),
+      production: overrides.port,
+    };
+  }
+
+  return deployment;
+}
+
+function buildRuntimeOverrides(
+  env: BrainEnvironment,
+  overrides?: Omit<InstanceOverrides, "brain">,
+): Partial<Pick<AppConfig, "database" | "logFile" | "logLevel">> {
+  return {
+    // Log level: yaml overrides > env > undefined
+    ...(overrides?.logLevel
+      ? { logLevel: overrides.logLevel }
+      : logLevelSchema.safeParse(env["LOG_LEVEL"]).success
+        ? { logLevel: logLevelSchema.parse(env["LOG_LEVEL"]) }
+        : {}),
+
+    // Log file: yaml overrides > env > undefined
+    ...(overrides?.logFile
+      ? { logFile: overrides.logFile }
+      : env["LOG_FILE"]
+        ? { logFile: env["LOG_FILE"] }
+        : {}),
+
+    // Database: yaml overrides > env > undefined
+    ...(overrides?.database
+      ? { database: overrides.database }
+      : env["DATABASE_URL"]
+        ? { database: env["DATABASE_URL"] }
+        : {}),
+  };
+}
+
+function applyExtraConfig(
+  appConfig: AppConfig,
+  definition: BrainDefinition,
+): void {
+  if (definition.extra) {
+    Object.assign(appConfig, definition.extra);
+  }
+}
+
+function applySiteEntityDisplay(
+  appConfig: AppConfig,
+  site: SitePackage | undefined,
+): void {
+  if (!site) return;
+
+  const existingShellConfig = appConfig.shellConfig ?? {};
+  const existingEntityDisplay = existingShellConfig.entityDisplay ?? {};
+  appConfig.shellConfig = {
+    ...existingShellConfig,
+    entityDisplay: {
+      ...site.entityDisplay,
+      ...existingEntityDisplay,
+    },
+  };
+}
+
 export function resolve(
   definition: BrainDefinition,
   env: BrainEnvironment,
@@ -348,30 +436,8 @@ export function resolve(
     logger,
   );
 
-  // Map identity to the format AppConfig expects
-
-  const identity = definition.identity
-    ? {
-        name: definition.identity.characterName,
-        role: definition.identity.role,
-        purpose: definition.identity.purpose,
-        values: definition.identity.values,
-      }
-    : undefined;
-
-  // Start with definition's deployment config, apply overrides
-  const deployment: DeploymentConfigInput = {
-    ...(definition.deployment ?? {}),
-  };
-  if (overrides?.domain) {
-    deployment.domain = overrides.domain;
-  }
-  if (overrides?.port) {
-    deployment.ports = {
-      ...(deployment.ports ?? {}),
-      production: overrides.port,
-    };
-  }
+  const identity = buildIdentity(definition);
+  const deployment = buildDeployment(definition, overrides);
 
   // Build the app config
   const appConfig: AppConfig = {
@@ -389,45 +455,12 @@ export function resolve(
     ...(identity && { identity }),
     ...buildPermissions(definition.permissions, overrides),
     deployment,
-
-    // Log level: yaml overrides > env > undefined
-    ...(overrides?.logLevel
-      ? { logLevel: overrides.logLevel }
-      : logLevelSchema.safeParse(env["LOG_LEVEL"]).success
-        ? { logLevel: logLevelSchema.parse(env["LOG_LEVEL"]) }
-        : {}),
-
-    // Log file: yaml overrides > env > undefined
-    ...(overrides?.logFile
-      ? { logFile: overrides.logFile }
-      : env["LOG_FILE"]
-        ? { logFile: env["LOG_FILE"] }
-        : {}),
-
-    // Database: yaml overrides > env > undefined
-    ...(overrides?.database
-      ? { database: overrides.database }
-      : env["DATABASE_URL"]
-        ? { database: env["DATABASE_URL"] }
-        : {}),
+    ...buildRuntimeOverrides(env, overrides),
   };
 
   // Merge any extra config (escape hatch)
-  if (definition.extra) {
-    Object.assign(appConfig, definition.extra);
-  }
-
-  if (site) {
-    const existingShellConfig = appConfig.shellConfig ?? {};
-    const existingEntityDisplay = existingShellConfig.entityDisplay ?? {};
-    appConfig.shellConfig = {
-      ...existingShellConfig,
-      entityDisplay: {
-        ...site.entityDisplay,
-        ...existingEntityDisplay,
-      },
-    };
-  }
+  applyExtraConfig(appConfig, definition);
+  applySiteEntityDisplay(appConfig, site);
 
   return defineConfig(appConfig);
 }
