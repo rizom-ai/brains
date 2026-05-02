@@ -29,7 +29,6 @@ import {
   initializeDirectoryStructure,
   initializeDirectorySync,
 } from "./directory-lifecycle";
-import { resolveSyncPath } from "./directory-path";
 import { getDirectorySyncStatus } from "./directory-status";
 import {
   exportDirectoryEntities,
@@ -39,7 +38,7 @@ import {
   type CleanupResult,
 } from "./directory-operations";
 import {
-  directorySyncOptionsSchema,
+  normalizeDirectorySyncOptions,
   type DirectorySyncOptions,
 } from "./directory-options";
 
@@ -63,18 +62,17 @@ export class DirectorySync implements IDirectorySync {
   private jobQueueCallback?: ((job: JobRequest) => Promise<string>) | undefined;
 
   constructor(options: DirectorySyncOptions) {
-    const { entityService, logger, ...validatableOptions } = options;
-    directorySyncOptionsSchema.parse(validatableOptions);
+    const normalizedOptions = normalizeDirectorySyncOptions(options);
 
-    this.entityService = entityService;
-    this.logger = logger.child("DirectorySync");
+    this.entityService = options.entityService;
+    this.logger = options.logger.child("DirectorySync");
 
-    this.syncPath = resolveSyncPath(options.syncPath);
+    this.syncPath = normalizedOptions.syncPath;
 
-    this.autoSync = options.autoSync ?? true;
-    this.watchInterval = options.watchInterval ?? 5000;
-    this.deleteOnFileRemoval = options.deleteOnFileRemoval ?? true;
-    this.entityTypes = options.entityTypes;
+    this.autoSync = normalizedOptions.autoSync;
+    this.watchInterval = normalizedOptions.watchInterval;
+    this.deleteOnFileRemoval = normalizedOptions.deleteOnFileRemoval;
+    this.entityTypes = normalizedOptions.entityTypes;
 
     const dependencies = createDirectorySyncDependencies(
       this.logger,
@@ -98,7 +96,7 @@ export class DirectorySync implements IDirectorySync {
     });
 
     this.logger.debug("Initialized with path", {
-      originalPath: options.syncPath,
+      originalPath: normalizedOptions.originalSyncPath,
       resolvedPath: this.syncPath,
     });
   }
