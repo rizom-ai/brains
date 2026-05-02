@@ -6,6 +6,7 @@ import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IGitSync, GitLogEntry } from "../types";
 import { getFileHistory, showFileAtCommit } from "./git-history";
+import { getGitStatus, hasGitLocalChanges } from "./git-status";
 
 /**
  * Git sync status
@@ -211,53 +212,14 @@ export class GitSync implements IGitSync {
   }
 
   async getStatus(): Promise<GitSyncStatus> {
-    try {
-      const status = await this.git.status();
-      let lastCommit: string | undefined;
-      try {
-        const log = await this.git.log({ maxCount: 1 });
-        lastCommit = log.latest?.hash;
-      } catch {
-        // No commits yet
-      }
-      return {
-        isRepo: true,
-        hasChanges: !status.isClean(),
-        ahead: status.ahead,
-        behind: status.behind,
-        branch: status.current ?? this.branch,
-        lastCommit,
-        remote: this.remoteUrl || undefined,
-        files: status.files.map((f) => ({
-          path: f.path,
-          status: f.working_dir + f.index,
-        })),
-      };
-    } catch (error) {
-      this.logger.error("Failed to get git status", { error });
-      return {
-        isRepo: false,
-        hasChanges: false,
-        ahead: 0,
-        behind: 0,
-        branch: this.branch,
-        files: [],
-      };
-    }
+    return getGitStatus(this.git, this.logger, this.branch, this.remoteUrl);
   }
 
   /**
    * Check if there are uncommitted local changes.
    */
   async hasLocalChanges(): Promise<boolean> {
-    const status = await this.git.status();
-    return (
-      status.modified.length > 0 ||
-      status.not_added.length > 0 ||
-      status.deleted.length > 0 ||
-      status.created.length > 0 ||
-      status.conflicted.length > 0
-    );
+    return hasGitLocalChanges(this.git);
   }
 
   /**
