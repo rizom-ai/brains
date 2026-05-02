@@ -17,8 +17,27 @@ interface InspectableRegisteredTool {
   ) => Promise<unknown>;
 }
 
+interface InspectableResourceTemplate {
+  completeCallback: (
+    variable: string,
+  ) =>
+    | ((
+        value: string,
+        context?: { arguments?: Record<string, string> },
+      ) => string[] | Promise<string[]>)
+    | undefined;
+}
+
+interface InspectableRegisteredResourceTemplate {
+  resourceTemplate: InspectableResourceTemplate;
+}
+
 interface InspectableMcpServer {
   _registeredTools: Record<string, InspectableRegisteredTool>;
+  _registeredResourceTemplates: Record<
+    string,
+    InspectableRegisteredResourceTemplate
+  >;
 }
 
 function inspectMcpServer(server: McpServer): InspectableMcpServer {
@@ -633,6 +652,52 @@ describe("MCPService", () => {
       expect(() =>
         mcpService.registerResourceTemplate("system", template),
       ).not.toThrow();
+    });
+
+    it("should pass completion context to resource template completers", async () => {
+      let observedValue: string | undefined;
+      let observedContext:
+        | { arguments?: Partial<{ type: string; id: string }> }
+        | undefined;
+
+      const template: ResourceTemplate<"type" | "id"> = {
+        name: "entity-detail-complete",
+        uriTemplate: "entity://{type}/{id}",
+        complete: {
+          type: (value) => [value],
+          id: (value, context) => {
+            observedValue = value;
+            observedContext = context;
+            return [`${context?.arguments?.type ?? "unknown"}-${value}`];
+          },
+        },
+        handler: async ({ type, id }) => ({
+          contents: [
+            {
+              uri: `entity://${type}/${id}`,
+              text: `# ${id}`,
+            },
+          ],
+        }),
+      };
+
+      mcpService.registerResourceTemplate("system", template);
+
+      const registeredTemplate = inspectMcpServer(mcpService.getMcpServer())
+        ._registeredResourceTemplates["entity-detail-complete"];
+      expect(registeredTemplate).toBeDefined();
+      if (!registeredTemplate) throw new Error("Template was not registered");
+
+      const completer = registeredTemplate.resourceTemplate.completeCallback("id");
+
+      expect(completer).toBeDefined();
+      const result = await completer?.("sec", {
+        arguments: { type: "post" },
+      });
+
+      expect(result).toEqual(["post-sec"]);
+      expect(observedValue).toBe("sec");
+      expect(observedContext).toEqual({ arguments: { type: "post" } });
     });
   });
 

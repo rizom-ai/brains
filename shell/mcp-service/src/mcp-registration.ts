@@ -160,7 +160,10 @@ export function registerResourceTemplateOnServer(
       complete: Object.fromEntries(
         Object.entries(template.complete).map(([k, fn]) => [
           k,
-          (v: string): string[] | Promise<string[]> => fn(v),
+          (
+            value: string,
+            context?: { arguments?: Record<string, string> },
+          ): string[] | Promise<string[]> => fn(value, context),
         ]),
       ),
     }),
