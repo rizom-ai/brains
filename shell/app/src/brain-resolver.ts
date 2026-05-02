@@ -511,20 +511,23 @@ export function isScopedPackageRef(value: string): boolean {
  * Resolve scoped package references in a config object.
  * Looks up values in the package registry (populated before resolve() is called).
  */
+function isRegisteredScopedPackageRef(value: unknown): value is string {
+  return typeof value === "string" && isScopedPackageRef(value) && hasPackage(value);
+}
+
+function resolvePackageRefValue(value: unknown): unknown {
+  return isRegisteredScopedPackageRef(value) ? getPackage(value) : value;
+}
+
 function resolvePackageRefs(
   config: Record<string, unknown>,
 ): Record<string, unknown> {
-  const resolved = { ...config };
-  for (const [key, value] of Object.entries(resolved)) {
-    if (
-      typeof value === "string" &&
-      isScopedPackageRef(value) &&
-      hasPackage(value)
-    ) {
-      resolved[key] = getPackage(value);
-    }
-  }
-  return resolved;
+  return Object.fromEntries(
+    Object.entries(config).map(([key, value]) => [
+      key,
+      resolvePackageRefValue(value),
+    ]),
+  );
 }
 
 /**
@@ -533,25 +536,28 @@ function resolvePackageRefs(
 function resolveAllPackageRefs(
   pluginOverrides: Record<string, Record<string, unknown>>,
 ): Record<string, Record<string, unknown>> {
-  const resolved: Record<string, Record<string, unknown>> = {};
-  for (const [pluginId, config] of Object.entries(pluginOverrides)) {
-    resolved[pluginId] = resolvePackageRefs(config);
-  }
-  return resolved;
+  return Object.fromEntries(
+    Object.entries(pluginOverrides).map(([pluginId, config]) => [
+      pluginId,
+      resolvePackageRefs(config),
+    ]),
+  );
 }
 
-function resolveExternalPluginFactory(
+function getRegisteredExternalPluginPackage(
   pluginId: string,
-  declaration: ExternalPluginDeclaration,
-): PluginFactory {
-  const packageName = declaration.package;
+  packageName: string,
+): unknown {
   if (!hasPackage(packageName)) {
     throw new Error(
       `External plugin package "${packageName}" for plugins.${pluginId} is not registered. Install it and ensure it is imported before resolve().`,
     );
   }
 
-  const pkg = getPackage(packageName);
+  return getPackage(packageName);
+}
+
+function pluginFactoryFromPackage(pkg: unknown): PluginFactory | undefined {
   if (typeof pkg === "function") {
     return pkg as PluginFactory;
   }
@@ -561,6 +567,21 @@ function resolveExternalPluginFactory(
     if (typeof namedPlugin === "function") {
       return namedPlugin as PluginFactory;
     }
+  }
+
+  return undefined;
+}
+
+function resolveExternalPluginFactory(
+  pluginId: string,
+  declaration: ExternalPluginDeclaration,
+): PluginFactory {
+  const packageName = declaration.package;
+  const pkg = getRegisteredExternalPluginPackage(pluginId, packageName);
+  const factory = pluginFactoryFromPackage(pkg);
+
+  if (factory) {
+    return factory;
   }
 
   throw new Error(
