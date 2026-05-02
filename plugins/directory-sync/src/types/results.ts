@@ -47,6 +47,18 @@ export interface ImportResult {
 }
 
 /**
+ * Cleanup result
+ */
+export interface CleanupResult {
+  deleted: number;
+  errors: Array<{
+    entityId: string;
+    entityType: string;
+    error: string;
+  }>;
+}
+
+/**
  * Sync result combining import and export
  */
 export interface SyncResult {

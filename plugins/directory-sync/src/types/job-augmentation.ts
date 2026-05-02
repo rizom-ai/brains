@@ -5,12 +5,12 @@ import type {
   DirectoryDeleteJobData,
   CoverImageConversionJobData,
   InlineImageConversionJobData,
+  CleanupResult,
   ExportResult,
   ImportResult,
   SyncResult,
   DeleteResult,
 } from "../types";
-import type { CleanupResult } from "../lib/cleanup-pipeline";
 import type { ImageConversionResult } from "../handlers/image-conversion-handler";
 import type { InlineImageConversionResult } from "../handlers/inline-image-conversion-handler";
 

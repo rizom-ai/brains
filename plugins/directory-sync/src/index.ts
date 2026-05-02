@@ -9,6 +9,7 @@ export { DirectorySync } from "./lib/directory-sync";
 export { DirectorySyncStatusFormatter } from "./formatters/directorySyncStatusFormatter";
 
 export type {
+  CleanupResult,
   DirectorySyncConfig,
   DirectorySyncStatus,
   ExportResult,

@@ -1,6 +1,5 @@
 import type { Logger } from "@brains/utils";
-import type { ImportResult, SyncResult } from "../types";
-import type { CleanupResult } from "./cleanup-pipeline";
+import type { CleanupResult, ImportResult, SyncResult } from "../types";
 
 export interface DirectorySyncRunnerDeps {
   logger: Logger;

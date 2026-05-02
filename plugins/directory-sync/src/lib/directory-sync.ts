@@ -6,6 +6,7 @@ import type {
 import type { BatchMetadata, BatchResult } from "./batch-operations";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type {
+  CleanupResult,
   DirectorySyncStatus,
   ExportResult,
   IDirectorySync,
@@ -42,7 +43,6 @@ import {
   importDirectoryEntities,
   processDirectoryEntityExport,
   removeOrphanedDirectoryEntities,
-  type CleanupResult,
 } from "./directory-operations";
 import {
   exportDirectoryEntitiesWithProgress,

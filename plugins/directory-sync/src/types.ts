@@ -4,6 +4,7 @@ export {
 } from "./types/config";
 
 export type {
+  CleanupResult,
   DeleteResult,
   DirectorySyncStatus,
   ExportResult,

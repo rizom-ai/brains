@@ -1,10 +1,7 @@
 import type { BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import type { ExportResult, ImportResult } from "../types";
-import {
-  removeOrphanedEntities as runCleanup,
-  type CleanupResult,
-} from "./cleanup-pipeline";
+import type { CleanupResult, ExportResult, ImportResult } from "../types";
+import { removeOrphanedEntities as runCleanup } from "./cleanup-pipeline";
 import type { DirectoryOperationDeps } from "./directory-operation-deps";
 import {
   exportEntities as runExport,
@@ -66,5 +63,3 @@ export async function removeOrphanedDirectoryEntities(
 
   return result;
 }
-
-export type { CleanupResult } from "./cleanup-pipeline";

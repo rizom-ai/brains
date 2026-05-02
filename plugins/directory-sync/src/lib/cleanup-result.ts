@@ -1,10 +1,6 @@
 import type { BaseEntity } from "@brains/plugins";
 import { getErrorMessage } from "@brains/utils";
-
-export interface CleanupResult {
-  deleted: number;
-  errors: Array<{ entityId: string; entityType: string; error: string }>;
-}
+import type { CleanupResult } from "../types";
 
 interface CleanupLogger {
   debug(message: string, meta?: Record<string, unknown>): void;

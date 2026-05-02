@@ -1,8 +1,7 @@
 import { BaseJobHandler } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
-import type { IDirectorySync } from "../types";
-import type { CleanupResult } from "../lib/cleanup-pipeline";
+import type { CleanupResult, IDirectorySync } from "../types";
 import { z } from "@brains/utils";
 
 const directoryCleanupJobSchema = z.object({});

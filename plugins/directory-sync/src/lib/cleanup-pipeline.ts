@@ -1,12 +1,10 @@
 import type { BaseEntity } from "@brains/plugins";
+import type { CleanupResult } from "../types";
 import {
   createCleanupResult,
   recordCleanupDeleted,
   recordCleanupError,
-  type CleanupResult,
 } from "./cleanup-result";
-
-export type { CleanupResult } from "./cleanup-result";
 
 /**
  * Narrow deps interface — only the methods cleanup actually uses.
