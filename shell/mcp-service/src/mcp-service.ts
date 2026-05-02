@@ -1,11 +1,28 @@
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { IMessageBus, MessageResponse } from "@brains/messaging-service";
+import type { IMessageBus } from "@brains/messaging-service";
+import { type UserPermissionLevel } from "@brains/templates";
 import type { Logger } from "@brains/utils";
-import { PermissionService, type UserPermissionLevel } from "@brains/templates";
-import type { Tool, Resource, ResourceTemplate, Prompt } from "./types";
-import type { IMCPService } from "./types";
-import { ResourceTemplate as MCPResourceTemplate } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { z } from "@brains/utils";
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import {
+  canExposeResource,
+  canExposeTool,
+  createMcpServerInstance,
+  filterToolsForPermission,
+  registerPromptOnServer,
+  registerResourceOnServer,
+  registerResourceTemplateOnServer,
+  registerToolOnServer,
+  type RegisteredPrompt,
+  type RegisteredResource,
+  type RegisteredTemplate,
+  type RegisteredTool,
+} from "./mcp-registration";
+import type {
+  IMCPService,
+  Prompt,
+  Resource,
+  ResourceTemplate,
+  Tool,
+} from "./types";
 
 /**
  * MCP Service for managing tool and resource registration
@@ -13,27 +30,19 @@ import { z } from "@brains/utils";
  */
 export class MCPService implements IMCPService {
   private static instance: MCPService | null = null;
-  private mcpServer: McpServer;
-  private logger: Logger;
-  private messageBus: IMessageBus;
+
+  private readonly logger: Logger;
+  private readonly messageBus: IMessageBus;
+  private readonly mcpServer: McpServer;
 
   // Track registered tools and resources
-  private registeredTools = new Map<string, { pluginId: string; tool: Tool }>();
-  private registeredResources = new Map<
-    string,
-    { pluginId: string; resource: Resource }
-  >();
-  private registeredTemplates: Array<{
-    pluginId: string;
-    template: ResourceTemplate;
-  }> = [];
-  private registeredPrompts: Array<{
-    pluginId: string;
-    prompt: Prompt;
-  }> = [];
+  private readonly registeredTools = new Map<string, RegisteredTool>();
+  private readonly registeredResources = new Map<string, RegisteredResource>();
+  private readonly registeredTemplates: RegisteredTemplate[] = [];
+  private readonly registeredPrompts: RegisteredPrompt[] = [];
 
   // Track plugin instructions for agent system prompt
-  private pluginInstructions = new Map<string, string>();
+  private readonly pluginInstructions = new Map<string, string>();
 
   // Default permission level for the service
   private permissionLevel: UserPermissionLevel = "anchor";
@@ -72,12 +81,7 @@ export class MCPService implements IMCPService {
   private constructor(messageBus: IMessageBus, logger: Logger) {
     this.messageBus = messageBus;
     this.logger = logger.child("MCPService");
-
-    // Create the MCP server instance
-    this.mcpServer = new McpServer({
-      name: "brain-mcp",
-      version: "1.0.0",
-    });
+    this.mcpServer = createMcpServerInstance();
 
     this.logger.debug("MCPService initialized");
   }
@@ -94,45 +98,12 @@ export class MCPService implements IMCPService {
    * Required for Streamable HTTP where each session needs its own server.
    */
   public createMcpServer(permissionLevel?: UserPermissionLevel): McpServer {
-    const level = permissionLevel ?? this.permissionLevel;
-    const server = new McpServer({
-      name: "brain-mcp",
-      version: "1.0.0",
-    });
-
-    for (const [, { pluginId, tool }] of this.registeredTools) {
-      const toolVisibility = tool.visibility ?? "anchor";
-      if (!PermissionService.hasPermission(level, toolVisibility)) continue;
-      this.registerToolOnServer(server, pluginId, tool);
-    }
-
-    for (const [, { pluginId, resource }] of this.registeredResources) {
-      this.registerResourceOnServer(server, pluginId, resource);
-    }
-
-    for (const { template } of this.registeredTemplates) {
-      this.registerResourceTemplateOnServer(server, template);
-    }
-
-    for (const { prompt } of this.registeredPrompts) {
-      this.registerPromptOnServer(server, prompt);
-    }
-
-    return server;
-  }
-
-  /**
-   * Validate a message bus response and serialize its data as JSON
-   */
-  private serializeResponse(response: MessageResponse): string {
-    if ("success" in response && !response.success) {
-      throw new Error(response.error ?? "Operation failed");
-    }
-    return JSON.stringify(
-      "data" in response ? response.data : response,
-      null,
-      2,
+    const server = createMcpServerInstance();
+    this.registerEntriesOnServer(
+      server,
+      permissionLevel ?? this.permissionLevel,
     );
+    return server;
   }
 
   /**
@@ -154,8 +125,7 @@ export class MCPService implements IMCPService {
     this.registeredTools.set(tool.name, { pluginId, tool });
 
     // Only expose on the MCP protocol server if transport permission allows.
-    const toolVisibility = tool.visibility ?? "anchor";
-    if (PermissionService.hasPermission(this.permissionLevel, toolVisibility)) {
+    if (canExposeTool(this.permissionLevel, tool)) {
       this.registerToolOnServer(this.mcpServer, pluginId, tool);
     }
 
@@ -170,109 +140,11 @@ export class MCPService implements IMCPService {
     this.registeredResources.set(resource.uri, { pluginId, resource });
 
     // Only expose on MCP protocol server if transport permission allows.
-    const resourceVisibility: UserPermissionLevel = "anchor";
-    if (
-      PermissionService.hasPermission(this.permissionLevel, resourceVisibility)
-    ) {
-      this.registerResourceOnServer(this.mcpServer, pluginId, resource);
+    if (canExposeResource(this.permissionLevel)) {
+      registerResourceOnServer(this.mcpServer, resource);
     }
 
     this.logger.debug(`Registered resource ${resource.uri} from ${pluginId}`);
-  }
-
-  /**
-   * Register a prompt on a specific MCP server instance
-   */
-  private registerPromptOnServer(server: McpServer, prompt: Prompt): void {
-    const argsSchema = Object.fromEntries(
-      Object.entries(prompt.args).map(([key, arg]) => [
-        key,
-        arg.required
-          ? z.string().describe(arg.description)
-          : z.string().optional().describe(arg.description),
-      ]),
-    );
-
-    server.prompt(
-      prompt.name,
-      prompt.description ?? "Prompt",
-      argsSchema,
-      async (args) => prompt.handler(args as Record<string, string>),
-    );
-  }
-
-  /**
-   * Register a tool on a specific MCP server instance
-   */
-  private registerToolOnServer(
-    server: McpServer,
-    pluginId: string,
-    tool: Tool,
-  ): void {
-    server.tool(
-      tool.name,
-      tool.description,
-      tool.inputSchema,
-      async (params, extra) => {
-        const interfaceType = extra._meta?.["interfaceType"] ?? "mcp";
-        const userId = extra._meta?.["userId"] ?? "mcp-user";
-        const channelId = extra._meta?.["channelId"];
-        const progressToken = extra._meta?.progressToken;
-
-        this.logger.debug("MCP client metadata", {
-          tool: tool.name,
-          pluginId,
-          interfaceType,
-          userId,
-          channelId,
-          progressToken,
-        });
-
-        try {
-          const response = await this.messageBus.send(
-            `plugin:${pluginId}:tool:execute`,
-            {
-              toolName: tool.name,
-              args: params,
-              progressToken,
-              hasProgress: progressToken !== undefined,
-              interfaceType,
-              userId,
-              channelId,
-            },
-            "MCPService",
-          );
-
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: this.serializeResponse(response),
-              },
-            ],
-          };
-        } catch (error) {
-          this.logger.error(`Tool execution error for ${tool.name}`, error);
-          throw error;
-        }
-      },
-    );
-  }
-
-  /**
-   * Register a resource on a specific MCP server instance
-   */
-  private registerResourceOnServer(
-    server: McpServer,
-    _pluginId: string,
-    resource: Resource,
-  ): void {
-    server.resource(
-      resource.name,
-      resource.uri,
-      { description: resource.description, mimeType: resource.mimeType },
-      async () => resource.handler(),
-    );
   }
 
   /**
@@ -282,7 +154,7 @@ export class MCPService implements IMCPService {
     pluginId: string,
     template: ResourceTemplate<K>,
   ): void {
-    this.registerResourceTemplateOnServer(this.mcpServer, template);
+    registerResourceTemplateOnServer(this.mcpServer, template);
 
     this.registeredTemplates.push({ pluginId, template });
     this.logger.debug(
@@ -290,52 +162,11 @@ export class MCPService implements IMCPService {
     );
   }
 
-  private registerResourceTemplateOnServer(
-    server: McpServer,
-    template: ResourceTemplate,
-  ): void {
-    const listFn = template.list;
-
-    const sdkTemplate = new MCPResourceTemplate(template.uriTemplate, {
-      list: listFn
-        ? async (): Promise<{
-            resources: Array<{ uri: string; name: string }>;
-          }> => ({
-            resources: (await listFn()).map((r) => ({
-              uri: r.uri,
-              name: r.name,
-            })),
-          })
-        : undefined,
-      ...(template.complete && {
-        complete: Object.fromEntries(
-          Object.entries(template.complete).map(([k, fn]) => [
-            k,
-            (v: string): string[] | Promise<string[]> => fn(v),
-          ]),
-        ),
-      }),
-    });
-
-    server.registerResource(
-      template.name,
-      sdkTemplate,
-      { description: template.description, mimeType: template.mimeType },
-      async (_uri, vars) => {
-        const flatVars: Record<string, string> = {};
-        for (const [k, v] of Object.entries(vars)) {
-          flatVars[k] = Array.isArray(v) ? (v[0] ?? "") : v;
-        }
-        return template.handler(flatVars);
-      },
-    );
-  }
-
   /**
    * Register an MCP prompt
    */
   public registerPrompt(pluginId: string, prompt: Prompt): void {
-    this.registerPromptOnServer(this.mcpServer, prompt);
+    registerPromptOnServer(this.mcpServer, prompt);
     this.registeredPrompts.push({ pluginId, prompt });
     this.logger.debug(`Registered prompt ${prompt.name} from ${pluginId}`);
   }
@@ -343,11 +174,11 @@ export class MCPService implements IMCPService {
   /**
    * List all registered tools
    */
-  public listTools(): Array<{ pluginId: string; tool: Tool }> {
+  public listTools(): RegisteredTool[] {
     return Array.from(this.registeredTools.values());
   }
 
-  public getCliTools(): Array<{ pluginId: string; tool: Tool }> {
+  public getCliTools(): RegisteredTool[] {
     return this.listTools().filter(({ tool }) => tool.cli !== undefined);
   }
 
@@ -359,22 +190,14 @@ export class MCPService implements IMCPService {
    */
   public listToolsForPermissionLevel(
     userLevel: UserPermissionLevel,
-  ): Array<{ pluginId: string; tool: Tool }> {
-    const allTools = this.listTools();
-
-    return allTools.filter(({ tool }) => {
-      const toolVisibility = tool.visibility ?? "anchor";
-      return PermissionService.hasPermission(userLevel, toolVisibility);
-    });
+  ): RegisteredTool[] {
+    return filterToolsForPermission(this.listTools(), userLevel);
   }
 
   /**
    * List all registered resources
    */
-  public listResources(): Array<{
-    pluginId: string;
-    resource: Resource;
-  }> {
+  public listResources(): RegisteredResource[] {
     return Array.from(this.registeredResources.values());
   }
 
@@ -385,5 +208,36 @@ export class MCPService implements IMCPService {
 
   public getInstructions(): string[] {
     return Array.from(this.pluginInstructions.values());
+  }
+
+  private registerEntriesOnServer(
+    server: McpServer,
+    permissionLevel: UserPermissionLevel,
+  ): void {
+    for (const { pluginId, tool } of this.registeredTools.values()) {
+      if (canExposeTool(permissionLevel, tool)) {
+        this.registerToolOnServer(server, pluginId, tool);
+      }
+    }
+
+    for (const { resource } of this.registeredResources.values()) {
+      registerResourceOnServer(server, resource);
+    }
+
+    for (const { template } of this.registeredTemplates) {
+      registerResourceTemplateOnServer(server, template);
+    }
+
+    for (const { prompt } of this.registeredPrompts) {
+      registerPromptOnServer(server, prompt);
+    }
+  }
+
+  private registerToolOnServer(
+    server: McpServer,
+    pluginId: string,
+    tool: Tool,
+  ): void {
+    registerToolOnServer(server, pluginId, tool, this.messageBus, this.logger);
   }
 }
