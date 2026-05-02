@@ -1,5 +1,12 @@
-import { getErrorMessage } from "@brains/utils";
 import type { BaseEntity } from "@brains/plugins";
+import {
+  createCleanupResult,
+  recordCleanupDeleted,
+  recordCleanupError,
+  type CleanupResult,
+} from "./cleanup-result";
+
+export type { CleanupResult } from "./cleanup-result";
 
 /**
  * Narrow deps interface — only the methods cleanup actually uses.
@@ -26,11 +33,6 @@ export interface CleanupPipelineDeps {
   entityTypes?: string[] | undefined;
 }
 
-export interface CleanupResult {
-  deleted: number;
-  errors: Array<{ entityId: string; entityType: string; error: string }>;
-}
-
 /**
  * Remove DB entities whose files no longer exist on disk.
  *
@@ -41,12 +43,12 @@ export async function removeOrphanedEntities(
   deps: CleanupPipelineDeps,
 ): Promise<CleanupResult> {
   if (!deps.deleteOnFileRemoval) {
-    return { deleted: 0, errors: [] };
+    return createCleanupResult();
   }
 
   const typesToCheck = deps.entityTypes ?? deps.entityService.getEntityTypes();
 
-  const result: CleanupResult = { deleted: 0, errors: [] };
+  const result = createCleanupResult();
 
   for (const entityType of typesToCheck) {
     const entities = await deps.entityService.listEntities(entityType, {
@@ -58,22 +60,9 @@ export async function removeOrphanedEntities(
       if (!(await deps.fileOperations.fileExists(filePath))) {
         try {
           await deps.entityService.deleteEntity(entity.entityType, entity.id);
-          result.deleted++;
-          deps.logger.debug("Deleted orphaned entity (file missing)", {
-            entityType,
-            id: entity.id,
-          });
+          recordCleanupDeleted(deps.logger, result, entity);
         } catch (error) {
-          result.errors.push({
-            entityId: entity.id,
-            entityType,
-            error: getErrorMessage(error),
-          });
-          deps.logger.error("Failed to delete orphaned entity", {
-            entityType,
-            id: entity.id,
-            error: getErrorMessage(error),
-          });
+          recordCleanupError(deps.logger, result, entity, error);
         }
       }
     }
