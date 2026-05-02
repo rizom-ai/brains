@@ -120,6 +120,46 @@ describe("BatchJobManager", () => {
         await enqueueBatch([]);
       }).toThrow("Cannot enqueue empty batch");
     });
+
+    it("should preflight handlers before enqueueing any batch operations", async () => {
+      const batchId = createId();
+
+      expect(async () => {
+        await batchManager.enqueueBatch(
+          [
+            { type: "embedding", data: { entityId: "entity-1" } },
+            { type: "missing-handler", data: { entityId: "entity-2" } },
+          ],
+          defaultBatchOptions,
+          batchId,
+        );
+      }).toThrow("No handler registered for job type: missing-handler");
+
+      expect(await batchManager.getBatchStatus(batchId)).toBeNull();
+      expect(await jobQueueService.getActiveJobs()).toHaveLength(0);
+    });
+
+    it("should preflight data validation before enqueueing any batch operations", async () => {
+      jobQueueService.registerHandler("invalid", {
+        process: async () => undefined,
+        validateAndParse: () => null,
+      });
+      const batchId = createId();
+
+      expect(async () => {
+        await batchManager.enqueueBatch(
+          [
+            { type: "embedding", data: { entityId: "entity-1" } },
+            { type: "invalid", data: { entityId: "entity-2" } },
+          ],
+          defaultBatchOptions,
+          batchId,
+        );
+      }).toThrow("Invalid job data for type: invalid");
+
+      expect(await batchManager.getBatchStatus(batchId)).toBeNull();
+      expect(await jobQueueService.getActiveJobs()).toHaveLength(0);
+    });
   });
 
   describe("getBatchStatus", () => {
@@ -160,6 +200,25 @@ describe("BatchJobManager", () => {
 
       expect(status?.totalOperations).toBe(2);
       expect(status?.batchId).toBe(batchId);
+    });
+
+    it("should treat missing child jobs as failed operations", async () => {
+      const batchId = createId();
+      batchManager.registerBatch(
+        batchId,
+        ["missing-job-id"],
+        [{ type: "embedding", data: { entityId: "entity-1" } }],
+        defaultBatchOptions.source,
+        { ...defaultBatchOptions.metadata, rootJobId: batchId },
+      );
+
+      const status = await batchManager.getBatchStatus(batchId);
+
+      expect(status?.status).toBe(JOB_STATUS.FAILED);
+      expect(status?.failedOperations).toBe(1);
+      expect(status?.errors).toContain(
+        "Missing job missing-job-id for embedding",
+      );
     });
   });
 

@@ -4,7 +4,7 @@ import type { JobHandler, JobQueueDbConfig } from "../src/types";
 import type { JobOptions } from "../src/schema/types";
 import { createTestJobQueueDatabase } from "./helpers/test-job-queue-db";
 import { createSilentLogger } from "@brains/test-utils";
-import { createId } from "@brains/utils";
+import { createId, z } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
 
 interface EntityWithoutEmbedding {
@@ -280,6 +280,30 @@ describe("JobQueueService", () => {
       expect(job?.type).toBe("shell:embedding");
     });
 
+    it("should not allow concurrent dequeue calls to claim the same job", async () => {
+      const secondService = JobQueueService.createFresh(
+        config,
+        createSilentLogger(),
+      );
+      const jobId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        defaultEnqueueOptions,
+      );
+
+      try {
+        const claimedJobs = await Promise.all([
+          service.dequeue(),
+          secondService.dequeue(),
+        ]);
+
+        expect(claimedJobs.filter((job) => job?.id === jobId)).toHaveLength(1);
+        expect(claimedJobs.filter(Boolean)).toHaveLength(1);
+      } finally {
+        secondService.close();
+      }
+    });
+
     it("should return null when no jobs are available", async () => {
       const job = await service.dequeue();
       expect(job).toBeNull();
@@ -341,6 +365,21 @@ describe("JobQueueService", () => {
       const job = await service.getStatus(jobId);
       expect(job?.status).toBe("completed");
       expect(job?.completedAt).toBeTruthy();
+    });
+
+    it("should clear stale lastError when a retried job completes", async () => {
+      const jobId = await service.enqueue(
+        "shell:embedding",
+        testEntity,
+        defaultEnqueueOptions,
+      );
+
+      await service.fail(jobId, new Error("Temporary failure"));
+      await service.complete(jobId, { success: true });
+
+      const job = await service.getStatus(jobId);
+      expect(job?.status).toBe("completed");
+      expect(job?.lastError).toBeNull();
     });
 
     it("should handle job failure with retry", async () => {
@@ -761,6 +800,33 @@ describe("JobQueueService", () => {
       expect(jobs2.length).toBe(2);
     });
 
+    it("should not inject deduplicationKey into handler payload", async () => {
+      const strictSchema = z.object({ key: z.string() }).strict();
+      const strictHandler: JobHandler<"strict-site-build", { key: string }> = {
+        process: async () => undefined,
+        validateAndParse: (data) => {
+          const result = strictSchema.safeParse(data);
+          return result.success ? result.data : null;
+        },
+      };
+      service.registerHandler("strict-site-build", strictHandler);
+
+      const jobId = await service.enqueue(
+        "strict-site-build",
+        { key: "app-1" },
+        enqueueOpts({ deduplication: "skip", deduplicationKey: "app-1" }),
+      );
+
+      const job = await service.getStatus(jobId);
+      expect(JSON.parse(job?.data ?? "{}")).toEqual({ key: "app-1" });
+      expect(
+        strictHandler.validateAndParse(JSON.parse(job?.data ?? "{}")),
+      ).toEqual({
+        key: "app-1",
+      });
+      expect(job?.metadata).toMatchObject({ deduplicationKey: "app-1" });
+    });
+
     it("should replace pending job when deduplication is 'replace'", async () => {
       const replaceOpts = enqueueOpts({ deduplication: "replace" });
 
@@ -788,6 +854,32 @@ describe("JobQueueService", () => {
       const activeJobs = await service.getActiveJobs(["site-build"]);
       expect(activeJobs.length).toBe(1);
       expect(activeJobs[0]?.id).toBe(id2);
+    });
+
+    it("should not replace a processing job", async () => {
+      const replaceOpts = enqueueOpts({ deduplication: "replace" });
+      const id1 = await service.enqueue(
+        "site-build",
+        { version: 1 },
+        replaceOpts,
+      );
+
+      const processingJob = await service.dequeue();
+      expect(processingJob?.id).toBe(id1);
+
+      const id2 = await service.enqueue(
+        "site-build",
+        { version: 2 },
+        replaceOpts,
+      );
+
+      expect(id2).not.toBe(id1);
+      const job1 = await service.getStatus(id1);
+      expect(job1?.status).toBe("processing");
+      expect(job1?.lastError).toBeNull();
+
+      const job2 = await service.getStatus(id2);
+      expect(job2?.status).toBe("pending");
     });
 
     it("should coalesce by updating timestamp when deduplication is 'coalesce'", async () => {

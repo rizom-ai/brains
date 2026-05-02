@@ -4,7 +4,7 @@ import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 
 // Re-export types that are used internally
 export type { JobOptions, JobContext, BatchOperation };
-import type { ProgressReporter } from "@brains/utils";
+import type { DbConfig, ProgressReporter } from "@brains/utils";
 import { z } from "@brains/utils";
 
 /**
@@ -181,6 +181,14 @@ export type EnqueueJob = (
  * Database configuration for job queue
  */
 export type { DbConfig as JobQueueDbConfig } from "@brains/utils";
+
+/**
+ * Configuration for the JobQueueService.
+ */
+export interface JobQueueServiceConfig extends DbConfig {
+  /** Number of ready candidates to inspect when claiming a job. */
+  dequeueCandidateLimit?: number;
+}
 
 /**
  * Configuration for the JobQueueWorker

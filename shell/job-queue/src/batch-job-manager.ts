@@ -3,6 +3,8 @@ import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
 import { JOB_STATUS } from "./schemas";
 import type { Logger } from "@brains/utils";
 
+const TERMINAL_BATCH_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 /**
  * Batch job manager for tracking groups of related jobs
  *
@@ -50,6 +52,27 @@ export class BatchJobManager {
     private logger: Logger,
   ) {}
 
+  private scheduleTerminalBatchCleanup(): void {
+    void this.cleanup(TERMINAL_BATCH_RETENTION_MS).catch((error) => {
+      this.logger.warn("Failed to clean up terminal batch metadata", { error });
+    });
+  }
+
+  private validateOperations(operations: BatchOperation[]): void {
+    for (const operation of operations) {
+      const handler = this.jobQueue.getHandler(operation.type);
+      if (!handler) {
+        throw new Error(
+          `No handler registered for job type: ${operation.type}`,
+        );
+      }
+
+      if (handler.validateAndParse(operation.data) === null) {
+        throw new Error(`Invalid job data for type: ${operation.type}`);
+      }
+    }
+  }
+
   /**
    * Enqueue a batch of operations as individual jobs
    */
@@ -62,6 +85,8 @@ export class BatchJobManager {
     if (operations.length === 0) {
       throw new Error("Cannot enqueue empty batch");
     }
+
+    this.validateOperations(operations);
 
     const jobIds: string[] = [];
 
@@ -106,6 +131,8 @@ export class BatchJobManager {
         rootJobId: batchId,
       });
 
+      this.scheduleTerminalBatchCleanup();
+
       return batchId;
     } catch (error) {
       this.logger.error("Failed to enqueue batch operations", {
@@ -138,8 +165,16 @@ export class BatchJobManager {
       let activeOperations = 0;
       const errors: string[] = [];
 
-      for (const job of jobStatuses) {
-        if (!job) continue;
+      for (const [index, job] of jobStatuses.entries()) {
+        if (!job) {
+          failedOperations++;
+          const operation = batch.operations[index];
+          const jobId = batch.jobIds[index] ?? "unknown";
+          errors.push(
+            `Missing job ${jobId}${operation ? ` for ${operation.type}` : ""}`,
+          );
+          continue;
+        }
 
         switch (job.status) {
           case "completed":

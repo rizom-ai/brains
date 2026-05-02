@@ -12,6 +12,7 @@ export type {
   EnqueueJob,
   JobInfo,
   JobQueueDbConfig,
+  JobQueueServiceConfig,
   JobQueueWorkerConfig,
   JobQueueWorkerStats,
   IJobQueueWorker,
@@ -31,6 +32,8 @@ export {
   type JobResultStatusType,
   JobProgressEventSchema,
   type JobProgressEvent,
+  HandlerFailureSchema,
+  type HandlerFailure,
 } from "./schemas";
 
 // Export batch-related types

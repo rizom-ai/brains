@@ -1,15 +1,20 @@
-import { eq, and, or, inArray, sql, desc, asc, lte } from "drizzle-orm";
-import { jobQueue, type JobQueue } from "./schema/job-queue";
-import type { JobOptions } from "./schema/types";
+import type { JobQueue } from "./schema/job-queue";
+import type { DeduplicationStrategy, JobOptions } from "./schema/types";
 import { Logger, createId } from "@brains/utils";
-import type { IJobQueueService, JobHandler, JobInfo } from "./types";
+import type {
+  IJobQueueService,
+  JobHandler,
+  JobInfo,
+  JobQueueServiceConfig,
+} from "./types";
 import { JOB_STATUS } from "./schemas";
 import { createJobQueueDatabase, enableWALMode } from "./db";
-import type { JobQueueDbConfig } from "./types";
-import type { LibSQLDatabase } from "drizzle-orm/libsql";
 import type { Client } from "@libsql/client";
 import { HandlerRegistry } from "./handler-registry";
-import { JobOperations } from "./job-operations";
+import { JobQueueRepository } from "./job-queue-repository";
+import { JobDeduplicator } from "./job-deduplicator";
+
+const DEFAULT_DEQUEUE_CANDIDATE_LIMIT = 10;
 
 /**
  * Service for managing the generic job queue
@@ -18,19 +23,19 @@ import { JobOperations } from "./job-operations";
  */
 export class JobQueueService implements IJobQueueService {
   private static instance: JobQueueService | null = null;
-  private db: LibSQLDatabase<Record<string, unknown>>;
   private client: Client;
   private logger: Logger;
 
-  // Extracted responsibility classes
   private handlerRegistry: HandlerRegistry;
-  private jobOperations: JobOperations;
+  private repository: JobQueueRepository;
+  private deduplicator: JobDeduplicator;
+  private dequeueCandidateLimit: number;
 
   /**
    * Get the singleton instance
    */
   public static getInstance(
-    config: JobQueueDbConfig,
+    config: JobQueueServiceConfig,
     logger?: Logger,
   ): JobQueueService {
     JobQueueService.instance ??= new JobQueueService(
@@ -61,7 +66,7 @@ export class JobQueueService implements IJobQueueService {
    * Create a fresh instance without affecting the singleton
    */
   public static createFresh(
-    config: JobQueueDbConfig,
+    config: JobQueueServiceConfig,
     logger?: Logger,
   ): JobQueueService {
     return new JobQueueService(config, logger ?? Logger.getInstance());
@@ -70,15 +75,16 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor(config: JobQueueDbConfig, logger?: Logger) {
+  private constructor(config: JobQueueServiceConfig, logger?: Logger) {
     const { db, client, url } = createJobQueueDatabase(config);
-    this.db = db;
     this.client = client;
     this.logger = (logger ?? Logger.getInstance()).child("JobQueueService");
 
-    // Initialize extracted responsibility classes
     this.handlerRegistry = new HandlerRegistry(this.logger);
-    this.jobOperations = new JobOperations(this.db, this.logger);
+    this.repository = new JobQueueRepository(db, this.logger);
+    this.deduplicator = new JobDeduplicator();
+    this.dequeueCandidateLimit =
+      config.dequeueCandidateLimit ?? DEFAULT_DEQUEUE_CANDIDATE_LIMIT;
 
     // Enable WAL mode asynchronously (non-blocking)
     enableWALMode(client, url).catch((error) => {
@@ -131,40 +137,15 @@ export class JobQueueService implements IJobQueueService {
    */
   private async checkForDuplicate(
     type: string,
-    deduplicationStrategy?: string,
+    deduplicationStrategy?: DeduplicationStrategy,
     deduplicationKey?: string,
   ): Promise<JobInfo | null> {
-    if (!deduplicationStrategy || deduplicationStrategy === "none") {
-      return null;
-    }
-
-    // Get all active jobs of this type
     const activeJobs = await this.getActiveJobs([type]);
-
-    // Filter by deduplication key if provided
-    const matchingJobs = deduplicationKey
-      ? activeJobs.filter((job) => {
-          try {
-            const data = JSON.parse(job.data);
-            return data.deduplicationKey === deduplicationKey;
-          } catch {
-            return false;
-          }
-        })
-      : activeJobs;
-
-    if (matchingJobs.length === 0) {
-      return null;
-    }
-
-    // For "skip": only skip if PENDING duplicate exists
-    // Allow if only PROCESSING (ensures eventual consistency)
-    if (deduplicationStrategy === "skip") {
-      return matchingJobs.find((j) => j.status === JOB_STATUS.PENDING) ?? null;
-    }
-
-    // For "replace"/"coalesce": return any active duplicate
-    return matchingJobs[0] ?? null;
+    return this.deduplicator.findDuplicate(
+      activeJobs,
+      deduplicationStrategy,
+      deduplicationKey,
+    );
   }
 
   /**
@@ -195,13 +176,7 @@ export class JobQueueService implements IJobQueueService {
           type,
           oldJobId: duplicate.id,
         });
-        await this.db
-          .update(jobQueue)
-          .set({
-            status: JOB_STATUS.FAILED,
-            lastError: "Replaced by newer job",
-          })
-          .where(eq(jobQueue.id, duplicate.id));
+        await this.repository.markFailedAsReplaced(duplicate.id);
       }
 
       if (options?.deduplication === "coalesce") {
@@ -209,10 +184,7 @@ export class JobQueueService implements IJobQueueService {
           type,
           existingJobId: duplicate.id,
         });
-        await this.db
-          .update(jobQueue)
-          .set({ scheduledFor: Date.now() })
-          .where(eq(jobQueue.id, duplicate.id));
+        await this.repository.rescheduleForImmediateRun(duplicate.id);
         return duplicate.id;
       }
     }
@@ -230,14 +202,10 @@ export class JobQueueService implements IJobQueueService {
     const now = Date.now();
     const id = createId();
 
-    const dataWithKey = options?.deduplicationKey
-      ? { ...parsedData, deduplicationKey: options.deduplicationKey }
-      : parsedData;
-
     const jobData = {
       id,
       type,
-      data: JSON.stringify(dataWithKey),
+      data: JSON.stringify(parsedData),
       status: JOB_STATUS.PENDING,
       priority: options?.priority ?? 0,
       maxRetries: options?.maxRetries ?? 3,
@@ -246,6 +214,9 @@ export class JobQueueService implements IJobQueueService {
       metadata: {
         operationType: "data_processing" as const,
         ...options?.metadata,
+        ...(options?.deduplicationKey && {
+          deduplicationKey: options.deduplicationKey,
+        }),
         rootJobId: options?.rootJobId ?? id,
       },
       createdAt: now,
@@ -257,7 +228,7 @@ export class JobQueueService implements IJobQueueService {
     };
 
     try {
-      await this.db.insert(jobQueue).values(jobData);
+      await this.repository.insert(jobData);
 
       this.logger.debug("Job enqueued", {
         id,
@@ -282,80 +253,63 @@ export class JobQueueService implements IJobQueueService {
   public async dequeue(): Promise<JobQueue | null> {
     const now = Date.now();
 
-    const jobs = await this.db
-      .select()
-      .from(jobQueue)
-      .where(
-        and(
-          eq(jobQueue.status, JOB_STATUS.PENDING),
-          lte(jobQueue.scheduledFor, now),
-        ),
-      )
-      .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
-      .limit(1);
+    const jobs = await this.repository.findReadyCandidates(
+      now,
+      this.dequeueCandidateLimit,
+    );
 
-    const job = jobs[0];
-    if (!job) {
-      return null;
+    for (const job of jobs) {
+      const claimed = await this.repository.claimPending(job.id, now);
+      if (!claimed) {
+        continue;
+      }
+
+      job.status = JOB_STATUS.PROCESSING;
+      job.startedAt = now;
+
+      this.logger.debug("Job dequeued", {
+        id: job.id,
+        type: job.type,
+        priority: job.priority,
+        retryCount: job.retryCount,
+      });
+
+      return job;
     }
 
-    await this.jobOperations.markProcessing(job.id);
-    job.status = JOB_STATUS.PROCESSING;
-    job.startedAt = Date.now();
-
-    this.logger.debug("Job dequeued", {
-      id: job.id,
-      type: job.type,
-      priority: job.priority,
-      retryCount: job.retryCount,
-    });
-
-    return job;
+    return null;
   }
 
   /**
    * Mark a job as completed
    */
   public async complete(jobId: string, result: unknown): Promise<void> {
-    await this.jobOperations.complete(jobId, result);
+    await this.repository.complete(jobId, result);
   }
 
   /**
    * Update job data (for progress tracking)
    */
   public async update(jobId: string, data: unknown): Promise<void> {
-    await this.jobOperations.update(jobId, data);
+    await this.repository.update(jobId, data);
   }
 
   /**
    * Mark a job as failed
    */
   public async fail(jobId: string, error: Error): Promise<void> {
-    await this.jobOperations.fail(jobId, error);
+    await this.repository.fail(jobId, error);
   }
 
   /**
    * Get job status by ID
    */
   public async getStatus(jobId: string): Promise<JobInfo | null> {
-    const jobs = await this.db
-      .select()
-      .from(jobQueue)
-      .where(eq(jobQueue.id, jobId))
-      .limit(1);
-
-    return jobs[0] ?? null;
+    return this.repository.getStatus(jobId);
   }
 
   public async getStatusByEntityId(entityId: string): Promise<JobInfo | null> {
-    const jobs = await this.db
-      .select()
-      .from(jobQueue)
-      .where(sql`json_extract(${jobQueue.data}, '$.id') = ${entityId}`)
-      .orderBy(desc(jobQueue.createdAt))
-      .limit(1);
-
-    return jobs[0] ?? null;
+    return this.repository.getStatusByEntityId(entityId);
   }
 
   /**
@@ -368,50 +322,14 @@ export class JobQueueService implements IJobQueueService {
     completed: number;
     total: number;
   }> {
-    const stats = await this.db
-      .select({
-        status: jobQueue.status,
-        count: sql<number>`count(*)`,
-      })
-      .from(jobQueue)
-      .groupBy(jobQueue.status);
-
-    const result = {
-      pending: 0,
-      processing: 0,
-      failed: 0,
-      completed: 0,
-      total: 0,
-    };
-
-    for (const row of stats) {
-      const count = Number(row.count);
-      result[row.status as keyof typeof result] = count;
-      result.total += count;
-    }
-
-    return result;
+    return this.repository.getStats();
   }
 
   /**
    * Clean up old completed/failed jobs
    */
   public async cleanup(olderThanMs: number): Promise<number> {
-    const cutoff = Date.now() - olderThanMs;
-
-    const result = await this.db
-      .delete(jobQueue)
-      .where(
-        and(
-          or(
-            eq(jobQueue.status, JOB_STATUS.COMPLETED),
-            eq(jobQueue.status, JOB_STATUS.FAILED),
-          ),
-          lte(jobQueue.completedAt, cutoff),
-        ),
-      );
-
-    const deletedCount = result.rowsAffected;
+    const deletedCount = await this.repository.cleanup(olderThanMs);
 
     if (deletedCount > 0) {
       this.logger.info("Cleaned up old jobs", {
@@ -427,20 +345,6 @@ export class JobQueueService implements IJobQueueService {
    * Get active jobs (pending or processing)
    */
   public async getActiveJobs(types?: string[]): Promise<JobInfo[]> {
-    const activeStatusFilter = or(
-      eq(jobQueue.status, JOB_STATUS.PENDING),
-      eq(jobQueue.status, JOB_STATUS.PROCESSING),
-    );
-
-    const whereClause =
-      types && types.length > 0
-        ? and(activeStatusFilter, inArray(jobQueue.type, types))
-        : activeStatusFilter;
-
-    return this.db
-      .select()
-      .from(jobQueue)
-      .where(whereClause)
-      .orderBy(desc(jobQueue.createdAt));
+    return this.repository.getActiveJobs(types);
   }
 }

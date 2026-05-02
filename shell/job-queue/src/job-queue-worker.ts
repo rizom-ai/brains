@@ -1,7 +1,7 @@
-import { getErrorMessage, toError, z } from "@brains/utils";
+import { getErrorMessage, toError } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IJobProgressMonitor } from "@brains/utils";
-import type { JobResult } from "./schemas";
+import { HandlerFailureSchema, type JobResult } from "./schemas";
 import type {
   IJobQueueService,
   JobInfo,
@@ -9,15 +9,6 @@ import type {
   JobQueueWorkerStats,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
-
-/**
- * Schema for detecting controlled handler failures
- * Handlers return { success: false, error?: string } for known error conditions
- */
-const handlerFailureSchema = z.object({
-  success: z.literal(false),
-  error: z.string().optional(),
-});
 
 /**
  * Generic job queue worker that processes jobs from the queue
@@ -192,22 +183,30 @@ export class JobQueueWorker {
 
     try {
       // Check if we have capacity for more jobs
-      const availableSlots = this.config.concurrency - this.activeJobs.size;
+      let availableSlots = this.config.concurrency - this.activeJobs.size;
       if (availableSlots <= 0) {
         return;
       }
 
-      // Check if we've reached the maximum job limit
-      if (
-        this.config.maxJobs > 0 &&
-        this.stats.processedJobs >= this.config.maxJobs
-      ) {
-        this.logger.debug("Maximum job limit reached, stopping worker", {
-          maxJobs: this.config.maxJobs,
-          processedJobs: this.stats.processedJobs,
-        });
-        await this.stop();
-        return;
+      // Check if we've reached the maximum job attempt limit.
+      // Include failed and active jobs so concurrency cannot exceed maxJobs.
+      if (this.config.maxJobs > 0) {
+        const completedAttempts =
+          this.stats.processedJobs + this.stats.failedJobs;
+        const remainingJobs =
+          this.config.maxJobs - completedAttempts - this.activeJobs.size;
+
+        if (remainingJobs <= 0) {
+          this.logger.debug("Maximum job limit reached, stopping worker", {
+            maxJobs: this.config.maxJobs,
+            processedJobs: this.stats.processedJobs,
+            failedJobs: this.stats.failedJobs,
+          });
+          await this.stop();
+          return;
+        }
+
+        availableSlots = Math.min(availableSlots, remainingJobs);
       }
 
       // Get jobs from the queue
@@ -335,17 +334,20 @@ export class JobQueueWorker {
       );
 
       // Check if handler returned a controlled failure
-      const failure = handlerFailureSchema.safeParse(result);
+      const failure = HandlerFailureSchema.safeParse(result);
       if (failure.success) {
         const errorMessage = failure.data.error ?? "Handler returned failure";
 
         await this.jobQueueService.fail(job.id, new Error(errorMessage));
 
-        await this.progressMonitor.handleJobStatusChange(
-          job.id,
-          "failed",
-          job.metadata,
-        );
+        const status = await this.jobQueueService.getStatus(job.id);
+        if (status?.status === JOB_STATUS.FAILED) {
+          await this.progressMonitor.handleJobStatusChange(
+            job.id,
+            "failed",
+            job.metadata,
+          );
+        }
 
         return {
           jobId: job.id,

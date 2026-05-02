@@ -4,86 +4,89 @@ Background job processing system with progress tracking for Brain applications.
 
 ## Overview
 
-This service provides asynchronous job processing with real-time progress tracking, batch operations support, and automatic retries.
+This package provides persistent background job queueing, handler registration,
+worker execution, retries, progress events, and in-process batch tracking.
 
 ## Features
 
 - Background job processing
-- Real-time progress tracking
+- Handler-based job validation and execution
+- Progress reporting through `JobProgressMonitor`
 - Batch job management
-- Job priorities and retries
-- Progress event streaming
-- SQLite-based persistence
-- Worker pool management
+- Job priorities, delays, retries, and deduplication
+- SQLite/libSQL persistence
+- Worker concurrency controls
 
 ## Usage
 
 ```typescript
-import { JobQueueService } from "@brains/job-queue";
+import { JobQueueService, JobQueueWorker } from "@brains/job-queue";
+import { Logger, z } from "@brains/utils";
 
-const jobQueue = JobQueueService.getInstance({
-  database: db,
-  messageBus: bus,
+const embedJobSchema = z.object({ entityId: z.string() });
+
+const logger = Logger.getInstance();
+const jobQueue = JobQueueService.getInstance(
+  { url: "file:job-queue.db" },
+  logger,
+);
+
+jobQueue.registerHandler("entity:embed", {
+  validateAndParse(data) {
+    const result = embedJobSchema.safeParse(data);
+    return result.success ? result.data : null;
+  },
+
+  async process(data, jobId, progress) {
+    await progress.report({ progress: 50, total: 100, message: "Embedding" });
+    return { success: true, jobId, entityId: data.entityId };
+  },
 });
 
-// Queue a job
-const jobId = await jobQueue.queueJob({
-  type: "entity:embed",
-  payload: { entityId: "123" },
-  priority: 1,
-});
-
-// Queue batch job
-const batchId = await jobQueue.queueBatchJob({
-  type: "import:directory",
-  operations: files.map((f) => ({
-    name: `Import ${f}`,
-    payload: { file: f },
-  })),
-});
-
-// Monitor progress
-messageBus.on("job:progress", (event) => {
-  console.log(`Job ${event.jobId}: ${event.progress}%`);
-});
+const jobId = await jobQueue.enqueue(
+  "entity:embed",
+  { entityId: "123" },
+  {
+    source: "example",
+    priority: 1,
+    metadata: { operationType: "data_processing" },
+  },
+);
 ```
 
-## Job Handlers
+## Workers
 
-Register handlers for job types:
+Workers poll for queued jobs and dispatch them to registered handlers.
 
 ```typescript
-jobQueue.registerHandler("entity:embed", async (job) => {
-  const { entityId } = job.payload;
-
-  // Report progress
-  await job.updateProgress(50, "Generating embedding");
-
-  // Do work
-  const result = await generateEmbedding(entityId);
-
-  // Complete
-  await job.updateProgress(100, "Complete");
-  return result;
+const worker = JobQueueWorker.createFresh(jobQueue, progressMonitor, logger, {
+  concurrency: 2,
+  pollInterval: 100,
+  autoStart: false,
 });
+
+await worker.start();
 ```
 
-## Progress Monitoring
+## Batch Operations
 
-Real-time progress updates via events:
+`BatchJobManager` tracks a logical batch as multiple child jobs. Batch metadata is
+currently in-memory; child jobs themselves remain persisted in the job queue.
 
 ```typescript
-// Subscribe to progress events
-messageBus.on("job:progress", (event) => {
-  const { jobId, progress, message, details } = event;
-  // Update UI
-});
+const batchId = await batchJobManager.enqueueBatch(
+  [
+    { type: "entity:embed", data: { entityId: "1" } },
+    { type: "entity:embed", data: { entityId: "2" } },
+  ],
+  {
+    source: "example",
+    metadata: { operationType: "batch_processing" },
+  },
+  "batch-123",
+);
 
-// Batch progress
-messageBus.on("batch:progress", (event) => {
-  const { batchId, completed, total, operations } = event;
-  // Show batch progress
-});
+const status = await batchJobManager.getBatchStatus(batchId);
 ```
 
 ## License

@@ -60,8 +60,18 @@ export const JobResultSchema = z.object({
   error: z.string().optional(),
 });
 
+/**
+ * Controlled handler failure result.
+ * Handlers may return this shape for known, non-exception failure conditions.
+ */
+export const HandlerFailureSchema = z.object({
+  success: z.literal(false),
+  error: z.string().optional(),
+});
+
 export type JobStatus = z.infer<typeof JobStatusSchema>;
 export type JobResult = z.infer<typeof JobResultSchema>;
+export type HandlerFailure = z.infer<typeof HandlerFailureSchema>;
 
 /**
  * Schema for job progress events

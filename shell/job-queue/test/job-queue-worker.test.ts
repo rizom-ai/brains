@@ -244,6 +244,39 @@ describe("JobQueueWorker", () => {
 
       expect(limitedWorker.isWorkerRunning()).toBe(false);
     });
+
+    it("should count failed jobs toward maxJobs", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() => {
+        throw new Error("boom");
+      });
+
+      let dequeueCount = 0;
+      const service = createMockJobQueueService({
+        returns: {
+          getHandler: handler,
+          getStatus: { ...testJob, status: "failed", lastError: "boom" },
+        },
+      });
+      spyOn(service, "dequeue").mockImplementation(() => {
+        dequeueCount++;
+        return Promise.resolve({ ...testJob, id: `failed-${dequeueCount}` });
+      });
+
+      worker = JobQueueWorker.createFresh(
+        service,
+        new MockProgressMonitor(),
+        createSilentLogger(),
+        { pollInterval: 20, maxJobs: 1 },
+      );
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      const stats = worker.getStats();
+      expect(stats.failedJobs).toBe(1);
+      expect(service.dequeue).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe("Graceful shutdown", () => {
@@ -309,7 +342,14 @@ describe("JobQueueWorker", () => {
 
       let callCount = 0;
       const service = createMockJobQueueService({
-        returns: { getHandler: handler },
+        returns: {
+          getHandler: handler,
+          getStatus: {
+            ...testJob,
+            status: "failed",
+            lastError: "No content source",
+          },
+        },
       });
       spyOn(service, "dequeue").mockImplementation(() => {
         callCount++;
@@ -335,6 +375,47 @@ describe("JobQueueWorker", () => {
         "failed",
         testJob.metadata,
       );
+    });
+
+    it("should not report failed status for controlled failure while retry is pending", async () => {
+      const handler = createMockHandler();
+      handler.process.mockImplementation(() =>
+        Promise.resolve({ success: false, error: "Retry me" }),
+      );
+
+      const progressMonitor = new MockProgressMonitor();
+      const handleStatusChange = spyOn(
+        progressMonitor,
+        "handleJobStatusChange",
+      );
+
+      let callCount = 0;
+      const service = createMockJobQueueService({
+        returns: {
+          getHandler: handler,
+          getStatus: { ...testJob, status: "pending", lastError: "Retry me" },
+        },
+      });
+      spyOn(service, "dequeue").mockImplementation(() => {
+        callCount++;
+        return callCount === 1
+          ? Promise.resolve(testJob)
+          : Promise.resolve(null);
+      });
+
+      worker = JobQueueWorker.createFresh(
+        service,
+        progressMonitor,
+        createSilentLogger(),
+        {
+          pollInterval: 50,
+        },
+      );
+
+      await worker.start();
+      await new Promise((resolve) => setTimeout(resolve, 150));
+
+      expect(handleStatusChange).not.toHaveBeenCalled();
     });
 
     it("should count handler { success: false } as a failed job in stats", async () => {
