@@ -3,6 +3,12 @@ import type { IEntityService, BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ExportResult } from "../types";
 import type { FileOperations } from "./file-operations";
+import {
+  createExportResult,
+  logExportSummary,
+  recordEntityExportResult,
+  type EntityExportResult,
+} from "./export-result";
 
 export interface ExportPipelineDeps {
   entityService: IEntityService;
@@ -23,11 +29,7 @@ export async function exportEntities(
     entityTypes: typesToExport,
   });
 
-  const result: ExportResult = {
-    exported: 0,
-    failed: 0,
-    errors: [],
-  };
+  const result = createExportResult();
 
   for (const entityType of typesToExport) {
     const entities = await deps.entityService.listEntities(entityType, {
@@ -41,43 +43,18 @@ export async function exportEntities(
 
     for (const entity of entities) {
       const exportResult = await processEntityExport(deps, entity);
-
-      if (exportResult.success) {
-        result.exported++;
-        if (exportResult.deleted) {
-          deps.logger.debug("Deleted entity from DB (file missing)", {
-            entityType,
-            id: entity.id,
-          });
-        }
-      } else {
-        result.failed++;
-        result.errors.push({
-          entityId: entity.id,
-          entityType,
-          error: exportResult.error ?? "Unknown error",
-        });
-        deps.logger.error("Failed to export entity", {
-          entityType,
-          id: entity.id,
-          error: exportResult.error,
-        });
-      }
+      recordEntityExportResult(deps.logger, result, entity, exportResult);
     }
   }
 
-  deps.logger.debug("Export completed", result);
+  logExportSummary(deps.logger, result);
   return result;
 }
 
 export async function processEntityExport(
   deps: ExportPipelineDeps,
   entity: BaseEntity,
-): Promise<{
-  success: boolean;
-  deleted?: boolean;
-  error?: string;
-}> {
+): Promise<EntityExportResult> {
   try {
     const filePath = deps.fileOperations.getEntityFilePath(entity);
     if (!(await deps.fileOperations.fileExists(filePath))) {
