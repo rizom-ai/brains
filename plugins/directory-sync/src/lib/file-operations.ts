@@ -1,12 +1,12 @@
 import type { BaseEntity } from "@brains/plugins";
 import { join, dirname, extname } from "path";
-import { resolveInSyncPath, toSyncRelativePath } from "./path-utils";
+import { resolveInSyncPath } from "./path-utils";
+import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
 import {
-  IMAGE_EXTENSIONS,
-  getExtensionForFormat,
-  getMimeTypeForExtension,
-  isImageFile,
-} from "./image-file-utils";
+  buildEntityFilePath,
+  getEntityFileExtension,
+  parseEntityPath,
+} from "./entity-paths";
 import {
   mkdir,
   readFile,
@@ -51,48 +51,7 @@ export class FileOperations {
   }
 
   parseEntityFromPath(filePath: string): { entityType: string; id: string } {
-    const relativePath = toSyncRelativePath(this.syncPath, filePath);
-    const pathParts = relativePath.split("/");
-
-    // Base entities are in root; subdirectory name is the entity type
-    let entityType: string;
-    let idPathParts: string[];
-
-    if (pathParts.length === 1) {
-      entityType = "base";
-      idPathParts = pathParts;
-    } else if (pathParts.length > 1 && pathParts[0]) {
-      entityType = pathParts[0];
-      idPathParts = pathParts.slice(1);
-    } else {
-      entityType = "base";
-      idPathParts = pathParts;
-    }
-
-    // Reconstruct ID: nested paths become colon-separated
-    // e.g., site-content/landing/hero.md -> id: "landing:hero"
-    let id: string;
-    if (idPathParts.length > 1) {
-      const lastPart = idPathParts[idPathParts.length - 1];
-      if (lastPart) {
-        const ext = extname(lastPart).toLowerCase();
-        const filename =
-          ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
-            ? lastPart.slice(0, -ext.length)
-            : lastPart;
-        idPathParts[idPathParts.length - 1] = filename;
-      }
-      id = idPathParts.join(":");
-    } else {
-      const filename = idPathParts[0] ?? "";
-      const ext = extname(filename).toLowerCase();
-      id =
-        ext === ".md" || IMAGE_EXTENSIONS.includes(ext)
-          ? filename.slice(0, -ext.length)
-          : filename;
-    }
-
-    return { entityType, id };
+    return parseEntityPath(this.syncPath, filePath);
   }
 
   async readEntity(filePath: string): Promise<RawEntity> {
@@ -186,50 +145,15 @@ export class FileOperations {
     entityType: string,
     extension: string = ".md",
   ): string {
-    const cleanParts = entityId.split(":").filter((part) => part.length > 0);
-    const isBase = entityType === "base";
-
-    if (cleanParts.length === 1) {
-      return isBase
-        ? join(this.syncPath, `${cleanParts[0]}${extension}`)
-        : join(this.syncPath, entityType, `${cleanParts[0]}${extension}`);
-    }
-
-    // Skip first part if it duplicates the entity type (e.g., "summary/summary/...")
-    let pathParts = cleanParts;
-    if (cleanParts[0] === entityType) {
-      pathParts = cleanParts.slice(1);
-    }
-
-    const filename = pathParts[pathParts.length - 1];
-    const directories = pathParts.slice(0, -1);
-
-    if (isBase) {
-      return join(this.syncPath, ...directories, `${filename}${extension}`);
-    } else {
-      return join(
-        this.syncPath,
-        entityType,
-        ...directories,
-        `${filename}${extension}`,
-      );
-    }
+    return buildEntityFilePath(this.syncPath, entityId, entityType, extension);
   }
 
   getEntityFilePath(entity: BaseEntity): string {
-    let extension = ".md";
-    if (entity.entityType === "image") {
-      const format = (entity.metadata as { format?: string }).format;
-      if (format) {
-        extension = getExtensionForFormat(format);
-      } else {
-        const match = entity.content.match(/^data:image\/([a-z+]+);base64,/i);
-        if (match?.[1]) {
-          extension = getExtensionForFormat(match[1]);
-        }
-      }
-    }
-    return this.getFilePath(entity.id, entity.entityType, extension);
+    return this.getFilePath(
+      entity.id,
+      entity.entityType,
+      getEntityFileExtension(entity),
+    );
   }
 
   async getAllMarkdownFiles(): Promise<string[]> {
