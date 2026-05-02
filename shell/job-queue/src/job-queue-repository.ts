@@ -32,20 +32,31 @@ export class JobQueueRepository {
     await this.db.insert(jobQueue).values(jobData);
   }
 
-  public async markFailedAsReplaced(jobId: string): Promise<void> {
+  /**
+   * Mark a job as terminally failed (no retry). Use `fail()` for the normal
+   * retry-aware failure path; this primitive exists for callers (like the
+   * dedup-replace strategy) that need to abort a job outright.
+   */
+  public async markTerminallyFailed(
+    jobId: string,
+    errorMessage: string,
+  ): Promise<void> {
     await this.db
       .update(jobQueue)
       .set({
         status: JOB_STATUS.FAILED,
-        lastError: "Replaced by newer job",
+        lastError: errorMessage,
       })
       .where(eq(jobQueue.id, jobId));
   }
 
-  public async rescheduleForImmediateRun(jobId: string): Promise<void> {
+  public async setScheduledFor(
+    jobId: string,
+    scheduledFor: number,
+  ): Promise<void> {
     await this.db
       .update(jobQueue)
-      .set({ scheduledFor: Date.now() })
+      .set({ scheduledFor })
       .where(eq(jobQueue.id, jobId));
   }
 
@@ -229,12 +240,16 @@ export class JobQueueRepository {
       .orderBy(desc(jobQueue.createdAt));
   }
 
-  public async findReadyCandidates(
-    now: number,
-    limit: number,
-  ): Promise<JobQueue[]> {
-    return this.db
-      .select()
+  /**
+   * Atomically claim the highest-priority ready job.
+   *
+   * Uses a single `UPDATE ... WHERE id IN (SELECT ... LIMIT 1) RETURNING *` so
+   * concurrent workers never race on the same row — if two workers run this
+   * at once, exactly one of them gets the job and the other gets `null`.
+   */
+  public async claimNextReady(now = Date.now()): Promise<JobQueue | null> {
+    const candidate = this.db
+      .select({ id: jobQueue.id })
       .from(jobQueue)
       .where(
         and(
@@ -243,32 +258,21 @@ export class JobQueueRepository {
         ),
       )
       .orderBy(asc(jobQueue.priority), asc(jobQueue.createdAt))
-      .limit(limit);
-  }
+      .limit(1);
 
-  /**
-   * Mark a job as processing
-   */
-  public async claimPending(jobId: string, now = Date.now()): Promise<boolean> {
     const result = await this.db
       .update(jobQueue)
       .set({
         status: JOB_STATUS.PROCESSING,
         startedAt: now,
       })
-      .where(
-        and(
-          eq(jobQueue.id, jobId),
-          eq(jobQueue.status, JOB_STATUS.PENDING),
-          lte(jobQueue.scheduledFor, now),
-        ),
-      );
+      .where(inArray(jobQueue.id, candidate))
+      .returning();
 
-    const claimed = result.rowsAffected > 0;
+    const claimed = result[0];
     if (claimed) {
-      this.logger.debug("Job marked as processing", { jobId });
+      this.logger.debug("Job claimed", { jobId: claimed.id });
     }
-
-    return claimed;
+    return claimed ?? null;
   }
 }

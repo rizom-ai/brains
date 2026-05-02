@@ -1,5 +1,6 @@
 import { existsSync } from "fs";
 import { join, dirname } from "path";
+import type { BootMode } from "@brains/core";
 import type { CommandResult } from "../run-command";
 import { parseBrainYaml } from "../lib/brain-yaml";
 import {
@@ -73,7 +74,7 @@ export function resolveRunnerType(
 
 export async function start(
   cwd: string,
-  flags: { chat: boolean; startupCheck?: boolean },
+  flags: { chat: boolean; mode?: BootMode },
   dependencies: StartDependencies = {},
 ): Promise<CommandResult> {
   if (!existsSync(join(cwd, "brain.yaml"))) {
@@ -88,7 +89,7 @@ export async function start(
   if (runner) {
     const args = ["run", runner.path];
     if (flags.chat) args.push("--cli");
-    if (flags.startupCheck) args.push("--startup-check");
+    if (flags.mode === "startup-check") args.push("--startup-check");
 
     return spawnBunRunner({
       cwd,
@@ -100,7 +101,7 @@ export async function start(
 
   if (hasRegisteredModels()) {
     const keyCheck = checkApiKey(process.env);
-    if (!flags.startupCheck && !keyCheck.ok) {
+    if (flags.mode !== "startup-check" && !keyCheck.ok) {
       return {
         success: false,
         message: keyCheck.message ?? "AI_API_KEY is not set.",

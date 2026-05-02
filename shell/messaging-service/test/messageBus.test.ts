@@ -44,6 +44,49 @@ describe("MessageBus", () => {
       expect(messageBus.hasHandlers("test.message")).toBe(false);
     });
 
+    it("should unsubscribe only the provided handler", async () => {
+      const handler1 = mock(() => ({ success: true, data: "handler1" }));
+      const handler2 = mock(() => ({ success: true, data: "handler2" }));
+
+      messageBus.subscribe("test.message", handler1);
+      messageBus.subscribe("test.message", handler2);
+
+      messageBus.unsubscribe("test.message", handler1);
+
+      expect(messageBus.getHandlerCount("test.message")).toBe(1);
+
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
+
+      expect(handler1).not.toHaveBeenCalled();
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toBe("handler2");
+    });
+
+    it("should remove only one subscription when using returned unsubscribe", async () => {
+      const handler = mock(() => ({ success: true, data: "handler" }));
+
+      const unsubscribe = messageBus.subscribe("test.message", handler);
+      messageBus.subscribe("test.message", handler);
+
+      unsubscribe();
+
+      expect(messageBus.getHandlerCount("test.message")).toBe(1);
+
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
+
+      expect(handler).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+    });
+
     it("should clear all handlers for a message type", () => {
       const handler = mock(() => ({ success: true }));
 
@@ -163,6 +206,30 @@ describe("MessageBus", () => {
       expect(errorHandler1).toHaveBeenCalled();
       expect(errorHandler2).toHaveBeenCalled();
       expect("success" in result && result.success).toBe(false);
+    });
+
+    it("should continue to the next handler after an invalid response", async () => {
+      const invalidHandler = mock(
+        () => ({ invalid: true }) as unknown as { success: true },
+      );
+      const successHandler = mock(() => ({
+        success: true,
+        data: { result: "success" },
+      }));
+
+      messageBus.subscribe("test.message", invalidHandler);
+      messageBus.subscribe("test.message", successHandler);
+
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
+
+      expect(invalidHandler).toHaveBeenCalledTimes(1);
+      expect(successHandler).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toEqual({ result: "success" });
     });
   });
 
@@ -375,6 +442,29 @@ describe("MessageBus", () => {
       expect(handler).toHaveBeenCalledTimes(1);
     });
 
+    it("should support stateful regex patterns across repeated matches", async () => {
+      const handler = mock(() => ({ success: true }));
+
+      messageBus.subscribe("test.message", handler, {
+        source: /^plugin:\w+$/g,
+      });
+
+      const result1 = await messageBus.send(
+        "test.message",
+        { content: "test" },
+        "plugin:note",
+      );
+      const result2 = await messageBus.send(
+        "test.message",
+        { content: "test" },
+        "plugin:note",
+      );
+
+      expect("success" in result1 && result1.success).toBe(true);
+      expect("success" in result2 && result2.success).toBe(true);
+      expect(handler).toHaveBeenCalledTimes(2);
+    });
+
     it("should support custom predicate filters", async () => {
       const handler = mock(() => ({ success: true }));
 
@@ -525,6 +615,22 @@ describe("MessageBus", () => {
       expect(handler2).toHaveBeenCalledTimes(1);
       expect(handler3).toHaveBeenCalledTimes(0);
     });
+
+    it("should compile wildcard string filters to RegExp at subscribe time", () => {
+      const handler = mock(() => ({ success: true }));
+      messageBus.subscribe("test.event", handler, { source: "plugin:*" });
+
+      const handlers = (
+        messageBus as unknown as {
+          handlers: Map<string, Set<{ filter?: { source?: unknown } }>>;
+        }
+      ).handlers.get("test.event");
+      const entry = handlers ? [...handlers][0] : undefined;
+      const compiled = entry?.filter?.source;
+      expect(compiled).toBeInstanceOf(RegExp);
+      expect((compiled as RegExp).test("plugin:foo")).toBe(true);
+      expect((compiled as RegExp).test("other:bar")).toBe(false);
+    });
   });
 
   describe("broadcast functionality", () => {
@@ -553,6 +659,32 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(1);
 
       // Broadcast messages don't return responses
+      expect("success" in result && result.success).toBe(false);
+    });
+
+    it("should continue broadcast delivery after an invalid response", async () => {
+      const invalidHandler = mock(
+        () => ({ invalid: true }) as unknown as { success: true },
+      );
+      const handler2 = mock(() => ({ success: true }));
+      const handler3 = mock(() => ({ noop: true }) as const);
+
+      messageBus.subscribe("test.broadcast", invalidHandler);
+      messageBus.subscribe("test.broadcast", handler2);
+      messageBus.subscribe("test.broadcast", handler3);
+
+      const result = await messageBus.send(
+        "test.broadcast",
+        { content: "broadcast message" },
+        "sender",
+        undefined,
+        undefined,
+        true,
+      );
+
+      expect(invalidHandler).toHaveBeenCalledTimes(1);
+      expect(handler2).toHaveBeenCalledTimes(1);
+      expect(handler3).toHaveBeenCalledTimes(1);
       expect("success" in result && result.success).toBe(false);
     });
 

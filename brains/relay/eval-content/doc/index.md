@@ -36,8 +36,8 @@ If you are new, start with the quickstart and then read the content, interface, 
 - [Customization Guide](/docs/customization-guide) — configure instances, customize content, themes, sites/layouts, and plugin boundaries
 - [Theming Guide](/docs/theming-guide) — theme tokens, dark mode, CSS layering, and theme package patterns
 - [Plugin System](/docs/plugin-system) — high-level entity/service/interface plugin model
+- [External Plugin Authoring](/docs/external-plugin-authoring) — packaging, factory contract, registration model, lifecycle, and `brain.yaml` loading for external plugin packages
 - [Plugin Quick Reference](/docs/plugin-quick-reference) — concise plugin reference
-- [Plugin Development Patterns](/docs/plugin-development-patterns) — pointers to the current implementation guides
 
 ## Architecture
 

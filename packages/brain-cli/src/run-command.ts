@@ -41,12 +41,12 @@ export async function runCommand(
     case "start":
       return start(dir, {
         chat: false,
-        ...(parsed.flags["startup-check"] && { startupCheck: true }),
+        ...(parsed.flags["startup-check"] && { mode: "startup-check" }),
       });
     case "chat":
       return start(dir, {
         chat: true,
-        ...(parsed.flags["startup-check"] && { startupCheck: true }),
+        ...(parsed.flags["startup-check"] && { mode: "startup-check" }),
       });
     case "eval":
       return runEval(dir, process.argv.slice(2));

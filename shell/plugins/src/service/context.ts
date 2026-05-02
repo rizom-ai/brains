@@ -2,17 +2,14 @@ import type { BasePluginContext } from "../base/context";
 import { createBasePluginContext } from "../base/context";
 import type { IShell, PluginRegistrationContext } from "../interfaces";
 import type { IEntitiesNamespace, IPromptsNamespace } from "../entity/context";
-import { resolvePrompt } from "../entity/prompt-resolver";
-import type {
-  IEntityService,
-  BaseEntity,
-  EntityAdapter,
-} from "@brains/entity-service";
+import {
+  createEntitiesNamespace,
+  createPromptsNamespace,
+} from "../entity/namespaces";
+import type { IEntityService } from "@brains/entity-service";
 import type { ResolutionOptions } from "@brains/content-service";
 import { TemplateCapabilities } from "@brains/templates";
 import type { Template, ViewTemplate, WebRenderer } from "@brains/templates";
-import type { DataSource } from "@brains/entity-service";
-import type { z } from "@brains/utils";
 
 /**
  * Template operations namespace for ServicePluginContext
@@ -103,9 +100,7 @@ export function createServicePluginContext(
     registrationContext,
   );
   const entityService = shell.getEntityService();
-  const entityRegistry = shell.getEntityRegistry();
   const renderService = shell.getRenderService();
-  const dataSourceRegistry = shell.getDataSourceRegistry();
   const contentService = shell.getContentService();
 
   return {
@@ -113,42 +108,7 @@ export function createServicePluginContext(
 
     entityService,
 
-    entities: {
-      register: (entityType, schema, adapter, config): void => {
-        entityRegistry.registerEntityType(entityType, schema, adapter, config);
-      },
-      getAdapter: <T extends BaseEntity>(
-        entityType: string,
-      ): EntityAdapter<T> | undefined => {
-        try {
-          return entityRegistry.getAdapter<T>(entityType);
-        } catch {
-          return undefined;
-        }
-      },
-      extendFrontmatterSchema: (
-        type: string,
-        extension: z.ZodObject<z.ZodRawShape>,
-      ): void => {
-        entityRegistry.extendFrontmatterSchema(type, extension);
-      },
-      getEffectiveFrontmatterSchema: (
-        type: string,
-      ): z.ZodObject<z.ZodRawShape> | undefined => {
-        return entityRegistry.getEffectiveFrontmatterSchema(type);
-      },
-      registerCreateInterceptor: (entityType, interceptor): void => {
-        entityRegistry.registerCreateInterceptor(entityType, interceptor);
-      },
-      update: async <T extends BaseEntity>(
-        entity: T,
-      ): Promise<{ entityId: string; jobId: string }> => {
-        return entityService.updateEntity(entity);
-      },
-      registerDataSource: (dataSource: DataSource): void => {
-        dataSourceRegistry.register(dataSource);
-      },
-    },
+    entities: createEntitiesNamespace(shell),
 
     templates: {
       register: (
@@ -215,11 +175,7 @@ export function createServicePluginContext(
       },
     },
 
-    prompts: {
-      resolve: (target: string, fallback: string): Promise<string> => {
-        return resolvePrompt(entityService, target, fallback);
-      },
-    },
+    prompts: createPromptsNamespace(entityService),
 
     registerInstructions: (instructions: string): void => {
       shell.registerInstructions(pluginId, instructions);

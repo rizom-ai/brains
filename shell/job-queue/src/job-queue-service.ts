@@ -14,8 +14,6 @@ import { HandlerRegistry } from "./handler-registry";
 import { JobQueueRepository } from "./job-queue-repository";
 import { JobDeduplicator } from "./job-deduplicator";
 
-const DEFAULT_DEQUEUE_CANDIDATE_LIMIT = 10;
-
 /**
  * Service for managing the generic job queue
  * Implements Component Interface Standardization pattern
@@ -29,7 +27,6 @@ export class JobQueueService implements IJobQueueService {
   private handlerRegistry: HandlerRegistry;
   private repository: JobQueueRepository;
   private deduplicator: JobDeduplicator;
-  private dequeueCandidateLimit: number;
 
   /**
    * Get the singleton instance
@@ -83,8 +80,6 @@ export class JobQueueService implements IJobQueueService {
     this.handlerRegistry = new HandlerRegistry(this.logger);
     this.repository = new JobQueueRepository(db, this.logger);
     this.deduplicator = new JobDeduplicator();
-    this.dequeueCandidateLimit =
-      config.dequeueCandidateLimit ?? DEFAULT_DEQUEUE_CANDIDATE_LIMIT;
 
     // Enable WAL mode asynchronously (non-blocking)
     enableWALMode(client, url).catch((error) => {
@@ -176,7 +171,10 @@ export class JobQueueService implements IJobQueueService {
           type,
           oldJobId: duplicate.id,
         });
-        await this.repository.markFailedAsReplaced(duplicate.id);
+        await this.repository.markTerminallyFailed(
+          duplicate.id,
+          "Replaced by newer job",
+        );
       }
 
       if (options?.deduplication === "coalesce") {
@@ -184,7 +182,7 @@ export class JobQueueService implements IJobQueueService {
           type,
           existingJobId: duplicate.id,
         });
-        await this.repository.rescheduleForImmediateRun(duplicate.id);
+        await this.repository.setScheduledFor(duplicate.id, Date.now());
         return duplicate.id;
       }
     }
@@ -251,33 +249,17 @@ export class JobQueueService implements IJobQueueService {
    * Dequeue the next job for processing
    */
   public async dequeue(): Promise<JobQueue | null> {
-    const now = Date.now();
+    const job = await this.repository.claimNextReady();
+    if (!job) return null;
 
-    const jobs = await this.repository.findReadyCandidates(
-      now,
-      this.dequeueCandidateLimit,
-    );
+    this.logger.debug("Job dequeued", {
+      id: job.id,
+      type: job.type,
+      priority: job.priority,
+      retryCount: job.retryCount,
+    });
 
-    for (const job of jobs) {
-      const claimed = await this.repository.claimPending(job.id, now);
-      if (!claimed) {
-        continue;
-      }
-
-      job.status = JOB_STATUS.PROCESSING;
-      job.startedAt = now;
-
-      this.logger.debug("Job dequeued", {
-        id: job.id,
-        type: job.type,
-        priority: job.priority,
-        retryCount: job.retryCount,
-      });
-
-      return job;
-    }
-
-    return null;
+    return job;
   }
 
   /**

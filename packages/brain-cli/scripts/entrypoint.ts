@@ -84,12 +84,9 @@ setBootFn(async (cwd, _modelName, definition, flags) => {
 
   const config = resolve(definition, process.env, effectiveOverrides);
 
-  if (flags.registerOnly || flags.startupCheck) {
+  if (flags.mode) {
     const app = App.create(config);
-    await app.initialize({
-      ...(flags.registerOnly && { registerOnly: true }),
-      ...(flags.startupCheck && { startupCheck: true }),
-    });
+    await app.initialize({ mode: flags.mode });
     return;
   }
 

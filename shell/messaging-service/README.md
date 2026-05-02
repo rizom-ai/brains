@@ -1,210 +1,103 @@
 # @brains/messaging-service
 
-Event-driven messaging system with pub/sub pattern for Brain applications.
+Event-driven request/broadcast messaging for Brain shell services.
 
 ## Overview
 
-This service provides a centralized message bus for inter-component communication using a publish/subscribe pattern. It enables loose coupling between components and supports async event handling.
-
-## Features
-
-- Publish/subscribe messaging pattern
-- Typed event system with TypeScript
-- Wildcard event subscriptions
-- Event filtering and routing
-- Memory-efficient event handling
-- Support for sync and async handlers
-
-## Installation
-
-```bash
-bun add @brains/messaging-service
-```
+`@brains/messaging-service` provides an in-memory `MessageBus` with typed
+`send`/`subscribe` APIs, optional source/target/metadata filters, and broadcast
+support. Handlers can be synchronous or asynchronous.
 
 ## Usage
 
 ```typescript
 import { MessageBus } from "@brains/messaging-service";
+import type { Logger } from "@brains/utils";
 
-const messageBus = MessageBus.getInstance();
+declare const logger: Logger;
 
-// Subscribe to events
-messageBus.on("entity:created", async (event) => {
-  console.log("New entity:", event.entity);
-});
+const messageBus = MessageBus.getInstance(logger);
 
-// Subscribe with wildcard
-messageBus.on("entity:*", async (event) => {
-  console.log("Entity event:", event.type);
-});
-
-// Publish events
-await messageBus.emit("entity:created", {
-  entity: {
-    id: "123",
-    type: "note",
-    content: "Hello",
+const unsubscribe = messageBus.subscribe<{ id: string }, { accepted: true }>(
+  "entity:created",
+  async (message) => {
+    return {
+      success: true,
+      data: { accepted: true },
+    };
   },
-});
+);
 
-// Unsubscribe
-const unsubscribe = messageBus.on("test", handler);
-unsubscribe(); // Remove subscription
+const response = await messageBus.send(
+  "entity:created",
+  { id: "123" },
+  "entity-service",
+);
+
+unsubscribe();
 ```
 
-## Event Patterns
+## Filters
 
-### Standard Events
-
-Common event patterns used in Brain applications:
+Subscriptions can be restricted by source, target, metadata, or a custom
+predicate.
 
 ```typescript
-// Entity events
-"entity:created";
-"entity:updated";
-"entity:deleted";
-"entity:searched";
-
-// Job events
-"job:started";
-"job:progress";
-"job:completed";
-"job:failed";
-
-// Plugin events
-"plugin:registered";
-"plugin:error";
-
-// System events
-"system:ready";
-"system:shutdown";
+messageBus.subscribe(
+  "job:progress",
+  async (message) => ({ success: true, data: message.payload }),
+  {
+    source: "job:*",
+    target: "matrix:room-1",
+    metadata: { visible: true },
+  },
+);
 ```
 
-### Custom Events
+String filters support `*` wildcards. `RegExp` filters are also supported.
 
-Define your own event types:
+## Broadcasts
+
+Pass `true` as the final `send` argument to invoke all matching handlers. The
+bus awaits each handler and does not return handler data for broadcast messages.
 
 ```typescript
-interface MyEvent {
-  type: string;
-  data: {
-    value: number;
-    message: string;
-  };
-}
-
-messageBus.on<MyEvent>("my:event", async (event) => {
-  console.log(event.data.value); // Typed!
-});
+await messageBus.send(
+  "sync:completed",
+  { success: true },
+  "directory-sync",
+  undefined,
+  undefined,
+  true,
+);
 ```
 
-## Wildcard Subscriptions
-
-Subscribe to multiple events with patterns:
-
-```typescript
-// All entity events
-messageBus.on("entity:*", handler);
-
-// All events (use sparingly)
-messageBus.on("*", handler);
-
-// Specific namespace
-messageBus.on("job:*", jobHandler);
-```
-
-## Error Handling
-
-```typescript
-messageBus.on("entity:created", async (event) => {
-  try {
-    await processEntity(event.entity);
-  } catch (error) {
-    // Emit error event
-    await messageBus.emit("entity:error", {
-      entity: event.entity,
-      error: error.message,
-    });
-  }
-});
-```
-
-## Message Types
-
-### Base Message
-
-```typescript
-interface Message {
-  id: string;
-  type: string;
-  timestamp: Date;
-  source?: string;
-  metadata?: Record<string, unknown>;
-}
-```
-
-### Typed Messages
-
-```typescript
-interface EntityMessage extends Message {
-  type: "entity:created" | "entity:updated" | "entity:deleted";
-  entity: BaseEntity;
-}
-
-interface JobMessage extends Message {
-  type: "job:started" | "job:progress" | "job:completed";
-  jobId: string;
-  progress?: number;
-  result?: unknown;
-}
-```
+Handlers that do not need to return data can return `{ noop: true }`.
 
 ## Testing
 
+Use a fresh bus instance for isolated tests:
+
 ```typescript
-import { MessageBus } from "@brains/messaging-service";
-
-describe("MyComponent", () => {
-  let messageBus: MessageBus;
-
-  beforeEach(() => {
-    messageBus = MessageBus.createFresh();
-  });
-
-  test("handles events", async () => {
-    const handler = jest.fn();
-    messageBus.on("test:event", handler);
-
-    await messageBus.emit("test:event", { data: "test" });
-
-    expect(handler).toHaveBeenCalledWith(
-      expect.objectContaining({ data: "test" }),
-    );
-  });
-});
+const messageBus = MessageBus.createFresh(logger);
 ```
 
-## Performance
+The package also exposes `@brains/messaging-service/test` for a preconfigured
+mock message bus.
 
-- Events are processed synchronously by default
-- Use async handlers for I/O operations
-- Avoid blocking operations in handlers
-- Consider event batching for high-frequency events
+## Public exports
 
-## Best Practices
-
-1. **Use typed events** - Define interfaces for your events
-2. **Namespace events** - Use prefixes like `entity:`, `job:`
-3. **Handle errors** - Don't let handler errors crash the app
-4. **Clean up** - Unsubscribe when components unmount
-5. **Document events** - List all events your component emits
-
-## Exports
-
-- `MessageBus` - Main message bus class
-- `Message` - Base message interface
-- Event type definitions
-- Test utilities
+- `MessageBus`
+- `IMessageBus`
+- `MessageResponse`
+- `MessageHandler`
+- `MessageSender`
+- `MessageSendOptions`
+- `BaseMessage`
+- `MessageWithPayload`
+- `MessageContext`
+- `SubscriptionFilter`
+- Message schemas and `hasPayload`
 
 ## License
 

@@ -133,7 +133,7 @@ describe("handleCLI", () => {
     await handleCLI(testConfig);
 
     expect(createSpy).toHaveBeenCalledWith(testConfig);
-    expect(initialize).toHaveBeenCalledWith({ startupCheck: true });
+    expect(initialize).toHaveBeenCalledWith({ mode: "startup-check" });
     expect(stop).toHaveBeenCalled();
     expect(runSpy).not.toHaveBeenCalled();
   });

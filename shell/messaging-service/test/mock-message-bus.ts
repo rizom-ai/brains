@@ -1,18 +1,18 @@
 import { mock } from "bun:test";
-import type { MessageBus } from "@brains/messaging-service";
+import type { MessageBus, MessageResponse } from "../src";
 
 /**
- * Options for configuring mock message bus return values
+ * Options for configuring mock message bus return values.
  */
 export interface MockMessageBusReturns {
-  send?: { success: boolean; data?: unknown; error?: string };
+  send?: MessageResponse;
   hasHandlers?: boolean;
   getHandlerCount?: number;
   getTargetedHandlerCount?: number;
 }
 
 /**
- * Options for creating a mock message bus
+ * Options for creating a mock message bus.
  */
 export interface MockMessageBusOptions {
   returns?: MockMessageBusReturns;
@@ -20,27 +20,15 @@ export interface MockMessageBusOptions {
 
 /**
  * Create a mock message bus with all methods pre-configured.
- * The cast to MessageBus is centralized here so test files don't need unsafe casts.
- *
- * @example
- * ```ts
- * const mockBus = createMockMessageBus({
- *   returns: {
- *     send: { success: true, data: { result: "ok" } },
- *     hasHandlers: true,
- *   },
- * });
- * ```
  */
 export function createMockMessageBus(
   options: MockMessageBusOptions = {},
 ): MessageBus {
   const { returns = {} } = options;
-
   const defaultSendResult = returns.send ?? { success: true };
 
   return {
-    subscribe: mock(() => mock(() => {})), // Returns unsubscribe function
+    subscribe: mock(() => mock(() => {})),
     unsubscribe: mock(() => {}),
     send: mock(() => Promise.resolve(defaultSendResult)),
     hasHandlers: mock(() => returns.hasHandlers ?? false),

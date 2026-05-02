@@ -347,4 +347,120 @@ describe("BatchJobManager", () => {
       expect(activeBatches[0]?.status.status).toBe("processing");
     });
   });
+
+  describe("cleanup memoization", () => {
+    interface BatchEntry {
+      terminalAt?: number;
+    }
+    const peekEntry = (id: string): BatchEntry | undefined =>
+      (
+        batchManager as unknown as { batches: Map<string, BatchEntry> }
+      ).batches.get(id);
+
+    async function driveBatchToCompletion(batchId: string): Promise<void> {
+      await batchManager.enqueueBatch(
+        [{ type: "embedding", data: { entityId: "entity-1" } }],
+        defaultBatchOptions,
+        batchId,
+      );
+      const job = await jobQueueService.dequeue();
+      if (!job) throw new Error("expected to dequeue a job");
+      await jobQueueService.complete(job.id, { ok: true });
+    }
+
+    it("should memoize terminalAt the first time getBatchStatus observes a terminal status", async () => {
+      const batchId = createId();
+      await driveBatchToCompletion(batchId);
+
+      expect(peekEntry(batchId)?.terminalAt).toBeUndefined();
+
+      const status = await batchManager.getBatchStatus(batchId);
+      expect(status?.status).toBe(JOB_STATUS.COMPLETED);
+      expect(typeof peekEntry(batchId)?.terminalAt).toBe("number");
+    });
+
+    it("should clean up memoized terminal batches without re-fetching job status", async () => {
+      const batchId = createId();
+      await driveBatchToCompletion(batchId);
+      await batchManager.getBatchStatus(batchId); // primes terminalAt
+
+      let getStatusCalls = 0;
+      const originalGetStatus = jobQueueService.getStatus.bind(jobQueueService);
+      jobQueueService.getStatus = async (
+        id: string,
+      ): ReturnType<typeof jobQueueService.getStatus> => {
+        getStatusCalls++;
+        return originalGetStatus(id);
+      };
+
+      try {
+        const cleaned = await batchManager.cleanup(0);
+        expect(cleaned).toBe(1);
+        expect(getStatusCalls).toBe(0);
+        expect(peekEntry(batchId)).toBeUndefined();
+      } finally {
+        jobQueueService.getStatus = originalGetStatus;
+      }
+    });
+
+    it("should fall back to fetching status when terminalAt is not memoized", async () => {
+      const batchId = createId();
+      await driveBatchToCompletion(batchId);
+      // Note: getBatchStatus is intentionally not called — terminalAt stays unset.
+
+      let getStatusCalls = 0;
+      const originalGetStatus = jobQueueService.getStatus.bind(jobQueueService);
+      jobQueueService.getStatus = async (id: string) => {
+        getStatusCalls++;
+        return originalGetStatus(id);
+      };
+
+      try {
+        const cleaned = await batchManager.cleanup(0);
+        expect(cleaned).toBe(1);
+        expect(getStatusCalls).toBeGreaterThan(0);
+        expect(peekEntry(batchId)).toBeUndefined();
+      } finally {
+        jobQueueService.getStatus = originalGetStatus;
+      }
+    });
+  });
+
+  describe("lifecycle", () => {
+    it("should run cleanup on the configured interval and stop when stopped", async () => {
+      let cleanupCalls = 0;
+      const originalCleanup = batchManager.cleanup.bind(batchManager);
+      batchManager.cleanup = async (olderThanMs: number): Promise<number> => {
+        cleanupCalls++;
+        return originalCleanup(olderThanMs);
+      };
+
+      const waitForCalls = async (target: number): Promise<void> => {
+        const deadline = Date.now() + 1000;
+        while (cleanupCalls < target && Date.now() < deadline) {
+          await new Promise((resolve) => setTimeout(resolve, 5));
+        }
+      };
+
+      try {
+        batchManager.start(5);
+        await waitForCalls(1);
+        expect(cleanupCalls).toBeGreaterThan(0);
+
+        batchManager.stop();
+        const callsAtStop = cleanupCalls;
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        expect(cleanupCalls).toBe(callsAtStop);
+      } finally {
+        batchManager.stop();
+      }
+    });
+
+    it("should be idempotent for both start and stop", () => {
+      batchManager.start(60_000);
+      batchManager.start(60_000);
+      batchManager.stop();
+      batchManager.stop();
+    });
+  });
 });

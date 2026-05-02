@@ -32,8 +32,8 @@ remove:
   - discord
 
 site:
-  package: "@brains/site-default"
-  theme: "@brains/theme-default"
+  package: "@acme/brain-site"
+  theme: "@acme/brain-theme"
 
 plugins:
   mcp:

@@ -117,7 +117,7 @@ Start here:
 - [docs/brain-model.md](docs/brain-model.md)
 - [docs/entity-model.md](docs/entity-model.md)
 - [docs/plugin-system.md](docs/plugin-system.md)
-- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
+- [docs/external-plugin-authoring.md](docs/external-plugin-authoring.md)
 - [docs/roadmap.md](docs/roadmap.md)
 
 For example code:
@@ -164,7 +164,7 @@ The preferred way to extend `brains` is often an external plugin package.
 Useful references:
 
 - [docs/plugin-system.md](docs/plugin-system.md)
-- [docs/plugin-development-patterns.md](docs/plugin-development-patterns.md)
+- [docs/external-plugin-authoring.md](docs/external-plugin-authoring.md)
 - [docs/plugin-quick-reference.md](docs/plugin-quick-reference.md)
 - `plugins/examples/`
 

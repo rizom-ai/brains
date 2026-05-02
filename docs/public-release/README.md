@@ -67,7 +67,7 @@ Now Claude can read, search, create, and update entities in your brain.
 
 ```
 brain.yaml (instance config)
-  + brain model (e.g. @brains/rover)
+  + brain model (e.g. rover)
   = a running brain
     ├── Entities       typed content: blog post, link, deck, project, note, ...
     ├── Plugins        services and integrations: site builder, git sync, notion, ...
@@ -75,7 +75,7 @@ brain.yaml (instance config)
     └── Shell          core orchestration: storage, AI, jobs, messaging
 ```
 
-A **brain model** is a curated bundle of entity types, plugins, and interfaces — declared in code via `defineBrain()`. The shipped reference model is `@brains/rover`, a personal-knowledge brain with blog, links, decks, projects, and notes.
+A **brain model** is a curated bundle of entity types, plugins, and interfaces — declared in code via `defineBrain()`. The shipped reference model is `rover`, a personal-knowledge brain with blog, links, decks, projects, and notes.
 
 A **brain instance** is a deployment of a brain model on your infrastructure, configured via `brain.yaml`. The same model can be deployed many times with different domains, themes, plugin configs, and content.
 
@@ -171,7 +171,7 @@ docs/                 Architecture, plugin development, deployment, theming
 - [Architecture overview](../architecture-overview.md)
 - [Brain model + instance configuration](../brain-model.md)
 - [Entity model](../entity-model.md)
-- [Plugin system](../plugin-system.md) and [development patterns](../plugin-development-patterns.md)
+- [Plugin system](../plugin-system.md) and [external plugin authoring](../external-plugin-authoring.md)
 - [`brain.yaml` reference](../../packages/brain-cli/docs/brain-yaml-reference.md)
 - [Theming guide](../theming-guide.md)
 - [Deployment](../../deploy/README.md)

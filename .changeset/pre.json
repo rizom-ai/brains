@@ -156,6 +156,7 @@
     "standalone-dockerfile-reconcile",
     "standalone-publish-workflow-reconcile",
     "standalone-site-authoring-scaffold",
+    "startup-check-mode",
     "swot-evidence-grounding",
     "tailwind-runtime-deps",
     "themes-export"

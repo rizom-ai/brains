@@ -8,6 +8,7 @@ export type {
   MessageWithPayload,
   IMessageBus,
   MessageContext,
+  SubscriptionFilter,
 } from "./types";
 export {
   baseMessageSchema,
@@ -16,5 +17,3 @@ export {
   internalMessageResponseSchema,
   hasPayload,
 } from "./types";
-
-// Export error classes

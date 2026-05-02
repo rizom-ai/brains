@@ -1,5 +1,14 @@
 # @brains/cms
 
+## 0.2.0-alpha.48
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/cms-config@0.2.0-alpha.48
+  - @brains/utils@0.2.0-alpha.48
+  - @brains/plugins@0.2.0-alpha.48
+
 ## 0.2.0-alpha.47
 
 ### Patch Changes

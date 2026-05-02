@@ -1,7 +1,7 @@
 {
   "name": "@brains/job-queue",
   "private": true,
-  "version": "0.2.0-alpha.47",
+  "version": "0.2.0-alpha.48",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",
@@ -27,6 +27,7 @@
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/messaging-service": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "^1.1.14",
     "@types/node": "^20.0.0",

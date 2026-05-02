@@ -1,5 +1,6 @@
 export { Shell } from "./shell";
 export type { ShellDependencies } from "./shell";
+export type { BootMode } from "./initialization/shellBootloader";
 
 export {
   createShellConfig,

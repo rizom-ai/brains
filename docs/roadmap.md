@@ -48,20 +48,18 @@ These areas are effectively landed:
 - **Documentation phase 3 / docs site** — `entities/doc` package, `/docs` routes, grouped docs navigation, release-driven content sync, Relay docs fixtures, and the standalone `rizom-ai/doc-brain` deploy/rebuild path for `docs.rizom.ai` are complete
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest, links, and that the committed Relay docs fixture stays in sync
 - **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
+- **External plugin API** — `@rizom/brain` exposes curated `/plugins`, `/entities`, `/services`, `/interfaces`, and `/templates` authoring subpaths; `brain.yaml` loads installed plugin packages via keyed `plugins.<id>.package` entries with env-var interpolation; alpha compatibility is governed by `peerDependencies`; separate-repo reference plugins `rizom-ai/brain-plugin-hello` (service/lifecycle) and `rizom-ai/brain-plugin-recipes` (durable entity) prove the path end-to-end
 
 ## Near-term priorities
 
-### 1. External plugin API
+### 1. Custom brain definitions
 
-External plugin authors can now import the curated authoring surface from `@rizom/brain` and declare installed plugin packages in `brain.yaml` with keyed `plugins.<id>.package` entries. The plugin framework has real `onRegister`/`onReady` semantics: `onRegister` is for capability registration, `onReady` runs after identity/profile and startup coordination are complete, and background daemons/jobs start afterward.
-
-Remaining scope: one reference external plugin proving the path end-to-end, plugin author docs that match the public surface, and any follow-up CLI ergonomics if they materially improve installation/configuration. During alpha, compatibility uses normal package-manager `peerDependencies`; runtime `rizomBrain.pluginApi` checks are deferred until the plugin API version diverges from the package version.
+With the external plugin API landed, the next step is a `brain.ts` programmatic mode for instances that need composition beyond what `brain.yaml` supports — preset spread, inline plugins, custom plugin logic. `brain.yaml` stays the entry point; `brain: ./brain.ts` switches into programmatic mode and the file uses `defineBrain` plus the curated `@rizom/brain` surface.
 
 Plans:
 
-- [shell-init-coordination.md](./plans/shell-init-coordination.md) — completed lifecycle foundation before public plugin exports
-- [external-plugin-api.md](./plans/external-plugin-api.md) — remaining reference plugin and authoring docs work
-- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — downstream `brain.ts` escape hatch that depends on the public surface
+- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — `brain.ts` escape hatch built on the now-landed public surface
+- [external-plugin-api.md](./plans/external-plugin-api.md) — completed; tracks any future `brain search` / `brain add` / `brain remove` CLI ergonomics
 
 ## Long-term
 

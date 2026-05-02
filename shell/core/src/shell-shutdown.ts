@@ -4,6 +4,7 @@ export async function shutdownShellServices(
   services: ShellServices,
 ): Promise<void> {
   // Stop background services in reverse order of initialization
+  services.batchJobManager.stop();
   services.jobProgressMonitor.stop();
   await services.jobQueueWorker.stop();
 

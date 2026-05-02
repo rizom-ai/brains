@@ -180,3 +180,4 @@ The package version belongs in the instance `package.json`. The factory receives
 - Package imports `zod` directly if it needs schemas.
 - Published declarations do not reference `@brains/*`.
 - Examples typecheck against `@rizom/brain/*`, not monorepo paths.
+- Smoke tests can use `brain start --startup-check` to prove `onRegister`/`onReady` without starting daemons or job workers.

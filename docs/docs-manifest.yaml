@@ -89,12 +89,6 @@ docs:
     order: 135
     source: docs/external-plugin-authoring.md
 
-  - id: plugin-development-patterns
-    title: Plugin Development Patterns
-    section: Customization
-    order: 140
-    source: docs/plugin-development-patterns.md
-
   - id: architecture-overview
     title: Architecture Overview
     section: Architecture
