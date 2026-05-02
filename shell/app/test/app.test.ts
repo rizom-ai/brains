@@ -1,5 +1,5 @@
 import { describe, it, expect, mock } from "bun:test";
-import { App } from "../src/app";
+import { App, STARTUP_CHECK_API_KEY } from "../src/app";
 import { MigrationManager } from "../src/migration-manager";
 import { appConfigSchema } from "../src/types";
 import { Shell, type Shell as ShellInstance } from "@brains/core";
@@ -99,7 +99,7 @@ describe("App", () => {
         const app = App.create({});
         await app.initialize({ startupCheck: true });
 
-        expect(shellConfig?.ai?.apiKey).toBe("startup-check");
+        expect(shellConfig?.ai?.apiKey).toBe(STARTUP_CHECK_API_KEY);
         expect(mockShell.initialize).toHaveBeenCalledWith({
           startupCheck: true,
         });

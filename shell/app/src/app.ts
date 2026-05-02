@@ -6,6 +6,13 @@ import { MigrationManager } from "./migration-manager";
 type ShellConfig = NonNullable<Parameters<typeof Shell.createFresh>[0]>;
 type InitializeOptions = Parameters<Shell["initialize"]>[0];
 
+/**
+ * Sentinel API key injected when `--startup-check` runs without a real key
+ * configured. Lets the AI client construct without paging the operator for
+ * credentials; the smoke path exits before any real request is issued.
+ */
+export const STARTUP_CHECK_API_KEY = "startup-check";
+
 export class App {
   private shell: Shell | null = null;
   private config: AppConfig;
@@ -100,7 +107,7 @@ export class App {
     shellConfig.ai = {
       ...shellConfig.ai,
       ...(options?.startupCheck &&
-        !shellConfig.ai?.apiKey && { apiKey: "startup-check" }),
+        !shellConfig.ai?.apiKey && { apiKey: STARTUP_CHECK_API_KEY }),
       ...(this.config.aiApiKey && { apiKey: this.config.aiApiKey }),
       ...(this.config.aiImageKey && {
         imageApiKey: this.config.aiImageKey,
