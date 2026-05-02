@@ -1,11 +1,12 @@
 import type { SimpleGit } from "simple-git";
 import simpleGit from "simple-git";
-import { getErrorMessage } from "@brains/utils";
 import type { Logger } from "@brains/utils";
 import type { IGitSync, GitLogEntry } from "../types";
 import { commitGitChanges, pushGitChanges } from "./git-commit";
 import { getFileHistory, showFileAtCommit } from "./git-history";
 import { initializeGitRepository } from "./git-init";
+import { pullGitChanges } from "./git-pull";
+import type { PullResult } from "./git-pull";
 import { getGitStatus, hasGitLocalChanges } from "./git-status";
 
 /**
@@ -22,12 +23,7 @@ export interface GitSyncStatus {
   files: Array<{ path: string; status: string }>;
 }
 
-/**
- * Pull result — files changed by the pull operation
- */
-export interface PullResult {
-  files: string[];
-}
+export type { PullResult } from "./git-pull";
 
 export interface GitSyncOptions {
   logger: Logger;
@@ -142,80 +138,8 @@ export class GitSync implements IGitSync {
     await pushGitChanges(this.git, this.logger, this.branch);
   }
 
-  /**
-   * Pull changes from remote. Returns the list of changed file paths.
-   * Does NOT trigger imports — the caller decides what to do with the files.
-   */
   async pull(): Promise<PullResult> {
-    this.logger.debug("Pulling from origin", { branch: this.branch });
-
-    // Commit local changes before pulling
-    const status = await this.git.status();
-    if (!status.isClean()) {
-      this.logger.warn("Committing local changes before pull");
-      await this.commit("Pre-pull commit: preserving local changes");
-    }
-
-    const headBefore = await this.git.revparse(["HEAD"]);
-
-    try {
-      await this.git.pull("origin", this.branch, {
-        "--no-rebase": null,
-        "--allow-unrelated-histories": null,
-        "--strategy=recursive": null,
-        "-Xtheirs": null,
-      });
-
-      const headAfter = await this.git.revparse(["HEAD"]);
-      if (headBefore === headAfter) {
-        return { files: [] };
-      }
-      const diff = await this.git.diff([headBefore, headAfter, "--name-only"]);
-      return { files: diff.split("\n").filter((f) => f.trim()) };
-    } catch (pullError) {
-      const msg = getErrorMessage(pullError);
-
-      if (msg.includes("CONFLICT")) {
-        this.logger.warn("Resolving merge conflict", { error: msg });
-        const mergeStatus = await this.git.status();
-        for (const file of mergeStatus.conflicted) {
-          try {
-            await this.git.raw(["checkout", "--theirs", file]);
-          } catch {
-            await this.git.raw(["rm", "--force", file]);
-          }
-        }
-        await this.git.add(["-A"]);
-        await this.git.commit("Auto-resolve merge conflict (remote wins)");
-
-        const diffOutput = await this.git.diff(["HEAD~1", "--name-only"]);
-        return { files: diffOutput.split("\n").filter((f) => f.trim()) };
-      }
-
-      if (msg.includes("couldn't find remote ref")) {
-        // Remote is empty (no branches) — bootstrap it by committing any
-        // pending local changes and pushing to create the remote branch.
-        // Without this the initial brain-data content would sit locally
-        // forever, never reaching the remote.
-        this.logger.info(
-          "Remote branch doesn't exist yet, bootstrapping via push",
-        );
-        try {
-          await this.commit("Bootstrap remote branch");
-        } catch (commitError) {
-          // "nothing to commit" is fine — we still need to push the
-          // existing local history to create the remote branch.
-          const cmsg = getErrorMessage(commitError);
-          if (!cmsg.includes("nothing to commit")) {
-            throw commitError;
-          }
-        }
-        await this.push();
-        return { files: [] };
-      }
-
-      throw new Error(`Failed to pull: ${msg}`);
-    }
+    return pullGitChanges(this.git, this.logger, this.branch);
   }
 
   async log(filePath: string, limit?: number): Promise<GitLogEntry[]> {
