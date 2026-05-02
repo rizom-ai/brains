@@ -16,7 +16,6 @@ What `@rizom/brain` exposes today (`packages/brain-cli/package.json` exports):
 
 What plugin authors still need:
 
-- a second, entity-focused reference plugin that demonstrates durable markdown-backed entities without overlapping likely core domains
 - future plugin API compatibility checks only if/when the plugin API version diverges from the `@rizom/brain` package version
 
 `docs/plans/custom-brain-definitions.md` (the `brain.ts` escape hatch) depends on this plan: `defineBrain` and preset spread targets need to be importable from `@rizom/brain` before `brain.ts` is usable by external authors.
@@ -47,7 +46,7 @@ Audit-derived implementation gates before §1 public exports:
 
 ## Open work
 
-External developers can import the public authoring surface and declare installed plugin packages in `brain.yaml`. The first separate-repo reference plugin exists at [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello): it imports only public APIs, typechecks/builds against published `@rizom/brain`, loads through `brain.yaml plugins:`, and proves `onRegister`/`onReady` in CI. Remaining work is limited to an entity-focused reference plugin and optional CLI ergonomics if they materially improve installation/configuration.
+External developers can import the public authoring surface and declare installed plugin packages in `brain.yaml`. Separate-repo reference plugins now prove both the service/lifecycle and durable entity paths: [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello) imports only public APIs, typechecks/builds against published `@rizom/brain`, loads through `brain.yaml plugins:`, and proves `onRegister`/`onReady` in CI; [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes) does the same for an external `EntityPlugin` with a markdown/frontmatter adapter. Remaining work is limited to optional CLI ergonomics if they materially improve installation/configuration.
 
 The work breaks into six parts. §0 is gating — publishing the surface before stabilizing the abstractions would freeze whatever shape happens to exist today and force the first real external authors to absorb breaking changes once internal review surfaces gaps.
 
@@ -203,7 +202,7 @@ This should only land if it materially improves the operator path.
 Before calling this done, ship:
 
 - one minimal service reference plugin in a separate repo after the public package is published (`rizom-ai/brain-plugin-hello` is complete and CI-smoked against published `@rizom/brain`)
-- one entity reference plugin in a separate repo; use a neutral example such as `@rizom/brain-plugin-recipes` rather than `decision`, because decisions may eventually become a core knowledge plugin
+- one entity reference plugin in a separate repo (`rizom-ai/brain-plugin-recipes` is complete and CI-smoked against published `@rizom/brain`; recipes stay neutral while `decision` may eventually become a core knowledge plugin)
 - tests proving authoring + loading work end-to-end (package-local compile fixture and runtime loading tests are in place)
 - plugin author docs covering setup, config, testing, and publishing (initial authoring docs are in place; publishing docs can be refined from the separate-repo references)
 
@@ -226,5 +225,5 @@ Before calling this done, ship:
 2. external plugin authors can import the required public APIs from `@rizom/brain`
 3. installed plugins can be declared in `brain.yaml` and loaded at runtime
 4. plugin package compatibility expectations are documented through `peerDependencies`
-5. at least one external reference plugin proves the full path (`brain-plugin-hello` does this for service/lifecycle); an entity reference plugin proves the durable content path
+5. external reference plugins prove both the service/lifecycle path (`brain-plugin-hello`) and durable entity path (`brain-plugin-recipes`)
 6. plugin author documentation exists and matches reality

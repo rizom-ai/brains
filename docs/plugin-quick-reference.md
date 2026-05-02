@@ -1,6 +1,6 @@
 # Plugin Development Quick Reference
 
-Use this as a compact checklist for choosing and authoring plugins. For full external package guidance, see [External Plugin Authoring](./external-plugin-authoring.md). For a minimal standalone package, see [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello).
+Use this as a compact checklist for choosing and authoring plugins. For full external package guidance, see [External Plugin Authoring](./external-plugin-authoring.md). For minimal standalone references, see [`rizom-ai/brain-plugin-hello`](https://github.com/rizom-ai/brain-plugin-hello) and [`rizom-ai/brain-plugin-recipes`](https://github.com/rizom-ai/brain-plugin-recipes).
 
 ## Choose a base class
 
