@@ -595,47 +595,78 @@ const sitePackageOverridesSchema = z
   })
   .passthrough();
 
+function applySitePluginConfig(
+  site: SitePackage,
+  pluginConfig: Record<string, unknown> | undefined,
+): SitePackage {
+  if (!pluginConfig) return site;
+
+  return {
+    ...site,
+    plugin: (config?: Record<string, unknown>) =>
+      site.plugin({
+        ...pluginConfig,
+        ...(config ?? {}),
+      }),
+  };
+}
+
+function resolveConventionalSitePackage(
+  pkg: unknown,
+  definition: BrainDefinition,
+): SitePackage | undefined {
+  if (!definition.site) return undefined;
+
+  const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
+  if (!parsedOverrides.success) return undefined;
+
+  const conventionalOverrides =
+    parsedOverrides.data as unknown as ConventionalSiteOverrides;
+  const { pluginConfig, ...siteOverrides } = conventionalOverrides;
+  const siteWithStructure = extendSite(
+    definition.site,
+    siteOverrides as SitePackageOverrides,
+  );
+
+  return applySitePluginConfig(siteWithStructure, pluginConfig);
+}
+
+function resolveRegisteredSitePackage(
+  pkgRef: string,
+  pkg: unknown,
+  definition: BrainDefinition,
+): SitePackage | undefined {
+  const parsedSitePackage = sitePackageSchema.safeParse(pkg);
+  if (parsedSitePackage.success) {
+    return parsedSitePackage.data;
+  }
+
+  if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF) {
+    return resolveConventionalSitePackage(pkg, definition);
+  }
+
+  return undefined;
+}
+
 function resolveSitePackage(
   definition: BrainDefinition,
   overrides?: Omit<InstanceOverrides, "brain">,
 ): SitePackage | undefined {
   const pkgRef = overrides?.site?.package;
-  if (pkgRef && hasPackage(pkgRef)) {
-    const pkg = getPackage(pkgRef);
-    const parsedSitePackage = sitePackageSchema.safeParse(pkg);
-    if (parsedSitePackage.success) {
-      return parsedSitePackage.data;
-    }
-
-    if (pkgRef === CONVENTIONAL_SITE_PACKAGE_REF && definition.site) {
-      const parsedOverrides = sitePackageOverridesSchema.safeParse(pkg);
-      if (parsedOverrides.success) {
-        const conventionalOverrides =
-          parsedOverrides.data as unknown as ConventionalSiteOverrides;
-        const { pluginConfig, ...siteOverrides } = conventionalOverrides;
-        const siteWithStructure = extendSite(
-          definition.site,
-          siteOverrides as SitePackageOverrides,
-        );
-
-        if (!pluginConfig) {
-          return siteWithStructure;
-        }
-
-        return {
-          ...siteWithStructure,
-          plugin: (config?: Record<string, unknown>) =>
-            siteWithStructure.plugin({
-              ...pluginConfig,
-              ...(config ?? {}),
-            }),
-        };
-      }
-    }
-
-    throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
+  if (!pkgRef || !hasPackage(pkgRef)) {
+    return definition.site;
   }
-  return definition.site;
+
+  const sitePackage = resolveRegisteredSitePackage(
+    pkgRef,
+    getPackage(pkgRef),
+    definition,
+  );
+  if (sitePackage) {
+    return sitePackage;
+  }
+
+  throw new Error(`Package "${pkgRef}" is not a valid SitePackage`);
 }
 
 function resolveThemeCssRef(refOrCss: string): string {
