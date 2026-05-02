@@ -1,6 +1,7 @@
 import type { BaseEntity, ServicePluginContext } from "@brains/plugins";
 import type { ProgressReporter } from "@brains/utils";
-import type { GitSyncStatus, PullResult } from "../lib/git-sync";
+import type { PullResult } from "../lib/git-pull";
+import type { GitSyncStatus } from "../lib/git-status";
 import type { BatchMetadata } from "../lib/batch-operations";
 import type { CleanupResult } from "../lib/cleanup-pipeline";
 import type {
