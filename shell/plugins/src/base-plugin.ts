@@ -230,6 +230,18 @@ export abstract class BasePlugin<
   }
 
   /**
+   * Build plugin capabilities from overridable capability hooks.
+   */
+  protected async getCapabilities(): Promise<PluginCapabilities> {
+    const instructions = await this.getInstructions();
+    return {
+      tools: await this.getTools(),
+      resources: await this.getResources(),
+      ...(instructions && { instructions }),
+    };
+  }
+
+  /**
    * Get the tools provided by this plugin
    * Override this to provide plugin-specific tools
    */

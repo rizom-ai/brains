@@ -356,149 +356,231 @@ export abstract class MessageInterfacePlugin<
     event: JobProgressEvent,
     _context: JobContext,
   ): Promise<void> {
-    // Filter: only handle events for this interface type
-    // If interfaceType is specified in metadata, only matching interfaces should handle it
-    const eventInterfaceType = event.metadata.interfaceType;
-    if (eventInterfaceType && eventInterfaceType !== this.id) {
-      // This event is for a different interface - ignore it
+    if (!this.shouldHandleProgressEvent(event)) {
       return;
     }
 
-    // Update progress state
-    this.progressEvents.set(event.id, event);
+    this.updateProgressState(event);
 
-    // Notify UI callback
-    this.notifyProgressCallback();
-
-    // Get channel from event metadata
     // Only use explicit channelId - background jobs without channelId should not
     // send messages to any chat room (prevents rate limiting from many concurrent jobs)
     const targetChannelId = event.metadata.channelId ?? null;
     const rootJobId = event.metadata.rootJobId;
 
-    // Handle processing status - send or edit progress message
-    if (event.status === "processing" && this.supportsMessageEditing()) {
-      // Check if we have agent response tracking for this job
-      // If so, edit the agent response with progress (throttled)
-      const agentTracking = this.agentResponseTracking.get(event.id);
-      if (agentTracking) {
-        const now = Date.now();
-        if (now - agentTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
-          const progressMessage = formatProgressMessage(event);
-          await this.editMessage(
-            agentTracking.channelId,
-            agentTracking.messageId,
-            progressMessage,
-          );
-          agentTracking.lastUpdate = now;
-        }
-        return;
-      }
-
-      const progressMessage = formatProgressMessage(event);
-      const existingTracking = this.progressMessageTracking.get(rootJobId);
-      const now = Date.now();
-
-      if (existingTracking) {
-        // Throttle updates to prevent rate limiting
-        if (now - existingTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
-          // Edit existing progress message
-          await this.editMessage(
-            existingTracking.channelId,
-            existingTracking.messageId,
-            progressMessage,
-          );
-          existingTracking.lastUpdate = now;
-        }
-      } else if (targetChannelId && !this.isProcessingInput) {
-        // Only send NEW progress messages after agent response is sent
-        // This ensures the agent response appears first
-        const messageId = await this.sendMessageWithId(
-          targetChannelId,
-          progressMessage,
-        );
-        if (messageId) {
-          this.progressMessageTracking.set(rootJobId, {
-            messageId,
-            channelId: targetChannelId,
-            lastUpdate: now,
-          });
-          this.logger.debug("Tracking progress message", {
-            rootJobId,
-            messageId,
-            channelId: targetChannelId,
-          });
-        }
-      }
+    const handledByTrackedAgentResponse = await this.handleProcessingProgress(
+      event,
+      targetChannelId,
+      rootJobId,
+    );
+    if (handledByTrackedAgentResponse) {
+      return;
     }
 
-    // Handle completion/failure - send/edit final message
     if (event.status === "completed" || event.status === "failed") {
-      const completionMessage = formatCompletionMessage(event);
-
-      // Check if we have a tracked progress message to edit
-      const progressTracking = this.progressMessageTracking.get(rootJobId);
-      // Check if we have a tracked agent response to edit (for jobId)
-      const agentTracking = this.agentResponseTracking.get(event.id);
-
-      this.logger.debug("Completion event received", {
-        eventId: event.id,
-        rootJobId,
-        hasProgressTracking: !!progressTracking,
-        hasAgentTracking: !!agentTracking,
-        supportsEditing: this.supportsMessageEditing(),
-      });
-
-      if (this.supportsMessageEditing()) {
-        // Prefer editing the agent response message (for async jobs)
-        // This updates "queued" messages to show actual completion
-        if (agentTracking) {
-          await this.editMessage(
-            agentTracking.channelId,
-            agentTracking.messageId,
-            completionMessage,
-          );
-          this.agentResponseTracking.delete(event.id);
-          // Also clean up any progress tracking without sending duplicate
-          if (progressTracking) {
-            this.progressMessageTracking.delete(rootJobId);
-          }
-        } else if (progressTracking) {
-          // No agent tracking - edit the progress message instead
-          await this.editMessage(
-            progressTracking.channelId,
-            progressTracking.messageId,
-            completionMessage,
-          );
-          this.progressMessageTracking.delete(rootJobId);
-        }
-      }
-
-      // If no tracked messages to edit, send as new message
-      // Only send if we have a target channel (jobs without explicit channelId are silent)
-      if (!progressTracking && !agentTracking && targetChannelId) {
-        // Buffer completion messages while processing input
-        // This ensures agent response appears before completion messages
-        if (this.isProcessingInput) {
-          this.bufferedCompletionMessages.push({
-            message: completionMessage,
-            channelId: targetChannelId,
-          });
-        } else {
-          this.sendMessageToChannel(targetChannelId, completionMessage);
-        }
-      }
-
-      // Clean up progress state after delay
-      setTimeout(() => {
-        this.progressEvents.delete(event.id);
-        this.notifyProgressCallback();
-      }, 500);
+      await this.handleTerminalProgress(event, targetChannelId, rootJobId);
     }
 
     // Allow subclasses to add custom handling
     await this.onProgressUpdate(event);
 
+    this.logProgressProcessed(event);
+  }
+
+  private shouldHandleProgressEvent(event: JobProgressEvent): boolean {
+    // Filter: only handle events for this interface type.
+    // If interfaceType is specified in metadata, only matching interfaces should handle it.
+    const eventInterfaceType = event.metadata.interfaceType;
+    return !eventInterfaceType || eventInterfaceType === this.id;
+  }
+
+  private updateProgressState(event: JobProgressEvent): void {
+    this.progressEvents.set(event.id, event);
+    this.notifyProgressCallback();
+  }
+
+  /**
+   * Handle processing updates. Returns true when a tracked agent response handled
+   * the update and the legacy flow should stop immediately.
+   */
+  private async handleProcessingProgress(
+    event: JobProgressEvent,
+    targetChannelId: string | null,
+    rootJobId: string,
+  ): Promise<boolean> {
+    if (event.status !== "processing" || !this.supportsMessageEditing()) {
+      return false;
+    }
+
+    // If we have agent response tracking for this job, edit that response with
+    // progress and stop to preserve the previous early-return behavior.
+    const agentTracking = this.agentResponseTracking.get(event.id);
+    if (agentTracking) {
+      await this.editTrackedProgressMessage(event, agentTracking);
+      return true;
+    }
+
+    const progressMessage = formatProgressMessage(event);
+    const existingTracking = this.progressMessageTracking.get(rootJobId);
+    const now = Date.now();
+
+    if (existingTracking) {
+      // Throttle updates to prevent rate limiting.
+      if (now - existingTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
+        await this.editMessage(
+          existingTracking.channelId,
+          existingTracking.messageId,
+          progressMessage,
+        );
+        existingTracking.lastUpdate = now;
+      }
+    } else if (targetChannelId && !this.isProcessingInput) {
+      await this.sendInitialProgressMessage(
+        rootJobId,
+        targetChannelId,
+        progressMessage,
+        now,
+      );
+    }
+
+    return false;
+  }
+
+  private async editTrackedProgressMessage(
+    event: JobProgressEvent,
+    tracking: ProgressMessageTracking,
+  ): Promise<void> {
+    const now = Date.now();
+    if (now - tracking.lastUpdate < PROGRESS_EDIT_THROTTLE_MS) {
+      return;
+    }
+
+    await this.editMessage(
+      tracking.channelId,
+      tracking.messageId,
+      formatProgressMessage(event),
+    );
+    tracking.lastUpdate = now;
+  }
+
+  private async sendInitialProgressMessage(
+    rootJobId: string,
+    targetChannelId: string,
+    progressMessage: string,
+    now: number,
+  ): Promise<void> {
+    // Only send NEW progress messages after agent response is sent.
+    // This ensures the agent response appears first.
+    const messageId = await this.sendMessageWithId(
+      targetChannelId,
+      progressMessage,
+    );
+    if (!messageId) {
+      return;
+    }
+
+    this.progressMessageTracking.set(rootJobId, {
+      messageId,
+      channelId: targetChannelId,
+      lastUpdate: now,
+    });
+    this.logger.debug("Tracking progress message", {
+      rootJobId,
+      messageId,
+      channelId: targetChannelId,
+    });
+  }
+
+  private async handleTerminalProgress(
+    event: JobProgressEvent,
+    targetChannelId: string | null,
+    rootJobId: string,
+  ): Promise<void> {
+    const completionMessage = formatCompletionMessage(event);
+    const progressTracking = this.progressMessageTracking.get(rootJobId);
+    const agentTracking = this.agentResponseTracking.get(event.id);
+
+    this.logger.debug("Completion event received", {
+      eventId: event.id,
+      rootJobId,
+      hasProgressTracking: !!progressTracking,
+      hasAgentTracking: !!agentTracking,
+      supportsEditing: this.supportsMessageEditing(),
+    });
+
+    if (this.supportsMessageEditing()) {
+      await this.updateTrackedCompletion(
+        event,
+        completionMessage,
+        progressTracking,
+        agentTracking,
+        rootJobId,
+      );
+    }
+
+    // If no tracked messages to edit, send as new message.
+    // Only send if we have a target channel (jobs without explicit channelId are silent).
+    if (!progressTracking && !agentTracking && targetChannelId) {
+      this.sendOrBufferCompletionMessage(completionMessage, targetChannelId);
+    }
+
+    this.scheduleProgressCleanup(event.id);
+  }
+
+  private async updateTrackedCompletion(
+    event: JobProgressEvent,
+    completionMessage: string,
+    progressTracking: ProgressMessageTracking | undefined,
+    agentTracking: ProgressMessageTracking | undefined,
+    rootJobId: string,
+  ): Promise<void> {
+    // Prefer editing the agent response message (for async jobs).
+    // This updates "queued" messages to show actual completion.
+    if (agentTracking) {
+      await this.editMessage(
+        agentTracking.channelId,
+        agentTracking.messageId,
+        completionMessage,
+      );
+      this.agentResponseTracking.delete(event.id);
+      // Also clean up any progress tracking without sending duplicate.
+      if (progressTracking) {
+        this.progressMessageTracking.delete(rootJobId);
+      }
+      return;
+    }
+
+    if (progressTracking) {
+      await this.editMessage(
+        progressTracking.channelId,
+        progressTracking.messageId,
+        completionMessage,
+      );
+      this.progressMessageTracking.delete(rootJobId);
+    }
+  }
+
+  private sendOrBufferCompletionMessage(
+    message: string,
+    channelId: string,
+  ): void {
+    // Buffer completion messages while processing input.
+    // This ensures agent response appears before completion messages.
+    if (this.isProcessingInput) {
+      this.bufferedCompletionMessages.push({ message, channelId });
+      return;
+    }
+
+    this.sendMessageToChannel(channelId, message);
+  }
+
+  private scheduleProgressCleanup(eventId: string): void {
+    setTimeout(() => {
+      this.progressEvents.delete(eventId);
+      this.notifyProgressCallback();
+    }, 500);
+  }
+
+  private logProgressProcessed(event: JobProgressEvent): void {
     this.logger.debug("Progress event processed", {
       eventId: event.id,
       status: event.status,

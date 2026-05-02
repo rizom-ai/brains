@@ -13,7 +13,7 @@ import type {
   EntityTypeConfig,
 } from "@brains/entity-service";
 import type { DataSource } from "@brains/entity-service";
-import { resolvePrompt } from "./prompt-resolver";
+import { createEntitiesNamespace, createPromptsNamespace } from "./namespaces";
 import type {
   ImageGenerationOptions,
   ImageGenerationResult,
@@ -128,58 +128,13 @@ export function createEntityPluginContext(
     registrationContext,
   );
   const entityService = shell.getEntityService();
-  const entityRegistry = shell.getEntityRegistry();
-  const dataSourceRegistry = shell.getDataSourceRegistry();
 
   return {
     ...baseContext,
 
     entityService,
 
-    entities: {
-      register: <T extends BaseEntity>(
-        entityType: string,
-        schema: z.ZodSchema<T>,
-        adapter: EntityAdapter<T>,
-        config?: EntityTypeConfig,
-      ): void => {
-        entityRegistry.registerEntityType(entityType, schema, adapter, config);
-      },
-      getAdapter: <T extends BaseEntity>(
-        entityType: string,
-      ): EntityAdapter<T> | undefined => {
-        try {
-          return entityRegistry.getAdapter<T>(entityType);
-        } catch {
-          return undefined;
-        }
-      },
-      extendFrontmatterSchema: (
-        type: string,
-        extension: z.ZodObject<z.ZodRawShape>,
-      ): void => {
-        entityRegistry.extendFrontmatterSchema(type, extension);
-      },
-      getEffectiveFrontmatterSchema: (
-        type: string,
-      ): z.ZodObject<z.ZodRawShape> | undefined => {
-        return entityRegistry.getEffectiveFrontmatterSchema(type);
-      },
-      registerCreateInterceptor: (
-        entityType: string,
-        interceptor: CreateInterceptor,
-      ): void => {
-        entityRegistry.registerCreateInterceptor(entityType, interceptor);
-      },
-      update: async <T extends BaseEntity>(
-        entity: T,
-      ): Promise<{ entityId: string; jobId: string }> => {
-        return entityService.updateEntity(entity);
-      },
-      registerDataSource: (dataSource: DataSource): void => {
-        dataSourceRegistry.register(dataSource);
-      },
-    },
+    entities: createEntitiesNamespace(shell),
 
     ai: {
       query: (prompt, context) => shell.query(prompt, context),
@@ -205,10 +160,6 @@ export function createEntityPluginContext(
       },
     },
 
-    prompts: {
-      resolve: (target: string, fallback: string): Promise<string> => {
-        return resolvePrompt(entityService, target, fallback);
-      },
-    },
+    prompts: createPromptsNamespace(entityService),
   };
 }
