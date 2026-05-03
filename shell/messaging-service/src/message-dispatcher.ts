@@ -9,11 +9,7 @@ export async function publishBroadcast(
 ): Promise<null> {
   // For broadcast messages, call ALL matching handlers regardless of responses
   for (const entry of handlers) {
-    try {
-      await entry.handler(message);
-    } catch (error) {
-      logger.error(`Error in message handler for ${message.type}`, error);
-    }
+    await invokeHandler(entry, message, logger);
   }
   return null; // Broadcast messages don't return responses
 }
@@ -25,14 +21,23 @@ export async function publishRequest(
 ): Promise<InternalMessageResponse | null> {
   // For regular messages, call handlers until one returns a response
   for (const entry of handlers) {
-    try {
-      const response = await entry.handler(message);
-      if (response) {
-        return response;
-      }
-    } catch (error) {
-      logger.error(`Error in message handler for ${message.type}`, error);
+    const response = await invokeHandler(entry, message, logger);
+    if (response) {
+      return response;
     }
   }
   return null;
+}
+
+async function invokeHandler(
+  entry: HandlerEntry,
+  message: MessageWithPayload<unknown>,
+  logger: Logger,
+): Promise<InternalMessageResponse | null> {
+  try {
+    return await entry.handler(message);
+  } catch (error) {
+    logger.error(`Error in message handler for ${message.type}`, error);
+    return null;
+  }
 }
