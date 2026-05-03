@@ -1,11 +1,11 @@
-import type { IAgentService } from "@brains/ai-service";
-import type { IAIService } from "@brains/ai-service";
+import type { IAgentService, IAIService } from "@brains/ai-service";
 
 import type {
   IEvaluationService,
   ITestCaseLoader,
   IReporter,
   EvaluationOptions,
+  TestRunnerOptions,
 } from "./types";
 import type {
   TestCase,
@@ -21,6 +21,8 @@ import { PluginLLMJudge } from "./plugin-llm-judge";
 import { YAMLLoader } from "./loaders/yaml-loader";
 import { PluginRunner } from "./plugin-runner";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
+
+const DEFAULT_MAX_PARALLEL = 3;
 
 /**
  * Type guard to check if a test case is an agent test case
@@ -51,11 +53,11 @@ export interface EvaluationServiceConfig {
  * Main orchestration service for running evaluations
  */
 export class EvaluationService implements IEvaluationService {
-  private agentService: IAgentService;
-  private aiService: IAIService;
-  private loader: ITestCaseLoader;
-  private reporters: IReporter[];
-  private evalHandlerRegistry: EvalHandlerRegistry;
+  private readonly agentService: IAgentService;
+  private readonly aiService: IAIService;
+  private readonly loader: ITestCaseLoader;
+  private readonly reporters: IReporter[];
+  private readonly evalHandlerRegistry: EvalHandlerRegistry;
 
   constructor(config: EvaluationServiceConfig) {
     this.agentService = config.agentService;
@@ -74,164 +76,202 @@ export class EvaluationService implements IEvaluationService {
   async runEvaluations(
     options: EvaluationOptions = {},
   ): Promise<EvaluationSummary> {
-    // Load test cases
-    let testCases = await this.loader.loadTestCases();
+    const testCases = await this.getFilteredTestCases(options);
+    const agentTestCases = this.getAgentTestCases(testCases, options);
+    const pluginTestCases = this.getPluginTestCases(testCases, options);
 
-    // Filter by IDs
-    if (options.testCaseIds?.length) {
-      const ids = options.testCaseIds;
-      testCases = testCases.filter((tc) => ids.includes(tc.id));
-    }
+    const results = [
+      ...(await this.runAgentTests(agentTestCases, options)),
+      ...(await this.runPluginTests(pluginTestCases, options)),
+    ];
 
-    // Filter by tags
-    if (options.tags?.length) {
-      const filterTags = options.tags;
-      testCases = testCases.filter((tc) =>
-        tc.tags?.some((tag) => filterTags.includes(tag)),
-      );
-    }
-
-    // Create LLM judge if not skipped
-    const llmJudge = options.skipLLMJudge
-      ? undefined
-      : LLMJudge.createFresh(
-          this.aiService,
-          options.llmJudgeSampleRate !== undefined
-            ? { sampleRate: options.llmJudgeSampleRate }
-            : undefined,
-        );
-
-    // Create test runner
-    const testRunner = TestRunner.createFresh(this.agentService, llmJudge);
-
-    // Separate agent and plugin test cases, respecting testType filter
-    const agentTestCases =
-      options.testType === "plugin" ? [] : testCases.filter(isAgentTestCase);
-    const pluginTestCases =
-      options.testType === "agent" ? [] : testCases.filter(isPluginTestCase);
-
-    const results: EvaluationResult[] = [];
-
-    // Run agent tests
-    if (agentTestCases.length > 0) {
-      if (options.parallel && options.maxParallel && options.maxParallel > 1) {
-        results.push(
-          ...(await this.runParallel(agentTestCases, testRunner, options)),
-        );
-      } else {
-        for (const testCase of agentTestCases) {
-          const runnerOptions =
-            options.skipLLMJudge !== undefined
-              ? { skipLLMJudge: options.skipLLMJudge }
-              : undefined;
-          const result = await testRunner.runTest(testCase, runnerOptions);
-          results.push(result);
-        }
-      }
-    }
-
-    // Run plugin tests
-    if (pluginTestCases.length > 0) {
-      // Create plugin LLM judge if not skipped
-      const pluginLLMJudge = options.skipLLMJudge
-        ? undefined
-        : PluginLLMJudge.createFresh(
-            this.aiService,
-            options.llmJudgeSampleRate !== undefined
-              ? { sampleRate: options.llmJudgeSampleRate }
-              : undefined,
-          );
-
-      const pluginRunner = PluginRunner.createFresh(
-        this.evalHandlerRegistry,
-        pluginLLMJudge,
-      );
-
-      const runnerOptions =
-        options.skipLLMJudge !== undefined
-          ? { skipLLMJudge: options.skipLLMJudge }
-          : undefined;
-
-      for (const testCase of pluginTestCases) {
-        const result = await pluginRunner.runTest(testCase, runnerOptions);
-        results.push(result);
-      }
-    }
-
-    // Generate summary
     const summary = this.generateSummary(results);
-
-    // Run reporters
-    for (const reporter of this.reporters) {
-      await reporter.report(summary);
-    }
+    await this.report(summary);
 
     return summary;
-  }
-
-  /**
-   * Run agent tests in parallel with concurrency limit
-   */
-  private async runParallel(
-    testCases: AgentTestCase[],
-    testRunner: TestRunner,
-    options: EvaluationOptions,
-  ): Promise<EvaluationResult[]> {
-    const maxParallel = options.maxParallel ?? 3;
-    const results: EvaluationResult[] = [];
-    const pending: Promise<void>[] = [];
-
-    const runnerOptions =
-      options.skipLLMJudge !== undefined
-        ? { skipLLMJudge: options.skipLLMJudge }
-        : undefined;
-
-    for (const testCase of testCases) {
-      const promise = (async (): Promise<void> => {
-        const result = await testRunner.runTest(testCase, runnerOptions);
-        results.push(result);
-      })();
-
-      pending.push(promise);
-
-      // Wait when we hit the limit
-      if (pending.length >= maxParallel) {
-        await Promise.race(pending);
-        // Remove completed promises
-        const stillPending: Promise<void>[] = [];
-        for (const p of pending) {
-          const resolved = await Promise.race([
-            p.then(() => true),
-            Promise.resolve(false),
-          ]);
-          if (!resolved) {
-            stillPending.push(p);
-          }
-        }
-        pending.length = 0;
-        pending.push(...stillPending);
-      }
-    }
-
-    // Wait for remaining
-    await Promise.all(pending);
-
-    return results;
   }
 
   /**
    * List available test cases
    */
   async listTestCases(tags?: string[]): Promise<TestCase[]> {
+    return this.filterByTags(await this.loader.loadTestCases(), tags);
+  }
+
+  /**
+   * Add a reporter
+   */
+  addReporter(reporter: IReporter): void {
+    this.reporters.push(reporter);
+  }
+
+  /**
+   * Load and filter test cases by shared evaluation options.
+   */
+  private async getFilteredTestCases(
+    options: EvaluationOptions,
+  ): Promise<TestCase[]> {
     let testCases = await this.loader.loadTestCases();
 
-    if (tags?.length) {
-      testCases = testCases.filter((tc) =>
-        tc.tags?.some((tag) => tags.includes(tag)),
+    if (options.testCaseIds?.length) {
+      testCases = this.filterByIds(testCases, options.testCaseIds);
+    }
+
+    return this.filterByTags(testCases, options.tags);
+  }
+
+  private filterByIds(testCases: TestCase[], ids: string[]): TestCase[] {
+    const idSet = new Set(ids);
+    return testCases.filter((testCase) => idSet.has(testCase.id));
+  }
+
+  private filterByTags(
+    testCases: TestCase[],
+    tags: string[] | undefined,
+  ): TestCase[] {
+    if (!tags?.length) return testCases;
+
+    const tagSet = new Set(tags);
+    return testCases.filter((testCase) =>
+      testCase.tags?.some((tag) => tagSet.has(tag)),
+    );
+  }
+
+  private getAgentTestCases(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): AgentTestCase[] {
+    return options.testType === "plugin"
+      ? []
+      : testCases.filter(isAgentTestCase);
+  }
+
+  private getPluginTestCases(
+    testCases: TestCase[],
+    options: EvaluationOptions,
+  ): PluginTestCase[] {
+    return options.testType === "agent"
+      ? []
+      : testCases.filter(isPluginTestCase);
+  }
+
+  /**
+   * Run agent tests, optionally in parallel with a concurrency limit.
+   */
+  private async runAgentTests(
+    testCases: AgentTestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    if (testCases.length === 0) return [];
+
+    const testRunner = TestRunner.createFresh(
+      this.agentService,
+      this.createLLMJudge(options),
+    );
+    const runnerOptions = this.getRunnerOptions(options);
+
+    if (options.parallel) {
+      return this.runParallel(testCases, options, (testCase) =>
+        testRunner.runTest(testCase, runnerOptions),
       );
     }
 
-    return testCases;
+    const results: EvaluationResult[] = [];
+    for (const testCase of testCases) {
+      results.push(await testRunner.runTest(testCase, runnerOptions));
+    }
+    return results;
+  }
+
+  /**
+   * Run plugin tests sequentially.
+   */
+  private async runPluginTests(
+    testCases: PluginTestCase[],
+    options: EvaluationOptions,
+  ): Promise<EvaluationResult[]> {
+    if (testCases.length === 0) return [];
+
+    const pluginRunner = PluginRunner.createFresh(
+      this.evalHandlerRegistry,
+      this.createPluginLLMJudge(options),
+    );
+    const runnerOptions = this.getRunnerOptions(options);
+    const results: EvaluationResult[] = [];
+
+    for (const testCase of testCases) {
+      results.push(await pluginRunner.runTest(testCase, runnerOptions));
+    }
+
+    return results;
+  }
+
+  private createLLMJudge(options: EvaluationOptions): LLMJudge | undefined {
+    if (options.skipLLMJudge) return undefined;
+
+    return LLMJudge.createFresh(
+      this.aiService,
+      this.getLLMJudgeOptions(options),
+    );
+  }
+
+  private createPluginLLMJudge(
+    options: EvaluationOptions,
+  ): PluginLLMJudge | undefined {
+    if (options.skipLLMJudge) return undefined;
+
+    return PluginLLMJudge.createFresh(
+      this.aiService,
+      this.getLLMJudgeOptions(options),
+    );
+  }
+
+  private getLLMJudgeOptions(
+    options: EvaluationOptions,
+  ): { sampleRate: number } | undefined {
+    return options.llmJudgeSampleRate !== undefined
+      ? { sampleRate: options.llmJudgeSampleRate }
+      : undefined;
+  }
+
+  private getRunnerOptions(
+    options: EvaluationOptions,
+  ): TestRunnerOptions | undefined {
+    return options.skipLLMJudge !== undefined
+      ? { skipLLMJudge: options.skipLLMJudge }
+      : undefined;
+  }
+
+  /**
+   * Run test cases in parallel with a concurrency limit while preserving order.
+   */
+  private async runParallel<TTestCase extends TestCase>(
+    testCases: TTestCase[],
+    options: EvaluationOptions,
+    runTest: (testCase: TTestCase) => Promise<EvaluationResult>,
+  ): Promise<EvaluationResult[]> {
+    const maxParallel = Math.max(
+      1,
+      options.maxParallel ?? DEFAULT_MAX_PARALLEL,
+    );
+    const workerCount = Math.min(maxParallel, testCases.length);
+    const results = new Array<EvaluationResult>(testCases.length);
+    let nextIndex = 0;
+
+    const workers = Array.from({ length: workerCount }, async () => {
+      while (nextIndex < testCases.length) {
+        const currentIndex = nextIndex;
+        nextIndex += 1;
+
+        const testCase = testCases[currentIndex];
+        if (!testCase) continue;
+
+        results[currentIndex] = await runTest(testCase);
+      }
+    });
+
+    await Promise.all(workers);
+    return results;
   }
 
   /**
@@ -295,11 +335,10 @@ export class EvaluationService implements IEvaluationService {
     };
   }
 
-  /**
-   * Add a reporter
-   */
-  addReporter(reporter: IReporter): void {
-    this.reporters.push(reporter);
+  private async report(summary: EvaluationSummary): Promise<void> {
+    for (const reporter of this.reporters) {
+      await reporter.report(summary);
+    }
   }
 
   /**
