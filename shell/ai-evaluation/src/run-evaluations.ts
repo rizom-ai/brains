@@ -14,13 +14,11 @@
  */
 
 import { resolve as resolvePath, join } from "path";
-import { existsSync, mkdirSync, rmSync, copyFileSync, cpSync } from "fs";
-import { execSync } from "child_process";
+import { existsSync, rmSync, copyFileSync } from "fs";
 import type { IAgentService } from "@brains/ai-service";
 import { AIService, type IAIService } from "@brains/ai-service";
 import { Logger } from "@brains/utils";
 
-import { type AppConfig, App } from "@brains/app";
 import { EvaluationService } from "./evaluation-service";
 import type { EvaluationOptions } from "./types";
 import type { EvaluationSummary } from "./schemas";
@@ -37,6 +35,7 @@ import {
 } from "./reporters/model-comparison-reporter";
 import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
+import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -264,93 +263,23 @@ export async function main(): Promise<void> {
     const evalHandlerRegistry = EvalHandlerRegistry.getInstance();
     const cloneData = process.argv.includes("--clone-data");
 
-    /**
-     * Prepare temp dirs, clone data, copy eval content, create git repo.
-     * Returns the evalDbBase path prefix.
-     */
-    const prepareEvalEnvironment = (suffix?: string): string => {
-      const evalDbBase = `/tmp/brain-eval-${Date.now()}${suffix ? `-${suffix}` : ""}`;
-
-      if (cloneData) {
-        const sourceDataDir = resolvePath(process.cwd(), "data");
-        const sourceBrainData = resolvePath(process.cwd(), "brain-data");
-        if (existsSync(`${sourceDataDir}/brain.db`)) {
-          copyFileSync(`${sourceDataDir}/brain.db`, `${evalDbBase}.db`);
-        }
-        if (existsSync(sourceBrainData)) {
-          mkdirSync(`${evalDbBase}-data`, { recursive: true });
-          cpSync(sourceBrainData, `${evalDbBase}-data`, { recursive: true });
-        }
-      }
-
-      const evalDataDir = `${evalDbBase}-data`;
-      const candidateDirs = [
-        resolvePath(process.cwd(), "eval-content"),
-        ...(brainModelPath
-          ? [resolvePath(brainModelPath, "eval-content")]
-          : []),
-        resolvePath(process.cwd(), "seed-content"),
-      ];
-      const contentDir = candidateDirs.find((d) => existsSync(d));
-      if (contentDir) {
-        mkdirSync(evalDataDir, { recursive: true });
-        cpSync(contentDir, evalDataDir, { recursive: true });
-        const evalDb = resolvePath(contentDir, "brain.db");
-        if (existsSync(evalDb)) {
-          copyFileSync(evalDb, `${evalDbBase}.db`);
-        }
-      }
-
-      const gitRemotePath = `${evalDbBase}-git-remote`;
-      if (existsSync(gitRemotePath)) {
-        rmSync(gitRemotePath, { recursive: true, force: true });
-      }
-      mkdirSync(gitRemotePath, { recursive: true });
-      execSync("git init --bare", { cwd: gitRemotePath, stdio: "ignore" });
-
-      // Set env so brain.eval.yaml can interpolate ${EVAL_GIT_REMOTE}
-      process.env["EVAL_GIT_REMOTE"] = gitRemotePath;
-
-      return evalDbBase;
-    };
-
-    /**
-     * Boot an App with optional AI model override.
-     * API key comes from process.env.AI_API_KEY (set per model iteration).
-     */
-    const bootEvalApp = async (
-      evalDbBase: string,
-      aiOverrides?: { model?: string; baseConfig?: AppConfig },
-    ): Promise<App> => {
-      const base = aiOverrides?.baseConfig ?? config;
-      const evalConfig = {
-        ...base,
-        database: undefined,
-        ...(aiOverrides?.model && { aiModel: aiOverrides.model }),
-        shellConfig: {
-          ...base.shellConfig,
-          database: { url: `file:${evalDbBase}.db` },
-          jobQueueDatabase: { url: `file:${evalDbBase}-jobs.db` },
-          conversationDatabase: { url: `file:${evalDbBase}-conv.db` },
-          embedding: { cacheDir: `${evalDbBase}-cache` },
-          evalHandlerRegistry,
-          dataDir: `${evalDbBase}-data`,
-        },
-      };
-      const app = App.create(evalConfig);
-      await app.initialize();
-      return app;
-    };
-
     // ── Build eval DB ─────────────────────────────────────────────────
     if (args.includes("--build-db")) {
-      const evalDbBase = prepareEvalEnvironment("build-db");
+      const evalDbBase = prepareEvalEnvironment({
+        brainModelPath,
+        cloneData,
+        suffix: "build-db",
+      });
 
       // Remove pre-existing brain.db from data dir — we're building fresh
       const staleDb = `${evalDbBase}-data/brain.db`;
       if (existsSync(staleDb)) rmSync(staleDb);
 
-      const app = await bootEvalApp(evalDbBase);
+      const app = await bootEvalApp({
+        evalDbBase,
+        config,
+        evalHandlerRegistry,
+      });
       const shell = app.getShell();
       const jobQueue = shell.getJobQueueService();
 
@@ -442,15 +371,19 @@ export async function main(): Promise<void> {
           process.env["AI_API_KEY"] = providerKey;
         }
 
-        const evalDbBase = prepareEvalEnvironment(
-          model.replace(/[^a-z0-9-]/gi, "-"),
-        );
+        const evalDbBase = prepareEvalEnvironment({
+          brainModelPath,
+          cloneData,
+          suffix: model.replace(/[^a-z0-9-]/gi, "-"),
+        });
 
         // Re-resolve config so ${EVAL_GIT_REMOTE} and AI_API_KEY are current
         const modelConfig = freshResolve ? freshResolve() : config;
-        const app = await bootEvalApp(evalDbBase, {
+        const app = await bootEvalApp({
+          evalDbBase,
+          config: modelConfig,
+          evalHandlerRegistry,
           model,
-          baseConfig: modelConfig,
         });
 
         const shell = app.getShell();
@@ -492,9 +425,13 @@ export async function main(): Promise<void> {
     }
 
     // ── Single-model evaluation (default) ───────────────────────────────
-    const evalDbBase = prepareEvalEnvironment();
+    const evalDbBase = prepareEvalEnvironment({ brainModelPath, cloneData });
     if (cloneData) console.log("Cloned data for eval");
-    const app = await bootEvalApp(evalDbBase);
+    const app = await bootEvalApp({
+      evalDbBase,
+      config,
+      evalHandlerRegistry,
+    });
 
     const shell = app.getShell();
     const aiService = shell.getAIService();
