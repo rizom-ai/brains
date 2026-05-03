@@ -23,13 +23,12 @@ import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
 import { MarkdownReporter } from "./reporters/markdown-reporter";
 import { ComparisonReporter } from "./reporters/comparison-reporter";
-import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
 import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
-import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 import { buildEvalDatabase } from "./eval-db-builder";
 import { runMultiModelEvaluation } from "./multi-model-runner";
+import { runSingleModelEvaluation } from "./single-model-runner";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -293,41 +292,25 @@ export async function main(): Promise<void> {
     }
 
     // ── Single-model evaluation (default) ───────────────────────────────
-    const evalDbBase = prepareEvalEnvironment({ brainModelPath, cloneData });
-    if (cloneData) console.log("Cloned data for eval");
-    const app = await bootEvalApp({
-      evalDbBase,
+    await runSingleModelEvaluation({
       config,
+      testCasesDirs,
+      brainModelPath,
       evalHandlerRegistry,
-    });
-
-    const shell = app.getShell();
-    const aiService = shell.getAIService();
-
-    const agentService = remoteUrl
-      ? RemoteAgentService.createFresh({ baseUrl: remoteUrl, authToken })
-      : shell.getAgentService();
-
-    if (remoteUrl) {
-      console.log(`\nConnecting to remote brain: ${remoteUrl}`);
-    }
-
-    const runOptions: RunEvaluationsOptions = {
-      agentService,
-      aiService,
-      testCasesDir: testCasesDirs,
+      cloneData,
       skipLLMJudge,
       verbose,
       parallel,
       maxParallel,
-      ...(tags && { tags }),
-      ...(testCaseIds && { testCaseIds }),
-      ...(testType && { testType }),
-      ...(compareAgainst !== undefined && { compareAgainst }),
-      ...(saveBaseline && { saveBaseline }),
-    };
-
-    await runEvaluations(runOptions);
+      tags,
+      testCaseIds,
+      testType,
+      remoteUrl,
+      authToken,
+      compareAgainst,
+      saveBaseline,
+      runEvaluations,
+    });
 
     process.exit(0);
   } catch (error) {
