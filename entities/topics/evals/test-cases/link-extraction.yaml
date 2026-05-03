@@ -32,7 +32,7 @@ expectedOutput:
   maxItems: 3
   itemsContain:
     - field: title
-      pattern: "[Tt]ype[Ss]cript|[Tt]ype [Ss]afety|[Ss]oftware [Dd]esign"
+      pattern: "[Tt]ype[Ss]cript|[Tt]ype [Ss]afety|[Ss]trict [Tt]ype [Cc]hecking|[Tt]ype [Cc]hecking|[Ss]oftware [Dd]esign"
   validateEach:
     - path: "sources[0].type"
       equals: "link"

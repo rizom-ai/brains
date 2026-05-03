@@ -99,6 +99,38 @@ function summarizeExtractedTopic(topic: ExtractedTopic): {
   };
 }
 
+function getSourceTitle(entity: BaseEntity): string {
+  const metadataTitle = entity.metadata["title"];
+  return typeof metadataTitle === "string" ? metadataTitle : entity.id;
+}
+
+function withSource(
+  topic: ExtractedTopic,
+  entity: BaseEntity,
+): ExtractedTopic & {
+  sources: Array<{ id: string; type: string; title: string }>;
+} {
+  return {
+    ...topic,
+    sources: [
+      {
+        id: entity.id,
+        type: entity.entityType,
+        title: getSourceTitle(entity),
+      },
+    ],
+  };
+}
+
+async function clearTopics(context: EntityPluginContext): Promise<void> {
+  const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+  await Promise.all(
+    topics.map((topic) =>
+      context.entityService.deleteEntity(TOPIC_ENTITY_TYPE, topic.id),
+    ),
+  );
+}
+
 export function registerTopicEvalHandlers(params: {
   context: EntityPluginContext;
   logger: Logger;
@@ -117,14 +149,18 @@ export function registerTopicEvalHandlers(params: {
   };
 
   context.eval.registerHandler("extractFromEntity", async (input: unknown) => {
+    await clearTopics(context);
     const parsed = extractInputSchema.parse(input);
     const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
-    return extractTopics(parsed, minScore);
+    const entity = createEntityFromInput(parsed);
+    const topics = await extractor.extractFromEntity(entity, minScore);
+    return topics.map((topic) => withSource(topic, entity));
   });
 
   context.eval.registerHandler(
     "checkMergeSimilarity",
     async (input: unknown) => {
+      await clearTopics(context);
       const parsed = mergeTestInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
 
@@ -149,6 +185,7 @@ export function registerTopicEvalHandlers(params: {
   context.eval.registerHandler(
     "detectMergeCandidate",
     async (input: unknown) => {
+      await clearTopics(context);
       const parsed = detectMergeCandidateSchema.parse(input);
       const threshold = parsed.threshold ?? config.mergeSimilarityThreshold;
       const topicService = new TopicService(context.entityService, logger);
@@ -188,6 +225,7 @@ export function registerTopicEvalHandlers(params: {
   context.eval.registerHandler(
     "processTopicWithAutoMerge",
     async (input: unknown) => {
+      await clearTopics(context);
       const parsed = mergeProcessingSchema.parse(input);
       const topicService = new TopicService(context.entityService, logger);
 
@@ -233,6 +271,7 @@ export function registerTopicEvalHandlers(params: {
   );
 
   context.eval.registerHandler("rebuildTopics", async (input: unknown) => {
+    await clearTopics(context);
     const parsed = rebuildTopicsSchema.parse(input);
     const topicService = new TopicService(context.entityService, logger);
 
@@ -257,6 +296,7 @@ export function registerTopicEvalHandlers(params: {
   context.eval.registerHandler(
     "extractSequentially",
     async (input: unknown) => {
+      await clearTopics(context);
       const parsed = sequentialInputSchema.parse(input);
       const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
       const topicService = new TopicService(context.entityService, logger);
@@ -292,6 +332,7 @@ export function registerTopicEvalHandlers(params: {
   );
 
   context.eval.registerHandler("batchExtract", async (input: unknown) => {
+    await clearTopics(context);
     const parsed = batchInputSchema.parse(input);
     const entities = parsed.entities.map((entity, index) =>
       createEntityFromInput(entity, `-batch-${index}`),
