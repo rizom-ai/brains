@@ -69,6 +69,7 @@ export function createBrainAgentFactory(
 ): BrainAgentFactory {
   const { model, modelId, webSearch, temperature, maxTokens, messageBus } =
     options;
+  const supportsTemp = supportsTemperature(modelId);
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
@@ -120,8 +121,7 @@ export function createBrainAgentFactory(
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
-          ...(temperature !== undefined &&
-            supportsTemperature(modelId) && { temperature }),
+          ...(temperature !== undefined && supportsTemp && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
           ...(webSearch && {
             providerOptions: {
