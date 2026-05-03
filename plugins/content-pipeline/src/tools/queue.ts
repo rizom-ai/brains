@@ -166,25 +166,18 @@ async function handleAdd(
   entityType?: string,
   entityId?: string,
 ): Promise<ToolResult> {
-  if (!entityType) {
-    return {
-      success: false as const,
-      error: "entityType is required for add action",
-    };
-  }
+  const target = requireQueueTarget("add", entityType, entityId);
+  if (!target.success) return target.error;
 
-  if (!entityId) {
-    return {
-      success: false as const,
-      error: "entityId is required for add action",
-    };
-  }
-
-  const result = await queueManager.add(entityType, entityId);
+  const result = await queueManager.add(target.entityType, target.entityId);
 
   return {
     success: true as const,
-    data: { entityType, entityId, position: result.position },
+    data: {
+      entityType: target.entityType,
+      entityId: target.entityId,
+      position: result.position,
+    },
     message: `Added to queue at position ${result.position}`,
   };
 }
@@ -197,25 +190,14 @@ async function handleRemove(
   entityType?: string,
   entityId?: string,
 ): Promise<ToolResult> {
-  if (!entityType) {
-    return {
-      success: false as const,
-      error: "entityType is required for remove action",
-    };
-  }
+  const target = requireQueueTarget("remove", entityType, entityId);
+  if (!target.success) return target.error;
 
-  if (!entityId) {
-    return {
-      success: false as const,
-      error: "entityId is required for remove action",
-    };
-  }
-
-  await queueManager.remove(entityType, entityId);
+  await queueManager.remove(target.entityType, target.entityId);
 
   return {
     success: true as const,
-    data: { entityType, entityId },
+    data: { entityType: target.entityType, entityId: target.entityId },
     message: "Removed from queue",
   };
 }
@@ -229,39 +211,85 @@ async function handleReorder(
   entityId?: string,
   position?: number,
 ): Promise<ToolResult> {
+  const target = requireQueueTarget("reorder", entityType, entityId);
+  if (!target.success) return target.error;
+
+  const nextPosition = requirePosition(position);
+  if (!nextPosition.success) return nextPosition.error;
+
+  await queueManager.reorder(
+    target.entityType,
+    target.entityId,
+    nextPosition.position,
+  );
+
+  return {
+    success: true as const,
+    data: {
+      entityType: target.entityType,
+      entityId: target.entityId,
+      position: nextPosition.position,
+    },
+    message: `Moved to position ${nextPosition.position}`,
+  };
+}
+
+type QueueTargetResult =
+  | { success: true; entityType: string; entityId: string }
+  | { success: false; error: ToolResult };
+
+function requireQueueTarget(
+  action: "add" | "remove" | "reorder",
+  entityType?: string,
+  entityId?: string,
+): QueueTargetResult {
   if (!entityType) {
     return {
-      success: false as const,
-      error: "entityType is required for reorder action",
+      success: false,
+      error: {
+        success: false as const,
+        error: `entityType is required for ${action} action`,
+      },
     };
   }
 
   if (!entityId) {
     return {
-      success: false as const,
-      error: "entityId is required for reorder action",
+      success: false,
+      error: {
+        success: false as const,
+        error: `entityId is required for ${action} action`,
+      },
     };
   }
 
+  return { success: true, entityType, entityId };
+}
+
+type QueuePositionResult =
+  | { success: true; position: number }
+  | { success: false; error: ToolResult };
+
+function requirePosition(position?: number): QueuePositionResult {
   if (position === undefined) {
     return {
-      success: false as const,
-      error: "position is required for reorder action",
+      success: false,
+      error: {
+        success: false as const,
+        error: "position is required for reorder action",
+      },
     };
   }
 
   if (position < 1) {
     return {
-      success: false as const,
-      error: "position must be a positive number",
+      success: false,
+      error: {
+        success: false as const,
+        error: "position must be a positive number",
+      },
     };
   }
 
-  await queueManager.reorder(entityType, entityId, position);
-
-  return {
-    success: true as const,
-    data: { entityType, entityId, position },
-    message: `Moved to position ${position}`,
-  };
+  return { success: true, position };
 }

@@ -4,11 +4,13 @@ import type {
   ServicePluginContext,
   BaseEntity,
 } from "@brains/plugins";
-import { createTool, parseMarkdownWithFrontmatter } from "@brains/plugins";
+import { createTool } from "@brains/plugins";
 import { z } from "@brains/utils";
-import type { PublishImageData } from "@brains/utils";
 import type { ProviderRegistry } from "../provider-registry";
 import type { PublishableMetadata } from "../schemas/publishable";
+import { preparePublishContent } from "./publish-content";
+
+type PublishableEntity = BaseEntity<PublishableMetadata>;
 
 /**
  * Input schema for publish-pipeline:publish tool
@@ -83,25 +85,7 @@ export function createPublishTool(
         };
       }
 
-      // Find the entity (typed as publishable)
-      type PublishableEntity = BaseEntity<PublishableMetadata>;
-      let entity: PublishableEntity | null = null;
-      if (id) {
-        entity = await context.entityService.getEntity<PublishableEntity>(
-          entityType,
-          id,
-        );
-      } else if (slug) {
-        const entities =
-          await context.entityService.listEntities<PublishableEntity>(
-            entityType,
-            {
-              filter: { metadata: { slug } },
-              limit: 1,
-            },
-          );
-        entity = entities[0] ?? null;
-      }
+      const entity = await findPublishableEntity(context, entityType, id, slug);
 
       if (!entity) {
         const identifier = id ?? slug;
@@ -128,39 +112,10 @@ export function createPublishTool(
       }
       const provider = providerRegistry.get(entityType);
 
-      // Extract body content and frontmatter from markdown
-      let bodyContent = entity.content;
-      let coverImageId: string | undefined;
-      try {
-        const parsed = parseMarkdownWithFrontmatter(
-          entity.content,
-          z.record(z.unknown()),
-        );
-        bodyContent = parsed.content;
-        const rawCoverImageId = parsed.metadata["coverImageId"];
-        coverImageId =
-          typeof rawCoverImageId === "string" ? rawCoverImageId : undefined;
-      } catch {
-        // If parsing fails, use content as-is
-      }
-
-      // Fetch image data if coverImageId exists
-      let imageData: PublishImageData | undefined;
-      if (coverImageId) {
-        const image = await context.entityService.getEntity<BaseEntity>(
-          "image",
-          coverImageId,
-        );
-        if (image?.content) {
-          const match = image.content.match(/^data:([^;]+);base64,(.+)$/);
-          if (match?.[1] && match[2]) {
-            imageData = {
-              data: Buffer.from(match[2], "base64"),
-              mimeType: match[1],
-            };
-          }
-        }
-      }
+      const { bodyContent, imageData } = await preparePublishContent(
+        context,
+        entity,
+      );
 
       // Publish using the provider
       const result = await provider.publish(
@@ -197,4 +152,26 @@ export function createPublishTool(
     ...tool,
     outputSchema: publishOutputSchema,
   } as Tool<PublishOutput>;
+}
+
+async function findPublishableEntity(
+  context: ServicePluginContext,
+  entityType: string,
+  id?: string,
+  slug?: string,
+): Promise<PublishableEntity | null> {
+  if (id) {
+    return context.entityService.getEntity<PublishableEntity>(entityType, id);
+  }
+
+  if (!slug) return null;
+
+  const entities = await context.entityService.listEntities<PublishableEntity>(
+    entityType,
+    {
+      filter: { metadata: { slug } },
+      limit: 1,
+    },
+  );
+  return entities[0] ?? null;
 }

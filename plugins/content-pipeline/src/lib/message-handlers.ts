@@ -34,8 +34,14 @@ export function subscribeToMessages(
   context: ServicePluginContext,
   deps: MessageHandlerDeps,
 ): void {
-  const { logger } = deps;
+  subscribeToPublishMessages(context, deps);
+  subscribeToGenerationMessages(context, deps);
+}
 
+function subscribeToPublishMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
   context.messaging.subscribe<PublishRegisterPayload, { success: boolean }>(
     PUBLISH_MESSAGES.REGISTER,
     async (msg) => handleRegister(deps, msg.payload),
@@ -70,39 +76,34 @@ export function subscribeToMessages(
     PublishReportSuccessPayload,
     { success: boolean }
   >(PUBLISH_MESSAGES.REPORT_SUCCESS, async (msg) =>
-    handleReportSuccess(context, deps, msg.payload),
+    handleReportSuccess(deps, msg.payload),
   );
 
   context.messaging.subscribe<
     PublishReportFailurePayload,
     { success: boolean }
   >(PUBLISH_MESSAGES.REPORT_FAILURE, async (msg) =>
-    handleReportFailure(context, deps, msg.payload),
+    handleReportFailure(deps, msg.payload),
   );
 
-  logger.debug("Subscribed to publish messages");
+  deps.logger.debug("Subscribed to publish messages");
+}
 
+function subscribeToGenerationMessages(
+  context: ServicePluginContext,
+  deps: MessageHandlerDeps,
+): void {
   context.messaging.subscribe<GenerateCompletedPayload, { success: boolean }>(
     GENERATE_MESSAGES.REPORT_SUCCESS,
-    async (msg) => {
-      const { entityType, entityId } = msg.payload;
-      deps.scheduler.completeGeneration(entityType, entityId);
-      logger.info("Generation completed", { entityType, entityId });
-      return { success: true };
-    },
+    async (msg) => handleGenerationCompleted(deps, msg.payload),
   );
 
   context.messaging.subscribe<GenerateFailedPayload, { success: boolean }>(
     GENERATE_MESSAGES.REPORT_FAILURE,
-    async (msg) => {
-      const { entityType, error } = msg.payload;
-      deps.scheduler.failGeneration(entityType, error);
-      logger.warn("Generation failed", { entityType, error });
-      return { success: true };
-    },
+    async (msg) => handleGenerationFailed(deps, msg.payload),
   );
 
-  logger.debug("Subscribed to generation messages");
+  deps.logger.debug("Subscribed to generation messages");
 }
 
 async function handleRegister(
@@ -239,19 +240,12 @@ async function handleList(
 }
 
 async function handleReportSuccess(
-  context: ServicePluginContext,
   deps: MessageHandlerDeps,
   payload: PublishReportSuccessPayload,
 ): Promise<{ success: boolean }> {
   const { entityType, entityId, result } = payload;
 
-  deps.retryTracker.clearRetries(entityId);
-
-  await context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
-    entityType,
-    entityId,
-    result,
-  });
+  deps.scheduler.completePublish(entityType, entityId, result);
 
   deps.logger.info(`Publish reported success: ${entityId}`, { entityType });
 
@@ -259,22 +253,13 @@ async function handleReportSuccess(
 }
 
 async function handleReportFailure(
-  context: ServicePluginContext,
   deps: MessageHandlerDeps,
   payload: PublishReportFailurePayload,
 ): Promise<{ success: boolean }> {
   const { entityType, entityId, error } = payload;
 
-  deps.retryTracker.recordFailure(entityId, error);
+  deps.scheduler.failPublish(entityType, entityId, error);
   const retryInfo = deps.retryTracker.getRetryInfo(entityId);
-
-  await context.messaging.send(PUBLISH_MESSAGES.FAILED, {
-    entityType,
-    entityId,
-    error,
-    retryCount: retryInfo?.retryCount ?? 1,
-    willRetry: retryInfo?.willRetry ?? false,
-  });
 
   deps.logger.info(`Publish reported failure: ${entityId}`, {
     entityType,
@@ -282,6 +267,30 @@ async function handleReportFailure(
     retryCount: retryInfo?.retryCount,
     willRetry: retryInfo?.willRetry,
   });
+
+  return { success: true };
+}
+
+async function handleGenerationCompleted(
+  deps: MessageHandlerDeps,
+  payload: GenerateCompletedPayload,
+): Promise<{ success: boolean }> {
+  const { entityType, entityId } = payload;
+
+  deps.scheduler.completeGeneration(entityType, entityId);
+  deps.logger.info("Generation completed", { entityType, entityId });
+
+  return { success: true };
+}
+
+async function handleGenerationFailed(
+  deps: MessageHandlerDeps,
+  payload: GenerateFailedPayload,
+): Promise<{ success: boolean }> {
+  const { entityType, error } = payload;
+
+  deps.scheduler.failGeneration(entityType, error);
+  deps.logger.warn("Generation failed", { entityType, error });
 
   return { success: true };
 }

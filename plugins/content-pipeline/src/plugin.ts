@@ -10,6 +10,7 @@ import { contentPipelineConfigSchema } from "./types/config";
 import { subscribeToMessages } from "./lib/message-handlers";
 import { createScheduler } from "./lib/create-scheduler";
 import { rebuildQueueFromEntities } from "./lib/queue-rebuild";
+import { registerDashboardWidget } from "./lib/dashboard-widget";
 import packageJson from "../package.json";
 
 export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> {
@@ -66,57 +67,10 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
       this.queueManager,
       this.logger,
     );
-    await this.registerDashboardWidget(context);
+    await registerDashboardWidget(context, this.id);
     await this.scheduler.start();
 
     this.logger.info("Content pipeline plugin started");
-  }
-
-  private async registerDashboardWidget(
-    context: ServicePluginContext,
-  ): Promise<void> {
-    await context.messaging.send("dashboard:register-widget", {
-      id: "publication-pipeline",
-      pluginId: this.id,
-      title: "Publication Pipeline",
-      section: "secondary",
-      priority: 100,
-      rendererName: "PipelineWidget",
-      dataProvider: async () => {
-        const entityTypes = context.entityService.getEntityTypes();
-        const allEntries: Array<{
-          id: string;
-          title: string;
-          type: string;
-          status: "draft" | "queued" | "published" | "failed";
-        }> = [];
-        const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
-
-        for (const entityType of entityTypes) {
-          const entities = await context.entityService.listEntities(entityType);
-          for (const entity of entities) {
-            const status = entity.metadata["status"];
-            if (
-              status !== "draft" &&
-              status !== "queued" &&
-              status !== "published" &&
-              status !== "failed"
-            )
-              continue;
-            summary[status]++;
-            const title = entity.metadata["title"];
-            allEntries.push({
-              id: entity.id,
-              title: typeof title === "string" ? title : entity.id,
-              type: entityType,
-              status,
-            });
-          }
-        }
-
-        return { summary, items: allEntries };
-      },
-    });
   }
 
   protected override async getTools(): Promise<Tool[]> {
