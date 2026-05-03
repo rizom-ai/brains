@@ -383,14 +383,12 @@ export class EntityMutations {
       payload["entity"] = entity;
     }
 
-    await this.messageBus.send(
-      event,
-      payload,
-      "entity-service",
-      undefined,
-      undefined,
-      true,
-    );
+    await this.messageBus.send({
+      type: event,
+      payload: payload,
+      sender: "entity-service",
+      broadcast: true,
+    });
   }
 
   /**

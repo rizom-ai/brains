@@ -29,8 +29,8 @@ function createCapturingEventBus(): {
   return {
     events,
     eventBus: {
-      send: async (type, payload): Promise<{ success: true }> => {
-        events.push({ type, payload });
+      send: async (request): Promise<{ success: true }> => {
+        events.push({ type: request.type, payload: request.payload });
         return { success: true };
       },
     },

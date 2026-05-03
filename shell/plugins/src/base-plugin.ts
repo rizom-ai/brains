@@ -130,9 +130,12 @@ export abstract class BasePlugin<
                   notification: ProgressNotification,
                 ): Promise<void> => {
                   // Send progress notification back through message bus
-                  await context.messaging.send(`plugin:${this.id}:progress`, {
-                    progressToken,
-                    notification,
+                  await context.messaging.send({
+                    type: `plugin:${this.id}:progress`,
+                    payload: {
+                      progressToken,
+                      notification,
+                    },
                   });
                 },
               }),
@@ -314,12 +317,15 @@ export abstract class BasePlugin<
 
     const pluginId = this.id;
     return ProgressReporter.from(async (notification: ProgressNotification) => {
-      await context.messaging.send(`plugin:${pluginId}:progress`, {
-        progressToken,
-        notification: {
-          progress: notification.progress,
-          total: notification.total,
-          message: notification.message,
+      await context.messaging.send({
+        type: `plugin:${pluginId}:progress`,
+        payload: {
+          progressToken,
+          notification: {
+            progress: notification.progress,
+            total: notification.total,
+            message: notification.message,
+          },
         },
       });
     });

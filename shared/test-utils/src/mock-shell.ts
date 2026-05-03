@@ -25,6 +25,7 @@ import { PermissionService } from "@brains/templates";
 import type {
   MessageHandler,
   MessageBus,
+  MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
 import type { ContentService } from "@brains/content-service";
@@ -137,21 +138,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
   const messageBus: MessageBus = {
-    send: async (
-      type: string,
-      payload: unknown,
-      source: string,
-      _target?: string,
-      _metadata?: Record<string, unknown>,
-      broadcast?: boolean,
-    ) => {
+    send: async (request: MessageBusSendRequest) => {
+      const { type, payload, sender, broadcast } = request;
       const handlers = messageHandlers.get(type) ?? new Set();
       let result: MessageResponse<unknown> = { success: true };
       for (const handler of handlers) {
         const response = await handler({
           type,
           payload,
-          source,
+          source: sender,
           id: `msg-${Date.now()}`,
           timestamp: new Date().toISOString(),
         });

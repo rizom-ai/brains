@@ -78,9 +78,9 @@ const packageJson = {
 const exampleSender: MessageSender<
   { value: number },
   { accepted: true }
-> = async (_type, _payload, options) => {
+> = async (request) => {
   const response: MessageResponse<{ accepted: true }> = {
-    success: options?.broadcast === true,
+    success: request.broadcast === true,
     data: { accepted: true },
   };
   return response;

@@ -133,9 +133,9 @@ describe("JobProgressMonitor", () => {
         message: "Processing step 5",
       });
 
-      expect(messageBusSendMock).toHaveBeenCalledWith(
-        "job-progress",
-        {
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: {
           id: "job-123",
           type: "job",
           status: "processing",
@@ -150,11 +150,9 @@ describe("JobProgressMonitor", () => {
             percentage: 50,
           },
         },
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
 
     it("should handle progress without totals", async () => {
@@ -166,9 +164,9 @@ describe("JobProgressMonitor", () => {
         message: "Processing...",
       });
 
-      expect(messageBusSendMock).toHaveBeenCalledWith(
-        "job-progress",
-        {
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: {
           id: "job-123",
           type: "job",
           status: "processing",
@@ -178,11 +176,9 @@ describe("JobProgressMonitor", () => {
             operationType: "data_processing",
           },
         },
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
 
     it("should handle missing job gracefully", async () => {
@@ -218,9 +214,9 @@ describe("JobProgressMonitor", () => {
 
       await monitor.emitBatchProgress("batch-456", batchStatus, metadata);
 
-      expect(messageBusSendMock).toHaveBeenCalledWith(
-        "job-progress",
-        {
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: {
           id: "batch-456",
           type: "batch",
           status: "processing",
@@ -238,11 +234,9 @@ describe("JobProgressMonitor", () => {
             percentage: 30,
           },
         },
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
 
     it("should calculate percentage correctly", async () => {
@@ -264,11 +258,13 @@ describe("JobProgressMonitor", () => {
 
       const call = messageBusSendMock.mock.calls[0];
       if (call) {
-        expect(call[1]).toMatchObject({
-          progress: {
-            current: 3,
-            total: 4,
-            percentage: 75,
+        expect(call[0]).toMatchObject({
+          payload: {
+            progress: {
+              current: 3,
+              total: 4,
+              percentage: 75,
+            },
           },
         });
       }
@@ -289,9 +285,9 @@ describe("JobProgressMonitor", () => {
 
       await monitor.emitJobCompletion("job-123");
 
-      expect(messageBusSendMock).toHaveBeenCalledWith(
-        "job-progress",
-        {
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: {
           id: "job-123",
           type: "job",
           status: "completed",
@@ -305,11 +301,9 @@ describe("JobProgressMonitor", () => {
             retryCount: 0,
           },
         },
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
 
     it("should emit job failure event", async () => {
@@ -326,9 +320,9 @@ describe("JobProgressMonitor", () => {
 
       await monitor.emitJobFailure("job-123");
 
-      expect(messageBusSendMock).toHaveBeenCalledWith(
-        "job-progress",
-        {
+      expect(messageBusSendMock).toHaveBeenCalledWith({
+        type: "job-progress",
+        payload: {
           id: "job-123",
           type: "job",
           status: "failed",
@@ -343,11 +337,9 @@ describe("JobProgressMonitor", () => {
             retryCount: 0,
           },
         },
-        "job-progress-monitor",
-        undefined,
-        undefined,
-        true,
-      );
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
     });
 
     it("should handle missing job in completion gracefully", async () => {

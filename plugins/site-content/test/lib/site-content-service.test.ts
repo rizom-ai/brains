@@ -1,7 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach, spyOn } from "bun:test";
 import { SiteContentService } from "../../src/lib/site-content-service";
 import { createMockServicePluginContext } from "@brains/test-utils";
-import type { ServicePluginContext } from "@brains/plugins";
+import type { MessageSendRequest, ServicePluginContext } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
 import { SiteContentOperations } from "../../src/lib/site-content-operations";
 
@@ -36,8 +36,8 @@ describe("SiteContentService", () => {
   beforeEach(() => {
     context = createMockServicePluginContext({
       returns: {
-        messagingSend: async (channel: string) => {
-          if (channel === "site-builder:routes:list") {
+        messagingSend: async (request: MessageSendRequest) => {
+          if (request.type === "site-builder:routes:list") {
             return { success: true, data: testRoutes };
           }
           return { noop: true };

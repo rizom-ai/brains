@@ -66,11 +66,14 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
   private async registerWithPublishPipeline(
     context: EntityPluginContext,
   ): Promise<void> {
-    await context.messaging.send("publish:register", {
-      entityType: "deck",
-      provider: {
-        name: "internal",
-        publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+    await context.messaging.send({
+      type: "publish:register",
+      payload: {
+        entityType: "deck",
+        provider: {
+          name: "internal",
+          publish: async (): Promise<{ id: string }> => ({ id: "internal" }),
+        },
       },
     });
   }
@@ -89,10 +92,13 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
           entityId,
         );
         if (!deck) {
-          await context.messaging.send("publish:report:failure", {
-            entityType,
-            entityId,
-            error: `Deck not found: ${entityId}`,
+          await context.messaging.send({
+            type: "publish:report:failure",
+            payload: {
+              entityType,
+              entityId,
+              error: `Deck not found: ${entityId}`,
+            },
           });
           return { success: true };
         }
@@ -110,16 +116,22 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
           content: this.adapter.toMarkdown(updatedDeck),
         });
 
-        await context.messaging.send("publish:report:success", {
-          entityType,
-          entityId,
-          result: { id: entityId },
+        await context.messaging.send({
+          type: "publish:report:success",
+          payload: {
+            entityType,
+            entityId,
+            result: { id: entityId },
+          },
         });
       } catch (error) {
-        await context.messaging.send("publish:report:failure", {
-          entityType,
-          entityId,
-          error: getErrorMessage(error),
+        await context.messaging.send({
+          type: "publish:report:failure",
+          payload: {
+            entityType,
+            entityId,
+            error: getErrorMessage(error),
+          },
         });
       }
 

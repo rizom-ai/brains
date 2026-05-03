@@ -114,11 +114,11 @@ describe("setupInitialSync with git", () => {
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
-    expect(context.messaging.send).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.initialSyncCompleted,
-      { success: true },
-      { broadcast: true },
-    );
+    expect(context.messaging.send).toHaveBeenCalledWith({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: { success: true },
+      broadcast: true,
+    });
   });
 
   it("should emit sync:initial:completed with success:false when pull fails", async () => {
@@ -135,11 +135,14 @@ describe("setupInitialSync with git", () => {
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
-    expect(context.messaging.send).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.initialSyncCompleted,
-      expect.objectContaining({ success: false, error: "Network timeout" }),
-      { broadcast: true },
-    );
+    expect(context.messaging.send).toHaveBeenCalledWith({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: expect.objectContaining({
+        success: false,
+        error: "Network timeout",
+      }),
+      broadcast: true,
+    });
   });
 
   it("should emit sync:initial:completed with success:false when sync fails", async () => {
@@ -155,10 +158,10 @@ describe("setupInitialSync with git", () => {
     const handler = handlers.get(SYSTEM_CHANNELS.pluginsRegistered);
     if (handler) await handler();
 
-    expect(context.messaging.send).toHaveBeenCalledWith(
-      SYSTEM_CHANNELS.initialSyncCompleted,
-      expect.objectContaining({ success: false, error: "DB locked" }),
-      { broadcast: true },
-    );
+    expect(context.messaging.send).toHaveBeenCalledWith({
+      type: SYSTEM_CHANNELS.initialSyncCompleted,
+      payload: expect.objectContaining({ success: false, error: "DB locked" }),
+      broadcast: true,
+    });
   });
 });

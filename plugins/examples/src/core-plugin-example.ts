@@ -54,10 +54,13 @@ export class ExampleServicePlugin extends ServicePlugin<CalculatorConfig> {
             return { success: false, error: "Unknown operation" };
         }
 
-        await context.messaging.send("calc:result", {
-          result,
-          operation,
-          operands: [a, b],
+        await context.messaging.send({
+          type: "calc:result",
+          payload: {
+            result,
+            operation,
+            operands: [a, b],
+          },
         });
 
         return { success: true, data: result };

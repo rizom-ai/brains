@@ -17,8 +17,8 @@ function createMockMessageBus(): IMessageBus & {
 
   return {
     subscribe: mock(() => () => {}),
-    send: mock(async (type: string, payload: unknown) => {
-      sentMessages.push({ type, payload });
+    send: mock(async (request: { type: string; payload: unknown }) => {
+      sentMessages.push({ type: request.type, payload: request.payload });
       return { success: true };
     }),
     _sentMessages: sentMessages,
@@ -274,14 +274,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler.completeGeneration("newsletter", "newsletter-2024-01");
 
-      expect(messageBus.send).toHaveBeenCalledWith(
-        GENERATE_MESSAGES.COMPLETED,
-        expect.objectContaining({
+      expect(messageBus.send).toHaveBeenCalledWith({
+        type: GENERATE_MESSAGES.COMPLETED,
+        payload: expect.objectContaining({
           entityType: "newsletter",
           entityId: "newsletter-2024-01",
         }),
-        "content-pipeline",
-      );
+        sender: "content-pipeline",
+      });
     });
   });
 
@@ -293,14 +293,14 @@ describe("ContentScheduler - Generation Scheduling", () => {
 
       scheduler.failGeneration("newsletter", "No source content available");
 
-      expect(messageBus.send).toHaveBeenCalledWith(
-        GENERATE_MESSAGES.FAILED,
-        expect.objectContaining({
+      expect(messageBus.send).toHaveBeenCalledWith({
+        type: GENERATE_MESSAGES.FAILED,
+        payload: expect.objectContaining({
           entityType: "newsletter",
           error: "No source content available",
         }),
-        "content-pipeline",
-      );
+        sender: "content-pipeline",
+      });
     });
   });
 

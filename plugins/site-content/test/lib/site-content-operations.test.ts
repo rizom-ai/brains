@@ -8,6 +8,7 @@ import type {
   ServicePluginContext,
   BatchOperation,
   MessageResponse,
+  MessageSendRequest,
 } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/plugins";
 
@@ -46,9 +47,9 @@ const testRoutes: RouteDefinitionInput[] = [
 
 function createRoutesMessaging(
   routes: RouteDefinitionInput[],
-): (channel: string) => Promise<MessageResponse> {
-  return async (channel: string) => {
-    if (channel === "site-builder:routes:list") {
+): (request: MessageSendRequest) => Promise<MessageResponse> {
+  return async (request: MessageSendRequest) => {
+    if (request.type === "site-builder:routes:list") {
       return { success: true, data: routes };
     }
     return { noop: true };

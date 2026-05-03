@@ -22,9 +22,12 @@ export function registerWithPublishPipeline(
   context.messaging.subscribe("system:plugins:ready", async () => {
     const provider = providers.values().next().value;
 
-    await context.messaging.send("publish:register", {
-      entityType: "social-post",
-      provider: provider,
+    await context.messaging.send({
+      type: "publish:register",
+      payload: {
+        entityType: "social-post",
+        provider: provider,
+      },
     });
 
     logger.info("Registered social-post with publish-pipeline");

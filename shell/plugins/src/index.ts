@@ -216,6 +216,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
 } from "./contracts/messaging";

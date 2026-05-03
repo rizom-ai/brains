@@ -158,11 +158,14 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
         }
 
         // Send result back via messaging
-        await context.messaging.send("calc:result", {
-          requestId: message.id,
-          result,
-          operation,
-          operands: [a, b],
+        await context.messaging.send({
+          type: "calc:result",
+          payload: {
+            requestId: message.id,
+            result,
+            operation,
+            operands: [a, b],
+          },
         });
 
         return { success: true };
@@ -208,35 +211,38 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
     // Register routes for web UI (if site-builder plugin is available)
     // Routes are now managed through the site-builder plugin via message bus
     // To register routes, send a message to the site-builder plugin:
-    await context.messaging.send("plugin:site-builder:route:register", {
-      routes: [
-        {
-          id: "calculator-home",
-          path: "/calculator",
-          title: "Calculator",
-          description: "Advanced calculator with history",
-          sections: [
-            {
-              id: "calculator-ui",
-              template: "calculator-interface",
-            },
-            {
-              id: "recent-calculations",
-              template: "calculation-history",
-              dataQuery: {
-                entityType: "calculation",
-                query: {
-                  limit: 10,
-                  orderBy: "timestamp",
-                  orderDirection: "desc",
+    await context.messaging.send({
+      type: "plugin:site-builder:route:register",
+      payload: {
+        routes: [
+          {
+            id: "calculator-home",
+            path: "/calculator",
+            title: "Calculator",
+            description: "Advanced calculator with history",
+            sections: [
+              {
+                id: "calculator-ui",
+                template: "calculator-interface",
+              },
+              {
+                id: "recent-calculations",
+                template: "calculation-history",
+                dataQuery: {
+                  entityType: "calculation",
+                  query: {
+                    limit: 10,
+                    orderBy: "timestamp",
+                    orderDirection: "desc",
+                  },
                 },
               },
-            },
-          ],
-        },
-      ],
-      pluginId: this.id,
-      environment: "preview",
+            ],
+          },
+        ],
+        pluginId: this.id,
+        environment: "preview",
+      },
     });
 
     context.logger.info(

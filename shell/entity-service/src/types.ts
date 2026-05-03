@@ -166,14 +166,14 @@ export type CreateInterceptor = (
  * Kept structural to avoid coupling this package to a concrete messaging service.
  */
 export interface EntityEventBus {
-  send(
-    type: string,
-    payload: Record<string, unknown>,
-    sender: string,
-    target?: string,
-    metadata?: Record<string, unknown>,
-    broadcast?: boolean,
-  ): Promise<unknown>;
+  send(request: {
+    type: string;
+    payload: Record<string, unknown>;
+    sender: string;
+    target?: string;
+    metadata?: Record<string, unknown>;
+    broadcast?: boolean;
+  }): Promise<unknown>;
 }
 
 /**

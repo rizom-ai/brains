@@ -32,13 +32,18 @@ export type MessageWithPayload<T = unknown> = BaseMessage & {
 };
 
 export interface MessageSendOptions {
+  target?: string;
+  metadata?: z.infer<typeof ExtensionMetadataSchema>;
   broadcast?: boolean;
 }
 
+export interface MessageSendRequest<T = unknown> extends MessageSendOptions {
+  type: string;
+  payload: T;
+}
+
 export type MessageSender<T = unknown, R = unknown> = (
-  type: string,
-  payload: T,
-  options?: MessageSendOptions,
+  request: MessageSendRequest<T>,
 ) => Promise<MessageResponse<R>>;
 
 export interface MessageContext {

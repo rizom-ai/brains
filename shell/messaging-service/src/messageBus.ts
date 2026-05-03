@@ -3,6 +3,7 @@ import type { z } from "@brains/utils";
 import type {
   MessageHandler,
   IMessageBus,
+  MessageBusSendRequest,
   MessageResponse,
   SubscriptionFilter,
 } from "./types";
@@ -80,13 +81,9 @@ export class MessageBus implements IMessageBus {
    * Send a message and get response (implements IMessageBus interface)
    */
   async send<T = unknown, R = unknown>(
-    type: string,
-    payload: T,
-    sender: string,
-    target?: string,
-    metadata?: Record<string, unknown>,
-    broadcast?: boolean,
+    request: MessageBusSendRequest<T>,
   ): Promise<MessageResponse<R>> {
+    const { type, payload, sender, target, metadata, broadcast } = request;
     const message = createMessage(type, payload, sender, target, metadata);
     const response = await this.publisher.publish(message, broadcast);
     return toMessageResponse<R>(type, response);

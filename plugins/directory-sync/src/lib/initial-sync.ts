@@ -49,21 +49,21 @@ export function setupInitialSync(
         duration: result.duration,
       });
 
-      await context.messaging.send(
-        SYSTEM_CHANNELS.initialSyncCompleted,
-        { success: true },
-        { broadcast: true },
-      );
+      await context.messaging.send({
+        type: SYSTEM_CHANNELS.initialSyncCompleted,
+        payload: { success: true },
+        ...{ broadcast: true },
+      });
     } catch (error) {
       logger.error("Initial sync failed", error);
-      await context.messaging.send(
-        SYSTEM_CHANNELS.initialSyncCompleted,
-        {
+      await context.messaging.send({
+        type: SYSTEM_CHANNELS.initialSyncCompleted,
+        payload: {
           success: false,
           error: getErrorMessage(error),
         },
-        { broadcast: true },
-      );
+        ...{ broadcast: true },
+      });
     }
   };
 

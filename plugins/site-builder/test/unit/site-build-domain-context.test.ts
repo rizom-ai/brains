@@ -68,16 +68,16 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
-    expect(sendMessage).toHaveBeenCalledWith(
-      "site:build:completed",
-      expect.objectContaining({
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: "site:build:completed",
+      payload: expect.objectContaining({
         environment: "production",
         siteConfig: expect.objectContaining({
           url: "https://yeehaa.io",
         }),
       }),
-      { broadcast: true },
-    );
+      broadcast: true,
+    });
   });
 
   test("should use previewUrl for preview builds", async () => {
@@ -92,16 +92,16 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
-    expect(sendMessage).toHaveBeenCalledWith(
-      "site:build:completed",
-      expect.objectContaining({
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: "site:build:completed",
+      payload: expect.objectContaining({
         environment: "preview",
         siteConfig: expect.objectContaining({
           url: "https://preview.yeehaa.io",
         }),
       }),
-      { broadcast: true },
-    );
+      broadcast: true,
+    });
   });
 
   test("should fall back to siteUrl for preview when previewUrl is not set", async () => {
@@ -115,15 +115,15 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
-    expect(sendMessage).toHaveBeenCalledWith(
-      "site:build:completed",
-      expect.objectContaining({
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: "site:build:completed",
+      payload: expect.objectContaining({
         siteConfig: expect.objectContaining({
           url: "https://yeehaa.io",
         }),
       }),
-      { broadcast: true },
-    );
+      broadcast: true,
+    });
   });
 
   test("should set url to undefined when no URLs configured", async () => {
@@ -135,14 +135,14 @@ describe("SiteBuildJobHandler - Domain URLs", () => {
       mockProgressReporter,
     );
 
-    expect(sendMessage).toHaveBeenCalledWith(
-      "site:build:completed",
-      expect.objectContaining({
+    expect(sendMessage).toHaveBeenCalledWith({
+      type: "site:build:completed",
+      payload: expect.objectContaining({
         siteConfig: expect.objectContaining({
           url: undefined,
         }),
       }),
-      { broadcast: true },
-    );
+      broadcast: true,
+    });
   });
 });

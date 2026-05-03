@@ -5,6 +5,8 @@ export type {
   MessageHandler,
   MessageSender,
   MessageSendOptions,
+  MessageSendRequest,
+  MessageBusSendRequest,
   MessageWithPayload,
   IMessageBus,
   MessageContext,

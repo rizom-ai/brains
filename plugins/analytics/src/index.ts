@@ -46,9 +46,12 @@ export class AnalyticsPlugin extends ServicePlugin<AnalyticsConfig> {
     const siteTag = this.config.cloudflare?.siteTag;
     if (!siteTag) return;
 
-    await context.messaging.send("plugin:site-builder:head-script:register", {
-      pluginId: this.id,
-      script: generateCloudflareBeaconScript(siteTag),
+    await context.messaging.send({
+      type: "plugin:site-builder:head-script:register",
+      payload: {
+        pluginId: this.id,
+        script: generateCloudflareBeaconScript(siteTag),
+      },
     });
   }
 

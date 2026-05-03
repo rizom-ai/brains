@@ -171,18 +171,16 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
           `Emitting entity:embedding:ready event for ${data.entityType}:${data.id}`,
         );
 
-        await this.messageBus.send(
-          "entity:embedding:ready",
-          {
+        await this.messageBus.send({
+          type: "entity:embedding:ready",
+          payload: {
             entityType: data.entityType,
             entityId: data.id,
             entity: currentEntity,
           },
-          "entity-service",
-          undefined,
-          undefined,
-          true, // broadcast
-        );
+          sender: "entity-service",
+          broadcast: true,
+        });
       }
 
       // Report completion

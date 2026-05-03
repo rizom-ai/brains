@@ -190,10 +190,13 @@ export class PublishExecuteHandler {
     entityId: string,
     platformPostId: string,
   ): Promise<void> {
-    await this.sendMessage("publish:report:success", {
-      entityType,
-      entityId,
-      result: { id: platformPostId },
+    await this.sendMessage({
+      type: "publish:report:success",
+      payload: {
+        entityType,
+        entityId,
+        result: { id: platformPostId },
+      },
     });
   }
 
@@ -205,10 +208,13 @@ export class PublishExecuteHandler {
     entityId: string,
     error: string,
   ): Promise<void> {
-    await this.sendMessage("publish:report:failure", {
-      entityType,
-      entityId,
-      error,
+    await this.sendMessage({
+      type: "publish:report:failure",
+      payload: {
+        entityType,
+        entityId,
+        error,
+      },
     });
   }
 

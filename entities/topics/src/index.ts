@@ -212,30 +212,33 @@ export class TopicsPlugin extends EntityPlugin<
     context.messaging.subscribe(
       "system:plugins:ready",
       async (): Promise<{ success: boolean }> => {
-        await context.messaging.send("dashboard:register-widget", {
-          id: "topics",
-          pluginId: this.id,
-          title: "Topics",
-          section: "secondary",
-          priority: 20,
-          rendererName: "ListWidget",
-          dataProvider: async () => {
-            const topics =
-              await context.entityService.listEntities<TopicEntity>("topic", {
-                limit: 10,
-                sortFields: [{ field: "updated", direction: "desc" }],
-              });
-            return {
-              items: topics.map((t) => {
-                const body = this.adapter.parseTopicBody(t.content);
-                const description = firstSentence(body.content);
-                return {
-                  id: t.id,
-                  name: body.title || t.id,
-                  ...(description && { description }),
-                };
-              }),
-            };
+        await context.messaging.send({
+          type: "dashboard:register-widget",
+          payload: {
+            id: "topics",
+            pluginId: this.id,
+            title: "Topics",
+            section: "secondary",
+            priority: 20,
+            rendererName: "ListWidget",
+            dataProvider: async () => {
+              const topics =
+                await context.entityService.listEntities<TopicEntity>("topic", {
+                  limit: 10,
+                  sortFields: [{ field: "updated", direction: "desc" }],
+                });
+              return {
+                items: topics.map((t) => {
+                  const body = this.adapter.parseTopicBody(t.content);
+                  const description = firstSentence(body.content);
+                  return {
+                    id: t.id,
+                    name: body.title || t.id,
+                    ...(description && { description }),
+                  };
+                }),
+              };
+            },
           },
         });
         return { success: true };

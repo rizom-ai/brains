@@ -33,7 +33,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
 
   const messageBusAdapter = {
     send: async (channel: string, message: unknown): Promise<unknown> => {
-      return context.messaging.send(channel, message);
+      return context.messaging.send({ type: channel, payload: message });
     },
     subscribe: (): (() => void) => () => {},
   };
@@ -56,19 +56,25 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     messageBus: messageBusAdapter as never,
     entityService: context.entityService,
     onPublish: (event) => {
-      void context.messaging.send(PUBLISH_MESSAGES.COMPLETED, {
-        entityType: event.entityType,
-        entityId: event.entityId,
-        result: event.result,
+      void context.messaging.send({
+        type: PUBLISH_MESSAGES.COMPLETED,
+        payload: {
+          entityType: event.entityType,
+          entityId: event.entityId,
+          result: event.result,
+        },
       });
     },
     onFailed: (event) => {
-      void context.messaging.send(PUBLISH_MESSAGES.FAILED, {
-        entityType: event.entityType,
-        entityId: event.entityId,
-        error: event.error,
-        retryCount: event.retryCount,
-        willRetry: event.willRetry,
+      void context.messaging.send({
+        type: PUBLISH_MESSAGES.FAILED,
+        payload: {
+          entityType: event.entityType,
+          entityId: event.entityId,
+          error: event.error,
+          retryCount: event.retryCount,
+          willRetry: event.willRetry,
+        },
       });
     },
     onCheckGenerationConditions: (entityType, conditions) =>
@@ -80,8 +86,11 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
       ),
     onGenerate: (event) => {
       logger.info(`Generation triggered for ${event.entityType}`);
-      void context.messaging.send(GENERATE_MESSAGES.EXECUTE, {
-        entityType: event.entityType,
+      void context.messaging.send({
+        type: GENERATE_MESSAGES.EXECUTE,
+        payload: {
+          entityType: event.entityType,
+        },
       });
     },
   });

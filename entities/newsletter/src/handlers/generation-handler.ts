@@ -211,9 +211,12 @@ The newsletter should:
     _data: GenerationJobData,
     error: string,
   ): Promise<void> {
-    await this.context.messaging.send("generate:report:failure", {
-      entityType: "newsletter",
-      error,
+    await this.context.messaging.send({
+      type: "generate:report:failure",
+      payload: {
+        entityType: "newsletter",
+        error,
+      },
     });
   }
 
@@ -223,9 +226,12 @@ The newsletter should:
     _progressReporter: ProgressReporter,
     _generated: GeneratedContent,
   ): Promise<void> {
-    await this.context.messaging.send("generate:report:success", {
-      entityType: "newsletter",
-      entityId,
+    await this.context.messaging.send({
+      type: "generate:report:success",
+      payload: {
+        entityType: "newsletter",
+        entityId,
+      },
     });
   }
 

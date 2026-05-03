@@ -122,9 +122,9 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             ? (this.cfg.previewUrl ?? this.cfg.siteUrl)
             : this.cfg.siteUrl;
 
-        await this.sendMessage(
-          "site:build:completed",
-          {
+        await this.sendMessage({
+          type: "site:build:completed",
+          payload: {
             outputDir: data.outputDir,
             environment,
             routesBuilt: result.routesBuilt,
@@ -135,8 +135,8 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             generateEntityUrl: (entityType: string, slug: string) =>
               EntityUrlGenerator.getInstance().generateUrl(entityType, slug),
           },
-          { broadcast: true },
-        );
+          broadcast: true,
+        });
       }
 
       return {

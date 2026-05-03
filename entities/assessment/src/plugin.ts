@@ -75,24 +75,29 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
     context.messaging.subscribe(
       "system:plugins:ready",
       async (): Promise<{ success: boolean }> => {
-        await context.messaging.send("dashboard:register-widget", {
-          id: "swot",
-          pluginId: this.id,
-          title: "SWOT",
-          section: "secondary",
-          priority: 14,
-          rendererName: "SwotWidget",
-          component: SwotWidget,
-          dataProvider: async () => {
-            const swot = await context.entityService.getEntity<SwotEntity>(
-              "swot",
-              "swot",
-            );
+        await context.messaging.send({
+          type: "dashboard:register-widget",
+          payload: {
+            id: "swot",
+            pluginId: this.id,
+            title: "SWOT",
+            section: "secondary",
+            priority: 14,
+            rendererName: "SwotWidget",
+            component: SwotWidget,
+            dataProvider: async () => {
+              const swot = await context.entityService.getEntity<SwotEntity>(
+                "swot",
+                "swot",
+              );
 
-            if (!swot) return { status: "generating" };
+              if (!swot) return { status: "generating" };
 
-            const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
-            return { status: "ready", ...frontmatter };
+              const { frontmatter } = swotAdapter.parseSwotContent(
+                swot.content,
+              );
+              return { status: "ready", ...frontmatter };
+            },
           },
         });
 

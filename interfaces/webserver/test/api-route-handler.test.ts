@@ -52,13 +52,13 @@ describe("createApiRouteHandler", () => {
         body: JSON.stringify({ email: "test@example.com" }),
       });
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
-        "plugin:newsletter:tool:execute",
-        expect.objectContaining({
+      expect(mockMessageBus.send).toHaveBeenCalledWith({
+        type: "plugin:newsletter:tool:execute",
+        payload: expect.objectContaining({
           args: { email: "test@example.com" },
         }),
-        "webserver",
-      );
+        sender: "webserver",
+      });
     });
 
     it("should parse form data when content-type is form-urlencoded", async () => {
@@ -77,13 +77,13 @@ describe("createApiRouteHandler", () => {
         body: formData.toString(),
       });
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
-        "plugin:newsletter:tool:execute",
-        expect.objectContaining({
+      expect(mockMessageBus.send).toHaveBeenCalledWith({
+        type: "plugin:newsletter:tool:execute",
+        payload: expect.objectContaining({
           args: { email: "test@example.com" },
         }),
-        "webserver",
-      );
+        sender: "webserver",
+      });
     });
   });
 
@@ -101,15 +101,15 @@ describe("createApiRouteHandler", () => {
         body: JSON.stringify({ email: "test@example.com" }),
       });
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
-        "plugin:newsletter:tool:execute",
-        expect.objectContaining({
+      expect(mockMessageBus.send).toHaveBeenCalledWith({
+        type: "plugin:newsletter:tool:execute",
+        payload: expect.objectContaining({
           toolName: "newsletter_subscribe",
           interfaceType: "webserver",
           userId: "anonymous",
         }),
-        "webserver",
-      );
+        sender: "webserver",
+      });
     });
   });
 

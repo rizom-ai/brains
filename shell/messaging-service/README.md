@@ -28,11 +28,11 @@ const unsubscribe = messageBus.subscribe<{ id: string }, { accepted: true }>(
   },
 );
 
-const response = await messageBus.send(
-  "entity:created",
-  { id: "123" },
-  "entity-service",
-);
+const response = await messageBus.send({
+  type: "entity:created",
+  payload: { id: "123" },
+  sender: "entity-service",
+});
 
 unsubscribe();
 ```
@@ -58,18 +58,16 @@ String filters support `*` wildcards. `RegExp` filters are also supported.
 
 ## Broadcasts
 
-Pass `true` as the final `send` argument to invoke all matching handlers. The
-bus awaits each handler and does not return handler data for broadcast messages.
+Set `broadcast: true` to invoke all matching handlers. The bus awaits each
+handler and does not return handler data for broadcast messages.
 
 ```typescript
-await messageBus.send(
-  "sync:completed",
-  { success: true },
-  "directory-sync",
-  undefined,
-  undefined,
-  true,
-);
+await messageBus.send({
+  type: "sync:completed",
+  payload: { success: true },
+  sender: "directory-sync",
+  broadcast: true,
+});
 ```
 
 Handlers that do not need to return data can return `{ noop: true }`.
@@ -93,6 +91,8 @@ mock message bus.
 - `MessageHandler`
 - `MessageSender`
 - `MessageSendOptions`
+- `MessageSendRequest`
+- `MessageBusSendRequest`
 - `BaseMessage`
 - `MessageWithPayload`
 - `MessageContext`

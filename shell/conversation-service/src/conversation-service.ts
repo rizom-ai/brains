@@ -153,19 +153,17 @@ export class ConversationService implements IConversationService {
     });
 
     // Emit event for plugins
-    await this.messageBus.send(
-      "conversation:started",
-      {
+    await this.messageBus.send({
+      type: "conversation:started",
+      payload: {
         conversationId: sessionId,
         sessionId,
         interfaceType,
         timestamp: now,
       },
-      "conversation-service",
-      undefined,
-      undefined,
-      true, // broadcast
-    );
+      sender: "conversation-service",
+      broadcast: true,
+    });
 
     return sessionId;
   }
@@ -216,9 +214,9 @@ export class ConversationService implements IConversationService {
     });
 
     // Emit event for plugins (non-blocking)
-    await this.messageBus.send(
-      "conversation:messageAdded",
-      {
+    await this.messageBus.send({
+      type: "conversation:messageAdded",
+      payload: {
         conversationId,
         messageId,
         role,
@@ -226,11 +224,9 @@ export class ConversationService implements IConversationService {
         metadata,
         timestamp: now,
       },
-      "conversation-service",
-      undefined,
-      undefined,
-      true, // broadcast
-    );
+      sender: "conversation-service",
+      broadcast: true,
+    });
 
     // Check if digest should be broadcast
     await this.checkAndBroadcastDigest(conversationId, now);
@@ -360,14 +356,12 @@ export class ConversationService implements IConversationService {
     };
 
     // Broadcast digest event
-    await this.messageBus.send(
-      "conversation:digest",
-      digestPayload,
-      "conversation-service",
-      undefined,
-      undefined,
-      true, // broadcast
-    );
+    await this.messageBus.send({
+      type: "conversation:digest",
+      payload: digestPayload,
+      sender: "conversation-service",
+      broadcast: true,
+    });
 
     this.logger.debug("Broadcast conversation digest", {
       conversationId,

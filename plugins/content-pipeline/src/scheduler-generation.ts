@@ -43,11 +43,14 @@ export async function triggerGeneration(
 
     if (!result.shouldGenerate) {
       if (deps.messageBus) {
-        void deps.messageBus.send(
-          GENERATE_MESSAGES.SKIPPED,
-          { entityType, reason: result.reason ?? "Conditions not met" },
-          "content-pipeline",
-        );
+        void deps.messageBus.send({
+          type: GENERATE_MESSAGES.SKIPPED,
+          payload: {
+            entityType,
+            reason: result.reason ?? "Conditions not met",
+          },
+          sender: "content-pipeline",
+        });
       }
       return;
     }
@@ -56,11 +59,11 @@ export async function triggerGeneration(
   const event: GenerateExecuteEvent = { entityType };
 
   if (deps.messageBus) {
-    await deps.messageBus.send(
-      GENERATE_MESSAGES.EXECUTE,
-      event,
-      "content-pipeline",
-    );
+    await deps.messageBus.send({
+      type: GENERATE_MESSAGES.EXECUTE,
+      payload: event,
+      sender: "content-pipeline",
+    });
   }
 
   deps.onGenerate?.(event);
@@ -75,11 +78,11 @@ export function sendGenerationCompleted(
   messageBus?: IMessageBus,
 ): void {
   if (messageBus) {
-    void messageBus.send(
-      GENERATE_MESSAGES.COMPLETED,
-      { entityType, entityId },
-      "content-pipeline",
-    );
+    void messageBus.send({
+      type: GENERATE_MESSAGES.COMPLETED,
+      payload: { entityType, entityId },
+      sender: "content-pipeline",
+    });
   }
 }
 
@@ -92,10 +95,10 @@ export function sendGenerationFailed(
   messageBus?: IMessageBus,
 ): void {
   if (messageBus) {
-    void messageBus.send(
-      GENERATE_MESSAGES.FAILED,
-      { entityType, error },
-      "content-pipeline",
-    );
+    void messageBus.send({
+      type: GENERATE_MESSAGES.FAILED,
+      payload: { entityType, error },
+      sender: "content-pipeline",
+    });
   }
 }

@@ -3,6 +3,7 @@ import type {
   ServicePluginContext,
   IEntityService,
   BaseEntity,
+  MessageSendRequest,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
@@ -20,7 +21,7 @@ export interface MockServicePluginContextReturns {
   /** Return value for jobs.enqueue */
   jobsEnqueue?: string;
   /** Custom messaging.send implementation */
-  messagingSend?: (channel: string, payload: unknown) => Promise<unknown>;
+  messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
 }
 
 /**

@@ -123,16 +123,19 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
     context.messaging.subscribe(
       "system:plugins:ready",
       async (): Promise<{ success: boolean }> => {
-        await context.messaging.send("dashboard:register-widget", {
-          id: "agent-network",
-          pluginId: this.id,
-          title: "Agent Network",
-          section: "secondary",
-          priority: 15,
-          rendererName: "AgentNetworkWidget",
-          component: AgentNetworkWidget,
-          clientScript: agentNetworkWidgetScript,
-          dataProvider: async () => buildAgentNetworkWidgetData(context),
+        await context.messaging.send({
+          type: "dashboard:register-widget",
+          payload: {
+            id: "agent-network",
+            pluginId: this.id,
+            title: "Agent Network",
+            section: "secondary",
+            priority: 15,
+            rendererName: "AgentNetworkWidget",
+            component: AgentNetworkWidget,
+            clientScript: agentNetworkWidgetScript,
+            dataProvider: async () => buildAgentNetworkWidgetData(context),
+          },
         });
 
         return { success: true };

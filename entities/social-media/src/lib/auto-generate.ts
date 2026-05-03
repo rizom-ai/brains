@@ -50,10 +50,13 @@ export function subscribeToEntityUpdatedForAutoGenerate(
         return { success: true };
       }
 
-      await context.messaging.send("social:auto-generate", {
-        sourceEntityType: entityType,
-        sourceEntityId: entityId,
-        platform: "linkedin",
+      await context.messaging.send({
+        type: "social:auto-generate",
+        payload: {
+          sourceEntityType: entityType,
+          sourceEntityId: entityId,
+          platform: "linkedin",
+        },
       });
 
       logger.info(
@@ -146,9 +149,12 @@ export function subscribeToGenerateExecute(
 
         if (recentPosts.length === 0) {
           logger.info("No published posts found for social post generation");
-          await context.messaging.send("generate:report:failure", {
-            entityType: "social-post",
-            error: "No published posts available for social post generation",
+          await context.messaging.send({
+            type: "generate:report:failure",
+            payload: {
+              entityType: "social-post",
+              error: "No published posts available for social post generation",
+            },
           });
           return { success: true };
         }
@@ -176,9 +182,12 @@ export function subscribeToGenerateExecute(
 
         if (!sourcePost) {
           logger.info("All recent posts already have social posts");
-          await context.messaging.send("generate:report:failure", {
-            entityType: "social-post",
-            error: "All recent posts already have social posts generated",
+          await context.messaging.send({
+            type: "generate:report:failure",
+            payload: {
+              entityType: "social-post",
+              error: "All recent posts already have social posts generated",
+            },
           });
           return { success: true };
         }
@@ -205,9 +214,12 @@ export function subscribeToGenerateExecute(
         logger.error("Failed to handle generate:execute:", {
           error: errorMessage,
         });
-        await context.messaging.send("generate:report:failure", {
-          entityType: "social-post",
-          error: errorMessage,
+        await context.messaging.send({
+          type: "generate:report:failure",
+          payload: {
+            entityType: "social-post",
+            error: errorMessage,
+          },
         });
         return { success: true };
       }

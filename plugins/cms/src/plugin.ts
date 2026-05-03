@@ -45,7 +45,7 @@ async function getRepoInfo(
   const repoInfo = await context.messaging.send<
     Record<string, never>,
     { repo: string; branch: string }
-  >("git-sync:get-repo-info", {});
+  >({ type: "git-sync:get-repo-info", payload: {} });
 
   if ("noop" in repoInfo || !repoInfo.success || !repoInfo.data) {
     throw new Error("CMS config unavailable: git-sync repo info unavailable");

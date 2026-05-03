@@ -36,14 +36,12 @@ describe("Entity cache invalidation", () => {
     entityType: string,
     entityId: string,
   ): Promise<void> {
-    await messageBus.send(
-      eventType,
-      { entityType, entityId },
-      "test",
-      undefined,
-      undefined,
-      true,
-    );
+    await messageBus.send({
+      type: eventType,
+      payload: { entityType, entityId },
+      sender: "test",
+      broadcast: true,
+    });
   }
 
   beforeEach(() => {

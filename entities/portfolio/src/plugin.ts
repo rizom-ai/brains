@@ -136,9 +136,12 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
       name: "internal",
       publish: async (): Promise<PublishResult> => ({ id: "internal" }),
     };
-    await context.messaging.send("publish:register", {
-      entityType: "project",
-      provider,
+    await context.messaging.send({
+      type: "publish:register",
+      payload: {
+        entityType: "project",
+        provider,
+      },
     });
   }
 
@@ -156,10 +159,13 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
           entityId,
         );
         if (!project) {
-          await context.messaging.send("publish:report:failure", {
-            entityType,
-            entityId,
-            error: `Project not found: ${entityId}`,
+          await context.messaging.send({
+            type: "publish:report:failure",
+            payload: {
+              entityType,
+              entityId,
+              error: `Project not found: ${entityId}`,
+            },
           });
           return { success: true };
         }
@@ -182,16 +188,22 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
           metadata: { ...project.metadata, status: "published", publishedAt },
         });
 
-        await context.messaging.send("publish:report:success", {
-          entityType,
-          entityId,
-          publishedAt,
+        await context.messaging.send({
+          type: "publish:report:success",
+          payload: {
+            entityType,
+            entityId,
+            publishedAt,
+          },
         });
       } catch (error) {
-        await context.messaging.send("publish:report:failure", {
-          entityType,
-          entityId,
-          error: getErrorMessage(error),
+        await context.messaging.send({
+          type: "publish:report:failure",
+          payload: {
+            entityType,
+            entityId,
+            error: getErrorMessage(error),
+          },
         });
       }
       return { success: true };

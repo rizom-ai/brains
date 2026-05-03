@@ -131,14 +131,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:success",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:success",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           result: { id: "linkedin-123" },
         }),
-      );
+      });
     });
 
     it("should update entity status to published", async () => {
@@ -167,14 +167,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: expect.stringContaining("not found"),
         }),
-      );
+      });
     });
 
     it("should send report:failure when provider not found", async () => {
@@ -191,14 +191,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: expect.stringContaining("No provider"),
         }),
-      );
+      });
     });
 
     it("should send report:failure when provider throws", async () => {
@@ -212,14 +212,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: "API rate limit exceeded",
         }),
-      );
+      });
     });
 
     it("should update entity status to failed after provider error", async () => {

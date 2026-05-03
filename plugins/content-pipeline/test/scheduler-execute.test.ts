@@ -17,8 +17,8 @@ function createMockMessageBus(): IMessageBus & {
 
   return {
     subscribe: mock(() => () => {}),
-    send: mock(async (type: string, payload: unknown) => {
-      sentMessages.push({ type, payload });
+    send: mock(async (request: { type: string; payload: unknown }) => {
+      sentMessages.push({ type: request.type, payload: request.payload });
       return { success: true };
     }),
     _sentMessages: sentMessages,
@@ -135,15 +135,15 @@ describe("ContentScheduler - Execute Message Mode", () => {
         url: "https://example.com/post/123",
       });
 
-      expect(messageBus.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.COMPLETED,
-        expect.objectContaining({
+      expect(messageBus.send).toHaveBeenCalledWith({
+        type: PUBLISH_MESSAGES.COMPLETED,
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           result: { id: "platform-123", url: "https://example.com/post/123" },
         }),
-        "publish-service",
-      );
+        sender: "publish-service",
+      });
     });
 
     it("should clear retry info on success", async () => {
@@ -163,15 +163,15 @@ describe("ContentScheduler - Execute Message Mode", () => {
 
       scheduler.failPublish("social-post", "post-1", "Network error");
 
-      expect(messageBus.send).toHaveBeenCalledWith(
-        PUBLISH_MESSAGES.FAILED,
-        expect.objectContaining({
+      expect(messageBus.send).toHaveBeenCalledWith({
+        type: PUBLISH_MESSAGES.FAILED,
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: "Network error",
         }),
-        "publish-service",
-      );
+        sender: "publish-service",
+      });
     });
 
     it("should record retry info", async () => {

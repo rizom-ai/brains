@@ -40,11 +40,11 @@ export async function emitPublishExecute(
   };
 
   if (deps.messageBus) {
-    await deps.messageBus.send(
-      PUBLISH_MESSAGES.EXECUTE,
-      event,
-      "publish-service",
-    );
+    await deps.messageBus.send({
+      type: PUBLISH_MESSAGES.EXECUTE,
+      payload: event,
+      sender: "publish-service",
+    });
   }
 
   deps.onExecute?.(event);
@@ -131,11 +131,11 @@ export function sendPublishCompleted(
   deps.retryTracker.clearRetries(entityId);
 
   if (deps.messageBus) {
-    void deps.messageBus.send(
-      PUBLISH_MESSAGES.COMPLETED,
-      { entityType, entityId, result },
-      "publish-service",
-    );
+    void deps.messageBus.send({
+      type: PUBLISH_MESSAGES.COMPLETED,
+      payload: { entityType, entityId, result },
+      sender: "publish-service",
+    });
   }
 
   deps.onPublish?.({ entityType, entityId, result });
@@ -162,11 +162,11 @@ export function sendPublishFailed(
   };
 
   if (deps.messageBus) {
-    void deps.messageBus.send(
-      PUBLISH_MESSAGES.FAILED,
-      event,
-      "publish-service",
-    );
+    void deps.messageBus.send({
+      type: PUBLISH_MESSAGES.FAILED,
+      payload: event,
+      sender: "publish-service",
+    });
   }
 
   deps.onFailed?.(event);

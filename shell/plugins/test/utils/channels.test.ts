@@ -57,11 +57,11 @@ describe("Typed Message Channels", () => {
 
       // Simulate sending a message through the message bus
       const messageBus = shell.getMessageBus();
-      await messageBus.send(
-        "entity:created",
-        { entityId: "123", entityType: "note" },
-        "other-plugin",
-      );
+      await messageBus.send({
+        type: "entity:created",
+        payload: { entityId: "123", entityType: "note" },
+        sender: "other-plugin",
+      });
 
       expect(receivedPayloads).toHaveLength(1);
       expect(receivedPayloads[0]).toEqual({
@@ -86,11 +86,11 @@ describe("Typed Message Channels", () => {
 
       // Send invalid payload (missing entityType)
       const messageBus = shell.getMessageBus();
-      await messageBus.send(
-        "entity:created",
-        { entityId: "123" }, // Missing entityType
-        "other-plugin",
-      );
+      await messageBus.send({
+        type: "entity:created",
+        payload: { entityId: "123" },
+        sender: "other-plugin",
+      });
 
       expect(handler).not.toHaveBeenCalled();
     });
@@ -110,7 +110,11 @@ describe("Typed Message Channels", () => {
       });
 
       const messageBus = shell.getMessageBus();
-      await messageBus.send("test-channel", { data: "hello" }, "sender-plugin");
+      await messageBus.send({
+        type: "test-channel",
+        payload: { data: "hello" },
+        sender: "sender-plugin",
+      });
 
       expect(receivedMessages).toHaveLength(1);
       const receivedMessage = receivedMessages[0];
@@ -134,7 +138,11 @@ describe("Typed Message Channels", () => {
       });
 
       const messageBus = shell.getMessageBus();
-      await messageBus.send("my-channel", { foo: "bar" }, "other-plugin");
+      await messageBus.send({
+        type: "my-channel",
+        payload: { foo: "bar" },
+        sender: "other-plugin",
+      });
 
       expect(receivedMessages).toHaveLength(1);
       expect((receivedMessages[0] as { payload: unknown }).payload).toEqual({
@@ -162,14 +170,22 @@ describe("Typed Message Channels", () => {
       const messageBus = shell.getMessageBus();
 
       // First message should be received
-      await messageBus.send("numbers", { value: 1 }, "sender");
+      await messageBus.send({
+        type: "numbers",
+        payload: { value: 1 },
+        sender: "sender",
+      });
       expect(receivedValues).toEqual([1]);
 
       // Unsubscribe
       unsubscribe();
 
       // Second message should NOT be received
-      await messageBus.send("numbers", { value: 2 }, "sender");
+      await messageBus.send({
+        type: "numbers",
+        payload: { value: 2 },
+        sender: "sender",
+      });
       expect(receivedValues).toEqual([1]); // Still just [1]
     });
   });
