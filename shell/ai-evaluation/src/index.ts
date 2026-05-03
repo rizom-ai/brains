@@ -35,7 +35,7 @@ export type { JSONReporterOptions } from "./reporters/json-reporter";
 
 // Runner
 export { runEvaluations, main as runEvaluationsCLI } from "./run-evaluations";
-export type { RunEvaluationsOptions } from "./run-evaluations";
+export type { RunEvaluationsOptions } from "./run-evaluation-types";
 
 // Environment
 export { loadEvalEnv } from "./load-eval-env";
