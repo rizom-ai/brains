@@ -89,10 +89,14 @@ export class TopicProcessingHandler extends BaseJobHandler<
             incomingTopic: topic,
           });
 
+          const mergedTitle = candidate.title;
           const merged = await this.topicService.applySynthesizedMerge({
             existingId: candidate.topic.id,
-            synthesized,
-            aliasCandidates: [candidate.title, topic.title],
+            synthesized: {
+              ...synthesized,
+              title: mergedTitle,
+            },
+            aliasCandidates: [topic.title],
           });
 
           if (!merged) {
@@ -101,15 +105,15 @@ export class TopicProcessingHandler extends BaseJobHandler<
 
           await progressReporter.report({
             progress: PROGRESS_STEPS.COMPLETE,
-            message: `Topic merged into: ${synthesized.title}`,
+            message: `Topic merged into: ${mergedTitle}`,
           });
 
           return {
             success: true,
             action: "merged",
             topicId: merged.id,
-            topicTitle: synthesized.title,
-            message: `Successfully merged topic into: ${synthesized.title}`,
+            topicTitle: mergedTitle,
+            message: `Successfully merged topic into: ${mergedTitle}`,
           };
         }
       }
