@@ -1,7 +1,7 @@
 import type { AppConfig } from "@brains/app";
 
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
-import type { RunEvaluationsOptions } from "./run-evaluations";
+import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 

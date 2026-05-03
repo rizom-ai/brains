@@ -5,7 +5,7 @@ import { Logger } from "@brains/utils";
 
 import type { EvaluationSummary } from "./schemas";
 import type { EvalHandlerRegistry } from "./eval-handler-registry";
-import type { RunEvaluationsOptions } from "./run-evaluations";
+import type { RunEvaluationsOptions } from "./run-evaluation-types";
 import { RemoteAgentService } from "./remote-agent-service";
 import { resolveProviderKey } from "./multi-model";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
