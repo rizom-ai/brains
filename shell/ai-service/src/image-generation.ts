@@ -5,31 +5,18 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
-import type { ProviderClients } from "./provider-clients";
+import { getImageModel, type ProviderClients } from "./provider-clients";
 import { selectImageProvider } from "./provider-selection";
 
-/**
- * Generate an image from a text prompt using the configured image provider.
- */
 export async function generateImageResult(
   prompt: string,
   imageModel: string | undefined,
   options: ImageGenerationOptions | undefined,
-  providers: ProviderClients,
+  clients: ProviderClients,
   logger: Logger,
 ): Promise<ImageGenerationResult> {
   const { provider, modelId } = selectImageProvider(imageModel);
-
-  if (provider === "openai" && !providers.openaiProvider) {
-    throw new Error(
-      "Image generation not available: no OpenAI API key configured",
-    );
-  }
-  if (provider === "google" && !providers.googleProvider) {
-    throw new Error(
-      "Image generation not available: no Google API key configured",
-    );
-  }
+  const model = getImageModel(clients, provider, modelId);
 
   logger.debug("Generating image", {
     prompt: prompt.slice(0, 100),
@@ -41,13 +28,15 @@ export async function generateImageResult(
     const aspectRatio: AspectRatio = options?.aspectRatio ?? "16:9";
     const result =
       provider === "google"
-        ? await generateImageWithGoogle(prompt, aspectRatio, modelId, providers)
-        : await generateImageWithOpenAI(
+        ? await generateImage({ model, prompt, aspectRatio })
+        : await generateImage({
+            model,
             prompt,
-            aspectRatio,
-            modelId,
-            providers,
-          );
+            size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
+            providerOptions: {
+              openai: { quality: "medium" },
+            },
+          });
 
     const base64 = result.image.base64;
     const dataUrl = `data:image/png;base64,${base64}`;
@@ -64,44 +53,6 @@ export async function generateImageResult(
   }
 }
 
-async function generateImageWithOpenAI(
-  prompt: string,
-  aspectRatio: AspectRatio,
-  modelId: string,
-  providers: ProviderClients,
-): Promise<{ image: { base64: string } }> {
-  if (!providers.openaiProvider) {
-    throw new Error("OpenAI provider not configured");
-  }
-  return generateImage({
-    model: providers.openaiProvider.image(modelId),
-    prompt,
-    size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
-    providerOptions: {
-      openai: { quality: "medium" },
-    },
-  });
-}
-
-async function generateImageWithGoogle(
-  prompt: string,
-  aspectRatio: AspectRatio,
-  modelId: string,
-  providers: ProviderClients,
-): Promise<{ image: { base64: string } }> {
-  if (!providers.googleProvider) {
-    throw new Error("Google provider not configured");
-  }
-  return generateImage({
-    model: providers.googleProvider.image(modelId),
-    prompt,
-    aspectRatio,
-  });
-}
-
-/**
- * Mapping from aspect ratio to OpenAI GPT Image pixel sizes.
- */
 const ASPECT_RATIO_TO_OPENAI_SIZE: Record<
   AspectRatio,
   "1024x1024" | "1536x1024" | "1024x1536"

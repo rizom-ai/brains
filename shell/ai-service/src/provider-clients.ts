@@ -1,7 +1,7 @@
 import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
 import { createOpenAI } from "@ai-sdk/openai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import type { LanguageModel } from "ai";
+import type { ImageModel, LanguageModel } from "ai";
 import type { AIModelConfig } from "./types";
 import { resolveTextProvider, selectTextProvider } from "./provider-selection";
 
@@ -56,4 +56,28 @@ export function getLanguageModel(
 
 export function canGenerateImages(clients: ProviderClients): boolean {
   return clients.openaiProvider !== null || clients.googleProvider !== null;
+}
+
+export function getImageModel(
+  clients: ProviderClients,
+  provider: string,
+  modelId: string,
+): ImageModel {
+  if (provider === "openai") {
+    if (!clients.openaiProvider) {
+      throw new Error(
+        "Image generation not available: no OpenAI API key configured",
+      );
+    }
+    return clients.openaiProvider.image(modelId);
+  }
+  if (provider === "google") {
+    if (!clients.googleProvider) {
+      throw new Error(
+        "Image generation not available: no Google API key configured",
+      );
+    }
+    return clients.googleProvider.image(modelId);
+  }
+  throw new Error(`Image generation not supported for provider: ${provider}`);
 }

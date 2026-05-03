@@ -3,9 +3,6 @@ import { z } from "@brains/utils";
 import type { Tool, ToolContext } from "@brains/mcp-service";
 import { createToolExecuteWrapper, type ToolEventEmitter } from "./tool-events";
 
-/**
- * Tool context info passed from call options.
- */
 export interface ToolContextInfo {
   conversationId: string;
   channelId?: string | undefined;
@@ -13,11 +10,6 @@ export interface ToolContextInfo {
   interfaceType: string;
 }
 
-/**
- * Convert Tool array to AI SDK tool format.
- * Uses dynamicTool for runtime-defined tools with unknown input types.
- * Wraps each tool's execute function to emit invocation events.
- */
 export function convertToSDKTools(
   pluginTools: Tool[],
   contextInfo: ToolContextInfo,

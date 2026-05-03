@@ -146,8 +146,14 @@ export class AIService implements IAIService {
    * Update configuration
    */
   public updateConfig(config: Partial<AIModelConfig>): void {
+    const keyFieldsChanged =
+      config.apiKey !== undefined ||
+      config.imageApiKey !== undefined ||
+      (config.model !== undefined && config.model !== this.config.model);
     this.config = withAIModelDefaults({ ...this.config, ...config });
-    this.providers = createProviderClients(this.config);
+    if (keyFieldsChanged) {
+      this.providers = createProviderClients(this.config);
+    }
     this.logger.info("AI configuration updated", {
       model: this.config.model,
     });

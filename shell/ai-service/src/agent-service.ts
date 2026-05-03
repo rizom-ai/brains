@@ -22,6 +22,7 @@ import {
 import { createActor, fromPromise, waitFor } from "xstate";
 import { buildModelMessages } from "./conversation-messages";
 import { extractToolResults } from "./agent-results";
+import { toTokenUsage } from "./generation-options";
 
 /**
  * Default step limit if not specified
@@ -245,10 +246,6 @@ export class AgentService implements IAgentService {
     );
   }
 
-  /**
-   * Process a message through the AI agent.
-   * This is the core logic previously in chat() — now an actor for the machine.
-   */
   private async processMessage(
     input: ProcessMessageInput,
   ): Promise<AgentResponse> {
@@ -326,11 +323,7 @@ export class AgentService implements IAgentService {
     const response: AgentResponse = {
       text: result.text,
       toolResults,
-      usage: {
-        promptTokens: result.usage.inputTokens ?? 0,
-        completionTokens: result.usage.outputTokens ?? 0,
-        totalTokens: result.usage.totalTokens ?? 0,
-      },
+      usage: toTokenUsage(result.usage),
     };
 
     if (pendingConfirmation) {
@@ -340,10 +333,6 @@ export class AgentService implements IAgentService {
     return response;
   }
 
-  /**
-   * Execute a confirmed destructive action.
-   * Actor for the machine's "executing" state.
-   */
   private async executeConfirmedAction(
     input: ExecuteActionInput,
   ): Promise<AgentResponse> {
