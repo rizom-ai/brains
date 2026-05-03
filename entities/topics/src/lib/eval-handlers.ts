@@ -12,6 +12,116 @@ import { TopicService } from "./topic-service";
 
 const adapter = new TopicAdapter();
 
+const entityInputSchema = z.object({
+  entityType: z.string(),
+  content: z.string(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+type EntityInput = z.infer<typeof entityInputSchema>;
+
+const extractInputSchema = entityInputSchema.extend({
+  minRelevanceScore: z.number().optional(),
+});
+
+const mergeTestInputSchema = z.object({
+  contentA: entityInputSchema,
+  contentB: entityInputSchema,
+  minRelevanceScore: z.number().optional(),
+});
+
+const detectionTopicSchema = z.object({
+  title: z.string(),
+  content: z.string(),
+});
+
+const detectMergeCandidateSchema = z.object({
+  existingTopics: z.array(detectionTopicSchema),
+  incomingTopic: detectionTopicSchema,
+  threshold: z.number().optional(),
+});
+
+const aliasMergeSchema = z.object({
+  existingAliases: z.array(z.string()).optional(),
+  canonicalTitle: z.string(),
+  candidateAliases: z.array(z.string()),
+});
+
+const mergeProcessingSchema = z.object({
+  existingTopics: z
+    .array(
+      detectionTopicSchema.extend({
+        aliases: z.array(z.string()).optional(),
+      }),
+    )
+    .default([]),
+  incomingTopic: detectionTopicSchema.extend({
+    relevanceScore: z.number().min(0).max(1).optional(),
+  }),
+  threshold: z.number().optional(),
+});
+
+const sequentialInputSchema = z.object({
+  entities: z.array(entityInputSchema).min(1),
+  minRelevanceScore: z.number().optional(),
+});
+
+const rebuildTopicsSchema = z.object({
+  existingTopics: z.array(detectionTopicSchema).optional(),
+  entities: z.array(entityInputSchema),
+});
+
+const batchInputSchema = z.object({
+  entities: z.array(entityInputSchema),
+});
+
+function createEntityFromInput(input: EntityInput, idSuffix = ""): BaseEntity {
+  return {
+    id: `eval${idSuffix}-${Date.now()}`,
+    entityType: input.entityType,
+    content: input.content,
+    contentHash: computeContentHash(input.content),
+    metadata: input.metadata ?? {},
+    created: new Date().toISOString(),
+    updated: new Date().toISOString(),
+  };
+}
+
+function summarizeExtractedTopic(topic: ExtractedTopic): {
+  title: string;
+  relevanceScore: number;
+} {
+  return {
+    title: topic.title,
+    relevanceScore: topic.relevanceScore,
+  };
+}
+
+function serializeTopicEntity(topic: BaseEntity): {
+  id: string;
+  title: string;
+  content: string;
+} {
+  const parsed = adapter.parseTopicBody(topic.content);
+  return {
+    id: topic.id,
+    title: parsed.title,
+    content: parsed.content,
+  };
+}
+
+function serializeTopicEntityWithMetadata(topic: BaseEntity): {
+  id: string;
+  title: string;
+  content: string;
+  metadata: BaseEntity["metadata"];
+} {
+  return {
+    ...serializeTopicEntity(topic),
+    metadata: topic.metadata,
+  };
+}
+
 export function registerTopicEvalHandlers(params: {
   context: EntityPluginContext;
   logger: Logger;
@@ -20,27 +130,8 @@ export function registerTopicEvalHandlers(params: {
   const { context, logger, config } = params;
   const extractor = new TopicExtractor(context, logger);
 
-  const entityInputSchema = z.object({
-    entityType: z.string(),
-    content: z.string(),
-    metadata: z.record(z.unknown()).optional(),
-  });
-
-  const createEntityFromInput = (
-    input: z.infer<typeof entityInputSchema>,
-    idSuffix = "",
-  ): BaseEntity => ({
-    id: `eval${idSuffix}-${Date.now()}`,
-    entityType: input.entityType,
-    content: input.content,
-    contentHash: computeContentHash(input.content),
-    metadata: input.metadata ?? {},
-    created: new Date().toISOString(),
-    updated: new Date().toISOString(),
-  });
-
   const extractTopics = async (
-    input: z.infer<typeof entityInputSchema>,
+    input: EntityInput,
     minRelevanceScore: number,
     idSuffix = "",
   ): Promise<ExtractedTopic[]> => {
@@ -48,20 +139,10 @@ export function registerTopicEvalHandlers(params: {
     return extractor.extractFromEntity(entity, minRelevanceScore);
   };
 
-  const extractInputSchema = entityInputSchema.extend({
-    minRelevanceScore: z.number().optional(),
-  });
-
   context.eval.registerHandler("extractFromEntity", async (input: unknown) => {
     const parsed = extractInputSchema.parse(input);
     const minScore = parsed.minRelevanceScore ?? config.minRelevanceScore;
     return extractTopics(parsed, minScore);
-  });
-
-  const mergeTestInputSchema = z.object({
-    contentA: entityInputSchema,
-    contentB: entityInputSchema,
-    minRelevanceScore: z.number().optional(),
   });
 
   context.eval.registerHandler(
@@ -80,30 +161,13 @@ export function registerTopicEvalHandlers(params: {
       const matchingTitles = titlesA.filter((title) => titlesB.includes(title));
 
       return {
-        topicsA: topicsA.map((topic) => ({
-          title: topic.title,
-          relevanceScore: topic.relevanceScore,
-        })),
-        topicsB: topicsB.map((topic) => ({
-          title: topic.title,
-          relevanceScore: topic.relevanceScore,
-        })),
+        topicsA: topicsA.map(summarizeExtractedTopic),
+        topicsB: topicsB.map(summarizeExtractedTopic),
         matchingTitles,
         wouldMerge: matchingTitles.length > 0,
       };
     },
   );
-
-  const detectionTopicSchema = z.object({
-    title: z.string(),
-    content: z.string(),
-  });
-
-  const detectMergeCandidateSchema = z.object({
-    existingTopics: z.array(detectionTopicSchema),
-    incomingTopic: detectionTopicSchema,
-    threshold: z.number().optional(),
-  });
 
   context.eval.registerHandler(
     "detectMergeCandidate",
@@ -131,12 +195,6 @@ export function registerTopicEvalHandlers(params: {
     },
   );
 
-  const aliasMergeSchema = z.object({
-    existingAliases: z.array(z.string()).optional(),
-    canonicalTitle: z.string(),
-    candidateAliases: z.array(z.string()),
-  });
-
   context.eval.registerHandler("mergeAliases", async (input: unknown) => {
     const parsed = aliasMergeSchema.parse(input);
     const topicService = new TopicService(context.entityService, logger);
@@ -148,20 +206,6 @@ export function registerTopicEvalHandlers(params: {
         parsed.candidateAliases,
       ),
     };
-  });
-
-  const mergeProcessingSchema = z.object({
-    existingTopics: z
-      .array(
-        detectionTopicSchema.extend({
-          aliases: z.array(z.string()).optional(),
-        }),
-      )
-      .default([]),
-    incomingTopic: detectionTopicSchema.extend({
-      relevanceScore: z.number().min(0).max(1).optional(),
-    }),
-    threshold: z.number().optional(),
   });
 
   context.eval.registerHandler(
@@ -205,28 +249,10 @@ export function registerTopicEvalHandlers(params: {
       return {
         ...result,
         topicCount: topics.length,
-        topics: topics.map((topic) => {
-          const parsed = adapter.parseTopicBody(topic.content);
-          return {
-            id: topic.id,
-            title: parsed.title,
-            content: parsed.content,
-            metadata: topic.metadata,
-          };
-        }),
+        topics: topics.map(serializeTopicEntityWithMetadata),
       };
     },
   );
-
-  const sequentialInputSchema = z.object({
-    entities: z.array(entityInputSchema).min(1),
-    minRelevanceScore: z.number().optional(),
-  });
-
-  const rebuildTopicsSchema = z.object({
-    existingTopics: z.array(detectionTopicSchema).optional(),
-    entities: z.array(entityInputSchema),
-  });
 
   context.eval.registerHandler("rebuildTopics", async (input: unknown) => {
     const parsed = rebuildTopicsSchema.parse(input);
@@ -246,15 +272,7 @@ export function registerTopicEvalHandlers(params: {
     return {
       ...result,
       topicCount: topics.length,
-      topics: topics.map((topic) => {
-        const parsed = adapter.parseTopicBody(topic.content);
-        return {
-          id: topic.id,
-          title: parsed.title,
-          content: parsed.content,
-          metadata: topic.metadata,
-        };
-      }),
+      topics: topics.map(serializeTopicEntityWithMetadata),
     };
   });
 
@@ -289,21 +307,10 @@ export function registerTopicEvalHandlers(params: {
       return {
         totalTopics: topics.length,
         perEntity,
-        topics: topics.map((topic) => {
-          const parsed = adapter.parseTopicBody(topic.content);
-          return {
-            id: topic.id,
-            title: parsed.title,
-            content: parsed.content,
-          };
-        }),
+        topics: topics.map(serializeTopicEntity),
       };
     },
   );
-
-  const batchInputSchema = z.object({
-    entities: z.array(entityInputSchema),
-  });
 
   context.eval.registerHandler("batchExtract", async (input: unknown) => {
     const parsed = batchInputSchema.parse(input);
@@ -317,14 +324,7 @@ export function registerTopicEvalHandlers(params: {
     const topics = await context.entityService.listEntities("topic");
     return {
       ...result,
-      topics: topics.map((topic) => {
-        const parsed = adapter.parseTopicBody(topic.content);
-        return {
-          id: topic.id,
-          title: parsed.title,
-          content: parsed.content,
-        };
-      }),
+      topics: topics.map(serializeTopicEntity),
     };
   });
 }
