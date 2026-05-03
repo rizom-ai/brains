@@ -1,4 +1,4 @@
-export type PushTarget = "gh";
+export type PushTarget = "gh" | "bitwarden";
 
 export function normalizePushTarget(value?: string): PushTarget | undefined {
   const normalized = value?.trim().toLowerCase();
@@ -8,6 +8,10 @@ export function normalizePushTarget(value?: string): PushTarget | undefined {
 
   if (normalized === "gh" || normalized === "github") {
     return "gh";
+  }
+
+  if (normalized === "bw" || normalized === "bitwarden") {
+    return "bitwarden";
   }
 
   throw new Error(`Unsupported --push-to value: ${value}`);
