@@ -17,7 +17,7 @@ import { resolve as resolvePath, join } from "path";
 import type { IAgentService, IAIService } from "@brains/ai-service";
 
 import { EvaluationService } from "./evaluation-service";
-import type { EvaluationOptions } from "./types";
+import type { EvaluationOptions, IReporter } from "./types";
 import type { EvaluationSummary } from "./schemas";
 import { ConsoleReporter } from "./reporters/console-reporter";
 import { JSONReporter } from "./reporters/json-reporter";
@@ -65,63 +65,10 @@ export interface RunEvaluationsOptions {
 export async function runEvaluations(
   options: RunEvaluationsOptions,
 ): Promise<void> {
-  const {
-    agentService,
-    aiService,
-    testCasesDir = resolvePath(process.cwd(), "test-cases"),
-    resultsDir = resolvePath(process.cwd(), "eval-results"),
-    skipLLMJudge = false,
-    tags,
-    testCaseIds,
-    testType,
-    verbose = false,
-  } = options;
-
-  const evaluationService = EvaluationService.createFresh({
-    agentService,
-    aiService,
-    testCasesDirectory: testCasesDir,
-    reporters: [
-      ConsoleReporter.createFresh({ verbose, showFailures: true }),
-      JSONReporter.createFresh({ outputDirectory: resultsDir }),
-      MarkdownReporter.createFresh({ outputDirectory: resultsDir }),
-      ...(options.compareAgainst !== undefined || options.saveBaseline
-        ? [
-            ComparisonReporter.createFresh({
-              outputDirectory: resultsDir,
-              ...(options.compareAgainst !== undefined && {
-                compareAgainst: options.compareAgainst,
-              }),
-              ...(options.saveBaseline && {
-                saveBaseline: options.saveBaseline,
-              }),
-            }),
-          ]
-        : []),
-    ],
-    evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
-  });
-
-  console.log(`\nRunning evaluations...`);
-  console.log(`Test cases: ${testCasesDir}`);
-  console.log(`Results: ${resultsDir}`);
-  if (options.parallel)
-    console.log(`Parallel: up to ${options.maxParallel ?? 3} concurrent`);
-  if (skipLLMJudge) console.log(`LLM Judge: skipped`);
-  if (tags?.length) console.log(`Tags: ${tags.join(", ")}`);
-  if (testCaseIds?.length) console.log(`Tests: ${testCaseIds.join(", ")}`);
-  if (testType) console.log(`Type: ${testType}`);
-  console.log("");
-
-  const evalOptions: EvaluationOptions = {
-    skipLLMJudge,
-    ...(options.parallel && { parallel: options.parallel }),
-    ...(options.maxParallel && { maxParallel: options.maxParallel }),
-  };
-  if (tags?.length) evalOptions.tags = tags;
-  if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
-  if (testType) evalOptions.testType = testType;
-  const summary = await evaluationService.runEvaluations(evalOptions);
+  const summary = await runEvaluationsWithReporters(
+    options,
+    createDefaultReporters(options),
+  );
 
   // Exit with error code if any tests failed
   if (summary.failedTests > 0) {
@@ -136,39 +83,99 @@ export async function runEvaluations(
 export async function runEvaluationsCollect(
   options: RunEvaluationsOptions,
 ): Promise<EvaluationSummary> {
-  const {
-    agentService,
-    aiService,
-    testCasesDir = resolvePath(process.cwd(), "test-cases"),
-    resultsDir = resolvePath(process.cwd(), "eval-results"),
-    skipLLMJudge = false,
-    tags,
-    testCaseIds,
-    testType,
-    verbose = false,
-  } = options;
+  return runEvaluationsWithReporters(options, createCollectReporters(options));
+}
+
+async function runEvaluationsWithReporters(
+  options: RunEvaluationsOptions,
+  reporters: IReporter[],
+): Promise<EvaluationSummary> {
+  const testCasesDir =
+    options.testCasesDir ?? resolvePath(process.cwd(), "test-cases");
+  const resultsDir =
+    options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
 
   const evaluationService = EvaluationService.createFresh({
-    agentService,
-    aiService,
+    agentService: options.agentService,
+    aiService: options.aiService,
     testCasesDirectory: testCasesDir,
-    reporters: [
-      ConsoleReporter.createFresh({ verbose, showFailures: true }),
-      JSONReporter.createFresh({ outputDirectory: resultsDir }),
-    ],
+    reporters,
     evalHandlerRegistry: EvalHandlerRegistry.getInstance(),
   });
 
+  logEvaluationStart(options, testCasesDir, resultsDir);
+  return evaluationService.runEvaluations(buildEvaluationOptions(options));
+}
+
+function createDefaultReporters(options: RunEvaluationsOptions): IReporter[] {
+  const resultsDir =
+    options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
+
+  return [
+    ...createBaseReporters(options),
+    MarkdownReporter.createFresh({ outputDirectory: resultsDir }),
+    ...(options.compareAgainst !== undefined || options.saveBaseline
+      ? [
+          ComparisonReporter.createFresh({
+            outputDirectory: resultsDir,
+            ...(options.compareAgainst !== undefined && {
+              compareAgainst: options.compareAgainst,
+            }),
+            ...(options.saveBaseline && {
+              saveBaseline: options.saveBaseline,
+            }),
+          }),
+        ]
+      : []),
+  ];
+}
+
+function createCollectReporters(options: RunEvaluationsOptions): IReporter[] {
+  return createBaseReporters(options);
+}
+
+function createBaseReporters(options: RunEvaluationsOptions): IReporter[] {
+  const resultsDir =
+    options.resultsDir ?? resolvePath(process.cwd(), "eval-results");
+  const verbose = options.verbose ?? false;
+
+  return [
+    ConsoleReporter.createFresh({ verbose, showFailures: true }),
+    JSONReporter.createFresh({ outputDirectory: resultsDir }),
+  ];
+}
+
+function buildEvaluationOptions(
+  options: RunEvaluationsOptions,
+): EvaluationOptions {
   const evalOptions: EvaluationOptions = {
-    skipLLMJudge,
+    skipLLMJudge: options.skipLLMJudge ?? false,
     ...(options.parallel && { parallel: options.parallel }),
     ...(options.maxParallel && { maxParallel: options.maxParallel }),
   };
-  if (tags?.length) evalOptions.tags = tags;
-  if (testCaseIds?.length) evalOptions.testCaseIds = testCaseIds;
-  if (testType) evalOptions.testType = testType;
+  if (options.tags?.length) evalOptions.tags = options.tags;
+  if (options.testCaseIds?.length)
+    evalOptions.testCaseIds = options.testCaseIds;
+  if (options.testType) evalOptions.testType = options.testType;
+  return evalOptions;
+}
 
-  return evaluationService.runEvaluations(evalOptions);
+function logEvaluationStart(
+  options: RunEvaluationsOptions,
+  testCasesDir: string | string[],
+  resultsDir: string,
+): void {
+  console.log(`\nRunning evaluations...`);
+  console.log(`Test cases: ${testCasesDir}`);
+  console.log(`Results: ${resultsDir}`);
+  if (options.parallel)
+    console.log(`Parallel: up to ${options.maxParallel ?? 3} concurrent`);
+  if (options.skipLLMJudge) console.log(`LLM Judge: skipped`);
+  if (options.tags?.length) console.log(`Tags: ${options.tags.join(", ")}`);
+  if (options.testCaseIds?.length)
+    console.log(`Tests: ${options.testCaseIds.join(", ")}`);
+  if (options.testType) console.log(`Type: ${options.testType}`);
+  console.log("");
 }
 
 /**
