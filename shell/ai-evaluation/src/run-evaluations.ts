@@ -14,7 +14,6 @@
  */
 
 import { resolve as resolvePath, join } from "path";
-import { existsSync, rmSync, copyFileSync } from "fs";
 import type { IAgentService } from "@brains/ai-service";
 import { AIService, type IAIService } from "@brains/ai-service";
 import { Logger } from "@brains/utils";
@@ -36,6 +35,7 @@ import {
 import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
+import { buildEvalDatabase } from "./eval-db-builder";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -265,78 +265,12 @@ export async function main(): Promise<void> {
 
     // ── Build eval DB ─────────────────────────────────────────────────
     if (args.includes("--build-db")) {
-      const evalDbBase = prepareEvalEnvironment({
-        brainModelPath,
-        cloneData,
-        suffix: "build-db",
-      });
-
-      // Remove pre-existing brain.db from data dir — we're building fresh
-      const staleDb = `${evalDbBase}-data/brain.db`;
-      if (existsSync(staleDb)) rmSync(staleDb);
-
-      const app = await bootEvalApp({
-        evalDbBase,
+      await buildEvalDatabase({
         config,
         evalHandlerRegistry,
+        brainModelPath,
+        cloneData,
       });
-      const shell = app.getShell();
-      const jobQueue = shell.getJobQueueService();
-
-      // Wait for all jobs to drain (imports, embeddings, site build, topics)
-      console.log("Waiting for jobs to drain...");
-      for (;;) {
-        const active = await jobQueue.getActiveJobs();
-        if (active.length === 0) break;
-        const byType: Record<string, number> = {};
-        for (const job of active) {
-          byType[job.type] = (byType[job.type] ?? 0) + 1;
-        }
-        console.log(
-          `  ${active.length} jobs: ${Object.entries(byType)
-            .map(([t, n]) => `${t}(${n})`)
-            .join(" ")}`,
-        );
-        await new Promise((r) => setTimeout(r, 2000));
-      }
-
-      // Report what we built
-      const entityService = shell.getEntityService();
-      const types = entityService.getEntityTypes();
-      const counts: Record<string, number> = {};
-      for (const type of types) {
-        const entities = await entityService.listEntities(type);
-        if (entities.length > 0) counts[type] = entities.length;
-      }
-      console.log("Database contents:", counts);
-
-      const total = Object.values(counts).reduce((a, b) => a + b, 0);
-      if (total === 0) {
-        console.error("No entities found — sync failed.");
-        process.exit(1);
-      }
-
-      await shell.shutdown();
-
-      // Checkpoint WAL into main database before copying
-      const { Database } = await import("bun:sqlite");
-      const db = new Database(`${evalDbBase}.db`);
-      db.exec("PRAGMA wal_checkpoint(TRUNCATE)");
-      db.close();
-
-      // Copy to eval-content
-      const evalContentDir =
-        resolvePath(process.cwd(), "eval-content") ||
-        (brainModelPath
-          ? resolvePath(brainModelPath, "eval-content")
-          : undefined);
-      if (!evalContentDir || !existsSync(evalContentDir)) {
-        console.error("No eval-content directory found");
-        process.exit(1);
-      }
-      const outputPath = resolvePath(evalContentDir, "brain.db");
-      copyFileSync(`${evalDbBase}.db`, outputPath);
-      console.log(`Saved eval database to ${outputPath}`);
       process.exit(0);
     }
 
