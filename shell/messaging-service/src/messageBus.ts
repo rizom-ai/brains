@@ -1,16 +1,14 @@
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
-  InternalMessageResponse,
   MessageHandler,
   IMessageBus,
   MessageResponse,
-  MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
 import { HandlerRegistry } from "./handler-registry";
 import { createMessage } from "./message-factory";
-import { publishBroadcast, publishRequest } from "./message-dispatcher";
+import { MessagePublisher } from "./message-publisher";
 import {
   validateMessage as validateWithSchema,
   type MessageValidationResult,
@@ -24,6 +22,7 @@ export class MessageBus implements IMessageBus {
   private static instance: MessageBus | null = null;
 
   private readonly registry = new HandlerRegistry();
+  private readonly publisher: MessagePublisher;
   private readonly logger: Logger;
 
   /**
@@ -53,6 +52,7 @@ export class MessageBus implements IMessageBus {
    */
   private constructor(logger: Logger) {
     this.logger = logger;
+    this.publisher = new MessagePublisher(this.registry, logger);
   }
 
   /**
@@ -88,7 +88,7 @@ export class MessageBus implements IMessageBus {
     broadcast?: boolean,
   ): Promise<MessageResponse<R>> {
     const message = createMessage(type, payload, sender, target, metadata);
-    const response = await this.publish(message, broadcast);
+    const response = await this.publisher.publish(message, broadcast);
 
     // Handle successful response
     if (response?.success) {
@@ -105,50 +105,6 @@ export class MessageBus implements IMessageBus {
         response?.error?.message ??
         `No handler found for message type: ${type}`,
     };
-  }
-
-  /**
-   * Publish a message to all handlers (internal method)
-   */
-  private async publish<T = unknown>(
-    message: MessageWithPayload<T>,
-    broadcast?: boolean,
-  ): Promise<InternalMessageResponse | null> {
-    // Validate message structure
-    if (typeof message !== "object" || !message.type || !message.id) {
-      this.logger.error(
-        "Invalid message structure - missing required fields 'id' or 'type'",
-      );
-      return null;
-    }
-
-    const { type } = message;
-
-    this.logger.debug(`Publishing message of type: ${type}`, {
-      source: message.source,
-      target: message.target,
-      hasMetadata: !!message.metadata,
-    });
-
-    const matchingHandlers = this.registry.getMatchingHandlers(type, message);
-
-    // If no handlers, log warning and return null
-    if (!matchingHandlers) {
-      this.logger.debug(`No handlers found for message type: ${type}`);
-      return null;
-    }
-
-    if (matchingHandlers.entries.length === 0) {
-      this.logger.debug(`No matching handlers for message type: ${type}`, {
-        totalHandlers: matchingHandlers.totalHandlers,
-        target: message.target,
-      });
-      return null;
-    }
-
-    return broadcast === true
-      ? publishBroadcast(message, matchingHandlers.entries, this.logger)
-      : publishRequest(message, matchingHandlers.entries, this.logger);
   }
 
   /**
