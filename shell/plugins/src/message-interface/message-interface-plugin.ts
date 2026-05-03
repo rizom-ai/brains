@@ -17,6 +17,21 @@ import {
 
 export { urlCaptureConfigSchema };
 
+export interface SendMessageToChannelRequest {
+  /** The channel/room to send to (null for single-channel interfaces like CLI) */
+  channelId: string | null;
+  /** The message to send */
+  message: string;
+}
+
+export type SendMessageWithIdRequest = SendMessageToChannelRequest;
+
+export interface EditMessageRequest {
+  channelId: string | null;
+  messageId: string;
+  newMessage: string;
+}
+
 /**
  * Tracked progress message for editing
  * Maps job/batch ID to the message ID used for progress updates
@@ -133,12 +148,9 @@ export abstract class MessageInterfacePlugin<
   /**
    * Send a message to a specific channel
    * Must be implemented by each interface
-   * @param channelId - The channel/room to send to (null for single-channel interfaces like CLI)
-   * @param message - The message to send
    */
   protected abstract sendMessageToChannel(
-    channelId: string | null,
-    message: string,
+    request: SendMessageToChannelRequest,
   ): void;
 
   /**
@@ -147,8 +159,7 @@ export abstract class MessageInterfacePlugin<
    * @returns Promise<string> message ID, or undefined if not supported
    */
   protected sendMessageWithId(
-    _channelId: string | null,
-    _message: string,
+    _request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     // Default: message editing not supported
     return Promise.resolve(undefined);
@@ -159,11 +170,7 @@ export abstract class MessageInterfacePlugin<
    * Override to enable progress message editing (default: not supported)
    * @returns Promise<boolean> true if edit succeeded
    */
-  protected editMessage(
-    _channelId: string,
-    _messageId: string,
-    _newMessage: string,
-  ): Promise<boolean> {
+  protected editMessage(_request: EditMessageRequest): Promise<boolean> {
     // Default: message editing not supported
     return Promise.resolve(false);
   }
@@ -371,11 +378,11 @@ export abstract class MessageInterfacePlugin<
     if (existingTracking) {
       // Throttle updates to prevent rate limiting.
       if (now - existingTracking.lastUpdate >= PROGRESS_EDIT_THROTTLE_MS) {
-        await this.editMessage(
-          existingTracking.channelId,
-          existingTracking.messageId,
-          progressMessage,
-        );
+        await this.editMessage({
+          channelId: existingTracking.channelId,
+          messageId: existingTracking.messageId,
+          newMessage: progressMessage,
+        });
         existingTracking.lastUpdate = now;
       }
     } else if (targetChannelId && !this.isProcessingInput) {
@@ -399,11 +406,11 @@ export abstract class MessageInterfacePlugin<
       return;
     }
 
-    await this.editMessage(
-      tracking.channelId,
-      tracking.messageId,
-      formatProgressMessage(event),
-    );
+    await this.editMessage({
+      channelId: tracking.channelId,
+      messageId: tracking.messageId,
+      newMessage: formatProgressMessage(event),
+    });
     tracking.lastUpdate = now;
   }
 
@@ -415,10 +422,10 @@ export abstract class MessageInterfacePlugin<
   ): Promise<void> {
     // Only send NEW progress messages after agent response is sent.
     // This ensures the agent response appears first.
-    const messageId = await this.sendMessageWithId(
-      targetChannelId,
-      progressMessage,
-    );
+    const messageId = await this.sendMessageWithId({
+      channelId: targetChannelId,
+      message: progressMessage,
+    });
     if (!messageId) {
       return;
     }
@@ -481,11 +488,11 @@ export abstract class MessageInterfacePlugin<
     // Prefer editing the agent response message (for async jobs).
     // This updates "queued" messages to show actual completion.
     if (agentTracking) {
-      await this.editMessage(
-        agentTracking.channelId,
-        agentTracking.messageId,
-        completionMessage,
-      );
+      await this.editMessage({
+        channelId: agentTracking.channelId,
+        messageId: agentTracking.messageId,
+        newMessage: completionMessage,
+      });
       this.agentResponseTracking.delete(event.id);
       // Also clean up any progress tracking without sending duplicate.
       if (progressTracking) {
@@ -495,11 +502,11 @@ export abstract class MessageInterfacePlugin<
     }
 
     if (progressTracking) {
-      await this.editMessage(
-        progressTracking.channelId,
-        progressTracking.messageId,
-        completionMessage,
-      );
+      await this.editMessage({
+        channelId: progressTracking.channelId,
+        messageId: progressTracking.messageId,
+        newMessage: completionMessage,
+      });
       this.progressMessageTracking.delete(rootJobId);
     }
   }
@@ -515,7 +522,7 @@ export abstract class MessageInterfacePlugin<
       return;
     }
 
-    this.sendMessageToChannel(channelId, message);
+    this.sendMessageToChannel({ channelId, message });
   }
 
   private scheduleProgressCleanup(eventId: string): void {
@@ -589,7 +596,7 @@ export abstract class MessageInterfacePlugin<
 
     // Flush buffered completion messages to their respective channels
     for (const { message, channelId } of this.bufferedCompletionMessages) {
-      this.sendMessageToChannel(channelId, message);
+      this.sendMessageToChannel({ channelId, message });
     }
     this.bufferedCompletionMessages = [];
 

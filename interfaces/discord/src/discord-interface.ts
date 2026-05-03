@@ -126,10 +126,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
 
   // ── Abstract method implementation ──
 
-  override sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
+  override sendMessageToChannel({
+    channelId,
+    message,
+  }: {
+    channelId: string | null;
+    message: string;
+  }): void {
     if (!channelId || !this.client) return;
     const channel = this.client.channels.cache.get(channelId);
     if (!isSendable(channel)) return;
@@ -143,10 +146,13 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     }
   }
 
-  protected override async sendMessageWithId(
-    channelId: string | null,
-    message: string,
-  ): Promise<string | undefined> {
+  protected override async sendMessageWithId({
+    channelId,
+    message,
+  }: {
+    channelId: string | null;
+    message: string;
+  }): Promise<string | undefined> {
     if (!channelId || !this.client) return undefined;
     const channel = this.client.channels.cache.get(channelId);
     if (!isSendable(channel)) return undefined;
@@ -159,11 +165,15 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
     return lastId;
   }
 
-  protected override async editMessage(
-    channelId: string | null,
-    messageId: string,
-    newMessage: string,
-  ): Promise<boolean> {
+  protected override async editMessage({
+    channelId,
+    messageId,
+    newMessage,
+  }: {
+    channelId: string | null;
+    messageId: string;
+    newMessage: string;
+  }): Promise<boolean> {
     if (!channelId || !this.client) return false;
     const channel = this.client.channels.cache.get(channelId);
     if (!isSendable(channel)) return false;
@@ -348,10 +358,10 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         this.pendingConfirmations.set(conversationId, true);
       }
 
-      const messageId = await this.sendMessageWithId(
-        replyChannelId,
-        response.text,
-      );
+      const messageId = await this.sendMessageWithId({
+        channelId: replyChannelId,
+        message: response.text,
+      });
 
       if (messageId && response.toolResults) {
         for (const toolResult of response.toolResults) {
@@ -369,10 +379,10 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
         error,
         channelId: replyChannelId,
       });
-      this.sendMessageToChannel(
-        replyChannelId,
-        `**Error:** ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
+      this.sendMessageToChannel({
+        channelId: replyChannelId,
+        message: `**Error:** ${error instanceof Error ? error.message : "Unknown error"}`,
+      });
     } finally {
       this.endProcessingInput();
       this.stopTypingIndicator(replyChannelId);
@@ -388,10 +398,11 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
   ): Promise<void> {
     const parsed = parseConfirmationResponse(message);
     if (!parsed) {
-      this.sendMessageToChannel(
-        channelId,
-        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
-      );
+      this.sendMessageToChannel({
+        channelId: channelId,
+        message:
+          "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      });
       return;
     }
     this.pendingConfirmations.delete(conversationId);
@@ -400,7 +411,10 @@ export class DiscordInterface extends MessageInterfacePlugin<DiscordConfig> {
       parsed.confirmed,
     );
     if (response) {
-      await this.sendMessageWithId(channelId, response.text);
+      await this.sendMessageWithId({
+        channelId: channelId,
+        message: response.text,
+      });
     }
   }
 

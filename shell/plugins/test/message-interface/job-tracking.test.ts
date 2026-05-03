@@ -120,8 +120,11 @@ describe("job tracking", () => {
     it("should update message when job completes", async () => {
       const agentResponseTracking = new Map<string, ProgressMessageTracking>();
       const editMessage = mock(
-        async (_channelId: string, _messageId: string, _newMessage: string) =>
-          true,
+        async (_request: {
+          channelId: string;
+          messageId: string;
+          newMessage: string;
+        }) => true,
       );
 
       agentResponseTracking.set("job-123", {
@@ -143,26 +146,26 @@ describe("job tracking", () => {
 
       const tracking = agentResponseTracking.get(event.id);
       if (tracking) {
-        await editMessage(
-          tracking.channelId,
-          tracking.messageId,
-          `✅ ${event.message}`,
-        );
+        await editMessage({
+          channelId: tracking.channelId,
+          messageId: tracking.messageId,
+          newMessage: `✅ ${event.message}`,
+        });
         agentResponseTracking.delete(event.id);
       }
 
-      expect(editMessage).toHaveBeenCalledWith(
-        "room-123",
-        "msg-001",
-        "✅ Capture completed successfully",
-      );
+      expect(editMessage).toHaveBeenCalledWith({
+        channelId: "room-123",
+        messageId: "msg-001",
+        newMessage: "✅ Capture completed successfully",
+      });
       expect(agentResponseTracking.has("job-123")).toBe(false);
     });
 
     it("should send new message when no tracking exists and channelId available", () => {
       const agentResponseTracking = new Map<string, ProgressMessageTracking>();
       const sendMessageToChannel = mock(
-        (_channelId: string | null, _message: string) => {},
+        (_request: { channelId: string | null; message: string }) => {},
       );
 
       const event = createCompletionEvent({
@@ -177,19 +180,22 @@ describe("job tracking", () => {
 
       const tracking = agentResponseTracking.get(event.id);
       if (!tracking && event.metadata.channelId) {
-        sendMessageToChannel(event.metadata.channelId, `✅ ${event.message}`);
+        sendMessageToChannel({
+          channelId: event.metadata.channelId,
+          message: `✅ ${event.message}`,
+        });
       }
 
-      expect(sendMessageToChannel).toHaveBeenCalledWith(
-        "room-123",
-        "✅ Build completed",
-      );
+      expect(sendMessageToChannel).toHaveBeenCalledWith({
+        channelId: "room-123",
+        message: "✅ Build completed",
+      });
     });
 
     it("should not send message when no tracking and no channelId", () => {
       const agentResponseTracking = new Map<string, ProgressMessageTracking>();
       const sendMessageToChannel = mock(
-        (_channelId: string | null, _message: string) => {},
+        (_request: { channelId: string | null; message: string }) => {},
       );
 
       const event = createCompletionEvent({
@@ -203,7 +209,10 @@ describe("job tracking", () => {
 
       const tracking = agentResponseTracking.get(event.id);
       if (!tracking && event.metadata.channelId) {
-        sendMessageToChannel(event.metadata.channelId, "");
+        sendMessageToChannel({
+          channelId: event.metadata.channelId,
+          message: "",
+        });
       }
 
       expect(sendMessageToChannel).not.toHaveBeenCalled();
@@ -212,8 +221,11 @@ describe("job tracking", () => {
     it("should handle failed jobs", async () => {
       const agentResponseTracking = new Map<string, ProgressMessageTracking>();
       const editMessage = mock(
-        async (_channelId: string, _messageId: string, _newMessage: string) =>
-          true,
+        async (_request: {
+          channelId: string;
+          messageId: string;
+          newMessage: string;
+        }) => true,
       );
 
       agentResponseTracking.set("job-fail", {
@@ -236,26 +248,26 @@ describe("job tracking", () => {
 
       const tracking = agentResponseTracking.get(event.id);
       if (tracking) {
-        await editMessage(
-          tracking.channelId,
-          tracking.messageId,
-          `❌ ${event.message}`,
-        );
+        await editMessage({
+          channelId: tracking.channelId,
+          messageId: tracking.messageId,
+          newMessage: `❌ ${event.message}`,
+        });
         agentResponseTracking.delete(event.id);
       }
 
-      expect(editMessage).toHaveBeenCalledWith(
-        "room-456",
-        "msg-002",
-        "❌ Failed to capture: Connection timeout",
-      );
+      expect(editMessage).toHaveBeenCalledWith({
+        channelId: "room-456",
+        messageId: "msg-002",
+        newMessage: "❌ Failed to capture: Connection timeout",
+      });
     });
   });
 
   describe("CLI behavior", () => {
     it("should receive completion messages when channelId is set", () => {
       const sendMessageToChannel = mock(
-        (_channelId: string | null, _message: string) => {},
+        (_request: { channelId: string | null; message: string }) => {},
       );
       const supportsMessageEditing = (): boolean => false;
 
@@ -271,13 +283,16 @@ describe("job tracking", () => {
       });
 
       if (!supportsMessageEditing() && event.metadata.channelId) {
-        sendMessageToChannel(event.metadata.channelId, `✅ ${event.message}`);
+        sendMessageToChannel({
+          channelId: event.metadata.channelId,
+          message: `✅ ${event.message}`,
+        });
       }
 
-      expect(sendMessageToChannel).toHaveBeenCalledWith(
-        "cli",
-        "✅ Capture completed",
-      );
+      expect(sendMessageToChannel).toHaveBeenCalledWith({
+        channelId: "cli",
+        message: "✅ Capture completed",
+      });
     });
   });
 });

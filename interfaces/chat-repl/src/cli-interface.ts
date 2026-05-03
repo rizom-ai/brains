@@ -62,10 +62,12 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
    * Send message to channel - implements abstract method from MessageInterfacePlugin
    * CLI has a single implicit channel, so channelId is ignored
    */
-  protected override sendMessageToChannel(
-    _channelId: string | null,
-    message: string,
-  ): void {
+  protected override sendMessageToChannel({
+    message,
+  }: {
+    channelId: string | null;
+    message: string;
+  }): void {
     if (this.responseCallback) {
       this.responseCallback(message);
     }
@@ -223,12 +225,18 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
       // Send response to UI
       // Note: Tool formatted outputs are available to the agent but not auto-appended
       // The agent should summarize tool results in its response
-      this.sendMessageToChannel(null, responseText);
+      this.sendMessageToChannel({
+        channelId: null,
+        message: responseText,
+      });
     } catch (error) {
       this.logger.error("Error processing input", { error, input });
       const errorMessage =
         error instanceof Error ? error.message : "An unknown error occurred";
-      this.sendMessageToChannel(null, `**Error:** ${errorMessage}`);
+      this.sendMessageToChannel({
+        channelId: null,
+        message: `**Error:** ${errorMessage}`,
+      });
     } finally {
       // End processing - flushes any buffered completion messages
       this.endProcessingInput();
@@ -246,10 +254,11 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
 
     // Unrecognized response - show help
     if (result === undefined) {
-      this.sendMessageToChannel(
-        null,
-        "_Please reply with **yes** to confirm or **no/cancel** to abort._",
-      );
+      this.sendMessageToChannel({
+        channelId: null,
+        message:
+          "_Please reply with **yes** to confirm or **no/cancel** to abort._",
+      });
       return;
     }
 
@@ -263,7 +272,10 @@ export class CLIInterface extends MessageInterfacePlugin<CLIConfig> {
     );
 
     // Send response to UI
-    this.sendMessageToChannel(null, response.text);
+    this.sendMessageToChannel({
+      channelId: null,
+      message: response.text,
+    });
   }
 
   /**

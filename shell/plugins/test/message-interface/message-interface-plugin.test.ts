@@ -23,10 +23,13 @@ class TestMessageInterface extends MessageInterfacePlugin<{
     );
   }
 
-  protected override sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
+  protected override sendMessageToChannel({
+    channelId,
+    message,
+  }: {
+    channelId: string | null;
+    message: string;
+  }): void {
     this.sentMessages.push({ channelId, message });
   }
 
