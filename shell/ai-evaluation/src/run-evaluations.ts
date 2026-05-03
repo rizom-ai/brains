@@ -52,6 +52,7 @@ import {
   writeModelComparisonReport,
   renderModelComparison,
 } from "./reporters/model-comparison-reporter";
+import { parseCliOptions } from "./cli-options";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -192,28 +193,6 @@ export async function runEvaluationsCollect(
   if (testType) evalOptions.testType = testType;
 
   return evaluationService.runEvaluations(evalOptions);
-}
-
-/**
- * Parse a comma-separated flag value from args
- */
-function parseFlag(args: string[], flag: string): string[] | undefined {
-  const index = args.indexOf(flag);
-  if (index === -1) return undefined;
-  const value = args[index + 1];
-  if (!value || value.startsWith("--")) return undefined;
-  return value.split(",");
-}
-
-/**
- * Parse a single string flag value from args
- */
-function parseSingleFlag(args: string[], flag: string): string | undefined {
-  const index = args.indexOf(flag);
-  if (index === -1) return undefined;
-  const value = args[index + 1];
-  if (!value || value.startsWith("--")) return undefined;
-  return value;
 }
 
 /**
@@ -439,26 +418,19 @@ export async function main(): Promise<void> {
     process.exit(0);
   }
 
-  // Parse CLI args
-  const skipLLMJudge = args.includes("--skip-llm-judge");
-  const parallel = args.includes("--parallel") || args.includes("-p");
-  const maxParallelArg = parseSingleFlag(args, "--max-parallel");
-  const maxParallel = maxParallelArg ? parseInt(maxParallelArg, 10) : 3;
-  const verbose = args.includes("--verbose") || args.includes("-v");
-  const tags = parseFlag(args, "--tags");
-  const testCaseIds = parseFlag(args, "--test") ?? parseFlag(args, "--filter");
-  const testTypeArg = parseSingleFlag(args, "--type");
-  const testType =
-    testTypeArg === "agent" || testTypeArg === "plugin"
-      ? testTypeArg
-      : undefined;
-  const remoteUrl = parseSingleFlag(args, "--url");
-  const authToken = parseSingleFlag(args, "--token");
-  const compareFlag = args.includes("--compare");
-  const compareAgainst = compareFlag
-    ? (parseSingleFlag(args, "--compare") ?? "")
-    : undefined;
-  const saveBaseline = parseSingleFlag(args, "--baseline");
+  const {
+    skipLLMJudge,
+    parallel,
+    maxParallel,
+    verbose,
+    tags,
+    testCaseIds,
+    testType,
+    remoteUrl,
+    authToken,
+    compareAgainst,
+    saveBaseline,
+  } = parseCliOptions(args);
 
   try {
     const evalConfigResult = await loadEvalConfig();
