@@ -156,13 +156,53 @@ Run a secret scan:
 bunx varlock scan
 ```
 
-## 9. Documentation to maintain
+## 9. Add Bitwarden push support to `brain secrets:push`
+
+Current repo support pushes env-backed secrets to GitHub Actions secrets:
+
+```bash
+brain secrets:push --push-to gh
+```
+
+Add a Bitwarden target so operators can migrate without hand-copying each secret value:
+
+```bash
+brain secrets:push --push-to bitwarden --project-id <uuid> --dry-run
+brain secrets:push --push-to bitwarden --project-id <uuid> --update-schema
+```
+
+Suggested behavior:
+
+1. Read expected keys from `.env.schema`.
+2. Read local values from `.env`, `.env.local`, and `process.env` using the existing secret loading path.
+3. Create or update matching Bitwarden Secrets Manager secrets in the requested project.
+4. Return a mapping of env var name to Bitwarden secret UUID.
+5. Optionally update `.env.schema` to use `bitwarden("<uuid>")` references.
+
+Required operator env:
+
+```text
+BITWARDEN_ACCESS_TOKEN
+```
+
+The token's machine account must have read/write access to the target Bitwarden project.
+
+Design preference:
+
+- Support `--dry-run` first.
+- Keep default behavior non-mutating for schemas.
+- Require `--update-schema` before rewriting `.env.schema`.
+- Preserve existing `--only` and `--all` semantics where practical.
+- Keep `gh` behavior unchanged for backward compatibility.
+
+## 10. Documentation to maintain
 
 Add or expand docs with:
 
 - how to create/get `BITWARDEN_ACCESS_TOKEN`
 - how to add a new Bitwarden secret
 - how to find secret UUIDs
+- how to push local env values to Bitwarden
 - local run commands
 - CI/deploy expectations
 - reminder to never commit `.env` files
@@ -170,7 +210,8 @@ Add or expand docs with:
 ## Proposed first implementation slice
 
 1. Add `@varlock/bitwarden-plugin`.
-2. Add `apps/yeehaa.io/.env.schema` with UUID placeholders.
-3. Add `apps/rizom-foundation/.env.schema` with UUID placeholders.
-4. Keep existing `.env` files untouched until UUIDs are filled and tested locally.
-5. Delete local `.env` files only after validation succeeds.
+2. Add Bitwarden push support to `brain secrets:push` behind `--push-to bitwarden`.
+3. Add `apps/yeehaa.io/.env.schema` with UUID placeholders or generated UUID references.
+4. Add `apps/rizom-foundation/.env.schema` with UUID placeholders or generated UUID references.
+5. Keep existing `.env` files untouched until UUIDs are filled and tested locally.
+6. Delete local `.env` files only after validation succeeds.
