@@ -14,9 +14,7 @@
  */
 
 import { resolve as resolvePath, join } from "path";
-import type { IAgentService } from "@brains/ai-service";
-import { AIService, type IAIService } from "@brains/ai-service";
-import { Logger } from "@brains/utils";
+import type { IAgentService, IAIService } from "@brains/ai-service";
 
 import { EvaluationService } from "./evaluation-service";
 import type { EvaluationOptions } from "./types";
@@ -27,15 +25,11 @@ import { MarkdownReporter } from "./reporters/markdown-reporter";
 import { ComparisonReporter } from "./reporters/comparison-reporter";
 import { RemoteAgentService } from "./remote-agent-service";
 import { EvalHandlerRegistry } from "./eval-handler-registry";
-import { resolveProviderKey } from "./multi-model";
-import {
-  writeModelComparisonReport,
-  renderModelComparison,
-} from "./reporters/model-comparison-reporter";
 import { parseCliOptions } from "./cli-options";
 import { loadEvalConfig } from "./eval-config-loader";
 import { bootEvalApp, prepareEvalEnvironment } from "./eval-environment";
 import { buildEvalDatabase } from "./eval-db-builder";
+import { runMultiModelEvaluation } from "./multi-model-runner";
 
 export interface RunEvaluationsOptions {
   /** Agent service (from shell or remote) */
@@ -276,86 +270,26 @@ export async function main(): Promise<void> {
 
     // ── Multi-model evaluation ──────────────────────────────────────────
     if (models.length > 0) {
-      // LLM judge — uses explicit judge model from YAML, or defaults to anthropic.
-      const judgeModel = judge ?? "claude-haiku-4-5";
-      const judgeKey = resolveProviderKey(judgeModel, process.env);
-      const judgeAiService = AIService.createFresh(
-        {
-          ...(judgeKey ? { apiKey: judgeKey } : {}),
-          model: judgeModel,
-        },
-        Logger.getInstance(),
-      );
-
-      console.log(
-        `\n🔄 Multi-model evaluation: ${models.join(", ")}\n${"─".repeat(60)}`,
-      );
-
-      const modelSummaries: Array<{
-        model: string;
-        summary: EvaluationSummary;
-      }> = [];
-
-      for (const model of models) {
-        console.log(`\n▶ Model: ${model}\n${"─".repeat(40)}`);
-
-        // Set AI_API_KEY to the right provider's key for this model
-        const providerKey = resolveProviderKey(model, process.env);
-        if (providerKey) {
-          process.env["AI_API_KEY"] = providerKey;
-        }
-
-        const evalDbBase = prepareEvalEnvironment({
-          brainModelPath,
-          cloneData,
-          suffix: model.replace(/[^a-z0-9-]/gi, "-"),
-        });
-
-        // Re-resolve config so ${EVAL_GIT_REMOTE} and AI_API_KEY are current
-        const modelConfig = freshResolve ? freshResolve() : config;
-        const app = await bootEvalApp({
-          evalDbBase,
-          config: modelConfig,
-          evalHandlerRegistry,
-          model,
-        });
-
-        const shell = app.getShell();
-        const agentService = remoteUrl
-          ? RemoteAgentService.createFresh({ baseUrl: remoteUrl, authToken })
-          : shell.getAgentService();
-
-        const runResult = await runEvaluationsCollect({
-          agentService,
-          aiService: judgeAiService,
-          testCasesDir: testCasesDirs,
-          skipLLMJudge,
-          verbose,
-          parallel,
-          maxParallel,
-          ...(tags && { tags }),
-          ...(testCaseIds && { testCaseIds }),
-          ...(testType && { testType }),
-        });
-
-        modelSummaries.push({ model, summary: runResult });
-
-        // Stop background services and close DB connections.
-        // The next bootEvalApp() → Shell.createFresh() handles
-        // resetting singleton references automatically.
-        await shell.shutdown();
-      }
-
-      // Write comparison report (markdown + JSON)
-      const resultsDir = resolvePath(process.cwd(), "eval-results");
-      await writeModelComparisonReport(modelSummaries, resultsDir);
-
-      // Print markdown to stdout
-      const md = renderModelComparison(modelSummaries);
-      process.stdout.write(`\n${md}`);
-
-      const anyFailed = modelSummaries.some((ms) => ms.summary.failedTests > 0);
-      process.exit(anyFailed ? 1 : 0);
+      await runMultiModelEvaluation({
+        models,
+        judge,
+        config,
+        testCasesDirs,
+        brainModelPath,
+        evalHandlerRegistry,
+        cloneData,
+        skipLLMJudge,
+        verbose,
+        parallel,
+        maxParallel,
+        tags,
+        testCaseIds,
+        testType,
+        remoteUrl,
+        authToken,
+        resolveConfig: freshResolve,
+        runEvaluationsCollect,
+      });
     }
 
     // ── Single-model evaluation (default) ───────────────────────────────
