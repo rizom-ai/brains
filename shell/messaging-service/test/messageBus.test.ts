@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
+import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger } from "@brains/test-utils";
@@ -616,17 +617,9 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(0);
     });
 
-    it("should compile wildcard string filters to RegExp at subscribe time", () => {
-      const handler = mock(() => ({ success: true }));
-      messageBus.subscribe("test.event", handler, { source: "plugin:*" });
+    it("should compile wildcard string filters to RegExp", () => {
+      const compiled = compileFilter({ source: "plugin:*" }).source;
 
-      const handlers = (
-        messageBus as unknown as {
-          handlers: Map<string, Set<{ filter?: { source?: unknown } }>>;
-        }
-      ).handlers.get("test.event");
-      const entry = handlers ? [...handlers][0] : undefined;
-      const compiled = entry?.filter?.source;
       expect(compiled).toBeInstanceOf(RegExp);
       expect((compiled as RegExp).test("plugin:foo")).toBe(true);
       expect((compiled as RegExp).test("other:bar")).toBe(false);

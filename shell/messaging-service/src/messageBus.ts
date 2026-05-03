@@ -8,24 +8,13 @@ import type {
   MessageWithPayload,
   SubscriptionFilter,
 } from "./types";
-import { compileFilter, matchesFilter } from "./filter-matcher";
-import { createMessage, toInternalResponse } from "./message-factory";
+import { HandlerRegistry } from "./handler-registry";
+import { createMessage } from "./message-factory";
+import { publishBroadcast, publishRequest } from "./message-dispatcher";
 import {
   validateMessage as validateWithSchema,
   type MessageValidationResult,
 } from "./message-validator";
-
-// Internal type for wrapped handlers
-type WrappedHandler = (
-  message: MessageWithPayload<unknown>,
-) => Promise<InternalMessageResponse | null>;
-
-// Handler entry with original handler reference for exact unsubscription
-interface HandlerEntry {
-  handler: WrappedHandler;
-  originalHandler: unknown;
-  filter?: SubscriptionFilter;
-}
 
 /**
  * Message bus for handling messages between components
@@ -34,9 +23,8 @@ interface HandlerEntry {
 export class MessageBus implements IMessageBus {
   private static instance: MessageBus | null = null;
 
-  // Store handlers with optional filters
-  private handlers = new Map<string, Set<HandlerEntry>>();
-  private logger: Logger;
+  private readonly registry = new HandlerRegistry();
+  private readonly logger: Logger;
 
   /**
    * Get the singleton instance of MessageBus
@@ -75,8 +63,7 @@ export class MessageBus implements IMessageBus {
     handler: MessageHandler<T, R>,
     filter?: SubscriptionFilter,
   ): () => void {
-    const entry = this.createHandlerEntry(handler, filter);
-    this.getOrCreateHandlers(type).add(entry);
+    const entry = this.registry.add(type, handler, filter);
 
     this.logger.debug(`Registered handler for message type: ${type}`, {
       hasFilter: !!filter,
@@ -85,7 +72,7 @@ export class MessageBus implements IMessageBus {
 
     // Return unsubscribe function for this specific subscription
     return () => {
-      this.removeHandlerEntry(type, entry);
+      this.registry.remove(type, entry);
     };
   }
 
@@ -136,7 +123,6 @@ export class MessageBus implements IMessageBus {
     }
 
     const { type } = message;
-    const handlers = this.handlers.get(type);
 
     this.logger.debug(`Publishing message of type: ${type}`, {
       source: message.source,
@@ -144,107 +130,25 @@ export class MessageBus implements IMessageBus {
       hasMetadata: !!message.metadata,
     });
 
+    const matchingHandlers = this.registry.getMatchingHandlers(type, message);
+
     // If no handlers, log warning and return null
-    if (!handlers || handlers.size === 0) {
+    if (!matchingHandlers) {
       this.logger.debug(`No handlers found for message type: ${type}`);
       return null;
     }
 
-    // Filter handlers based on their subscription filters
-    const matchingHandlers = Array.from(handlers).filter((entry) =>
-      matchesFilter(message, entry.filter),
-    );
-
-    if (matchingHandlers.length === 0) {
+    if (matchingHandlers.entries.length === 0) {
       this.logger.debug(`No matching handlers for message type: ${type}`, {
-        totalHandlers: handlers.size,
+        totalHandlers: matchingHandlers.totalHandlers,
         target: message.target,
       });
       return null;
     }
 
     return broadcast === true
-      ? this.publishBroadcast(message, matchingHandlers)
-      : this.publishRequest(message, matchingHandlers);
-  }
-
-  private async publishBroadcast(
-    message: MessageWithPayload<unknown>,
-    handlers: HandlerEntry[],
-  ): Promise<null> {
-    // For broadcast messages, call ALL matching handlers regardless of responses
-    for (const entry of handlers) {
-      try {
-        await entry.handler(message);
-      } catch (error) {
-        this.logger.error(
-          `Error in message handler for ${message.type}`,
-          error,
-        );
-      }
-    }
-    return null; // Broadcast messages don't return responses
-  }
-
-  private async publishRequest(
-    message: MessageWithPayload<unknown>,
-    handlers: HandlerEntry[],
-  ): Promise<InternalMessageResponse | null> {
-    // For regular messages, call handlers until one returns a response
-    for (const entry of handlers) {
-      try {
-        const response = await entry.handler(message);
-        if (response) {
-          return response;
-        }
-      } catch (error) {
-        this.logger.error(
-          `Error in message handler for ${message.type}`,
-          error,
-        );
-      }
-    }
-    return null;
-  }
-
-  private createHandlerEntry<T, R>(
-    handler: MessageHandler<T, R>,
-    filter?: SubscriptionFilter,
-  ): HandlerEntry {
-    const entry = {
-      handler: this.wrapHandler(handler),
-      originalHandler: handler,
-    };
-
-    return filter ? { ...entry, filter: compileFilter(filter) } : entry;
-  }
-
-  private wrapHandler<T, R>(handler: MessageHandler<T, R>): WrappedHandler {
-    return async (message: MessageWithPayload<unknown>) => {
-      const typedMessage = message as MessageWithPayload<T>;
-      const result = await handler(typedMessage);
-      return toInternalResponse(message.id, result);
-    };
-  }
-
-  private getOrCreateHandlers(type: string): Set<HandlerEntry> {
-    let handlers = this.handlers.get(type);
-    if (!handlers) {
-      handlers = new Set();
-      this.handlers.set(type, handlers);
-    }
-    return handlers;
-  }
-
-  private removeHandlerEntry(type: string, entry: HandlerEntry): boolean {
-    const handlers = this.handlers.get(type);
-    if (!handlers) return false;
-
-    const removed = handlers.delete(entry);
-    if (handlers.size === 0) {
-      this.handlers.delete(type);
-    }
-    return removed;
+      ? publishBroadcast(message, matchingHandlers.entries, this.logger)
+      : publishRequest(message, matchingHandlers.entries, this.logger);
   }
 
   /**
@@ -261,8 +165,7 @@ export class MessageBus implements IMessageBus {
    * Check if a message type has handlers
    */
   hasHandlers(messageType: string): boolean {
-    const handlers = this.handlers.get(messageType);
-    return handlers !== undefined && handlers.size > 0;
+    return this.registry.hasHandlers(messageType);
   }
 
   /**
@@ -272,26 +175,14 @@ export class MessageBus implements IMessageBus {
     type: string,
     handler: MessageHandler<T, R>,
   ): void {
-    const handlers = this.handlers.get(type);
-    if (!handlers) return;
-
-    for (const entry of Array.from(handlers)) {
-      if (entry.originalHandler === handler) {
-        handlers.delete(entry);
-      }
-    }
-
-    if (handlers.size === 0) {
-      this.handlers.delete(type);
-    }
+    this.registry.removeHandler(type, handler);
   }
 
   /**
    * Clear all handlers for a specific message type
    */
   clearHandlers(messageType: string): void {
-    if (this.handlers.has(messageType)) {
-      this.handlers.delete(messageType);
+    if (this.registry.clearHandlers(messageType)) {
       this.logger.info(`Cleared all handlers for message type: ${messageType}`);
     }
   }
@@ -300,7 +191,7 @@ export class MessageBus implements IMessageBus {
    * Clear all handlers
    */
   clearAllHandlers(): void {
-    this.handlers.clear();
+    this.registry.clearAllHandlers();
     this.logger.info("Cleared all message handlers");
   }
 
@@ -308,18 +199,13 @@ export class MessageBus implements IMessageBus {
    * Get the number of handlers for a message type
    */
   getHandlerCount(messageType: string): number {
-    return this.handlers.get(messageType)?.size ?? 0;
+    return this.registry.getHandlerCount(messageType);
   }
 
   /**
    * Get the number of handlers with a specific target filter
    */
   getTargetedHandlerCount(messageType: string, target: string): number {
-    const handlers = this.handlers.get(messageType);
-    if (!handlers) return 0;
-
-    return Array.from(handlers).filter(
-      (entry) => entry.filter?.target === target,
-    ).length;
+    return this.registry.getTargetedHandlerCount(messageType, target);
   }
 }
