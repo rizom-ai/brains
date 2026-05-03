@@ -1,4 +1,5 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
 import { TopicAdapter } from "./topic-adapter";
 import type { TopicEntity } from "../schemas/topic";
 
@@ -23,7 +24,7 @@ export function registerTopicsDashboardWidget(params: {
     "system:plugins:ready",
     async (): Promise<{ success: boolean }> => {
       await context.messaging.send("dashboard:register-widget", {
-        id: "topics",
+        id: TOPICS_PLUGIN_ID,
         pluginId,
         title: "Topics",
         section: "secondary",
@@ -31,7 +32,7 @@ export function registerTopicsDashboardWidget(params: {
         rendererName: "ListWidget",
         dataProvider: async () => {
           const topics = await context.entityService.listEntities<TopicEntity>(
-            "topic",
+            TOPIC_ENTITY_TYPE,
             {
               limit: 10,
               sortFields: [{ field: "updated", direction: "desc" }],

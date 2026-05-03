@@ -6,6 +6,7 @@ import type { ExtractedTopicData } from "../schemas/extraction";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { TOPIC_ENTITY_TYPE } from "./constants";
 import { scoreTopicSimilarity } from "./topic-merge";
 
 const MAX_ALIASES = 5;
@@ -53,14 +54,14 @@ export class TopicService {
     try {
       const { entityId } = await this.entityService.createEntity({
         id: topicId,
-        entityType: "topic",
+        entityType: TOPIC_ENTITY_TYPE,
         content: body,
         metadata,
       });
 
       const topic: TopicEntity = {
         id: entityId,
-        entityType: "topic",
+        entityType: TOPIC_ENTITY_TYPE,
         content: body,
         contentHash: computeContentHash(body),
         metadata,
@@ -131,14 +132,17 @@ export class TopicService {
   }
 
   public async getTopic(id: string): Promise<TopicEntity | null> {
-    return this.entityService.getEntity<TopicEntity>("topic", id);
+    return this.entityService.getEntity<TopicEntity>(TOPIC_ENTITY_TYPE, id);
   }
 
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
   }): Promise<TopicEntity[]> {
-    return this.entityService.listEntities<TopicEntity>("topic", params);
+    return this.entityService.listEntities<TopicEntity>(
+      TOPIC_ENTITY_TYPE,
+      params,
+    );
   }
 
   public async searchTopics(
@@ -146,7 +150,7 @@ export class TopicService {
     limit = 10,
   ): Promise<SearchResult<TopicEntity>[]> {
     return this.entityService.search<TopicEntity>(query, {
-      types: ["topic"],
+      types: [TOPIC_ENTITY_TYPE],
       limit,
     });
   }
@@ -225,7 +229,7 @@ export class TopicService {
   }
 
   public async deleteTopic(id: string): Promise<boolean> {
-    const result = await this.entityService.deleteEntity("topic", id);
+    const result = await this.entityService.deleteEntity(TOPIC_ENTITY_TYPE, id);
     if (result) {
       this.logger.info("Deleted topic", { id });
     }

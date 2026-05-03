@@ -8,6 +8,7 @@ import type { BaseEntity } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { truncateText } from "@brains/utils";
 import type { z } from "@brains/utils";
+import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { TopicAdapter } from "../lib/topic-adapter";
 
 interface TopicListData {
@@ -37,7 +38,7 @@ export class TopicsDataSource extends BaseEntityDataSource<
   readonly description = "Fetches and transforms topic entities for rendering";
 
   protected readonly config = {
-    entityType: "topic",
+    entityType: TOPIC_ENTITY_TYPE,
     defaultSort: [{ field: "updated" as const, direction: "desc" as const }],
     defaultLimit: 100,
     lookupField: "id" as const,

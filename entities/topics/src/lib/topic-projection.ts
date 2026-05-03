@@ -9,6 +9,7 @@ import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicExtractionHandler } from "../handlers/topic-extraction-handler";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TopicService } from "./topic-service";
+import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "./constants";
 
 export const topicProjectionJobDataSchema = z.discriminatedUnion("mode", [
   z.object({
@@ -113,13 +114,13 @@ export function getInitialProjectionJobOptions(): {
 } {
   return {
     priority: 5,
-    source: "topics-plugin",
+    source: TOPICS_JOB_SOURCE,
     deduplication: "coalesce",
     deduplicationKey: "topics-initial-derivation",
     metadata: {
       operationType: "data_processing",
       operationTarget: "topics-initial-derivation",
-      pluginId: "topics",
+      pluginId: TOPICS_PLUGIN_ID,
     },
   };
 }

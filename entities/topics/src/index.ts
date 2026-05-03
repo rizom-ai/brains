@@ -30,6 +30,13 @@ import {
   rebuildAllTopics,
   type TopicProjectionJobData,
 } from "./lib/topic-projection";
+import {
+  TOPIC_ENTITY_TYPE,
+  TOPIC_PROJECTION_ID,
+  TOPIC_PROJECTION_JOB_TYPE,
+  TOPICS_JOB_SOURCE,
+  TOPICS_PLUGIN_ID,
+} from "./lib/constants";
 import packageJson from "../package.json";
 
 const topicAdapter = new TopicAdapter();
@@ -38,14 +45,14 @@ export class TopicsPlugin extends EntityPlugin<
   TopicEntity,
   TopicsPluginConfig
 > {
-  readonly entityType = "topic";
+  readonly entityType = TOPIC_ENTITY_TYPE;
   readonly schema = topicEntitySchema;
   readonly adapter = topicAdapter;
 
   declare protected config: TopicsPluginConfig;
 
   constructor(config: Partial<TopicsPluginConfig> = {}) {
-    super("topics", packageJson, config, topicsPluginConfigSchema);
+    super(TOPICS_PLUGIN_ID, packageJson, config, topicsPluginConfigSchema);
   }
 
   protected override getEntityTypeConfig(): EntityTypeConfig | undefined {
@@ -72,10 +79,10 @@ export class TopicsPlugin extends EntityPlugin<
 
     return [
       {
-        id: "topics-projection",
-        targetType: "topic",
+        id: TOPIC_PROJECTION_ID,
+        targetType: TOPIC_ENTITY_TYPE,
         job: {
-          type: "topic:project",
+          type: TOPIC_PROJECTION_JOB_TYPE,
           handler: createTopicProjectionHandler({
             context,
             logger: this.logger,
@@ -86,7 +93,7 @@ export class TopicsPlugin extends EntityPlugin<
         },
         initialSync: {
           shouldEnqueue: async () =>
-            !(await hasPersistedTargets(context, "topic")),
+            !(await hasPersistedTargets(context, TOPIC_ENTITY_TYPE)),
           jobData: { mode: "derive", reason: "initial-sync" },
           jobOptions: getInitialProjectionJobOptions(),
         },
@@ -110,13 +117,13 @@ export class TopicsPlugin extends EntityPlugin<
           },
           jobOptions: (payload) => ({
             priority: 5,
-            source: "topics-plugin",
+            source: TOPICS_JOB_SOURCE,
             deduplication: "coalesce",
             deduplicationKey: `topics-source:${payload.entityType}:${payload.entityId}:${payload.entity?.contentHash ?? "unknown"}`,
             metadata: {
               operationType: "data_processing" as const,
               operationTarget: `topic-projection:${payload.entityType}:${payload.entityId}`,
-              pluginId: "topics",
+              pluginId: TOPICS_PLUGIN_ID,
             },
           }),
         },
@@ -153,13 +160,13 @@ export class TopicsPlugin extends EntityPlugin<
   public hasRunInitialDerivation(): boolean {
     return (
       this.getDerivedEntityProjectionController(
-        "topics-projection",
+        TOPIC_PROJECTION_ID,
       )?.hasQueuedInitialSync() ?? false
     );
   }
 
   public shouldProcessEntityType(entityType: string): boolean {
-    if (entityType === "topic") return false;
+    if (entityType === TOPIC_ENTITY_TYPE) return false;
     return this.config.includeEntityTypes.includes(entityType);
   }
 

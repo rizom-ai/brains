@@ -1,5 +1,6 @@
 import type { InsightHandler } from "@brains/plugins";
 import type { TopicEntity } from "../schemas/topic";
+import { TOPIC_ENTITY_TYPE } from "../lib/constants";
 import { TopicAdapter } from "../lib/topic-adapter";
 
 export interface TopicDistributionEntry {
@@ -15,11 +16,12 @@ export function createTopicDistributionInsight(): InsightHandler {
   const adapter = new TopicAdapter();
 
   return async (entityService) => {
-    if (!entityService.hasEntityType("topic")) {
+    if (!entityService.hasEntityType(TOPIC_ENTITY_TYPE)) {
       return { topics: [] };
     }
 
-    const topics = await entityService.listEntities<TopicEntity>("topic");
+    const topics =
+      await entityService.listEntities<TopicEntity>(TOPIC_ENTITY_TYPE);
 
     const distribution: TopicDistributionEntry[] = topics.map((topic) => {
       const parsed = adapter.parseTopicBody(topic.content);

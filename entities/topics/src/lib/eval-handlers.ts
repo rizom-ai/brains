@@ -6,6 +6,7 @@ import type { TopicsPluginConfig } from "../schemas/config";
 import { TopicProcessingHandler } from "../handlers/topic-processing-handler";
 import { TopicExtractor, type ExtractedTopic } from "./topic-extractor";
 import { extractTopicsBatched } from "./topic-batch-extractor";
+import { TOPIC_ENTITY_TYPE } from "./constants";
 import { TopicAdapter } from "./topic-adapter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
@@ -245,7 +246,8 @@ export function registerTopicEvalHandlers(params: {
         progressReporter,
       );
 
-      const topics = await context.entityService.listEntities("topic");
+      const topics =
+        await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
       return {
         ...result,
         topicCount: topics.length,
@@ -267,7 +269,7 @@ export function registerTopicEvalHandlers(params: {
     );
 
     const result = await replaceAllTopics(entities, context, logger);
-    const topics = await context.entityService.listEntities("topic");
+    const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
 
     return {
       ...result,
@@ -303,7 +305,8 @@ export function registerTopicEvalHandlers(params: {
         });
       }
 
-      const topics = await context.entityService.listEntities("topic");
+      const topics =
+        await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
       return {
         totalTopics: topics.length,
         perEntity,
@@ -321,7 +324,7 @@ export function registerTopicEvalHandlers(params: {
     const result = await extractTopicsBatched(entities, context, logger);
 
     // Return created topics so the eval can inspect them
-    const topics = await context.entityService.listEntities("topic");
+    const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
     return {
       ...result,
       topics: topics.map(serializeTopicEntity),

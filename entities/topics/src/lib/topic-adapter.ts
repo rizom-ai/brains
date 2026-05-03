@@ -7,6 +7,7 @@ import {
   type TopicBody,
   type TopicMetadata,
 } from "../schemas/topic";
+import { TOPIC_ENTITY_TYPE } from "./constants";
 
 type TopicFrontmatter = z.infer<typeof topicFrontmatterSchema>;
 
@@ -17,7 +18,7 @@ export class TopicAdapter extends BaseEntityAdapter<
 > {
   constructor() {
     super({
-      entityType: "topic",
+      entityType: TOPIC_ENTITY_TYPE,
       schema: topicEntitySchema,
       frontmatterSchema: topicFrontmatterSchema,
     });
@@ -38,7 +39,7 @@ export class TopicAdapter extends BaseEntityAdapter<
   public fromMarkdown(markdown: string): Partial<TopicEntity> {
     return {
       content: markdown,
-      entityType: "topic",
+      entityType: TOPIC_ENTITY_TYPE,
     };
   }
 
