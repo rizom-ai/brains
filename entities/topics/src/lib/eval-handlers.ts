@@ -7,11 +7,12 @@ import { TopicProcessingHandler } from "../handlers/topic-processing-handler";
 import { TopicExtractor, type ExtractedTopic } from "./topic-extractor";
 import { extractTopicsBatched } from "./topic-batch-extractor";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-import { TopicAdapter } from "./topic-adapter";
+import {
+  toTopicContentProjection,
+  toTopicContentProjectionWithMetadata,
+} from "./topic-presenter";
 import { replaceAllTopics } from "./topic-projection";
 import { TopicService } from "./topic-service";
-
-const adapter = new TopicAdapter();
 
 const entityInputSchema = z.object({
   entityType: z.string(),
@@ -95,31 +96,6 @@ function summarizeExtractedTopic(topic: ExtractedTopic): {
   return {
     title: topic.title,
     relevanceScore: topic.relevanceScore,
-  };
-}
-
-function serializeTopicEntity(topic: BaseEntity): {
-  id: string;
-  title: string;
-  content: string;
-} {
-  const parsed = adapter.parseTopicBody(topic.content);
-  return {
-    id: topic.id,
-    title: parsed.title,
-    content: parsed.content,
-  };
-}
-
-function serializeTopicEntityWithMetadata(topic: BaseEntity): {
-  id: string;
-  title: string;
-  content: string;
-  metadata: BaseEntity["metadata"];
-} {
-  return {
-    ...serializeTopicEntity(topic),
-    metadata: topic.metadata,
   };
 }
 
@@ -251,7 +227,7 @@ export function registerTopicEvalHandlers(params: {
       return {
         ...result,
         topicCount: topics.length,
-        topics: topics.map(serializeTopicEntityWithMetadata),
+        topics: topics.map(toTopicContentProjectionWithMetadata),
       };
     },
   );
@@ -274,7 +250,7 @@ export function registerTopicEvalHandlers(params: {
     return {
       ...result,
       topicCount: topics.length,
-      topics: topics.map(serializeTopicEntityWithMetadata),
+      topics: topics.map(toTopicContentProjectionWithMetadata),
     };
   });
 
@@ -310,7 +286,7 @@ export function registerTopicEvalHandlers(params: {
       return {
         totalTopics: topics.length,
         perEntity,
-        topics: topics.map(serializeTopicEntity),
+        topics: topics.map(toTopicContentProjection),
       };
     },
   );
@@ -327,7 +303,7 @@ export function registerTopicEvalHandlers(params: {
     const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
     return {
       ...result,
-      topics: topics.map(serializeTopicEntity),
+      topics: topics.map(toTopicContentProjection),
     };
   });
 }

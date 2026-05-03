@@ -1,9 +1,8 @@
 import type { IEntityService } from "@brains/plugins";
 import { TOPIC_ENTITY_TYPE } from "./constants";
-import { TopicAdapter } from "./topic-adapter";
+import { getTopicTitle } from "./topic-presenter";
 
 const MAX_EXISTING_TOPIC_TITLES = 40;
-const topicAdapter = new TopicAdapter();
 
 /**
  * Fetch a small set of existing topic titles so extraction can reuse
@@ -16,7 +15,7 @@ export async function listExistingTopicTitles(
   const topics = await entityService.listEntities(TOPIC_ENTITY_TYPE, { limit });
 
   return topics
-    .map((topic) => topicAdapter.parseTopicBody(topic.content).title)
+    .map(getTopicTitle)
     .filter((title): title is string => title.trim().length > 0);
 }
 

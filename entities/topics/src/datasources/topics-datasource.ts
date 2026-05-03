@@ -5,25 +5,14 @@ import type {
   BaseDataSourceContext,
 } from "@brains/plugins";
 import type { BaseEntity } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { truncateText } from "@brains/utils";
-import type { z } from "@brains/utils";
+import type { Logger, z } from "@brains/utils";
 import { TOPIC_ENTITY_TYPE } from "../lib/constants";
-import { TopicAdapter } from "../lib/topic-adapter";
-
-interface TopicListData {
-  topics: TopicListItem[];
-  totalCount: number;
-}
-
-/** List-view representation of a topic. */
-interface TopicListItem {
-  id: string;
-  title: string;
-  summary: string;
-  created: string;
-  updated: string;
-}
+import { toTopicDetail, toTopicSummary } from "../lib/topic-presenter";
+import type { TopicDetailData } from "../templates/topic-detail/schema";
+import type {
+  TopicListData,
+  TopicSummary,
+} from "../templates/topic-list/schema";
 
 /**
  * DataSource for fetching and transforming topic entities.
@@ -31,7 +20,7 @@ interface TopicListItem {
  */
 export class TopicsDataSource extends BaseEntityDataSource<
   BaseEntity,
-  TopicListItem
+  TopicSummary
 > {
   readonly id = "topics:entities";
   readonly name = "Topics Entity DataSource";
@@ -44,26 +33,17 @@ export class TopicsDataSource extends BaseEntityDataSource<
     lookupField: "id" as const,
   };
 
-  private readonly adapter = new TopicAdapter();
-
   constructor(logger: Logger) {
     super(logger);
     this.logger.debug("TopicsDataSource initialized");
   }
 
-  protected transformEntity(entity: BaseEntity): TopicListItem {
-    const parsed = this.adapter.parseTopicBody(entity.content);
-    return {
-      id: entity.id,
-      title: parsed.title,
-      summary: truncateText(parsed.content, 200),
-      created: entity.created,
-      updated: entity.updated,
-    };
+  protected transformEntity(entity: BaseEntity): TopicSummary {
+    return toTopicSummary(entity);
   }
 
   protected buildListResult(
-    items: TopicListItem[],
+    items: TopicSummary[],
     _pagination: PaginationInfo | null,
     _query: BaseQuery,
   ): TopicListData {
@@ -94,15 +74,9 @@ export class TopicsDataSource extends BaseEntityDataSource<
         throw new Error(`Entity not found: ${parsedQuery.id}`);
       }
 
-      const parsed = this.adapter.parseTopicBody(entity.content);
-
-      return outputSchema.parse({
-        id: entity.id,
-        title: parsed.title,
-        content: parsed.content,
-        created: entity.created,
-        updated: entity.updated,
-      });
+      return outputSchema.parse(
+        toTopicDetail(entity) satisfies TopicDetailData,
+      );
     }
 
     return super.fetch(query, outputSchema, context);

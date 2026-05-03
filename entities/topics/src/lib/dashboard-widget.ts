@@ -1,9 +1,7 @@
 import type { EntityPluginContext } from "@brains/plugins";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
-import { TopicAdapter } from "./topic-adapter";
+import { toTopicContentProjection } from "./topic-presenter";
 import type { TopicEntity } from "../schemas/topic";
-
-const adapter = new TopicAdapter();
 
 /** First sentence of a text block, capped at 200 chars with ellipsis. */
 function firstSentence(text: string): string | undefined {
@@ -40,11 +38,11 @@ export function registerTopicsDashboardWidget(params: {
           );
           return {
             items: topics.map((topic) => {
-              const body = adapter.parseTopicBody(topic.content);
-              const description = firstSentence(body.content);
+              const projected = toTopicContentProjection(topic);
+              const description = firstSentence(projected.content);
               return {
                 id: topic.id,
-                name: body.title || topic.id,
+                name: projected.title || topic.id,
                 ...(description && { description }),
               };
             }),
