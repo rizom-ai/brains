@@ -1,5 +1,6 @@
 import { describe, expect, it, mock } from "bun:test";
 import {
+  createMessageBusEmitter,
   createToolExecuteWrapper,
   type ToolEventEmitter,
 } from "../src/tool-events";
@@ -430,6 +431,24 @@ describe("tool invocation events", () => {
         expect(error).toBeInstanceOf(Error);
         expect((error as Error).message).toBe("Test error");
       }
+    });
+  });
+
+  describe("message bus emitter", () => {
+    it("should ignore rejected fire-and-forget sends", async () => {
+      const send = mock(async () => {
+        throw new Error("bus unavailable");
+      });
+      const emitter = createMessageBusEmitter({ send });
+
+      emitter.emit("tool:invoking", { toolName: "test_tool" });
+      await Promise.resolve();
+
+      expect(send).toHaveBeenCalledWith(
+        "tool:invoking",
+        { toolName: "test_tool" },
+        "brain-agent",
+      );
     });
   });
 

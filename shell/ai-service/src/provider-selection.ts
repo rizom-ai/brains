@@ -1,4 +1,14 @@
 /**
+ * Provider/model selection helpers.
+ *
+ * Pure functions — no SDK imports, no side effects.
+ */
+export interface ResolvedModelProvider {
+  provider: string;
+  modelId: string;
+}
+
+/**
  * Model name patterns → provider auto-detection.
  */
 const MODEL_PATTERNS: Array<[RegExp, string]> = [
@@ -13,23 +23,11 @@ const MODEL_PATTERNS: Array<[RegExp, string]> = [
 ];
 
 /**
- * Select the text generation provider from a model string.
- *
- * Supports:
- * - Auto-detection from model name: "gpt-4o-mini" → "openai"
- * - Explicit prefix: "openai:gpt-4o-mini" → "openai"
- * - No model: defaults to "anthropic"
- *
- * Pure function — no SDK imports, no side effects.
- */
-/**
  * Parse explicit provider prefix from a model string.
  * "openai:gpt-4o-mini" → { provider: "openai", modelId: "gpt-4o-mini" }
  * "gpt-4o-mini" → null (no prefix)
  */
-function parseProviderPrefix(
-  model: string,
-): { provider: string; modelId: string } | null {
+function parseProviderPrefix(model: string): ResolvedModelProvider | null {
   const colonIdx = model.indexOf(":");
   if (colonIdx > 0) {
     return {
@@ -40,17 +38,35 @@ function parseProviderPrefix(
   return null;
 }
 
-export function selectTextProvider(model?: string): string {
-  if (!model) return "anthropic";
-
+/**
+ * Resolve both provider and SDK model ID for text generation.
+ *
+ * Supports:
+ * - Auto-detection from model name: "gpt-4o-mini" → { provider: "openai", modelId: "gpt-4o-mini" }
+ * - Explicit prefix: "openai:gpt-4o-mini" → { provider: "openai", modelId: "gpt-4o-mini" }
+ */
+export function resolveTextProvider(model: string): ResolvedModelProvider {
   const explicit = parseProviderPrefix(model);
-  if (explicit) return explicit.provider;
+  if (explicit) return explicit;
 
   for (const [pattern, provider] of MODEL_PATTERNS) {
-    if (pattern.test(model)) return provider;
+    if (pattern.test(model)) return { provider, modelId: model };
   }
 
-  return "anthropic";
+  return { provider: "anthropic", modelId: model };
+}
+
+/**
+ * Select the text generation provider from a model string.
+ *
+ * Supports:
+ * - Auto-detection from model name: "gpt-4o-mini" → "openai"
+ * - Explicit prefix: "openai:gpt-4o-mini" → "openai"
+ * - No model: defaults to "anthropic"
+ */
+export function selectTextProvider(model?: string): string {
+  if (!model) return "anthropic";
+  return resolveTextProvider(model).provider;
 }
 
 /**
@@ -70,10 +86,7 @@ const DEFAULT_IMAGE_MODEL = "gpt-image-1.5";
  * Returns both the provider and the resolved model ID.
  * Falls back to OpenAI with gpt-image-1.5 if no model specified.
  */
-export function selectImageProvider(model?: string): {
-  provider: string;
-  modelId: string;
-} {
+export function selectImageProvider(model?: string): ResolvedModelProvider {
   if (!model) return { provider: "openai", modelId: DEFAULT_IMAGE_MODEL };
 
   const explicit = parseProviderPrefix(model);
@@ -95,9 +108,7 @@ export function selectImageProvider(model?: string): {
 export function supportsTemperature(model?: string): boolean {
   if (!model) return true;
 
-  const explicit = parseProviderPrefix(model);
-  const provider = explicit?.provider ?? selectTextProvider(model);
-  const modelId = explicit?.modelId ?? model;
+  const { provider, modelId } = resolveTextProvider(model);
 
   if (provider !== "openai") {
     return true;

@@ -527,6 +527,51 @@ describe("AgentService", () => {
       expect(response.text).toContain("cancelled");
     });
 
+    it("should execute confirmed actions with original permission and routing context", async () => {
+      setupConfirmationResponse();
+
+      const deleteHandler = mock(async () => ({ success: true as const }));
+      const deleteTool: Tool = {
+        name: "delete_note",
+        description: "Delete note",
+        inputSchema: { noteId: z.string() },
+        visibility: "trusted",
+        handler: deleteHandler,
+      };
+      mockMCPService.listToolsForPermissionLevel = mock((level: string) =>
+        level === "trusted" ? [{ pluginId: "test", tool: deleteTool }] : [],
+      );
+
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        { agentFactory: mockAgentFactory },
+      );
+
+      await service.chat("delete my note", "test-conversation", {
+        userPermissionLevel: "trusted",
+        interfaceType: "matrix",
+        channelId: "!room:example.org",
+        channelName: "Ops",
+      });
+      await service.confirmPendingAction("test-conversation", true);
+
+      expect(mockMCPService.listToolsForPermissionLevel).toHaveBeenCalledWith(
+        "trusted",
+      );
+      expect(deleteHandler).toHaveBeenCalledWith(
+        { noteId: "123" },
+        expect.objectContaining({
+          interfaceType: "matrix",
+          channelId: "!room:example.org",
+          channelName: "Ops",
+        }),
+      );
+    });
+
     it("should return error when confirming without pending action", async () => {
       const service = AgentService.createFresh(
         mockMCPService,

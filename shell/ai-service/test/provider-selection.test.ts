@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import {
+  resolveTextProvider,
   selectTextProvider,
   selectImageProvider,
   supportsTemperature,
@@ -44,6 +45,22 @@ describe("selectTextProvider", () => {
 
   it("should fall back to anthropic for unknown model", () => {
     expect(selectTextProvider("some-unknown-model")).toBe("anthropic");
+  });
+});
+
+describe("resolveTextProvider", () => {
+  it("should return provider and SDK model ID for explicit prefixes", () => {
+    expect(resolveTextProvider("openai:gpt-4o-mini")).toEqual({
+      provider: "openai",
+      modelId: "gpt-4o-mini",
+    });
+  });
+
+  it("should return original model ID for auto-detected models", () => {
+    expect(resolveTextProvider("claude-haiku-4-5")).toEqual({
+      provider: "anthropic",
+      modelId: "claude-haiku-4-5",
+    });
   });
 });
 

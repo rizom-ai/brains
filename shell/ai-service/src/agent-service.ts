@@ -5,7 +5,6 @@ import type {
   IBrainCharacterService,
   IAnchorProfileService,
 } from "@brains/identity-service";
-import type { ModelMessage } from "ai";
 import type {
   AgentConfig,
   AgentResponse,
@@ -17,11 +16,12 @@ import type { BrainCallOptions } from "./brain-agent";
 import {
   agentMachine,
   emptyUsage,
-  extractToolResults,
   type ProcessMessageInput,
   type ExecuteActionInput,
 } from "./agent-machine";
 import { createActor, fromPromise, waitFor } from "xstate";
+import { buildModelMessages } from "./conversation-messages";
+import { extractToolResults } from "./agent-results";
 
 /**
  * Default step limit if not specified
@@ -275,21 +275,7 @@ export class AgentService implements IAgentService {
       { limit: 50 },
     );
 
-    // Convert to AI SDK message format
-    const messages: ModelMessage[] = historyMessages.map((msg) => {
-      if (msg.role === "user") {
-        return { role: "user", content: msg.content };
-      }
-      if (msg.role === "assistant") {
-        return {
-          role: "assistant",
-          content: [{ type: "text", text: msg.content }],
-        };
-      }
-      return { role: "system", content: msg.content };
-    });
-
-    messages.push({ role: "user", content: message });
+    const messages = buildModelMessages(historyMessages, message);
 
     // Log available tools
     const tools = this.mcpService
@@ -361,9 +347,17 @@ export class AgentService implements IAgentService {
   private async executeConfirmedAction(
     input: ExecuteActionInput,
   ): Promise<AgentResponse> {
-    const { conversationId, pendingConfirmation } = input;
+    const {
+      conversationId,
+      pendingConfirmation,
+      interfaceType,
+      channelId,
+      channelName,
+      userPermissionLevel,
+    } = input;
 
-    const tools = this.mcpService.listTools();
+    const tools =
+      this.mcpService.listToolsForPermissionLevel(userPermissionLevel);
     const tool = tools.find(
       (t) => t.tool.name === pendingConfirmation.toolName,
     );
@@ -376,8 +370,10 @@ export class AgentService implements IAgentService {
     }
 
     const context: ToolContext = {
-      interfaceType: "agent",
+      interfaceType,
       userId: "agent-user",
+      channelId,
+      channelName,
     };
 
     const result = await tool.tool.handler(pendingConfirmation.args, context);
