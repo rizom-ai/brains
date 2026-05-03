@@ -1,22 +1,27 @@
-import { generateText, generateObject, generateImage } from "ai";
-import { anthropic, createAnthropic } from "@ai-sdk/anthropic";
-import { createOpenAI } from "@ai-sdk/openai";
-import { createGoogleGenerativeAI } from "@ai-sdk/google";
+import { generateText, generateObject } from "ai";
 import type { LanguageModel } from "ai";
 import type { Logger } from "@brains/utils";
 import type { z } from "@brains/utils";
 import type {
   AIModelConfig,
   IAIService,
-  AspectRatio,
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
+import { selectTextProvider } from "./provider-selection";
 import {
-  selectTextProvider,
-  selectImageProvider,
-  supportsTemperature,
-} from "./provider-selection";
+  canGenerateImages,
+  createProviderClients,
+  getLanguageModel,
+  type ProviderClients,
+} from "./provider-clients";
+import { generateImageResult } from "./image-generation";
+import {
+  getTextGenerationOptions,
+  toTokenUsage,
+  withAIModelDefaults,
+  type TokenUsage,
+} from "./generation-options";
 
 /**
  * AI Service for generating responses using Vercel AI SDK
@@ -25,10 +30,7 @@ export class AIService implements IAIService {
   private static instance: AIService | null = null;
   private config: AIModelConfig;
   private logger: Logger;
-  private anthropicProvider;
-  private openaiProvider: ReturnType<typeof createOpenAI> | null = null;
-  private googleProvider: ReturnType<typeof createGoogleGenerativeAI> | null =
-    null;
+  private providers: ProviderClients;
 
   /**
    * Get the singleton instance
@@ -56,57 +58,16 @@ export class AIService implements IAIService {
    * Private constructor to enforce singleton pattern
    */
   private constructor(config: AIModelConfig, logger: Logger) {
-    this.config = {
-      ...config,
-      temperature: config.temperature ?? 0.7,
-      maxTokens: config.maxTokens ?? 1000,
-      webSearch: config.webSearch ?? true, // Default to true
-    };
+    this.config = withAIModelDefaults(config);
     this.logger = logger.child("AIService");
-
-    const provider = this.config.model
-      ? selectTextProvider(this.config.model)
-      : undefined;
-    const imageKey = config.imageApiKey ?? config.apiKey;
-
-    this.anthropicProvider = config.apiKey
-      ? createAnthropic({ apiKey: config.apiKey })
-      : anthropic;
-
-    if (provider === "openai" && config.apiKey) {
-      this.openaiProvider = createOpenAI({ apiKey: config.apiKey });
-    } else if (imageKey) {
-      this.openaiProvider = createOpenAI({ apiKey: imageKey });
-    }
-
-    if (provider === "google" && config.apiKey) {
-      this.googleProvider = createGoogleGenerativeAI({
-        apiKey: config.apiKey,
-      });
-    } else if (imageKey) {
-      this.googleProvider = createGoogleGenerativeAI({
-        apiKey: imageKey,
-      });
-    }
+    this.providers = createProviderClients(this.config);
   }
 
   /**
    * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
-    const modelId = this.requireTextModel();
-    const provider = selectTextProvider(modelId);
-
-    if (provider === "openai" && this.openaiProvider) {
-      return this.openaiProvider(modelId) as LanguageModel;
-    }
-
-    if (provider === "google" && this.googleProvider) {
-      return this.googleProvider(modelId) as LanguageModel;
-    }
-
-    // Default: anthropic
-    return this.anthropicProvider(modelId);
+    return getLanguageModel(this.providers, this.requireTextModel());
   }
 
   /**
@@ -117,11 +78,7 @@ export class AIService implements IAIService {
     userPrompt: string,
   ): Promise<{
     text: string;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
+    usage: TokenUsage;
   }> {
     this.logger.debug("Generating text response", {
       model: this.config.model,
@@ -132,31 +89,12 @@ export class AIService implements IAIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
-        ...(this.config.temperature !== undefined &&
-          supportsTemperature(this.config.model) && {
-            temperature: this.config.temperature,
-          }),
-        ...(this.config.maxTokens !== undefined && {
-          maxTokens: this.config.maxTokens,
-        }),
-        ...(this.config.webSearch && {
-          webSearch: true,
-        }),
+        ...getTextGenerationOptions(this.config),
       });
 
-      const usage = {
-        promptTokens: result.usage.inputTokens ?? 0,
-        completionTokens: result.usage.outputTokens ?? 0,
-        totalTokens: result.usage.totalTokens ?? 0,
-      };
+      const usage = toTokenUsage(result.usage);
 
-      this.logger.info("ai:usage", {
-        operation: "text_generation",
-        provider: selectTextProvider(this.config.model),
-        model: this.config.model,
-        inputTokens: usage.promptTokens,
-        outputTokens: usage.completionTokens,
-      });
+      this.logUsage("text_generation", usage);
 
       return { text: result.text, usage };
     } catch (error) {
@@ -174,11 +112,7 @@ export class AIService implements IAIService {
     schema: z.ZodType<T>,
   ): Promise<{
     object: T;
-    usage: {
-      promptTokens: number;
-      completionTokens: number;
-      totalTokens: number;
-    };
+    usage: TokenUsage;
   }> {
     this.logger.debug("Generating structured response", {
       model: this.config.model,
@@ -191,34 +125,15 @@ export class AIService implements IAIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
-        ...(this.config.temperature !== undefined &&
-          supportsTemperature(this.config.model) && {
-            temperature: this.config.temperature,
-          }),
-        ...(this.config.maxTokens !== undefined && {
-          maxTokens: this.config.maxTokens,
-        }),
-        ...(this.config.webSearch && {
-          webSearch: true,
-        }),
+        ...getTextGenerationOptions(this.config),
         providerOptions: {
           anthropic: { structuredOutputMode: "jsonTool" },
         },
       });
 
-      const usage = {
-        promptTokens: result.usage.inputTokens ?? 0,
-        completionTokens: result.usage.outputTokens ?? 0,
-        totalTokens: result.usage.totalTokens ?? 0,
-      };
+      const usage = toTokenUsage(result.usage);
 
-      this.logger.info("ai:usage", {
-        operation: "object_generation",
-        provider: selectTextProvider(this.config.model),
-        model: this.config.model,
-        inputTokens: usage.promptTokens,
-        outputTokens: usage.completionTokens,
-      });
+      this.logUsage("object_generation", usage);
 
       return { object: result.object as T, usage };
     } catch (error) {
@@ -231,7 +146,8 @@ export class AIService implements IAIService {
    * Update configuration
    */
   public updateConfig(config: Partial<AIModelConfig>): void {
-    this.config = { ...this.config, ...config };
+    this.config = withAIModelDefaults({ ...this.config, ...config });
+    this.providers = createProviderClients(this.config);
     this.logger.info("AI configuration updated", {
       model: this.config.model,
     });
@@ -244,21 +160,11 @@ export class AIService implements IAIService {
     return { ...this.config };
   }
 
-  private requireTextModel(): string {
-    if (!this.config.model) {
-      throw new Error(
-        "AI text model is not configured. Set a model in the brain definition or brain.yaml.",
-      );
-    }
-
-    return this.config.model;
-  }
-
   /**
    * Check if image generation is available
    */
   public canGenerateImages(): boolean {
-    return this.openaiProvider !== null || this.googleProvider !== null;
+    return canGenerateImages(this.providers);
   }
 
   /**
@@ -268,91 +174,32 @@ export class AIService implements IAIService {
     prompt: string,
     options?: ImageGenerationOptions,
   ): Promise<ImageGenerationResult> {
-    const { provider, modelId } = selectImageProvider(this.config.imageModel);
-
-    if (provider === "openai" && !this.openaiProvider) {
-      throw new Error(
-        "Image generation not available: no OpenAI API key configured",
-      );
-    }
-    if (provider === "google" && !this.googleProvider) {
-      throw new Error(
-        "Image generation not available: no Google API key configured",
-      );
-    }
-
-    this.logger.debug("Generating image", {
-      prompt: prompt.slice(0, 100),
-      provider,
-      model: modelId,
-    });
-
-    try {
-      const aspectRatio: AspectRatio = options?.aspectRatio ?? "16:9";
-      const result =
-        provider === "google"
-          ? await this.generateImageWithGoogle(prompt, aspectRatio, modelId)
-          : await this.generateImageWithOpenAI(prompt, aspectRatio, modelId);
-
-      const base64 = result.image.base64;
-      const dataUrl = `data:image/png;base64,${base64}`;
-
-      this.logger.debug("Image generated successfully", {
-        provider,
-        model: modelId,
-      });
-
-      return { base64, dataUrl };
-    } catch (error) {
-      this.logger.error("Failed to generate image", error);
-      throw new Error("Image generation failed");
-    }
+    return generateImageResult(
+      prompt,
+      this.config.imageModel,
+      options,
+      this.providers,
+      this.logger,
+    );
   }
 
-  private async generateImageWithOpenAI(
-    prompt: string,
-    aspectRatio: AspectRatio,
-    modelId: string,
-  ): Promise<{ image: { base64: string } }> {
-    if (!this.openaiProvider) {
-      throw new Error("OpenAI provider not configured");
-    }
-    return generateImage({
-      model: this.openaiProvider.image(modelId),
-      prompt,
-      size: ASPECT_RATIO_TO_OPENAI_SIZE[aspectRatio],
-      providerOptions: {
-        openai: { quality: "medium" },
-      },
+  private logUsage(operation: string, usage: TokenUsage): void {
+    this.logger.info("ai:usage", {
+      operation,
+      provider: selectTextProvider(this.config.model),
+      model: this.config.model,
+      inputTokens: usage.promptTokens,
+      outputTokens: usage.completionTokens,
     });
   }
 
-  private async generateImageWithGoogle(
-    prompt: string,
-    aspectRatio: AspectRatio,
-    modelId: string,
-  ): Promise<{ image: { base64: string } }> {
-    if (!this.googleProvider) {
-      throw new Error("Google provider not configured");
+  private requireTextModel(): string {
+    if (!this.config.model) {
+      throw new Error(
+        "AI text model is not configured. Set a model in the brain definition or brain.yaml.",
+      );
     }
-    return generateImage({
-      model: this.googleProvider.image(modelId),
-      prompt,
-      aspectRatio,
-    });
+
+    return this.config.model;
   }
 }
-
-/**
- * Mapping from aspect ratio to OpenAI GPT Image pixel sizes
- */
-const ASPECT_RATIO_TO_OPENAI_SIZE: Record<
-  AspectRatio,
-  "1024x1024" | "1536x1024" | "1024x1536"
-> = {
-  "1:1": "1024x1024",
-  "16:9": "1536x1024",
-  "9:16": "1024x1536",
-  "4:3": "1536x1024",
-  "3:4": "1024x1536",
-};

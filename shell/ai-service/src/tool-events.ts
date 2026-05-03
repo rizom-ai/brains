@@ -142,8 +142,8 @@ export function createMessageBusEmitter(
 ): ToolEventEmitter {
   return {
     emit: (type: string, payload: unknown): void => {
-      // Fire and forget - don't wait for response
-      void messageBus.send(type, payload, sender);
+      // Fire and forget - don't wait for response, but avoid unhandled rejections.
+      void messageBus.send(type, payload, sender).catch(() => undefined);
     },
   };
 }

@@ -1,143 +1,127 @@
 # @brains/ai-service
 
-AI text and object generation service for Brain applications.
+AI provider integration and agent conversation orchestration for Brain applications.
 
 ## Overview
 
-This service provides AI-powered text generation and structured object creation using Anthropic's Claude API. It supports both free-form text generation and schema-validated object generation.
+This package owns:
 
-## Features
+- AI text and object generation via the Vercel AI SDK
+- image generation provider selection
+- online embedding generation
+- Brain agent construction and conversation orchestration
+- tool invocation event emission
 
-- Text generation with Claude
-- Structured object generation with Zod schemas
-- Template-based prompt construction
-- Configurable model selection
-- Token usage tracking
-- Error handling and retries
-
-## Installation
-
-```bash
-bun add @brains/ai-service
-```
-
-## Usage
+## Text/Object generation
 
 ```typescript
 import { AIService } from "@brains/ai-service";
 
-const aiService = AIService.getInstance({
-  apiKey: process.env.AI_API_KEY,
-  // model defaults to gpt-4.1, provider auto-detected from model name
-});
+const aiService = AIService.getInstance(
+  {
+    apiKey: process.env.AI_API_KEY,
+    model: "claude-haiku-4-5",
+  },
+  logger,
+);
 
-// Generate text
-const text = await aiService.generateText({
-  prompt: "Write a summary of quantum computing",
-  maxTokens: 500,
-  temperature: 0.7,
-});
+const text = await aiService.generateText(
+  "You are a helpful assistant.",
+  "Write a short summary of quantum computing.",
+);
+```
 
-// Generate structured object
-import { z } from "zod";
+Structured output uses a Zod schema:
 
-const summarySchema = z.object({
+```typescript
+import { z } from "@brains/utils";
+
+const schema = z.object({
   title: z.string(),
   summary: z.string(),
-  keywords: z.array(z.string()),
-  sentiment: z.enum(["positive", "neutral", "negative"]),
 });
 
-const result = await aiService.generateObject({
-  prompt: "Analyze this article: ...",
-  schema: summarySchema,
-  maxTokens: 1000,
-});
-// result is typed according to schema
+const result = await aiService.generateObject(
+  "Return structured JSON.",
+  "Summarize this article: ...",
+  schema,
+);
 ```
 
 ## Configuration
 
 ```typescript
-interface AIServiceConfig {
-  apiKey: string;
+interface AIModelConfig {
   model?: string;
-  baseURL?: string;
-  maxRetries?: number;
-  timeout?: number;
+  imageModel?: string;
+  apiKey?: string;
+  imageApiKey?: string;
+  temperature?: number;
+  maxTokens?: number;
+  webSearch?: boolean;
 }
 ```
 
-## Models
+Defaults:
 
-Provider is auto-detected from model name. Default: `gpt-4.1`.
+- `temperature`: `0.7`
+- `maxTokens`: `1000`
+- `webSearch`: `true`
+- no default text model is invented; text generation requires `model`
+- default image model is `gpt-image-1.5`
 
-**OpenAI:** `gpt-4.1` (default), `gpt-4.1-mini`, `gpt-4.1-nano`, `gpt-4o`, `o3-mini`
-**Anthropic:** `claude-haiku-4-5-20251001`, `claude-sonnet-4-6`, `claude-opus-4-6`
-**Google:** `gemini-2.0-flash`, `gemini-2.5-pro`
-**Local (Ollama):** `llama-3.1-8b`, `mistral-7b`, `gemma4`
+## Provider selection
 
-Explicit prefix supported: `openai:gpt-4o-mini`, `anthropic:claude-haiku-4-5`
+Text provider is resolved from the model name or an explicit prefix.
 
-## Templates
+Examples:
 
-Use templates for consistent prompts:
+- `claude-haiku-4-5` → Anthropic
+- `gpt-4o-mini` → OpenAI
+- `gemini-2.0-flash` → Google
+- `openai:gpt-4o-mini` → OpenAI with SDK model ID `gpt-4o-mini`
+
+Image provider selection works similarly via `imageModel`:
+
+- `gpt-image-1.5` → OpenAI
+- `gemini-3-pro-image-preview` → Google
+- `google:gemini-3-pro-image-preview` → Google with prefix stripped
+
+## Agent service
 
 ```typescript
-const template = `
-Analyze the following text:
-<text>
-{content}
-</text>
+import { AgentService, createBrainAgentFactory } from "@brains/ai-service";
 
-Provide:
-1. Summary
-2. Key points
-3. Sentiment
-`;
-
-const result = await aiService.generateText({
-  prompt: template.replace("{content}", articleText),
+const agentFactory = createBrainAgentFactory({
+  model: aiService.getModel(),
+  modelId: aiService.getConfig().model,
+  messageBus,
 });
+
+const agentService = AgentService.getInstance(
+  mcpService,
+  conversationService,
+  identityService,
+  profileService,
+  logger,
+  { agentFactory },
+);
 ```
 
-## Error Handling
-
-```typescript
-try {
-  const result = await aiService.generateText({
-    prompt: "...",
-  });
-} catch (error) {
-  if (error.code === "rate_limit") {
-    // Handle rate limiting
-  } else if (error.code === "invalid_api_key") {
-    // Handle auth error
-  }
-}
-```
-
-## Testing
+## Test utilities
 
 ```typescript
 import { createMockAIService } from "@brains/ai-service/test";
 
 const mockAI = createMockAIService();
-mockAI.generateText.mockResolvedValue("Mocked response");
-
-// Use in tests
-const service = AIService.createFresh({
-  apiKey: "test-key",
-});
 ```
 
 ## Exports
 
-- `AIService` - Main service class
-- `aiConfigSchema` - Configuration schema
-- Types: `AIServiceConfig`, `GenerateTextOptions`, `GenerateObjectOptions`
-- Test utilities: `createMockAIService`
-
-## License
-
-Apache-2.0
+- `AIService`
+- `AgentService`
+- `createBrainAgentFactory`
+- `OnlineEmbeddingProvider`
+- provider helpers: `resolveTextProvider`, `selectTextProvider`, `selectImageProvider`
+- AI SDK re-exports: `ToolLoopAgent`, `stepCountIs`, `dynamicTool`
+- service and agent types

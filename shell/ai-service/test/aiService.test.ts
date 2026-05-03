@@ -53,18 +53,20 @@ void mock.module("@ai-sdk/anthropic", () => ({
   createAnthropic: mock(() => mock(() => "mock-model-with-key")),
 }));
 
+const mockOpenAIModel = mock(() => "mock-openai-model");
 const mockOpenAIImage = mock(() => "mock-openai-image-model");
 void mock.module("@ai-sdk/openai", () => ({
-  createOpenAI: mock(() => ({
-    image: mockOpenAIImage,
-  })),
+  createOpenAI: mock(() =>
+    Object.assign(mockOpenAIModel, { image: mockOpenAIImage }),
+  ),
 }));
 
+const mockGoogleModel = mock(() => "mock-google-model");
 const mockGoogleImage = mock(() => "mock-google-image-model");
 void mock.module("@ai-sdk/google", () => ({
-  createGoogleGenerativeAI: mock(() => ({
-    image: mockGoogleImage,
-  })),
+  createGoogleGenerativeAI: mock(() =>
+    Object.assign(mockGoogleModel, { image: mockGoogleImage }),
+  ),
 }));
 
 describe("AIService", () => {
@@ -95,6 +97,10 @@ describe("AIService", () => {
     generateTextSpy.mockClear();
     generateObjectSpy.mockClear();
     generateImageSpy.mockClear();
+    mockOpenAIModel.mockClear();
+    mockOpenAIImage.mockClear();
+    mockGoogleModel.mockClear();
+    mockGoogleImage.mockClear();
   });
 
   afterEach(() => {
@@ -171,6 +177,25 @@ describe("AIService", () => {
       expect(config.model).toBe("claude-3-haiku-20240307");
       expect(config.temperature).toBe(0.9);
       expect(config.maxTokens).toBe(1000); // Should retain original value
+    });
+
+    it("should rebuild providers when configuration changes", async () => {
+      const service = AIService.createFresh(
+        { model: DEFAULT_TEXT_MODEL },
+        logger,
+      );
+
+      service.updateConfig({
+        apiKey: "sk-openai",
+        model: "openai:gpt-4o-mini",
+      });
+
+      await service.generateText("System", "User");
+
+      expect(mockOpenAIModel).toHaveBeenCalledWith("gpt-4o-mini");
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ model: "mock-openai-model" }),
+      );
     });
   });
 
@@ -290,6 +315,20 @@ describe("AIService", () => {
           temperature: 0.7,
           maxTokens: 1000,
         }),
+      );
+    });
+
+    it("should strip explicit provider prefix before passing model to SDK", async () => {
+      const service = AIService.createFresh(
+        { apiKey: "sk-test", model: "openai:gpt-4o-mini" },
+        logger,
+      );
+
+      await service.generateText("System", "User");
+
+      expect(mockOpenAIModel).toHaveBeenCalledWith("gpt-4o-mini");
+      expect(generateTextSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ model: "mock-openai-model" }),
       );
     });
 

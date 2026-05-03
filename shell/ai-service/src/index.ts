@@ -6,7 +6,12 @@
  */
 
 export { AIService } from "./aiService";
-export { selectTextProvider, selectImageProvider } from "./provider-selection";
+export {
+  resolveTextProvider,
+  selectTextProvider,
+  selectImageProvider,
+} from "./provider-selection";
+export type { ResolvedModelProvider } from "./provider-selection";
 
 // Re-export from ai SDK
 export { ToolLoopAgent, stepCountIs, dynamicTool } from "ai";
