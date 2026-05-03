@@ -13,7 +13,7 @@
  *   bun run eval --url http://localhost:8080 --token <token>  # With auth
  */
 
-import { resolve as resolvePath, join } from "path";
+import { resolve as resolvePath } from "path";
 import { EvaluationService } from "./evaluation-service";
 import type { EvaluationOptions, IReporter } from "./types";
 import type { EvaluationSummary } from "./schemas";
@@ -28,6 +28,8 @@ import { buildEvalDatabase } from "./eval-db-builder";
 import { runMultiModelEvaluation } from "./multi-model-runner";
 import { runSingleModelEvaluation } from "./single-model-runner";
 import type { RunEvaluationsOptions } from "./run-evaluation-types";
+import { printHelp } from "./cli-help";
+import { bootstrapCliEnvironment } from "./cli-bootstrap";
 
 /**
  * Run evaluations against an agent service
@@ -149,49 +151,6 @@ function logEvaluationStart(
 }
 
 /**
- * Print help message
- */
-function printHelp(): void {
-  console.log(`
-AI Evaluation Runner
-
-Usage: bun run eval [options]
-
-Options:
-  --test <ids>        Run specific test(s), comma-separated
-  --filter <ids>      Alias for --test
-  --tags <tags>       Filter tests by tag(s), comma-separated
-  --type <type>       Filter by type: "agent" or "plugin"
-  --url <url>         Run against a remote brain instance
-  --token <token>     Auth token for remote instance
-  --compare [name]    Compare with previous run or named baseline
-  --baseline <name>   Save results as a named baseline
-  --skip-llm-judge    Skip LLM quality scoring (faster)
-  --parallel, -p      Run tests in parallel (default: 3 concurrent)
-  --max-parallel <n>  Set max concurrent tests (default: 3)
-  --verbose, -v       Show verbose output
-  --build-db          Build eval database from eval-content (no tests)
-  --help, -h          Show this help message
-
-Examples:
-  bun run eval                              Run all tests
-  bun run eval --compare                    Compare with last run
-  bun run eval --compare baseline           Compare with named baseline
-  bun run eval --baseline pre-refactor      Save as named baseline
-  bun run eval --parallel                   Run tests in parallel (3x faster)
-  bun run eval --parallel --max-parallel 5  Run up to 5 tests at once
-  bun run eval --test tool-invocation-list  Run single test
-  bun run eval --filter my-test             Run single test (alias)
-  bun run eval --test list,search           Run multiple tests
-  bun run eval --tags core                  Run tests tagged 'core'
-  bun run eval --type plugin                Run only plugin tests
-  bun run eval --type agent                 Run only agent tests
-  bun run eval --skip-llm-judge             Skip LLM judge for speed
-  bun run eval --url http://localhost:8080  Run against remote instance
-`);
-}
-
-/**
  * CLI entry point - parses args and runs evaluations
  * Expects to be called from an app directory with access to brain.eval.yaml or brain.eval.config.ts
  */
@@ -297,22 +256,6 @@ export async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  // Load .env from the ai-evaluation package directory.
-  // This is the single location for eval secrets (API keys).
-  const { config } = await import("dotenv");
-  config({ path: join(import.meta.dir, "..", ".env") });
-
-  const hasAnyKey =
-    process.env["AI_API_KEY"] ??
-    process.env["OPENAI_API_KEY"] ??
-    process.env["ANTHROPIC_API_KEY"] ??
-    process.env["GOOGLE_GENERATIVE_AI_API_KEY"];
-  if (!hasAnyKey) {
-    console.error(
-      "No API key found. Set AI_API_KEY (or provider-specific keys) in shell/ai-evaluation/.env",
-    );
-    process.exit(1);
-  }
-
+  await bootstrapCliEnvironment();
   main().catch(console.error);
 }
