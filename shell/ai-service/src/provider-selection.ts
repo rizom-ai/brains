@@ -123,8 +123,7 @@ export interface TextModelCapabilities {
 }
 
 /**
- * Resolve provider name and capability flags in a single pass.
- * Avoids running the model-pattern regex twice when both are needed.
+ * Avoids running the model-pattern regex twice when both fields are needed.
  */
 export function resolveTextModelCapabilities(
   model?: string,
