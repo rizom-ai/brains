@@ -1,15 +1,9 @@
-import { z } from "@brains/utils";
-import { messageResponseSchema } from "./base-types";
+import { parseHandlerResponse } from "./handler-response";
 import type {
   InternalMessageResponse,
   MessageResponse,
   MessageWithPayload,
 } from "./types";
-
-const handlerResponseSchema = z.union([
-  z.object({ noop: z.literal(true) }),
-  messageResponseSchema,
-]);
 
 /**
  * Create a message with generated metadata required by the bus.
@@ -39,12 +33,7 @@ export function toInternalResponse(
   requestId: string,
   result: unknown,
 ): InternalMessageResponse {
-  const parsed = handlerResponseSchema.safeParse(result);
-  if (!parsed.success) {
-    throw new Error("Invalid message response format");
-  }
-
-  const response = parsed.data;
+  const response = parseHandlerResponse(result);
   // Handle noop responses for broadcast events
   if ("noop" in response) {
     return createInternalResponse(requestId, true);
