@@ -116,16 +116,20 @@ Optional later improvement: add package scripts or shell aliases for common app 
 
 ## 7. CI/deploy workflow
 
+Use a hybrid model: GitHub Actions secrets are only the bootstrap layer, and Bitwarden Secrets Manager is the source of truth.
+
 Store only this bootstrap secret in CI/deploy secret storage:
 
 ```text
 BITWARDEN_ACCESS_TOKEN
 ```
 
+The GitHub Actions `BITWARDEN_ACCESS_TOKEN` should usually belong to a read-only Bitwarden machine account. Local migration/push workflows can use a separate read/write machine account token.
+
 Then resolve environment values with Varlock:
 
 ```bash
-npx -y varlock load --path .env.schema --format json --compact
+npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
 ```
 
 or run commands with injected values:
@@ -133,6 +137,29 @@ or run commands with injected values:
 ```bash
 npx -y varlock run --path .env.schema -- your-command
 ```
+
+Keep multiline deploy secrets in Bitwarden and pass them through Varlock JSON, not shell heredocs. This preserves exact newlines for SSH keys and PEM material.
+
+Examples:
+
+```env
+# @required @sensitive
+KAMAL_SSH_PRIVATE_KEY=bitwarden("UUID_HERE")
+
+# @required @sensitive
+CERTIFICATE_PEM=bitwarden("UUID_HERE")
+
+# @required @sensitive
+PRIVATE_KEY_PEM=bitwarden("UUID_HERE")
+```
+
+CI/deploy scripts should read `/tmp/varlock-env.json` and write the necessary runtime files:
+
+- `KAMAL_SSH_PRIVATE_KEY` → `~/.ssh/...`, then `chmod 600`
+- `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` → cert/key files or `.kamal/secrets`, depending on the deploy path
+- other runtime/deploy variables → `.kamal/secrets` or `GITHUB_ENV` as needed
+
+After migration, GitHub Secrets should no longer contain app/runtime secrets like `AI_API_KEY`, `GIT_SYNC_TOKEN`, `MCP_AUTH_TOKEN`, `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, or `PRIVATE_KEY_PEM`; those live in Bitwarden.
 
 ## 8. Cleanup after validation
 
