@@ -136,9 +136,17 @@ Aliases are:
 - Merge detection uses title/keyword similarity heuristics before synthesis.
 - Metadata roundtripping preserves aliases; markdown reconstruction does not overwrite persisted metadata.
 
+### Dependency boundary follow-up
+
+- `@brains/ui-library` and `@brains/utils` are direct workspace dependencies today.
+- Before publishing this package externally, either publish those packages too or expose the needed stable APIs through `@brains/plugins`.
+
 ## Key files
 
-- `src/index.ts` — plugin registration, derive/rebuild flow, eval handlers
+- `src/index.ts` — plugin registration and package wiring
+- `src/lib/topic-projection.ts` — derive/rebuild projection flow
+- `src/lib/dashboard-widget.ts` — dashboard widget registration
+- `src/lib/eval-handlers.ts` — eval harness handlers
 - `src/lib/topic-extractor.ts` — single-entity extraction
 - `src/lib/topic-batch-extractor.ts` — token-budget-aware batch extraction
 - `src/lib/topic-merge.ts` — similarity and normalization heuristics
