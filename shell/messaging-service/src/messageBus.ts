@@ -7,7 +7,7 @@ import type {
   SubscriptionFilter,
 } from "./types";
 import { HandlerRegistry } from "./handler-registry";
-import { createMessage } from "./message-factory";
+import { createMessage, toMessageResponse } from "./message-factory";
 import { MessagePublisher } from "./message-publisher";
 import {
   validateMessage as validateWithSchema,
@@ -89,22 +89,7 @@ export class MessageBus implements IMessageBus {
   ): Promise<MessageResponse<R>> {
     const message = createMessage(type, payload, sender, target, metadata);
     const response = await this.publisher.publish(message, broadcast);
-
-    // Handle successful response
-    if (response?.success) {
-      return {
-        success: true,
-        data: response.data as R,
-      };
-    }
-
-    // Return error response if no handler found
-    return {
-      success: false,
-      error:
-        response?.error?.message ??
-        `No handler found for message type: ${type}`,
-    };
+    return toMessageResponse<R>(type, response);
   }
 
   /**

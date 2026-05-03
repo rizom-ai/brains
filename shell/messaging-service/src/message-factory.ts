@@ -50,6 +50,27 @@ export function toInternalResponse(
   throw new Error("Invalid message response format");
 }
 
+/**
+ * Convert an internal bus response into the public MessageResponse shape.
+ */
+export function toMessageResponse<R>(
+  type: string,
+  response: InternalMessageResponse | null,
+): MessageResponse<R> {
+  if (response?.success) {
+    return {
+      success: true,
+      data: response.data as R,
+    };
+  }
+
+  return {
+    success: false,
+    error:
+      response?.error?.message ?? `No handler found for message type: ${type}`,
+  };
+}
+
 function createInternalResponse(
   requestId: string,
   success: boolean,
