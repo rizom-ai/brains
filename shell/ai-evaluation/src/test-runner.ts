@@ -1,8 +1,4 @@
-import type {
-  IAgentService,
-  ChatContext,
-  AgentResponse,
-} from "@brains/ai-service";
+import type { IAgentService, ChatContext } from "@brains/ai-service";
 import type { UserPermissionLevel } from "@brains/templates";
 import { randomUUID } from "crypto";
 
@@ -12,17 +8,20 @@ import type {
   EvaluationResult,
   TurnResult,
   FailureDetail,
-  SuccessCriteria,
-  ToolCallRecord,
 } from "./schemas";
 import { MetricCollector } from "./metric-collector";
+import {
+  evaluateCriteria,
+  evaluateEfficiency,
+  evaluateQualityThresholds,
+} from "./criteria-evaluator";
 
 /**
  * Runs individual test cases against an agent service
  */
 export class TestRunner implements ITestRunner {
-  private agentService: IAgentService;
-  private llmJudge: ILLMJudge | null;
+  private readonly agentService: IAgentService;
+  private readonly llmJudge: ILLMJudge | null;
 
   constructor(agentService: IAgentService, llmJudge?: ILLMJudge) {
     this.agentService = agentService;
@@ -41,14 +40,8 @@ export class TestRunner implements ITestRunner {
     const turnResults: TurnResult[] = [];
     const failures: FailureDetail[] = [];
 
-    // Build chat context from test setup
-    const context: ChatContext = {
-      userPermissionLevel: (testCase.setup?.permissionLevel ??
-        "anchor") as UserPermissionLevel,
-      interfaceType: "evaluation",
-    };
+    const context = this.buildChatContext(testCase);
 
-    // Execute each turn
     for (let i = 0; i < testCase.turns.length; i++) {
       const turn = testCase.turns[i];
       if (!turn) continue;
@@ -59,22 +52,19 @@ export class TestRunner implements ITestRunner {
         conversationId,
         context,
       );
-      const toolResultsForMetrics =
-        response.toolResults?.map((tr) => ({
-          toolName: tr.toolName,
-          args: tr.args ?? ({} as Record<string, unknown>),
-          result: tr.data,
-        })) ?? [];
       const metrics = collector.endTurn({
         usage: response.usage,
-        toolResults: toolResultsForMetrics,
+        toolResults:
+          response.toolResults?.map((toolResult) => ({
+            toolName: toolResult.toolName,
+            args: toolResult.args ?? ({} as Record<string, unknown>),
+            result: toolResult.data,
+          })) ?? [],
       });
 
       const toolCalls = collector.getToolCallsForTurn(i);
-
-      // Evaluate per-turn criteria if specified
       const turnCriteriaResults = turn.successCriteria
-        ? this.evaluateCriteria(turn.successCriteria, response, toolCalls)
+        ? evaluateCriteria(turn.successCriteria, response, toolCalls)
         : [];
 
       turnResults.push({
@@ -83,58 +73,36 @@ export class TestRunner implements ITestRunner {
         assistantResponse: response.text,
         toolCalls,
         metrics,
-        criteriaResults: turnCriteriaResults.map((r) => ({
-          criterion: r.criterion,
-          passed: r.passed,
-          details: r.message,
+        criteriaResults: turnCriteriaResults.map((result) => ({
+          criterion: result.criterion,
+          passed: result.passed,
+          details: result.message,
         })),
       });
 
-      // Collect per-turn failures
-      for (const result of turnCriteriaResults) {
-        if (!result.passed) {
-          failures.push(result);
-        }
-      }
+      failures.push(...turnCriteriaResults.filter((result) => !result.passed));
     }
 
-    // Evaluate final success criteria
-    const allToolCalls = collector.getAllToolCalls();
-    const lastResponse = turnResults[turnResults.length - 1];
-    const finalCriteriaResults = this.evaluateCriteria(
+    const finalCriteriaFailures = evaluateCriteria(
       testCase.successCriteria,
-      {
-        text: lastResponse?.assistantResponse ?? "",
-        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
-      },
-      allToolCalls,
-    );
+      { text: turnResults.at(-1)?.assistantResponse ?? "" },
+      collector.getAllToolCalls(),
+    ).filter((result) => !result.passed);
+    failures.push(...finalCriteriaFailures);
 
-    for (const result of finalCriteriaResults) {
-      if (!result.passed) {
-        failures.push(result);
-      }
-    }
-
-    // Evaluate efficiency criteria
     const totalMetrics = collector.getTotalMetrics();
-    const efficiencyFailures = this.evaluateEfficiency(testCase, totalMetrics);
+    const efficiencyFailures = evaluateEfficiency(testCase, totalMetrics);
 
-    // Get quality scores from LLM judge if available and not skipped
-    let qualityScores = undefined;
-    if (this.llmJudge && !options.skipLLMJudge) {
-      qualityScores =
-        (await this.llmJudge.scoreConversation(testCase, turnResults)) ??
-        undefined;
+    const qualityScores =
+      this.llmJudge && !options.skipLLMJudge
+        ? ((await this.llmJudge.scoreConversation(testCase, turnResults)) ??
+          undefined)
+        : undefined;
 
-      // Check quality score thresholds
-      if (qualityScores) {
-        const qualityFailures = this.evaluateQualityThresholds(
-          testCase.successCriteria,
-          qualityScores,
-        );
-        failures.push(...qualityFailures);
-      }
+    if (qualityScores) {
+      failures.push(
+        ...evaluateQualityThresholds(testCase.successCriteria, qualityScores),
+      );
     }
 
     const passed = failures.length === 0 && efficiencyFailures.length === 0;
@@ -154,291 +122,12 @@ export class TestRunner implements ITestRunner {
     };
   }
 
-  /**
-   * Evaluate success criteria against response and tool calls
-   */
-  private evaluateCriteria(
-    criteria: SuccessCriteria,
-    response: { text: string; usage: AgentResponse["usage"] },
-    toolCalls: ToolCallRecord[],
-  ): Array<FailureDetail & { passed: boolean }> {
-    const results: Array<FailureDetail & { passed: boolean }> = [];
-
-    // Check expected tools
-    if (criteria.expectedTools) {
-      for (const expected of criteria.expectedTools) {
-        const wasCalled = toolCalls.some(
-          (tc) => tc.toolName === expected.toolName,
-        );
-
-        if (expected.shouldBeCalled && !wasCalled) {
-          results.push({
-            criterion: "expectedTool",
-            expected: `Tool "${expected.toolName}" should be called`,
-            actual: `Tool was not called. Called tools: ${toolCalls.map((tc) => tc.toolName).join(", ") || "none"}`,
-            message: `Expected tool "${expected.toolName}" was not called`,
-            passed: false,
-          });
-        } else if (!expected.shouldBeCalled && wasCalled) {
-          results.push({
-            criterion: "expectedTool",
-            expected: `Tool "${expected.toolName}" should NOT be called`,
-            actual: `Tool was called`,
-            message: `Tool "${expected.toolName}" should not have been called`,
-            passed: false,
-          });
-        } else {
-          results.push({
-            criterion: "expectedTool",
-            expected: expected.shouldBeCalled ? "called" : "not called",
-            actual: wasCalled ? "called" : "not called",
-            passed: true,
-          });
-        }
-
-        const matchingCalls = toolCalls.filter(
-          (tc) => tc.toolName === expected.toolName,
-        );
-        const resolvePath = (
-          obj: Record<string, unknown>,
-          path: string,
-        ): unknown => {
-          const parts = path.split(".");
-          let current: unknown = obj;
-          for (const part of parts) {
-            if (current == null || typeof current !== "object")
-              return undefined;
-            current = (current as Record<string, unknown>)[part];
-          }
-          return current;
-        };
-        const hasNonEmptyValue = (value: unknown): boolean =>
-          value !== undefined &&
-          value !== null &&
-          !(typeof value === "string" && value.trim().length === 0);
-        const collectActualValues = (
-          key: string,
-          options: { ignoreEmpty?: boolean } = {},
-        ): unknown[] =>
-          matchingCalls
-            .map((tc) => tc.args && resolvePath(tc.args, key))
-            .filter(
-              options.ignoreEmpty ? hasNonEmptyValue : (v) => v !== undefined,
-            );
-
-        // Check args if specified - pass if ANY call to the tool has matching args
-        // Supports dot-notation paths (e.g. "options.targetEntityType")
-        if (expected.shouldBeCalled && wasCalled && expected.argsContain) {
-          for (const [key, expectedValue] of Object.entries(
-            expected.argsContain,
-          )) {
-            const anyCallMatches = matchingCalls.some(
-              (tc) =>
-                tc.args &&
-                Bun.deepEquals(resolvePath(tc.args, key), expectedValue),
-            );
-
-            if (!anyCallMatches) {
-              results.push({
-                criterion: "toolArgsContain",
-                expected: `${expected.toolName}.${key} = ${JSON.stringify(expectedValue)}`,
-                actual: `${JSON.stringify(collectActualValues(key))} (across ${matchingCalls.length} calls)`,
-                message: `Tool arg mismatch for ${expected.toolName}.${key}`,
-                passed: false,
-              });
-            }
-          }
-        }
-
-        if (expected.shouldBeCalled && wasCalled && expected.argsAbsent) {
-          for (const key of expected.argsAbsent) {
-            const actualValues = collectActualValues(key, {
-              ignoreEmpty: true,
-            });
-
-            if (actualValues.length > 0) {
-              results.push({
-                criterion: "toolArgsAbsent",
-                expected: `${expected.toolName}.${key} absent`,
-                actual: `${JSON.stringify(actualValues)} (across ${matchingCalls.length} calls)`,
-                message: `Tool arg should be absent for ${expected.toolName}.${key}`,
-                passed: false,
-              });
-            }
-          }
-        }
-      }
-    }
-
-    // Check tool count range
-    if (criteria.toolCountRange) {
-      const count = toolCalls.length;
-      if (
-        criteria.toolCountRange.min !== undefined &&
-        count < criteria.toolCountRange.min
-      ) {
-        results.push({
-          criterion: "toolCountRange",
-          expected: `>= ${criteria.toolCountRange.min} tool calls`,
-          actual: count,
-          message: `Too few tool calls: ${count} < ${criteria.toolCountRange.min}`,
-          passed: false,
-        });
-      }
-      if (
-        criteria.toolCountRange.max !== undefined &&
-        count > criteria.toolCountRange.max
-      ) {
-        results.push({
-          criterion: "toolCountRange",
-          expected: `<= ${criteria.toolCountRange.max} tool calls`,
-          actual: count,
-          message: `Too many tool calls: ${count} > ${criteria.toolCountRange.max}`,
-          passed: false,
-        });
-      }
-    }
-
-    // Check response contains
-    if (criteria.responseContains) {
-      for (const expected of criteria.responseContains) {
-        const contains = response.text
-          .toLowerCase()
-          .includes(expected.toLowerCase());
-        if (!contains) {
-          results.push({
-            criterion: "responseContains",
-            expected: `Response should contain "${expected}"`,
-            actual: `Not found in response`,
-            message: `Response does not contain expected text: "${expected}"`,
-            passed: false,
-          });
-        }
-      }
-    }
-
-    // Check response not contains
-    if (criteria.responseNotContains) {
-      for (const notExpected of criteria.responseNotContains) {
-        const contains = response.text
-          .toLowerCase()
-          .includes(notExpected.toLowerCase());
-        if (contains) {
-          results.push({
-            criterion: "responseNotContains",
-            expected: `Response should NOT contain "${notExpected}"`,
-            actual: `Found in response`,
-            message: `Response contains unwanted text: "${notExpected}"`,
-            passed: false,
-          });
-        }
-      }
-    }
-
-    return results;
-  }
-
-  /**
-   * Evaluate efficiency criteria
-   */
-  private evaluateEfficiency(
-    testCase: AgentTestCase,
-    metrics: { totalTokens: number; toolCallCount: number; durationMs: number },
-  ): FailureDetail[] {
-    const failures: FailureDetail[] = [];
-    const efficiency = testCase.efficiency;
-
-    if (!efficiency) return failures;
-
-    if (
-      efficiency.maxTokens !== undefined &&
-      metrics.totalTokens > efficiency.maxTokens
-    ) {
-      failures.push({
-        criterion: "maxTokens",
-        expected: efficiency.maxTokens,
-        actual: metrics.totalTokens,
-        message: `Token usage ${metrics.totalTokens} exceeds max ${efficiency.maxTokens}`,
-      });
-    }
-
-    if (
-      efficiency.maxToolCalls !== undefined &&
-      metrics.toolCallCount > efficiency.maxToolCalls
-    ) {
-      failures.push({
-        criterion: "maxToolCalls",
-        expected: efficiency.maxToolCalls,
-        actual: metrics.toolCallCount,
-        message: `Tool calls ${metrics.toolCallCount} exceeds max ${efficiency.maxToolCalls}`,
-      });
-    }
-
-    if (
-      efficiency.maxDurationMs !== undefined &&
-      metrics.durationMs > efficiency.maxDurationMs
-    ) {
-      failures.push({
-        criterion: "maxDurationMs",
-        expected: efficiency.maxDurationMs,
-        actual: metrics.durationMs,
-        message: `Duration ${metrics.durationMs}ms exceeds max ${efficiency.maxDurationMs}ms`,
-      });
-    }
-
-    return failures;
-  }
-
-  /**
-   * Evaluate quality score thresholds
-   */
-  private evaluateQualityThresholds(
-    criteria: SuccessCriteria,
-    scores: {
-      helpfulness: number;
-      accuracy: number;
-      instructionFollowing: number;
-    },
-  ): FailureDetail[] {
-    const failures: FailureDetail[] = [];
-
-    if (
-      criteria.minHelpfulnessScore !== undefined &&
-      scores.helpfulness < criteria.minHelpfulnessScore
-    ) {
-      failures.push({
-        criterion: "minHelpfulnessScore",
-        expected: criteria.minHelpfulnessScore,
-        actual: scores.helpfulness,
-        message: `Helpfulness score ${scores.helpfulness} below minimum ${criteria.minHelpfulnessScore}`,
-      });
-    }
-
-    if (
-      criteria.minAccuracyScore !== undefined &&
-      scores.accuracy < criteria.minAccuracyScore
-    ) {
-      failures.push({
-        criterion: "minAccuracyScore",
-        expected: criteria.minAccuracyScore,
-        actual: scores.accuracy,
-        message: `Accuracy score ${scores.accuracy} below minimum ${criteria.minAccuracyScore}`,
-      });
-    }
-
-    if (
-      criteria.minInstructionFollowingScore !== undefined &&
-      scores.instructionFollowing < criteria.minInstructionFollowingScore
-    ) {
-      failures.push({
-        criterion: "minInstructionFollowingScore",
-        expected: criteria.minInstructionFollowingScore,
-        actual: scores.instructionFollowing,
-        message: `Instruction following score ${scores.instructionFollowing} below minimum ${criteria.minInstructionFollowingScore}`,
-      });
-    }
-
-    return failures;
+  private buildChatContext(testCase: AgentTestCase): ChatContext {
+    return {
+      userPermissionLevel: (testCase.setup?.permissionLevel ??
+        "anchor") as UserPermissionLevel,
+      interfaceType: "evaluation",
+    };
   }
 
   /**
