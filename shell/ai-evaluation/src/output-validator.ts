@@ -1,4 +1,20 @@
-import type { ExpectedOutput, FailureDetail } from "./schemas";
+import type {
+  ExpectedOutput,
+  FailureDetail,
+  ItemsContain,
+  PathValidation,
+} from "./schemas";
+
+interface PatternMatch {
+  pattern: RegExp;
+  description: string;
+}
+
+interface PathValidationContext {
+  criterionPrefix: string;
+  messagePrefix: string;
+  formatActualString: (value: string) => string;
+}
 
 /**
  * Validates plugin outputs against expected output schemas
@@ -8,25 +24,26 @@ export class OutputValidator {
    * Validate an output against expected output criteria
    */
   validate(output: unknown, expected: ExpectedOutput): FailureDetail[] {
-    const failures: FailureDetail[] = [];
-
-    // Handle array outputs
     if (Array.isArray(output)) {
-      failures.push(...this.validateArray(output, expected));
-    } else if (expected.minItems || expected.maxItems || expected.exactItems) {
-      // Expected array but got something else
-      failures.push({
-        criterion: "outputType",
-        expected: "array",
-        actual: typeof output,
-        message: `Expected array output but got ${typeof output}`,
-      });
-    } else if (typeof output === "object" && output !== null) {
-      // Handle object outputs
-      failures.push(...this.validateObject(output, expected));
+      return this.validateArray(output, expected);
     }
 
-    return failures;
+    if (this.expectsArray(expected)) {
+      return [
+        {
+          criterion: "outputType",
+          expected: "array",
+          actual: typeof output,
+          message: `Expected array output but got ${typeof output}`,
+        },
+      ];
+    }
+
+    if (typeof output === "object" && output !== null) {
+      return this.validateObject(output, expected);
+    }
+
+    return [];
   }
 
   /**
@@ -36,55 +53,11 @@ export class OutputValidator {
     output: object,
     expected: ExpectedOutput,
   ): FailureDetail[] {
-    const failures: FailureDetail[] = [];
-
-    // Check validateEach - validate paths against the object
-    if (expected.validateEach) {
-      for (const check of expected.validateEach) {
-        const value = this.getPathValue(output, check.path);
-
-        // Check exists
-        if (check.exists !== undefined) {
-          const exists = value !== undefined;
-          if (exists !== check.exists) {
-            failures.push({
-              criterion: "validateEach.exists",
-              expected: check.exists ? "exists" : "does not exist",
-              actual: exists ? "exists" : "does not exist",
-              message: `${check.path}: expected ${check.exists ? "to exist" : "not to exist"}`,
-            });
-          }
-        }
-
-        // Check equals
-        if (check.equals !== undefined && value !== check.equals) {
-          failures.push({
-            criterion: "validateEach.equals",
-            expected: JSON.stringify(check.equals),
-            actual: JSON.stringify(value),
-            message: `${check.path}: expected ${JSON.stringify(check.equals)}, got ${JSON.stringify(value)}`,
-          });
-        }
-
-        // Check matches (regex)
-        if (check.matches !== undefined) {
-          const pattern = new RegExp(check.matches);
-          if (typeof value !== "string" || !pattern.test(value)) {
-            failures.push({
-              criterion: "validateEach.matches",
-              expected: `matches /${check.matches}/`,
-              actual:
-                typeof value === "string"
-                  ? `"${value.slice(0, 100)}..."`
-                  : typeof value,
-              message: `${check.path}: expected to match /${check.matches}/`,
-            });
-          }
-        }
-      }
-    }
-
-    return failures;
+    return this.validatePathChecks(output, expected.validateEach ?? [], {
+      criterionPrefix: "validateEach",
+      messagePrefix: "",
+      formatActualString: (value) => `"${value.slice(0, 100)}..."`,
+    });
   }
 
   /**
@@ -94,9 +67,26 @@ export class OutputValidator {
     output: unknown[],
     expected: ExpectedOutput,
   ): FailureDetail[] {
+    return [
+      ...this.validateArrayCounts(output, expected),
+      ...this.validateItemsContain(output, expected.itemsContain ?? []),
+      ...this.validateItemsNotContain(output, expected.itemsNotContain ?? []),
+      ...this.validateArrayItems(output, expected.validateEach ?? []),
+    ];
+  }
+
+  private expectsArray(expected: ExpectedOutput): boolean {
+    return [expected.minItems, expected.maxItems, expected.exactItems].some(
+      Boolean,
+    );
+  }
+
+  private validateArrayCounts(
+    output: unknown[],
+    expected: ExpectedOutput,
+  ): FailureDetail[] {
     const failures: FailureDetail[] = [];
 
-    // Check exact count
     if (
       expected.exactItems !== undefined &&
       output.length !== expected.exactItems
@@ -109,7 +99,6 @@ export class OutputValidator {
       });
     }
 
-    // Check min count
     if (expected.minItems !== undefined && output.length < expected.minItems) {
       failures.push({
         criterion: "minItems",
@@ -119,7 +108,6 @@ export class OutputValidator {
       });
     }
 
-    // Check max count
     if (expected.maxItems !== undefined && output.length > expected.maxItems) {
       failures.push({
         criterion: "maxItems",
@@ -129,111 +117,166 @@ export class OutputValidator {
       });
     }
 
-    // Check itemsContain - verify at least one item matches each pattern
-    if (expected.itemsContain) {
-      for (const check of expected.itemsContain) {
-        const { pattern, description } = this.buildPattern(check);
-        const hasMatch = output.some((item) => {
-          const value = this.getFieldValue(item, check.field);
-          return typeof value === "string" && pattern.test(value);
+    return failures;
+  }
+
+  private validateItemsContain(
+    output: unknown[],
+    checks: ItemsContain[],
+  ): FailureDetail[] {
+    const failures: FailureDetail[] = [];
+
+    for (const check of checks) {
+      const { pattern, description } = this.buildPattern(check);
+      const hasMatch = output.some((item) => {
+        const value = this.getFieldValue(item, check.field);
+        return typeof value === "string" && pattern.test(value);
+      });
+
+      if (!hasMatch) {
+        failures.push({
+          criterion: "itemsContain",
+          expected: `item.${check.field} matches ${description}`,
+          actual: "no matching item found",
+          message: `No item found where ${check.field} matches ${description}`,
         });
-
-        if (!hasMatch) {
-          failures.push({
-            criterion: "itemsContain",
-            expected: `item.${check.field} matches ${description}`,
-            actual: "no matching item found",
-            message: `No item found where ${check.field} matches ${description}`,
-          });
-        }
-      }
-    }
-
-    // Check itemsNotContain - verify NO item matches the patterns
-    if (expected.itemsNotContain) {
-      for (const check of expected.itemsNotContain) {
-        const { pattern, description } = this.buildPattern(check);
-        const matchingItems: { index: number; value: string }[] = [];
-
-        output.forEach((item, index) => {
-          const value = this.getFieldValue(item, check.field);
-          if (typeof value === "string" && pattern.test(value)) {
-            matchingItems.push({ index, value });
-          }
-        });
-
-        if (matchingItems.length > 0) {
-          const examples = matchingItems
-            .slice(0, 3)
-            .map((m) => `[${m.index}]: "${m.value}"`)
-            .join(", ");
-          failures.push({
-            criterion: "itemsNotContain",
-            expected: `no item.${check.field} matches ${description}`,
-            actual: `${matchingItems.length} item(s) matched: ${examples}`,
-            message: `Found ${matchingItems.length} item(s) where ${check.field} matches forbidden ${description}`,
-          });
-        }
-      }
-    }
-
-    // Check validateEach - validate each item against path checks
-    if (expected.validateEach) {
-      for (const check of expected.validateEach) {
-        for (let i = 0; i < output.length; i++) {
-          const item = output[i];
-          const value = this.getPathValue(item, check.path);
-
-          // Check exists
-          if (check.exists !== undefined) {
-            const exists = value !== undefined;
-            if (exists !== check.exists) {
-              failures.push({
-                criterion: "validateEach.exists",
-                expected: check.exists ? "exists" : "does not exist",
-                actual: exists ? "exists" : "does not exist",
-                message: `Item[${i}].${check.path}: expected ${check.exists ? "to exist" : "not to exist"}`,
-              });
-            }
-          }
-
-          // Check equals
-          if (check.equals !== undefined && value !== check.equals) {
-            failures.push({
-              criterion: "validateEach.equals",
-              expected: JSON.stringify(check.equals),
-              actual: JSON.stringify(value),
-              message: `Item[${i}].${check.path}: expected ${JSON.stringify(check.equals)}, got ${JSON.stringify(value)}`,
-            });
-          }
-
-          // Check matches (regex)
-          if (check.matches !== undefined) {
-            const pattern = new RegExp(check.matches);
-            if (typeof value !== "string" || !pattern.test(value)) {
-              failures.push({
-                criterion: "validateEach.matches",
-                expected: `matches /${check.matches}/`,
-                actual: typeof value === "string" ? value : typeof value,
-                message: `Item[${i}].${check.path}: expected to match /${check.matches}/`,
-              });
-            }
-          }
-        }
       }
     }
 
     return failures;
   }
 
+  private validateItemsNotContain(
+    output: unknown[],
+    checks: ItemsContain[],
+  ): FailureDetail[] {
+    const failures: FailureDetail[] = [];
+
+    for (const check of checks) {
+      const { pattern, description } = this.buildPattern(check);
+      const matchingItems = this.findMatchingItems(output, check, pattern);
+
+      if (matchingItems.length > 0) {
+        const examples = matchingItems
+          .slice(0, 3)
+          .map((match) => `[${match.index}]: "${match.value}"`)
+          .join(", ");
+        failures.push({
+          criterion: "itemsNotContain",
+          expected: `no item.${check.field} matches ${description}`,
+          actual: `${matchingItems.length} item(s) matched: ${examples}`,
+          message: `Found ${matchingItems.length} item(s) where ${check.field} matches forbidden ${description}`,
+        });
+      }
+    }
+
+    return failures;
+  }
+
+  private validateArrayItems(
+    output: unknown[],
+    checks: PathValidation[],
+  ): FailureDetail[] {
+    const failures: FailureDetail[] = [];
+
+    output.forEach((item, index) => {
+      failures.push(
+        ...this.validatePathChecks(item, checks, {
+          criterionPrefix: "validateEach",
+          messagePrefix: `Item[${index}].`,
+          formatActualString: (value) => value,
+        }),
+      );
+    });
+
+    return failures;
+  }
+
+  private validatePathChecks(
+    target: unknown,
+    checks: PathValidation[],
+    context: PathValidationContext,
+  ): FailureDetail[] {
+    const failures: FailureDetail[] = [];
+
+    for (const check of checks) {
+      const value = this.getPathValue(target, check.path);
+
+      if (check.exists !== undefined) {
+        const exists = value !== undefined;
+        if (exists !== check.exists) {
+          failures.push({
+            criterion: `${context.criterionPrefix}.exists`,
+            expected: check.exists ? "exists" : "does not exist",
+            actual: exists ? "exists" : "does not exist",
+            message: `${context.messagePrefix}${check.path}: expected ${check.exists ? "to exist" : "not to exist"}`,
+          });
+        }
+      }
+
+      if (check.equals !== undefined && value !== check.equals) {
+        failures.push({
+          criterion: `${context.criterionPrefix}.equals`,
+          expected: JSON.stringify(check.equals),
+          actual: JSON.stringify(value),
+          message: `${context.messagePrefix}${check.path}: expected ${JSON.stringify(check.equals)}, got ${JSON.stringify(value)}`,
+        });
+      }
+
+      if (check.matches !== undefined) {
+        failures.push(...this.validatePathRegex(value, check, context));
+      }
+    }
+
+    return failures;
+  }
+
+  private validatePathRegex(
+    value: unknown,
+    check: PathValidation,
+    context: PathValidationContext,
+  ): FailureDetail[] {
+    const pattern = new RegExp(check.matches ?? "");
+
+    if (typeof value === "string" && pattern.test(value)) {
+      return [];
+    }
+
+    return [
+      {
+        criterion: `${context.criterionPrefix}.matches`,
+        expected: `matches /${check.matches}/`,
+        actual:
+          typeof value === "string"
+            ? context.formatActualString(value)
+            : typeof value,
+        message: `${context.messagePrefix}${check.path}: expected to match /${check.matches}/`,
+      },
+    ];
+  }
+
+  private findMatchingItems(
+    output: unknown[],
+    check: ItemsContain,
+    pattern: RegExp,
+  ): Array<{ index: number; value: string }> {
+    const matchingItems: Array<{ index: number; value: string }> = [];
+
+    output.forEach((item, index) => {
+      const value = this.getFieldValue(item, check.field);
+      if (typeof value === "string" && pattern.test(value)) {
+        matchingItems.push({ index, value });
+      }
+    });
+
+    return matchingItems;
+  }
+
   /**
    * Build a regex pattern from either pattern string or words array
    * Words automatically get word boundaries applied
    */
-  private buildPattern(check: {
-    pattern?: string | undefined;
-    words?: string[] | undefined;
-  }): { pattern: RegExp; description: string } {
+  private buildPattern(check: ItemsContain): PatternMatch {
     if (check.pattern) {
       return {
         pattern: new RegExp(check.pattern),
@@ -243,8 +286,8 @@ export class OutputValidator {
 
     if (check.words && check.words.length > 0) {
       // Escape special regex characters in words and join with OR
-      const escaped = check.words.map((w) =>
-        w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      const escaped = check.words.map((word) =>
+        word.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
       );
       const regexStr = `\\b(${escaped.join("|")})\\b`;
       return {
