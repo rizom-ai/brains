@@ -232,6 +232,30 @@ describe("MessageBus", () => {
       expect("success" in result && result.success).toBe(true);
       expect("data" in result && result.data).toEqual({ result: "success" });
     });
+
+    it("should continue to the next handler after an invalid success value", async () => {
+      const invalidHandler = mock(
+        () => ({ success: "yes" }) as unknown as { success: true },
+      );
+      const successHandler = mock(() => ({
+        success: true,
+        data: { result: "success" },
+      }));
+
+      messageBus.subscribe("test.message", invalidHandler);
+      messageBus.subscribe("test.message", successHandler);
+
+      const result = await messageBus.send(
+        "test.message",
+        { value: "test" },
+        "test-source",
+      );
+
+      expect(invalidHandler).toHaveBeenCalledTimes(1);
+      expect(successHandler).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toEqual({ result: "success" });
+    });
   });
 
   describe("message validation", () => {

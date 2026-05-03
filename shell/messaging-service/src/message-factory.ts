@@ -1,8 +1,15 @@
+import { z } from "@brains/utils";
+import { messageResponseSchema } from "./base-types";
 import type {
   InternalMessageResponse,
   MessageResponse,
   MessageWithPayload,
 } from "./types";
+
+const handlerResponseSchema = z.union([
+  z.object({ noop: z.literal(true) }),
+  messageResponseSchema,
+]);
 
 /**
  * Create a message with generated metadata required by the bus.
@@ -32,30 +39,23 @@ export function toInternalResponse(
   requestId: string,
   result: unknown,
 ): InternalMessageResponse {
-  if (!isResponseRecord(result)) {
+  const parsed = handlerResponseSchema.safeParse(result);
+  if (!parsed.success) {
     throw new Error("Invalid message response format");
   }
 
+  const response = parsed.data;
   // Handle noop responses for broadcast events
-  if ("noop" in result) {
+  if ("noop" in response) {
     return createInternalResponse(requestId, true);
   }
 
-  // Type guard: if we get here, result must have success/data/error properties
-  if ("success" in result) {
-    const response = result as Exclude<
-      MessageResponse<unknown>,
-      { noop: true }
-    >;
-    return createInternalResponse(
-      requestId,
-      response.success,
-      response.data,
-      response.error,
-    );
-  }
-
-  throw new Error("Invalid message response format");
+  return createInternalResponse(
+    requestId,
+    response.success,
+    response.data,
+    response.error,
+  );
 }
 
 /**
@@ -77,10 +77,6 @@ export function toMessageResponse<R>(
     error:
       response?.error?.message ?? `No handler found for message type: ${type}`,
   };
-}
-
-function isResponseRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
 }
 
 function createInternalResponse(
