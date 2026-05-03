@@ -5,10 +5,10 @@ import type {
   IConversationService,
   ConversationServiceConfig,
   ConversationDbConfig,
-  ConversationMetadata,
-  MessageRole,
   GetMessagesOptions,
   ConversationDigestPayload,
+  StartConversationRequest,
+  AddConversationMessageRequest,
 } from "./types";
 import type {
   Conversation,
@@ -97,12 +97,8 @@ export class ConversationService implements IConversationService {
   /**
    * Start a new conversation session (idempotent - returns existing or creates new)
    */
-  async startConversation(
-    sessionId: string,
-    interfaceType: string,
-    channelId: string,
-    metadata: ConversationMetadata,
-  ): Promise<string> {
+  async startConversation(request: StartConversationRequest): Promise<string> {
+    const { sessionId, interfaceType, channelId, metadata } = request;
     const now = new Date().toISOString();
 
     // Check if conversation already exists for this sessionId
@@ -171,12 +167,8 @@ export class ConversationService implements IConversationService {
   /**
    * Add a message to a conversation
    */
-  async addMessage(
-    conversationId: string,
-    role: MessageRole,
-    content: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void> {
+  async addMessage(request: AddConversationMessageRequest): Promise<void> {
+    const { conversationId, role, content, metadata } = request;
     const now = new Date().toISOString();
     const messageId = createId(12);
 

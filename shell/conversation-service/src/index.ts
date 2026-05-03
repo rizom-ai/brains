@@ -7,6 +7,8 @@ export type {
   ConversationMetadata,
   MessageRole,
   GetMessagesOptions,
+  StartConversationRequest,
+  AddConversationMessageRequest,
   ConversationDigestPayload,
   ConversationDbConfig,
 } from "./types";

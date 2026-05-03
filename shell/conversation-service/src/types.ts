@@ -39,20 +39,24 @@ export interface GetMessagesOptions {
   };
 }
 
+export interface StartConversationRequest {
+  sessionId: string;
+  interfaceType: string;
+  channelId: string;
+  metadata: ConversationMetadata;
+}
+
+export interface AddConversationMessageRequest {
+  conversationId: string;
+  role: MessageRole;
+  content: string;
+  metadata?: Record<string, unknown>;
+}
+
 export interface IConversationService {
   // Core operations
-  startConversation(
-    sessionId: string,
-    interfaceType: string,
-    channelId: string,
-    metadata: ConversationMetadata,
-  ): Promise<string>;
-  addMessage(
-    conversationId: string,
-    role: MessageRole,
-    content: string,
-    metadata?: Record<string, unknown>,
-  ): Promise<void>;
+  startConversation(request: StartConversationRequest): Promise<string>;
+  addMessage(request: AddConversationMessageRequest): Promise<void>;
   getMessages(
     conversationId: string,
     options?: GetMessagesOptions,

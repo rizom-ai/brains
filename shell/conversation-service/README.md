@@ -24,19 +24,26 @@ const service = ConversationService.getInstance({
 });
 
 // Get or create conversation
-const conversation = await service.getOrCreateConversation("cli", "main");
+const conversationId = await service.startConversation({
+  sessionId: "cli-main",
+  interfaceType: "cli",
+  channelId: "main",
+  metadata: {
+    channelName: "Main CLI",
+    interfaceType: "cli",
+    channelId: "main",
+  },
+});
 
 // Add message
-await service.addMessage(conversation.id, {
+await service.addMessage({
+  conversationId,
   role: "user",
   content: "Hello, Brain!",
 });
 
 // Get recent messages
-const messages = await service.getMessages(
-  conversation.id,
-  20, // limit
-);
+const messages = await service.getMessages(conversationId, { limit: 20 });
 
 // Get conversation metadata
 const conv = await service.getConversation(conversationId);
