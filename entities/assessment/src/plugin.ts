@@ -35,11 +35,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
 
     const enqueueDerive = async (reason: string): Promise<string | null> => {
       try {
-        return await context.jobs.enqueue(
-          "derive",
-          { reason } satisfies SwotDerivationJobData,
-          null,
-          {
+        return await context.jobs.enqueue({
+          type: "derive",
+          data: { reason } satisfies SwotDerivationJobData,
+          options: {
             source: this.id,
             priority: 10,
             deduplication: "coalesce",
@@ -49,7 +48,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
               operationTarget: `swot:${reason}`,
             },
           },
-        );
+        });
       } catch (error) {
         this.logger.error("Failed to queue SWOT derivation", { error, reason });
         return null;

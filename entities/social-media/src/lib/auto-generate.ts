@@ -93,16 +93,16 @@ export function subscribeToAutoGenerate(
     const { sourceEntityType, sourceEntityId, platform } = msg.payload;
 
     try {
-      const jobId = await context.jobs.enqueue(
-        `${socialPostAdapter.entityType}:generation`,
-        {
+      const jobId = await context.jobs.enqueue({
+        type: `${socialPostAdapter.entityType}:generation`,
+        data: {
           sourceEntityType,
           sourceEntityId,
           platform,
           addToQueue: false,
         },
-        { interfaceType: "job", userId: "system" },
-      );
+        toolContext: { interfaceType: "job", userId: "system" },
+      });
 
       logger.info(
         `Social post generation job enqueued for ${sourceEntityType}/${sourceEntityId}`,
@@ -192,16 +192,16 @@ export function subscribeToGenerateExecute(
           return { success: true };
         }
 
-        const jobId = await context.jobs.enqueue(
-          `${socialPostAdapter.entityType}:generation`,
-          {
+        const jobId = await context.jobs.enqueue({
+          type: `${socialPostAdapter.entityType}:generation`,
+          data: {
             sourceEntityType: "post",
             sourceEntityId: sourcePost.id,
             platform: "linkedin",
             addToQueue: false,
           },
-          { interfaceType: "job", userId: "system" },
-        );
+          toolContext: { interfaceType: "job", userId: "system" },
+        });
 
         logger.info("Social post generation job queued", {
           jobId,

@@ -423,10 +423,10 @@ export class EntityMutations {
     };
     const rootJobId = createId();
 
-    const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
-      jobData,
-      {
+    const jobId = await this.jobQueueService.enqueue({
+      type: "shell:embedding",
+      data: jobData,
+      options: {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
@@ -436,7 +436,7 @@ export class EntityMutations {
           operationTarget: entityId,
         },
       },
-    );
+    });
 
     this.logger.debug(
       `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,

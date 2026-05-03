@@ -261,7 +261,11 @@ async function enqueueProjectionJob(
   reason: string,
 ): Promise<boolean> {
   try {
-    await context.jobs.enqueue(projection.job.type, jobData, null, options);
+    await context.jobs.enqueue({
+      type: projection.job.type,
+      data: jobData,
+      ...(options ? { options } : {}),
+    });
     logger.info("Queued derived entity projection", {
       projectionId: projection.id,
       targetType: projection.targetType,

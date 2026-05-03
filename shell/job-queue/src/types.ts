@@ -1,11 +1,23 @@
 import { JobContextSchema } from "./schema/types";
 import type { JobOptions, JobContext } from "./schema/types";
 import type { BatchOperation, BatchJobStatus, Batch } from "./batch-schemas";
+import type { DbConfig, ProgressReporter } from "@brains/utils";
+import { z } from "@brains/utils";
 
 // Re-export types that are used internally
 export type { JobOptions, JobContext, BatchOperation };
-import type { DbConfig, ProgressReporter } from "@brains/utils";
-import { z } from "@brains/utils";
+
+/**
+ * Request for enqueueing a job in the core job queue service.
+ */
+export interface JobQueueEnqueueRequest {
+  /** Job type to enqueue */
+  type: string;
+  /** Job payload passed to the registered handler */
+  data: unknown;
+  /** Optional queue behavior, routing metadata, and retry settings */
+  options?: JobOptions;
+}
 
 /**
  * Simplified job info schema for external packages
@@ -99,12 +111,7 @@ export interface IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  enqueue(
-    type: string,
-    data: unknown,
-    options: JobOptions,
-    pluginId?: string,
-  ): Promise<string>;
+  enqueue(request: JobQueueEnqueueRequest): Promise<string>;
 
   /**
    * Dequeue the next available job for processing
@@ -171,11 +178,7 @@ export interface IJobQueueService {
 /**
  * Job enqueue function
  */
-export type EnqueueJob = (
-  type: string,
-  data: unknown,
-  options: JobOptions,
-) => Promise<string>;
+export type EnqueueJob = (request: JobQueueEnqueueRequest) => Promise<string>;
 
 /**
  * Database configuration for job queue

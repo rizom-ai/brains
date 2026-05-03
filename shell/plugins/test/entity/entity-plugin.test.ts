@@ -203,11 +203,11 @@ describe("EntityPlugin", () => {
         "directory-sync",
       );
 
-      expect(enqueue).toHaveBeenCalledWith(
-        "projection-item:project",
-        { reason: "initial-sync" },
-        expect.objectContaining({ source: "projection-item" }),
-      );
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "projection-item:project",
+        data: { reason: "initial-sync" },
+        options: expect.objectContaining({ source: "projection-item" }),
+      });
     });
   });
 

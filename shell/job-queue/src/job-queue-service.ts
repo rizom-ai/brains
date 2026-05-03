@@ -1,10 +1,11 @@
 import type { JobQueue } from "./schema/job-queue";
-import type { DeduplicationStrategy, JobOptions } from "./schema/types";
+import type { DeduplicationStrategy } from "./schema/types";
 import { Logger, createId } from "@brains/utils";
 import type {
   IJobQueueService,
   JobHandler,
   JobInfo,
+  JobQueueEnqueueRequest,
   JobQueueServiceConfig,
 } from "./types";
 import { JOB_STATUS } from "./schemas";
@@ -146,11 +147,8 @@ export class JobQueueService implements IJobQueueService {
   /**
    * Enqueue a job for processing
    */
-  public async enqueue(
-    type: string,
-    data: unknown,
-    options?: JobOptions,
-  ): Promise<string> {
+  public async enqueue(request: JobQueueEnqueueRequest): Promise<string> {
+    const { type, data, options } = request;
     const duplicate = await this.checkForDuplicate(
       type,
       options?.deduplication,

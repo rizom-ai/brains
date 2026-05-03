@@ -251,17 +251,17 @@ ${sourceEntity.content}`,
       });
 
       const title = generated.title ?? "Social Post";
-      await this.context.jobs.enqueue(
-        "image:image-generate",
-        {
+      await this.context.jobs.enqueue({
+        type: "image:image-generate",
+        data: {
           prompt: `Social media graphic for: ${title}`,
           title: `${title} Image`,
           aspectRatio: "16:9",
           targetEntityType: "social-post",
           targetEntityId: entityId,
         },
-        { interfaceType: "job", userId: "system" },
-      );
+        toolContext: { interfaceType: "job", userId: "system" },
+      });
     }
 
     await this.context.messaging.send({

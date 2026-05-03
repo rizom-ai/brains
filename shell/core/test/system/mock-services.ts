@@ -204,10 +204,13 @@ export function createMockSystemServices(
     data: unknown;
   }> = [];
   const jobs = {
-    enqueue: async (type: string, data: unknown): Promise<string> => {
+    enqueue: async (request: {
+      type: string;
+      data: unknown;
+    }): Promise<string> => {
       enqueuedJobs.push({
-        type,
-        data,
+        type: request.type,
+        data: request.data,
       });
       return `job-${Date.now()}`;
     },

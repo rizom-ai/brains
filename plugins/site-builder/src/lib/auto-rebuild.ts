@@ -94,9 +94,9 @@ export class RebuildManager {
     this.logger.debug(`Triggering ${environment} site rebuild`);
 
     try {
-      await this.context.jobs.enqueue(
-        "site-build",
-        {
+      await this.context.jobs.enqueue({
+        type: "site-build",
+        data: {
           environment,
           outputDir,
           workingDir: this.config.workingDir,
@@ -106,8 +106,7 @@ export class RebuildManager {
             timestamp: new Date().toISOString(),
           },
         },
-        null,
-        {
+        options: {
           priority: 0,
           source: this.pluginId,
           metadata: {
@@ -115,7 +114,7 @@ export class RebuildManager {
           },
           deduplication: "skip",
         },
-      );
+      });
       this.logger.debug("Site rebuild enqueued");
     } catch (error) {
       this.logger.error("Failed to enqueue site rebuild", { error });

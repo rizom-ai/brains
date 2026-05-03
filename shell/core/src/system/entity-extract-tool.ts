@@ -61,11 +61,11 @@ export function createEntityExtractTool(services: SystemServices): Tool {
             };
         }
 
-        const jobId = await jobs.enqueue(
-          `${entityType}:project`,
+        const jobId = await jobs.enqueue({
+          type: `${entityType}:project`,
           data,
           toolContext,
-        );
+        });
         return {
           success: true,
           data: {

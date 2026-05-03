@@ -350,11 +350,11 @@ describe("GenerationJobHandler", () => {
         jobType: string;
         data: ImageGenerateJobData;
       }> = [];
-      context.jobs.enqueue = async (
-        jobType: string,
-        data: unknown,
-      ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data: data as ImageGenerateJobData });
+      context.jobs.enqueue = async (request): Promise<string> => {
+        enqueuedJobs.push({
+          jobType: request.type,
+          data: request.data as ImageGenerateJobData,
+        });
         return "image-job-456";
       };
 
@@ -382,11 +382,8 @@ describe("GenerationJobHandler", () => {
 
     it("should not queue image generation when generateImage is false", async () => {
       const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
-      context.jobs.enqueue = async (
-        jobType: string,
-        data: unknown,
-      ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data });
+      context.jobs.enqueue = async (request): Promise<string> => {
+        enqueuedJobs.push({ jobType: request.type, data: request.data });
         return "job-id";
       };
 

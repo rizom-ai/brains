@@ -137,9 +137,9 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       }
 
       try {
-        const jobId = await this.shell.getJobQueueService().enqueue(
-          "link-capture",
-          {
+        const jobId = await this.shell.getJobQueueService().enqueue({
+          type: "link-capture",
+          data: {
             url,
             metadata: {
               interfaceId: executionContext.interfaceType,
@@ -153,7 +153,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
               timestamp: new Date().toISOString(),
             },
           },
-          {
+          options: {
             source: this.id,
             metadata: {
               operationType: "data_processing",
@@ -164,7 +164,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
                 : {}),
             },
           },
-        );
+        });
         return {
           kind: "handled",
           result: { success: true, data: { status: "generating", jobId } },

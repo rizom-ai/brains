@@ -222,15 +222,15 @@ export class NewsletterPlugin extends EntityPlugin<
             return { success: true };
           }
 
-          await context.jobs.enqueue(
-            "newsletter:generation",
-            {
+          await context.jobs.enqueue({
+            type: "newsletter:generation",
+            data: {
               sourceEntityIds: recentPosts.map((p) => p.id),
               sourceEntityType: "post",
               addToQueue: false,
             },
-            { interfaceType: "job", userId: "system" },
-          );
+            toolContext: { interfaceType: "job", userId: "system" },
+          });
 
           return { success: true };
         } catch (error) {

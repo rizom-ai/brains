@@ -118,9 +118,9 @@ function registerLinkCreateInterceptor(services: MockServices): void {
       const url =
         input.url ?? extractFirstUrl(input.content, input.prompt, input.title);
       if (url) {
-        const jobId = await services.jobs.enqueue(
-          "link-capture",
-          {
+        const jobId = await services.jobs.enqueue({
+          type: "link-capture",
+          data: {
             url,
             metadata: {
               interfaceId: executionContext.interfaceType,
@@ -134,8 +134,7 @@ function registerLinkCreateInterceptor(services: MockServices): void {
               timestamp: new Date().toISOString(),
             },
           },
-          null,
-        );
+        });
 
         return {
           kind: "handled",

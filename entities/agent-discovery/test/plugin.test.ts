@@ -111,26 +111,28 @@ describe("AgentDiscoveryPlugin", () => {
     > =>
       ({
         ...origJobQueue,
-        enqueue: async (type: string, data: unknown, options?: unknown) => {
-          const jobOptions = options as Parameters<
-            typeof origJobQueue.enqueue
-          >[2];
+        enqueue: async (request) => {
+          const jobOptions = request.options;
           const dedupeKey =
             jobOptions?.deduplication === "coalesce"
-              ? `${type}:${jobOptions.deduplicationKey ?? ""}`
+              ? `${request.type}:${jobOptions.deduplicationKey ?? ""}`
               : undefined;
 
           let jobId: string;
           if (dedupeKey && coalescedJobs.has(dedupeKey)) {
             jobId = coalescedJobs.get(dedupeKey) as string;
           } else {
-            jobId = await origJobQueue.enqueue(type, data, jobOptions);
+            jobId = await origJobQueue.enqueue(request);
             if (dedupeKey) {
               coalescedJobs.set(dedupeKey, jobId);
             }
           }
 
-          enqueued.push({ type, options, jobId });
+          enqueued.push({
+            type: request.type,
+            options: request.options,
+            jobId,
+          });
           return jobId;
         },
       }) as ReturnType<typeof mockShell.getJobQueueService>;

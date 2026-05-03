@@ -2,7 +2,6 @@ import { BasePlugin } from "../base-plugin";
 import type {
   PluginCapabilities,
   IShell,
-  ToolContext,
   PluginRegistrationContext,
 } from "../interfaces";
 import type {
@@ -11,7 +10,11 @@ import type {
   EntityAdapter,
   EntityTypeConfig,
 } from "@brains/entity-service";
-import type { BatchOperation, JobOptions } from "@brains/job-queue";
+import type {
+  BatchOperation,
+  EnqueueJobRequest,
+  JobOptions,
+} from "@brains/job-queue";
 import type { ServicePluginContext } from "./context";
 import { createServicePluginContext } from "./context";
 import type { z } from "@brains/utils";
@@ -85,16 +88,11 @@ export abstract class ServicePlugin<TConfig = unknown> extends BasePlugin<
 
   /**
    * Helper method to enqueue a job
-   * @param toolContext - Pass ToolContext from tool handler, or null for background jobs
+   * Pass toolContext in the request for tool-routed jobs, or omit it for background jobs.
    */
-  protected async enqueueJob(
-    type: string,
-    data: unknown,
-    toolContext: ToolContext | null,
-    options?: JobOptions,
-  ): Promise<string> {
+  protected async enqueueJob(request: EnqueueJobRequest): Promise<string> {
     const context = this.getContext();
-    return context.jobs.enqueue(type, data, toolContext, options);
+    return context.jobs.enqueue(request);
   }
 
   /**

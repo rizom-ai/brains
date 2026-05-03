@@ -45,8 +45,8 @@ describe("RebuildManager", () => {
 
     const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const call = enqueue.mock.calls[0] ?? [];
-    const data = call[1];
+    const call = enqueue.mock.calls[0];
+    const data = call?.[0]?.data;
     expect(data.environment).toBe("preview");
     expect(data.outputDir).toBe("./dist/site-preview");
 
@@ -68,7 +68,7 @@ describe("RebuildManager", () => {
 
     const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const data = (enqueue.mock.calls[0] ?? [])[1];
+    const data = enqueue.mock.calls[0]?.[0]?.data;
     expect(data.environment).toBe("production");
 
     manager.dispose();
@@ -89,7 +89,7 @@ describe("RebuildManager", () => {
 
     const enqueue = context.jobs.enqueue as ReturnType<typeof mock>;
     expect(enqueue).toHaveBeenCalled();
-    const data = (enqueue.mock.calls[0] ?? [])[1];
+    const data = enqueue.mock.calls[0]?.[0]?.data;
     expect(data.environment).toBe("production");
     expect(data.outputDir).toBe("./dist/site-production");
 

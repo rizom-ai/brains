@@ -71,22 +71,22 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
         }
       }
 
-      const jobId = await context.jobs.enqueue(
-        "agent:generation",
-        {
+      const jobId = await context.jobs.enqueue({
+        type: "agent:generation",
+        data: {
           prompt: input.url,
           url: input.url,
           status: "approved",
         },
-        executionContext,
-        {
+        toolContext: executionContext,
+        options: {
           source: this.id,
           metadata: { operationType: "data_processing" },
           deduplication: "coalesce",
           deduplicationKey,
           maxRetries: 0,
         },
-      );
+      });
 
       return {
         kind: "handled",

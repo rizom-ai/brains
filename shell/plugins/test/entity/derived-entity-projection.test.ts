@@ -155,17 +155,16 @@ describe("derived entity projections", () => {
     expect(controller.hasQueuedInitialSync()).toBe(true);
     expect(process).not.toHaveBeenCalled();
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
-    expect(context.jobs.enqueue).toHaveBeenCalledWith(
-      "derive",
-      { reason: "initial-sync" },
-      null,
-      {
+    expect(context.jobs.enqueue).toHaveBeenCalledWith({
+      type: "derive",
+      data: { reason: "initial-sync" },
+      options: {
         source: "projection-test",
         deduplication: "coalesce",
         deduplicationKey: "test-projection:initial-sync",
         metadata: { operationType: "data_processing" },
       },
-    );
+    });
   });
 
   it("uses persisted targets as a durable initial sync gate", async () => {
@@ -253,17 +252,16 @@ describe("derived entity projections", () => {
     await changeHandler?.({ payload: { entityType: "source", entityId: "a" } });
 
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
-    expect(context.jobs.enqueue).toHaveBeenCalledWith(
-      "derive",
-      { reason: "source-change", sourceId: "a" },
-      null,
-      {
+    expect(context.jobs.enqueue).toHaveBeenCalledWith({
+      type: "derive",
+      data: { reason: "source-change", sourceId: "a" },
+      options: {
         source: "projection-test",
         deduplication: "coalesce",
         deduplicationKey: "test-projection:source:a",
         metadata: { operationType: "data_processing" },
       },
-    );
+    });
   });
 
   it("reconciles desired state by stable id with bounded stale deletion", async () => {

@@ -47,13 +47,9 @@ describe("SwotAssessmentPlugin", () => {
     > =>
       ({
         ...origJobQueue,
-        enqueue: async (type: string, data: unknown, options?: unknown) => {
-          enqueued.push(type);
-          return origJobQueue.enqueue(
-            type,
-            data,
-            options as Parameters<typeof origJobQueue.enqueue>[2],
-          );
+        enqueue: async (request) => {
+          enqueued.push(request.type);
+          return origJobQueue.enqueue(request);
         },
       }) as ReturnType<typeof mockShell.getJobQueueService>;
 
@@ -83,13 +79,14 @@ describe("SwotAssessmentPlugin", () => {
     > =>
       ({
         ...origJobQueue,
-        enqueue: async (type: string, data: unknown, options?: unknown) => {
-          const jobId = await origJobQueue.enqueue(
-            type,
-            data,
-            options as Parameters<typeof origJobQueue.enqueue>[2],
-          );
-          enqueued.push({ type, data, options, jobId });
+        enqueue: async (request) => {
+          const jobId = await origJobQueue.enqueue(request);
+          enqueued.push({
+            type: request.type,
+            data: request.data,
+            options: request.options,
+            jobId,
+          });
           return jobId;
         },
       }) as ReturnType<typeof mockShell.getJobQueueService>;
@@ -133,13 +130,9 @@ describe("SwotAssessmentPlugin", () => {
     > =>
       ({
         ...origJobQueue,
-        enqueue: async (type: string, data: unknown, options?: unknown) => {
-          enqueued.push({ type, data });
-          return origJobQueue.enqueue(
-            type,
-            data,
-            options as Parameters<typeof origJobQueue.enqueue>[2],
-          );
+        enqueue: async (request) => {
+          enqueued.push({ type: request.type, data: request.data });
+          return origJobQueue.enqueue(request);
         },
       }) as ReturnType<typeof mockShell.getJobQueueService>;
 
