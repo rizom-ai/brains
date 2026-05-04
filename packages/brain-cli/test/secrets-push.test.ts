@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "bun:test";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { pushSecrets } from "../src/commands/secrets-push";
@@ -289,6 +289,123 @@ describe("secrets push", () => {
     expect(logs).toContain("Safe to ignore for now (2):");
     expect(logs).toContain("  - AI_IMAGE_KEY");
     expect(logs).toContain("  - LINKEDIN_ACCESS_TOKEN");
+  });
+
+  it("dry-runs Bitwarden push without contacting a backend", async () => {
+    writeFileSync(
+      join(testDir, ".env.schema"),
+      [
+        "# @required @sensitive",
+        "AI_API_KEY=",
+        "",
+        "# @required @sensitive",
+        "CERTIFICATE_PEM=",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(testDir, ".env"),
+      ["AI_API_KEY=sk-local", "CERTIFICATE_PEM=cert-pem", ""].join("\n"),
+    );
+
+    const logs: string[] = [];
+    const result = await pushSecrets(testDir, {
+      env: {
+        AI_API_KEY: "sk-local",
+        CERTIFICATE_PEM: "cert-pem",
+      },
+      dryRun: true,
+      pushTo: "bitwarden",
+      logger: (message) => logs.push(message),
+      bitwardenClient: {
+        pushSecrets: async () => {
+          throw new Error("should not contact Bitwarden during dry-run");
+        },
+      },
+    });
+
+    expect(result.dryRun).toBe(true);
+    expect(result.target).toBe("bitwarden");
+    expect(result.pushedKeys).toEqual(["AI_API_KEY", "CERTIFICATE_PEM"]);
+    expect(logs[0]).toContain("Bitwarden project");
+    expect(logs[1]).toContain("would update .env.schema");
+  });
+
+  it("pushes to Bitwarden and updates .env.schema with UUID references", async () => {
+    writeFileSync(
+      join(testDir, ".env.schema"),
+      [
+        "# This env file uses @env-spec",
+        "#",
+        "# @defaultRequired=false @defaultSensitive=false",
+        "# ----------",
+        "",
+        "# @required @sensitive",
+        "AI_API_KEY=",
+        "",
+        "# @required @sensitive",
+        "GIT_SYNC_TOKEN=",
+        "",
+      ].join("\n"),
+    );
+    writeFileSync(
+      join(testDir, ".env"),
+      ["AI_API_KEY=sk-local", "GIT_SYNC_TOKEN=git-local", ""].join("\n"),
+    );
+
+    const logs: string[] = [];
+    const result = await pushSecrets(testDir, {
+      env: {
+        AI_API_KEY: "sk-local",
+        GIT_SYNC_TOKEN: "git-local",
+      },
+      pushTo: "bw",
+      logger: (message) => logs.push(message),
+      bitwardenClient: {
+        pushSecrets: async (projectName, secrets) => {
+          expect(projectName).toBe(testDir.split("/").pop() ?? "");
+          expect(secrets).toEqual([
+            ["AI_API_KEY", "sk-local"],
+            ["GIT_SYNC_TOKEN", "git-local"],
+          ]);
+          return {
+            projectName,
+            projectId: "project-uuid",
+            createdProject: true,
+            createdKeys: ["AI_API_KEY", "GIT_SYNC_TOKEN"],
+            updatedKeys: [],
+            mappings: [
+              { key: "AI_API_KEY", id: "11111111-1111-1111-1111-111111111111" },
+              {
+                key: "GIT_SYNC_TOKEN",
+                id: "22222222-2222-2222-2222-222222222222",
+              },
+            ],
+          };
+        },
+      },
+    });
+
+    expect(result.target).toBe("bitwarden");
+    expect(result.pushedKeys).toEqual(["AI_API_KEY", "GIT_SYNC_TOKEN"]);
+    expect(result.bitwarden?.projectId).toBe("project-uuid");
+    expect(logs).toContain(
+      "Updated .env.schema with Bitwarden UUID references.",
+    );
+
+    const schema = readFileSync(join(testDir, ".env.schema"), "utf-8");
+    expect(schema).toContain("# @plugin(@varlock/bitwarden-plugin@1.0.0)");
+    expect(schema).toContain("# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)");
+    expect(schema).toContain(
+      "# @required @sensitive @type=bitwardenAccessToken",
+    );
+    expect(schema).toContain("BWS_ACCESS_TOKEN=");
+    expect(schema).toContain(
+      'AI_API_KEY=bitwarden("11111111-1111-1111-1111-111111111111")',
+    );
+    expect(schema).toContain(
+      'GIT_SYNC_TOKEN=bitwarden("22222222-2222-2222-2222-222222222222")',
+    );
   });
 
   it("pushes multiline secrets from .env.local file-backed values", async () => {
