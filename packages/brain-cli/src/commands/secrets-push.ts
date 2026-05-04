@@ -1,7 +1,11 @@
 import { existsSync, readFileSync, writeFileSync } from "fs";
 import { basename, join } from "path";
 import { parseEnvSchemaFile, type EnvSchemaEntry } from "@brains/utils";
-import { BOOTSTRAP_SECTION_HEADER } from "../lib/env-schema";
+import {
+  BITWARDEN_BOOTSTRAP_TOKEN_NAMES,
+  BOOTSTRAP_SECTION_HEADER,
+  hasBitwardenPlugin,
+} from "../lib/env-schema";
 import {
   readLocalEnvValues,
   resolveLocalEnvValue,
@@ -42,11 +46,6 @@ export interface SecretsPushResult {
 const CERTIFICATE_SECRET_NAMES = new Set([
   "CERTIFICATE_PEM",
   "PRIVATE_KEY_PEM",
-]);
-
-const BOOTSTRAP_SECRET_NAMES = new Set([
-  "BWS_ACCESS_TOKEN",
-  "BITWARDEN_ACCESS_TOKEN",
 ]);
 
 export async function runSecretsPush(
@@ -263,7 +262,7 @@ function selectCandidateKeys(
 }
 
 function isPushableKey(key: string, target: PushTarget): boolean {
-  if (BOOTSTRAP_SECRET_NAMES.has(key)) {
+  if (BITWARDEN_BOOTSTRAP_TOKEN_NAMES.has(key)) {
     return false;
   }
 
@@ -359,7 +358,7 @@ function updateSchemaWithBitwardenMappings(
 
 function ensureBitwardenRootDecorators(content: string): string {
   const decorators: string[] = [];
-  if (!content.includes("@plugin(@varlock/bitwarden-plugin")) {
+  if (!hasBitwardenPlugin(content)) {
     decorators.push("# @plugin(@varlock/bitwarden-plugin@1.0.0)");
   }
   if (!content.includes("@initBitwarden(")) {

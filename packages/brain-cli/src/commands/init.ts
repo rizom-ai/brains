@@ -18,8 +18,13 @@ import {
   renderPreDeployHook,
   renderPublishImageWorkflow,
 } from "@brains/deploy-templates";
+import { parseEnvSchema } from "@brains/utils";
 import { parseBrainYaml } from "../lib/brain-yaml";
-import { buildInstanceEnvSchema } from "../lib/env-schema";
+import {
+  BITWARDEN_BOOTSTRAP_TOKEN_NAMES,
+  buildInstanceEnvSchema,
+  hasBitwardenPlugin,
+} from "../lib/env-schema";
 
 /**
  * Pinned versions written into scaffolded package.json files.
@@ -374,16 +379,23 @@ function writeExtractBrainConfigScript(dir: string, regen = false): void {
     regen,
   );
 }
-function listEnvSchemaVariableNames(envSchema: string): string[] {
-  const names = envSchema.match(/^([A-Z][A-Z0-9_]*)=/gm) ?? [];
-  return names.map((line) => line.slice(0, -1));
+interface WorkflowSecrets {
+  secretNames: string[];
+  bootstrapSecrets: string[];
 }
 
-function buildWorkflowSecretsEnvBlock(dir: string): string {
+function resolveWorkflowSecrets(dir: string): WorkflowSecrets {
   const envSchema = readFileSync(join(dir, ".env.schema"), "utf-8");
-  return listEnvSchemaVariableNames(envSchema)
-    .map((name) => `          ${name}: \${{ secrets.${name} }}`)
-    .join("\n");
+  const envNames = parseEnvSchema(envSchema).map((entry) => entry.key);
+  if (hasBitwardenPlugin(envSchema)) {
+    const bootstrap = envNames.filter((name) =>
+      BITWARDEN_BOOTSTRAP_TOKEN_NAMES.has(name),
+    );
+    if (bootstrap.length > 0) {
+      return { secretNames: bootstrap, bootstrapSecrets: bootstrap };
+    }
+  }
+  return { secretNames: envNames, bootstrapSecrets: [] };
 }
 
 function writePublishWorkflow(dir: string, regen = false): void {
@@ -423,11 +435,9 @@ function writeDeployDockerfile(dir: string, regen = false): void {
 }
 
 function writeDeployWorkflow(dir: string, regen = false): void {
-  const workflowSecretsEnv = buildWorkflowSecretsEnvBlock(dir);
-
   writeReconcilableScaffoldFile({
     path: join(dir, ".github", "workflows", "deploy.yml"),
-    content: renderDeployWorkflow({ workflowSecretsEnv }),
+    content: renderDeployWorkflow(resolveWorkflowSecrets(dir)),
     regen,
   });
 }
@@ -475,6 +485,7 @@ function writeGitignore(dir: string): void {
   const content = `.env
 .env.*
 !.env.example
+!.env.schema
 node_modules
 brain.log
 brain-data/

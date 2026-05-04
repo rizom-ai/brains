@@ -788,12 +788,12 @@ describe("brain init", () => {
       expect(workflow).not.toContain("grep '^domain:' brain.yaml");
       expect(workflow).toContain("Validate env via varlock");
       expect(workflow).toContain("Load env via varlock");
+      expect(workflow).toContain("bunx varlock@1.1.0 load --path .env.schema");
       expect(workflow).toContain(
-        "npx -y varlock load --path .env.schema --show-all",
+        "bunx varlock@1.1.0 load --path .env.schema --format json --compact",
       );
-      expect(workflow).toContain(
-        "npx -y varlock load --path .env.schema --format json --compact",
-      );
+      expect(workflow).not.toContain("npx -y varlock");
+      expect(workflow).not.toContain("--show-all");
       expect(workflow).not.toContain("secrets.OP_TOKEN");
       expect(workflow).toContain("secrets.AI_API_KEY");
       expect(workflow).toContain("secrets.GIT_SYNC_TOKEN");
@@ -815,10 +815,10 @@ describe("brain init", () => {
       expect(workflow).toContain("Update Cloudflare DNS");
       expect(workflow).toContain("steps.provision.outputs.server_ip");
       expect(workflow).toMatch(
-        /- name: Provision server\n\s+id: provision\n\s+env:\n\s+HCLOUD_TOKEN: \$\{\{ secrets\.HCLOUD_TOKEN \}\}\n\s+HCLOUD_SSH_KEY_NAME: \$\{\{ secrets\.HCLOUD_SSH_KEY_NAME \}\}\n\s+HCLOUD_SERVER_TYPE: \$\{\{ secrets\.HCLOUD_SERVER_TYPE \}\}\n\s+HCLOUD_LOCATION: \$\{\{ secrets\.HCLOUD_LOCATION \}\}\n\s+run:/,
+        /- name: Provision server\n\s+id: provision\n\s+run:/,
       );
       expect(workflow).toMatch(
-        /- name: Update Cloudflare DNS\n\s+env:\n\s+CF_API_TOKEN: \$\{\{ secrets\.CF_API_TOKEN \}\}\n\s+CF_ZONE_ID: \$\{\{ secrets\.CF_ZONE_ID \}\}\n\s+SERVER_IP: \$\{\{ steps\.provision\.outputs\.server_ip \}\}\n\s+run:/,
+        /- name: Update Cloudflare DNS\n\s+env:\n\s+SERVER_IP: \$\{\{ steps\.provision\.outputs\.server_ip \}\}\n\s+run:/,
       );
       expect(workflow).toContain("gem install --user-install kamal");
       expect(workflow).toContain(
@@ -895,6 +895,41 @@ describe("brain init", () => {
       }
     });
 
+    it("should map only the Bitwarden bootstrap token for Bitwarden-backed schemas", () => {
+      scaffold(testDir, { model: "rover", deploy: true });
+      writeFileSync(
+        join(testDir, ".env.schema"),
+        `# @plugin(@varlock/bitwarden-plugin@1.0.0)
+# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)
+# @defaultRequired=false @defaultSensitive=false
+# ----------
+
+# @required @sensitive @type=bitwardenAccessToken
+BWS_ACCESS_TOKEN=
+
+# @required @sensitive
+AI_API_KEY=bitwarden("secret-id")
+
+# @required @sensitive
+GIT_SYNC_TOKEN=bitwarden("secret-id")
+`,
+      );
+
+      scaffold(testDir, { model: "rover", deploy: true, regen: true });
+
+      const workflow = readFileSync(
+        join(testDir, ".github", "workflows", "deploy.yml"),
+        "utf-8",
+      );
+      expect(workflow).toContain(
+        "BWS_ACCESS_TOKEN: ${{ secrets.BWS_ACCESS_TOKEN }}",
+      );
+      expect(workflow).not.toContain("AI_API_KEY: ${{ secrets.AI_API_KEY }}");
+      expect(workflow).not.toContain(
+        "GIT_SYNC_TOKEN: ${{ secrets.GIT_SYNC_TOKEN }}",
+      );
+    });
+
     it("should create publish workflow when deploy is true", () => {
       scaffold(testDir, { model: "rover", deploy: true });
 
@@ -941,10 +976,11 @@ describe("brain init", () => {
       expect(gitignore).toContain("node_modules");
     });
 
-    it("should preserve .env.example as a tracked template", () => {
+    it("should preserve env templates and schemas as tracked files", () => {
       scaffold(testDir, { model: "rover" });
       const gitignore = readFileSync(join(testDir, ".gitignore"), "utf-8");
       expect(gitignore).toContain("!.env.example");
+      expect(gitignore).toContain("!.env.schema");
     });
 
     it("should exclude runtime artifacts (brain.log, brain-data, cache, data, dist, origin certs)", () => {

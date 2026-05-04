@@ -156,13 +156,13 @@ The GitHub Actions token should usually belong to a read-only Bitwarden machine 
 Resolve environment values with Varlock:
 
 ```bash
-npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
+bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json
 ```
 
 or run commands with injected values:
 
 ```bash
-npx -y varlock run --path .env.schema -- your-command
+bunx varlock@1.1.0 run --path .env.schema -- your-command
 ```
 
 Keep multiline deploy secrets in Bitwarden and pass them through Varlock JSON, not shell heredocs. This preserves exact newlines for SSH keys and PEM material.

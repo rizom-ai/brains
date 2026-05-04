@@ -21,6 +21,17 @@ const DEFAULT_SECRET_BACKEND = "none";
 
 export { BOOTSTRAP_SECTION_HEADER };
 
+const BITWARDEN_PLUGIN_DECORATOR = "@plugin(@varlock/bitwarden-plugin";
+
+export const BITWARDEN_BOOTSTRAP_TOKEN_NAMES: ReadonlySet<string> = new Set([
+  "BWS_ACCESS_TOKEN",
+  "BITWARDEN_ACCESS_TOKEN",
+]);
+
+export function hasBitwardenPlugin(envSchema: string): boolean {
+  return envSchema.includes(BITWARDEN_PLUGIN_DECORATOR);
+}
+
 function normalizeSecretBackend(backend?: string): string {
   const value = backend?.trim();
   if (!value) {
