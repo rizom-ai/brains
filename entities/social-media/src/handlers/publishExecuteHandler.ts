@@ -122,13 +122,15 @@ export class PublishExecuteHandler {
         );
 
         await this.entityService.updateEntity({
-          ...post,
-          content: updatedContent,
-          metadata: {
-            ...post.metadata,
-            status: "published",
-            publishedAt,
-            platformPostId,
+          entity: {
+            ...post,
+            content: updatedContent,
+            metadata: {
+              ...post.metadata,
+              status: "published",
+              publishedAt,
+              platformPostId,
+            },
           },
         });
 
@@ -156,11 +158,13 @@ export class PublishExecuteHandler {
         );
 
         await this.entityService.updateEntity({
-          ...post,
-          content: updatedContent,
-          metadata: {
-            ...post.metadata,
-            status: "failed",
+          entity: {
+            ...post,
+            content: updatedContent,
+            metadata: {
+              ...post.metadata,
+              status: "failed",
+            },
           },
         });
 

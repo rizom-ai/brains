@@ -161,7 +161,7 @@ export class DigestHandler {
         metadata,
       };
 
-      await this.context.entityService.upsertEntity(summaryEntity);
+      await this.context.entityService.upsertEntity({ entity: summaryEntity });
 
       this.logger.debug("Summary updated successfully", {
         conversationId: digest.conversationId,

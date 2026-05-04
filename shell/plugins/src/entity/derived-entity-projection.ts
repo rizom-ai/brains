@@ -229,7 +229,7 @@ export async function reconcileDerivedEntities<
 
     try {
       if (!existingEntity) {
-        await context.entityService.createEntity(input);
+        await context.entityService.createEntity({ entity: input });
         created++;
         continue;
       }
@@ -245,7 +245,7 @@ export async function reconcileDerivedEntities<
         id,
         entityType: targetType,
       };
-      await context.entityService.updateEntity(updatedEntity);
+      await context.entityService.updateEntity({ entity: updatedEntity });
       updated++;
     } catch (error) {
       logger?.error("Failed to reconcile derived entity", {

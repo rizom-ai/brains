@@ -164,12 +164,14 @@ export class NewsletterPlugin extends EntityPlugin<
             : undefined;
 
         await context.entityService.updateEntity({
-          ...newsletter,
-          metadata: {
-            ...newsletter.metadata,
-            status: "published",
-            sentAt,
-            buttondownId,
+          entity: {
+            ...newsletter,
+            metadata: {
+              ...newsletter.metadata,
+              status: "published",
+              sentAt,
+              buttondownId,
+            },
           },
         });
 

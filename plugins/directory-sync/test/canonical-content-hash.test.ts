@@ -51,7 +51,8 @@ describe("contentHash regression: canonical form, not raw content", () => {
 
     let capturedEntity: Partial<BaseEntity> | undefined;
     spyOn(mockEntityService, "upsertEntity").mockImplementation(
-      async (entity: Partial<BaseEntity>) => {
+      async (request: { entity: Partial<BaseEntity> }) => {
+        const entity = request.entity;
         capturedEntity = entity;
         return {
           entityId: entity.id ?? "mock-entity-id",
@@ -86,7 +87,8 @@ describe("contentHash regression: canonical form, not raw content", () => {
     // In-memory store to track entities across two imports
     const store = new Map<string, Partial<BaseEntity>>();
     spyOn(mockEntityService, "upsertEntity").mockImplementation(
-      async (entity: Partial<BaseEntity>) => {
+      async (request: { entity: Partial<BaseEntity> }) => {
+        const entity = request.entity;
         store.set(`${entity.entityType}:${entity.id}`, entity);
         return {
           entityId: entity.id ?? "mock-entity-id",

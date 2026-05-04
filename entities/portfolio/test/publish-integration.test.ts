@@ -131,7 +131,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new PortfolioPlugin({}));
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(sampleDraftProject);
+      await entityService.createEntity({ entity: sampleDraftProject });
 
       await harness.sendMessage("publish:execute", {
         entityType: "project",
@@ -171,7 +171,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         },
       };
       const entityService = harness.getEntityService();
-      await entityService.createEntity(publishedProject);
+      await entityService.createEntity({ entity: publishedProject });
 
       await harness.sendMessage("publish:execute", {
         entityType: "project",

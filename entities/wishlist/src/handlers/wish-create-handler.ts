@@ -63,9 +63,11 @@ export class WishCreateHandler {
       );
 
       await this.context.entityService.updateEntity({
-        ...existing,
-        content: updatedContent,
-        metadata: { ...existing.metadata, requested: newRequested },
+        entity: {
+          ...existing,
+          content: updatedContent,
+          metadata: { ...existing.metadata, requested: newRequested },
+        },
       });
 
       this.logger.info("Incremented wish request count", {
@@ -96,15 +98,17 @@ export class WishCreateHandler {
     );
 
     await this.context.entityService.createEntity({
-      id: slug,
-      entityType: "wish",
-      content,
-      metadata: {
-        title,
-        status: "new",
-        priority,
-        requested: 1,
-        slug,
+      entity: {
+        id: slug,
+        entityType: "wish",
+        content,
+        metadata: {
+          title,
+          status: "new",
+          priority,
+          requested: 1,
+          slug,
+        },
       },
     });
 

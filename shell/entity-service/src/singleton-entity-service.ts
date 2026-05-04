@@ -65,10 +65,12 @@ export abstract class SingletonEntityService<TBody> {
       const content = this.createContent(this.defaultBody);
 
       await this.entityService.createEntity({
-        id: this.entityType,
-        entityType: this.entityType,
-        content,
-        metadata: {},
+        entity: {
+          id: this.entityType,
+          entityType: this.entityType,
+          content,
+          metadata: {},
+        },
       });
 
       await this.load();

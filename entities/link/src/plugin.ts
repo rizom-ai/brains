@@ -102,15 +102,17 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
             `${input.entityType}-${Date.now()}`;
           const now = new Date().toISOString();
           const result = await context.entityService.createEntity({
-            id,
-            entityType: input.entityType,
-            content: input.content,
-            metadata: {
-              title: parsedTitle,
-              status: parsedStatus,
+            entity: {
+              id,
+              entityType: input.entityType,
+              content: input.content,
+              metadata: {
+                title: parsedTitle,
+                status: parsedStatus,
+              },
+              created: now,
+              updated: now,
             },
-            created: now,
-            updated: now,
           });
 
           return {

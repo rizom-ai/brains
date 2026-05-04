@@ -137,25 +137,29 @@ describe("Publish Pipeline - Publish Tool", () => {
     beforeEach(async () => {
       // Create a draft post
       await context.entityService.createEntity({
-        id: "draft-post",
-        entityType: "social-post",
-        content: "Test content to publish",
-        metadata: {
-          slug: "draft-post",
-          platform: "linkedin",
-          status: "draft",
+        entity: {
+          id: "draft-post",
+          entityType: "social-post",
+          content: "Test content to publish",
+          metadata: {
+            slug: "draft-post",
+            platform: "linkedin",
+            status: "draft",
+          },
         },
       });
 
       // Create an already published post
       await context.entityService.createEntity({
-        id: "published-post",
-        entityType: "social-post",
-        content: "Already published content",
-        metadata: {
-          slug: "published-post",
-          platform: "linkedin",
-          status: "published",
+        entity: {
+          id: "published-post",
+          entityType: "social-post",
+          content: "Already published content",
+          metadata: {
+            slug: "published-post",
+            platform: "linkedin",
+            status: "published",
+          },
         },
       });
     });
@@ -244,18 +248,20 @@ describe("Publish Pipeline - Publish Tool", () => {
 
       // Create post with frontmatter
       await context.entityService.createEntity({
-        id: "frontmatter-post",
-        entityType: "social-post",
-        content: `---
+        entity: {
+          id: "frontmatter-post",
+          entityType: "social-post",
+          content: `---
 title: Test Post
 platform: linkedin
 status: draft
 ---
 This is the actual post content.`,
-        metadata: {
-          slug: "frontmatter-post",
-          platform: "linkedin",
-          status: "draft",
+          metadata: {
+            slug: "frontmatter-post",
+            platform: "linkedin",
+            status: "draft",
+          },
         },
       });
 
@@ -279,28 +285,32 @@ This is the actual post content.`,
 
       // Create an image entity
       await context.entityService.createEntity({
-        id: "test-cover-image",
-        entityType: "image",
-        content:
-          "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
-        metadata: { slug: "test-cover-image" },
+        entity: {
+          id: "test-cover-image",
+          entityType: "image",
+          content:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==",
+          metadata: { slug: "test-cover-image" },
+        },
       });
 
       // Create post with coverImageId in frontmatter
       await context.entityService.createEntity({
-        id: "post-with-image",
-        entityType: "social-post",
-        content: `---
+        entity: {
+          id: "post-with-image",
+          entityType: "social-post",
+          content: `---
 title: Post With Image
 platform: linkedin
 status: draft
 coverImageId: test-cover-image
 ---
 Post content with an image.`,
-        metadata: {
-          slug: "post-with-image",
-          platform: "linkedin",
-          status: "draft",
+          metadata: {
+            slug: "post-with-image",
+            platform: "linkedin",
+            status: "draft",
+          },
         },
       });
 
@@ -326,19 +336,21 @@ Post content with an image.`,
 
       // Create post with non-existent coverImageId
       await context.entityService.createEntity({
-        id: "post-missing-image",
-        entityType: "social-post",
-        content: `---
+        entity: {
+          id: "post-missing-image",
+          entityType: "social-post",
+          content: `---
 title: Post Missing Image
 platform: linkedin
 status: draft
 coverImageId: nonexistent-image
 ---
 Post content without image.`,
-        metadata: {
-          slug: "post-missing-image",
-          platform: "linkedin",
-          status: "draft",
+          metadata: {
+            slug: "post-missing-image",
+            platform: "linkedin",
+            status: "draft",
+          },
         },
       });
 
@@ -369,10 +381,12 @@ Post content without image.`,
       providerRegistry.register("social-post", failingProvider);
 
       await context.entityService.createEntity({
-        id: "test-post",
-        entityType: "social-post",
-        content: "Test content",
-        metadata: { slug: "test", status: "draft" },
+        entity: {
+          id: "test-post",
+          entityType: "social-post",
+          content: "Test content",
+          metadata: { slug: "test", status: "draft" },
+        },
       });
 
       const tool = createPublishTool(context, pluginId, providerRegistry);

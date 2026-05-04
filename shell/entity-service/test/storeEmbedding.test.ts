@@ -31,8 +31,10 @@ describe("storeEmbedding", () => {
 
     // Create entity via service
     await ctx.entityService.createEntity({
-      ...testEntity,
-      id: "test-entity",
+      entity: {
+        ...testEntity,
+        id: "test-entity",
+      },
     });
 
     await ctx.entityService.storeEmbedding({

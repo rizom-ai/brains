@@ -56,7 +56,9 @@ export async function persistImportEntity(
       deps.entityService.serializeEntity(entity),
     );
 
-    const upsertResult = await deps.entityService.upsertEntity(entity);
+    const upsertResult = await deps.entityService.upsertEntity({
+      entity: entity,
+    });
     result.imported++;
     result.jobIds.push(upsertResult.jobId);
     deps.logger.debug("Imported entity from directory", {

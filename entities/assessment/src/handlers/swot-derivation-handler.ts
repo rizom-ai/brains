@@ -408,16 +408,20 @@ export class SwotDerivationHandler implements JobHandler<
 
     if (existing) {
       await this.context.entityService.updateEntity({
-        ...existing,
-        content,
-        metadata: { derivedAt },
+        entity: {
+          ...existing,
+          content,
+          metadata: { derivedAt },
+        },
       });
     } else {
       await this.context.entityService.createEntity({
-        id: "swot",
-        entityType: "swot",
-        content,
-        metadata: { derivedAt },
+        entity: {
+          id: "swot",
+          entityType: "swot",
+          content,
+          metadata: { derivedAt },
+        },
       });
     }
 

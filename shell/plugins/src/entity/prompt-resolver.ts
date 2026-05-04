@@ -68,10 +68,12 @@ export async function resolvePrompt(
       target,
     });
     await entityService.createEntity({
-      id: entityId,
-      entityType: "prompt",
-      content,
-      metadata: { title, target, slug: entityId },
+      entity: {
+        id: entityId,
+        entityType: "prompt",
+        content,
+        metadata: { title, target, slug: entityId },
+      },
     });
   } catch {
     // Creation failed (e.g. entity type not registered yet) — silent fallback

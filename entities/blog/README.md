@@ -349,12 +349,14 @@ const postContent = blogPostAdapter.createPostContent(
 );
 
 await entityService.createEntity({
-  id: "hello-world",
-  entityType: "post",
-  content: postContent,
-  metadata: {
-    title: "Hello World",
-    status: "draft",
+  entity: {
+    id: "hello-world",
+    entityType: "post",
+    content: postContent,
+    metadata: {
+      title: "Hello World",
+      status: "draft",
+    },
   },
 });
 ```

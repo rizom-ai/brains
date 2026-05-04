@@ -45,9 +45,11 @@ const entityService = EntityService.createFresh({
 await entityService.initialize();
 
 const { entityId, jobId } = await entityService.createEntity({
-  entityType: "note",
-  content: "---\ntitle: My Note\n---\n\nNote content...",
-  metadata: { title: "My Note", tags: ["important"] },
+  entity: {
+    entityType: "note",
+    content: "---\ntitle: My Note\n---\n\nNote content...",
+    metadata: { title: "My Note", tags: ["important"] },
+  },
 });
 
 const note = await entityService.getEntity({
@@ -65,8 +67,10 @@ const results = await entityService.search({
 
 if (note) {
   await entityService.updateEntity({
-    ...note,
-    content: "Updated content",
+    entity: {
+      ...note,
+      content: "Updated content",
+    },
   });
 }
 

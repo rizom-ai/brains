@@ -236,13 +236,15 @@ async function seedSwotEvalEntities(
   await Promise.all(
     input.skills.map((skill) =>
       context.entityService.createEntity({
-        id: skill.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, ""),
-        entityType: "skill",
-        content: skillAdapter.createSkillContent(skill),
-        metadata: skill,
+        entity: {
+          id: skill.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
+          entityType: "skill",
+          content: skillAdapter.createSkillContent(skill),
+          metadata: skill,
+        },
       }),
     ),
   );
@@ -252,26 +254,28 @@ async function seedSwotEvalEntities(
       const discoveredAt = agent.discoveredAt ?? new Date().toISOString();
       const slug = slugFromUrl(agent.url);
       return context.entityService.createEntity({
-        id: agent.id ?? slug,
-        entityType: "agent",
-        content: agentAdapter.createAgentContent({
-          name: agent.name,
-          kind: agent.kind,
-          ...(agent.organization ? { organization: agent.organization } : {}),
-          brainName: agent.brainName,
-          url: agent.url,
-          ...(agent.did ? { did: agent.did } : {}),
-          status: agent.status,
-          discoveredAt,
-          about: agent.about,
-          skills: agent.skills,
-          notes: agent.notes,
-        }),
-        metadata: {
-          name: agent.name,
-          url: agent.url,
-          status: agent.status,
-          slug,
+        entity: {
+          id: agent.id ?? slug,
+          entityType: "agent",
+          content: agentAdapter.createAgentContent({
+            name: agent.name,
+            kind: agent.kind,
+            ...(agent.organization ? { organization: agent.organization } : {}),
+            brainName: agent.brainName,
+            url: agent.url,
+            ...(agent.did ? { did: agent.did } : {}),
+            status: agent.status,
+            discoveredAt,
+            about: agent.about,
+            skills: agent.skills,
+            notes: agent.notes,
+          }),
+          metadata: {
+            name: agent.name,
+            url: agent.url,
+            status: agent.status,
+            slug,
+          },
         },
       });
     }),

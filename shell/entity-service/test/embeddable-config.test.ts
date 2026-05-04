@@ -4,7 +4,6 @@ import {
   noteAdapter,
   imageSchema,
   imageAdapter,
-  type Note,
   type ImageEntity,
 } from "./helpers/test-schemas";
 import {
@@ -40,7 +39,7 @@ describe("EntityTypeConfig embeddable flag", () => {
       metadata: {},
     };
 
-    await ctx.entityService.createEntity<Note>(noteData);
+    await ctx.entityService.createEntity({ entity: noteData });
 
     expect(ctx.jobQueueService.enqueue).toHaveBeenCalled();
   });
@@ -53,7 +52,7 @@ describe("EntityTypeConfig embeddable flag", () => {
       metadata: {},
     };
 
-    const result = await ctx.entityService.createEntity<ImageEntity>(imageData);
+    const result = await ctx.entityService.createEntity({ entity: imageData });
 
     const entity = await ctx.entityService.getEntity<ImageEntity>({
       entityType: "image",
@@ -72,8 +71,9 @@ describe("EntityTypeConfig embeddable flag", () => {
       metadata: {},
     };
 
-    const { entityId } =
-      await ctx.entityService.createEntity<ImageEntity>(imageData);
+    const { entityId } = await ctx.entityService.createEntity({
+      entity: imageData,
+    });
 
     const entity = await ctx.entityService.getEntity<ImageEntity>({
       entityType: "image",
@@ -82,9 +82,11 @@ describe("EntityTypeConfig embeddable flag", () => {
     expect(entity).not.toBeNull();
     if (!entity) throw new Error("Entity should exist");
 
-    await ctx.entityService.updateEntity<ImageEntity>({
-      ...entity,
-      content: "data:image/png;base64,UPDATED",
+    await ctx.entityService.updateEntity({
+      entity: {
+        ...entity,
+        content: "data:image/png;base64,UPDATED",
+      },
     });
 
     expect(ctx.jobQueueService.enqueue).not.toHaveBeenCalled();
@@ -98,7 +100,7 @@ describe("EntityTypeConfig embeddable flag", () => {
       metadata: {},
     };
 
-    const result = await ctx.entityService.createEntity<ImageEntity>(imageData);
+    const result = await ctx.entityService.createEntity({ entity: imageData });
 
     expect(result.entityId).toBeDefined();
     expect(result.jobId).toBe("");

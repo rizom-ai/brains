@@ -53,10 +53,12 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
             // Update metadata only. AgentAdapter.toMarkdown rebuilds
             // frontmatter from metadata on write, so content stays in sync.
             await context.entityService.updateEntity({
-              ...existing,
-              metadata: {
-                ...existing.metadata,
-                status: "approved",
+              entity: {
+                ...existing,
+                metadata: {
+                  ...existing.metadata,
+                  status: "approved",
+                },
               },
             });
           }

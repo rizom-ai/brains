@@ -34,9 +34,10 @@ describe("Image Import - Regression Tests", () => {
     );
 
     spyOn(mockEntityService, "upsertEntity").mockImplementation(
-      async (
-        entity: Partial<BaseEntity>,
-      ): Promise<EntityMutationResult & { created: boolean }> => {
+      async (request: {
+        entity: Partial<BaseEntity>;
+      }): Promise<EntityMutationResult & { created: boolean }> => {
+        const entity = request.entity;
         upsertedEntities.push({
           entityType: entity.entityType ?? "unknown",
           id: entity.id ?? "unknown",
@@ -112,7 +113,8 @@ describe("Image Import - Regression Tests", () => {
       // Track the actual content passed to upsert
       let capturedContent: string | undefined;
       spyOn(mockEntityService, "upsertEntity").mockImplementation(
-        async (entity: Partial<BaseEntity>) => {
+        async (request: { entity: Partial<BaseEntity> }) => {
+          const entity = request.entity;
           capturedContent = entity.content;
           upsertedEntities.push({
             entityType: entity.entityType ?? "unknown",

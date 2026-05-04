@@ -53,15 +53,17 @@ describe("TopicProcessingHandler", () => {
     content: string;
   }): Promise<void> {
     await mockShell.getEntityService().createEntity({
-      id: params.id,
-      entityType: "topic",
-      content: topicAdapter.createTopicBody({
-        title: params.title,
-        content: params.content,
-      }),
-      metadata: { aliases: [] },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
+      entity: {
+        id: params.id,
+        entityType: "topic",
+        content: topicAdapter.createTopicBody({
+          title: params.title,
+          content: params.content,
+        }),
+        metadata: { aliases: [] },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
     });
   }
 

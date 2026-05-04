@@ -114,8 +114,8 @@ describe("resolvePrompt", () => {
       );
 
       expect(mockCreateEntity).toHaveBeenCalledTimes(1);
-      expect(mockCreateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "blog-generation",
           entityType: "prompt",
           metadata: expect.objectContaining({
@@ -123,7 +123,7 @@ describe("resolvePrompt", () => {
             target: "blog:generation",
           }),
         }),
-      );
+      });
     });
 
     it("should not create entity when one already exists", async () => {
@@ -184,13 +184,13 @@ describe("resolvePrompt", () => {
         "fallback",
       );
 
-      expect(mockCreateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Social Media Linkedin",
           }),
         }),
-      );
+      });
     });
   });
 });

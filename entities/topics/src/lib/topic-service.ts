@@ -52,10 +52,12 @@ export class TopicService {
 
     try {
       const { entityId } = await this.entityService.createEntity({
-        id: topicId,
-        entityType: "topic",
-        content: body,
-        metadata,
+        entity: {
+          id: topicId,
+          entityType: "topic",
+          content: body,
+          metadata,
+        },
       });
 
       const topic: TopicEntity = {
@@ -111,9 +113,11 @@ export class TopicService {
     });
 
     const { entityId } = await this.entityService.updateEntity({
-      ...existing,
-      content: newBody,
-      metadata,
+      entity: {
+        ...existing,
+        content: newBody,
+        metadata,
+      },
     });
 
     const updatedTopic: TopicEntity = {

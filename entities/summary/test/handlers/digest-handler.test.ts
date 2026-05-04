@@ -18,7 +18,6 @@ import {
   type Logger,
   type ConversationDigestPayload,
 } from "@brains/plugins/test";
-import type { SummaryEntity } from "../../src/schemas/summary";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
 
 describe("DigestHandler", () => {
@@ -140,18 +139,18 @@ describe("DigestHandler", () => {
       expect(upsertCall).toBeDefined();
 
       if (upsertCall) {
-        const entity = upsertCall[0] as SummaryEntity;
+        const entity = upsertCall[0].entity;
         expect(entity.id).toBe("conv-123");
         expect(entity.entityType).toBe("summary");
         // Content should have frontmatter with metadata
         expect(entity.content).toContain("---");
         expect(entity.content).toContain("conversationId: conv-123");
         expect(entity.content).toContain("# Summary Log");
-        expect(entity.metadata.conversationId).toBe("conv-123");
-        expect(entity.metadata.channelName).toBe("CLI Terminal");
-        expect(entity.metadata.channelId).toBe("cli-terminal");
-        expect(entity.metadata.interfaceType).toBe("cli");
-        expect(entity.metadata.totalMessages).toBe(50);
+        expect(entity.metadata["conversationId"]).toBe("conv-123");
+        expect(entity.metadata["channelName"]).toBe("CLI Terminal");
+        expect(entity.metadata["channelId"]).toBe("cli-terminal");
+        expect(entity.metadata["interfaceType"]).toBe("cli");
+        expect(entity.metadata["totalMessages"]).toBe(50);
       }
     });
 
@@ -231,10 +230,10 @@ User asked about project setup
       const upsertCall = upsertSpy.mock.calls[0];
 
       if (upsertCall) {
-        const entity = upsertCall[0] as SummaryEntity;
+        const entity = upsertCall[0].entity;
         expect(entity.content).toContain("UPDATE:");
-        expect(entity.metadata.totalMessages).toBe(100);
-        expect(entity.metadata.entryCount).toBe(1); // Still 1 entry, just updated
+        expect(entity.metadata["totalMessages"]).toBe(100);
+        expect(entity.metadata["entryCount"]).toBe(1); // Still 1 entry, just updated
       }
     });
 
@@ -353,11 +352,11 @@ Window End: 50
       const upsertCall = upsertSpy.mock.calls[0];
 
       if (upsertCall) {
-        const entity = upsertCall[0] as SummaryEntity;
+        const entity = upsertCall[0].entity;
         expect(entity.content).toContain("Testing discussion");
         expect(entity.content).toContain("Project setup"); // Old entry still there
-        expect(entity.metadata.totalMessages).toBe(100);
-        expect(entity.metadata.entryCount).toBe(2); // Now 2 entries
+        expect(entity.metadata["totalMessages"]).toBe(100);
+        expect(entity.metadata["entryCount"]).toBe(2); // Now 2 entries
       }
     });
 
@@ -506,9 +505,9 @@ Window End: 50
 
       const upsertCall = upsertSpy.mock.calls[0];
       if (upsertCall) {
-        const entity = upsertCall[0] as SummaryEntity;
-        expect(entity.metadata.conversationId).toBe("conv-123");
-        expect(entity.metadata.totalMessages).toBe(75);
+        const entity = upsertCall[0].entity;
+        expect(entity.metadata["conversationId"]).toBe("conv-123");
+        expect(entity.metadata["totalMessages"]).toBe(75);
         expect(entity.created).toBe("2025-01-01T00:00:00Z"); // Preserved
       }
     });

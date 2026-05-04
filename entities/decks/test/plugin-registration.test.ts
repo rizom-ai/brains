@@ -103,7 +103,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new DecksPlugin());
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(sampleDraftDeck);
+      await entityService.createEntity({ entity: sampleDraftDeck });
 
       await harness.sendMessage("publish:execute", {
         entityType: "deck",

@@ -148,10 +148,12 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
         const content = `---\ntitle: ${title}\nkeywords: []\n---\n${title}`;
         try {
           await context.entityService.createEntity({
-            id,
-            entityType: "topic",
-            content,
-            metadata: {},
+            entity: {
+              id,
+              entityType: "topic",
+              content,
+              metadata: {},
+            },
           });
         } catch {
           // Topic may already exist

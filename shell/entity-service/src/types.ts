@@ -303,9 +303,29 @@ export interface CountEntitiesRequest {
   options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
 }
 
+export interface CreateEntityRequest<T extends BaseEntity> {
+  entity: EntityInput<T>;
+  options?: CreateEntityOptions | undefined;
+}
+
+export interface CreateEntityFromMarkdownRequest {
+  input: CreateEntityFromMarkdownInput;
+  options?: CreateEntityOptions | undefined;
+}
+
+export interface UpdateEntityRequest<T extends BaseEntity> {
+  entity: T;
+  options?: EntityJobOptions | undefined;
+}
+
 export interface DeleteEntityRequest {
   entityType: string;
   id: string;
+}
+
+export interface UpsertEntityRequest<T extends BaseEntity> {
+  entity: T;
+  options?: EntityJobOptions | undefined;
 }
 
 export interface EntitySearchRequest {
@@ -355,21 +375,17 @@ export interface ICoreEntityService {
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   createEntityFromMarkdown(
-    input: CreateEntityFromMarkdownInput,
-    options?: CreateEntityOptions,
+    request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult>;
   updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
   upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
 

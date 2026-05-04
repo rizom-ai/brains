@@ -18,11 +18,7 @@ import type {
   EntityDbConfig,
   BaseEntity,
   SearchResult,
-  EntityInput,
-  CreateEntityFromMarkdownInput,
   SearchOptions,
-  CreateEntityOptions,
-  EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityService as IEntityService,
@@ -34,6 +30,10 @@ import type {
   DeleteEntityRequest,
   EntitySearchRequest,
   SearchWithDistancesRequest,
+  CreateEntityRequest,
+  CreateEntityFromMarkdownRequest,
+  UpdateEntityRequest,
+  UpsertEntityRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -217,38 +217,36 @@ export class EntityService implements IEntityService {
   // ── Mutations ─────────────────────────────────────────────────────
 
   public async createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.entityMutations.createEntity(entity, options);
+    return this.entityMutations.createEntity(request);
   }
 
   public async createEntityFromMarkdown(
-    input: CreateEntityFromMarkdownInput,
-    options?: CreateEntityOptions,
+    request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult> {
+    const { input, options } = request;
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
       input.entityType,
     );
 
-    return this.entityMutations.createEntity(
-      {
+    return this.entityMutations.createEntity({
+      entity: {
         ...parsed,
         id: input.id,
         entityType: input.entityType,
         content: input.markdown,
         metadata: parsed.metadata ?? {},
       },
-      options,
-    );
+      ...(options !== undefined && { options }),
+    });
   }
 
   public async updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.entityMutations.updateEntity(entity, options);
+    return this.entityMutations.updateEntity(request);
   }
 
   public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
@@ -256,10 +254,9 @@ export class EntityService implements IEntityService {
   }
 
   public async upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    return this.entityMutations.upsertEntity(entity, options);
+    return this.entityMutations.upsertEntity(request);
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {

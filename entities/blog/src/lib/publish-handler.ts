@@ -83,12 +83,14 @@ export function subscribeToPublishExecute(
       );
 
       await context.entityService.updateEntity({
-        ...post,
-        content: updatedContent,
-        metadata: {
-          ...post.metadata,
-          status: "published",
-          publishedAt,
+        entity: {
+          ...post,
+          content: updatedContent,
+          metadata: {
+            ...post.metadata,
+            status: "published",
+            publishedAt,
+          },
         },
       });
 

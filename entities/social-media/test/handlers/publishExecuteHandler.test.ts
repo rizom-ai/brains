@@ -149,14 +149,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.updateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "post-1",
           metadata: expect.objectContaining({
             status: "published",
           }),
         }),
-      );
+      });
     });
 
     it("should send report:failure when entity not found", async () => {
@@ -233,14 +233,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.updateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "post-1",
           metadata: expect.objectContaining({
             status: "failed",
           }),
         }),
-      );
+      });
     });
 
     it("should skip already published posts", async () => {

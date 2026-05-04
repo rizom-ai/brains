@@ -226,13 +226,13 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with custom alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "My custom alt text",
           }),
         }),
-      );
+      });
     });
 
     it("should use title-based alt when customAlt not provided", async () => {
@@ -243,13 +243,13 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       // Verify createEntity was called with title-based alt
-      expect(context.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "Cover image for Test Post",
           }),
         }),
-      );
+      });
     });
 
     it("should skip if file already has coverImageId", async () => {
@@ -338,16 +338,18 @@ Some content here.
       await handler.process(jobData, "job-123", progressReporter);
 
       expect(context.entityService.createEntity).toHaveBeenCalledWith({
-        id: "test-post-cover",
-        entityType: "image",
-        content: VALID_PNG_DATA_URL,
-        metadata: expect.objectContaining({
-          title: "Cover image for Test Post",
-          alt: "Cover image for Test Post",
-          format: "png",
-          width: 1,
-          height: 1,
-          sourceUrl: "https://example.com/image.jpg",
+        entity: expect.objectContaining({
+          id: "test-post-cover",
+          entityType: "image",
+          content: VALID_PNG_DATA_URL,
+          metadata: expect.objectContaining({
+            title: "Cover image for Test Post",
+            alt: "Cover image for Test Post",
+            format: "png",
+            width: 1,
+            height: 1,
+            sourceUrl: "https://example.com/image.jpg",
+          }),
         }),
       });
     });

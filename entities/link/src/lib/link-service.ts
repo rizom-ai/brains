@@ -179,10 +179,12 @@ export class LinkService {
       });
 
       const entity = await this.context.entityService.createEntity({
-        id: entityId,
-        entityType: "link",
-        content,
-        metadata: { status: "pending", title },
+        entity: {
+          id: entityId,
+          entityType: "link",
+          content,
+          metadata: { status: "pending", title },
+        },
       });
 
       return {
@@ -206,10 +208,12 @@ export class LinkService {
     });
 
     const entity = await this.context.entityService.createEntity({
-      id: entityId,
-      entityType: "link",
-      content,
-      metadata: { status: "draft", title: extractionResult.title },
+      entity: {
+        id: entityId,
+        entityType: "link",
+        content,
+        metadata: { status: "draft", title: extractionResult.title },
+      },
     });
 
     return {

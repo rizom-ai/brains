@@ -84,19 +84,21 @@ describe("SwotDerivationHandler", () => {
     };
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
       },
     });
 
@@ -165,19 +167,21 @@ describe("SwotDerivationHandler", () => {
     });
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
       },
     });
 
@@ -213,30 +217,34 @@ describe("SwotDerivationHandler", () => {
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
-      id: "assessment-swot-derivation",
-      entityType: "prompt",
-      content: `---\ntitle: Assessment Swot Derivation\ntarget: assessment:swot-derivation\n---\nCustom SWOT prompt instructions.`,
-      metadata: {
-        title: "Assessment Swot Derivation",
-        target: "assessment:swot-derivation",
-        slug: "assessment-swot-derivation",
+      entity: {
+        id: "assessment-swot-derivation",
+        entityType: "prompt",
+        content: `---\ntitle: Assessment Swot Derivation\ntarget: assessment:swot-derivation\n---\nCustom SWOT prompt instructions.`,
+        metadata: {
+          title: "Assessment Swot Derivation",
+          target: "assessment:swot-derivation",
+          slug: "assessment-swot-derivation",
+        },
       },
     });
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
       },
     });
 
@@ -302,52 +310,56 @@ describe("SwotDerivationHandler", () => {
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Turn source material into grounded findings.",
-        tags: ["research", "synthesis"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Turn source material into grounded findings.",
-        tags: ["research", "synthesis"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Turn source material into grounded findings.",
+          tags: ["research", "synthesis"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Turn source material into grounded findings.",
+          tags: ["research", "synthesis"],
+          examples: ["Example"],
+        },
       },
     });
 
     await harness.getEntityService().createEntity({
-      id: "agent-1",
-      entityType: "agent",
-      content: agentAdapter.createAgentContent({
-        name: "Signal Forge",
-        brainName: "signal-forge",
-        url: "https://signal-forge.example.com",
-        status: "approved",
-        kind: "professional",
-        discoveredAt: "2026-04-20T00:00:00.000Z",
-        about: "Research partner",
-        notes: "Approved and reliable.",
-        skills: [
-          {
-            name: "Research Operations",
-            description: "Deep source gathering and synthesis.",
-            tags: ["research", "synthesis"],
-          },
-          {
-            name: "Facilitation",
-            description: "Turns research into collaborative sessions.",
-            tags: ["facilitation", "workshops"],
-          },
-        ],
-      }),
-      metadata: {
-        name: "Signal Forge",
-        url: "https://signal-forge.example.com",
-        status: "approved",
-        slug: "signal-forge",
+      entity: {
+        id: "agent-1",
+        entityType: "agent",
+        content: agentAdapter.createAgentContent({
+          name: "Signal Forge",
+          brainName: "signal-forge",
+          url: "https://signal-forge.example.com",
+          status: "approved",
+          kind: "professional",
+          discoveredAt: "2026-04-20T00:00:00.000Z",
+          about: "Research partner",
+          notes: "Approved and reliable.",
+          skills: [
+            {
+              name: "Research Operations",
+              description: "Deep source gathering and synthesis.",
+              tags: ["research", "synthesis"],
+            },
+            {
+              name: "Facilitation",
+              description: "Turns research into collaborative sessions.",
+              tags: ["facilitation", "workshops"],
+            },
+          ],
+        }),
+        metadata: {
+          name: "Signal Forge",
+          url: "https://signal-forge.example.com",
+          status: "approved",
+          slug: "signal-forge",
+        },
       },
     });
 
@@ -421,19 +433,21 @@ describe("SwotDerivationHandler", () => {
     await harness.installPlugin(plugin);
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
       },
     });
 
@@ -544,19 +558,21 @@ describe("SwotDerivationHandler", () => {
     };
 
     await harness.getEntityService().createEntity({
-      id: "skill-1",
-      entityType: "skill",
-      content: skillAdapter.createSkillContent({
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
-      }),
-      metadata: {
-        name: "Research",
-        description: "Research skill",
-        tags: ["research"],
-        examples: ["Example"],
+      entity: {
+        id: "skill-1",
+        entityType: "skill",
+        content: skillAdapter.createSkillContent({
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        }),
+        metadata: {
+          name: "Research",
+          description: "Research skill",
+          tags: ["research"],
+          examples: ["Example"],
+        },
       },
     });
 

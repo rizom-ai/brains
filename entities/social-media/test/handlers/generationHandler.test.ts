@@ -14,6 +14,10 @@ import type {
   EntityMutationResult,
 } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
+import {
+  socialPostMetadataSchema,
+  type SocialPostMetadata,
+} from "../../src/schemas/social-post";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;
@@ -255,15 +259,16 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should default to draft status when addToQueue not specified", async () => {
-      let createdStatus: string | undefined;
+      let createdStatus: SocialPostMetadata["status"] | undefined;
       const originalCreate = context.entityService.createEntity.bind(
         context.entityService,
       );
       context.entityService.createEntity = async (
         input,
       ): Promise<EntityMutationResult> => {
-        const entityInput = input as { metadata?: { status?: string } };
-        createdStatus = entityInput.metadata?.status;
+        createdStatus = socialPostMetadataSchema.parse(
+          input.entity.metadata,
+        ).status;
         return originalCreate(input);
       };
 

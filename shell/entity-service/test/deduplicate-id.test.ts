@@ -32,11 +32,11 @@ describe("deduplicateId option", () => {
       "my-note",
     );
 
-    await ctx.entityService.createEntity<Note>(noteData);
+    await ctx.entityService.createEntity({ entity: noteData });
 
     let threw = false;
     try {
-      await ctx.entityService.createEntity<Note>(noteData);
+      await ctx.entityService.createEntity({ entity: noteData });
     } catch {
       threw = true;
     }
@@ -49,11 +49,14 @@ describe("deduplicateId option", () => {
       "my-note",
     );
 
-    const first = await ctx.entityService.createEntity<Note>(noteData);
+    const first = await ctx.entityService.createEntity({ entity: noteData });
     expect(first.entityId).toBe("my-note");
 
-    const second = await ctx.entityService.createEntity<Note>(noteData, {
-      deduplicateId: true,
+    const second = await ctx.entityService.createEntity({
+      entity: noteData,
+      options: {
+        deduplicateId: true,
+      },
     });
     expect(second.entityId).toBe("my-note-2");
 
@@ -75,13 +78,19 @@ describe("deduplicateId option", () => {
       "my-note",
     );
 
-    await ctx.entityService.createEntity<Note>(noteData);
-    await ctx.entityService.createEntity<Note>(noteData, {
-      deduplicateId: true,
+    await ctx.entityService.createEntity({ entity: noteData });
+    await ctx.entityService.createEntity({
+      entity: noteData,
+      options: {
+        deduplicateId: true,
+      },
     });
 
-    const third = await ctx.entityService.createEntity<Note>(noteData, {
-      deduplicateId: true,
+    const third = await ctx.entityService.createEntity({
+      entity: noteData,
+      options: {
+        deduplicateId: true,
+      },
     });
     expect(third.entityId).toBe("my-note-3");
 
@@ -97,8 +106,11 @@ describe("deduplicateId option", () => {
       "unique-note",
     );
 
-    const result = await ctx.entityService.createEntity<Note>(noteData, {
-      deduplicateId: true,
+    const result = await ctx.entityService.createEntity({
+      entity: noteData,
+      options: {
+        deduplicateId: true,
+      },
     });
     expect(result.entityId).toBe("unique-note");
   });
@@ -143,7 +155,7 @@ describe("deduplicateId option", () => {
       { title: "Note", content: "Note content", tags: [] },
       "shared-id",
     );
-    await ctx.entityService.createEntity<Note>(noteData);
+    await ctx.entityService.createEntity({ entity: noteData });
 
     const articleData: Omit<
       Article,
@@ -158,7 +170,9 @@ describe("deduplicateId option", () => {
       metadata: {},
     };
 
-    const result = await ctx.entityService.createEntity<Article>(articleData);
+    const result = await ctx.entityService.createEntity({
+      entity: articleData,
+    });
     expect(result.entityId).toBe("shared-id");
   });
 });

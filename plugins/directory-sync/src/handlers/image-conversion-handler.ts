@@ -194,16 +194,18 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
         const imageAlt = customAlt ?? imageTitle;
 
         await this.context.entityService.createEntity({
-          id: imageId,
-          entityType: "image",
-          content: dataUrl,
-          metadata: {
-            title: imageTitle,
-            alt: imageAlt,
-            format,
-            width: dimensions.width,
-            height: dimensions.height,
-            sourceUrl,
+          entity: {
+            id: imageId,
+            entityType: "image",
+            content: dataUrl,
+            metadata: {
+              title: imageTitle,
+              alt: imageAlt,
+              format,
+              width: dimensions.width,
+              height: dimensions.height,
+              sourceUrl,
+            },
           },
         });
 

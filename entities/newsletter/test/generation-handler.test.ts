@@ -15,6 +15,10 @@ import {
 } from "@brains/plugins/test";
 import type { EntityMutationResult } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
+import {
+  newsletterMetadataSchema,
+  type NewsletterMetadata,
+} from "../src/schemas/newsletter";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;
@@ -136,15 +140,16 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should default to draft status when addToQueue not specified", async () => {
-      let createdStatus: string | undefined;
+      let createdStatus: NewsletterMetadata["status"] | undefined;
       const originalCreate = context.entityService.createEntity.bind(
         context.entityService,
       );
       context.entityService.createEntity = async (
         input,
       ): Promise<EntityMutationResult> => {
-        const entityInput = input as { metadata?: { status?: string } };
-        createdStatus = entityInput.metadata?.status;
+        createdStatus = newsletterMetadataSchema.parse(
+          input.entity.metadata,
+        ).status;
         return originalCreate(input);
       };
 
@@ -214,9 +219,10 @@ describe("GenerationJobHandler", () => {
       // Create mock posts
       const entityService = context.entityService;
       await entityService.createEntity({
-        id: "post-1",
-        entityType: "post",
-        content: `---
+        entity: {
+          id: "post-1",
+          entityType: "post",
+          content: `---
 title: "First Post"
 slug: post-1
 status: published
@@ -226,11 +232,12 @@ excerpt: "Introduction to the topic"
 # First Post
 
 Content here.`,
-        metadata: {
-          title: "First Post",
-          slug: "post-1",
-          status: "published",
-          excerpt: "Introduction to the topic",
+          metadata: {
+            title: "First Post",
+            slug: "post-1",
+            status: "published",
+            excerpt: "Introduction to the topic",
+          },
         },
       });
 
@@ -241,13 +248,14 @@ Content here.`,
           content: "Here are the latest posts...",
         }) as T;
 
-      let capturedMetadata: { entityIds?: string[] } | undefined;
+      let capturedMetadata: NewsletterMetadata | undefined;
       const originalCreate = entityService.createEntity.bind(entityService);
       entityService.createEntity = async (
         input,
       ): Promise<EntityMutationResult> => {
-        capturedMetadata = (input as { metadata?: { entityIds?: string[] } })
-          .metadata;
+        capturedMetadata = newsletterMetadataSchema.parse(
+          input.entity.metadata,
+        );
         return originalCreate(input);
       };
 

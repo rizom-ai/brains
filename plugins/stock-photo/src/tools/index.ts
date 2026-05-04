@@ -177,7 +177,9 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         },
       };
 
-      const { entityId } = await deps.entityService.createEntity(entityInput);
+      const { entityId } = await deps.entityService.createEntity({
+        entity: entityInput,
+      });
 
       const result: SelectResult = {
         imageEntityId: entityId,
@@ -213,10 +215,12 @@ async function setCoverImage(
   if (!target) return;
 
   await entityService.updateEntity({
-    ...target,
-    metadata: {
-      ...target.metadata,
-      coverImageId: imageEntityId,
+    entity: {
+      ...target,
+      metadata: {
+        ...target.metadata,
+        coverImageId: imageEntityId,
+      },
     },
   });
 }

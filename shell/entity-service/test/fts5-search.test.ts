@@ -24,7 +24,7 @@ describe("FTS5 full-text search", () => {
     const entity = createTestEntity("test", {
       content: "A deep dive into TypeScript generics and type inference",
     });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
 
     // Store embedding so vector search works too
     await ctx.entityService.storeEmbedding({
@@ -43,7 +43,7 @@ describe("FTS5 full-text search", () => {
     const entity = createTestEntity("test", {
       content: "Introduction to Python programming",
     });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
@@ -53,8 +53,10 @@ describe("FTS5 full-text search", () => {
 
     // Update content
     await ctx.entityService.updateEntity({
-      ...entity,
-      content: "Advanced Rust memory management",
+      entity: {
+        ...entity,
+        content: "Advanced Rust memory management",
+      },
     });
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
@@ -80,7 +82,7 @@ describe("FTS5 full-text search", () => {
     const entity = createTestEntity("test", {
       content: "Unique keyword: xylophone orchestration techniques",
     });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
@@ -98,7 +100,7 @@ describe("FTS5 full-text search", () => {
     const entity = createTestEntity("test", {
       content: "What topics does this brain cover?",
     });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
@@ -127,7 +129,7 @@ describe("FTS5 full-text search", () => {
     const entity = createTestEntity("test", {
       content: "Weighted search content",
     });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
     await ctx.entityService.storeEmbedding({
       entityId: entity.id,
       entityType: "test",
@@ -157,8 +159,8 @@ describe("FTS5 full-text search", () => {
       content: "Strongly typed programming languages improve code quality",
     });
 
-    await ctx.entityService.createEntity(exact);
-    await ctx.entityService.createEntity(similar);
+    await ctx.entityService.createEntity({ entity: exact });
+    await ctx.entityService.createEntity({ entity: similar });
 
     // Give both similar vector embeddings
     await ctx.entityService.storeEmbedding({

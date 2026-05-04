@@ -171,12 +171,14 @@ export function createPublishTool(
 
       // Update entity status
       await context.entityService.updateEntity({
-        ...entity,
-        metadata: {
-          ...entity.metadata,
-          status: "published",
-          publishedAt: new Date().toISOString(),
-          platformId: result.id,
+        entity: {
+          ...entity,
+          metadata: {
+            ...entity.metadata,
+            status: "published",
+            publishedAt: new Date().toISOString(),
+            platformId: result.id,
+          },
         },
       });
 

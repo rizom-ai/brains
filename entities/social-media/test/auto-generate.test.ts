@@ -152,14 +152,16 @@ describe("SocialMediaPlugin - Auto-Generate on Blog Queued", () => {
 
       const entityService = harness.getEntityService();
       await entityService.createEntity({
-        id: "social-post-1",
-        entityType: "social-post",
-        content: "Existing social post",
-        metadata: {
-          platform: "linkedin",
-          status: "draft",
-          sourceEntityType: "post",
-          sourceEntityId: "post-1",
+        entity: {
+          id: "social-post-1",
+          entityType: "social-post",
+          content: "Existing social post",
+          metadata: {
+            platform: "linkedin",
+            status: "draft",
+            sourceEntityType: "post",
+            sourceEntityId: "post-1",
+          },
         },
       });
 

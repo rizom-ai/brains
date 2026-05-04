@@ -199,8 +199,10 @@ ${data.entityContent}`,
       }
 
       await this.context.entityService.createEntity({
-        ...entityData,
-        id: imageId,
+        entity: {
+          ...entityData,
+          id: imageId,
+        },
       });
 
       this.logger.debug("Created image entity", { imageId });

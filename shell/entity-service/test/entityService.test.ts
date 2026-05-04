@@ -272,9 +272,9 @@ describe("EntityService > upsertEntity", () => {
       { title: "New Note", content: "New content", tags: ["test"] },
       "new-entity",
     );
-    const result = await ctx.entityService.upsertEntity(
-      createTestEntity<SharedNote>("note", input),
-    );
+    const result = await ctx.entityService.upsertEntity({
+      entity: createTestEntity<SharedNote>("note", input),
+    });
 
     expect(result.entityId).toBe("new-entity");
     expect(result.created).toBe(true);
@@ -291,14 +291,14 @@ describe("EntityService > upsertEntity", () => {
       { title: "Initial", content: "Initial content", tags: [] },
       "existing-entity",
     );
-    await ctx.entityService.createEntity<SharedNote>(input);
+    await ctx.entityService.createEntity({ entity: input });
 
     const updated = createTestEntity<SharedNote>("note", {
       ...input,
       id: "existing-entity",
       content: "Updated content",
     });
-    const result = await ctx.entityService.upsertEntity(updated);
+    const result = await ctx.entityService.upsertEntity({ entity: updated });
 
     expect(result.entityId).toBe("existing-entity");
     expect(result.created).toBe(false);
@@ -309,7 +309,7 @@ describe("EntityService > upsertEntity", () => {
       { title: "Stable Note", content: "Same content", tags: [] },
       "stable-entity",
     );
-    await ctx.entityService.createEntity<SharedNote>(input);
+    await ctx.entityService.createEntity({ entity: input });
 
     const before = await ctx.entityService.getEntity({
       entityType: "note",
@@ -318,13 +318,13 @@ describe("EntityService > upsertEntity", () => {
     expect(before).not.toBeNull();
 
     // Upsert with the same content — simulates periodic sync re-importing
-    const result = await ctx.entityService.upsertEntity(
-      createTestEntity<SharedNote>("note", {
+    const result = await ctx.entityService.upsertEntity({
+      entity: createTestEntity<SharedNote>("note", {
         ...input,
         id: "stable-entity",
         content: "Same content",
       }),
-    );
+    });
 
     expect(result.created).toBe(false);
 
@@ -343,7 +343,7 @@ describe("EntityService > upsertEntity", () => {
       { title: "Round Trip", content: "Body text here", tags: [] },
       "roundtrip-entity",
     );
-    await ctx.entityService.createEntity<SharedNote>(input);
+    await ctx.entityService.createEntity({ entity: input });
 
     const stored = await ctx.entityService.getEntity({
       entityType: "note",
@@ -362,7 +362,7 @@ describe("EntityService > upsertEntity", () => {
       id: "roundtrip-entity",
     });
 
-    const result = await ctx.entityService.upsertEntity(reimported);
+    const result = await ctx.entityService.upsertEntity({ entity: reimported });
 
     expect(result.created).toBe(false);
     expect(result.skipped).toBe(true);
@@ -382,10 +382,10 @@ describe("EntityService > upsertEntity", () => {
     );
     const options = { priority: 5, maxRetries: 10 };
 
-    const result = await ctx.entityService.upsertEntity(
-      createTestEntity<SharedNote>("note", input),
-      options,
-    );
+    const result = await ctx.entityService.upsertEntity({
+      entity: createTestEntity<SharedNote>("note", input),
+      options: options,
+    });
 
     expect(result.entityId).toBe("options-entity");
     expect(result.created).toBe(true);

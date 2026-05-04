@@ -194,7 +194,9 @@ describe("AgentDiscoveryPlugin", () => {
     const plugin = new AgentDiscoveryPlugin();
 
     await harness.installPlugin(plugin);
-    await harness.getEntityService().createEntity(makeAgentEntity("approved"));
+    await harness
+      .getEntityService()
+      .createEntity({ entity: makeAgentEntity("approved") });
 
     const interceptor = harness
       .getEntityRegistry()
@@ -235,7 +237,7 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.installPlugin(plugin);
     await harness
       .getEntityService()
-      .createEntity(makeAgentEntity("discovered"));
+      .createEntity({ entity: makeAgentEntity("discovered") });
 
     const interceptor = harness
       .getEntityRegistry()

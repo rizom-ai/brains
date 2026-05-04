@@ -29,7 +29,7 @@ describe("search diagnostics", () => {
     ];
     for (const { id, content } of testData) {
       const entity = createTestEntity("test", { id, content });
-      await ctx.entityService.createEntity(entity);
+      await ctx.entityService.createEntity({ entity: entity });
       await ctx.entityService.storeEmbedding({
         entityId: id,
         entityType: "test",
@@ -60,8 +60,8 @@ describe("search diagnostics", () => {
       content: "Very far content",
     });
 
-    await ctx.entityService.createEntity(e1);
-    await ctx.entityService.createEntity(e2);
+    await ctx.entityService.createEntity({ entity: e1 });
+    await ctx.entityService.createEntity({ entity: e2 });
 
     // Give different embeddings to simulate distance variation
     await ctx.entityService.storeEmbedding({
@@ -93,7 +93,7 @@ describe("search diagnostics", () => {
 
   test("searchWithDistances returns no results when no embeddings exist", async () => {
     const entity = createTestEntity("test", { content: "No embedding" });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
 
     const results = await ctx.entityService.searchWithDistances({
       query: "anything",

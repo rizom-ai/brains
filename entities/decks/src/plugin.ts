@@ -112,8 +112,10 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
         };
 
         await context.entityService.updateEntity({
-          ...updatedDeck,
-          content: this.adapter.toMarkdown(updatedDeck),
+          entity: {
+            ...updatedDeck,
+            content: this.adapter.toMarkdown(updatedDeck),
+          },
         });
 
         await context.messaging.send({

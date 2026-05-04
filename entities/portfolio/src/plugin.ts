@@ -183,9 +183,11 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
         });
 
         await context.entityService.updateEntity({
-          ...project,
-          content: updatedContent,
-          metadata: { ...project.metadata, status: "published", publishedAt },
+          entity: {
+            ...project,
+            content: updatedContent,
+            metadata: { ...project.metadata, status: "published", publishedAt },
+          },
         });
 
         await context.messaging.send({

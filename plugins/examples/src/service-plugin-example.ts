@@ -190,12 +190,14 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
 
         // Store in entity service
         await context.entityService.createEntity({
-          entityType: "calculation",
-          content: `${expression} = ${result}`,
-          metadata: {
-            expression,
-            result: result.toString(),
-            timestamp: new Date().toISOString(),
+          entity: {
+            entityType: "calculation",
+            content: `${expression} = ${result}`,
+            metadata: {
+              expression,
+              result: result.toString(),
+              timestamp: new Date().toISOString(),
+            },
           },
         });
 
@@ -274,12 +276,14 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
 
           // Store calculation in entity service
           const calculation = await context.entityService.createEntity({
-            entityType: "calculation",
-            content: `${expression} = ${result}`,
-            metadata: {
-              expression,
-              result: result.toString(),
-              timestamp: new Date().toISOString(),
+            entity: {
+              entityType: "calculation",
+              content: `${expression} = ${result}`,
+              metadata: {
+                expression,
+                result: result.toString(),
+                timestamp: new Date().toISOString(),
+              },
             },
           });
 

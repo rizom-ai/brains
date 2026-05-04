@@ -458,9 +458,10 @@ describe("Invalid Entity Handling", () => {
         return { metadata: {} };
       };
 
-      mockEntityService.upsertEntity = async (
-        entity: Partial<BaseEntity>,
-      ): Promise<EntityMutationResult & { created: boolean }> => {
+      mockEntityService.upsertEntity = async (request: {
+        entity: Partial<BaseEntity>;
+      }): Promise<EntityMutationResult & { created: boolean }> => {
+        const entity = request.entity;
         callCount++;
         // Fail on the third call (db-fail.md)
         if (callCount === 2) {
@@ -515,9 +516,10 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(file, "# Will Succeed\n\nOn second try");
 
       let attemptCount = 0;
-      mockEntityService.upsertEntity = async (
-        entity: Partial<BaseEntity>,
-      ): Promise<EntityMutationResult & { created: boolean }> => {
+      mockEntityService.upsertEntity = async (request: {
+        entity: Partial<BaseEntity>;
+      }): Promise<EntityMutationResult & { created: boolean }> => {
+        const entity = request.entity;
         attemptCount++;
         if (attemptCount === 1) {
           throw new Error("Temporary database failure");

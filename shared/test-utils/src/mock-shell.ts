@@ -172,7 +172,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
-    createEntity: async (entity: BaseEntity) => {
+    createEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const { content, metadata } = serializeViaAdapter({ ...entity, id });
@@ -183,9 +184,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: id, jobId: `job-${id}` };
+      return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
-    updateEntity: async (entity: BaseEntity) => {
+    updateEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
       entities.set(entity.id, {
@@ -194,7 +196,7 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: entity.id, jobId: `job-${entity.id}` };
+      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
     deleteEntity: async (request: { entityType: string; id: string }) => {
       entities.delete(request.id);
@@ -232,7 +234,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     deserializeEntity: (markdown: string) =>
       ({ content: markdown }) as BaseEntity,
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    upsertEntity: async (entity: BaseEntity) => {
+    upsertEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = entities.has(id);
@@ -244,7 +247,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: id, jobId: `job-${id}`, created: !exists };
+      return {
+        entityId: id,
+        jobId: `job-${id}`,
+        created: !exists,
+        skipped: false,
+      };
     },
     getWeightMap: () => ({}),
     countEntities: async () => 0,

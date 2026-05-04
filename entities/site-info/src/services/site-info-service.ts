@@ -105,10 +105,12 @@ export class SiteInfoService {
         );
 
         await this.entityService.createEntity({
-          id: "site-info",
-          entityType: "site-info",
-          content,
-          metadata: {},
+          entity: {
+            id: "site-info",
+            entityType: "site-info",
+            content,
+            metadata: {},
+          },
         });
 
         this.logger.info("Default site info created successfully");

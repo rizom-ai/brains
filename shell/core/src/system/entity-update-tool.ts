@@ -129,7 +129,7 @@ export function createEntityUpdateTool(services: SystemServices): Tool {
                 metadata: { ...entity.metadata, ...normalizedInput.fields },
               };
         try {
-          await entityService.updateEntity(updated);
+          await entityService.updateEntity({ entity: updated });
         } catch (error) {
           return {
             success: false,

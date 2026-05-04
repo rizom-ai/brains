@@ -54,16 +54,18 @@ export async function getOrCreateImageEntity(
   }
 
   const result = await entityService.createEntity({
-    id: params.id,
-    entityType: "image",
-    content: dataUrl,
-    metadata: {
-      title: params.title,
-      alt: params.alt,
-      format,
-      width: dimensions.width,
-      height: dimensions.height,
-      sourceUrl,
+    entity: {
+      id: params.id,
+      entityType: "image",
+      content: dataUrl,
+      metadata: {
+        title: params.title,
+        alt: params.alt,
+        format,
+        width: dimensions.width,
+        height: dimensions.height,
+        sourceUrl,
+      },
     },
   });
 

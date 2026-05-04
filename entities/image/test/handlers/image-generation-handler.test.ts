@@ -127,14 +127,14 @@ describe("ImageGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       expect(result.imageId).toBeDefined();
-      expect(context.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           entityType: "image",
           metadata: expect.objectContaining({
             title: expect.any(String),
           }),
         }),
-      );
+      });
     });
 
     it("should reject invalid aspectRatio", () => {
@@ -171,8 +171,8 @@ describe("ImageGenerationJobHandler", () => {
       expect(result.imageId).toBe("sunset-image");
 
       // Verify entity was created
-      expect(context.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(context.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "sunset-image",
           entityType: "image",
           content: VALID_PNG_DATA_URL,
@@ -180,7 +180,7 @@ describe("ImageGenerationJobHandler", () => {
             title: "Sunset Image",
           }),
         }),
-      );
+      });
     });
 
     it("should delete existing image before creating when regenerating", async () => {

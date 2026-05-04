@@ -3,13 +3,14 @@ import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   BaseEntity,
   EmbeddingJobData,
-  EntityInput,
-  CreateEntityOptions,
   EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityEventBus,
   DeleteEntityRequest,
+  CreateEntityRequest,
+  UpdateEntityRequest,
+  UpsertEntityRequest,
 } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
@@ -65,9 +66,9 @@ export class EntityMutations {
    * Create a new entity (returns immediately, embedding generated in background)
    */
   public async createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    const { entity, options } = request;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
@@ -151,9 +152,9 @@ export class EntityMutations {
    * Update an existing entity (returns immediately, embedding generated in background)
    */
   public async updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    const { entity, options } = request;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
@@ -270,9 +271,9 @@ export class EntityMutations {
    * Create or update an entity based on existence
    */
   public async upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
+    const { entity, options } = request;
     this.logger.debug(
       `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
     );
@@ -283,10 +284,16 @@ export class EntityMutations {
     );
 
     if (exists) {
-      const result = await this.updateEntity(entity, options);
+      const result = await this.updateEntity({
+        entity,
+        ...(options !== undefined && { options }),
+      });
       return { ...result, created: false };
     } else {
-      const result = await this.createEntity(entity, options);
+      const result = await this.createEntity({
+        entity,
+        ...(options !== undefined && { options }),
+      });
       return { ...result, created: true };
     }
   }

@@ -146,17 +146,17 @@ export function createMockSystemServices(
       }),
     getEntityTypes: () => Array.from(entityTypes),
     hasEntityType: (type: string) => entityTypes.has(type),
-    createEntity: async (entity: BaseEntity) => {
+    createEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       const id = entity.id || `entity-${Date.now()}`;
       entities.set(id, { ...entity, id });
       entityTypes.add(entity.entityType);
-      return { entityId: id, jobId: `job-${id}` };
+      return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
-    createEntityFromMarkdown: async (input: {
-      entityType: string;
-      id: string;
-      markdown: string;
+    createEntityFromMarkdown: async (request: {
+      input: { entityType: string; id: string; markdown: string };
     }) => {
+      const input = request.input;
       markdownCreates.push(input);
       entities.set(input.id, {
         id: input.id,
@@ -168,11 +168,12 @@ export function createMockSystemServices(
         updated: new Date().toISOString(),
       });
       entityTypes.add(input.entityType);
-      return { entityId: input.id, jobId: `job-${input.id}` };
+      return { entityId: input.id, jobId: `job-${input.id}`, skipped: false };
     },
-    updateEntity: async (entity: BaseEntity) => {
+    updateEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       entities.set(entity.id, entity);
-      return { entityId: entity.id, jobId: `job-${entity.id}` };
+      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
     deleteEntity: async (request: { entityType: string; id: string }) => {
       entities.delete(request.id);

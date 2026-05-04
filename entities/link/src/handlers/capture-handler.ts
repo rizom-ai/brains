@@ -202,10 +202,12 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         });
 
         const entity = await this.context.entityService.createEntity({
-          id: entityId,
-          entityType: "link",
-          content,
-          metadata: { status: "pending", title },
+          entity: {
+            id: entityId,
+            entityType: "link",
+            content,
+            metadata: { status: "pending", title },
+          },
         });
 
         await progressReporter.report({
@@ -242,10 +244,12 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
       });
 
       const entity = await this.context.entityService.createEntity({
-        id: entityId,
-        entityType: "link",
-        content,
-        metadata: { status: "draft", title: extractionResult.title },
+        entity: {
+          id: entityId,
+          entityType: "link",
+          content,
+          metadata: { status: "draft", title: extractionResult.title },
+        },
       });
 
       await progressReporter.report({

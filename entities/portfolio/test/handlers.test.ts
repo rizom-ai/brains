@@ -122,19 +122,18 @@ describe("ProjectGenerationJobHandler", () => {
       expect(context.entityService.createEntity).toHaveBeenCalled();
 
       const createCall = createEntitySpy.mock.calls[0];
-      const entityArg = createCall?.[0] as {
-        entityType: string;
-        content: string;
-        metadata: { title: string; slug: string; status: string; year: number };
-      };
+      expect(createCall).toBeDefined();
+      if (!createCall) return;
+
+      const entityArg = createCall[0].entity;
 
       expect(entityArg.entityType).toBe("project");
       expect(entityArg.content).toContain("## Context");
       expect(entityArg.content).toContain("## Problem");
       expect(entityArg.content).toContain("## Solution");
       expect(entityArg.content).toContain("## Outcome");
-      expect(entityArg.metadata.status).toBe("draft");
-      expect(entityArg.metadata.year).toBe(2024);
+      expect(entityArg.metadata["status"]).toBe("draft");
+      expect(entityArg.metadata["year"]).toBe(2024);
     });
 
     it("should report progress throughout processing", async () => {

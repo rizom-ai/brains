@@ -54,7 +54,7 @@ export class SeriesManager {
         metadata: { title: seriesName, slug: slugify(seriesName) },
       };
 
-      await this.entityService.upsertEntity(seriesEntity);
+      await this.entityService.upsertEntity({ entity: seriesEntity });
       this.logger.debug(`Upserted series: ${seriesName}`);
     }
 
@@ -126,7 +126,7 @@ export class SeriesManager {
       metadata: { title: seriesName, slug: slugify(seriesName) },
     };
 
-    await this.entityService.upsertEntity(seriesEntity);
+    await this.entityService.upsertEntity({ entity: seriesEntity });
     this.logger.debug(`Created series: ${seriesName}`);
   }
 
