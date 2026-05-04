@@ -94,6 +94,7 @@
   "changesets": [
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
+    "bitwarden-secrets-push",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
     "brains-ops-published-delivery",
