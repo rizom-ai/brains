@@ -33,6 +33,7 @@ import type {
   CountEntitiesRequest,
   DeleteEntityRequest,
   EntitySearchRequest,
+  SearchWithDistancesRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -333,11 +334,11 @@ export class EntityService implements IEntityService {
   }
 
   public async searchWithDistances(
-    query: string,
+    request: SearchWithDistancesRequest,
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
-    return this.entitySearch.searchWithDistances(query);
+    return this.entitySearch.searchWithDistances(request.query);
   }
 
   public async countEmbeddings(): Promise<number> {

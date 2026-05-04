@@ -313,6 +313,10 @@ export interface EntitySearchRequest {
   options?: SearchOptions | undefined;
 }
 
+export interface SearchWithDistancesRequest {
+  query: string;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
@@ -378,7 +382,7 @@ export interface EntityService extends ICoreEntityService {
 
   // Diagnostics
   searchWithDistances(
-    query: string,
+    request: SearchWithDistancesRequest,
   ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
   // Lifecycle

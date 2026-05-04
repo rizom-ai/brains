@@ -38,7 +38,9 @@ describe("search diagnostics", () => {
       });
     }
 
-    const results = await ctx.entityService.searchWithDistances("TypeScript");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "TypeScript",
+    });
     expect(results.length).toBe(3);
     // Each result has a distance
     for (const r of results) {
@@ -75,7 +77,9 @@ describe("search diagnostics", () => {
       contentHash: e2.contentHash,
     });
 
-    const results = await ctx.entityService.searchWithDistances("test query");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "test query",
+    });
     expect(results.length).toBe(2);
     // Sorted by distance ascending
     const first = results[0];
@@ -91,7 +95,9 @@ describe("search diagnostics", () => {
     const entity = createTestEntity("test", { content: "No embedding" });
     await ctx.entityService.createEntity(entity);
 
-    const results = await ctx.entityService.searchWithDistances("anything");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "anything",
+    });
     expect(results).toHaveLength(0);
   });
 });

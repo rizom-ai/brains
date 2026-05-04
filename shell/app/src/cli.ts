@@ -399,7 +399,7 @@ async function runDiagnostics(
   const selfDistances: number[] = [];
 
   const searchResults = await Promise.all(
-    samples.map((s) => entityService.searchWithDistances(s.title)),
+    samples.map((s) => entityService.searchWithDistances({ query: s.title })),
   );
   for (const [i, sample] of samples.entries()) {
     for (const r of searchResults[i] ?? []) {
