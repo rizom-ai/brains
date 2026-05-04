@@ -1,5 +1,5 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
-import type { RouteRegistry } from "./route-registry";
+import type { RouteDefinitionInput } from "@brains/site-composition";
+import type { RouteRegistry } from "@brains/site-engine";
 
 /**
  * Prefix section template names with the plugin ID if not already namespaced.

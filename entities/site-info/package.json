@@ -16,6 +16,7 @@
   "dependencies": {
     "@brains/entity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {

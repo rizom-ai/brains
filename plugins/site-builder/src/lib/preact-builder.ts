@@ -3,14 +3,11 @@ import type {
   StaticSiteBuilder,
   StaticSiteBuilderOptions,
   BuildContext,
-  SiteInfo,
 } from "./static-site-builder";
-import type { ComponentType } from "@brains/plugins";
-import type { RouteDefinition } from "@brains/plugins";
+import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
 import type { Logger } from "@brains/utils";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
-import { HeadCollector } from "./head-collector";
 import {
   HeadProvider,
   ImageRendererProvider,
@@ -19,9 +16,13 @@ import {
 import type { ComponentChildren } from "preact";
 import { dirname, join } from "path";
 import { promises as fs } from "fs";
-import type { CSSProcessor } from "../css/css-processor";
-import { TailwindCSSProcessor } from "../css/css-processor";
-import { createHTMLShell } from "./html-generator";
+import {
+  collectRouteScripts,
+  createHTMLShell,
+  HeadCollector,
+  TailwindCSSProcessor,
+  type CSSProcessor,
+} from "@brains/site-engine";
 import { z, pLimit } from "@brains/utils";
 
 // Import base CSS as text so it's inlined in the bundle (avoids __dirname issues)
@@ -53,8 +54,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     await fs.mkdir(this.outputDir, { recursive: true });
     await fs.mkdir(join(this.outputDir, "styles"), { recursive: true });
 
-    // Fetch site info once for all routes
-    const siteInfo = await context.getSiteInfo();
+    // Fetch site layout info once for all routes
+    const siteLayoutInfo = await context.getSiteLayoutInfo();
 
     // Build routes concurrently (independent — different paths, content, output files)
     const limit = pLimit(4);
@@ -62,7 +63,7 @@ export class PreactBuilder implements StaticSiteBuilder {
       context.routes.map((route) =>
         limit(async () => {
           onProgress(`Building route: ${route.path}`);
-          await this.buildRoute(route, context, siteInfo);
+          await this.buildRoute(route, context, siteLayoutInfo);
         }),
       ),
     );
@@ -111,7 +112,7 @@ export class PreactBuilder implements StaticSiteBuilder {
   private async buildRoute(
     route: RouteDefinition,
     context: BuildContext,
-    siteInfo: SiteInfo,
+    siteLayoutInfo: SiteLayoutInfo,
   ): Promise<void> {
     this.logger.debug(`Building route: ${route.path}`);
 
@@ -160,15 +161,16 @@ export class PreactBuilder implements StaticSiteBuilder {
         throw new Error(`Layout not found: ${layoutName}`);
       }
 
-      const resolvedTitle = route.title || siteInfo.title;
-      const resolvedDescription = route.description || siteInfo.description;
+      const resolvedTitle = route.title || siteLayoutInfo.title;
+      const resolvedDescription =
+        route.description || siteLayoutInfo.description;
 
       const layoutProps = {
         sections: sectionComponents,
         title: resolvedTitle,
         description: resolvedDescription,
         path: route.path,
-        siteInfo,
+        siteInfo: siteLayoutInfo,
         ...(context.slots && { slots: context.slots }),
       };
 
@@ -185,8 +187,8 @@ export class PreactBuilder implements StaticSiteBuilder {
     // Set default head props if no Head component was rendered
     if (!headCollector.getHeadProps()) {
       const headProps: HeadProps = {
-        title: route.title || siteInfo.title,
-        description: route.description || siteInfo.description,
+        title: route.title || siteLayoutInfo.title,
+        description: route.description || siteLayoutInfo.description,
       };
 
       if (route.path !== "/") {
@@ -259,21 +261,15 @@ export class PreactBuilder implements StaticSiteBuilder {
       // Inject route title as pageTitle for templates that use it (e.g., list pages)
       try {
         const contentObj = z.record(z.unknown()).parse(content);
-        const validatedContent = template.schema.parse({
-          ...contentObj,
-          pageTitle: route.title || context.siteConfig.title,
-        });
-
-        // Create component using h() to pass props correctly
-        // renderer is already checked to be a function, so we can cast it to ComponentType
-        // We cast validatedContent to Record<string, unknown> since we know it's an object after schema validation
-        const ComponentFunc = renderer as ComponentType<
-          Record<string, unknown>
-        >;
-        const component = h(
-          ComponentFunc,
-          validatedContent as Record<string, unknown>,
+        const validatedContent = z.record(z.unknown()).parse(
+          template.schema.parse({
+            ...contentObj,
+            pageTitle: route.title || context.siteConfig.title,
+          }),
         );
+
+        // Create component using h() to pass props correctly.
+        const component = h(renderer, validatedContent);
 
         sectionComponents.push(component);
         this.logger.debug(`Created component for section ${section.id}`);
@@ -442,34 +438,4 @@ export function createPreactBuilder(
   options: StaticSiteBuilderOptions,
 ): StaticSiteBuilder {
   return new PreactBuilder(options);
-}
-
-/**
- * Walk a route's sections, look up each template, accumulate its
- * `runtimeScripts` declarations, dedupe by `src`, and render them as
- * ready-to-inject <script> tag strings. Returned strings are appended
- * to the global `context.headScripts` so template-scoped runtime
- * dependencies only load on pages where the template actually renders.
- */
-export function collectRouteScripts(
-  route: RouteDefinition,
-  context: BuildContext,
-): string[] {
-  const seen = new Map<
-    string,
-    { src: string; defer?: boolean; module?: boolean }
-  >();
-  for (const section of route.sections) {
-    const template = context.getViewTemplate(section.template);
-    if (!template?.runtimeScripts) continue;
-    for (const script of template.runtimeScripts) {
-      if (!seen.has(script.src)) seen.set(script.src, script);
-    }
-  }
-  return [...seen.values()].map((s) => {
-    const attrs: string[] = [`src="${s.src}"`];
-    if (s.defer) attrs.push("defer");
-    if (s.module) attrs.push('type="module"');
-    return `<script ${attrs.join(" ")}></script>`;
-  });
 }

@@ -1,14 +1,14 @@
 import type { JSX, ComponentChildren } from "preact";
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { FooterLayout } from "../footer/layout";
-import type { SiteInfo } from "@brains/site-builder-plugin";
+import type { SiteLayoutInfo } from "@brains/site-composition";
 
 export interface DefaultLayoutProps {
   sections: ComponentChildren[]; // JSX elements for sections
   title: string;
   description: string;
   path: string; // Current route path for canonical URL
-  siteInfo: SiteInfo;
+  siteInfo: SiteLayoutInfo;
 }
 
 /**

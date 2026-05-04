@@ -1,0 +1,782 @@
+import { describe, test, expect, beforeEach } from "bun:test";
+import {
+  DynamicRouteGenerator,
+  type DynamicRouteEntity,
+  type DynamicRouteGeneratorServices,
+} from "../src/dynamic-route-generator";
+import { RouteRegistry } from "../src/route-registry";
+import { createSilentLogger } from "@brains/test-utils";
+import { z } from "@brains/utils";
+
+interface TestViewTemplate {
+  name: string;
+  pluginId?: string;
+  schema?: unknown;
+  renderers?: Record<string, unknown>;
+}
+
+// Factory to create complete mock entities
+const createMockEntity = (
+  id: string,
+  _entityType: string,
+  slug?: string,
+): DynamicRouteEntity => ({
+  id,
+  metadata: slug ? { slug } : {},
+});
+
+describe("DynamicRouteGenerator", () => {
+  let routeRegistry: RouteRegistry;
+  let generator: DynamicRouteGenerator;
+  let services: DynamicRouteGeneratorServices;
+  let entityTypes: string[];
+  let entities: Map<string, DynamicRouteEntity[]>;
+  let templates: TestViewTemplate[];
+
+  beforeEach(() => {
+    entityTypes = [];
+    entities = new Map();
+    templates = [];
+    const logger = createSilentLogger("test");
+    routeRegistry = new RouteRegistry(logger);
+
+    services = {
+      logger,
+      getEntityTypes: (): string[] => entityTypes,
+      listEntities: async (type): Promise<DynamicRouteEntity[]> =>
+        entities.get(type) ?? [],
+      listViewTemplateNames: (): string[] =>
+        templates.map((template) => template.name),
+    };
+
+    generator = new DynamicRouteGenerator(services, routeRegistry);
+  });
+
+  describe("generateEntityRoutes", () => {
+    test("should not generate routes when no entity types exist", async () => {
+      await generator.generateEntityRoutes();
+      expect(routeRegistry.size()).toBe(0);
+    });
+
+    test("should not generate routes when entity has no matching templates", async () => {
+      entityTypes.push("topic");
+
+      await generator.generateEntityRoutes();
+      expect(routeRegistry.size()).toBe(0);
+    });
+
+    test("should generate routes when entity has matching list and detail templates", async () => {
+      // Set up entity type and entities
+      entityTypes.push("topic");
+      entities.set("topic", [
+        createMockEntity("intro-to-ai", "topic", "intro-to-ai"),
+        createMockEntity("machine-learning", "topic", "machine-learning"),
+      ]);
+
+      // Set up templates
+      templates.push(
+        {
+          name: "topics:topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "topics:topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      await generator.generateEntityRoutes();
+
+      // Should have 1 index route + 2 detail routes
+      expect(routeRegistry.size()).toBe(3);
+
+      // Check index route
+      const indexRoute = routeRegistry.get("/topics");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.id).toBe("topic-index");
+
+      // Check detail routes
+      expect(routeRegistry.get("/topics/intro-to-ai")).toBeDefined();
+      expect(routeRegistry.get("/topics/machine-learning")).toBeDefined();
+    });
+
+    test("should generate list route when only list template exists", async () => {
+      entityTypes.push("topic");
+
+      // Only list template, no detail
+      templates.push({
+        name: "topics:topic-list",
+        pluginId: "topics",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+      expect(routeRegistry.size()).toBe(1);
+
+      // Check that list route was created
+      const indexRoute = routeRegistry.get("/topics");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.id).toBe("topic-index");
+    });
+
+    test("should not override explicit index routes", async () => {
+      entityTypes.push("topic");
+      templates.push({
+        name: "topics:topic-list",
+        pluginId: "topics",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      routeRegistry.register({
+        id: "custom-topics",
+        path: "/topics",
+        title: "Custom Topics",
+        description: "Custom topic index",
+        layout: "default",
+        sections: [
+          {
+            id: "custom",
+            template: "custom:section",
+            content: { ok: true },
+          },
+        ],
+      });
+
+      await generator.generateEntityRoutes();
+
+      expect(routeRegistry.size()).toBe(1);
+      expect(routeRegistry.get("/topics")?.id).toBe("custom-topics");
+    });
+
+    test("should handle multiple entity types", async () => {
+      entityTypes.push("topic", "profile");
+      entities.set("topic", [createMockEntity("topic1", "topic")]);
+      entities.set("profile", [createMockEntity("user1", "profile")]);
+
+      templates.push(
+        {
+          name: "topics:topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "topics:topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "profiles:profile-list",
+          pluginId: "profiles",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "profiles:profile-detail",
+          pluginId: "profiles",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      await generator.generateEntityRoutes();
+
+      // Should have 2 index routes + 2 detail routes = 4 total
+      expect(routeRegistry.size()).toBe(4);
+      expect(routeRegistry.get("/topics")).toBeDefined();
+      expect(routeRegistry.get("/profiles")).toBeDefined();
+    });
+
+    test("should remove routes for deleted entities on regeneration", async () => {
+      // Set up entity type and entities
+      entityTypes.push("blog");
+      entities.set("blog", [
+        createMockEntity("post-1", "blog", "post-1"),
+        createMockEntity("post-2", "blog", "post-2"),
+      ]);
+
+      // Set up templates
+      templates.push(
+        {
+          name: "blog:blog-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:blog-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      // Generate routes
+      await generator.generateEntityRoutes();
+
+      // Should have 1 index route + 2 detail routes
+      expect(routeRegistry.size()).toBe(3);
+      expect(routeRegistry.get("/blogs")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-1")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-2")).toBeDefined();
+
+      // Delete one entity
+      entities.set("blog", [createMockEntity("post-2", "blog", "post-2")]);
+
+      // Regenerate routes
+      await generator.generateEntityRoutes();
+
+      // Should now have 1 index route + 1 detail route
+      expect(routeRegistry.size()).toBe(2);
+      expect(routeRegistry.get("/blogs")).toBeDefined();
+      expect(routeRegistry.get("/blogs/post-1")).toBeUndefined(); // Deleted
+      expect(routeRegistry.get("/blogs/post-2")).toBeDefined(); // Still exists
+    });
+  });
+
+  describe("pluralization", () => {
+    test("should correctly pluralize entity types in paths", async () => {
+      const testCases = [
+        { entity: "topic", expected: "/topics" },
+        { entity: "category", expected: "/categories" },
+        { entity: "class", expected: "/classes" },
+        { entity: "box", expected: "/boxes" },
+        { entity: "match", expected: "/matches" },
+      ];
+
+      for (const { entity, expected } of testCases) {
+        const testLogger = createSilentLogger("test");
+        const testRegistry = new RouteRegistry(testLogger);
+
+        const testTemplates: TestViewTemplate[] = [
+          {
+            name: `test:${entity}-list`,
+            pluginId: "test",
+            schema: z.object({}),
+            renderers: {},
+          },
+          {
+            name: `test:${entity}-detail`,
+            pluginId: "test",
+            schema: z.object({}),
+            renderers: {},
+          },
+        ];
+        const testServices: DynamicRouteGeneratorServices = {
+          logger: testLogger,
+          getEntityTypes: () => [entity],
+          listEntities: async () => [],
+          listViewTemplateNames: () =>
+            testTemplates.map((template) => template.name),
+        };
+
+        const testGenerator = new DynamicRouteGenerator(
+          testServices,
+          testRegistry,
+        );
+
+        await testGenerator.generateEntityRoutes();
+
+        const route = testRegistry.get(expected);
+        expect(route).toBeDefined();
+      }
+    });
+  });
+
+  describe("template matching", () => {
+    test("should match templates without plugin prefix", async () => {
+      entityTypes.push("topic");
+      templates.push(
+        {
+          name: "topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      await generator.generateEntityRoutes();
+      expect(routeRegistry.size()).toBe(1); // Just index route since no entities
+    });
+
+    test("should prefer templates with plugin prefix", async () => {
+      entityTypes.push("topic");
+      templates.push(
+        {
+          name: "topic-list",
+          pluginId: "old-plugin",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "new-plugin:topic-list",
+          pluginId: "new-plugin",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "new-plugin:topic-detail",
+          pluginId: "new-plugin",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      await generator.generateEntityRoutes();
+
+      const route = routeRegistry.get("/topics");
+      expect(route).toBeDefined();
+      expect(route?.sections[0]?.template).toBe("new-plugin:topic-list");
+    });
+  });
+
+  describe("entity route config", () => {
+    test("should use custom label with default pluralName", async () => {
+      // Set up entity type
+      entityTypes.push("post");
+      entities.set("post", [createMockEntity("essay-1", "post", "essay-1")]);
+
+      // Set up templates
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      // Create generator with entity route config
+      const configuredGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        {
+          post: { label: "Essay" }, // pluralName defaults to 'essays'
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should create routes at /essays (not /posts)
+      const indexRoute = routeRegistry.get("/essays");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.title).toBe("Essays");
+      expect(indexRoute?.navigation?.label).toBe("Essays");
+
+      // Detail route should also use /essays
+      const detailRoute = routeRegistry.get("/essays/essay-1");
+      expect(detailRoute).toBeDefined();
+    });
+
+    test("should use custom label with explicit pluralName", async () => {
+      entityTypes.push("deck");
+      entities.set("deck", [createMockEntity("deck-1", "deck", "deck-1")]);
+
+      templates.push(
+        {
+          name: "decks:deck-list",
+          pluginId: "decks",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "decks:deck-detail",
+          pluginId: "decks",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      // Explicit pluralName override
+      const configuredGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        {
+          deck: { label: "Presentation", pluralName: "talks" },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should use explicit pluralName
+      const indexRoute = routeRegistry.get("/talks");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.title).toBe("Presentations");
+      expect(indexRoute?.navigation?.label).toBe("Presentations");
+
+      const detailRoute = routeRegistry.get("/talks/deck-1");
+      expect(detailRoute).toBeDefined();
+    });
+
+    test("should handle mixed configured and non-configured entity types", async () => {
+      entityTypes.push("post", "topic");
+      entities.set("post", [createMockEntity("post-1", "post", "post-1")]);
+      entities.set("topic", [createMockEntity("topic-1", "topic", "topic-1")]);
+
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "topics:topic-list",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "topics:topic-detail",
+          pluginId: "topics",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      // Only configure post, leave topic as default
+      const configuredGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        {
+          post: { label: "Essay" },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Configured entity (post -> essays)
+      const essaysRoute = routeRegistry.get("/essays");
+      expect(essaysRoute).toBeDefined();
+      expect(essaysRoute?.navigation?.label).toBe("Essays");
+
+      // Non-configured entity (topic -> topics, auto-generated)
+      const topicsRoute = routeRegistry.get("/topics");
+      expect(topicsRoute).toBeDefined();
+      expect(topicsRoute?.navigation?.label).toBe("Topics");
+
+      // Detail routes
+      expect(routeRegistry.get("/essays/post-1")).toBeDefined();
+      expect(routeRegistry.get("/topics/topic-1")).toBeDefined();
+    });
+
+    test("should maintain backward compatibility without config", async () => {
+      entityTypes.push("post");
+      entities.set("post", [createMockEntity("post-1", "post", "post-1")]);
+
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      // No entity route config (undefined)
+      const defaultGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        undefined,
+      );
+
+      await defaultGenerator.generateEntityRoutes();
+
+      // Should use auto-generated values
+      const indexRoute = routeRegistry.get("/posts");
+      expect(indexRoute).toBeDefined();
+      expect(indexRoute?.navigation?.label).toBe("Posts");
+
+      const detailRoute = routeRegistry.get("/posts/post-1");
+      expect(detailRoute).toBeDefined();
+    });
+  });
+
+  describe("pagination", () => {
+    test("should generate paginated routes by default", async () => {
+      entityTypes.push("post");
+      // Create 15 entities to trigger multiple pages with default pageSize of 10
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should have 2 paginated list routes (15 items / 10 per page = 2 pages)
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route).toBeDefined();
+      expect(page1Route?.id).toBe("post-index");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(1);
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["pageSize"]).toBe(10);
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route).toBeDefined();
+      expect(page2Route?.id).toBe("post-index-page-2");
+      expect(page2Route?.sections[0]?.dataQuery?.query?.["page"]).toBe(2);
+    });
+
+    test("should only show navigation on first page", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route?.navigation?.show).toBe(true);
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route?.navigation).toBeUndefined();
+    });
+
+    test("should include baseUrl in paginated route data query", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+
+      const page1Route = routeRegistry.get("/posts");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["baseUrl"]).toBe(
+        "/posts",
+      );
+
+      const page2Route = routeRegistry.get("/posts/page/2");
+      expect(page2Route?.sections[0]?.dataQuery?.query?.["baseUrl"]).toBe(
+        "/posts",
+      );
+    });
+
+    test("should respect custom pageSize in config", async () => {
+      entityTypes.push("post");
+      // Create 10 entities, with pageSize of 3 = 4 pages
+      const posts = Array.from({ length: 10 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      const configuredGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        {
+          post: { label: "Essay", pageSize: 3 },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should have 4 pages (10 items / 3 per page)
+      expect(routeRegistry.get("/essays")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/2")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/3")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/4")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/5")).toBeUndefined();
+
+      // Verify pageSize in data query
+      const page1Route = routeRegistry.get("/essays");
+      expect(page1Route?.sections[0]?.dataQuery?.query?.["pageSize"]).toBe(3);
+    });
+
+    test("should disable pagination when paginate is false", async () => {
+      entityTypes.push("post");
+      const posts = Array.from({ length: 15 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      const configuredGenerator = new DynamicRouteGenerator(
+        services,
+        routeRegistry,
+        {
+          post: { label: "Essay", paginate: false },
+        },
+      );
+
+      await configuredGenerator.generateEntityRoutes();
+
+      // Should only have single index route with limit instead of pagination
+      expect(routeRegistry.get("/essays")).toBeDefined();
+      expect(routeRegistry.get("/essays/page/2")).toBeUndefined();
+
+      const indexRoute = routeRegistry.get("/essays");
+      expect(indexRoute?.sections[0]?.dataQuery?.query?.["limit"]).toBe(100);
+      expect(
+        indexRoute?.sections[0]?.dataQuery?.query?.["page"],
+      ).toBeUndefined();
+    });
+
+    test("should generate single page when entities fit in one page", async () => {
+      entityTypes.push("post");
+      // Only 5 entities with default pageSize of 10
+      const posts = Array.from({ length: 5 }, (_, i) =>
+        createMockEntity(`post-${i + 1}`, "post", `post-${i + 1}`),
+      );
+      entities.set("post", posts);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should only have page 1
+      expect(routeRegistry.get("/posts")).toBeDefined();
+      expect(routeRegistry.get("/posts/page/2")).toBeUndefined();
+    });
+
+    test("should generate at least one page even with zero entities", async () => {
+      entityTypes.push("post");
+      entities.set("post", []);
+
+      templates.push({
+        name: "blog:post-list",
+        pluginId: "blog",
+        schema: z.object({}),
+        renderers: {},
+      });
+
+      await generator.generateEntityRoutes();
+
+      // Should still create page 1
+      expect(routeRegistry.get("/posts")).toBeDefined();
+      expect(routeRegistry.get("/posts/page/2")).toBeUndefined();
+    });
+
+    test("should not match 'social-post-list' template when looking for 'post' entity type", async () => {
+      // Regression test: template matching should be exact, not suffix-based
+      // "social-post-list" ends with "post-list" but should NOT match entity type "post"
+      entityTypes.push("post", "social-post");
+      entities.set("post", [createMockEntity("my-post", "post", "my-post")]);
+      entities.set("social-post", [
+        createMockEntity("tweet-1", "social-post", "tweet-1"),
+      ]);
+
+      // Register both templates - social-post-list could incorrectly match "post"
+      // if using simple endsWith() check
+      templates.push(
+        {
+          name: "blog:post-list",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "blog:post-detail",
+          pluginId: "blog",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "social-media:social-post-list",
+          pluginId: "social-media",
+          schema: z.object({}),
+          renderers: {},
+        },
+        {
+          name: "social-media:social-post-detail",
+          pluginId: "social-media",
+          schema: z.object({}),
+          renderers: {},
+        },
+      );
+
+      await generator.generateEntityRoutes();
+
+      // Verify "post" routes use the correct template
+      const postIndexRoute = routeRegistry.get("/posts");
+      expect(postIndexRoute).toBeDefined();
+      expect(postIndexRoute?.sections[0]?.template).toBe("blog:post-list");
+
+      const postDetailRoute = routeRegistry.get("/posts/my-post");
+      expect(postDetailRoute).toBeDefined();
+      expect(postDetailRoute?.sections[0]?.template).toBe("blog:post-detail");
+
+      // Verify "social-post" routes use the correct template
+      const socialPostIndexRoute = routeRegistry.get("/social-posts");
+      expect(socialPostIndexRoute).toBeDefined();
+      expect(socialPostIndexRoute?.sections[0]?.template).toBe(
+        "social-media:social-post-list",
+      );
+
+      const socialPostDetailRoute = routeRegistry.get("/social-posts/tweet-1");
+      expect(socialPostDetailRoute).toBeDefined();
+      expect(socialPostDetailRoute?.sections[0]?.template).toBe(
+        "social-media:social-post-detail",
+      );
+    });
+  });
+});

@@ -2,17 +2,15 @@ import { BaseJobHandler } from "@brains/plugins";
 import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger, ProgressReporter } from "@brains/utils";
 import type { ISiteBuilder } from "../types/site-builder-types";
-import type {
-  LayoutComponent,
-  LayoutSlots,
-  SiteBuilderConfig,
-} from "../config";
+import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
+import type { SiteBuilderConfig } from "../config";
 import {
   siteBuildJobSchema,
   type SiteBuildJobData,
   type SiteBuildJobResult,
 } from "../types/job-types";
 import { EntityUrlGenerator } from "@brains/utils";
+import { resolveSiteMetadata } from "../lib/site-metadata";
 
 export interface SiteBuildJobHandlerConfig {
   siteBuilder: ISiteBuilder;
@@ -75,6 +73,11 @@ export class SiteBuildJobHandler extends BaseJobHandler<
         scale: { start: 10, end: 90 },
       });
 
+      const siteConfig = await resolveSiteMetadata(
+        this.sendMessage,
+        data.siteConfig ?? this.cfg.defaultSiteConfig,
+      );
+
       // Perform the build
       const result = await this.cfg.siteBuilder.build(
         {
@@ -84,7 +87,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
           enableContentGeneration,
           environment,
           cleanBeforeBuild: true,
-          siteConfig: data.siteConfig ?? this.cfg.defaultSiteConfig,
+          siteConfig,
           layouts: this.cfg.layouts,
           themeCSS: this.cfg.themeCSS,
           slots: this.cfg.slots,
@@ -129,7 +132,7 @@ export class SiteBuildJobHandler extends BaseJobHandler<
             environment,
             routesBuilt: result.routesBuilt,
             siteConfig: {
-              ...(data.siteConfig ?? this.cfg.defaultSiteConfig),
+              ...siteConfig,
               url,
             },
             generateEntityUrl: (entityType: string, slug: string) =>

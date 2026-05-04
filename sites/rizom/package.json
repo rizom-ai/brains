@@ -17,7 +17,6 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

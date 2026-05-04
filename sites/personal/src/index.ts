@@ -1,3 +1,4 @@
+import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/site-composition";
 import {
   PersonalSitePlugin,
@@ -25,7 +26,7 @@ export {
   PersonalLayout,
 };
 
-const site: SitePackage<PersonalSiteConfigInput> = {
+const site: SitePackage<PersonalSiteConfigInput, Plugin> = {
   layouts: {
     default: PersonalLayout,
   },

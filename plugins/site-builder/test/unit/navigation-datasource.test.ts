@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { NavigationDataSource } from "../../src/datasources/navigation-datasource";
-import { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinitionInput } from "@brains/plugins";
+import { RouteRegistry } from "@brains/site-engine";
+import type { RouteDefinitionInput } from "@brains/site-composition";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -215,8 +215,7 @@ describe("NavigationDataSource", () => {
     });
 
     const result = await dataSource.fetch(null, testNavigationSchema);
-    const navigation = (result as { navigation: Array<{ href: string }> })
-      .navigation;
+    const { navigation } = testNavigationSchema.parse(result);
 
     // Should be ordered by priority
     expect(navigation[0]?.href).toBe("/first");

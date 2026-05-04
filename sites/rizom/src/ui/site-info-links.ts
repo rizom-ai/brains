@@ -1,4 +1,4 @@
-import type { SiteInfo } from "@brains/site-builder-plugin";
+import type { SiteLayoutInfo } from "@brains/site-composition";
 import type { RizomLink } from "./types";
 
 const DEFAULT_LABELS: Record<string, string> = {
@@ -10,7 +10,7 @@ const DEFAULT_LABELS: Record<string, string> = {
 };
 
 export function socialLinksToRizomLinks(
-  siteInfo: SiteInfo,
+  siteInfo: SiteLayoutInfo,
   allowedPlatforms?: string[],
 ): RizomLink[] {
   const allowed = allowedPlatforms ? new Set(allowedPlatforms) : undefined;

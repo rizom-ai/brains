@@ -1,4 +1,4 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/site-composition";
 
 // Default routes for professional site
 export const routes: RouteDefinitionInput[] = [

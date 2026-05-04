@@ -5,16 +5,16 @@ import {
   createSilentLogger,
   createMockServicePluginContext,
 } from "@brains/test-utils";
-import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { RouteDefinitionInput } from "@brains/plugins";
+import { RouteRegistry } from "@brains/site-engine";
+import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { IAnchorProfileService } from "@brains/plugins";
-import { TestLayout } from "../test-helpers";
+import { createSiteBuilderServices, TestLayout } from "../test-helpers";
 import { z } from "@brains/utils";
 
 describe("SiteBuilder dataQuery handling", () => {
   let siteBuilder: SiteBuilder;
   let mockContext: ServicePluginContext;
-  let mockRouteRegistry: Partial<RouteRegistry>;
+  let mockRouteRegistry: RouteRegistry;
   let logger: ReturnType<typeof createSilentLogger>;
   let mockStaticSiteBuilder: {
     build: ReturnType<typeof mock>;
@@ -34,12 +34,8 @@ describe("SiteBuilder dataQuery handling", () => {
       renderers: {},
     });
 
-    // Create mock route registry
-    mockRouteRegistry = {
-      list: mock().mockReturnValue([]),
-      register: mock(),
-      getNavigationItems: mock().mockReturnValue([]),
-    };
+    // Create route registry
+    mockRouteRegistry = new RouteRegistry(logger);
 
     // Create mock static site builder
     mockStaticSiteBuilder = {
@@ -57,13 +53,13 @@ describe("SiteBuilder dataQuery handling", () => {
 
     // Create SiteBuilder instance with mock static site builder
     const mockProfileService: IAnchorProfileService = {
-      getProfile: () => ({ name: "Test", kind: "professional" as const }),
+      getProfile: () => ({ name: "Test", kind: "professional" }),
     };
 
     siteBuilder = SiteBuilder.createFresh(
       logger,
-      mockContext,
-      mockRouteRegistry as RouteRegistry,
+      createSiteBuilderServices(mockContext),
+      mockRouteRegistry,
       mockProfileService,
       () => mockStaticSiteBuilder,
     );

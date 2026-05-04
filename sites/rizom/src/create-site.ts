@@ -1,9 +1,9 @@
-import type {
-  Plugin,
-  RouteDefinitionInput,
-  ServicePluginContext,
-} from "@brains/plugins";
-import { extendSite, type SitePackage } from "@brains/site-composition";
+import type { Plugin, ServicePluginContext } from "@brains/plugins";
+import {
+  extendSite,
+  type RouteDefinitionInput,
+  type SitePackage,
+} from "@brains/site-composition";
 import type { Template } from "@brains/templates";
 import rizomBaseSite from ".";
 import { RizomRuntimePlugin, type RizomThemeProfile } from "./runtime/plugin";
@@ -35,8 +35,10 @@ export interface CreateRizomSiteOptions {
   templates: Record<string, Template>;
 }
 
-export function createRizomSite(options: CreateRizomSiteOptions): SitePackage {
-  const plugin: SitePackage["plugin"] = (
+export function createRizomSite(
+  options: CreateRizomSiteOptions,
+): SitePackage<Record<string, unknown>, Plugin> {
+  const plugin: SitePackage<Record<string, unknown>, Plugin>["plugin"] = (
     config?: Record<string, unknown>,
   ): Plugin =>
     new RizomVariantPlugin(

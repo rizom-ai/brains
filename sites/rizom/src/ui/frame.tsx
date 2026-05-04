@@ -1,12 +1,12 @@
 import type { JSX, ComponentChildren } from "preact";
-import type { SiteInfo } from "@brains/site-builder-plugin";
+import type { SiteLayoutInfo } from "@brains/site-composition";
 
 export interface RizomLayoutProps {
   sections: ComponentChildren[];
   title: string;
   description: string;
   path: string;
-  siteInfo: SiteInfo;
+  siteInfo: SiteLayoutInfo;
 }
 
 export interface RizomFrameProps {

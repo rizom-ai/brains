@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { SiteBuildJobHandler } from "../../src/handlers/siteBuildJobHandler";
 import type { ISiteBuilder } from "../../src/types/site-builder-types";
 import type { SiteBuilderConfig } from "../../src/config";
-import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
+import { UISlotRegistry } from "@brains/site-engine";
 import {
   createSilentLogger,
   createMockMessageSender,

@@ -1,6 +1,6 @@
-import { z } from "@brains/utils";
-import type { ProgressCallback } from "@brains/plugins";
-import type { LayoutComponent, LayoutSlots } from "../config";
+import { z, type ProgressCallback } from "@brains/utils";
+import type { LayoutComponent, LayoutSlots } from "@brains/site-engine";
+import { siteMetadataSchema } from "@brains/site-composition";
 
 /**
  * Site builder options schema
@@ -12,14 +12,7 @@ export const SiteBuilderOptionsSchema = z.object({
   sharedImagesDir: z.string().default("./dist/images"),
   enableContentGeneration: z.boolean().default(false),
   cleanBeforeBuild: z.boolean().default(true),
-  siteConfig: z.object({
-    title: z.string(),
-    description: z.string(),
-    url: z.string().optional(),
-    copyright: z.string().optional(),
-    themeMode: z.enum(["light", "dark"]).optional(),
-    analyticsScript: z.string().optional(),
-  }),
+  siteConfig: siteMetadataSchema,
   layouts: z.record(z.any()),
   themeCSS: z.string().optional(),
 });

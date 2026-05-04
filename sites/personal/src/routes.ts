@@ -1,4 +1,4 @@
-import type { RouteDefinitionInput } from "@brains/plugins";
+import type { RouteDefinitionInput } from "@brains/site-composition";
 
 export const routes: RouteDefinitionInput[] = [
   {

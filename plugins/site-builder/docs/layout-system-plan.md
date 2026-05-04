@@ -367,7 +367,7 @@ interface SiteInfo {
    - Single source of truth for site-wide data
 
 2. **Update BuildContext**
-   - Add `getSiteInfo()` method to fetch site information
+   - Add `getSiteLayoutInfo()` method to fetch site layout information
    - Cache result for performance
 
 3. **Update Layout Props**

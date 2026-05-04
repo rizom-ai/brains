@@ -1,84 +1,13 @@
-import type { ServicePluginContext, ViewTemplate } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import type { RouteDefinition } from "@brains/plugins";
-import type { CSSProcessor } from "../css/css-processor";
-import type { LayoutComponent, LayoutSlots } from "../config";
-import type { SiteInfo } from "../types/site-info";
-import type { ImageBuildService } from "./image-build-service";
+import type {
+  SiteBuildContext,
+  StaticSiteBuilder as EngineStaticSiteBuilder,
+  StaticSiteBuilderFactory as EngineStaticSiteBuilderFactory,
+  StaticSiteBuilderOptions,
+} from "@brains/site-engine";
+import type { SiteViewTemplate } from "./site-view-template";
 
-// Re-export SiteInfo type for consumers
-export type { SiteInfo } from "../types/site-info";
-// Re-export LayoutSlots for consumers
-export type { LayoutSlots } from "../config";
-
-/**
- * Build context passed to static site builders
- */
-export interface BuildContext {
-  routes: RouteDefinition[];
-  pluginContext: ServicePluginContext;
-  siteConfig: {
-    title: string;
-    description: string;
-    url?: string;
-    copyright?: string;
-    themeMode?: "light" | "dark";
-    analyticsScript?: string;
-  };
-  getContent: (
-    route: RouteDefinition,
-    section: RouteDefinition["sections"][0],
-  ) => Promise<unknown>;
-  getViewTemplate: (name: string) => ViewTemplate | undefined;
-  layouts: Record<string, LayoutComponent>;
-  getSiteInfo: () => Promise<SiteInfo>;
-  themeCSS?: string;
-  /** Optional UI slot registry for plugin-registered components */
-  slots?: LayoutSlots;
-  /** Head scripts registered by other plugins (e.g., analytics beacon) */
-  headScripts?: string[] | undefined;
-  /**
-   * Static assets to write into the output directory at build time.
-   * Keys are output paths relative to outputDir (leading slash optional),
-   * values are file contents as strings. Supplied by a SitePackage via
-   * text imports; written alongside the rendered HTML.
-   */
-  staticAssets?: Record<string, string> | undefined;
-  /** Pre-resolved optimized images for the build */
-  imageBuildService?: ImageBuildService;
-}
-
-/**
- * Interface for static site builders (Preact, React, etc.)
- */
-export interface StaticSiteBuilder {
-  /**
-   * Build all routes
-   */
-  build(
-    context: BuildContext,
-    onProgress: (message: string) => void,
-  ): Promise<void>;
-
-  /**
-   * Clean build artifacts
-   */
-  clean(): Promise<void>;
-}
-
-/**
- * Options for creating a static site builder
- */
-export interface StaticSiteBuilderOptions {
-  logger: Logger;
-  workingDir: string;
-  outputDir: string;
-  cssProcessor?: CSSProcessor;
-}
-
-/**
- * Factory function type for static site builders
- */
-export type StaticSiteBuilderFactory = (
-  options: StaticSiteBuilderOptions,
-) => StaticSiteBuilder;
+export type BuildContext = SiteBuildContext<SiteViewTemplate>;
+export type StaticSiteBuilder = EngineStaticSiteBuilder<BuildContext>;
+export type { StaticSiteBuilderOptions };
+export type StaticSiteBuilderFactory =
+  EngineStaticSiteBuilderFactory<StaticSiteBuilder>;

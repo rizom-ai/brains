@@ -1,14 +1,25 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
 import type { SiteBuildCompletedPayload } from "../types/job-types";
-import type { RouteRegistry } from "./route-registry";
-import { generateRobotsTxt } from "./robots-generator";
-import { generateSitemap } from "./sitemap-generator";
+import type { RouteRegistry } from "@brains/site-engine";
+import { generateRobotsTxt, generateSitemap } from "@brains/site-engine";
+
+interface SeoMessage<TPayload = unknown> {
+  payload: TPayload;
+}
+
+interface SeoMessagingContext {
+  messaging: {
+    subscribe<TPayload = unknown, TResult = unknown>(
+      type: string,
+      handler: (message: SeoMessage<TPayload>) => Promise<TResult> | TResult,
+    ): () => void;
+  };
+}
 
 interface SeoHandlerDeps {
-  context: ServicePluginContext;
+  context: SeoMessagingContext;
   routeRegistry: RouteRegistry;
   logger: Logger;
 }
