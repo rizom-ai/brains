@@ -286,25 +286,37 @@ export interface EntityTypeConfig {
  * Core entity service interface for read-only operations
  * Used by core plugins that need entity access but shouldn't modify entities
  */
+export interface GetEntityRequest {
+  entityType: string;
+  id: string;
+}
+
+export type GetEntityRawRequest = GetEntityRequest;
+
+export interface ListEntitiesRequest {
+  entityType: string;
+  options?: ListOptions | undefined;
+}
+
+export interface CountEntitiesRequest {
+  entityType: string;
+  options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
-  getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null>;
+  getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
 
   /**
    * Get entity without content resolution (raw)
    * Used internally to avoid recursion when resolving image references
    */
   getEntityRaw<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRawRequest,
   ): Promise<T | null>;
 
   listEntities<T extends BaseEntity>(
-    type: string,
-    options?: ListOptions,
+    request: ListEntitiesRequest,
   ): Promise<T[]>;
 
   search<T extends BaseEntity = BaseEntity>(
@@ -317,10 +329,7 @@ export interface ICoreEntityService {
   hasEntityType(type: string): boolean;
 
   // Entity counts
-  countEntities(
-    entityType: string,
-    options?: Pick<ListOptions, "publishedOnly" | "filter">,
-  ): Promise<number>;
+  countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 
   /** Get weight map for all registered entity types with non-default weights */

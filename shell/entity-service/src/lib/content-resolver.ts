@@ -121,7 +121,10 @@ export class ContentResolver {
     for (const imageId of uniqueIds) {
       try {
         // Use getEntityRaw to avoid recursion (doesn't resolve content)
-        const image = await entityService.getEntityRaw("image", imageId);
+        const image = await entityService.getEntityRaw({
+          entityType: "image",
+          id: imageId,
+        });
         if (image?.content) {
           imageMap.set(imageId, image.content);
         } else {

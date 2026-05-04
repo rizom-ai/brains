@@ -140,8 +140,11 @@ export async function hasPersistedTargets(
   context: EntityPluginContext,
   targetType: string,
 ): Promise<boolean> {
-  const existing = await context.entityService.listEntities(targetType, {
-    limit: 1,
+  const existing = await context.entityService.listEntities({
+    entityType: targetType,
+    options: {
+      limit: 1,
+    },
   });
   return existing.length > 0;
 }
@@ -194,8 +197,9 @@ export async function reconcileDerivedEntities<
     desiredById.set(getId(item), item);
   }
 
-  const existing =
-    await context.entityService.listEntities<TEntity>(targetType);
+  const existing = await context.entityService.listEntities<TEntity>({
+    entityType: targetType,
+  });
   const existingById = new Map(existing.map((entity) => [entity.id, entity]));
 
   let created = 0;

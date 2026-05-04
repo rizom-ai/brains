@@ -139,10 +139,10 @@ export class DynamicRouteGenerator {
     // Get all entities of this type and create detail routes if we have a detail template
     if (detailTemplateName) {
       try {
-        const entities = await this.context.entityService.listEntities(
-          entityType,
-          { limit: 1000 }, // Get all entities for static generation
-        );
+        const entities = await this.context.entityService.listEntities({
+          entityType: entityType,
+          options: { limit: 1000 },
+        });
 
         logger.debug(
           `Found ${entities.length} ${entityType} entities to generate routes for`,
@@ -215,8 +215,11 @@ export class DynamicRouteGenerator {
     logger: ReturnType<typeof this.context.logger.child>,
   ): Promise<void> {
     // Get total entity count
-    const entities = await this.context.entityService.listEntities(entityType, {
-      limit: 1000,
+    const entities = await this.context.entityService.listEntities({
+      entityType: entityType,
+      options: {
+        limit: 1000,
+      },
     });
     const totalItems = entities.length;
     const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));

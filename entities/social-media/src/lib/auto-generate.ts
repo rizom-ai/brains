@@ -30,9 +30,9 @@ export function subscribeToEntityUpdatedForAutoGenerate(
     }
 
     try {
-      const existingPosts = await context.entityService.listEntities(
-        "social-post",
-        {
+      const existingPosts = await context.entityService.listEntities({
+        entityType: "social-post",
+        options: {
           filter: {
             metadata: {
               sourceEntityType: "post",
@@ -41,7 +41,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
           },
           limit: 1,
         },
-      );
+      });
 
       if (existingPosts.length > 0) {
         logger.debug(
@@ -142,9 +142,12 @@ export function subscribeToGenerateExecute(
       logger.info("Received generate:execute for social-post");
 
       try {
-        const recentPosts = await context.entityService.listEntities("post", {
-          filter: { metadata: { status: "published" } },
-          limit: 5,
+        const recentPosts = await context.entityService.listEntities({
+          entityType: "post",
+          options: {
+            filter: { metadata: { status: "published" } },
+            limit: 5,
+          },
         });
 
         if (recentPosts.length === 0) {
@@ -161,9 +164,9 @@ export function subscribeToGenerateExecute(
 
         let sourcePost = null;
         for (const post of recentPosts) {
-          const existingPosts = await context.entityService.listEntities(
-            "social-post",
-            {
+          const existingPosts = await context.entityService.listEntities({
+            entityType: "social-post",
+            options: {
               filter: {
                 metadata: {
                   sourceEntityType: "post",
@@ -172,7 +175,7 @@ export function subscribeToGenerateExecute(
               },
               limit: 1,
             },
-          );
+          });
 
           if (existingPosts.length === 0) {
             sourcePost = post;

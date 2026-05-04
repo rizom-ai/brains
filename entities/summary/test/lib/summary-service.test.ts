@@ -16,7 +16,10 @@ describe("SummaryService", () => {
       const conversationId = "conv-123";
       await service.getSummary(conversationId);
 
-      expect(getEntitySpy).toHaveBeenCalledWith("summary", conversationId);
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        id: conversationId,
+      });
     });
 
     it("should return null for non-existent conversation", async () => {
@@ -106,7 +109,10 @@ describe("SummaryService", () => {
       const service = new SummaryService(mockEntityService);
       await service.getAllSummaries();
 
-      expect(listEntitiesSpy).toHaveBeenCalledWith("summary", { limit: 1000 });
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        options: { limit: 1000 },
+      });
     });
 
     it("should return summaries when they exist", async () => {

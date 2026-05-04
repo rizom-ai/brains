@@ -89,18 +89,18 @@ describe("Deferred Auto-Extraction", () => {
     await sendPostUpdate(harness);
 
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith(
-      "topic:project",
-      expect.objectContaining({
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "topic:project",
+      data: expect.objectContaining({
         mode: "source",
         entityId: "post-1",
         entityType: "post",
       }),
-      expect.objectContaining({
+      options: expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "topics-source:post:post-1:hash-1",
       }),
-    );
+    });
 
     harness.reset();
   });

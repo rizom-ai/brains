@@ -116,10 +116,10 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.getEntity).toHaveBeenCalledWith(
-        "social-post",
-        "post-1",
-      );
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "social-post",
+        id: "post-1",
+      });
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
@@ -260,15 +260,17 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should fetch and pass image data when coverImageId is present", async () => {
-      entityService.getEntity = mock((entityType: string, entityId: string) => {
-        if (entityType === "social-post") {
-          return Promise.resolve(samplePostWithImage);
-        }
-        if (entityType === "image" && entityId === "image-123") {
-          return Promise.resolve(sampleImage);
-        }
-        return Promise.resolve(null);
-      });
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithImage);
+          }
+          if (request.entityType === "image" && request.id === "image-123") {
+            return Promise.resolve(sampleImage);
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       await handler.handle({
         entityType: "social-post",
@@ -286,12 +288,14 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should publish without image if image entity not found", async () => {
-      entityService.getEntity = mock((entityType: string) => {
-        if (entityType === "social-post") {
-          return Promise.resolve(samplePostWithImage);
-        }
-        return Promise.resolve(null);
-      });
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithImage);
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       await handler.handle({
         entityType: "social-post",

@@ -208,8 +208,11 @@ async function deleteAllEntities(
   context: EntityPluginContext,
   entityType: string,
 ): Promise<void> {
-  const entities = await context.entityService.listEntities(entityType, {
-    limit: 1000,
+  const entities = await context.entityService.listEntities({
+    entityType: entityType,
+    options: {
+      limit: 1000,
+    },
   });
 
   await Promise.all(
@@ -291,7 +294,10 @@ async function deriveSwot(
     progressReporter,
   );
 
-  const entity = await context.entityService.getEntity("swot", "swot");
+  const entity = await context.entityService.getEntity({
+    entityType: "swot",
+    id: "swot",
+  });
   if (!entity) {
     throw new Error("Expected SWOT entity to be created during eval");
   }

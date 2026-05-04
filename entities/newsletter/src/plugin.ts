@@ -124,10 +124,10 @@ export class NewsletterPlugin extends EntityPlugin<
       if (entityType !== "newsletter") return { success: true };
 
       try {
-        const newsletter = await context.entityService.getEntity<Newsletter>(
-          "newsletter",
-          entityId,
-        );
+        const newsletter = await context.entityService.getEntity<Newsletter>({
+          entityType: "newsletter",
+          id: entityId,
+        });
         if (!newsletter) {
           await context.messaging.send({
             type: "publish:report:failure",
@@ -206,9 +206,12 @@ export class NewsletterPlugin extends EntityPlugin<
         if (msg.payload.entityType !== "newsletter") return { success: true };
 
         try {
-          const recentPosts = await context.entityService.listEntities("post", {
-            filter: { metadata: { status: "published" } },
-            limit: 10,
+          const recentPosts = await context.entityService.listEntities({
+            entityType: "post",
+            options: {
+              filter: { metadata: { status: "published" } },
+              limit: 10,
+            },
           });
 
           if (recentPosts.length === 0) {

@@ -398,10 +398,10 @@ describe("Invalid Entity Handling", () => {
       writeFileSync(validFile, "# Valid Note\n\nValid content");
 
       // Make getEntity fail with a database error
-      mockEntityService.getEntity = async <T extends BaseEntity>(
-        _entityType: string,
-        _id: string,
-      ): Promise<T | null> => {
+      mockEntityService.getEntity = async <T extends BaseEntity>(_request: {
+        entityType: string;
+        id: string;
+      }): Promise<T | null> => {
         throw new Error("SQLITE_BUSY: database is locked");
       };
 

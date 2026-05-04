@@ -24,10 +24,10 @@ export async function persistImportEntity(
   result: ImportResult,
 ): Promise<void> {
   try {
-    const existing = await deps.entityService.getEntity(
-      rawEntity.entityType,
-      rawEntity.id,
-    );
+    const existing = await deps.entityService.getEntity({
+      entityType: rawEntity.entityType,
+      id: rawEntity.id,
+    });
 
     if (
       existing &&

@@ -176,14 +176,14 @@ export class SocialPostDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const entities = await entityService.listEntities<SocialPost>(
-      this.config.entityType,
-      {
+    const entities = await entityService.listEntities<SocialPost>({
+      entityType: this.config.entityType,
+      options: {
         filter: { metadata: { status: "queued" } },
         sortFields: [{ field: "queueOrder", direction: "asc" }],
         limit: 1,
       },
-    );
+    });
 
     const entity = entities[0];
     const post = entity ? parsePostData(entity) : null;

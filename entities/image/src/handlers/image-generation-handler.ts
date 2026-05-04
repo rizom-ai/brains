@@ -184,10 +184,10 @@ ${data.entityContent}`,
       });
 
       // Delete existing image if regenerating
-      const existingImage = await this.context.entityService.getEntity(
-        "image",
-        imageId,
-      );
+      const existingImage = await this.context.entityService.getEntity({
+        entityType: "image",
+        id: imageId,
+      });
       if (existingImage) {
         this.logger.debug("Deleting existing image for regeneration", {
           imageId,

@@ -38,7 +38,8 @@ describe("Import then orphan cleanup", () => {
 
     mockEntityService = createMockEntityService({
       entityTypes: ["note"],
-      listEntitiesImpl: async (type: string) => storedEntities[type] ?? [],
+      listEntitiesImpl: async (request: { entityType: string }) =>
+        storedEntities[request.entityType] ?? [],
     });
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(

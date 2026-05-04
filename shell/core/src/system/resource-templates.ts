@@ -40,7 +40,9 @@ export function createSystemResourceTemplates(
             `Unknown entity type: ${type}. Available: ${availableTypes.join(", ")}`,
           );
         }
-        const entities = await entityService.listEntities(type);
+        const entities = await entityService.listEntities({
+          entityType: type,
+        });
         const items = entities.map((e) => ({
           id: e.id,
           entityType: e.entityType,
@@ -67,7 +69,9 @@ export function createSystemResourceTemplates(
         const types = entityService.getEntityTypes();
         const results = await Promise.all(
           types.map(async (t) => {
-            const entities = await entityService.listEntities(t);
+            const entities = await entityService.listEntities({
+              entityType: t,
+            });
             return entities.map((e) => ({
               uri: `entity://${t}/${e.id}`,
               name: `${t}/${e.id}`,
@@ -89,7 +93,10 @@ export function createSystemResourceTemplates(
       }: ResourceVars<"type" | "id">): Promise<{
         contents: Array<{ uri: string; mimeType: string; text: string }>;
       }> => {
-        const entity = await entityService.getEntity(type, id);
+        const entity = await entityService.getEntity({
+          entityType: type,
+          id: id,
+        });
         if (!entity) {
           throw new Error(`Entity not found: ${type}/${id}`);
         }

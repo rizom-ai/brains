@@ -38,7 +38,10 @@ describe("resolvePrompt", () => {
     );
 
     expect(result).toBe("Custom prompt text.");
-    expect(mockGetEntity).toHaveBeenCalledWith("prompt", "blog-generation");
+    expect(mockGetEntity).toHaveBeenCalledWith({
+      entityType: "prompt",
+      id: "blog-generation",
+    });
   });
 
   it("should return fallback when no prompt entity exists", async () => {
@@ -94,10 +97,10 @@ describe("resolvePrompt", () => {
       "fallback",
     );
 
-    expect(mockGetEntity).toHaveBeenCalledWith(
-      "prompt",
-      "social-media-linkedin",
-    );
+    expect(mockGetEntity).toHaveBeenCalledWith({
+      entityType: "prompt",
+      id: "social-media-linkedin",
+    });
   });
 
   describe("auto-materialization", () => {

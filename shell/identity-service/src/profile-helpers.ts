@@ -28,8 +28,11 @@ export const baseProfileExtension = z.object({
 export async function fetchAnchorProfile(
   entityService: ICoreEntityService,
 ): Promise<string> {
-  const entities = await entityService.listEntities("anchor-profile", {
-    limit: 1,
+  const entities = await entityService.listEntities({
+    entityType: "anchor-profile",
+    options: {
+      limit: 1,
+    },
   });
   const entity = entities[0];
   if (!entity) {

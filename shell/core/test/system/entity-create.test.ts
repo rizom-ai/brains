@@ -46,16 +46,25 @@ async function resolveMockEntityByIdentifier(
   entityType: string,
   identifier: string,
 ): Promise<BaseEntity | null> {
-  const byId = await services.entityService.getEntity(entityType, identifier);
+  const byId = await services.entityService.getEntity({
+    entityType: entityType,
+    id: identifier,
+  });
   if (byId) return byId;
 
-  const bySlug = await services.entityService.listEntities(entityType, {
-    filter: { metadata: { slug: identifier } },
+  const bySlug = await services.entityService.listEntities({
+    entityType: entityType,
+    options: {
+      filter: { metadata: { slug: identifier } },
+    },
   });
   if (bySlug[0]) return bySlug[0];
 
-  const byTitle = await services.entityService.listEntities(entityType, {
-    filter: { metadata: { title: identifier } },
+  const byTitle = await services.entityService.listEntities({
+    entityType: entityType,
+    options: {
+      filter: { metadata: { title: identifier } },
+    },
   });
   return byTitle[0] ?? null;
 }
@@ -359,10 +368,10 @@ describe("system_create tool", () => {
 
     const data = createOutputSchema.parse((result as { data: unknown }).data);
     expect(data.entityId).toBe("interceptor-title");
-    const entity = await services.entityService.getEntity(
-      "base",
-      "interceptor-title",
-    );
+    const entity = await services.entityService.getEntity({
+      entityType: "base",
+      id: "interceptor-title",
+    });
     expect(entity?.content).toBe("Interceptor body.");
     expect(entity?.metadata["title"]).toBe("Interceptor Title");
   });
@@ -398,10 +407,10 @@ describe("system_create tool", () => {
       content: "Find me.",
     });
 
-    const entity = await services.entityService.getEntity(
-      "base",
-      "retrievable-note",
-    );
+    const entity = await services.entityService.getEntity({
+      entityType: "base",
+      id: "retrievable-note",
+    });
     expect(entity).not.toBeNull();
   });
 
@@ -454,7 +463,10 @@ status: draft
     });
 
     expect(services.getLastMarkdownCreate()).toBeUndefined();
-    const entity = await services.entityService.getEntity("base", "plain-note");
+    const entity = await services.entityService.getEntity({
+      entityType: "base",
+      id: "plain-note",
+    });
     expect(entity?.content).toBe("No frontmatter required.");
   });
 
@@ -586,10 +598,10 @@ A saved research link.`;
     expect(data.entityId).toBeDefined();
     if (!data.entityId) throw new Error("Expected entityId to be defined");
 
-    const stored = await services.entityService.getEntity(
-      "link",
-      data.entityId,
-    );
+    const stored = await services.entityService.getEntity({
+      entityType: "link",
+      id: data.entityId,
+    });
     expect(stored).not.toBeNull();
     expect(stored?.metadata["title"]).toBe("Anthropic Research");
     expect(stored?.metadata["status"]).toBe("draft");

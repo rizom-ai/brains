@@ -63,11 +63,13 @@ export class HomepageListDataSource implements DataSource {
     const [profileContent, publishedPosts, publishedDecks, siteInfo] =
       await Promise.all([
         fetchAnchorProfile(entityService),
-        entityService.listEntities<BlogPost>("post", {
-          limit: 20,
+        entityService.listEntities<BlogPost>({
+          entityType: "post",
+          options: { limit: 20 },
         }),
-        entityService.listEntities<DeckEntity>("deck", {
-          limit: 20,
+        entityService.listEntities<DeckEntity>({
+          entityType: "deck",
+          options: { limit: 20 },
         }),
         fetchSiteInfo(entityService),
       ]);

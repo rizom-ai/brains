@@ -128,17 +128,17 @@ export function createMockSystemServices(
 
   const entityService = {
     search: async () => [],
-    getEntity: async (type: string, id: string) => {
-      const entity = entities.get(id);
-      return entity?.entityType === type ? entity : null;
+    getEntity: async (request: { entityType: string; id: string }) => {
+      const entity = entities.get(request.id);
+      return entity?.entityType === request.entityType ? entity : null;
     },
-    listEntities: async (
-      type: string,
-      options?: { filter?: { metadata?: Record<string, unknown> } },
-    ) =>
+    listEntities: async (request: {
+      entityType: string;
+      options?: { filter?: { metadata?: Record<string, unknown> } };
+    }) =>
       Array.from(entities.values()).filter((e) => {
-        if (e.entityType !== type) return false;
-        const metadataFilter = options?.filter?.metadata;
+        if (e.entityType !== request.entityType) return false;
+        const metadataFilter = request.options?.filter?.metadata;
         if (!metadataFilter) return true;
         return Object.entries(metadataFilter).every(
           ([key, value]) => e.metadata[key] === value,
@@ -188,10 +188,10 @@ export function createMockSystemServices(
         count,
       }));
     },
-    countEntities: async (type: string) => {
+    countEntities: async (request: { entityType: string }) => {
       let count = 0;
       for (const e of entities.values()) {
-        if (e.entityType === type) count++;
+        if (e.entityType === request.entityType) count++;
       }
       return count;
     },

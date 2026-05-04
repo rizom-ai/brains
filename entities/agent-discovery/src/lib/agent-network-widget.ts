@@ -169,8 +169,8 @@ export async function buildAgentNetworkWidgetData(
   context: EntityPluginContext,
 ): Promise<AgentNetworkWidgetData> {
   const [agents, skills] = await Promise.all([
-    context.entityService.listEntities<AgentEntity>("agent"),
-    context.entityService.listEntities<SkillEntity>("skill"),
+    context.entityService.listEntities<AgentEntity>({ entityType: "agent" }),
+    context.entityService.listEntities<SkillEntity>({ entityType: "skill" }),
   ]);
 
   const parsedAgents = agents.map((entity) => ({

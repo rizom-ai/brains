@@ -43,10 +43,10 @@ export class AgentDiscoveryPlugin extends EntityPlugin<AgentEntity> {
       const deduplicationKey = domain ?? input.url.trim().toLowerCase();
 
       if (domain) {
-        const existing = await context.entityService.getEntity<AgentEntity>(
-          "agent",
-          domain,
-        );
+        const existing = await context.entityService.getEntity<AgentEntity>({
+          entityType: "agent",
+          id: domain,
+        });
 
         if (existing) {
           if (existing.metadata.status !== "approved") {

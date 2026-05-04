@@ -404,7 +404,7 @@ export class SwotDerivationHandler implements JobHandler<
       contentHash: string;
       created: string;
       updated: string;
-    }>("swot", "swot");
+    }>({ entityType: "swot", id: "swot" });
 
     if (existing) {
       await this.context.entityService.updateEntity({

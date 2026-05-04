@@ -120,10 +120,10 @@ export class SiteContentOperations {
 
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;
-          const existing = await this.context.entityService.getEntity(
-            "site-content",
-            entityId,
-          );
+          const existing = await this.context.entityService.getEntity({
+            entityType: "site-content",
+            id: entityId,
+          });
           if (existing) {
             logger.debug("Content already exists, skipping", {
               routeId: route.id,

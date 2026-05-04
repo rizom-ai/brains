@@ -116,10 +116,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         entityId: "post-1",
       });
 
-      const updatedPost = await entityService.getEntity<BlogPost>(
-        "post",
-        "post-1",
-      );
+      const updatedPost = await entityService.getEntity<BlogPost>({
+        entityType: "post",
+        id: "post-1",
+      });
       expect(updatedPost?.metadata.status).toBe("published");
     });
 

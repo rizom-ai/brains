@@ -65,7 +65,10 @@ describe("resolveImage", () => {
 
     await resolveImage("hero-image", entityService);
 
-    expect(entityService.getEntity).toHaveBeenCalledWith("image", "hero-image");
+    expect(entityService.getEntity).toHaveBeenCalledWith({
+      entityType: "image",
+      id: "hero-image",
+    });
   });
 });
 

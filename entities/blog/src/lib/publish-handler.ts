@@ -43,10 +43,10 @@ export function subscribeToPublishExecute(
     }
 
     try {
-      const post = await context.entityService.getEntity<BlogPost>(
-        "post",
-        entityId,
-      );
+      const post = await context.entityService.getEntity<BlogPost>({
+        entityType: "post",
+        id: entityId,
+      });
 
       if (!post) {
         await context.messaging.send({

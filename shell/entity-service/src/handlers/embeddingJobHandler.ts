@@ -106,10 +106,10 @@ export class EmbeddingJobHandler implements JobHandler<"embedding"> {
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
       // large base64 data bloating job queue and dashboard hydration props
-      const currentEntity = await this.entityService.getEntity(
-        data.entityType,
-        data.id,
-      );
+      const currentEntity = await this.entityService.getEntity({
+        entityType: data.entityType,
+        id: data.id,
+      });
 
       if (!currentEntity) {
         this.logger.warn("Entity no longer exists, skipping embedding job", {

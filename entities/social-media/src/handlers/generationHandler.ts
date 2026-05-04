@@ -95,10 +95,10 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: `Fetching source ${sourceEntityType}`,
       });
 
-      const sourceEntity = await this.context.entityService.getEntity(
-        sourceEntityType,
-        sourceEntityId,
-      );
+      const sourceEntity = await this.context.entityService.getEntity({
+        entityType: sourceEntityType,
+        id: sourceEntityId,
+      });
 
       if (!sourceEntity) {
         this.failEarly(

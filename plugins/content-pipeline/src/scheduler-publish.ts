@@ -77,10 +77,10 @@ export async function executeWithProvider(
     return;
   }
 
-  const entity = await deps.entityService.getEntity(
-    entry.entityType,
-    entry.entityId,
-  );
+  const entity = await deps.entityService.getEntity({
+    entityType: entry.entityType,
+    id: entry.entityId,
+  });
 
   if (!entity) {
     deps.onFailed?.({

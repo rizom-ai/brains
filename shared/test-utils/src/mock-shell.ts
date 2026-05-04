@@ -200,25 +200,25 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       entities.delete(id);
       return true;
     },
-    getEntity: async (type: string, id: string) => {
-      const entity = entities.get(id);
-      return entity?.entityType === type ? entity : null;
+    getEntity: async (request: { entityType: string; id: string }) => {
+      const entity = entities.get(request.id);
+      return entity?.entityType === request.entityType ? entity : null;
     },
-    listEntities: async (
-      type: string,
-      opts?: {
+    listEntities: async (request: {
+      entityType: string;
+      options?: {
         filter?: { metadata?: Record<string, unknown> };
         publishedOnly?: boolean;
-      },
-    ) => {
+      };
+    }) => {
       let results = Array.from(entities.values()).filter(
-        (e) => e.entityType === type,
+        (e) => e.entityType === request.entityType,
       );
-      if (opts?.publishedOnly) {
+      if (request.options?.publishedOnly) {
         results = results.filter((e) => e.metadata["status"] === "published");
       }
-      if (opts?.filter?.metadata) {
-        const filterEntries = Object.entries(opts.filter.metadata);
+      if (request.options?.filter?.metadata) {
+        const filterEntries = Object.entries(request.options.filter.metadata);
         results = results.filter((e) =>
           filterEntries.every(([key, value]) => e.metadata[key] === value),
         );

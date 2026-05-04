@@ -21,13 +21,16 @@ import type {
   EntityInput,
   CreateEntityFromMarkdownInput,
   SearchOptions,
-  ListOptions,
   CreateEntityOptions,
   EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityService as IEntityService,
   EntityEventBus,
+  GetEntityRequest,
+  GetEntityRawRequest,
+  ListEntitiesRequest,
+  CountEntitiesRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -263,10 +266,10 @@ export class EntityService implements IEntityService {
   // ── Reads ─────────────────────────────────────────────────────────
 
   public async getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRequest,
   ): Promise<T | null> {
-    const entity = await this.getEntityRaw<T>(entityType, id);
+    const { entityType, id } = request;
+    const entity = await this.getEntityRaw<T>({ entityType, id });
     if (!entity) {
       return null;
     }
@@ -282,9 +285,9 @@ export class EntityService implements IEntityService {
   }
 
   public async getEntityRaw<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRawRequest,
   ): Promise<T | null> {
+    const { entityType, id } = request;
     const entityData = await this.entityQueries.getEntityData(entityType, id);
     if (!entityData) {
       return null;
@@ -294,16 +297,14 @@ export class EntityService implements IEntityService {
   }
 
   public async listEntities<T extends BaseEntity>(
-    entityType: string,
-    options?: ListOptions,
+    request: ListEntitiesRequest,
   ): Promise<T[]> {
+    const { entityType, options } = request;
     return this.entityQueries.listEntities<T>(entityType, options);
   }
 
-  public async countEntities(
-    entityType: string,
-    options?: Pick<ListOptions, "publishedOnly" | "filter">,
-  ): Promise<number> {
+  public async countEntities(request: CountEntitiesRequest): Promise<number> {
+    const { entityType, options } = request;
     return this.entityQueries.countEntities(entityType, options);
   }
 

@@ -147,10 +147,10 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         entityId: "project-1",
       });
 
-      const updatedProject = await entityService.getEntity<Project>(
-        "project",
-        "project-1",
-      );
+      const updatedProject = await entityService.getEntity<Project>({
+        entityType: "project",
+        id: "project-1",
+      });
       expect(updatedProject?.metadata.status).toBe("published");
       expect(updatedProject?.metadata.publishedAt).toBeDefined();
     });

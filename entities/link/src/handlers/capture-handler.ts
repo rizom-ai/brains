@@ -95,10 +95,10 @@ export class LinkCaptureJobHandler extends BaseJobHandler<
         message: "Checking for existing link",
       });
 
-      const existingEntity = await this.context.entityService.getEntity(
-        "link",
-        entityId,
-      );
+      const existingEntity = await this.context.entityService.getEntity({
+        entityType: "link",
+        id: entityId,
+      });
 
       if (existingEntity) {
         this.logger.info("Link already captured, returning existing", {

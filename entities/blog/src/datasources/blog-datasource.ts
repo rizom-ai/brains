@@ -167,13 +167,13 @@ export class BlogDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const publishedPosts = await entityService.listEntities<BlogPost>(
-      this.config.entityType,
-      {
+    const publishedPosts = await entityService.listEntities<BlogPost>({
+      entityType: this.config.entityType,
+      options: {
         limit: 1,
         sortFields: [{ field: "publishedAt", direction: "desc" }],
       },
-    );
+    });
 
     if (publishedPosts.length === 0) {
       this.logger.info("No published blog posts found for homepage");
@@ -234,14 +234,14 @@ export class BlogDataSource extends BaseEntityDataSource<
     seriesName: string,
     entityService: IEntityService,
   ): Promise<BlogPostTransformed[]> {
-    const entities = await entityService.listEntities<BlogPost>(
-      this.config.entityType,
-      {
+    const entities = await entityService.listEntities<BlogPost>({
+      entityType: this.config.entityType,
+      options: {
         limit: 100,
         filter: { metadata: { seriesName } },
         sortFields: [{ field: "seriesIndex", direction: "asc" }],
       },
-    );
+    });
     return entities.map(parsePostData);
   }
 

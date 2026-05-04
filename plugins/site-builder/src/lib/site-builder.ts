@@ -494,8 +494,9 @@ export class SiteBuilder implements ISiteBuilder {
       for (const entityType of entityTypes) {
         if (entityType === "image") continue; // Skip image entities themselves
 
-        const entities =
-          await this.context.entityService.listEntities(entityType);
+        const entities = await this.context.entityService.listEntities({
+          entityType: entityType,
+        });
 
         for (const entity of entities) {
           const coverImageId = extractCoverImageId(entity);

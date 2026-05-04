@@ -46,8 +46,8 @@ export class WishCreateHandler {
       {
         search: (query, options) =>
           this.context.entityService.search<WishEntity>(query, options),
-        getEntity: (entityType, id) =>
-          this.context.entityService.getEntity<WishEntity>(entityType, id),
+        getEntity: (request) =>
+          this.context.entityService.getEntity<WishEntity>(request),
         similarityThreshold: 0.85,
       },
       { title, description },

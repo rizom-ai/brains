@@ -207,7 +207,10 @@ describe("SingletonEntityService", () => {
 
       await service.refreshCache();
 
-      expect(getEntitySpy).toHaveBeenCalledWith(entityType, entityType);
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType,
+        id: entityType,
+      });
       expect(service.get()).toEqual({
         title: "Refreshed Title",
         description: "Refreshed description",

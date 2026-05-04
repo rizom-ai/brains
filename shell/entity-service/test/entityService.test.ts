@@ -279,7 +279,10 @@ describe("EntityService > upsertEntity", () => {
     expect(result.entityId).toBe("new-entity");
     expect(result.created).toBe(true);
 
-    const retrieved = await ctx.entityService.getEntity("note", "new-entity");
+    const retrieved = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "new-entity",
+    });
     expect(retrieved).not.toBeNull();
   });
 
@@ -308,7 +311,10 @@ describe("EntityService > upsertEntity", () => {
     );
     await ctx.entityService.createEntity<SharedNote>(input);
 
-    const before = await ctx.entityService.getEntity("note", "stable-entity");
+    const before = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "stable-entity",
+    });
     expect(before).not.toBeNull();
 
     // Upsert with the same content — simulates periodic sync re-importing
@@ -322,7 +328,10 @@ describe("EntityService > upsertEntity", () => {
 
     expect(result.created).toBe(false);
 
-    const after = await ctx.entityService.getEntity("note", "stable-entity");
+    const after = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "stable-entity",
+    });
     expect(after).not.toBeNull();
     expect(before).not.toBeNull();
     // Updated timestamp should NOT have changed — no DB write happened
@@ -336,10 +345,10 @@ describe("EntityService > upsertEntity", () => {
     );
     await ctx.entityService.createEntity<SharedNote>(input);
 
-    const stored = await ctx.entityService.getEntity(
-      "note",
-      "roundtrip-entity",
-    );
+    const stored = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "roundtrip-entity",
+    });
     expect(stored).not.toBeNull();
 
     // Simulate directory-sync round-trip: serialize → fromMarkdown → upsert
@@ -358,7 +367,10 @@ describe("EntityService > upsertEntity", () => {
     expect(result.created).toBe(false);
     expect(result.skipped).toBe(true);
 
-    const after = await ctx.entityService.getEntity("note", "roundtrip-entity");
+    const after = await ctx.entityService.getEntity({
+      entityType: "note",
+      id: "roundtrip-entity",
+    });
     // Timestamp unchanged — the re-import was a no-op
     expect(after?.updated).toBe(stored.updated);
   });

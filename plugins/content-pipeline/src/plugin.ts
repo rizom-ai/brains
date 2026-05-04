@@ -95,8 +95,9 @@ export class ContentPipelinePlugin extends ServicePlugin<ContentPipelineConfig> 
           const summary = { draft: 0, queued: 0, published: 0, failed: 0 };
 
           for (const entityType of entityTypes) {
-            const entities =
-              await context.entityService.listEntities(entityType);
+            const entities = await context.entityService.listEntities({
+              entityType: entityType,
+            });
             for (const entity of entities) {
               const status = entity.metadata["status"];
               if (

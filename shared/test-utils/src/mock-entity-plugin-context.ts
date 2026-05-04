@@ -38,7 +38,7 @@ export interface MockEntityPluginContextOptions {
     jobsEnqueue?: string;
     messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
   };
-  listEntitiesImpl?: (type: string) => Promise<BaseEntity[]>;
+  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
 
 /**

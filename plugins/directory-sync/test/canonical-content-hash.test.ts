@@ -96,11 +96,11 @@ describe("contentHash regression: canonical form, not raw content", () => {
         };
       },
     );
-    mockEntityService.getEntity = async <T extends BaseEntity>(
-      type: string,
-      id: string,
-    ): Promise<T | null> => {
-      const found = store.get(`${type}:${id}`);
+    mockEntityService.getEntity = async <T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null> => {
+      const found = store.get(`${request.entityType}:${request.id}`);
       return found ? (found as T) : null;
     };
 

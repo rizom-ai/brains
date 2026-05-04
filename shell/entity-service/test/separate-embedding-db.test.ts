@@ -145,12 +145,15 @@ describe("Separate embedding database", () => {
     expect(result.entityId).toBeDefined();
 
     // Read
-    const retrieved = await entityService.getEntity("test", testEntity.id);
+    const retrieved = await entityService.getEntity({
+      entityType: "test",
+      id: testEntity.id,
+    });
     expect(retrieved).not.toBeNull();
     expect(retrieved?.content).toContain("Test content");
 
     // List
-    const listed = await entityService.listEntities("test");
+    const listed = await entityService.listEntities({ entityType: "test" });
     expect(listed.length).toBe(1);
 
     // Delete

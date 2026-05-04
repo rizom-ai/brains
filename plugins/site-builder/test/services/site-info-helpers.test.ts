@@ -26,8 +26,9 @@ cta:
     expect(result.description).toBe("A test site");
     expect(result.cta?.heading).toBe("Get in touch");
     expect(result.cta?.buttonText).toBe("Say Hi");
-    expect(entityService.listEntities).toHaveBeenCalledWith("site-info", {
-      limit: 1,
+    expect(entityService.listEntities).toHaveBeenCalledWith({
+      entityType: "site-info",
+      options: { limit: 1 },
     });
   });
 

@@ -79,7 +79,9 @@ describe("Shell shutdown", () => {
     const entityService = shell.getEntityService();
 
     // Verify DB works before shutdown
-    const result = await entityService.listEntities("note");
+    const result = await entityService.listEntities({
+      entityType: "note",
+    });
     expect(result).toEqual([]);
 
     await shell.shutdown();
@@ -87,7 +89,9 @@ describe("Shell shutdown", () => {
     // After shutdown, entity DB client should be closed.
     let threw = false;
     try {
-      await entityService.listEntities("note");
+      await entityService.listEntities({
+        entityType: "note",
+      });
     } catch (e: unknown) {
       threw = true;
       const fullError =
@@ -148,7 +152,9 @@ describe("Shell shutdown", () => {
     const stats2 = await shell2.getJobQueueService().getStats();
     expect(stats2).toBeDefined();
 
-    const entities = await shell2.getEntityService().listEntities("note");
+    const entities = await shell2.getEntityService().listEntities({
+      entityType: "note",
+    });
     expect(entities).toEqual([]);
 
     await shell2.shutdown();

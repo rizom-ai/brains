@@ -83,10 +83,10 @@ export class TopicExtractionHandler extends BaseJobHandler<
 
       // Fetch fresh entity - content is NOT stored in job data to avoid
       // large data (including base64 images) bloating job queue
-      const entity = await this.context.entityService.getEntity(
-        entityType,
-        entityId,
-      );
+      const entity = await this.context.entityService.getEntity({
+        entityType: entityType,
+        id: entityId,
+      });
 
       if (!entity) {
         this.logger.warn("Entity no longer exists, skipping topic extraction", {

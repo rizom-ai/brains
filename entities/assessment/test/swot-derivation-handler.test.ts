@@ -108,7 +108,10 @@ describe("SwotDerivationHandler", () => {
     const reporter = { report: async (): Promise<void> => {} };
     await handler.process({ reason: "test" }, "job-1", reporter as never);
 
-    const entity = await harness.getEntityService().getEntity("swot", "swot");
+    const entity = await harness.getEntityService().getEntity({
+      entityType: "swot",
+      id: "swot",
+    });
     expect(entity).not.toBeNull();
     expect(entity?.metadata).toEqual({ derivedAt: expect.any(String) });
 
@@ -186,12 +189,14 @@ describe("SwotDerivationHandler", () => {
     const reporter = { report: async (): Promise<void> => {} };
     await handler.process({ reason: "test" }, "job-1", reporter as never);
 
-    const derivationPromptEntity = await harness
-      .getEntityService()
-      .getEntity("prompt", "assessment-swot-derivation");
-    const refinementPromptEntity = await harness
-      .getEntityService()
-      .getEntity("prompt", "assessment-swot-refinement");
+    const derivationPromptEntity = await harness.getEntityService().getEntity({
+      entityType: "prompt",
+      id: "assessment-swot-derivation",
+    });
+    const refinementPromptEntity = await harness.getEntityService().getEntity({
+      entityType: "prompt",
+      id: "assessment-swot-refinement",
+    });
 
     expect(derivationPromptEntity).not.toBeNull();
     expect(derivationPromptEntity?.content).toContain(
@@ -281,9 +286,10 @@ describe("SwotDerivationHandler", () => {
     const reporter = { report: async (): Promise<void> => {} };
     await handler.process({ reason: "test" }, "job-1", reporter as never);
 
-    const promptEntity = await harness
-      .getEntityService()
-      .getEntity("prompt", "assessment-swot-derivation");
+    const promptEntity = await harness.getEntityService().getEntity({
+      entityType: "prompt",
+      id: "assessment-swot-derivation",
+    });
 
     expect(promptEntity).not.toBeNull();
     expect(receivedPrompts[0]).toContain("Custom SWOT prompt instructions.");
@@ -563,7 +569,9 @@ describe("SwotDerivationHandler", () => {
     await handler.process({ reason: "first" }, "job-1", reporter as never);
     await handler.process({ reason: "second" }, "job-2", reporter as never);
 
-    const entities = await harness.getEntityService().listEntities("swot");
+    const entities = await harness.getEntityService().listEntities({
+      entityType: "swot",
+    });
     expect(entities).toHaveLength(1);
 
     const parsed = swotAdapter.parseSwotContent(entities[0]?.content ?? "");

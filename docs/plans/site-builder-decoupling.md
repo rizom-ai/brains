@@ -68,8 +68,11 @@ interface SiteEngineServices {
     options?: ResolutionOptions,
   ) => Promise<unknown>;
   getViewTemplate: (name: string) => ViewTemplate | undefined;
-  listEntities: (type: string) => Promise<BaseEntity[]>;
-  getEntity: (type: string, id: string) => Promise<BaseEntity | null>;
+  listEntities: (request: { entityType: string }) => Promise<BaseEntity[]>;
+  getEntity: (request: {
+    entityType: string;
+    id: string;
+  }) => Promise<BaseEntity | null>;
   getEntityTypes: () => string[];
   logger: Logger;
 }
@@ -81,8 +84,8 @@ Plugin creates this from its context:
 const engine = createSiteEngine({
   resolveContent: context.templates.resolve,
   getViewTemplate: context.views.get,
-  listEntities: (type) => context.entityService.listEntities(type),
-  getEntity: (type, id) => context.entityService.getEntity(type, id),
+  listEntities: (request) => context.entityService.listEntities(request),
+  getEntity: (request) => context.entityService.getEntity(request),
   getEntityTypes: () => context.entityService.getEntityTypes(),
   logger: context.logger,
 });

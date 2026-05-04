@@ -43,7 +43,10 @@ describe("WishCreateHandler", () => {
     expect(result.existed).toBe(false);
     expect(result.requested).toBe(1);
 
-    const wishes = await context.entityService.listEntities("wish", {});
+    const wishes = await context.entityService.listEntities({
+      entityType: "wish",
+      options: {},
+    });
     expect(wishes.length).toBe(1);
     expect(wishes[0]?.metadata["title"]).toBe("Send emails");
     expect(wishes[0]?.metadata["status"]).toBe("new");
@@ -56,7 +59,10 @@ describe("WishCreateHandler", () => {
       noopProgress,
     );
 
-    const wishes = await context.entityService.listEntities("wish", {});
+    const wishes = await context.entityService.listEntities({
+      entityType: "wish",
+      options: {},
+    });
     expect(wishes[0]?.metadata["priority"]).toBe("medium");
   });
 
@@ -71,7 +77,10 @@ describe("WishCreateHandler", () => {
       noopProgress,
     );
 
-    const wishes = await context.entityService.listEntities("wish", {});
+    const wishes = await context.entityService.listEntities({
+      entityType: "wish",
+      options: {},
+    });
     expect(wishes[0]?.metadata["priority"]).toBe("high");
   });
 
@@ -82,7 +91,10 @@ describe("WishCreateHandler", () => {
       noopProgress,
     );
 
-    const wishes = await context.entityService.listEntities("wish", {});
+    const wishes = await context.entityService.listEntities({
+      entityType: "wish",
+      options: {},
+    });
     expect(wishes[0]?.metadata["title"]).toBe("I want to send emails");
   });
 
@@ -109,7 +121,10 @@ describe("WishCreateHandler", () => {
       },
     });
 
-    const wish = await context.entityService.getEntity("wish", "make-lasagna");
+    const wish = await context.entityService.getEntity({
+      entityType: "wish",
+      id: "make-lasagna",
+    });
     expect(wish?.metadata["title"]).toBe("Make lasagna");
     expect(wish?.metadata["status"]).toBe("new");
     expect(wish?.metadata["priority"]).toBe("medium");

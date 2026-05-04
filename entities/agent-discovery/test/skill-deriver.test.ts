@@ -40,8 +40,8 @@ function contextForSkills(
 
   const context = {
     entityService: {
-      listEntities: mock(async (type: string) => {
-        if (type === "topic") {
+      listEntities: mock(async (request: { entityType: string }) => {
+        if (request.entityType === "topic") {
           return [
             {
               id: "topic-1",
@@ -54,8 +54,8 @@ function contextForSkills(
             },
           ];
         }
-        if (type === "skill") return existingSkills;
-        if (type === "agent") return [];
+        if (request.entityType === "skill") return existingSkills;
+        if (request.entityType === "agent") return [];
         return [];
       }),
       createEntity,

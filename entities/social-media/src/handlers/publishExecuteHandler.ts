@@ -54,10 +54,10 @@ export class PublishExecuteHandler {
 
     try {
       // Fetch the entity
-      const post = await this.entityService.getEntity<SocialPost>(
-        "social-post",
-        entityId,
-      );
+      const post = await this.entityService.getEntity<SocialPost>({
+        entityType: "social-post",
+        id: entityId,
+      });
 
       if (!post) {
         await this.reportFailure(
@@ -225,10 +225,10 @@ export class PublishExecuteHandler {
     imageId: string,
   ): Promise<PublishImageData | undefined> {
     try {
-      const image = await this.entityService.getEntity<BaseEntity>(
-        "image",
-        imageId,
-      );
+      const image = await this.entityService.getEntity<BaseEntity>({
+        entityType: "image",
+        id: imageId,
+      });
 
       if (!image) {
         this.logger.warn("Cover image not found", { imageId });

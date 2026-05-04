@@ -46,7 +46,10 @@ export function createEntityExtractTool(services: SystemServices): Tool {
         } = { mode: appliedMode };
         if (source) {
           for (const type of entityService.getEntityTypes()) {
-            const found = await entityService.getEntity(type, source);
+            const found = await entityService.getEntity({
+              entityType: type,
+              id: source,
+            });
             if (found) {
               data.mode = "source";
               data.entityId = found.id;

@@ -53,10 +53,12 @@ export class SummaryDataSource implements DataSource {
     const queryId = params.query?.conversationId ?? params.query?.id;
     if (queryId) {
       // Fetch single summary (detail view)
-      const entity = await entityService.getEntity<SummaryEntity>(
-        params.query?.conversationId ? "summary" : params.entityType,
-        queryId,
-      );
+      const entity = await entityService.getEntity<SummaryEntity>({
+        entityType: params.query?.conversationId
+          ? "summary"
+          : params.entityType,
+        id: queryId,
+      });
 
       if (!entity) {
         throw new Error(`Summary not found: ${queryId}`);
@@ -88,12 +90,12 @@ export class SummaryDataSource implements DataSource {
     }
 
     // Fetch multiple summaries (list view)
-    const entities = await entityService.listEntities<SummaryEntity>(
-      params.entityType,
-      {
+    const entities = await entityService.listEntities<SummaryEntity>({
+      entityType: params.entityType,
+      options: {
         limit: params.query?.limit ?? 100,
       },
-    );
+    });
 
     // Transform to SummaryListData with channel names
     const summaries = entities.map((summary) => {

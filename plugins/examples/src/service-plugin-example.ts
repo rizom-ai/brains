@@ -312,8 +312,9 @@ export class CalculatorServicePlugin extends ServicePlugin<CalculatorConfig> {
             mimeType?: string;
           }>;
         }> => {
-          const calculations =
-            await context.entityService.listEntities("calculation");
+          const calculations = await context.entityService.listEntities({
+            entityType: "calculation",
+          });
           return {
             contents: calculations.map((calc) => ({
               text: JSON.stringify(calc),

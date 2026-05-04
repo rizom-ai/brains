@@ -87,19 +87,19 @@ export function createPublishTool(
       type PublishableEntity = BaseEntity<PublishableMetadata>;
       let entity: PublishableEntity | null = null;
       if (id) {
-        entity = await context.entityService.getEntity<PublishableEntity>(
+        entity = await context.entityService.getEntity<PublishableEntity>({
           entityType,
           id,
-        );
+        });
       } else if (slug) {
         const entities =
-          await context.entityService.listEntities<PublishableEntity>(
+          await context.entityService.listEntities<PublishableEntity>({
             entityType,
-            {
+            options: {
               filter: { metadata: { slug } },
               limit: 1,
             },
-          );
+          });
         entity = entities[0] ?? null;
       }
 
@@ -147,10 +147,10 @@ export function createPublishTool(
       // Fetch image data if coverImageId exists
       let imageData: PublishImageData | undefined;
       if (coverImageId) {
-        const image = await context.entityService.getEntity<BaseEntity>(
-          "image",
-          coverImageId,
-        );
+        const image = await context.entityService.getEntity<BaseEntity>({
+          entityType: "image",
+          id: coverImageId,
+        });
         if (image?.content) {
           const match = image.content.match(/^data:([^;]+);base64,(.+)$/);
           if (match?.[1] && match[2]) {

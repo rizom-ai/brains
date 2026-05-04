@@ -29,7 +29,10 @@ export class SiteInfoDataSource implements DataSource {
     // Get site info from entity
     let siteInfoBody: SiteInfoBody;
     try {
-      const entity = await entityService.getEntity("site-info", "site-info");
+      const entity = await entityService.getEntity({
+        entityType: "site-info",
+        id: "site-info",
+      });
       siteInfoBody = entity
         ? adapter.parseSiteInfoBody(entity.content)
         : {
@@ -48,10 +51,10 @@ export class SiteInfoDataSource implements DataSource {
       | Array<{ platform: string; url: string; label?: string }>
       | undefined;
     try {
-      const profileEntity = await entityService.getEntity(
-        "anchor-profile",
-        "anchor-profile",
-      );
+      const profileEntity = await entityService.getEntity({
+        entityType: "anchor-profile",
+        id: "anchor-profile",
+      });
       if (profileEntity) {
         const metadata = profileEntity.metadata as Record<string, unknown>;
         socialLinks = metadata["socialLinks"] as typeof socialLinks;

@@ -273,8 +273,14 @@ export async function buildCapabilityProfiles(
   networkProfiles: CapabilityProfile[];
 }> {
   const [agents, skills] = await Promise.all([
-    context.entityService.listEntities<BaseEntity>("agent", { limit: 1000 }),
-    context.entityService.listEntities<BaseEntity>("skill", { limit: 1000 }),
+    context.entityService.listEntities<BaseEntity>({
+      entityType: "agent",
+      options: { limit: 1000 },
+    }),
+    context.entityService.listEntities<BaseEntity>({
+      entityType: "skill",
+      options: { limit: 1000 },
+    }),
   ]);
 
   const character = context.identity.get();

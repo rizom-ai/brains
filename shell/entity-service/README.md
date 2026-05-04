@@ -50,7 +50,10 @@ const { entityId, jobId } = await entityService.createEntity({
   metadata: { title: "My Note", tags: ["important"] },
 });
 
-const note = await entityService.getEntity("note", entityId);
+const note = await entityService.getEntity({
+  entityType: "note",
+  id: entityId,
+});
 
 const results = await entityService.search("important notes about AI", {
   types: ["note"],

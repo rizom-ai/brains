@@ -141,7 +141,9 @@ Add your conclusion here.`;
     let finalSeriesIndex = seriesIndex;
     if (seriesName && !seriesIndex) {
       const seriesPosts =
-        await this.context.entityService.listEntities<BlogPost>("post");
+        await this.context.entityService.listEntities<BlogPost>({
+          entityType: "post",
+        });
       const postsInSeries = seriesPosts.filter(
         (p) => p.metadata.seriesName === seriesName && p.metadata.publishedAt,
       );

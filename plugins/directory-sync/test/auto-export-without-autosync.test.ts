@@ -90,12 +90,14 @@ describe("auto-export without autoSync", () => {
     // For entity:updated, the subscriber fetches from DB
     const entityService = harness.getEntityService();
     const origGetEntity = entityService.getEntity.bind(entityService);
-    entityService.getEntity = async <T extends BaseEntity>(
-      type: string,
-      id: string,
-    ): Promise<T | null> => {
-      if (type === "note" && id === "updated-note") return entity as T;
-      return origGetEntity(type, id);
+    entityService.getEntity = async <T extends BaseEntity>(request: {
+      entityType: string;
+      id: string;
+    }): Promise<T | null> => {
+      if (request.entityType === "note" && request.id === "updated-note") {
+        return entity as T;
+      }
+      return origGetEntity(request);
     };
 
     await harness.sendMessage(

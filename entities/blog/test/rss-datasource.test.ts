@@ -206,8 +206,9 @@ describe("RSSDataSource", () => {
     test("should list entities with limit 1000", async () => {
       await datasource.fetch(defaultRSSQuery, outputSchema, context);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 1000,
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: { limit: 1000 },
       });
     });
   });

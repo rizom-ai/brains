@@ -439,10 +439,13 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 2,
-        offset: 0,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 2,
+          offset: 0,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       });
 
       expect(result.posts).toHaveLength(2);
@@ -699,10 +702,13 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 3,
-        offset: 3,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 3,
+          offset: 3,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       });
 
       expect(result.posts).toHaveLength(3);
@@ -727,10 +733,13 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 3,
-        offset: 9,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 3,
+          offset: 9,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       });
 
       expect(result.posts).toHaveLength(1);
@@ -794,16 +803,18 @@ describe("BlogDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 2,
-        offset: 0,
-        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 2,
+          offset: 0,
+          sortFields: [{ field: "publishedAt", direction: "desc" }],
+        },
       });
 
-      expect(mockEntityService.countEntities).toHaveBeenCalledWith(
-        "post",
-        undefined,
-      );
+      expect(mockEntityService.countEntities).toHaveBeenCalledWith({
+        entityType: "post",
+      });
 
       expect(result.pagination?.totalItems).toBe(3);
       expect(result.pagination?.totalPages).toBe(2);

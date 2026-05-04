@@ -21,7 +21,10 @@ export async function resolveImage(
   imageId: string,
   entityService: ICoreEntityService,
 ): Promise<ResolvedImage | null> {
-  const image = await entityService.getEntity<Image>("image", imageId);
+  const image = await entityService.getEntity<Image>({
+    entityType: "image",
+    id: imageId,
+  });
 
   if (!image) {
     return null;

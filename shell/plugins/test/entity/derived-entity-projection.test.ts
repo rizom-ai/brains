@@ -25,8 +25,8 @@ function createProjectionContext(options?: {
     entityDisplay: undefined,
     appInfo: mock(() => Promise.resolve({ version: "0.0.0", plugins: [] })),
     entityService: {
-      listEntities: mock((type: string) =>
-        Promise.resolve(listEntities[type] ?? []),
+      listEntities: mock((request: { entityType: string }) =>
+        Promise.resolve(listEntities[request.entityType] ?? []),
       ),
       createEntity: mock(() => Promise.resolve({ entityId: "created" })),
       updateEntity: mock(() => Promise.resolve({ entityId: "updated" })),
@@ -196,8 +196,9 @@ describe("derived entity projections", () => {
     const handler = context.handlers.get("sync:initial:completed")?.[0];
     await handler?.({ payload: {} });
 
-    expect(context.entityService.listEntities).toHaveBeenCalledWith("derived", {
-      limit: 1,
+    expect(context.entityService.listEntities).toHaveBeenCalledWith({
+      entityType: "derived",
+      options: { limit: 1 },
     });
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });

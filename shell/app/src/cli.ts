@@ -367,7 +367,12 @@ async function runDiagnostics(
     [];
 
   const entityLists = await Promise.all(
-    entityTypes.map((type) => entityService.listEntities(type, { limit: 100 })),
+    entityTypes.map((type) =>
+      entityService.listEntities({
+        entityType: type,
+        options: { limit: 100 },
+      }),
+    ),
   );
   for (const entities of entityLists) {
     for (const entity of entities) {

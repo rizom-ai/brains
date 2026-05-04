@@ -89,7 +89,10 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
       const results = await Promise.all(
         sourceEntityIds.map((id) =>
-          this.context.entityService.getEntity<SourceEntity>(entityType, id),
+          this.context.entityService.getEntity<SourceEntity>({
+            entityType,
+            id,
+          }),
         ),
       );
       const posts = results.filter((e): e is SourceEntity => e != null);

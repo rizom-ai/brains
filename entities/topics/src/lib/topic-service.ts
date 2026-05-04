@@ -131,14 +131,20 @@ export class TopicService {
   }
 
   public async getTopic(id: string): Promise<TopicEntity | null> {
-    return this.entityService.getEntity<TopicEntity>("topic", id);
+    return this.entityService.getEntity<TopicEntity>({
+      entityType: "topic",
+      id,
+    });
   }
 
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
   }): Promise<TopicEntity[]> {
-    return this.entityService.listEntities<TopicEntity>("topic", params);
+    return this.entityService.listEntities<TopicEntity>({
+      entityType: "topic",
+      ...(params !== undefined ? { options: params } : {}),
+    });
   }
 
   public async searchTopics(

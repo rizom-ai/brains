@@ -112,8 +112,11 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
             rendererName: "ListWidget",
             dataProvider: async () => {
               const skills =
-                await context.entityService.listEntities<SkillEntity>("skill", {
-                  limit: 10,
+                await context.entityService.listEntities<SkillEntity>({
+                  entityType: "skill",
+                  options: {
+                    limit: 10,
+                  },
                 });
               return {
                 items: skills.map((s) => ({
@@ -159,7 +162,9 @@ export class SkillPlugin extends EntityPlugin<SkillEntity> {
       const result = await deriveSkills(context, this.logger);
 
       // Return created skills
-      const skills = await context.entityService.listEntities("skill");
+      const skills = await context.entityService.listEntities({
+        entityType: "skill",
+      });
       return {
         ...result,
         skills: skills.map((s) => s.metadata),

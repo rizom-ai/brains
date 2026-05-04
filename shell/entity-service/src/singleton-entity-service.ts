@@ -123,10 +123,10 @@ export abstract class SingletonEntityService<TBody> {
    */
   private async load(): Promise<boolean> {
     try {
-      const entity = await this.entityService.getEntity<BaseEntity>(
-        this.entityType,
-        this.entityType,
-      );
+      const entity = await this.entityService.getEntity<BaseEntity>({
+        entityType: this.entityType,
+        id: this.entityType,
+      });
 
       this.cache = entity;
       this.cacheParseError = null;

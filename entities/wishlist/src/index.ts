@@ -79,8 +79,10 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
           rendererName: "ListWidget",
           dataProvider: async () => {
             const wishes = await context.entityService.listEntities<WishEntity>(
-              "wish",
-              { limit: 10 },
+              {
+                entityType: "wish",
+                options: { limit: 10 },
+              },
             );
             sortWishesByDemand(wishes);
             return {

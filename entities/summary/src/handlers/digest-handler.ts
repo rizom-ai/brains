@@ -77,10 +77,10 @@ export class DigestHandler {
       let existingEntity: SummaryEntity | null = null;
       try {
         existingEntity =
-          await this.context.entityService.getEntity<SummaryEntity>(
-            "summary",
-            digest.conversationId,
-          );
+          await this.context.entityService.getEntity<SummaryEntity>({
+            entityType: "summary",
+            id: digest.conversationId,
+          });
       } catch {
         // Entity doesn't exist yet, that's fine
         this.logger.debug("No existing summary found", {

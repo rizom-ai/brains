@@ -87,10 +87,10 @@ export class DecksPlugin extends EntityPlugin<DeckEntity> {
       if (entityType !== "deck") return { success: true };
 
       try {
-        const deck = await context.entityService.getEntity<DeckEntity>(
-          "deck",
-          entityId,
-        );
+        const deck = await context.entityService.getEntity<DeckEntity>({
+          entityType: "deck",
+          id: entityId,
+        });
         if (!deck) {
           await context.messaging.send({
             type: "publish:report:failure",

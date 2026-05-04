@@ -84,19 +84,19 @@ export class SiteInfoService {
    */
   public async initialize(): Promise<void> {
     try {
-      const siteInfo = (await this.entityService.getEntity(
-        "site-info",
-        "site-info",
-      )) as SiteInfoEntity | null;
+      const siteInfo = (await this.entityService.getEntity({
+        entityType: "site-info",
+        id: "site-info",
+      })) as SiteInfoEntity | null;
 
       // If no site info exists, create one with default values. Re-check
       // immediately before creating defaults because startup directory sync may
       // import the singleton after the first DB miss on cold boot.
       if (!siteInfo) {
-        const recheckedSiteInfo = (await this.entityService.getEntity(
-          "site-info",
-          "site-info",
-        )) as SiteInfoEntity | null;
+        const recheckedSiteInfo = (await this.entityService.getEntity({
+          entityType: "site-info",
+          id: "site-info",
+        })) as SiteInfoEntity | null;
         if (recheckedSiteInfo) return;
 
         this.logger.info("No site info found, creating default site info");
@@ -125,10 +125,10 @@ export class SiteInfoService {
   public async getSiteInfo(): Promise<SiteInfoBody> {
     try {
       // Always load fresh from database to avoid stale cache issues
-      const siteInfo = await this.entityService.getEntity<SiteInfoEntity>(
-        "site-info",
-        "site-info",
-      );
+      const siteInfo = await this.entityService.getEntity<SiteInfoEntity>({
+        entityType: "site-info",
+        id: "site-info",
+      });
 
       if (siteInfo) {
         return this.adapter.parseSiteInfoBody(siteInfo.content);

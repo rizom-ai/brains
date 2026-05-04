@@ -111,10 +111,10 @@ export class ImageExtractor {
 
     for (const imageId of allIds) {
       try {
-        const image = await this.entityService.getEntity<ImageEntity>(
-          "image",
-          imageId,
-        );
+        const image = await this.entityService.getEntity<ImageEntity>({
+          entityType: "image",
+          id: imageId,
+        });
 
         if (!image?.content) {
           this.logger.warn("Image entity not found or has no content", {

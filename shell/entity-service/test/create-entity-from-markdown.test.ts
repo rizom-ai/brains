@@ -85,10 +85,10 @@ This content must be preserved exactly.`;
 
     expect(result.entityId).toBe("approved-markdown-doc");
 
-    const stored = await ctx.entityService.getEntity<MarkdownDoc>(
-      "markdown-doc",
-      "approved-markdown-doc",
-    );
+    const stored = await ctx.entityService.getEntity<MarkdownDoc>({
+      entityType: "markdown-doc",
+      id: "approved-markdown-doc",
+    });
     expect(stored?.content).toBe(markdown);
     expect(stored?.headline).toBe("Approved Markdown Doc");
     expect(stored?.metadata).toEqual({

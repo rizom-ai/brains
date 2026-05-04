@@ -12,10 +12,10 @@ import {
 export interface CleanupPipelineDeps {
   entityService: {
     getEntityTypes(): string[];
-    listEntities(
-      entityType: string,
-      options?: { limit?: number },
-    ): Promise<BaseEntity[]>;
+    listEntities(request: {
+      entityType: string;
+      options?: { limit?: number };
+    }): Promise<BaseEntity[]>;
     deleteEntity(entityType: string, id: string): Promise<boolean>;
   };
   logger: {
@@ -49,8 +49,11 @@ export async function removeOrphanedEntities(
   const result = createCleanupResult();
 
   for (const entityType of typesToCheck) {
-    const entities = await deps.entityService.listEntities(entityType, {
-      limit: 1000,
+    const entities = await deps.entityService.listEntities({
+      entityType,
+      options: {
+        limit: 1000,
+      },
     });
 
     for (const entity of entities) {

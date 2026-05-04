@@ -57,11 +57,14 @@ describe("deduplicateId option", () => {
     });
     expect(second.entityId).toBe("my-note-2");
 
-    const entity1 = await ctx.entityService.getEntity<Note>("note", "my-note");
-    const entity2 = await ctx.entityService.getEntity<Note>(
-      "note",
-      "my-note-2",
-    );
+    const entity1 = await ctx.entityService.getEntity<Note>({
+      entityType: "note",
+      id: "my-note",
+    });
+    const entity2 = await ctx.entityService.getEntity<Note>({
+      entityType: "note",
+      id: "my-note-2",
+    });
     expect(entity1).not.toBeNull();
     expect(entity2).not.toBeNull();
   });
@@ -82,7 +85,9 @@ describe("deduplicateId option", () => {
     });
     expect(third.entityId).toBe("my-note-3");
 
-    const entities = await ctx.entityService.listEntities<Note>("note");
+    const entities = await ctx.entityService.listEntities<Note>({
+      entityType: "note",
+    });
     expect(entities).toHaveLength(3);
   });
 

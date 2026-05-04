@@ -73,10 +73,10 @@ describe("EntityDataSource", () => {
       expect(result).toEqual({
         markdown: "# Welcome\n\nThis is the README content.",
       });
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "base",
-        "README",
-      );
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "base",
+        id: "README",
+      });
     });
 
     it("should throw error if entityType is missing", async () => {
@@ -153,10 +153,10 @@ describe("EntityDataSource", () => {
       expect(result).toEqual({
         markdown: "# Link Content\n\nThis is a link entity.",
       });
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "link",
-        "my-link",
-      );
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "link",
+        id: "my-link",
+      });
     });
 
     it("should handle entities with empty content", async () => {

@@ -182,7 +182,10 @@ async function getAllEntities(
   const types = entityService.getEntityTypes();
   const all: BaseEntity[] = [];
   for (const type of types) {
-    const entities = await entityService.listEntities(type, { limit: 1000 });
+    const entities = await entityService.listEntities({
+      entityType: type,
+      options: { limit: 1000 },
+    });
     all.push(...entities);
   }
   return all;

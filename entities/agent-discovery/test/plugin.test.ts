@@ -53,9 +53,10 @@ describe("AgentDiscoveryPlugin", () => {
       "a2a",
     );
 
-    const agent = await harness
-      .getEntityService()
-      .getEntity("agent", "yeehaa.io");
+    const agent = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "yeehaa.io",
+    });
     expect(agent).toBeNull();
 
     harness.reset();
@@ -219,7 +220,9 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    const entities = await harness.getEntityService().listEntities("agent");
+    const entities = await harness.getEntityService().listEntities({
+      entityType: "agent",
+    });
     expect(entities).toHaveLength(1);
 
     harness.reset();
@@ -258,9 +261,10 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    const updated = await harness
-      .getEntityService()
-      .getEntity<AgentEntity>("agent", "yeehaa.io");
+    const updated = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "yeehaa.io",
+    });
     expect(updated?.metadata.status).toBe("approved");
     // Content is derived from metadata on write via AgentAdapter.toMarkdown
     // (covered in agent-adapter.test.ts). The mock entityService stores

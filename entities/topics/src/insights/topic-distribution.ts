@@ -19,7 +19,9 @@ export function createTopicDistributionInsight(): InsightHandler {
       return { topics: [] };
     }
 
-    const topics = await entityService.listEntities<TopicEntity>("topic");
+    const topics = await entityService.listEntities<TopicEntity>({
+      entityType: "topic",
+    });
 
     const distribution: TopicDistributionEntry[] = topics.map((topic) => {
       const parsed = adapter.parseTopicBody(topic.content);

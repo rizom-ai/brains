@@ -13,10 +13,10 @@ export class SummaryService {
    */
   async getSummary(conversationId: string): Promise<SummaryEntity | null> {
     try {
-      return await this.entityService.getEntity<SummaryEntity>(
-        "summary",
-        conversationId,
-      );
+      return await this.entityService.getEntity<SummaryEntity>({
+        entityType: "summary",
+        id: conversationId,
+      });
     } catch {
       return null;
     }
@@ -39,8 +39,11 @@ export class SummaryService {
    */
   async getAllSummaries(): Promise<SummaryEntity[]> {
     try {
-      return await this.entityService.listEntities<SummaryEntity>("summary", {
-        limit: 1000, // Get all summaries
+      return await this.entityService.listEntities<SummaryEntity>({
+        entityType: "summary",
+        options: {
+          limit: 1000, // Get all summaries
+        },
       });
     } catch {
       return [];

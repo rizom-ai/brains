@@ -92,7 +92,9 @@ describe("TopicProcessingHandler", () => {
     expect(result.action).toBe("merged");
     expect(result.topicId).toBe("human-ai-collaboration");
 
-    const topics = await mockShell.getEntityService().listEntities("topic");
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
     expect(topics).toHaveLength(1);
     expect(topics[0]?.id).toBe("human-ai-collaboration");
     expect(topics[0]?.content).toContain(
@@ -132,7 +134,9 @@ describe("TopicProcessingHandler", () => {
     expect(result.success).toBe(true);
     expect(result.action).toBe("created");
 
-    const topics = await mockShell.getEntityService().listEntities("topic");
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
     expect(topics).toHaveLength(2);
     expect(topics.map((topic) => topic.id).sort()).toEqual([
       "biomimicry",

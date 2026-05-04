@@ -166,10 +166,10 @@ export class TopicsPlugin extends EntityPlugin<
           return { success: true };
         }
 
-        const entity = await context.entityService.getEntity(
-          data.entityType,
-          data.entityId,
-        );
+        const entity = await context.entityService.getEntity({
+          entityType: data.entityType,
+          id: data.entityId,
+        });
         if (!entity) return { success: false, topicsExtracted: 0 };
 
         return extractionHandler.process(
@@ -223,9 +223,12 @@ export class TopicsPlugin extends EntityPlugin<
             rendererName: "ListWidget",
             dataProvider: async () => {
               const topics =
-                await context.entityService.listEntities<TopicEntity>("topic", {
-                  limit: 10,
-                  sortFields: [{ field: "updated", direction: "desc" }],
+                await context.entityService.listEntities<TopicEntity>({
+                  entityType: "topic",
+                  options: {
+                    limit: 10,
+                    sortFields: [{ field: "updated", direction: "desc" }],
+                  },
                 });
               return {
                 items: topics.map((t) => {
@@ -365,7 +368,9 @@ export class TopicsPlugin extends EntityPlugin<
 
     const toExtract: BaseEntity[] = [];
     for (const type of typesToProcess) {
-      const entities = await context.entityService.listEntities(type);
+      const entities = await context.entityService.listEntities({
+        entityType: type,
+      });
       for (const entity of entities) {
         if (!this.isEntityPublished(entity)) continue;
         toExtract.push(entity);
@@ -578,7 +583,9 @@ export class TopicsPlugin extends EntityPlugin<
           progressReporter,
         );
 
-        const topics = await context.entityService.listEntities("topic");
+        const topics = await context.entityService.listEntities({
+          entityType: "topic",
+        });
         return {
           ...result,
           topicCount: topics.length,
@@ -618,7 +625,9 @@ export class TopicsPlugin extends EntityPlugin<
       );
 
       const result = await this.replaceAllTopics(entities, context);
-      const topics = await context.entityService.listEntities("topic");
+      const topics = await context.entityService.listEntities({
+        entityType: "topic",
+      });
 
       return {
         ...result,
@@ -666,7 +675,9 @@ export class TopicsPlugin extends EntityPlugin<
           });
         }
 
-        const topics = await context.entityService.listEntities("topic");
+        const topics = await context.entityService.listEntities({
+          entityType: "topic",
+        });
         return {
           totalTopics: topics.length,
           perEntity,
@@ -695,7 +706,9 @@ export class TopicsPlugin extends EntityPlugin<
       const result = await extractTopicsBatched(entities, context, this.logger);
 
       // Return created topics so the eval can inspect them
-      const topics = await context.entityService.listEntities("topic");
+      const topics = await context.entityService.listEntities({
+        entityType: "topic",
+      });
       return {
         ...result,
         topics: topics.map((t) => {

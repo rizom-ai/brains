@@ -40,10 +40,10 @@ export class SeriesGenerationHandler implements JobHandler<
       return { success: false, error: "seriesId or title required" };
     }
 
-    const series = await this.context.entityService.getEntity<Series>(
-      "series",
-      seriesId,
-    );
+    const series = await this.context.entityService.getEntity<Series>({
+      entityType: "series",
+      id: seriesId,
+    });
     if (!series) {
       return { success: false, error: `Series not found: ${seriesId}` };
     }
@@ -115,9 +115,12 @@ export class SeriesGenerationHandler implements JobHandler<
 
     for (const type of types) {
       if (type === "series") continue;
-      const entities = await this.context.entityService.listEntities(type, {
-        filter: { metadata: { seriesName } },
-        limit: 100,
+      const entities = await this.context.entityService.listEntities({
+        entityType: type,
+        options: {
+          filter: { metadata: { seriesName } },
+          limit: 100,
+        },
       });
       for (const entity of entities) {
         const title =

@@ -80,10 +80,10 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         };
         if (input.status)
           options.filter = { metadata: { status: input.status } };
-        const entities = await entityService.listEntities(
-          input.entityType,
-          options,
-        );
+        const entities = await entityService.listEntities({
+          entityType: input.entityType,
+          options: options,
+        });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );

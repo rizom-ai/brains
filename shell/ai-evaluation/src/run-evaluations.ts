@@ -587,7 +587,9 @@ export async function main(): Promise<void> {
       const types = entityService.getEntityTypes();
       const counts: Record<string, number> = {};
       for (const type of types) {
-        const entities = await entityService.listEntities(type);
+        const entities = await entityService.listEntities({
+          entityType: type,
+        });
         if (entities.length > 0) counts[type] = entities.length;
       }
       console.log("Database contents:", counts);

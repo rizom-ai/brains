@@ -92,7 +92,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     let skills: SkillData[] | undefined;
     if (context.entityService.hasEntityType("skill")) {
       try {
-        const entities = await context.entityService.listEntities("skill");
+        const entities = await context.entityService.listEntities({
+          entityType: "skill",
+        });
         if (entities.length > 0) {
           skills = entities
             .map((e) => skillDataSchema.safeParse(e.metadata))

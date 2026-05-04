@@ -21,8 +21,8 @@ function createMockDeps(
   return {
     entityService: {
       getEntityTypes: () => Object.keys(entities),
-      listEntities: mock(async (entityType: string) => {
-        return entities[entityType] ?? [];
+      listEntities: mock(async (request: { entityType: string }) => {
+        return entities[request.entityType] ?? [];
       }),
       deleteEntity: mock(async () => true),
     },
@@ -144,8 +144,7 @@ describe("removeOrphanedEntities", () => {
     );
     // blog-post should not be touched
     expect(deps.entityService.listEntities).not.toHaveBeenCalledWith(
-      "blog-post",
-      expect.anything(),
+      expect.objectContaining({ entityType: "blog-post" }),
     );
   });
 });

@@ -56,10 +56,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
     };
 
     const ensureDerived = async (reason: string): Promise<void> => {
-      const existing = await context.entityService.getEntity<SwotEntity>(
-        "swot",
-        "swot",
-      );
+      const existing = await context.entityService.getEntity<SwotEntity>({
+        entityType: "swot",
+        id: "swot",
+      });
       if (!existing) {
         await enqueueDerive(reason);
       }
@@ -85,10 +85,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
             rendererName: "SwotWidget",
             component: SwotWidget,
             dataProvider: async () => {
-              const swot = await context.entityService.getEntity<SwotEntity>(
-                "swot",
-                "swot",
-              );
+              const swot = await context.entityService.getEntity<SwotEntity>({
+                entityType: "swot",
+                id: "swot",
+              });
 
               if (!swot) return { status: "generating" };
 

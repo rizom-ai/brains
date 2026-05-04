@@ -55,10 +55,10 @@ describe("EntityTypeConfig embeddable flag", () => {
 
     const result = await ctx.entityService.createEntity<ImageEntity>(imageData);
 
-    const entity = await ctx.entityService.getEntity<ImageEntity>(
-      "image",
-      result.entityId,
-    );
+    const entity = await ctx.entityService.getEntity<ImageEntity>({
+      entityType: "image",
+      id: result.entityId,
+    });
     expect(entity).not.toBeNull();
 
     expect(ctx.jobQueueService.enqueue).not.toHaveBeenCalled();
@@ -75,10 +75,10 @@ describe("EntityTypeConfig embeddable flag", () => {
     const { entityId } =
       await ctx.entityService.createEntity<ImageEntity>(imageData);
 
-    const entity = await ctx.entityService.getEntity<ImageEntity>(
-      "image",
-      entityId,
-    );
+    const entity = await ctx.entityService.getEntity<ImageEntity>({
+      entityType: "image",
+      id: entityId,
+    });
     expect(entity).not.toBeNull();
     if (!entity) throw new Error("Entity should exist");
 

@@ -229,10 +229,10 @@ describe("Publish Pipeline - Publish Tool", () => {
       );
 
       // Verify entity was updated
-      const updated = await context.entityService.getEntity(
-        "social-post",
-        "draft-post",
-      );
+      const updated = await context.entityService.getEntity({
+        entityType: "social-post",
+        id: "draft-post",
+      });
       expect(updated?.metadata["status"]).toBe("published");
     });
   });

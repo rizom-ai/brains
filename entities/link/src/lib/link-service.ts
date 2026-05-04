@@ -98,10 +98,10 @@ export class LinkService {
     const entityId = options?.id ?? UrlUtils.generateEntityId(url);
 
     // Check for existing entity (deduplication)
-    const existingEntity = await this.context.entityService.getEntity(
-      "link",
-      entityId,
-    );
+    const existingEntity = await this.context.entityService.getEntity({
+      entityType: "link",
+      id: entityId,
+    });
     if (existingEntity) {
       this.context.logger.info("Link already captured, returning existing", {
         url,
@@ -312,7 +312,10 @@ export class LinkService {
     capturedAt: string;
     status: LinkStatus;
   } | null> {
-    const entity = await this.context.entityService.getEntity("link", linkId);
+    const entity = await this.context.entityService.getEntity({
+      entityType: "link",
+      id: linkId,
+    });
     if (!entity) {
       return null;
     }

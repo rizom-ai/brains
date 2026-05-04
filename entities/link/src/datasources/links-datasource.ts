@@ -98,13 +98,13 @@ export class LinksDataSource extends BaseEntityDataSource<
     item: LinkSummary;
     navigation: NavigationResult<LinkSummary> | null;
   }> {
-    const allEntities = await entityService.listEntities<BaseEntity>(
-      this.config.entityType,
-      {
+    const allEntities = await entityService.listEntities<BaseEntity>({
+      entityType: this.config.entityType,
+      options: {
         limit: this.config.navigationLimit ?? 1000,
         sortFields: this.config.defaultSort,
       },
-    );
+    });
 
     const currentIndex = allEntities.findIndex((e) => e.id === id);
     if (currentIndex === -1) {

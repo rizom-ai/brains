@@ -6,7 +6,10 @@ export interface WishSearchDeps {
     query: string,
     options?: { types?: string[]; limit?: number },
   ) => Promise<Array<{ entity: WishEntity; score: number; excerpt: string }>>;
-  getEntity: (entityType: string, id: string) => Promise<WishEntity | null>;
+  getEntity: (request: {
+    entityType: string;
+    id: string;
+  }) => Promise<WishEntity | null>;
   similarityThreshold: number;
 }
 
@@ -28,5 +31,8 @@ export async function findExistingWish(
 
   // Fall back to exact slug match
   const slug = slugify(input.title);
-  return deps.getEntity("wish", slug);
+  return deps.getEntity({
+    entityType: "wish",
+    id: slug,
+  });
 }

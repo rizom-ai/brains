@@ -41,7 +41,7 @@ export interface MockServicePluginContextOptions {
   /** Pre-configured return values for methods */
   returns?: MockServicePluginContextReturns;
   /** Dynamic implementation for listEntities */
-  listEntitiesImpl?: (type: string) => Promise<BaseEntity[]>;
+  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
 
 /**

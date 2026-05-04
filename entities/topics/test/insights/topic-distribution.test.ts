@@ -23,8 +23,8 @@ function createMockEntityService(
   topics: ReturnType<typeof makeTopicEntity>[],
 ): ICoreEntityService {
   return {
-    listEntities: async (type: string) => {
-      if (type === "topic") return topics;
+    listEntities: async (request: { entityType: string }) => {
+      if (request.entityType === "topic") return topics;
       return [];
     },
     hasEntityType: (type: string) => type === "topic",

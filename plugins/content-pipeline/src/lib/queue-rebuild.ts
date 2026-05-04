@@ -14,8 +14,11 @@ export async function rebuildQueueFromEntities(
   const entityTypes = entityService.getEntityTypes();
 
   for (const entityType of entityTypes) {
-    const entities = await entityService.listEntities(entityType, {
-      filter: { metadata: { status: "queued" } },
+    const entities = await entityService.listEntities({
+      entityType: entityType,
+      options: {
+        filter: { metadata: { status: "queued" } },
+      },
     });
     for (const entity of entities) {
       await queueManager.add(entity.entityType, entity.id);

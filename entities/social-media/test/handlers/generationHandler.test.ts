@@ -191,10 +191,10 @@ describe("GenerationJobHandler", () => {
 
       await handler.process(jobData, "job-123", progressReporter);
 
-      const entities = await context.entityService.listEntities(
-        "social-post",
-        {},
-      );
+      const entities = await context.entityService.listEntities({
+        entityType: "social-post",
+        options: {},
+      });
       expect(entities).toHaveLength(0);
     });
 

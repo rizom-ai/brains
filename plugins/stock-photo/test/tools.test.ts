@@ -295,8 +295,8 @@ describe("stock-photo tools", () => {
           jobId: "job-1",
           skipped: false,
         }),
-        getEntity: async (_type: string, id: string) => {
-          if (id === "my-post") {
+        getEntity: async (request: { entityType: string; id: string }) => {
+          if (request.id === "my-post") {
             return {
               id: "my-post",
               entityType: "post",

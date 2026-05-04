@@ -216,10 +216,10 @@ values:
 
       await characterService.refreshCache();
 
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "brain-character",
-        "brain-character",
-      );
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "brain-character",
+        id: "brain-character",
+      });
     });
   });
 

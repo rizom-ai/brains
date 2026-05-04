@@ -179,8 +179,8 @@ Some text
 
     it("should handle mixed success and failure", async () => {
       const dataUrl = "data:image/png;base64,success";
-      mockEntityService.getEntityRaw = mock((_type: string, id: string) => {
-        if (id === "found-id") {
+      mockEntityService.getEntityRaw = mock((request: { id: string }) => {
+        if (request.id === "found-id") {
           return Promise.resolve({ content: dataUrl } as never);
         }
         return Promise.resolve(null);
@@ -219,10 +219,10 @@ Some text
       await resolver.resolve(content, mockEntityService);
 
       // Should call getEntityRaw, not getEntity
-      expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith(
-        "image",
-        "test-id",
-      );
+      expect(mockEntityService.getEntityRaw).toHaveBeenCalledWith({
+        entityType: "image",
+        id: "test-id",
+      });
       expect(mockEntityService.getEntity).not.toHaveBeenCalled();
     });
   });

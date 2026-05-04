@@ -19,20 +19,29 @@ export async function findEntityByIdentifier(
 ): Promise<BaseEntity | null> {
   try {
     // Try direct ID lookup first
-    const byId = await entityService.getEntity(entityType, identifier);
+    const byId = await entityService.getEntity({
+      entityType,
+      id: identifier,
+    });
     if (byId) return byId;
 
     // Try by slug
-    const bySlug = await entityService.listEntities(entityType, {
-      limit: 1,
-      filter: { metadata: { slug: identifier } },
+    const bySlug = await entityService.listEntities({
+      entityType,
+      options: {
+        limit: 1,
+        filter: { metadata: { slug: identifier } },
+      },
     });
     if (bySlug[0]) return bySlug[0];
 
     // Try by title
-    const byTitle = await entityService.listEntities(entityType, {
-      limit: 1,
-      filter: { metadata: { title: identifier } },
+    const byTitle = await entityService.listEntities({
+      entityType,
+      options: {
+        limit: 1,
+        filter: { metadata: { title: identifier } },
+      },
     });
     if (byTitle[0]) return byTitle[0];
 

@@ -133,9 +133,12 @@ export class CoverImageConversionJobHandler extends BaseJobHandler<
       });
 
       // Step 3: Check for existing image with this sourceUrl (deduplication)
-      const existing = await this.context.entityService.listEntities("image", {
-        filter: { metadata: { sourceUrl } },
-        limit: 1,
+      const existing = await this.context.entityService.listEntities({
+        entityType: "image",
+        options: {
+          filter: { metadata: { sourceUrl } },
+          limit: 1,
+        },
       });
 
       let imageId: string;

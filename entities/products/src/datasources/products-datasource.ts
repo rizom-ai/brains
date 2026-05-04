@@ -101,10 +101,10 @@ export class ProductsDataSource implements DataSource {
 
     // Fetch overview entity
     if (params.entityType === "products-overview") {
-      const entities = await entityService.listEntities<Overview>(
-        "products-overview",
-        { limit: 1 },
-      );
+      const entities = await entityService.listEntities<Overview>({
+        entityType: "products-overview",
+        options: { limit: 1 },
+      });
 
       const overview = entities[0];
       if (!overview) {
@@ -117,9 +117,12 @@ export class ProductsDataSource implements DataSource {
 
     // Fetch single product by slug
     if (params.query?.id) {
-      const entities = await entityService.listEntities<Product>("product", {
-        filter: { metadata: { slug: params.query.id } },
-        limit: 1,
+      const entities = await entityService.listEntities<Product>({
+        entityType: "product",
+        options: {
+          filter: { metadata: { slug: params.query.id } },
+          limit: 1,
+        },
       });
 
       const product = entities[0];
@@ -134,9 +137,15 @@ export class ProductsDataSource implements DataSource {
 
     // Fetch all products sorted by order + overview for list page
     const [overviewEntities, productEntities] = await Promise.all([
-      entityService.listEntities<Overview>("products-overview", { limit: 1 }),
-      entityService.listEntities<Product>("product", {
-        sortFields: [{ field: "order", direction: "asc" }],
+      entityService.listEntities<Overview>({
+        entityType: "products-overview",
+        options: { limit: 1 },
+      }),
+      entityService.listEntities<Product>({
+        entityType: "product",
+        options: {
+          sortFields: [{ field: "order", direction: "asc" }],
+        },
       }),
     ]);
 

@@ -105,7 +105,10 @@ Test content
         mockContext,
       );
 
-      expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-123");
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        id: "conv-123",
+      });
       expect(result.conversationId).toBe("conv-123");
       expect(result.entryCount).toBe(1);
       expect(result.totalMessages).toBe(50);
@@ -145,7 +148,10 @@ Test content
         mockContext,
       );
 
-      expect(getEntitySpy).toHaveBeenCalledWith("summary", "conv-456");
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        id: "conv-456",
+      });
       expect(result.conversationId).toBe("conv-456");
       expect(result.entryCount).toBe(0);
       expect(result.totalMessages).toBe(0);
@@ -197,7 +203,10 @@ Test content
         mockContext,
       );
 
-      expect(listEntitiesSpy).toHaveBeenCalledWith("summary", { limit: 50 });
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        options: { limit: 50 },
+      });
       expect(result.summaries).toHaveLength(2);
       expect(result.totalCount).toBe(2);
     });

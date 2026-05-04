@@ -13,20 +13,22 @@ function createMockContext(
   context: MockContext;
   mocks: { generateObject: ReturnType<typeof mock> };
 } {
-  const getEntity = mock(async (_entityType: string, id: string) => {
-    if (existingIds.has(id)) {
-      return {
-        id,
-        entityType: "post",
-        content: "",
-        metadata: {},
-        created: "",
-        updated: "",
-        contentHash: "",
-      } as BaseEntity;
-    }
-    return null;
-  });
+  const getEntity = mock(
+    async (request: { entityType: string; id: string }) => {
+      if (existingIds.has(request.id)) {
+        return {
+          id: request.id,
+          entityType: "post",
+          content: "",
+          metadata: {},
+          created: "",
+          updated: "",
+          contentHash: "",
+        } as BaseEntity;
+      }
+      return null;
+    },
+  );
 
   const generateObject = mock(async () => ({
     object: { title: aiTitle },

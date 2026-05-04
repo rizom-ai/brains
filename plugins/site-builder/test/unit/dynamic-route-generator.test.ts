@@ -44,7 +44,8 @@ describe("DynamicRouteGenerator", () => {
 
     mockContext = createMockServicePluginContext({
       logger,
-      listEntitiesImpl: async (type) => entities.get(type) ?? [],
+      listEntitiesImpl: async (request) =>
+        entities.get(request.entityType) ?? [],
     });
     // Override entityService methods to use test data
     spyOn(mockContext.entityService, "getEntityTypes").mockImplementation(

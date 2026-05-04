@@ -117,9 +117,10 @@ describe("SeriesPlugin", () => {
         seriesName: "My Series",
       });
 
-      const series = await harness
-        .getEntityService()
-        .getEntity("series", "my-series");
+      const series = await harness.getEntityService().getEntity({
+        entityType: "series",
+        id: "my-series",
+      });
       expect(series).not.toBeNull();
     });
 
@@ -150,10 +151,14 @@ describe("SeriesPlugin", () => {
         reason: "test",
       });
 
-      const alpha = await harness
-        .getEntityService()
-        .getEntity("series", "alpha");
-      const beta = await harness.getEntityService().getEntity("series", "beta");
+      const alpha = await harness.getEntityService().getEntity({
+        entityType: "series",
+        id: "alpha",
+      });
+      const beta = await harness.getEntityService().getEntity({
+        entityType: "series",
+        id: "beta",
+      });
       expect(alpha).not.toBeNull();
       expect(beta).not.toBeNull();
     });
@@ -182,9 +187,10 @@ describe("SeriesPlugin", () => {
         seriesName: "Ghost Series",
       });
 
-      const series = await harness
-        .getEntityService()
-        .getEntity("series", "ghost-series");
+      const series = await harness.getEntityService().getEntity({
+        entityType: "series",
+        id: "ghost-series",
+      });
       expect(series).toBeNull();
     });
   });
@@ -212,19 +218,19 @@ describe("SeriesPlugin", () => {
         },
       });
 
-      expect(enqueue).toHaveBeenCalledWith(
-        "series:project",
-        {
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: {
           mode: "source",
           entityId: "post-3",
           entityType: "post",
           seriesName: "Event Series",
         },
-        expect.objectContaining({
+        options: expect.objectContaining({
           deduplication: "coalesce",
           deduplicationKey: "series-source:post:post-3",
         }),
-      );
+      });
     });
 
     it("should queue projection for non-post entity types", async () => {
@@ -249,18 +255,18 @@ describe("SeriesPlugin", () => {
         },
       });
 
-      expect(enqueue).toHaveBeenCalledWith(
-        "series:project",
-        {
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: {
           mode: "source",
           entityId: "deck-1",
           entityType: "deck",
           seriesName: "Deck Series",
         },
-        expect.objectContaining({
+        options: expect.objectContaining({
           deduplicationKey: "series-source:deck:deck-1",
         }),
-      );
+      });
     });
 
     it("should queue full series projection on initial sync", async () => {
@@ -273,14 +279,14 @@ describe("SeriesPlugin", () => {
         success: true,
       });
 
-      expect(enqueue).toHaveBeenCalledWith(
-        "series:project",
-        { mode: "derive", reason: "initial-sync" },
-        expect.objectContaining({
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: { mode: "derive", reason: "initial-sync" },
+        options: expect.objectContaining({
           deduplication: "coalesce",
           deduplicationKey: "series-sync:initial-sync",
         }),
-      );
+      });
     });
 
     it("should not enqueue on delete when prior entity had no seriesName", async () => {
@@ -328,18 +334,18 @@ describe("SeriesPlugin", () => {
         },
       });
 
-      expect(enqueue).toHaveBeenCalledWith(
-        "series:project",
-        {
+      expect(enqueue).toHaveBeenCalledWith({
+        type: "series:project",
+        data: {
           mode: "source",
           entityId: "post-removed",
           entityType: "post",
           seriesName: "Old Series",
         },
-        expect.objectContaining({
+        options: expect.objectContaining({
           deduplicationKey: "series-source:post:post-removed",
         }),
-      );
+      });
     });
 
     it("should ignore events from series entity type", async () => {

@@ -42,7 +42,10 @@ export async function resolvePrompt(
 
   let entity;
   try {
-    entity = await entityService.getEntity("prompt", entityId);
+    entity = await entityService.getEntity({
+      entityType: "prompt",
+      id: entityId,
+    });
   } catch {
     // DB error — return fallback without caching so next call retries
     return fallback;

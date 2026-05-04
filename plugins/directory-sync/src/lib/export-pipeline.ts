@@ -32,8 +32,11 @@ export async function exportEntities(
   const result = createExportResult();
 
   for (const entityType of typesToExport) {
-    const entities = await deps.entityService.listEntities(entityType, {
-      limit: 1000,
+    const entities = await deps.entityService.listEntities({
+      entityType: entityType,
+      options: {
+        limit: 1000,
+      },
     });
 
     deps.logger.debug("Processing entity type for export", {

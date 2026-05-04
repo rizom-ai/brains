@@ -234,10 +234,10 @@ export class ImageReferenceResolver {
     }
 
     try {
-      const image = await this.resolution.entityService.getEntity(
-        "image",
-        imageId,
-      );
+      const image = await this.resolution.entityService.getEntity({
+        entityType: "image",
+        id: imageId,
+      });
       return image?.content;
     } catch {
       return undefined;
@@ -270,10 +270,10 @@ export class ImageReferenceResolver {
     const urlMap = new Map<string, string>();
     for (const imageId of uniqueIds) {
       try {
-        const image = await this.resolution.entityService.getEntity(
-          "image",
-          imageId,
-        );
+        const image = await this.resolution.entityService.getEntity({
+          entityType: "image",
+          id: imageId,
+        });
         if (image?.content) {
           urlMap.set(imageId, image.content);
         } else {
