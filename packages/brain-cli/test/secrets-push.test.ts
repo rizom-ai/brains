@@ -394,7 +394,7 @@ describe("secrets push", () => {
     );
 
     const schema = readFileSync(join(testDir, ".env.schema"), "utf-8");
-    expect(schema).toContain("# @plugin(@varlock/bitwarden-plugin)");
+    expect(schema).toContain("# @plugin(@varlock/bitwarden-plugin@1.0.0)");
     expect(schema).toContain("# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)");
     expect(schema).toContain(
       "# @required @sensitive @type=bitwardenAccessToken",

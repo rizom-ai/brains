@@ -360,7 +360,7 @@ function updateSchemaWithBitwardenMappings(
 function ensureBitwardenRootDecorators(content: string): string {
   const decorators: string[] = [];
   if (!content.includes("@plugin(@varlock/bitwarden-plugin")) {
-    decorators.push("# @plugin(@varlock/bitwarden-plugin)");
+    decorators.push("# @plugin(@varlock/bitwarden-plugin@1.0.0)");
   }
   if (!content.includes("@initBitwarden(")) {
     decorators.push("# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)");
