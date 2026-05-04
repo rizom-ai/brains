@@ -32,6 +32,7 @@ import type {
   ListEntitiesRequest,
   CountEntitiesRequest,
   DeleteEntityRequest,
+  EntitySearchRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -318,10 +319,9 @@ export class EntityService implements IEntityService {
   // ── Search ────────────────────────────────────────────────────────
 
   public async search<T extends BaseEntity = BaseEntity>(
-    query: string,
-    options?: SearchOptions,
+    request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]> {
-    return this.entitySearch.search<T>(query, options);
+    return this.entitySearch.search<T>(request.query, request.options);
   }
 
   public async searchEntities(

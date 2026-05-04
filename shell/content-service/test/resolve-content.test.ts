@@ -747,7 +747,7 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Call search - this should be forwarded to base service
-          const results = await svc.search("test query");
+          const results = await svc.search({ query: "test query" });
           return { results };
         }),
       };
@@ -766,7 +766,7 @@ describe("ContentService.resolveContent", () => {
       });
 
       // search should be forwarded to base service
-      expect(searchSpy).toHaveBeenCalledWith("test query");
+      expect(searchSpy).toHaveBeenCalledWith({ query: "test query" });
     });
 
     it("should properly proxy class-based entityService (regression for prototype methods)", async () => {
@@ -784,7 +784,7 @@ describe("ContentService.resolveContent", () => {
           (_request: { entityType: string; options?: unknown }) =>
             Promise.resolve(0),
         );
-        search = mock((_query: string, _options?: unknown) =>
+        search = mock((_request: { query: string; options?: unknown }) =>
           Promise.resolve([]),
         );
         // Methods on prototype (simulating real class behavior)

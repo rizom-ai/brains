@@ -71,9 +71,12 @@ export class AIContentDataSource implements DataSource {
     const hasWeights = Object.keys(weightMap).length > 0;
 
     const relevantEntities = shouldSearchKnowledgeBase
-      ? await this.entityService.search(searchTerms, {
-          limit: 5,
-          ...(hasWeights && { weight: weightMap }),
+      ? await this.entityService.search({
+          query: searchTerms,
+          options: {
+            limit: 5,
+            ...(hasWeights && { weight: weightMap }),
+          },
         })
       : [];
 

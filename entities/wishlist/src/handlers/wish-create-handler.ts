@@ -45,7 +45,7 @@ export class WishCreateHandler {
     const existing = await findExistingWish(
       {
         search: (query, options) =>
-          this.context.entityService.search<WishEntity>(query, options),
+          this.context.entityService.search<WishEntity>({ query, options }),
         getEntity: (request) =>
           this.context.entityService.getEntity<WishEntity>(request),
         similarityThreshold: 0.85,

@@ -130,7 +130,7 @@ describe("Separate embedding database", () => {
     });
 
     // Search should join across entity DB and embedding DB
-    const results = await entityService.search("TypeScript");
+    const results = await entityService.search({ query: "TypeScript" });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.entity.id).toBe(testEntity.id);
   });

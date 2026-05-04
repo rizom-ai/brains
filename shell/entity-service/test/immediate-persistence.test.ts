@@ -156,7 +156,7 @@ describe("Immediate Entity Persistence", () => {
       });
       await ctx.entityService.createEntity<Note>(noteData);
 
-      const results = await ctx.entityService.search("searchable");
+      const results = await ctx.entityService.search({ query: "searchable" });
       expect(results.length).toBe(0);
     });
   });

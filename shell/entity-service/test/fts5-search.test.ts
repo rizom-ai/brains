@@ -34,7 +34,7 @@ describe("FTS5 full-text search", () => {
       contentHash: entity.contentHash,
     });
 
-    const results = await ctx.entityService.search("TypeScript");
+    const results = await ctx.entityService.search({ query: "TypeScript" });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.entity.id).toBe(entity.id);
   });
@@ -64,12 +64,12 @@ describe("FTS5 full-text search", () => {
     });
 
     // Old term should not get FTS boost (lower score)
-    const oldResults = await ctx.entityService.search("Python");
+    const oldResults = await ctx.entityService.search({ query: "Python" });
     const oldScore =
       oldResults.find((r) => r.entity.id === entity.id)?.score ?? 0;
 
     // New term should get FTS boost (higher score)
-    const newResults = await ctx.entityService.search("Rust");
+    const newResults = await ctx.entityService.search({ query: "Rust" });
     const newScore =
       newResults.find((r) => r.entity.id === entity.id)?.score ?? 0;
 
@@ -90,7 +90,7 @@ describe("FTS5 full-text search", () => {
 
     await ctx.entityService.deleteEntity({ entityType: "test", id: entity.id });
 
-    const results = await ctx.entityService.search("xylophone");
+    const results = await ctx.entityService.search({ query: "xylophone" });
     expect(results).toHaveLength(0);
   });
 
@@ -118,7 +118,7 @@ describe("FTS5 full-text search", () => {
 
     for (const q of queries) {
       // Should not throw
-      const results = await ctx.entityService.search(q);
+      const results = await ctx.entityService.search({ query: q });
       expect(Array.isArray(results)).toBe(true);
     }
   });
@@ -135,8 +135,11 @@ describe("FTS5 full-text search", () => {
       contentHash: entity.contentHash,
     });
 
-    const results = await ctx.entityService.search("weighted", {
-      weight: { "test' THEN 999 ELSE 1 END --": 10 },
+    const results = await ctx.entityService.search({
+      query: "weighted",
+      options: {
+        weight: { "test' THEN 999 ELSE 1 END --": 10 },
+      },
     });
 
     expect(Array.isArray(results)).toBe(true);
@@ -171,7 +174,7 @@ describe("FTS5 full-text search", () => {
       contentHash: similar.contentHash,
     });
 
-    const results = await ctx.entityService.search("TypeScript");
+    const results = await ctx.entityService.search({ query: "TypeScript" });
     expect(results.length).toBe(2);
     // Exact keyword match should rank first
     expect(results[0]?.entity.id).toBe("exact-match");

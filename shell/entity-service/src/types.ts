@@ -308,6 +308,11 @@ export interface DeleteEntityRequest {
   id: string;
 }
 
+export interface EntitySearchRequest {
+  query: string;
+  options?: SearchOptions | undefined;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
@@ -325,8 +330,7 @@ export interface ICoreEntityService {
   ): Promise<T[]>;
 
   search<T extends BaseEntity = BaseEntity>(
-    query: string,
-    options?: SearchOptions,
+    request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
 
   // Entity type information

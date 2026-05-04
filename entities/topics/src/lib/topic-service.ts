@@ -151,9 +151,12 @@ export class TopicService {
     query: string,
     limit = 10,
   ): Promise<SearchResult<TopicEntity>[]> {
-    return this.entityService.search<TopicEntity>(query, {
-      types: ["topic"],
-      limit,
+    return this.entityService.search<TopicEntity>({
+      query,
+      options: {
+        types: ["topic"],
+        limit,
+      },
     });
   }
 

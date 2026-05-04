@@ -55,9 +55,12 @@ const note = await entityService.getEntity({
   id: entityId,
 });
 
-const results = await entityService.search("important notes about AI", {
-  types: ["note"],
-  limit: 10,
+const results = await entityService.search({
+  query: "important notes about AI",
+  options: {
+    types: ["note"],
+    limit: 10,
+  },
 });
 
 if (note) {
@@ -134,12 +137,15 @@ Use `BaseEntityAdapter` for common frontmatter/body behavior.
 ## Search
 
 ```typescript
-const results = await entityService.search("machine learning concepts", {
-  types: ["note", "article"],
-  excludeTypes: ["image"],
-  limit: 20,
-  offset: 0,
-  weight: { article: 1.5, note: 1.0 },
+const results = await entityService.search({
+  query: "machine learning concepts",
+  options: {
+    types: ["note", "article"],
+    excludeTypes: ["image"],
+    limit: 20,
+    offset: 0,
+    weight: { article: 1.5, note: 1.0 },
+  },
 });
 ```
 

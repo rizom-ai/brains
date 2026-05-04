@@ -18,9 +18,12 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         success: true,
         data: {
           results: (
-            await entityService.search(input.query, {
-              limit: input.limit ?? services.searchLimit,
-              ...(input.entityType && { types: [input.entityType] }),
+            await entityService.search({
+              query: input.query,
+              options: {
+                limit: input.limit ?? services.searchLimit,
+                ...(input.entityType && { types: [input.entityType] }),
+              },
             })
           ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
         },

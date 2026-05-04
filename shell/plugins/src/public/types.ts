@@ -233,10 +233,15 @@ export interface CountEntitiesRequest {
   options?: unknown;
 }
 
+export interface EntitySearchRequest {
+  query: string;
+  options?: unknown;
+}
+
 export interface IEntityService {
   getEntity<T = unknown>(request: GetEntityRequest): Promise<T | null>;
   listEntities<T = unknown>(request: ListEntitiesRequest): Promise<T[]>;
-  search<T = unknown>(query: string, options?: unknown): Promise<T[]>;
+  search<T = unknown>(request: EntitySearchRequest): Promise<T[]>;
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
   countEntities(request: CountEntitiesRequest): Promise<number>;

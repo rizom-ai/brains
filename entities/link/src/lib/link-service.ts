@@ -233,11 +233,14 @@ export class LinkService {
       capturedAt: string;
     }>
   > {
-    const results = await this.context.entityService.search("", {
-      types: ["link"],
-      limit,
-      sortBy: "created",
-      sortDirection: "desc",
+    const results = await this.context.entityService.search({
+      query: "",
+      options: {
+        types: ["link"],
+        limit,
+        sortBy: "created",
+        sortDirection: "desc",
+      },
     });
 
     return results.map((result) => {
@@ -275,11 +278,14 @@ export class LinkService {
   > {
     const searchQuery = query ?? "";
 
-    const results = await this.context.entityService.search(searchQuery, {
-      types: ["link"],
-      limit,
-      sortBy: "created",
-      sortDirection: "desc",
+    const results = await this.context.entityService.search({
+      query: searchQuery,
+      options: {
+        types: ["link"],
+        limit,
+        sortBy: "created",
+        sortDirection: "desc",
+      },
     });
 
     return results.map((result) => {
