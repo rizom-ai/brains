@@ -217,7 +217,10 @@ async function deleteAllEntities(
 
   await Promise.all(
     entities.map((entity) =>
-      context.entityService.deleteEntity(entity.entityType, entity.id),
+      context.entityService.deleteEntity({
+        entityType: entity.entityType,
+        id: entity.id,
+      }),
     ),
   );
 }

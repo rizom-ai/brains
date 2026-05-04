@@ -48,10 +48,10 @@ describe("removeOrphanedEntities", () => {
     const result = await removeOrphanedEntities(deps);
 
     expect(result.deleted).toBe(1);
-    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith(
-      "social-post",
-      "deleted-post",
-    );
+    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
+      entityType: "social-post",
+      id: "deleted-post",
+    });
   });
 
   it("should not delete entities that still have files on disk", async () => {
@@ -138,10 +138,10 @@ describe("removeOrphanedEntities", () => {
     const result = await removeOrphanedEntities(deps);
 
     expect(result.deleted).toBe(1);
-    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith(
-      "social-post",
-      "post-1",
-    );
+    expect(deps.entityService.deleteEntity).toHaveBeenCalledWith({
+      entityType: "social-post",
+      id: "post-1",
+    });
     // blog-post should not be touched
     expect(deps.entityService.listEntities).not.toHaveBeenCalledWith(
       expect.objectContaining({ entityType: "blog-post" }),

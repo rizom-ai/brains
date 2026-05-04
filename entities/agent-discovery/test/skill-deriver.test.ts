@@ -122,7 +122,10 @@ describe("deriveSkills", () => {
       skipped: 1,
     });
     expect(deleteEntity).toHaveBeenCalledTimes(1);
-    expect(deleteEntity).toHaveBeenCalledWith("skill", "stale-skill");
+    expect(deleteEntity).toHaveBeenCalledWith({
+      entityType: "skill",
+      id: "stale-skill",
+    });
     expect(createEntity).toHaveBeenCalledTimes(1);
     expect(updateEntity).toHaveBeenCalledTimes(1);
   });

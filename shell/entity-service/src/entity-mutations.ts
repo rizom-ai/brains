@@ -9,6 +9,7 @@ import type {
   EntityMutationResult,
   StoreEmbeddingData,
   EntityEventBus,
+  DeleteEntityRequest,
 } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
@@ -244,7 +245,9 @@ export class EntityMutations {
   /**
    * Delete an entity by type and ID
    */
-  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+  public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
+    const { entityType, id } = request;
+
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
     // `seriesName` field that drives the series projection). Without this,
     // every delete forces subscribers into a full resync because they can't

@@ -222,10 +222,10 @@ describe("ImageGenerationJobHandler", () => {
 
       expect(result.success).toBe(true);
       // Should have deleted the existing image
-      expect(regenContext.entityService.deleteEntity).toHaveBeenCalledWith(
-        "image",
-        "sunset-image",
-      );
+      expect(regenContext.entityService.deleteEntity).toHaveBeenCalledWith({
+        entityType: "image",
+        id: "sunset-image",
+      });
       // Should have created the new image
       expect(regenContext.entityService.createEntity).toHaveBeenCalled();
     });

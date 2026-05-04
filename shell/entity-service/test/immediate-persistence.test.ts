@@ -176,7 +176,10 @@ describe("Immediate Entity Persistence", () => {
       });
       expect(beforeDelete).not.toBeNull();
 
-      const deleted = await ctx.entityService.deleteEntity("note", entityId);
+      const deleted = await ctx.entityService.deleteEntity({
+        entityType: "note",
+        id: entityId,
+      });
       expect(deleted).toBe(true);
 
       const afterDelete = await ctx.entityService.getEntity<Note>({
@@ -206,7 +209,10 @@ describe("Immediate Entity Persistence", () => {
           metadata: { seriesName: "My Series" },
         });
 
-        await eventCtx.entityService.deleteEntity("note", entityId);
+        await eventCtx.entityService.deleteEntity({
+          entityType: "note",
+          id: entityId,
+        });
 
         const deletedEvents = events.filter(
           (event) => event.type === "entity:deleted",

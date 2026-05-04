@@ -88,7 +88,7 @@ describe("FTS5 full-text search", () => {
       contentHash: entity.contentHash,
     });
 
-    await ctx.entityService.deleteEntity("test", entity.id);
+    await ctx.entityService.deleteEntity({ entityType: "test", id: entity.id });
 
     const results = await ctx.entityService.search("xylophone");
     expect(results).toHaveLength(0);

@@ -23,7 +23,10 @@ export function createEntityDeleteTool(services: SystemServices): Tool {
 
       if (input.confirmed) {
         try {
-          await entityService.deleteEntity(input.entityType, entity.id);
+          await entityService.deleteEntity({
+            entityType: input.entityType,
+            id: entity.id,
+          });
         } catch (error) {
           return {
             success: false,

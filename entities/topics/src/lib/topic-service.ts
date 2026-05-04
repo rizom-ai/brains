@@ -231,7 +231,10 @@ export class TopicService {
   }
 
   public async deleteTopic(id: string): Promise<boolean> {
-    const result = await this.entityService.deleteEntity("topic", id);
+    const result = await this.entityService.deleteEntity({
+      entityType: "topic",
+      id: id,
+    });
     if (result) {
       this.logger.info("Deleted topic", { id });
     }

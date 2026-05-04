@@ -31,6 +31,7 @@ import type {
   GetEntityRawRequest,
   ListEntitiesRequest,
   CountEntitiesRequest,
+  DeleteEntityRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -248,8 +249,8 @@ export class EntityService implements IEntityService {
     return this.entityMutations.updateEntity(entity, options);
   }
 
-  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
-    return this.entityMutations.deleteEntity(entityType, id);
+  public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
+    return this.entityMutations.deleteEntity(request);
   }
 
   public async upsertEntity<T extends BaseEntity>(

@@ -304,10 +304,10 @@ describe("derived entity projections", () => {
       deleted: 1,
       skipped: 1,
     });
-    expect(context.entityService.deleteEntity).toHaveBeenCalledWith(
-      "derived",
-      "stale",
-    );
+    expect(context.entityService.deleteEntity).toHaveBeenCalledWith({
+      entityType: "derived",
+      id: "stale",
+    });
     expect(context.entityService.updateEntity).toHaveBeenCalledTimes(1);
     expect(context.entityService.createEntity).toHaveBeenCalledTimes(1);
   });

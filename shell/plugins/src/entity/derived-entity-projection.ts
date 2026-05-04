@@ -215,7 +215,10 @@ export async function reconcileDerivedEntities<
   if (deleteStale) {
     const stale = existing.filter((entity) => !desiredById.has(entity.id));
     await runBounded(stale, mutationConcurrency, async (entity) => {
-      await context.entityService.deleteEntity(targetType, entity.id);
+      await context.entityService.deleteEntity({
+        entityType: targetType,
+        id: entity.id,
+      });
       deleted++;
     });
   }

@@ -192,7 +192,10 @@ ${data.entityContent}`,
         this.logger.debug("Deleting existing image for regeneration", {
           imageId,
         });
-        await this.context.entityService.deleteEntity("image", imageId);
+        await this.context.entityService.deleteEntity({
+          entityType: "image",
+          id: imageId,
+        });
       }
 
       await this.context.entityService.createEntity({

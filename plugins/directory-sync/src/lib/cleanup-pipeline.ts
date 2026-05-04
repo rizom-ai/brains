@@ -16,7 +16,7 @@ export interface CleanupPipelineDeps {
       entityType: string;
       options?: { limit?: number };
     }): Promise<BaseEntity[]>;
-    deleteEntity(entityType: string, id: string): Promise<boolean>;
+    deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
   };
   logger: {
     debug(message: string, meta?: Record<string, unknown>): void;
@@ -60,7 +60,10 @@ export async function removeOrphanedEntities(
       const filePath = deps.fileOperations.getEntityFilePath(entity);
       if (!(await deps.fileOperations.fileExists(filePath))) {
         try {
-          await deps.entityService.deleteEntity(entity.entityType, entity.id);
+          await deps.entityService.deleteEntity({
+            entityType: entity.entityType,
+            id: entity.id,
+          });
           recordCleanupDeleted(deps.logger, result, entity);
         } catch (error) {
           recordCleanupError(deps.logger, result, entity, error);

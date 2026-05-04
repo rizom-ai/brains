@@ -72,7 +72,10 @@ describe("SummaryService", () => {
       const conversationId = "conv-123";
       await service.deleteSummary(conversationId);
 
-      expect(deleteEntitySpy).toHaveBeenCalledWith("summary", conversationId);
+      expect(deleteEntitySpy).toHaveBeenCalledWith({
+        entityType: "summary",
+        id: conversationId,
+      });
     });
 
     it("should return true when deletion succeeds", async () => {

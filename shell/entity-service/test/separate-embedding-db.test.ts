@@ -157,7 +157,10 @@ describe("Separate embedding database", () => {
     expect(listed.length).toBe(1);
 
     // Delete
-    const deleted = await entityService.deleteEntity("test", testEntity.id);
+    const deleted = await entityService.deleteEntity({
+      entityType: "test",
+      id: testEntity.id,
+    });
     expect(deleted).toBe(true);
   });
 
@@ -197,7 +200,7 @@ describe("Separate embedding database", () => {
       contentHash: testEntity.contentHash,
     });
 
-    await entityService.deleteEntity("test", testEntity.id);
+    await entityService.deleteEntity({ entityType: "test", id: testEntity.id });
 
     const embClient = createClient({ url: embeddingDbConfig.url });
     const result = await embClient.execute(

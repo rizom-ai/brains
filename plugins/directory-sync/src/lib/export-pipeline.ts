@@ -66,7 +66,10 @@ export async function processEntityExport(
           entityId: entity.id,
           entityType: entity.entityType,
         });
-        await deps.entityService.deleteEntity(entity.entityType, entity.id);
+        await deps.entityService.deleteEntity({
+          entityType: entity.entityType,
+          id: entity.id,
+        });
         return { success: true, deleted: true };
       }
     }

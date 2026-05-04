@@ -48,10 +48,10 @@ export class DirectoryDeleteJobHandler extends BaseJobHandler<
     });
 
     try {
-      const deleted = await this.context.entityService.deleteEntity(
-        validatedData.entityType,
-        validatedData.entityId,
-      );
+      const deleted = await this.context.entityService.deleteEntity({
+        entityType: validatedData.entityType,
+        id: validatedData.entityId,
+      });
 
       if (deleted) {
         this.logger.info("Successfully deleted entity for removed file", {

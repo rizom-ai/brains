@@ -67,7 +67,7 @@ if (note) {
   });
 }
 
-await entityService.deleteEntity("note", entityId);
+await entityService.deleteEntity({ entityType: "note", id: entityId });
 ```
 
 ## Entity model

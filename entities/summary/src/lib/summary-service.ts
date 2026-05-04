@@ -27,7 +27,10 @@ export class SummaryService {
    */
   async deleteSummary(conversationId: string): Promise<boolean> {
     try {
-      await this.entityService.deleteEntity("summary", conversationId);
+      await this.entityService.deleteEntity({
+        entityType: "summary",
+        id: conversationId,
+      });
       return true;
     } catch {
       return false;

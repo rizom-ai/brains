@@ -61,7 +61,10 @@ export class SeriesManager {
     // Delete orphaned series
     for (const existing of existingSeries) {
       if (!processedIds.has(existing.id)) {
-        await this.entityService.deleteEntity("series", existing.id);
+        await this.entityService.deleteEntity({
+          entityType: "series",
+          id: existing.id,
+        });
         this.logger.debug(`Deleted orphaned series: ${existing.id}`);
       }
     }
@@ -138,7 +141,10 @@ export class SeriesManager {
     // Check all entity types for references to this series
     const hasReferences = await this.hasSeriesReferences(seriesName);
     if (!hasReferences) {
-      await this.entityService.deleteEntity("series", seriesId);
+      await this.entityService.deleteEntity({
+        entityType: "series",
+        id: seriesId,
+      });
       this.logger.debug(`Deleted orphaned series: ${seriesName}`);
     }
   }

@@ -303,6 +303,11 @@ export interface CountEntitiesRequest {
   options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
 }
 
+export interface DeleteEntityRequest {
+  entityType: string;
+  id: string;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
   getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
@@ -353,7 +358,7 @@ export interface EntityService extends ICoreEntityService {
     entity: T,
     options?: EntityJobOptions,
   ): Promise<EntityMutationResult>;
-  deleteEntity(entityType: string, id: string): Promise<boolean>;
+  deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
   upsertEntity<T extends BaseEntity>(
     entity: T,
     options?: EntityJobOptions,

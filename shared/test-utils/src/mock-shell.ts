@@ -196,8 +196,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
       });
       return { entityId: entity.id, jobId: `job-${entity.id}` };
     },
-    deleteEntity: async (_type: string, id: string) => {
-      entities.delete(id);
+    deleteEntity: async (request: { entityType: string; id: string }) => {
+      entities.delete(request.id);
       return true;
     },
     getEntity: async (request: { entityType: string; id: string }) => {
