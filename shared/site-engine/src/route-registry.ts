@@ -1,0 +1,118 @@
+import {
+  RouteDefinitionSchema,
+  type NavigationItem,
+  type NavigationSlot,
+  type RouteDefinition,
+  type RouteDefinitionInput,
+} from "@brains/site-composition";
+import { ensureArray, type Logger } from "@brains/utils";
+
+/**
+ * Route Registry - manages route definitions for the site builder
+ * This registry is owned by the site engine and populated by site-builder.
+ */
+export class RouteRegistry {
+  private routes = new Map<string, RouteDefinition>();
+
+  constructor(private readonly logger: Logger) {}
+
+  /**
+   * Register one or more route definitions
+   * @throws Error if any route path is already registered
+   */
+  register(routes: RouteDefinitionInput | RouteDefinitionInput[]): void {
+    for (const route of ensureArray(routes)) {
+      // Validate route definition
+      const validated = RouteDefinitionSchema.parse(route);
+
+      // Override existing route if it exists (dynamic routes can be regenerated)
+      if (this.routes.has(validated.path)) {
+        const existing = this.routes.get(validated.path);
+        this.logger.debug(
+          `Overriding route "${validated.path}" (was registered by plugin "${existing?.pluginId}")`,
+        );
+      }
+
+      this.routes.set(validated.path, validated);
+    }
+  }
+
+  /**
+   * Unregister one or more routes by path
+   */
+  unregister(paths: string | string[]): void {
+    ensureArray(paths).forEach((path) => this.routes.delete(path));
+  }
+
+  /**
+   * Unregister all routes from a specific plugin
+   */
+  unregisterByPlugin(pluginId: string): void {
+    for (const [path, route] of this.routes.entries()) {
+      if (route.pluginId === pluginId) {
+        this.routes.delete(path);
+      }
+    }
+  }
+
+  /**
+   * Get a specific route by path
+   */
+  get(path: string): RouteDefinition | undefined {
+    return this.routes.get(path);
+  }
+
+  /**
+   * List all routes with optional filtering
+   */
+  list(filter?: { pluginId?: string | undefined }): RouteDefinition[] {
+    let routes = Array.from(this.routes.values()).filter((r) => !r.external);
+
+    if (filter?.pluginId) {
+      routes = routes.filter((r) => r.pluginId === filter.pluginId);
+    }
+
+    return routes;
+  }
+
+  /**
+   * List routes by plugin
+   */
+  listByPlugin(pluginId: string): RouteDefinition[] {
+    return this.list({ pluginId });
+  }
+
+  /**
+   * Clear all routes
+   */
+  clear(): void {
+    this.routes.clear();
+  }
+
+  /**
+   * Get the total number of registered routes
+   */
+  size(): number {
+    return this.routes.size;
+  }
+
+  /**
+   * Get navigation items for a specific slot
+   */
+  getNavigationItems(slot: NavigationSlot): NavigationItem[] {
+    const items: NavigationItem[] = [];
+
+    for (const [path, route] of this.routes.entries()) {
+      if (route.navigation?.show && route.navigation.slot === slot) {
+        items.push({
+          label: route.navigation.label ?? route.title,
+          href: path,
+          priority: route.navigation.priority,
+        });
+      }
+    }
+
+    // Sort by priority (lower numbers first)
+    return items.sort((a, b) => a.priority - b.priority);
+  }
+}

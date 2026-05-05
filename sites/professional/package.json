@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-professional",
   "private": true,
-  "version": "0.2.0-alpha.48",
+  "version": "0.2.0-alpha.49",
   "description": "Professional site composition package",
   "type": "module",
   "exports": {
@@ -20,8 +20,8 @@
     "@brains/decks": "workspace:*",
     "@brains/identity-service": "workspace:*",
     "@brains/plugins": "workspace:*",
-    "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-composition": "workspace:*",
+    "@brains/site-engine": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/ui-library": "workspace:*",

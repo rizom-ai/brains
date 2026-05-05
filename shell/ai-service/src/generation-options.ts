@@ -1,5 +1,4 @@
 import type { AIModelConfig } from "./types";
-import { supportsTemperature } from "./provider-selection";
 
 const DEFAULT_TEMPERATURE = 0.7;
 const DEFAULT_MAX_TOKENS = 1000;
@@ -33,10 +32,11 @@ export function withAIModelDefaults(config: AIModelConfig): AIModelConfig {
 
 export function getTextGenerationOptions(
   config: AIModelConfig,
+  supportsTemp: boolean,
 ): TextGenerationOptions {
   const options: TextGenerationOptions = {};
 
-  if (config.temperature !== undefined && supportsTemperature(config.model)) {
+  if (config.temperature !== undefined && supportsTemp) {
     options.temperature = config.temperature;
   }
 

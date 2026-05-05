@@ -4,21 +4,37 @@
 
 Stop copying `.env` files between machines and environments. Keep secret contracts in git with Varlock schemas, and resolve actual secret values from Bitwarden Secrets Manager at runtime.
 
+## Status
+
+Implemented and smoke-tested:
+
+- `brain secrets:push --push-to bitwarden`
+- Bitwarden project discovery/creation by current instance directory name
+- secret create/update via `@bitwarden/sdk-napi` so secret values are not passed on CLI argv
+- automatic `.env.schema` rewrite to pinned Varlock Bitwarden refs
+- Varlock resolution through `@varlock/bitwarden-plugin@1.0.0`
+
+The CLI package still needs a release before standalone installs/CI that use `@rizom/brain` from npm can use the new command.
+
 ## 1. Use Bitwarden Secrets Manager
 
-Prefer Bitwarden Secrets Manager over regular Bitwarden vault items because Varlock has a first-class plugin for it:
+Use **Bitwarden Secrets Manager**, not regular Password Manager vault items. Varlock has a first-class plugin for Secrets Manager:
 
 ```env
-# @plugin(@varlock/bitwarden-plugin)
+# @plugin(@varlock/bitwarden-plugin@1.0.0)
+# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)
 ```
 
-The plugin uses a Bitwarden machine account access token supplied as `BITWARDEN_ACCESS_TOKEN`.
+The plugin uses a Bitwarden machine account access token supplied as `BWS_ACCESS_TOKEN`.
 
-Fallback: regular Bitwarden CLI reads via `exec(...)`, but that is less portable and harder to use in CI.
+Use separate machine accounts:
+
+- local migration/operator: read/write access
+- CI/deploy/runtime: read-only access
 
 ## 2. Inventory existing local env files
 
-Migrate the keys from current local secret files, without committing or pasting secret values:
+Migrate keys from current local secret files without committing or pasting secret values:
 
 ```text
 apps/yeehaa.io/.env
@@ -30,18 +46,19 @@ brains/*/test-apps/*/.env
 
 Keep values local during migration. Only commit schemas and documentation.
 
-## 3. Create Bitwarden project structure
+## 3. Bitwarden project structure
 
-Suggested Bitwarden Secrets Manager layout:
+Convention: `brain secrets:push --push-to bitwarden` infers the Bitwarden project name from the current instance directory name.
+
+Examples:
 
 ```text
-brains / yeehaa.io / dev
-brains / yeehaa.io / prod
-brains / rizom-foundation / dev
-brains / eval
+/whatever/doc        -> project: doc
+/whatever/yeehaa.io  -> project: yeehaa.io
+/whatever/relay      -> project: relay
 ```
 
-Use secret names that match environment variable names:
+Missing projects are created automatically. Secret names match environment variable names:
 
 ```text
 AI_API_KEY
@@ -49,27 +66,28 @@ GIT_SYNC_TOKEN
 MCP_AUTH_TOKEN
 DISCORD_BOT_TOKEN
 CLOUDFLARE_API_TOKEN
+KAMAL_SSH_PRIVATE_KEY
 ```
 
-After creating each secret, copy its Bitwarden secret UUID for use in the Varlock schema.
+If separate dev/prod projects are needed, use separate instance directories or perform the initial migration from directories named with the desired project convention.
 
-## 4. Add app-level `.env.schema` files
+## 4. App-level `.env.schema` files
 
-Each app/environment should have its own schema that maps env vars to Bitwarden secret UUIDs.
+Each app/environment should have its own schema mapping env vars to Bitwarden secret UUIDs.
 
-Example:
+Generated example:
 
 ```env
 # This env file uses @env-spec - see https://varlock.dev/env-spec
 #
-# @plugin(@varlock/bitwarden-plugin)
-# @initBitwarden(accessToken=$BITWARDEN_ACCESS_TOKEN)
+# @plugin(@varlock/bitwarden-plugin@1.0.0)
+# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)
 # @defaultRequired=false @defaultSensitive=false
 # ----------
 
 # Bootstrap token supplied by shell/CI only
-# @required @sensitive @type=bitwardenAccessToken
-BITWARDEN_ACCESS_TOKEN=
+# @required @sensitive @type=string
+BWS_ACCESS_TOKEN=
 
 # @required @sensitive
 AI_API_KEY=bitwarden("UUID_HERE")
@@ -81,38 +99,47 @@ GIT_SYNC_TOKEN=bitwarden("UUID_HERE")
 MCP_AUTH_TOKEN=bitwarden("UUID_HERE")
 ```
 
-Keep model-level schemas as contracts. Use app-level schemas for actual secret source wiring.
+Model-level schemas stay as contracts. App-level schemas wire those contracts to real secret sources.
 
-## 5. Install the Varlock Bitwarden plugin
+## 5. Push local values to Bitwarden
 
-At repo root:
+From the instance directory, with local `.env`, `.env.local`, or process env values available:
 
 ```bash
-bun add -D @varlock/bitwarden-plugin
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden --dry-run
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden
 ```
 
-Alternative if avoiding a repo dependency: pin the plugin version in each schema:
+Behavior:
 
-```env
-# @plugin(@varlock/bitwarden-plugin@1.0.0)
-```
+1. Read expected keys from `.env.schema`.
+2. Read local values from `.env`, `.env.local`, and `process.env` using the existing secret loading path.
+3. Resolve file-backed secrets such as `KAMAL_SSH_PRIVATE_KEY_FILE` without passing values through argv.
+4. Find or create the Bitwarden project named after the current directory.
+5. Create or update matching Bitwarden Secrets Manager secrets.
+6. Rewrite `.env.schema` with `bitwarden("<uuid>")` refs and Bitwarden plugin bootstrap wiring.
+
+`bws` is required for the push/migration command because it handles project metadata. Secret values are written through the Bitwarden SDK, not through `bws` command arguments.
 
 ## 6. Local development workflow
 
 Set only the Bitwarden machine account token locally:
 
 ```bash
-export BITWARDEN_ACCESS_TOKEN=...
+export BWS_ACCESS_TOKEN=...
 ```
 
 Run apps through Varlock:
 
 ```bash
-cd apps/yeehaa.io
 bunx varlock run --path .env.schema -- brain start
 ```
 
-Optional later improvement: add package scripts or shell aliases for common app starts.
+Or inspect resolved values without exposing full secret values:
+
+```bash
+bunx varlock load --path .env.schema --show-all
+```
 
 ## 7. CI/deploy workflow
 
@@ -121,21 +148,21 @@ Use a hybrid model: GitHub Actions secrets are only the bootstrap layer, and Bit
 Store only this bootstrap secret in CI/deploy secret storage:
 
 ```text
-BITWARDEN_ACCESS_TOKEN
+BWS_ACCESS_TOKEN
 ```
 
-The GitHub Actions `BITWARDEN_ACCESS_TOKEN` should usually belong to a read-only Bitwarden machine account. Local migration/push workflows can use a separate read/write machine account token.
+The GitHub Actions token should usually belong to a read-only Bitwarden machine account. Local migration/push workflows can use a separate read/write machine account token.
 
-Then resolve environment values with Varlock:
+Resolve environment values with Varlock:
 
 ```bash
-npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
+bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json
 ```
 
 or run commands with injected values:
 
 ```bash
-npx -y varlock run --path .env.schema -- your-command
+bunx varlock@1.1.0 run --path .env.schema -- your-command
 ```
 
 Keep multiline deploy secrets in Bitwarden and pass them through Varlock JSON, not shell heredocs. This preserves exact newlines for SSH keys and PEM material.
@@ -183,62 +210,29 @@ Run a secret scan:
 bunx varlock scan
 ```
 
-## 9. Add Bitwarden push support to `brain secrets:push`
+## 9. Release gate
 
-Current repo support pushes env-backed secrets to GitHub Actions secrets:
+Before relying on this in standalone repos or CI that installs `@rizom/brain` from npm:
+
+1. Add a changeset for `@rizom/brain`.
+2. Push `main`.
+3. Let CI pass.
+4. Let the release workflow publish the next alpha.
+5. Verify the published CLI exposes:
 
 ```bash
-brain secrets:push --push-to gh
+brain secrets:push --push-to bitwarden --dry-run
 ```
 
-Add a Bitwarden target so operators can migrate without hand-copying each secret value:
+Until then, only the local monorepo checkout has the new command.
 
-```bash
-brain secrets:push --push-to bitwarden --project-id <uuid> --dry-run
-brain secrets:push --push-to bitwarden --project-id <uuid> --update-schema
-```
+## 10. Operator checklist
 
-Suggested behavior:
-
-1. Read expected keys from `.env.schema`.
-2. Read local values from `.env`, `.env.local`, and `process.env` using the existing secret loading path.
-3. Create or update matching Bitwarden Secrets Manager secrets in the requested project.
-4. Return a mapping of env var name to Bitwarden secret UUID.
-5. Optionally update `.env.schema` to use `bitwarden("<uuid>")` references.
-
-Required operator env:
-
-```text
-BITWARDEN_ACCESS_TOKEN
-```
-
-The token's machine account must have read/write access to the target Bitwarden project.
-
-Design preference:
-
-- Support `--dry-run` first.
-- Keep default behavior non-mutating for schemas.
-- Require `--update-schema` before rewriting `.env.schema`.
-- Preserve existing `--only` and `--all` semantics where practical.
-- Keep `gh` behavior unchanged for backward compatibility.
-
-## 10. Documentation to maintain
-
-Add or expand docs with:
-
-- how to create/get `BITWARDEN_ACCESS_TOKEN`
-- how to add a new Bitwarden secret
-- how to find secret UUIDs
-- how to push local env values to Bitwarden
-- local run commands
-- CI/deploy expectations
-- reminder to never commit `.env` files
-
-## Proposed first implementation slice
-
-1. Add `@varlock/bitwarden-plugin`.
-2. Add Bitwarden push support to `brain secrets:push` behind `--push-to bitwarden`.
-3. Add `apps/yeehaa.io/.env.schema` with UUID placeholders or generated UUID references.
-4. Add `apps/rizom-foundation/.env.schema` with UUID placeholders or generated UUID references.
-5. Keep existing `.env` files untouched until UUIDs are filled and tested locally.
-6. Delete local `.env` files only after validation succeeds.
+1. Create/revoke tokens only in Bitwarden Secrets Manager machine accounts.
+2. Never paste tokens or secret values into chat or commit history.
+3. Use `/tmp/bws-token` with `umask 077` for local operator runs.
+4. Run `--dry-run` first.
+5. Run the real push.
+6. Verify `.env.schema` refs.
+7. Verify Varlock resolution.
+8. Rotate temporary/write-capable tokens when finished.

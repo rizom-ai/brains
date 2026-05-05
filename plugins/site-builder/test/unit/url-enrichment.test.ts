@@ -1,27 +1,16 @@
-import { describe, it, expect, beforeEach, mock, spyOn } from "bun:test";
-import { SiteBuilder } from "../../src/lib/site-builder";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
+import { enrichWithUrls } from "../../src/lib/content-enrichment";
 import type { EntityDisplayMap } from "../../src/config";
 import {
   createSilentLogger,
   createMockServicePluginContext,
+  createTestEntity,
 } from "@brains/test-utils";
 import type { ServicePluginContext } from "@brains/plugins";
-import type { RouteRegistry } from "../../src/lib/route-registry";
-import type { IAnchorProfileService, AnchorProfile } from "@brains/plugins";
-import { z, EntityUrlGenerator } from "@brains/utils";
-import { createTestEntity } from "@brains/test-utils";
-
-// Type for accessing private methods in tests
-interface SiteBuilderTestable {
-  enrichWithUrls<T>(data: T, urlGenerator: EntityUrlGenerator): Promise<T>;
-}
+import { EntityUrlGenerator, z } from "@brains/utils";
 
 describe("SiteBuilder - URL Enrichment", () => {
-  let siteBuilder: SiteBuilder;
-  let testableSiteBuilder: SiteBuilderTestable;
   let mockContext: ServicePluginContext;
-  let mockRouteRegistry: Partial<RouteRegistry>;
-  let mockProfileService: IAnchorProfileService;
   const logger = createSilentLogger();
 
   const entityDisplay: EntityDisplayMap = {
@@ -34,45 +23,27 @@ describe("SiteBuilder - URL Enrichment", () => {
     },
   };
 
-  beforeEach(() => {
-    mockContext = createMockServicePluginContext({ logger });
-    // Override specific methods for this test
-    spyOn(mockContext.views, "get").mockReturnValue({
-      name: "test-template",
-      pluginId: "test",
-      schema: z.object({}),
-      renderers: {},
+  const urlLabelSchema = z.object({
+    url: z.string(),
+    typeLabel: z.string(),
+  });
+
+  const enrich = (
+    data: unknown,
+    display: EntityDisplayMap | undefined = entityDisplay,
+  ): Promise<unknown> =>
+    enrichWithUrls(data, {
+      entityService: mockContext.entityService,
+      entityDisplay: display,
+      urlGenerator: EntityUrlGenerator.getInstance(),
     });
 
-    mockRouteRegistry = {
-      list: mock().mockReturnValue([]),
-      register: mock(),
-      getNavigationItems: mock().mockReturnValue([]),
-    };
-
-    mockProfileService = {
-      getProfile: (): AnchorProfile => ({ name: "Test", kind: "professional" }),
-    };
-
-    siteBuilder = SiteBuilder.createFresh(
-      logger,
-      mockContext,
-      mockRouteRegistry as RouteRegistry,
-      mockProfileService,
-      () => ({
-        build: mock().mockResolvedValue({ success: true }),
-        clean: mock().mockResolvedValue(undefined),
-      }),
-      entityDisplay,
-    );
-    testableSiteBuilder = siteBuilder as unknown as SiteBuilderTestable;
+  beforeEach(() => {
+    mockContext = createMockServicePluginContext({ logger });
+    EntityUrlGenerator.getInstance().configure(entityDisplay);
   });
 
   describe("enrichWithUrls", () => {
-    // The SiteBuilder constructor configures EntityUrlGenerator with entityDisplay,
-    // so we use the singleton instance which is already configured in beforeEach
-    const urlGenerator = EntityUrlGenerator.getInstance();
-
     it("should add url and typeLabel to entity with slug metadata", async () => {
       const content = "Test content";
       const entity = {
@@ -87,23 +58,18 @@ describe("SiteBuilder - URL Enrichment", () => {
         typeLabel: "",
       };
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entity,
-        urlGenerator,
-      );
+      const result = urlLabelSchema.parse(await enrich(entity));
 
       expect(result.url).toBe("/posts/test-post");
       expect(result.typeLabel).toBe("Blog Post");
     });
 
     it("should handle array of entities", async () => {
-      const content1 = "Content 1";
-      const content2 = "Content 2";
       const entities = [
         {
           ...createTestEntity("post", {
             id: "post-1",
-            content: content1,
+            content: "Content 1",
             created: "2025-01-01T00:00:00.000Z",
             updated: "2025-01-01T00:00:00.000Z",
             metadata: { slug: "post-1" },
@@ -114,7 +80,7 @@ describe("SiteBuilder - URL Enrichment", () => {
         {
           ...createTestEntity("post", {
             id: "post-2",
-            content: content2,
+            content: "Content 2",
             created: "2025-01-02T00:00:00.000Z",
             updated: "2025-01-02T00:00:00.000Z",
             metadata: { slug: "post-2" },
@@ -124,30 +90,21 @@ describe("SiteBuilder - URL Enrichment", () => {
         },
       ];
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entities,
-        urlGenerator,
-      );
+      const result = z.array(urlLabelSchema).parse(await enrich(entities));
 
-      expect(Array.isArray(result)).toBe(true);
       expect(result).toHaveLength(2);
-      const first = result[0];
-      const second = result[1];
-      if (!first || !second) throw new Error("Expected two elements");
-      expect(first.url).toBe("/posts/post-1");
-      expect(first.typeLabel).toBe("Blog Post");
-      expect(second.url).toBe("/posts/post-2");
-      expect(second.typeLabel).toBe("Blog Post");
+      expect(result[0]?.url).toBe("/posts/post-1");
+      expect(result[0]?.typeLabel).toBe("Blog Post");
+      expect(result[1]?.url).toBe("/posts/post-2");
+      expect(result[1]?.typeLabel).toBe("Blog Post");
     });
 
     it("should recursively enrich nested entities", async () => {
-      const postContent = "Content";
-      const deckContent = "Deck content";
       const data = {
         post: {
           ...createTestEntity("post", {
             id: "post-1",
-            content: postContent,
+            content: "Content",
             created: "2025-01-01T00:00:00.000Z",
             updated: "2025-01-01T00:00:00.000Z",
             metadata: { slug: "test-post" },
@@ -159,7 +116,7 @@ describe("SiteBuilder - URL Enrichment", () => {
           {
             ...createTestEntity("deck", {
               id: "deck-1",
-              content: deckContent,
+              content: "Deck content",
               created: "2025-01-01T00:00:00.000Z",
               updated: "2025-01-01T00:00:00.000Z",
               metadata: { slug: "test-deck" },
@@ -170,25 +127,24 @@ describe("SiteBuilder - URL Enrichment", () => {
         ],
       };
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        data,
-        urlGenerator,
-      );
+      const result = z
+        .object({
+          post: urlLabelSchema,
+          relatedDecks: z.array(urlLabelSchema),
+        })
+        .parse(await enrich(data));
 
       expect(result.post.url).toBe("/posts/test-post");
       expect(result.post.typeLabel).toBe("Blog Post");
-      const firstDeck = result.relatedDecks[0];
-      if (!firstDeck) throw new Error("Expected deck element");
-      expect(firstDeck.url).toBe("/presentations/test-deck");
-      expect(firstDeck.typeLabel).toBe("Presentation");
+      expect(result.relatedDecks[0]?.url).toBe("/presentations/test-deck");
+      expect(result.relatedDecks[0]?.typeLabel).toBe("Presentation");
     });
 
     it("should use capitalized entityType as fallback label", async () => {
-      const content = "Content";
       const entity = {
         ...createTestEntity("note", {
           id: "note-1",
-          content,
+          content: "Content",
           created: "2025-01-01T00:00:00.000Z",
           updated: "2025-01-01T00:00:00.000Z",
           metadata: { slug: "test-note" },
@@ -197,10 +153,7 @@ describe("SiteBuilder - URL Enrichment", () => {
         typeLabel: "",
       };
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entity,
-        urlGenerator,
-      );
+      const result = urlLabelSchema.parse(await enrich(entity));
 
       expect(result.typeLabel).toBe("Note");
     });
@@ -212,41 +165,27 @@ describe("SiteBuilder - URL Enrichment", () => {
         metadata: { foo: "bar" },
       };
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        data,
-        urlGenerator,
-      );
+      const result = await enrich(data);
 
       expect(result).toEqual(data);
     });
 
     it("should handle null and undefined", async () => {
-      expect(
-        await testableSiteBuilder.enrichWithUrls(null, urlGenerator),
-      ).toBeNull();
-      expect(
-        await testableSiteBuilder.enrichWithUrls(undefined, urlGenerator),
-      ).toBeUndefined();
+      expect(await enrich(null)).toBeNull();
+      expect(await enrich(undefined)).toBeUndefined();
     });
 
     it("should handle primitive values", async () => {
-      expect(
-        await testableSiteBuilder.enrichWithUrls("string", urlGenerator),
-      ).toBe("string");
-      expect(await testableSiteBuilder.enrichWithUrls(42, urlGenerator)).toBe(
-        42,
-      );
-      expect(await testableSiteBuilder.enrichWithUrls(true, urlGenerator)).toBe(
-        true,
-      );
+      expect(await enrich("string")).toBe("string");
+      expect(await enrich(42)).toBe(42);
+      expect(await enrich(true)).toBe(true);
     });
 
     it("should preserve other entity fields", async () => {
-      const content = "Content";
       const entity = {
         ...createTestEntity("post", {
           id: "post-1",
-          content,
+          content: "Content",
           created: "2025-01-01T00:00:00.000Z",
           updated: "2025-01-01T00:00:00.000Z",
           metadata: {
@@ -262,10 +201,18 @@ describe("SiteBuilder - URL Enrichment", () => {
         typeLabel: "",
       };
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entity,
-        urlGenerator,
-      );
+      const result = z
+        .object({
+          id: z.string(),
+          entityType: z.string(),
+          content: z.string(),
+          metadata: z.record(z.unknown()),
+          frontmatter: z.object({ title: z.string() }),
+          body: z.string(),
+          url: z.string(),
+          typeLabel: z.string(),
+        })
+        .parse(await enrich(entity));
 
       expect(result.id).toBe("post-1");
       expect(result.entityType).toBe("post");
@@ -278,25 +225,10 @@ describe("SiteBuilder - URL Enrichment", () => {
     });
 
     it("should handle entity without entityDisplay", async () => {
-      const builderWithoutConfig = SiteBuilder.createFresh(
-        logger,
-        mockContext,
-        mockRouteRegistry as RouteRegistry,
-        mockProfileService,
-        () => ({
-          build: mock().mockResolvedValue({ success: true }),
-          clean: mock().mockResolvedValue(undefined),
-        }),
-        undefined,
-      );
-      const testableBuilderWithoutConfig =
-        builderWithoutConfig as unknown as SiteBuilderTestable;
-
-      const content = "Content";
       const entity = {
         ...createTestEntity("post", {
           id: "post-1",
-          content,
+          content: "Content",
           created: "2025-01-01T00:00:00.000Z",
           updated: "2025-01-01T00:00:00.000Z",
           metadata: { slug: "test" },
@@ -305,9 +237,11 @@ describe("SiteBuilder - URL Enrichment", () => {
         typeLabel: "",
       };
 
-      const result = await testableBuilderWithoutConfig.enrichWithUrls(
-        entity,
-        urlGenerator,
+      const result = urlLabelSchema.parse(
+        await enrichWithUrls(entity, {
+          entityService: mockContext.entityService,
+          urlGenerator: EntityUrlGenerator.getInstance(),
+        }),
       );
 
       expect(result.url).toBe("/posts/test");
@@ -346,19 +280,19 @@ coverImageId: project-cover-image
         },
       });
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entity,
-        urlGenerator,
-      );
+      const result = z
+        .object({
+          coverImageUrl: z.string(),
+          coverImageWidth: z.number(),
+          coverImageHeight: z.number(),
+          url: z.string(),
+        })
+        .parse(await enrich(entity));
 
-      // Result is enriched with cover image data and url
-      expect(result).toHaveProperty(
-        "coverImageUrl",
-        "data:image/png;base64,abc123",
-      );
-      expect(result).toHaveProperty("coverImageWidth", 800);
-      expect(result).toHaveProperty("coverImageHeight", 600);
-      expect(result).toHaveProperty("url", "/projects/test-project");
+      expect(result.coverImageUrl).toBe("data:image/png;base64,abc123");
+      expect(result.coverImageWidth).toBe(800);
+      expect(result.coverImageHeight).toBe(600);
+      expect(result.url).toBe("/projects/test-project");
     });
 
     it("should not add coverImageUrl when entity has no coverImageId", async () => {
@@ -376,14 +310,15 @@ slug: test-project
         metadata: { slug: "test-project", title: "Test Project" },
       });
 
-      const result = await testableSiteBuilder.enrichWithUrls(
-        entity,
-        urlGenerator,
-      );
+      const result = z
+        .object({
+          coverImageUrl: z.never().optional(),
+          url: z.string(),
+        })
+        .parse(await enrich(entity));
 
-      // Result is enriched - coverImageUrl should not be present
-      expect(result).not.toHaveProperty("coverImageUrl");
-      expect(result).toHaveProperty("url", "/projects/test-project");
+      expect(result.coverImageUrl).toBeUndefined();
+      expect(result.url).toBe("/projects/test-project");
     });
   });
 });

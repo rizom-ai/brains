@@ -58,8 +58,6 @@ export interface BrainAgentFactoryOptions {
   messageBus: IMessageBus;
 }
 
-export { buildInstructions };
-
 /**
  * Create a brain agent factory
  *
@@ -71,13 +69,14 @@ export function createBrainAgentFactory(
 ): BrainAgentFactory {
   const { model, modelId, webSearch, temperature, maxTokens, messageBus } =
     options;
+  const supportsTemp = supportsTemperature(modelId);
 
   // Create event emitter backed by message bus
   const emitter = createMessageBusEmitter(messageBus);
 
   return function createBrainAgent(config: BrainAgentConfig): BrainAgent {
-    // Pre-convert all tools - activeTools will filter which ones are available
-    // Use a default context for initial tools (will be overridden in prepareCall)
+    // SDK requires `tools` at construction; prepareCall replaces them per-call
+    // with the right context, and activeTools filters by permission.
     const allTools = convertToSDKTools(
       config.tools,
       {
@@ -122,8 +121,7 @@ export function createBrainAgentFactory(
           tools: toolsWithContext,
           activeTools: allowedToolNames,
           // Provider options
-          ...(temperature !== undefined &&
-            supportsTemperature(modelId) && { temperature }),
+          ...(temperature !== undefined && supportsTemp && { temperature }),
           ...(maxTokens !== undefined && { maxTokens }),
           ...(webSearch && {
             providerOptions: {

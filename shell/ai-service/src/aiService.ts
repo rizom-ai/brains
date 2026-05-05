@@ -8,7 +8,10 @@ import type {
   ImageGenerationOptions,
   ImageGenerationResult,
 } from "./types";
-import { selectTextProvider } from "./provider-selection";
+import {
+  resolveTextModelCapabilities,
+  type TextModelCapabilities,
+} from "./provider-selection";
 import {
   canGenerateImages,
   createProviderClients,
@@ -31,6 +34,8 @@ export class AIService implements IAIService {
   private config: AIModelConfig;
   private logger: Logger;
   private providers: ProviderClients;
+  private capabilities: TextModelCapabilities;
+  private cachedModel: LanguageModel | null = null;
 
   /**
    * Get the singleton instance
@@ -61,13 +66,18 @@ export class AIService implements IAIService {
     this.config = withAIModelDefaults(config);
     this.logger = logger.child("AIService");
     this.providers = createProviderClients(this.config);
+    this.capabilities = resolveTextModelCapabilities(this.config.model);
   }
 
   /**
    * Get the language model instance for the configured provider.
    */
   public getModel(): LanguageModel {
-    return getLanguageModel(this.providers, this.requireTextModel());
+    this.cachedModel ??= getLanguageModel(
+      this.providers,
+      this.requireTextModel(),
+    );
+    return this.cachedModel;
   }
 
   /**
@@ -89,7 +99,10 @@ export class AIService implements IAIService {
         model: this.getModel(),
         system: systemPrompt,
         prompt: userPrompt,
-        ...getTextGenerationOptions(this.config),
+        ...getTextGenerationOptions(
+          this.config,
+          this.capabilities.supportsTemperature,
+        ),
       });
 
       const usage = toTokenUsage(result.usage);
@@ -125,7 +138,10 @@ export class AIService implements IAIService {
         system: systemPrompt,
         prompt: userPrompt,
         schema,
-        ...getTextGenerationOptions(this.config),
+        ...getTextGenerationOptions(
+          this.config,
+          this.capabilities.supportsTemperature,
+        ),
         providerOptions: {
           anthropic: { structuredOutputMode: "jsonTool" },
         },
@@ -146,8 +162,20 @@ export class AIService implements IAIService {
    * Update configuration
    */
   public updateConfig(config: Partial<AIModelConfig>): void {
+    const previousModel = this.config.model;
     this.config = withAIModelDefaults({ ...this.config, ...config });
-    this.providers = createProviderClients(this.config);
+    const modelChanged = this.config.model !== previousModel;
+    const keyFieldsChanged =
+      config.apiKey !== undefined ||
+      config.imageApiKey !== undefined ||
+      modelChanged;
+    if (keyFieldsChanged) {
+      this.providers = createProviderClients(this.config);
+      this.cachedModel = null;
+    }
+    if (modelChanged) {
+      this.capabilities = resolveTextModelCapabilities(this.config.model);
+    }
     this.logger.info("AI configuration updated", {
       model: this.config.model,
     });
@@ -186,7 +214,7 @@ export class AIService implements IAIService {
   private logUsage(operation: string, usage: TokenUsage): void {
     this.logger.info("ai:usage", {
       operation,
-      provider: selectTextProvider(this.config.model),
+      provider: this.capabilities.provider,
       model: this.config.model,
       inputTokens: usage.promptTokens,
       outputTokens: usage.completionTokens,

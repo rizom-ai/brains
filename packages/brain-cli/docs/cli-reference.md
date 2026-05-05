@@ -27,15 +27,15 @@ brain init mybrain --no-interactive
 
 **Options**
 
-| Flag                    | Default            | Description                                                                                                                                                                                                                                                                                               |
-| ----------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                                                                                                                                                                                                                                                                   |
-| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                         |
-| `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                 |
-| `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, from GitHub Actions secrets). Pass any other name to emit a generic `@plugin(@varlock/<name>-plugin)` line you can hand-tune; no other backend is verified end-to-end today. |
-| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                         |
-| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                   |
-| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                      |
+| Flag                    | Default            | Description                                                                                                                                                                                                                                                                                              |
+| ----------------------- | ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--model <name>`        | `rover`            | Brain model: `rover`, `relay`, `ranger`                                                                                                                                                                                                                                                                  |
+| `--domain <domain>`     | `{model}.rizom.ai` | Production domain                                                                                                                                                                                                                                                                                        |
+| `--content-repo <repo>` | —                  | Git repo for content sync                                                                                                                                                                                                                                                                                |
+| `--backend <name>`      | `none`             | Secret backend. `none` (default) emits no `@plugin` directive — varlock load resolves every value from `process.env` (in CI, usually GitHub Actions secrets). Bitwarden-backed apps are migrated with `brain secrets:push --push-to bitwarden`, which rewrites `.env.schema` with pinned Bitwarden refs. |
+| `--deploy`              | `false`            | Include `config/deploy.yml`, Kamal hook, `deploy/Dockerfile`, and publish/deploy GitHub workflows                                                                                                                                                                                                        |
+| `--ai-api-key <key>`    | —                  | Pre-fill `.env` with `AI_API_KEY=<key>`                                                                                                                                                                                                                                                                  |
+| `--no-interactive`      | `false`            | Skip interactive prompts and use only supplied flags                                                                                                                                                                                                                                                     |
 
 **Generated files**
 
@@ -69,7 +69,7 @@ The command writes `origin.pem` and `origin.key` into the current directory, the
 
 ### `brain secrets:push`
 
-Sync the local secrets from the current instance into GitHub Actions secrets. Reads the local schema plus values from `.env`, `.env.local`, and `process.env`, skips any backend-bootstrap section keys, and leaves TLS cert artifacts to `brain cert:bootstrap`.
+Sync the local secrets from the current instance into GitHub Actions secrets or Bitwarden Secrets Manager. Reads the local schema plus values from `.env`, `.env.local`, and `process.env`, and skips any backend-bootstrap section keys.
 
 ```bash
 cd mybrain
@@ -77,18 +77,30 @@ brain secrets:push --push-to gh
 brain secrets:push --push-to gh --all
 brain secrets:push --push-to gh --only AI_API_KEY,HCLOUD_TOKEN
 brain secrets:push --push-to gh --dry-run
+
+# Bitwarden Secrets Manager
+brain secrets:push --push-to bitwarden
+brain secrets:push --push-to bitwarden --dry-run
 ```
 
-`--push-to gh` is the only supported target today. Use `--all` to include extra keys from the local `.env` / `.env.local` files, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy.
+Use `--all` to include extra keys from the local `.env` / `.env.local` files, `--only` to push a specific allowlist, and `--dry-run` to preview the push without writing anything. Dry runs split skipped keys into "Required before first deploy" and "Safe to ignore for now" so you can see which secrets still block an initial deploy.
+
+For `--push-to bitwarden`, install/login requirements are:
+
+- official `bws` CLI available on `PATH`
+- `BWS_ACCESS_TOKEN` exported for a Bitwarden Secrets Manager machine account with read/write access
+
+The Bitwarden project name is inferred from the current instance directory name. Missing projects are created automatically. Secret values are written through the Bitwarden SDK instead of CLI arguments, and `.env.schema` is updated with `bitwarden("<uuid>")` references plus the Varlock Bitwarden plugin wiring.
 
 For multiline secrets such as `KAMAL_SSH_PRIVATE_KEY`, prefer file-backed values instead of shell heredocs:
 
 ```bash
 KAMAL_SSH_PRIVATE_KEY_FILE=~/.ssh/id_ed25519
 brain secrets:push --push-to gh
+brain secrets:push --push-to bitwarden
 ```
 
-`brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. `.env.local` takes precedence over `.env`, and `~/...` paths resolve against the operator home directory. That is the preferred reproducible path for multiline keys.
+`brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. `.env.local` takes precedence over `.env`, and `~/...` paths resolve against the operator home directory. That is the preferred reproducible path for multiline keys. GitHub pushes continue to leave TLS cert PEMs to `brain cert:bootstrap`; Bitwarden pushes include PEMs when they are present in `.env.schema` because Bitwarden becomes the source-of-truth backend.
 
 ### `brain ssh-key:bootstrap`
 

@@ -8,7 +8,7 @@ import { ServicePlugin } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
-import { siteInfoCTASchema } from "@brains/site-builder-plugin";
+import { siteInfoCTASchema } from "@brains/site-info";
 import { personalProfileSchema, personalProfileExtension } from "./schemas";
 import { HomepageDataSource } from "./datasources/homepage-datasource";
 import { AboutDataSource } from "./datasources/about-datasource";

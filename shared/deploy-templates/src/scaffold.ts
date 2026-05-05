@@ -1,5 +1,6 @@
 export interface DeployWorkflowTemplateOptions {
-  workflowSecretsEnv: string;
+  secretNames: string[];
+  bootstrapSecrets: string[];
 }
 
 export interface PreDeployHookTemplateOptions {
@@ -127,7 +128,11 @@ jobs:
 export function renderDeployWorkflow(
   options: DeployWorkflowTemplateOptions,
 ): string {
-  const { workflowSecretsEnv } = options;
+  const { secretNames, bootstrapSecrets } = options;
+  const workflowSecretsEnv = secretNames
+    .map((name) => `          ${name}: \${{ secrets.${name} }}`)
+    .join("\n");
+  const bootstrapSecretsLiteral = JSON.stringify(bootstrapSecrets);
   return `name: Deploy
 
 on:
@@ -159,13 +164,13 @@ jobs:
       - name: Validate env via varlock
         env:
 ${workflowSecretsEnv}
-        run: npx -y varlock load --path .env.schema --show-all
+        run: bunx varlock@1.1.0 load --path .env.schema
 
       - name: Load env via varlock
         env:
 ${workflowSecretsEnv}
         run: |
-          npx -y varlock load --path .env.schema --format json --compact > /tmp/varlock-env.json
+          bunx varlock@1.1.0 load --path .env.schema --format json --compact > /tmp/varlock-env.json
           node <<'NODE'
           import { appendFileSync, readFileSync } from "node:fs";
           const env = JSON.parse(readFileSync('/tmp/varlock-env.json', 'utf8'));
@@ -177,8 +182,9 @@ ${workflowSecretsEnv}
 
           const newline = String.fromCharCode(10);
           const carriageReturn = String.fromCharCode(13);
+          const bootstrapSecrets = new Set(${bootstrapSecretsLiteral});
           const lines = Object.entries(env).flatMap(([key, value]) => {
-            if (value === null || value === undefined) {
+            if (bootstrapSecrets.has(key) || value === null || value === undefined) {
               return [];
             }
 
@@ -288,17 +294,10 @@ ${workflowSecretsEnv}
 
       - name: Provision server
         id: provision
-        env:
-          HCLOUD_TOKEN: \${{ secrets.HCLOUD_TOKEN }}
-          HCLOUD_SSH_KEY_NAME: \${{ secrets.HCLOUD_SSH_KEY_NAME }}
-          HCLOUD_SERVER_TYPE: \${{ secrets.HCLOUD_SERVER_TYPE }}
-          HCLOUD_LOCATION: \${{ secrets.HCLOUD_LOCATION }}
         run: bun deploy/scripts/provision-server.ts
 
       - name: Update Cloudflare DNS
         env:
-          CF_API_TOKEN: \${{ secrets.CF_API_TOKEN }}
-          CF_ZONE_ID: \${{ secrets.CF_ZONE_ID }}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts

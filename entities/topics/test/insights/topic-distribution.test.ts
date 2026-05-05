@@ -1,7 +1,6 @@
 import { describe, it, expect } from "bun:test";
 import { createTopicDistributionInsight } from "../../src/insights/topic-distribution";
-import type { ICoreEntityService } from "@brains/entity-service";
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { TopicAdapter } from "../../src/lib/topic-adapter";
 
 const adapter = new TopicAdapter();
@@ -21,7 +20,7 @@ function makeTopicEntity(id: string, title: string): BaseEntity {
 
 function createMockEntityService(
   topics: ReturnType<typeof makeTopicEntity>[],
-): ICoreEntityService {
+): IEntityService {
   return {
     listEntities: async (request: { entityType: string }) => {
       if (request.entityType === "topic") return topics;
@@ -30,12 +29,10 @@ function createMockEntityService(
     hasEntityType: (type: string) => type === "topic",
     getEntityTypes: () => ["topic"],
     getEntity: async () => null,
-    getEntityRaw: async () => null,
     search: async () => [],
     countEntities: async () => 0,
     getEntityCounts: async () => [],
-    getWeightMap: () => ({}),
-  } as unknown as ICoreEntityService;
+  } as unknown as IEntityService;
 }
 
 describe("topic-distribution insight", () => {
@@ -76,7 +73,7 @@ describe("topic-distribution insight", () => {
       hasEntityType: () => false,
       listEntities: async () => [],
       getEntityTypes: () => [],
-    } as unknown as ICoreEntityService;
+    } as unknown as IEntityService;
 
     const handler = createTopicDistributionInsight();
     const result = await handler(es);

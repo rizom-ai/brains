@@ -1,7 +1,7 @@
 {
   "name": "@brains/product-site-content",
   "private": true,
-  "version": "0.2.0-alpha.48",
+  "version": "0.2.0-alpha.49",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -12,6 +12,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@brains/site-composition": "workspace:*",
     "@brains/templates": "workspace:*",
     "@brains/utils": "workspace:*",
     "lucide-preact": "^0.460.0",

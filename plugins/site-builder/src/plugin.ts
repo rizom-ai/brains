@@ -5,18 +5,26 @@ import type {
   ServicePluginContext,
 } from "@brains/plugins";
 import { ServicePlugin, AnchorProfileService } from "@brains/plugins";
-import { SiteBuilder } from "./lib/site-builder";
-import { RouteRegistry } from "./lib/route-registry";
-import { UISlotRegistry, type SlotRegistration } from "./lib/ui-slot-registry";
+import { SiteBuilder, type SiteBuilderServices } from "./lib/site-builder";
+import {
+  RouteRegistry,
+  UISlotRegistry,
+  type LayoutComponent,
+  type SlotRegistration,
+} from "@brains/site-engine";
 import { RebuildManager } from "./lib/auto-rebuild";
 import { setupRouteHandlers } from "./lib/route-handlers";
 import { registerConfigRoutes } from "./lib/route-helpers";
 import { subscribeBuildCompleted } from "./lib/seo-file-handler";
 import { SiteBuildJobHandler } from "./handlers/siteBuildJobHandler";
 import { NavigationDataSource } from "./datasources/navigation-datasource";
-import { fetchSiteInfo } from "@brains/site-info";
+import {
+  SITE_METADATA_UPDATED_CHANNEL,
+  type SiteMetadata,
+} from "@brains/site-composition";
+import { resolveSiteMetadata } from "./lib/site-metadata";
 import { createSiteBuilderTools } from "./tools/index";
-import type { SiteBuilderConfig, LayoutComponent } from "./config";
+import type { SiteBuilderConfig } from "./config";
 import { siteBuilderConfigSchema } from "./config";
 
 import packageJson from "../package.json";
@@ -98,7 +106,6 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       ),
     );
 
-    // Site-info entity type + datasource registered by SiteInfoPlugin (entities/site-info)
     this.profileService = AnchorProfileService.getInstance(
       context.entityService,
       context.logger,
@@ -114,10 +121,20 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       registerConfigRoutes(this.config.routes, this.id, this.routeRegistry);
     }
 
+    const siteBuilderServices: SiteBuilderServices = {
+      entityService: context.entityService,
+      sendMessage: context.messaging.send,
+      resolveTemplateContent: (templateName, options) =>
+        context.templates.resolve(templateName, options),
+      getViewTemplate: (name) => context.views.get(name),
+      listViewTemplateNames: (): string[] =>
+        context.views.list().map((template) => template.name),
+    };
+
     // Initialize site builder
     this.siteBuilder = SiteBuilder.getInstance(
       context.logger.child("SiteBuilder"),
-      context,
+      siteBuilderServices,
       this.routeRegistry,
       this.profileService,
       this.config.entityDisplay,
@@ -159,20 +176,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
       this.rebuildManager.setupAutoRebuild();
     }
 
-    // Re-register instructions when site-info changes so agent prompt stays fresh
-    context.messaging.subscribe("entity:updated", async (message) => {
-      const payload = message.payload as {
-        entityType: string;
-        entityId: string;
-      };
-      if (payload.entityType === "site-info") {
+    // Re-register instructions when site metadata changes so the prompt stays fresh.
+    context.messaging.subscribe<SiteMetadata, { success: boolean }>(
+      SITE_METADATA_UPDATED_CHANNEL,
+      async () => {
         const instructions = await this.getInstructions();
         if (instructions) {
           context.registerInstructions(instructions);
         }
-      }
-      return { success: true };
-    });
+        return { success: true };
+      },
+    );
 
     // Subscribe to build-completed for SEO file generation
     subscribeBuildCompleted({
@@ -206,18 +220,16 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
     return [
       {
         uri: "brain://site",
-        name: "Site Info",
+        name: "Site Metadata",
         description: "Site metadata — title, description, domain, URLs",
         mimeType: "application/json",
         handler: async (): Promise<{
           contents: Array<{ uri: string; mimeType: string; text: string }>;
         }> => {
-          let siteInfo;
-          try {
-            siteInfo = await fetchSiteInfo(context.entityService);
-          } catch {
-            siteInfo = { title: "Brain", description: "" };
-          }
+          const siteMetadata = await resolveSiteMetadata(
+            context.messaging.send,
+            this.config.siteInfo,
+          );
           return {
             contents: [
               {
@@ -225,7 +237,7 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
                 mimeType: "application/json",
                 text: JSON.stringify(
                   {
-                    ...siteInfo,
+                    ...siteMetadata,
                     domain: context.domain,
                     siteUrl: context.siteUrl,
                     previewUrl: context.previewUrl,
@@ -316,18 +328,17 @@ export class SiteBuilderPlugin extends ServicePlugin<SiteBuilderConfig> {
 - When the user asks to build, rebuild, publish, or build the website/site again, call \`site-builder_build-site\` immediately.
 - Every repeated build request requires a fresh \`site-builder_build-site\` call. Do not say a build was started, queued, or requested unless this turn invoked the tool.`;
 
-    try {
-      const siteInfo = await fetchSiteInfo(context.entityService);
-      const parts = [
-        `**Title:** ${siteInfo.title}`,
-        `**Description:** ${siteInfo.description}`,
-        context.domain && `**Domain:** ${context.domain}`,
-        context.siteUrl && `**URL:** ${context.siteUrl}`,
-      ].filter(Boolean);
-      return `## Your Site\n${parts.join("\n")}\n\n${buildInstructions}`;
-    } catch {
-      return buildInstructions;
-    }
+    const siteMetadata = await resolveSiteMetadata(
+      context.messaging.send,
+      this.config.siteInfo,
+    );
+    const parts = [
+      `**Title:** ${siteMetadata.title}`,
+      `**Description:** ${siteMetadata.description}`,
+      context.domain && `**Domain:** ${context.domain}`,
+      context.siteUrl && `**URL:** ${context.siteUrl}`,
+    ].filter(Boolean);
+    return `## Your Site\n${parts.join("\n")}\n\n${buildInstructions}`;
   }
 
   protected override async onShutdown(): Promise<void> {

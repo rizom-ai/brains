@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { siteMetadataSchema } from "@brains/site-composition";
 
 /**
  * Schema for site build job data
@@ -8,14 +9,7 @@ export const siteBuildJobSchema = z.object({
   outputDir: z.string(),
   workingDir: z.string().optional(),
   enableContentGeneration: z.boolean().optional(),
-  siteConfig: z
-    .object({
-      title: z.string(),
-      description: z.string(),
-      url: z.string().optional(),
-      analyticsScript: z.string().optional(),
-    })
-    .optional(),
+  siteConfig: siteMetadataSchema.optional(),
 });
 
 /**
@@ -46,6 +40,8 @@ export interface SiteBuildCompletedPayload {
     title?: string;
     description?: string;
     url?: string;
+    copyright?: string;
+    themeMode?: "light" | "dark";
   };
   generateEntityUrl: (entityType: string, slug: string) => string;
 }

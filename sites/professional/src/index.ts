@@ -1,3 +1,4 @@
+import type { Plugin } from "@brains/plugins";
 import type { SitePackage } from "@brains/site-composition";
 import { ProfessionalSitePlugin, professionalSitePlugin } from "./plugin";
 import type { ProfessionalSiteConfigInput } from "./config";
@@ -30,7 +31,7 @@ export {
   ProfessionalLayout,
 };
 
-const site: SitePackage<ProfessionalSiteConfigInput> = {
+const site: SitePackage<ProfessionalSiteConfigInput, Plugin> = {
   layouts: {
     default: ProfessionalLayout,
   },

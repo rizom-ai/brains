@@ -9,7 +9,7 @@ import { z } from "@brains/utils";
 import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
-import { siteInfoCTASchema } from "@brains/site-builder-plugin";
+import { siteInfoCTASchema } from "@brains/site-info";
 import {
   professionalProfileSchema,
   professionalProfileExtension,

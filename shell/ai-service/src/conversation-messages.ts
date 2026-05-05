@@ -1,9 +1,6 @@
 import type { Message } from "@brains/conversation-service";
 import type { ModelMessage } from "ai";
 
-/**
- * Convert stored conversation messages to AI SDK model messages.
- */
 export function toModelMessages(messages: Message[]): ModelMessage[] {
   return messages.map((msg) => {
     if (msg.role === "user") {
@@ -19,9 +16,6 @@ export function toModelMessages(messages: Message[]): ModelMessage[] {
   });
 }
 
-/**
- * Convert history and append the pending user message for a new agent call.
- */
 export function buildModelMessages(
   historyMessages: Message[],
   userMessage: string,

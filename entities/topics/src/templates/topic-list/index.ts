@@ -1,4 +1,4 @@
-import { createTemplate } from "@brains/templates";
+import { createTemplate } from "@brains/plugins";
 import { topicListSchema, type TopicListData } from "./schema";
 import { TopicListLayout } from "./layout";
 import { TopicListFormatter } from "./formatter";

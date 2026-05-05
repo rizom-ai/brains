@@ -1,47 +1,33 @@
 import { z } from "@brains/utils";
 
-/**
- * Section definition schema
- */
+/** Section definition schema for site routes. */
 export const SectionDefinitionSchema = z.object({
   id: z.string(),
-  template: z.string(), // Template name for rendering this section
-  content: z.unknown().optional(), // Static content
+  template: z.string(),
+  content: z.unknown().optional(),
   dataQuery: z
     .object({
-      entityType: z.string().optional(), // Entity type to fetch content from (for entity datasources)
-      template: z.string().optional(), // Template for entity queries
+      entityType: z.string().optional(),
+      template: z.string().optional(),
       query: z
         .object({
-          id: z.string().optional(), // Entity ID for detail views
-          limit: z.number().optional(), // Limit for list views
-          offset: z.number().optional(), // Offset for pagination
+          id: z.string().optional(),
+          limit: z.number().optional(),
+          offset: z.number().optional(),
         })
         .passthrough()
-        .optional(), // Query parameters for fetching entities - allows additional properties
+        .optional(),
     })
-    .passthrough() // Allow additional properties like 'slot' for navigation datasource
+    .passthrough()
     .optional(),
-  order: z.number().optional(), // Section ordering
+  order: z.number().optional(),
 });
 
-/**
- * Navigation slot types
- */
+/** Navigation slot types. */
 export const NavigationSlots = ["primary", "secondary"] as const;
 export type NavigationSlot = (typeof NavigationSlots)[number];
 
-/**
- * Display and behavior metadata for an entity type.
- *
- * Keyed by entity type on `SitePackage.entityDisplay`, these entries
- * describe how an entity type should present itself — its human label,
- * plural name, default layout, pagination, and navigation slot. The
- * site-builder's dynamic route generator consults them when producing
- * auto-generated list/detail routes for each active entity plugin, but
- * the metadata is conceptually about the entity type itself, not about
- * any particular route.
- */
+/** Display and behavior metadata for an entity type. */
 export interface EntityDisplayEntry {
   label: string;
   pluralName?: string;
@@ -58,70 +44,55 @@ export interface EntityDisplayEntry {
   };
 }
 
-/**
- * Navigation metadata schema for route definitions
- */
+/** Navigation metadata schema for route definitions. */
 export const NavigationMetadataSchema = z
   .object({
-    show: z.boolean().default(false), // Display in navigation?
-    label: z.string().optional(), // Override title for nav display
-    slot: z.enum(NavigationSlots).default("primary"), // Navigation slot type
-    priority: z.number().min(0).max(100).default(50), // Display order (0-100)
+    show: z.boolean().default(false),
+    label: z.string().optional(),
+    slot: z.enum(NavigationSlots).default("primary"),
+    priority: z.number().min(0).max(100).default(50),
   })
   .optional();
 
-/**
- * Route definition schema
- */
+/** Route definition schema. */
 export const RouteDefinitionSchema = z.object({
-  id: z.string(), // Unique route identifier
-  path: z.string(), // URL path
-  title: z.string().default(""), // Route title override (defaults resolved later)
-  description: z.string().default(""), // Route description override (defaults resolved later)
-  sections: z.array(SectionDefinitionSchema).default([]), // Page sections
-  layout: z.string().default("default"), // Layout to use for this route
-  fullscreen: z.boolean().optional(), // Render without page layout shell (no header/footer)
-  pluginId: z.string().optional(), // Plugin that registered this route
-  sourceEntityType: z.string().optional(), // Entity type that generated this route (indicates dynamic)
-  external: z.boolean().optional(), // Navigation-only, not rendered as a page
-  navigation: NavigationMetadataSchema, // Optional navigation metadata
+  id: z.string(),
+  path: z.string(),
+  title: z.string().default(""),
+  description: z.string().default(""),
+  sections: z.array(SectionDefinitionSchema).default([]),
+  layout: z.string().default("default"),
+  fullscreen: z.boolean().optional(),
+  pluginId: z.string().optional(),
+  sourceEntityType: z.string().optional(),
+  external: z.boolean().optional(),
+  navigation: NavigationMetadataSchema,
 });
 
-// Type exports
 export type SectionDefinition = z.infer<typeof SectionDefinitionSchema>;
 export type RouteDefinition = z.infer<typeof RouteDefinitionSchema>;
 export type RouteDefinitionInput = z.input<typeof RouteDefinitionSchema>;
 export type NavigationMetadata = z.infer<typeof NavigationMetadataSchema>;
 
-// Navigation item interface for extracted navigation data
-export interface NavigationItem {
-  label: string;
-  href: string;
-  priority: number;
-}
-
-/**
- * Message payload schemas for route operations
- */
+/** Message payload schemas for route operations. */
 export const RegisterRoutesPayloadSchema = z.object({
   routes: z.array(RouteDefinitionSchema),
   pluginId: z.string(),
 });
 
 export const UnregisterRoutesPayloadSchema = z.object({
-  paths: z.array(z.string()).optional(), // Specific paths to unregister
-  pluginId: z.string().optional(), // Or all routes from a plugin
+  paths: z.array(z.string()).optional(),
+  pluginId: z.string().optional(),
 });
 
 export const ListRoutesPayloadSchema = z.object({
-  pluginId: z.string().optional(), // Filter by plugin
+  pluginId: z.string().optional(),
 });
 
 export const GetRoutePayloadSchema = z.object({
   path: z.string(),
 });
 
-// Type exports from schemas
 export type RegisterRoutesPayload = z.infer<typeof RegisterRoutesPayloadSchema>;
 export type UnregisterRoutesPayload = z.infer<
   typeof UnregisterRoutesPayloadSchema
@@ -129,18 +100,23 @@ export type UnregisterRoutesPayload = z.infer<
 export type ListRoutesPayload = z.infer<typeof ListRoutesPayloadSchema>;
 export type GetRoutePayload = z.infer<typeof GetRoutePayloadSchema>;
 
-/**
- * Response types for route operations
- */
-export interface RouteResponse {
+export interface RouteOperationResponse {
   success: boolean;
+  message?: string;
   error?: string;
 }
 
-export interface RouteListResponse extends RouteResponse {
-  routes?: RouteDefinition[];
+export interface ListRoutesResponse {
+  routes: RouteDefinition[];
 }
 
-export interface SingleRouteResponse extends RouteResponse {
-  route?: RouteDefinition;
+export interface GetRouteResponse {
+  route?: RouteDefinition | undefined;
+}
+
+/** Navigation item interface for extracted navigation data. */
+export interface NavigationItem {
+  label: string;
+  href: string;
+  priority: number;
 }

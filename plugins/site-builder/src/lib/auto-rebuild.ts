@@ -1,7 +1,42 @@
-import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { LeadingTrailingDebounce } from "@brains/utils";
 import type { SiteBuilderConfig } from "../config";
+
+interface EntityChangeMessage {
+  payload: { entityType: string };
+}
+
+interface AutoRebuildContext {
+  messaging: {
+    subscribe(
+      type: string,
+      handler: (
+        message: EntityChangeMessage,
+      ) => Promise<{ success: boolean }> | { success: boolean },
+    ): () => void;
+  };
+  jobs: {
+    enqueue(request: {
+      type: "site-build";
+      data: {
+        environment: "preview" | "production";
+        outputDir: string;
+        workingDir?: string | undefined;
+        enableContentGeneration: boolean;
+        metadata: {
+          trigger: string;
+          timestamp: string;
+        };
+      };
+      options: {
+        priority: number;
+        source: string;
+        metadata: { operationType: "content_operations" };
+        deduplication: "skip";
+      };
+    }): Promise<string>;
+  };
+}
 
 /**
  * Manages debounced site rebuilds triggered by entity changes or explicit
@@ -14,7 +49,7 @@ export class RebuildManager {
 
   constructor(
     private readonly config: SiteBuilderConfig,
-    private readonly context: ServicePluginContext,
+    private readonly context: AutoRebuildContext,
     private readonly pluginId: string,
     private readonly logger: Logger,
   ) {}
@@ -45,9 +80,9 @@ export class RebuildManager {
   setupAutoRebuild(): void {
     const excludedTypes = new Set(["base"]);
 
-    const entityEventHandler = async (message: {
-      payload: { entityType: string };
-    }): Promise<{ success: boolean }> => {
+    const entityEventHandler = async (
+      message: EntityChangeMessage,
+    ): Promise<{ success: boolean }> => {
       const { entityType } = message.payload;
       if (!excludedTypes.has(entityType)) {
         this.logger.debug(`Entity type ${entityType} will trigger rebuild`);
@@ -110,7 +145,7 @@ export class RebuildManager {
           priority: 0,
           source: this.pluginId,
           metadata: {
-            operationType: "content_operations" as const,
+            operationType: "content_operations",
           },
           deduplication: "skip",
         },

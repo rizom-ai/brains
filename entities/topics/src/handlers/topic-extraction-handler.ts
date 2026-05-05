@@ -8,6 +8,7 @@ import {
   PROGRESS_STEPS,
   JobResult,
 } from "@brains/utils";
+import { TOPICS_JOB_SOURCE, TOPICS_PLUGIN_ID } from "../lib/constants";
 import { TopicExtractor } from "../lib/topic-extractor";
 
 // Schema for extraction job data
@@ -165,12 +166,12 @@ export class TopicExtractionHandler extends BaseJobHandler<
       const rootJobId = createId();
       const batchId = await this.context.jobs.enqueueBatch(operations, {
         priority: 5, // Low priority - background processing
-        source: "topics-plugin",
+        source: TOPICS_JOB_SOURCE,
         rootJobId,
         metadata: {
           operationType: "batch_processing" as const,
           operationTarget: `process topics for ${entityType}:${entityId}`,
-          pluginId: "topics",
+          pluginId: TOPICS_PLUGIN_ID,
         },
       });
 

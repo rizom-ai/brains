@@ -1,12 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
 import { createPreactBuilder } from "../../src/lib/preact-builder";
 import type { BuildContext } from "../../src/lib/static-site-builder";
-import type { ViewTemplate, OutputFormat } from "@brains/plugins";
-import type { RouteDefinition } from "@brains/plugins";
-import {
-  createSilentLogger,
-  createMockServicePluginContext,
-} from "@brains/test-utils";
+import type { SiteViewTemplate } from "../../src/lib/site-view-template";
+import type { RouteDefinition } from "@brains/site-composition";
+import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 import { promises as fs } from "fs";
 import { join } from "path";
@@ -14,8 +11,14 @@ import { tmpdir } from "os";
 import { h, type VNode } from "preact";
 import { MockCSSProcessor } from "../mocks/mock-css-processor";
 import { TestLayout } from "../test-helpers";
-import { UISlotRegistry } from "../../src/lib/ui-slot-registry";
-import type { LayoutComponent } from "../../src/config";
+import {
+  UISlotRegistry,
+  type LayoutComponent,
+  type LayoutSlots,
+} from "@brains/site-engine";
+
+const titlePropsSchema = z.object({ title: z.string() });
+const contentPropsSchema = z.object({ content: z.string() });
 
 describe("PreactBuilder", () => {
   let testDir: string;
@@ -49,14 +52,14 @@ describe("PreactBuilder", () => {
     });
 
     // Create test component using Preact h function
-    const TestComponent = (props: unknown): VNode => {
-      const { title } = props as { title: string };
+    const TestComponent = (props: Record<string, unknown>): VNode => {
+      const { title } = titlePropsSchema.parse(props);
       return h("div", {}, title);
     };
 
     // Create mock view registry
     const viewRegistry = {
-      getViewTemplate: (name: string): ViewTemplate | undefined => {
+      getViewTemplate: (name: string): SiteViewTemplate | undefined => {
         if (name === "test") {
           return {
             name: "test",
@@ -71,11 +74,11 @@ describe("PreactBuilder", () => {
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
       registerViewTemplate: (): void => {},
-      listViewTemplates: (): ViewTemplate[] => [],
+      listViewTemplates: (): SiteViewTemplate[] => [],
       validateViewTemplate: (): boolean => true,
       getRenderer: (): undefined => undefined,
       hasRenderer: (): boolean => false,
-      listFormats: (): OutputFormat[] => [],
+      listFormats: (): string[] => [],
     };
 
     const buildContext: BuildContext = {
@@ -96,14 +99,13 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test Site Description",
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
-      getSiteInfo: async () => ({
+      getSiteLayoutInfo: async () => ({
         title: "Test Site",
         description: "Test Site Description",
         navigation: {
@@ -130,7 +132,7 @@ describe("PreactBuilder", () => {
     expect(html).toContain("Hello World");
   });
 
-  it("should fall back to site info metadata when route metadata is omitted", async () => {
+  it("should fall back to site layout metadata when route metadata is omitted", async () => {
     const builder = createPreactBuilder({
       logger,
       outputDir,
@@ -139,13 +141,13 @@ describe("PreactBuilder", () => {
     });
 
     const viewRegistry = {
-      getViewTemplate: (_name: string): ViewTemplate => ({
+      getViewTemplate: (_name: string): SiteViewTemplate => ({
         name: "test",
         schema: z.object({ content: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: unknown): VNode => {
-            const { content } = props as { content: string };
+          web: (props: Record<string, unknown>): VNode => {
+            const { content } = contentPropsSchema.parse(props);
             return h("div", {}, content);
           },
         },
@@ -154,11 +156,11 @@ describe("PreactBuilder", () => {
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
       registerViewTemplate: (): void => {},
-      listViewTemplates: (): ViewTemplate[] => [],
+      listViewTemplates: (): SiteViewTemplate[] => [],
       validateViewTemplate: (): boolean => true,
       getRenderer: (): undefined => undefined,
       hasRenderer: (): boolean => false,
-      listFormats: (): OutputFormat[] => [],
+      listFormats: (): string[] => [],
     };
 
     const buildContext: BuildContext = {
@@ -179,14 +181,13 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test Site Description",
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
-      getSiteInfo: async () => ({
+      getSiteLayoutInfo: async () => ({
         title: "Test Site",
         description: "Test Site Description",
         navigation: {
@@ -215,13 +216,13 @@ describe("PreactBuilder", () => {
     });
 
     const viewRegistry = {
-      getViewTemplate: (_name: string): ViewTemplate => ({
+      getViewTemplate: (_name: string): SiteViewTemplate => ({
         name: "test",
         schema: z.object({ content: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: unknown): VNode => {
-            const { content } = props as { content: string };
+          web: (props: Record<string, unknown>): VNode => {
+            const { content } = contentPropsSchema.parse(props);
             return h("div", {}, content);
           },
         },
@@ -230,11 +231,11 @@ describe("PreactBuilder", () => {
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
       registerViewTemplate: (): void => {},
-      listViewTemplates: (): ViewTemplate[] => [],
+      listViewTemplates: (): SiteViewTemplate[] => [],
       validateViewTemplate: (): boolean => true,
       getRenderer: (): undefined => undefined,
       hasRenderer: (): boolean => false,
-      listFormats: (): OutputFormat[] => [],
+      listFormats: (): string[] => [],
     };
 
     const buildContext: BuildContext = {
@@ -255,14 +256,13 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
-      getSiteInfo: async () => ({
+      getSiteLayoutInfo: async () => ({
         title: "Test Site",
         description: "Test Site Description",
         navigation: {
@@ -297,11 +297,11 @@ describe("PreactBuilder", () => {
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
       registerViewTemplate: (): void => {},
-      listViewTemplates: (): ViewTemplate[] => [],
+      listViewTemplates: (): SiteViewTemplate[] => [],
       validateViewTemplate: (): boolean => true,
       getRenderer: (): undefined => undefined,
       hasRenderer: (): boolean => false,
-      listFormats: (): OutputFormat[] => [],
+      listFormats: (): string[] => [],
     };
 
     const buildContext: BuildContext = {
@@ -322,14 +322,13 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
       },
       getContent: async (_route, section) => section.content ?? null,
       layouts: { default: TestLayout },
-      getSiteInfo: async () => ({
+      getSiteLayoutInfo: async () => ({
         title: "Test Site",
         description: "Test Site Description",
         navigation: {
@@ -360,13 +359,13 @@ describe("PreactBuilder", () => {
     let contentFetched = false;
 
     const viewRegistry = {
-      getViewTemplate: (_name: string): ViewTemplate => ({
+      getViewTemplate: (_name: string): SiteViewTemplate => ({
         name: "test",
         schema: z.object({ title: z.string() }),
         pluginId: "test-plugin",
         renderers: {
-          web: (props: unknown): VNode => {
-            const { title } = props as { title: string };
+          web: (props: Record<string, unknown>): VNode => {
+            const { title } = titlePropsSchema.parse(props);
             return h("div", {}, title);
           },
         },
@@ -375,11 +374,11 @@ describe("PreactBuilder", () => {
       getRoute: (): undefined => undefined,
       listRoutes: (): RouteDefinition[] => [],
       registerViewTemplate: (): void => {},
-      listViewTemplates: (): ViewTemplate[] => [],
+      listViewTemplates: (): SiteViewTemplate[] => [],
       validateViewTemplate: (): boolean => true,
       getRenderer: (): undefined => undefined,
       hasRenderer: (): boolean => false,
-      listFormats: (): OutputFormat[] => [],
+      listFormats: (): string[] => [],
     };
 
     const buildContext: BuildContext = {
@@ -404,7 +403,6 @@ describe("PreactBuilder", () => {
         },
       ],
       getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-      pluginContext: createMockServicePluginContext(),
       siteConfig: {
         title: "Test Site",
         description: "Test",
@@ -415,7 +413,7 @@ describe("PreactBuilder", () => {
         return mockContent;
       },
       layouts: { default: TestLayout },
-      getSiteInfo: async () => ({
+      getSiteLayoutInfo: async () => ({
         title: "Test Site",
         description: "Test",
         navigation: {
@@ -476,7 +474,7 @@ describe("PreactBuilder", () => {
   // NOTE: Tests for extracting data URLs and entity://image references from
   // rendered HTML were removed. Image resolution now happens BEFORE rendering
   // via ImageBuildService + ImageRendererProvider (Astro-like approach).
-  // See test/lib/image-build-service.test.ts for the new image resolution tests.
+  // See shared/site-engine/test/image-build-service.test.ts for image resolution tests.
 
   /* removed: "should NOT inline data URLs" — covered by image-build-service tests */
   /* removed: "should extract entity://image from markdown" — covered by image-build-service tests */
@@ -500,7 +498,7 @@ describe("PreactBuilder", () => {
       });
 
       // Track if slots were passed to layout
-      let receivedSlots: UISlotRegistry | undefined;
+      let receivedSlots: LayoutSlots | undefined;
       const LayoutWithSlots: LayoutComponent = ({ sections, slots }) => {
         receivedSlots = slots;
         return h("main", {}, [
@@ -517,13 +515,13 @@ describe("PreactBuilder", () => {
       };
 
       const viewRegistry = {
-        getViewTemplate: (_name: string): ViewTemplate => ({
+        getViewTemplate: (_name: string): SiteViewTemplate => ({
           name: "test",
           schema: z.object({ title: z.string() }),
           pluginId: "test-plugin",
           renderers: {
-            web: (props: unknown): VNode => {
-              const { title } = props as { title: string };
+            web: (props: Record<string, unknown>): VNode => {
+              const { title } = titlePropsSchema.parse(props);
               return h("div", {}, title);
             },
           },
@@ -532,11 +530,11 @@ describe("PreactBuilder", () => {
         getRoute: (): undefined => undefined,
         listRoutes: (): RouteDefinition[] => [],
         registerViewTemplate: (): void => {},
-        listViewTemplates: (): ViewTemplate[] => [],
+        listViewTemplates: (): SiteViewTemplate[] => [],
         validateViewTemplate: (): boolean => true,
         getRenderer: (): undefined => undefined,
         hasRenderer: (): boolean => false,
-        listFormats: (): OutputFormat[] => [],
+        listFormats: (): string[] => [],
       };
 
       const buildContext: BuildContext = {
@@ -557,14 +555,13 @@ describe("PreactBuilder", () => {
           },
         ],
         getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-        pluginContext: createMockServicePluginContext(),
         siteConfig: {
           title: "Test Site",
           description: "Test Site Description",
         },
         getContent: async (_route, section) => section.content ?? null,
         layouts: { default: LayoutWithSlots },
-        getSiteInfo: async () => ({
+        getSiteLayoutInfo: async () => ({
           title: "Test Site",
           description: "Test Site Description",
           navigation: { primary: [], secondary: [] },
@@ -624,7 +621,7 @@ describe("PreactBuilder", () => {
       };
 
       const viewRegistry = {
-        getViewTemplate: (_name: string): ViewTemplate => ({
+        getViewTemplate: (_name: string): SiteViewTemplate => ({
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
@@ -634,11 +631,11 @@ describe("PreactBuilder", () => {
         getRoute: (): undefined => undefined,
         listRoutes: (): RouteDefinition[] => [],
         registerViewTemplate: (): void => {},
-        listViewTemplates: (): ViewTemplate[] => [],
+        listViewTemplates: (): SiteViewTemplate[] => [],
         validateViewTemplate: (): boolean => true,
         getRenderer: (): undefined => undefined,
         hasRenderer: (): boolean => false,
-        listFormats: (): OutputFormat[] => [],
+        listFormats: (): string[] => [],
       };
 
       const buildContext: BuildContext = {
@@ -653,11 +650,10 @@ describe("PreactBuilder", () => {
           },
         ],
         getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-        pluginContext: createMockServicePluginContext(),
         siteConfig: { title: "Test", description: "Test" },
         getContent: async (_route, section) => section.content ?? null,
         layouts: { default: LayoutWithSlots },
-        getSiteInfo: async () => ({
+        getSiteLayoutInfo: async () => ({
           title: "Test",
           description: "Test",
           navigation: { primary: [], secondary: [] },
@@ -702,7 +698,7 @@ describe("PreactBuilder", () => {
       };
 
       const viewRegistry = {
-        getViewTemplate: (_name: string): ViewTemplate => ({
+        getViewTemplate: (_name: string): SiteViewTemplate => ({
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
@@ -712,11 +708,11 @@ describe("PreactBuilder", () => {
         getRoute: (): undefined => undefined,
         listRoutes: (): RouteDefinition[] => [],
         registerViewTemplate: (): void => {},
-        listViewTemplates: (): ViewTemplate[] => [],
+        listViewTemplates: (): SiteViewTemplate[] => [],
         validateViewTemplate: (): boolean => true,
         getRenderer: (): undefined => undefined,
         hasRenderer: (): boolean => false,
-        listFormats: (): OutputFormat[] => [],
+        listFormats: (): string[] => [],
       };
 
       const buildContext: BuildContext = {
@@ -731,11 +727,10 @@ describe("PreactBuilder", () => {
           },
         ],
         getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-        pluginContext: createMockServicePluginContext(),
         siteConfig: { title: "Test", description: "Test" },
         getContent: async (_route, section) => section.content ?? null,
         layouts: { default: LayoutWithSlots },
-        getSiteInfo: async () => ({
+        getSiteLayoutInfo: async () => ({
           title: "Test",
           description: "Test",
           navigation: { primary: [], secondary: [] },
@@ -774,7 +769,7 @@ describe("PreactBuilder", () => {
       };
 
       const viewRegistry = {
-        getViewTemplate: (_name: string): ViewTemplate => ({
+        getViewTemplate: (_name: string): SiteViewTemplate => ({
           name: "test",
           schema: z.object({}),
           pluginId: "test-plugin",
@@ -784,11 +779,11 @@ describe("PreactBuilder", () => {
         getRoute: (): undefined => undefined,
         listRoutes: (): RouteDefinition[] => [],
         registerViewTemplate: (): void => {},
-        listViewTemplates: (): ViewTemplate[] => [],
+        listViewTemplates: (): SiteViewTemplate[] => [],
         validateViewTemplate: (): boolean => true,
         getRenderer: (): undefined => undefined,
         hasRenderer: (): boolean => false,
-        listFormats: (): OutputFormat[] => [],
+        listFormats: (): string[] => [],
       };
 
       // BuildContext without slots property
@@ -804,11 +799,10 @@ describe("PreactBuilder", () => {
           },
         ],
         getViewTemplate: (name: string) => viewRegistry.getViewTemplate(name),
-        pluginContext: createMockServicePluginContext(),
         siteConfig: { title: "Test", description: "Test" },
         getContent: async (_route, section) => section.content ?? null,
         layouts: { default: LayoutWithOptionalSlots },
-        getSiteInfo: async () => ({
+        getSiteLayoutInfo: async () => ({
           title: "Test",
           description: "Test",
           navigation: { primary: [], secondary: [] },

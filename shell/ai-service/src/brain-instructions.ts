@@ -1,9 +1,6 @@
 import type { BrainCharacter, AnchorProfile } from "@brains/identity-service";
 import type { UserPermissionLevel } from "@brains/templates";
 
-/**
- * Build the system instructions/prompt from identity
- */
 export function buildInstructions(
   identity: BrainCharacter,
   userPermissionLevel: UserPermissionLevel,

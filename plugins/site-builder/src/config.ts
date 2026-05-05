@@ -1,36 +1,14 @@
 import { z } from "@brains/utils";
 import type { Template } from "@brains/plugins";
+import type { LayoutComponent } from "@brains/site-engine";
 import {
-  RouteDefinitionSchema,
   NavigationSlots,
+  RouteDefinitionSchema,
+  siteMetadataSchema,
+  type EntityDisplayEntry,
   type RouteDefinitionInput,
-} from "@brains/plugins";
-import { siteInfoBodySchema } from "@brains/site-info";
-
-/**
- * Configuration schema for the site builder plugin
- */
-import type { ComponentChildren, JSX } from "preact";
-
-import type { SiteInfo } from "./types/site-info";
-import type { UISlotRegistry } from "./lib/ui-slot-registry";
-
-/**
- * Type alias for layout slots - uses the UISlotRegistry directly
- * Layouts can use this to render plugin-registered components
- */
-export type LayoutSlots = UISlotRegistry;
-
-// Layout component type - accepts JSX sections and returns JSX
-export type LayoutComponent = (props: {
-  sections: ComponentChildren[];
-  title: string;
-  description: string;
-  path: string;
-  siteInfo: SiteInfo;
-  /** Optional slots for plugin-registered UI components */
-  slots?: LayoutSlots;
-}) => JSX.Element;
+  type SiteMetadata,
+} from "@brains/site-composition";
 
 /**
  * Entity display metadata per entity type.
@@ -41,7 +19,6 @@ export type LayoutComponent = (props: {
  * the dynamic route generator when producing auto-generated list/detail
  * routes for active entity plugins.
  */
-import type { EntityDisplayEntry } from "@brains/plugins";
 export type { EntityDisplayEntry };
 export type EntityDisplayMap = Record<string, EntityDisplayEntry>;
 
@@ -65,7 +42,7 @@ export const siteBuilderConfigSchema = z.object({
     .optional()
     .describe("Working directory for builds")
     .default("./.preact-work"),
-  siteInfo: siteInfoBodySchema.default({
+  siteInfo: siteMetadataSchema.default({
     title: "Brain",
     description: "A knowledge management system",
   }),
@@ -168,6 +145,7 @@ export type SiteBuilderConfig = Omit<
   SiteBuilderSchemaConfig,
   "templates" | "layouts" | "routes" | "entityDisplay"
 > & {
+  siteInfo: SiteMetadata;
   templates?: Record<string, Template>;
   layouts?: Record<string, LayoutComponent>;
   routes?: RouteDefinitionInput[];

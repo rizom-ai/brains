@@ -1,7 +1,7 @@
 {
   "name": "@brains/topics",
   "private": true,
-  "version": "0.2.0-alpha.48",
+  "version": "0.2.0-alpha.49",
   "description": "Extract and manage topics from conversations",
   "type": "module",
   "main": "./src/index.ts",
@@ -18,11 +18,12 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
-    "@brains/app": "workspace:*",
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/bun": "latest",
     "@types/node": "^20.0.0",

@@ -1,6 +1,6 @@
 import type { JSX, ComponentChildren } from "preact";
-import type { SiteInfo, LayoutSlots } from "@brains/site-builder-plugin";
-import { Slot } from "@brains/site-builder-plugin";
+import type { LayoutSlots } from "@brains/site-engine";
+import type { SiteLayoutInfo } from "@brains/site-composition";
 import { Header, Footer } from "@brains/ui-library";
 
 export interface ProfessionalLayoutProps {
@@ -8,7 +8,7 @@ export interface ProfessionalLayoutProps {
   title: string;
   description: string;
   path: string;
-  siteInfo: SiteInfo;
+  siteInfo: SiteLayoutInfo;
   /** Optional slots for plugin-registered UI components */
   slots?: LayoutSlots;
 }
@@ -40,7 +40,7 @@ export function ProfessionalLayout({
         copyright={siteInfo.copyright}
         socialLinks={siteInfo.socialLinks}
       >
-        <Slot name="footer-top" slots={slots} />
+        {slots?.getSlot("footer-top").map((entry) => entry.render())}
       </Footer>
     </div>
   );

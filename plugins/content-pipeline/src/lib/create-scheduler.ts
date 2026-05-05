@@ -1,11 +1,10 @@
-import type { ServicePluginContext } from "@brains/plugins";
+import type { IMessageBus, ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { QueueManager } from "../queue-manager";
 import type { ProviderRegistry } from "../provider-registry";
 import type { RetryTracker } from "../retry-tracker";
 import { ContentScheduler } from "../scheduler";
 import { CronerBackend } from "../scheduler-backend";
-import { GENERATE_MESSAGES, PUBLISH_MESSAGES } from "../types/messages";
 import type { ContentPipelineConfig } from "../types/config";
 import { checkGenerationConditions } from "./generation-conditions";
 
@@ -31,12 +30,7 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     logger,
   } = deps;
 
-  const messageBusAdapter = {
-    send: async (channel: string, message: unknown): Promise<unknown> => {
-      return context.messaging.send({ type: channel, payload: message });
-    },
-    subscribe: (): (() => void) => () => {},
-  };
+  const messageBus = createMessageBusAdapter(context);
 
   return ContentScheduler.createFresh({
     queueManager,
@@ -53,30 +47,8 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
     ...(config.generationConditions && {
       generationConditions: config.generationConditions,
     }),
-    messageBus: messageBusAdapter as never,
+    messageBus,
     entityService: context.entityService,
-    onPublish: (event) => {
-      void context.messaging.send({
-        type: PUBLISH_MESSAGES.COMPLETED,
-        payload: {
-          entityType: event.entityType,
-          entityId: event.entityId,
-          result: event.result,
-        },
-      });
-    },
-    onFailed: (event) => {
-      void context.messaging.send({
-        type: PUBLISH_MESSAGES.FAILED,
-        payload: {
-          entityType: event.entityType,
-          entityId: event.entityId,
-          error: event.error,
-          retryCount: event.retryCount,
-          willRetry: event.willRetry,
-        },
-      });
-    },
     onCheckGenerationConditions: (entityType, conditions) =>
       checkGenerationConditions(
         context.entityService,
@@ -84,14 +56,24 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
         entityType,
         conditions,
       ),
-    onGenerate: (event) => {
-      logger.info(`Generation triggered for ${event.entityType}`);
-      void context.messaging.send({
-        type: GENERATE_MESSAGES.EXECUTE,
-        payload: {
-          entityType: event.entityType,
-        },
-      });
-    },
   });
+}
+
+function createMessageBusAdapter(context: ServicePluginContext): IMessageBus {
+  const send: IMessageBus["send"] = async (request) => {
+    return context.messaging.send({
+      type: request.type,
+      payload: request.payload,
+      ...(request.target !== undefined ? { target: request.target } : {}),
+      ...(request.metadata !== undefined ? { metadata: request.metadata } : {}),
+      ...(request.broadcast !== undefined
+        ? { broadcast: request.broadcast }
+        : {}),
+    });
+  };
+
+  const subscribe: IMessageBus["subscribe"] = () => () => {};
+  const unsubscribe: IMessageBus["unsubscribe"] = () => {};
+
+  return { send, subscribe, unsubscribe };
 }

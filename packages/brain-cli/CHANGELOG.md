@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.49
+
+### Patch Changes
+
+- [`d543427`](https://github.com/rizom-ai/brains/commit/d543427d96795915a703008940350de1ef83c407) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Add Bitwarden Secrets Manager support to `brain secrets:push` so operators can push local env-backed secrets to a conventionally named Bitwarden project and rewrite `.env.schema` with pinned Varlock Bitwarden references.
+
 ## 0.2.0-alpha.48
 
 ### Patch Changes

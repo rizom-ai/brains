@@ -6,6 +6,10 @@ import type {
 } from "@brains/plugins";
 import { EntityPlugin } from "@brains/plugins";
 import {
+  SITE_METADATA_GET_CHANNEL,
+  SITE_METADATA_UPDATED_CHANNEL,
+} from "@brains/site-composition";
+import {
   siteInfoSchema,
   type SiteInfoEntity,
   type SiteInfoBody,
@@ -51,6 +55,24 @@ export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
       this.logger,
       this.defaultSiteInfo,
     );
+
+    context.messaging.subscribe(SITE_METADATA_GET_CHANNEL, async () => {
+      const siteInfo = await service.getSiteInfo();
+      return { success: true, data: siteInfo };
+    });
+
+    context.messaging.subscribe("entity:updated", async (message) => {
+      const payload = message.payload as { entityType: string };
+      if (payload.entityType === "site-info") {
+        const siteInfo = await service.getSiteInfo();
+        await context.messaging.send({
+          type: SITE_METADATA_UPDATED_CHANNEL,
+          payload: siteInfo,
+          broadcast: true,
+        });
+      }
+      return { success: true };
+    });
 
     // Create default entity after seed content is imported
     context.messaging.subscribe("sync:initial:completed", async () => {

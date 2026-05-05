@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { buildInstructions } from "../src/brain-agent";
+import { buildInstructions } from "../src/brain-instructions";
 
 const identity = {
   name: "Rover",

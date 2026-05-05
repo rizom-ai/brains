@@ -99,6 +99,13 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
   return { provider: "openai", modelId: model };
 }
 
+const NO_TEMPERATURE_PATTERN = /^(gpt-5|o[1-9])(?:[.-]|$)/;
+
+function resolvedSupportsTemperature(resolved: ResolvedModelProvider): boolean {
+  if (resolved.provider !== "openai") return true;
+  return !NO_TEMPERATURE_PATTERN.test(resolved.modelId);
+}
+
 /**
  * Some providers/models reject temperature entirely.
  *
@@ -107,12 +114,26 @@ export function selectImageProvider(model?: string): ResolvedModelProvider {
  */
 export function supportsTemperature(model?: string): boolean {
   if (!model) return true;
+  return resolvedSupportsTemperature(resolveTextProvider(model));
+}
 
-  const { provider, modelId } = resolveTextProvider(model);
+export interface TextModelCapabilities {
+  provider: string;
+  supportsTemperature: boolean;
+}
 
-  if (provider !== "openai") {
-    return true;
+/**
+ * Avoids running the model-pattern regex twice when both fields are needed.
+ */
+export function resolveTextModelCapabilities(
+  model?: string,
+): TextModelCapabilities {
+  if (!model) {
+    return { provider: "anthropic", supportsTemperature: true };
   }
-
-  return !/^(gpt-5|o[1-9])(?:[.-]|$)/.test(modelId);
+  const resolved = resolveTextProvider(model);
+  return {
+    provider: resolved.provider,
+    supportsTemperature: resolvedSupportsTemperature(resolved),
+  };
 }

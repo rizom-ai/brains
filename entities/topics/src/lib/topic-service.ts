@@ -6,6 +6,7 @@ import type { ExtractedTopicData } from "../schemas/extraction";
 import { TopicAdapter } from "./topic-adapter";
 import { generateIdFromText } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+import { TOPIC_ENTITY_TYPE } from "./constants";
 import { scoreTopicSimilarity } from "./topic-merge";
 
 const MAX_ALIASES = 5;
@@ -54,7 +55,7 @@ export class TopicService {
       const { entityId } = await this.entityService.createEntity({
         entity: {
           id: topicId,
-          entityType: "topic",
+          entityType: TOPIC_ENTITY_TYPE,
           content: body,
           metadata,
         },
@@ -62,7 +63,7 @@ export class TopicService {
 
       const topic: TopicEntity = {
         id: entityId,
-        entityType: "topic",
+        entityType: TOPIC_ENTITY_TYPE,
         content: body,
         contentHash: computeContentHash(body),
         metadata,
@@ -136,7 +137,7 @@ export class TopicService {
 
   public async getTopic(id: string): Promise<TopicEntity | null> {
     return this.entityService.getEntity<TopicEntity>({
-      entityType: "topic",
+      entityType: TOPIC_ENTITY_TYPE,
       id,
     });
   }
@@ -146,7 +147,7 @@ export class TopicService {
     offset?: number;
   }): Promise<TopicEntity[]> {
     return this.entityService.listEntities<TopicEntity>({
-      entityType: "topic",
+      entityType: TOPIC_ENTITY_TYPE,
       ...(params !== undefined ? { options: params } : {}),
     });
   }
@@ -158,7 +159,7 @@ export class TopicService {
     return this.entityService.search<TopicEntity>({
       query,
       options: {
-        types: ["topic"],
+        types: [TOPIC_ENTITY_TYPE],
         limit,
       },
     });
@@ -239,8 +240,8 @@ export class TopicService {
 
   public async deleteTopic(id: string): Promise<boolean> {
     const result = await this.entityService.deleteEntity({
-      entityType: "topic",
-      id: id,
+      entityType: TOPIC_ENTITY_TYPE,
+      id,
     });
     if (result) {
       this.logger.info("Deleted topic", { id });

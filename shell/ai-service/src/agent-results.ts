@@ -13,23 +13,12 @@ import type {
 const toolCallArgsSchema = z.record(z.unknown());
 const jobIdSchema = z.object({ jobId: z.string() }).passthrough();
 
-/**
- * Result of extracting tool results from agent steps.
- * Includes both the tool results and any confirmation request found.
- */
 export interface ExtractedResults {
   toolResults: ToolResultData[];
   pendingConfirmation: PendingConfirmation | null;
   totalToolCalls: number;
 }
 
-/**
- * Extract tool results and confirmation requests from agent generation steps.
- * Pure function — no side effects.
- *
- * If any tool returned a `needsConfirmation` response, it's surfaced
- * as `pendingConfirmation` so the machine can transition to awaitingConfirmation.
- */
 export function extractToolResults(
   steps: BrainAgentResult["steps"],
 ): ExtractedResults {
@@ -52,7 +41,6 @@ export function extractToolResults(
     for (const tr of step.toolResults) {
       if (tr.output === null) continue;
 
-      // Check for confirmation request first
       const confirmationParsed = toolConfirmationSchema.safeParse(tr.output);
       if (confirmationParsed.success) {
         pendingConfirmation = {
@@ -63,7 +51,6 @@ export function extractToolResults(
         continue;
       }
 
-      // Parse as regular tool response
       const parsed = toolResponseSchema.safeParse(tr.output);
       if (!parsed.success) {
         toolResults.push({ toolName: tr.toolName });
@@ -79,7 +66,6 @@ export function extractToolResults(
         toolResult.args = args;
       }
 
-      // Extract data and jobId from success responses
       const successParsed = toolSuccessSchema.safeParse(parsed.data);
       if (successParsed.success && successParsed.data.data != null) {
         toolResult.data = successParsed.data.data;

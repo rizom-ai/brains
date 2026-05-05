@@ -1,4 +1,4 @@
-import type { CSSProcessor } from "../../src/css/css-processor";
+import type { CSSProcessor } from "@brains/site-engine";
 import type { Logger } from "@brains/utils";
 import { promises as fs } from "fs";
 

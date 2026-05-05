@@ -1,6 +1,6 @@
 {
   "name": "@rizom/brain",
-  "version": "0.2.0-alpha.48",
+  "version": "0.2.0-alpha.49",
   "description": "Brain runtime + CLI — scaffold, run, and manage AI brain instances",
   "type": "module",
   "bin": {
@@ -70,6 +70,7 @@
     "tailwindcss": "^4.1.11"
   },
   "optionalDependencies": {
+    "@bitwarden/sdk-napi": "^1.0.0",
     "@libsql/client": "^0.15.7",
     "@tailwindcss/oxide": "^4.1.4",
     "better-sqlite3": "^11.8.1",

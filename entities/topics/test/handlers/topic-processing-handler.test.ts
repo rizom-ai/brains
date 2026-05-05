@@ -29,7 +29,7 @@ describe("TopicProcessingHandler", () => {
     context = createEntityPluginContext(mockShell, "topics");
     topicMergeSynthesizer = {
       synthesize: async (): Promise<TopicMergeSynthesisResult> => ({
-        title: "Human-AI Collaboration",
+        title: "Human-Agent Collaboration",
         content:
           "AI agents collaborate with humans on shared work. Agents participate as collaborators in distributed teams.",
       }),
@@ -99,6 +99,9 @@ describe("TopicProcessingHandler", () => {
     });
     expect(topics).toHaveLength(1);
     expect(topics[0]?.id).toBe("human-ai-collaboration");
+    expect(topicAdapter.parseTopicBody(topics[0]?.content ?? "").title).toBe(
+      "Human-AI Collaboration",
+    );
     expect(topics[0]?.content).toContain(
       "AI agents collaborate with humans on shared work.",
     );

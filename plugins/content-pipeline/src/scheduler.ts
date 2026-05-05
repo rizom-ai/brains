@@ -14,22 +14,16 @@ import { getErrorMessage } from "@brains/utils";
 
 import type { PublishResult } from "@brains/utils";
 import type { GenerationCondition } from "./types/config";
-import type { QueueEntry } from "./queue-manager";
-import type { ScheduledJob } from "./scheduler-backend";
-import {
-  emitPublishExecute,
-  executeWithProvider,
-  sendPublishCompleted,
-  sendPublishFailed,
-} from "./scheduler-publish";
+import { sendPublishCompleted, sendPublishFailed } from "./scheduler-publish";
 import type { PublishDeps } from "./scheduler-publish";
 import {
-  triggerGeneration,
   sendGenerationCompleted,
   sendGenerationFailed,
 } from "./scheduler-generation";
 import type { GenerationDeps } from "./scheduler-generation";
 import type { SchedulerConfig } from "./types/scheduler";
+import { PublishScheduleRunner } from "./scheduler-publish-runner";
+import { GenerationScheduleRunner } from "./scheduler-generation-runner";
 
 // Re-export all types from types/scheduler for backward compatibility
 export type {
@@ -41,16 +35,12 @@ export type {
   PublishFailedEvent,
 } from "./types/scheduler";
 
-/** Interval for immediate processing (1 second) */
-const IMMEDIATE_INTERVAL_MS = 1000;
-
 export class ContentScheduler {
   private static instance: ContentScheduler | null = null;
 
   private config: SchedulerConfig;
-  private publishJobs: Map<string, ScheduledJob> = new Map();
-  private generationJobs: Map<string, ScheduledJob> = new Map();
-  private immediateIntervalJob: ScheduledJob | null = null;
+  private publishRunner: PublishScheduleRunner;
+  private generationRunner: GenerationScheduleRunner;
   private running = false;
 
   public static getInstance(config: SchedulerConfig): ContentScheduler {
@@ -78,6 +68,17 @@ export class ContentScheduler {
     };
 
     this.validateCronExpressions();
+
+    this.publishRunner = new PublishScheduleRunner({
+      config: this.config,
+      getPublishDeps: (): PublishDeps => this.publishDeps,
+      isRunning: (): boolean => this.running,
+    });
+    this.generationRunner = new GenerationScheduleRunner({
+      config: this.config,
+      getGenerationDeps: (): GenerationDeps => this.generationDeps,
+      isRunning: (): boolean => this.running,
+    });
   }
 
   // -------------------------------------------------------------------
@@ -89,89 +90,19 @@ export class ContentScheduler {
 
     this.running = true;
 
-    for (const [entityType, cronExpr] of Object.entries(this.entitySchedules)) {
-      const job = this.config.backend.scheduleCron(cronExpr, () =>
-        this.processEntityType(entityType),
-      );
-      this.publishJobs.set(entityType, job);
-    }
-
-    for (const [entityType, cronExpr] of Object.entries(
-      this.generationSchedules,
-    )) {
-      const job = this.config.backend.scheduleCron(cronExpr, () =>
-        this.handleTriggerGeneration(entityType),
-      );
-      this.generationJobs.set(entityType, job);
-    }
-
-    this.immediateIntervalJob = this.config.backend.scheduleInterval(
-      IMMEDIATE_INTERVAL_MS,
-      () => this.processUnscheduledTypes(),
-    );
+    this.publishRunner.start();
+    this.generationRunner.start();
   }
 
   public async stop(): Promise<void> {
     this.running = false;
 
-    this.stopAndClearJobs(this.publishJobs);
-    this.stopAndClearJobs(this.generationJobs);
-
-    if (this.immediateIntervalJob) {
-      this.immediateIntervalJob.stop();
-      this.immediateIntervalJob = null;
-    }
+    this.publishRunner.stop();
+    this.generationRunner.stop();
   }
 
   public isRunning(): boolean {
     return this.running;
-  }
-
-  // -------------------------------------------------------------------
-  // Queue processing
-  // -------------------------------------------------------------------
-
-  private async processEntityType(entityType: string): Promise<void> {
-    if (!this.running) return;
-
-    try {
-      const next = await this.config.queueManager.getNext(entityType);
-      if (next) {
-        await this.processEntry(next);
-      }
-    } catch (error) {
-      this.config.logger.error(`Scheduler error for ${entityType}:`, error);
-    }
-  }
-
-  private async processUnscheduledTypes(): Promise<void> {
-    if (!this.running) return;
-
-    try {
-      const queuedTypes = await this.config.queueManager.getQueuedEntityTypes();
-
-      for (const entityType of queuedTypes) {
-        if (!this.entitySchedules[entityType]) {
-          const next = await this.config.queueManager.getNext(entityType);
-          if (next) {
-            await this.processEntry(next);
-            break;
-          }
-        }
-      }
-    } catch (error) {
-      this.config.logger.error("Scheduler error for unscheduled types:", error);
-    }
-  }
-
-  private async processEntry(entry: QueueEntry): Promise<void> {
-    await this.config.queueManager.remove(entry.entityType, entry.entityId);
-
-    if (this.config.messageBus !== undefined) {
-      await emitPublishExecute(entry, this.publishDeps);
-    } else {
-      await executeWithProvider(entry, this.publishDeps);
-    }
   }
 
   // -------------------------------------------------------------------
@@ -208,19 +139,6 @@ export class ContentScheduler {
   // Generation scheduling
   // -------------------------------------------------------------------
 
-  private async handleTriggerGeneration(entityType: string): Promise<void> {
-    if (!this.running) return;
-
-    try {
-      await triggerGeneration(entityType, this.generationDeps);
-    } catch (error) {
-      this.config.logger.error(
-        `Generation trigger error for ${entityType}:`,
-        error,
-      );
-    }
-  }
-
   public completeGeneration(entityType: string, entityId: string): void {
     sendGenerationCompleted(entityType, entityId, this.config.messageBus);
   }
@@ -232,13 +150,6 @@ export class ContentScheduler {
   // -------------------------------------------------------------------
   // Internal helpers
   // -------------------------------------------------------------------
-
-  private stopAndClearJobs(jobs: Map<string, ScheduledJob>): void {
-    for (const job of jobs.values()) {
-      job.stop();
-    }
-    jobs.clear();
-  }
 
   private get entitySchedules(): Record<string, string> {
     return this.config.entitySchedules as Record<string, string>;
