@@ -2,6 +2,7 @@ import type { EntityPluginContext } from "@brains/plugins";
 import type { AgentEntity } from "../schemas/agent";
 import type { SkillEntity } from "../schemas/skill";
 import { AgentAdapter } from "../adapters/agent-adapter";
+import { AGENT_ENTITY_TYPE, SKILL_ENTITY_TYPE } from "./constants";
 
 const agentAdapter = new AgentAdapter();
 
@@ -45,8 +46,8 @@ export async function collectTagVocabulary(
   const counts = new Map<string, number>();
 
   const [skills, agents] = await Promise.all([
-    context.entityService.listEntities<SkillEntity>("skill"),
-    context.entityService.listEntities<AgentEntity>("agent"),
+    context.entityService.listEntities<SkillEntity>(SKILL_ENTITY_TYPE),
+    context.entityService.listEntities<AgentEntity>(AGENT_ENTITY_TYPE),
   ]);
 
   const bump = (tags: string[]): void => {

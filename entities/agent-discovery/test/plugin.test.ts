@@ -1,43 +1,28 @@
 import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
+import { z } from "@brains/utils";
 import { AgentDiscoveryPlugin } from "../src/plugin";
-import type { AgentEntity } from "../src/schemas/agent";
+import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
+import { createTestAgent } from "./fixtures/agent";
 
-function makeAgentEntity(status: "discovered" | "approved") {
-  return {
+const handledJobResultSchema = z.object({
+  kind: z.literal("handled"),
+  result: z.object({
+    data: z.object({
+      jobId: z.string(),
+    }),
+  }),
+});
+
+function makeAgentEntity(status: AgentStatus): AgentEntity {
+  return createTestAgent({
     id: "yeehaa.io",
-    entityType: "agent" as const,
-    content: `---
-name: Yeehaa
-kind: professional
-brainName: Yeehaa
-url: "https://yeehaa.io/a2a"
-status: ${status}
-discoveredAt: "2026-03-31T00:00:00.000Z"
----
-
-# Agent
-
-## About
-
-A saved agent.
-
-## Skills
-
-- chat: Talks with users [conversation]
-
-## Notes
-
-`,
-    metadata: {
-      name: "Yeehaa",
-      url: "https://yeehaa.io/a2a",
-      status,
-      slug: "yeehaa-io",
-    },
-    created: new Date("2026-03-31T00:00:00.000Z").toISOString(),
-    updated: new Date("2026-03-31T00:00:00.000Z").toISOString(),
-  };
+    name: "Yeehaa",
+    brainName: "Yeehaa",
+    url: "https://yeehaa.io/a2a",
+    status,
+    about: "A saved agent.",
+  });
 }
 
 describe("AgentDiscoveryPlugin", () => {
@@ -108,32 +93,32 @@ describe("AgentDiscoveryPlugin", () => {
 
     mockShell.getJobQueueService = (): ReturnType<
       typeof mockShell.getJobQueueService
-    > =>
-      ({
+    > => {
+      const jobQueue: ReturnType<typeof mockShell.getJobQueueService> = {
         ...origJobQueue,
-        enqueue: async (type: string, data: unknown, options?: unknown) => {
-          const jobOptions = options as Parameters<
-            typeof origJobQueue.enqueue
-          >[2];
+        enqueue: async (...args) => {
+          const [type, data, jobOptions] = args;
           const dedupeKey =
-            jobOptions?.deduplication === "coalesce"
+            jobOptions.deduplication === "coalesce"
               ? `${type}:${jobOptions.deduplicationKey ?? ""}`
               : undefined;
+          const existingJobId = dedupeKey
+            ? coalescedJobs.get(dedupeKey)
+            : undefined;
 
-          let jobId: string;
-          if (dedupeKey && coalescedJobs.has(dedupeKey)) {
-            jobId = coalescedJobs.get(dedupeKey) as string;
-          } else {
-            jobId = await origJobQueue.enqueue(type, data, jobOptions);
-            if (dedupeKey) {
-              coalescedJobs.set(dedupeKey, jobId);
-            }
+          const jobId =
+            existingJobId ??
+            (await origJobQueue.enqueue(type, data, jobOptions));
+          if (dedupeKey && !existingJobId) {
+            coalescedJobs.set(dedupeKey, jobId);
           }
 
-          enqueued.push({ type, options, jobId });
+          enqueued.push({ type, options: jobOptions, jobId });
           return jobId;
         },
-      }) as ReturnType<typeof mockShell.getJobQueueService>;
+      };
+      return jobQueue;
+    };
 
     await harness.installPlugin(plugin);
 
@@ -142,30 +127,34 @@ describe("AgentDiscoveryPlugin", () => {
       .getCreateInterceptor("agent");
     if (!interceptor) throw new Error("Expected agent create interceptor");
 
-    const first = (await interceptor(
-      {
-        entityType: "agent",
-        url: "https://yeehaa.io",
-      },
-      {
-        interfaceType: "test",
-        userId: "test-user",
-      },
-    )) as { result?: { data?: { jobId?: string } } };
+    const first = handledJobResultSchema.parse(
+      await interceptor(
+        {
+          entityType: "agent",
+          url: "https://yeehaa.io",
+        },
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      ),
+    );
 
-    const second = (await interceptor(
-      {
-        entityType: "agent",
-        url: "yeehaa.io",
-      },
-      {
-        interfaceType: "test",
-        userId: "test-user",
-      },
-    )) as { result?: { data?: { jobId?: string } } };
+    const second = handledJobResultSchema.parse(
+      await interceptor(
+        {
+          entityType: "agent",
+          url: "yeehaa.io",
+        },
+        {
+          interfaceType: "test",
+          userId: "test-user",
+        },
+      ),
+    );
 
-    expect(first.result?.data?.jobId).toBeDefined();
-    expect(second.result?.data?.jobId).toBe(first.result?.data?.jobId);
+    expect(first.result.data.jobId).toBeDefined();
+    expect(second.result.data.jobId).toBe(first.result.data.jobId);
     expect(enqueued).toHaveLength(2);
     expect(enqueued[0]?.type).toBe("agent:generation");
     expect(enqueued[0]?.options).toEqual(

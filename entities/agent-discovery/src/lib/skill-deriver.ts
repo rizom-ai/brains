@@ -11,6 +11,7 @@ import {
   formatVocabularyForPrompt,
   type TagVocabularyEntry,
 } from "./tag-vocabulary";
+import { SKILL_DERIVATION_TEMPLATE_REF, SKILL_ENTITY_TYPE } from "./constants";
 
 export interface SkillDeriverInput {
   topicTitles: string[];
@@ -106,7 +107,7 @@ export async function deriveSkills(
       skills: SkillFrontmatter[];
     }>({
       prompt,
-      templateName: "skill:skill-derivation",
+      templateName: SKILL_DERIVATION_TEMPLATE_REF,
     });
     skills = result.skills;
   } catch (error) {
@@ -130,12 +131,12 @@ export async function deriveSkills(
     SkillEntity
   >({
     context,
-    targetType: "skill",
+    targetType: SKILL_ENTITY_TYPE,
     desired: desired.values(),
     getId: (skill) => generateIdFromText(skill.name),
     toEntityInput: (skill, id) => ({
       id,
-      entityType: "skill",
+      entityType: SKILL_ENTITY_TYPE,
       content: adapter.createSkillContent(skill),
       metadata: skill,
     }),

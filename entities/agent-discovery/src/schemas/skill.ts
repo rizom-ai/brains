@@ -1,6 +1,7 @@
 import { z } from "@brains/utils";
 import { baseEntitySchema, skillDataSchema } from "@brains/plugins";
 import type { SkillData } from "@brains/plugins";
+import { SKILL_ENTITY_TYPE } from "../lib/constants";
 
 /**
  * Skill frontmatter schema — adapts SkillData (from plugins) into an entity.
@@ -21,7 +22,7 @@ export type SkillMetadata = z.infer<typeof skillMetadataSchema>;
  * Skill entity schema.
  */
 export const skillEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("skill"),
+  entityType: z.literal(SKILL_ENTITY_TYPE),
   metadata: skillMetadataSchema,
 });
 

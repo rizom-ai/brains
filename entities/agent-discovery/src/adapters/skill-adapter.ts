@@ -6,6 +6,7 @@ import {
   type SkillFrontmatter,
   type SkillMetadata,
 } from "../schemas/skill";
+import { SKILL_ENTITY_TYPE } from "../lib/constants";
 
 /**
  * Entity adapter for skill entities.
@@ -17,7 +18,7 @@ export class SkillAdapter extends BaseEntityAdapter<
 > {
   constructor() {
     super({
-      entityType: "skill",
+      entityType: SKILL_ENTITY_TYPE,
       schema: skillEntitySchema,
       frontmatterSchema: skillFrontmatterSchema,
     });
@@ -28,7 +29,7 @@ export class SkillAdapter extends BaseEntityAdapter<
 
     return {
       content: markdown,
-      entityType: "skill",
+      entityType: SKILL_ENTITY_TYPE,
       metadata: frontmatter,
     };
   }
