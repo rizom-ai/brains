@@ -200,6 +200,7 @@ Test agent.
           name: "Yeehaa",
           url: "https://yeehaa.io",
           status: "discovered" as const,
+          discoveredAt: "2026-03-31T00:00:00.000Z",
           slug: "yeehaa-io",
         },
       };
@@ -290,6 +291,7 @@ Test agent.
           name: "Phoney",
           url: "https://mylittlephoney.com/a2a",
           status: "approved" as const,
+          discoveredAt: "2026-04-20T00:00:00.000Z",
           slug: "mylittlephoney-com",
         },
       };
@@ -332,6 +334,7 @@ Test agent.
           name: "Yeehaa",
           url: "https://yeehaa.io",
           status: "approved" as const,
+          discoveredAt: "2026-04-20T00:00:00.000Z",
           slug: "yeehaa-io",
         },
       };

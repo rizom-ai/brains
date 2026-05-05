@@ -3,6 +3,7 @@ import { z, StructuredContentFormatter, slugifyUrl } from "@brains/utils";
 import {
   agentEntitySchema,
   agentFrontmatterSchema,
+  agentSkillSchema,
   agentStatusSchema,
   type AgentEntity,
   type AgentFrontmatter,
@@ -10,54 +11,19 @@ import {
   type AgentSkill,
   type AgentStatus,
 } from "../schemas/agent";
+import {
+  formatAgentSkills,
+  parseAgentSkills,
+} from "../lib/agent-skill-markdown";
+import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
 const agentBodySchema = z.object({
   about: z.string(),
-  skills: z.array(
-    z.object({
-      name: z.string(),
-      description: z.string(),
-      tags: z.array(z.string()),
-    }),
-  ),
+  skills: z.array(agentSkillSchema),
   notes: z.string(),
 });
 
 type AgentBody = z.infer<typeof agentBodySchema>;
-
-function formatSkills(value: unknown): string {
-  if (!Array.isArray(value) || value.length === 0) return "";
-  const skills = value as AgentSkill[];
-
-  return skills
-    .map((s) => {
-      const tags = s.tags.length > 0 ? ` [${s.tags.join(", ")}]` : "";
-      return `- ${s.name}: ${s.description}${tags}`;
-    })
-    .join("\n");
-}
-
-function parseSkills(text: string): AgentSkill[] {
-  if (!text.trim()) return [];
-
-  const skills: AgentSkill[] = [];
-  for (const line of text.split("\n")) {
-    const match = line.match(/^- (.+?): (.+?)(?:\s+\[(.+?)\])?$/);
-    if (match) {
-      const name = match[1] ?? "";
-      const description = match[2] ?? "";
-      const tagsStr = match[3];
-      const tags = tagsStr
-        ? tagsStr
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean)
-        : [];
-      skills.push({ name, description, tags });
-    }
-  }
-  return skills;
-}
 
 const bodyFormatter = new StructuredContentFormatter<AgentBody>(
   agentBodySchema,
@@ -69,8 +35,8 @@ const bodyFormatter = new StructuredContentFormatter<AgentBody>(
         key: "skills",
         label: "Skills",
         type: "custom",
-        formatter: formatSkills,
-        parser: parseSkills,
+        formatter: formatAgentSkills,
+        parser: parseAgentSkills,
       },
       { key: "notes", label: "Notes", type: "string" },
     ],
@@ -97,7 +63,7 @@ export class AgentAdapter extends BaseEntityAdapter<
 > {
   constructor() {
     super({
-      entityType: "agent",
+      entityType: AGENT_ENTITY_TYPE,
       schema: agentEntitySchema,
       frontmatterSchema: agentFrontmatterSchema,
     });
@@ -109,11 +75,12 @@ export class AgentAdapter extends BaseEntityAdapter<
 
     return {
       content: markdown,
-      entityType: "agent",
+      entityType: AGENT_ENTITY_TYPE,
       metadata: {
         name: frontmatter.name,
         url: frontmatter.url,
         status: frontmatter.status,
+        discoveredAt: frontmatter.discoveredAt,
         slug,
       },
     };

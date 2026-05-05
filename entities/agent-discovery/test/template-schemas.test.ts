@@ -4,40 +4,18 @@ import {
   enrichedAgentSchema,
   templateAgentSchema,
 } from "../src/schemas/agent";
+import { createTestAgentWithData } from "./fixtures/agent";
 
-const baseAgent = {
+const baseAgent = createTestAgentWithData({
   id: "agent-1",
-  entityType: "agent" as const,
-  content: "---\nname: Yeehaa\n---\n",
-  created: "2026-03-31T00:00:00.000Z",
-  updated: "2026-03-31T00:00:00.000Z",
-  metadata: {
-    name: "Yeehaa",
-    url: "https://yeehaa.io",
-    status: "discovered" as const,
-    slug: "yeehaa-io",
-  },
-  contentHash: "abc123",
-  frontmatter: {
-    name: "Yeehaa",
-    kind: "professional" as const,
-    organization: "Rizom",
-    brainName: "Yeehaa's Brain",
-    url: "https://yeehaa.io",
-    did: "did:web:yeehaa.io",
-    status: "discovered" as const,
-    discoveredAt: "2026-03-31T00:00:00.000Z",
-  },
+  name: "Yeehaa",
+  organization: "Rizom",
+  brainName: "Yeehaa's Brain",
+  url: "https://yeehaa.io",
+  did: "did:web:yeehaa.io",
   about: "Founder of Rizom.",
-  skills: [
-    {
-      name: "Content Creation",
-      description: "Create blog posts",
-      tags: ["blog"],
-    },
-  ],
   notes: "Reliable collaborator.",
-};
+});
 
 describe("Agent template schemas", () => {
   describe("agentWithDataSchema", () => {
