@@ -9,10 +9,6 @@ export interface PrepareSiteImagesOptions {
   sharedImagesDir: string;
 }
 
-/**
- * Pre-resolve all image references before rendering.
- * This gives renderers an Astro-like map of optimized static image variants.
- */
 export async function prepareSiteImages(
   options: PrepareSiteImagesOptions,
 ): Promise<ImageBuildService> {

@@ -2,6 +2,7 @@ import type { Logger } from "@brains/utils";
 import {
   EntityUrlGenerator,
   getCoverImageId,
+  getErrorMessage,
   pluralize,
   z,
 } from "@brains/utils";
@@ -9,7 +10,6 @@ import type { SiteImageLookup } from "@brains/site-engine";
 import type { EntityDisplayMap } from "../config";
 import type { SiteContentEntityService } from "./site-content-contracts";
 
-// Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = z
   .object({
     id: z.string(),
@@ -215,7 +215,7 @@ export async function collectAllImageIds(
     }
   } catch (error) {
     logger.warn("Failed to collect image IDs for pre-resolution", {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     });
   }
 

@@ -8,9 +8,10 @@ import type {
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
 import { collectBuildRoutes } from "./collect-build-routes";
+import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
-import { prepareBuildContext } from "./prepare-build-context";
+import { prepareSiteImages } from "./prepare-site-images";
 import { runStaticSiteBuild } from "./run-static-site-build";
 import type { SiteBuilderServices } from "./site-builder-services";
 import type { SiteBuildProfileService } from "./site-build-profile-service";
@@ -81,15 +82,22 @@ export async function runSiteBuild(
       total: 100,
     });
 
-    const buildContext = await prepareBuildContext({
+    const imageBuildService = await prepareSiteImages({
+      services: options.services,
+      logger: options.logger,
+      sharedImagesDir: parsedOptions.sharedImagesDir,
+    });
+
+    const buildContext = createBuildContext({
       routes,
       parsedOptions,
       buildOptions: options.buildOptions,
       services: options.services,
-      logger: options.logger,
       routeRegistry: options.routeRegistry,
       profileService: options.profileService,
       entityDisplay: options.entityDisplay,
+      imageBuildService,
+      siteMetadata: parsedOptions.siteConfig,
     });
 
     await runStaticSiteBuild({

@@ -32,9 +32,6 @@ export interface CreateBuildContextOptions {
   siteMetadata: SiteMetadata;
 }
 
-/**
- * Assemble the renderer build context from resolved site-builder runtime inputs.
- */
 export function createBuildContext(
   options: CreateBuildContextOptions,
 ): BuildContext {
