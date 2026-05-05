@@ -113,6 +113,9 @@ export interface IConversationsNamespace {
     conversationId: string,
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
+
+  /** Count messages in a conversation without loading them */
+  countMessages: (conversationId: string) => Promise<number>;
 }
 
 /**

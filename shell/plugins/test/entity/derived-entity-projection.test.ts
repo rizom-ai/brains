@@ -86,6 +86,7 @@ function createProjectionContext(options?: {
       search: mock(() => Promise.resolve([])),
       list: mock(() => Promise.resolve([])),
       getMessages: mock(() => Promise.resolve([])),
+      countMessages: mock(() => Promise.resolve(0)),
     },
     eval: { registerHandler: mock(() => {}) },
     insights: { register: mock(() => {}) },

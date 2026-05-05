@@ -137,6 +137,7 @@ export function createMockEntityPluginContext(
       search: mock(() => Promise.resolve([])),
       list: mock(() => Promise.resolve([])),
       getMessages: mock(() => Promise.resolve([])),
+      countMessages: mock(() => Promise.resolve(0)),
     },
 
     jobs: {

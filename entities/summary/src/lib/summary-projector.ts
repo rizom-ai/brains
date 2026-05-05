@@ -1,10 +1,8 @@
-import {
-  generateMarkdownWithFrontmatter,
-  type EntityPluginContext,
-  type Message,
-} from "@brains/plugins";
-import type { Logger } from "@brains/utils";
+import { type EntityPluginContext, type Message } from "@brains/plugins";
+import { pLimit, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
+
+const CHUNK_EXTRACTION_CONCURRENCY = 3;
 import { SUMMARY_ENTITY_TYPE } from "./constants";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type {
@@ -81,11 +79,7 @@ export class SummaryProjector {
       projectionVersion: this.config.projectionVersion,
     };
 
-    const contentBody = this.adapter.createContentBody(entries);
-    const content = generateMarkdownWithFrontmatter(
-      contentBody,
-      metadata as unknown as Record<string, unknown>,
-    );
+    const content = this.adapter.composeContent(entries, metadata);
 
     const now = new Date().toISOString();
     const entity: SummaryEntity = {
@@ -120,13 +114,12 @@ export class SummaryProjector {
     if (messages.length === 0) return [];
 
     const chunks = this.chunkMessages(messages);
-    const entries: SummaryEntry[] = [];
+    const limit = pLimit(CHUNK_EXTRACTION_CONCURRENCY);
+    const chunkResults = await Promise.all(
+      chunks.map((chunk) => limit(() => this.extractor.extract(chunk))),
+    );
 
-    for (const chunk of chunks) {
-      entries.push(...(await this.extractor.extract(chunk)));
-    }
-
-    return this.compactEntries(entries);
+    return this.compactEntries(chunkResults.flat());
   }
 
   private chunkMessages(messages: Message[]): Message[][] {

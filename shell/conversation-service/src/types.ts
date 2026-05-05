@@ -1,6 +1,15 @@
 import { z } from "@brains/utils";
 import type { Message, Conversation } from "./schema";
 
+/** Source kind for projections that derive entities from conversation events. */
+export const CONVERSATION_SOURCE_KIND = "conversation";
+
+/** Bus channel emitted when a new message is appended to a conversation. */
+export const CONVERSATION_MESSAGE_ADDED_CHANNEL = "conversation:messageAdded";
+
+/** Bus channel emitted when a new conversation is started. */
+export const CONVERSATION_STARTED_CHANNEL = "conversation:started";
+
 /**
  * Valid message roles in a conversation
  */
@@ -62,6 +71,7 @@ export interface IConversationService {
     conversationId: string,
     options?: GetMessagesOptions,
   ): Promise<Message[]>;
+  countMessages(conversationId: string): Promise<number>;
   getConversation(conversationId: string): Promise<Conversation | null>;
   listConversations(
     options?: ListConversationsOptions,

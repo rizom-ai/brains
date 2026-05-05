@@ -142,6 +142,9 @@ export function createConversationsNamespace(
       );
       return messages.map(toPublicMessage);
     },
+    countMessages: async (conversationId: string): Promise<number> => {
+      return shell.getConversationService().countMessages(conversationId);
+    },
   };
 }
 

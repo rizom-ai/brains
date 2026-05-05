@@ -40,6 +40,16 @@ export class SummaryAdapter extends BaseEntityAdapter<
     return lines.join("\n").trimEnd() + "\n";
   }
 
+  public composeContent(
+    entries: SummaryEntry[],
+    metadata: SummaryMetadata,
+  ): string {
+    return this.buildMarkdown(
+      this.createContentBody(entries),
+      metadata as Record<string, unknown>,
+    );
+  }
+
   public parseBody(content: string): SummaryBody {
     const body = content.startsWith("---")
       ? this.extractBody(content)
@@ -53,10 +63,7 @@ export class SummaryAdapter extends BaseEntityAdapter<
 
   public override toMarkdown(entity: SummaryEntity): string {
     const { entries } = this.parseBody(entity.content);
-    return this.buildMarkdown(
-      this.createContentBody(entries),
-      entity.metadata as Record<string, unknown>,
-    );
+    return this.composeContent(entries, entity.metadata);
   }
 
   public fromMarkdown(markdown: string): Partial<SummaryEntity> {

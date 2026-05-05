@@ -94,6 +94,3 @@ export const summaryConfigSchema = z.object({
 });
 
 export type SummaryConfig = z.infer<typeof summaryConfigSchema>;
-
-// Backward-compatible type aliases for package consumers during the refactor.
-export type SummaryLogEntry = SummaryEntry;

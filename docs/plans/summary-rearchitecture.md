@@ -113,7 +113,10 @@ Digest events are not used as source data.
 ```ts
 {
   enableProjection: true,
-  maxSourceMessages: 200,
+  maxSourceMessages: 1000,
+  maxMessagesPerChunk: 40,
+  minMessagesBetweenProjections: 5,
+  minMinutesBetweenProjections: 5,
   maxEntries: 50,
   maxEntryLength: 800,
   includeKeyPoints: true,

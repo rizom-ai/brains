@@ -393,6 +393,7 @@
       "name": "@brains/summary",
       "version": "0.2.0-alpha.49",
       "dependencies": {
+        "@brains/conversation-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/templates": "workspace:*",
         "@brains/ui-library": "workspace:*",

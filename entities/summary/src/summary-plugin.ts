@@ -7,6 +7,10 @@ import {
   type DerivedEntityProjection,
   type Template,
 } from "@brains/plugins";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
+} from "@brains/conversation-service";
 import { z } from "@brains/utils";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import type { SummaryEntity } from "./schemas/summary";
@@ -95,11 +99,11 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
           },
         },
         sourceChange: {
-          sourceKind: "conversation",
-          sourceTypes: ["conversation"],
+          sourceKind: CONVERSATION_SOURCE_KIND,
+          sourceTypes: [CONVERSATION_SOURCE_KIND],
           shouldEnqueue: (payload) =>
             this.shouldEnqueueConversationProjection(context, payload),
-          events: ["conversation:messageAdded"],
+          events: [CONVERSATION_MESSAGE_ADDED_CHANNEL],
           jobData: (
             payload,
           ): {
@@ -151,6 +155,11 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   ): Promise<boolean> {
     const parsed = conversationMessageAddedSchema.parse(payload);
 
+    const messageCount = await context.conversations.countMessages(
+      parsed.conversationId,
+    );
+    if (messageCount === 0) return false;
+
     let existing: SummaryEntity | null = null;
     try {
       existing = await context.entityService.getEntity<SummaryEntity>(
@@ -161,17 +170,11 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
       existing = null;
     }
 
-    const messages = await context.conversations.getMessages(
-      parsed.conversationId,
-      { limit: this.config.maxSourceMessages },
-    );
-    if (messages.length === 0) return false;
-
     if (!existing) {
-      return messages.length >= this.config.minMessagesBetweenProjections;
+      return messageCount >= this.config.minMessagesBetweenProjections;
     }
 
-    const newMessageCount = messages.length - existing.metadata.messageCount;
+    const newMessageCount = messageCount - existing.metadata.messageCount;
     if (newMessageCount >= this.config.minMessagesBetweenProjections) {
       return true;
     }

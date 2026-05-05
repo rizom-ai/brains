@@ -22,7 +22,7 @@ export interface ProjectionInitialSyncConfig {
   jobOptions?: JobOptions | (() => JobOptions | undefined);
 }
 
-export type ProjectionSourceKind = "entity" | "conversation" | "custom";
+export type ProjectionSourceKind = "entity" | "conversation";
 
 export interface ProjectionSourceChangeConfig {
   sourceTypes: readonly string[];

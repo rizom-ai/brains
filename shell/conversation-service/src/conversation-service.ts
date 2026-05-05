@@ -11,6 +11,10 @@ import type {
   ListConversationsOptions,
   ConversationDigestPayload,
 } from "./types";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_STARTED_CHANNEL,
+} from "./types";
 import type {
   Conversation,
   Message,
@@ -155,7 +159,7 @@ export class ConversationService implements IConversationService {
 
     // Emit event for plugins
     await this.messageBus.send(
-      "conversation:started",
+      CONVERSATION_STARTED_CHANNEL,
       {
         conversationId: sessionId,
         sessionId,
@@ -218,7 +222,7 @@ export class ConversationService implements IConversationService {
 
     // Emit event for plugins (non-blocking)
     await this.messageBus.send(
-      "conversation:messageAdded",
+      CONVERSATION_MESSAGE_ADDED_CHANNEL,
       {
         conversationId,
         messageId,
@@ -335,6 +339,14 @@ export class ConversationService implements IConversationService {
     return results.map((r) => r.conversation);
   }
 
+  async countMessages(conversationId: string): Promise<number> {
+    const [result] = await this.db
+      .select({ count: count() })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+    return Number(result?.count ?? 0);
+  }
+
   /**
    * Check if digest should be broadcast and do so if needed
    */
@@ -342,13 +354,7 @@ export class ConversationService implements IConversationService {
     conversationId: string,
     timestamp: string,
   ): Promise<void> {
-    // Get current message count for this conversation
-    const [result] = await this.db
-      .select({ count: count() })
-      .from(messages)
-      .where(eq(messages.conversationId, conversationId));
-
-    const messageCount = Number(result?.count ?? 0);
+    const messageCount = await this.countMessages(conversationId);
 
     // Check if we should trigger a digest
     const triggerInterval = this.config.digestTriggerInterval ?? 10;
