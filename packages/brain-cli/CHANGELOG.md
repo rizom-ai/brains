@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.50
+
+### Patch Changes
+
+- [`541d407`](https://github.com/rizom-ai/brains/commit/541d407f3141ec6b44d717def49db6c1129e9c0e) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Update generated deploy workflows to run the current Varlock CLI, support Bitwarden-backed schemas with only `BWS_ACCESS_TOKEN` in GitHub Actions secrets, and keep `.env.schema` tracked by default.
+
 ## 0.2.0-alpha.49
 
 ### Patch Changes

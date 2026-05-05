@@ -89,11 +89,13 @@
     "@rizom/ui": "0.2.0-alpha.34",
     "@brains/assessment": "0.2.0-alpha.39",
     "@brains/doc": "0.2.0-alpha.42",
-    "@brains/deploy-templates": "0.2.0-alpha.45"
+    "@brains/deploy-templates": "0.2.0-alpha.45",
+    "@brains/site-engine": "0.2.0-alpha.48"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
     "align-preview-domain-routing",
+    "bitwarden-deploy-workflow-template",
     "bitwarden-secrets-push",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
