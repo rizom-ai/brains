@@ -1,16 +1,8 @@
 import type { EntityPluginContext } from "@brains/plugins";
+import { firstSentence } from "@brains/utils";
 import { TOPIC_ENTITY_TYPE, TOPICS_PLUGIN_ID } from "./constants";
 import { toTopicContentProjection } from "./topic-presenter";
 import type { TopicEntity } from "../schemas/topic";
-
-/** First sentence of a text block, capped at 200 chars with ellipsis. */
-function firstSentence(text: string): string | undefined {
-  const trimmed = text.replace(/\s+/g, " ").trim();
-  if (!trimmed) return undefined;
-  const match = trimmed.match(/^(.*?[.!?])(?:\s|$)/);
-  if (match?.[1]) return match[1];
-  return trimmed.length <= 200 ? trimmed : `${trimmed.slice(0, 197)}…`;
-}
 
 export function registerTopicsDashboardWidget(params: {
   context: EntityPluginContext;

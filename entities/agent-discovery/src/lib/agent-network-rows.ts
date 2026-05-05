@@ -1,3 +1,4 @@
+import { firstSentence } from "@brains/utils";
 import type {
   AgentEntity,
   AgentFrontmatter,
@@ -19,14 +20,6 @@ export interface ParsedAgentForNetwork {
     skills: AgentSkill[];
     notes: string;
   };
-}
-
-function firstSentence(text: string): string | undefined {
-  const trimmed = text.replace(/\s+/g, " ").trim();
-  if (!trimmed) return undefined;
-  const match = trimmed.match(/^(.*?[.!?])(?:\s|$)/);
-  if (match?.[1]) return match[1];
-  return trimmed.length <= 200 ? trimmed : `${trimmed.slice(0, 197)}…`;
 }
 
 function formatAgentDisplayName(frontmatter: AgentFrontmatter): string {

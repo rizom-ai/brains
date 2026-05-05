@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { createPluginHarness } from "@brains/plugins/test";
 import { z } from "@brains/utils";
-import { AgentDiscoveryPlugin } from "../src/plugin";
+import { AgentDiscoveryPlugin } from "../src/plugins/agent-plugin";
 import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import { createTestAgent } from "./fixtures/agent";
 

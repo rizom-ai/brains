@@ -1,9 +1,12 @@
 import type { Plugin } from "@brains/plugins";
 import { z } from "@brains/utils";
-import { agentDiscoveryPlugin } from "./plugin";
+import { agentDiscoveryPlugin } from "./plugins/agent-plugin";
 import { skillPlugin } from "./plugins/skill-plugin";
 
-export { AgentDiscoveryPlugin, agentDiscoveryPlugin } from "./plugin";
+export {
+  AgentDiscoveryPlugin,
+  agentDiscoveryPlugin,
+} from "./plugins/agent-plugin";
 
 /**
  * Composite config for the agent-discovery feature.

@@ -187,6 +187,18 @@ export function calculateReadingTime(content: string): number {
 }
 
 /**
+ * Extract the first sentence from a block of text, capped at 200 chars
+ * with ellipsis. Returns undefined for empty input.
+ */
+export function firstSentence(text: string): string | undefined {
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (!trimmed) return undefined;
+  const match = trimmed.match(/^(.*?[.!?])(?:\s|$)/);
+  if (match?.[1]) return match[1];
+  return trimmed.length <= 200 ? trimmed : `${trimmed.slice(0, 197)}…`;
+}
+
+/**
  * Truncate text to a maximum length, ending at a word boundary
  */
 export function truncateText(text: string, maxLength: number): string {

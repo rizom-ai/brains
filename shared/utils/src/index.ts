@@ -61,6 +61,7 @@ export {
   displayLinkLabel,
   formatLabel,
   calculateReadingTime,
+  firstSentence,
   truncateText,
   derivePreviewDomain,
   interpolateEnvVar,
