@@ -12,7 +12,10 @@ export async function listExistingTopicTitles(
   entityService: IEntityService,
   limit = MAX_EXISTING_TOPIC_TITLES,
 ): Promise<string[]> {
-  const topics = await entityService.listEntities(TOPIC_ENTITY_TYPE, { limit });
+  const topics = await entityService.listEntities({
+    entityType: TOPIC_ENTITY_TYPE,
+    options: { limit },
+  });
 
   return topics
     .map(getTopicTitle)

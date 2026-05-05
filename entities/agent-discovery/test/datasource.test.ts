@@ -82,12 +82,12 @@ describe("AgentDataSource", () => {
 
       await datasource.fetch({ entityType: "agent" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "agent",
-        expect.objectContaining({
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "agent",
+        options: expect.objectContaining({
           sortFields: [{ field: "discoveredAt", direction: "desc" }],
         }),
-      );
+      });
     });
 
     it("should filter by status at the entity-service level", async () => {
@@ -100,12 +100,12 @@ describe("AgentDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "agent",
-        expect.objectContaining({
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "agent",
+        options: expect.objectContaining({
           filter: { metadata: { status: "approved" } },
         }),
-      );
+      });
     });
   });
 

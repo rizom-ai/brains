@@ -12,11 +12,11 @@ import {
 export interface CleanupPipelineDeps {
   entityService: {
     getEntityTypes(): string[];
-    listEntities(
-      entityType: string,
-      options?: { limit?: number },
-    ): Promise<BaseEntity[]>;
-    deleteEntity(entityType: string, id: string): Promise<boolean>;
+    listEntities(request: {
+      entityType: string;
+      options?: { limit?: number };
+    }): Promise<BaseEntity[]>;
+    deleteEntity(request: { entityType: string; id: string }): Promise<boolean>;
   };
   logger: {
     debug(message: string, meta?: Record<string, unknown>): void;
@@ -49,15 +49,21 @@ export async function removeOrphanedEntities(
   const result = createCleanupResult();
 
   for (const entityType of typesToCheck) {
-    const entities = await deps.entityService.listEntities(entityType, {
-      limit: 1000,
+    const entities = await deps.entityService.listEntities({
+      entityType,
+      options: {
+        limit: 1000,
+      },
     });
 
     for (const entity of entities) {
       const filePath = deps.fileOperations.getEntityFilePath(entity);
       if (!(await deps.fileOperations.fileExists(filePath))) {
         try {
-          await deps.entityService.deleteEntity(entity.entityType, entity.id);
+          await deps.entityService.deleteEntity({
+            entityType: entity.entityType,
+            id: entity.id,
+          });
           recordCleanupDeleted(deps.logger, result, entity);
         } catch (error) {
           recordCleanupError(deps.logger, result, entity, error);

@@ -162,10 +162,10 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
 
     let existing: SummaryEntity | null = null;
     try {
-      existing = await context.entityService.getEntity<SummaryEntity>(
-        SUMMARY_ENTITY_TYPE,
-        parsed.conversationId,
-      );
+      existing = await context.entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: parsed.conversationId,
+      });
     } catch {
       existing = null;
     }

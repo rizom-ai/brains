@@ -59,22 +59,28 @@ describe("dashboard widget registration", () => {
 
   it("should provide status summary and items", async () => {
     await context.entityService.createEntity({
-      id: "draft-post",
-      entityType: "social-post",
-      content: "draft",
-      metadata: { status: "draft", title: "Draft Post" },
+      entity: {
+        id: "draft-post",
+        entityType: "social-post",
+        content: "draft",
+        metadata: { status: "draft", title: "Draft Post" },
+      },
     });
     await context.entityService.createEntity({
-      id: "queued-post",
-      entityType: "social-post",
-      content: "queued",
-      metadata: { status: "queued" },
+      entity: {
+        id: "queued-post",
+        entityType: "social-post",
+        content: "queued",
+        metadata: { status: "queued" },
+      },
     });
     await context.entityService.createEntity({
-      id: "ignored-post",
-      entityType: "social-post",
-      content: "ignored",
-      metadata: { status: "archived" },
+      entity: {
+        id: "ignored-post",
+        entityType: "social-post",
+        content: "ignored",
+        metadata: { status: "archived" },
+      },
     });
 
     await registerDashboardWidget(context, "content-pipeline");

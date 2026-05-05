@@ -40,10 +40,10 @@ export class SummaryDataSource implements DataSource {
     const queryId = params.query?.conversationId ?? params.query?.id;
 
     if (queryId) {
-      const entity = await entityService.getEntity<SummaryEntity>(
-        SUMMARY_ENTITY_TYPE,
-        queryId,
-      );
+      const entity = await entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: queryId,
+      });
       if (!entity) throw new Error(`Summary not found: ${queryId}`);
 
       const { entries } = this.adapter.parseBody(entity.content);
@@ -58,10 +58,10 @@ export class SummaryDataSource implements DataSource {
       return outputSchema.parse(detailData);
     }
 
-    const entities = await entityService.listEntities<SummaryEntity>(
-      SUMMARY_ENTITY_TYPE,
-      { limit: params.query?.limit ?? 100 },
-    );
+    const entities = await entityService.listEntities<SummaryEntity>({
+      entityType: SUMMARY_ENTITY_TYPE,
+      options: { limit: params.query?.limit ?? 100 },
+    });
 
     const summaries = entities.map((summary) => {
       const { entries } = this.adapter.parseBody(summary.content);

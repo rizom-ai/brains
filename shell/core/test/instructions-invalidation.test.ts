@@ -55,14 +55,12 @@ describe("registerInstructions should invalidate agent", () => {
       },
     );
 
-    await messageBus.send(
-      "entity:updated",
-      { entityType: "site-info", entityId: "site-info" },
-      "test",
-      undefined,
-      undefined,
-      true,
-    );
+    await messageBus.send({
+      type: "entity:updated",
+      payload: { entityType: "site-info", entityId: "site-info" },
+      sender: "test",
+      broadcast: true,
+    });
 
     expect(invalidateAgent).toHaveBeenCalledTimes(1);
   });
@@ -80,14 +78,12 @@ describe("registerInstructions should invalidate agent", () => {
       },
     );
 
-    await messageBus.send(
-      "entity:updated",
-      { entityType: "post", entityId: "my-post" },
-      "test",
-      undefined,
-      undefined,
-      true,
-    );
+    await messageBus.send({
+      type: "entity:updated",
+      payload: { entityType: "post", entityId: "my-post" },
+      sender: "test",
+      broadcast: true,
+    });
 
     expect(invalidateAgent).toHaveBeenCalledTimes(0);
   });

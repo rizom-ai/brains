@@ -367,7 +367,12 @@ async function runDiagnostics(
     [];
 
   const entityLists = await Promise.all(
-    entityTypes.map((type) => entityService.listEntities(type, { limit: 100 })),
+    entityTypes.map((type) =>
+      entityService.listEntities({
+        entityType: type,
+        options: { limit: 100 },
+      }),
+    ),
   );
   for (const entities of entityLists) {
     for (const entity of entities) {
@@ -394,7 +399,7 @@ async function runDiagnostics(
   const selfDistances: number[] = [];
 
   const searchResults = await Promise.all(
-    samples.map((s) => entityService.searchWithDistances(s.title)),
+    samples.map((s) => entityService.searchWithDistances({ query: s.title })),
   );
   for (const [i, sample] of samples.entries()) {
     for (const r of searchResults[i] ?? []) {

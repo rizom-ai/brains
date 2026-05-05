@@ -45,26 +45,36 @@ const entityService = EntityService.createFresh({
 await entityService.initialize();
 
 const { entityId, jobId } = await entityService.createEntity({
-  entityType: "note",
-  content: "---\ntitle: My Note\n---\n\nNote content...",
-  metadata: { title: "My Note", tags: ["important"] },
+  entity: {
+    entityType: "note",
+    content: "---\ntitle: My Note\n---\n\nNote content...",
+    metadata: { title: "My Note", tags: ["important"] },
+  },
 });
 
-const note = await entityService.getEntity("note", entityId);
+const note = await entityService.getEntity({
+  entityType: "note",
+  id: entityId,
+});
 
-const results = await entityService.search("important notes about AI", {
-  types: ["note"],
-  limit: 10,
+const results = await entityService.search({
+  query: "important notes about AI",
+  options: {
+    types: ["note"],
+    limit: 10,
+  },
 });
 
 if (note) {
   await entityService.updateEntity({
-    ...note,
-    content: "Updated content",
+    entity: {
+      ...note,
+      content: "Updated content",
+    },
   });
 }
 
-await entityService.deleteEntity("note", entityId);
+await entityService.deleteEntity({ entityType: "note", id: entityId });
 ```
 
 ## Entity model
@@ -131,12 +141,15 @@ Use `BaseEntityAdapter` for common frontmatter/body behavior.
 ## Search
 
 ```typescript
-const results = await entityService.search("machine learning concepts", {
-  types: ["note", "article"],
-  excludeTypes: ["image"],
-  limit: 20,
-  offset: 0,
-  weight: { article: 1.5, note: 1.0 },
+const results = await entityService.search({
+  query: "machine learning concepts",
+  options: {
+    types: ["note", "article"],
+    excludeTypes: ["image"],
+    limit: 20,
+    offset: 0,
+    weight: { article: 1.5, note: 1.0 },
+  },
 });
 ```
 

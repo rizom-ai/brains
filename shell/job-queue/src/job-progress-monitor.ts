@@ -147,14 +147,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
         };
       }
 
-      await this.messageBus.send(
-        "job-progress",
-        event,
-        "job-progress-monitor",
-        undefined, // no target - use metadata for routing
-        undefined,
-        true, // broadcast to all subscribers
-      );
+      await this.messageBus.send({
+        type: "job-progress",
+        payload: event,
+        sender: "job-progress-monitor",
+        broadcast: true,
+      });
 
       this.logger.debug("Emitted batch progress update", {
         batchId,
@@ -174,14 +172,12 @@ export class JobProgressMonitor implements IJobProgressMonitor {
   }
 
   private async broadcastEvent(event: JobProgressEvent): Promise<void> {
-    await this.messageBus.send(
-      "job-progress",
-      event,
-      "job-progress-monitor",
-      undefined,
-      undefined,
-      true,
-    );
+    await this.messageBus.send({
+      type: "job-progress",
+      payload: event,
+      sender: "job-progress-monitor",
+      broadcast: true,
+    });
   }
 
   private async emitJobProgress(

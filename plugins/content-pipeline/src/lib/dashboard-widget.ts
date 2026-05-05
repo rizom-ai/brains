@@ -20,14 +20,17 @@ export async function registerDashboardWidget(
   context: ServicePluginContext,
   pluginId: string,
 ): Promise<void> {
-  await context.messaging.send("dashboard:register-widget", {
-    id: "publication-pipeline",
-    pluginId,
-    title: "Publication Pipeline",
-    section: "secondary",
-    priority: 100,
-    rendererName: "PipelineWidget",
-    dataProvider: () => getPipelineWidgetData(context),
+  await context.messaging.send({
+    type: "dashboard:register-widget",
+    payload: {
+      id: "publication-pipeline",
+      pluginId,
+      title: "Publication Pipeline",
+      section: "secondary",
+      priority: 100,
+      rendererName: "PipelineWidget",
+      dataProvider: () => getPipelineWidgetData(context),
+    },
   });
 }
 
@@ -44,7 +47,7 @@ async function getPipelineWidgetData(
   };
 
   for (const entityType of entityTypes) {
-    const entities = await context.entityService.listEntities(entityType);
+    const entities = await context.entityService.listEntities({ entityType });
     for (const entity of entities) {
       const status = parsePublishStatus(entity.metadata["status"]);
       if (!status) continue;

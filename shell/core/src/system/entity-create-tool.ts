@@ -78,9 +78,9 @@ export function createEntityCreateTool(services: SystemServices): Tool {
 
       if (createInput.prompt) {
         try {
-          const jobId = await jobs.enqueue(
-            `${createInput.entityType}:generation`,
-            {
+          const jobId = await jobs.enqueue({
+            type: `${createInput.entityType}:generation`,
+            data: {
               prompt: createInput.prompt,
               ...(createInput.title && { title: createInput.title }),
               ...(createInput.content && { content: createInput.content }),
@@ -92,7 +92,7 @@ export function createEntityCreateTool(services: SystemServices): Tool {
               }),
             },
             toolContext,
-          );
+          });
           return { success: true, data: { status: "generating", jobId } };
         } catch (error) {
           return {
@@ -115,17 +115,21 @@ export function createEntityCreateTool(services: SystemServices): Tool {
         const result =
           createInput.content && hasStructuredFrontmatter(frontmatterSchema)
             ? await entityService.createEntityFromMarkdown({
-                entityType: createInput.entityType,
-                id,
-                markdown: createInput.content,
+                input: {
+                  entityType: createInput.entityType,
+                  id,
+                  markdown: createInput.content,
+                },
               })
             : await entityService.createEntity({
-                id,
-                entityType: createInput.entityType,
-                content: createInput.content ?? "",
-                metadata: { title: createInput.title ?? id },
-                created: new Date().toISOString(),
-                updated: new Date().toISOString(),
+                entity: {
+                  id,
+                  entityType: createInput.entityType,
+                  content: createInput.content ?? "",
+                  metadata: { title: createInput.title ?? id },
+                  created: new Date().toISOString(),
+                  updated: new Date().toISOString(),
+                },
               });
         return {
           success: true,

@@ -32,8 +32,11 @@ export async function exportEntities(
   const result = createExportResult();
 
   for (const entityType of typesToExport) {
-    const entities = await deps.entityService.listEntities(entityType, {
-      limit: 1000,
+    const entities = await deps.entityService.listEntities({
+      entityType: entityType,
+      options: {
+        limit: 1000,
+      },
     });
 
     deps.logger.debug("Processing entity type for export", {
@@ -63,7 +66,10 @@ export async function processEntityExport(
           entityId: entity.id,
           entityType: entity.entityType,
         });
-        await deps.entityService.deleteEntity(entity.entityType, entity.id);
+        await deps.entityService.deleteEntity({
+          entityType: entity.entityType,
+          id: entity.id,
+        });
         return { success: true, deleted: true };
       }
     }

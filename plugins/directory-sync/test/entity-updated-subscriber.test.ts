@@ -109,7 +109,7 @@ slug: test-series
 
       // Save entity to DB first (subscriber fetches from DB)
       const entityService = harness.getEntityService();
-      await entityService.upsertEntity(entity);
+      await entityService.upsertEntity({ entity: entity });
 
       // Create series directory
       const seriesDir = join(syncPath, "series");
@@ -156,7 +156,7 @@ Some content here.`;
 
       // Save entity to DB first (subscriber fetches from DB)
       const entityService = harness.getEntityService();
-      await entityService.upsertEntity(entity);
+      await entityService.upsertEntity({ entity: entity });
 
       // Create series directory
       const seriesDir = join(syncPath, "series");
@@ -213,7 +213,7 @@ slug: test-series
       });
 
       const entityService = harness.getEntityService();
-      await entityService.upsertEntity(currentEntity);
+      await entityService.upsertEntity({ entity: currentEntity });
 
       // Create series directory
       const seriesDir = join(syncPath, "series");

@@ -349,12 +349,14 @@ const postContent = blogPostAdapter.createPostContent(
 );
 
 await entityService.createEntity({
-  id: "hello-world",
-  entityType: "post",
-  content: postContent,
-  metadata: {
-    title: "Hello World",
-    status: "draft",
+  entity: {
+    id: "hello-world",
+    entityType: "post",
+    content: postContent,
+    metadata: {
+      title: "Hello World",
+      status: "draft",
+    },
   },
 });
 ```
@@ -363,7 +365,7 @@ await entityService.createEntity({
 
 ```typescript
 // Get all published posts
-const posts = await entityService.listEntities("post");
+const posts = await entityService.listEntities({ entityType: "post" });
 const published = posts.filter((p) => p.metadata.status === "published");
 
 // Get posts in a series

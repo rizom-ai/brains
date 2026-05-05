@@ -38,7 +38,10 @@ describe("resolvePrompt", () => {
     );
 
     expect(result).toBe("Custom prompt text.");
-    expect(mockGetEntity).toHaveBeenCalledWith("prompt", "blog-generation");
+    expect(mockGetEntity).toHaveBeenCalledWith({
+      entityType: "prompt",
+      id: "blog-generation",
+    });
   });
 
   it("should return fallback when no prompt entity exists", async () => {
@@ -94,10 +97,10 @@ describe("resolvePrompt", () => {
       "fallback",
     );
 
-    expect(mockGetEntity).toHaveBeenCalledWith(
-      "prompt",
-      "social-media-linkedin",
-    );
+    expect(mockGetEntity).toHaveBeenCalledWith({
+      entityType: "prompt",
+      id: "social-media-linkedin",
+    });
   });
 
   describe("auto-materialization", () => {
@@ -111,8 +114,8 @@ describe("resolvePrompt", () => {
       );
 
       expect(mockCreateEntity).toHaveBeenCalledTimes(1);
-      expect(mockCreateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "blog-generation",
           entityType: "prompt",
           metadata: expect.objectContaining({
@@ -120,7 +123,7 @@ describe("resolvePrompt", () => {
             target: "blog:generation",
           }),
         }),
-      );
+      });
     });
 
     it("should not create entity when one already exists", async () => {
@@ -181,13 +184,13 @@ describe("resolvePrompt", () => {
         "fallback",
       );
 
-      expect(mockCreateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockCreateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Social Media Linkedin",
           }),
         }),
-      );
+      });
     });
   });
 });

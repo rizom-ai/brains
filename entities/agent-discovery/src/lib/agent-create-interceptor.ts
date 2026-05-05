@@ -22,20 +22,22 @@ export async function interceptAgentUrlCreate(
   const deduplicationKey = domain || input.url.trim().toLowerCase();
 
   if (domain) {
-    const existing = await context.entityService.getEntity<AgentEntity>(
-      AGENT_ENTITY_TYPE,
-      domain,
-    );
+    const existing = await context.entityService.getEntity<AgentEntity>({
+      entityType: AGENT_ENTITY_TYPE,
+      id: domain,
+    });
 
     if (existing) {
       if (existing.metadata.status !== "approved") {
         // Update metadata only. AgentAdapter.toMarkdown rebuilds frontmatter
         // from metadata on write, so content stays in sync.
         await context.entityService.updateEntity({
-          ...existing,
-          metadata: {
-            ...existing.metadata,
-            status: "approved",
+          entity: {
+            ...existing,
+            metadata: {
+              ...existing.metadata,
+              status: "approved",
+            },
           },
         });
       }
@@ -50,22 +52,22 @@ export async function interceptAgentUrlCreate(
     }
   }
 
-  const jobId = await context.jobs.enqueue(
-    AGENT_GENERATION_JOB_TYPE,
-    {
+  const jobId = await context.jobs.enqueue({
+    type: AGENT_GENERATION_JOB_TYPE,
+    data: {
       prompt: input.url,
       url: input.url,
       status: "approved",
     },
-    executionContext,
-    {
+    toolContext: executionContext,
+    options: {
       source: sourcePluginId,
       metadata: { operationType: "data_processing" },
       deduplication: "coalesce",
       deduplicationKey,
       maxRetries: 0,
     },
-  );
+  });
 
   return {
     kind: "handled",

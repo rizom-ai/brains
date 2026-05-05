@@ -52,9 +52,12 @@ export class RizomRuntimePlugin extends ServicePlugin<RizomRuntimeConfig> {
     const canvasPath = this.getCanvasPath(themeProfile);
 
     context.messaging.subscribe("system:plugins:ready", async () => {
-      await context.messaging.send("plugin:site-builder:head-script:register", {
-        pluginId: this.id,
-        script: this.buildHeadScript(themeProfile, canvasPath),
+      await context.messaging.send({
+        type: "plugin:site-builder:head-script:register",
+        payload: {
+          pluginId: this.id,
+          script: this.buildHeadScript(themeProfile, canvasPath),
+        },
       });
       return { success: true };
     });

@@ -68,28 +68,33 @@ export class WishlistPlugin extends EntityPlugin<WishEntity, WishlistConfig> {
   ): Promise<void> {
     // Dashboard widget
     context.messaging.subscribe("system:plugins:ready", async () => {
-      await context.messaging.send("dashboard:register-widget", {
-        id: "top-wishes",
-        pluginId: this.id,
-        title: "Top Wishes",
-        section: "secondary",
-        priority: 30,
-        rendererName: "ListWidget",
-        dataProvider: async () => {
-          const wishes = await context.entityService.listEntities<WishEntity>(
-            "wish",
-            { limit: 10 },
-          );
-          sortWishesByDemand(wishes);
-          return {
-            items: wishes.map((w) => ({
-              id: w.id,
-              name: w.metadata.title,
-              count: w.metadata.requested,
-              priority: w.metadata.priority,
-              status: w.metadata.status,
-            })),
-          };
+      await context.messaging.send({
+        type: "dashboard:register-widget",
+        payload: {
+          id: "top-wishes",
+          pluginId: this.id,
+          title: "Top Wishes",
+          section: "secondary",
+          priority: 30,
+          rendererName: "ListWidget",
+          dataProvider: async () => {
+            const wishes = await context.entityService.listEntities<WishEntity>(
+              {
+                entityType: "wish",
+                options: { limit: 10 },
+              },
+            );
+            sortWishesByDemand(wishes);
+            return {
+              items: wishes.map((w) => ({
+                id: w.id,
+                name: w.metadata.title,
+                count: w.metadata.requested,
+                priority: w.metadata.priority,
+                status: w.metadata.status,
+              })),
+            };
+          },
         },
       });
       return { success: true };

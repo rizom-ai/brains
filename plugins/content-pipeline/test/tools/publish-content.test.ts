@@ -55,10 +55,12 @@ This is the body.`;
 
   it("should fetch image data when coverImageId is present", async () => {
     await context.entityService.createEntity({
-      id: "cover-image",
-      entityType: "image",
-      content: "data:image/png;base64,aGVsbG8=",
-      metadata: {},
+      entity: {
+        id: "cover-image",
+        entityType: "image",
+        content: "data:image/png;base64,aGVsbG8=",
+        metadata: {},
+      },
     });
 
     const content = `---
@@ -78,10 +80,12 @@ Post with image.`;
 
   it("should ignore missing or invalid image data", async () => {
     await context.entityService.createEntity({
-      id: "invalid-image",
-      entityType: "image",
-      content: "not-a-data-url",
-      metadata: {},
+      entity: {
+        id: "invalid-image",
+        entityType: "image",
+        content: "not-a-data-url",
+        metadata: {},
+      },
     });
 
     const content = `---

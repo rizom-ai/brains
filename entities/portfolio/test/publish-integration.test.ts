@@ -131,7 +131,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new PortfolioPlugin({}));
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(sampleDraftProject);
+      await entityService.createEntity({ entity: sampleDraftProject });
 
       await harness.sendMessage("publish:execute", {
         entityType: "project",
@@ -147,10 +147,10 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         entityId: "project-1",
       });
 
-      const updatedProject = await entityService.getEntity<Project>(
-        "project",
-        "project-1",
-      );
+      const updatedProject = await entityService.getEntity<Project>({
+        entityType: "project",
+        id: "project-1",
+      });
       expect(updatedProject?.metadata.status).toBe("published");
       expect(updatedProject?.metadata.publishedAt).toBeDefined();
     });
@@ -171,7 +171,7 @@ describe("PortfolioPlugin - Publish Pipeline Integration", () => {
         },
       };
       const entityService = harness.getEntityService();
-      await entityService.createEntity(publishedProject);
+      await entityService.createEntity({ entity: publishedProject });
 
       await harness.sendMessage("publish:execute", {
         entityType: "project",

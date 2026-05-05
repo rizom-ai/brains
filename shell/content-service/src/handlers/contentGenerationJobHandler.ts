@@ -31,9 +31,7 @@ export type ContentGenerationJobData = z.infer<
  * Processes content generation requests using the ContentService
  * Implements Component Interface Standardization pattern
  */
-export class ContentGenerationJobHandler
-  implements JobHandler<"content-generation">
-{
+export class ContentGenerationJobHandler implements JobHandler<"content-generation"> {
   private static instance: ContentGenerationJobHandler | null = null;
   private logger: Logger;
   private contentService: ContentService;
@@ -154,7 +152,7 @@ export class ContentGenerationJobHandler
             metadata: { routeId, sectionId },
           };
 
-          await this.entityService.createEntity(newEntity);
+          await this.entityService.createEntity({ entity: newEntity });
 
           this.logger.debug("Saved generated content as entity", {
             jobId,

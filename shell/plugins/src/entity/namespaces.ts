@@ -58,7 +58,7 @@ export function createEntitiesNamespace(shell: IShell): IEntitiesNamespace {
     update: async <T extends BaseEntity>(
       entity: T,
     ): Promise<{ entityId: string; jobId: string }> => {
-      return entityService.updateEntity(entity);
+      return entityService.updateEntity({ entity: entity });
     },
     registerDataSource: (dataSource: DataSource): void => {
       dataSourceRegistry.register(dataSource);

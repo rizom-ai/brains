@@ -148,10 +148,10 @@ describe("ContentService.resolveContent", () => {
       });
 
       expect(result).toEqual(savedArticle);
-      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith(
-        "site-content-preview",
-        "article-123",
-      );
+      expect(mockDependencies.entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "site-content-preview",
+        id: "article-123",
+      });
     });
 
     it("should skip saved content when no formatter is available", async () => {
@@ -409,7 +409,10 @@ describe("ContentService.resolveContent", () => {
           // Datasource uses context.entityService (not its own)
           const svc =
             context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities("post", { limit: 10 });
+          await svc.listEntities({
+            entityType: "post",
+            options: { limit: 10 },
+          });
           return { items: [] };
         }),
       };
@@ -430,10 +433,10 @@ describe("ContentService.resolveContent", () => {
       // Context should have entityService
       expect(capturedContext.entityService).toBeDefined();
       // The scoped entityService should auto-add publishedOnly: true
-      expect(listEntitiesSpy).toHaveBeenCalledWith(
-        "post",
-        expect.objectContaining({ publishedOnly: true }),
-      );
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: expect.objectContaining({ publishedOnly: true }),
+      });
     });
 
     it("should pass scoped entityService without filter in preview", async () => {
@@ -450,7 +453,10 @@ describe("ContentService.resolveContent", () => {
         fetch: mock().mockImplementation(async (_query, _schema, context) => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
-          await svc.listEntities("post", { limit: 10 });
+          await svc.listEntities({
+            entityType: "post",
+            options: { limit: 10 },
+          });
           return { items: [] };
         }),
       };
@@ -469,7 +475,10 @@ describe("ContentService.resolveContent", () => {
       });
 
       // In preview, publishedOnly should NOT be added
-      expect(listEntitiesSpy).toHaveBeenCalledWith("post", { limit: 10 });
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: { limit: 10 },
+      });
     });
 
     it("should NOT add publishedOnly when datasource already filters on status (avoids conflict)", async () => {
@@ -490,9 +499,12 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Datasource explicitly filters for queued status
-          await svc.listEntities("social-post", {
-            filter: { metadata: { status: "queued" } },
-            limit: 1,
+          await svc.listEntities({
+            entityType: "social-post",
+            options: {
+              filter: { metadata: { status: "queued" } },
+              limit: 1,
+            },
           });
           return { post: null };
         }),
@@ -512,14 +524,17 @@ describe("ContentService.resolveContent", () => {
       });
 
       // Should NOT add publishedOnly since datasource already filters on status
-      expect(listEntitiesSpy).toHaveBeenCalledWith("social-post", {
-        filter: { metadata: { status: "queued" } },
-        limit: 1,
-        // Note: publishedOnly should NOT be present here
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
+          filter: { metadata: { status: "queued" } },
+          limit: 1,
+          // Note: publishedOnly should NOT be present here
+        },
       });
       // Explicitly verify publishedOnly was NOT added
-      const callArgs = listEntitiesSpy.mock.calls[0];
-      expect(callArgs?.[1]).not.toHaveProperty("publishedOnly");
+      const request = listEntitiesSpy.mock.calls[0]?.[0];
+      expect(request?.options).not.toHaveProperty("publishedOnly");
     });
 
     it("should add publishedOnly when datasource filters on non-status metadata", async () => {
@@ -538,9 +553,12 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Datasource filters on seriesName, not status
-          await svc.listEntities("post", {
-            filter: { metadata: { seriesName: "My Series" } },
-            limit: 100,
+          await svc.listEntities({
+            entityType: "post",
+            options: {
+              filter: { metadata: { seriesName: "My Series" } },
+              limit: 100,
+            },
           });
           return { posts: [] };
         }),
@@ -560,10 +578,13 @@ describe("ContentService.resolveContent", () => {
       });
 
       // Should add publishedOnly since the filter is on seriesName, not status
-      expect(listEntitiesSpy).toHaveBeenCalledWith("post", {
-        filter: { metadata: { seriesName: "My Series" } },
-        limit: 100,
-        publishedOnly: true,
+      expect(listEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          filter: { metadata: { seriesName: "My Series" } },
+          limit: 100,
+          publishedOnly: true,
+        },
       });
     });
 
@@ -581,7 +602,9 @@ describe("ContentService.resolveContent", () => {
         fetch: mock().mockImplementation(async (_query, _schema, context) => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
-          await svc.countEntities("post");
+          await svc.countEntities({
+            entityType: "post",
+          });
           return { count: 0 };
         }),
       };
@@ -600,8 +623,9 @@ describe("ContentService.resolveContent", () => {
       });
 
       // Should add publishedOnly to countEntities
-      expect(countEntitiesSpy).toHaveBeenCalledWith("post", {
-        publishedOnly: true,
+      expect(countEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "post",
+        options: { publishedOnly: true },
       });
     });
 
@@ -620,8 +644,11 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Count with explicit status filter
-          await svc.countEntities("newsletter", {
-            filter: { metadata: { status: "draft" } },
+          await svc.countEntities({
+            entityType: "newsletter",
+            options: {
+              filter: { metadata: { status: "draft" } },
+            },
           });
           return { count: 0 };
         }),
@@ -641,11 +668,14 @@ describe("ContentService.resolveContent", () => {
       });
 
       // Should NOT add publishedOnly since status filter already present
-      expect(countEntitiesSpy).toHaveBeenCalledWith("newsletter", {
-        filter: { metadata: { status: "draft" } },
+      expect(countEntitiesSpy).toHaveBeenCalledWith({
+        entityType: "newsletter",
+        options: {
+          filter: { metadata: { status: "draft" } },
+        },
       });
-      const callArgs = countEntitiesSpy.mock.calls[0];
-      expect(callArgs?.[1]).not.toHaveProperty("publishedOnly");
+      const request = countEntitiesSpy.mock.calls[0]?.[0];
+      expect(request?.options).not.toHaveProperty("publishedOnly");
     });
 
     it("should forward getEntity calls through scoped entityService", async () => {
@@ -666,7 +696,10 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Call getEntity - this should be forwarded to base service
-          const entity = await svc.getEntity("post", "test-id");
+          const entity = await svc.getEntity({
+            entityType: "post",
+            id: "test-id",
+          });
           return { entity };
         }),
       };
@@ -693,7 +726,10 @@ describe("ContentService.resolveContent", () => {
       });
 
       // getEntity should be forwarded to base service
-      expect(getEntitySpy).toHaveBeenCalledWith("post", "test-id");
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType: "post",
+        id: "test-id",
+      });
     });
 
     it("should forward search calls through scoped entityService", async () => {
@@ -711,7 +747,7 @@ describe("ContentService.resolveContent", () => {
           const svc =
             context.entityService as typeof mockDependencies.entityService;
           // Call search - this should be forwarded to base service
-          const results = await svc.search("test query");
+          const results = await svc.search({ query: "test query" });
           return { results };
         }),
       };
@@ -730,21 +766,25 @@ describe("ContentService.resolveContent", () => {
       });
 
       // search should be forwarded to base service
-      expect(searchSpy).toHaveBeenCalledWith("test query");
+      expect(searchSpy).toHaveBeenCalledWith({ query: "test query" });
     });
 
     it("should properly proxy class-based entityService (regression for prototype methods)", async () => {
       // Regression test: When using object spread {...baseService} on a class instance,
       // prototype methods are NOT copied. This test uses a class-based mock to catch this.
       class MockEntityServiceClass {
-        getEntity = mock((_type: string, _id: string) => Promise.resolve(null));
-        listEntities = mock((_type: string, _options?: unknown) =>
-          Promise.resolve([]),
+        getEntity = mock((_request: { entityType: string; id: string }) =>
+          Promise.resolve(null),
         );
-        countEntities = mock((_type: string, _options?: unknown) =>
-          Promise.resolve(0),
+        listEntities = mock(
+          (_request: { entityType: string; options?: unknown }) =>
+            Promise.resolve([]),
         );
-        search = mock((_query: string, _options?: unknown) =>
+        countEntities = mock(
+          (_request: { entityType: string; options?: unknown }) =>
+            Promise.resolve(0),
+        );
+        search = mock((_request: { query: string; options?: unknown }) =>
           Promise.resolve([]),
         );
         // Methods on prototype (simulating real class behavior)
@@ -782,7 +822,10 @@ describe("ContentService.resolveContent", () => {
           const types = svc.getEntityTypes();
           const hasPost = svc.hasEntityType("post");
           // Also call instance methods
-          await svc.listEntities("post", { limit: 5 });
+          await svc.listEntities({
+            entityType: "post",
+            options: { limit: 5 },
+          });
           return { types, hasPost };
         }),
       };
@@ -801,9 +844,12 @@ describe("ContentService.resolveContent", () => {
       // Verify prototype methods were callable
       expect(result).toEqual({ types: ["post", "deck"], hasPost: true });
       // Verify listEntities was called with publishedOnly added
-      expect(classBasedService.listEntities).toHaveBeenCalledWith("post", {
-        limit: 5,
-        publishedOnly: true,
+      expect(classBasedService.listEntities).toHaveBeenCalledWith({
+        entityType: "post",
+        options: {
+          limit: 5,
+          publishedOnly: true,
+        },
       });
     });
   });

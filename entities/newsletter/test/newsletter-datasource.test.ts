@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { NewsletterDataSource } from "../src/datasources/newsletter-datasource";
+import { newsletterDetailSchema } from "../src/templates/newsletter-detail";
+import { newsletterListSchema } from "../src/templates/newsletter-list";
 import type { Newsletter } from "../src/schemas/newsletter";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
 import {
   createMockLogger,
   createMockEntityService,
@@ -71,10 +72,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
-      const schema = z.object({
-        newsletters: z.array(z.any()),
-        pagination: z.any().nullable(),
-      });
+      const schema = newsletterListSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter" },
@@ -82,9 +80,10 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(result.newsletters).toHaveLength(2);
-      expect(result.newsletters[0].id).toBe("nl-1");
-      expect(result.newsletters[0].subject).toBe("First Newsletter");
+      expect(result.newsletters).toEqual([
+        expect.objectContaining({ id: "nl-1", subject: "First Newsletter" }),
+        expect.any(Object),
+      ]);
     });
 
     it("should enrich newsletters with excerpt from content", async () => {
@@ -95,10 +94,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
-      const schema = z.object({
-        newsletters: z.array(z.any()),
-        pagination: z.any().nullable(),
-      });
+      const schema = newsletterListSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter" },
@@ -106,17 +102,15 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(result.newsletters[0].excerpt).toBeDefined();
-      expect(result.newsletters[0].excerpt.length).toBeLessThanOrEqual(153); // 150 + "..."
+      const excerpt = result.newsletters[0]?.excerpt;
+      expect(excerpt).toBeDefined();
+      expect(excerpt?.length).toBeLessThanOrEqual(153); // 150 + "..."
     });
 
     it("should handle empty newsletter list", async () => {
       spyOn(mockEntityService, "listEntities").mockResolvedValue([]);
 
-      const schema = z.object({
-        newsletters: z.array(z.any()),
-        pagination: z.any().nullable(),
-      });
+      const schema = newsletterListSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter" },
@@ -135,10 +129,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValue(newsletters);
 
-      const schema = z.object({
-        newsletters: z.array(z.any()),
-        pagination: z.any().nullable(),
-      });
+      const schema = newsletterListSchema;
 
       await datasource.fetch(
         { entityType: "newsletter", query: { limit: 2 } },
@@ -146,10 +137,10 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "newsletter",
-        expect.objectContaining({ limit: 2 }),
-      );
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "newsletter",
+        options: expect.objectContaining({ limit: 2 }),
+      });
     });
 
     it("should filter by status when specified", async () => {
@@ -167,10 +158,7 @@ describe("NewsletterDataSource", () => {
         publishedNewsletters,
       );
 
-      const schema = z.object({
-        newsletters: z.array(z.any()),
-        pagination: z.any().nullable(),
-      });
+      const schema = newsletterListSchema;
 
       await datasource.fetch(
         { entityType: "newsletter", query: { status: "published" } },
@@ -178,12 +166,12 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "newsletter",
-        expect.objectContaining({
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "newsletter",
+        options: expect.objectContaining({
           filter: { metadata: { status: "published" } },
         }),
-      );
+      });
     });
   });
 
@@ -200,15 +188,7 @@ describe("NewsletterDataSource", () => {
       spyOn(mockEntityService, "getEntity").mockResolvedValueOnce(newsletter);
       spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        status: z.string(),
-        content: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-        sourceEntities: z.array(z.any()).optional(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -224,12 +204,7 @@ describe("NewsletterDataSource", () => {
     it("should throw error when newsletter not found", async () => {
       spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-      });
+      const schema = newsletterDetailSchema;
 
       expect(
         datasource.fetch(
@@ -274,12 +249,7 @@ describe("NewsletterDataSource", () => {
         allNewsletters,
       );
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-2" } },
@@ -319,12 +289,7 @@ describe("NewsletterDataSource", () => {
         allNewsletters,
       );
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -363,12 +328,7 @@ describe("NewsletterDataSource", () => {
         allNewsletters,
       );
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-2" } },
@@ -410,13 +370,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-        sourceEntities: z.array(z.any()).optional(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -424,11 +378,10 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(result.sourceEntities).toBeDefined();
-      expect(result.sourceEntities).toHaveLength(2);
-      expect(result.sourceEntities?.[0].id).toBe("post-1");
-      expect(result.sourceEntities?.[0].title).toBe("Blog Post 1");
-      expect(result.sourceEntities?.[1].id).toBe("post-2");
+      expect(result.sourceEntities).toEqual([
+        expect.objectContaining({ id: "post-1", title: "Blog Post 1" }),
+        expect.objectContaining({ id: "post-2" }),
+      ]);
     });
 
     it("should use sourceEntityType from metadata when present", async () => {
@@ -456,13 +409,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-        sourceEntities: z.array(z.any()).optional(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -471,13 +418,13 @@ describe("NewsletterDataSource", () => {
       );
 
       // Should have fetched as "deck" type, not "post"
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "deck",
-        "deck-1",
-      );
-      expect(result.sourceEntities).toHaveLength(1);
-      expect(result.sourceEntities?.[0].title).toBe("My Deck");
-      expect(result.sourceEntities?.[0].url).toBe("/decks/my-deck");
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "deck",
+        id: "deck-1",
+      });
+      expect(result.sourceEntities).toEqual([
+        expect.objectContaining({ title: "My Deck", url: "/decks/my-deck" }),
+      ]);
     });
 
     it("should default to 'post' when sourceEntityType is not set", async () => {
@@ -502,13 +449,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]);
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-        sourceEntities: z.array(z.any()).optional(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -517,11 +458,13 @@ describe("NewsletterDataSource", () => {
       );
 
       // Should have fetched as "post" (default)
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "post",
-        "post-1",
-      );
-      expect(result.sourceEntities?.[0].url).toBe("/posts/blog-post");
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "post",
+        id: "post-1",
+      });
+      expect(result.sourceEntities).toEqual([
+        expect.objectContaining({ url: "/posts/blog-post" }),
+      ]);
     });
 
     it("should handle missing source entities gracefully", async () => {
@@ -547,13 +490,7 @@ describe("NewsletterDataSource", () => {
 
       spyOn(mockEntityService, "listEntities").mockResolvedValueOnce([]); // For navigation
 
-      const schema = z.object({
-        id: z.string(),
-        subject: z.string(),
-        prevNewsletter: z.any().nullable(),
-        nextNewsletter: z.any().nullable(),
-        sourceEntities: z.array(z.any()).optional(),
-      });
+      const schema = newsletterDetailSchema;
 
       const result = await datasource.fetch(
         { entityType: "newsletter", query: { id: "nl-1" } },
@@ -561,26 +498,14 @@ describe("NewsletterDataSource", () => {
         mockContext,
       );
 
-      expect(result.sourceEntities).toBeDefined();
-      expect(result.sourceEntities).toHaveLength(1);
-      expect(result.sourceEntities?.[0].id).toBe("post-1");
+      expect(result.sourceEntities).toEqual([
+        expect.objectContaining({ id: "post-1" }),
+      ]);
     });
   });
 
   describe("pagination", () => {
-    const paginationSchema = z.object({
-      currentPage: z.number(),
-      totalPages: z.number(),
-      totalItems: z.number(),
-      pageSize: z.number(),
-      hasNextPage: z.boolean(),
-      hasPrevPage: z.boolean(),
-    });
-
-    const paginatedListSchema = z.object({
-      newsletters: z.array(z.any()),
-      pagination: paginationSchema.nullable(),
-    });
+    const paginatedListSchema = newsletterListSchema;
 
     it("should return paginated newsletters when page is specified", async () => {
       const newsletters: Newsletter[] = [

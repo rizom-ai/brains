@@ -21,10 +21,12 @@ export function registerSkillEvalHandlers(
       const content = `---\ntitle: ${title}\nkeywords: []\n---\n${title}`;
       try {
         await context.entityService.createEntity({
-          id,
-          entityType: "topic",
-          content,
-          metadata: {},
+          entity: {
+            id,
+            entityType: "topic",
+            content,
+            metadata: {},
+          },
         });
       } catch {
         // Topic may already exist.
@@ -32,7 +34,9 @@ export function registerSkillEvalHandlers(
     }
 
     const result = await deriveSkills(context, logger);
-    const skills = await context.entityService.listEntities(SKILL_ENTITY_TYPE);
+    const skills = await context.entityService.listEntities({
+      entityType: SKILL_ENTITY_TYPE,
+    });
 
     return {
       ...result,

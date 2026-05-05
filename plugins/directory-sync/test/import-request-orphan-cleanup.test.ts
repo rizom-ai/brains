@@ -38,7 +38,8 @@ describe("Import then orphan cleanup", () => {
 
     mockEntityService = createMockEntityService({
       entityTypes: ["note"],
-      listEntitiesImpl: async (type: string) => storedEntities[type] ?? [],
+      listEntitiesImpl: async (request: { entityType: string }) =>
+        storedEntities[request.entityType] ?? [],
     });
 
     spyOn(mockEntityService, "deserializeEntity").mockImplementation(
@@ -79,10 +80,10 @@ describe("Import then orphan cleanup", () => {
     const result = await dirSync.removeOrphanedEntities();
 
     expect(result.deleted).toBe(1);
-    expect(mockEntityService.deleteEntity).toHaveBeenCalledWith(
-      "note",
-      "test-123",
-    );
+    expect(mockEntityService.deleteEntity).toHaveBeenCalledWith({
+      entityType: "note",
+      id: "test-123",
+    });
   });
 
   it("should not delete entities that still have files on disk", async () => {

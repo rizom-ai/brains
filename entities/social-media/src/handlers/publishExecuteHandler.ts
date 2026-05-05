@@ -54,10 +54,10 @@ export class PublishExecuteHandler {
 
     try {
       // Fetch the entity
-      const post = await this.entityService.getEntity<SocialPost>(
-        "social-post",
-        entityId,
-      );
+      const post = await this.entityService.getEntity<SocialPost>({
+        entityType: "social-post",
+        id: entityId,
+      });
 
       if (!post) {
         await this.reportFailure(
@@ -122,13 +122,15 @@ export class PublishExecuteHandler {
         );
 
         await this.entityService.updateEntity({
-          ...post,
-          content: updatedContent,
-          metadata: {
-            ...post.metadata,
-            status: "published",
-            publishedAt,
-            platformPostId,
+          entity: {
+            ...post,
+            content: updatedContent,
+            metadata: {
+              ...post.metadata,
+              status: "published",
+              publishedAt,
+              platformPostId,
+            },
           },
         });
 
@@ -156,11 +158,13 @@ export class PublishExecuteHandler {
         );
 
         await this.entityService.updateEntity({
-          ...post,
-          content: updatedContent,
-          metadata: {
-            ...post.metadata,
-            status: "failed",
+          entity: {
+            ...post,
+            content: updatedContent,
+            metadata: {
+              ...post.metadata,
+              status: "failed",
+            },
           },
         });
 
@@ -190,10 +194,13 @@ export class PublishExecuteHandler {
     entityId: string,
     platformPostId: string,
   ): Promise<void> {
-    await this.sendMessage("publish:report:success", {
-      entityType,
-      entityId,
-      result: { id: platformPostId },
+    await this.sendMessage({
+      type: "publish:report:success",
+      payload: {
+        entityType,
+        entityId,
+        result: { id: platformPostId },
+      },
     });
   }
 
@@ -205,10 +212,13 @@ export class PublishExecuteHandler {
     entityId: string,
     error: string,
   ): Promise<void> {
-    await this.sendMessage("publish:report:failure", {
-      entityType,
-      entityId,
-      error,
+    await this.sendMessage({
+      type: "publish:report:failure",
+      payload: {
+        entityType,
+        entityId,
+        error,
+      },
     });
   }
 
@@ -219,10 +229,10 @@ export class PublishExecuteHandler {
     imageId: string,
   ): Promise<PublishImageData | undefined> {
     try {
-      const image = await this.entityService.getEntity<BaseEntity>(
-        "image",
-        imageId,
-      );
+      const image = await this.entityService.getEntity<BaseEntity>({
+        entityType: "image",
+        id: imageId,
+      });
 
       if (!image) {
         this.logger.warn("Cover image not found", { imageId });

@@ -111,13 +111,16 @@ Outcome for ${title}`;
 
       // Datasource delegates filtering to scoped entityService (via context)
       // It should NOT pass publishedOnly - filtering happens in content-service
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
-        limit: 10,
-        offset: 0,
-        sortFields: [
-          { field: "year", direction: "desc" },
-          { field: "title", direction: "asc" },
-        ],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "project",
+        options: {
+          limit: 10,
+          offset: 0,
+          sortFields: [
+            { field: "year", direction: "desc" },
+            { field: "title", direction: "asc" },
+          ],
+        },
       });
     });
 
@@ -164,13 +167,16 @@ Outcome for ${title}`;
       expect(statuses).toContain("draft");
 
       // Datasource delegates filtering to scoped entityService (via context)
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith("project", {
-        limit: 10,
-        offset: 0,
-        sortFields: [
-          { field: "year", direction: "desc" },
-          { field: "title", direction: "asc" },
-        ],
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "project",
+        options: {
+          limit: 10,
+          offset: 0,
+          sortFields: [
+            { field: "year", direction: "desc" },
+            { field: "title", direction: "asc" },
+          ],
+        },
       });
     });
   });

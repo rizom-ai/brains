@@ -51,15 +51,11 @@ export function createMessagingNamespace(
   logger: Logger,
 ): IMessagingNamespace {
   const messageBus = shell.getMessageBus();
-  const sendMessage: MessageSender = async (channel, message, options) => {
-    return messageBus.send(
-      channel,
-      message,
-      pluginId,
-      undefined,
-      undefined,
-      options?.broadcast,
-    );
+  const sendMessage: MessageSender = async (request) => {
+    return messageBus.send({
+      ...request,
+      sender: pluginId,
+    });
   };
 
   return {

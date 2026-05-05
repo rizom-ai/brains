@@ -31,8 +31,10 @@ describe("storeEmbedding", () => {
 
     // Create entity via service
     await ctx.entityService.createEntity({
-      ...testEntity,
-      id: "test-entity",
+      entity: {
+        ...testEntity,
+        id: "test-entity",
+      },
     });
 
     await ctx.entityService.storeEmbedding({
@@ -118,10 +120,10 @@ describe("storeEmbedding", () => {
       ctx.embeddingDbConfig,
     );
 
-    const savedEntity = await ctx.entityService.getEntity(
-      "test",
-      "test-entity",
-    );
+    const savedEntity = await ctx.entityService.getEntity({
+      entityType: "test",
+      id: "test-entity",
+    });
     expect(savedEntity).not.toBeNull();
     expect(savedEntity?.metadata["coverImageId"]).toBe("my-cover-image");
 
@@ -133,10 +135,10 @@ describe("storeEmbedding", () => {
       contentHash: newEntity.contentHash,
     });
 
-    const afterEmbedding = await ctx.entityService.getEntity(
-      "test",
-      "test-entity",
-    );
+    const afterEmbedding = await ctx.entityService.getEntity({
+      entityType: "test",
+      id: "test-entity",
+    });
     expect(afterEmbedding).not.toBeNull();
     expect(afterEmbedding?.metadata["coverImageId"]).toBe("my-cover-image");
     expect(afterEmbedding?.metadata["otherField"]).toBe("preserved");

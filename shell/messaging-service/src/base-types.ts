@@ -53,15 +53,29 @@ export type MessageHandler<T = unknown, R = unknown> = (
  * Options for sending messages
  */
 export interface MessageSendOptions {
-  /** If true, all handlers are called regardless of responses */
+  /** Optional target for filtered delivery */
+  target?: string;
+  /** Optional metadata for filtered delivery */
+  metadata?: Record<string, unknown>;
+  /** If true, all matching handlers are called regardless of responses */
   broadcast?: boolean;
 }
 
+export interface MessageSendRequest<T = unknown> extends MessageSendOptions {
+  type: string;
+  payload: T;
+}
+
+export interface MessageBusSendRequest<
+  T = unknown,
+> extends MessageSendRequest<T> {
+  sender: string;
+}
+
 /**
- * Message sender type
+ * Message sender type for plugin-facing send functions where sender identity is
+ * supplied by the runtime.
  */
 export type MessageSender = <T = unknown, R = unknown>(
-  type: string,
-  payload: T,
-  options?: MessageSendOptions,
+  request: MessageSendRequest<T>,
 ) => Promise<MessageResponse<R>>;

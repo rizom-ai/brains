@@ -100,7 +100,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new BlogPlugin({}));
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(sampleDraftPost);
+      await entityService.createEntity({ entity: sampleDraftPost });
 
       await harness.sendMessage("publish:execute", {
         entityType: "post",
@@ -116,10 +116,10 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
         entityId: "post-1",
       });
 
-      const updatedPost = await entityService.getEntity<BlogPost>(
-        "post",
-        "post-1",
-      );
+      const updatedPost = await entityService.getEntity<BlogPost>({
+        entityType: "post",
+        id: "post-1",
+      });
       expect(updatedPost?.metadata.status).toBe("published");
     });
 
@@ -135,7 +135,7 @@ describe("BlogPlugin - Publish Pipeline Integration", () => {
       );
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(publishedPost);
+      await entityService.createEntity({ entity: publishedPost });
 
       await harness.sendMessage("publish:execute", {
         entityType: "post",

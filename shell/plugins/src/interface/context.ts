@@ -13,8 +13,8 @@ import type { UserPermissionLevel } from "@brains/templates";
 import type { AgentNamespace } from "../contracts/agent";
 import { createPublicAgentNamespace } from "../base/public-agent-service";
 import type {
-  MessageRole,
-  ConversationMetadata,
+  StartConversationRequest,
+  AddConversationMessageRequest,
 } from "@brains/conversation-service";
 import type { RegisteredApiRoute } from "../types/api-routes";
 import type { RegisteredWebRoute } from "../types/web-routes";
@@ -75,20 +75,10 @@ export interface IPluginsNamespace {
  */
 export interface IInterfaceConversationsNamespace extends IConversationsNamespace {
   /** Start a new conversation */
-  start: (
-    conversationId: string,
-    interfaceType: string,
-    channelId: string,
-    metadata: ConversationMetadata,
-  ) => Promise<string>;
+  start: (request: StartConversationRequest) => Promise<string>;
 
   /** Add a message to a conversation */
-  addMessage: (
-    conversationId: string,
-    role: MessageRole,
-    content: string,
-    metadata?: Record<string, unknown>,
-  ) => Promise<void>;
+  addMessage: (request: AddConversationMessageRequest) => Promise<void>;
 }
 
 /**
@@ -226,33 +216,15 @@ export function createInterfacePluginContext(
     conversations: {
       ...baseContext.conversations,
 
-      start: async (
-        conversationId: string,
-        interfaceType: string,
-        channelId: string,
-        metadata: ConversationMetadata,
-      ): Promise<string> => {
+      start: async (request: StartConversationRequest): Promise<string> => {
         const conversationService = shell.getConversationService();
-        return conversationService.startConversation(
-          conversationId,
-          interfaceType,
-          channelId,
-          metadata,
-        );
+        return conversationService.startConversation(request);
       },
       addMessage: async (
-        conversationId: string,
-        role: MessageRole,
-        content: string,
-        metadata?: Record<string, unknown>,
+        request: AddConversationMessageRequest,
       ): Promise<void> => {
         const conversationService = shell.getConversationService();
-        await conversationService.addMessage(
-          conversationId,
-          role,
-          content,
-          metadata,
-        );
+        await conversationService.addMessage(request);
       },
     },
 

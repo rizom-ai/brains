@@ -18,9 +18,12 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         success: true,
         data: {
           results: (
-            await entityService.search(input.query, {
-              limit: input.limit ?? services.searchLimit,
-              ...(input.entityType && { types: [input.entityType] }),
+            await entityService.search({
+              query: input.query,
+              options: {
+                limit: input.limit ?? services.searchLimit,
+                ...(input.entityType && { types: [input.entityType] }),
+              },
             })
           ).map((r) => ({ ...r, entity: sanitizeEntity(r.entity) })),
         },
@@ -80,10 +83,10 @@ export function createEntityReadTools(services: SystemServices): Tool[] {
         };
         if (input.status)
           options.filter = { metadata: { status: input.status } };
-        const entities = await entityService.listEntities(
-          input.entityType,
-          options,
-        );
+        const entities = await entityService.listEntities({
+          entityType: input.entityType,
+          options: options,
+        });
         const items = entities.map(
           ({ content: _, contentHash: __, ...rest }) => rest,
         );

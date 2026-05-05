@@ -31,9 +31,12 @@ const channelSchema = z.object({
  * });
  *
  * // Send with type checking
- * context.messaging.send(EntityCreatedChannel, {
- *   entityId: "123",
- *   entityType: "note"
+ * context.messaging.send({
+ *   type: EntityCreatedChannel.name,
+ *   payload: {
+ *     entityId: "123",
+ *     entityType: "note"
+ *   }
  * });
  * ```
  */

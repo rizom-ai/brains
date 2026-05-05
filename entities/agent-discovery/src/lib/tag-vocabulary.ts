@@ -46,8 +46,12 @@ export async function collectTagVocabulary(
   const counts = new Map<string, number>();
 
   const [skills, agents] = await Promise.all([
-    context.entityService.listEntities<SkillEntity>(SKILL_ENTITY_TYPE),
-    context.entityService.listEntities<AgentEntity>(AGENT_ENTITY_TYPE),
+    context.entityService.listEntities<SkillEntity>({
+      entityType: SKILL_ENTITY_TYPE,
+    }),
+    context.entityService.listEntities<AgentEntity>({
+      entityType: AGENT_ENTITY_TYPE,
+    }),
   ]);
 
   const bump = (tags: string[]): void => {

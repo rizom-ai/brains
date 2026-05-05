@@ -169,10 +169,10 @@ export class ContentService implements IContentService {
         );
       } else {
         try {
-          const entity = await this.dependencies.entityService.getEntity(
-            options.savedContent.entityType,
-            options.savedContent.entityId,
-          );
+          const entity = await this.dependencies.entityService.getEntity({
+            entityType: options.savedContent.entityType,
+            id: options.savedContent.entityId,
+          });
           if (entity?.content) {
             this.dependencies.logger.debug(
               `Resolved content from saved entity for ${scopedTemplateName}`,
@@ -235,28 +235,28 @@ export class ContentService implements IContentService {
     return new Proxy(baseService, {
       get(target, prop, receiver): unknown {
         if (prop === "listEntities") {
-          return (
-            entityType: string,
-            options?: Parameters<IEntityService["listEntities"]>[1],
-          ) => {
+          return (request: Parameters<IEntityService["listEntities"]>[0]) => {
             const hasStatusFilter =
-              options?.filter?.metadata?.["status"] !== undefined;
-            return target.listEntities(entityType, {
-              ...options,
-              ...(!hasStatusFilter && { publishedOnly: true }),
+              request.options?.filter?.metadata?.["status"] !== undefined;
+            return target.listEntities({
+              entityType: request.entityType,
+              options: {
+                ...request.options,
+                ...(!hasStatusFilter && { publishedOnly: true }),
+              },
             });
           };
         }
         if (prop === "countEntities") {
-          return (
-            entityType: string,
-            options?: Parameters<IEntityService["countEntities"]>[1],
-          ) => {
+          return (request: Parameters<IEntityService["countEntities"]>[0]) => {
             const hasStatusFilter =
-              options?.filter?.metadata?.["status"] !== undefined;
-            return target.countEntities(entityType, {
-              ...options,
-              ...(!hasStatusFilter && { publishedOnly: true }),
+              request.options?.filter?.metadata?.["status"] !== undefined;
+            return target.countEntities({
+              entityType: request.entityType,
+              options: {
+                ...request.options,
+                ...(!hasStatusFilter && { publishedOnly: true }),
+              },
             });
           };
         }

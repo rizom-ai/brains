@@ -184,20 +184,25 @@ ${data.entityContent}`,
       });
 
       // Delete existing image if regenerating
-      const existingImage = await this.context.entityService.getEntity(
-        "image",
-        imageId,
-      );
+      const existingImage = await this.context.entityService.getEntity({
+        entityType: "image",
+        id: imageId,
+      });
       if (existingImage) {
         this.logger.debug("Deleting existing image for regeneration", {
           imageId,
         });
-        await this.context.entityService.deleteEntity("image", imageId);
+        await this.context.entityService.deleteEntity({
+          entityType: "image",
+          id: imageId,
+        });
       }
 
       await this.context.entityService.createEntity({
-        ...entityData,
-        id: imageId,
+        entity: {
+          ...entityData,
+          id: imageId,
+        },
       });
 
       this.logger.debug("Created image entity", { imageId });

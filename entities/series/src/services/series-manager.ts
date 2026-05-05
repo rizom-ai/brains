@@ -25,10 +25,10 @@ export class SeriesManager {
     const seriesNames = await this.collectSeriesNames();
     this.logger.debug(`Found ${seriesNames.size} unique series`);
 
-    const existingSeries = await this.entityService.listEntities<Series>(
-      "series",
-      { limit: 1000 },
-    );
+    const existingSeries = await this.entityService.listEntities<Series>({
+      entityType: "series",
+      options: { limit: 1000 },
+    });
     const existingMap = new Map(existingSeries.map((s) => [s.id, s]));
 
     const processedIds = new Set<string>();
@@ -54,14 +54,17 @@ export class SeriesManager {
         metadata: { title: seriesName, slug: slugify(seriesName) },
       };
 
-      await this.entityService.upsertEntity(seriesEntity);
+      await this.entityService.upsertEntity({ entity: seriesEntity });
       this.logger.debug(`Upserted series: ${seriesName}`);
     }
 
     // Delete orphaned series
     for (const existing of existingSeries) {
       if (!processedIds.has(existing.id)) {
-        await this.entityService.deleteEntity("series", existing.id);
+        await this.entityService.deleteEntity({
+          entityType: "series",
+          id: existing.id,
+        });
         this.logger.debug(`Deleted orphaned series: ${existing.id}`);
       }
     }
@@ -103,10 +106,10 @@ export class SeriesManager {
 
   private async ensureSeriesExists(seriesName: string): Promise<void> {
     const seriesId = slugify(seriesName);
-    const existing = await this.entityService.getEntity<Series>(
-      "series",
-      seriesId,
-    );
+    const existing = await this.entityService.getEntity<Series>({
+      entityType: "series",
+      id: seriesId,
+    });
 
     if (existing) {
       return;
@@ -123,22 +126,25 @@ export class SeriesManager {
       metadata: { title: seriesName, slug: slugify(seriesName) },
     };
 
-    await this.entityService.upsertEntity(seriesEntity);
+    await this.entityService.upsertEntity({ entity: seriesEntity });
     this.logger.debug(`Created series: ${seriesName}`);
   }
 
   async cleanupOrphanedSeries(seriesName: string): Promise<void> {
     const seriesId = slugify(seriesName);
-    const series = await this.entityService.getEntity<Series>(
-      "series",
-      seriesId,
-    );
+    const series = await this.entityService.getEntity<Series>({
+      entityType: "series",
+      id: seriesId,
+    });
     if (!series) return;
 
     // Check all entity types for references to this series
     const hasReferences = await this.hasSeriesReferences(seriesName);
     if (!hasReferences) {
-      await this.entityService.deleteEntity("series", seriesId);
+      await this.entityService.deleteEntity({
+        entityType: "series",
+        id: seriesId,
+      });
       this.logger.debug(`Deleted orphaned series: ${seriesName}`);
     }
   }
@@ -147,9 +153,12 @@ export class SeriesManager {
     const types = this.entityService.getEntityTypes();
     for (const type of types) {
       if (type === "series") continue;
-      const entities = await this.entityService.listEntities(type, {
-        filter: { metadata: { seriesName } },
-        limit: 1,
+      const entities = await this.entityService.listEntities({
+        entityType: type,
+        options: {
+          filter: { metadata: { seriesName } },
+          limit: 1,
+        },
       });
       if (entities.length > 0) return true;
     }
@@ -162,8 +171,11 @@ export class SeriesManager {
 
     for (const type of types) {
       if (type === "series") continue;
-      const entities = await this.entityService.listEntities(type, {
-        limit: 1000,
+      const entities = await this.entityService.listEntities({
+        entityType: type,
+        options: {
+          limit: 1000,
+        },
       });
       for (const entity of entities) {
         const name = this.getSeriesName(entity);

@@ -3,6 +3,7 @@ import type {
   EntityPluginContext,
   IEntityService,
   BaseEntity,
+  MessageSendRequest,
 } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import {
@@ -35,9 +36,9 @@ export interface MockEntityPluginContextOptions {
     entityService?: MockEntityServiceReturns;
     ai?: MockAIReturns;
     jobsEnqueue?: string;
-    messagingSend?: (channel: string, payload: unknown) => Promise<unknown>;
+    messagingSend?: (request: MessageSendRequest) => Promise<unknown>;
   };
-  listEntitiesImpl?: (type: string) => Promise<BaseEntity[]>;
+  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
 
 /**

@@ -65,10 +65,10 @@ export class TopicsDataSource extends BaseEntityDataSource<
 
     if (parsedQuery.id) {
       const entityService = context.entityService;
-      const entity = await entityService.getEntity(
-        this.config.entityType,
-        parsedQuery.id,
-      );
+      const entity = await entityService.getEntity({
+        entityType: this.config.entityType,
+        id: parsedQuery.id,
+      });
 
       if (!entity) {
         throw new Error(`Entity not found: ${parsedQuery.id}`);

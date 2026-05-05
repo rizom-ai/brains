@@ -170,10 +170,10 @@ export class NewsletterDataSource extends BaseEntityDataSource<
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const newsletter = await entityService.getEntity<Newsletter>(
-      this.config.entityType,
-      id,
-    );
+    const newsletter = await entityService.getEntity<Newsletter>({
+      entityType: this.config.entityType,
+      id: id,
+    });
 
     if (!newsletter) {
       throw new Error(`Newsletter not found: ${id}`);
@@ -188,7 +188,10 @@ export class NewsletterDataSource extends BaseEntityDataSource<
       const entityType = newsletter.metadata.sourceEntityType ?? "post";
       const resolvedEntities = await Promise.all(
         newsletter.metadata.entityIds.map(async (entityId) => {
-          const entity = await entityService.getEntity(entityType, entityId);
+          const entity = await entityService.getEntity({
+            entityType: entityType,
+            id: entityId,
+          });
           if (entity) {
             const metadata = entity.metadata as {
               title?: string;

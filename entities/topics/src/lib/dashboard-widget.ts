@@ -13,32 +13,36 @@ export function registerTopicsDashboardWidget(params: {
   context.messaging.subscribe(
     "system:plugins:ready",
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send("dashboard:register-widget", {
-        id: TOPICS_PLUGIN_ID,
-        pluginId,
-        title: "Topics",
-        section: "secondary",
-        priority: 20,
-        rendererName: "ListWidget",
-        dataProvider: async () => {
-          const topics = await context.entityService.listEntities<TopicEntity>(
-            TOPIC_ENTITY_TYPE,
-            {
-              limit: 10,
-              sortFields: [{ field: "updated", direction: "desc" }],
-            },
-          );
-          return {
-            items: topics.map((topic) => {
-              const projected = toTopicContentProjection(topic);
-              const description = firstSentence(projected.content);
-              return {
-                id: topic.id,
-                name: projected.title || topic.id,
-                ...(description && { description }),
-              };
-            }),
-          };
+      await context.messaging.send({
+        type: "dashboard:register-widget",
+        payload: {
+          id: TOPICS_PLUGIN_ID,
+          pluginId,
+          title: "Topics",
+          section: "secondary",
+          priority: 20,
+          rendererName: "ListWidget",
+          dataProvider: async () => {
+            const topics =
+              await context.entityService.listEntities<TopicEntity>({
+                entityType: TOPIC_ENTITY_TYPE,
+                options: {
+                  limit: 10,
+                  sortFields: [{ field: "updated", direction: "desc" }],
+                },
+              });
+            return {
+              items: topics.map((topic) => {
+                const projected = toTopicContentProjection(topic);
+                const description = firstSentence(projected.content);
+                return {
+                  id: topic.id,
+                  name: projected.title || topic.id,
+                  ...(description && { description }),
+                };
+              }),
+            };
+          },
         },
       });
       return { success: true };

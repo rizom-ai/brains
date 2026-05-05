@@ -147,7 +147,10 @@ describe("topic projection helpers", () => {
     );
 
     expect(result).toEqual({ success: false, topicsExtracted: 0 });
-    expect(getEntity).toHaveBeenCalledWith("post", "missing-post");
+    expect(getEntity).toHaveBeenCalledWith({
+      entityType: "post",
+      id: "missing-post",
+    });
   });
 
   it("deletes existing topics without extraction when replacing with no entities", async () => {
@@ -173,7 +176,13 @@ describe("topic projection helpers", () => {
       batches: 0,
     });
 
-    expect(deleteEntity).toHaveBeenCalledWith("topic", "topic-a");
-    expect(deleteEntity).toHaveBeenCalledWith("topic", "topic-b");
+    expect(deleteEntity).toHaveBeenCalledWith({
+      entityType: "topic",
+      id: "topic-a",
+    });
+    expect(deleteEntity).toHaveBeenCalledWith({
+      entityType: "topic",
+      id: "topic-b",
+    });
   });
 });

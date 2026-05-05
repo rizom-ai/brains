@@ -246,9 +246,12 @@ export class PluginTestHarness<TPlugin extends Plugin = Plugin> {
     source = "test",
     broadcast?: boolean,
   ): Promise<R | undefined> {
-    const response = await this.mockShell
-      .getMessageBus()
-      .send<T, R>(channel, payload, source, undefined, undefined, broadcast);
+    const response = await this.mockShell.getMessageBus().send<T, R>({
+      type: channel,
+      payload,
+      sender: source,
+      ...(broadcast !== undefined && { broadcast }),
+    });
     if ("data" in response) {
       return response.data;
     }

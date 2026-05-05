@@ -46,8 +46,11 @@ export class RSSDataSource implements DataSource {
     const entityService = context.entityService;
 
     // Fetch all published posts
-    const allPosts: BlogPost[] = await entityService.listEntities("post", {
-      limit: 1000,
+    const allPosts: BlogPost[] = await entityService.listEntities({
+      entityType: "post",
+      options: {
+        limit: 1000,
+      },
     });
 
     // Filter only published posts and parse frontmatter

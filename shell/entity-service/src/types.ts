@@ -166,14 +166,14 @@ export type CreateInterceptor = (
  * Kept structural to avoid coupling this package to a concrete messaging service.
  */
 export interface EntityEventBus {
-  send(
-    type: string,
-    payload: Record<string, unknown>,
-    sender: string,
-    target?: string,
-    metadata?: Record<string, unknown>,
-    broadcast?: boolean,
-  ): Promise<unknown>;
+  send(request: {
+    type: string;
+    payload: Record<string, unknown>;
+    sender: string;
+    target?: string;
+    metadata?: Record<string, unknown>;
+    broadcast?: boolean;
+  }): Promise<unknown>;
 }
 
 /**
@@ -286,30 +286,75 @@ export interface EntityTypeConfig {
  * Core entity service interface for read-only operations
  * Used by core plugins that need entity access but shouldn't modify entities
  */
+export interface GetEntityRequest {
+  entityType: string;
+  id: string;
+}
+
+export type GetEntityRawRequest = GetEntityRequest;
+
+export interface ListEntitiesRequest {
+  entityType: string;
+  options?: ListOptions | undefined;
+}
+
+export interface CountEntitiesRequest {
+  entityType: string;
+  options?: Pick<ListOptions, "publishedOnly" | "filter"> | undefined;
+}
+
+export interface CreateEntityRequest<T extends BaseEntity> {
+  entity: EntityInput<T>;
+  options?: CreateEntityOptions | undefined;
+}
+
+export interface CreateEntityFromMarkdownRequest {
+  input: CreateEntityFromMarkdownInput;
+  options?: CreateEntityOptions | undefined;
+}
+
+export interface UpdateEntityRequest<T extends BaseEntity> {
+  entity: T;
+  options?: EntityJobOptions | undefined;
+}
+
+export interface DeleteEntityRequest {
+  entityType: string;
+  id: string;
+}
+
+export interface UpsertEntityRequest<T extends BaseEntity> {
+  entity: T;
+  options?: EntityJobOptions | undefined;
+}
+
+export interface EntitySearchRequest {
+  query: string;
+  options?: SearchOptions | undefined;
+}
+
+export interface SearchWithDistancesRequest {
+  query: string;
+}
+
 export interface ICoreEntityService {
   // Read-only operations
-  getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null>;
+  getEntity<T extends BaseEntity>(request: GetEntityRequest): Promise<T | null>;
 
   /**
    * Get entity without content resolution (raw)
    * Used internally to avoid recursion when resolving image references
    */
   getEntityRaw<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRawRequest,
   ): Promise<T | null>;
 
   listEntities<T extends BaseEntity>(
-    type: string,
-    options?: ListOptions,
+    request: ListEntitiesRequest,
   ): Promise<T[]>;
 
   search<T extends BaseEntity = BaseEntity>(
-    query: string,
-    options?: SearchOptions,
+    request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]>;
 
   // Entity type information
@@ -317,10 +362,7 @@ export interface ICoreEntityService {
   hasEntityType(type: string): boolean;
 
   // Entity counts
-  countEntities(
-    entityType: string,
-    options?: Pick<ListOptions, "publishedOnly" | "filter">,
-  ): Promise<number>;
+  countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 
   /** Get weight map for all registered entity types with non-default weights */
@@ -333,21 +375,17 @@ export interface ICoreEntityService {
 export interface EntityService extends ICoreEntityService {
   // Mutations
   createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
   createEntityFromMarkdown(
-    input: CreateEntityFromMarkdownInput,
-    options?: CreateEntityOptions,
+    request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult>;
   updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult>;
-  deleteEntity(entityType: string, id: string): Promise<boolean>;
+  deleteEntity(request: DeleteEntityRequest): Promise<boolean>;
   upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }>;
   storeEmbedding(data: StoreEmbeddingData): Promise<void>;
 
@@ -360,7 +398,7 @@ export interface EntityService extends ICoreEntityService {
 
   // Diagnostics
   searchWithDistances(
-    query: string,
+    request: SearchWithDistancesRequest,
   ): Promise<Array<{ entityId: string; entityType: string; distance: number }>>;
 
   // Lifecycle

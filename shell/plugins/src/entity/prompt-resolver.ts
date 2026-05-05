@@ -42,7 +42,10 @@ export async function resolvePrompt(
 
   let entity;
   try {
-    entity = await entityService.getEntity("prompt", entityId);
+    entity = await entityService.getEntity({
+      entityType: "prompt",
+      id: entityId,
+    });
   } catch {
     // DB error — return fallback without caching so next call retries
     return fallback;
@@ -65,10 +68,12 @@ export async function resolvePrompt(
       target,
     });
     await entityService.createEntity({
-      id: entityId,
-      entityType: "prompt",
-      content,
-      metadata: { title, target, slug: entityId },
+      entity: {
+        id: entityId,
+        entityType: "prompt",
+        content,
+        metadata: { title, target, slug: entityId },
+      },
     });
   } catch {
     // Creation failed (e.g. entity type not registered yet) — silent fallback

@@ -14,6 +14,10 @@ import type {
   EntityMutationResult,
 } from "@brains/plugins";
 import { ProgressReporter } from "@brains/utils";
+import {
+  socialPostMetadataSchema,
+  type SocialPostMetadata,
+} from "../../src/schemas/social-post";
 
 describe("GenerationJobHandler", () => {
   let handler: GenerationJobHandler;
@@ -191,10 +195,10 @@ describe("GenerationJobHandler", () => {
 
       await handler.process(jobData, "job-123", progressReporter);
 
-      const entities = await context.entityService.listEntities(
-        "social-post",
-        {},
-      );
+      const entities = await context.entityService.listEntities({
+        entityType: "social-post",
+        options: {},
+      });
       expect(entities).toHaveLength(0);
     });
 
@@ -255,15 +259,16 @@ describe("GenerationJobHandler", () => {
     });
 
     it("should default to draft status when addToQueue not specified", async () => {
-      let createdStatus: string | undefined;
+      let createdStatus: SocialPostMetadata["status"] | undefined;
       const originalCreate = context.entityService.createEntity.bind(
         context.entityService,
       );
       context.entityService.createEntity = async (
         input,
       ): Promise<EntityMutationResult> => {
-        const entityInput = input as { metadata?: { status?: string } };
-        createdStatus = entityInput.metadata?.status;
+        createdStatus = socialPostMetadataSchema.parse(
+          input.entity.metadata,
+        ).status;
         return originalCreate(input);
       };
 
@@ -350,11 +355,11 @@ describe("GenerationJobHandler", () => {
         jobType: string;
         data: ImageGenerateJobData;
       }> = [];
-      context.jobs.enqueue = async (
-        jobType: string,
-        data: unknown,
-      ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data: data as ImageGenerateJobData });
+      context.jobs.enqueue = async (request): Promise<string> => {
+        enqueuedJobs.push({
+          jobType: request.type,
+          data: request.data as ImageGenerateJobData,
+        });
         return "image-job-456";
       };
 
@@ -382,11 +387,8 @@ describe("GenerationJobHandler", () => {
 
     it("should not queue image generation when generateImage is false", async () => {
       const enqueuedJobs: Array<{ jobType: string; data: unknown }> = [];
-      context.jobs.enqueue = async (
-        jobType: string,
-        data: unknown,
-      ): Promise<string> => {
-        enqueuedJobs.push({ jobType, data });
+      context.jobs.enqueue = async (request): Promise<string> => {
+        enqueuedJobs.push({ jobType: request.type, data: request.data });
         return "job-id";
       };
 

@@ -121,18 +121,19 @@ values:
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
       // Check that it created with default values
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(createCall).toBeDefined();
-      expect(createCall).toMatchObject({
-        id: "brain-character",
-        entityType: "brain-character",
+      const createCall = createEntitySpy.mock.calls[0]?.[0];
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          id: "brain-character",
+          entityType: "brain-character",
+          content: expect.stringContaining("Knowledge assistant"),
+        }),
       });
-
-      // Content should contain default character data
-      expect(createCall?.["content"]).toContain("Knowledge assistant");
-      expect(createCall?.["content"]).toContain("clarity");
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("clarity"),
+        }),
+      });
     });
 
     it("should not create entity when one already exists", async () => {
@@ -216,10 +217,10 @@ values:
 
       await characterService.refreshCache();
 
-      expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-        "brain-character",
-        "brain-character",
-      );
+      expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+        entityType: "brain-character",
+        id: "brain-character",
+      });
     });
   });
 
@@ -277,13 +278,23 @@ values:
       // Should have created entity with custom values
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
+      const createCall = createEntitySpy.mock.calls[0]?.[0];
 
-      expect(createCall?.["content"]).toContain("Research assistant");
-      expect(createCall?.["content"]).toContain("rigor");
-      expect(createCall?.["content"]).not.toContain("Knowledge assistant");
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("Research assistant"),
+        }),
+      });
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("rigor"),
+        }),
+      });
+      expect(createCall).not.toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("Knowledge assistant"),
+        }),
+      });
     });
 
     it("should fall back to hardcoded default when custom character is not provided", () => {

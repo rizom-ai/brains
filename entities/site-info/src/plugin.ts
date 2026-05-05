@@ -65,7 +65,9 @@ export class SiteInfoPlugin extends EntityPlugin<SiteInfoEntity> {
       const payload = message.payload as { entityType: string };
       if (payload.entityType === "site-info") {
         const siteInfo = await service.getSiteInfo();
-        await context.messaging.send(SITE_METADATA_UPDATED_CHANNEL, siteInfo, {
+        await context.messaging.send({
+          type: SITE_METADATA_UPDATED_CHANNEL,
+          payload: siteInfo,
           broadcast: true,
         });
       }

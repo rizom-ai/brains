@@ -77,15 +77,18 @@ export class NewsletterPlugin extends EntityPlugin<
     // Newsletter signup slot (if buttondown plugin is loaded, it provides the config)
     context.messaging.subscribe("system:plugins:ready", async () => {
       // Check if buttondown is configured by sending a message
-      const response = await context.messaging.send(
-        "buttondown:is-configured",
-        {},
-      );
+      const response = await context.messaging.send({
+        type: "buttondown:is-configured",
+        payload: {},
+      });
       if (!("noop" in response) && response.success) {
-        await context.messaging.send("plugin:site-builder:slot:register", {
-          pluginId: this.id,
-          slotName: "footer-top",
-          render: () => h(NewsletterSignup, { variant: "inline" }),
+        await context.messaging.send({
+          type: "plugin:site-builder:slot:register",
+          payload: {
+            pluginId: this.id,
+            slotName: "footer-top",
+            render: () => h(NewsletterSignup, { variant: "inline" }),
+          },
         });
       }
       return { success: true };
@@ -101,9 +104,12 @@ export class NewsletterPlugin extends EntityPlugin<
     };
 
     context.messaging.subscribe("system:plugins:ready", async () => {
-      await context.messaging.send("publish:register", {
-        entityType: "newsletter",
-        provider,
+      await context.messaging.send({
+        type: "publish:register",
+        payload: {
+          entityType: "newsletter",
+          provider,
+        },
       });
       return { success: true };
     });
@@ -118,15 +124,18 @@ export class NewsletterPlugin extends EntityPlugin<
       if (entityType !== "newsletter") return { success: true };
 
       try {
-        const newsletter = await context.entityService.getEntity<Newsletter>(
-          "newsletter",
-          entityId,
-        );
+        const newsletter = await context.entityService.getEntity<Newsletter>({
+          entityType: "newsletter",
+          id: entityId,
+        });
         if (!newsletter) {
-          await context.messaging.send("publish:report:failure", {
-            entityType,
-            entityId,
-            error: `Newsletter not found: ${entityId}`,
+          await context.messaging.send({
+            type: "publish:report:failure",
+            payload: {
+              entityType,
+              entityId,
+              error: `Newsletter not found: ${entityId}`,
+            },
           });
           return { success: true };
         }
@@ -139,10 +148,13 @@ export class NewsletterPlugin extends EntityPlugin<
         const sendResult = await context.messaging.send<
           { entityId: string; subject: string; content: string },
           { emailId?: string }
-        >("buttondown:send", {
-          entityId,
-          subject: newsletter.metadata.subject,
-          content: newsletter.content,
+        >({
+          type: "buttondown:send",
+          payload: {
+            entityId,
+            subject: newsletter.metadata.subject,
+            content: newsletter.content,
+          },
         });
 
         const sentAt = new Date().toISOString();
@@ -152,29 +164,37 @@ export class NewsletterPlugin extends EntityPlugin<
             : undefined;
 
         await context.entityService.updateEntity({
-          ...newsletter,
-          metadata: {
-            ...newsletter.metadata,
-            status: "published",
-            sentAt,
-            buttondownId,
+          entity: {
+            ...newsletter,
+            metadata: {
+              ...newsletter.metadata,
+              status: "published",
+              sentAt,
+              buttondownId,
+            },
           },
         });
 
-        await context.messaging.send("publish:report:success", {
-          entityType,
-          entityId,
-          sentAt,
+        await context.messaging.send({
+          type: "publish:report:success",
+          payload: {
+            entityType,
+            entityId,
+            sentAt,
+          },
         });
 
         this.logger.info(`Published newsletter: ${entityId}`);
         return { success: true };
       } catch (error) {
         const errorMessage = getErrorMessage(error);
-        await context.messaging.send("publish:report:failure", {
-          entityType,
-          entityId,
-          error: errorMessage,
+        await context.messaging.send({
+          type: "publish:report:failure",
+          payload: {
+            entityType,
+            entityId,
+            error: errorMessage,
+          },
         });
         return { success: true };
       }
@@ -188,34 +208,43 @@ export class NewsletterPlugin extends EntityPlugin<
         if (msg.payload.entityType !== "newsletter") return { success: true };
 
         try {
-          const recentPosts = await context.entityService.listEntities("post", {
-            filter: { metadata: { status: "published" } },
-            limit: 10,
+          const recentPosts = await context.entityService.listEntities({
+            entityType: "post",
+            options: {
+              filter: { metadata: { status: "published" } },
+              limit: 10,
+            },
           });
 
           if (recentPosts.length === 0) {
-            await context.messaging.send("generate:report:failure", {
-              entityType: "newsletter",
-              error: "No published posts available for newsletter",
+            await context.messaging.send({
+              type: "generate:report:failure",
+              payload: {
+                entityType: "newsletter",
+                error: "No published posts available for newsletter",
+              },
             });
             return { success: true };
           }
 
-          await context.jobs.enqueue(
-            "newsletter:generation",
-            {
+          await context.jobs.enqueue({
+            type: "newsletter:generation",
+            data: {
               sourceEntityIds: recentPosts.map((p) => p.id),
               sourceEntityType: "post",
               addToQueue: false,
             },
-            { interfaceType: "job", userId: "system" },
-          );
+            toolContext: { interfaceType: "job", userId: "system" },
+          });
 
           return { success: true };
         } catch (error) {
-          await context.messaging.send("generate:report:failure", {
-            entityType: "newsletter",
-            error: getErrorMessage(error),
+          await context.messaging.send({
+            type: "generate:report:failure",
+            payload: {
+              entityType: "newsletter",
+              error: getErrorMessage(error),
+            },
           });
           return { success: true };
         }

@@ -136,14 +136,18 @@ export function createToolExecuteWrapper(
  */
 export function createMessageBusEmitter(
   messageBus: {
-    send: (type: string, payload: unknown, sender: string) => Promise<unknown>;
+    send: (request: {
+      type: string;
+      payload: unknown;
+      sender: string;
+    }) => Promise<unknown>;
   },
   sender: string = "brain-agent",
 ): ToolEventEmitter {
   return {
     emit: (type: string, payload: unknown): void => {
       // Fire and forget - don't wait for response, but avoid unhandled rejections.
-      void messageBus.send(type, payload, sender).catch(() => undefined);
+      void messageBus.send({ type, payload, sender }).catch(() => undefined);
     },
   };
 }

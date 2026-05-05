@@ -109,7 +109,7 @@ export class BatchJobManager {
     operations: BatchOperation[],
     options: JobOptions,
     batchId: string,
-    pluginId?: string,
+    _pluginId?: string,
   ): Promise<string> {
     if (operations.length === 0) {
       throw new Error("Cannot enqueue empty batch");
@@ -124,7 +124,7 @@ export class BatchJobManager {
       for (const operation of operations) {
         // Build job options for each individual job
         // Set rootJobId to batchId so CLI progress tracking works through inheritance
-        const jobOptions: Parameters<IJobQueueService["enqueue"]>[2] = {
+        const jobOptions: JobOptions = {
           ...options,
           rootJobId: batchId, // Individual jobs inherit from batch
           metadata: {
@@ -133,12 +133,11 @@ export class BatchJobManager {
           },
         };
 
-        const jobId = await this.jobQueue.enqueue(
-          operation.type,
-          operation.data,
-          jobOptions,
-          pluginId,
-        );
+        const jobId = await this.jobQueue.enqueue({
+          type: operation.type,
+          data: operation.data,
+          options: jobOptions,
+        });
         jobIds.push(jobId);
       }
 

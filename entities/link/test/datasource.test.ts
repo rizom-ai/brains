@@ -140,12 +140,12 @@ Summary for ${title}`;
 
       await datasource.fetch({ entityType: "link" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "link",
-        expect.objectContaining({
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "link",
+        options: expect.objectContaining({
           sortFields: [{ field: "capturedAt", direction: "desc" }],
         }),
-      );
+      });
     });
   });
 

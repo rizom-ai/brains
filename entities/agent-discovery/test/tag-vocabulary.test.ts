@@ -118,9 +118,9 @@ describe("tag vocabulary", () => {
 
     const context = {
       entityService: createMockEntityService({
-        listEntitiesImpl: async (entityType: string) => {
-          if (entityType === "agent") return agentEntities;
-          if (entityType === "skill") return skillEntities;
+        listEntitiesImpl: async (request: { entityType: string }) => {
+          if (request.entityType === "agent") return agentEntities;
+          if (request.entityType === "skill") return skillEntities;
           return [];
         },
       }),

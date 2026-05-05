@@ -957,6 +957,7 @@
       "name": "@brains/site-engine",
       "version": "0.2.0-alpha.48",
       "dependencies": {
+        "@brains/entity-service": "workspace:*",
         "@brains/site-composition": "workspace:*",
         "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",

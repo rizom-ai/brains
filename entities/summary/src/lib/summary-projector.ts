@@ -44,10 +44,10 @@ export class SummaryProjector {
 
     let existing: SummaryEntity | null = null;
     try {
-      existing = await this.context.entityService.getEntity<SummaryEntity>(
-        SUMMARY_ENTITY_TYPE,
-        conversationId,
-      );
+      existing = await this.context.entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: conversationId,
+      });
     } catch {
       existing = null;
     }
@@ -92,7 +92,7 @@ export class SummaryProjector {
       metadata,
     };
 
-    await this.context.entityService.upsertEntity(entity);
+    await this.context.entityService.upsertEntity({ entity });
 
     this.logger.info("Projected conversation summary", {
       conversationId,

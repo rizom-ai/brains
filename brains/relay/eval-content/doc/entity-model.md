@@ -569,24 +569,27 @@ export class EntityService {
   ): Promise<T>;
 
   // Get entity by ID and type
-  async getEntity<T extends BaseEntity & IContentModel>(
-    entityType: string,
-    id: string,
-  ): Promise<T | null>;
+  async getEntity<T extends BaseEntity & IContentModel>(request: {
+    entityType: string;
+    id: string;
+  }): Promise<T | null>;
 
   // Update existing entity
   async updateEntity<T extends BaseEntity & IContentModel>(
     entity: T,
   ): Promise<T>;
 
-  // Delete entity by ID
-  async deleteEntity(id: string): Promise<boolean>;
+  // Delete entity by ID and type
+  async deleteEntity(request: {
+    entityType: string;
+    id: string;
+  }): Promise<boolean>;
 
   // List entities by type with pagination
-  async listEntities<T extends BaseEntity & IContentModel>(
-    entityType: string,
-    options?: ListOptions,
-  ): Promise<T[]>;
+  async listEntities<T extends BaseEntity & IContentModel>(request: {
+    entityType: string;
+    options?: ListOptions;
+  }): Promise<T[]>;
 
   // Search entities by tags
   async searchEntitiesByTags(

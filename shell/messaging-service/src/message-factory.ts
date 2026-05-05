@@ -1,3 +1,4 @@
+import { parseHandlerResponse } from "./handler-response";
 import type {
   InternalMessageResponse,
   MessageResponse,
@@ -30,24 +31,41 @@ export function createMessage<T>(
  */
 export function toInternalResponse(
   requestId: string,
-  result: MessageResponse<unknown>,
+  result: unknown,
 ): InternalMessageResponse {
+  const response = parseHandlerResponse(result);
   // Handle noop responses for broadcast events
-  if ("noop" in result) {
+  if ("noop" in response) {
     return createInternalResponse(requestId, true);
   }
 
-  // Type guard: if we get here, result must have success/data/error properties
-  if ("success" in result) {
-    return createInternalResponse(
-      requestId,
-      result.success,
-      result.data,
-      result.error,
-    );
+  return createInternalResponse(
+    requestId,
+    response.success,
+    response.data,
+    response.error,
+  );
+}
+
+/**
+ * Convert an internal bus response into the public MessageResponse shape.
+ */
+export function toMessageResponse<R>(
+  type: string,
+  response: InternalMessageResponse | null,
+): MessageResponse<R> {
+  if (response?.success) {
+    return {
+      success: true,
+      data: response.data as R,
+    };
   }
 
-  throw new Error("Invalid message response format");
+  return {
+    success: false,
+    error:
+      response?.error?.message ?? `No handler found for message type: ${type}`,
+  };
 }
 
 function createInternalResponse(

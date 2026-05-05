@@ -29,7 +29,7 @@ describe("search diagnostics", () => {
     ];
     for (const { id, content } of testData) {
       const entity = createTestEntity("test", { id, content });
-      await ctx.entityService.createEntity(entity);
+      await ctx.entityService.createEntity({ entity: entity });
       await ctx.entityService.storeEmbedding({
         entityId: id,
         entityType: "test",
@@ -38,7 +38,9 @@ describe("search diagnostics", () => {
       });
     }
 
-    const results = await ctx.entityService.searchWithDistances("TypeScript");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "TypeScript",
+    });
     expect(results.length).toBe(3);
     // Each result has a distance
     for (const r of results) {
@@ -58,8 +60,8 @@ describe("search diagnostics", () => {
       content: "Very far content",
     });
 
-    await ctx.entityService.createEntity(e1);
-    await ctx.entityService.createEntity(e2);
+    await ctx.entityService.createEntity({ entity: e1 });
+    await ctx.entityService.createEntity({ entity: e2 });
 
     // Give different embeddings to simulate distance variation
     await ctx.entityService.storeEmbedding({
@@ -75,7 +77,9 @@ describe("search diagnostics", () => {
       contentHash: e2.contentHash,
     });
 
-    const results = await ctx.entityService.searchWithDistances("test query");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "test query",
+    });
     expect(results.length).toBe(2);
     // Sorted by distance ascending
     const first = results[0];
@@ -89,9 +93,11 @@ describe("search diagnostics", () => {
 
   test("searchWithDistances returns no results when no embeddings exist", async () => {
     const entity = createTestEntity("test", { content: "No embedding" });
-    await ctx.entityService.createEntity(entity);
+    await ctx.entityService.createEntity({ entity: entity });
 
-    const results = await ctx.entityService.searchWithDistances("anything");
+    const results = await ctx.entityService.searchWithDistances({
+      query: "anything",
+    });
     expect(results).toHaveLength(0);
   });
 });

@@ -75,8 +75,11 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by single metadata field (publishedAt desc)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      },
     });
 
     expect(result).toHaveLength(3);
@@ -84,8 +87,11 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by single metadata field (publishedAt asc)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "asc" }],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "asc" }],
+      },
     });
 
     expect(result).toHaveLength(3);
@@ -93,11 +99,14 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by multiple metadata fields", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [
-        { field: "status", direction: "asc" },
-        { field: "publishedAt", direction: "desc" },
-      ],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [
+          { field: "status", direction: "asc" },
+          { field: "publishedAt", direction: "desc" },
+        ],
+      },
     });
 
     expect(result).toHaveLength(3);
@@ -105,8 +114,11 @@ describe("listEntities sortFields", () => {
   });
 
   test("should sort by system field (created)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "created", direction: "asc" }],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "created", direction: "asc" }],
+      },
     });
 
     expect(result).toHaveLength(3);
@@ -114,19 +126,25 @@ describe("listEntities sortFields", () => {
   });
 
   test("should combine sortFields with pagination", async () => {
-    const page1 = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
-      limit: 2,
-      offset: 0,
+    const page1 = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+        limit: 2,
+        offset: 0,
+      },
     });
 
     expect(page1).toHaveLength(2);
     expect(page1.map((r) => r.id)).toEqual(["post-1", "post-3"]);
 
-    const page2 = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
-      limit: 2,
-      offset: 2,
+    const page2 = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+        limit: 2,
+        offset: 2,
+      },
     });
 
     expect(page2).toHaveLength(1);
@@ -134,9 +152,12 @@ describe("listEntities sortFields", () => {
   });
 
   test("should combine sortFields with publishedOnly filter", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
-      publishedOnly: true,
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+        publishedOnly: true,
+      },
     });
 
     expect(result).toHaveLength(2);
@@ -158,8 +179,11 @@ describe("listEntities sortFields", () => {
       ctx.embeddingDbConfig,
     );
 
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      publishedOnly: true,
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        publishedOnly: true,
+      },
     });
 
     expect(result).toHaveLength(3);
@@ -185,8 +209,11 @@ describe("listEntities sortFields", () => {
       ctx.embeddingDbConfig,
     );
 
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      publishedOnly: true,
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        publishedOnly: true,
+      },
     });
 
     // Should include: post-1 (published), post-2 (published), agent-yeehaa (active)
@@ -198,13 +225,18 @@ describe("listEntities sortFields", () => {
   });
 
   test("should return all entities when no limit is specified", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post");
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+    });
     expect(result).toHaveLength(3);
   });
 
   test("should respect explicit limit when provided", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      limit: 2,
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        limit: 2,
+      },
     });
     expect(result).toHaveLength(2);
   });
@@ -293,8 +325,11 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt desc without nullsFirst (NULLs last)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [{ field: "publishedAt", direction: "desc" }],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [{ field: "publishedAt", direction: "desc" }],
+      },
     });
 
     expect(result).toHaveLength(4);
@@ -308,10 +343,13 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt desc with nullsFirst (NULLs first)", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [
-        { field: "publishedAt", direction: "desc", nullsFirst: true },
-      ],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [
+          { field: "publishedAt", direction: "desc", nullsFirst: true },
+        ],
+      },
     });
 
     expect(result).toHaveLength(4);
@@ -325,10 +363,13 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should sort publishedAt asc with nullsFirst", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [
-        { field: "publishedAt", direction: "asc", nullsFirst: true },
-      ],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [
+          { field: "publishedAt", direction: "asc", nullsFirst: true },
+        ],
+      },
     });
 
     expect(result).toHaveLength(4);
@@ -342,11 +383,14 @@ describe("listEntities sortFields with nullsFirst", () => {
   });
 
   test("should work with multiple sort fields and nullsFirst", async () => {
-    const result = await ctx.entityService.listEntities<BaseEntity>("post", {
-      sortFields: [
-        { field: "publishedAt", direction: "desc", nullsFirst: true },
-        { field: "created", direction: "desc" }, // Secondary sort for drafts
-      ],
+    const result = await ctx.entityService.listEntities<BaseEntity>({
+      entityType: "post",
+      options: {
+        sortFields: [
+          { field: "publishedAt", direction: "desc", nullsFirst: true },
+          { field: "created", direction: "desc" }, // Secondary sort for drafts
+        ],
+      },
     });
 
     expect(result).toHaveLength(4);

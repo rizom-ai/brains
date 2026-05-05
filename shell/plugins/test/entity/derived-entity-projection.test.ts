@@ -25,8 +25,8 @@ function createProjectionContext(options?: {
     entityDisplay: undefined,
     appInfo: mock(() => Promise.resolve({ version: "0.0.0", plugins: [] })),
     entityService: {
-      listEntities: mock((type: string) =>
-        Promise.resolve(listEntities[type] ?? []),
+      listEntities: mock((request: { entityType: string }) =>
+        Promise.resolve(listEntities[request.entityType] ?? []),
       ),
       createEntity: mock(() => Promise.resolve({ entityId: "created" })),
       updateEntity: mock(() => Promise.resolve({ entityId: "updated" })),
@@ -157,17 +157,16 @@ describe("derived entity projections", () => {
     expect(controller.hasQueuedInitialSync()).toBe(true);
     expect(process).not.toHaveBeenCalled();
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
-    expect(context.jobs.enqueue).toHaveBeenCalledWith(
-      "derive",
-      { reason: "initial-sync" },
-      null,
-      {
+    expect(context.jobs.enqueue).toHaveBeenCalledWith({
+      type: "derive",
+      data: { reason: "initial-sync" },
+      options: {
         source: "projection-test",
         deduplication: "coalesce",
         deduplicationKey: "test-projection:initial-sync",
         metadata: { operationType: "data_processing" },
       },
-    );
+    });
   });
 
   it("uses persisted targets as a durable initial sync gate", async () => {
@@ -199,8 +198,9 @@ describe("derived entity projections", () => {
     const handler = context.handlers.get("sync:initial:completed")?.[0];
     await handler?.({ payload: {} });
 
-    expect(context.entityService.listEntities).toHaveBeenCalledWith("derived", {
-      limit: 1,
+    expect(context.entityService.listEntities).toHaveBeenCalledWith({
+      entityType: "derived",
+      options: { limit: 1 },
     });
     expect(context.jobs.enqueue).not.toHaveBeenCalled();
   });
@@ -255,17 +255,16 @@ describe("derived entity projections", () => {
     await changeHandler?.({ payload: { entityType: "source", entityId: "a" } });
 
     expect(context.jobs.enqueue).toHaveBeenCalledTimes(1);
-    expect(context.jobs.enqueue).toHaveBeenCalledWith(
-      "derive",
-      { reason: "source-change", sourceId: "a" },
-      null,
-      {
+    expect(context.jobs.enqueue).toHaveBeenCalledWith({
+      type: "derive",
+      data: { reason: "source-change", sourceId: "a" },
+      options: {
         source: "projection-test",
         deduplication: "coalesce",
         deduplicationKey: "test-projection:source:a",
         metadata: { operationType: "data_processing" },
       },
-    );
+    });
   });
 
   it("queues source change jobs for non-entity source events", async () => {
@@ -302,12 +301,10 @@ describe("derived entity projections", () => {
 
     await handler?.({ payload: { conversationId: "conv-1" } });
 
-    expect(context.jobs.enqueue).toHaveBeenCalledWith(
-      "summary:project",
-      { reason: "message-added", conversationId: "conv-1" },
-      null,
-      undefined,
-    );
+    expect(context.jobs.enqueue).toHaveBeenCalledWith({
+      type: "summary:project",
+      data: { reason: "message-added", conversationId: "conv-1" },
+    });
   });
 
   it("reconciles desired state by stable id with bounded stale deletion", async () => {
@@ -349,10 +346,10 @@ describe("derived entity projections", () => {
       deleted: 1,
       skipped: 1,
     });
-    expect(context.entityService.deleteEntity).toHaveBeenCalledWith(
-      "derived",
-      "stale",
-    );
+    expect(context.entityService.deleteEntity).toHaveBeenCalledWith({
+      entityType: "derived",
+      id: "stale",
+    });
     expect(context.entityService.updateEntity).toHaveBeenCalledTimes(1);
     expect(context.entityService.createEntity).toHaveBeenCalledTimes(1);
   });

@@ -66,12 +66,12 @@ async function waitForJobsToDrain(jobQueue: {
 
 async function verifyDatabaseContents(entityService: {
   getEntityTypes(): string[];
-  listEntities(type: string): Promise<unknown[]>;
+  listEntities(request: { entityType: string }): Promise<unknown[]>;
 }): Promise<void> {
   const counts: Record<string, number> = {};
 
   for (const type of entityService.getEntityTypes()) {
-    const entities = await entityService.listEntities(type);
+    const entities = await entityService.listEntities({ entityType: type });
     if (entities.length > 0) counts[type] = entities.length;
   }
   console.log("Database contents:", counts);

@@ -216,6 +216,7 @@ export {
   type MessageContext,
   type MessageResponse,
   type MessageSendOptions,
+  type MessageSendRequest,
   type MessageSender,
   type MessageWithPayload,
 } from "./contracts/messaging";
@@ -232,7 +233,10 @@ export type { ProgressCallback, ContentFormatter } from "@brains/utils";
 // Message interface plugin (for CLI, Matrix, etc.)
 export {
   MessageInterfacePlugin,
+  type EditMessageRequest,
   type MessageJobTrackingInfo,
+  type SendMessageToChannelRequest,
+  type SendMessageWithIdRequest,
   parseConfirmationResponse,
   formatConfirmationPrompt,
   urlCaptureConfigSchema,

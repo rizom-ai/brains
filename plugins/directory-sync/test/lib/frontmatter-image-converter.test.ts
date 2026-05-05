@@ -173,12 +173,12 @@ Post content here.`;
 
       await converter.convert(content);
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "my-awesome-post-cover",
           entityType: "image",
         }),
-      );
+      });
     });
 
     test("should use post title for image title and alt", async () => {
@@ -192,15 +192,15 @@ Post content here.`;
 
       await converter.convert(content);
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Cover image for My Awesome Post",
             alt: "Cover image for My Awesome Post",
             sourceUrl: "https://example.com/image.png",
           }),
         }),
-      );
+      });
     });
 
     test("should use coverImageAlt when provided", async () => {
@@ -215,14 +215,14 @@ Post content here.`;
 
       await converter.convert(content);
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Cover image for My Awesome Post",
             alt: "A beautiful sunset over the mountains",
           }),
         }),
-      );
+      });
     });
 
     test("should remove coverImageAlt from frontmatter after conversion", async () => {

@@ -153,10 +153,10 @@ export class SeriesPlugin extends EntityPlugin<Series> {
           return { success: true };
         }
 
-        const source = await context.entityService.getEntity(
-          parsed.entityType,
-          parsed.entityId,
-        );
+        const source = await context.entityService.getEntity({
+          entityType: parsed.entityType,
+          id: parsed.entityId,
+        });
         if (source) {
           await this.projectSource(source);
         } else {
@@ -237,10 +237,10 @@ export class SeriesPlugin extends EntityPlugin<Series> {
       this.logger.child("SeriesGenerationHandler"),
       context,
     );
-    const allSeries = await context.entityService.listEntities<Series>(
-      "series",
-      { limit: 1000 },
-    );
+    const allSeries = await context.entityService.listEntities<Series>({
+      entityType: "series",
+      options: { limit: 1000 },
+    });
     for (const series of allSeries) {
       try {
         const body = this.adapter.parseBody(series.content);

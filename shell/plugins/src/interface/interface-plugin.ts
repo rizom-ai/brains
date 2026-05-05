@@ -13,6 +13,7 @@ import type {
   JobProgressEvent,
   JobContext,
   BatchOperation,
+  EnqueueJobRequest,
   JobOptions,
 } from "@brains/job-queue";
 
@@ -233,14 +234,11 @@ export abstract class InterfacePlugin<
    * instead of calling context.jobs.enqueue directly
    */
   protected async createJobWithTracking(
-    type: string,
-    data: unknown,
+    request: EnqueueJobRequest,
     trackingInfo: TTrackingInfo,
-    options?: JobOptions,
   ): Promise<string> {
     const context = this.getContext();
-    // Interface-initiated jobs don't have ToolContext - pass null
-    const jobId = await context.jobs.enqueue(type, data, null, options);
+    const jobId = await context.jobs.enqueue(request);
     this.setJobTracking(jobId, trackingInfo);
     return jobId;
   }

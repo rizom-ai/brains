@@ -121,9 +121,12 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
       const attribution = { photographerName, photographerUrl, sourceUrl };
 
       // Deduplicate by image URL stored as sourceUrl on the entity
-      const existing = await deps.entityService.listEntities("image", {
-        limit: 1,
-        filter: { metadata: { sourceUrl: imageUrl } },
+      const existing = await deps.entityService.listEntities({
+        entityType: "image",
+        options: {
+          limit: 1,
+          filter: { metadata: { sourceUrl: imageUrl } },
+        },
       });
 
       if (existing[0]) {
@@ -174,7 +177,9 @@ function createSelectTool(pluginId: string, deps: StockPhotoToolsDeps): Tool {
         },
       };
 
-      const { entityId } = await deps.entityService.createEntity(entityInput);
+      const { entityId } = await deps.entityService.createEntity({
+        entity: entityInput,
+      });
 
       const result: SelectResult = {
         imageEntityId: entityId,
@@ -203,14 +208,19 @@ async function setCoverImage(
   entityId: string,
   imageEntityId: string,
 ): Promise<void> {
-  const target = await entityService.getEntity(entityType, entityId);
+  const target = await entityService.getEntity({
+    entityType: entityType,
+    id: entityId,
+  });
   if (!target) return;
 
   await entityService.updateEntity({
-    ...target,
-    metadata: {
-      ...target.metadata,
-      coverImageId: imageEntityId,
+    entity: {
+      ...target,
+      metadata: {
+        ...target.metadata,
+        coverImageId: imageEntityId,
+      },
     },
   });
 }

@@ -67,7 +67,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
     it("should report failure when provider not configured", async () => {
       const entityService = harness.getEntityService();
-      await entityService.createEntity(samplePost);
+      await entityService.createEntity({ entity: samplePost });
 
       await harness.sendMessage("publish:execute", {
         entityType: "social-post",
@@ -98,7 +98,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
         metadata: { ...samplePost.metadata, status: "published" },
       };
       const entityService = harness.getEntityService();
-      await entityService.createEntity(publishedPost);
+      await entityService.createEntity({ entity: publishedPost });
 
       await harness.sendMessage("publish:execute", {
         entityType: "social-post",
@@ -135,7 +135,7 @@ describe("SocialMediaPlugin - Execute Handler", () => {
 
     it("should report success on successful publish", async () => {
       const entityService = providerHarness.getEntityService();
-      await entityService.createEntity(samplePost);
+      await entityService.createEntity({ entity: samplePost });
 
       await providerHarness.sendMessage("publish:execute", {
         entityType: "social-post",

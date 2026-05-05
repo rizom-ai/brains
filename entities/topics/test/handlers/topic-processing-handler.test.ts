@@ -53,15 +53,17 @@ describe("TopicProcessingHandler", () => {
     content: string;
   }): Promise<void> {
     await mockShell.getEntityService().createEntity({
-      id: params.id,
-      entityType: "topic",
-      content: topicAdapter.createTopicBody({
-        title: params.title,
-        content: params.content,
-      }),
-      metadata: { aliases: [] },
-      created: new Date().toISOString(),
-      updated: new Date().toISOString(),
+      entity: {
+        id: params.id,
+        entityType: "topic",
+        content: topicAdapter.createTopicBody({
+          title: params.title,
+          content: params.content,
+        }),
+        metadata: { aliases: [] },
+        created: new Date().toISOString(),
+        updated: new Date().toISOString(),
+      },
     });
   }
 
@@ -92,7 +94,9 @@ describe("TopicProcessingHandler", () => {
     expect(result.action).toBe("merged");
     expect(result.topicId).toBe("human-ai-collaboration");
 
-    const topics = await mockShell.getEntityService().listEntities("topic");
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
     expect(topics).toHaveLength(1);
     expect(topics[0]?.id).toBe("human-ai-collaboration");
     expect(topicAdapter.parseTopicBody(topics[0]?.content ?? "").title).toBe(
@@ -135,7 +139,9 @@ describe("TopicProcessingHandler", () => {
     expect(result.success).toBe(true);
     expect(result.action).toBe("created");
 
-    const topics = await mockShell.getEntityService().listEntities("topic");
+    const topics = await mockShell.getEntityService().listEntities({
+      entityType: "topic",
+    });
     expect(topics).toHaveLength(2);
     expect(topics.map((topic) => topic.id).sort()).toEqual([
       "biomimicry",

@@ -36,10 +36,10 @@ export async function ensureUniqueTitle(
   const proposedId = deriveId(title);
 
   // Check for collision
-  const existing = await context.entityService.getEntity(
-    entityType,
-    proposedId,
-  );
+  const existing = await context.entityService.getEntity({
+    entityType: entityType,
+    id: proposedId,
+  });
   if (!existing) {
     return title;
   }

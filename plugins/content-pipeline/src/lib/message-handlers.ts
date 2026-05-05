@@ -137,10 +137,13 @@ async function handleQueue(
   try {
     const result = await deps.queueManager.add(entityType, entityId);
 
-    await context.messaging.send(PUBLISH_MESSAGES.QUEUED, {
-      entityType,
-      entityId,
-      position: result.position,
+    await context.messaging.send({
+      type: PUBLISH_MESSAGES.QUEUED,
+      payload: {
+        entityType,
+        entityId,
+        position: result.position,
+      },
     });
 
     deps.logger.debug(`Entity queued: ${entityId}`, {
@@ -163,9 +166,12 @@ async function handleDirect(
 ): Promise<{ success: boolean }> {
   const { entityType, entityId } = payload;
 
-  await context.messaging.send(PUBLISH_MESSAGES.EXECUTE, {
-    entityType,
-    entityId,
+  await context.messaging.send({
+    type: PUBLISH_MESSAGES.EXECUTE,
+    payload: {
+      entityType,
+      entityId,
+    },
   });
 
   deps.logger.debug(`Direct publish requested: ${entityId}`, { entityType });
@@ -222,13 +228,16 @@ async function handleList(
   try {
     const queue = await deps.queueManager.list(entityType);
 
-    await context.messaging.send(PUBLISH_MESSAGES.LIST_RESPONSE, {
-      entityType,
-      queue: queue.map((entry) => ({
-        entityId: entry.entityId,
-        position: entry.position,
-        queuedAt: entry.queuedAt,
-      })),
+    await context.messaging.send({
+      type: PUBLISH_MESSAGES.LIST_RESPONSE,
+      payload: {
+        entityType,
+        queue: queue.map((entry) => ({
+          entityId: entry.entityId,
+          position: entry.position,
+          queuedAt: entry.queuedAt,
+        })),
+      },
     });
 
     return { success: true };

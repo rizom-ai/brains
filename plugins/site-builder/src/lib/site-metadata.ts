@@ -1,11 +1,11 @@
-import type { SiteMessageSender } from "./site-content-contracts";
+import type { MessageSender } from "@brains/plugins";
 import {
   SITE_METADATA_GET_CHANNEL,
   siteMetadataSchema,
   type SiteMetadata,
 } from "@brains/site-composition";
 
-type SendMessage = SiteMessageSender;
+type SendMessage = MessageSender;
 
 /**
  * Resolve site metadata through the plugin message bus.
@@ -19,7 +19,10 @@ export async function resolveSiteMetadata(
   fallback: SiteMetadata,
 ): Promise<SiteMetadata> {
   try {
-    const response = await sendMessage(SITE_METADATA_GET_CHANNEL, undefined);
+    const response = await sendMessage({
+      type: SITE_METADATA_GET_CHANNEL,
+      payload: undefined,
+    });
 
     if ("success" in response && response.success && response.data) {
       const parsed = siteMetadataSchema.safeParse(response.data);

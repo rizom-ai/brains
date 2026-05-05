@@ -172,15 +172,15 @@ export abstract class BaseGenerationJobHandler<
         message: `Saving ${this.entityType} to database`,
       });
 
-      const result = await this.context.entityService.createEntity(
-        {
+      const result = await this.context.entityService.createEntity({
+        entity: {
           id: generated.id,
           entityType: this.entityType,
           content: generated.content,
           metadata: generated.metadata,
         },
-        generated.createOptions,
-      );
+        options: generated.createOptions,
+      });
 
       // Step 3: Post-creation hook
       await this.afterCreate(

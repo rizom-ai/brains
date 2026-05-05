@@ -31,10 +31,10 @@ export class EntityDataSource implements DataSource {
     }
     const params = parseResult.data;
 
-    const entity = await this.entityService.getEntity(
-      params.entityType,
-      params.query.id,
-    );
+    const entity = await this.entityService.getEntity({
+      entityType: params.entityType,
+      id: params.query.id,
+    });
 
     if (!entity) {
       throw new Error(

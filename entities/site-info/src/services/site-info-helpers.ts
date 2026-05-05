@@ -11,8 +11,11 @@ const adapter = new SiteInfoAdapter();
 export async function fetchSiteInfo(
   entityService: ICoreEntityService,
 ): Promise<SiteInfoBody> {
-  const entities = await entityService.listEntities("site-info", {
-    limit: 1,
+  const entities = await entityService.listEntities({
+    entityType: "site-info",
+    options: {
+      limit: 1,
+    },
   });
   const entity = entities[0];
   if (!entity) {

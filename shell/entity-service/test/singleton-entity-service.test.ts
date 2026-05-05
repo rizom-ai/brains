@@ -147,16 +147,13 @@ describe("SingletonEntityService", () => {
 
       expect(createEntitySpy).toHaveBeenCalledTimes(1);
 
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(createCall).toMatchObject({
-        id: entityType,
-        entityType,
+      expect(createEntitySpy.mock.calls[0]?.[0]).toEqual({
+        entity: expect.objectContaining({
+          id: entityType,
+          entityType,
+          content: "Default Title\nDefault description",
+        }),
       });
-      expect(createCall?.["content"]).toBe(
-        "Default Title\nDefault description",
-      );
     });
 
     it("should not create entity when one already exists", async () => {
@@ -207,7 +204,10 @@ describe("SingletonEntityService", () => {
 
       await service.refreshCache();
 
-      expect(getEntitySpy).toHaveBeenCalledWith(entityType, entityType);
+      expect(getEntitySpy).toHaveBeenCalledWith({
+        entityType,
+        id: entityType,
+      });
       expect(service.get()).toEqual({
         title: "Refreshed Title",
         description: "Refreshed description",
@@ -350,10 +350,11 @@ describe("SingletonEntityService", () => {
 
       await customService.initialize();
 
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(createCall?.["content"]).toBe("Custom\nCustom desc");
+      expect(createEntitySpy.mock.calls[0]?.[0]).toEqual({
+        entity: expect.objectContaining({
+          content: "Custom\nCustom desc",
+        }),
+      });
     });
   });
 });

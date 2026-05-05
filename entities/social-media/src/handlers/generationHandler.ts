@@ -95,10 +95,10 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
         message: `Fetching source ${sourceEntityType}`,
       });
 
-      const sourceEntity = await this.context.entityService.getEntity(
-        sourceEntityType,
-        sourceEntityId,
-      );
+      const sourceEntity = await this.context.entityService.getEntity({
+        entityType: sourceEntityType,
+        id: sourceEntityId,
+      });
 
       if (!sourceEntity) {
         this.failEarly(
@@ -228,9 +228,12 @@ ${sourceEntity.content}`,
     _data: GenerationJobData,
     error: string,
   ): Promise<void> {
-    await this.context.messaging.send("generate:report:failure", {
-      entityType: "social-post",
-      error,
+    await this.context.messaging.send({
+      type: "generate:report:failure",
+      payload: {
+        entityType: "social-post",
+        error,
+      },
     });
   }
 
@@ -248,22 +251,25 @@ ${sourceEntity.content}`,
       });
 
       const title = generated.title ?? "Social Post";
-      await this.context.jobs.enqueue(
-        "image:image-generate",
-        {
+      await this.context.jobs.enqueue({
+        type: "image:image-generate",
+        data: {
           prompt: `Social media graphic for: ${title}`,
           title: `${title} Image`,
           aspectRatio: "16:9",
           targetEntityType: "social-post",
           targetEntityId: entityId,
         },
-        { interfaceType: "job", userId: "system" },
-      );
+        toolContext: { interfaceType: "job", userId: "system" },
+      });
     }
 
-    await this.context.messaging.send("generate:report:success", {
-      entityType: "social-post",
-      entityId,
+    await this.context.messaging.send({
+      type: "generate:report:success",
+      payload: {
+        entityType: "social-post",
+        entityId,
+      },
     });
   }
 

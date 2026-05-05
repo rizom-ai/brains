@@ -50,14 +50,14 @@ describe("Initial sync triggers batch projection", () => {
       "topics",
     );
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith(
-      "topic:project",
-      { mode: "derive", reason: "initial-sync" },
-      expect.objectContaining({
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "topic:project",
+      data: { mode: "derive", reason: "initial-sync" },
+      options: expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "topics-initial-derivation",
       }),
-    );
+    });
 
     harness.reset();
   });
@@ -134,9 +134,9 @@ describe("Initial sync triggers batch projection", () => {
     );
 
     expect(enqueue).toHaveBeenCalledTimes(2);
-    expect(enqueue).toHaveBeenLastCalledWith(
-      "topic:project",
-      {
+    expect(enqueue).toHaveBeenLastCalledWith({
+      type: "topic:project",
+      data: {
         mode: "source",
         entityId: "post-1",
         entityType: "post",
@@ -145,11 +145,11 @@ describe("Initial sync triggers batch projection", () => {
         autoMerge: expect.any(Boolean),
         mergeSimilarityThreshold: expect.any(Number),
       },
-      expect.objectContaining({
+      options: expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "topics-source:post:post-1:hash-1",
       }),
-    );
+    });
 
     harness.reset();
   });

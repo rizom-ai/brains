@@ -259,12 +259,12 @@ export class AgentService implements IAgentService {
     } = input;
 
     // Ensure conversation exists
-    await this.conversationService.startConversation(
-      conversationId,
+    await this.conversationService.startConversation({
+      sessionId: conversationId,
       interfaceType,
       channelId,
-      { channelName, interfaceType, channelId },
-    );
+      metadata: { channelName, interfaceType, channelId },
+    });
 
     // Load conversation history
     const historyMessages = await this.conversationService.getMessages(
@@ -284,7 +284,11 @@ export class AgentService implements IAgentService {
     });
 
     // Save user message
-    await this.conversationService.addMessage(conversationId, "user", message);
+    await this.conversationService.addMessage({
+      conversationId,
+      role: "user",
+      content: message,
+    });
 
     // Call agent
     const callOptions: BrainCallOptions = {
@@ -302,11 +306,11 @@ export class AgentService implements IAgentService {
 
     // Save assistant response
     if (result.text.trim()) {
-      await this.conversationService.addMessage(
+      await this.conversationService.addMessage({
         conversationId,
-        "assistant",
-        result.text,
-      );
+        role: "assistant",
+        content: result.text,
+      });
     }
 
     const { toolResults, pendingConfirmation, totalToolCalls } =
@@ -368,11 +372,11 @@ export class AgentService implements IAgentService {
     const result = await tool.tool.handler(pendingConfirmation.args, context);
     const resultText = `Completed: ${pendingConfirmation.description}\n\nResult: ${JSON.stringify(result, null, 2)}`;
 
-    await this.conversationService.addMessage(
+    await this.conversationService.addMessage({
       conversationId,
-      "assistant",
-      resultText,
-    );
+      role: "assistant",
+      content: resultText,
+    });
 
     return {
       text: resultText,

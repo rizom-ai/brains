@@ -216,13 +216,35 @@ export function defineChannel<TPayload, TResponse = unknown>(
   return { name, schema };
 }
 
+export interface GetEntityRequest {
+  entityType: string;
+  id: string;
+}
+
+export type GetEntityRawRequest = GetEntityRequest;
+
+export interface ListEntitiesRequest {
+  entityType: string;
+  options?: unknown;
+}
+
+export interface CountEntitiesRequest {
+  entityType: string;
+  options?: unknown;
+}
+
+export interface EntitySearchRequest {
+  query: string;
+  options?: unknown;
+}
+
 export interface IEntityService {
-  getEntity<T = unknown>(entityType: string, id: string): Promise<T | null>;
-  listEntities<T = unknown>(type: string, options?: unknown): Promise<T[]>;
-  search<T = unknown>(query: string, options?: unknown): Promise<T[]>;
+  getEntity<T = unknown>(request: GetEntityRequest): Promise<T | null>;
+  listEntities<T = unknown>(request: ListEntitiesRequest): Promise<T[]>;
+  search<T = unknown>(request: EntitySearchRequest): Promise<T[]>;
   getEntityTypes(): string[];
   hasEntityType(type: string): boolean;
-  countEntities(entityType: string, options?: unknown): Promise<number>;
+  countEntities(request: CountEntitiesRequest): Promise<number>;
   getEntityCounts(): Promise<Array<{ entityType: string; count: number }>>;
 }
 

@@ -24,7 +24,7 @@ export interface MockEntityServiceOptions {
   /** Pre-configured return values for methods */
   returns?: MockEntityServiceReturns;
   /** Dynamic implementation for listEntities (overrides returns.listEntities) */
-  listEntitiesImpl?: (type: string) => Promise<BaseEntity[]>;
+  listEntitiesImpl?: (request: { entityType: string }) => Promise<BaseEntity[]>;
 }
 
 /**
@@ -60,8 +60,8 @@ export function createMockEntityService(
   // Create listEntities mock - use callback if provided, otherwise static return
   const listEntitiesMock = listEntitiesImpl
     ? mock(
-        <T extends BaseEntity>(type: string): Promise<T[]> =>
-          listEntitiesImpl(type) as Promise<T[]>,
+        <T extends BaseEntity>(request: { entityType: string }): Promise<T[]> =>
+          listEntitiesImpl(request) as Promise<T[]>,
       )
     : mock(() => Promise.resolve(returns.listEntities ?? []));
 

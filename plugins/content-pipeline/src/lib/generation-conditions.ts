@@ -16,9 +16,12 @@ export async function checkGenerationConditions(
 ): Promise<GenerationConditionResult> {
   try {
     if (conditions.skipIfDraftExists !== false) {
-      const drafts = await entityService.listEntities(entityType, {
-        filter: { metadata: { status: "draft" } },
-        limit: 1,
+      const drafts = await entityService.listEntities({
+        entityType: entityType,
+        options: {
+          filter: { metadata: { status: "draft" } },
+          limit: 1,
+        },
       });
 
       if (drafts.length > 0) {
@@ -30,9 +33,12 @@ export async function checkGenerationConditions(
     }
 
     if (conditions.maxUnpublishedDrafts !== undefined) {
-      const unpublishedDrafts = await entityService.listEntities(entityType, {
-        filter: { metadata: { status: "draft" } },
-        limit: conditions.maxUnpublishedDrafts + 1,
+      const unpublishedDrafts = await entityService.listEntities({
+        entityType: entityType,
+        options: {
+          filter: { metadata: { status: "draft" } },
+          limit: conditions.maxUnpublishedDrafts + 1,
+        },
       });
 
       if (unpublishedDrafts.length >= conditions.maxUnpublishedDrafts) {
@@ -47,13 +53,13 @@ export async function checkGenerationConditions(
       conditions.minSourceEntities !== undefined &&
       conditions.sourceEntityType
     ) {
-      const sourceEntities = await entityService.listEntities(
-        conditions.sourceEntityType,
-        {
+      const sourceEntities = await entityService.listEntities({
+        entityType: conditions.sourceEntityType,
+        options: {
           publishedOnly: true,
           limit: conditions.minSourceEntities,
         },
-      );
+      });
 
       if (sourceEntities.length < conditions.minSourceEntities) {
         return {

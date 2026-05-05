@@ -1,6 +1,9 @@
 export {
   MessageInterfacePlugin,
+  type EditMessageRequest,
   type MessageJobTrackingInfo,
+  type SendMessageToChannelRequest,
+  type SendMessageWithIdRequest,
   urlCaptureConfigSchema,
 } from "./message-interface-plugin";
 

@@ -98,9 +98,9 @@ export function registerToolOnServer(
       });
 
       try {
-        const response = await messageBus.send(
-          `plugin:${pluginId}:tool:execute`,
-          {
+        const response = await messageBus.send({
+          type: `plugin:${pluginId}:tool:execute`,
+          payload: {
             toolName: tool.name,
             args: params,
             progressToken,
@@ -110,8 +110,8 @@ export function registerToolOnServer(
             channelId,
             channelName,
           },
-          "MCPService",
-        );
+          sender: "MCPService",
+        });
 
         return {
           content: [

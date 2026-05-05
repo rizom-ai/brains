@@ -41,8 +41,9 @@ export class HomepageDataSource implements DataSource {
 
     const [profileContent, publishedPosts, siteInfo] = await Promise.all([
       fetchAnchorProfile(entityService),
-      entityService.listEntities<BlogPost>("post", {
-        limit: 20,
+      entityService.listEntities<BlogPost>({
+        entityType: "post",
+        options: { limit: 20 },
       }),
       fetchSiteInfo(entityService),
     ]);

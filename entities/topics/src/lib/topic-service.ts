@@ -53,10 +53,12 @@ export class TopicService {
 
     try {
       const { entityId } = await this.entityService.createEntity({
-        id: topicId,
-        entityType: TOPIC_ENTITY_TYPE,
-        content: body,
-        metadata,
+        entity: {
+          id: topicId,
+          entityType: TOPIC_ENTITY_TYPE,
+          content: body,
+          metadata,
+        },
       });
 
       const topic: TopicEntity = {
@@ -112,9 +114,11 @@ export class TopicService {
     });
 
     const { entityId } = await this.entityService.updateEntity({
-      ...existing,
-      content: newBody,
-      metadata,
+      entity: {
+        ...existing,
+        content: newBody,
+        metadata,
+      },
     });
 
     const updatedTopic: TopicEntity = {
@@ -132,26 +136,32 @@ export class TopicService {
   }
 
   public async getTopic(id: string): Promise<TopicEntity | null> {
-    return this.entityService.getEntity<TopicEntity>(TOPIC_ENTITY_TYPE, id);
+    return this.entityService.getEntity<TopicEntity>({
+      entityType: TOPIC_ENTITY_TYPE,
+      id,
+    });
   }
 
   public async listTopics(params?: {
     limit?: number;
     offset?: number;
   }): Promise<TopicEntity[]> {
-    return this.entityService.listEntities<TopicEntity>(
-      TOPIC_ENTITY_TYPE,
-      params,
-    );
+    return this.entityService.listEntities<TopicEntity>({
+      entityType: TOPIC_ENTITY_TYPE,
+      ...(params !== undefined ? { options: params } : {}),
+    });
   }
 
   public async searchTopics(
     query: string,
     limit = 10,
   ): Promise<SearchResult<TopicEntity>[]> {
-    return this.entityService.search<TopicEntity>(query, {
-      types: [TOPIC_ENTITY_TYPE],
-      limit,
+    return this.entityService.search<TopicEntity>({
+      query,
+      options: {
+        types: [TOPIC_ENTITY_TYPE],
+        limit,
+      },
     });
   }
 
@@ -229,7 +239,10 @@ export class TopicService {
   }
 
   public async deleteTopic(id: string): Promise<boolean> {
-    const result = await this.entityService.deleteEntity(TOPIC_ENTITY_TYPE, id);
+    const result = await this.entityService.deleteEntity({
+      entityType: TOPIC_ENTITY_TYPE,
+      id,
+    });
     if (result) {
       this.logger.info("Deleted topic", { id });
     }

@@ -29,8 +29,8 @@ function createCapturingEventBus(): {
   return {
     events,
     eventBus: {
-      send: async (type, payload): Promise<{ success: true }> => {
-        events.push({ type, payload });
+      send: async (request): Promise<{ success: true }> => {
+        events.push({ type: request.type, payload: request.payload });
         return { success: true };
       },
     },
@@ -58,9 +58,14 @@ describe("Immediate Entity Persistence", () => {
         tags: ["test"],
       });
 
-      const { entityId } = await ctx.entityService.createEntity<Note>(noteData);
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
 
-      const entity = await ctx.entityService.getEntity<Note>("note", entityId);
+      const entity = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
 
       expect(entity).not.toBeNull();
       expect(entity?.id).toBe(entityId);
@@ -75,9 +80,11 @@ describe("Immediate Entity Persistence", () => {
         tags: ["list-test"],
       });
 
-      await ctx.entityService.createEntity<Note>(noteData);
+      await ctx.entityService.createEntity({ entity: noteData });
 
-      const entities = await ctx.entityService.listEntities<Note>("note");
+      const entities = await ctx.entityService.listEntities<Note>({
+        entityType: "note",
+      });
 
       expect(entities.length).toBe(1);
       expect(entities[0]?.title).toBe("Listable Note");
@@ -85,25 +92,39 @@ describe("Immediate Entity Persistence", () => {
 
     test("multiple concurrent creates should all be immediately readable", async () => {
       const creates = await Promise.all([
-        ctx.entityService.createEntity<Note>(
-          createNoteInput({ title: "Note 1", content: "Content 1", tags: [] }),
-        ),
-        ctx.entityService.createEntity<Note>(
-          createNoteInput({ title: "Note 2", content: "Content 2", tags: [] }),
-        ),
-        ctx.entityService.createEntity<Note>(
-          createNoteInput({ title: "Note 3", content: "Content 3", tags: [] }),
-        ),
+        ctx.entityService.createEntity({
+          entity: createNoteInput({
+            title: "Note 1",
+            content: "Content 1",
+            tags: [],
+          }),
+        }),
+        ctx.entityService.createEntity({
+          entity: createNoteInput({
+            title: "Note 2",
+            content: "Content 2",
+            tags: [],
+          }),
+        }),
+        ctx.entityService.createEntity({
+          entity: createNoteInput({
+            title: "Note 3",
+            content: "Content 3",
+            tags: [],
+          }),
+        }),
       ]);
 
-      const entities = await ctx.entityService.listEntities<Note>("note");
+      const entities = await ctx.entityService.listEntities<Note>({
+        entityType: "note",
+      });
       expect(entities.length).toBe(3);
 
       for (const { entityId } of creates) {
-        const entity = await ctx.entityService.getEntity<Note>(
-          "note",
-          entityId,
-        );
+        const entity = await ctx.entityService.getEntity<Note>({
+          entityType: "note",
+          id: entityId,
+        });
         expect(entity).not.toBeNull();
       }
     });
@@ -116,22 +137,29 @@ describe("Immediate Entity Persistence", () => {
         content: "Original content",
         tags: [],
       });
-      const { entityId } = await ctx.entityService.createEntity<Note>(noteData);
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
 
-      const original = await ctx.entityService.getEntity<Note>(
-        "note",
-        entityId,
-      );
+      const original = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(original).not.toBeNull();
       if (!original) throw new Error("Entity should exist");
 
-      await ctx.entityService.updateEntity<Note>({
-        ...original,
-        title: "Updated Title",
-        content: "Updated content",
+      await ctx.entityService.updateEntity({
+        entity: {
+          ...original,
+          title: "Updated Title",
+          content: "Updated content",
+        },
       });
 
-      const updated = await ctx.entityService.getEntity<Note>("note", entityId);
+      const updated = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(updated?.title).toBe("Updated Title");
       expect(updated?.content).toContain("Updated content");
     });
@@ -144,9 +172,9 @@ describe("Immediate Entity Persistence", () => {
         content: "This note should eventually be searchable",
         tags: ["search"],
       });
-      await ctx.entityService.createEntity<Note>(noteData);
+      await ctx.entityService.createEntity({ entity: noteData });
 
-      const results = await ctx.entityService.search("searchable");
+      const results = await ctx.entityService.search({ query: "searchable" });
       expect(results.length).toBe(0);
     });
   });
@@ -158,21 +186,26 @@ describe("Immediate Entity Persistence", () => {
         content: "This will be deleted",
         tags: [],
       });
-      const { entityId } = await ctx.entityService.createEntity<Note>(noteData);
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
 
-      const beforeDelete = await ctx.entityService.getEntity<Note>(
-        "note",
-        entityId,
-      );
+      const beforeDelete = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(beforeDelete).not.toBeNull();
 
-      const deleted = await ctx.entityService.deleteEntity("note", entityId);
+      const deleted = await ctx.entityService.deleteEntity({
+        entityType: "note",
+        id: entityId,
+      });
       expect(deleted).toBe(true);
 
-      const afterDelete = await ctx.entityService.getEntity<Note>(
-        "note",
-        entityId,
-      );
+      const afterDelete = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(afterDelete).toBeNull();
     });
   });
@@ -191,12 +224,17 @@ describe("Immediate Entity Persistence", () => {
           content: "Body",
           tags: [],
         });
-        const { entityId } = await eventCtx.entityService.createEntity<Note>({
-          ...noteInput,
-          metadata: { seriesName: "My Series" },
+        const { entityId } = await eventCtx.entityService.createEntity({
+          entity: {
+            ...noteInput,
+            metadata: { seriesName: "My Series" },
+          },
         });
 
-        await eventCtx.entityService.deleteEntity("note", entityId);
+        await eventCtx.entityService.deleteEntity({
+          entityType: "note",
+          id: entityId,
+        });
 
         const deletedEvents = events.filter(
           (event) => event.type === "entity:deleted",
@@ -221,24 +259,36 @@ describe("Immediate Entity Persistence", () => {
         content: "Initial content",
         tags: ["initial"],
       });
-      const { entityId } = await ctx.entityService.createEntity<Note>(noteData);
+      const { entityId } = await ctx.entityService.createEntity({
+        entity: noteData,
+      });
 
-      const entity = await ctx.entityService.getEntity<Note>("note", entityId);
+      const entity = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(entity).not.toBeNull();
       if (!entity) throw new Error("Entity should exist");
 
       await Promise.all([
-        ctx.entityService.updateEntity<Note>({
-          ...entity,
-          tags: ["tag1"],
+        ctx.entityService.updateEntity({
+          entity: {
+            ...entity,
+            tags: ["tag1"],
+          },
         }),
-        ctx.entityService.updateEntity<Note>({
-          ...entity,
-          tags: ["tag2"],
+        ctx.entityService.updateEntity({
+          entity: {
+            ...entity,
+            tags: ["tag2"],
+          },
         }),
       ]);
 
-      const final = await ctx.entityService.getEntity<Note>("note", entityId);
+      const final = await ctx.entityService.getEntity<Note>({
+        entityType: "note",
+        id: entityId,
+      });
       expect(final).not.toBeNull();
       expect(final?.id).toBe(entityId);
     });

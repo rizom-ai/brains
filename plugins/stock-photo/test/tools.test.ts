@@ -295,8 +295,8 @@ describe("stock-photo tools", () => {
           jobId: "job-1",
           skipped: false,
         }),
-        getEntity: async (_type: string, id: string) => {
-          if (id === "my-post") {
+        getEntity: async (request: { entityType: string; id: string }) => {
+          if (request.id === "my-post") {
             return {
               id: "my-post",
               entityType: "post",
@@ -308,7 +308,8 @@ describe("stock-photo tools", () => {
           }
           return null;
         },
-        updateEntity: async (entity: { id: string }) => {
+        updateEntity: async (request: { entity: { id: string } }) => {
+          const entity = request.entity;
           updatedEntity = entity;
           return { entityId: entity.id, jobId: "job-2", skipped: false };
         },
@@ -370,8 +371,10 @@ describe("stock-photo tools", () => {
       let createdMetadata: Record<string, unknown> | undefined;
 
       entityService = createMockEntityService({
-        createEntity: async (entity: { metadata: Record<string, unknown> }) => {
-          createdMetadata = entity.metadata;
+        createEntity: async (request: {
+          entity: { metadata: Record<string, unknown> };
+        }) => {
+          createdMetadata = request.entity.metadata;
           return { entityId: "abc123", jobId: "job-1", skipped: false };
         },
       });

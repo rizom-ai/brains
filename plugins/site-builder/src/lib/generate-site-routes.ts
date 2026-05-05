@@ -1,7 +1,4 @@
-import {
-  DynamicRouteGenerator,
-  type DynamicRouteEntity,
-} from "@brains/site-engine";
+import { DynamicRouteGenerator } from "@brains/site-engine";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface GenerateSiteRoutesOptions {
@@ -18,16 +15,7 @@ export async function generateSiteRoutes(
   const dynamicRouteGenerator = new DynamicRouteGenerator(
     {
       logger: options.pipelineContext.logger.child("DynamicRouteGenerator"),
-      getEntityTypes: (): string[] =>
-        options.pipelineContext.services.entityService.getEntityTypes(),
-      listEntities: async (
-        entityType,
-        listOptions,
-      ): Promise<DynamicRouteEntity[]> =>
-        options.pipelineContext.services.entityService.listEntities(
-          entityType,
-          listOptions,
-        ),
+      entityService: options.pipelineContext.services.entityService,
       listViewTemplateNames: (): string[] =>
         options.pipelineContext.services.listViewTemplateNames(),
     },

@@ -12,25 +12,29 @@ export function registerSkillsDashboardWidget(
   context.messaging.subscribe(
     "system:plugins:ready",
     async (): Promise<{ success: boolean }> => {
-      await context.messaging.send("dashboard:register-widget", {
-        id: SKILLS_WIDGET_ID,
-        pluginId,
-        title: "Skills",
-        section: "sidebar",
-        priority: 20,
-        rendererName: "ListWidget",
-        dataProvider: async () => {
-          const skills = await context.entityService.listEntities<SkillEntity>(
-            SKILL_ENTITY_TYPE,
-            { limit: 10 },
-          );
+      await context.messaging.send({
+        type: "dashboard:register-widget",
+        payload: {
+          id: SKILLS_WIDGET_ID,
+          pluginId,
+          title: "Skills",
+          section: "sidebar",
+          priority: 20,
+          rendererName: "ListWidget",
+          dataProvider: async () => {
+            const skills =
+              await context.entityService.listEntities<SkillEntity>({
+                entityType: SKILL_ENTITY_TYPE,
+                options: { limit: 10 },
+              });
 
-          return {
-            items: skills.map((s) => ({
-              id: s.id,
-              name: s.metadata.name,
-            })),
-          };
+            return {
+              items: skills.map((s) => ({
+                id: s.id,
+                name: s.metadata.name,
+              })),
+            };
+          },
         },
       });
       return { success: true };

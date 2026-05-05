@@ -103,7 +103,7 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
       await harness.installPlugin(new DecksPlugin());
 
       const entityService = harness.getEntityService();
-      await entityService.createEntity(sampleDraftDeck);
+      await entityService.createEntity({ entity: sampleDraftDeck });
 
       await harness.sendMessage("publish:execute", {
         entityType: "deck",
@@ -119,10 +119,10 @@ describe("DecksPlugin - Publish Pipeline Integration", () => {
         entityId: "deck-1",
       });
 
-      const updatedDeck = await entityService.getEntity<DeckEntity>(
-        "deck",
-        "deck-1",
-      );
+      const updatedDeck = await entityService.getEntity<DeckEntity>({
+        entityType: "deck",
+        id: "deck-1",
+      });
       expect(updatedDeck?.metadata.status).toBe("published");
     });
   });

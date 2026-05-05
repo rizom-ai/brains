@@ -29,10 +29,23 @@ describe("registerTopicsDashboardWidget", () => {
     ];
     let readyHandler: (() => Promise<{ success: boolean }>) | undefined;
 
-    let registeredWidget: unknown;
+    let registeredWidget:
+      | {
+          dataProvider: () => Promise<{
+            items: Array<Record<string, unknown>>;
+          }>;
+        }
+      | undefined;
     const send = mock(
-      async (_topic: string, payload: unknown): Promise<void> => {
-        registeredWidget = payload;
+      async (request: {
+        type: string;
+        payload: {
+          dataProvider: () => Promise<{
+            items: Array<Record<string, unknown>>;
+          }>;
+        };
+      }): Promise<void> => {
+        registeredWidget = request.payload;
       },
     );
     const subscribe = mock(
@@ -63,19 +76,19 @@ describe("registerTopicsDashboardWidget", () => {
     const result = await readyHandler?.();
     expect(result).toEqual({ success: true });
 
-    expect(send).toHaveBeenCalledWith(
-      "dashboard:register-widget",
-      expect.objectContaining({
+    expect(send).toHaveBeenCalledWith({
+      type: "dashboard:register-widget",
+      payload: expect.objectContaining({
         id: "topics",
         pluginId: "topics",
         rendererName: "ListWidget",
       }),
-    );
+    });
 
-    const widget = registeredWidget as {
-      dataProvider: () => Promise<{ items: Array<Record<string, unknown>> }>;
-    };
-    const data = await widget.dataProvider();
+    expect(registeredWidget).toBeDefined();
+    if (!registeredWidget) throw new Error("Widget was not registered");
+
+    const data = await registeredWidget.dataProvider();
 
     expect(data.items).toEqual([
       {

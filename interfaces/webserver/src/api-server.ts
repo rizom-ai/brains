@@ -31,16 +31,16 @@ export function createApiRouteHandler(
 
     // Call tool via message bus
     const toolName = `${route.pluginId}_${route.definition.tool}`;
-    const response = await messageBus.send(
-      `plugin:${route.pluginId}:tool:execute`,
-      {
+    const response = await messageBus.send({
+      type: `plugin:${route.pluginId}:tool:execute`,
+      payload: {
         toolName,
         args,
         interfaceType: "webserver",
         userId: "anonymous",
       },
-      "webserver",
-    );
+      sender: "webserver",
+    });
 
     // The message bus wraps the tool result in { success, data }
     // Extract and validate the inner tool result

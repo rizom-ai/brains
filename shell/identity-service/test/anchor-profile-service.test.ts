@@ -127,17 +127,14 @@ socialLinks:
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
       // Check that it created with default values
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
-      expect(createCall).toBeDefined();
-      expect(createCall).toMatchObject({
-        id: "anchor-profile",
-        entityType: "anchor-profile",
+      const createCall = createEntitySpy.mock.calls[0]?.[0];
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          id: "anchor-profile",
+          entityType: "anchor-profile",
+          content: expect.stringContaining("Unknown"),
+        }),
       });
-
-      // Content should contain default profile data
-      expect(createCall?.["content"]).toContain("Unknown");
     });
 
     it("should not create entity when one already exists", async () => {
@@ -304,13 +301,23 @@ socialLinks:
       // Should have created entity with custom values
       expect(mockEntityService.createEntity).toHaveBeenCalledTimes(1);
 
-      const createCall = createEntitySpy.mock.calls[0]?.[0] as
-        | Record<string, unknown>
-        | undefined;
+      const createCall = createEntitySpy.mock.calls[0]?.[0];
 
-      expect(createCall?.["content"]).toContain("Rizom");
-      expect(createCall?.["content"]).toContain("Open-source collective");
-      expect(createCall?.["content"]).not.toContain("Unknown");
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("Rizom"),
+        }),
+      });
+      expect(createCall).toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("Open-source collective"),
+        }),
+      });
+      expect(createCall).not.toEqual({
+        entity: expect.objectContaining({
+          content: expect.stringContaining("Unknown"),
+        }),
+      });
     });
 
     it("should fall back to hardcoded default when custom profile is not provided", () => {

@@ -1,5 +1,10 @@
 import { MessageInterfacePlugin as RuntimeMessageInterfacePlugin } from "../message-interface/message-interface-plugin";
 import type {
+  EditMessageRequest,
+  SendMessageToChannelRequest,
+  SendMessageWithIdRequest,
+} from "../message-interface/message-interface-plugin";
+import type {
   IShell,
   PluginCapabilities,
   PluginRegistrationContext,
@@ -24,16 +29,11 @@ interface MessageInterfacePluginHooks {
   getInstructions(): Promise<string | undefined>;
   getWebRoutes(): WebRouteDefinition[];
   requiresDaemonStartup(): boolean;
-  sendMessageToChannel(channelId: string | null, message: string): void;
+  sendMessageToChannel(request: SendMessageToChannelRequest): void;
   sendMessageWithId(
-    channelId: string | null,
-    message: string,
+    request: SendMessageWithIdRequest,
   ): Promise<string | undefined>;
-  editMessage(
-    channelId: string,
-    messageId: string,
-    newMessage: string,
-  ): Promise<boolean>;
+  editMessage(request: EditMessageRequest): Promise<boolean>;
   supportsMessageEditing(): boolean;
   onProgressUpdate(event: JobProgressEvent): Promise<void>;
 }
@@ -86,25 +86,21 @@ class MessageInterfacePluginDelegate<
   }
 
   protected override sendMessageToChannel(
-    channelId: string | null,
-    message: string,
+    request: SendMessageToChannelRequest,
   ): void {
-    this.hooks.sendMessageToChannel(channelId, message);
+    this.hooks.sendMessageToChannel(request);
   }
 
   protected override sendMessageWithId(
-    channelId: string | null,
-    message: string,
+    request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
-    return this.hooks.sendMessageWithId(channelId, message);
+    return this.hooks.sendMessageWithId(request);
   }
 
   protected override editMessage(
-    channelId: string,
-    messageId: string,
-    newMessage: string,
+    request: EditMessageRequest,
   ): Promise<boolean> {
-    return this.hooks.editMessage(channelId, messageId, newMessage);
+    return this.hooks.editMessage(request);
   }
 
   protected override supportsMessageEditing(): boolean {
@@ -168,12 +164,11 @@ export abstract class MessageInterfacePlugin<
           this.getInstructions(),
         getWebRoutes: (): WebRouteDefinition[] => this.getWebRoutes(),
         requiresDaemonStartup: (): boolean => this.requiresDaemonStartup(),
-        sendMessageToChannel: (channelId, message): void =>
-          this.sendMessageToChannel(channelId, message),
-        sendMessageWithId: (channelId, message): Promise<string | undefined> =>
-          this.sendMessageWithId(channelId, message),
-        editMessage: (channelId, messageId, newMessage): Promise<boolean> =>
-          this.editMessage(channelId, messageId, newMessage),
+        sendMessageToChannel: (request): void =>
+          this.sendMessageToChannel(request),
+        sendMessageWithId: (request): Promise<string | undefined> =>
+          this.sendMessageWithId(request),
+        editMessage: (request): Promise<boolean> => this.editMessage(request),
         supportsMessageEditing: (): boolean => this.supportsMessageEditing(),
         onProgressUpdate: (event): Promise<void> =>
           this.onProgressUpdate(event),
@@ -190,8 +185,7 @@ export abstract class MessageInterfacePlugin<
   }
 
   protected abstract sendMessageToChannel(
-    channelId: string | null,
-    message: string,
+    request: SendMessageToChannelRequest,
   ): void;
 
   protected override async onRegister(
@@ -211,16 +205,11 @@ export abstract class MessageInterfacePlugin<
     return undefined;
   }
   protected sendMessageWithId(
-    _channelId: string | null,
-    _message: string,
+    _request: SendMessageWithIdRequest,
   ): Promise<string | undefined> {
     return Promise.resolve(undefined);
   }
-  protected editMessage(
-    _channelId: string,
-    _messageId: string,
-    _newMessage: string,
-  ): Promise<boolean> {
+  protected editMessage(_request: EditMessageRequest): Promise<boolean> {
     return Promise.resolve(false);
   }
   protected supportsMessageEditing(): boolean {

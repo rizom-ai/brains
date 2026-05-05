@@ -38,9 +38,10 @@ describe("AgentDiscoveryPlugin", () => {
       "a2a",
     );
 
-    const agent = await harness
-      .getEntityService()
-      .getEntity("agent", "yeehaa.io");
+    const agent = await harness.getEntityService().getEntity({
+      entityType: "agent",
+      id: "yeehaa.io",
+    });
     expect(agent).toBeNull();
 
     harness.reset();
@@ -96,24 +97,26 @@ describe("AgentDiscoveryPlugin", () => {
     > => {
       const jobQueue: ReturnType<typeof mockShell.getJobQueueService> = {
         ...origJobQueue,
-        enqueue: async (...args) => {
-          const [type, data, jobOptions] = args;
+        enqueue: async (request) => {
+          const jobOptions = request.options;
           const dedupeKey =
-            jobOptions.deduplication === "coalesce"
-              ? `${type}:${jobOptions.deduplicationKey ?? ""}`
+            jobOptions?.deduplication === "coalesce"
+              ? `${request.type}:${jobOptions.deduplicationKey ?? ""}`
               : undefined;
           const existingJobId = dedupeKey
             ? coalescedJobs.get(dedupeKey)
             : undefined;
 
-          const jobId =
-            existingJobId ??
-            (await origJobQueue.enqueue(type, data, jobOptions));
+          const jobId = existingJobId ?? (await origJobQueue.enqueue(request));
           if (dedupeKey && !existingJobId) {
             coalescedJobs.set(dedupeKey, jobId);
           }
 
-          enqueued.push({ type, options: jobOptions, jobId });
+          enqueued.push({
+            type: request.type,
+            options: request.options,
+            jobId,
+          });
           return jobId;
         },
       };
@@ -180,7 +183,9 @@ describe("AgentDiscoveryPlugin", () => {
     const plugin = new AgentDiscoveryPlugin();
 
     await harness.installPlugin(plugin);
-    await harness.getEntityService().createEntity(makeAgentEntity("approved"));
+    await harness
+      .getEntityService()
+      .createEntity({ entity: makeAgentEntity("approved") });
 
     const interceptor = harness
       .getEntityRegistry()
@@ -206,7 +211,9 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    const entities = await harness.getEntityService().listEntities("agent");
+    const entities = await harness.getEntityService().listEntities({
+      entityType: "agent",
+    });
     expect(entities).toHaveLength(1);
 
     harness.reset();
@@ -219,7 +226,7 @@ describe("AgentDiscoveryPlugin", () => {
     await harness.installPlugin(plugin);
     await harness
       .getEntityService()
-      .createEntity(makeAgentEntity("discovered"));
+      .createEntity({ entity: makeAgentEntity("discovered") });
 
     const interceptor = harness
       .getEntityRegistry()
@@ -245,9 +252,10 @@ describe("AgentDiscoveryPlugin", () => {
       },
     });
 
-    const updated = await harness
-      .getEntityService()
-      .getEntity<AgentEntity>("agent", "yeehaa.io");
+    const updated = await harness.getEntityService().getEntity<AgentEntity>({
+      entityType: "agent",
+      id: "yeehaa.io",
+    });
     expect(updated?.metadata.status).toBe("approved");
     // Content is derived from metadata on write via AgentAdapter.toMarkdown
     // (covered in agent-adapter.test.ts). The mock entityService stores

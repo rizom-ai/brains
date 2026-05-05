@@ -60,16 +60,16 @@ export function createScheduler(deps: CreateSchedulerDeps): ContentScheduler {
 }
 
 function createMessageBusAdapter(context: ServicePluginContext): IMessageBus {
-  const send: IMessageBus["send"] = async (
-    type,
-    payload,
-    _sender,
-    _target,
-    _metadata,
-    broadcast,
-  ) => {
-    const options = broadcast === undefined ? undefined : { broadcast };
-    return context.messaging.send(type, payload, options);
+  const send: IMessageBus["send"] = async (request) => {
+    return context.messaging.send({
+      type: request.type,
+      payload: request.payload,
+      ...(request.target !== undefined ? { target: request.target } : {}),
+      ...(request.metadata !== undefined ? { metadata: request.metadata } : {}),
+      ...(request.broadcast !== undefined
+        ? { broadcast: request.broadcast }
+        : {}),
+    });
   };
 
   const subscribe: IMessageBus["subscribe"] = () => () => {};

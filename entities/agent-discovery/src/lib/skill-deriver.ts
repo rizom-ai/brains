@@ -76,7 +76,9 @@ export async function deriveSkills(
 }> {
   const adapter = new SkillAdapter();
 
-  const topics = await context.entityService.listEntities("topic");
+  const topics = await context.entityService.listEntities({
+    entityType: "topic",
+  });
   const topicTitles = topics
     .map((t) => {
       const meta = t.metadata as Record<string, unknown>;

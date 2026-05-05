@@ -120,8 +120,11 @@ export class SeriesDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const seriesEntities = await entityService.listEntities<Series>("series", {
-      limit: 1000,
+    const seriesEntities = await entityService.listEntities<Series>({
+      entityType: "series",
+      options: {
+        limit: 1000,
+      },
     });
 
     // Count entities per series across ALL entity types
@@ -148,8 +151,11 @@ export class SeriesDataSource implements DataSource {
     seriesEntity?: Series,
   ): Promise<T> {
     if (!seriesEntity) {
-      const candidates = await entityService.listEntities<Series>("series", {
-        filter: { metadata: { title: seriesName } },
+      const candidates = await entityService.listEntities<Series>({
+        entityType: "series",
+        options: {
+          filter: { metadata: { title: seriesName } },
+        },
       });
       seriesEntity = candidates[0];
     }
@@ -185,8 +191,11 @@ export class SeriesDataSource implements DataSource {
     outputSchema: z.ZodSchema<T>,
     entityService: IEntityService,
   ): Promise<T> {
-    const candidates = await entityService.listEntities<Series>("series", {
-      filter: { metadata: { slug: seriesSlug } },
+    const candidates = await entityService.listEntities<Series>({
+      entityType: "series",
+      options: {
+        filter: { metadata: { slug: seriesSlug } },
+      },
     });
 
     const seriesEntity = candidates[0];
@@ -214,7 +223,10 @@ export class SeriesDataSource implements DataSource {
 
     for (const type of types) {
       if (type === "series") continue;
-      const entities = await entityService.listEntities(type, { limit: 1000 });
+      const entities = await entityService.listEntities({
+        entityType: type,
+        options: { limit: 1000 },
+      });
       for (const entity of entities) {
         const name = this.getSeriesName(entity);
         if (name) {
@@ -238,8 +250,11 @@ export class SeriesDataSource implements DataSource {
 
     for (const type of types) {
       if (type === "series") continue;
-      const entities = await entityService.listEntities(type, {
-        filter: { metadata: { seriesName } },
+      const entities = await entityService.listEntities({
+        entityType: type,
+        options: {
+          filter: { metadata: { seriesName } },
+        },
       });
       members.push(...entities);
     }

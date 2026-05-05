@@ -53,8 +53,9 @@ describe("fetchAnchorProfile", () => {
 
     const content = await fetchAnchorProfile(entityService as never);
     expect(content).toBe("---\nname: Test\n---\nBody here");
-    expect(entityService.listEntities).toHaveBeenCalledWith("anchor-profile", {
-      limit: 1,
+    expect(entityService.listEntities).toHaveBeenCalledWith({
+      entityType: "anchor-profile",
+      options: { limit: 1 },
     });
   });
 

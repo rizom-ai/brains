@@ -17,9 +17,12 @@ export async function registerWithPublishPipeline(
     },
   };
 
-  await context.messaging.send("publish:register", {
-    entityType: "post",
-    provider: internalProvider,
+  await context.messaging.send({
+    type: "publish:register",
+    payload: {
+      entityType: "post",
+      provider: internalProvider,
+    },
   });
 
   logger.info("Registered post with publish-pipeline");
@@ -40,16 +43,19 @@ export function subscribeToPublishExecute(
     }
 
     try {
-      const post = await context.entityService.getEntity<BlogPost>(
-        "post",
-        entityId,
-      );
+      const post = await context.entityService.getEntity<BlogPost>({
+        entityType: "post",
+        id: entityId,
+      });
 
       if (!post) {
-        await context.messaging.send("publish:report:failure", {
-          entityType,
-          entityId,
-          error: `Post not found: ${entityId}`,
+        await context.messaging.send({
+          type: "publish:report:failure",
+          payload: {
+            entityType,
+            entityId,
+            error: `Post not found: ${entityId}`,
+          },
         });
         return { success: true };
       }
@@ -77,28 +83,36 @@ export function subscribeToPublishExecute(
       );
 
       await context.entityService.updateEntity({
-        ...post,
-        content: updatedContent,
-        metadata: {
-          ...post.metadata,
-          status: "published",
-          publishedAt,
+        entity: {
+          ...post,
+          content: updatedContent,
+          metadata: {
+            ...post.metadata,
+            status: "published",
+            publishedAt,
+          },
         },
       });
 
-      await context.messaging.send("publish:report:success", {
-        entityType,
-        entityId,
-        result: { id: entityId },
+      await context.messaging.send({
+        type: "publish:report:success",
+        payload: {
+          entityType,
+          entityId,
+          result: { id: entityId },
+        },
       });
 
       logger.info(`Published post: ${entityId}`);
     } catch (error) {
       const errorMessage = getErrorMessage(error);
-      await context.messaging.send("publish:report:failure", {
-        entityType,
-        entityId,
-        error: errorMessage,
+      await context.messaging.send({
+        type: "publish:report:failure",
+        payload: {
+          entityType,
+          entityId,
+          error: errorMessage,
+        },
       });
       logger.error(`Failed to publish post: ${errorMessage}`);
     }

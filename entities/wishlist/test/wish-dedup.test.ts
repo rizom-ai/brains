@@ -74,8 +74,8 @@ describe("findExistingWish", () => {
     const existing = createMockWish();
     const deps = createDeps({
       search: async () => [],
-      getEntity: async (_type: string, id: string) =>
-        id === "calendar-integration" ? existing : null,
+      getEntity: async (request) =>
+        request.id === "calendar-integration" ? existing : null,
     });
 
     const result = await findExistingWish(deps, {
@@ -91,8 +91,8 @@ describe("findExistingWish", () => {
     const slugMatch = createMockWish({ id: "calendar-integration" });
     const deps = createDeps({
       search: async () => [{ entity: semanticMatch, score: 0.95, excerpt: "" }],
-      getEntity: async (_type: string, id: string) =>
-        id === "calendar-integration" ? slugMatch : null,
+      getEntity: async (request) =>
+        request.id === "calendar-integration" ? slugMatch : null,
     });
 
     const result = await findExistingWish(deps, {
@@ -121,7 +121,7 @@ describe("findExistingWish", () => {
   it("should search with title and description combined", async () => {
     let capturedQuery = "";
     const deps = createDeps({
-      search: async (query: string) => {
+      search: async ({ query }) => {
         capturedQuery = query;
         return [];
       },

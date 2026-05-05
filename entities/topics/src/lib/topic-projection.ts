@@ -74,10 +74,10 @@ export function createTopicProjectionHandler(params: {
         return { success: true };
       }
 
-      const entity = await context.entityService.getEntity(
-        data.entityType,
-        data.entityId,
-      );
+      const entity = await context.entityService.getEntity({
+        entityType: data.entityType,
+        id: data.entityId,
+      });
       if (!entity) return { success: false, topicsExtracted: 0 };
 
       return extractionHandler.process(
@@ -200,7 +200,9 @@ async function getEntitiesToExtract(
 
   const toExtract: BaseEntity[] = [];
   for (const type of typesToProcess) {
-    const entities = await params.context.entityService.listEntities(type);
+    const entities = await params.context.entityService.listEntities({
+      entityType: type,
+    });
     for (const entity of entities) {
       if (!params.isEntityPublished(entity)) continue;
       toExtract.push(entity);

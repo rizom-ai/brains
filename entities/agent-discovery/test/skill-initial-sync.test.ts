@@ -47,14 +47,14 @@ describe("Skill derivation on initial sync", () => {
       "skill",
     );
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith(
-      "skill:project",
-      { mode: "derive", replaceAll: true, reason: "initial-sync" },
-      expect.objectContaining({
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "skill:project",
+      data: { mode: "derive", replaceAll: true, reason: "initial-sync" },
+      options: expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "skill-derivation:initial-sync",
       }),
-    );
+    });
 
     harness.reset();
   });
@@ -147,14 +147,14 @@ describe("Skill derivation on initial sync", () => {
     );
 
     expect(enqueue).toHaveBeenCalledTimes(1);
-    expect(enqueue).toHaveBeenCalledWith(
-      "skill:project",
-      { mode: "derive", replaceAll: false, reason: "topic-change" },
-      expect.objectContaining({
+    expect(enqueue).toHaveBeenCalledWith({
+      type: "skill:project",
+      data: { mode: "derive", replaceAll: false, reason: "topic-change" },
+      options: expect.objectContaining({
         deduplication: "coalesce",
         deduplicationKey: "skill-derivation:topic-change",
       }),
-    );
+    });
 
     harness.reset();
   });

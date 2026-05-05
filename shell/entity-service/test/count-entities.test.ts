@@ -65,33 +65,44 @@ describe("countEntities", () => {
   });
 
   test("should count all entities of a type", async () => {
-    const count = await ctx.entityService.countEntities("post");
+    const count = await ctx.entityService.countEntities({ entityType: "post" });
     expect(count).toBe(3);
   });
 
   test("should return 0 for non-existent entity type", async () => {
-    const count = await ctx.entityService.countEntities("nonexistent");
+    const count = await ctx.entityService.countEntities({
+      entityType: "nonexistent",
+    });
     expect(count).toBe(0);
   });
 
   test("should count only published entities when publishedOnly is true", async () => {
-    const count = await ctx.entityService.countEntities("post", {
-      publishedOnly: true,
+    const count = await ctx.entityService.countEntities({
+      entityType: "post",
+      options: {
+        publishedOnly: true,
+      },
     });
     expect(count).toBe(2);
   });
 
   test("should count entities with metadata filter", async () => {
-    const count = await ctx.entityService.countEntities("post", {
-      filter: { metadata: { category: "tech" } },
+    const count = await ctx.entityService.countEntities({
+      entityType: "post",
+      options: {
+        filter: { metadata: { category: "tech" } },
+      },
     });
     expect(count).toBe(2);
   });
 
   test("should combine publishedOnly and metadata filter", async () => {
-    const count = await ctx.entityService.countEntities("post", {
-      publishedOnly: true,
-      filter: { metadata: { category: "tech" } },
+    const count = await ctx.entityService.countEntities({
+      entityType: "post",
+      options: {
+        publishedOnly: true,
+        filter: { metadata: { category: "tech" } },
+      },
     });
     expect(count).toBe(1);
   });

@@ -30,9 +30,9 @@ export function subscribeToEntityUpdatedForAutoGenerate(
     }
 
     try {
-      const existingPosts = await context.entityService.listEntities(
-        "social-post",
-        {
+      const existingPosts = await context.entityService.listEntities({
+        entityType: "social-post",
+        options: {
           filter: {
             metadata: {
               sourceEntityType: "post",
@@ -41,7 +41,7 @@ export function subscribeToEntityUpdatedForAutoGenerate(
           },
           limit: 1,
         },
-      );
+      });
 
       if (existingPosts.length > 0) {
         logger.debug(
@@ -50,10 +50,13 @@ export function subscribeToEntityUpdatedForAutoGenerate(
         return { success: true };
       }
 
-      await context.messaging.send("social:auto-generate", {
-        sourceEntityType: entityType,
-        sourceEntityId: entityId,
-        platform: "linkedin",
+      await context.messaging.send({
+        type: "social:auto-generate",
+        payload: {
+          sourceEntityType: entityType,
+          sourceEntityId: entityId,
+          platform: "linkedin",
+        },
       });
 
       logger.info(
@@ -90,16 +93,16 @@ export function subscribeToAutoGenerate(
     const { sourceEntityType, sourceEntityId, platform } = msg.payload;
 
     try {
-      const jobId = await context.jobs.enqueue(
-        `${socialPostAdapter.entityType}:generation`,
-        {
+      const jobId = await context.jobs.enqueue({
+        type: `${socialPostAdapter.entityType}:generation`,
+        data: {
           sourceEntityType,
           sourceEntityId,
           platform,
           addToQueue: false,
         },
-        { interfaceType: "job", userId: "system" },
-      );
+        toolContext: { interfaceType: "job", userId: "system" },
+      });
 
       logger.info(
         `Social post generation job enqueued for ${sourceEntityType}/${sourceEntityId}`,
@@ -139,25 +142,31 @@ export function subscribeToGenerateExecute(
       logger.info("Received generate:execute for social-post");
 
       try {
-        const recentPosts = await context.entityService.listEntities("post", {
-          filter: { metadata: { status: "published" } },
-          limit: 5,
+        const recentPosts = await context.entityService.listEntities({
+          entityType: "post",
+          options: {
+            filter: { metadata: { status: "published" } },
+            limit: 5,
+          },
         });
 
         if (recentPosts.length === 0) {
           logger.info("No published posts found for social post generation");
-          await context.messaging.send("generate:report:failure", {
-            entityType: "social-post",
-            error: "No published posts available for social post generation",
+          await context.messaging.send({
+            type: "generate:report:failure",
+            payload: {
+              entityType: "social-post",
+              error: "No published posts available for social post generation",
+            },
           });
           return { success: true };
         }
 
         let sourcePost = null;
         for (const post of recentPosts) {
-          const existingPosts = await context.entityService.listEntities(
-            "social-post",
-            {
+          const existingPosts = await context.entityService.listEntities({
+            entityType: "social-post",
+            options: {
               filter: {
                 metadata: {
                   sourceEntityType: "post",
@@ -166,7 +175,7 @@ export function subscribeToGenerateExecute(
               },
               limit: 1,
             },
-          );
+          });
 
           if (existingPosts.length === 0) {
             sourcePost = post;
@@ -176,23 +185,26 @@ export function subscribeToGenerateExecute(
 
         if (!sourcePost) {
           logger.info("All recent posts already have social posts");
-          await context.messaging.send("generate:report:failure", {
-            entityType: "social-post",
-            error: "All recent posts already have social posts generated",
+          await context.messaging.send({
+            type: "generate:report:failure",
+            payload: {
+              entityType: "social-post",
+              error: "All recent posts already have social posts generated",
+            },
           });
           return { success: true };
         }
 
-        const jobId = await context.jobs.enqueue(
-          `${socialPostAdapter.entityType}:generation`,
-          {
+        const jobId = await context.jobs.enqueue({
+          type: `${socialPostAdapter.entityType}:generation`,
+          data: {
             sourceEntityType: "post",
             sourceEntityId: sourcePost.id,
             platform: "linkedin",
             addToQueue: false,
           },
-          { interfaceType: "job", userId: "system" },
-        );
+          toolContext: { interfaceType: "job", userId: "system" },
+        });
 
         logger.info("Social post generation job queued", {
           jobId,
@@ -205,9 +217,12 @@ export function subscribeToGenerateExecute(
         logger.error("Failed to handle generate:execute:", {
           error: errorMessage,
         });
-        await context.messaging.send("generate:report:failure", {
-          entityType: "social-post",
-          error: errorMessage,
+        await context.messaging.send({
+          type: "generate:report:failure",
+          payload: {
+            entityType: "social-post",
+            error: errorMessage,
+          },
         });
         return { success: true };
       }

@@ -444,11 +444,11 @@ describe("tool invocation events", () => {
       emitter.emit("tool:invoking", { toolName: "test_tool" });
       await Promise.resolve();
 
-      expect(send).toHaveBeenCalledWith(
-        "tool:invoking",
-        { toolName: "test_tool" },
-        "brain-agent",
-      );
+      expect(send).toHaveBeenCalledWith({
+        type: "tool:invoking",
+        payload: { toolName: "test_tool" },
+        sender: "brain-agent",
+      });
     });
   });
 

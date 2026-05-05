@@ -169,12 +169,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("excerpt: Generated excerpt text"),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
   });
 
@@ -202,24 +202,24 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("title: Custom Title"),
         }),
-        { deduplicateId: true },
-      );
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+        options: { deduplicateId: true },
+      });
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("excerpt: Custom excerpt"),
         }),
-        { deduplicateId: true },
-      );
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+        options: { deduplicateId: true },
+      });
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("Custom content here"),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
   });
 
@@ -255,14 +255,14 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "Test Title",
           metadata: expect.objectContaining({ slug: "test-title" }),
           content: expect.stringContaining("slug: test-title"),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
   });
 
@@ -278,12 +278,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("author: John Doe"),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
   });
 
@@ -301,16 +301,16 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("seriesName: My Series"),
           metadata: expect.objectContaining({
             seriesName: "My Series",
             seriesIndex: 1,
           }),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
 
     it("should auto-increment series index when not provided", async () => {
@@ -340,13 +340,13 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("seriesIndex: 3"),
           metadata: expect.objectContaining({ seriesIndex: 3 }),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
 
     it("should count only published posts in series for indexing", async () => {
@@ -371,12 +371,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({ seriesIndex: 2 }),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
   });
 
@@ -388,13 +388,13 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("status: draft"),
           metadata: expect.objectContaining({ status: "draft" }),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
 
     it("should include cover image ID when provided", async () => {
@@ -409,12 +409,12 @@ describe("BlogGenerationJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockContext.entityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           content: expect.stringContaining("coverImageId: hero-image"),
         }),
-        { deduplicateId: true },
-      );
+        options: { deduplicateId: true },
+      });
     });
 
     it("should return entityId and slug on success", async () => {

@@ -46,7 +46,7 @@ describe("TopicExtractionHandler", () => {
   });
 
   const addEntityToShell = (entity: BaseEntity): void => {
-    void mockShell.getEntityService().createEntity(entity);
+    void mockShell.getEntityService().createEntity({ entity: entity });
   };
 
   describe("validateAndParse", () => {

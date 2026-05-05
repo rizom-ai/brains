@@ -91,7 +91,7 @@ describe("SummaryProjector", () => {
     expect(result.messageCount).toBe(2);
     expect(upsertSpy).toHaveBeenCalledTimes(1);
 
-    const entity = upsertSpy.mock.calls[0]?.[0];
+    const entity = upsertSpy.mock.calls[0]?.[0]?.entity;
     expect(entity?.id).toBe("conv-1");
     expect(entity?.metadata["conversationId"]).toBe("conv-1");
     expect(entity?.metadata["messageCount"]).toBe(2);
@@ -166,7 +166,9 @@ describe("SummaryProjector", () => {
     const result = await projector.projectConversation("conv-1");
 
     expect(result.entryCount).toBe(2);
-    expect(upsertSpy.mock.calls[0]?.[0]?.content).toContain("Chunk summary");
+    expect(upsertSpy.mock.calls[0]?.[0]?.entity.content).toContain(
+      "Chunk summary",
+    );
   });
 
   it("skips projection when source hash is unchanged", async () => {

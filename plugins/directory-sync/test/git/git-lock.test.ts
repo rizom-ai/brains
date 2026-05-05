@@ -31,9 +31,12 @@ function createTestMessaging(): {
           );
       };
     },
-    send: async (channel: string, payload: unknown): Promise<unknown> => {
-      const list = subs.get(channel) ?? [];
-      for (const h of list) await h({ payload });
+    send: async (request: {
+      type: string;
+      payload: unknown;
+    }): Promise<unknown> => {
+      const list = subs.get(request.type) ?? [];
+      for (const h of list) await h({ payload: request.payload });
       return { success: true };
     },
   } as unknown as ServicePluginContext["messaging"];
@@ -107,10 +110,13 @@ describe("git operation serialization", () => {
     );
 
     // Trigger auto-commit
-    await messaging.send("entity:created", {
-      entity: {},
-      entityType: "post",
-      entityId: "1",
+    await messaging.send({
+      type: "entity:created",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "1",
+      },
     });
 
     // Let both run for a while

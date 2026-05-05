@@ -98,10 +98,10 @@ export class LinkService {
     const entityId = options?.id ?? UrlUtils.generateEntityId(url);
 
     // Check for existing entity (deduplication)
-    const existingEntity = await this.context.entityService.getEntity(
-      "link",
-      entityId,
-    );
+    const existingEntity = await this.context.entityService.getEntity({
+      entityType: "link",
+      id: entityId,
+    });
     if (existingEntity) {
       this.context.logger.info("Link already captured, returning existing", {
         url,
@@ -179,10 +179,12 @@ export class LinkService {
       });
 
       const entity = await this.context.entityService.createEntity({
-        id: entityId,
-        entityType: "link",
-        content,
-        metadata: { status: "pending", title },
+        entity: {
+          id: entityId,
+          entityType: "link",
+          content,
+          metadata: { status: "pending", title },
+        },
       });
 
       return {
@@ -206,10 +208,12 @@ export class LinkService {
     });
 
     const entity = await this.context.entityService.createEntity({
-      id: entityId,
-      entityType: "link",
-      content,
-      metadata: { status: "draft", title: extractionResult.title },
+      entity: {
+        id: entityId,
+        entityType: "link",
+        content,
+        metadata: { status: "draft", title: extractionResult.title },
+      },
     });
 
     return {
@@ -233,11 +237,14 @@ export class LinkService {
       capturedAt: string;
     }>
   > {
-    const results = await this.context.entityService.search("", {
-      types: ["link"],
-      limit,
-      sortBy: "created",
-      sortDirection: "desc",
+    const results = await this.context.entityService.search({
+      query: "",
+      options: {
+        types: ["link"],
+        limit,
+        sortBy: "created",
+        sortDirection: "desc",
+      },
     });
 
     return results.map((result) => {
@@ -275,11 +282,14 @@ export class LinkService {
   > {
     const searchQuery = query ?? "";
 
-    const results = await this.context.entityService.search(searchQuery, {
-      types: ["link"],
-      limit,
-      sortBy: "created",
-      sortDirection: "desc",
+    const results = await this.context.entityService.search({
+      query: searchQuery,
+      options: {
+        types: ["link"],
+        limit,
+        sortBy: "created",
+        sortDirection: "desc",
+      },
     });
 
     return results.map((result) => {
@@ -312,7 +322,10 @@ export class LinkService {
     capturedAt: string;
     status: LinkStatus;
   } | null> {
-    const entity = await this.context.entityService.getEntity("link", linkId);
+    const entity = await this.context.entityService.getEntity({
+      entityType: "link",
+      id: linkId,
+    });
     if (!entity) {
       return null;
     }

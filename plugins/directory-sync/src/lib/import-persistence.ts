@@ -24,10 +24,10 @@ export async function persistImportEntity(
   result: ImportResult,
 ): Promise<void> {
   try {
-    const existing = await deps.entityService.getEntity(
-      rawEntity.entityType,
-      rawEntity.id,
-    );
+    const existing = await deps.entityService.getEntity({
+      entityType: rawEntity.entityType,
+      id: rawEntity.id,
+    });
 
     if (
       existing &&
@@ -56,7 +56,9 @@ export async function persistImportEntity(
       deps.entityService.serializeEntity(entity),
     );
 
-    const upsertResult = await deps.entityService.upsertEntity(entity);
+    const upsertResult = await deps.entityService.upsertEntity({
+      entity: entity,
+    });
     result.imported++;
     result.jobIds.push(upsertResult.jobId);
     deps.logger.debug("Imported entity from directory", {

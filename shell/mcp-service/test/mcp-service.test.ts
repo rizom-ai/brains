@@ -184,9 +184,9 @@ describe("MCPService", () => {
         },
       );
 
-      expect(mockMessageBus.send).toHaveBeenCalledWith(
-        "plugin:metadata-plugin:tool:execute",
-        {
+      expect(mockMessageBus.send).toHaveBeenCalledWith({
+        type: "plugin:metadata-plugin:tool:execute",
+        payload: {
           toolName: "metadata_tool",
           args: { input: "value" },
           progressToken: "progress-1",
@@ -196,8 +196,8 @@ describe("MCPService", () => {
           channelId: "room-1",
           channelName: "Room One",
         },
-        "MCPService",
-      );
+        sender: "MCPService",
+      });
     });
 
     it("should register multiple tools from different plugins", () => {

@@ -18,16 +18,22 @@ import type {
   EntityDbConfig,
   BaseEntity,
   SearchResult,
-  EntityInput,
-  CreateEntityFromMarkdownInput,
   SearchOptions,
-  ListOptions,
-  CreateEntityOptions,
-  EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityService as IEntityService,
   EntityEventBus,
+  GetEntityRequest,
+  GetEntityRawRequest,
+  ListEntitiesRequest,
+  CountEntitiesRequest,
+  DeleteEntityRequest,
+  EntitySearchRequest,
+  SearchWithDistancesRequest,
+  CreateEntityRequest,
+  CreateEntityFromMarkdownRequest,
+  UpdateEntityRequest,
+  UpsertEntityRequest,
 } from "./types";
 import { EntityRegistry } from "./entityRegistry";
 import { embeddings } from "./schema/embeddings";
@@ -211,49 +217,46 @@ export class EntityService implements IEntityService {
   // ── Mutations ─────────────────────────────────────────────────────
 
   public async createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.entityMutations.createEntity(entity, options);
+    return this.entityMutations.createEntity(request);
   }
 
   public async createEntityFromMarkdown(
-    input: CreateEntityFromMarkdownInput,
-    options?: CreateEntityOptions,
+    request: CreateEntityFromMarkdownRequest,
   ): Promise<EntityMutationResult> {
+    const { input, options } = request;
     const parsed = this.entitySerializer.deserializeEntity(
       input.markdown,
       input.entityType,
     );
 
-    return this.entityMutations.createEntity(
-      {
+    return this.entityMutations.createEntity({
+      entity: {
         ...parsed,
         id: input.id,
         entityType: input.entityType,
         content: input.markdown,
         metadata: parsed.metadata ?? {},
       },
-      options,
-    );
+      ...(options !== undefined && { options }),
+    });
   }
 
   public async updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
-    return this.entityMutations.updateEntity(entity, options);
+    return this.entityMutations.updateEntity(request);
   }
 
-  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
-    return this.entityMutations.deleteEntity(entityType, id);
+  public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
+    return this.entityMutations.deleteEntity(request);
   }
 
   public async upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
-    return this.entityMutations.upsertEntity(entity, options);
+    return this.entityMutations.upsertEntity(request);
   }
 
   public async storeEmbedding(data: StoreEmbeddingData): Promise<void> {
@@ -263,10 +266,10 @@ export class EntityService implements IEntityService {
   // ── Reads ─────────────────────────────────────────────────────────
 
   public async getEntity<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRequest,
   ): Promise<T | null> {
-    const entity = await this.getEntityRaw<T>(entityType, id);
+    const { entityType, id } = request;
+    const entity = await this.getEntityRaw<T>({ entityType, id });
     if (!entity) {
       return null;
     }
@@ -282,9 +285,9 @@ export class EntityService implements IEntityService {
   }
 
   public async getEntityRaw<T extends BaseEntity>(
-    entityType: string,
-    id: string,
+    request: GetEntityRawRequest,
   ): Promise<T | null> {
+    const { entityType, id } = request;
     const entityData = await this.entityQueries.getEntityData(entityType, id);
     if (!entityData) {
       return null;
@@ -294,16 +297,14 @@ export class EntityService implements IEntityService {
   }
 
   public async listEntities<T extends BaseEntity>(
-    entityType: string,
-    options?: ListOptions,
+    request: ListEntitiesRequest,
   ): Promise<T[]> {
+    const { entityType, options } = request;
     return this.entityQueries.listEntities<T>(entityType, options);
   }
 
-  public async countEntities(
-    entityType: string,
-    options?: Pick<ListOptions, "publishedOnly" | "filter">,
-  ): Promise<number> {
+  public async countEntities(request: CountEntitiesRequest): Promise<number> {
+    const { entityType, options } = request;
     return this.entityQueries.countEntities(entityType, options);
   }
 
@@ -316,10 +317,9 @@ export class EntityService implements IEntityService {
   // ── Search ────────────────────────────────────────────────────────
 
   public async search<T extends BaseEntity = BaseEntity>(
-    query: string,
-    options?: SearchOptions,
+    request: EntitySearchRequest,
   ): Promise<SearchResult<T>[]> {
-    return this.entitySearch.search<T>(query, options);
+    return this.entitySearch.search<T>(request.query, request.options);
   }
 
   public async searchEntities(
@@ -331,11 +331,11 @@ export class EntityService implements IEntityService {
   }
 
   public async searchWithDistances(
-    query: string,
+    request: SearchWithDistancesRequest,
   ): Promise<
     Array<{ entityId: string; entityType: string; distance: number }>
   > {
-    return this.entitySearch.searchWithDistances(query);
+    return this.entitySearch.searchWithDistances(request.query);
   }
 
   public async countEmbeddings(): Promise<number> {

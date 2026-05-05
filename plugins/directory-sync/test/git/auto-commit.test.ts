@@ -34,9 +34,12 @@ function createTestMessaging(): {
           );
       };
     },
-    send: async (channel: string, payload: unknown): Promise<unknown> => {
-      const list = subs.get(channel) ?? [];
-      for (const h of list) await h({ payload });
+    send: async (request: {
+      type: string;
+      payload: unknown;
+    }): Promise<unknown> => {
+      const list = subs.get(request.type) ?? [];
+      for (const h of list) await h({ payload: request.payload });
       return { success: true };
     },
   } as unknown as ServicePluginContext["messaging"];
@@ -68,10 +71,13 @@ describe("setupGitAutoCommit", () => {
     const { messaging } = createTestMessaging();
     setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
-    await messaging.send("entity:created", {
-      entity: {},
-      entityType: "post",
-      entityId: "1",
+    await messaging.send({
+      type: "entity:created",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "1",
+      },
     });
     await new Promise((r) => setTimeout(r, 100));
 
@@ -83,10 +89,13 @@ describe("setupGitAutoCommit", () => {
     const { messaging } = createTestMessaging();
     setupGitAutoCommit(messaging, git, 200, createSilentLogger());
 
-    await messaging.send("entity:created", {
-      entity: {},
-      entityType: "post",
-      entityId: "1",
+    await messaging.send({
+      type: "entity:created",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "1",
+      },
     });
 
     expect(commitMock).toHaveBeenCalledTimes(1);
@@ -101,15 +110,21 @@ describe("setupGitAutoCommit", () => {
       createSilentLogger(),
     );
 
-    await messaging.send("entity:created", {
-      entity: {},
-      entityType: "post",
-      entityId: "1",
+    await messaging.send({
+      type: "entity:created",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "1",
+      },
     });
-    await messaging.send("entity:updated", {
-      entity: {},
-      entityType: "post",
-      entityId: "2",
+    await messaging.send({
+      type: "entity:updated",
+      payload: {
+        entity: {},
+        entityType: "post",
+        entityId: "2",
+      },
     });
 
     cleanup();
@@ -123,10 +138,13 @@ describe("setupGitAutoCommit", () => {
     setupGitAutoCommit(messaging, git, 50, createSilentLogger());
 
     for (let i = 0; i < 5; i++) {
-      await messaging.send("entity:updated", {
-        entity: {},
-        entityType: "post",
-        entityId: String(i),
+      await messaging.send({
+        type: "entity:updated",
+        payload: {
+          entity: {},
+          entityType: "post",
+          entityId: String(i),
+        },
       });
     }
 

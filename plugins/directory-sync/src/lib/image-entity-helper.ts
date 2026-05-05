@@ -27,9 +27,12 @@ export async function getOrCreateImageEntity(
   const { sourceUrl } = params;
 
   // Check for existing image with this sourceUrl (deduplication)
-  const existing = await entityService.listEntities("image", {
-    filter: { metadata: { sourceUrl } },
-    limit: 1,
+  const existing = await entityService.listEntities({
+    entityType: "image",
+    options: {
+      filter: { metadata: { sourceUrl } },
+      limit: 1,
+    },
   });
 
   if (existing[0]) {
@@ -51,16 +54,18 @@ export async function getOrCreateImageEntity(
   }
 
   const result = await entityService.createEntity({
-    id: params.id,
-    entityType: "image",
-    content: dataUrl,
-    metadata: {
-      title: params.title,
-      alt: params.alt,
-      format,
-      width: dimensions.width,
-      height: dimensions.height,
-      sourceUrl,
+    entity: {
+      id: params.id,
+      entityType: "image",
+      content: dataUrl,
+      metadata: {
+        title: params.title,
+        alt: params.alt,
+        format,
+        width: dimensions.width,
+        height: dimensions.height,
+        sourceUrl,
+      },
     },
   });
 

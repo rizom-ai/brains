@@ -48,10 +48,10 @@ export function setupAutoSync(
       const { entityType, entityId } = message.payload;
 
       try {
-        const currentEntity = await entityService.getEntity(
-          entityType,
-          entityId,
-        );
+        const currentEntity = await entityService.getEntity({
+          entityType: entityType,
+          id: entityId,
+        });
         if (!currentEntity) {
           logger.debug("Entity not found in DB, skipping export", {
             entityType,

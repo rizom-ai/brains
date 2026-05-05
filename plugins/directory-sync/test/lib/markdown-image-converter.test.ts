@@ -350,8 +350,8 @@ slug: my-post
 
       const calls = (mockEntityService.createEntity as ReturnType<typeof mock>)
         .mock.calls;
-      expect(calls[0]?.[0]?.id).toMatch(/^my-post-inline-/);
-      expect(calls[1]?.[0]?.id).toMatch(/^my-post-inline-/);
+      expect(calls[0]?.[0]?.entity.id).toMatch(/^my-post-inline-/);
+      expect(calls[1]?.[0]?.entity.id).toMatch(/^my-post-inline-/);
     });
 
     test("should reuse existing image entity with same sourceUrl", async () => {
@@ -420,14 +420,14 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             alt: "A beautiful landscape photo",
             sourceUrl: "https://example.com/landscape.png",
           }),
         }),
-      );
+      });
     });
 
     test("should generate title from alt if provided", async () => {
@@ -440,13 +440,13 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: "Sunset over mountains",
           }),
         }),
-      );
+      });
     });
 
     test("should generate fallback title for images without alt", async () => {
@@ -459,13 +459,13 @@ slug: test-post
 
       await converter.convert(content, "test-post");
 
-      expect(mockEntityService.createEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(mockEntityService.createEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           metadata: expect.objectContaining({
             title: expect.stringContaining("Inline image"),
           }),
         }),
-      );
+      });
     });
   });
 });

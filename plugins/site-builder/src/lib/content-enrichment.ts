@@ -7,7 +7,7 @@ import {
   z,
 } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { SiteContentEntityService } from "./site-content-contracts";
+import type { IEntityService } from "@brains/plugins";
 import type { BuildPipelineContext } from "./build-pipeline-context";
 
 const entityWithSlugSchema = z
@@ -161,7 +161,7 @@ export async function enrichWithUrls(
 
 async function resolveCoverImage(
   imageId: string | undefined,
-  entityService: SiteContentEntityService,
+  entityService: IEntityService,
 ): Promise<
   | {
       url: string;
@@ -172,7 +172,10 @@ async function resolveCoverImage(
 > {
   if (!imageId) return undefined;
 
-  const image = await entityService.getEntity("image", imageId);
+  const image = await entityService.getEntity({
+    entityType: "image",
+    id: imageId,
+  });
   const imageCheck = imageEntitySchema.safeParse(image);
   if (!imageCheck.success) return undefined;
 
@@ -191,7 +194,7 @@ async function resolveCoverImage(
  * Scan all entities for coverImageId references to pre-resolve before rendering.
  */
 export async function collectAllImageIds(
-  entityService: SiteContentEntityService,
+  entityService: IEntityService,
   logger: Logger,
 ): Promise<string[]> {
   const imageIds = new Set<string>();
@@ -203,7 +206,7 @@ export async function collectAllImageIds(
     for (const entityType of entityTypes) {
       if (entityType === "image") continue; // Skip image entities themselves
 
-      const entities = await entityService.listEntities(entityType);
+      const entities = await entityService.listEntities({ entityType });
 
       for (const entity of entities) {
         const coverImageId = getCoverImageId(entity);

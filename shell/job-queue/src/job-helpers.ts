@@ -12,12 +12,18 @@ import type { ToolContext } from "@brains/mcp-service";
 /**
  * Type for the enqueueJob function created by the helper
  */
-export type EnqueueJobFn = (
-  type: string,
-  data: unknown,
-  toolContext: ToolContext | null,
-  options?: JobOptions,
-) => Promise<string>;
+export interface EnqueueJobRequest {
+  /** Job type to enqueue. Service plugin jobs are auto-scoped when unscoped. */
+  type: string;
+  /** Job payload passed to the registered handler. */
+  data: unknown;
+  /** Tool routing context, or null/omitted for background jobs. */
+  toolContext?: ToolContext | null;
+  /** Optional queue behavior, routing metadata, and retry settings. */
+  options?: JobOptions;
+}
+
+export type EnqueueJobFn = (request: EnqueueJobRequest) => Promise<string>;
 
 /**
  * Unified jobs namespace with monitoring and write operations.
@@ -68,7 +74,8 @@ export function createEnqueueJobFn(
   pluginId: string,
   scopeJobType: boolean,
 ): EnqueueJobFn {
-  return async (type, data, toolContext, options): Promise<string> => {
+  return async (request): Promise<string> => {
+    const { type, data, toolContext = null, options } = request;
     // Destructure to avoid spreading metadata twice
     const { metadata: optionsMetadata, ...restOptions } = options ?? {};
 
@@ -95,7 +102,11 @@ export function createEnqueueJobFn(
     const finalType =
       scopeJobType && !type.includes(":") ? `${pluginId}:${type}` : type;
 
-    return jobQueueService.enqueue(finalType, data, jobOptions);
+    return jobQueueService.enqueue({
+      type: finalType,
+      data,
+      options: jobOptions,
+    });
   };
 }
 

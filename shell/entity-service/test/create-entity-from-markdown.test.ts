@@ -78,17 +78,19 @@ status: draft
 This content must be preserved exactly.`;
 
     const result = await ctx.entityService.createEntityFromMarkdown({
-      entityType: "markdown-doc",
-      id: "approved-markdown-doc",
-      markdown,
+      input: {
+        entityType: "markdown-doc",
+        id: "approved-markdown-doc",
+        markdown,
+      },
     });
 
     expect(result.entityId).toBe("approved-markdown-doc");
 
-    const stored = await ctx.entityService.getEntity<MarkdownDoc>(
-      "markdown-doc",
-      "approved-markdown-doc",
-    );
+    const stored = await ctx.entityService.getEntity<MarkdownDoc>({
+      entityType: "markdown-doc",
+      id: "approved-markdown-doc",
+    });
     expect(stored?.content).toBe(markdown);
     expect(stored?.headline).toBe("Approved Markdown Doc");
     expect(stored?.metadata).toEqual({

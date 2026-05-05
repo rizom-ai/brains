@@ -57,10 +57,10 @@ describe("materializePrompts", () => {
       mockEntityService as unknown as IEntityService,
     );
 
-    expect(mockEntityService.getEntity).toHaveBeenCalledWith(
-      "prompt",
-      "blog-generation",
-    );
+    expect(mockEntityService.getEntity).toHaveBeenCalledWith({
+      entityType: "prompt",
+      id: "blog-generation",
+    });
   });
 
   it("should skip templates without basePrompt", async () => {

@@ -35,11 +35,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
 
     const enqueueDerive = async (reason: string): Promise<string | null> => {
       try {
-        return await context.jobs.enqueue(
-          "derive",
-          { reason } satisfies SwotDerivationJobData,
-          null,
-          {
+        return await context.jobs.enqueue({
+          type: "derive",
+          data: { reason } satisfies SwotDerivationJobData,
+          options: {
             source: this.id,
             priority: 10,
             deduplication: "coalesce",
@@ -49,7 +48,7 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
               operationTarget: `swot:${reason}`,
             },
           },
-        );
+        });
       } catch (error) {
         this.logger.error("Failed to queue SWOT derivation", { error, reason });
         return null;
@@ -57,10 +56,10 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
     };
 
     const ensureDerived = async (reason: string): Promise<void> => {
-      const existing = await context.entityService.getEntity<SwotEntity>(
-        "swot",
-        "swot",
-      );
+      const existing = await context.entityService.getEntity<SwotEntity>({
+        entityType: "swot",
+        id: "swot",
+      });
       if (!existing) {
         await enqueueDerive(reason);
       }
@@ -75,24 +74,29 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
     context.messaging.subscribe(
       "system:plugins:ready",
       async (): Promise<{ success: boolean }> => {
-        await context.messaging.send("dashboard:register-widget", {
-          id: "swot",
-          pluginId: this.id,
-          title: "SWOT",
-          section: "secondary",
-          priority: 14,
-          rendererName: "SwotWidget",
-          component: SwotWidget,
-          dataProvider: async () => {
-            const swot = await context.entityService.getEntity<SwotEntity>(
-              "swot",
-              "swot",
-            );
+        await context.messaging.send({
+          type: "dashboard:register-widget",
+          payload: {
+            id: "swot",
+            pluginId: this.id,
+            title: "SWOT",
+            section: "secondary",
+            priority: 14,
+            rendererName: "SwotWidget",
+            component: SwotWidget,
+            dataProvider: async () => {
+              const swot = await context.entityService.getEntity<SwotEntity>({
+                entityType: "swot",
+                id: "swot",
+              });
 
-            if (!swot) return { status: "generating" };
+              if (!swot) return { status: "generating" };
 
-            const { frontmatter } = swotAdapter.parseSwotContent(swot.content);
-            return { status: "ready", ...frontmatter };
+              const { frontmatter } = swotAdapter.parseSwotContent(
+                swot.content,
+              );
+              return { status: "ready", ...frontmatter };
+            },
           },
         });
 

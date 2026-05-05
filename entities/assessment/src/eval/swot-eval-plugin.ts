@@ -208,13 +208,19 @@ async function deleteAllEntities(
   context: EntityPluginContext,
   entityType: string,
 ): Promise<void> {
-  const entities = await context.entityService.listEntities(entityType, {
-    limit: 1000,
+  const entities = await context.entityService.listEntities({
+    entityType: entityType,
+    options: {
+      limit: 1000,
+    },
   });
 
   await Promise.all(
     entities.map((entity) =>
-      context.entityService.deleteEntity(entity.entityType, entity.id),
+      context.entityService.deleteEntity({
+        entityType: entity.entityType,
+        id: entity.id,
+      }),
     ),
   );
 }
@@ -230,13 +236,15 @@ async function seedSwotEvalEntities(
   await Promise.all(
     input.skills.map((skill) =>
       context.entityService.createEntity({
-        id: skill.name
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, ""),
-        entityType: "skill",
-        content: skillAdapter.createSkillContent(skill),
-        metadata: skill,
+        entity: {
+          id: skill.name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-|-$/g, ""),
+          entityType: "skill",
+          content: skillAdapter.createSkillContent(skill),
+          metadata: skill,
+        },
       }),
     ),
   );
@@ -246,26 +254,28 @@ async function seedSwotEvalEntities(
       const discoveredAt = agent.discoveredAt ?? new Date().toISOString();
       const slug = slugFromUrl(agent.url);
       return context.entityService.createEntity({
-        id: agent.id ?? slug,
-        entityType: "agent",
-        content: agentAdapter.createAgentContent({
-          name: agent.name,
-          kind: agent.kind,
-          ...(agent.organization ? { organization: agent.organization } : {}),
-          brainName: agent.brainName,
-          url: agent.url,
-          ...(agent.did ? { did: agent.did } : {}),
-          status: agent.status,
-          discoveredAt,
-          about: agent.about,
-          skills: agent.skills,
-          notes: agent.notes,
-        }),
-        metadata: {
-          name: agent.name,
-          url: agent.url,
-          status: agent.status,
-          slug,
+        entity: {
+          id: agent.id ?? slug,
+          entityType: "agent",
+          content: agentAdapter.createAgentContent({
+            name: agent.name,
+            kind: agent.kind,
+            ...(agent.organization ? { organization: agent.organization } : {}),
+            brainName: agent.brainName,
+            url: agent.url,
+            ...(agent.did ? { did: agent.did } : {}),
+            status: agent.status,
+            discoveredAt,
+            about: agent.about,
+            skills: agent.skills,
+            notes: agent.notes,
+          }),
+          metadata: {
+            name: agent.name,
+            url: agent.url,
+            status: agent.status,
+            slug,
+          },
         },
       });
     }),
@@ -291,7 +301,10 @@ async function deriveSwot(
     progressReporter,
   );
 
-  const entity = await context.entityService.getEntity("swot", "swot");
+  const entity = await context.entityService.getEntity({
+    entityType: "swot",
+    id: "swot",
+  });
   if (!entity) {
     throw new Error("Expected SWOT entity to be created during eval");
   }

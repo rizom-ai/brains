@@ -4,42 +4,22 @@ import {
   RegisterRoutesPayloadSchema,
   UnregisterRoutesPayloadSchema,
 } from "@brains/site-composition";
-import type { RouteDefinition } from "@brains/site-composition";
+import type {
+  GetRouteResponse,
+  ListRoutesResponse,
+  RouteDefinition,
+} from "@brains/site-composition";
 import type { RouteRegistry } from "@brains/site-engine";
+import type { ServicePluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { registerConfigRoutes } from "./route-helpers";
-
-interface RouteMessage<TPayload = unknown> {
-  payload: TPayload;
-}
-
-interface RouteMessagingContext {
-  messaging: {
-    subscribe<TPayload = unknown, TResult = unknown>(
-      type: string,
-      handler: (message: RouteMessage<TPayload>) => Promise<TResult> | TResult,
-    ): () => void;
-  };
-}
-
-interface RouteListResponse {
-  success: boolean;
-  data?: { routes: RouteDefinition[] };
-  error?: string;
-}
-
-interface RouteGetResponse {
-  success: boolean;
-  data?: { route?: RouteDefinition | undefined };
-  error?: string;
-}
 
 /**
  * Subscribe to all route-related messages on the message bus.
  * This wires up register, unregister, list, and get handlers for routes.
  */
 export function setupRouteHandlers(
-  context: RouteMessagingContext,
+  context: Pick<ServicePluginContext, "messaging">,
   routeRegistry: RouteRegistry,
   logger: Logger,
 ): void {
@@ -84,7 +64,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for listing routes
-  context.messaging.subscribe<unknown, RouteListResponse>(
+  context.messaging.subscribe<unknown, ListRoutesResponse>(
     "plugin:site-builder:route:list",
     async (message) => {
       try {
@@ -101,7 +81,7 @@ export function setupRouteHandlers(
   );
 
   // Handler for getting specific route
-  context.messaging.subscribe<unknown, RouteGetResponse>(
+  context.messaging.subscribe<unknown, GetRouteResponse>(
     "plugin:site-builder:route:get",
     async (message) => {
       try {
@@ -116,10 +96,10 @@ export function setupRouteHandlers(
   );
 
   // Handler for site-content plugin to discover all routes
-  context.messaging.subscribe<
-    unknown,
-    { success: boolean; data: RouteDefinition[] }
-  >("site-builder:routes:list", async () => {
-    return { success: true, data: routeRegistry.list() };
-  });
+  context.messaging.subscribe<unknown, RouteDefinition[]>(
+    "site-builder:routes:list",
+    async () => {
+      return { success: true, data: routeRegistry.list() };
+    },
+  );
 }

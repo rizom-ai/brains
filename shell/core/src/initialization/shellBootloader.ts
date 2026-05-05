@@ -110,17 +110,15 @@ export class ShellBootloader {
   }
 
   private async emitPluginsRegistered(): Promise<void> {
-    await this.services.messageBus.send(
-      SYSTEM_CHANNELS.pluginsRegistered,
-      {
+    await this.services.messageBus.send({
+      type: SYSTEM_CHANNELS.pluginsRegistered,
+      payload: {
         timestamp: new Date().toISOString(),
         pluginCount: this.services.pluginManager.getAllPluginIds().length,
       },
-      "shell",
-      undefined,
-      undefined,
-      true,
-    );
+      sender: "shell",
+      broadcast: true,
+    });
     this.services.logger.debug("Emitted plugins registered event");
   }
 

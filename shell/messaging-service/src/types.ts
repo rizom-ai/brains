@@ -5,6 +5,7 @@ import type {
   MessageHandler,
   BaseMessage,
   MessageWithPayload,
+  MessageBusSendRequest,
 } from "./base-types";
 
 export {
@@ -16,6 +17,8 @@ export {
   type MessageHandler,
   type MessageSender,
   type MessageSendOptions,
+  type MessageSendRequest,
+  type MessageBusSendRequest,
   type BaseMessage,
 } from "./base-types";
 
@@ -80,12 +83,7 @@ export interface MessageContext {
  */
 export interface IMessageBus {
   send<T = unknown, R = unknown>(
-    type: string,
-    payload: T,
-    sender: string,
-    target?: string,
-    metadata?: Record<string, unknown>,
-    broadcast?: boolean,
+    request: MessageBusSendRequest<T>,
   ): Promise<MessageResponse<R>>;
 
   subscribe<T = unknown, R = unknown>(

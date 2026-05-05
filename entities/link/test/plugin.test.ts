@@ -219,11 +219,8 @@ describe("LinkPlugin with Harness", () => {
       const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
         {
           ...origJobQueue,
-          enqueue: async (
-            ...args: Parameters<typeof origJobQueue.enqueue>
-          ): Promise<string> => {
-            const [type, data] = args;
-            enqueued.push({ type, data });
+          enqueue: async (request): Promise<string> => {
+            enqueued.push({ type: request.type, data: request.data });
             return "job-123";
           },
         };
@@ -279,11 +276,8 @@ describe("LinkPlugin with Harness", () => {
       const trackingJobQueue: ReturnType<typeof mockShell.getJobQueueService> =
         {
           ...origJobQueue,
-          enqueue: async (
-            ...args: Parameters<typeof origJobQueue.enqueue>
-          ): Promise<string> => {
-            const [type, data] = args;
-            enqueued.push({ type, data });
+          enqueue: async (request): Promise<string> => {
+            enqueued.push({ type: request.type, data: request.data });
             return "job-123";
           },
         };

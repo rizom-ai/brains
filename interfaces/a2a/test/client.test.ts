@@ -3,25 +3,22 @@ import { parseA2AResponse, createA2ACallTool } from "../src/client";
 import { parseAgentCard } from "@brains/plugins";
 
 function createSavedAgentEntityService(agentId = "remote.example.com"): {
-  getEntity: (
-    type: string,
-    id: string,
-  ) => Promise<{
+  getEntity: (request: { entityType: string; id: string }) => Promise<{
     id: string;
     content: string;
     metadata: Record<string, unknown>;
   } | null>;
 } {
   return {
-    getEntity: async (
-      type: string,
-      id: string,
-    ): Promise<{
+    getEntity: async (request: {
+      entityType: string;
+      id: string;
+    }): Promise<{
       id: string;
       content: string;
       metadata: Record<string, unknown>;
     } | null> => {
-      if (type !== "agent" || id !== agentId) return null;
+      if (request.entityType !== "agent" || request.id !== agentId) return null;
       return {
         id: agentId,
         content: `---\nname: Remote\nurl: 'https://${agentId}/a2a'\nstatus: approved\n---`,

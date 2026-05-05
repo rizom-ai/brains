@@ -3,12 +3,14 @@ import type { EmbeddingDB } from "./db/embedding-db";
 import type {
   BaseEntity,
   EmbeddingJobData,
-  EntityInput,
-  CreateEntityOptions,
   EntityJobOptions,
   EntityMutationResult,
   StoreEmbeddingData,
   EntityEventBus,
+  DeleteEntityRequest,
+  CreateEntityRequest,
+  UpdateEntityRequest,
+  UpsertEntityRequest,
 } from "./types";
 import type { EntityRegistry } from "./entityRegistry";
 import type { EntitySerializer } from "./entity-serializer";
@@ -64,9 +66,9 @@ export class EntityMutations {
    * Create a new entity (returns immediately, embedding generated in background)
    */
   public async createEntity<T extends BaseEntity>(
-    entity: EntityInput<T>,
-    options?: CreateEntityOptions,
+    request: CreateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    const { entity, options } = request;
     this.logger.debug(
       `Creating entity asynchronously of type: ${entity["entityType"]}`,
     );
@@ -150,9 +152,9 @@ export class EntityMutations {
    * Update an existing entity (returns immediately, embedding generated in background)
    */
   public async updateEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpdateEntityRequest<T>,
   ): Promise<EntityMutationResult> {
+    const { entity, options } = request;
     this.logger.debug(
       `Updating entity asynchronously: ${entity.entityType} with ID ${entity.id}`,
     );
@@ -244,7 +246,9 @@ export class EntityMutations {
   /**
    * Delete an entity by type and ID
    */
-  public async deleteEntity(entityType: string, id: string): Promise<boolean> {
+  public async deleteEntity(request: DeleteEntityRequest): Promise<boolean> {
+    const { entityType, id } = request;
+
     // Fetch prior entity so subscribers can gate on its metadata (e.g. the
     // `seriesName` field that drives the series projection). Without this,
     // every delete forces subscribers into a full resync because they can't
@@ -267,9 +271,9 @@ export class EntityMutations {
    * Create or update an entity based on existence
    */
   public async upsertEntity<T extends BaseEntity>(
-    entity: T,
-    options?: EntityJobOptions,
+    request: UpsertEntityRequest<T>,
   ): Promise<EntityMutationResult & { created: boolean }> {
+    const { entity, options } = request;
     this.logger.debug(
       `Upserting entity of type ${entity.entityType} with ID ${entity.id}`,
     );
@@ -280,10 +284,16 @@ export class EntityMutations {
     );
 
     if (exists) {
-      const result = await this.updateEntity(entity, options);
+      const result = await this.updateEntity({
+        entity,
+        ...(options !== undefined && { options }),
+      });
       return { ...result, created: false };
     } else {
-      const result = await this.createEntity(entity, options);
+      const result = await this.createEntity({
+        entity,
+        ...(options !== undefined && { options }),
+      });
       return { ...result, created: true };
     }
   }
@@ -383,14 +393,12 @@ export class EntityMutations {
       payload["entity"] = entity;
     }
 
-    await this.messageBus.send(
-      event,
-      payload,
-      "entity-service",
-      undefined,
-      undefined,
-      true,
-    );
+    await this.messageBus.send({
+      type: event,
+      payload: payload,
+      sender: "entity-service",
+      broadcast: true,
+    });
   }
 
   /**
@@ -425,10 +433,10 @@ export class EntityMutations {
     };
     const rootJobId = createId();
 
-    const jobId = await this.jobQueueService.enqueue(
-      "shell:embedding",
-      jobData,
-      {
+    const jobId = await this.jobQueueService.enqueue({
+      type: "shell:embedding",
+      data: jobData,
+      options: {
         ...(priority !== undefined && { priority }),
         ...(maxRetries !== undefined && { maxRetries }),
         source: "entity-service",
@@ -438,7 +446,7 @@ export class EntityMutations {
           operationTarget: entityId,
         },
       },
-    );
+    });
 
     this.logger.debug(
       `Queued embedding job for ${entityType}:${entityId} (job: ${jobId})`,

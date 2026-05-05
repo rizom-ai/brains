@@ -282,16 +282,12 @@ describe("Shell initialization order", () => {
           .getMessageBus()
           .subscribe(SYSTEM_CHANNELS.pluginsRegistered, async () => {
             initOrder.push("plugins-ready");
-            await shellInstance
-              .getMessageBus()
-              .send(
-                SYSTEM_CHANNELS.initialSyncCompleted,
-                { success: true },
-                "test",
-                undefined,
-                undefined,
-                true,
-              );
+            await shellInstance.getMessageBus().send({
+              type: SYSTEM_CHANNELS.initialSyncCompleted,
+              payload: { success: true },
+              sender: "test",
+              broadcast: true,
+            });
             return { success: true };
           });
         return { tools: [], resources: [] };

@@ -40,7 +40,7 @@ export function createEntityCoverTool(services: SystemServices): Tool {
           if (!image.ok) return { success: false, error: image.error };
         }
         const updated = setCoverImageId(entity, input.imageId);
-        await entityService.updateEntity(updated);
+        await entityService.updateEntity({ entity: updated });
         return {
           success: true,
           data: {

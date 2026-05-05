@@ -81,13 +81,13 @@ ${body}`;
       expect(result.post.id).toBe("post-1");
       expect(result.post.body).toContain("This is my LinkedIn post content");
       expect(result.post.frontmatter.platform).toBe("linkedin");
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           filter: { metadata: { slug: "my-linkedin-post" } },
           limit: 1,
         },
-      );
+      });
     });
 
     it("should throw error when post not found", async () => {
@@ -138,9 +138,9 @@ ${body}`;
 
       expect(result.posts).toHaveLength(2);
       expect(result.totalCount).toBe(2);
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           sortFields: [
             { field: "publishedAt", direction: "desc", nullsFirst: true },
             { field: "created", direction: "desc" },
@@ -148,7 +148,7 @@ ${body}`;
           limit: 100,
           offset: 0,
         },
-      );
+      });
     });
 
     it("should filter by status", async () => {
@@ -175,9 +175,9 @@ ${body}`;
       );
 
       expect(result.posts).toHaveLength(1);
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           filter: { metadata: { status: "queued" } },
           sortFields: [
             { field: "publishedAt", direction: "desc", nullsFirst: true },
@@ -186,7 +186,7 @@ ${body}`;
           limit: 100,
           offset: 0,
         },
-      );
+      });
     });
 
     it("should sort by queue order when sortByQueue is true", async () => {
@@ -219,14 +219,14 @@ ${body}`;
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           sortFields: [{ field: "queueOrder", direction: "asc" }],
           limit: 100,
           offset: 0,
         },
-      );
+      });
     });
   });
 
@@ -285,9 +285,9 @@ ${body}`;
         mockContext,
       );
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           sortFields: [
             { field: "publishedAt", direction: "desc", nullsFirst: true },
             { field: "created", direction: "desc" },
@@ -295,7 +295,7 @@ ${body}`;
           limit: 10,
           offset: 10,
         },
-      );
+      });
     });
   });
 
@@ -323,14 +323,14 @@ ${body}`;
       );
 
       expect(result.post?.id).toBe("post-1");
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "social-post",
-        {
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "social-post",
+        options: {
           filter: { metadata: { status: "queued" } },
           sortFields: [{ field: "queueOrder", direction: "asc" }],
           limit: 1,
         },
-      );
+      });
     });
 
     it("should return null when queue is empty", async () => {

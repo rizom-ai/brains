@@ -42,10 +42,10 @@ async function generateRSSAfterBuild(
     `Auto-generating RSS feed after site build (${isPreview ? "all posts" : "published only"})`,
   );
 
-  const allPosts: BlogPost[] = await context.entityService.listEntities(
-    "post",
-    { limit: 1000 },
-  );
+  const allPosts: BlogPost[] = await context.entityService.listEntities({
+    entityType: "post",
+    options: { limit: 1000 },
+  });
 
   const filteredPosts: BlogPostWithData[] = allPosts
     .filter(

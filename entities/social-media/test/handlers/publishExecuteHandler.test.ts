@@ -116,10 +116,10 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.getEntity).toHaveBeenCalledWith(
-        "social-post",
-        "post-1",
-      );
+      expect(entityService.getEntity).toHaveBeenCalledWith({
+        entityType: "social-post",
+        id: "post-1",
+      });
       expect(linkedinProvider.publish).toHaveBeenCalled();
     });
 
@@ -131,14 +131,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:success",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:success",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           result: { id: "linkedin-123" },
         }),
-      );
+      });
     });
 
     it("should update entity status to published", async () => {
@@ -149,14 +149,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.updateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "post-1",
           metadata: expect.objectContaining({
             status: "published",
           }),
         }),
-      );
+      });
     });
 
     it("should send report:failure when entity not found", async () => {
@@ -167,14 +167,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: expect.stringContaining("not found"),
         }),
-      );
+      });
     });
 
     it("should send report:failure when provider not found", async () => {
@@ -191,14 +191,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: expect.stringContaining("No provider"),
         }),
-      );
+      });
     });
 
     it("should send report:failure when provider throws", async () => {
@@ -212,14 +212,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(messageSender.sendMessage).toHaveBeenCalledWith(
-        "publish:report:failure",
-        expect.objectContaining({
+      expect(messageSender.sendMessage).toHaveBeenCalledWith({
+        type: "publish:report:failure",
+        payload: expect.objectContaining({
           entityType: "social-post",
           entityId: "post-1",
           error: "API rate limit exceeded",
         }),
-      );
+      });
     });
 
     it("should update entity status to failed after provider error", async () => {
@@ -233,14 +233,14 @@ describe("PublishExecuteHandler", () => {
         entityId: "post-1",
       });
 
-      expect(entityService.updateEntity).toHaveBeenCalledWith(
-        expect.objectContaining({
+      expect(entityService.updateEntity).toHaveBeenCalledWith({
+        entity: expect.objectContaining({
           id: "post-1",
           metadata: expect.objectContaining({
             status: "failed",
           }),
         }),
-      );
+      });
     });
 
     it("should skip already published posts", async () => {
@@ -260,15 +260,17 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should fetch and pass image data when coverImageId is present", async () => {
-      entityService.getEntity = mock((entityType: string, entityId: string) => {
-        if (entityType === "social-post") {
-          return Promise.resolve(samplePostWithImage);
-        }
-        if (entityType === "image" && entityId === "image-123") {
-          return Promise.resolve(sampleImage);
-        }
-        return Promise.resolve(null);
-      });
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithImage);
+          }
+          if (request.entityType === "image" && request.id === "image-123") {
+            return Promise.resolve(sampleImage);
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       await handler.handle({
         entityType: "social-post",
@@ -286,12 +288,14 @@ describe("PublishExecuteHandler", () => {
     });
 
     it("should publish without image if image entity not found", async () => {
-      entityService.getEntity = mock((entityType: string) => {
-        if (entityType === "social-post") {
-          return Promise.resolve(samplePostWithImage);
-        }
-        return Promise.resolve(null);
-      });
+      entityService.getEntity = mock(
+        (request: { entityType: string; id: string }) => {
+          if (request.entityType === "social-post") {
+            return Promise.resolve(samplePostWithImage);
+          }
+          return Promise.resolve(null);
+        },
+      );
 
       await handler.handle({
         entityType: "social-post",

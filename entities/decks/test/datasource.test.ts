@@ -114,12 +114,12 @@ describe("DeckDataSource", () => {
 
       await datasource.fetch({ entityType: "deck" }, listSchema, mockContext);
 
-      expect(mockEntityService.listEntities).toHaveBeenCalledWith(
-        "deck",
-        expect.objectContaining({
+      expect(mockEntityService.listEntities).toHaveBeenCalledWith({
+        entityType: "deck",
+        options: expect.objectContaining({
           sortFields: [{ field: "publishedAt", direction: "desc" }],
         }),
-      );
+      });
     });
 
     it("should handle empty deck list", async () => {

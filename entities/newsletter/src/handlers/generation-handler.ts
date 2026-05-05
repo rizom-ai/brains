@@ -89,7 +89,10 @@ export class GenerationJobHandler extends BaseGenerationJobHandler<
 
       const results = await Promise.all(
         sourceEntityIds.map((id) =>
-          this.context.entityService.getEntity<SourceEntity>(entityType, id),
+          this.context.entityService.getEntity<SourceEntity>({
+            entityType,
+            id,
+          }),
         ),
       );
       const posts = results.filter((e): e is SourceEntity => e != null);
@@ -211,9 +214,12 @@ The newsletter should:
     _data: GenerationJobData,
     error: string,
   ): Promise<void> {
-    await this.context.messaging.send("generate:report:failure", {
-      entityType: "newsletter",
-      error,
+    await this.context.messaging.send({
+      type: "generate:report:failure",
+      payload: {
+        entityType: "newsletter",
+        error,
+      },
     });
   }
 
@@ -223,9 +229,12 @@ The newsletter should:
     _progressReporter: ProgressReporter,
     _generated: GeneratedContent,
   ): Promise<void> {
-    await this.context.messaging.send("generate:report:success", {
-      entityType: "newsletter",
-      entityId,
+    await this.context.messaging.send({
+      type: "generate:report:success",
+      payload: {
+        entityType: "newsletter",
+        entityId,
+      },
     });
   }
 

@@ -126,12 +126,14 @@ export function createPublishTool(
 
       // Update entity status
       await context.entityService.updateEntity({
-        ...entity,
-        metadata: {
-          ...entity.metadata,
-          status: "published",
-          publishedAt: new Date().toISOString(),
-          platformId: result.id,
+        entity: {
+          ...entity,
+          metadata: {
+            ...entity.metadata,
+            status: "published",
+            publishedAt: new Date().toISOString(),
+            platformId: result.id,
+          },
         },
       });
 
@@ -161,17 +163,20 @@ async function findPublishableEntity(
   slug?: string,
 ): Promise<PublishableEntity | null> {
   if (id) {
-    return context.entityService.getEntity<PublishableEntity>(entityType, id);
+    return context.entityService.getEntity<PublishableEntity>({
+      entityType,
+      id,
+    });
   }
 
   if (!slug) return null;
 
-  const entities = await context.entityService.listEntities<PublishableEntity>(
+  const entities = await context.entityService.listEntities<PublishableEntity>({
     entityType,
-    {
+    options: {
       filter: { metadata: { slug } },
       limit: 1,
     },
-  );
+  });
   return entities[0] ?? null;
 }

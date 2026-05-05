@@ -47,10 +47,10 @@ export async function handlePublishCompleted(
   }
 
   // Fetch the post
-  const post = await entityService.getEntity<BlogPost>(
-    "post",
-    payload.entityId,
-  );
+  const post = await entityService.getEntity<BlogPost>({
+    entityType: "post",
+    id: payload.entityId,
+  });
 
   if (!post) {
     return {

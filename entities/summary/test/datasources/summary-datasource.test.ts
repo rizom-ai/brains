@@ -52,7 +52,9 @@ describe("SummaryDataSource", () => {
         timeRange: entry.timeRange,
       },
     });
-    spyOn(entityService, "getEntity").mockResolvedValue(summary);
+    const getEntitySpy = spyOn(entityService, "getEntity").mockResolvedValue(
+      summary,
+    );
 
     const result = await datasource.fetch(
       { entityType: "summary", query: { conversationId: "conv-123" } },
@@ -60,13 +62,20 @@ describe("SummaryDataSource", () => {
       context,
     );
 
+    expect(getEntitySpy).toHaveBeenCalledWith({
+      entityType: "summary",
+      id: "conv-123",
+    });
     expect(result.conversationId).toBe("conv-123");
     expect(result.messageCount).toBe(2);
     expect(result.entries[0]?.title).toBe("Eval Plan");
   });
 
   it("fetches summary list data", async () => {
-    spyOn(entityService, "listEntities").mockResolvedValue([
+    const listEntitiesSpy = spyOn(
+      entityService,
+      "listEntities",
+    ).mockResolvedValue([
       createMockSummaryEntity({ content: adapter.createContentBody([entry]) }),
     ]);
 
@@ -76,8 +85,24 @@ describe("SummaryDataSource", () => {
       context,
     );
 
+    expect(listEntitiesSpy).toHaveBeenCalledWith({
+      entityType: "summary",
+      options: { limit: 10 },
+    });
     expect(result.totalCount).toBe(1);
     expect(result.summaries[0]?.messageCount).toBe(2);
     expect(result.summaries[0]?.latestEntry).toBe("Eval Plan");
+  });
+
+  it("throws when requested summary is missing", () => {
+    spyOn(entityService, "getEntity").mockResolvedValue(null);
+
+    expect(
+      datasource.fetch(
+        { entityType: "summary", query: { id: "missing" } },
+        summaryDetailSchema,
+        context,
+      ),
+    ).rejects.toThrow("Summary not found: missing");
   });
 });

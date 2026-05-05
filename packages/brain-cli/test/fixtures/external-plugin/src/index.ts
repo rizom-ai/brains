@@ -78,9 +78,9 @@ const packageJson = {
 const exampleSender: MessageSender<
   { value: number },
   { accepted: true }
-> = async (_type, _payload, options) => {
+> = async (request) => {
   const response: MessageResponse<{ accepted: true }> = {
-    success: options?.broadcast === true,
+    success: request.broadcast === true,
     data: { accepted: true },
   };
   return response;
@@ -134,26 +134,29 @@ export class ExampleMessageInterfacePlugin extends MessageInterfacePlugin {
     super("example-message-interface", packageJson, {}, z.object({}));
   }
 
-  protected sendMessageToChannel(
-    channelId: string | null,
-    message: string,
-  ): void {
+  protected sendMessageToChannel({
+    channelId,
+    message,
+  }: {
+    channelId: string | null;
+    message: string;
+  }): void {
     this.sentMessages.push(`${channelId ?? "local"}:${message}`);
   }
 
-  protected override sendMessageWithId(
-    channelId: string | null,
-    message: string,
-  ): Promise<string | undefined> {
-    this.sendMessageToChannel(channelId, message);
+  protected override sendMessageWithId(request: {
+    channelId: string | null;
+    message: string;
+  }): Promise<string | undefined> {
+    this.sendMessageToChannel(request);
     return Promise.resolve("message-1");
   }
 
-  protected override editMessage(
-    _channelId: string,
-    _messageId: string,
-    _newMessage: string,
-  ): Promise<boolean> {
+  protected override editMessage(_request: {
+    channelId: string | null;
+    messageId: string;
+    newMessage: string;
+  }): Promise<boolean> {
     return Promise.resolve(true);
   }
 

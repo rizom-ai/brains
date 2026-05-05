@@ -232,17 +232,22 @@ export abstract class BaseEntityDataSource<
 
     // Run list and count queries in parallel when pagination is needed
     const [entities, totalItems] = await Promise.all([
-      entityService.listEntities<TEntity>(this.config.entityType, {
-        limit: itemsPerPage,
-        offset,
-        sortFields: this.config.defaultSort,
-        ...listOptions,
+      entityService.listEntities<TEntity>({
+        entityType: this.config.entityType,
+        options: {
+          limit: itemsPerPage,
+          offset,
+          sortFields: this.config.defaultSort,
+          ...listOptions,
+        },
       }),
       needsPagination
-        ? entityService.countEntities(
-            this.config.entityType,
-            listOptions?.filter ? { filter: listOptions.filter } : undefined,
-          )
+        ? entityService.countEntities({
+            entityType: this.config.entityType,
+            options: listOptions?.filter
+              ? { filter: listOptions.filter }
+              : undefined,
+          })
         : Promise.resolve(0),
     ]);
 
@@ -264,13 +269,13 @@ export abstract class BaseEntityDataSource<
     sortFields?: SortField[],
   ): Promise<NavigationResult<TTransformed>> {
     const limit = this.config.navigationLimit ?? 1000;
-    const allEntities = await entityService.listEntities<TEntity>(
-      this.config.entityType,
-      {
+    const allEntities = await entityService.listEntities<TEntity>({
+      entityType: this.config.entityType,
+      options: {
         limit,
         sortFields: sortFields ?? this.config.defaultSort,
       },
-    );
+    });
 
     const currentIndex = allEntities.findIndex((e) => e.id === entity.id);
     const prevEntity =
@@ -294,10 +299,10 @@ export abstract class BaseEntityDataSource<
     entityService: IEntityService,
   ): Promise<TEntity> {
     if (this.config.lookupField === "id") {
-      const entity = await entityService.getEntity<TEntity>(
-        this.config.entityType,
-        id,
-      );
+      const entity = await entityService.getEntity<TEntity>({
+        entityType: this.config.entityType,
+        id: id,
+      });
       if (!entity) {
         throw new Error(`${this.config.entityType} not found: ${id}`);
       }
@@ -305,13 +310,13 @@ export abstract class BaseEntityDataSource<
     }
 
     // Default: lookup by slug in metadata
-    const entities = await entityService.listEntities<TEntity>(
-      this.config.entityType,
-      {
+    const entities = await entityService.listEntities<TEntity>({
+      entityType: this.config.entityType,
+      options: {
         filter: { metadata: { slug: id } },
         limit: 1,
       },
-    );
+    });
 
     const entity = entities[0];
     if (!entity) {

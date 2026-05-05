@@ -11,11 +11,9 @@ export function createMockMessageSender(): {
   _sentMessages: Array<{ type: string; payload: unknown }>;
 } {
   const sentMessages: Array<{ type: string; payload: unknown }> = [];
-  const sendFn = mock(
-    async (type: string, payload: unknown, _options?: unknown) => {
-      sentMessages.push({ type, payload });
-      return { success: true };
-    },
-  );
+  const sendFn = mock(async (request: { type: string; payload: unknown }) => {
+    sentMessages.push({ type: request.type, payload: request.payload });
+    return { success: true };
+  });
   return { sendMessage: sendFn, _sentMessages: sentMessages };
 }

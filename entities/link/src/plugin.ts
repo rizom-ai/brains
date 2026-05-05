@@ -102,15 +102,17 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
             `${input.entityType}-${Date.now()}`;
           const now = new Date().toISOString();
           const result = await context.entityService.createEntity({
-            id,
-            entityType: input.entityType,
-            content: input.content,
-            metadata: {
-              title: parsedTitle,
-              status: parsedStatus,
+            entity: {
+              id,
+              entityType: input.entityType,
+              content: input.content,
+              metadata: {
+                title: parsedTitle,
+                status: parsedStatus,
+              },
+              created: now,
+              updated: now,
             },
-            created: now,
-            updated: now,
           });
 
           return {
@@ -137,9 +139,9 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
       }
 
       try {
-        const jobId = await this.shell.getJobQueueService().enqueue(
-          "link-capture",
-          {
+        const jobId = await this.shell.getJobQueueService().enqueue({
+          type: "link-capture",
+          data: {
             url,
             metadata: {
               interfaceId: executionContext.interfaceType,
@@ -153,7 +155,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
               timestamp: new Date().toISOString(),
             },
           },
-          {
+          options: {
             source: this.id,
             metadata: {
               operationType: "data_processing",
@@ -164,7 +166,7 @@ export class LinkPlugin extends EntityPlugin<LinkEntity, LinkConfig> {
                 : {}),
             },
           },
-        );
+        });
         return {
           kind: "handled",
           result: { success: true, data: { status: "generating", jobId } },

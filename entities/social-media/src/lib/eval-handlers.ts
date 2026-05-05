@@ -57,10 +57,10 @@ export function registerEvalHandlers(context: EntityPluginContext): void {
     let entityExists = false;
     let entityPreview: string | undefined;
     if (result.success && result.entityId) {
-      const entity = await context.entityService.getEntity(
-        "social-post",
-        result.entityId,
-      );
+      const entity = await context.entityService.getEntity({
+        entityType: "social-post",
+        id: result.entityId,
+      });
       entityExists = !!entity;
       entityPreview = entity?.content.slice(0, 300);
     }

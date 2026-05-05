@@ -123,10 +123,15 @@ function withSource(
 }
 
 async function clearTopics(context: EntityPluginContext): Promise<void> {
-  const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+  const topics = await context.entityService.listEntities({
+    entityType: TOPIC_ENTITY_TYPE,
+  });
   await Promise.all(
     topics.map((topic) =>
-      context.entityService.deleteEntity(TOPIC_ENTITY_TYPE, topic.id),
+      context.entityService.deleteEntity({
+        entityType: TOPIC_ENTITY_TYPE,
+        id: topic.id,
+      }),
     ),
   );
 }
@@ -260,8 +265,9 @@ export function registerTopicEvalHandlers(params: {
         progressReporter,
       );
 
-      const topics =
-        await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+      const topics = await context.entityService.listEntities({
+        entityType: TOPIC_ENTITY_TYPE,
+      });
       return {
         ...result,
         topicCount: topics.length,
@@ -284,7 +290,9 @@ export function registerTopicEvalHandlers(params: {
     );
 
     const result = await replaceAllTopics(entities, context, logger);
-    const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+    const topics = await context.entityService.listEntities({
+      entityType: TOPIC_ENTITY_TYPE,
+    });
 
     return {
       ...result,
@@ -321,8 +329,9 @@ export function registerTopicEvalHandlers(params: {
         });
       }
 
-      const topics =
-        await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+      const topics = await context.entityService.listEntities({
+        entityType: TOPIC_ENTITY_TYPE,
+      });
       return {
         totalTopics: topics.length,
         perEntity,
@@ -341,7 +350,9 @@ export function registerTopicEvalHandlers(params: {
     const result = await extractTopicsBatched(entities, context, logger);
 
     // Return created topics so the eval can inspect them
-    const topics = await context.entityService.listEntities(TOPIC_ENTITY_TYPE);
+    const topics = await context.entityService.listEntities({
+      entityType: TOPIC_ENTITY_TYPE,
+    });
     return {
       ...result,
       topics: topics.map(toTopicContentProjection),

@@ -42,19 +42,17 @@ describe("public messaging contracts", () => {
 
   it("keeps MessageSender options on the public contract", async () => {
     const sender: MessageSender<{ value: number }, { accepted: true }> = async (
-      _type,
-      _payload,
-      options,
+      request,
     ) => {
-      expect(options?.broadcast).toBe(true);
+      expect(request.broadcast).toBe(true);
       return { success: true, data: { accepted: true } };
     };
 
-    const response = await sender(
-      "example:event",
-      { value: 1 },
-      { broadcast: true },
-    );
+    const response = await sender({
+      type: "example:event",
+      payload: { value: 1 },
+      broadcast: true,
+    });
     expect(response).toEqual({ success: true, data: { accepted: true } });
   });
 });

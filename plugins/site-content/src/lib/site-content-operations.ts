@@ -31,10 +31,10 @@ export class SiteContentOperations {
   }
 
   private async fetchRoutes(): Promise<RouteDefinition[]> {
-    const response = await this.context.messaging.send(
-      "site-builder:routes:list",
-      {},
-    );
+    const response = await this.context.messaging.send({
+      type: "site-builder:routes:list",
+      payload: {},
+    });
     if ("noop" in response) {
       throw new Error(
         "No handler for site-builder:routes:list — is site-builder plugin loaded?",
@@ -120,10 +120,10 @@ export class SiteContentOperations {
 
         if (!options.force && !options.dryRun) {
           const entityId = `${route.id}:${section.id}`;
-          const existing = await this.context.entityService.getEntity(
-            "site-content",
-            entityId,
-          );
+          const existing = await this.context.entityService.getEntity({
+            entityType: "site-content",
+            id: entityId,
+          });
           if (existing) {
             logger.debug("Content already exists, skipping", {
               routeId: route.id,

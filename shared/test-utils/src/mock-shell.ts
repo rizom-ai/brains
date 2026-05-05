@@ -25,6 +25,7 @@ import { PermissionService } from "@brains/templates";
 import type {
   MessageHandler,
   MessageBus,
+  MessageBusSendRequest,
   MessageResponse,
 } from "@brains/messaging-service";
 import type { ContentService } from "@brains/content-service";
@@ -137,21 +138,15 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Message Bus (stateful — plugins subscribe during register, tests send) ---
   const messageBus: MessageBus = {
-    send: async (
-      type: string,
-      payload: unknown,
-      source: string,
-      _target?: string,
-      _metadata?: Record<string, unknown>,
-      broadcast?: boolean,
-    ) => {
+    send: async (request: MessageBusSendRequest) => {
+      const { type, payload, sender, broadcast } = request;
       const handlers = messageHandlers.get(type) ?? new Set();
       let result: MessageResponse<unknown> = { success: true };
       for (const handler of handlers) {
         const response = await handler({
           type,
           payload,
-          source,
+          source: sender,
           id: `msg-${Date.now()}`,
           timestamp: new Date().toISOString(),
         });
@@ -177,7 +172,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
 
   // --- Entity Service (stateful) ---
   const entityService: IEntityService = {
-    createEntity: async (entity: BaseEntity) => {
+    createEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const { content, metadata } = serializeViaAdapter({ ...entity, id });
@@ -188,9 +184,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: id, jobId: `job-${id}` };
+      return { entityId: id, jobId: `job-${id}`, skipped: false };
     },
-    updateEntity: async (entity: BaseEntity) => {
+    updateEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       if (!entity.id) throw new Error("Entity must have an id");
       const { content, metadata } = serializeViaAdapter(entity);
       entities.set(entity.id, {
@@ -199,31 +196,31 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: entity.id, jobId: `job-${entity.id}` };
+      return { entityId: entity.id, jobId: `job-${entity.id}`, skipped: false };
     },
-    deleteEntity: async (_type: string, id: string) => {
-      entities.delete(id);
+    deleteEntity: async (request: { entityType: string; id: string }) => {
+      entities.delete(request.id);
       return true;
     },
-    getEntity: async (type: string, id: string) => {
-      const entity = entities.get(id);
-      return entity?.entityType === type ? entity : null;
+    getEntity: async (request: { entityType: string; id: string }) => {
+      const entity = entities.get(request.id);
+      return entity?.entityType === request.entityType ? entity : null;
     },
-    listEntities: async (
-      type: string,
-      opts?: {
+    listEntities: async (request: {
+      entityType: string;
+      options?: {
         filter?: { metadata?: Record<string, unknown> };
         publishedOnly?: boolean;
-      },
-    ) => {
+      };
+    }) => {
       let results = Array.from(entities.values()).filter(
-        (e) => e.entityType === type,
+        (e) => e.entityType === request.entityType,
       );
-      if (opts?.publishedOnly) {
+      if (request.options?.publishedOnly) {
         results = results.filter((e) => e.metadata["status"] === "published");
       }
-      if (opts?.filter?.metadata) {
-        const filterEntries = Object.entries(opts.filter.metadata);
+      if (request.options?.filter?.metadata) {
+        const filterEntries = Object.entries(request.options.filter.metadata);
         results = results.filter((e) =>
           filterEntries.every(([key, value]) => e.metadata[key] === value),
         );
@@ -237,7 +234,8 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
     deserializeEntity: (markdown: string) =>
       ({ content: markdown }) as BaseEntity,
     getAsyncJobStatus: async () => ({ status: "completed" as const }),
-    upsertEntity: async (entity: BaseEntity) => {
+    upsertEntity: async (request: { entity: BaseEntity }) => {
+      const entity = request.entity;
       entityTypes.add(entity.entityType);
       const id = entity.id || `entity-${Date.now()}`;
       const exists = entities.has(id);
@@ -249,7 +247,12 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         metadata,
         contentHash: computeContentHash(content),
       });
-      return { entityId: id, jobId: `job-${id}`, created: !exists };
+      return {
+        entityId: id,
+        jobId: `job-${id}`,
+        created: !exists,
+        skipped: false,
+      };
     },
     getWeightMap: () => ({}),
     countEntities: async () => 0,

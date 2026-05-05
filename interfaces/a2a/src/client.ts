@@ -285,10 +285,7 @@ export interface A2AClientDeps {
   outboundTokens?: Record<string, string>;
   /** Entity service for agent directory resolution */
   entityService?: {
-    getEntity(
-      type: string,
-      id: string,
-    ): Promise<{
+    getEntity(request: { entityType: string; id: string }): Promise<{
       id: string;
       content: string;
       metadata: Record<string, unknown>;
@@ -336,7 +333,10 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         };
       }
 
-      const entity = await deps.entityService.getEntity("agent", agentId);
+      const entity = await deps.entityService.getEntity({
+        entityType: "agent",
+        id: agentId,
+      });
       if (!entity) {
         return {
           success: false,

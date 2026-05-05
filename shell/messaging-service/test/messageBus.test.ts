@@ -1,4 +1,5 @@
 import { describe, expect, it, beforeEach, mock } from "bun:test";
+import { compileFilter } from "@/filter-matcher";
 import { MessageBus } from "@/messageBus";
 
 import { createSilentLogger } from "@brains/test-utils";
@@ -55,11 +56,11 @@ describe("MessageBus", () => {
 
       expect(messageBus.getHandlerCount("test.message")).toBe(1);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(handler1).not.toHaveBeenCalled();
       expect(handler2).toHaveBeenCalledTimes(1);
@@ -77,11 +78,11 @@ describe("MessageBus", () => {
 
       expect(messageBus.getHandlerCount("test.message")).toBe(1);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(handler).toHaveBeenCalledTimes(1);
       expect("success" in result && result.success).toBe(true);
@@ -113,11 +114,11 @@ describe("MessageBus", () => {
       const handler = mock(() => ({ success: true, data: { result: "test" } }));
 
       messageBus.subscribe("test.message", handler);
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(handler).toHaveBeenCalled();
       expect("success" in result && result.success).toBe(true);
@@ -125,11 +126,11 @@ describe("MessageBus", () => {
     });
 
     it("should return error if no handlers registered", async () => {
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect("success" in result && result.success).toBe(false);
       expect("error" in result && result.error).toContain("No handler found");
@@ -148,11 +149,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", handler1);
       messageBus.subscribe("test.message", handler2);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(handler1).toHaveBeenCalled();
       // In the current implementation, it returns the first handler's response
@@ -174,11 +175,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", errorHandler);
       messageBus.subscribe("test.message", successHandler);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(errorHandler).toHaveBeenCalled();
       expect(successHandler).toHaveBeenCalled();
@@ -197,11 +198,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", errorHandler1);
       messageBus.subscribe("test.message", errorHandler2);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(errorHandler1).toHaveBeenCalled();
       expect(errorHandler2).toHaveBeenCalled();
@@ -220,11 +221,35 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", invalidHandler);
       messageBus.subscribe("test.message", successHandler);
 
-      const result = await messageBus.send(
-        "test.message",
-        { value: "test" },
-        "test-source",
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
+
+      expect(invalidHandler).toHaveBeenCalledTimes(1);
+      expect(successHandler).toHaveBeenCalledTimes(1);
+      expect("success" in result && result.success).toBe(true);
+      expect("data" in result && result.data).toEqual({ result: "success" });
+    });
+
+    it("should continue to the next handler after an invalid success value", async () => {
+      const invalidHandler = mock(
+        () => ({ success: "yes" }) as unknown as { success: true },
       );
+      const successHandler = mock(() => ({
+        success: true,
+        data: { result: "success" },
+      }));
+
+      messageBus.subscribe("test.message", invalidHandler);
+      messageBus.subscribe("test.message", successHandler);
+
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { value: "test" },
+        sender: "test-source",
+      });
 
       expect(invalidHandler).toHaveBeenCalledTimes(1);
       expect(successHandler).toHaveBeenCalledTimes(1);
@@ -278,35 +303,35 @@ describe("MessageBus", () => {
       });
 
       // Send to service1
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        "service1",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        target: "service1",
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect("data" in result1 && result1.data).toBe("handler1");
       expect(handler1).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(0);
 
       // Send to service2
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        "service2",
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        target: "service2",
+      });
       expect("success" in result2 && result2.success).toBe(true);
       expect("data" in result2 && result2.data).toBe("handler2");
       expect(handler1).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
 
       // Send without target (no handlers match)
-      const result3 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-      );
+      const result3 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+      });
       expect("success" in result3 && result3.success).toBe(false);
       expect("error" in result3 && result3.error).toContain("No handler found");
     });
@@ -319,20 +344,20 @@ describe("MessageBus", () => {
       });
 
       // Send from trusted source
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "trusted-source",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "trusted-source",
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send from untrusted source
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "untrusted-source",
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "untrusted-source",
+      });
       expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -345,35 +370,32 @@ describe("MessageBus", () => {
       });
 
       // Send with matching metadata
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        undefined,
-        { batchId: "batch-123", priority: 5, extra: "ignored" },
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        metadata: { batchId: "batch-123", priority: 5, extra: "ignored" },
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send with partial metadata (missing priority)
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        undefined,
-        { batchId: "batch-123" },
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        metadata: { batchId: "batch-123" },
+      });
       expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Send with wrong metadata value
-      const result3 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        undefined,
-        { batchId: "batch-456", priority: 5 },
-      );
+      const result3 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        metadata: { batchId: "batch-456", priority: 5 },
+      });
       expect("success" in result3 && result3.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -386,32 +408,32 @@ describe("MessageBus", () => {
       });
 
       // Should match matrix:room1
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        "matrix:room1",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        target: "matrix:room1",
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Should match matrix:room2
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        "matrix:room2",
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        target: "matrix:room2",
+      });
       expect("success" in result2 && result2.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(2);
 
       // Should not match cli:session1
-      const result3 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-        "cli:session1",
-      );
+      const result3 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+        target: "cli:session1",
+      });
       expect("success" in result3 && result3.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(2);
     });
@@ -424,20 +446,20 @@ describe("MessageBus", () => {
       });
 
       // Should match plugin:note
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Should not match plugin:note:extra
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note:extra",
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note:extra",
+      });
       expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -449,16 +471,16 @@ describe("MessageBus", () => {
         source: /^plugin:\w+$/g,
       });
 
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-      );
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+      });
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+      });
 
       expect("success" in result1 && result1.success).toBe(true);
       expect("success" in result2 && result2.success).toBe(true);
@@ -476,20 +498,20 @@ describe("MessageBus", () => {
       });
 
       // High priority message
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test", priority: 10 },
-        "sender",
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test", priority: 10 },
+        sender: "sender",
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Low priority message
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test", priority: 3 },
-        "sender",
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test", priority: 3 },
+        sender: "sender",
+      });
       expect("success" in result2 && result2.success).toBe(false);
       expect(handler).toHaveBeenCalledTimes(1);
     });
@@ -504,44 +526,44 @@ describe("MessageBus", () => {
       });
 
       // All criteria match
-      const result1 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-        "matrix",
-        { enabled: true },
-      );
+      const result1 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+        target: "matrix",
+        metadata: { enabled: true },
+      });
       expect("success" in result1 && result1.success).toBe(true);
       expect(handler).toHaveBeenCalledTimes(1);
 
       // Wrong source
-      const result2 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "shell",
-        "matrix",
-        { enabled: true },
-      );
+      const result2 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "shell",
+        target: "matrix",
+        metadata: { enabled: true },
+      });
       expect("success" in result2 && result2.success).toBe(false);
 
       // Wrong target
-      const result3 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-        "cli",
-        { enabled: true },
-      );
+      const result3 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+        target: "cli",
+        metadata: { enabled: true },
+      });
       expect("success" in result3 && result3.success).toBe(false);
 
       // Wrong metadata
-      const result4 = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "plugin:note",
-        "matrix",
-        { enabled: false },
-      );
+      const result4 = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "plugin:note",
+        target: "matrix",
+        metadata: { enabled: false },
+      });
       expect("success" in result4 && result4.success).toBe(false);
     });
 
@@ -573,11 +595,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", handler2);
       messageBus.subscribe("test.message", handler3);
 
-      const result = await messageBus.send(
-        "test.message",
-        { content: "broadcast" },
-        "sender",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { content: "broadcast" },
+        sender: "sender",
+      });
 
       // Should get response from first handler
       expect("success" in result && result.success).toBe(true);
@@ -600,11 +622,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.message", handler2);
       messageBus.subscribe("test.message", handler3);
 
-      const result = await messageBus.send(
-        "test.message",
-        { content: "test" },
-        "sender",
-      );
+      const result = await messageBus.send({
+        type: "test.message",
+        payload: { content: "test" },
+        sender: "sender",
+      });
 
       // Should skip erroring handler and get response from second
       expect("success" in result && result.success).toBe(true);
@@ -616,17 +638,9 @@ describe("MessageBus", () => {
       expect(handler3).toHaveBeenCalledTimes(0);
     });
 
-    it("should compile wildcard string filters to RegExp at subscribe time", () => {
-      const handler = mock(() => ({ success: true }));
-      messageBus.subscribe("test.event", handler, { source: "plugin:*" });
+    it("should compile wildcard string filters to RegExp", () => {
+      const compiled = compileFilter({ source: "plugin:*" }).source;
 
-      const handlers = (
-        messageBus as unknown as {
-          handlers: Map<string, Set<{ filter?: { source?: unknown } }>>;
-        }
-      ).handlers.get("test.event");
-      const entry = handlers ? [...handlers][0] : undefined;
-      const compiled = entry?.filter?.source;
       expect(compiled).toBeInstanceOf(RegExp);
       expect((compiled as RegExp).test("plugin:foo")).toBe(true);
       expect((compiled as RegExp).test("other:bar")).toBe(false);
@@ -644,14 +658,12 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.broadcast", handler3);
 
       // Send with broadcast=true
-      const result = await messageBus.send(
-        "test.broadcast",
-        { content: "broadcast message" },
-        "sender",
-        undefined, // no target
-        undefined, // no metadata
-        true, // broadcast=true
-      );
+      const result = await messageBus.send({
+        type: "test.broadcast",
+        payload: { content: "broadcast message" },
+        sender: "sender",
+        broadcast: true,
+      });
 
       // All handlers should be called
       expect(handler1).toHaveBeenCalledTimes(1);
@@ -673,14 +685,12 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.broadcast", handler2);
       messageBus.subscribe("test.broadcast", handler3);
 
-      const result = await messageBus.send(
-        "test.broadcast",
-        { content: "broadcast message" },
-        "sender",
-        undefined,
-        undefined,
-        true,
-      );
+      const result = await messageBus.send({
+        type: "test.broadcast",
+        payload: { content: "broadcast message" },
+        sender: "sender",
+        broadcast: true,
+      });
 
       expect(invalidHandler).toHaveBeenCalledTimes(1);
       expect(handler2).toHaveBeenCalledTimes(1);
@@ -711,14 +721,12 @@ describe("MessageBus", () => {
       messageBus.subscribe("sync:initial:completed", handler3);
 
       // Send with broadcast=true - should await all handlers
-      await messageBus.send(
-        "sync:initial:completed",
-        { success: true },
-        "directory-sync",
-        undefined,
-        undefined,
-        true,
-      );
+      await messageBus.send({
+        type: "sync:initial:completed",
+        payload: { success: true },
+        sender: "directory-sync",
+        broadcast: true,
+      });
 
       // All handlers should have been called AND completed
       expect(executionOrder).toHaveLength(3);
@@ -737,11 +745,11 @@ describe("MessageBus", () => {
       messageBus.subscribe("test.normal", handler3);
 
       // Send with broadcast=false (default)
-      const result = await messageBus.send(
-        "test.normal",
-        { content: "normal message" },
-        "sender",
-      );
+      const result = await messageBus.send({
+        type: "test.normal",
+        payload: { content: "normal message" },
+        sender: "sender",
+      });
 
       // Only first handler should be called
       expect(handler1).toHaveBeenCalledTimes(1);

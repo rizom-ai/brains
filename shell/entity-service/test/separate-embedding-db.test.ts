@@ -76,7 +76,7 @@ describe("Separate embedding database", () => {
   test("entity DB does not have embedding data", async () => {
     // Store an embedding via the service
     const testEntity = createTestEntity("test", { content: "Hello" });
-    await entityService.createEntity(testEntity);
+    await entityService.createEntity({ entity: testEntity });
     await entityService.storeEmbedding({
       entityId: testEntity.id,
       entityType: "test",
@@ -96,7 +96,7 @@ describe("Separate embedding database", () => {
 
   test("storeEmbedding writes to separate embedding DB", async () => {
     const testEntity = createTestEntity("test", { content: "Hello world" });
-    await entityService.createEntity(testEntity);
+    await entityService.createEntity({ entity: testEntity });
 
     await entityService.storeEmbedding({
       entityId: testEntity.id,
@@ -119,7 +119,7 @@ describe("Separate embedding database", () => {
     const testEntity = createTestEntity("test", {
       content: "TypeScript programming guide",
     });
-    await entityService.createEntity(testEntity);
+    await entityService.createEntity({ entity: testEntity });
 
     // Store embedding
     await entityService.storeEmbedding({
@@ -130,7 +130,7 @@ describe("Separate embedding database", () => {
     });
 
     // Search should join across entity DB and embedding DB
-    const results = await entityService.search("TypeScript");
+    const results = await entityService.search({ query: "TypeScript" });
     expect(results.length).toBeGreaterThan(0);
     expect(results[0]?.entity.id).toBe(testEntity.id);
   });
@@ -141,26 +141,32 @@ describe("Separate embedding database", () => {
     });
 
     // Create
-    const result = await entityService.createEntity(testEntity);
+    const result = await entityService.createEntity({ entity: testEntity });
     expect(result.entityId).toBeDefined();
 
     // Read
-    const retrieved = await entityService.getEntity("test", testEntity.id);
+    const retrieved = await entityService.getEntity({
+      entityType: "test",
+      id: testEntity.id,
+    });
     expect(retrieved).not.toBeNull();
     expect(retrieved?.content).toContain("Test content");
 
     // List
-    const listed = await entityService.listEntities("test");
+    const listed = await entityService.listEntities({ entityType: "test" });
     expect(listed.length).toBe(1);
 
     // Delete
-    const deleted = await entityService.deleteEntity("test", testEntity.id);
+    const deleted = await entityService.deleteEntity({
+      entityType: "test",
+      id: testEntity.id,
+    });
     expect(deleted).toBe(true);
   });
 
   test("embedding upsert works in separate DB", async () => {
     const testEntity = createTestEntity("test", { content: "Hello" });
-    await entityService.createEntity(testEntity);
+    await entityService.createEntity({ entity: testEntity });
 
     await entityService.storeEmbedding({
       entityId: testEntity.id,
@@ -185,7 +191,7 @@ describe("Separate embedding database", () => {
 
   test("delete entity does not leave orphan embeddings", async () => {
     const testEntity = createTestEntity("test", { content: "To be deleted" });
-    await entityService.createEntity(testEntity);
+    await entityService.createEntity({ entity: testEntity });
 
     await entityService.storeEmbedding({
       entityId: testEntity.id,
@@ -194,7 +200,7 @@ describe("Separate embedding database", () => {
       contentHash: testEntity.contentHash,
     });
 
-    await entityService.deleteEntity("test", testEntity.id);
+    await entityService.deleteEntity({ entityType: "test", id: testEntity.id });
 
     const embClient = createClient({ url: embeddingDbConfig.url });
     const result = await embClient.execute(

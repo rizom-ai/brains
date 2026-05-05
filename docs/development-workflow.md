@@ -298,10 +298,13 @@ describe("EntityService", () => {
       content: "Test content",
     };
 
-    const { entityId } = await entityService.createEntity(entity);
+    const { entityId } = await entityService.createEntity({ entity });
     expect(entityId).toBeTruthy();
 
-    const retrieved = await entityService.getEntity("link", entityId);
+    const retrieved = await entityService.getEntity({
+      entityType: "link",
+      id: entityId,
+    });
     expect(retrieved).toMatchObject(entity);
   });
 });

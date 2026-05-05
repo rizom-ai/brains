@@ -58,8 +58,8 @@ function createMockEntityService(
   >,
 ): ICoreEntityService {
   return {
-    getEntity: mock(async (_type: string, id: string) => {
-      return entities.get(id) ?? null;
+    getEntity: mock(async (request: { entityType: string; id: string }) => {
+      return entities.get(request.id) ?? null;
     }),
     hasEntityType: () => true,
     getEntityTypes: () => ["agent"],

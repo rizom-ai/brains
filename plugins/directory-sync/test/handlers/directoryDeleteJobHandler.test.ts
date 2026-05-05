@@ -36,10 +36,10 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith(
-        "topic",
-        "technology:ai",
-      );
+      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "technology:ai",
+      });
       expect(result).toEqual({
         deleted: true,
         entityId: "technology:ai",
@@ -66,10 +66,10 @@ describe("DirectoryDeleteJobHandler", () => {
         mockProgressReporter,
       );
 
-      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith(
-        "topic",
-        "technology:ai",
-      );
+      expect(mockContext.entityService.deleteEntity).toHaveBeenCalledWith({
+        entityType: "topic",
+        id: "technology:ai",
+      });
       expect(result).toEqual({
         deleted: false,
         entityId: "technology:ai",
