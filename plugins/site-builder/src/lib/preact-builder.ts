@@ -5,7 +5,7 @@ import type {
   BuildContext,
 } from "./static-site-builder";
 import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
-import type { Logger } from "@brains/utils";
+import type { Logger, ProgressNotification } from "@brains/utils";
 import { render } from "preact-render-to-string";
 import { h } from "preact";
 import {
@@ -46,9 +46,16 @@ export class PreactBuilder implements StaticSiteBuilder {
 
   async build(
     context: BuildContext,
-    onProgress: (message: string) => void,
+    onProgress: (notification: ProgressNotification) => void,
   ): Promise<void> {
-    onProgress("Starting Preact build");
+    const total = context.routes.length + 4;
+    let progress = 0;
+    const reportProgress = (message: string): void => {
+      progress++;
+      onProgress({ message, progress, total });
+    };
+
+    reportProgress("Starting Preact build");
 
     // Create output directory
     await fs.mkdir(this.outputDir, { recursive: true });
@@ -62,18 +69,18 @@ export class PreactBuilder implements StaticSiteBuilder {
     await Promise.all(
       context.routes.map((route) =>
         limit(async () => {
-          onProgress(`Building route: ${route.path}`);
+          reportProgress(`Building route: ${route.path}`);
           await this.buildRoute(route, context, siteLayoutInfo);
         }),
       ),
     );
 
     // Process styles after HTML is generated (Tailwind needs to scan HTML for classes)
-    onProgress("Processing Tailwind CSS");
+    reportProgress("Processing Tailwind CSS");
     await this.processStyles(context.themeCSS ?? "");
 
     // Copy static assets from public/ directory
-    onProgress("Copying static assets");
+    reportProgress("Copying static assets");
     await this.copyStaticAssets();
 
     // Write inline static assets supplied by the SitePackage (canvas
@@ -81,7 +88,7 @@ export class PreactBuilder implements StaticSiteBuilder {
     // contents as strings.
     await this.writeInlineStaticAssets(context.staticAssets);
 
-    onProgress("Preact build complete");
+    reportProgress("Preact build complete");
   }
 
   async clean(): Promise<void> {

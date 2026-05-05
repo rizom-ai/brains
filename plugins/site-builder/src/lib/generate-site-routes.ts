@@ -1,17 +1,11 @@
 import {
   DynamicRouteGenerator,
   type DynamicRouteEntity,
-  type RouteRegistry,
 } from "@brains/site-engine";
-import type { Logger } from "@brains/utils";
-import type { EntityDisplayMap } from "../config";
-import type { SiteBuilderServices } from "./site-builder-services";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface GenerateSiteRoutesOptions {
-  logger: Logger;
-  services: SiteBuilderServices;
-  routeRegistry: RouteRegistry;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: BuildPipelineContext;
 }
 
 /**
@@ -23,19 +17,22 @@ export async function generateSiteRoutes(
 ): Promise<void> {
   const dynamicRouteGenerator = new DynamicRouteGenerator(
     {
-      logger: options.logger.child("DynamicRouteGenerator"),
+      logger: options.pipelineContext.logger.child("DynamicRouteGenerator"),
       getEntityTypes: (): string[] =>
-        options.services.entityService.getEntityTypes(),
+        options.pipelineContext.services.entityService.getEntityTypes(),
       listEntities: async (
         entityType,
         listOptions,
       ): Promise<DynamicRouteEntity[]> =>
-        options.services.entityService.listEntities(entityType, listOptions),
+        options.pipelineContext.services.entityService.listEntities(
+          entityType,
+          listOptions,
+        ),
       listViewTemplateNames: (): string[] =>
-        options.services.listViewTemplateNames(),
+        options.pipelineContext.services.listViewTemplateNames(),
     },
-    options.routeRegistry,
-    options.entityDisplay,
+    options.pipelineContext.routeRegistry,
+    options.pipelineContext.entityDisplay,
   );
 
   await dynamicRouteGenerator.generateEntityRoutes();

@@ -1,20 +1,16 @@
-import type { RouteRegistry } from "@brains/site-engine";
-import type { Logger, ProgressCallback } from "@brains/utils";
+import type { ProgressCallback } from "@brains/utils";
 import { ProgressReporter } from "@brains/utils";
-import type { EntityDisplayMap } from "../config";
 import type {
   BuildResult,
   SiteBuilderOptions,
 } from "../types/site-builder-types";
 import { SiteBuilderOptionsSchema } from "../types/site-builder-types";
 import { collectBuildRoutes } from "./collect-build-routes";
-import { createBuildContext } from "./create-build-context";
 import { createStaticSiteBuilder } from "./create-static-site-builder";
 import { generateSiteRoutes } from "./generate-site-routes";
-import { prepareSiteImages } from "./prepare-site-images";
+import { prepareBuildContext } from "./prepare-build-context";
 import { runStaticSiteBuild } from "./run-static-site-build";
-import type { SiteBuilderServices } from "./site-builder-services";
-import type { SiteBuildProfileService } from "./site-build-profile-service";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 import {
   createFailedBuildResult,
   createSuccessfulBuildResult,
@@ -24,12 +20,8 @@ import type { StaticSiteBuilderFactory } from "./static-site-builder";
 export interface RunSiteBuildOptions {
   buildOptions: SiteBuilderOptions;
   progress: ProgressCallback | undefined;
-  logger: Logger;
-  services: SiteBuilderServices;
-  routeRegistry: RouteRegistry;
-  profileService: SiteBuildProfileService;
+  pipelineContext: BuildPipelineContext;
   staticSiteBuilderFactory: StaticSiteBuilderFactory;
-  entityDisplay: EntityDisplayMap | undefined;
 }
 
 export async function runSiteBuild(
@@ -54,19 +46,18 @@ export async function runSiteBuild(
     });
 
     await generateSiteRoutes({
-      logger: options.logger,
-      services: options.services,
-      routeRegistry: options.routeRegistry,
-      entityDisplay: options.entityDisplay,
+      pipelineContext: options.pipelineContext,
     });
 
     const staticSiteBuilder = await createStaticSiteBuilder({
-      logger: options.logger,
+      logger: options.pipelineContext.logger,
       parsedOptions,
       staticSiteBuilderFactory: options.staticSiteBuilderFactory,
     });
 
-    const buildRoutes = collectBuildRoutes(options.routeRegistry);
+    const buildRoutes = collectBuildRoutes(
+      options.pipelineContext.routeRegistry,
+    );
     warnings.push(...buildRoutes.warnings);
     const { routes } = buildRoutes;
 
@@ -82,22 +73,11 @@ export async function runSiteBuild(
       total: 100,
     });
 
-    const imageBuildService = await prepareSiteImages({
-      services: options.services,
-      logger: options.logger,
-      sharedImagesDir: parsedOptions.sharedImagesDir,
-    });
-
-    const buildContext = createBuildContext({
+    const buildContext = await prepareBuildContext({
       routes,
       parsedOptions,
       buildOptions: options.buildOptions,
-      services: options.services,
-      routeRegistry: options.routeRegistry,
-      profileService: options.profileService,
-      entityDisplay: options.entityDisplay,
-      imageBuildService,
-      siteMetadata: parsedOptions.siteConfig,
+      pipelineContext: options.pipelineContext,
     });
 
     await runStaticSiteBuild({
@@ -119,7 +99,7 @@ export async function runSiteBuild(
     });
   } catch (error) {
     const buildError = new Error("Site build process failed");
-    options.logger.error("Site build failed", {
+    options.pipelineContext.logger.error("Site build failed", {
       error: buildError,
       originalError: error,
     });

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { enrichWithUrls } from "../../src/lib/content-enrichment";
+import { createSiteBuilderServices } from "../test-helpers";
 import type { EntityDisplayMap } from "../../src/config";
 import {
   createSilentLogger,
@@ -33,8 +34,10 @@ describe("SiteBuilder - URL Enrichment", () => {
     display: EntityDisplayMap | undefined = entityDisplay,
   ): Promise<unknown> =>
     enrichWithUrls(data, {
-      entityService: mockContext.entityService,
-      entityDisplay: display,
+      pipelineContext: {
+        services: createSiteBuilderServices(mockContext),
+        entityDisplay: display,
+      },
       urlGenerator: EntityUrlGenerator.getInstance(),
     });
 
@@ -239,7 +242,10 @@ describe("SiteBuilder - URL Enrichment", () => {
 
       const result = urlLabelSchema.parse(
         await enrichWithUrls(entity, {
-          entityService: mockContext.entityService,
+          pipelineContext: {
+            services: createSiteBuilderServices(mockContext),
+            entityDisplay: undefined,
+          },
           urlGenerator: EntityUrlGenerator.getInstance(),
         }),
       );

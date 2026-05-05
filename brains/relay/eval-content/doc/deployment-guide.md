@@ -28,6 +28,7 @@ This is the same publish-then-deploy shape that has already been proven on live 
 - a Cloudflare-managed zone for your domain
 - a Hetzner Cloud account
 - the `gh` CLI authenticated locally if you want the CLI to push GitHub secrets for you
+- the official `bws` CLI plus a Bitwarden Secrets Manager machine account token if you want Bitwarden-backed secrets
 - local deploy values in `.env.local`, `.env`, or your shell env
 
 Recommended local contract:
@@ -61,13 +62,22 @@ cd mybrain
 # Bootstrap the deploy SSH key and push it to GitHub
 brain ssh-key:bootstrap --push-to gh
 
-# Preview then push the env-backed secrets to GitHub Actions secrets
+# Default mode: preview then push env-backed secrets to GitHub Actions secrets
 brain secrets:push --push-to gh --dry-run
 brain secrets:push --push-to gh
 
 # Issue the Cloudflare Origin CA cert and push it to GitHub Actions secrets
 brain cert:bootstrap --push-to gh
 rm origin.pem origin.key
+
+# Alternative Bitwarden mode: push to Bitwarden, then regenerate deploy workflow
+# BWS_ACCESS_TOKEN must be a read/write Bitwarden Secrets Manager machine account token.
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden --dry-run
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden
+brain init . --deploy --regen
+
+# In Bitwarden mode, CI needs only the BWS_ACCESS_TOKEN GitHub secret.
+# Use a separate read-only Bitwarden machine account token for CI.
 
 # Push to main so the scaffolded workflows run:
 #   1. Publish Image
@@ -88,7 +98,7 @@ mybrain/
   .github/workflows/deploy.yml        # Provision + DNS + Kamal deploy
 ```
 
-The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git; `brain cert:bootstrap --push-to gh` stores the resulting `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` in GitHub Actions secrets, while `brain secrets:push` handles the env-backed values.
+The Origin CA certificate files (`origin.pem`, `origin.key`) are temporary artifacts created by `brain cert:bootstrap`. Keep them out of git. In GitHub Secrets mode, `brain cert:bootstrap --push-to gh` stores the resulting `CERTIFICATE_PEM` and `PRIVATE_KEY_PEM` in GitHub Actions secrets. In Bitwarden mode, push file-backed PEM values with `CERTIFICATE_PEM_FILE=origin.pem` and `PRIVATE_KEY_PEM_FILE=origin.key` so Bitwarden becomes the source of truth.
 
 ## config/deploy.yml
 
@@ -158,7 +168,66 @@ Recommended local values:
 | `CF_API_TOKEN`               | Cloudflare DNS + cert bootstrap               |
 | `CF_ZONE_ID`                 | Cloudflare zone ID                            |
 
-GitHub stores the pushed runtime/deploy values as normal secrets, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`.
+GitHub stores the pushed runtime/deploy values as normal secrets in the default GitHub Secrets mode, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`. In Bitwarden mode, GitHub should keep only `BWS_ACCESS_TOKEN`; Bitwarden stores the app/runtime/deploy secret values.
+
+## Secret backend modes
+
+Apps choose their secret backend through `.env.schema`.
+
+### GitHub Secrets mode
+
+This is the default scaffolded mode. `.env.schema` contains plain variables:
+
+```env
+AI_API_KEY=
+GIT_SYNC_TOKEN=
+```
+
+The generated deploy workflow maps every schema key from GitHub Actions secrets and Varlock validates those values from `process.env`.
+
+Use:
+
+```bash
+brain secrets:push --push-to gh --dry-run
+brain secrets:push --push-to gh
+brain cert:bootstrap --push-to gh
+```
+
+### Bitwarden mode
+
+Run the Bitwarden push from the instance directory:
+
+```bash
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden --dry-run
+BWS_ACCESS_TOKEN="$(cat /tmp/bws-token)" brain secrets:push --push-to bitwarden
+```
+
+The command creates or updates a Bitwarden Secrets Manager project named after the current directory and rewrites `.env.schema`:
+
+```env
+# @plugin(@varlock/bitwarden-plugin@1.0.0)
+# @initBitwarden(accessToken=$BWS_ACCESS_TOKEN)
+
+BWS_ACCESS_TOKEN=
+AI_API_KEY=bitwarden("...")
+GIT_SYNC_TOKEN=bitwarden("...")
+```
+
+Then regenerate deploy artifacts so CI reads only the Bitwarden bootstrap token from GitHub:
+
+```bash
+brain init . --deploy --regen
+```
+
+Add this GitHub Actions secret:
+
+```text
+BWS_ACCESS_TOKEN
+```
+
+Use a read-only Bitwarden machine account token for CI. After one successful deploy, delete old app/runtime GitHub secrets such as `AI_API_KEY`, `GIT_SYNC_TOKEN`, `HCLOUD_TOKEN`, `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`.
+
+The generated workflow uses `bunx varlock@1.1.0`, not `npx -y varlock`, because older `npx` resolution can pick an obsolete Varlock package.
 
 ## Domain setup
 

@@ -1,6 +1,6 @@
 import type { RouteDefinition, SiteLayoutInfo } from "@brains/site-composition";
+import type { Logger, ProgressNotification } from "@brains/utils";
 import type { LayoutComponent, LayoutSlots } from "./layout-contracts";
-import type { Logger } from "@brains/utils";
 import type { CSSProcessor } from "./css-processor";
 import type { RouteScriptTemplate } from "./route-scripts";
 import type { SiteImageRendererService } from "./site-image-contracts";
@@ -42,7 +42,7 @@ export interface StaticSiteBuilder<
 > {
   build(
     context: TContext,
-    onProgress: (message: string) => void,
+    onProgress: (notification: ProgressNotification) => void,
   ): Promise<void>;
   clean(): Promise<void>;
 }

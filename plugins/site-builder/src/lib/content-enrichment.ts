@@ -7,8 +7,8 @@ import {
   z,
 } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { EntityDisplayMap } from "../config";
 import type { SiteContentEntityService } from "./site-content-contracts";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 
 const entityWithSlugSchema = z
   .object({
@@ -47,8 +47,7 @@ export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
 };
 
 export interface ContentEnrichmentOptions {
-  entityService: SiteContentEntityService;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
   urlGenerator?: EntityUrlGenerator | undefined;
 }
@@ -102,7 +101,7 @@ export async function enrichWithUrls(
   const entityType = entity.entityType;
   const slug = entity.metadata.slug;
 
-  const config = options.entityDisplay?.[entityType];
+  const config = options.pipelineContext.entityDisplay?.[entityType];
 
   const typeLabel = config
     ? config.label
@@ -136,7 +135,7 @@ export async function enrichWithUrls(
     // Fallback: resolve directly (returns data URL — post-processing will extract)
     const coverImage = await resolveCoverImage(
       coverImageId,
-      options.entityService,
+      options.pipelineContext.services.entityService,
     );
     if (coverImage) {
       coverImageFields = {

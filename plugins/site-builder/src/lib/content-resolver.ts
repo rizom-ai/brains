@@ -1,23 +1,12 @@
 import type { SectionDefinition } from "@brains/site-composition";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { EntityDisplayMap } from "../config";
+import { EntityUrlGenerator } from "@brains/utils";
 import { enrichWithUrls } from "./content-enrichment";
-import type {
-  SiteContentEntityService,
-  SiteContentResolutionOptions,
-} from "./site-content-contracts";
-
-export interface SiteContentResolverServices {
-  entityService: SiteContentEntityService;
-  resolveTemplateContent: <T = unknown>(
-    templateName: string,
-    options?: SiteContentResolutionOptions,
-  ) => Promise<T | null>;
-}
+import type { SiteContentResolutionOptions } from "./site-content-contracts";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface SiteContentResolverOptions {
-  services: SiteContentResolverServices;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
 }
 
@@ -46,7 +35,7 @@ export async function resolveSiteSectionContent(
         fallback: section.content,
       };
 
-  const content = await options.services.resolveTemplateContent(
+  const content = await options.pipelineContext.services.resolveTemplateContent(
     templateName,
     resolutionOptions,
   );
@@ -55,8 +44,8 @@ export async function resolveSiteSectionContent(
   }
 
   return enrichWithUrls(content, {
-    entityService: options.services.entityService,
-    entityDisplay: options.entityDisplay,
+    pipelineContext: options.pipelineContext,
     imageBuildService: options.imageBuildService,
+    urlGenerator: EntityUrlGenerator.getInstance(),
   });
 }
