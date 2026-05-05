@@ -1,0 +1,36 @@
+id: summary-low-signal-conversation
+name: Low-signal conversation remains minimal
+description: Produces a safe minimal summary for acknowledgements and coordination chatter.
+type: plugin
+tags:
+  - summary
+  - low-signal
+plugin: summary
+handler: summarizeMessages
+
+input:
+  conversationId: eval-low-signal
+  messages:
+    - role: user
+      content: ok
+      timestamp: "2026-05-04T15:00:00Z"
+    - role: assistant
+      content: done
+      timestamp: "2026-05-04T15:01:00Z"
+    - role: user
+      content: continue
+      timestamp: "2026-05-04T15:02:00Z"
+
+expectedOutput:
+  maxItems: 1
+  validateEach:
+    - path: actionItems[0]
+      exists: false
+    - path: decisions[0]
+      exists: false
+  itemsNotContain:
+    - field: summary
+      pattern: "architecture|schema|refactor"
+  qualityCriteria:
+    minAccuracyScore: 4
+    minQualityScore: 3

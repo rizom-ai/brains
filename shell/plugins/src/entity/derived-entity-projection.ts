@@ -22,8 +22,14 @@ export interface ProjectionInitialSyncConfig {
   jobOptions?: JobOptions | (() => JobOptions | undefined);
 }
 
+export type ProjectionSourceKind = "entity" | "conversation" | "custom";
+
 export interface ProjectionSourceChangeConfig {
   sourceTypes: readonly string[];
+  /** Explicit source kind for non-entity projections. Defaults to "entity". */
+  sourceKind?: ProjectionSourceKind;
+  /** Custom source type override. Defaults to payload.entityType for entity sources or sourceKind for non-entity sources. */
+  sourceType?: string;
   events?: readonly string[];
   requireInitialSync?: boolean;
   shouldEnqueue?: (payload: EntityChangePayload) => boolean | Promise<boolean>;
@@ -103,7 +109,14 @@ export function registerDerivedEntityProjection(
       }
 
       const payload = message.payload;
-      if (!sourceTypes.has("*") && !sourceTypes.has(payload.entityType)) {
+      const payloadSourceType = getProjectionSourceType(
+        sourceChangeConfig,
+        payload,
+      );
+      if (
+        !payloadSourceType ||
+        (!sourceTypes.has("*") && !sourceTypes.has(payloadSourceType))
+      ) {
         return { success: true };
       }
 
@@ -134,6 +147,17 @@ export function registerDerivedEntityProjection(
     hasObservedInitialSync: () => observedInitialSync,
     hasQueuedInitialSync: () => queuedInitialSync,
   };
+}
+
+function getProjectionSourceType(
+  config: ProjectionSourceChangeConfig,
+  payload: EntityChangePayload,
+): string | undefined {
+  if (config.sourceType) return config.sourceType;
+  if (config.sourceKind && config.sourceKind !== "entity") {
+    return config.sourceKind;
+  }
+  return payload.entityType;
 }
 
 export async function hasPersistedTargets(

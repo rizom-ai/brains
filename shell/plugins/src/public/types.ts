@@ -235,6 +235,10 @@ export interface IIdentityNamespace {
 export interface IConversationsNamespace {
   get(conversationId: string): Promise<Conversation | null>;
   search(query: string): Promise<Conversation[]>;
+  list(options?: {
+    limit?: number;
+    updatedAfter?: string;
+  }): Promise<Conversation[]>;
   getMessages(
     conversationId: string,
     options?: { limit?: number; range?: { start: number; end: number } },

@@ -39,6 +39,11 @@ export interface GetMessagesOptions {
   };
 }
 
+export interface ListConversationsOptions {
+  limit?: number;
+  updatedAfter?: string;
+}
+
 export interface IConversationService {
   // Core operations
   startConversation(
@@ -58,6 +63,9 @@ export interface IConversationService {
     options?: GetMessagesOptions,
   ): Promise<Message[]>;
   getConversation(conversationId: string): Promise<Conversation | null>;
+  listConversations(
+    options?: ListConversationsOptions,
+  ): Promise<Conversation[]>;
 
   // Search operations
   searchConversations(
