@@ -22,8 +22,6 @@ export type { ImageEntity } from "./image-utils";
 export type {
   ResolvedSiteImage,
   SiteImageBuildService,
-  SiteImageEntity,
-  SiteImageEntityService,
   SiteImageLookup,
   SiteImageMap,
   SiteImageRendererService,

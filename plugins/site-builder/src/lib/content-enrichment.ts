@@ -6,8 +6,8 @@ import {
   z,
 } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
+import type { IEntityService } from "@brains/plugins";
 import type { EntityDisplayMap } from "../config";
-import type { SiteContentEntityService } from "./site-content-contracts";
 
 // Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = z
@@ -47,7 +47,7 @@ export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
 };
 
 export interface ContentEnrichmentOptions {
-  entityService: SiteContentEntityService;
+  entityService: IEntityService;
   entityDisplay?: EntityDisplayMap | undefined;
   imageBuildService?: SiteImageLookup | null | undefined;
   urlGenerator?: EntityUrlGenerator | undefined;
@@ -162,7 +162,7 @@ export async function enrichWithUrls(
 
 async function resolveCoverImage(
   imageId: string | undefined,
-  entityService: SiteContentEntityService,
+  entityService: IEntityService,
 ): Promise<
   | {
       url: string;
@@ -195,7 +195,7 @@ async function resolveCoverImage(
  * Scan all entities for coverImageId references to pre-resolve before rendering.
  */
 export async function collectAllImageIds(
-  entityService: SiteContentEntityService,
+  entityService: IEntityService,
   logger: Logger,
 ): Promise<string[]> {
   const imageIds = new Set<string>();

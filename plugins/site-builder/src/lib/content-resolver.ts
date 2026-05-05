@@ -3,13 +3,11 @@ import { EntityUrlGenerator } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
 import type { EntityDisplayMap } from "../config";
 import { enrichWithUrls } from "./content-enrichment";
-import type {
-  SiteContentEntityService,
-  SiteContentResolutionOptions,
-} from "./site-content-contracts";
+import type { IEntityService } from "@brains/plugins";
+import type { SiteContentResolutionOptions } from "./site-content-contracts";
 
 export interface SiteContentResolverServices {
-  entityService: SiteContentEntityService;
+  entityService: IEntityService;
   resolveTemplateContent: <T = unknown>(
     templateName: string,
     options?: SiteContentResolutionOptions,

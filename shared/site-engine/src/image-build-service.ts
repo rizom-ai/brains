@@ -8,11 +8,8 @@ import {
   escapeHtmlAttr,
   extractBase64,
 } from "./image-utils";
-import type {
-  ResolvedSiteImage,
-  SiteImageEntityService,
-  SiteImageMap,
-} from "./site-image-contracts";
+import type { IEntityService } from "@brains/entity-service";
+import type { ResolvedSiteImage, SiteImageMap } from "./site-image-contracts";
 
 export type ResolvedBuildImage = ResolvedSiteImage;
 export type BuildImageMap = SiteImageMap;
@@ -33,7 +30,7 @@ export class ImageBuildService {
   private optimizer: ImageOptimizer;
 
   constructor(
-    private entityService: SiteImageEntityService,
+    private entityService: Pick<IEntityService, "getEntity">,
     logger: Logger,
     imagesDir: string,
   ) {

@@ -1,21 +1,5 @@
 import type { ImageRenderer } from "@brains/utils";
 
-/** Minimal image entity shape needed by site image build utilities. */
-export interface SiteImageEntity {
-  id: string;
-  entityType: string;
-  content: string;
-  metadata: Record<string, unknown>;
-}
-
-/** Minimal entity lookup contract needed by site image build utilities. */
-export interface SiteImageEntityService {
-  getEntity(request: {
-    entityType: "image";
-    id: string;
-  }): Promise<SiteImageEntity | null>;
-}
-
 /** Pre-resolved image ready for rendering in static site output. */
 export interface ResolvedSiteImage {
   src: string;
