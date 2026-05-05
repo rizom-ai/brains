@@ -505,8 +505,10 @@ export function createMockShell(options: MockShellOptions = {}): MockShell {
         startConversation: async () => `conv-${Date.now()}`,
         addMessage: async (): Promise<void> => {},
         getConversation: async () => null,
+        listConversations: async () => [],
         searchConversations: async () => [],
         getMessages: async () => [],
+        countMessages: async () => 0,
         close: () => {},
       }) as IConversationService,
     getMCPService: () =>

@@ -4,6 +4,8 @@ import type { Logger, ProgressReporter } from "@brains/utils";
 import { z, generationResultSchema } from "@brains/utils";
 import { fetchAgentCard, extractDomain } from "../lib/fetch-agent-card";
 import { buildAgentFromCard } from "../lib/build-agent-content";
+import { AGENT_ENTITY_TYPE } from "../lib/constants";
+import { agentStatusSchema } from "../schemas/agent";
 
 /**
  * Input schema for agent generation — just needs a URL/domain.
@@ -13,7 +15,7 @@ export const agentGenerationJobSchema = z.object({
   url: z.string().optional(),
   content: z.string().optional(),
   skipAi: z.boolean().optional(),
-  status: z.enum(["discovered", "approved"]).optional(),
+  status: agentStatusSchema.optional(),
 });
 
 export type AgentGenerationJobData = z.infer<typeof agentGenerationJobSchema>;
@@ -40,7 +42,7 @@ export class AgentGenerationJobHandler extends BaseGenerationJobHandler<
     super(logger, context, {
       schema: agentGenerationJobSchema,
       jobTypeName: "agent-generation",
-      entityType: "agent",
+      entityType: AGENT_ENTITY_TYPE,
     });
   }
 

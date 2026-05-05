@@ -9,10 +9,16 @@ export type {
   GetMessagesOptions,
   StartConversationRequest,
   AddConversationMessageRequest,
+  ListConversationsOptions,
   ConversationDigestPayload,
   ConversationDbConfig,
 } from "./types";
-export { conversationDigestPayloadSchema } from "./types";
+export {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
+  CONVERSATION_STARTED_CHANNEL,
+  conversationDigestPayloadSchema,
+} from "./types";
 
 // Schema types for compatibility - consider importing from /service if you need these
 export type {

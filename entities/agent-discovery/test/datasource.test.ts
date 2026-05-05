@@ -1,81 +1,28 @@
 import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { AgentDataSource } from "../src/datasources/agent-datasource";
-import type { AgentEntity } from "../src/schemas/agent";
+import type { AgentEntity, AgentStatus } from "../src/schemas/agent";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { z, slugifyUrl } from "@brains/utils";
-import {
-  createMockLogger,
-  createMockEntityService,
-  createTestEntity,
-} from "@brains/test-utils";
-
-/** Helper to build agent markdown content */
-function agentContent(opts: {
-  name: string;
-  kind: string;
-  url: string;
-  status: string;
-  organization?: string;
-  brainName: string;
-  did?: string;
-  discoveredAt?: string;
-  about?: string;
-  skills?: string;
-  notes?: string;
-}): string {
-  const fm = [
-    "---",
-    `name: ${opts.name}`,
-    `kind: ${opts.kind}`,
-    ...(opts.organization ? [`organization: ${opts.organization}`] : []),
-    `brainName: ${opts.brainName}`,
-    `url: ${opts.url}`,
-    ...(opts.did ? [`did: ${opts.did}`] : []),
-    `status: ${opts.status}`,
-    `discoveredAt: ${opts.discoveredAt ?? "2026-03-31T00:00:00.000Z"}`,
-    "---",
-  ].join("\n");
-
-  const body = [
-    "",
-    "## About",
-    opts.about ?? "",
-    "",
-    "## Skills",
-    opts.skills ?? "",
-    "",
-    "## Notes",
-    opts.notes ?? "",
-  ].join("\n");
-
-  return fm + body;
-}
+import { z } from "@brains/utils";
+import { createMockLogger, createMockEntityService } from "@brains/test-utils";
+import { createTestAgent } from "./fixtures/agent";
 
 function createMockAgent(
   id: string,
   name: string,
-  status: "discovered" | "approved",
+  status: AgentStatus,
   url = `https://${name.toLowerCase()}.io`,
 ): AgentEntity {
-  const content = agentContent({
+  return createTestAgent({
+    id,
     name,
-    kind: "professional",
     url,
     status,
     organization: "Rizom",
     brainName: `${name}'s Brain`,
     did: `did:web:${name.toLowerCase()}.io`,
     about: `${name} is a brain agent.`,
-    skills: `- Content Creation: Create blog posts [blog, writing]`,
-    notes: `Connected via A2A.`,
-  });
-
-  const slug = slugifyUrl(url);
-  return createTestEntity<AgentEntity>("agent", {
-    id,
-    content,
-    metadata: { name, url, status, slug },
+    notes: "Connected via A2A.",
   });
 }
 

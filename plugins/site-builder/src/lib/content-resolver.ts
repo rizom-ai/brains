@@ -1,92 +1,51 @@
 import type { SectionDefinition } from "@brains/site-composition";
-import { EntityUrlGenerator } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
-import type { EntityDisplayMap } from "../config";
+import { EntityUrlGenerator } from "@brains/utils";
 import { enrichWithUrls } from "./content-enrichment";
-import type { IEntityService } from "@brains/plugins";
 import type { SiteContentResolutionOptions } from "./site-content-contracts";
-
-export interface SiteContentResolverServices {
-  entityService: IEntityService;
-  resolveTemplateContent: <T = unknown>(
-    templateName: string,
-    options?: SiteContentResolutionOptions,
-  ) => Promise<T | null>;
-}
+import type { BuildPipelineContext } from "./build-pipeline-context";
 
 export interface SiteContentResolverOptions {
-  services: SiteContentResolverServices;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
 }
 
-/**
- * Resolve content for a route section, either from provided content,
- * DataSource-backed dynamic content, or persisted site-content fallback.
- */
 export async function resolveSiteSectionContent(
   section: SectionDefinition,
   route: { id: string },
   publishedOnly: boolean,
   options: SiteContentResolverOptions,
 ): Promise<unknown> {
-  // If no template, only static content is possible
   if (!section.template) {
     return section.content ?? null;
   }
 
   const templateName = section.template;
-  const urlGenerator = EntityUrlGenerator.getInstance();
+  const resolutionOptions: SiteContentResolutionOptions = section.dataQuery
+    ? {
+        dataParams: section.dataQuery,
+        fallback: section.content,
+        publishedOnly,
+      }
+    : {
+        savedContent: {
+          entityType: "site-content",
+          entityId: `${route.id}:${section.id}`,
+        },
+        fallback: section.content,
+      };
 
-  // Check if this section uses dynamic content (DataSource)
-  if (section.dataQuery) {
-    // Use the content resolver with DataSource params.
-    // DataSource will handle any necessary transformations internally.
-    const resolutionOptions: SiteContentResolutionOptions = {
-      // Parameters for DataSource fetch
-      dataParams: section.dataQuery,
-      // Static fallback content from section definition
-      fallback: section.content,
-      // Filter to published-only content in production builds
-      publishedOnly,
-    };
-
-    const content = await options.services.resolveTemplateContent(
-      templateName,
-      resolutionOptions,
-    );
-
-    // Auto-enrich data with URLs, typeLabels, and coverImageUrls
-    if (content) {
-      return enrichWithUrls(content, {
-        entityService: options.services.entityService,
-        entityDisplay: options.entityDisplay,
-        imageBuildService: options.imageBuildService,
-        urlGenerator,
-      });
-    }
-
+  const content = await options.pipelineContext.services.resolveTemplateContent(
+    templateName,
+    resolutionOptions,
+  );
+  if (!content) {
     return null;
   }
 
-  // Resolve persisted site content with static route content as fallback.
-  const content = await options.services.resolveTemplateContent(templateName, {
-    savedContent: {
-      entityType: "site-content",
-      entityId: `${route.id}:${section.id}`,
-    },
-    fallback: section.content,
+  return enrichWithUrls(content, {
+    pipelineContext: options.pipelineContext,
+    imageBuildService: options.imageBuildService,
+    urlGenerator: EntityUrlGenerator.getInstance(),
   });
-
-  // Auto-enrich data with URLs, typeLabels, and coverImageUrls
-  if (content) {
-    return enrichWithUrls(content, {
-      entityService: options.services.entityService,
-      entityDisplay: options.entityDisplay,
-      imageBuildService: options.imageBuildService,
-      urlGenerator,
-    });
-  }
-
-  return null;
 }

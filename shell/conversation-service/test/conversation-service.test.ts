@@ -313,6 +313,42 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("listConversations", () => {
+    it("should list conversations newest active first with limit", async () => {
+      await service.startConversation({
+        sessionId: "conv-list-1",
+        interfaceType: "cli",
+        channelId: "channel-1",
+        metadata: testMetadata,
+      });
+      await service.startConversation({
+        sessionId: "conv-list-2",
+        interfaceType: "cli",
+        channelId: "channel-2",
+        metadata: testMetadata,
+      });
+
+      const result = await service.listConversations({ limit: 1 });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("conv-list-2");
+    });
+
+    it("should filter conversations by updatedAfter", async () => {
+      await service.startConversation({
+        sessionId: "conv-list-filter",
+        interfaceType: "cli",
+        channelId: "channel",
+        metadata: testMetadata,
+      });
+
+      const future = new Date(Date.now() + 60_000).toISOString();
+      const result = await service.listConversations({ updatedAfter: future });
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe("getMessages with range", () => {
     it("should retrieve messages in specified range", async () => {
       const conversationId = "conv-range";

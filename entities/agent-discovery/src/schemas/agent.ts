@@ -1,5 +1,6 @@
 import { z } from "@brains/utils";
 import { baseEntitySchema, anchorProfileBodySchema } from "@brains/plugins";
+import { AGENT_ENTITY_TYPE } from "../lib/constants";
 
 /**
  * Shared sub-schemas — used by frontmatter, adapter, and Agent Card parsing.
@@ -51,6 +52,7 @@ export const agentMetadataSchema = agentFrontmatterSchema
     status: true,
   })
   .extend({
+    discoveredAt: z.string().datetime().optional(),
     slug: z.string(),
   });
 
@@ -60,7 +62,7 @@ export type AgentMetadata = z.infer<typeof agentMetadataSchema>;
  * Agent entity schema
  */
 export const agentEntitySchema = baseEntitySchema.extend({
-  entityType: z.literal("agent"),
+  entityType: z.literal(AGENT_ENTITY_TYPE),
   metadata: agentMetadataSchema,
 });
 

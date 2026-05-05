@@ -10,15 +10,15 @@ import type {
   NavigationResult,
   PaginationInfo,
 } from "@brains/plugins";
-import type { Logger } from "@brains/utils";
-import { z } from "@brains/utils";
+import type { Logger, z } from "@brains/utils";
 import {
   agentFrontmatterSchema,
+  agentStatusSchema,
   agentWithDataSchema,
-  type AgentEntity,
-  type AgentWithData,
 } from "../schemas/agent";
+import type { AgentEntity, AgentStatus, AgentWithData } from "../schemas/agent";
 import { AgentAdapter } from "../adapters/agent-adapter";
+import { AGENT_DATASOURCE_ID, AGENT_ENTITY_TYPE } from "../lib/constants";
 
 const agentAdapter = new AgentAdapter();
 
@@ -29,7 +29,7 @@ interface AgentDetailData {
 }
 
 const agentQuerySchema = baseQuerySchema.extend({
-  status: z.enum(["discovered", "approved"]).optional(),
+  status: agentStatusSchema.optional(),
 });
 
 const agentInputSchema = baseInputSchema.extend({
@@ -42,7 +42,7 @@ interface AgentListData {
   agents: AgentWithData[];
   pagination: PaginationInfo | null;
   baseUrl: string | undefined;
-  selectedStatus: "all" | "discovered" | "approved";
+  selectedStatus: "all" | AgentStatus;
 }
 
 /**
@@ -75,12 +75,12 @@ export class AgentDataSource extends BaseEntityDataSource<
   AgentEntity,
   AgentWithData
 > {
-  readonly id = "agent-discovery:entities";
+  readonly id = AGENT_DATASOURCE_ID;
   readonly name = "Agent Directory DataSource";
   readonly description = "Fetches and transforms agent entities for rendering";
 
   protected readonly config = {
-    entityType: "agent",
+    entityType: AGENT_ENTITY_TYPE,
     defaultSort: [
       { field: "discoveredAt" as const, direction: "desc" as const },
     ],
@@ -124,14 +124,13 @@ export class AgentDataSource extends BaseEntityDataSource<
     pagination: PaginationInfo | null,
     query: BaseQuery,
   ): AgentListData {
+    const status = agentStatusSchema.safeParse(query["status"]);
+
     return {
       agents: items,
       pagination,
       baseUrl: query.baseUrl,
-      selectedStatus:
-        query["status"] === "discovered" || query["status"] === "approved"
-          ? query["status"]
-          : "all",
+      selectedStatus: status.success ? status.data : "all",
     };
   }
 

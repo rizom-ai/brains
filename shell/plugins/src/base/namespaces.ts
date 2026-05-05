@@ -121,6 +121,12 @@ export function createConversationsNamespace(
         await conversationService.searchConversations(query);
       return conversations.map(toPublicConversation);
     },
+    list: async (options): Promise<Conversation[]> => {
+      const conversationService = shell.getConversationService();
+      const conversations =
+        await conversationService.listConversations(options);
+      return conversations.map(toPublicConversation);
+    },
     getMessages: async (
       conversationId: string,
       options?: GetMessagesOptions,
@@ -131,6 +137,9 @@ export function createConversationsNamespace(
         options,
       );
       return messages.map(toPublicMessage);
+    },
+    countMessages: async (conversationId: string): Promise<number> => {
+      return shell.getConversationService().countMessages(conversationId);
     },
   };
 }

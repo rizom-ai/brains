@@ -11,6 +11,7 @@ import type { RouteRegistry } from "@brains/site-engine";
 import type { EntityDisplayMap } from "../config";
 import { EntityUrlGenerator } from "@brains/utils";
 import type { SiteBuilderServices } from "./site-builder-services";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 import { runSiteBuild } from "./run-site-build";
 import type { SiteBuildProfileService } from "./site-build-profile-service";
 export type { EnrichedEntity } from "./content-enrichment";
@@ -20,12 +21,8 @@ export class SiteBuilder implements ISiteBuilder {
   private static instance: SiteBuilder | null = null;
   private static defaultStaticSiteBuilderFactory: StaticSiteBuilderFactory =
     createPreactBuilder;
-  private logger: Logger;
-  private services: SiteBuilderServices;
+  private pipelineContext: BuildPipelineContext;
   private staticSiteBuilderFactory: StaticSiteBuilderFactory;
-  private routeRegistry: RouteRegistry;
-  private profileService: SiteBuildProfileService;
-  private entityDisplay: EntityDisplayMap | undefined;
 
   /**
    * Set the default static site builder factory for all instances
@@ -41,7 +38,7 @@ export class SiteBuilder implements ISiteBuilder {
     services: SiteBuilderServices,
     routeRegistry: RouteRegistry,
     profileService: SiteBuildProfileService,
-    entityDisplay?: EntityDisplayMap,
+    entityDisplay: EntityDisplayMap | undefined = undefined,
   ): SiteBuilder {
     SiteBuilder.instance ??= new SiteBuilder(
       logger,
@@ -64,7 +61,7 @@ export class SiteBuilder implements ISiteBuilder {
     routeRegistry: RouteRegistry,
     profileService: SiteBuildProfileService,
     staticSiteBuilderFactory?: StaticSiteBuilderFactory,
-    entityDisplay?: EntityDisplayMap,
+    entityDisplay: EntityDisplayMap | undefined = undefined,
   ): SiteBuilder {
     return new SiteBuilder(
       logger,
@@ -82,14 +79,16 @@ export class SiteBuilder implements ISiteBuilder {
     services: SiteBuilderServices,
     routeRegistry: RouteRegistry,
     profileService: SiteBuildProfileService,
-    entityDisplay?: EntityDisplayMap,
+    entityDisplay: EntityDisplayMap | undefined,
   ) {
-    this.logger = logger;
-    this.services = services;
+    this.pipelineContext = {
+      logger,
+      services,
+      routeRegistry,
+      profileService,
+      entityDisplay,
+    };
     this.staticSiteBuilderFactory = staticSiteBuilderFactory;
-    this.routeRegistry = routeRegistry;
-    this.profileService = profileService;
-    this.entityDisplay = entityDisplay;
 
     // Configure the shared EntityUrlGenerator singleton
     EntityUrlGenerator.getInstance().configure(entityDisplay);
@@ -102,12 +101,8 @@ export class SiteBuilder implements ISiteBuilder {
     return runSiteBuild({
       buildOptions: options,
       progress,
-      logger: this.logger,
-      services: this.services,
-      routeRegistry: this.routeRegistry,
-      profileService: this.profileService,
+      pipelineContext: this.pipelineContext,
       staticSiteBuilderFactory: this.staticSiteBuilderFactory,
-      entityDisplay: this.entityDisplay,
     });
   }
 }

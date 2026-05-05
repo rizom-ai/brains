@@ -1,15 +1,14 @@
 import type { DataSource, BaseDataSourceContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
-import { parseMarkdownWithFrontmatter } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type { SummaryEntity } from "../schemas/summary";
 import type { SummaryListData } from "../templates/summary-list/schema";
 import type { SummaryDetailData } from "../templates/summary-detail/schema";
+import { SUMMARY_DATASOURCE_ID, SUMMARY_ENTITY_TYPE } from "../lib/constants";
 
-// Schema for fetch query parameters
 const entityFetchQuerySchema = z.object({
-  entityType: z.literal("summary"),
+  entityType: z.literal(SUMMARY_ENTITY_TYPE),
   query: z
     .object({
       id: z.string().optional(),
@@ -19,107 +18,60 @@ const entityFetchQuerySchema = z.object({
     .optional(),
 });
 
-/**
- * DataSource for fetching and transforming summary entities
- * Uses the SummaryAdapter to parse markdown content into structured data
- */
 export class SummaryDataSource implements DataSource {
-  public readonly id = "summary:entities";
+  public readonly id = SUMMARY_DATASOURCE_ID;
   public readonly name = "Summary Entity DataSource";
   public readonly description =
     "Fetches and transforms summary entities for rendering";
 
-  private adapter: SummaryAdapter;
+  private readonly adapter = new SummaryAdapter();
 
   constructor(private readonly logger: Logger) {
-    this.adapter = new SummaryAdapter();
     this.logger.debug("SummaryDataSource initialized");
   }
 
-  /**
-   * Fetch and transform summary entities to template-ready format
-   * Returns SummaryDetailData for single summary or SummaryListData for multiple
-   * @param context - Context with scoped entityService
-   */
   async fetch<T>(
     query: unknown,
     outputSchema: z.ZodSchema<T>,
     context: BaseDataSourceContext,
   ): Promise<T> {
-    // Parse and validate query parameters
     const params = entityFetchQuerySchema.parse(query);
     const entityService = context.entityService;
-
     const queryId = params.query?.conversationId ?? params.query?.id;
+
     if (queryId) {
-      // Fetch single summary (detail view)
       const entity = await entityService.getEntity<SummaryEntity>({
-        entityType: params.query?.conversationId
-          ? "summary"
-          : params.entityType,
+        entityType: SUMMARY_ENTITY_TYPE,
         id: queryId,
       });
+      if (!entity) throw new Error(`Summary not found: ${queryId}`);
 
-      if (!entity) {
-        throw new Error(`Summary not found: ${queryId}`);
-      }
-
-      // Parse entries from content
-      let entries;
-      try {
-        const parsed = parseMarkdownWithFrontmatter(
-          entity.content,
-          z.record(z.string(), z.unknown()),
-        );
-        entries = this.adapter.parseEntriesFromContent(parsed.content);
-      } catch {
-        // Fallback: parse content without frontmatter
-        entries = this.adapter.parseEntriesFromContent(entity.content);
-      }
-
+      const { entries } = this.adapter.parseBody(entity.content);
       const detailData: SummaryDetailData = {
         conversationId: entity.metadata.conversationId,
-        channelName: entity.metadata.channelName,
+        channelName: entity.metadata.channelName ?? entity.metadata.channelId,
         entries,
-        totalMessages: entity.metadata.totalMessages,
+        messageCount: entity.metadata.messageCount,
         entryCount: entries.length,
         updated: entity.updated,
       };
-
       return outputSchema.parse(detailData);
     }
 
-    // Fetch multiple summaries (list view)
     const entities = await entityService.listEntities<SummaryEntity>({
-      entityType: params.entityType,
-      options: {
-        limit: params.query?.limit ?? 100,
-      },
+      entityType: SUMMARY_ENTITY_TYPE,
+      options: { limit: params.query?.limit ?? 100 },
     });
 
-    // Transform to SummaryListData with channel names
     const summaries = entities.map((summary) => {
-      // Parse entries from content
-      let entries;
-      try {
-        const parsed = parseMarkdownWithFrontmatter(
-          summary.content,
-          z.record(z.string(), z.unknown()),
-        );
-        entries = this.adapter.parseEntriesFromContent(parsed.content);
-      } catch {
-        // Fallback: parse content without frontmatter
-        entries = this.adapter.parseEntriesFromContent(summary.content);
-      }
-
-      const latestEntry = entries[0]; // Entries are newest-first
-
+      const { entries } = this.adapter.parseBody(summary.content);
+      const latestEntry = entries[entries.length - 1];
       return {
         id: summary.id,
         conversationId: summary.metadata.conversationId,
-        channelName: summary.metadata.channelName,
+        channelName: summary.metadata.channelName ?? summary.metadata.channelId,
         entryCount: entries.length,
-        totalMessages: summary.metadata.totalMessages,
+        messageCount: summary.metadata.messageCount,
         latestEntry: latestEntry?.title ?? "No entries",
         updated: summary.updated,
         created: summary.created,
@@ -130,11 +82,6 @@ export class SummaryDataSource implements DataSource {
       summaries,
       totalCount: summaries.length,
     };
-
-    this.logger.debug("Creating list data", {
-      summaryCount: summaries.length,
-      firstSummary: summaries[0]?.id,
-    });
 
     return outputSchema.parse(listData);
   }

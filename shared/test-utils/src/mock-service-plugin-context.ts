@@ -140,7 +140,9 @@ export function createMockServicePluginContext(
     conversations: {
       get: mock(() => Promise.resolve(null)),
       search: mock(() => Promise.resolve([])),
+      list: mock(() => Promise.resolve([])),
       getMessages: mock(() => Promise.resolve([])),
+      countMessages: mock(() => Promise.resolve(0)),
     },
 
     // Job queue namespace

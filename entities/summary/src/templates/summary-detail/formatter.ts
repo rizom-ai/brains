@@ -18,8 +18,8 @@ export class SummaryDetailFormatter extends StructuredContentFormatter<SummaryDe
           itemType: "object",
         },
         {
-          key: "totalMessages",
-          label: "Total Messages",
+          key: "messageCount",
+          label: "Messages",
           type: "number",
         },
         {

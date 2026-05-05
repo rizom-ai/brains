@@ -2,14 +2,14 @@ import type { Logger } from "@brains/utils";
 import {
   EntityUrlGenerator,
   getCoverImageId,
+  getErrorMessage,
   pluralize,
   z,
 } from "@brains/utils";
 import type { SiteImageLookup } from "@brains/site-engine";
 import type { IEntityService } from "@brains/plugins";
-import type { EntityDisplayMap } from "../config";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 
-// Schema for entities with slug metadata (for auto-enrichment)
 const entityWithSlugSchema = z
   .object({
     id: z.string(),
@@ -47,8 +47,7 @@ export type EnrichedEntity = z.infer<typeof entityWithSlugSchema> & {
 };
 
 export interface ContentEnrichmentOptions {
-  entityService: IEntityService;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: Pick<BuildPipelineContext, "services" | "entityDisplay">;
   imageBuildService?: SiteImageLookup | null | undefined;
   urlGenerator?: EntityUrlGenerator | undefined;
 }
@@ -102,7 +101,7 @@ export async function enrichWithUrls(
   const entityType = entity.entityType;
   const slug = entity.metadata.slug;
 
-  const config = options.entityDisplay?.[entityType];
+  const config = options.pipelineContext.entityDisplay?.[entityType];
 
   const typeLabel = config
     ? config.label
@@ -136,7 +135,7 @@ export async function enrichWithUrls(
     // Fallback: resolve directly (returns data URL — post-processing will extract)
     const coverImage = await resolveCoverImage(
       coverImageId,
-      options.entityService,
+      options.pipelineContext.services.entityService,
     );
     if (coverImage) {
       coverImageFields = {
@@ -218,7 +217,7 @@ export async function collectAllImageIds(
     }
   } catch (error) {
     logger.warn("Failed to collect image IDs for pre-resolution", {
-      error: error instanceof Error ? error.message : String(error),
+      error: getErrorMessage(error),
     });
   }
 

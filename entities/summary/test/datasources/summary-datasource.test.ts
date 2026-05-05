@@ -1,244 +1,108 @@
-import {
-  describe,
-  it,
-  expect,
-  beforeEach,
-  afterEach,
-  spyOn,
-  mock,
-} from "bun:test";
+import { describe, it, expect, beforeEach, spyOn } from "bun:test";
 import { SummaryDataSource } from "../../src/datasources/summary-datasource";
+import { SummaryAdapter } from "../../src/adapters/summary-adapter";
 import {
   createSilentLogger,
   createMockEntityService,
 } from "@brains/test-utils";
 import type { IEntityService, BaseDataSourceContext } from "@brains/plugins";
-import type { SummaryEntity } from "../../src/schemas/summary";
 import { summaryListSchema } from "../../src/templates/summary-list/schema";
 import { summaryDetailSchema } from "../../src/templates/summary-detail/schema";
 import { createMockSummaryEntity } from "../fixtures/summary-entities";
+import type { SummaryEntry } from "../../src/schemas/summary";
+
+const entry: SummaryEntry = {
+  title: "Eval Plan",
+  summary: "The package needs plugin evals for summary quality.",
+  timeRange: {
+    start: "2026-01-01T00:00:00.000Z",
+    end: "2026-01-01T00:05:00.000Z",
+  },
+  sourceMessageCount: 2,
+  keyPoints: [],
+  decisions: [],
+  actionItems: ["Create eval cases"],
+};
 
 describe("SummaryDataSource", () => {
   let datasource: SummaryDataSource;
-  let mockEntityService: IEntityService;
-  let mockContext: BaseDataSourceContext;
-  let logger: ReturnType<typeof createSilentLogger>;
+  let entityService: IEntityService;
+  let context: BaseDataSourceContext;
+  const adapter = new SummaryAdapter();
 
   beforeEach(() => {
-    logger = createSilentLogger();
-
-    // Create mock entity service
-    mockEntityService = createMockEntityService();
-    // Only provide entityService via context - not constructor
-    mockContext = { entityService: mockEntityService };
-
-    // Only pass logger to constructor
-    datasource = new SummaryDataSource(logger);
+    entityService = createMockEntityService();
+    context = { entityService };
+    datasource = new SummaryDataSource(createSilentLogger());
   });
 
-  afterEach(() => {
-    mock.restore();
+  it("fetches a single summary", async () => {
+    const summary = createMockSummaryEntity({
+      id: "conv-123",
+      content: adapter.createContentBody([entry]),
+      metadata: {
+        conversationId: "conv-123",
+        channelName: "CLI",
+        channelId: "cli",
+        interfaceType: "cli",
+        entryCount: 1,
+        messageCount: 2,
+        sourceHash: "hash",
+        projectionVersion: 1,
+        timeRange: entry.timeRange,
+      },
+    });
+    const getEntitySpy = spyOn(entityService, "getEntity").mockResolvedValue(
+      summary,
+    );
+
+    const result = await datasource.fetch(
+      { entityType: "summary", query: { conversationId: "conv-123" } },
+      summaryDetailSchema,
+      context,
+    );
+
+    expect(getEntitySpy).toHaveBeenCalledWith({
+      entityType: "summary",
+      id: "conv-123",
+    });
+    expect(result.conversationId).toBe("conv-123");
+    expect(result.messageCount).toBe(2);
+    expect(result.entries[0]?.title).toBe("Eval Plan");
   });
 
-  describe("initialization", () => {
-    it("should have correct id", () => {
-      expect(datasource.id).toBe("summary:entities");
-    });
+  it("fetches summary list data", async () => {
+    const listEntitiesSpy = spyOn(
+      entityService,
+      "listEntities",
+    ).mockResolvedValue([
+      createMockSummaryEntity({ content: adapter.createContentBody([entry]) }),
+    ]);
 
-    it("should have correct name", () => {
-      expect(datasource.name).toBe("Summary Entity DataSource");
-    });
+    const result = await datasource.fetch(
+      { entityType: "summary", query: { limit: 10 } },
+      summaryListSchema,
+      context,
+    );
 
-    it("should have description", () => {
-      expect(datasource.description).toContain("summary entities");
+    expect(listEntitiesSpy).toHaveBeenCalledWith({
+      entityType: "summary",
+      options: { limit: 10 },
     });
+    expect(result.totalCount).toBe(1);
+    expect(result.summaries[0]?.messageCount).toBe(2);
+    expect(result.summaries[0]?.latestEntry).toBe("Eval Plan");
   });
 
-  describe("fetch", () => {
-    it("should fetch single summary by conversation ID", async () => {
-      const mockSummary = createMockSummaryEntity({
-        id: "conv-123",
-        content: `# Conversation Summary: conv-123
+  it("throws when requested summary is missing", () => {
+    spyOn(entityService, "getEntity").mockResolvedValue(null);
 
-## Metadata
-
-**Total Messages:** 50
-**Last Updated:** 2025-01-01T00:00:00Z
-
-## Summary Log
-
-### [2025-01-01T00:00:00Z] Test Entry
-
-## Content
-Test content
-
-## Window Start
-1
-
-## Window End
-50
-
----
-
-`,
-        metadata: {
-          conversationId: "conv-123",
-          channelName: "Test Channel",
-          channelId: "test-channel",
-          interfaceType: "cli",
-          entryCount: 1,
-          totalMessages: 50,
-        },
-      });
-
-      const getEntitySpy = spyOn(
-        mockEntityService,
-        "getEntity",
-      ).mockResolvedValue(mockSummary);
-
-      const result = await datasource.fetch(
-        {
-          entityType: "summary",
-          query: { conversationId: "conv-123" },
-        },
+    expect(
+      datasource.fetch(
+        { entityType: "summary", query: { id: "missing" } },
         summaryDetailSchema,
-        mockContext,
-      );
-
-      expect(getEntitySpy).toHaveBeenCalledWith({
-        entityType: "summary",
-        id: "conv-123",
-      });
-      expect(result.conversationId).toBe("conv-123");
-      expect(result.entryCount).toBe(1);
-      expect(result.totalMessages).toBe(50);
-    });
-
-    it("should fetch single summary by ID", async () => {
-      const mockSummary = createMockSummaryEntity({
-        id: "conv-456",
-        content: `# Conversation Summary: conv-456
-
-**Total Messages:** 0
-**Last Updated:** 2025-01-01T00:00:00Z
-
-## Summary Log
-`,
-        metadata: {
-          conversationId: "conv-456",
-          channelName: "Test Channel",
-          channelId: "test-channel",
-          interfaceType: "cli",
-          entryCount: 0,
-          totalMessages: 0,
-        },
-      });
-
-      const getEntitySpy = spyOn(
-        mockEntityService,
-        "getEntity",
-      ).mockResolvedValue(mockSummary);
-
-      const result = await datasource.fetch(
-        {
-          entityType: "summary",
-          query: { id: "conv-456" },
-        },
-        summaryDetailSchema,
-        mockContext,
-      );
-
-      expect(getEntitySpy).toHaveBeenCalledWith({
-        entityType: "summary",
-        id: "conv-456",
-      });
-      expect(result.conversationId).toBe("conv-456");
-      expect(result.entryCount).toBe(0);
-      expect(result.totalMessages).toBe(0);
-    });
-
-    it("should fetch multiple summaries", async () => {
-      const mockSummaries: SummaryEntity[] = [
-        createMockSummaryEntity({
-          id: "1",
-          content: "content1",
-          created: "2025-01-01T00:00:00Z",
-          updated: "2025-01-01T00:00:00Z",
-          metadata: {
-            conversationId: "1",
-            channelName: "Test Channel",
-            channelId: "test-channel",
-            interfaceType: "cli",
-            entryCount: 1,
-            totalMessages: 10,
-          },
-        }),
-        createMockSummaryEntity({
-          id: "2",
-          content: "content2",
-          created: "2025-01-02T00:00:00Z",
-          updated: "2025-01-02T00:00:00Z",
-          metadata: {
-            conversationId: "2",
-            channelName: "Test Channel",
-            channelId: "test-channel",
-            interfaceType: "cli",
-            entryCount: 1,
-            totalMessages: 20,
-          },
-        }),
-      ];
-
-      const listEntitiesSpy = spyOn(
-        mockEntityService,
-        "listEntities",
-      ).mockResolvedValue(mockSummaries);
-
-      const result = await datasource.fetch(
-        {
-          entityType: "summary",
-          query: { limit: 50 },
-        },
-        summaryListSchema,
-        mockContext,
-      );
-
-      expect(listEntitiesSpy).toHaveBeenCalledWith({
-        entityType: "summary",
-        options: { limit: 50 },
-      });
-      expect(result.summaries).toHaveLength(2);
-      expect(result.totalCount).toBe(2);
-    });
-
-    it("should throw error for non-existent conversation", async () => {
-      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
-
-      expect(
-        datasource.fetch(
-          {
-            entityType: "summary",
-            query: { conversationId: "non-existent" },
-          },
-          summaryDetailSchema,
-          mockContext,
-        ),
-      ).rejects.toThrow("Summary not found: non-existent");
-    });
-
-    it("should throw error for non-existent ID", async () => {
-      spyOn(mockEntityService, "getEntity").mockResolvedValue(null);
-
-      expect(
-        datasource.fetch(
-          {
-            entityType: "summary",
-            query: { id: "non-existent" },
-          },
-          summaryDetailSchema,
-          mockContext,
-        ),
-      ).rejects.toThrow("Summary not found: non-existent");
-    });
+        context,
+      ),
+    ).rejects.toThrow("Summary not found: missing");
   });
 });

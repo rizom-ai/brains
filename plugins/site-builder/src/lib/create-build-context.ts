@@ -4,12 +4,10 @@ import type {
   SiteLayoutInfo,
   SiteMetadata,
 } from "@brains/site-composition";
-import type { RouteRegistry, SiteImageBuildService } from "@brains/site-engine";
-import type { EntityDisplayMap } from "../config";
+import type { SiteImageBuildService } from "@brains/site-engine";
 import type { SiteBuilderOptions } from "../types/site-builder-types";
 import type { BuildContext } from "./static-site-builder";
-import type { SiteBuilderServices } from "./site-builder-services";
-import type { SiteBuildProfileService } from "./site-build-profile-service";
+import type { BuildPipelineContext } from "./build-pipeline-context";
 import type { SiteViewTemplate } from "./site-view-template";
 import { buildSiteLayoutInfo } from "./build-site-layout-info";
 import { resolveSiteSectionContent } from "./content-resolver";
@@ -24,17 +22,11 @@ export interface CreateBuildContextOptions {
     SiteBuilderOptions,
     "headScripts" | "staticAssets" | "slots"
   >;
-  services: SiteBuilderServices;
-  routeRegistry: RouteRegistry;
-  profileService: SiteBuildProfileService;
-  entityDisplay?: EntityDisplayMap | undefined;
+  pipelineContext: BuildPipelineContext;
   imageBuildService: SiteImageBuildService;
   siteMetadata: SiteMetadata;
 }
 
-/**
- * Assemble the renderer build context from resolved site-builder runtime inputs.
- */
 export function createBuildContext(
   options: CreateBuildContextOptions,
 ): BuildContext {
@@ -66,20 +58,19 @@ export function createBuildContext(
       // In preview (or unspecified), show all content including drafts.
       const publishedOnly = options.parsedOptions.environment === "production";
       return resolveSiteSectionContent(section, route, publishedOnly, {
-        services: options.services,
-        entityDisplay: options.entityDisplay,
+        pipelineContext: options.pipelineContext,
         imageBuildService: options.imageBuildService,
       });
     },
     getViewTemplate: (name: string): SiteViewTemplate | undefined => {
-      return options.services.getViewTemplate(name);
+      return options.pipelineContext.services.getViewTemplate(name);
     },
     layouts: options.parsedOptions.layouts,
     getSiteLayoutInfo: async (): Promise<SiteLayoutInfo> => {
       return buildSiteLayoutInfo(
         options.siteMetadata,
-        options.profileService,
-        options.routeRegistry,
+        options.pipelineContext.profileService,
+        options.pipelineContext.routeRegistry,
       );
     },
     ...(options.parsedOptions.themeCSS !== undefined && {

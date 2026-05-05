@@ -393,11 +393,15 @@
       "name": "@brains/summary",
       "version": "0.2.0-alpha.49",
       "dependencies": {
+        "@brains/conversation-service": "workspace:*",
         "@brains/plugins": "workspace:*",
+        "@brains/templates": "workspace:*",
+        "@brains/ui-library": "workspace:*",
         "@brains/utils": "workspace:*",
       },
       "devDependencies": {
         "@brains/eslint-config": "workspace:*",
+        "@brains/test-utils": "workspace:*",
         "@brains/typescript-config": "workspace:*",
         "@types/node": "^20.0.0",
         "eslint": "^8.56.0",

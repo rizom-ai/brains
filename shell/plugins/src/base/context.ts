@@ -9,7 +9,10 @@ import type {
 import type { Channel } from "../utils/channels";
 import type { ICoreEntityService } from "@brains/entity-service";
 import type { InsightHandler } from "../interfaces";
-import type { GetMessagesOptions } from "@brains/conversation-service";
+import type {
+  GetMessagesOptions,
+  ListConversationsOptions,
+} from "@brains/conversation-service";
 import type { Conversation, Message } from "../contracts/conversations";
 import type { AnchorProfile, BrainCharacter } from "../contracts/identity";
 import type { EvalHandler, PluginRegistrationContext } from "../interfaces";
@@ -102,11 +105,17 @@ export interface IConversationsNamespace {
   /** Search conversations by query */
   search: (query: string) => Promise<Conversation[]>;
 
+  /** List conversations, newest active first */
+  list: (options?: ListConversationsOptions) => Promise<Conversation[]>;
+
   /** Get messages from a conversation */
   getMessages: (
     conversationId: string,
     options?: GetMessagesOptions,
   ) => Promise<Message[]>;
+
+  /** Count messages in a conversation without loading them */
+  countMessages: (conversationId: string) => Promise<number>;
 }
 
 /**

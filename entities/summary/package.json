@@ -2,7 +2,7 @@
   "name": "@brains/summary",
   "private": true,
   "version": "0.2.0-alpha.49",
-  "description": "Plugin for generating entity summaries and digests",
+  "description": "Plugin for deriving durable conversation summaries",
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
@@ -12,14 +12,19 @@
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src test --ext .ts,.tsx",
+    "eval": "cd evals && bun run brain-eval",
     "lint:fix": "eslint src test --ext .ts,.tsx --fix"
   },
   "dependencies": {
+    "@brains/conversation-service": "workspace:*",
     "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
     "@brains/utils": "workspace:*"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
     "@brains/typescript-config": "workspace:*",
     "@types/node": "^20.0.0",
     "eslint": "^8.56.0",

@@ -226,6 +226,7 @@ export function createMockSystemServices(
 
   const conversationService = {
     getConversation: async () => null,
+    listConversations: async () => [],
     searchConversations: async () => [],
     getMessages: async () => [],
   } as unknown as SystemServices["conversationService"];

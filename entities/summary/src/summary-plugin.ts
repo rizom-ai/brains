@@ -1,14 +1,18 @@
-import { getErrorMessage } from "@brains/utils";
 import {
   EntityPlugin,
-  conversationDigestPayloadSchema,
+  hasPersistedTargets,
+  type EntityChangePayload,
   type EntityPluginContext,
-  type ConversationDigestPayload,
-  type MessageWithPayload,
   type DataSource,
+  type DerivedEntityProjection,
   type Template,
 } from "@brains/plugins";
-import { DigestHandler } from "./handlers/digest-handler";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_SOURCE_KIND,
+} from "@brains/conversation-service";
+import { z } from "@brains/utils";
+import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 import type { SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
@@ -20,23 +24,30 @@ import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
+import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import {
+  SUMMARY_ENTITY_TYPE,
+  SUMMARY_JOB_SOURCE,
+  SUMMARY_PLUGIN_ID,
+  SUMMARY_PROJECTION_JOB_TYPE,
+} from "./lib/constants";
 import packageJson from "../package.json";
 
 const summaryAdapter = new SummaryAdapter();
 
-/**
- * Summary EntityPlugin — auto-derives summaries from conversation digests.
- * Zero tools — use system_get { entityType: "summary", id: conversationId }.
- */
+const conversationMessageAddedSchema = z.object({
+  conversationId: z.string(),
+});
+
 export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
-  readonly entityType = "summary";
+  readonly entityType = SUMMARY_ENTITY_TYPE;
   readonly schema = summarySchema;
   readonly adapter = summaryAdapter;
 
-  private digestHandler: DigestHandler | null = null;
+  declare protected config: SummaryConfig;
 
-  constructor(config?: Partial<SummaryConfig>) {
-    super("summary", packageJson, config ?? {}, summaryConfigSchema);
+  constructor(config: Partial<SummaryConfig> = {}) {
+    super(SUMMARY_PLUGIN_ID, packageJson, config, summaryConfigSchema);
   }
 
   public getConfig(): SummaryConfig {
@@ -52,42 +63,137 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   }
 
   protected override getDataSources(): DataSource[] {
-    return [new SummaryDataSource(this.logger)];
+    return [new SummaryDataSource(this.logger.child("SummaryDataSource"))];
+  }
+
+  protected override getDerivedEntityProjections(
+    context: EntityPluginContext,
+  ): DerivedEntityProjection[] {
+    if (!this.config.enableProjection) return [];
+
+    return [
+      {
+        id: "summary-conversation-projection",
+        targetType: SUMMARY_ENTITY_TYPE,
+        job: {
+          type: SUMMARY_PROJECTION_JOB_TYPE,
+          handler: new SummaryProjectionHandler(
+            context,
+            this.logger,
+            this.config,
+          ),
+        },
+        initialSync: {
+          shouldEnqueue: async () =>
+            !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE)),
+          jobData: { mode: "rebuild-all", reason: "initial-sync" },
+          jobOptions: {
+            source: SUMMARY_JOB_SOURCE,
+            deduplication: "coalesce",
+            deduplicationKey: "summary:rebuild-all:initial-sync",
+            metadata: {
+              operationType: "data_processing",
+              operationTarget: "summary:rebuild-all",
+              pluginId: SUMMARY_PLUGIN_ID,
+            },
+          },
+        },
+        sourceChange: {
+          sourceKind: CONVERSATION_SOURCE_KIND,
+          sourceTypes: [CONVERSATION_SOURCE_KIND],
+          shouldEnqueue: (payload) =>
+            this.shouldEnqueueConversationProjection(context, payload),
+          events: [CONVERSATION_MESSAGE_ADDED_CHANNEL],
+          jobData: (
+            payload,
+          ): {
+            mode: "conversation";
+            conversationId: string;
+            reason: string;
+          } => {
+            const parsed = conversationMessageAddedSchema.parse(payload);
+            return {
+              mode: "conversation",
+              conversationId: parsed.conversationId,
+              reason: "message-added",
+            };
+          },
+          jobOptions: (
+            payload,
+          ): {
+            priority: number;
+            source: string;
+            deduplication: "coalesce";
+            deduplicationKey: string;
+            metadata: {
+              operationType: "data_processing";
+              operationTarget: string;
+              pluginId: string;
+            };
+          } => {
+            const parsed = conversationMessageAddedSchema.parse(payload);
+            return {
+              priority: 5,
+              source: SUMMARY_JOB_SOURCE,
+              deduplication: "coalesce",
+              deduplicationKey: `summary:${parsed.conversationId}`,
+              metadata: {
+                operationType: "data_processing" as const,
+                operationTarget: `summary:${parsed.conversationId}`,
+                pluginId: SUMMARY_PLUGIN_ID,
+              },
+            };
+          },
+        },
+      },
+    ];
+  }
+
+  private async shouldEnqueueConversationProjection(
+    context: EntityPluginContext,
+    payload: EntityChangePayload,
+  ): Promise<boolean> {
+    const parsed = conversationMessageAddedSchema.parse(payload);
+
+    const messageCount = await context.conversations.countMessages(
+      parsed.conversationId,
+    );
+    if (messageCount === 0) return false;
+
+    let existing: SummaryEntity | null = null;
+    try {
+      existing = await context.entityService.getEntity<SummaryEntity>({
+        entityType: SUMMARY_ENTITY_TYPE,
+        id: parsed.conversationId,
+      });
+    } catch {
+      existing = null;
+    }
+
+    if (!existing) {
+      return messageCount >= this.config.minMessagesBetweenProjections;
+    }
+
+    const newMessageCount = messageCount - existing.metadata.messageCount;
+    if (newMessageCount >= this.config.minMessagesBetweenProjections) {
+      return true;
+    }
+
+    if (newMessageCount <= 0) return false;
+    if (this.config.minMinutesBetweenProjections <= 0) return true;
+
+    const elapsedMs = Date.now() - Date.parse(existing.updated);
+    return elapsedMs >= this.config.minMinutesBetweenProjections * 60_000;
   }
 
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    // Initialize digest handler
-    this.digestHandler = DigestHandler.getInstance(context, this.logger);
-
-    // Subscribe to conversation digest events
-    if (this.config.enableAutoSummary) {
-      context.messaging.subscribe("conversation:digest", async (message) => {
-        const payload = conversationDigestPayloadSchema.parse(message.payload);
-        await this.handleDigestMessage({ ...message, payload });
-        return { success: true };
-      });
-      this.logger.debug("Summary plugin subscribed to digest events");
-    }
-  }
-
-  private async handleDigestMessage(
-    message: MessageWithPayload<ConversationDigestPayload>,
-  ): Promise<void> {
-    if (!this.digestHandler) {
-      this.logger.error("Digest handler not initialized");
-      return;
-    }
-
-    try {
-      await this.digestHandler.handleDigest(message.payload);
-    } catch (err) {
-      this.logger.error("Failed to handle digest message", {
-        messageId: message.id,
-        error: getErrorMessage(err),
-      });
-    }
+    registerSummaryEvalHandlers({
+      context,
+      logger: this.logger,
+      config: this.config,
+    });
   }
 }
 

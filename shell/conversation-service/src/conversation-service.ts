@@ -6,9 +6,14 @@ import type {
   ConversationServiceConfig,
   ConversationDbConfig,
   GetMessagesOptions,
+  ListConversationsOptions,
   ConversationDigestPayload,
   StartConversationRequest,
   AddConversationMessageRequest,
+} from "./types";
+import {
+  CONVERSATION_MESSAGE_ADDED_CHANNEL,
+  CONVERSATION_STARTED_CHANNEL,
 } from "./types";
 import type {
   Conversation,
@@ -21,7 +26,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
-import { eq, desc, asc, sql, count } from "drizzle-orm";
+import { eq, desc, asc, sql, count, gt } from "drizzle-orm";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -150,7 +155,7 @@ export class ConversationService implements IConversationService {
 
     // Emit event for plugins
     await this.messageBus.send({
-      type: "conversation:started",
+      type: CONVERSATION_STARTED_CHANNEL,
       payload: {
         conversationId: sessionId,
         sessionId,
@@ -207,7 +212,7 @@ export class ConversationService implements IConversationService {
 
     // Emit event for plugins (non-blocking)
     await this.messageBus.send({
-      type: "conversation:messageAdded",
+      type: CONVERSATION_MESSAGE_ADDED_CHANNEL,
       payload: {
         conversationId,
         messageId,
@@ -275,6 +280,30 @@ export class ConversationService implements IConversationService {
   }
 
   /**
+   * List conversations, newest active first.
+   */
+  async listConversations(
+    options: ListConversationsOptions = {},
+  ): Promise<Conversation[]> {
+    const { limit = 100, updatedAfter } = options;
+
+    if (updatedAfter) {
+      return this.db
+        .select()
+        .from(conversations)
+        .where(gt(conversations.updated, updatedAfter))
+        .orderBy(desc(conversations.lastActive))
+        .limit(limit);
+    }
+
+    return this.db
+      .select()
+      .from(conversations)
+      .orderBy(desc(conversations.lastActive))
+      .limit(limit);
+  }
+
+  /**
    * Search conversations by content
    */
   async searchConversations(
@@ -298,6 +327,14 @@ export class ConversationService implements IConversationService {
     return results.map((r) => r.conversation);
   }
 
+  async countMessages(conversationId: string): Promise<number> {
+    const [result] = await this.db
+      .select({ count: count() })
+      .from(messages)
+      .where(eq(messages.conversationId, conversationId));
+    return Number(result?.count ?? 0);
+  }
+
   /**
    * Check if digest should be broadcast and do so if needed
    */
@@ -305,13 +342,7 @@ export class ConversationService implements IConversationService {
     conversationId: string,
     timestamp: string,
   ): Promise<void> {
-    // Get current message count for this conversation
-    const [result] = await this.db
-      .select({ count: count() })
-      .from(messages)
-      .where(eq(messages.conversationId, conversationId));
-
-    const messageCount = Number(result?.count ?? 0);
+    const messageCount = await this.countMessages(conversationId);
 
     // Check if we should trigger a digest
     const triggerInterval = this.config.digestTriggerInterval ?? 10;

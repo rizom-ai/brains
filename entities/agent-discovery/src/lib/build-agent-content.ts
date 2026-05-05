@@ -11,7 +11,13 @@ export function buildAgentFromCard(
   options: { status?: AgentStatus } = {},
 ): {
   content: string;
-  metadata: { name: string; url: string; status: AgentStatus; slug: string };
+  metadata: {
+    name: string;
+    url: string;
+    status: AgentStatus;
+    discoveredAt: string;
+    slug: string;
+  };
   anchorName: string;
 } {
   const anchorName = card.anchor?.name ?? card.brainName;
@@ -23,6 +29,8 @@ export function buildAgentFromCard(
 
   const status = options.status ?? "discovered";
 
+  const discoveredAt = new Date().toISOString();
+
   const content = agentAdapter.createAgentContent({
     name: anchorName,
     kind,
@@ -32,7 +40,7 @@ export function buildAgentFromCard(
     brainName: card.brainName,
     url: card.url,
     status,
-    discoveredAt: new Date().toISOString(),
+    discoveredAt,
     about: aboutParts.join("\n\n"),
     skills: card.skills.map((s) => ({
       name: s.name,
@@ -48,6 +56,7 @@ export function buildAgentFromCard(
       name: anchorName,
       url: card.url,
       status,
+      discoveredAt,
       slug: slugifyUrl(card.url),
     },
     anchorName,

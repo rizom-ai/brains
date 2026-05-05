@@ -5,17 +5,35 @@ import {
   BackLink,
   formatDate,
   DetailPageHeader,
-  EntryCard,
+  Card,
+  CardMetadata,
+  CardTitle,
 } from "@brains/ui-library";
 
-/**
- * Layout that renders structured entries
- * Each entry has simple 4-field structure with natural prose content
- */
+const ListSection = ({
+  title,
+  items,
+}: {
+  title: string;
+  items: string[];
+}): JSX.Element | null => {
+  if (items.length === 0) return null;
+  return (
+    <section className="mt-4">
+      <h3 className="font-semibold mb-2">{title}</h3>
+      <ul className="list-disc pl-6 space-y-1">
+        {items.map((item) => (
+          <li key={item}>{item}</li>
+        ))}
+      </ul>
+    </section>
+  );
+};
+
 export const SummaryDetailLayout = ({
   channelName,
   entries,
-  totalMessages,
+  messageCount,
   updated,
   entryCount,
 }: SummaryDetailData): JSX.Element => {
@@ -28,7 +46,7 @@ export const SummaryDetailLayout = ({
         metadata={
           <>
             <span>{entryCount} entries</span>
-            <span>{totalMessages} messages</span>
+            <span>{messageCount} messages</span>
             <time dateTime={updated}>Last updated {formatDate(updated)}</time>
           </>
         }
@@ -36,13 +54,23 @@ export const SummaryDetailLayout = ({
 
       <div className="space-y-8">
         {entries.map((entry, index) => (
-          <EntryCard
-            key={`${entry.created}-${index}`}
-            title={entry.title}
-            created={entry.created}
-            updated={entry.updated}
-            content={entry.content}
-          />
+          <Card key={`${entry.timeRange.start}-${index}`} variant="vertical">
+            <CardTitle className="text-xl">{entry.title}</CardTitle>
+            <CardMetadata className="mb-4">
+              <time dateTime={entry.timeRange.start}>
+                {formatDate(entry.timeRange.start)}
+              </time>{" "}
+              <span>→</span>{" "}
+              <time dateTime={entry.timeRange.end}>
+                {formatDate(entry.timeRange.end)}
+              </time>{" "}
+              <span>· {entry.sourceMessageCount} messages</span>
+            </CardMetadata>
+            <p className="text-theme leading-relaxed">{entry.summary}</p>
+            <ListSection title="Key Points" items={entry.keyPoints} />
+            <ListSection title="Decisions" items={entry.decisions} />
+            <ListSection title="Action Items" items={entry.actionItems} />
+          </Card>
         ))}
       </div>
 
