@@ -284,6 +284,42 @@ describe("ConversationService", () => {
     });
   });
 
+  describe("listConversations", () => {
+    it("should list conversations newest active first with limit", async () => {
+      await service.startConversation(
+        "conv-list-1",
+        "cli",
+        "channel-1",
+        testMetadata,
+      );
+      await service.startConversation(
+        "conv-list-2",
+        "cli",
+        "channel-2",
+        testMetadata,
+      );
+
+      const result = await service.listConversations({ limit: 1 });
+
+      expect(result).toHaveLength(1);
+      expect(result[0]?.id).toBe("conv-list-2");
+    });
+
+    it("should filter conversations by updatedAfter", async () => {
+      await service.startConversation(
+        "conv-list-filter",
+        "cli",
+        "channel",
+        testMetadata,
+      );
+
+      const future = new Date(Date.now() + 60_000).toISOString();
+      const result = await service.listConversations({ updatedAfter: future });
+
+      expect(result).toHaveLength(0);
+    });
+  });
+
   describe("getMessages with range", () => {
     it("should retrieve messages in specified range", async () => {
       const conversationId = "conv-range";

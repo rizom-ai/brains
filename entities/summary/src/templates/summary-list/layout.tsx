@@ -37,7 +37,7 @@ export const SummaryListLayout = ({
             <CardMetadata className="mb-3">
               <div className="flex items-center gap-4 text-sm text-theme-muted">
                 <StatBadge count={summary.entryCount} label="entries" />
-                <StatBadge count={summary.totalMessages} label="messages" />
+                <StatBadge count={summary.messageCount} label="messages" />
               </div>
             </CardMetadata>
 

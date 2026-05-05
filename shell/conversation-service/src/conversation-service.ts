@@ -8,6 +8,7 @@ import type {
   ConversationMetadata,
   MessageRole,
   GetMessagesOptions,
+  ListConversationsOptions,
   ConversationDigestPayload,
 } from "./types";
 import type {
@@ -21,7 +22,7 @@ import { conversations, messages, summaryTracking } from "./schema";
 import type { Logger } from "@brains/utils";
 import { createId } from "@brains/utils";
 import type { MessageBus } from "@brains/messaging-service";
-import { eq, desc, asc, sql, count } from "drizzle-orm";
+import { eq, desc, asc, sql, count, gt } from "drizzle-orm";
 
 /**
  * Conversation Service - Core infrastructure for storing and retrieving conversations
@@ -284,6 +285,30 @@ export class ConversationService implements IConversationService {
       .limit(1);
 
     return result[0] ?? null;
+  }
+
+  /**
+   * List conversations, newest active first.
+   */
+  async listConversations(
+    options: ListConversationsOptions = {},
+  ): Promise<Conversation[]> {
+    const { limit = 100, updatedAfter } = options;
+
+    if (updatedAfter) {
+      return this.db
+        .select()
+        .from(conversations)
+        .where(gt(conversations.updated, updatedAfter))
+        .orderBy(desc(conversations.lastActive))
+        .limit(limit);
+    }
+
+    return this.db
+      .select()
+      .from(conversations)
+      .orderBy(desc(conversations.lastActive))
+      .limit(limit);
   }
 
   /**

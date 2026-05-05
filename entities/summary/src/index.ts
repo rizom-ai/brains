@@ -1,20 +1,33 @@
 export { SummaryPlugin, summaryPlugin } from "./summary-plugin";
 export { SummaryAdapter } from "./adapters/summary-adapter";
 export { SummaryExtractor } from "./lib/summary-extractor";
-export { DigestHandler } from "./handlers/digest-handler";
+export { SummaryProjector } from "./lib/summary-projector";
+export { SummarySourceReader } from "./lib/summary-source-reader";
+export { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
 
 export type {
   SummaryEntity,
   SummaryBody,
-  SummaryLogEntry,
+  SummaryEntry,
+  SummaryMetadata,
   SummaryConfig,
+  SummaryTimeRange,
 } from "./schemas/summary";
-
-export type { DigestDecision } from "./lib/summary-extractor";
 
 export {
   summarySchema,
   summaryBodySchema,
-  summaryLogEntrySchema,
+  summaryEntrySchema,
+  summaryMetadataSchema,
   summaryConfigSchema,
+  summaryTimeRangeSchema,
 } from "./schemas/summary";
+
+export {
+  summaryExtractionResultSchema,
+  extractedSummaryEntrySchema,
+} from "./schemas/extraction";
+export type {
+  SummaryExtractionResult,
+  ExtractedSummaryEntry,
+} from "./schemas/extraction";

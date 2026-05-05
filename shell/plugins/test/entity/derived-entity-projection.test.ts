@@ -84,6 +84,7 @@ function createProjectionContext(options?: {
     conversations: {
       get: mock(() => Promise.resolve(null)),
       search: mock(() => Promise.resolve([])),
+      list: mock(() => Promise.resolve([])),
       getMessages: mock(() => Promise.resolve([])),
     },
     eval: { registerHandler: mock(() => {}) },
@@ -263,6 +264,48 @@ describe("derived entity projections", () => {
         deduplicationKey: "test-projection:source:a",
         metadata: { operationType: "data_processing" },
       },
+    );
+  });
+
+  it("queues source change jobs for non-entity source events", async () => {
+    const context = createProjectionContext();
+
+    registerDerivedEntityProjection(
+      context,
+      createSilentLogger("projection-test"),
+      {
+        id: "conversation-projection",
+        targetType: "summary",
+        job: {
+          type: "summary:project",
+          handler: {
+            process: mock(() => Promise.resolve({ ok: true })),
+            validateAndParse: (data) => data,
+          },
+        },
+        sourceChange: {
+          sourceKind: "conversation",
+          sourceTypes: ["conversation"],
+          events: ["conversation:messageAdded"],
+          jobData: (payload) => ({
+            reason: "message-added",
+            conversationId: (payload as { conversationId?: string })
+              .conversationId,
+          }),
+        },
+      },
+    );
+
+    const handler = context.handlers.get("conversation:messageAdded")?.[0];
+    expect(handler).toBeDefined();
+
+    await handler?.({ payload: { conversationId: "conv-1" } });
+
+    expect(context.jobs.enqueue).toHaveBeenCalledWith(
+      "summary:project",
+      { reason: "message-added", conversationId: "conv-1" },
+      null,
+      undefined,
     );
   });
 

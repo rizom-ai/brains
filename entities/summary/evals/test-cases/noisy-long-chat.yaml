@@ -1,0 +1,52 @@
+id: summary-noisy-long-chat
+name: Noisy long chat extracts durable signal
+description: Ignores repetitive chatter while preserving the meaningful implementation request.
+type: plugin
+tags:
+  - summary
+  - noise
+  - long-context
+plugin: summary
+handler: summarizeMessages
+
+input:
+  conversationId: eval-noisy-long
+  messages:
+    - role: user
+      content: ok
+      timestamp: "2026-05-04T20:00:00Z"
+    - role: assistant
+      content: done
+      timestamp: "2026-05-04T20:01:00Z"
+    - role: user
+      content: continue
+      timestamp: "2026-05-04T20:02:00Z"
+    - role: assistant
+      content: continuing
+      timestamp: "2026-05-04T20:03:00Z"
+    - role: user
+      content: ok
+      timestamp: "2026-05-04T20:04:00Z"
+    - role: user
+      content: "Important part: add long conversation chunking, projection throttling, contract polish, and more evals."
+      timestamp: "2026-05-04T20:10:00Z"
+    - role: assistant
+      content: I will implement chunking, throttling, explicit source kinds, and eval expansion.
+      timestamp: "2026-05-04T20:11:00Z"
+    - role: user
+      content: thanks
+      timestamp: "2026-05-04T20:12:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 2
+  itemsContain:
+    - field: summary
+      pattern: "chunking|throttling|source kinds|eval"
+  itemsNotContain:
+    - field: summary
+      pattern: "ok.*done.*continue.*continuing"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
