@@ -44,6 +44,11 @@ preview_domain = if labels.length >= 3
 else
   "preview.#{brain_domain}"
 end
+www_domain = if labels.length == 2
+  "www.#{brain_domain}"
+else
+  ""
+end
 
 github_env = ENV["GITHUB_ENV"]
 raise "Missing GITHUB_ENV" if github_env.nil? || github_env.empty?
@@ -66,6 +71,7 @@ File.open(github_env, "a") do |file|
   file.puts("BRAIN_MODEL=#{brain_model}")
   file.puts("BRAIN_DOMAIN=#{brain_domain}")
   file.puts("PREVIEW_DOMAIN=#{preview_domain}")
+  file.puts("WWW_DOMAIN=#{www_domain}")
   file.puts("IMAGE_REPOSITORY=ghcr.io/#{registry_username}/#{repository_name}")
   file.puts("REGISTRY_USERNAME=#{registry_username}")
 end
@@ -301,6 +307,9 @@ ${workflowSecretsEnv}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           BRAIN_DOMAIN="$BRAIN_DOMAIN" bun deploy/scripts/update-dns.ts
+          if [ -n "\${WWW_DOMAIN:-}" ]; then
+            BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts
+          fi
           BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts
 
       - name: Install Kamal
@@ -339,6 +348,9 @@ ${workflowSecretsEnv}
           SERVER_IP: \${{ steps.provision.outputs.server_ip }}
         run: |
           curl -I -k --max-time 20 --resolve "$BRAIN_DOMAIN:443:$SERVER_IP" "https://$BRAIN_DOMAIN"
+          if [ -n "\${WWW_DOMAIN:-}" ]; then
+            curl -I -k --max-time 20 --resolve "$WWW_DOMAIN:443:$SERVER_IP" "https://$WWW_DOMAIN"
+          fi
           curl -I -k --max-time 20 --resolve "$PREVIEW_DOMAIN:443:$SERVER_IP" "https://$PREVIEW_DOMAIN"
 
       - name: Dump remote proxy diagnostics

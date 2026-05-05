@@ -12,6 +12,9 @@ proxy:
     private_key_pem: PRIVATE_KEY_PEM
   hosts:
     - <%= ENV['BRAIN_DOMAIN'] %>
+    # <% if ENV['WWW_DOMAIN'] && !ENV['WWW_DOMAIN'].empty? %>
+    - <%= ENV['WWW_DOMAIN'] %>
+    # <% end %>
     - <%= ENV['PREVIEW_DOMAIN'] %>
   app_port: 8080
   healthcheck:

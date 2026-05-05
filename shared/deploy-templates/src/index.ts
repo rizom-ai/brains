@@ -158,13 +158,22 @@ export function stripDeployVolumes(content: string): string {
   );
 }
 
+function normalizeOptionalWwwDeployHost(content: string): string {
+  return content.replace(
+    /\n {4}# <% if ENV\['WWW_DOMAIN'\] && !ENV\['WWW_DOMAIN'\]\.empty\? %>\n {4}- <%= ENV\['WWW_DOMAIN'\] %>\n {4}# <% end %>/,
+    "",
+  );
+}
+
 export function isStaleDeployMounts(
   current: string,
   serviceName: string,
   normalize: (content: string) => string = (content) => content,
 ): boolean {
-  const normalizedCurrent = normalize(current);
-  const normalizedTemplate = normalize(renderKamalDeploy({ serviceName }));
+  const normalizedCurrent = normalizeOptionalWwwDeployHost(normalize(current));
+  const normalizedTemplate = normalizeOptionalWwwDeployHost(
+    normalize(renderKamalDeploy({ serviceName })),
+  );
 
   const hasAllRequiredMounts = REQUIRED_DEPLOY_MOUNTS.every((mount) =>
     normalizedCurrent.includes(mount),
@@ -182,6 +191,10 @@ function normalizeStandaloneDeployYmlForComparison(content: string): string {
     .replace(
       /\n {2}secret:\n(?: {4}- .*\n)+\nvolumes:\n/,
       "\n  secret:\n    - __DYNAMIC_SECRETS__\n\nvolumes:\n",
+    )
+    .replace(
+      /\n {4}# <% if ENV\['WWW_DOMAIN'\] && !ENV\['WWW_DOMAIN'\]\.empty\? %>\n {4}- <%= ENV\['WWW_DOMAIN'\] %>\n {4}# <% end %>/,
+      "",
     )
     .replace(
       /\n {4}- <%= ENV\['BRAIN_DOMAIN'\] %>\n {4}- [^\n]+\n {2}app_port: /,

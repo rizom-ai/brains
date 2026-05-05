@@ -742,6 +742,7 @@ describe("brain init", () => {
       expect(deploy).toContain("certificate_pem: CERTIFICATE_PEM");
       expect(deploy).toContain("private_key_pem: PRIVATE_KEY_PEM");
       expect(deploy).toContain("- <%= ENV['BRAIN_DOMAIN'] %>");
+      expect(deploy).toContain("- <%= ENV['WWW_DOMAIN'] %>");
       expect(deploy).toContain("- <%= ENV['PREVIEW_DOMAIN'] %>");
       expect(deploy).not.toContain(":80");
       expect(deploy).not.toContain(":81");
@@ -805,6 +806,9 @@ describe("brain init", () => {
       expect(workflow).toContain("bun deploy/scripts/provision-server.ts");
       expect(workflow).toContain("bun deploy/scripts/update-dns.ts");
       expect(workflow).toContain(
+        'BRAIN_DOMAIN="$WWW_DOMAIN" bun deploy/scripts/update-dns.ts',
+      );
+      expect(workflow).toContain(
         'BRAIN_DOMAIN="$PREVIEW_DOMAIN" bun deploy/scripts/update-dns.ts',
       );
       expect(workflow).not.toContain("<<EOF");
@@ -862,6 +866,7 @@ describe("brain init", () => {
       );
       expect(script).toContain('"preview.#{brain_domain}"');
       expect(script).toContain('file.puts("PREVIEW_DOMAIN=#{preview_domain}")');
+      expect(script).toContain('file.puts("WWW_DOMAIN=#{www_domain}")');
       expect(script).toContain("INSTANCE_NAME");
 
       expect(existsSync(join(testDir, "deploy", "scripts", "helpers.ts"))).toBe(

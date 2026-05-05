@@ -16,8 +16,11 @@ interface CloudflareResult {
   result?: Array<{ id: string }>;
 }
 
-async function upsertRecord(name: string): Promise<void> {
-  const lookupUrl = `${baseUrl}/zones/${zoneId}/dns_records?type=A&name=${encodeURIComponent(name)}`;
+async function findRecordId(
+  name: string,
+  type: "A" | "CNAME",
+): Promise<string | undefined> {
+  const lookupUrl = `${baseUrl}/zones/${zoneId}/dns_records?type=${type}&name=${encodeURIComponent(name)}`;
   const lookup = await fetch(lookupUrl, { headers });
   const payload = (await readJsonResponse(
     lookup,
@@ -27,9 +30,16 @@ async function upsertRecord(name: string): Promise<void> {
     throw new Error(`Cloudflare DNS lookup failed: ${JSON.stringify(payload)}`);
   }
 
-  const existing = payload.result?.[0];
+  return payload.result?.[0]?.id;
+}
+
+async function upsertRecord(name: string): Promise<void> {
+  // Prefer an existing A record. If the hostname currently has a CNAME,
+  // replace that CNAME in-place so deploys can claim legacy www aliases.
+  const existing =
+    (await findRecordId(name, "A")) ?? (await findRecordId(name, "CNAME"));
   const url = existing
-    ? `${baseUrl}/zones/${zoneId}/dns_records/${existing.id}`
+    ? `${baseUrl}/zones/${zoneId}/dns_records/${existing}`
     : `${baseUrl}/zones/${zoneId}/dns_records`;
 
   const response = await fetch(url, {
