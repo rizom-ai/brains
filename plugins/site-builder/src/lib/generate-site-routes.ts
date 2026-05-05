@@ -1,8 +1,4 @@
-import {
-  DynamicRouteGenerator,
-  type DynamicRouteEntity,
-  type RouteRegistry,
-} from "@brains/site-engine";
+import { DynamicRouteGenerator, type RouteRegistry } from "@brains/site-engine";
 import type { Logger } from "@brains/utils";
 import type { EntityDisplayMap } from "../config";
 import type { SiteBuilderServices } from "./site-builder-services";
@@ -24,16 +20,7 @@ export async function generateSiteRoutes(
   const dynamicRouteGenerator = new DynamicRouteGenerator(
     {
       logger: options.logger.child("DynamicRouteGenerator"),
-      getEntityTypes: (): string[] =>
-        options.services.entityService.getEntityTypes(),
-      listEntities: async (
-        entityType,
-        listOptions,
-      ): Promise<DynamicRouteEntity[]> =>
-        options.services.entityService.listEntities({
-          entityType,
-          ...(listOptions !== undefined ? { options: listOptions } : {}),
-        }),
+      entityService: options.services.entityService,
       listViewTemplateNames: (): string[] =>
         options.services.listViewTemplateNames(),
     },

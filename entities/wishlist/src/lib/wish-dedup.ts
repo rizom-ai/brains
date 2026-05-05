@@ -2,10 +2,10 @@ import { slugify } from "@brains/utils";
 import type { WishEntity } from "../schemas/wish";
 
 export interface WishSearchDeps {
-  search: (
-    query: string,
-    options?: { types?: string[]; limit?: number },
-  ) => Promise<Array<{ entity: WishEntity; score: number; excerpt: string }>>;
+  search: (request: {
+    query: string;
+    options?: { types?: string[]; limit?: number };
+  }) => Promise<Array<{ entity: WishEntity; score: number; excerpt: string }>>;
   getEntity: (request: {
     entityType: string;
     id: string;
@@ -22,7 +22,10 @@ export async function findExistingWish(
   input: { title: string; description: string },
 ): Promise<WishEntity | null> {
   const query = `${input.title}: ${input.description}`;
-  const results = await deps.search(query, { types: ["wish"], limit: 1 });
+  const results = await deps.search({
+    query,
+    options: { types: ["wish"], limit: 1 },
+  });
 
   const topResult = results[0];
   if (topResult && topResult.score >= deps.similarityThreshold) {

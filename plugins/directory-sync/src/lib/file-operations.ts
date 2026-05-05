@@ -1,4 +1,4 @@
-import type { BaseEntity } from "@brains/plugins";
+import type { BaseEntity, IEntityService } from "@brains/plugins";
 import { dirname, extname } from "path";
 import { resolveInSyncPath } from "./path-utils";
 import { getMimeTypeForExtension, isImageFile } from "./image-file-utils";
@@ -20,10 +20,10 @@ import { pathExists } from "./fs-utils";
 
 export { IMAGE_EXTENSIONS, isImageFile } from "./image-file-utils";
 
-export interface FileOperationsEntityService {
-  serializeEntity(entity: BaseEntity): string;
-  hasEntityType(type: string): boolean;
-}
+export type FileOperationsEntityService = Pick<
+  IEntityService,
+  "serializeEntity" | "hasEntityType"
+>;
 
 /**
  * Handles file I/O operations for directory sync

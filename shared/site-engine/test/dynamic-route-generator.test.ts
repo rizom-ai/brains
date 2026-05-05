@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach } from "bun:test";
 import {
   DynamicRouteGenerator,
-  type DynamicRouteEntity,
   type DynamicRouteGeneratorServices,
 } from "../src/dynamic-route-generator";
 import { RouteRegistry } from "../src/route-registry";
+import type { BaseEntity } from "@brains/entity-service";
 import { createSilentLogger } from "@brains/test-utils";
 import { z } from "@brains/utils";
 
@@ -18,11 +18,16 @@ interface TestViewTemplate {
 // Factory to create complete mock entities
 const createMockEntity = (
   id: string,
-  _entityType: string,
+  entityType: string,
   slug?: string,
-): DynamicRouteEntity => ({
+): BaseEntity => ({
   id,
+  entityType,
+  content: "",
+  created: "2024-01-01T00:00:00.000Z",
+  updated: "2024-01-01T00:00:00.000Z",
   metadata: slug ? { slug } : {},
+  contentHash: `${id}-hash`,
 });
 
 describe("DynamicRouteGenerator", () => {
@@ -30,7 +35,7 @@ describe("DynamicRouteGenerator", () => {
   let generator: DynamicRouteGenerator;
   let services: DynamicRouteGeneratorServices;
   let entityTypes: string[];
-  let entities: Map<string, DynamicRouteEntity[]>;
+  let entities: Map<string, BaseEntity[]>;
   let templates: TestViewTemplate[];
 
   beforeEach(() => {
@@ -42,9 +47,11 @@ describe("DynamicRouteGenerator", () => {
 
     services = {
       logger,
-      getEntityTypes: (): string[] => entityTypes,
-      listEntities: async (type): Promise<DynamicRouteEntity[]> =>
-        entities.get(type) ?? [],
+      entityService: {
+        getEntityTypes: (): string[] => entityTypes,
+        listEntities: async ({ entityType }): Promise<BaseEntity[]> =>
+          entities.get(entityType) ?? [],
+      },
       listViewTemplateNames: (): string[] =>
         templates.map((template) => template.name),
     };
@@ -271,8 +278,10 @@ describe("DynamicRouteGenerator", () => {
         ];
         const testServices: DynamicRouteGeneratorServices = {
           logger: testLogger,
-          getEntityTypes: () => [entity],
-          listEntities: async () => [],
+          entityService: {
+            getEntityTypes: () => [entity],
+            listEntities: async (): Promise<BaseEntity[]> => [],
+          },
           listViewTemplateNames: () =>
             testTemplates.map((template) => template.name),
         };

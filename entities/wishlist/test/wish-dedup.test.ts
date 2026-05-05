@@ -121,7 +121,7 @@ describe("findExistingWish", () => {
   it("should search with title and description combined", async () => {
     let capturedQuery = "";
     const deps = createDeps({
-      search: async (query: string) => {
+      search: async ({ query }) => {
         capturedQuery = query;
         return [];
       },
