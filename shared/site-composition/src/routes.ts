@@ -114,9 +114,11 @@ export interface GetRouteResponse {
   route?: RouteDefinition | undefined;
 }
 
-/** Navigation item interface for extracted navigation data. */
-export interface NavigationItem {
-  label: string;
-  href: string;
-  priority: number;
-}
+/** Navigation item shape for extracted navigation data. */
+export const NavigationItemSchema = z.object({
+  label: z.string(),
+  href: z.string(),
+  priority: z.number(),
+});
+
+export type NavigationItem = z.infer<typeof NavigationItemSchema>;

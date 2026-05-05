@@ -1,4 +1,5 @@
 import { z } from "@brains/utils";
+import { NavigationItemSchema } from "./routes";
 
 export const SITE_METADATA_GET_CHANNEL = "site:metadata:get";
 export const SITE_METADATA_UPDATED_CHANNEL = "site:metadata:updated";
@@ -32,12 +33,6 @@ export const siteMetadataSchema = z.object({
 export type SiteMetadata = z.infer<typeof siteMetadataSchema>;
 export type SiteMetadataCTA = z.infer<typeof siteMetadataCTASchema>;
 
-const navigationItemSchema = z.object({
-  label: z.string(),
-  href: z.string(),
-  priority: z.number(),
-});
-
 const socialLinkSchema = z.object({
   platform: z
     .enum(["github", "instagram", "linkedin", "email", "website"])
@@ -49,8 +44,8 @@ const socialLinkSchema = z.object({
 /** Complete site information passed to layout components. */
 export const siteLayoutInfoSchema = siteMetadataSchema.extend({
   navigation: z.object({
-    primary: z.array(navigationItemSchema),
-    secondary: z.array(navigationItemSchema),
+    primary: z.array(NavigationItemSchema),
+    secondary: z.array(NavigationItemSchema),
   }),
   copyright: z.string(),
   socialLinks: z
