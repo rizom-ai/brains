@@ -26,6 +26,17 @@ export type ProjectGenerationResult = z.infer<
   typeof projectGenerationResultSchema
 >;
 
+export function buildProjectGenerationPrompt(
+  data: ProjectGenerationJobData,
+): string {
+  return `Project request (authoritative):
+${data.prompt}
+
+Project year: ${data.year}
+
+Use the project request as the primary source of truth. If retrieved knowledge context describes a different project or conflicts with this request, ignore that unrelated context.`;
+}
+
 /**
  * AI generation output schema
  */
@@ -58,7 +69,7 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
     data: ProjectGenerationJobData,
     progressReporter: ProgressReporter,
   ): Promise<GeneratedContent> {
-    const { prompt, year } = data;
+    const { year } = data;
 
     await this.reportProgress(progressReporter, {
       progress: 10,
@@ -66,7 +77,7 @@ export class ProjectGenerationJobHandler extends BaseGenerationJobHandler<
     });
 
     const generated = await this.context.ai.generate<GeneratedProjectContent>({
-      prompt,
+      prompt: buildProjectGenerationPrompt(data),
       templateName: "portfolio:generation",
     });
 

@@ -1,6 +1,6 @@
 id: portfolio-tool-create-basic
 name: Portfolio Create Tool Invocation
-description: Verifies that the agent calls the portfolio_create tool when asked to create a portfolio project
+description: Verifies that the agent uses system_create when asked to create a portfolio project
 type: tool_invocation
 tags:
   - portfolio
@@ -12,12 +12,12 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: portfolio_create
+    - toolName: system_create
       shouldBeCalled: true
+      argsContain:
+        entityType: project
   toolCountRange:
     min: 1
-  responseContains:
-    - "job"
   responseNotContains:
     - "I cannot"
     - "I don't have access"

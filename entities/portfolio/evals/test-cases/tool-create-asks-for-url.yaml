@@ -1,6 +1,6 @@
 id: portfolio-tool-create-asks-for-url
-name: Portfolio Create Asks for URL
-description: Verifies that the agent asks for a URL or link when creating a portfolio project for a topic with no existing content in the brain
+name: Portfolio Create Without URL
+description: Verifies that the agent can start portfolio generation via system_create even when no project URL is available
 type: tool_invocation
 tags:
   - portfolio
@@ -12,10 +12,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: portfolio_create
+    - toolName: system_create
       shouldBeCalled: true
-  responseContains:
-    - "url"
+      argsContain:
+        entityType: project
   responseNotContains:
     - "I cannot"
     - "I don't have access"

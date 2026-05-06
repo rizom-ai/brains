@@ -3,6 +3,7 @@ import type { EntityPluginContext } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import type { ProgressReporter } from "@brains/utils";
 import {
+  buildProjectGenerationPrompt,
   ProjectGenerationJobHandler,
   projectGenerationJobSchema,
 } from "../src/handlers/generation-handler";
@@ -109,7 +110,7 @@ describe("ProjectGenerationJobHandler", () => {
       await handler.process(data, "job-123", progressReporter);
 
       expect(context.ai.generate).toHaveBeenCalledWith({
-        prompt: "Build something cool",
+        prompt: buildProjectGenerationPrompt(data),
         templateName: "portfolio:generation",
       });
     });

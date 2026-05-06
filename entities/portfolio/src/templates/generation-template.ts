@@ -52,7 +52,7 @@ export const projectGenerationTemplate = createTemplate<ProjectGeneration>({
   useKnowledgeContext: true,
   basePrompt: `You are helping to create a professional portfolio case study based on REAL project information.
 
-IMPORTANT: The prompt contains related content found in the user's knowledge base. Use this content as the source of truth - extract facts, technologies, challenges, and outcomes from it. Do NOT invent or fabricate details.
+IMPORTANT: The project request is the primary source of truth. Retrieved knowledge-base context is useful only when it clearly describes the same project and does not conflict with the request. Ignore unrelated projects, prior drafts, or context for a different title/domain. Extract facts, technologies, challenges, and outcomes only from the request and directly matching context. Do NOT invent or fabricate details.
 
 Your task is to structure the provided information into a compelling case study narrative.
 
@@ -64,7 +64,7 @@ Guidelines:
 5. Solution: Describe what was built based on the provided content. Include actual technologies mentioned.
 6. Outcome: Use any results, metrics, or lessons mentioned in the provided content.
 
-CRITICAL: Only include information that can be derived from the provided content. If information is missing, keep that section brief rather than inventing details.
+CRITICAL: Only include information that can be derived from the project request or directly matching provided content. If information is missing, keep that section brief rather than inventing details. If knowledge context mentions another project, do not blend it into this case study.
 
 Tone: Professional but accessible. Write for someone evaluating real work.
 Structure: Use markdown formatting. Break long sections into paragraphs for readability.`,

@@ -4,6 +4,9 @@ import type {
   JobHandler,
   Template,
   DataSource,
+  CreateExecutionContext,
+  CreateInput,
+  CreateInterceptionResult,
 } from "@brains/plugins";
 import {
   EntityPlugin,
@@ -36,7 +39,10 @@ import {
   type ProjectDetailProps,
 } from "./templates/project-detail";
 import { projectGenerationTemplate } from "./templates/generation-template";
-import { ProjectGenerationJobHandler } from "./handlers/generation-handler";
+import {
+  buildProjectGenerationPrompt,
+  ProjectGenerationJobHandler,
+} from "./handlers/generation-handler";
 import { ProjectDataSource } from "./datasources/project-datasource";
 import packageJson from "../package.json";
 
@@ -47,6 +53,17 @@ const projectListSchema = z.object({
   baseUrl: z.string().optional(),
 });
 
+function extractProjectYear(
+  title: string | undefined,
+  prompt: string | undefined,
+): number | null {
+  for (const value of [title, prompt]) {
+    const match = value?.match(/\b(19\d{2}|20\d{2})\b/);
+    if (match?.[1]) return Number(match[1]);
+  }
+  return null;
+}
+
 export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
   readonly entityType = projectAdapter.entityType;
   readonly schema = projectSchema;
@@ -54,6 +71,40 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
 
   constructor(config: PortfolioConfigInput = {}) {
     super("portfolio", packageJson, config, portfolioConfigSchema);
+  }
+
+  protected override async interceptCreate(
+    input: CreateInput,
+    executionContext: CreateExecutionContext,
+    context: EntityPluginContext,
+  ): Promise<CreateInterceptionResult> {
+    if (!input.prompt || input.content) {
+      return { kind: "continue", input };
+    }
+
+    const year = extractProjectYear(input.title, input.prompt);
+    if (!year) {
+      return { kind: "continue", input };
+    }
+
+    const jobId = await context.jobs.enqueue({
+      type: "project:generation",
+      data: {
+        prompt: input.prompt,
+        ...(input.title ? { title: input.title } : {}),
+        year,
+      },
+      toolContext: executionContext,
+      options: {
+        source: this.id,
+        metadata: { operationType: "content_operations" },
+      },
+    });
+
+    return {
+      kind: "handled",
+      result: { success: true, data: { status: "generating", jobId } },
+    };
   }
 
   protected override createGenerationHandler(
@@ -125,7 +176,10 @@ export class PortfolioPlugin extends EntityPlugin<Project, PortfolioConfig> {
         problem: string;
         solution: string;
         outcome: string;
-      }>({ prompt: parsed.prompt, templateName: "portfolio:generation" });
+      }>({
+        prompt: buildProjectGenerationPrompt(parsed),
+        templateName: "portfolio:generation",
+      });
     });
   }
 
