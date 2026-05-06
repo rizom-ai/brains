@@ -7,7 +7,7 @@ tags:
   - swot
   - quality
   - adversarial
-plugin: agent-discovery
+plugin: assessment
 handler: deriveSwot
 
 input:

@@ -245,12 +245,16 @@ Refinement rules:
 - Never shorten, paraphrase, generalize, or rewrite a draft theme in sourceTheme
 - If an item is weak, repetitive, or generic, drop it instead of rewording it
 - Keep the output concise and decision-oriented
+- Make each detail operational: state what to use, test, learn, pair with, or avoid relying on
+- When context contains distinct owner skills and network-only skills, preserve that breadth instead of thinning the SWOT to generic labels
+- Prefer details that name the practical contrast, such as dependable overlap, missing complement, adjacent network move, or tentative risk
+- Do not use vague wording like "outside input" or "network" alone when a concrete capability from the draft can be named
 
 Output rules:
 - Return 0-3 items per quadrant
 - sourceTheme: exact copied theme string from the corresponding draft quadrant allowedThemes list
 - title: short skill/risk label only, usually keeping the concrete capability named by sourceTheme rather than abstracting it further
-- detail: one sentence with the practical implication or recommendation`;
+- detail: one sentence with the practical implication or recommendation, grounded in the specific capability contrast`;
 }
 
 async function buildRefinementPrompt(
