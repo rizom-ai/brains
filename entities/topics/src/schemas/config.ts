@@ -26,6 +26,12 @@ export const topicsPluginConfigSchema = z.object({
   autoMerge: z.boolean().default(true),
 
   /**
+   * Status values that are eligible for topic extraction.
+   * Entities without a status field are always eligible.
+   */
+  extractableStatuses: z.array(z.string()).default(["published"]),
+
+  /**
    * Enable automatic topic extraction from entity events
    */
   enableAutoExtraction: z.boolean().default(true),

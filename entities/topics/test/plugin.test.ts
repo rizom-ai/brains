@@ -56,6 +56,16 @@ describe("TopicsPlugin", () => {
       });
       expect(plugin.isEntityPublished(entityEmptyMetadata)).toBe(true);
     });
+
+    it("should allow additional statuses when configured", () => {
+      const pluginWithDrafts = new TopicsPlugin({
+        extractableStatuses: ["published", "draft"],
+      });
+      const draftEntity = createTestEntity("post", {
+        metadata: { status: "draft" },
+      });
+      expect(pluginWithDrafts.isEntityPublished(draftEntity)).toBe(true);
+    });
   });
 
   describe("shouldProcessEntityType", () => {

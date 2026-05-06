@@ -2,36 +2,33 @@
 
 > Internal-use brain model. This source ships publicly so the architecture stays inspectable, but `@brains/rover` is the public reference model for adoption, extension, and standalone app authoring.
 
-`@brains/relay` is the collaborative team brain model: capture → synthesize → share. Its shipped presets focus on notes, links, topic extraction, peer-brain discovery, MCP/Discord/A2A access, and an optional public website.
+`@brains/relay` is the collaborative team brain model: capture → synthesize → share. Its presets progress from private team memory to a public knowledge hub, following the same `core` → `default` → `full` shape as Rover.
 
 ## Presets
 
-- **`core`** — team capture + synthesis without the public site layer
+- **`core`** — private team capture + synthesis without the public site layer
 - **`default`** — `core` plus the minimal public-site stack
-
-Registered but opt-in for now:
-
-- **`summary`** — available via `add: [summary]`
-- **`decks`** — available via `add: [decks]`
+- **`full`** — `default` plus existing team-knowledge surfaces (`docs`, `decks`)
 
 ## Capabilities
 
-| Plugin           | Purpose                                      |
-| ---------------- | -------------------------------------------- |
-| `prompt`         | editable prompt/template entities            |
-| `directory-sync` | markdown + optional git-backed content sync  |
-| `note`           | free-form team notes                         |
-| `link`           | URL capture and metadata extraction          |
-| `topics`         | topic extraction and organization            |
-| `agents`         | peer-brain discovery entities                |
-| `cms`            | CMS surface                                  |
-| `dashboard`      | operator dashboard widgets                   |
-| `image`          | image handling for site-facing instances     |
-| `site-info`      | site identity metadata                       |
-| `site-content`   | durable route/section copy                   |
-| `site-builder`   | static-site generation                       |
-| `summary`        | summarization plugin, currently opt-in       |
-| `decks`          | deck/presentation entities, currently opt-in |
+| Plugin           | Purpose                                     |
+| ---------------- | ------------------------------------------- |
+| `prompt`         | editable prompt/template entities           |
+| `directory-sync` | markdown + optional git-backed content sync |
+| `note`           | free-form team notes                        |
+| `link`           | URL capture and metadata extraction         |
+| `topics`         | topic extraction and organization           |
+| `summary`        | durable conversation summaries              |
+| `agents`         | peer-brain discovery entities               |
+| `cms`            | CMS surface                                 |
+| `dashboard`      | operator dashboard widgets                  |
+| `image`          | image handling for site-facing instances    |
+| `site-info`      | site identity metadata                      |
+| `site-content`   | durable route/section copy                  |
+| `site-builder`   | static-site generation                      |
+| `docs`           | docs entity/routes for full instances       |
+| `decks`          | deck/presentation entities for full         |
 
 System tools such as create, update, search, extract, and status are framework-level surfaces provided by the shell.
 
@@ -82,10 +79,16 @@ plugins:
     productionDomain: https://your-site.com
 ```
 
-To enable the deferred plugins:
+To enable the full team-knowledge tier:
 
 ```yaml
-add: [summary, decks]
+preset: full
+```
+
+You can also opt individual full-tier plugins into smaller presets:
+
+```yaml
+add: [docs, decks]
 ```
 
 ### 3. Configure `.env`
@@ -112,6 +115,7 @@ bunx brain start
 
 See also:
 
+- [Relay POC review](../../docs/plans/relay-poc-review.md)
 - [Relay preset plan](../../docs/plans/relay-presets.md)
 - [Brain model architecture](../../docs/brain-model.md)
 - [Repository README](../../README.md)

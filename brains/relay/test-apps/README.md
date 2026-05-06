@@ -5,8 +5,9 @@ Local relay preset apps for fast iteration during development.
 ## Available
 
 - `core` — team/collaboration brain without public site-builder docs routes
-- `default` — public Relay site surface
-- `docs` — `default` plus opt-in `docs` capability for `doc` entities, with `/` rendering the docs index
+- `default` — minimal public Relay site surface
+- `full` — public team knowledge hub with docs and decks
+- `docs` — legacy focused fixture for `default` plus opt-in `docs` capability
 
 ## Start a preset
 
@@ -15,6 +16,7 @@ From `brains/relay/`:
 ```sh
 bun start:core
 bun start:default
+bun start:full
 bun start:docs
 ```
 
@@ -37,5 +39,6 @@ Optional:
 ```sh
 rm -rf brains/relay/test-apps/core/brain-data brains/relay/test-apps/core/data brains/relay/test-apps/core/dist /tmp/relay-core-test-content.git
 rm -rf brains/relay/test-apps/default/brain-data brains/relay/test-apps/default/data brains/relay/test-apps/default/dist /tmp/relay-default-test-content.git
+rm -rf brains/relay/test-apps/full/brain-data brains/relay/test-apps/full/data brains/relay/test-apps/full/dist /tmp/relay-full-test-content.git
 rm -rf brains/relay/test-apps/docs/brain-data brains/relay/test-apps/docs/data brains/relay/test-apps/docs/dist /tmp/relay-docs-test-content.git
 ```

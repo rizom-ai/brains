@@ -173,7 +173,9 @@ export class TopicsPlugin extends EntityPlugin<
   public isEntityPublished(entity: BaseEntity): boolean {
     const metadata = entity.metadata as Record<string, unknown>;
     const status = metadata["status"];
-    return status === "published" || status === undefined || status === null;
+    if (status === undefined || status === null) return true;
+    if (typeof status !== "string") return false;
+    return this.config.extractableStatuses.includes(status);
   }
 
   // ── Projection internals ──

@@ -30,6 +30,7 @@ interface TopicsPluginConfig {
   minRelevanceScore?: number; // Default: 0.5
   mergeSimilarityThreshold?: number; // Default: 0.85
   autoMerge?: boolean; // Default: true
+  extractableStatuses?: string[]; // Default: ["published"]
   enableAutoExtraction?: boolean; // Default: true
 }
 ```
@@ -38,7 +39,7 @@ interface TopicsPluginConfig {
 
 - Only entity types listed in `includeEntityTypes` are processed.
 - Topic entities themselves are never reprocessed as sources.
-- Only published entities are considered extractable.
+- Entities with `status: published` and entities without a status field are extractable by default. Brains can opt in additional statuses such as `draft`.
 - `autoMerge` stays configurable; rebuilds do not force it on globally.
 
 ## Runtime behavior

@@ -21,6 +21,7 @@ const config: TopicsPluginConfig = {
   minRelevanceScore: 0.5,
   mergeSimilarityThreshold: 0.85,
   autoMerge: true,
+  extractableStatuses: ["published"],
   enableAutoExtraction: true,
 };
 
