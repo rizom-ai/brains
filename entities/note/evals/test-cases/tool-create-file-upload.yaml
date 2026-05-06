@@ -1,6 +1,6 @@
 id: note-tool-create-file-upload
 name: Note Create on File Upload
-description: Verifies that the agent calls note_create when a user uploads a text file
+description: Verifies that the agent uses system_create for a base note when a user uploads a text file
 type: tool_invocation
 tags:
   - note
@@ -23,8 +23,10 @@ turns:
 
 successCriteria:
   expectedTools:
-    - toolName: note_create
+    - toolName: system_create
       shouldBeCalled: true
+      argsContain:
+        entityType: base
   toolCountRange:
     min: 1
   responseNotContains:
