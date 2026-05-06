@@ -47,7 +47,7 @@ export function CTASection({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-theme-muted hover:text-brand transition-colors"
+                  className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-accent transition-colors relative pb-1 before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
                 >
                   {link.label ?? link.platform}
                 </a>

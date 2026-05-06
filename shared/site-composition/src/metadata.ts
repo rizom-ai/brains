@@ -10,6 +10,17 @@ export const siteMetadataCTASchema = z.object({
   buttonLink: z.string().describe("URL or anchor for the CTA button"),
 });
 
+/** Per-section homepage descriptors — short editorial blurbs displayed
+ * beneath each section title (e.g. under "Essays"). Keys match section ids
+ * the homepage template knows about ("essays", "presentations", "about", …).
+ */
+export const siteMetadataSectionSchema = z.object({
+  blurb: z
+    .string()
+    .optional()
+    .describe("Short italic subtitle under the section title"),
+});
+
 /** Plain site metadata consumed by site renderers. */
 export const siteMetadataSchema = z.object({
   title: z.string().describe("The site's title"),
@@ -28,6 +39,12 @@ export const siteMetadataSchema = z.object({
   cta: siteMetadataCTASchema
     .optional()
     .describe("Call-to-action configuration"),
+  sections: z
+    .record(z.string(), siteMetadataSectionSchema)
+    .optional()
+    .describe(
+      "Optional per-section blurbs, keyed by section id (e.g. 'essays', 'presentations', 'about'). Used by homepage templates that render editorial section headers.",
+    ),
 });
 
 export type SiteMetadata = z.infer<typeof siteMetadataSchema>;

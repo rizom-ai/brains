@@ -29,9 +29,9 @@
     --palette-border: #ddd2c4;
     --palette-white: #ffffff;
 
-    --palette-amber: #c45a08;
-    --palette-amber-dark: #8f3d06;
-    --palette-amber-light: #e87722;
+    --palette-amber: #b8410c;
+    --palette-amber-dark: #923208;
+    --palette-amber-light: #ff8b3d;
     --palette-purple: #4b2a63;
     --palette-purple-dark: #22152e;
 
@@ -40,10 +40,10 @@
     --palette-dark-bg-muted: #2a2235;
     --palette-dark-border: rgb(255 255 255 / 0.12);
 
-    /* Semantic colors */
-    --color-brand: var(--palette-purple);
-    --color-brand-dark: var(--palette-purple-dark);
-    --color-brand-light: #75518d;
+    /* Semantic colors — single warm-flame brand */
+    --color-brand: var(--palette-amber);
+    --color-brand-dark: var(--palette-amber-dark);
+    --color-brand-light: var(--palette-amber-light);
     --color-accent: var(--palette-amber);
     --color-accent-dark: var(--palette-amber-dark);
 
@@ -124,9 +124,9 @@
   [data-theme="dark"] {
     --color-brand: var(--palette-amber-light);
     --color-brand-dark: var(--palette-amber);
-    --color-brand-light: #ffa366;
-    --color-accent: #f3c14f;
-    --color-accent-dark: var(--palette-amber-light);
+    --color-brand-light: #ffa46a;
+    --color-accent: var(--palette-amber-light);
+    --color-accent-dark: var(--palette-amber);
 
     --color-text: var(--palette-paper-soft);
     --color-text-muted: rgb(251 247 239 / 0.68);
@@ -146,7 +146,7 @@
     --color-footer-text: rgb(251 247 239 / 0.7);
     --color-logo: var(--palette-paper-soft);
     --color-selection: var(--color-accent);
-    --color-selection-bg: rgb(243 193 79 / 0.25);
+    --color-selection-bg: rgb(255 139 61 / 0.18);
     --color-selection-text: var(--palette-paper-soft);
 
     --color-gradient-start: var(--palette-dark-bg-subtle);

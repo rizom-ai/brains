@@ -72,7 +72,7 @@ export function Header({
   );
 
   return (
-    <header className="py-4 border-b border-theme">
+    <header className="sticky top-0 z-50 py-4 border-b border-theme bg-header">
       <div className="max-w-layout mx-auto px-6 md:px-8">
         <div className="flex flex-row justify-between items-center">
           <a href="/" className="text-logo hover:opacity-80 transition-opacity">
@@ -81,12 +81,12 @@ export function Header({
 
           {/* Desktop navigation */}
           <div className="hidden md:flex items-center gap-6">
-            <nav className="flex gap-6" aria-label="Main navigation">
+            <nav className="flex gap-7" aria-label="Main navigation">
               {navigation.map((item) => (
                 <a
                   key={item.href}
                   href={item.href}
-                  className="text-sm text-theme hover:text-brand transition-colors"
+                  className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
                 >
                   {item.label}
                 </a>
@@ -119,9 +119,9 @@ export function Header({
             ssrOnClick="toggleMobileMenu()"
             type="button"
             className={cn(
-              "md:hidden p-2 h-auto rounded-lg",
-              "text-brand border border-brand/40 bg-brand/10",
-              "hover:bg-brand hover:text-theme-inverse hover:border-brand",
+              "md:hidden p-2 h-auto rounded-[10px]",
+              "text-theme-muted border border-theme bg-theme-subtle",
+              "hover:text-accent hover:border-brand/40",
             )}
             aria-label="Toggle navigation menu"
             aria-expanded="false"
@@ -166,7 +166,7 @@ export function Header({
                 href={item.href}
                 // @ts-expect-error - onclick is valid HTML attribute for SSR
                 onclick="closeMobileMenu()"
-                className="text-sm text-theme hover:text-brand transition-colors py-1"
+                className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-theme transition-colors py-1.5"
               >
                 {item.label}
               </a>

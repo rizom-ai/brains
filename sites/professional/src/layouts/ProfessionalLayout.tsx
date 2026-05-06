@@ -27,6 +27,7 @@ export function ProfessionalLayout({
       <Header
         title={siteInfo.title}
         navigation={siteInfo.navigation.primary}
+        showThemeToggle
         {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
       />
 
@@ -39,6 +40,8 @@ export function ProfessionalLayout({
         secondaryNavigation={siteInfo.navigation.secondary}
         copyright={siteInfo.copyright}
         socialLinks={siteInfo.socialLinks}
+        title={siteInfo.title}
+        tagline={siteInfo.description}
       >
         {slots?.getSlot("footer-top").map((entry) => entry.render())}
       </Footer>

@@ -10,6 +10,10 @@ interface FooterProps {
   secondaryNavigation: NavigationItem[];
   copyright?: string | undefined;
   socialLinks?: SocialLink[] | undefined;
+  /** Site title for the footer brand block. */
+  title?: string | undefined;
+  /** Tagline shown beneath the brand wordmark. */
+  tagline?: string | undefined;
   /** Content to render at the top of the footer (e.g., slot components) */
   children?: ComponentChildren;
 }
@@ -19,6 +23,8 @@ export const Footer = ({
   secondaryNavigation,
   copyright,
   socialLinks,
+  title,
+  tagline,
   children,
 }: FooterProps): JSX.Element => {
   return (
@@ -31,6 +37,8 @@ export const Footer = ({
           socialLinks={socialLinks}
           showThemeToggle={true}
           variant="default"
+          title={title}
+          tagline={tagline}
         >
           {children}
         </FooterContent>

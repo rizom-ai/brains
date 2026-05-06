@@ -3,15 +3,17 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "./lib/utils";
 
 const themeToggleVariants = cva(
-  "rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
+  "transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2",
   {
     variants: {
       variant: {
-        default: "bg-theme-muted/50 hover:bg-theme-muted text-theme",
-        light: "bg-theme-subtle hover:bg-theme-muted text-theme",
-        dark: "bg-theme-dark hover:bg-theme-muted text-theme-inverse",
+        default:
+          "rounded-[10px] bg-theme-subtle border border-theme text-theme-muted hover:text-accent hover:border-brand/40",
+        light:
+          "rounded-[10px] bg-theme-subtle border border-theme text-theme-muted hover:text-accent",
+        dark: "rounded-[10px] bg-theme-dark hover:bg-theme-muted text-theme-inverse",
         footer:
-          "bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon",
+          "rounded-full bg-theme-toggle hover:bg-theme-toggle-hover text-theme-toggle-icon",
       },
       size: {
         sm: "p-1.5",
@@ -32,8 +34,9 @@ const iconSizeMap = {
   lg: "w-6 h-6",
 } as const;
 
-export interface ThemeToggleProps
-  extends VariantProps<typeof themeToggleVariants> {
+export interface ThemeToggleProps extends VariantProps<
+  typeof themeToggleVariants
+> {
   className?: string;
 }
 

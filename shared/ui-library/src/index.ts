@@ -116,6 +116,15 @@ export { ContentListItem } from "./ContentListItem";
 export type { ContentListItemProps, SeriesInfo } from "./ContentListItem";
 export { ContentSection } from "./ContentSection";
 export type { ContentSectionProps, ContentItem } from "./ContentSection";
+export { ContentList } from "./ContentList";
+export type { ContentListProps } from "./ContentList";
+export { SectionHeader } from "./SectionHeader";
+export type { SectionHeaderProps } from "./SectionHeader";
+export { SubjectsList } from "./SubjectsList";
+export type { SubjectsListProps } from "./SubjectsList";
+
+// Inline emphasis ( *...* → highlight span ) + soft line breaks
+export { renderHighlightedText } from "./highlighted-text";
 
 // Head management
 export { HeadProvider, Head, useHead, HeadContext } from "./Head";
