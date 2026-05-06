@@ -1,5 +1,6 @@
 import { describe, it, expect, spyOn } from "bun:test";
 import { SummaryExtractor } from "../../src/lib/summary-extractor";
+import { buildSummaryExtractionPrompt } from "../../src/lib/summary-prompt";
 import { summaryConfigSchema } from "../../src/schemas/summary";
 import {
   createMockShell,
@@ -26,6 +27,19 @@ const messages: Message[] = [
     metadata: {},
   },
 ];
+
+describe("buildSummaryExtractionPrompt", () => {
+  it("treats system messages as constraints instead of decisions", () => {
+    const prompt = buildSummaryExtractionPrompt({
+      messages,
+      config: summaryConfigSchema.parse({}),
+    });
+
+    expect(prompt).toContain("system/developer messages as constraints");
+    expect(prompt).toContain("Preserve relevant system/developer constraints");
+    expect(prompt).toContain("not as user decisions or action items");
+  });
+});
 
 describe("SummaryExtractor", () => {
   it("maps AI message indexes to code-owned time ranges", async () => {
@@ -62,6 +76,54 @@ describe("SummaryExtractor", () => {
       end: "2026-01-01T00:01:00.000Z",
     });
     expect(entries[0]?.sourceMessageCount).toBe(2);
+  });
+
+  it("preserves system constraints as key points, not decisions", async () => {
+    const logger = createSilentLogger();
+    const context = createEntityPluginContext(
+      createMockShell({ logger }),
+      "summary",
+    );
+    spyOn(context.ai, "generate").mockResolvedValue({
+      entries: [
+        {
+          title: "Package rebuild",
+          summary: "The user requested healthier abstractions.",
+          startMessageIndex: 2,
+          endMessageIndex: 3,
+          keyPoints: ["The rebuild should use healthy abstractions."],
+          decisions: [],
+          actionItems: [],
+        },
+      ],
+    });
+
+    const extractor = new SummaryExtractor(
+      context,
+      logger,
+      summaryConfigSchema.parse({}),
+    );
+
+    const entries = await extractor.extract([
+      {
+        id: "m0",
+        conversationId: "conv-1",
+        role: "system",
+        content:
+          "Constraint: do not preserve backward compatibility for the summary schema.",
+        timestamp: "2026-01-01T00:00:00.000Z",
+        metadata: {},
+      },
+      ...messages,
+    ]);
+
+    expect(entries[0]?.keyPoints).toContain(
+      "Constraint: do not preserve backward compatibility for the summary schema.",
+    );
+    expect(entries[0]?.decisions.join("\n")).not.toContain(
+      "backward compatibility",
+    );
+    expect(entries[0]?.timeRange.start).toBe("2026-01-01T00:00:00.000Z");
   });
 
   it("honors config flags for optional sections", async () => {
