@@ -51,6 +51,11 @@ If the content has meaningful information, set success to true and extract:
 2. A one-sentence description of what the page is about
 3. A 1-2 paragraph summary of the main content
 
-Focus only on information present in the provided content. Do not make up or hallucinate information.`,
+Focus only on information present in the provided content. Do not make up or hallucinate information.
+
+Accuracy rules:
+- Do not invent dates, "recent" updates, post titles, author names, metrics, or examples.
+- If you mention examples from the page, use only titles or facts explicitly present in the provided markdown.
+- When a page is an index or hub, summarize the stable purpose and categories rather than speculating about every listed item.`,
   requiredPermission: "public",
 });

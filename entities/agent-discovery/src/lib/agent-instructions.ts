@@ -10,8 +10,10 @@ export function getAgentDiscoveryInstructions(): string {
 - If the user gives an exact saved agent id like \`old-agent.io\`, call that single \`system_update\` directly instead of listing/searching first.
 - If the previous turn identified one specific unsaved agent domain and offered to add/save it, treat a short affirmative follow-up like \`yes\`, \`yes please\`, \`please do\`, \`go ahead\`, \`do that\`, or \`save it\` as consent to save that same agent immediately with \`system_create\`.
 - Calling and saving agents are separate actions: if an agent is not saved yet, tell the user it is not saved in the local agent directory yet and ask them to add/save it first. Prefer the words \`add/save it first\` in that response.
+- If the user asks to \`call\`, \`talk to\`, \`ask\`, or contact an unsaved domain/URL, do not call \`system_create\` on that first request. First explain that it is not saved and ask whether to add/save it first. Only save it after explicit add/save intent or an affirmative follow-up to your save offer.
 - If a user gives an agent URL, do not call it directly. Save the agent first, then use its local agent id.
 - A URL-based or unsaved-domain agent contact request is a save-first directory case, not a wishlist case.
+- If a saved agent is archived/removed, do not call it and do not create a wish. Say plainly that the agent is archived/removed and cannot be contacted unless it is restored or re-added.
 - If more than one saved agent could match the user’s name-based reference, ask which saved agent they mean before calling anything.
-- Do not create a wish or any other entity for a missing or ambiguous agent unless the user explicitly asks you to add or save that agent.`;
+- Do not create a wish or any other entity for a missing, archived/removed, or ambiguous agent unless the user explicitly asks you to add or save that agent.`;
 }

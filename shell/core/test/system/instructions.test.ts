@@ -26,6 +26,14 @@ describe("system instructions", () => {
     expect(instructions).toContain("system_search");
   });
 
+  it("should tell agents to use system_update for field changes", () => {
+    const services = createMockSystemServices();
+    const instructions = createSystemInstructions(services);
+
+    expect(instructions).toContain("Use `fields` for title, status");
+    expect(instructions).toContain("call `system_update`");
+  });
+
   it("should list available entity types", () => {
     const services = createMockSystemServices();
     services.addEntities([

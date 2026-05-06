@@ -12,6 +12,8 @@ export function createSystemInstructions(services: SystemServices): string {
       "Pass `content` for direct creation, `prompt` for AI generation, or `url` for URL-first flows like saving links or remote agents. " +
       `Available entity types: ${types.join(", ")}.`,
     "- **system_update**: Modify an entity's fields or content. " +
+      "Use `fields` for title, status, and other frontmatter/metadata changes. " +
+      "When the user explicitly asks to rename, retitle, approve, publish, archive, or otherwise change fields, call `system_update`; do not just retrieve the entity or claim it was changed. " +
       "Requires confirmation before applying changes.",
     "- **system_delete**: Remove an entity. " +
       "Requires confirmation before deleting.",

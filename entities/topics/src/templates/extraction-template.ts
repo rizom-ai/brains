@@ -42,6 +42,8 @@ EXTRACTION GUIDELINES:
 - Skip minor or tangential subjects
 - Each topic should be specific enough to be useful, broad enough to be reusable
 - Aim for titles that would match similar future content
+- For vague, placeholder, logistical, or very short content (for example "need to look into that thing"), return an empty topics array
+- Do not assign high relevance to content that lacks concrete concepts, named domains, decisions, or arguments
 
 For each topic, provide:
 1. A focused title (max 40 chars) representing ONE concept
