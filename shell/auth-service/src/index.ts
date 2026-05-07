@@ -7,7 +7,11 @@ export type {
 } from "./auth-code-store";
 export { AuthService } from "./auth-service";
 export type { AuthServiceOptions } from "./auth-service";
-export { AuthServicePlugin, authServicePlugin } from "./auth-service-plugin";
+export {
+  AuthServicePlugin,
+  authServicePlugin,
+  getActiveAuthService,
+} from "./auth-service-plugin";
 export type { AuthServiceConfig } from "./auth-service-plugin";
 export { AuthKeyStore } from "./key-store";
 export type { AuthKeyStoreOptions } from "./key-store";

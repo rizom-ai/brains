@@ -13,6 +13,12 @@ const authServiceConfigSchema = z.object({
 
 export type AuthServiceConfig = z.infer<typeof authServiceConfigSchema>;
 
+let activeAuthService: AuthService | undefined;
+
+export function getActiveAuthService(): AuthService | undefined {
+  return activeAuthService;
+}
+
 export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
   private service: AuthService | undefined;
 
@@ -32,6 +38,14 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       logger: context.logger,
     });
     await this.service.initialize();
+    activeAuthService = this.service;
+  }
+
+  protected override async onShutdown(): Promise<void> {
+    if (activeAuthService === this.service) {
+      activeAuthService = undefined;
+    }
+    this.service = undefined;
   }
 
   override getWebRoutes(): WebRouteDefinition[] {

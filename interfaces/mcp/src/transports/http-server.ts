@@ -8,9 +8,18 @@ import { createConsoleLogger, adaptLogger } from "./types";
 import type { Logger } from "@brains/utils";
 import type { AgentNamespace } from "@brains/plugins";
 
+export interface VerifiedBearerToken {
+  subject: string;
+  scope?: string[];
+}
+
 export interface AuthConfig {
   disabled?: boolean;
   token?: string | undefined;
+  verifyBearerToken?: (
+    request: Request,
+  ) => Promise<VerifiedBearerToken | undefined>;
+  requiredScopes?: string[];
 }
 
 export interface StreamableHTTPServerConfig {
@@ -53,10 +62,14 @@ export class StreamableHTTPServer {
 
     this.authConfig = config.auth ?? {};
 
-    if (!this.authConfig.disabled && !this.authConfig.token) {
+    if (
+      !this.authConfig.disabled &&
+      !this.authConfig.token &&
+      !this.authConfig.verifyBearerToken
+    ) {
       throw new Error(
-        "MCP HTTP transport requires an auth token. " +
-          "Set MCP_AUTH_TOKEN in your environment, or pass auth: { disabled: true } for local dev.",
+        "MCP HTTP transport requires an auth token or bearer token verifier. " +
+          "Set MCP_AUTH_TOKEN, configure OAuth verification, or pass auth: { disabled: true } for local dev.",
       );
     }
   }
@@ -109,8 +122,12 @@ export class StreamableHTTPServer {
     );
   }
 
-  private getUnauthorizedResponse(message: string): Response {
-    return this.createJsonResponse(
+  private getAuthErrorResponse(
+    message: string,
+    status = 401,
+    wwwAuthenticate?: string,
+  ): Response {
+    const response = this.createJsonResponse(
       {
         jsonrpc: "2.0",
         error: {
@@ -119,11 +136,23 @@ export class StreamableHTTPServer {
         },
         id: null,
       },
-      401,
+      status,
     );
+
+    if (!wwwAuthenticate) {
+      return response;
+    }
+
+    const headers = new Headers(response.headers);
+    headers.set("WWW-Authenticate", wwwAuthenticate);
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers,
+    });
   }
 
-  private authenticate(request: Request): Response | null {
+  private async authenticate(request: Request): Promise<Response | null> {
     const pathname = new URL(request.url).pathname;
 
     if (
@@ -134,26 +163,71 @@ export class StreamableHTTPServer {
       return null;
     }
 
-    if (this.authConfig.disabled || !this.authConfig.token) {
+    if (this.authConfig.disabled) {
       return null;
     }
 
     const authHeader = request.headers.get("authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       this.logger.warn("Authentication failed: Missing Bearer token");
-      return this.getUnauthorizedResponse(
+      return this.getAuthErrorResponse(
         "Unauthorized: Bearer token required",
+        401,
+        'Bearer realm="mcp"',
       );
     }
 
-    const token = authHeader.substring(7);
-    if (token !== this.authConfig.token) {
-      this.logger.warn("Authentication failed: Invalid token");
-      return this.getUnauthorizedResponse("Unauthorized: Invalid token");
+    if (this.authConfig.token) {
+      const token = authHeader.substring(7);
+      if (token !== this.authConfig.token) {
+        this.logger.warn("Authentication failed: Invalid token");
+        return this.getAuthErrorResponse(
+          "Unauthorized: Invalid token",
+          401,
+          'Bearer error="invalid_token"',
+        );
+      }
+
+      this.logger.debug("Authentication successful");
+      return null;
     }
 
-    this.logger.debug("Authentication successful");
-    return null;
+    try {
+      const verified = await this.authConfig.verifyBearerToken?.(request);
+      if (!verified) {
+        this.logger.warn("Authentication failed: Invalid token");
+        return this.getAuthErrorResponse(
+          "Unauthorized: Invalid token",
+          401,
+          'Bearer error="invalid_token"',
+        );
+      }
+
+      const requiredScopes = this.authConfig.requiredScopes ?? [];
+      const missingScopes = requiredScopes.filter(
+        (scope) => !verified.scope?.includes(scope),
+      );
+      if (missingScopes.length > 0) {
+        this.logger.warn(
+          `Authentication failed: Missing required scope(s): ${missingScopes.join(", ")}`,
+        );
+        return this.getAuthErrorResponse(
+          "Forbidden: Missing required scope",
+          403,
+          `Bearer error="insufficient_scope", scope="${requiredScopes.join(" ")}"`,
+        );
+      }
+
+      this.logger.debug("Authentication successful");
+      return null;
+    } catch (error) {
+      this.logger.warn("Authentication failed: Invalid token", error);
+      return this.getAuthErrorResponse(
+        "Unauthorized: Invalid token",
+        401,
+        'Bearer error="invalid_token"',
+      );
+    }
   }
 
   private async handleMcpRequest(request: Request): Promise<Response> {
@@ -303,7 +377,7 @@ export class StreamableHTTPServer {
     const url = new URL(request.url);
     this.logger.debug(`${request.method} ${url.pathname}`);
 
-    const authFailure = this.authenticate(request);
+    const authFailure = await this.authenticate(request);
     if (authFailure) {
       return authFailure;
     }

@@ -653,6 +653,98 @@ describe("StreamableHTTPServer", () => {
       });
     });
 
+    describe("with OAuth bearer verification", () => {
+      let port: number;
+      let verifyBearerToken: ReturnType<typeof mock>;
+
+      beforeEach(async () => {
+        verifyBearerToken = mock(async (_request: Request) => ({
+          subject: "single-operator",
+          scope: ["openid", "mcp"],
+        }));
+        server = new StreamableHTTPServer({
+          port: 0,
+          logger: mockLogger,
+          auth: {
+            verifyBearerToken,
+            requiredScopes: ["mcp"],
+          },
+        });
+        await server.start();
+        port = server.getPort();
+
+        const mcpServer = new McpServer({
+          name: "test-server",
+          version: "1.0",
+        });
+        server.connectMCPServer(mcpServer);
+      });
+
+      test("should accept MCP requests with a verified scoped token", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer oauth-access-token",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).not.toBe(401);
+        expect(response.status).not.toBe(403);
+        expect(verifyBearerToken).toHaveBeenCalled();
+        expect(mockLogger.debug).toHaveBeenCalledWith(
+          expect.stringContaining("Authentication successful"),
+        );
+      });
+
+      test("should reject invalid OAuth bearer tokens", async () => {
+        verifyBearerToken.mockImplementation(async () => {
+          throw new Error("invalid token");
+        });
+
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer invalid-token",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.body).toMatchObject({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Unauthorized: Invalid token",
+          },
+        });
+      });
+
+      test("should reject OAuth bearer tokens without the mcp scope", async () => {
+        verifyBearerToken.mockImplementation(async () => ({
+          subject: "single-operator",
+          scope: ["openid"],
+        }));
+
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Authorization: "Bearer no-mcp-scope",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(403);
+        expect(response.body).toMatchObject({
+          jsonrpc: "2.0",
+          error: {
+            code: -32001,
+            message: "Forbidden: Missing required scope",
+          },
+        });
+      });
+    });
+
     describe("with no token and auth not disabled", () => {
       test("should throw on construction", () => {
         expect(
@@ -662,7 +754,9 @@ describe("StreamableHTTPServer", () => {
               logger: mockLogger,
               // No auth config — defaults to auth required
             }),
-        ).toThrow("MCP HTTP transport requires an auth token");
+        ).toThrow(
+          "MCP HTTP transport requires an auth token or bearer token verifier",
+        );
       });
 
       test("should throw with empty auth config", () => {
@@ -673,7 +767,9 @@ describe("StreamableHTTPServer", () => {
               logger: mockLogger,
               auth: {},
             }),
-        ).toThrow("MCP HTTP transport requires an auth token");
+        ).toThrow(
+          "MCP HTTP transport requires an auth token or bearer token verifier",
+        );
       });
     });
   });

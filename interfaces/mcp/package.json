@@ -16,6 +16,7 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@brains/auth-service": "workspace:*",
     "@brains/mcp-service": "workspace:*",
     "@brains/plugins": "workspace:*",
     "@modelcontextprotocol/sdk": "^1.24.0",

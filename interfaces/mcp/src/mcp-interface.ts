@@ -11,6 +11,7 @@ import type { Daemon, DaemonHealth } from "@brains/plugins";
 import { StdioMCPServer } from "./transports/stdio-server";
 import { StreamableHTTPServer } from "./transports/http-server";
 import type { IMCPTransport } from "@brains/mcp-service";
+import { getActiveAuthService } from "@brains/auth-service";
 import { mcpConfigSchema, type MCPConfig } from "./config";
 import { createMCPTools } from "./tools";
 import { setupJobProgressListener } from "./handlers";
@@ -96,12 +97,27 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       return this.httpServer;
     }
 
+    const authService = getActiveAuthService();
+
     this.httpServer = StreamableHTTPServer.createFresh({
       port: this.config.httpPort,
       logger: this.logger,
       auth: this.config.authToken
         ? { token: this.config.authToken }
-        : { disabled: true },
+        : authService
+          ? {
+              requiredScopes: ["mcp"],
+              verifyBearerToken: async (
+                request,
+              ): Promise<
+                | {
+                    subject: string;
+                    scope?: string[];
+                  }
+                | undefined
+              > => authService.verifyBearerToken(request),
+            }
+          : { disabled: true },
     });
 
     return this.httpServer;
@@ -228,12 +244,15 @@ export class MCPInterface extends InterfacePlugin<MCPConfig> {
       transportUserId,
     );
 
-    // For HTTP with auth token, authenticated users get anchor permission
-    // For HTTP without auth token, use the configured permission level
-    if (this.config.transport === "http" && this.config.authToken) {
+    // For HTTP with authentication, authenticated users get anchor permission.
+    // For HTTP without auth, use the configured permission level.
+    if (
+      this.config.transport === "http" &&
+      (this.config.authToken || getActiveAuthService())
+    ) {
       userLevel = "anchor";
       this.logger.debug(
-        "HTTP auth token configured - authenticated users will have anchor permissions",
+        "HTTP authentication configured - authenticated users will have anchor permissions",
       );
     }
 
