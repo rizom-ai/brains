@@ -35,6 +35,7 @@
     "@brains/mcp": "workspace:*",
     "@brains/note": "workspace:*",
     "@brains/prompt": "workspace:*",
+    "@brains/rizom-ecosystem": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",

@@ -3,7 +3,7 @@
   "versionGroups": [
     {
       "label": "Use workspace protocol for internal packages",
-      "dependencies": ["@brains/**", "@rizom/brain"],
+      "dependencies": ["@brains/**", "@rizom/**"],
       "dependencyTypes": ["dev", "prod"],
       "pinVersion": "workspace:*"
     },

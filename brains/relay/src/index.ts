@@ -20,6 +20,7 @@ import { summaryPlugin } from "@brains/summary";
 import { decksPlugin } from "@brains/decks";
 import { docsPlugin } from "@brains/doc";
 import { promptPlugin } from "@brains/prompt";
+import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import rizomSite from "@brains/site-rizom";
@@ -122,6 +123,7 @@ export default defineBrain({
       },
     ],
     ["site-content", siteContentPlugin, undefined],
+    ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
     ["site-builder", siteBuilderPlugin, {}],
   ],

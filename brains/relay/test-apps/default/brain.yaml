@@ -1,5 +1,7 @@
 brain: relay
 preset: default
+add:
+  - rizom-ecosystem
 
 plugins:
   directory-sync:
