@@ -14,6 +14,7 @@ export type {
   WidgetComponent,
   WidgetComponentProps,
   WidgetDataProvider,
+  WidgetVisibility,
 } from "./widget-registry";
 
 // DataSource exports

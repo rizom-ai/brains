@@ -16,6 +16,7 @@ import {
 import {
   OperatorSessionStore,
   type CreateOperatorSessionResult,
+  type OperatorSessionRecord,
 } from "./session-store";
 import { absoluteUrl, issuerFromRequest, normalizeIssuer } from "./issuer";
 import {
@@ -151,6 +152,16 @@ export class AuthService {
     subject = "single-operator",
   ): Promise<CreateOperatorSessionResult> {
     return this.sessionStore.createSession(subject);
+  }
+
+  async getOperatorSession(
+    request: Request,
+  ): Promise<OperatorSessionRecord | undefined> {
+    return this.sessionStore.getSessionFromRequest(request);
+  }
+
+  createOperatorLoginResponse(request: Request): Response {
+    return unauthorizedHtmlResponse(request);
   }
 
   async verifyBearerToken(
@@ -771,6 +782,9 @@ function parseClientAuth(
   }
 }
 
+const AUTH_FONTS_URL =
+  "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap";
+
 function renderSetupPage(setupToken: string): string {
   return `<!doctype html>
 <html lang="en">
@@ -778,7 +792,7 @@ function renderSetupPage(setupToken: string): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Set up passkey</title>
-    ${authPageStyles()}
+    ${authPageHeadAssets()}
   </head>
   <body>
     <main class="card">
@@ -817,7 +831,7 @@ function renderLoginPage(returnTo: string, title = "Operator login"): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${escapeHtml(title)}</title>
-    ${authPageStyles()}
+    ${authPageHeadAssets()}
   </head>
   <body>
     <main class="card">
@@ -847,13 +861,119 @@ function renderLoginPage(returnTo: string, title = "Operator login"): string {
 </html>`;
 }
 
-function authPageStyles(): string {
-  return `<style>
-      body { font-family: system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem; box-shadow: 0 8px 30px rgb(0 0 0 / 8%); }
-      button { border: 0; border-radius: 999px; padding: 0.75rem 1.2rem; font-weight: 700; background: #111; color: white; cursor: pointer; }
-      code { overflow-wrap: anywhere; }
-      [role='status'] { color: #555; }
+function authPageHeadAssets(): string {
+  return `<link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="${AUTH_FONTS_URL}" rel="stylesheet" />
+    <style>
+      :root {
+        --ink: #0a0819;
+        --ink-raised: #14112b;
+        --ink-deep: #05040f;
+        --paper: #f1eadd;
+        --paper-dim: #bfb7a6;
+        --paper-mute: #7a7263;
+        --rule-strong: rgba(241, 234, 221, 0.14);
+        --accent: #ff8b3d;
+        --accent-soft: rgba(255, 139, 61, 0.12);
+        --err: #e26d6d;
+        --font-display: "Fraunces", "Times New Roman", serif;
+        --font-body: "IBM Plex Sans", -apple-system, system-ui, sans-serif;
+        --font-mono: "JetBrains Mono", ui-monospace, monospace;
+        color-scheme: dark;
+      }
+      * { box-sizing: border-box; }
+      html, body { min-height: 100%; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 32px 18px;
+        font-family: var(--font-body);
+        line-height: 1.55;
+        color: var(--paper);
+        background:
+          radial-gradient(circle at 18% 12%, rgba(255, 139, 61, 0.18), transparent 28rem),
+          radial-gradient(circle at 82% 6%, rgba(241, 234, 221, 0.08), transparent 24rem),
+          linear-gradient(145deg, var(--ink-deep), var(--ink));
+        -webkit-font-smoothing: antialiased;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        opacity: 0.04;
+        mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+      }
+      .card {
+        width: min(100%, 36rem);
+        position: relative;
+        border: 1px solid var(--rule-strong);
+        border-radius: 4px;
+        padding: 30px 32px 34px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent), var(--ink-raised);
+        box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 28px 70px -34px rgba(0, 0, 0, 0.72);
+      }
+      .card::before {
+        content: "Operator gate";
+        display: block;
+        margin-bottom: 16px;
+        font-family: var(--font-mono);
+        font-size: 10.5px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--paper-mute);
+      }
+      .card::after {
+        content: "";
+        position: absolute;
+        left: 32px;
+        top: 58px;
+        width: 84px;
+        height: 1px;
+        background: var(--accent);
+      }
+      h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-variation-settings: "opsz" 144, "SOFT" 55, "wght" 380;
+        font-size: clamp(2.25rem, 8vw, 3.5rem);
+        line-height: 0.98;
+        letter-spacing: -0.03em;
+      }
+      p { color: var(--paper-dim); margin: 18px 0 0; }
+      button {
+        margin-top: 24px;
+        border: 1px solid rgba(255, 139, 61, 0.55);
+        border-radius: 999px;
+        padding: 0.82rem 1.18rem;
+        font-family: var(--font-mono);
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: var(--accent);
+        color: var(--ink-deep);
+        cursor: pointer;
+        box-shadow: 0 10px 28px -18px var(--accent);
+      }
+      button:hover { filter: brightness(1.06); transform: translateY(-1px); }
+      code {
+        overflow-wrap: anywhere;
+        color: var(--paper);
+        background: var(--accent-soft);
+        border: 1px solid var(--rule-strong);
+        padding: 0.08rem 0.3rem;
+      }
+      [role='status'] { min-height: 1.5em; color: var(--paper-mute); }
+      @media (max-width: 520px) {
+        .card { padding: 24px 22px 28px; }
+        .card::after { left: 22px; }
+      }
     </style>`;
 }
 
@@ -959,12 +1079,7 @@ function renderAuthorizePage(params: ValidAuthorizationRequest): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Authorize ${escapeHtml(params.clientName)}</title>
-    <style>
-      body { font-family: system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
-      .card { border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem; box-shadow: 0 8px 30px rgb(0 0 0 / 8%); }
-      button { border: 0; border-radius: 999px; padding: 0.75rem 1.2rem; font-weight: 700; background: #111; color: white; cursor: pointer; }
-      code { overflow-wrap: anywhere; }
-    </style>
+    ${authPageHeadAssets()}
   </head>
   <body>
     <main class="card">

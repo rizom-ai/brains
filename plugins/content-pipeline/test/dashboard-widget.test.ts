@@ -19,6 +19,7 @@ interface DashboardWidgetPayload {
   section: string;
   priority: number;
   rendererName: string;
+  visibility: "public" | "operator";
   dataProvider: () => Promise<PipelineWidgetData>;
 }
 
@@ -53,6 +54,7 @@ describe("dashboard widget registration", () => {
       section: "secondary",
       priority: 100,
       rendererName: "PipelineWidget",
+      visibility: "operator",
     });
     expect(widgetPayload?.dataProvider).toBeFunction();
   });

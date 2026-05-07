@@ -239,7 +239,7 @@ export class ServerManager {
     }
 
     const apiRoute = this.getCurrentApiRoutes().find((route) => {
-      const routeMethod = route.definition.method ?? "POST";
+      const routeMethod = route.definition.method;
       return route.fullPath === requestPath && routeMethod === requestMethod;
     });
     if (apiRoute && this.options.messageBus) {

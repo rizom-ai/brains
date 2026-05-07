@@ -17,6 +17,7 @@ import {
   type DashboardRenderInput,
 } from "./dashboard-page";
 import { resolveWidgetsForRender } from "./render/resolve-widgets";
+import { getActiveAuthService } from "@brains/auth-service";
 import packageJson from "../package.json";
 
 const dashboardConfigSchema = z.object({
@@ -35,6 +36,7 @@ const registerWidgetPayloadSchema = z
     priority: z.number().default(50),
     section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
     rendererName: z.string(),
+    visibility: z.enum(["public", "operator"]).default("public"),
     component: z.custom<WidgetComponent>().optional(),
     clientScript: z.string().optional(),
     dataProvider: z.function().returns(z.promise(z.unknown())),
@@ -65,6 +67,7 @@ function createRegisteredWidget(
     priority: payload.priority,
     section: payload.section,
     rendererName: payload.rendererName,
+    visibility: payload.visibility,
     ...(payload.component ? { component: payload.component } : {}),
     ...(payload.clientScript ? { clientScript: payload.clientScript } : {}),
     dataProvider: payload.dataProvider as () => Promise<unknown>,
@@ -148,8 +151,12 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           }
 
           const ctx = this.ctx;
+          const operatorSession =
+            await getActiveAuthService()?.getOperatorSession(request);
           const [dashboardData, appInfo, entityCounts] = await Promise.all([
-            this.datasource.getDashboardData(),
+            this.datasource.getDashboardData({
+              includeOperator: Boolean(operatorSession),
+            }),
             ctx.appInfo(),
             ctx.entityService.getEntityCounts(),
           ]);

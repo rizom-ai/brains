@@ -24,18 +24,30 @@ export class DashboardDataSource implements DataSource {
     this.logger = logger.child("DashboardDataSource");
   }
 
-  async getDashboardData(): Promise<DashboardData> {
+  async getDashboardData(
+    options: { includeOperator?: boolean } = {},
+  ): Promise<DashboardData> {
     const widgets: Record<string, WidgetData> = {};
-    const registeredWidgets = this.registry.list();
+    const registeredWidgets = this.registry.list({
+      ...(options.includeOperator !== undefined && {
+        includeOperator: options.includeOperator,
+      }),
+    });
 
     // Fetch all widget data in parallel
     const results = await Promise.allSettled(
       registeredWidgets.map(async (widget) => {
         const data = await widget.dataProvider();
-        const { dataProvider: _, component: __, ...widgetMeta } = widget;
+        const {
+          dataProvider: _,
+          component: __,
+          clientScript: ___,
+          visibility = "public",
+          ...widgetMeta
+        } = widget;
         return {
           key: `${widget.pluginId}:${widget.id}`,
-          widget: widgetMeta,
+          widget: { ...widgetMeta, visibility },
           data,
         };
       }),

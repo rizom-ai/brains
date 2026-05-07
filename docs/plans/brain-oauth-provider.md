@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress. OAuth provider foundation is implemented and validated with Pi MCP as a real OAuth-capable MCP client. Remaining work is hardening, CMS/dashboard route gating, and later multi-user/user-entity alignment.
+In progress. OAuth provider foundation is implemented, Pi MCP has validated the MCP OAuth flow, and dashboard widgets can now opt into passkey-backed operator visibility. Remaining work is hardening and later multi-user/user-entity alignment.
 
 ## Context
 
@@ -67,8 +67,8 @@ Recovery from total credential loss is a manual brain-side reset (operator ssh's
 A single Hono middleware module validates JWTs and attaches the verified identity (and the brain user record it resolves to) to the request context. Used by:
 
 - MCP transport (replaces the current token compare)
-- CMS routes (`/cms`, `/cms/config.yml`)
-- future operator-facing routes
+- dashboard widgets that opt into operator-only visibility
+- future operator-facing routes that do not already delegate auth to their own backend
 
 The middleware is the integration point with `permissionService`.
 
@@ -135,9 +135,9 @@ This avoids exposing an open enrollment endpoint while keeping the bootstrap UX 
 
 `/.well-known/oauth-protected-resource` metadata points to the brain's own authorization server, per the latest MCP auth specification.
 
-### CMS gate
+### CMS/dashboard auth boundary
 
-`plugins/admin` (per `cms-on-core.md`) registers its routes as protected. `/cms` and `/cms/config.yml` go behind the same JWT middleware. The Sveltia → GitHub flow is unchanged in this plan; only the admin-shell visibility gates on operator login. Plan 3 deepens this.
+`plugins/cms` remains a public shell because Sveltia/GitHub already owns CMS write authentication. `plugins/dashboard` also remains a public route, but widgets can opt into `visibility: "operator"`. Public requests only fetch/render public widgets; requests with a valid passkey-backed operator session include both public and operator widgets. For now, only the Publication Pipeline widget opts into operator visibility; the exact widget mix remains a later product decision. Plan 3 deepens write-side CMS behavior.
 
 ### Identity flow
 
@@ -177,11 +177,13 @@ The downstream permission machinery does not change. The middleware is the only 
 - DCR enabled for MCP clients
 - validated with Pi MCP adapter against Rover core (`/mcp-auth rover-brain`, tool discovery, `system_status`, and `a2a_call`)
 
-### Phase 4 — CMS/dashboard gate ⏳
+### Phase 4 — dashboard widget visibility ✅
 
-- gate `/cms`, `/cms/config.yml`, and operator-only dashboard surfaces behind the same auth model
-- Sveltia → GitHub flow unchanged; only the shell-page visibility gates
-- verify operator can edit content with a single passkey login
+- kept `/cms` and `/cms/config.yml` public because Sveltia/GitHub already owns CMS auth
+- kept `/dashboard` and Rover's `/` dashboard mount public as a dashboard shell
+- added widget-level `visibility: "public" | "operator"`, defaulting to `"public"`
+- marked only the Publication Pipeline widget as operator-visible for now
+- public requests only fetch/render public widgets; operator-session requests include operator widgets
 
 ### Phase 5 — multi-user expansion ⏳
 
@@ -196,12 +198,14 @@ The downstream permission machinery does not change. The middleware is the only 
 3. `/setup` always requires a one-shot setup token until the first credential exists.
 4. Runtime auth state lives under `./data/auth` by default, never under `brain-data`.
 5. MCP advertises auth through `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"` derived from the request origin.
+6. CMS auth remains delegated to Sveltia/GitHub for v1; Brain OAuth does not wrap `/cms`.
+7. Dashboard auth is widget-level for v1; Brain OAuth does not wrap the whole dashboard route.
 
 ## Open questions
 
 1. How strict should issuer/host validation be when the same brain is reachable via localhost, preview, and production domains?
-2. Does the dashboard at `/` need to be gated too, or only `/cms`? Likely yes for operator-only views, but check `plugins/dashboard` first.
-3. Should the single-operator subject remain `single-operator` until multi-user lands, or should a local user entity be created now as a compatibility bridge?
+2. Should the single-operator subject remain `single-operator` until multi-user lands, or should a local user entity be created now as a compatibility bridge?
+3. Should API-route execution receive the operator subject instead of the current `webserver` anonymous identity if private API routes are used for future write flows?
 
 ## Verification
 
@@ -210,7 +214,7 @@ The downstream permission machinery does not change. The middleware is the only 
 3. ✅ Pi MCP adapter completes dynamic client registration and the OAuth code+PKCE flow against the brain
 4. ✅ Pi MCP adapter calls `/mcp` with a bearer token issued by the brain and receives normal MCP responses
 5. ✅ `MCP_AUTH_TOKEN` env var is no longer required for HTTP MCP when `auth-service` is enabled
-6. ⏳ `/cms` and `/cms/config.yml` return 401 for unauthenticated browsers; serve normally after operator login
+6. ✅ `/cms` remains public/delegated to Sveltia/GitHub auth, while dashboard widgets can require an operator session before their data is fetched/rendered
 7. ✅ OAuth-authenticated HTTP MCP callers receive anchor permissions and normal tool filtering
 8. ✅ JWKS endpoint serves the OAuth signing key today, ready to also carry the A2A signing key when plan 1 lands
 9. ✅ Refresh token rotation works across brain restarts/runtime storage

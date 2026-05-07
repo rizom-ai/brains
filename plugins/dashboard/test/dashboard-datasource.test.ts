@@ -117,6 +117,39 @@ describe("DashboardDataSource", () => {
       expect(result.widgets["plugin:bad-widget"]).toBeUndefined();
     });
 
+    it("should hide operator widgets unless requested", async () => {
+      registry.register({
+        id: "public-widget",
+        pluginId: "test",
+        title: "Public",
+        section: "primary",
+        priority: 10,
+        rendererName: "StatsWidget",
+        dataProvider: async () => ({ value: "public" }),
+      });
+      registry.register({
+        id: "operator-widget",
+        pluginId: "test",
+        title: "Operator",
+        section: "primary",
+        priority: 20,
+        rendererName: "StatsWidget",
+        visibility: "operator",
+        dataProvider: async () => ({ value: "operator" }),
+      });
+
+      const publicResult = await datasource.getDashboardData();
+      expect(Object.keys(publicResult.widgets)).toEqual(["test:public-widget"]);
+
+      const operatorResult = await datasource.getDashboardData({
+        includeOperator: true,
+      });
+      expect(Object.keys(operatorResult.widgets)).toEqual([
+        "test:public-widget",
+        "test:operator-widget",
+      ]);
+    });
+
     it("should return widget metadata with rendererName but without dataProvider", async () => {
       const widget: RegisteredWidget = {
         id: "test-widget",

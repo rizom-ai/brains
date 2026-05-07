@@ -9,6 +9,7 @@ export const widgetMetaSchema = z.object({
   priority: z.number(),
   section: z.enum(["primary", "secondary", "sidebar"]),
   rendererName: z.string(),
+  visibility: z.enum(["public", "operator"]),
   component: z.custom<WidgetComponent>().optional(),
 });
 

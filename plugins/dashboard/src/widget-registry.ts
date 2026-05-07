@@ -10,6 +10,7 @@ export interface WidgetComponentProps {
 
 export type WidgetComponent = ComponentType<WidgetComponentProps>;
 export type WidgetDataProvider = () => Promise<unknown>;
+export type WidgetVisibility = "public" | "operator";
 
 export const BUILT_IN_WIDGET_RENDERERS = [
   "StatsWidget",
@@ -40,18 +41,26 @@ export const dashboardWidgetSchema = z.object({
   priority: z.number().default(50),
   section: z.enum(["primary", "secondary", "sidebar"]).default("primary"),
   rendererName: z.string(),
+  visibility: z.enum(["public", "operator"]).default("public"),
 });
 
 export type DashboardWidgetMeta = z.infer<typeof dashboardWidgetSchema>;
+export type DashboardWidgetInput = z.input<typeof dashboardWidgetSchema>;
 
-export interface RegisteredWidget extends DashboardWidgetMeta {
+export interface RegisteredWidget extends DashboardWidgetInput {
+  dataProvider: WidgetDataProvider;
+  component?: WidgetComponent;
+  clientScript?: string;
+}
+
+export interface StoredRegisteredWidget extends DashboardWidgetMeta {
   dataProvider: WidgetDataProvider;
   component?: WidgetComponent;
   clientScript?: string;
 }
 
 export class DashboardWidgetRegistry {
-  private widgets = new Map<string, RegisteredWidget>();
+  private widgets = new Map<string, StoredRegisteredWidget>();
   private logger: Logger;
 
   constructor(logger: Logger) {
@@ -59,12 +68,16 @@ export class DashboardWidgetRegistry {
   }
 
   register(widget: RegisteredWidget): void {
-    const key = `${widget.pluginId}:${widget.id}`;
-    this.widgets.set(key, widget);
+    const normalizedWidget: StoredRegisteredWidget = {
+      ...widget,
+      ...dashboardWidgetSchema.parse(widget),
+    };
+    const key = `${normalizedWidget.pluginId}:${normalizedWidget.id}`;
+    this.widgets.set(key, normalizedWidget);
     this.logger.debug("Dashboard widget registered", {
       key,
-      title: widget.title,
-      rendererName: widget.rendererName,
+      title: normalizedWidget.title,
+      rendererName: normalizedWidget.rendererName,
     });
   }
 
@@ -81,13 +94,32 @@ export class DashboardWidgetRegistry {
     }
   }
 
-  get(pluginId: string, widgetId: string): RegisteredWidget | undefined {
+  get(pluginId: string, widgetId: string): StoredRegisteredWidget | undefined {
     return this.widgets.get(`${pluginId}:${widgetId}`);
   }
 
-  list(section?: "primary" | "secondary" | "sidebar"): RegisteredWidget[] {
+  list(
+    options:
+      | "primary"
+      | "secondary"
+      | "sidebar"
+      | {
+          section?: "primary" | "secondary" | "sidebar";
+          includeOperator?: boolean;
+        } = {},
+  ): StoredRegisteredWidget[] {
+    const resolved =
+      typeof options === "string" ? { section: options } : options;
+
     return Array.from(this.widgets.values())
-      .filter((widget) => !section || widget.section === section)
+      .filter(
+        (widget) => !resolved.section || widget.section === resolved.section,
+      )
+      .filter(
+        (widget) =>
+          (resolved.includeOperator ?? false) ||
+          widget.visibility !== "operator",
+      )
       .sort((a, b) => a.priority - b.priority);
   }
 
