@@ -506,6 +506,7 @@ describe("AuthService", () => {
       authorization_servers: ["https://brain.example.com"],
       bearer_methods_supported: ["header"],
       resource_signing_alg_values_supported: ["ES256"],
+      scopes_supported: ["mcp"],
     });
   });
 });

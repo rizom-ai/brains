@@ -43,6 +43,7 @@ export interface ProtectedResourceMetadata extends JsonObject {
   authorization_servers: string[];
   bearer_methods_supported: string[];
   resource_signing_alg_values_supported: string[];
+  scopes_supported: string[];
 }
 
 export interface RegisteredOAuthClient {
