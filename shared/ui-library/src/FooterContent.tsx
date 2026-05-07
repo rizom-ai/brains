@@ -2,6 +2,7 @@ import type { JSX, ComponentChildren } from "preact";
 import { NavLinks, type NavigationItem } from "./NavLinks";
 import { ThemeToggle } from "./ThemeToggle";
 import { SocialLinks, type SocialLink } from "./SocialLinks";
+import { Logo } from "./Logo";
 
 export interface FooterContentProps {
   primaryNav: NavigationItem[];
@@ -10,11 +11,14 @@ export interface FooterContentProps {
   socialLinks?: SocialLink[] | undefined;
   showThemeToggle?: boolean;
   variant?: "default" | "cta";
+  /** Optional brand block — wordmark + tagline displayed on the left. */
+  title?: string | undefined;
+  tagline?: string | undefined;
   children?: ComponentChildren;
 }
 
 /**
- * Section label — monospace uppercase micro-heading, neon green tinted
+ * Section label — small mono caps, accent-tinted.
  */
 function SectionLabel({
   children,
@@ -25,8 +29,8 @@ function SectionLabel({
 }): JSX.Element {
   const className =
     variant === "cta"
-      ? "text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-white opacity-40 mb-5"
-      : "text-[10px] font-mono font-bold uppercase tracking-[0.16em] text-brand opacity-60 mb-5";
+      ? "font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-white/70 mb-5"
+      : "font-mono text-[11px] font-medium uppercase tracking-[0.2em] text-accent/80 mb-5";
   return <div className={className}>{children}</div>;
 }
 
@@ -41,6 +45,8 @@ export function FooterContent({
   socialLinks,
   showThemeToggle = false,
   variant = "default",
+  title,
+  tagline,
   children,
 }: FooterContentProps): JSX.Element {
   const linkClassName =
@@ -53,27 +59,39 @@ export function FooterContent({
       ? "w-4 h-4 text-white opacity-40 hover:opacity-100 hover:text-accent"
       : "w-4 h-4 text-theme-light hover:text-brand hover:opacity-100";
 
-  const copyrightClassName =
-    variant === "cta"
-      ? "text-[11px] text-white opacity-30 font-mono tracking-[0.04em]"
-      : "text-[11px] text-theme-light font-mono tracking-[0.04em]";
-
   const hasSecondary = secondaryNav.length > 0;
   const hasSocial = socialLinks && socialLinks.length > 0;
+  const hasBrand = Boolean(title);
+  // children is `ComponentChildren` (often an array of slot renders).
+  // Treat empty arrays as "no slot content" so the slot div doesn't render
+  // an empty column.
+  const hasSlot = Array.isArray(children)
+    ? children.length > 0
+    : Boolean(children);
+  const taglineColor = variant === "cta" ? "text-white/60" : "text-theme-muted";
 
   return (
     <div>
-      {/* Main layout: stacked on mobile, row on desktop */}
-      <div className="flex flex-col sm:flex-row sm:items-start sm:gap-12">
-        {/* Slot content (e.g. newsletter) — first on mobile, pushed right on desktop */}
-        {children && (
-          <div className="order-first sm:order-last sm:ml-auto pb-7 border-b border-theme-light sm:pb-0 sm:border-b-0">
-            {children}
+      {/* Top row — brand block | nav columns | optional slot */}
+      <div className="flex flex-col gap-10 sm:flex-row sm:items-start sm:gap-12">
+        {/* Brand block (left) — wordmark + tagline */}
+        {hasBrand && (
+          <div className="sm:max-w-[18rem] sm:flex-1">
+            <a href="/" className="text-logo inline-block mb-2">
+              <Logo title={title} className="text-[1.25rem]" />
+            </a>
+            {tagline && (
+              <p
+                className={`text-[0.85rem] leading-[1.55] ${taglineColor} max-w-[30ch]`}
+              >
+                {tagline}
+              </p>
+            )}
           </div>
         )}
 
-        {/* Nav columns — equal grid on mobile, flex row on desktop */}
-        <div className="grid grid-cols-2 sm:flex sm:gap-12 pt-7 sm:pt-0">
+        {/* Nav columns */}
+        <div className="grid grid-cols-2 sm:flex sm:gap-12">
           {primaryNav.length > 0 && (
             <div>
               <SectionLabel variant={variant}>Navigate</SectionLabel>
@@ -96,11 +114,20 @@ export function FooterContent({
             </div>
           )}
         </div>
+
+        {/* Slot column (right) — newsletter or other plugin content */}
+        {hasSlot && (
+          <div className="sm:ml-auto sm:max-w-[20rem]">{children}</div>
+        )}
       </div>
 
       {/* Status bar: copyright left, social + toggle right */}
-      <div className="mt-7 sm:mt-12 pt-5 border-t border-theme-light flex flex-row justify-between items-center gap-4">
-        {copyright && <p className={copyrightClassName}>{copyright}</p>}
+      <div className="mt-14 pt-6 border-t border-rule flex flex-row flex-wrap justify-between items-center gap-4">
+        {copyright && (
+          <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-theme-light">
+            {copyright}
+          </p>
+        )}
 
         <div className="flex items-center gap-5">
           {hasSocial && (

@@ -25,19 +25,22 @@ export function CTASection({
 }: CTASectionProps): JSX.Element {
   if (variant === "editorial") {
     return (
-      <section className="cta-bg-pattern bg-theme-subtle py-24 md:py-32 px-6 md:px-12 relative">
-        <div className="section-divider absolute top-0 left-0 right-0" />
-        <div className="max-w-4xl mx-auto">
-          <p className="text-sm tracking-widest uppercase text-theme-muted mb-4">
-            Get in Touch
-          </p>
-          <h2 className="text-3xl md:text-4xl font-semibold text-heading max-w-2xl mb-10">
+      <section className="cta-bg-pattern py-28 md:py-32 px-6 md:px-12">
+        <div className="max-w-5xl mx-auto">
+          <span className="inline-flex items-center gap-[0.6rem] font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent mb-6 before:content-[''] before:w-[18px] before:h-px before:bg-accent">
+            Get in touch
+          </span>
+          <h2 className="font-heading font-normal text-heading leading-[1.05] tracking-[-0.02em] text-[clamp(2.25rem,4.5vw,3.5rem)] max-w-[18ch] mb-10 [font-variation-settings:'opsz'_96,'SOFT'_60]">
             {cta.heading}
           </h2>
-          <div className="flex flex-wrap items-center gap-6">
-            <LinkButton href={cta.buttonLink} variant="primary" size="lg">
+          <div className="flex flex-wrap items-center gap-7">
+            <a
+              href={cta.buttonLink}
+              className="inline-flex items-center gap-2 font-mono text-[0.78rem] font-medium uppercase tracking-[0.14em] bg-accent text-theme-inverse px-6 py-[0.95rem] rounded-xl transition-[background,transform] duration-150 hover:bg-[var(--color-text)] hover:-translate-y-px"
+            >
               {cta.buttonText}
-            </LinkButton>
+              <span aria-hidden="true">→</span>
+            </a>
 
             {socialLinks &&
               socialLinks.length > 0 &&
@@ -47,7 +50,7 @@ export function CTASection({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-theme-muted hover:text-brand transition-colors"
+                  className="font-mono text-[0.72rem] font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-accent transition-colors relative pb-[3px] before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
                 >
                   {link.label ?? link.platform}
                 </a>

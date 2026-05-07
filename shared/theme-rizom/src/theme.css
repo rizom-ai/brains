@@ -368,10 +368,9 @@
     --font-nav: "Barlow", system-ui, sans-serif;
     --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-    /* theme-base bridges (sans / heading / serif / mono) */
+    /* theme-base bridges (sans / heading / mono) */
     --font-sans: var(--font-body);
     --font-heading: var(--font-display);
-    --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
 
     /* Typography scale — each token bundles font-size + line-height +
        letter-spacing via Tailwind v4 modifiers (see theme-base @theme inline).

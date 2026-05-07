@@ -10,6 +10,7 @@ import { createTemplate } from "@brains/templates";
 import { enrichedBlogPostSchema } from "@brains/blog";
 import { enrichedDeckSchema } from "@brains/decks";
 import { siteInfoCTASchema } from "@brains/site-info";
+import { siteMetadataSectionSchema } from "@brains/site-composition";
 import {
   professionalProfileSchema,
   professionalProfileExtension,
@@ -87,6 +88,7 @@ export class ProfessionalSitePlugin extends ServicePlugin<ProfessionalSiteConfig
       postsListUrl: z.string(),
       decksListUrl: z.string(),
       cta: siteInfoCTASchema,
+      sections: z.record(z.string(), siteMetadataSectionSchema),
     });
 
     // About page schema

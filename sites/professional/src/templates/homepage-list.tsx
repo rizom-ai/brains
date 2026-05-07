@@ -1,15 +1,24 @@
-import type { JSX } from "preact";
+import type { JSX, ComponentChildren } from "preact";
 import type { ProfessionalProfile } from "../schemas";
 import type { EnrichedBlogPost } from "@brains/blog";
 import type { EnrichedDeck } from "@brains/decks";
 import type { SiteInfoCTA } from "@brains/site-info";
 import {
-  ContentSection,
+  ContentList,
   CTASection,
   type ContentItem,
   Head,
-  TagsList,
+  SectionHeader,
+  SubjectsList,
+  renderHighlightedText,
 } from "@brains/ui-library";
+
+/**
+ * Per-section blurb metadata, keyed by section id (e.g. essays,
+ * presentations, about). Comes from siteInfo.sections — users can edit
+ * via the CMS.
+ */
+type HomepageSections = Record<string, { blurb?: string }>;
 
 /**
  * Homepage data structure
@@ -22,11 +31,39 @@ export interface HomepageListData {
   postsListUrl: string;
   decksListUrl: string;
   cta: SiteInfoCTA;
+  sections: HomepageSections;
 }
 
+const GRID_CLS =
+  "grid md:grid-cols-[14rem_1px_1fr] gap-y-2 gap-x-0 md:gap-16 items-start";
+const RULE_CLS =
+  "border-t md:border-t-0 md:border-l border-rule-strong md:self-stretch";
+
+const EditorialRow = ({
+  number,
+  title,
+  blurb,
+  children,
+}: {
+  number: string;
+  title: string;
+  blurb?: string | undefined;
+  children: ComponentChildren;
+}): JSX.Element => (
+  <section className="py-20 border-b border-rule">
+    <div className="container mx-auto px-6 md:px-12 max-w-6xl">
+      <div className={GRID_CLS}>
+        <SectionHeader title={title} number={number} blurb={blurb} />
+        <div className={RULE_CLS} aria-hidden="true" />
+        <div className="mt-6 md:mt-0">{children}</div>
+      </div>
+    </div>
+  </section>
+);
+
 /**
- * Minimal, clean homepage layout
- * Two-zone hero with asymmetric composition, varied section widths
+ * Editorial homepage — restrained hero, three numbered sections (Essays,
+ * Presentations, About) with optional CMS-driven blurbs, full-width CTA.
  */
 export const HomepageListLayout = ({
   profile,
@@ -35,11 +72,11 @@ export const HomepageListLayout = ({
   postsListUrl,
   decksListUrl,
   cta,
+  sections,
 }: HomepageListData): JSX.Element => {
   // Use tagline if available, fall back to description
   const tagline = profile.tagline || profile.description;
 
-  // Map posts to ContentItem format with series badges
   const postItems: ContentItem[] = posts.map((post) => ({
     id: post.id,
     url: post.url,
@@ -55,7 +92,6 @@ export const HomepageListLayout = ({
         : undefined,
   }));
 
-  // Map decks to ContentItem format
   const deckItems: ContentItem[] = decks.map((deck) => ({
     id: deck.id,
     url: deck.url,
@@ -68,80 +104,90 @@ export const HomepageListLayout = ({
   const description =
     profile.intro || profile.description || tagline || "Professional site";
 
+  const hasAbout =
+    Boolean(profile.description) ||
+    (profile.expertise !== undefined && profile.expertise.length > 0);
+
   return (
     <>
       <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
-        {/* Hero Section — tall, spacious, asymmetric */}
-        <header className="hero-bg-pattern relative w-full min-h-[70vh] flex items-end px-6 md:px-12 bg-theme overflow-hidden">
-          <div className="relative z-10 max-w-6xl mx-auto w-full pb-16 md:pb-24">
+        {/* Hero Section — restrained editorial */}
+        <header className="hero-bg-pattern relative w-full px-6 md:px-12 pt-28 pb-24 md:pt-28 md:pb-24 overflow-hidden border-b border-rule">
+          <div className="relative z-10 max-w-6xl mx-auto w-full">
+            {profile.name && (
+              <div className="flex items-center gap-[0.6rem] mb-6 font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent">
+                <span className="w-[18px] h-px bg-accent" aria-hidden="true" />
+                <span>{profile.name}</span>
+              </div>
+            )}
             {tagline && (
-              <h1 className="text-5xl md:text-6xl lg:text-7xl font-semibold text-heading leading-[1.08] tracking-tight">
-                {tagline}
+              <h1 className="font-heading text-[clamp(2.75rem,6.5vw,5.5rem)] font-normal text-heading leading-[1.02] tracking-[-0.025em] max-w-[18ch] [font-variation-settings:'opsz'_144,'SOFT'_30]">
+                {renderHighlightedText(
+                  tagline,
+                  "italic font-normal text-accent [font-variation-settings:'opsz'_144,'SOFT'_80]",
+                )}
               </h1>
             )}
             {profile.intro && (
-              <>
-                <div className="w-12 border-t border-theme mt-8 mb-6 md:mt-10 md:mb-8"></div>
-                <p className="text-lg md:text-xl text-theme-muted leading-relaxed max-w-xl md:max-w-lg">
-                  {profile.intro}
-                </p>
-              </>
+              <p className="font-heading font-light text-[clamp(1.1rem,1.8vw,1.4rem)] leading-[1.5] text-theme-muted max-w-[42ch] mt-8 [font-variation-settings:'opsz'_24]">
+                {renderHighlightedText(profile.intro, "italic text-accent")}
+              </p>
             )}
           </div>
         </header>
 
-        <div className="section-divider" />
+        <EditorialRow
+          number="01"
+          title="Essays"
+          blurb={sections["essays"]?.blurb}
+        >
+          <ContentList
+            items={postItems}
+            viewAllUrl={postsListUrl}
+            viewAllLabel="View all essays"
+          />
+        </EditorialRow>
 
-        {/* Main Content — Single shared container */}
-        <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">
-          {/* Essays Section */}
-          <div className="content-section-reveal mb-20 md:mb-32">
-            <ContentSection
-              title="Essays"
-              items={postItems}
-              viewAllUrl={postsListUrl}
+        {deckItems.length > 0 && (
+          <EditorialRow
+            number="02"
+            title="Presentations"
+            blurb={sections["presentations"]?.blurb}
+          >
+            <ContentList
+              items={deckItems}
+              viewAllUrl={decksListUrl}
+              viewAllLabel="View all presentations"
             />
-          </div>
+          </EditorialRow>
+        )}
 
-          {/* Presentations Section */}
-          {deckItems.length > 0 && (
-            <div className="content-section-reveal mb-20 md:mb-32">
-              <ContentSection
-                title="Presentations"
-                items={deckItems}
-                viewAllUrl={decksListUrl}
-              />
-            </div>
-          )}
-
-          {/* About Section — Stacked variant */}
-          {(profile.description ||
-            (profile.expertise && profile.expertise.length > 0)) && (
-            <div className="content-section-reveal mb-20 md:mb-32">
-              <ContentSection
-                title="About"
-                viewAllUrl="/about"
-                variant="stacked"
+        {hasAbout && (
+          <EditorialRow
+            number="03"
+            title="About"
+            blurb={sections["about"]?.blurb}
+          >
+            <div className="flex flex-col gap-8">
+              {profile.description && (
+                <p className="font-heading font-light text-[1.25rem] leading-[1.55] text-theme max-w-[55ch] [font-variation-settings:'opsz'_24,'SOFT'_50]">
+                  {profile.description}
+                </p>
+              )}
+              {profile.expertise && profile.expertise.length > 0 && (
+                <SubjectsList subjects={profile.expertise} />
+              )}
+              <a
+                href="/about"
+                className="mt-6 inline-flex items-center gap-2 font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-accent pb-1 relative before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
               >
-                <div className="space-y-6">
-                  {profile.description && (
-                    <p className="text-lg text-theme leading-relaxed">
-                      {profile.description}
-                    </p>
-                  )}
-                  {profile.expertise && profile.expertise.length > 0 && (
-                    <TagsList
-                      tags={profile.expertise}
-                      variant="accent"
-                      size="sm"
-                    />
-                  )}
-                </div>
-              </ContentSection>
+                Learn more
+                <span aria-hidden="true">→</span>
+              </a>
             </div>
-          )}
-        </div>
+          </EditorialRow>
+        )}
 
         {/* CTA Section — Full-width */}
         <CTASection

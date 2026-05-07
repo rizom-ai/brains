@@ -1,5 +1,15 @@
 # @brains/image-plugin
 
+## 0.2.0-alpha.51
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/image@0.2.0-alpha.51
+  - @brains/utils@0.2.0-alpha.51
+  - @brains/entity-service@0.2.0-alpha.51
+  - @brains/plugins@0.2.0-alpha.51
+
 ## 0.2.0-alpha.50
 
 ### Patch Changes

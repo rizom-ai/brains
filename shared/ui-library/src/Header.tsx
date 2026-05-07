@@ -1,4 +1,4 @@
-import type { VNode } from "preact";
+import type { ComponentChildren, VNode } from "preact";
 import { Logo } from "./Logo";
 import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
@@ -25,6 +25,12 @@ export interface HeaderProps {
    * Overrides the Logo component's default text styling
    */
   titleClassName?: string;
+
+  /**
+   * Optional wordmark slot — replaces the title/logo entirely.
+   * Use this to render a structured site brand (e.g. `<Wordmark name="yeehaa" brandSuffix="io" />`).
+   */
+  wordmark?: ComponentChildren;
 
   /**
    * Primary navigation items
@@ -58,12 +64,15 @@ export function Header({
   title,
   logo,
   titleClassName,
+  wordmark,
   navigation,
   cta,
   showThemeToggle = false,
   themeToggleClassName,
 }: HeaderProps): VNode {
-  const titleElement = logo ? (
+  const titleElement = wordmark ? (
+    wordmark
+  ) : logo ? (
     <Logo height={36} />
   ) : titleClassName ? (
     <span className={titleClassName}>{title}</span>
@@ -72,26 +81,24 @@ export function Header({
   );
 
   return (
-    <header className="py-4 border-b border-theme">
-      <div className="max-w-layout mx-auto px-6 md:px-8">
-        <div className="flex flex-row justify-between items-center">
+    <header className="sticky top-0 z-50 py-5 border-b border-rule bg-header">
+      <div className="max-w-layout mx-auto px-6 md:px-12">
+        <div className="flex flex-row justify-between items-center gap-8">
           <a href="/" className="text-logo hover:opacity-80 transition-opacity">
             {titleElement}
           </a>
 
-          {/* Desktop navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <nav className="flex gap-6" aria-label="Main navigation">
-              {navigation.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="text-sm text-theme hover:text-brand transition-colors"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+          {/* Desktop navigation — center column */}
+          <nav className="hidden md:flex gap-7" aria-label="Main navigation">
+            {navigation.map((item) => (
+              <a key={item.href} href={item.href} className="nav-link">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Right cluster — cta + toggle */}
+          <div className="hidden md:flex items-center gap-4">
             {cta && (
               <LinkButton
                 href={cta.buttonLink}
@@ -105,7 +112,7 @@ export function Header({
             )}
             {showThemeToggle && (
               <ThemeToggle
-                size="sm"
+                size="md"
                 {...(themeToggleClassName
                   ? { className: themeToggleClassName }
                   : {})}
@@ -119,9 +126,9 @@ export function Header({
             ssrOnClick="toggleMobileMenu()"
             type="button"
             className={cn(
-              "md:hidden p-2 h-auto rounded-lg",
-              "text-brand border border-brand/40 bg-brand/10",
-              "hover:bg-brand hover:text-theme-inverse hover:border-brand",
+              "md:hidden p-2 h-auto rounded-[10px]",
+              "text-theme-muted border border-theme bg-theme-subtle",
+              "hover:text-accent hover:border-brand/40",
             )}
             aria-label="Toggle navigation menu"
             aria-expanded="false"
@@ -166,7 +173,7 @@ export function Header({
                 href={item.href}
                 // @ts-expect-error - onclick is valid HTML attribute for SSR
                 onclick="closeMobileMenu()"
-                className="text-sm text-theme hover:text-brand transition-colors py-1"
+                className="nav-link"
               >
                 {item.label}
               </a>

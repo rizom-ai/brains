@@ -17,7 +17,9 @@ import {
   parseDeckData,
   type DeckWithData,
 } from "@brains/decks";
-import type { SiteInfoCTA } from "@brains/site-info";
+import type { SiteInfoCTA, SiteInfoBody } from "@brains/site-info";
+
+type HomepageSections = NonNullable<SiteInfoBody["sections"]>;
 
 const adapter = new AnchorProfileAdapter();
 
@@ -32,6 +34,7 @@ interface HomepageDataSourceOutput {
   postsListUrl: string;
   decksListUrl: string;
   cta: SiteInfoCTA;
+  sections: HomepageSections;
 }
 
 /**
@@ -100,6 +103,7 @@ export class HomepageListDataSource implements DataSource {
       postsListUrl: this.postsListUrl,
       decksListUrl: this.decksListUrl,
       cta: siteInfo.cta,
+      sections: siteInfo.sections ?? {},
     };
 
     return outputSchema.parse(data);

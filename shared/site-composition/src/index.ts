@@ -32,6 +32,7 @@ export {
   siteLayoutInfoSchema,
   siteMetadataCTASchema,
   siteMetadataSchema,
+  siteMetadataSectionSchema,
 } from "./metadata";
 export type { SiteLayoutInfo, SiteMetadata, SiteMetadataCTA } from "./metadata";
 export { extendSite, sitePackageSchema, themeCssSchema } from "./package";

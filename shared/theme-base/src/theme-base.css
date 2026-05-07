@@ -44,6 +44,10 @@
   /* Selection colors */
   --color-selection: var(--color-selection);
 
+  /* Rule colors — subtle hairlines for dividers, entry borders, footer top */
+  --color-rule: var(--color-rule);
+  --color-rule-strong: var(--color-rule-strong);
+
   /* Monospace font — used by ui-library widgets, code blocks, etc.
      Defined by every theme (or left empty for ranger). Brand-specific
      fonts (`font-display`, `font-body`, `font-label`, `font-nav`)
@@ -346,15 +350,15 @@
    ============================================ */
 @layer theme-base {
   [data-theme="dark"] .sun-icon {
-    display: block;
+    display: none;
   }
   [data-theme="dark"] .moon-icon {
-    display: none;
+    display: block;
   }
   [data-theme="light"] .sun-icon {
-    display: none;
+    display: block;
   }
   [data-theme="light"] .moon-icon {
-    display: block;
+    display: none;
   }
 }
