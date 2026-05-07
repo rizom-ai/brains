@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed. First plan in the integrated-auth sequence (this → A2A request signing → CMS heavy backend).
+In progress. OAuth provider foundation is implemented and validated with Pi MCP as a real OAuth-capable MCP client. Remaining work is hardening, CMS/dashboard route gating, and later multi-user/user-entity alignment.
 
 ## Context
 
@@ -47,11 +47,10 @@ External providers stay as a future migration target. The wire is OIDC either wa
 
 ### 2. Library choice
 
-- `oidc-provider` (Filip Skokan) for the OAuth/OIDC core
 - `@simplewebauthn/server` for passkey enrollment and authentication
-- `jose` for JWT validation in middleware
+- `jose` for JWT signing and validation
 
-These are mature, audited, widely deployed. The brain's job is configuration, persistence, and UI — not protocol implementation.
+The initial implementation uses a small in-process OAuth 2.1 provider tailored to Brain's single-operator/MCP needs instead of pulling in `oidc-provider` immediately. This keeps the trust boundary explicit while preserving the same wire protocol: discovery, DCR, PKCE authorization code flow, rotating refresh tokens, JWKS, and protected-resource metadata.
 
 ### 3. Passkey-only for operator login in v1
 
@@ -85,9 +84,10 @@ A new package at `shell/auth-service`. Owns:
 
 - provider configuration and lifecycle
 - passkey enrollment and authentication endpoints
-- JWT validation middleware
+- access-token signing and verification helpers
 - signing key custody (separate from the A2A signing key)
 - DCR-aware client storage
+- operator sessions, authorization codes, passkeys, and refresh tokens
 
 Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-on-core.md` direction.
 
@@ -100,13 +100,14 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 - JWKS published at `/.well-known/jwks.json` (shared endpoint, also serves the A2A signing key when plan 1 lands)
 - Authorization-server metadata at `/.well-known/oauth-authorization-server`
 - Token lifetimes: short-lived access tokens (15 min), longer refresh tokens (30 days, rotating)
+- Protected-resource metadata at `/.well-known/oauth-protected-resource`, including `scopes_supported: ["mcp"]`
 
 ### Endpoints
 
 - `GET /.well-known/oauth-authorization-server` — provider metadata
 - `GET /.well-known/jwks.json` — public signing keys
 - `POST /register` — Dynamic Client Registration (RFC 7591) for MCP clients
-- `GET /authorize` — authorization endpoint, renders passkey prompt
+- `GET /authorize` — authorization endpoint, requires an operator session and renders approval UI
 - `POST /token` — token endpoint (PKCE code exchange + refresh)
 - `POST /revoke` — token revocation
 - `GET /setup` — first-boot passkey enrollment (one-shot, disabled after first successful enrollment)
@@ -124,14 +125,15 @@ This avoids exposing an open enrollment endpoint while keeping the bootstrap UX 
 
 ### MCP transport changes
 
-`interfaces/mcp/src/transports/http-server.ts:126-157` — replace the `authenticate()` token compare with JWT validation:
+`interfaces/mcp/src/transports/http-server.ts` now supports OAuth bearer validation alongside the deprecated static `MCP_AUTH_TOKEN` fallback:
 
 - pull the bearer token from the `Authorization` header
-- validate against the brain's own JWKS via the shared middleware
-- attach the resolved user identity to the request
-- on validation failure, return MCP-spec-compliant 401 with `WWW-Authenticate` pointing at the authorization server
+- validate against the brain's own JWKS via `AuthService.verifyBearerToken()`
+- require the `mcp` scope
+- grant anchor permission to authenticated HTTP MCP callers
+- on validation failure, return MCP-spec-compatible `WWW-Authenticate` with `resource_metadata` pointing at `/.well-known/oauth-protected-resource`
 
-Add `/.well-known/oauth-protected-resource` metadata pointing to the brain's own authorization server, per the latest MCP auth specification.
+`/.well-known/oauth-protected-resource` metadata points to the brain's own authorization server, per the latest MCP auth specification.
 
 ### CMS gate
 
@@ -153,63 +155,71 @@ The downstream permission machinery does not change. The middleware is the only 
 
 ## Rollout
 
-### Phase 1 — provider package
+### Phase 1 — provider package ✅
 
-- create `shell/auth-service`
-- wire `oidc-provider` with file-backed adapter (sqlite or filesystem) for clients, grants, sessions
-- generate and persist signing keypair on first boot
-- publish JWKS and authorization-server metadata
-- no UI yet; all flows return JSON
+- created `shell/auth-service`
+- generated and persisted ES256 signing keypair in runtime auth storage (`./data/auth`), outside `brain-data`
+- published JWKS, authorization-server metadata, protected-resource metadata
+- implemented file-backed clients, authorization codes, operator sessions, passkeys, and refresh tokens
 
-### Phase 2 — passkey enrollment + login UI
+### Phase 2 — passkey enrollment + login UI ✅
 
-- minimal HTML/JS pages for `/setup`, `/authorize`
+- minimal HTML/JS pages for `/setup`, `/login`, `/authorize`
 - WebAuthn ceremonies via `@simplewebauthn/server`
 - single-operator mode: first passkey wins, no management UI
+- first setup gated by a one-shot setup token
 
-### Phase 3 — JWT middleware + MCP transport switch
+### Phase 3 — JWT verification + MCP transport switch ✅
 
-- shared middleware in `shell/auth-service`
-- MCP transport drops `MCP_AUTH_TOKEN` path, uses middleware
-- `MCP_AUTH_TOKEN` env var marked deprecated; provider issues all MCP tokens
-- DCR enabled for MCP clients; verify Claude Desktop end-to-end
+- access-token verification helpers in `shell/auth-service`
+- MCP HTTP transport validates brain-issued OAuth bearer tokens and requires `mcp` scope
+- `MCP_AUTH_TOKEN` remains only as a deprecated static fallback
+- DCR enabled for MCP clients
+- validated with Pi MCP adapter against Rover core (`/mcp-auth rover-brain`, tool discovery, `system_status`, and `a2a_call`)
 
-### Phase 4 — CMS gate
+### Phase 4 — CMS/dashboard gate ⏳
 
-- `plugins/admin` mounts behind the middleware
+- gate `/cms`, `/cms/config.yml`, and operator-only dashboard surfaces behind the same auth model
 - Sveltia → GitHub flow unchanged; only the shell-page visibility gates
 - verify operator can edit content with a single passkey login
 
-### Phase 5 — multi-user expansion
+### Phase 5 — multi-user expansion ⏳
 
 - align with `docs/plans/multi-user.md` rollout: passkey credentials attach to user entities
 - add user-management tools (create user, register additional passkey, revoke)
 - this phase is co-owned with the multi-user plan
 
+## Resolved decisions
+
+1. Package home is `shell/auth-service`.
+2. Refresh tokens persist in runtime auth storage and rotate on use.
+3. `/setup` always requires a one-shot setup token until the first credential exists.
+4. Runtime auth state lives under `./data/auth` by default, never under `brain-data`.
+5. MCP advertises auth through `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"` derived from the request origin.
+
 ## Open questions
 
-1. Should the provider package live at `shell/auth-service` or `shell/oauth-provider`? `auth-service` is broader and could absorb future auth concerns; `oauth-provider` is narrower and clearer.
-2. Should refresh tokens persist across brain restarts (via the file-backed adapter) or be ephemeral? Persistent is more user-friendly; ephemeral simplifies revocation.
-3. Should `/setup` be reachable only from localhost in dev, or always require the one-shot token? One-shot token works in both cases and is simpler.
-4. How should the MCP transport advertise the authorization server when the brain is reachable at multiple domains (preview + production)? Probably: read from request `Host` header.
-5. Does the dashboard at `/` need to be gated too, or only `/cms`? Likely yes for operator-only views, but check `plugins/dashboard` first.
+1. How strict should issuer/host validation be when the same brain is reachable via localhost, preview, and production domains?
+2. Does the dashboard at `/` need to be gated too, or only `/cms`? Likely yes for operator-only views, but check `plugins/dashboard` first.
+3. Should the single-operator subject remain `single-operator` until multi-user lands, or should a local user entity be created now as a compatibility bridge?
 
 ## Verification
 
-1. A fresh brain boots, prints a one-shot setup URL, and accepts a passkey enrollment
-2. Subsequent operator logins via `/authorize` succeed with passkey, fail without
-3. Claude Desktop completes dynamic client registration and the OAuth code+PKCE flow against the brain
-4. Claude Desktop calls `/mcp` with a bearer token issued by the brain and receives normal MCP responses
-5. `MCP_AUTH_TOKEN` env var is no longer required for HTTP MCP
-6. `/cms` and `/cms/config.yml` return 401 for unauthenticated browsers; serve normally after operator login
-7. JWT middleware resolves identity into `permissionService` and tool filtering still works
-8. JWKS endpoint serves the OAuth signing key today, ready to also carry the A2A signing key when plan 1 lands
-9. Refresh token rotation works across brain restarts
-10. Single-operator mode runs without requiring the multi-user plan to ship first
+1. ✅ A fresh brain boots, prints a one-shot setup URL, and accepts a passkey enrollment
+2. ✅ Subsequent operator logins via `/authorize` require an operator session/passkey login
+3. ✅ Pi MCP adapter completes dynamic client registration and the OAuth code+PKCE flow against the brain
+4. ✅ Pi MCP adapter calls `/mcp` with a bearer token issued by the brain and receives normal MCP responses
+5. ✅ `MCP_AUTH_TOKEN` env var is no longer required for HTTP MCP when `auth-service` is enabled
+6. ⏳ `/cms` and `/cms/config.yml` return 401 for unauthenticated browsers; serve normally after operator login
+7. ✅ OAuth-authenticated HTTP MCP callers receive anchor permissions and normal tool filtering
+8. ✅ JWKS endpoint serves the OAuth signing key today, ready to also carry the A2A signing key when plan 1 lands
+9. ✅ Refresh token rotation works across brain restarts/runtime storage
+10. ✅ Single-operator mode runs without requiring the multi-user plan to ship first
 
 ## Related
 
 - `docs/plans/a2a-request-signing.md` — companion plan, shares JWKS endpoint
+- `docs/plans/a2a-reliability.md` — timeout/retry/error-surfacing hardening for remote A2A calls
 - `docs/plans/cms-heavy-backend.md` — depends on this plan
 - `docs/plans/multi-user.md` — co-evolves with this plan
 - `docs/plans/cms-on-core.md` — establishes the shared HTTP surface this plan mounts on
