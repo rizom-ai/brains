@@ -1,9 +1,14 @@
 import { randomUUID } from "node:crypto";
+import type {
+  AuthenticationResponseJSON,
+  RegistrationResponseJSON,
+} from "@simplewebauthn/server";
 import type { Logger } from "@brains/utils";
 import { AuthorizationCodeStore, InvalidGrantError } from "./auth-code-store";
 import { InvalidClientMetadataError, OAuthClientStore } from "./client-store";
 import { signJwt } from "./jwt";
 import { AuthKeyStore } from "./key-store";
+import { PasskeyService, type WebAuthnRequestContext } from "./passkey-service";
 import {
   OperatorSessionStore,
   type CreateOperatorSessionResult,
@@ -30,6 +35,7 @@ export class AuthService {
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
+  private readonly passkeyService: PasskeyService;
   private readonly logger: Logger | undefined;
 
   constructor(options: AuthServiceOptions) {
@@ -41,6 +47,10 @@ export class AuthService {
     });
     this.sessionStore = new OperatorSessionStore({
       storageDir: options.storageDir,
+    });
+    this.passkeyService = new PasskeyService({
+      storageDir: options.storageDir,
+      ...(options.logger ? { logger: options.logger } : {}),
     });
     this.logger = options.logger;
   }
@@ -133,6 +143,30 @@ export class AuthService {
       }
     }
 
+    if (request.method === "GET" && path === "/setup") {
+      return this.handleSetupPage(request);
+    }
+
+    if (request.method === "GET" && path === "/login") {
+      return this.handleLoginPage(request);
+    }
+
+    if (request.method === "POST" && path === "/webauthn/register/options") {
+      return this.handleWebAuthnRegistrationOptions(request);
+    }
+
+    if (request.method === "POST" && path === "/webauthn/register/verify") {
+      return this.handleWebAuthnRegistrationVerify(request);
+    }
+
+    if (request.method === "POST" && path === "/webauthn/auth/options") {
+      return this.handleWebAuthnAuthenticationOptions(request);
+    }
+
+    if (request.method === "POST" && path === "/webauthn/auth/verify") {
+      return this.handleWebAuthnAuthenticationVerify(request);
+    }
+
     if (request.method === "GET" && path === "/authorize") {
       return this.handleAuthorizePage(request);
     }
@@ -156,10 +190,96 @@ export class AuthService {
     return this.handleRequest(request);
   }
 
+  private async handleSetupPage(_request: Request): Promise<Response> {
+    if (await this.passkeyService.hasCredentials()) {
+      return new Response("Setup already completed", { status: 404 });
+    }
+
+    return htmlResponse(renderSetupPage());
+  }
+
+  private handleLoginPage(request: Request): Response {
+    const returnTo = new URL(request.url).searchParams.get("return_to") ?? "/";
+    return htmlResponse(renderLoginPage(returnTo));
+  }
+
+  private async handleWebAuthnRegistrationOptions(
+    request: Request,
+  ): Promise<Response> {
+    if (await this.passkeyService.hasCredentials()) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey setup already completed",
+      );
+    }
+
+    const options = await this.passkeyService.generateRegistrationOptions(
+      webAuthnRequestContext(request),
+    );
+    return jsonResponse(options);
+  }
+
+  private async handleWebAuthnRegistrationVerify(
+    request: Request,
+  ): Promise<Response> {
+    if (await this.passkeyService.hasCredentials()) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey setup already completed",
+      );
+    }
+
+    const result = await this.passkeyService.verifyRegistrationResponse(
+      (await request.json()) as RegistrationResponseJSON,
+      webAuthnRequestContext(request),
+    );
+    if (!result.verified) {
+      return oauthErrorResponse("access_denied", "Passkey registration failed");
+    }
+
+    const session = await this.createOperatorSession(result.subject);
+    return jsonResponse({ verified: true }, 200, {
+      "Set-Cookie": session.cookie,
+    });
+  }
+
+  private async handleWebAuthnAuthenticationOptions(
+    request: Request,
+  ): Promise<Response> {
+    if (!(await this.passkeyService.hasCredentials())) {
+      return oauthErrorResponse("access_denied", "No passkey registered");
+    }
+
+    const options = await this.passkeyService.generateAuthenticationOptions(
+      webAuthnRequestContext(request),
+    );
+    return jsonResponse(options);
+  }
+
+  private async handleWebAuthnAuthenticationVerify(
+    request: Request,
+  ): Promise<Response> {
+    const result = await this.passkeyService.verifyAuthenticationResponse(
+      (await request.json()) as AuthenticationResponseJSON,
+      webAuthnRequestContext(request),
+    );
+    if (!result.verified) {
+      return oauthErrorResponse(
+        "access_denied",
+        "Passkey authentication failed",
+      );
+    }
+
+    const session = await this.createOperatorSession(result.subject);
+    return jsonResponse({ verified: true }, 200, {
+      "Set-Cookie": session.cookie,
+    });
+  }
+
   private async handleAuthorizePage(request: Request): Promise<Response> {
     const session = await this.sessionStore.getSessionFromRequest(request);
     if (!session) {
-      return unauthorizedHtmlResponse();
+      return unauthorizedHtmlResponse(request);
     }
 
     const validation = await this.validateAuthorizationRequest(
@@ -175,7 +295,7 @@ export class AuthService {
   private async handleAuthorizeApproval(request: Request): Promise<Response> {
     const session = await this.sessionStore.getSessionFromRequest(request);
     if (!session) {
-      return unauthorizedHtmlResponse();
+      return unauthorizedHtmlResponse(request);
     }
 
     const form = await request.formData();
@@ -364,12 +484,17 @@ interface ValidAuthorizationRequest {
   clientName: string;
 }
 
-function jsonResponse(body: unknown, status = 200): Response {
+function jsonResponse(
+  body: unknown,
+  status = 200,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: {
       "Content-Type": "application/json",
       "Cache-Control": "no-store",
+      ...extraHeaders,
     },
   });
 }
@@ -448,6 +573,153 @@ function parseClientAuth(
   }
 }
 
+function renderSetupPage(): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Set up passkey</title>
+    ${authPageStyles()}
+  </head>
+  <body>
+    <main class="card">
+      <h1>Set up your brain passkey</h1>
+      <p>Register a passkey to become the operator for this brain.</p>
+      <button type="button" id="register">Register passkey</button>
+      <p id="status" role="status"></p>
+    </main>
+    <script>${webauthnBrowserHelpers()}
+    document.getElementById('register').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      try {
+        status.textContent = 'Waiting for passkey...';
+        const options = await fetchJSON('/webauthn/register/options', { method: 'POST' });
+        const credential = await navigator.credentials.create({ publicKey: prepareCreationOptions(options) });
+        await fetchJSON('/webauthn/register/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(credentialToJSON(credential)),
+        });
+        status.textContent = 'Passkey registered. You are logged in.';
+        location.href = '/';
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : String(error);
+      }
+    });</script>
+  </body>
+</html>`;
+}
+
+function renderLoginPage(returnTo: string, title = "Operator login"): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${escapeHtml(title)}</title>
+    ${authPageStyles()}
+  </head>
+  <body>
+    <main class="card">
+      <h1>${escapeHtml(title)}</h1>
+      <p>Use your passkey to continue.</p>
+      <button type="button" id="login">Continue with passkey</button>
+      <p id="status" role="status"></p>
+    </main>
+    <script>${webauthnBrowserHelpers()}
+    document.getElementById('login').addEventListener('click', async () => {
+      const status = document.getElementById('status');
+      try {
+        status.textContent = 'Waiting for passkey...';
+        const options = await fetchJSON('/webauthn/auth/options', { method: 'POST' });
+        const credential = await navigator.credentials.get({ publicKey: prepareRequestOptions(options) });
+        await fetchJSON('/webauthn/auth/verify', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify(credentialToJSON(credential)),
+        });
+        location.href = ${JSON.stringify(returnTo)};
+      } catch (error) {
+        status.textContent = error instanceof Error ? error.message : String(error);
+      }
+    });</script>
+  </body>
+</html>`;
+}
+
+function authPageStyles(): string {
+  return `<style>
+      body { font-family: system-ui, sans-serif; max-width: 36rem; margin: 4rem auto; padding: 0 1rem; line-height: 1.5; }
+      .card { border: 1px solid #ddd; border-radius: 12px; padding: 1.5rem; box-shadow: 0 8px 30px rgb(0 0 0 / 8%); }
+      button { border: 0; border-radius: 999px; padding: 0.75rem 1.2rem; font-weight: 700; background: #111; color: white; cursor: pointer; }
+      code { overflow-wrap: anywhere; }
+      [role='status'] { color: #555; }
+    </style>`;
+}
+
+function webauthnBrowserHelpers(): string {
+  return `
+    function base64urlToBuffer(value) {
+      const padded = value + '='.repeat((4 - value.length % 4) % 4);
+      const base64 = padded.replace(/-/g, '+').replace(/_/g, '/');
+      const binary = atob(base64);
+      return Uint8Array.from(binary, c => c.charCodeAt(0));
+    }
+    function bufferToBase64url(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (const byte of bytes) binary += String.fromCharCode(byte);
+      return btoa(binary).replace(/\\+/g, '-').replace(/\\//g, '_').replace(/=+$/g, '');
+    }
+    function prepareCreationOptions(options) {
+      return {
+        ...options,
+        challenge: base64urlToBuffer(options.challenge),
+        user: { ...options.user, id: base64urlToBuffer(options.user.id) },
+        excludeCredentials: (options.excludeCredentials || []).map(credential => ({
+          ...credential,
+          id: base64urlToBuffer(credential.id),
+        })),
+      };
+    }
+    function prepareRequestOptions(options) {
+      return {
+        ...options,
+        challenge: base64urlToBuffer(options.challenge),
+        allowCredentials: (options.allowCredentials || []).map(credential => ({
+          ...credential,
+          id: base64urlToBuffer(credential.id),
+        })),
+      };
+    }
+    function credentialToJSON(credential) {
+      const response = {};
+      for (const key of Object.keys(credential.response)) {
+        const value = credential.response[key];
+        response[key] = value instanceof ArrayBuffer ? bufferToBase64url(value) : value;
+      }
+      if (typeof credential.response.getTransports === 'function') {
+        response.transports = credential.response.getTransports();
+      }
+      return {
+        id: credential.id,
+        rawId: bufferToBase64url(credential.rawId),
+        type: credential.type,
+        response,
+        clientExtensionResults: credential.getClientExtensionResults(),
+        authenticatorAttachment: credential.authenticatorAttachment,
+      };
+    }
+    async function fetchJSON(url, init) {
+      const response = await fetch(url, init);
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error_description || body.error || response.statusText);
+      return body;
+    }
+  `;
+}
+
 function renderAuthorizePage(params: ValidAuthorizationRequest): string {
   const hidden = {
     response_type: "code",
@@ -500,17 +772,24 @@ function htmlResponse(body: string): Response {
   });
 }
 
-function unauthorizedHtmlResponse(): Response {
-  return new Response(
-    `<!doctype html><html lang="en"><head><meta charset="utf-8" /><title>Login required</title></head><body><h1>Operator login required</h1><p>Passkey login is required before authorizing OAuth clients.</p></body></html>`,
-    {
-      status: 401,
-      headers: {
-        "Content-Type": "text/html; charset=utf-8",
-        "Cache-Control": "no-store",
-      },
+function unauthorizedHtmlResponse(request: Request): Response {
+  const returnTo = `${new URL(request.url).pathname}${new URL(request.url).search}`;
+  return new Response(renderLoginPage(returnTo, "Operator login required"), {
+    status: 401,
+    headers: {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "no-store",
     },
-  );
+  });
+}
+
+function webAuthnRequestContext(request: Request): WebAuthnRequestContext {
+  const issuer = issuerFromRequest(request);
+  const origin = new URL(issuer);
+  return {
+    origin: origin.origin,
+    rpID: origin.hostname,
+  };
 }
 
 function escapeHtml(value: string): string {

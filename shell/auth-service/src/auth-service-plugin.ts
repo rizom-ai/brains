@@ -58,6 +58,18 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
         handler,
       },
       {
+        path: "/setup",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/login",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
         path: "/authorize",
         method: "GET",
         public: true,
@@ -77,6 +89,30 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       },
       {
         path: "/token",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/webauthn/register/options",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/webauthn/register/verify",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/webauthn/auth/options",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/webauthn/auth/verify",
         method: "POST",
         public: true,
         handler,

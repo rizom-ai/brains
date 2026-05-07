@@ -17,6 +17,23 @@ export type {
   OAuthClientStoreOptions,
 } from "./client-store";
 export { absoluteUrl, issuerFromRequest, normalizeIssuer } from "./issuer";
+export { PasskeyService } from "./passkey-service";
+export type {
+  AuthenticationVerifyResult,
+  PasskeyServiceOptions,
+  RegistrationVerifyResult,
+  WebAuthnRequestContext,
+} from "./passkey-service";
+export {
+  base64UrlToBytes,
+  bytesToBase64Url,
+  PasskeyStore,
+} from "./passkey-store";
+export type {
+  PasskeyStoreOptions,
+  StoredPasskeyCredential,
+  StoredWebAuthnChallenge,
+} from "./passkey-store";
 export { signJwt } from "./jwt";
 export { OPERATOR_SESSION_COOKIE, OperatorSessionStore } from "./session-store";
 export type {

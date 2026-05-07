@@ -17,7 +17,8 @@
   },
   "dependencies": {
     "@brains/plugins": "workspace:*",
-    "@brains/utils": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@simplewebauthn/server": "^13.3.0"
   },
   "devDependencies": {
     "@brains/eslint-config": "workspace:*",

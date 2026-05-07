@@ -92,6 +92,58 @@ describe("AuthService", () => {
     });
   });
 
+  it("serves setup page and registration options before passkey enrollment", async () => {
+    const storageDir = await tempStorageDir();
+    const service = new AuthService({
+      storageDir,
+      issuer: "http://localhost:8080",
+    });
+
+    const setupPage = await service.handleRequest(
+      new Request("http://localhost:8080/setup"),
+    );
+    expect(setupPage.status).toBe(200);
+    const setupHtml = await setupPage.text();
+    expect(setupHtml).toContain("Set up your brain passkey");
+
+    const optionsResponse = await service.handleRequest(
+      new Request("http://localhost:8080/webauthn/register/options", {
+        method: "POST",
+      }),
+    );
+    expect(optionsResponse.status).toBe(200);
+    const options = await optionsResponse.json();
+    expect(options).toMatchObject({
+      rp: { name: "Brain", id: "localhost" },
+      user: { name: "Operator", displayName: "Operator" },
+      attestation: "none",
+    });
+    expect(typeof options.challenge).toBe("string");
+    expect(options.authenticatorSelection).toMatchObject({
+      userVerification: "required",
+    });
+  });
+
+  it("rejects passkey authentication options before setup", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+
+    const response = await service.handleRequest(
+      new Request("http://localhost:8080/webauthn/auth/options", {
+        method: "POST",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    const error = await response.json();
+    expect(error).toMatchObject({
+      error: "access_denied",
+      error_description: "No passkey registered",
+    });
+  });
+
   it("registers and persists a public OAuth client", async () => {
     const storageDir = await tempStorageDir();
     const service = new AuthService({
