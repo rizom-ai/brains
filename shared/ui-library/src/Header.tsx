@@ -1,4 +1,4 @@
-import type { VNode } from "preact";
+import type { ComponentChildren, VNode } from "preact";
 import { Logo } from "./Logo";
 import { Button } from "./Button";
 import { LinkButton } from "./LinkButton";
@@ -25,6 +25,12 @@ export interface HeaderProps {
    * Overrides the Logo component's default text styling
    */
   titleClassName?: string;
+
+  /**
+   * Optional wordmark slot — replaces the title/logo entirely.
+   * Use this to render a structured site brand (e.g. `<Wordmark name="yeehaa" brandSuffix="io" />`).
+   */
+  wordmark?: ComponentChildren;
 
   /**
    * Primary navigation items
@@ -58,12 +64,15 @@ export function Header({
   title,
   logo,
   titleClassName,
+  wordmark,
   navigation,
   cta,
   showThemeToggle = false,
   themeToggleClassName,
 }: HeaderProps): VNode {
-  const titleElement = logo ? (
+  const titleElement = wordmark ? (
+    wordmark
+  ) : logo ? (
     <Logo height={36} />
   ) : titleClassName ? (
     <span className={titleClassName}>{title}</span>
@@ -73,7 +82,7 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 py-5 border-b border-rule bg-header">
-      <div className="max-w-layout mx-auto px-6 md:px-8">
+      <div className="max-w-layout mx-auto px-6 md:px-12">
         <div className="flex flex-row justify-between items-center gap-8">
           <a href="/" className="text-logo hover:opacity-80 transition-opacity">
             {titleElement}

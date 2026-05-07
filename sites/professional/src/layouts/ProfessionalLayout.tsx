@@ -11,6 +11,12 @@ export interface ProfessionalLayoutProps {
   siteInfo: SiteLayoutInfo;
   /** Optional slots for plugin-registered UI components */
   slots?: LayoutSlots;
+  /**
+   * Optional custom wordmark JSX — replaces the default title/logo in the
+   * header. Pass e.g. `<Wordmark name="yeehaa" brandSuffix="io" />` to render
+   * a structured site brand.
+   */
+  wordmark?: ComponentChildren;
 }
 
 /**
@@ -21,6 +27,7 @@ export function ProfessionalLayout({
   sections,
   siteInfo,
   slots,
+  wordmark,
 }: ProfessionalLayoutProps): JSX.Element {
   return (
     <div className="flex flex-col min-h-screen bg-theme overflow-x-clip">
@@ -29,6 +36,7 @@ export function ProfessionalLayout({
         navigation={siteInfo.navigation.primary}
         showThemeToggle
         {...(siteInfo.logo !== undefined ? { logo: siteInfo.logo } : {})}
+        {...(wordmark !== undefined ? { wordmark } : {})}
       />
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
