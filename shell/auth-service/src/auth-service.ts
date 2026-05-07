@@ -29,6 +29,13 @@ export interface AuthServiceOptions {
   logger?: Logger;
 }
 
+interface SetupTokenState {
+  token: string;
+  expiresAt: number;
+}
+
+const SETUP_TOKEN_TTL_SECONDS = 30 * 60;
+
 export class AuthService {
   private readonly issuer: string;
   private readonly keyStore: AuthKeyStore;
@@ -37,6 +44,7 @@ export class AuthService {
   private readonly sessionStore: OperatorSessionStore;
   private readonly passkeyService: PasskeyService;
   private readonly logger: Logger | undefined;
+  private setupToken: SetupTokenState | undefined;
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
@@ -62,6 +70,14 @@ export class AuthService {
   async initialize(): Promise<void> {
     await this.keyStore.getPrivateJwk();
     this.logger?.debug("Auth service signing key loaded");
+
+    if (!(await this.passkeyService.hasCredentials())) {
+      this.createSetupToken();
+      const setupUrl = this.getSetupUrl();
+      if (setupUrl) {
+        this.logger?.warn(`Passkey setup required: ${setupUrl}`);
+      }
+    }
   }
 
   async getJwks(): Promise<JwksResponse> {
@@ -121,6 +137,15 @@ export class AuthService {
     subject = "single-operator",
   ): Promise<CreateOperatorSessionResult> {
     return this.sessionStore.createSession(subject);
+  }
+
+  getSetupUrl(issuer = this.issuer): string | undefined {
+    const setupToken = this.getValidSetupToken();
+    if (!setupToken) return undefined;
+    return absoluteUrl(
+      issuer,
+      `/setup?token=${encodeURIComponent(setupToken.token)}`,
+    );
   }
 
   async handleRequest(request: Request): Promise<Response> {
@@ -190,12 +215,16 @@ export class AuthService {
     return this.handleRequest(request);
   }
 
-  private async handleSetupPage(_request: Request): Promise<Response> {
+  private async handleSetupPage(request: Request): Promise<Response> {
     if (await this.passkeyService.hasCredentials()) {
       return new Response("Setup already completed", { status: 404 });
     }
+    if (!this.hasValidSetupToken(request)) {
+      return new Response("Not Found", { status: 404 });
+    }
 
-    return htmlResponse(renderSetupPage());
+    const token = new URL(request.url).searchParams.get("token") ?? "";
+    return htmlResponse(renderSetupPage(token));
   }
 
   private handleLoginPage(request: Request): Response {
@@ -211,6 +240,9 @@ export class AuthService {
         "access_denied",
         "Passkey setup already completed",
       );
+    }
+    if (!this.hasValidSetupToken(request)) {
+      return oauthErrorResponse("access_denied", "Invalid setup token");
     }
 
     const options = await this.passkeyService.generateRegistrationOptions(
@@ -228,6 +260,9 @@ export class AuthService {
         "Passkey setup already completed",
       );
     }
+    if (!this.hasValidSetupToken(request)) {
+      return oauthErrorResponse("access_denied", "Invalid setup token");
+    }
 
     const result = await this.passkeyService.verifyRegistrationResponse(
       (await request.json()) as RegistrationResponseJSON,
@@ -237,10 +272,36 @@ export class AuthService {
       return oauthErrorResponse("access_denied", "Passkey registration failed");
     }
 
+    this.setupToken = undefined;
     const session = await this.createOperatorSession(result.subject);
     return jsonResponse({ verified: true }, 200, {
       "Set-Cookie": session.cookie,
     });
+  }
+
+  private createSetupToken(): void {
+    this.setupToken = {
+      token: `setup_${randomUUID()}`,
+      expiresAt: Math.floor(Date.now() / 1000) + SETUP_TOKEN_TTL_SECONDS,
+    };
+  }
+
+  private getValidSetupToken(): SetupTokenState | undefined {
+    if (!this.setupToken) return undefined;
+    if (this.setupToken.expiresAt <= Math.floor(Date.now() / 1000)) {
+      this.setupToken = undefined;
+      return undefined;
+    }
+    return this.setupToken;
+  }
+
+  private hasValidSetupToken(request: Request): boolean {
+    const setupToken = this.getValidSetupToken();
+    if (!setupToken) return false;
+    const url = new URL(request.url);
+    const suppliedToken =
+      url.searchParams.get("setup_token") ?? url.searchParams.get("token");
+    return suppliedToken === setupToken.token;
   }
 
   private async handleWebAuthnAuthenticationOptions(
@@ -573,7 +634,7 @@ function parseClientAuth(
   }
 }
 
-function renderSetupPage(): string {
+function renderSetupPage(setupToken: string): string {
   return `<!doctype html>
 <html lang="en">
   <head>
@@ -594,9 +655,10 @@ function renderSetupPage(): string {
       const status = document.getElementById('status');
       try {
         status.textContent = 'Waiting for passkey...';
-        const options = await fetchJSON('/webauthn/register/options', { method: 'POST' });
+        const setupToken = ${JSON.stringify(setupToken)};
+        const options = await fetchJSON('/webauthn/register/options?setup_token=' + encodeURIComponent(setupToken), { method: 'POST' });
         const credential = await navigator.credentials.create({ publicKey: prepareCreationOptions(options) });
-        await fetchJSON('/webauthn/register/verify', {
+        await fetchJSON('/webauthn/register/verify?setup_token=' + encodeURIComponent(setupToken), {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
           body: JSON.stringify(credentialToJSON(credential)),

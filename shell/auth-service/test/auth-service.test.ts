@@ -99,17 +99,24 @@ describe("AuthService", () => {
       issuer: "http://localhost:8080",
     });
 
-    const setupPage = await service.handleRequest(
-      new Request("http://localhost:8080/setup"),
-    );
+    await service.initialize();
+    const setupUrl = service.getSetupUrl("http://localhost:8080");
+    expect(setupUrl).toStartWith("http://localhost:8080/setup?token=setup_");
+
+    const setupPage = await service.handleRequest(new Request(setupUrl ?? ""));
     expect(setupPage.status).toBe(200);
     const setupHtml = await setupPage.text();
     expect(setupHtml).toContain("Set up your brain passkey");
 
     const optionsResponse = await service.handleRequest(
-      new Request("http://localhost:8080/webauthn/register/options", {
-        method: "POST",
-      }),
+      new Request(
+        `http://localhost:8080/webauthn/register/options?setup_token=${encodeURIComponent(
+          new URL(setupUrl ?? "").searchParams.get("token") ?? "",
+        )}`,
+        {
+          method: "POST",
+        },
+      ),
     );
     expect(optionsResponse.status).toBe(200);
     const options = await optionsResponse.json();
@@ -121,6 +128,31 @@ describe("AuthService", () => {
     expect(typeof options.challenge).toBe("string");
     expect(options.authenticatorSelection).toMatchObject({
       userVerification: "required",
+    });
+  });
+
+  it("hides setup page without the one-shot setup token", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+    await service.initialize();
+
+    const pageResponse = await service.handleRequest(
+      new Request("http://localhost:8080/setup"),
+    );
+    expect(pageResponse.status).toBe(404);
+
+    const optionsResponse = await service.handleRequest(
+      new Request("http://localhost:8080/webauthn/register/options", {
+        method: "POST",
+      }),
+    );
+    expect(optionsResponse.status).toBe(400);
+    const error = await optionsResponse.json();
+    expect(error).toMatchObject({
+      error: "access_denied",
+      error_description: "Invalid setup token",
     });
   });
 
