@@ -1,0 +1,46 @@
+id: relay-plugin-deck-description
+name: Generate Relay deck description
+description: Verifies the decks plugin can describe a Relay POC walkthrough deck.
+type: plugin
+tags:
+  - relay
+  - decks
+  - full
+plugin: decks
+handler: generateDescription
+
+input:
+  title: Relay POC Walkthrough
+  content: |
+    # Relay POC Walkthrough
+
+    ---
+
+    ## Relay's purpose
+
+    Relay is a team-memory brain for capturing notes, links, summaries, docs, and decks.
+
+    ---
+
+    ## Coordination loop
+
+    Capture team context, synthesize topics, preserve summaries, and coordinate with approved peer-brain records.
+
+    ---
+
+    ## POC boundary
+
+    Keep the current full preset focused on docs and decks. Do not introduce future-plugin content until those plugins exist.
+
+expectedOutput:
+  validateEach:
+    - path: description
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 3
+    minQualityScore: 3
+    evaluationPrompt: |
+      Evaluate whether the description captures Relay's team-memory and peer-coordination purpose.
+      Good descriptions mention capture/synthesis, summaries, docs/decks, or peer-brain coordination.
+      Penalize generic marketing language or future-plugin claims.

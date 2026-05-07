@@ -83,6 +83,8 @@ export const appConfigSchema = z.object({
   plugins: z.array(pluginMetadataSchema).default([]),
   // Identity - override default identity for this app
   identity: brainCharacterBodySchema.optional(),
+  // Brain-specific instructions appended to shell-neutral agent instructions
+  agentInstructions: z.array(z.string()).optional(),
   // Deployment configuration
   deployment: deploymentConfigSchema.default({}),
 });

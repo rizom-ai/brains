@@ -41,6 +41,7 @@ export interface BrainAgentConfig {
   profile?: AnchorProfile;
   tools: Tool[];
   pluginInstructions?: string[];
+  agentInstructions?: string[];
   stepLimit?: number;
   getToolsForPermission: (level: UserPermissionLevel) => Tool[];
 }
@@ -117,6 +118,7 @@ export function createBrainAgentFactory(
             callOptions.userPermissionLevel,
             config.pluginInstructions,
             config.profile,
+            config.agentInstructions,
           ),
           tools: toolsWithContext,
           activeTools: allowedToolNames,

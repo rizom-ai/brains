@@ -1,0 +1,27 @@
+id: relay-tool-agent-approve
+name: Approve discovered Relay peer brain
+description: Tests that a discovered peer brain is approved through system_update.
+type: tool_invocation
+tags:
+  - relay
+  - agent-discovery
+  - a2a
+  - core
+
+turns:
+  - userMessage: "Approve old-agent.io for Relay peer-brain coordination."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_update
+      shouldBeCalled: true
+      argsContain:
+        entityType: "agent"
+        id: "old-agent.io"
+  responseNotContains:
+    - "I cannot"
+    - "not approved yet"
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 25000

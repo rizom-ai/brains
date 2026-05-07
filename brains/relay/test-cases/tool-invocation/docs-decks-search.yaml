@@ -1,0 +1,33 @@
+id: relay-tool-docs-decks-search
+name: Search Relay docs and decks
+description: Tests that the agent searches existing docs/decks content when asked to synthesize the Relay operating model.
+type: tool_invocation
+tags:
+  - relay
+  - docs
+  - decks
+  - full
+  - search
+
+turns:
+  - userMessage: "Use the current Relay docs and deck content to explain the Relay operating model and POC walkthrough."
+
+successCriteria:
+  toolCountRange:
+    min: 1
+    max: 6
+  responseContains:
+    - "Relay"
+  responseNotContains:
+    - "meeting-notes"
+    - "decision-record"
+    - "newsletter"
+    - "blog"
+
+  minHelpfulnessScore: 3
+  minAccuracyScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

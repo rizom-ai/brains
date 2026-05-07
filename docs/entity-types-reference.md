@@ -41,16 +41,16 @@ Core fields such as `id`, `entityType`, `created`, `updated`, and the markdown b
 | `image`             | `@brains/image-plugin`    | default, full | default     | —           | Uploaded or generated image assets.                                              |
 | `site-info`         | `@brains/site-info`       | default, full | default     | default     | Singleton site metadata and CTA settings.                                        |
 | `site-content`      | `@brains/site-content`    | —             | default     | default     | Route/section content blocks for configurable sites.                             |
-| `doc`               | `@brains/doc`             | —             | opt-in      | —           | Documentation pages. Relay registers it for docs-focused instances via `add`.    |
+| `doc`               | `@brains/doc`             | —             | full        | —           | Documentation pages for full Relay knowledge hubs.                               |
 | `post`              | `@brains/blog`            | default, full | —           | —           | Blog posts.                                                                      |
 | `series`            | `@brains/series`          | default, full | —           | —           | Blog/content series pages.                                                       |
-| `deck`              | `@brains/decks`           | default, full | opt-in      | —           | Presentation decks. Relay registers it for `add: [decks]`.                       |
+| `deck`              | `@brains/decks`           | default, full | full        | —           | Presentation decks.                                                              |
 | `project`           | `@brains/portfolio`       | full          | —           | —           | Portfolio/case-study projects.                                                   |
 | `social-post`       | `@brains/social-media`    | full          | —           | default     | Social publishing drafts and history.                                            |
 | `newsletter`        | `@brains/newsletter`      | full          | —           | —           | Newsletter drafts, schedules, and send records.                                  |
 | `product`           | `@brains/products`        | —             | —           | default     | Product detail pages.                                                            |
 | `products-overview` | `@brains/products`        | —             | —           | default     | Products landing/overview page.                                                  |
-| `summary`           | `@brains/summary`         | —             | opt-in      | —           | Conversation summaries. Relay registers it for opt-in use via `add`.             |
+| `summary`           | `@brains/summary`         | —             | all presets | —           | Conversation summaries for Relay team memory.                                    |
 
 `all presets` means the entity type is available in every preset currently declared by that model. A type marked `opt-in` is registered as a capability but is not included in the model's preset list by default.
 

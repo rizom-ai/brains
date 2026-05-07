@@ -1,0 +1,28 @@
+id: relay-tool-extract-topics
+name: Extract Relay topics
+description: Tests that the agent uses system_extract when asked to synthesize Relay topics from current content.
+type: tool_invocation
+tags:
+  - relay
+  - core
+  - topics
+  - system
+
+turns:
+  - userMessage: "Run one topic extraction pass over the current Relay team memory so it covers notes, links, summaries, agents, docs, and decks."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_extract
+      shouldBeCalled: true
+      argsContain:
+        entityType: "topic"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "meeting-notes"
+    - "decision-record"
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

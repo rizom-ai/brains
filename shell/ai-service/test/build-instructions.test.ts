@@ -34,7 +34,7 @@ describe("buildInstructions", () => {
 
   it("should not include profile section when profile is undefined", () => {
     const instructions = buildInstructions(identity, "anchor");
-    expect(instructions).not.toContain("Your Anchor");
+    expect(instructions).not.toContain("## Your Anchor");
   });
 
   it("should not reference system_get-identity or system_get-profile tools", () => {
@@ -73,6 +73,36 @@ describe("buildInstructions", () => {
       '"note", "notes", "memo", "base" → entityType: `base`',
     );
     expect(instructions).not.toContain('"note", "memo" → entityType: `note`');
+  });
+
+  it("should keep default shell instructions brain-neutral", () => {
+    const instructions = buildInstructions(identity, "anchor");
+    expect(instructions).toContain("managing a knowledge system");
+    expect(instructions).not.toContain("personal knowledge system");
+    expect(instructions).not.toContain(
+      '"blog post", "post", "essay", "article"',
+    );
+    expect(instructions).not.toContain(
+      '"case study", "portfolio piece", "project"',
+    );
+  });
+
+  it("should append brain-specific instructions separately from plugin instructions", () => {
+    const instructions = buildInstructions(
+      identity,
+      "anchor",
+      ["Plugin rule"],
+      undefined,
+      ["Brain rule"],
+    );
+
+    expect(instructions).toContain("### Brain-Specific Behavior (MANDATORY)");
+    expect(instructions).toContain("Brain rule");
+    expect(instructions).toContain("### Plugin-Specific Behavior (MANDATORY)");
+    expect(instructions).toContain("Plugin rule");
+    expect(instructions.indexOf("Brain rule")).toBeLessThan(
+      instructions.indexOf("Plugin rule"),
+    );
   });
 
   it("should tell the agent to capture lightweight memo requests without asking for more detail", () => {

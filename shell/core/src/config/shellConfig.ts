@@ -93,6 +93,7 @@ export type ShellConfig = Omit<
   permissions: PermissionConfig;
   identity?: BrainCharacter;
   profile?: AnchorProfile;
+  agentInstructions?: string[];
   evalHandlerRegistry?: IEvalHandlerRegistry;
   entityDisplay?: Record<string, EntityDisplayEntry>;
 };
@@ -157,6 +158,8 @@ export function createShellConfig(
   // Guard each optional property assignment (required by exactOptionalPropertyTypes)
   if (overrides.identity !== undefined) result.identity = overrides.identity;
   if (overrides.profile !== undefined) result.profile = overrides.profile;
+  if (overrides.agentInstructions !== undefined)
+    result.agentInstructions = overrides.agentInstructions;
   if (overrides.evalHandlerRegistry !== undefined)
     result.evalHandlerRegistry = overrides.evalHandlerRegistry;
   if (overrides.siteBaseUrl !== undefined)

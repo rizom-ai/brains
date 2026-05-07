@@ -1,0 +1,30 @@
+id: relay-tool-create-link
+name: Relay link capture via system_create
+description: Verifies that Relay saves shared team links through system_create with entityType link.
+type: tool_invocation
+tags:
+  - relay
+  - core
+  - system
+  - link
+  - entity-crud
+
+turns:
+  - userMessage: "Save this link for the team knowledge base: https://www.w3.org/TR/activitypub/"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "link"
+        url: "https://www.w3.org/TR/activitypub/"
+  responseNotContains:
+    - "I cannot"
+    - "I don't have access"
+    - "link_capture"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 25000

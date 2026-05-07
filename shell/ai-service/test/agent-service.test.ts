@@ -633,6 +633,27 @@ describe("AgentService", () => {
         "Always log unfulfilled requests.",
       ]);
     });
+
+    it("should pass brain-specific agent instructions to agent factory", async () => {
+      const service = AgentService.createFresh(
+        mockMCPService,
+        mockConversationService as IConversationService,
+        mockCharacterService,
+        mockProfileService,
+        logger,
+        {
+          agentFactory: mockAgentFactory,
+          agentInstructions: ["Prefer team synthesis over publishing."],
+        },
+      );
+
+      await service.chat("Hello", "test-conversation");
+
+      const createCallArgs = mockAgentFactory.mock.calls[0]?.[0];
+      expect(createCallArgs?.agentInstructions).toEqual([
+        "Prefer team synthesis over publishing.",
+      ]);
+    });
   });
 
   describe("toolResults in response", () => {

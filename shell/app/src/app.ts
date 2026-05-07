@@ -76,6 +76,7 @@ export class App {
     this.applyLoggingConfig(shellConfig);
     this.applyPermissionConfig(shellConfig);
     this.applyIdentityConfig(shellConfig);
+    this.applyAgentInstructions(shellConfig);
     this.applyAppMetadata(shellConfig);
 
     return shellConfig;
@@ -137,6 +138,12 @@ export class App {
   private applyIdentityConfig(shellConfig: ShellConfig): void {
     if (this.config.identity) {
       shellConfig.identity = this.config.identity;
+    }
+  }
+
+  private applyAgentInstructions(shellConfig: ShellConfig): void {
+    if (this.config.agentInstructions) {
+      shellConfig.agentInstructions = this.config.agentInstructions;
     }
   }
 

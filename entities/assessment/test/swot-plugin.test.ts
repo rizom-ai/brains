@@ -17,6 +17,22 @@ describe("SwotAssessmentPlugin", () => {
     expect(harness.getEntityService().getEntityTypes()).toContain("swot");
   });
 
+  it("registers deriveSwot eval handler", async () => {
+    const plugin = new SwotAssessmentPlugin();
+    const registrations: Array<{ pluginId: string; handlerId: string }> = [];
+    const mockShell = harness.getMockShell();
+
+    mockShell.registerEvalHandler = (pluginId, handlerId) => {
+      registrations.push({ pluginId, handlerId });
+    };
+
+    await harness.installPlugin(plugin);
+
+    expect(registrations).toEqual([
+      { pluginId: "swot", handlerId: "deriveSwot" },
+    ]);
+  });
+
   it("registers the standalone SWOT dashboard widget", async () => {
     const plugin = new SwotAssessmentPlugin();
     const registrations: Array<{ id: string; rendererName: string }> = [];

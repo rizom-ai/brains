@@ -1,40 +1,26 @@
-# Relay seed content
+# Relay eval content
 
-This directory contains the first-boot starter content for `@brains/relay`.
+This directory is the Relay-specific fixture corpus used by local test apps and evals.
 
-## What it is for
+It intentionally contains content for **existing Relay plugins only**. Do not add meeting-notes, decision-record, team-digest, RAG, graph, or other future-plugin content here until those plugins exist.
 
-The files here give a new relay instance enough durable markdown content to boot with a coherent identity and a usable starting structure.
+## Current fixture coverage
 
-Included content typically covers:
+- `brain-character/` — Relay identity and operating voice
+- `anchor-profile/` — team/organization profile
+- `site-info/` — public site metadata
+- root `.md` files — general team notes (`base` entities)
+- `prompt/` — editable prompt entities
+- `link/` — captured team reference links
+- `summary/` — durable conversation summary examples
+- `agent/` and `skill/` — peer-brain directory and advertised skills
+- `swot/` — assessment output fixture
+- `site-content/` — route/section copy for the minimal site stack
+- `doc/` and `deck/` — full-preset team knowledge surfaces
 
-- `brain-character/` — the brain's identity and operating voice
-- `anchor-profile/` — the operator or owner profile
-- `site-info/` — site title, metadata, and presentation defaults
-- `deck/` — example deck content
-- root `.md` files — supporting reference material
+## Authoring rules
 
-## How it is used
-
-On first boot, if `brain-data/` is empty, relay copies this seed content into the instance content directory.
-
-After that:
-
-- edit the instance's `brain-data/` content, not this directory
-- treat markdown files as the durable source of truth
-- let the runtime index that content into SQLite for search and retrieval
-- optionally sync the same markdown content to git through `directory-sync`
-
-## Authoring notes
-
-- Keep content markdown-first and entity-shaped
-- Prefer durable editorial copy over temporary scaffolding text
-- Use frontmatter that matches the owning entity schema
-- Keep examples realistic but clearly starter-level
-
-## Related docs
-
-- [Relay model README](../README.md)
-- [Repository README](../../../README.md)
-- [Brain model architecture](../../../docs/brain-model.md)
-- [AGENTS.md](../../../AGENTS.md)
+- Keep fixtures concrete and team-shaped.
+- Keep each file valid for its owning entity adapter.
+- Avoid generic product documentation copied from `docs/`.
+- Avoid content for plugins that do not exist yet.

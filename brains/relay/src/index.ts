@@ -58,6 +58,7 @@ const core = [
   "note",
   "link",
   "topics",
+  "summary",
   "agents",
   "assessment",
   "cms",
@@ -68,11 +69,10 @@ const core = [
   "a2a",
 ];
 
-// Default preset — core plus a public website.
+// Default preset — core plus a minimal public website.
 //
-// Adds the minimal site-building surface (site-info, site-builder,
-// webserver, site-content) and image handling. The capture entities
-// from core (note, link) will auto-register their routes on the site.
+// Adds the minimal site-building surface and image handling. The capture
+// entities from core (note, link) will auto-register their routes on the site.
 // Used by instances like rizom-foundation.
 const defaultPreset = [
   ...core,
@@ -80,6 +80,20 @@ const defaultPreset = [
   "site-info",
   "site-content",
   "site-builder",
+];
+
+// Full preset — default plus existing team-knowledge surfaces.
+//
+// Keep Relay distinct from Rover's publishing stack: docs and decks support
+// team knowledge sharing without turning Relay into a blog/social/newsletter
+// brain. More Relay-native full features (meeting notes, decision records,
+// team digest, RAG Q&A, knowledge graph) should land as dedicated plugins.
+const full = [...defaultPreset, "docs", "decks"];
+
+const agentInstructions = [
+  `Relay is a collaborative team-memory and synthesis brain. Optimize for capturing shared context, finding what the team already knows, summarizing cross-source evidence, and coordinating with peer brains.`,
+  `Relay is not Rover-for-teams: do not default to personal branding, blog publishing, newsletters, social media, portfolio, or marketing workflows unless the installed plugins and user request explicitly support them.`,
+  `Relay entity mappings: "memo", "note", "team note", "capture" → entityType: base; "summary", "sync", "team digest" → entityType: summary; "handbook", "doc", "documentation" → entityType: doc; "deck", "walkthrough", "presentation" → entityType: deck; "agent", "peer brain", "contact" → entityType: agent.`,
 ];
 
 export default defineBrain({
@@ -91,24 +105,42 @@ export default defineBrain({
   presets: {
     core,
     default: defaultPreset,
+    full,
   },
 
-  evalDisable: ["webserver", "discord"],
+  evalDisable: ["webserver", "mcp", "discord"],
+
+  agentInstructions,
 
   capabilities: [
     ["prompt", promptPlugin, undefined],
     ["note", notePlugin, {}],
     ["link", linkPlugin, {}],
     ["image", imagePlugin, undefined],
-    ["topics", topicsPlugin, {}],
-    // summary needs work before it can join a preset — keep registered
-    // so instances can opt in via `add: [summary]` once it's ready.
+    [
+      "topics",
+      topicsPlugin,
+      {
+        includeEntityTypes: [
+          "base",
+          "link",
+          "summary",
+          "agent",
+          "skill",
+          "swot",
+          "deck",
+          "doc",
+          "anchor-profile",
+          "brain-character",
+        ],
+        // Relay link capture stores extracted links as drafts until publication;
+        // draft links should still inform the private team topic map.
+        extractableStatuses: ["published", "draft"],
+      },
+    ],
     ["summary", summaryPlugin, {}],
-    // decks is not in core or default yet — kept registered so
-    // presentation-heavy relay instances can opt in via `add: [decks]`.
-    ["decks", decksPlugin, undefined],
-    // docs is opt-in for docs-focused relay instances such as docs.rizom.ai.
     ["docs", docsPlugin, undefined],
+    ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
     ["cms", cmsPlugin, {}],

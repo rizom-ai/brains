@@ -1,0 +1,27 @@
+id: relay-tool-create-note
+name: Relay note capture via system_create
+description: Verifies that Relay captures team notes through the shared system_create surface.
+type: tool_invocation
+tags:
+  - relay
+  - core
+  - system
+  - entity-crud
+
+turns:
+  - userMessage: "Save this team note: We decided to keep Relay focused on team memory, peer coordination, and shared synthesis."
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "base"
+  responseNotContains:
+    - "I cannot"
+    - "note_create"
+  minAccuracyScore: 3
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

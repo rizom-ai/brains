@@ -1,0 +1,16 @@
+brain: relay
+preset: full
+mode: eval
+
+# Single model eval with same-provider judge for POC simplicity.
+# Eval secrets are loaded from shell/ai-evaluation/.env; gpt models use AI_API_KEY.
+models:
+  - gpt-5.4-mini
+judge: gpt-5.4-mini
+
+# Eval-specific config — safe subset for automated testing.
+# mode: eval disables interfaces and side-effect plugins defined by the brain model.
+plugins:
+  directory-sync:
+    git:
+      gitUrl: "file://${EVAL_GIT_REMOTE}"

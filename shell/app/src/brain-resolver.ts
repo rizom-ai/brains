@@ -453,6 +453,9 @@ export function resolve(
 
     // Optional fields
     ...(identity && { identity }),
+    ...(definition.agentInstructions && {
+      agentInstructions: definition.agentInstructions,
+    }),
     ...buildPermissions(definition.permissions, overrides),
     deployment,
     ...buildRuntimeOverrides(env, overrides),

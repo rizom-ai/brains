@@ -51,6 +51,8 @@ export interface AgentConfig {
   stepLimit?: number;
   /** Factory for creating agents (injected for testability) */
   agentFactory: BrainAgentFactory;
+  /** Brain-specific behavior instructions from the brain definition */
+  agentInstructions?: string[];
 }
 
 /**

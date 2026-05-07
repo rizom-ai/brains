@@ -208,6 +208,22 @@ describe("resolve", () => {
     });
   });
 
+  test("should preserve brain-specific agent instructions", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      agentInstructions: ["Prefer team synthesis over publishing."],
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {});
+
+    expect(config.agentInstructions).toEqual([
+      "Prefer team synthesis over publishing.",
+    ]);
+  });
+
   test("should extract AI keys from environment", () => {
     const def = defineBrain({
       name: "test",
