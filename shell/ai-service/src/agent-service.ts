@@ -44,6 +44,7 @@ export class AgentService implements IAgentService {
   private logger: Logger;
   private stepLimit: number;
   private agentFactory: AgentConfig["agentFactory"];
+  private agentInstructions: AgentConfig["agentInstructions"];
 
   // Provided machine with injected actors (created once, reused per conversation)
   private providedMachine = agentMachine.provide({
@@ -133,6 +134,7 @@ export class AgentService implements IAgentService {
     this.logger = logger.child("AgentService");
     this.stepLimit = config.stepLimit ?? DEFAULT_STEP_LIMIT;
     this.agentFactory = config.agentFactory;
+    this.agentInstructions = config.agentInstructions;
   }
 
   /**
@@ -145,6 +147,9 @@ export class AgentService implements IAgentService {
       profile: this.profileService.getProfile(),
       tools: this.mcpService.listTools().map((t) => t.tool),
       pluginInstructions: this.mcpService.getInstructions(),
+      ...(this.agentInstructions && {
+        agentInstructions: this.agentInstructions,
+      }),
       stepLimit: this.stepLimit,
       getToolsForPermission: (level) =>
         this.mcpService.listToolsForPermissionLevel(level).map((t) => t.tool),

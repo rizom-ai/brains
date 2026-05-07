@@ -89,6 +89,12 @@ const defaultPreset = [
 // team digest, RAG Q&A, knowledge graph) should land as dedicated plugins.
 const full = [...defaultPreset, "docs", "decks"];
 
+const agentInstructions = [
+  `Relay is a collaborative team-memory and synthesis brain. Optimize for capturing shared context, finding what the team already knows, summarizing cross-source evidence, and coordinating with peer brains.`,
+  `Relay is not Rover-for-teams: do not default to personal branding, blog publishing, newsletters, social media, portfolio, or marketing workflows unless the installed plugins and user request explicitly support them.`,
+  `Relay entity mappings: "memo", "note", "team note", "capture" → entityType: base; "summary", "sync", "team digest" → entityType: summary; "handbook", "doc", "documentation" → entityType: doc; "deck", "walkthrough", "presentation" → entityType: deck; "agent", "peer brain", "contact" → entityType: agent.`,
+];
+
 export default defineBrain({
   name: "relay",
   version: "0.1.0",
@@ -101,7 +107,9 @@ export default defineBrain({
     full,
   },
 
-  evalDisable: ["webserver", "discord"],
+  evalDisable: ["webserver", "mcp", "discord"],
+
+  agentInstructions,
 
   capabilities: [
     ["prompt", promptPlugin, undefined],

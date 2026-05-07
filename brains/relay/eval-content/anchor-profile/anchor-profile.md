@@ -1,17 +1,14 @@
 ---
 kind: team
-name: Team Organization
-description: Collaborative team workspace for knowledge sharing
-website: "https://team.example.com"
-email: team@example.com
+name: Relay POC Team
+description: A small team validating shared knowledge capture, synthesis, and peer-brain coordination.
+website: "https://relay.example.com"
+email: relay-team@example.com
 socialLinks:
-  - platform: linkedin
-    url: "https://www.linkedin.com/company/team-org"
-    label: Connect on LinkedIn
   - platform: github
-    url: "https://github.com/team-org"
-    label: View team projects
+    url: "https://github.com/rizom-ai/brains"
+    label: Brains repository
   - platform: email
-    url: "mailto:team@example.com"
-    label: Contact team
+    url: "mailto:relay-team@example.com"
+    label: Contact the Relay POC team
 ---

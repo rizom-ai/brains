@@ -107,6 +107,13 @@ export interface BrainDefinition {
   identity?: BrainIdentity;
 
   /**
+   * Brain-specific agent behavior layered on top of shell-neutral tool rules.
+   * Use this for model positioning such as Rover's publishing workflows or
+   * Relay's team-memory/coordination focus.
+   */
+  agentInstructions?: string[];
+
+  /**
    * Default site package — layout, routes, site plugin, and display metadata.
    * Can be overridden per-instance via `site.package` in brain.yaml.
    */

@@ -6,6 +6,7 @@
   "type": "module",
   "files": [
     "src",
+    "brain.eval.yaml",
     "env.schema.template"
   ],
   "exports": {
@@ -17,6 +18,7 @@
     "start:full": "cd test-apps/full && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "start:docs": "cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
+    "eval": "brain-eval",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
@@ -46,6 +48,7 @@
     "@brains/webserver": "workspace:*"
   },
   "devDependencies": {
+    "@brains/ai-evaluation": "workspace:*",
     "typescript": "^5.3.3"
   }
 }

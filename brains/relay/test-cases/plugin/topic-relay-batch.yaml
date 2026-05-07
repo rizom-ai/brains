@@ -1,0 +1,95 @@
+id: relay-plugin-topic-batch
+name: Relay batch topic extraction
+description: Verifies topics can be extracted from Relay's existing content types without future-plugin fixtures.
+type: plugin
+tags:
+  - relay
+  - topics
+  - core
+plugin: topics
+handler: batchExtract
+
+input:
+  entities:
+    - entityType: base
+      content: |
+        ---
+        title: Relay POC team notes
+        ---
+        Relay should focus on team memory, summaries, peer-brain coordination, and topic synthesis.
+      metadata:
+        title: Relay POC team notes
+
+    - entityType: link
+      content: |
+        ---
+        status: draft
+        title: ActivityPub specification
+        url: "https://www.w3.org/TR/activitypub/"
+        description: Federated activity delivery.
+        domain: www.w3.org
+        capturedAt: "2026-05-06T09:00:00.000Z"
+        source:
+          ref: "discord:relay-poc:architecture"
+          label: "#architecture"
+        ---
+        ActivityPub is relevant to peer-brain federation and coordination.
+      metadata:
+        title: ActivityPub specification
+        status: draft
+
+    - entityType: summary
+      content: |
+        # Conversation Summary
+
+        ## Relay preset direction
+
+        Time: 2026-05-06T10:00:00.000Z → 2026-05-06T10:18:00.000Z
+        Messages summarized: 8
+
+        The team decided Relay full should stay limited to docs and decks for the current POC scope.
+      metadata:
+        title: Relay preset direction
+
+    - entityType: doc
+      content: |
+        ---
+        title: Relay operating model
+        status: draft
+        ---
+        Relay turns captured notes, links, summaries, docs, and decks into team knowledge coordination artifacts.
+        The current operating model emphasizes team memory, peer-brain coordination, and grounded topic synthesis.
+      metadata:
+        title: Relay operating model
+        status: draft
+
+    - entityType: deck
+      content: |
+        ---
+        title: Relay POC walkthrough
+        status: draft
+        ---
+        # Relay POC walkthrough
+
+        ## Team knowledge coordination
+        Relay helps teams coordinate through shared memory, peer-brain references, topic synthesis, docs, and decks.
+      metadata:
+        title: Relay POC walkthrough
+        status: draft
+
+expectedOutput:
+  validateEach:
+    - path: topics[0].title
+      exists: true
+    - path: batches
+      exists: true
+  qualityCriteria:
+    minRelevanceScore: 3
+    minAccuracyScore: 3
+    evaluationPrompt: |
+      Evaluate whether the extracted topics are grounded in the five provided Relay inputs.
+      Good topics should reflect team memory, peer-brain coordination, topic synthesis,
+      ActivityPub/federation, and the current docs/decks POC scope.
+      Do not penalize concise generalized topic titles when their descriptions are grounded.
+      Penalize invented workflow details, A2A approval mechanics, or references to future plugins
+      such as meeting-notes or decision-record unless they appear in the source text.

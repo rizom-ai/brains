@@ -1,0 +1,35 @@
+id: relay-tool-site-info-search
+name: Search Relay site info and site content
+description: Tests that the agent can answer questions about the existing minimal Relay public site content.
+type: tool_invocation
+tags:
+  - relay
+  - site-content
+  - site-info
+  - default
+  - search
+
+turns:
+  - userMessage: "What does the current Relay public site say about Relay's purpose and principles? Search the saved site-info and site-content first."
+
+successCriteria:
+  toolCountRange:
+    min: 1
+    max: 6
+  responseContains:
+    - "Relay"
+    - "Capture"
+    - "Summarize"
+  responseNotContains:
+    - "blog"
+    - "newsletter"
+    - "publishing pipeline"
+    - "meeting-notes"
+    - "decision-record"
+
+  minHelpfulnessScore: 3
+  minInstructionFollowingScore: 3
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

@@ -1,0 +1,35 @@
+id: relay-plugin-summary-team-sync
+name: Summarize Relay team sync
+description: Verifies summary plugin extracts key points, decisions, and action items from a team conversation.
+type: plugin
+tags:
+  - relay
+  - summary
+  - core
+plugin: summary
+handler: summarizeMessages
+
+input:
+  conversationId: relay-eval-summary
+  messages:
+    - role: user
+      content: "We need Relay eval content to stop using generic Brains docs."
+    - role: assistant
+      content: "I will replace it with Relay-specific fixtures for existing plugins only."
+    - role: user
+      content: "Decision: full keeps docs and decks only. Do not add future meeting-notes content yet."
+    - role: assistant
+      content: "Action item: create valid fixtures for notes, links, summaries, agents, skills, assessment, site content, docs, and decks."
+
+expectedOutput:
+  minItems: 1
+  maxItems: 3
+  itemsContain:
+    - field: decisionsText
+      words:
+        - full
+        - docs
+        - decks
+    - field: actionItemsText
+      words:
+        - fixtures

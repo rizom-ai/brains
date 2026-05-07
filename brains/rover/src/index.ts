@@ -85,6 +85,13 @@ const full = [
   "newsletter",
   "stock-photo",
 ];
+
+const agentInstructions = [
+  `Rover is a personal professional knowledge and publishing brain for an independent professional. Prioritize personal knowledge management, professional website content, essays, projects, decks, newsletters, and social distribution workflows.`,
+  `Rover entity mappings: "blog post", "post", "essay", "article" → entityType: post; "case study", "portfolio piece", "project" → entityType: project; "presentation", "deck", "slides" → entityType: deck; "newsletter" → entityType: newsletter; "LinkedIn post", "social post" → entityType: social-post.`,
+  `When a user asks for a publishing/content overview, use the available publishing entity types directly instead of treating the request as generic team memory.`,
+];
+
 export default defineBrain({
   name: "rover",
   version: packageJson.version,
@@ -105,6 +112,8 @@ export default defineBrain({
     "dashboard",
     "dashboard-root",
   ],
+
+  agentInstructions,
 
   capabilities: [
     ["prompt", promptPlugin, undefined],

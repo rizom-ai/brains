@@ -119,7 +119,12 @@ export function initializeIdentityAndAgentServices(
     identityService,
     profileService,
     logger,
-    { agentFactory },
+    {
+      agentFactory,
+      ...(config.agentInstructions && {
+        agentInstructions: config.agentInstructions,
+      }),
+    },
   );
 
   disposables.push(

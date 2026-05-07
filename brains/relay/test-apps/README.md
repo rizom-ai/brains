@@ -24,15 +24,30 @@ Each command runs the matching test app via the in-repo `@rizom/brain` workspace
 
 ## Minimum local env
 
+Set these in your shell before starting:
+
 ```sh
 export AI_API_KEY=...
 export GIT_SYNC_TOKEN=...
 ```
 
-Optional:
+Or put those values in a preset-local `.env` file next to `brain.yaml`, for example:
 
-- `MCP_AUTH_TOKEN`
-- `DISCORD_BOT_TOKEN`
+- `brains/relay/test-apps/core/.env`
+- `brains/relay/test-apps/default/.env`
+- `brains/relay/test-apps/full/.env`
+- `brains/relay/test-apps/docs/.env`
+
+Use a real `AI_API_KEY` if you want topic extraction, embeddings, summaries, and other AI-backed flows to succeed. A placeholder value may still let the app boot, but background AI jobs will fail.
+
+## Optional env
+
+Only set these when you need the corresponding integration:
+
+- `MCP_AUTH_TOKEN` — enable authenticated local MCP HTTP startup; without it, the app can still boot, but the MCP HTTP daemon will not start
+- `DISCORD_BOT_TOKEN` — enable the Discord interface
+
+Missing optional integration secrets do not block the whole app from booting, but the corresponding integration may be skipped or fail to start.
 
 ## Reset a preset
 

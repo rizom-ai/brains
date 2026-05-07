@@ -51,6 +51,7 @@ export interface BrainDefinition {
   version: string;
   model?: string;
   identity?: BrainIdentity;
+  agentInstructions?: string[];
   site?: unknown;
   theme?: string;
   capabilities: CapabilityEntry[];
