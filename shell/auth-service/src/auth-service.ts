@@ -891,15 +891,38 @@ function webauthnBrowserHelpers(): string {
         })),
       };
     }
+    function encodeResponseField(response, output, key) {
+      const value = response[key];
+      if (value instanceof ArrayBuffer) output[key] = bufferToBase64url(value);
+      else if (value !== null && value !== undefined) output[key] = value;
+    }
     function credentialToJSON(credential) {
+      const source = credential.response;
       const response = {};
-      for (const key of Object.keys(credential.response)) {
-        const value = credential.response[key];
-        response[key] = value instanceof ArrayBuffer ? bufferToBase64url(value) : value;
+
+      // Authenticator response fields are exposed as WebIDL attributes, not
+      // enumerable object keys, so copy the known registration/authentication
+      // fields explicitly.
+      encodeResponseField(source, response, 'clientDataJSON');
+      encodeResponseField(source, response, 'attestationObject');
+      encodeResponseField(source, response, 'authenticatorData');
+      encodeResponseField(source, response, 'signature');
+      encodeResponseField(source, response, 'userHandle');
+
+      if (typeof source.getTransports === 'function') {
+        response.transports = source.getTransports();
       }
-      if (typeof credential.response.getTransports === 'function') {
-        response.transports = credential.response.getTransports();
+      if (typeof source.getAuthenticatorData === 'function') {
+        response.authenticatorData = bufferToBase64url(source.getAuthenticatorData());
       }
+      if (typeof source.getPublicKey === 'function') {
+        const publicKey = source.getPublicKey();
+        if (publicKey) response.publicKey = bufferToBase64url(publicKey);
+      }
+      if (typeof source.getPublicKeyAlgorithm === 'function') {
+        response.publicKeyAlgorithm = source.getPublicKeyAlgorithm();
+      }
+
       return {
         id: credential.id,
         rawId: bufferToBase64url(credential.rawId),
