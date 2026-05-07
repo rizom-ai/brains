@@ -2,15 +2,14 @@ brain: rover
 preset: full
 mode: eval
 
-# Single model eval with LLM judge
+# Single model eval with OpenAI LLM judge
 models:
   - gpt-5.4-mini
-judge: claude-haiku-4-5
+judge: gpt-5.4-mini
 
 # Per-provider API keys (referenced from env)
 keys:
   openai: ${OPENAI_API_KEY}
-  anthropic: ${ANTHROPIC_API_KEY}
 
 # Eval-specific config — safe subset for automated testing
 # mode: eval disables interfaces and side-effect plugins (defined by evalDisable in brain model)

@@ -15,6 +15,9 @@ export function registerSkillEvalHandlers(
   context.eval.registerHandler("deriveSkills", async (input: unknown) => {
     const parsed = deriveInputSchema.parse(input);
 
+    await clearEvalEntities(context, "topic");
+    await clearEvalEntities(context, SKILL_ENTITY_TYPE);
+
     // Create mock topic entities so deriveSkills can read them.
     for (const title of parsed.topicTitles) {
       const id = title.toLowerCase().replace(/\s+/g, "-");
@@ -33,7 +36,7 @@ export function registerSkillEvalHandlers(
       }
     }
 
-    const result = await deriveSkills(context, logger);
+    const result = await deriveSkills(context, logger, { replaceAll: true });
     const skills = await context.entityService.listEntities({
       entityType: SKILL_ENTITY_TYPE,
     });
@@ -43,4 +46,16 @@ export function registerSkillEvalHandlers(
       skills: skills.map((s) => s.metadata),
     };
   });
+}
+
+async function clearEvalEntities(
+  context: EntityPluginContext,
+  entityType: string,
+): Promise<void> {
+  const entities = await context.entityService.listEntities({ entityType });
+  await Promise.all(
+    entities.map((entity) =>
+      context.entityService.deleteEntity({ entityType, id: entity.id }),
+    ),
+  );
 }

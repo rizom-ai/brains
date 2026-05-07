@@ -151,11 +151,27 @@ Provide your evaluation scores and reasoning.`;
     }
 
     return allToolCalls
-      .map(
-        (tc, i) =>
-          `${i + 1}. ${tc.toolName}${tc.args ? ` (args: ${JSON.stringify(tc.args)})` : ""}`,
-      )
+      .map((tc, i) => {
+        const args = tc.args ? ` (args: ${JSON.stringify(tc.args)})` : "";
+        const result =
+          tc.result !== undefined
+            ? `\n   Result summary: ${this.summarizeToolResult(tc.result)}`
+            : "";
+        return `${i + 1}. ${tc.toolName}${args}${result}`;
+      })
       .join("\n");
+  }
+
+  private summarizeToolResult(result: unknown): string {
+    const serialized = JSON.stringify(result, (_key, value: unknown) =>
+      typeof value === "string" && value.length > 500
+        ? `${value.slice(0, 500)}…`
+        : value,
+    );
+
+    return serialized.length > 4000
+      ? `${serialized.slice(0, 4000)}…[truncated]`
+      : serialized;
   }
 
   /**

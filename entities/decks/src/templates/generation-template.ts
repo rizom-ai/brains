@@ -47,9 +47,10 @@ Style guidelines:
 5. Voice: First-person when appropriate. Opinionated and direct. Skip the hedging language.
 6. Examples: Use real, specific examples from the brain's context. Avoid generic hypotheticals.
 7. Structure: Tell a story, not a list of features. Build an argument or narrative arc.
-8. NO "Agenda" slides listing what you'll cover. Jump into the content.
-9. NO generic "Questions?" or "Thank you" ending slides. End with a call to action or thought-provoking final point.
-10. NO bullet-point heavy slides with 5+ items. If you have that much, split into multiple slides.
+8. When the prompt touches philosophy, include at least one named philosophical reference or short quote (e.g. Heidegger, Kittler, de Certeau, Sloterdijk) and connect it to the technical argument.
+9. NO "Agenda" slides listing what you'll cover. Jump into the content.
+10. NO generic "Questions?" or "Thank you" ending slides. End with a call to action or thought-provoking final point.
+11. NO bullet-point heavy slides with 5+ items. If you have that much, split into multiple slides.
 
 Format requirements:
 - Use "---" on its own line to separate slides

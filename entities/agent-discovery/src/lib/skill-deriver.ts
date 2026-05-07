@@ -57,7 +57,7 @@ For each skill, write an action-oriented description of what the brain
 can DO (not just what it knows). Use verbs: "Create...", "Analyze...",
 "Design...", "Write about...".
 
-Return 2-5 skills. Each skill needs:
+Return 2-4 skills. Each skill needs:
 - name: broad capability (max 50 chars, NOT a topic title copy)
 - description: one action-oriented sentence
 - tags: 3-5 keywords spanning multiple topics

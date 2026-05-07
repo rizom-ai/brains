@@ -27,6 +27,6 @@ For each skill, provide:
 - tags: 3-5 keywords spanning multiple topics
 - examples: 2-3 concrete user prompts
 
-Return 2-5 skills as a JSON object with a "skills" array.`,
+Return 2-4 skills as a JSON object with a "skills" array.`,
   requiredPermission: "public",
 });

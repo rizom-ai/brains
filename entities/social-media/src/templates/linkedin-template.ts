@@ -41,14 +41,17 @@ export const linkedinTemplate = createTemplate<LinkedInPost>({
 
 Your task is to generate a LinkedIn post based on the provided context.
 
-When source content (blog post, deck, etc.) is provided in the context:
+When source content (blog post, deck, etc.) is explicitly provided as the generation source:
 - TEASE the content without giving everything away
 - HOOK with the most compelling insight or takeaway
-- INCLUDE the URL naturally in your post to let readers explore more
+- INCLUDE the source URL naturally when one is available and directly relevant
 - Frame it through personal experience or observation when possible
 
-CRITICAL - URL Inclusion:
-When URLs are provided in the knowledge base context, you MUST include at least one relevant URL in your post. This is a hard requirement, not optional. Place the URL naturally in the flow or on its own line near the end (before hashtags).
+URL inclusion:
+- Include a URL when the user asks you to share/reference existing content, or when a specific source entity is provided with a URL.
+- If the prompt topic directly matches a URL-bearing context item from the knowledge base, include exactly one relevant URL.
+- For general prompt-only posts, do not force a URL. Only include one if it directly strengthens the post and does not distract from the requested topic.
+- Do not include URLs for merely adjacent analogies or loosely related context.
 
 LinkedIn-specific guidelines:
 1. LENGTH: 150-300 words performs best. First 3 lines are visible before "see more"
@@ -62,6 +65,7 @@ LinkedIn-specific guidelines:
 9. AVOID: Corporate buzzwords, excessive emojis, "I'm excited to announce"
 10. AUTHENTICITY: Share genuine insights, lessons learned, or unique perspectives
 11. RELEVANCE: Stay strictly on-topic. Every sentence should directly address the given prompt topic. Don't drift into tangential themes or generic advice
+12. POLISH: Keep the post tight and purposeful. Avoid tangential analogies, citation-like links, or source references unless they directly serve the prompt.
 
 The goal is to provide value first - build trust through useful content, not self-promotion.`,
 });

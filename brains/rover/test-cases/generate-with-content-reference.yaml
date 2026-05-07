@@ -11,7 +11,7 @@ plugin: social-media
 handler: generation
 
 input:
-  prompt: "Write a LinkedIn post about ecosystem architecture and decentralization"
+  prompt: "Write a LinkedIn post about the Green Software Foundation as an ecosystem for greener software, and include its URL from my knowledge base"
   platform: linkedin
 
 expectedOutput:
@@ -24,7 +24,9 @@ expectedOutput:
   contentContains:
     - field: content
       patterns:
-        - "[Ee]cosystem|[Dd]ecentrali"
+        - "[Ee]cosystem|[Gg]reen [Ss]oftware"
+        - "https?://"
+        - 'greensoftware\.foundation'
   qualityCriteria:
     minRelevanceScore: 3
     minAccuracyScore: 4
