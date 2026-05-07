@@ -50,8 +50,8 @@ const EditorialRow = ({
   blurb?: string | undefined;
   children: ComponentChildren;
 }): JSX.Element => (
-  <section className="py-20 border-b border-rule">
-    <div className="container mx-auto px-6 md:px-12 max-w-6xl">
+  <section className="py-20 border-b border-rule px-6 md:px-12">
+    <div className="max-w-6xl mx-auto">
       <div className={GRID_CLS}>
         <SectionHeader title={title} number={number} blurb={blurb} />
         <div className={RULE_CLS} aria-hidden="true" />

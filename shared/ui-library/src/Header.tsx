@@ -82,8 +82,8 @@ export function Header({
 
   return (
     <header className="sticky top-0 z-50 py-5 border-b border-rule bg-header">
-      <div className="max-w-layout mx-auto px-6 md:px-12">
-        <div className="flex flex-row justify-between items-center gap-8">
+      <div className="px-6 md:px-12">
+        <div className="max-w-layout mx-auto flex flex-row justify-between items-center gap-8">
           <a href="/" className="text-logo hover:opacity-80 transition-opacity">
             {titleElement}
           </a>

@@ -120,13 +120,14 @@ export const PresentationLayout = ({
               height: 100vh;
               height: 100dvh;
               overflow: hidden;
+              background: var(--color-bg-gradient, var(--color-bg));
             }
 
             .reveal {
               width: 100%;
               height: 100%;
               font-family: var(--font-sans);
-              background: var(--color-bg-gradient);
+              background: var(--color-bg-gradient, var(--color-bg));
             }
 
             /* ---- BASE SLIDE LAYOUT ---- */
