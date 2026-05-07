@@ -86,6 +86,9 @@ jobs:
             git push
           fi
 
+      - name: Run pre-publish smoke tests
+        run: bun --filter @rizom/ops test:smoke
+
       - name: Publish to npm
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
