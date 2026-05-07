@@ -1,5 +1,11 @@
 # @brains/ops
 
+## 0.2.0-alpha.52
+
+### Patch Changes
+
+- [`d8649c3`](https://github.com/rizom-ai/brains/commit/d8649c327ee659fada1bcd33e02af8e5d9916148) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Move the `@rizom/ops` packed-tarball smoke test out of per-commit CI into the Release workflow's pre-publish step. The test (build + npm pack + bun add + multiple CLI subprocess invocations) was hitting the 20s default timeout on congested runners and blocking unrelated changes from publishing. It now runs only when `RUN_SMOKE_TESTS=1` is set, gated to the actual publish step where its end-to-end "the published artifact works for external consumers" guarantee is most valuable.
+
 ## 0.2.0-alpha.51
 
 ## 0.2.0-alpha.50

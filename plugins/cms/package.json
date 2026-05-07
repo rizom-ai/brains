@@ -1,7 +1,7 @@
 {
   "name": "@brains/cms",
   "private": true,
-  "version": "0.2.0-alpha.51",
+  "version": "0.2.0-alpha.52",
   "description": "CMS plugin for config and browser authoring routes",
   "type": "module",
   "exports": {

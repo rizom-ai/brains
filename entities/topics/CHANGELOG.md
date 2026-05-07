@@ -1,5 +1,16 @@
 # @brains/topics
 
+## 0.2.0-alpha.52
+
+### Patch Changes
+
+- [`90bfb0c`](https://github.com/rizom-ai/brains/commit/90bfb0cb63adcb0625627598f3f17d62e8e82d38) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prepare Relay for the POC preset split by enabling conversation summaries in core, adding a Relay-native full preset for docs and decks, configuring topic source entity types, and allowing Relay to include draft links in topic extraction via configurable extractable statuses.
+
+- Updated dependencies [[`22bb0fc`](https://github.com/rizom-ai/brains/commit/22bb0fc26d76e6b48fa9952fe4eb0ce560d04cf0)]:
+  - @brains/ui-library@0.2.0-alpha.52
+  - @brains/utils@0.2.0-alpha.52
+  - @brains/plugins@0.2.0-alpha.52
+
 ## 0.2.0-alpha.51
 
 ### Patch Changes

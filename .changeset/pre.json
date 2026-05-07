@@ -90,7 +90,8 @@
     "@brains/assessment": "0.2.0-alpha.39",
     "@brains/doc": "0.2.0-alpha.42",
     "@brains/deploy-templates": "0.2.0-alpha.45",
-    "@brains/site-engine": "0.2.0-alpha.48"
+    "@brains/site-engine": "0.2.0-alpha.48",
+    "@brains/rizom-ecosystem": "0.2.0-alpha.50"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -100,6 +101,7 @@
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
     "brains-ops-published-delivery",
+    "brains-ops-smoke-gate",
     "bundle-ranger-relay-models",
     "bundled-site-package-registry",
     "caddy-preview-host-regex-fix",
@@ -132,6 +134,7 @@
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "professional-site-rizom-typography",
+    "relay-poc-topic-sources",
     "rizom-brain-first-alpha",
     "rizom-ecosystem-no-nested-anchor",
     "rizom-font-display-weight",
@@ -163,6 +166,7 @@
     "startup-check-mode",
     "swot-evidence-grounding",
     "tailwind-runtime-deps",
-    "themes-export"
+    "themes-export",
+    "wordmark-slot-and-generic-suffix"
   ]
 }

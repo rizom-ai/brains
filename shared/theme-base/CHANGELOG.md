@@ -1,5 +1,7 @@
 # @brains/theme-base
 
+## 0.2.0-alpha.52
+
 ## 0.2.0-alpha.51
 
 ### Patch Changes

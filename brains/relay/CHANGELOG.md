@@ -1,5 +1,37 @@
 # @brains/relay
 
+## 0.2.0-alpha.52
+
+### Patch Changes
+
+- [`90bfb0c`](https://github.com/rizom-ai/brains/commit/90bfb0cb63adcb0625627598f3f17d62e8e82d38) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Prepare Relay for the POC preset split by enabling conversation summaries in core, adding a Relay-native full preset for docs and decks, configuring topic source entity types, and allowing Relay to include draft links in topic extraction via configurable extractable statuses.
+
+- Updated dependencies [[`90bfb0c`](https://github.com/rizom-ai/brains/commit/90bfb0cb63adcb0625627598f3f17d62e8e82d38)]:
+  - @brains/topics@0.2.0-alpha.52
+  - @brains/rizom-ecosystem@0.2.0-alpha.52
+  - @brains/agent-discovery@0.2.0-alpha.52
+  - @brains/doc@0.2.0-alpha.52
+  - @brains/summary@0.2.0-alpha.52
+  - @brains/site-builder-plugin@0.2.0-alpha.52
+  - @brains/site-rizom@0.2.0-alpha.52
+  - @brains/assessment@0.2.0-alpha.52
+  - @brains/decks@0.2.0-alpha.52
+  - @brains/image-plugin@0.2.0-alpha.52
+  - @brains/link@0.2.0-alpha.52
+  - @brains/note@0.2.0-alpha.52
+  - @brains/prompt@0.2.0-alpha.52
+  - @brains/site-info@0.2.0-alpha.52
+  - @brains/a2a@0.2.0-alpha.52
+  - @brains/discord@0.2.0-alpha.52
+  - @brains/mcp@0.2.0-alpha.52
+  - @brains/webserver@0.2.0-alpha.52
+  - @brains/cms@0.2.0-alpha.52
+  - @brains/dashboard@0.2.0-alpha.52
+  - @brains/directory-sync@0.2.0-alpha.52
+  - @brains/site-content@0.2.0-alpha.52
+  - @brains/theme-rizom@0.2.0-alpha.52
+  - @brains/app@0.2.0-alpha.52
+
 ## 0.2.0-alpha.51
 
 ### Patch Changes
