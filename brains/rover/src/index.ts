@@ -25,6 +25,7 @@ import { obsidianVaultPlugin } from "@brains/obsidian-vault";
 import { wishlistPlugin } from "@brains/wishlist";
 import { promptPlugin } from "@brains/prompt";
 import { stockPhotoPlugin } from "@brains/stock-photo";
+import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
 import defaultSite from "@brains/site-default";
@@ -184,6 +185,7 @@ export default defineBrain({
       },
     ],
     ["analytics", analyticsPlugin, {}],
+    ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
     [
       "site-builder",

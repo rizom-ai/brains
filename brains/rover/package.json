@@ -39,6 +39,7 @@
     "@brains/obsidian-vault": "workspace:*",
     "@brains/portfolio": "workspace:*",
     "@brains/prompt": "workspace:*",
+    "@brains/rizom-ecosystem": "workspace:*",
     "@brains/series": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
     "@brains/site-default": "workspace:*",
