@@ -313,6 +313,32 @@ describe("AuthService", () => {
     expect(token.access_token.split(".")).toHaveLength(3);
     expect(token.refresh_token).toStartWith("ort_");
 
+    const verified = await service.verifyBearerToken(
+      new Request("https://brain.example.com/mcp", {
+        headers: { authorization: `Bearer ${token.access_token}` },
+      }),
+      { issuer: "https://brain.example.com", audience: client.client_id },
+    );
+    expect(verified).toMatchObject({
+      subject: "single-operator",
+      issuer: "https://brain.example.com",
+      audience: client.client_id,
+      scope: ["openid", "profile", "mcp"],
+    });
+
+    let verifyError: unknown;
+    try {
+      await service.verifyBearerToken(
+        new Request("https://brain.example.com/mcp", {
+          headers: { authorization: `Bearer ${token.access_token}` },
+        }),
+        { issuer: "https://brain.example.com", audience: "wrong-audience" },
+      );
+    } catch (error) {
+      verifyError = error;
+    }
+    expect(verifyError).toBeInstanceOf(Error);
+
     const refreshResponse = await service.handleRequest(
       new Request("https://brain.example.com/token", {
         method: "POST",

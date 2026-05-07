@@ -35,6 +35,11 @@ export type {
   StoredWebAuthnChallenge,
 } from "./passkey-store";
 export { signJwt } from "./jwt";
+export { getBearerToken, verifyAccessToken } from "./token-verifier";
+export type {
+  VerifiedAccessToken,
+  VerifyAccessTokenOptions,
+} from "./token-verifier";
 export {
   InvalidRefreshTokenError,
   RefreshTokenStore,

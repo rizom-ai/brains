@@ -18,6 +18,11 @@ import {
   type CreateOperatorSessionResult,
 } from "./session-store";
 import { absoluteUrl, issuerFromRequest, normalizeIssuer } from "./issuer";
+import {
+  getBearerToken,
+  verifyAccessToken,
+  type VerifiedAccessToken,
+} from "./token-verifier";
 import type {
   AuthorizationServerMetadata,
   JwksResponse,
@@ -145,6 +150,19 @@ export class AuthService {
     subject = "single-operator",
   ): Promise<CreateOperatorSessionResult> {
     return this.sessionStore.createSession(subject);
+  }
+
+  async verifyBearerToken(
+    request: Request,
+    options: { issuer?: string; audience?: string } = {},
+  ): Promise<VerifiedAccessToken | undefined> {
+    const token = getBearerToken(request);
+    if (!token) return undefined;
+
+    return verifyAccessToken(token, await this.getJwks(), {
+      issuer: normalizeIssuer(options.issuer ?? this.issuer),
+      ...(options.audience ? { audience: options.audience } : {}),
+    });
   }
 
   getSetupUrl(issuer = this.issuer): string | undefined {
