@@ -38,15 +38,15 @@ export const SectionHeader = ({
   return (
     <header>
       {number !== undefined && (
-        <span className="block font-mono text-xs font-medium uppercase tracking-[0.22em] text-accent mb-3">
+        <span className="block font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent mb-[0.85rem]">
           {number}
         </span>
       )}
-      <h2 className="font-heading text-2xl md:text-[2rem] font-normal text-heading leading-[1.05] tracking-[-0.018em]">
+      <h2 className="font-heading font-normal text-heading leading-[1.05] tracking-[-0.015em] text-[clamp(1.75rem,2.6vw,2.1rem)] [font-variation-settings:'opsz'_48,'SOFT'_30]">
         {title}
       </h2>
       {blurb !== undefined && (
-        <p className="font-heading italic font-light text-[0.95rem] leading-snug text-theme-muted mt-3 max-w-[22ch]">
+        <p className="font-heading italic font-light text-[0.95rem] leading-[1.5] text-theme-light mt-3 max-w-[22ch] [font-variation-settings:'opsz'_18,'SOFT'_50]">
           {blurb}
         </p>
       )}

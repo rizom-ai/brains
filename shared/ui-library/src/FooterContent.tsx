@@ -59,11 +59,6 @@ export function FooterContent({
       ? "w-4 h-4 text-white opacity-40 hover:opacity-100 hover:text-accent"
       : "w-4 h-4 text-theme-light hover:text-brand hover:opacity-100";
 
-  const copyrightClassName =
-    variant === "cta"
-      ? "text-[11px] text-white opacity-30 font-mono tracking-[0.04em]"
-      : "text-[11px] text-theme-light font-mono tracking-[0.04em]";
-
   const hasSecondary = secondaryNav.length > 0;
   const hasSocial = socialLinks && socialLinks.length > 0;
   const hasBrand = Boolean(title);
@@ -82,12 +77,12 @@ export function FooterContent({
         {/* Brand block (left) — wordmark + tagline */}
         {hasBrand && (
           <div className="sm:max-w-[18rem] sm:flex-1">
-            <a href="/" className="text-logo inline-block mb-3">
-              <Logo title={title} />
+            <a href="/" className="text-logo inline-block mb-2">
+              <Logo title={title} className="text-[1.25rem]" />
             </a>
             {tagline && (
               <p
-                className={`font-heading italic font-light text-[0.95rem] leading-[1.55] ${taglineColor} max-w-[32ch] [font-variation-settings:'opsz'_24,'SOFT'_50]`}
+                className={`text-[0.85rem] leading-[1.55] ${taglineColor} max-w-[30ch]`}
               >
                 {tagline}
               </p>
@@ -127,8 +122,12 @@ export function FooterContent({
       </div>
 
       {/* Status bar: copyright left, social + toggle right */}
-      <div className="mt-7 sm:mt-12 pt-5 border-t border-theme-light flex flex-row justify-between items-center gap-4">
-        {copyright && <p className={copyrightClassName}>{copyright}</p>}
+      <div className="mt-14 pt-6 border-t border-rule flex flex-row flex-wrap justify-between items-center gap-4">
+        {copyright && (
+          <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-theme-light">
+            {copyright}
+          </p>
+        )}
 
         <div className="flex items-center gap-5">
           {hasSocial && (

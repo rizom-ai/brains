@@ -28,7 +28,7 @@ export const Footer = ({
   children,
 }: FooterProps): JSX.Element => {
   return (
-    <footer className="footer pt-8 sm:pt-14 pb-7 sm:pb-10 bg-footer">
+    <footer className="footer pt-14 pb-10 bg-footer border-t border-rule">
       <div className="container mx-auto px-6 max-w-layout">
         <FooterContent
           primaryNav={primaryNavigation}

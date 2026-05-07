@@ -54,7 +54,7 @@ export function Logo({
     return (
       <span
         className={cn(
-          "font-heading font-medium text-xl tracking-[-0.01em] [font-variation-settings:'opsz'_24,'SOFT'_50]",
+          "font-heading font-medium text-[1.4rem] leading-none tracking-[-0.01em] [font-variation-settings:'opsz'_24,'SOFT'_50]",
           className,
         )}
       >

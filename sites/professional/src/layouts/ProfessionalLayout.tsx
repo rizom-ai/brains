@@ -33,8 +33,6 @@ export function ProfessionalLayout({
 
       <main className="flex-grow flex flex-col bg-theme">{sections}</main>
 
-      <div className="section-divider" />
-
       <Footer
         primaryNavigation={siteInfo.navigation.primary}
         secondaryNavigation={siteInfo.navigation.secondary}

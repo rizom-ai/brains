@@ -33,7 +33,7 @@ export const ContentList = ({
 
   return (
     <>
-      <ul className="space-y-10">
+      <ul className="flex flex-col gap-10">
         {items.map((item, index) => (
           <ContentListItem
             key={item.id}
@@ -47,14 +47,13 @@ export const ContentList = ({
         ))}
       </ul>
       {viewAllUrl && (
-        <div className="mt-10">
-          <a
-            href={viewAllUrl}
-            className="text-sm font-medium text-brand hover:text-brand-dark uppercase tracking-wide"
-          >
-            {viewAllLabel ?? "View All →"}
-          </a>
-        </div>
+        <a
+          href={viewAllUrl}
+          className="mt-10 inline-flex items-center gap-2 font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-accent pb-1 relative before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
+        >
+          {viewAllLabel ?? "View All"}
+          <span aria-hidden="true">→</span>
+        </a>
       )}
     </>
   );

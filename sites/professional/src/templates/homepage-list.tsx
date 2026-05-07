@@ -35,9 +35,9 @@ export interface HomepageListData {
 }
 
 const GRID_CLS =
-  "grid md:grid-cols-[200px_1px_1fr] gap-y-2 gap-x-0 md:gap-12 items-start";
+  "grid md:grid-cols-[14rem_1px_1fr] gap-y-2 gap-x-0 md:gap-16 items-start";
 const RULE_CLS =
-  "border-t md:border-t-0 md:border-l border-theme md:self-stretch";
+  "border-t md:border-t-0 md:border-l border-rule-strong md:self-stretch";
 
 const EditorialRow = ({
   number,
@@ -50,11 +50,13 @@ const EditorialRow = ({
   blurb?: string | undefined;
   children: ComponentChildren;
 }): JSX.Element => (
-  <section>
-    <div className={GRID_CLS}>
-      <SectionHeader title={title} number={number} blurb={blurb} />
-      <div className={RULE_CLS} aria-hidden="true" />
-      <div className="mt-6 md:mt-0">{children}</div>
+  <section className="py-20 border-b border-rule">
+    <div className="container mx-auto px-6 md:px-12 max-w-6xl">
+      <div className={GRID_CLS}>
+        <SectionHeader title={title} number={number} blurb={blurb} />
+        <div className={RULE_CLS} aria-hidden="true" />
+        <div className="mt-6 md:mt-0">{children}</div>
+      </div>
     </div>
   </section>
 );
@@ -111,94 +113,81 @@ export const HomepageListLayout = ({
       <Head title={title} description={description} ogType="website" />
       <div className="homepage-list bg-theme">
         {/* Hero Section — restrained editorial */}
-        <header className="hero-bg-pattern relative w-full px-6 md:px-12 py-24 md:py-32 bg-theme overflow-hidden">
+        <header className="hero-bg-pattern relative w-full px-6 md:px-12 pt-28 pb-24 md:pt-28 md:pb-24 overflow-hidden border-b border-rule">
           <div className="relative z-10 max-w-6xl mx-auto w-full">
             {profile.name && (
-              <div className="flex items-center gap-3 mb-6 font-mono text-xs font-medium uppercase tracking-[0.22em] text-accent">
-                <span className="w-5 h-px bg-accent" aria-hidden="true" />
+              <div className="flex items-center gap-[0.6rem] mb-6 font-mono text-[0.7rem] font-medium uppercase tracking-[0.22em] text-accent">
+                <span className="w-[18px] h-px bg-accent" aria-hidden="true" />
                 <span>{profile.name}</span>
               </div>
             )}
             {tagline && (
-              <h1 className="font-heading text-[clamp(2.85rem,6.4vw,5.5rem)] font-normal text-heading leading-[1.02] tracking-[-0.025em] max-w-[16ch]">
+              <h1 className="font-heading text-[clamp(2.75rem,6.5vw,5.5rem)] font-normal text-heading leading-[1.02] tracking-[-0.025em] max-w-[18ch] [font-variation-settings:'opsz'_144,'SOFT'_30]">
                 {renderHighlightedText(
                   tagline,
-                  "italic font-normal text-accent [font-variation-settings:'opsz'_144,'SOFT'_100]",
+                  "italic font-normal text-accent [font-variation-settings:'opsz'_144,'SOFT'_80]",
                 )}
               </h1>
             )}
             {profile.intro && (
-              <p className="font-heading font-light text-[clamp(1.1rem,1.8vw,1.4rem)] leading-[1.5] text-theme-muted max-w-[42ch] mt-8">
+              <p className="font-heading font-light text-[clamp(1.1rem,1.8vw,1.4rem)] leading-[1.5] text-theme-muted max-w-[42ch] mt-8 [font-variation-settings:'opsz'_24]">
                 {renderHighlightedText(profile.intro, "italic text-accent")}
               </p>
             )}
           </div>
         </header>
 
-        <div className="section-divider" />
+        <EditorialRow
+          number="01"
+          title="Essays"
+          blurb={sections["essays"]?.blurb}
+        >
+          <ContentList
+            items={postItems}
+            viewAllUrl={postsListUrl}
+            viewAllLabel="View all essays"
+          />
+        </EditorialRow>
 
-        {/* Main Content — Single shared container */}
-        <div className="container mx-auto px-6 md:px-12 max-w-5xl py-16 md:py-24">
-          {/* Essays */}
-          <div className="content-section-reveal mb-20 md:mb-32">
-            <EditorialRow
-              number="01"
-              title="Essays"
-              blurb={sections["essays"]?.blurb}
-            >
-              <ContentList
-                items={postItems}
-                viewAllUrl={postsListUrl}
-                viewAllLabel="View All Essays →"
-              />
-            </EditorialRow>
-          </div>
+        {deckItems.length > 0 && (
+          <EditorialRow
+            number="02"
+            title="Presentations"
+            blurb={sections["presentations"]?.blurb}
+          >
+            <ContentList
+              items={deckItems}
+              viewAllUrl={decksListUrl}
+              viewAllLabel="View all presentations"
+            />
+          </EditorialRow>
+        )}
 
-          {/* Presentations */}
-          {deckItems.length > 0 && (
-            <div className="content-section-reveal mb-20 md:mb-32">
-              <EditorialRow
-                number="02"
-                title="Presentations"
-                blurb={sections["presentations"]?.blurb}
+        {hasAbout && (
+          <EditorialRow
+            number="03"
+            title="About"
+            blurb={sections["about"]?.blurb}
+          >
+            <div className="flex flex-col gap-8">
+              {profile.description && (
+                <p className="font-heading font-light text-[1.25rem] leading-[1.55] text-theme max-w-[55ch] [font-variation-settings:'opsz'_24,'SOFT'_50]">
+                  {profile.description}
+                </p>
+              )}
+              {profile.expertise && profile.expertise.length > 0 && (
+                <SubjectsList subjects={profile.expertise} />
+              )}
+              <a
+                href="/about"
+                className="mt-6 inline-flex items-center gap-2 font-mono text-[0.7rem] font-medium uppercase tracking-[0.18em] text-accent pb-1 relative before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
               >
-                <ContentList
-                  items={deckItems}
-                  viewAllUrl={decksListUrl}
-                  viewAllLabel="View All Presentations →"
-                />
-              </EditorialRow>
+                Learn more
+                <span aria-hidden="true">→</span>
+              </a>
             </div>
-          )}
-
-          {/* About */}
-          {hasAbout && (
-            <div className="content-section-reveal mb-20 md:mb-32">
-              <EditorialRow
-                number="03"
-                title="About"
-                blurb={sections["about"]?.blurb}
-              >
-                <div className="space-y-8">
-                  {profile.description && (
-                    <p className="font-heading font-light text-[clamp(1.2rem,1.8vw,1.45rem)] leading-[1.5] text-theme max-w-[55ch]">
-                      {profile.description}
-                    </p>
-                  )}
-                  {profile.expertise && profile.expertise.length > 0 && (
-                    <SubjectsList subjects={profile.expertise} />
-                  )}
-                  <a
-                    href="/about"
-                    className="inline-flex items-center gap-2 mt-6 font-mono text-xs font-medium uppercase tracking-[0.18em] text-accent relative pb-1 before:content-[''] before:absolute before:left-0 before:right-full before:bottom-0 before:h-px before:bg-accent before:transition-[right] before:duration-300 hover:before:right-0"
-                  >
-                    Read full bio →
-                  </a>
-                </div>
-              </EditorialRow>
-            </div>
-          )}
-        </div>
+          </EditorialRow>
+        )}
 
         {/* CTA Section — Full-width */}
         <CTASection

@@ -72,26 +72,24 @@ export function Header({
   );
 
   return (
-    <header className="sticky top-0 z-50 py-4 border-b border-theme bg-header">
+    <header className="sticky top-0 z-50 py-5 border-b border-rule bg-header">
       <div className="max-w-layout mx-auto px-6 md:px-8">
-        <div className="flex flex-row justify-between items-center">
+        <div className="flex flex-row justify-between items-center gap-8">
           <a href="/" className="text-logo hover:opacity-80 transition-opacity">
             {titleElement}
           </a>
 
-          {/* Desktop navigation */}
-          <div className="hidden md:flex items-center gap-6">
-            <nav className="flex gap-7" aria-label="Main navigation">
-              {navigation.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-theme transition-colors relative py-1 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-px after:w-0 after:bg-accent after:transition-all after:duration-300 hover:after:w-full"
-                >
-                  {item.label}
-                </a>
-              ))}
-            </nav>
+          {/* Desktop navigation — center column */}
+          <nav className="hidden md:flex gap-7" aria-label="Main navigation">
+            {navigation.map((item) => (
+              <a key={item.href} href={item.href} className="nav-link">
+                {item.label}
+              </a>
+            ))}
+          </nav>
+
+          {/* Right cluster — cta + toggle */}
+          <div className="hidden md:flex items-center gap-4">
             {cta && (
               <LinkButton
                 href={cta.buttonLink}
@@ -105,7 +103,7 @@ export function Header({
             )}
             {showThemeToggle && (
               <ThemeToggle
-                size="sm"
+                size="md"
                 {...(themeToggleClassName
                   ? { className: themeToggleClassName }
                   : {})}
@@ -166,7 +164,7 @@ export function Header({
                 href={item.href}
                 // @ts-expect-error - onclick is valid HTML attribute for SSR
                 onclick="closeMobileMenu()"
-                className="font-mono text-xs font-medium uppercase tracking-[0.16em] text-theme-muted hover:text-theme transition-colors py-1.5"
+                className="nav-link"
               >
                 {item.label}
               </a>

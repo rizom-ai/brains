@@ -23,17 +23,17 @@ export const SubjectsList = ({
   subjects,
   hrefFor = defaultHrefFor,
 }: SubjectsListProps): JSX.Element => (
-  <ul className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-10 max-w-[40rem] border-t border-theme list-none p-0 m-0">
+  <ul className="grid grid-cols-1 sm:grid-cols-2 sm:gap-x-10 max-w-[40rem] border-t border-rule-strong list-none p-0 mt-8">
     {subjects.map((subject, i) => (
-      <li key={subject} className="border-b border-theme">
+      <li key={subject} className="border-b border-rule">
         <a
           href={hrefFor(subject)}
-          className="flex items-baseline gap-4 py-3 text-theme transition-[color,padding-left] duration-200 hover:text-accent hover:pl-1"
+          className="flex items-baseline gap-[1.1rem] py-[0.95rem] text-theme transition-[color,padding-left] duration-200 hover:text-accent hover:pl-[0.4rem]"
         >
-          <span className="font-mono text-[0.66rem] tracking-[0.18em] text-theme-muted min-w-[1.6rem]">
+          <span className="font-mono text-[0.66rem] font-medium tracking-[0.18em] text-theme-light min-w-[1.6rem] transition-colors">
             {String(i + 1).padStart(2, "0")}
           </span>
-          <span className="font-heading italic font-normal text-[1.05rem]">
+          <span className="font-heading italic font-normal text-[1.05rem] tracking-[-0.005em] [font-variation-settings:'opsz'_24,'SOFT'_60]">
             {subject}
           </span>
         </a>
