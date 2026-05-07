@@ -8,6 +8,7 @@ import {
 import { SwotAdapter } from "./adapters/swot-adapter";
 import { SwotDerivationHandler } from "./handlers/swot-derivation-handler";
 import { SwotWidget } from "./widgets/swot-widget";
+import { ProgressReporter } from "@brains/utils";
 import packageJson from "../package.json";
 
 const swotAdapter = new SwotAdapter();
@@ -32,6 +33,29 @@ export class SwotAssessmentPlugin extends EntityPlugin<SwotEntity> {
     );
 
     context.jobs.registerHandler("derive", derivationHandler);
+
+    context.eval.registerHandler("deriveSwot", async () => {
+      const progressReporter = ProgressReporter.from(async () => {});
+      if (!progressReporter) {
+        throw new Error("Expected progress reporter to be created");
+      }
+
+      await derivationHandler.process(
+        { reason: "eval" },
+        "eval-swot-derive",
+        progressReporter,
+      );
+
+      const entity = await context.entityService.getEntity<SwotEntity>({
+        entityType: "swot",
+        id: "swot",
+      });
+      if (!entity) {
+        throw new Error("Expected SWOT entity to be created during eval");
+      }
+
+      return swotAdapter.parseSwotContent(entity.content).frontmatter;
+    });
 
     const enqueueDerive = async (reason: string): Promise<string | null> => {
       try {
