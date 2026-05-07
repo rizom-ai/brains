@@ -152,6 +152,22 @@ export class StreamableHTTPServer {
     });
   }
 
+  private getBearerChallenge(
+    request: Request,
+    params: Record<string, string> = {},
+  ): string {
+    const url = new URL(request.url);
+    const resourceMetadata = `${url.origin}/.well-known/oauth-protected-resource`;
+    const entries = {
+      resource_metadata: resourceMetadata,
+      ...params,
+    };
+    const serialized = Object.entries(entries)
+      .map(([key, value]) => `${key}="${escapeChallengeValue(value)}"`)
+      .join(", ");
+    return `Bearer ${serialized}`;
+  }
+
   private async authenticate(request: Request): Promise<Response | null> {
     const pathname = new URL(request.url).pathname;
 
@@ -173,7 +189,7 @@ export class StreamableHTTPServer {
       return this.getAuthErrorResponse(
         "Unauthorized: Bearer token required",
         401,
-        'Bearer realm="mcp"',
+        this.getBearerChallenge(request, { realm: "mcp" }),
       );
     }
 
@@ -184,7 +200,7 @@ export class StreamableHTTPServer {
         return this.getAuthErrorResponse(
           "Unauthorized: Invalid token",
           401,
-          'Bearer error="invalid_token"',
+          this.getBearerChallenge(request, { error: "invalid_token" }),
         );
       }
 
@@ -199,7 +215,7 @@ export class StreamableHTTPServer {
         return this.getAuthErrorResponse(
           "Unauthorized: Invalid token",
           401,
-          'Bearer error="invalid_token"',
+          this.getBearerChallenge(request, { error: "invalid_token" }),
         );
       }
 
@@ -214,7 +230,10 @@ export class StreamableHTTPServer {
         return this.getAuthErrorResponse(
           "Forbidden: Missing required scope",
           403,
-          `Bearer error="insufficient_scope", scope="${requiredScopes.join(" ")}"`,
+          this.getBearerChallenge(request, {
+            error: "insufficient_scope",
+            scope: requiredScopes.join(" "),
+          }),
         );
       }
 
@@ -225,7 +244,7 @@ export class StreamableHTTPServer {
       return this.getAuthErrorResponse(
         "Unauthorized: Invalid token",
         401,
-        'Bearer error="invalid_token"',
+        this.getBearerChallenge(request, { error: "invalid_token" }),
       );
     }
   }
@@ -497,4 +516,8 @@ export class StreamableHTTPServer {
   public getSessionCount(): number {
     return Object.keys(this.transports).length;
   }
+}
+
+function escapeChallengeValue(value: string): string {
+  return value.replace(/["\\]/g, (match) => `\\${match}`);
 }

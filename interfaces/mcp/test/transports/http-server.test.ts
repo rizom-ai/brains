@@ -588,6 +588,12 @@ describe("StreamableHTTPServer", () => {
             message: "Unauthorized: Bearer token required",
           },
         });
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="http://localhost:',
+        );
+        expect(response.headers["www-authenticate"]).toContain(
+          '/.well-known/oauth-protected-resource"',
+        );
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining(
             "Authentication failed: Missing Bearer token",
@@ -742,6 +748,13 @@ describe("StreamableHTTPServer", () => {
             message: "Forbidden: Missing required scope",
           },
         });
+        expect(response.headers["www-authenticate"]).toContain(
+          'error="insufficient_scope"',
+        );
+        expect(response.headers["www-authenticate"]).toContain('scope="mcp"');
+        expect(response.headers["www-authenticate"]).toContain(
+          "/.well-known/oauth-protected-resource",
+        );
       });
     });
 

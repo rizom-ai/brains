@@ -41,7 +41,7 @@ Use a real `AI_API_KEY` if you want topic extraction, embeddings, and other AI-b
 
 Only set these when you need the corresponding integration:
 
-- `MCP_AUTH_TOKEN` — enable authenticated local MCP HTTP startup; without it, the app can still boot, but the MCP HTTP daemon will not start
+- `MCP_AUTH_TOKEN` — deprecated static fallback for MCP HTTP auth. Prefer the built-in OAuth/passkey provider; when `auth-service` is enabled, `/mcp` accepts brain-issued OAuth bearer tokens without this env var.
 - `DISCORD_BOT_TOKEN` — enable the Discord interface
 - `LINKEDIN_ACCESS_TOKEN`
 - `BUTTONDOWN_API_KEY`
