@@ -99,6 +99,7 @@
         "@brains/analytics": "workspace:*",
         "@brains/app": "workspace:*",
         "@brains/assessment": "workspace:*",
+        "@brains/auth-service": "workspace:*",
         "@brains/blog": "workspace:*",
         "@brains/cms": "workspace:*",
         "@brains/content-pipeline": "workspace:*",
@@ -1180,6 +1181,21 @@
         "varlock": "^0.5.0",
       },
     },
+    "shell/auth-service": {
+      "name": "@brains/auth-service",
+      "version": "0.2.0-alpha.50",
+      "dependencies": {
+        "@brains/plugins": "workspace:*",
+        "@brains/utils": "workspace:*",
+      },
+      "devDependencies": {
+        "@brains/eslint-config": "workspace:*",
+        "@brains/typescript-config": "workspace:*",
+        "@types/bun": "latest",
+        "@types/node": "^20.0.0",
+        "typescript": "^5.3.3",
+      },
+    },
     "shell/content-service": {
       "name": "@brains/content-service",
       "version": "0.2.0-alpha.54",
@@ -1486,6 +1502,8 @@
     "@brains/app": ["@brains/app@workspace:shell/app"],
 
     "@brains/assessment": ["@brains/assessment@workspace:entities/assessment"],
+
+    "@brains/auth-service": ["@brains/auth-service@workspace:shell/auth-service"],
 
     "@brains/blog": ["@brains/blog@workspace:entities/blog"],
 

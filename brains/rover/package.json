@@ -24,6 +24,7 @@
     "@brains/analytics": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/blog": "workspace:*",
     "@brains/cms": "workspace:*",
     "@brains/content-pipeline": "workspace:*",

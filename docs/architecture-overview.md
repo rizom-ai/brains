@@ -58,6 +58,7 @@ packages/       Standalone distributable packages (for example @rizom/brain)
 | `shell/plugins`              | Base plugin classes, contexts, harnesses                             |
 | `shell/templates`            | Template registry and resolution                                     |
 | `shell/ai-evaluation`        | Eval runner, test cases, judges, reporting                           |
+| `shell/auth-service`         | Embedded OAuth metadata, JWKS, and auth route foundation             |
 
 ### Entity packages
 

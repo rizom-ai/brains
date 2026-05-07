@@ -135,6 +135,7 @@ Pick a preset in your `brain.yaml` to control what Rover can do:
 | `topics`               | x      | x         | x      |
 | `directory-sync`       | x      | x         | x      |
 | `agents`               | x      | x         | x      |
+| `auth-service`         | x      | x         | x      |
 | `cms`                  | x      | x         | x      |
 | `dashboard`            | x      | x         | x      |
 | `mcp`                  | x      | x         | x      |

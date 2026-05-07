@@ -1,0 +1,99 @@
+import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
+import { ServicePlugin } from "@brains/plugins";
+import { z } from "@brains/utils";
+import { AuthService } from "./auth-service";
+import packageJson from "../package.json";
+
+const authServiceConfigSchema = z.object({
+  /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
+  issuer: z.string().optional(),
+  /** Runtime auth storage directory. Keep this outside brain-data/content. */
+  storageDir: z.string().default("./data/auth"),
+});
+
+export type AuthServiceConfig = z.infer<typeof authServiceConfigSchema>;
+
+export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
+  private service: AuthService | undefined;
+
+  constructor(config: Partial<AuthServiceConfig> = {}) {
+    super("auth-service", packageJson, config, authServiceConfigSchema);
+  }
+
+  protected override async onRegister(
+    context: ServicePluginContext,
+  ): Promise<void> {
+    await super.onRegister(context);
+
+    const issuer = this.config.issuer ?? context.siteUrl;
+    this.service = new AuthService({
+      storageDir: this.config.storageDir,
+      ...(issuer ? { issuer } : {}),
+      logger: context.logger,
+    });
+    await this.service.initialize();
+  }
+
+  override getWebRoutes(): WebRouteDefinition[] {
+    const handler = (request: Request): Promise<Response> =>
+      this.getService().handleRequest(request);
+
+    return [
+      {
+        path: "/.well-known/oauth-authorization-server",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/.well-known/jwks.json",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/.well-known/oauth-protected-resource",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/authorize",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/authorize",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/register",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
+        path: "/token",
+        method: "POST",
+        public: true,
+        handler,
+      },
+    ];
+  }
+
+  getService(): AuthService {
+    if (!this.service) {
+      throw new Error("AuthServicePlugin has not been registered");
+    }
+    return this.service;
+  }
+}
+
+export function authServicePlugin(
+  config?: Partial<AuthServiceConfig>,
+): AuthServicePlugin {
+  return new AuthServicePlugin(config);
+}

@@ -5,6 +5,7 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { WebserverInterface } from "@brains/webserver";
 import { A2AInterface } from "@brains/a2a";
+import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
 import { siteBuilderPlugin } from "@brains/site-builder-plugin";
 import { siteInfoPlugin } from "@brains/site-info";
@@ -56,6 +57,7 @@ const core = [
   "directory-sync",
   "agents",
   "assessment",
+  "auth-service",
   "cms",
   "dashboard-root",
   "mcp",
@@ -112,6 +114,7 @@ export default defineBrain({
     "analytics",
     "dashboard",
     "dashboard-root",
+    "auth-service",
   ],
 
   agentInstructions,
@@ -120,6 +123,7 @@ export default defineBrain({
     ["prompt", promptPlugin, undefined],
     ["image", imagePlugin, undefined],
     ["cms", cmsPlugin, {}],
+    ["auth-service", authServicePlugin, undefined],
     ["dashboard", dashboardPlugin, undefined],
     ["dashboard-root", dashboardPlugin, { routePath: "/" }],
     ["blog", blogPlugin, {}],

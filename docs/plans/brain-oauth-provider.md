@@ -96,7 +96,7 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 ### Provider configuration
 
 - Issuer = `https://<brain-domain>` (production) or `http://localhost:<port>` (dev)
-- Signing keys: ES256 keypair generated on first boot, persisted in the brain's data dir (alongside SQLite DBs, `0600` perms)
+- Signing keys: ES256 keypair generated on first boot, persisted in runtime auth storage outside `brain-data` (default `./data/auth`, `0600` perms)
 - JWKS published at `/.well-known/jwks.json` (shared endpoint, also serves the A2A signing key when plan 1 lands)
 - Authorization-server metadata at `/.well-known/oauth-authorization-server`
 - Token lifetimes: short-lived access tokens (15 min), longer refresh tokens (30 days, rotating)
