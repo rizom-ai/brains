@@ -35,6 +35,17 @@ export type {
   StoredWebAuthnChallenge,
 } from "./passkey-store";
 export { signJwt } from "./jwt";
+export {
+  InvalidRefreshTokenError,
+  RefreshTokenStore,
+} from "./refresh-token-store";
+export type {
+  ConsumedRefreshToken,
+  IssuedRefreshToken,
+  IssueRefreshTokenInput,
+  RefreshTokenRecord,
+  RefreshTokenStoreOptions,
+} from "./refresh-token-store";
 export { OPERATOR_SESSION_COOKIE, OperatorSessionStore } from "./session-store";
 export type {
   CreateOperatorSessionResult,

@@ -312,6 +312,66 @@ describe("AuthService", () => {
     });
     expect(token.access_token.split(".")).toHaveLength(3);
     expect(token.refresh_token).toStartWith("ort_");
+
+    const refreshResponse = await service.handleRequest(
+      new Request("https://brain.example.com/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: client.client_id,
+          refresh_token: token.refresh_token,
+        }).toString(),
+      }),
+    );
+    expect(refreshResponse.status).toBe(200);
+    const refreshed = await refreshResponse.json();
+    expect(refreshed).toMatchObject({
+      token_type: "Bearer",
+      expires_in: 900,
+      scope: "openid profile mcp",
+    });
+    expect(refreshed.access_token.split(".")).toHaveLength(3);
+    expect(refreshed.refresh_token).toStartWith("ort_");
+    expect(refreshed.refresh_token).not.toBe(token.refresh_token);
+
+    const reusedRefreshResponse = await service.handleRequest(
+      new Request("https://brain.example.com/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: client.client_id,
+          refresh_token: token.refresh_token,
+        }).toString(),
+      }),
+    );
+    expect(reusedRefreshResponse.status).toBe(400);
+
+    const revokeResponse = await service.handleRequest(
+      new Request("https://brain.example.com/revoke", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          client_id: client.client_id,
+          token: refreshed.refresh_token,
+        }).toString(),
+      }),
+    );
+    expect(revokeResponse.status).toBe(200);
+
+    const revokedRefreshResponse = await service.handleRequest(
+      new Request("https://brain.example.com/token", {
+        method: "POST",
+        headers: { "content-type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          grant_type: "refresh_token",
+          client_id: client.client_id,
+          refresh_token: refreshed.refresh_token,
+        }).toString(),
+      }),
+    );
+    expect(revokedRefreshResponse.status).toBe(400);
   });
 
   it("requires an operator session before showing the authorize page", async () => {

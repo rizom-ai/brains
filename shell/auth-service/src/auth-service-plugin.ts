@@ -94,6 +94,12 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
         handler,
       },
       {
+        path: "/revoke",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
         path: "/webauthn/register/options",
         method: "POST",
         public: true,

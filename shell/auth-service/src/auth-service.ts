@@ -10,6 +10,10 @@ import { signJwt } from "./jwt";
 import { AuthKeyStore } from "./key-store";
 import { PasskeyService, type WebAuthnRequestContext } from "./passkey-service";
 import {
+  InvalidRefreshTokenError,
+  RefreshTokenStore,
+} from "./refresh-token-store";
+import {
   OperatorSessionStore,
   type CreateOperatorSessionResult,
 } from "./session-store";
@@ -43,6 +47,7 @@ export class AuthService {
   private readonly authCodeStore: AuthorizationCodeStore;
   private readonly sessionStore: OperatorSessionStore;
   private readonly passkeyService: PasskeyService;
+  private readonly refreshTokenStore: RefreshTokenStore;
   private readonly logger: Logger | undefined;
   private setupToken: SetupTokenState | undefined;
 
@@ -59,6 +64,9 @@ export class AuthService {
     this.passkeyService = new PasskeyService({
       storageDir: options.storageDir,
       ...(options.logger ? { logger: options.logger } : {}),
+    });
+    this.refreshTokenStore = new RefreshTokenStore({
+      storageDir: options.storageDir,
     });
     this.logger = options.logger;
   }
@@ -206,6 +214,10 @@ export class AuthService {
 
     if (request.method === "POST" && path === "/token") {
       return this.handleTokenRequest(request, requestIssuer);
+    }
+
+    if (request.method === "POST" && path === "/revoke") {
+      return this.handleRevokeRequest(request);
     }
 
     return new Response("Not Found", { status: 404 });
@@ -464,41 +476,54 @@ export class AuthService {
   ): Promise<Response> {
     const body = await parseRequestBody(request);
     const grantType = body.get("grant_type");
-
-    if (grantType !== "authorization_code") {
-      return oauthErrorResponse(
-        "unsupported_grant_type",
-        "Only authorization_code is supported",
-      );
-    }
-
     const clientAuth = parseClientAuth(request, body);
-    const code = body.get("code");
     const clientId = clientAuth.clientId ?? body.get("client_id");
-    const redirectUri = body.get("redirect_uri");
-    const codeVerifier = body.get("code_verifier");
 
     if (clientAuth.error) {
       return oauthErrorResponse("invalid_client", clientAuth.error);
     }
-    if (!code || !clientId || !redirectUri || !codeVerifier) {
+    if (!clientId) {
+      return oauthErrorResponse("invalid_request", "client_id is required");
+    }
+
+    const client = await this.clientStore.getClient(clientId);
+    const clientError = validateClientForTokenRequest(client, clientAuth);
+    if (clientError) {
+      return oauthErrorResponse("invalid_client", clientError);
+    }
+
+    if (grantType === "authorization_code") {
+      return this.handleAuthorizationCodeGrant(body, clientId, issuer);
+    }
+
+    if (grantType === "refresh_token") {
+      return this.handleRefreshTokenGrant(body, clientId, issuer);
+    }
+
+    return oauthErrorResponse(
+      "unsupported_grant_type",
+      "Only authorization_code and refresh_token are supported",
+    );
+  }
+
+  private async handleAuthorizationCodeGrant(
+    body: URLSearchParams,
+    clientId: string,
+    issuer: string,
+  ): Promise<Response> {
+    const code = body.get("code");
+    const redirectUri = body.get("redirect_uri");
+    const codeVerifier = body.get("code_verifier");
+
+    if (!code || !redirectUri || !codeVerifier) {
       return oauthErrorResponse(
         "invalid_request",
-        "code, client_id, redirect_uri, and code_verifier are required",
+        "code, redirect_uri, and code_verifier are required",
       );
     }
 
     const client = await this.clientStore.getClient(clientId);
-    if (!client) {
-      return oauthErrorResponse("invalid_client", "Unknown client_id");
-    }
-    if (
-      client.client_secret &&
-      client.client_secret !== clientAuth.clientSecret
-    ) {
-      return oauthErrorResponse("invalid_client", "Invalid client secret");
-    }
-    if (!client.redirect_uris.includes(redirectUri)) {
+    if (!client?.redirect_uris.includes(redirectUri)) {
       return oauthErrorResponse("invalid_grant", "Unregistered redirect_uri");
     }
 
@@ -509,23 +534,11 @@ export class AuthService {
         redirectUri,
         codeVerifier,
       });
-      const issuedAt = Math.floor(Date.now() / 1000);
-      const expiresIn = 15 * 60;
-      const accessToken = await signJwt(await this.keyStore.getPrivateJwk(), {
-        iss: issuer,
-        sub: consumed.subject,
-        aud: clientId,
-        iat: issuedAt,
-        exp: issuedAt + expiresIn,
+      return await this.createTokenResponse({
+        issuer,
+        clientId,
+        subject: consumed.subject,
         ...(consumed.scope ? { scope: consumed.scope } : {}),
-      });
-
-      return jsonResponse({
-        access_token: accessToken,
-        token_type: "Bearer",
-        expires_in: expiresIn,
-        ...(consumed.scope ? { scope: consumed.scope } : {}),
-        refresh_token: `ort_${randomUUID()}`,
       });
     } catch (error) {
       if (error instanceof InvalidGrantError) {
@@ -533,6 +546,97 @@ export class AuthService {
       }
       throw error;
     }
+  }
+
+  private async handleRefreshTokenGrant(
+    body: URLSearchParams,
+    clientId: string,
+    issuer: string,
+  ): Promise<Response> {
+    const refreshToken = body.get("refresh_token");
+    if (!refreshToken) {
+      return oauthErrorResponse("invalid_request", "refresh_token is required");
+    }
+
+    try {
+      const rotated = await this.refreshTokenStore.rotateToken(
+        refreshToken,
+        clientId,
+      );
+      return await this.createTokenResponse({
+        issuer,
+        clientId,
+        subject: rotated.consumed.subject,
+        ...(rotated.consumed.scope ? { scope: rotated.consumed.scope } : {}),
+        refreshToken: rotated.replacement.token,
+      });
+    } catch (error) {
+      if (error instanceof InvalidRefreshTokenError) {
+        return oauthErrorResponse("invalid_grant", error.message);
+      }
+      throw error;
+    }
+  }
+
+  private async createTokenResponse(options: {
+    issuer: string;
+    clientId: string;
+    subject: string;
+    scope?: string;
+    refreshToken?: string;
+  }): Promise<Response> {
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const expiresIn = 15 * 60;
+    const accessToken = await signJwt(await this.keyStore.getPrivateJwk(), {
+      iss: options.issuer,
+      sub: options.subject,
+      aud: options.clientId,
+      iat: issuedAt,
+      exp: issuedAt + expiresIn,
+      ...(options.scope ? { scope: options.scope } : {}),
+    });
+    const refreshToken =
+      options.refreshToken ??
+      (
+        await this.refreshTokenStore.issueToken({
+          clientId: options.clientId,
+          subject: options.subject,
+          ...(options.scope ? { scope: options.scope } : {}),
+        })
+      ).token;
+
+    return jsonResponse({
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: expiresIn,
+      ...(options.scope ? { scope: options.scope } : {}),
+      refresh_token: refreshToken,
+    });
+  }
+
+  private async handleRevokeRequest(request: Request): Promise<Response> {
+    const body = await parseRequestBody(request);
+    const clientAuth = parseClientAuth(request, body);
+    const clientId = clientAuth.clientId ?? body.get("client_id") ?? undefined;
+    const token = body.get("token");
+
+    if (clientAuth.error) {
+      return oauthErrorResponse("invalid_client", clientAuth.error);
+    }
+    if (!token) {
+      return oauthErrorResponse("invalid_request", "token is required");
+    }
+
+    if (clientId) {
+      const client = await this.clientStore.getClient(clientId);
+      const clientError = validateClientForTokenRequest(client, clientAuth);
+      if (clientError) {
+        return oauthErrorResponse("invalid_client", clientError);
+      }
+    }
+
+    await this.refreshTokenStore.revokeToken(token, clientId);
+    return new Response(null, { status: 200 });
   }
 }
 
@@ -592,6 +696,20 @@ function stringEntries(form: FormData): [string, string][] {
   return Array.from(form.entries()).flatMap(([key, value]) =>
     typeof value === "string" ? [[key, value]] : [],
   );
+}
+
+function validateClientForTokenRequest(
+  client: RegisteredOAuthClient | undefined,
+  clientAuth: { clientSecret?: string },
+): string | undefined {
+  if (!client) return "Unknown client_id";
+  if (
+    client.client_secret &&
+    client.client_secret !== clientAuth.clientSecret
+  ) {
+    return "Invalid client secret";
+  }
+  return undefined;
 }
 
 function parseClientAuth(
