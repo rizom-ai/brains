@@ -108,7 +108,7 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 - `GET /.well-known/oauth-authorization-server` — provider metadata
 - `GET /.well-known/jwks.json` — public signing keys
 - `POST /register` — Dynamic Client Registration (RFC 7591) for MCP clients
-- `GET /authorize` — authorization endpoint, requires an operator session and renders approval UI with one-shot approval token
+- `GET /authorize` — authorization endpoint, requires an operator session and renders approval UI with scope descriptions and a one-shot approval token
 - `POST /token` — token endpoint (PKCE code exchange + refresh)
 - `POST /revoke` — token revocation
 - `GET /setup` — first-boot passkey enrollment (one-shot, disabled after first successful enrollment)
@@ -179,6 +179,7 @@ The downstream permission machinery does not change. The middleware is the only 
 
 - minimal HTML/JS pages for `/setup`, `/login`, `/authorize`
 - one-shot authorization approval token required before `/authorize` POST issues a code
+- authorization approval screen displays requested scope names/descriptions instead of temporary development copy
 - WebAuthn ceremonies via `@simplewebauthn/server`
 - single-operator mode: first passkey wins, no management UI
 - first setup gated by a one-shot setup token

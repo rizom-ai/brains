@@ -342,6 +342,12 @@ describe("AuthService", () => {
     expect(pageResponse.status).toBe(200);
     const page = await pageResponse.text();
     expect(page).toContain("Authorize Claude Desktop");
+    expect(page).toContain("MCP access");
+    expect(page).toContain(
+      "Use Model Context Protocol tools exposed by this brain",
+    );
+    expect(page).toContain("Basic profile");
+    expect(page).not.toContain("temporary development screen");
     const approvalToken = page.match(
       /name="approval_token" value="([^"]+)"/,
     )?.[1];

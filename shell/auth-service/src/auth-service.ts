@@ -1132,6 +1132,10 @@ function authPageHeadAssets(): string {
         border: 1px solid var(--rule-strong);
         padding: 0.08rem 0.3rem;
       }
+      .scope-list { margin: 18px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; }
+      .scope-list li { border: 1px solid var(--rule-strong); border-radius: 3px; padding: 10px 12px; background: rgba(255, 255, 255, 0.025); }
+      .scope-list b { display: block; color: var(--paper); }
+      .scope-list span { display: block; color: var(--paper-dim); font-size: 0.94rem; }
       [role='status'] { min-height: 1.5em; color: var(--paper-mute); }
       @media (max-width: 520px) {
         .card { padding: 24px 22px 28px; }
@@ -1225,10 +1229,68 @@ function webauthnBrowserHelpers(): string {
   `;
 }
 
+function renderScopeItems(scope: string | undefined): string {
+  const scopes = scope?.split(/\s+/).filter(Boolean) ?? [];
+  if (scopes.length === 0) {
+    return renderScopeItem(
+      "Sign-in only",
+      "Issue an authorization code without additional requested scopes.",
+    );
+  }
+
+  return scopes
+    .map((requestedScope) => {
+      const copy = getScopeCopy(requestedScope);
+      return renderScopeItem(copy.title, copy.description);
+    })
+    .join("\n        ");
+}
+
+function renderScopeItem(title: string, description: string): string {
+  return `<li><b>${escapeHtml(title)}</b><span>${escapeHtml(description)}</span></li>`;
+}
+
+function getScopeCopy(scope: string): { title: string; description: string } {
+  switch (scope) {
+    case "openid":
+      return {
+        title: "Sign in",
+        description: "Identify this browser session to the OAuth client.",
+      };
+    case "profile":
+      return {
+        title: "Basic profile",
+        description:
+          "Share the local operator profile subject with the client.",
+      };
+    case "email":
+      return {
+        title: "Email address",
+        description: "Share the operator email address when one is configured.",
+      };
+    case "offline_access":
+      return {
+        title: "Offline access",
+        description: "Allow the client to refresh access without asking again.",
+      };
+    case "mcp":
+      return {
+        title: "MCP access",
+        description: "Use Model Context Protocol tools exposed by this brain.",
+      };
+    default:
+      return {
+        title: scope,
+        description: "Requested by the OAuth client.",
+      };
+  }
+}
+
 function renderAuthorizePage(
   params: ValidAuthorizationRequest,
   approvalToken: string,
 ): string {
+  const scopeItems = renderScopeItems(params.scope);
   const hidden = {
     response_type: "code",
     client_id: params.clientId,
@@ -1251,8 +1313,13 @@ function renderAuthorizePage(
   <body>
     <main class="card">
       <h1>Authorize ${escapeHtml(params.clientName)}?</h1>
-      <p>This temporary development screen will issue an OAuth authorization code for:</p>
+      <p><b>${escapeHtml(params.clientName)}</b> is requesting access to this brain.</p>
+      <p>After approval, the client will return to:</p>
       <p><code>${escapeHtml(params.redirectUri)}</code></p>
+      <p>Requested permissions:</p>
+      <ul class="scope-list">
+        ${scopeItems}
+      </ul>
       <form method="post" action="/authorize">
         ${Object.entries(hidden)
           .map(
@@ -1260,7 +1327,7 @@ function renderAuthorizePage(
               `<input type="hidden" name="${escapeHtml(name)}" value="${escapeHtml(value)}" />`,
           )
           .join("\n        ")}
-        <button type="submit">Approve</button>
+        <button type="submit">Approve and continue</button>
       </form>
     </main>
   </body>
