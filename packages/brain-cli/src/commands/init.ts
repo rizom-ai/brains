@@ -219,19 +219,23 @@ function writeBrainYaml(
   contentRepo?: string,
 ): void {
   // When the user passed --content-repo, wire it up explicitly. Otherwise
-  // leave the entire git block commented out so the brain boots cleanly
-  // without git, and the user has a copy-paste-ready snippet to enable it.
-  const gitBlock = contentRepo
-    ? `  directory-sync:
+  // keep plugin overrides as an empty object so the brain boots cleanly
+  // without git, and include copy-paste-ready commented snippets below.
+  const pluginOverrides = contentRepo
+    ? `plugins:
+  directory-sync:
     git:
       repo: ${contentRepo.replace("github:", "")}
       authToken: \${GIT_SYNC_TOKEN}
 `
-    : `  # Uncomment to enable git-backed sync of brain content:
-  # directory-sync:
-  #   git:
-  #     repo: your-org/brain-data
-  #     authToken: \${GIT_SYNC_TOKEN}
+    : `plugins: {}
+
+# Uncomment to enable git-backed sync of brain content:
+# plugins:
+#   directory-sync:
+#     git:
+#       repo: your-org/brain-data
+#       authToken: \${GIT_SYNC_TOKEN}
 `;
 
   const pinnedSiteTheme = getPinnedSiteTheme(model);
@@ -257,9 +261,11 @@ ${siteBlock}# Permissions
 anchors: []
 
 # Plugin overrides
-plugins:
-${gitBlock}  mcp:
-    authToken: \${MCP_AUTH_TOKEN}
+${pluginOverrides}
+# Optional deprecated fallback for MCP clients that cannot use OAuth/passkeys:
+# plugins:
+#   mcp:
+#     authToken: \${MCP_AUTH_TOKEN}
 `;
 
   writeScaffoldFile(join(dir, "brain.yaml"), content);
@@ -312,8 +318,10 @@ AI_API_KEY=
 
 GIT_SYNC_TOKEN=
 
-# Optional
+# Optional deprecated static fallback for MCP HTTP clients that cannot use OAuth/passkeys
 MCP_AUTH_TOKEN=
+
+# Optional
 DISCORD_BOT_TOKEN=
 
 # Deploy (only needed with --deploy)
@@ -617,7 +625,11 @@ bunx brain start
 - \`tsconfig.json\` — JSX runtime hint (Preact)
 - \`.env\` — secrets (gitignored, copy from \`.env.example\`)
 - \`brain-data/\` — content (created on first sync, gitignored by default)
+- \`data/auth/\` — local OAuth/passkey auth state (created on first run, gitignored)
 ${siteAuthoringLines}
+On first start, open the one-shot \`/setup\` URL in the logs and register a passkey.
+Preserve \`data/auth/\` across deploys, but keep it separate from \`brain-data/\`.
+
 This brain runs the **${model}** model. Edit \`brain.yaml\` to customize
 plugins, change presets, or wire up integrations like Discord and MCP.
 `;

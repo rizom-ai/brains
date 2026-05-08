@@ -132,10 +132,16 @@ env:
 
 volumes:
   - /opt/brain-data:/app/brain-data
+  - /opt/brain-runtime:/app/data
+  - /opt/brain-state:/data
+  - /opt/brain-config:/config
+  - /opt/brain-dist:/app/dist
   - /opt/brain.yaml:/app/brain.yaml
 ```
 
 Keep the `proxy.hosts` entries as bare hostnames. Do not append `:80` or `:81`.
+
+`/app/data` is runtime app state. The built-in OAuth/passkey provider stores its default auth state under `/app/data/auth`; keep this volume persistent across redeploys. Do not put auth state under `/app/brain-data`, because `brain-data` is durable content that may be synced/exported separately.
 
 ## Local secret sources
 
@@ -148,7 +154,7 @@ Recommended local values:
 | `AI_API_KEY`                 | runtime                                       |
 | `AI_IMAGE_KEY`               | optional runtime                              |
 | `GIT_SYNC_TOKEN`             | git-backed content sync                       |
-| `MCP_AUTH_TOKEN`             | optional MCP auth                             |
+| `MCP_AUTH_TOKEN`             | deprecated static fallback for MCP HTTP auth  |
 | `DISCORD_BOT_TOKEN`          | optional Discord bot                          |
 | `KAMAL_REGISTRY_PASSWORD`    | GHCR pull token for the server                |
 | `HCLOUD_TOKEN`               | Hetzner provisioning                          |
@@ -160,6 +166,8 @@ Recommended local values:
 | `CF_ZONE_ID`                 | Cloudflare zone ID                            |
 
 GitHub stores the pushed runtime/deploy values as normal secrets in the default GitHub Secrets mode, including `KAMAL_SSH_PRIVATE_KEY`, `CERTIFICATE_PEM`, and `PRIVATE_KEY_PEM`. In Bitwarden mode, GitHub should keep only `BWS_ACCESS_TOKEN`; Bitwarden stores the app/runtime/deploy secret values.
+
+For new OAuth-capable MCP clients, `MCP_AUTH_TOKEN` is optional and should normally stay unset. The brain's OAuth/passkey provider handles MCP authorization when `auth-service` is enabled. Keep `MCP_AUTH_TOKEN` only for older clients or emergency static-token access.
 
 ## Secret backend modes
 

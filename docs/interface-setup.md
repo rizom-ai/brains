@@ -63,17 +63,6 @@ MCP is the main assistant/tooling interface. It exposes system tools and resourc
 
 The default MCP transport is HTTP. It is mounted on the shared webserver at `/mcp`.
 
-```yaml
-plugins:
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
-```
-
-```bash
-# .env
-MCP_AUTH_TOKEN=choose-a-long-random-token
-```
-
 Start the brain:
 
 ```bash
@@ -92,7 +81,21 @@ Deployed URL:
 https://your-domain.com/mcp
 ```
 
-If `authToken` is set, clients must send it as a bearer token. If it is omitted, local HTTP MCP runs without token auth.
+When the model includes `auth-service` (Rover does), HTTP MCP is protected by the brain's built-in OAuth provider:
+
+1. First boot prints a one-shot `/setup` URL.
+2. The operator opens that URL locally and registers a passkey.
+3. OAuth-capable MCP clients discover metadata from the brain, open a browser authorization flow, and request the `mcp` scope.
+4. The brain verifies the passkey-backed operator session and issues MCP-scoped bearer tokens.
+
+`MCP_AUTH_TOKEN` is still supported as a deprecated static fallback. Use it only for older clients that cannot complete OAuth. If `plugins.mcp.authToken` or `MCP_AUTH_TOKEN` is set, clients must send that value as `Authorization: Bearer <token>` and the OAuth path is bypassed for MCP.
+
+```yaml
+plugins:
+  # Optional deprecated fallback for non-OAuth MCP clients:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
+```
 
 ### Stdio MCP
 
@@ -125,6 +128,8 @@ Stdio clients should run from the instance directory that contains `brain.yaml`.
 ```bash
 brain tool system_status
 brain tool system_search '{"query":"what content exists?"}'
+
+# Deprecated static-token fallback only:
 brain --remote https://your-domain.com --token "$MCP_AUTH_TOKEN" status
 ```
 
@@ -313,13 +318,13 @@ The chat REPL is useful for quick local testing because it runs against the same
 
 ## Troubleshooting
 
-| Symptom                      | Check                                                                                          |
-| ---------------------------- | ---------------------------------------------------------------------------------------------- |
-| MCP HTTP 404                 | Ensure `webserver` and `mcp` are both enabled. MCP HTTP mounts on the shared webserver.        |
-| MCP HTTP unauthorized        | Pass the configured `MCP_AUTH_TOKEN` as a bearer token.                                        |
-| Discord bot does not respond | Check token, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`. |
-| A2A card missing             | Ensure `a2a` and `webserver` are enabled and the brain has a domain or local webserver.        |
-| Remote CLI command fails     | Use `brain --remote <url> --token <token> ...` and verify `/mcp` is reachable.                 |
+| Symptom                      | Check                                                                                                                                                      |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MCP HTTP 404                 | Ensure `webserver` and `mcp` are both enabled. MCP HTTP mounts on the shared webserver.                                                                    |
+| MCP HTTP unauthorized        | For OAuth clients, clear stale client auth and repeat the browser/passkey flow. For deprecated static-token mode, pass `MCP_AUTH_TOKEN` as a bearer token. |
+| Discord bot does not respond | Check token, Message Content Intent, bot permissions, `requireMention`, and `allowedChannels`.                                                             |
+| A2A card missing             | Ensure `a2a` and `webserver` are enabled and the brain has a domain or local webserver.                                                                    |
+| Remote CLI command fails     | Use `brain --remote <url> --token <token> ...` and verify `/mcp` is reachable.                                                                             |
 
 ## Related docs
 

@@ -51,6 +51,8 @@ brain start
 
 The generated `brain.yaml` defaults to `preset: core`, which is the minimal, usable on-ramp.
 
+On first start, Rover and other models that include `auth-service` print a one-shot `/setup` URL. Open it locally and register a passkey. That passkey is your operator login for browser routes and OAuth-capable MCP clients. Auth state is stored under `./data/auth` by default; keep it outside `brain-data/` and preserve it across deploys.
+
 ## What `brain init` creates
 
 A new brain instance is a **lightweight instance package**. It is not a workspace package, but it does carry conventional support files for local execution and optional deploy scaffolding.
@@ -129,11 +131,12 @@ plugins:
   #   git:
   #     repo: your-org/brain-data
   #     authToken: ${GIT_SYNC_TOKEN}
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
+  # Optional deprecated fallback for MCP clients that cannot do OAuth:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
 ```
 
-Secrets are referenced with `${ENV_VAR}` interpolation and loaded from `.env`.
+Secrets are referenced with `${ENV_VAR}` interpolation and loaded from `.env`. New MCP HTTP clients should prefer the built-in OAuth/passkey flow instead of `MCP_AUTH_TOKEN`.
 
 For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
 
@@ -141,13 +144,13 @@ For the full schema, see [brain.yaml Reference](./brain-yaml-reference.md).
 
 Once running, a brain can be accessed through several surfaces depending on the selected model and configured plugins.
 
-| Interface     | Access                                              | Notes                                                     |
-| ------------- | --------------------------------------------------- | --------------------------------------------------------- |
-| **Web**       | `http://localhost:8080`                             | Shared HTTP surface: site, CMS, dashboard, API routes     |
-| **MCP**       | stdio or `http://localhost:8080/mcp`                | Connect from Claude Desktop, Cursor, or other MCP clients |
-| **Chat REPL** | `brain chat`                                        | Local terminal conversation loop                          |
-| **Discord**   | Bot in a server                                     | Requires Discord credentials                              |
-| **A2A**       | `http://localhost:8080/.well-known/agent-card.json` | Agent-to-agent protocol                                   |
+| Interface     | Access                                              | Notes                                                             |
+| ------------- | --------------------------------------------------- | ----------------------------------------------------------------- |
+| **Web**       | `http://localhost:8080`                             | Shared HTTP surface: site, CMS, dashboard, API routes             |
+| **MCP**       | stdio or `http://localhost:8080/mcp`                | HTTP MCP uses brain OAuth/passkeys when `auth-service` is enabled |
+| **Chat REPL** | `brain chat`                                        | Local terminal conversation loop                                  |
+| **Discord**   | Bot in a server                                     | Requires Discord credentials                                      |
+| **A2A**       | `http://localhost:8080/.well-known/agent-card.json` | Agent-to-agent protocol                                           |
 
 ## Common next steps
 
