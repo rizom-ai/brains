@@ -123,6 +123,10 @@ type FetchFn = (
   init?: RequestInit,
 ) => Promise<Response>;
 
+const DEFAULT_REQUEST_TIMEOUT_MS = 30_000;
+const DEFAULT_STREAM_IDLE_TIMEOUT_MS = 60_000;
+const DEFAULT_MAX_NETWORK_ATTEMPTS = 2;
+
 const a2aCallInputSchema = {
   agent: z
     .string()
@@ -167,50 +171,72 @@ async function sendMessage(
   endpointUrl: string,
   message: string,
   fetchFn: FetchFn,
-  authToken?: string,
+  authToken: string | undefined,
+  options: Required<A2ANetworkOptions>,
 ): Promise<ToolResponse> {
-  try {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-    if (authToken) {
-      headers["Authorization"] = `Bearer ${authToken}`;
-    }
+  const maxAttempts = Math.max(1, options.maxNetworkAttempts);
+  let lastError: unknown;
 
-    const response = await fetchFn(endpointUrl, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: crypto.randomUUID(),
-        method: "message/stream",
-        params: {
-          message: {
-            kind: "message",
-            messageId: crypto.randomUUID(),
-            role: "user",
-            parts: [{ kind: "text", text: message }],
-          },
-        },
-      }),
-    });
-
-    if (!response.ok) {
-      return {
-        success: false,
-        error: `Remote agent returned HTTP ${response.status}`,
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
       };
-    }
+      if (authToken) {
+        headers["Authorization"] = `Bearer ${authToken}`;
+      }
 
-    if (!response.body) {
-      return { success: false, error: "No response body (SSE expected)" };
-    }
+      const response = await fetchWithTimeout(
+        fetchFn,
+        endpointUrl,
+        {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            jsonrpc: "2.0",
+            id: crypto.randomUUID(),
+            method: "message/stream",
+            params: {
+              message: {
+                kind: "message",
+                messageId: crypto.randomUUID(),
+                role: "user",
+                parts: [{ kind: "text", text: message }],
+              },
+            },
+          }),
+        },
+        options.requestTimeoutMs,
+      );
 
-    return await readStreamToCompletion(response.body);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Unknown network error";
-    return { success: false, error: `Failed to reach remote agent: ${msg}` };
+      if (!response.ok) {
+        return {
+          success: false,
+          error: `Remote agent returned HTTP ${response.status}`,
+        };
+      }
+
+      if (!response.body) {
+        return { success: false, error: "No response body (SSE expected)" };
+      }
+
+      return await readStreamToCompletion(
+        response.body,
+        options.streamIdleTimeoutMs,
+      );
+    } catch (err) {
+      lastError = err;
+      if (attempt < maxAttempts && isRetryableNetworkError(err)) {
+        continue;
+      }
+      break;
+    }
   }
+
+  return {
+    success: false,
+    error: formatNetworkFailure(lastError, maxAttempts),
+  };
 }
 
 /**
@@ -219,12 +245,13 @@ async function sendMessage(
  */
 async function readStreamToCompletion(
   body: ReadableStream<Uint8Array>,
+  streamIdleTimeoutMs: number,
 ): Promise<ToolResponse> {
   const reader = body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
 
-  let chunk = await reader.read();
+  let chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs);
   while (!chunk.done) {
     buffer += decoder.decode(chunk.value, { stream: true });
 
@@ -236,7 +263,16 @@ async function readStreamToCompletion(
       const dataLine = part.split("\n").find((l) => l.startsWith("data: "));
       if (!dataLine) continue;
 
-      const event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+      let event: Record<string, unknown>;
+      try {
+        event = JSON.parse(dataLine.slice(6)) as Record<string, unknown>;
+      } catch {
+        reader.cancel().catch(() => {});
+        return {
+          success: false,
+          error: "Malformed SSE event from remote agent",
+        };
+      }
 
       // Check if this is a JSON-RPC envelope with a result
       const result = event["result"] as Record<string, unknown> | undefined;
@@ -271,15 +307,119 @@ async function readStreamToCompletion(
       };
     }
 
-    chunk = await reader.read();
+    chunk = await readChunkWithIdleTimeout(reader, streamIdleTimeoutMs);
   }
 
   return { success: false, error: "Stream ended without a terminal event" };
 }
 
+class A2ARequestTimeoutError extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`request timed out after ${timeoutMs}ms`);
+    this.name = "A2ARequestTimeoutError";
+  }
+}
+
+class A2AStreamIdleTimeoutError extends Error {
+  constructor(readonly timeoutMs: number) {
+    super(`A2A stream stalled waiting for final event after ${timeoutMs}ms`);
+    this.name = "A2AStreamIdleTimeoutError";
+  }
+}
+
+async function fetchWithTimeout(
+  fetchFn: FetchFn,
+  url: string,
+  init: RequestInit,
+  timeoutMs: number,
+): Promise<Response> {
+  const controller = new AbortController();
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      fetchFn(url, { ...init, signal: controller.signal }),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(() => {
+          controller.abort();
+          reject(new A2ARequestTimeoutError(timeoutMs));
+        }, timeoutMs);
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof A2ARequestTimeoutError) {
+      throw error;
+    }
+    if (controller.signal.aborted) {
+      throw new A2ARequestTimeoutError(timeoutMs);
+    }
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+async function readChunkWithIdleTimeout(
+  reader: ReadableStreamDefaultReader<Uint8Array>,
+  timeoutMs: number,
+): Promise<
+  Awaited<ReturnType<ReadableStreamDefaultReader<Uint8Array>["read"]>>
+> {
+  let timeout: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      reader.read(),
+      new Promise<never>((_, reject) => {
+        timeout = setTimeout(
+          () => reject(new A2AStreamIdleTimeoutError(timeoutMs)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } catch (error) {
+    if (error instanceof A2AStreamIdleTimeoutError) {
+      reader.cancel().catch(() => {});
+    }
+    throw error;
+  } finally {
+    if (timeout) clearTimeout(timeout);
+  }
+}
+
+function isRetryableNetworkError(error: unknown): boolean {
+  if (
+    error instanceof A2ARequestTimeoutError ||
+    error instanceof A2AStreamIdleTimeoutError
+  ) {
+    return true;
+  }
+
+  return error instanceof Error;
+}
+
+function formatNetworkFailure(error: unknown, attempts: number): string {
+  const suffix = attempts > 1 ? ` after ${attempts} attempts` : "";
+
+  if (error instanceof A2AStreamIdleTimeoutError) {
+    return `${error.message}${suffix}`;
+  }
+
+  const cause =
+    error instanceof Error ? error.message : "Unknown network error";
+  return `Failed to reach remote agent${suffix}: ${cause}`;
+}
+
 // -- Tool factory --
 
-export interface A2AClientDeps {
+export interface A2ANetworkOptions {
+  /** Max time to receive POST response headers. */
+  requestTimeoutMs?: number;
+  /** Max time between SSE chunks before treating the stream as stalled. */
+  streamIdleTimeoutMs?: number;
+  /** Network attempts for transient failures. */
+  maxNetworkAttempts?: number;
+}
+
+export interface A2AClientDeps extends A2ANetworkOptions {
   fetch?: FetchFn;
   /** Map of remote agent domain → bearer token to send */
   outboundTokens?: Record<string, string>;
@@ -298,6 +438,12 @@ export interface A2AClientDeps {
  */
 export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
   const fetchFn = deps.fetch ?? globalThis.fetch;
+  const networkOptions: Required<A2ANetworkOptions> = {
+    requestTimeoutMs: deps.requestTimeoutMs ?? DEFAULT_REQUEST_TIMEOUT_MS,
+    streamIdleTimeoutMs:
+      deps.streamIdleTimeoutMs ?? DEFAULT_STREAM_IDLE_TIMEOUT_MS,
+    maxNetworkAttempts: deps.maxNetworkAttempts ?? DEFAULT_MAX_NETWORK_ATTEMPTS,
+  };
 
   return {
     name: "a2a_call",
@@ -373,7 +519,13 @@ export function createA2ACallTool(deps: A2AClientDeps = {}): Tool {
         }
       }
 
-      return sendMessage(endpointUrl, message, fetchFn, authToken);
+      return sendMessage(
+        endpointUrl,
+        message,
+        fetchFn,
+        authToken,
+        networkOptions,
+      );
     },
   };
 }

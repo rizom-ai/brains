@@ -15,6 +15,15 @@ export const a2aConfigSchema = z.object({
 
   /** Outbound: map of remote agent domain → bearer token to send */
   outboundTokens: z.record(z.string()).optional(),
+
+  /** Max time to receive outbound A2A POST response headers. */
+  requestTimeoutMs: z.number().positive().default(30_000),
+
+  /** Max time between outbound A2A SSE chunks. */
+  streamIdleTimeoutMs: z.number().positive().default(60_000),
+
+  /** Network attempts for transient outbound A2A failures. */
+  maxNetworkAttempts: z.number().int().positive().default(2),
 });
 
 export type A2AConfig = z.infer<typeof a2aConfigSchema>;

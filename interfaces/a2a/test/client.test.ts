@@ -441,5 +441,251 @@ describe("A2A Client", () => {
 
       expect(result).toHaveProperty("success", false);
     });
+
+    it("should timeout and retry when the POST never returns", async () => {
+      let postAttempts = 0;
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        postAttempts++;
+        return new Promise<Response>((_, reject) => {
+          init.signal?.addEventListener("abort", () => {
+            reject(new Error("aborted"));
+          });
+        });
+      };
+
+      const tool = createA2ACallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        requestTimeoutMs: 5,
+        maxNetworkAttempts: 2,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(postAttempts).toBe(2);
+      expect(result).toHaveProperty("success", false);
+      expect(result).toHaveProperty(
+        "error",
+        "Failed to reach remote agent after 2 attempts: request timed out after 5ms",
+      );
+    });
+
+    it("should timeout and retry when the SSE stream stalls", async () => {
+      const encoder = new TextEncoder();
+      const createStalledStream = (): ReadableStream<Uint8Array> =>
+        new ReadableStream<Uint8Array>({
+          start(controller): void {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  result: {
+                    status: { state: "working" },
+                    final: false,
+                  },
+                })}\n\n`,
+              ),
+            );
+          },
+        });
+
+      let postAttempts = 0;
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        postAttempts++;
+        return new Response(createStalledStream(), {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      };
+
+      const tool = createA2ACallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        streamIdleTimeoutMs: 5,
+        maxNetworkAttempts: 2,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(postAttempts).toBe(2);
+      expect(result).toHaveProperty("success", false);
+      expect(result).toHaveProperty(
+        "error",
+        "A2A stream stalled waiting for final event after 5ms after 2 attempts",
+      );
+    });
+
+    it("should retry once on transient network failure", async () => {
+      let postAttempts = 0;
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        postAttempts++;
+        if (postAttempts === 1) {
+          throw new Error("fetch failed");
+        }
+
+        return new Response(
+          sseBody([{ state: "completed", final: true, text: "retry ok" }]),
+          {
+            status: 200,
+            headers: { "Content-Type": "text/event-stream" },
+          },
+        );
+      };
+
+      const tool = createA2ACallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        maxNetworkAttempts: 2,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(postAttempts).toBe(2);
+      expect(result).toHaveProperty("success", true);
+      expect(result).toHaveProperty("data.response", "retry ok");
+    });
+
+    it("should complete a slow stream under the idle timeout", async () => {
+      const encoder = new TextEncoder();
+      const slowStream = new ReadableStream<Uint8Array>({
+        start(controller): void {
+          setTimeout(() => {
+            controller.enqueue(
+              encoder.encode(
+                `data: ${JSON.stringify({
+                  result: {
+                    status: {
+                      state: "completed",
+                      message: {
+                        parts: [{ kind: "text", text: "slow ok" }],
+                      },
+                    },
+                    final: true,
+                  },
+                })}\n\n`,
+              ),
+            );
+            controller.close();
+          }, 5);
+        },
+      });
+
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        return new Response(slowStream, {
+          status: 200,
+          headers: { "Content-Type": "text/event-stream" },
+        });
+      };
+
+      const tool = createA2ACallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        streamIdleTimeoutMs: 50,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(result).toHaveProperty("success", true);
+      expect(result).toHaveProperty("data.response", "slow ok");
+    });
+
+    it("should not retry client HTTP errors", async () => {
+      let postAttempts = 0;
+      const fetchFn = async (
+        _url: string | URL | Request,
+        init?: RequestInit,
+      ): Promise<Response> => {
+        if (!init?.method || init.method === "GET") {
+          return new Response(
+            JSON.stringify({
+              name: "Test Agent",
+              url: "https://remote.example.com/a2a",
+            }),
+            { status: 200 },
+          );
+        }
+
+        postAttempts++;
+        return new Response("Forbidden", { status: 403 });
+      };
+
+      const tool = createA2ACallTool({
+        fetch: fetchFn,
+        entityService: createSavedAgentEntityService(),
+        maxNetworkAttempts: 2,
+      });
+
+      const result = await tool.handler(
+        { agent: "remote.example.com", message: "hello" },
+        { interfaceType: "test", userId: "test" },
+      );
+
+      expect(postAttempts).toBe(1);
+      expect(result).toHaveProperty("success", false);
+      expect(result).toHaveProperty("error", "Remote agent returned HTTP 403");
+    });
   });
 });

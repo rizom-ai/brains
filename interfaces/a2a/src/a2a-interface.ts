@@ -327,6 +327,9 @@ export class A2AInterface extends InterfacePlugin<A2AConfig> {
     return [
       createA2ACallTool({
         outboundTokens: this.config.outboundTokens,
+        requestTimeoutMs: this.config.requestTimeoutMs,
+        streamIdleTimeoutMs: this.config.streamIdleTimeoutMs,
+        maxNetworkAttempts: this.config.maxNetworkAttempts,
         entityService: this.getContext().entityService,
       }),
     ];

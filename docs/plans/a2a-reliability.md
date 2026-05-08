@@ -2,13 +2,13 @@
 
 ## Status
 
-Proposed. Created after a transient `fetch failed` during a Rover → `yeehaa.io` A2A call; retrying the same tool call later succeeded.
+Implemented. Created after a transient `fetch failed` during a Rover → `yeehaa.io` A2A call; retrying the same tool call later succeeded. The A2A client now has explicit request/stream-idle timeouts, one network retry by default, and clearer error messages.
 
 ## Context
 
 The A2A client is a remote network boundary. Calls can fail because of DNS, TLS, connection resets, cold starts, Cloudflare/proxy behavior, or SSE streams that stall before a terminal event.
 
-Today, `interfaces/a2a/src/client.ts` can surface an opaque error such as:
+Before this hardening, `interfaces/a2a/src/client.ts` could surface an opaque error such as:
 
 ```txt
 fetch failed
@@ -35,23 +35,23 @@ That is not enough to distinguish a transient network blip from a protocol bug o
 
 ### Explicit timeout policy
 
-Add timeout options to the A2A client internals:
+Implemented timeout options in the A2A client and interface config:
 
 - `requestTimeoutMs` — max time to establish the POST response, default 30s.
 - `streamIdleTimeoutMs` — max time between SSE chunks while waiting for a final event, default 60s.
 - `maxNetworkAttempts` — network-level attempts, default 2.
 
-Timeouts should use `AbortController` so the underlying fetch/read is cancelled.
+Request timeouts use `AbortController` so the underlying fetch is cancelled. SSE reads use an idle timer and cancel the reader when the stream stalls.
 
 ### Retry policy
 
-Retry once when the failure is likely transient:
+Implemented one retry when the failure is likely transient:
 
 - fetch throws before an HTTP response exists
 - request timeout before response headers
 - stream read throws due to network reset before terminal event
 
-Do not retry by default for:
+The implementation does not retry by default for:
 
 - 4xx HTTP responses
 - malformed JSON-RPC responses
@@ -75,45 +75,46 @@ Include the low-level `cause` message when available (`ECONNRESET`, TLS failure,
 
 ### SSE stream handling
 
-The current client waits for a terminal `status-update` SSE event with `final: true`. Preserve that behavior, but add an idle timer that resets whenever a chunk arrives.
+The client still waits for a terminal `status-update` SSE event with `final: true`, with an idle timer that resets whenever a chunk arrives.
 
 If the stream ends without a terminal event, keep returning a protocol-level failure.
 
 ## Regression tests
 
-Add targeted tests under `interfaces/a2a/test`:
+Added targeted tests under `interfaces/a2a/test/client.test.ts`:
 
-1. **Initial POST timeout**
+1. ✅ **Initial POST timeout**
    - mock `fetch` that never resolves
    - assert a clear timeout error
 
-2. **SSE idle timeout**
+2. ✅ **SSE idle timeout**
    - mock `fetch` returning a stream that emits `working` and then stalls
    - assert a clear stream-idle timeout error
 
-3. **Retry on transient network failure**
+3. ✅ **Retry on transient network failure**
    - first `fetch` throws `fetch failed`
    - second returns a successful final SSE event
    - assert success and two attempts
 
-4. **No retry on client errors**
+4. ✅ **No retry on client errors**
    - remote returns `401` or `403`
    - assert no retry and a clear HTTP error
 
-5. **Successful slow response under timeout**
+5. ✅ **Successful slow response under timeout**
    - stream emits final event after a delay below `streamIdleTimeoutMs`
    - assert success
 
-6. **Stream ends without final event**
+6. ✅ **Stream ends without final event**
    - stream closes after non-final events
    - assert existing protocol error remains clear
 
 ## Rollout
 
-1. Add tests with mocked `fetch` and controlled `ReadableStream` behavior.
-2. Implement timeout helpers and retry loop inside `interfaces/a2a/src/client.ts`.
-3. Validate with unit tests and a live `yeehaa.io` smoke call.
-4. If production failures persist, add structured telemetry/logging around failure causes and elapsed timings.
+1. ✅ Add tests with mocked `fetch` and controlled `ReadableStream` behavior.
+2. ✅ Implement timeout helpers and retry loop inside `interfaces/a2a/src/client.ts`.
+3. ✅ Validate with unit tests.
+4. ⏳ Run a live `yeehaa.io` smoke call when a Rover instance is intentionally started.
+5. If production failures persist, add structured telemetry/logging around failure causes and elapsed timings.
 
 ## Related
 
