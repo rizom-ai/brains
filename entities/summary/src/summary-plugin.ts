@@ -24,6 +24,7 @@ import { summaryListTemplate } from "./templates/summary-list";
 import { summaryDetailTemplate } from "./templates/summary-detail";
 import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
+import { registerSummaryDashboardWidget } from "./lib/dashboard-widget";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
 import {
   SUMMARY_ENTITY_TYPE,
@@ -189,6 +190,8 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
+    registerSummaryDashboardWidget({ context, pluginId: this.id });
+
     registerSummaryEvalHandlers({
       context,
       logger: this.logger,
