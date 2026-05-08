@@ -55,7 +55,11 @@ export type {
   RefreshTokenRecord,
   RefreshTokenStoreOptions,
 } from "./refresh-token-store";
-export { OPERATOR_SESSION_COOKIE, OperatorSessionStore } from "./session-store";
+export {
+  clearOperatorSessionCookie,
+  OPERATOR_SESSION_COOKIE,
+  OperatorSessionStore,
+} from "./session-store";
 export type {
   CreateOperatorSessionResult,
   OperatorSessionRecord,

@@ -172,6 +172,11 @@ body::after {
   letter-spacing: 0.04em;
 }
 .masthead-meta .line { display: flex; align-items: center; gap: 8px; }
+.masthead-meta a {
+  color: var(--accent);
+  text-decoration: none;
+}
+.masthead-meta a:hover { text-decoration: underline; }
 .masthead-meta .label {
   text-transform: uppercase;
   font-size: 9.5px;

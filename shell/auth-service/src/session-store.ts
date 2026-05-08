@@ -73,6 +73,10 @@ function sessionCookie(token: string, expiresAt: number): string {
   )}`;
 }
 
+export function clearOperatorSessionCookie(): string {
+  return `${OPERATOR_SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`;
+}
+
 export class OperatorSessionStore {
   private readonly storeFile: string;
   private writeQueue: Promise<void> = Promise.resolve();
@@ -115,10 +119,7 @@ export class OperatorSessionStore {
   async getSessionFromRequest(
     request: Request,
   ): Promise<OperatorSessionRecord | undefined> {
-    const token = getCookie(
-      request.headers.get("cookie"),
-      OPERATOR_SESSION_COOKIE,
-    );
+    const token = getSessionTokenFromRequest(request);
     if (!token) return undefined;
 
     const tokenHash = hashToken(token);
@@ -127,6 +128,27 @@ export class OperatorSessionStore {
     return store.sessions.find(
       (session) => session.token_hash === tokenHash && session.expires_at > now,
     );
+  }
+
+  async revokeSessionFromRequest(request: Request): Promise<boolean> {
+    const token = getSessionTokenFromRequest(request);
+    if (!token) return false;
+
+    const tokenHash = hashToken(token);
+    let revoked = false;
+    await this.enqueueWrite(async () => {
+      const store = await this.readStore();
+      const before = store.sessions.length;
+      store.sessions = store.sessions.filter(
+        (session) => session.token_hash !== tokenHash,
+      );
+      revoked = store.sessions.length !== before;
+      if (revoked) {
+        await this.writeStore(store);
+      }
+    });
+
+    return revoked;
   }
 
   private async enqueueWrite(operation: () => Promise<void>): Promise<void> {
@@ -154,6 +176,10 @@ export class OperatorSessionStore {
     });
     await chmod(this.storeFile, 0o600);
   }
+}
+
+function getSessionTokenFromRequest(request: Request): string | undefined {
+  return getCookie(request.headers.get("cookie"), OPERATOR_SESSION_COOKIE);
 }
 
 function getCookie(

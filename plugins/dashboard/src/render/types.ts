@@ -26,6 +26,7 @@ export interface DashboardOperatorAccess {
   isOperator: boolean;
   hiddenWidgetCount: number;
   loginUrl: string;
+  logoutUrl: string;
 }
 
 export interface DashboardRenderInput {

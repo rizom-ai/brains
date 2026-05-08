@@ -113,6 +113,7 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 - `GET /setup` — first-boot passkey enrollment (one-shot, disabled after first successful enrollment)
 - `POST /webauthn/register/options`, `/webauthn/register/verify` — enrollment ceremony
 - `POST /webauthn/auth/options`, `/webauthn/auth/verify` — login ceremony
+- `GET|POST /logout` — revoke current operator session, clear session cookie, and redirect to safe relative `return_to`
 
 ### First-boot ceremony
 
@@ -185,6 +186,7 @@ The downstream permission machinery does not change. The middleware is the only 
 - marked only the Publication Pipeline widget as operator-visible for now
 - public requests only fetch/render public widgets; operator-session requests include operator widgets
 - dashboard displays an operator sign-in prompt when hidden operator widgets exist
+- operator sessions can be revoked via `/logout`, and signed-in dashboards show a sign-out link
 
 ### Phase 5 — multi-user expansion ⏳
 

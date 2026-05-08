@@ -14,6 +14,7 @@ import {
   RefreshTokenStore,
 } from "./refresh-token-store";
 import {
+  clearOperatorSessionCookie,
   OperatorSessionStore,
   type CreateOperatorSessionResult,
   type OperatorSessionRecord,
@@ -214,6 +215,13 @@ export class AuthService {
       return this.handleLoginPage(request);
     }
 
+    if (
+      (request.method === "GET" || request.method === "POST") &&
+      path === "/logout"
+    ) {
+      return this.handleLogout(request);
+    }
+
     if (request.method === "POST" && path === "/webauthn/register/options") {
       return this.handleWebAuthnRegistrationOptions(request);
     }
@@ -270,8 +278,25 @@ export class AuthService {
   }
 
   private handleLoginPage(request: Request): Response {
-    const returnTo = new URL(request.url).searchParams.get("return_to") ?? "/";
+    const returnTo = safeRelativeReturnTo(
+      new URL(request.url).searchParams.get("return_to"),
+    );
     return htmlResponse(renderLoginPage(returnTo));
+  }
+
+  private async handleLogout(request: Request): Promise<Response> {
+    await this.sessionStore.revokeSessionFromRequest(request);
+    const returnTo = safeRelativeReturnTo(
+      new URL(request.url).searchParams.get("return_to"),
+    );
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: returnTo,
+        "Set-Cookie": clearOperatorSessionCookie(),
+        "Cache-Control": "no-store",
+      },
+    });
   }
 
   private async handleWebAuthnRegistrationOptions(
@@ -822,6 +847,13 @@ function renderSetupPage(setupToken: string): string {
     });</script>
   </body>
 </html>`;
+}
+
+function safeRelativeReturnTo(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+  return value;
 }
 
 function renderLoginPage(returnTo: string, title = "Operator login"): string {

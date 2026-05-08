@@ -1,6 +1,7 @@
 /** @jsxImportSource preact */
 import type { AppInfo } from "@brains/plugins";
 import type { JSX } from "preact";
+import type { DashboardOperatorAccess } from "./types";
 
 function BrandTitle({ title }: { title: string }): JSX.Element {
   const trimmed = title.trim();
@@ -30,8 +31,9 @@ export function Masthead(props: {
   tagline: string | undefined;
   appInfo: AppInfo;
   now: Date;
+  operatorAccess: DashboardOperatorAccess | undefined;
 }): JSX.Element {
-  const { title, tagline, appInfo, now } = props;
+  const { title, tagline, appInfo, now, operatorAccess } = props;
   const plugins = appInfo.daemons.length;
 
   return (
@@ -58,6 +60,12 @@ export function Masthead(props: {
           <span class="label">rendered</span>
           <span>{formatRendered(now)}</span>
         </div>
+        {operatorAccess?.isOperator && (
+          <div class="line">
+            <span class="label">access</span>
+            <a href={operatorAccess.logoutUrl}>operator · sign out</a>
+          </div>
+        )}
       </div>
     </header>
   );

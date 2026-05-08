@@ -141,6 +141,7 @@ function DashboardDocument({
             tagline={input.profile.description}
             appInfo={input.appInfo}
             now={new Date()}
+            operatorAccess={input.operatorAccess}
           />
 
           <section class="layout">

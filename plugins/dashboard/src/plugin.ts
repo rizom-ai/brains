@@ -183,6 +183,7 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           const title = profile.name || appInfo.model || "Brain Dashboard";
           const requestUrl = new URL(request.url);
           const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
+          const encodedReturnTo = encodeURIComponent(returnTo);
           const resolvedWidgets = resolveWidgetsForRender(
             dashboardData.widgets,
             this.widgetRegistry,
@@ -200,7 +201,8 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             operatorAccess: {
               isOperator,
               hiddenWidgetCount,
-              loginUrl: `/login?return_to=${encodeURIComponent(returnTo)}`,
+              loginUrl: `/login?return_to=${encodedReturnTo}`,
+              logoutUrl: `/logout?return_to=${encodedReturnTo}`,
             },
           };
 

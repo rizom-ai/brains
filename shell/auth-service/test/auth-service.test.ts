@@ -400,6 +400,49 @@ describe("AuthService", () => {
     expect(revokedRefreshResponse.status).toBe(400);
   });
 
+  it("logs out and revokes the current operator session", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const session = await service.createOperatorSession();
+    const request = new Request("https://brain.example.com/dashboard", {
+      headers: { cookie: session.cookie },
+    });
+
+    const beforeLogout = await service.getOperatorSession(request);
+    expect(beforeLogout).toMatchObject({
+      subject: "single-operator",
+    });
+
+    const response = await service.handleRequest(
+      new Request("https://brain.example.com/logout?return_to=/dashboard", {
+        headers: { cookie: session.cookie },
+      }),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/dashboard");
+    expect(response.headers.get("set-cookie")).toContain("Max-Age=0");
+    expect(await service.getOperatorSession(request)).toBeUndefined();
+  });
+
+  it("sanitizes logout return_to", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    const response = await service.handleRequest(
+      new Request(
+        "https://brain.example.com/logout?return_to=https://evil.example",
+      ),
+    );
+
+    expect(response.status).toBe(302);
+    expect(response.headers.get("location")).toBe("/");
+  });
+
   it("requires an operator session before showing the authorize page", async () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),

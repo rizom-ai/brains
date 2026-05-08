@@ -84,6 +84,18 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
         handler,
       },
       {
+        path: "/logout",
+        method: "GET",
+        public: true,
+        handler,
+      },
+      {
+        path: "/logout",
+        method: "POST",
+        public: true,
+        handler,
+      },
+      {
         path: "/authorize",
         method: "GET",
         public: true,
