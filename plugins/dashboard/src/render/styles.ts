@@ -226,6 +226,44 @@ body::after {
 }
 .card--hero { padding: 28px 32px 32px; }
 
+.operator-gate {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 139, 61, 0.12), transparent 42%),
+    var(--ink-raised);
+}
+.operator-gate p {
+  margin-top: 10px;
+  color: var(--paper-dim);
+  font-size: 13.5px;
+}
+.operator-gate-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(255, 139, 61, 0.55);
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--ink-deep);
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.operator-gate-link:hover { filter: brightness(1.06); transform: translateY(-1px); }
+@media (max-width: 640px) {
+  .operator-gate { grid-template-columns: 1fr; }
+  .operator-gate-link { justify-self: start; }
+}
+
 .card-head {
   display: flex;
   align-items: center;

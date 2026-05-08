@@ -114,6 +114,10 @@ function DashboardDocument({
     Boolean(input.character.purpose) ||
     input.character.values.length > 0;
   const hasEndpoints = input.appInfo.endpoints.length > 0;
+  const showOperatorGate =
+    input.operatorAccess &&
+    !input.operatorAccess.isOperator &&
+    input.operatorAccess.hiddenWidgetCount > 0;
 
   return (
     <html lang="en" data-theme="dark">
@@ -145,6 +149,26 @@ function DashboardDocument({
                 total={totalEntities}
                 entityCounts={input.entityCounts}
               />
+              {showOperatorGate && input.operatorAccess && (
+                <section class="card operator-gate">
+                  <div>
+                    <div class="card-title">Operator layer</div>
+                    <p>
+                      {input.operatorAccess.hiddenWidgetCount === 1
+                        ? "1 operator widget is hidden."
+                        : `${input.operatorAccess.hiddenWidgetCount} operator widgets are hidden.`}{" "}
+                      {""}
+                      Sign in with your passkey to unlock private console data.
+                    </p>
+                  </div>
+                  <a
+                    class="operator-gate-link"
+                    href={input.operatorAccess.loginUrl}
+                  >
+                    Sign in
+                  </a>
+                </section>
+              )}
               {groups.primary.map((widget) => (
                 <WidgetCard
                   key={`${widget.widget.pluginId}:${widget.widget.id}`}

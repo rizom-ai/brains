@@ -22,6 +22,12 @@ export interface RenderableWidgetData extends WidgetData {
   component?: WidgetComponent;
 }
 
+export interface DashboardOperatorAccess {
+  isOperator: boolean;
+  hiddenWidgetCount: number;
+  loginUrl: string;
+}
+
 export interface DashboardRenderInput {
   title: string;
   baseUrl: string | undefined;
@@ -31,6 +37,7 @@ export interface DashboardRenderInput {
   profile: ProfileInput;
   appInfo: AppInfo;
   entityCounts: EntityCount[];
+  operatorAccess?: DashboardOperatorAccess;
 }
 
 // exactOptionalPropertyTypes = true treats `x?: string` and

@@ -153,9 +153,16 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
           const ctx = this.ctx;
           const operatorSession =
             await getActiveAuthService()?.getOperatorSession(request);
+          const isOperator = Boolean(operatorSession);
+          const hiddenWidgetCount = isOperator
+            ? 0
+            : (this.widgetRegistry
+                ?.list({ includeOperator: true })
+                .filter((widget) => widget.visibility === "operator").length ??
+              0);
           const [dashboardData, appInfo, entityCounts] = await Promise.all([
             this.datasource.getDashboardData({
-              includeOperator: Boolean(operatorSession),
+              includeOperator: isOperator,
             }),
             ctx.appInfo(),
             ctx.entityService.getEntityCounts(),
@@ -174,6 +181,8 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             })();
 
           const title = profile.name || appInfo.model || "Brain Dashboard";
+          const requestUrl = new URL(request.url);
+          const returnTo = `${requestUrl.pathname}${requestUrl.search}`;
           const resolvedWidgets = resolveWidgetsForRender(
             dashboardData.widgets,
             this.widgetRegistry,
@@ -188,6 +197,11 @@ export class DashboardPlugin extends ServicePlugin<DashboardConfig> {
             profile,
             appInfo,
             entityCounts,
+            operatorAccess: {
+              isOperator,
+              hiddenWidgetCount,
+              loginUrl: `/login?return_to=${encodeURIComponent(returnTo)}`,
+            },
           };
 
           return new Response(renderDashboardPageHtml(input), {

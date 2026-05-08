@@ -137,7 +137,7 @@ This avoids exposing an open enrollment endpoint while keeping the bootstrap UX 
 
 ### CMS/dashboard auth boundary
 
-`plugins/cms` remains a public shell because Sveltia/GitHub already owns CMS write authentication. `plugins/dashboard` also remains a public route, but widgets can opt into `visibility: "operator"`. Public requests only fetch/render public widgets; requests with a valid passkey-backed operator session include both public and operator widgets. For now, only the Publication Pipeline widget opts into operator visibility; the exact widget mix remains a later product decision. Plan 3 deepens write-side CMS behavior.
+`plugins/cms` remains a public shell because Sveltia/GitHub already owns CMS write authentication. `plugins/dashboard` also remains a public route, but widgets can opt into `visibility: "operator"`. Public requests only fetch/render public widgets; requests with a valid passkey-backed operator session include both public and operator widgets. When operator widgets are hidden, the dashboard shows an operator sign-in prompt linking to `/login?return_to=<current-dashboard-path>`. For now, only the Publication Pipeline widget opts into operator visibility; the exact widget mix remains a later product decision. Plan 3 deepens write-side CMS behavior.
 
 ### Identity flow
 
@@ -184,6 +184,7 @@ The downstream permission machinery does not change. The middleware is the only 
 - added widget-level `visibility: "public" | "operator"`, defaulting to `"public"`
 - marked only the Publication Pipeline widget as operator-visible for now
 - public requests only fetch/render public widgets; operator-session requests include operator widgets
+- dashboard displays an operator sign-in prompt when hidden operator widgets exist
 
 ### Phase 5 — multi-user expansion ⏳
 
