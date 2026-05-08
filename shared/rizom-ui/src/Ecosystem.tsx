@@ -95,7 +95,7 @@ export const Ecosystem = ({
       <span className="font-label text-[11px] font-semibold uppercase tracking-[0.24em] text-accent">
         {eyebrow}
       </span>
-      <h2 className="mt-5 font-display text-[clamp(34px,4.4vw,60px)] font-[380] leading-[1.04] tracking-[-0.02em] [font-variation-settings:'opsz'_96]">
+      <h2 className="mt-5 font-display text-[clamp(34px,4.4vw,60px)] font-[380] leading-[1.04] tracking-[-0.02em] text-heading [font-variation-settings:'opsz'_96]">
         {renderHighlightedText(headline, HIGHLIGHT_CLS)}
       </h2>
     </div>
