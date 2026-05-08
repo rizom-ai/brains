@@ -16,6 +16,7 @@ import { diagnostics } from "./commands/diagnostics";
 import { runCertBootstrap } from "./commands/cert-bootstrap";
 import { runSecretsPush } from "./commands/secrets-push";
 import { runSshKeyBootstrap } from "./commands/ssh-key-bootstrap";
+import { resetAuthPasskeys } from "./commands/auth-reset-passkeys";
 
 export interface CommandResult {
   success: boolean;
@@ -69,6 +70,11 @@ export async function runCommand(
       return runSshKeyBootstrap(dir, {
         pushTo: parsed.flags["push-to"],
       });
+    case "auth:reset-passkeys":
+      return resetAuthPasskeys(dir, {
+        storageDir: parsed.flags["storage-dir"],
+        yes: parsed.flags.yes,
+      });
     case "tool":
       return runRawTool(parsed, dir);
     case "help":
@@ -98,6 +104,9 @@ function collapseSubcommand(command: string, args: string[]): string {
   if (command === "secrets" && args[0] === "push") return "secrets:push";
   if (command === "ssh-key" && args[0] === "bootstrap") {
     return "ssh-key:bootstrap";
+  }
+  if (command === "auth" && args[0] === "reset-passkeys") {
+    return "auth:reset-passkeys";
   }
   return command;
 }
@@ -196,6 +205,7 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  cert:bootstrap   Issue Cloudflare Origin CA cert for brain.yaml domain",
     "  secrets:push    Push env-backed local secrets to GitHub or Bitwarden",
     "  ssh-key:bootstrap Bootstrap a Hetzner deploy SSH key and optional GitHub secret",
+    "  auth reset-passkeys --yes  Clear local operator passkeys and active OAuth state",
     "  tool <name>     Invoke a tool directly (for debugging)",
     "  help          Show this help message",
   ];
@@ -257,6 +267,8 @@ async function runHelp(cwd?: string): Promise<CommandResult> {
     "  --only <keys>          Comma-separated allowlist (e.g. AI_API_KEY,HCLOUD_TOKEN)",
     "  --dry-run              Show what would be pushed without writing anything",
     "  --startup-check        Boot through plugin ready hooks, then exit without daemons/jobs",
+    "  --storage-dir <dir>    Auth storage directory for recovery commands (default: ./data/auth)",
+    "  --yes                  Confirm destructive local recovery commands",
   );
 
   console.log(lines.join("\n"));

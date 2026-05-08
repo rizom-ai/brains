@@ -18,6 +18,8 @@ export interface ParsedArgs {
     only?: string | undefined;
     "dry-run"?: boolean | undefined;
     "startup-check"?: boolean | undefined;
+    "storage-dir"?: string | undefined;
+    yes?: boolean | undefined;
     remote?: string | undefined;
     token?: string | undefined;
     help?: boolean | undefined;
@@ -40,6 +42,8 @@ const options = {
   only: { type: "string" as const },
   "dry-run": { type: "boolean" as const },
   "startup-check": { type: "boolean" as const },
+  "storage-dir": { type: "string" as const },
+  yes: { type: "boolean" as const },
   remote: { type: "string" as const },
   token: { type: "string" as const },
   help: { type: "boolean" as const, short: "h" },
@@ -103,6 +107,8 @@ export function parseArgs(argv: string[]): ParsedArgs {
       only: getString(values, "only"),
       "dry-run": getBoolean(values, "dry-run"),
       "startup-check": getBoolean(values, "startup-check"),
+      "storage-dir": getString(values, "storage-dir"),
+      yes: getBoolean(values, "yes"),
       remote: getString(values, "remote"),
       token: getString(values, "token"),
     },

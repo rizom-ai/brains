@@ -102,6 +102,18 @@ brain secrets:push --push-to bitwarden
 
 `brain secrets:push` resolves `<SECRET>_FILE` by reading the file contents and pushing those exact bytes as `<SECRET>`. `.env.local` takes precedence over `.env`, and `~/...` paths resolve against the operator home directory. That is the preferred reproducible path for multiline keys. GitHub pushes continue to leave TLS cert PEMs to `brain cert:bootstrap`; Bitwarden pushes include PEMs when they are present in `.env.schema` because Bitwarden becomes the source-of-truth backend.
 
+### `brain auth reset-passkeys`
+
+Break-glass recovery for lost or compromised operator passkeys. This is a local-only destructive command that clears passkey credentials, operator sessions, authorization codes, and refresh tokens from runtime auth storage. It preserves OAuth clients and the OAuth signing key.
+
+```bash
+cd mybrain
+brain auth reset-passkeys --yes
+brain auth reset-passkeys --yes --storage-dir ./data/auth
+```
+
+After running it, restart the brain. On boot, the auth service detects that no passkeys remain and logs a fresh one-shot `/setup` URL. Auth storage must stay outside `brain-data`; the command refuses to modify paths under `brain-data`.
+
 ### `brain ssh-key:bootstrap`
 
 Create or reuse a deploy SSH key locally, ensure the matching public key exists in Hetzner, and optionally push the private key into GitHub Actions secrets.

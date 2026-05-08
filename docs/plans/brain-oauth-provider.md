@@ -60,7 +60,7 @@ WebAuthn / passkeys are the only operator authentication mechanism initially. No
 - passkeys cover device-bound (Touch ID, Windows Hello) and roaming (YubiKey) without code changes
 - operators are typically one or a small handful of people; the recovery story is "register a backup passkey"
 
-Recovery from total credential loss is a manual brain-side reset (operator ssh's in, runs a CLI command). Acceptable for the self-hosted scale.
+Recovery from total credential loss is a manual brain-side reset (operator ssh's in and runs `brain auth reset-passkeys --yes`). Acceptable for the self-hosted scale.
 
 ### 4. JWT validation as shared middleware
 
@@ -124,6 +124,17 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 4. Setup endpoint disables itself; subsequent `/setup` requests return 404
 
 This avoids exposing an open enrollment endpoint while keeping the bootstrap UX simple.
+
+### Recovery procedure
+
+If all operator passkeys are lost or compromised, SSH into the host and run:
+
+```bash
+cd /path/to/brain-instance
+brain auth reset-passkeys --yes
+```
+
+Use `--storage-dir <dir>` when the auth-service storage path is not the default `./data/auth`. The command clears passkeys, active operator sessions, outstanding authorization codes, and refresh tokens while preserving OAuth clients and signing keys. It refuses to operate under `brain-data`. Restart the brain afterwards; first-boot setup detection will print a new one-shot `/setup` URL.
 
 ### MCP transport changes
 

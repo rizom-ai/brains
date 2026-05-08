@@ -1,5 +1,12 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test";
-import { mkdirSync, existsSync, rmSync, readFileSync, writeFileSync } from "fs";
+import {
+  mkdirSync,
+  existsSync,
+  rmSync,
+  readFileSync,
+  writeFileSync,
+  statSync,
+} from "fs";
 import { join } from "path";
 import { tmpdir } from "os";
 import { parseArgs } from "../src/parse-args";
@@ -88,6 +95,20 @@ describe("parseArgs", () => {
     expect(result.flags["push-to"]).toBe("gh");
   });
 
+  it("should parse 'auth reset-passkeys' recovery flags", () => {
+    const result = parseArgs([
+      "auth",
+      "reset-passkeys",
+      "--yes",
+      "--storage-dir",
+      "./runtime/auth",
+    ]);
+    expect(result.command).toBe("auth");
+    expect(result.args).toEqual(["reset-passkeys"]);
+    expect(result.flags.yes).toBe(true);
+    expect(result.flags["storage-dir"]).toBe("./runtime/auth");
+  });
+
   it("should parse --help flag", () => {
     const result = parseArgs(["--help"]);
     expect(result.command).toBe("help");
@@ -106,6 +127,115 @@ describe("parseArgs", () => {
   it("should default to 'help' with no args", () => {
     const result = parseArgs([]);
     expect(result.command).toBe("help");
+  });
+});
+
+describe("brain auth recovery", () => {
+  let testDir: string;
+
+  beforeEach(() => {
+    testDir = join(tmpdir(), `brain-cli-auth-${Date.now()}`);
+    mkdirSync(testDir, { recursive: true });
+  });
+
+  afterEach(() => {
+    if (existsSync(testDir)) {
+      rmSync(testDir, { recursive: true, force: true });
+    }
+  });
+
+  it("requires --yes before resetting passkeys", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const authDir = join(testDir, "data", "auth");
+    mkdirSync(authDir, { recursive: true });
+    writeFileSync(
+      join(authDir, "oauth-passkeys.json"),
+      JSON.stringify({ credentials: [{ id: "credential" }] }),
+    );
+
+    const result = await runCommand(
+      {
+        command: "auth",
+        args: ["reset-passkeys"],
+        flags: { "storage-dir": authDir },
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.message).toContain("--yes");
+    expect(
+      readFileSync(join(authDir, "oauth-passkeys.json"), "utf8"),
+    ).toContain("credential");
+  });
+
+  it("clears operator passkeys and active OAuth state", async () => {
+    const { runCommand } = await import("../src/run-command");
+    const authDir = join(testDir, "data", "auth");
+    mkdirSync(authDir, { recursive: true });
+    writeFileSync(
+      join(authDir, "oauth-passkeys.json"),
+      JSON.stringify({ credentials: [{ id: "credential" }] }),
+    );
+    writeFileSync(
+      join(authDir, "oauth-sessions.json"),
+      JSON.stringify({ sessions: [{ id: "session" }] }),
+    );
+    writeFileSync(
+      join(authDir, "oauth-auth-codes.json"),
+      JSON.stringify({ codes: [{ code: "code" }] }),
+    );
+    writeFileSync(
+      join(authDir, "oauth-refresh-tokens.json"),
+      JSON.stringify({ refreshTokens: [{ id: "refresh" }] }),
+    );
+    writeFileSync(join(authDir, "oauth-clients.json"), "preserve-client-store");
+    writeFileSync(join(authDir, "oauth-signing-key.jwk"), "preserve-key");
+
+    const result = await runCommand(
+      {
+        command: "auth",
+        args: ["reset-passkeys"],
+        flags: { "storage-dir": authDir, yes: true },
+      },
+      testDir,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.message).toContain("Restart the brain");
+    expect(
+      JSON.parse(readFileSync(join(authDir, "oauth-passkeys.json"), "utf8")),
+    ).toEqual({
+      credentials: [],
+      registrationChallenges: [],
+      authenticationChallenges: [],
+    });
+    expect(
+      JSON.parse(readFileSync(join(authDir, "oauth-sessions.json"), "utf8")),
+    ).toEqual({
+      sessions: [],
+    });
+    expect(
+      JSON.parse(readFileSync(join(authDir, "oauth-auth-codes.json"), "utf8")),
+    ).toEqual({
+      codes: [],
+    });
+    expect(
+      JSON.parse(
+        readFileSync(join(authDir, "oauth-refresh-tokens.json"), "utf8"),
+      ),
+    ).toEqual({
+      refreshTokens: [],
+    });
+    expect(readFileSync(join(authDir, "oauth-clients.json"), "utf8")).toBe(
+      "preserve-client-store",
+    );
+    expect(readFileSync(join(authDir, "oauth-signing-key.jwk"), "utf8")).toBe(
+      "preserve-key",
+    );
+    expect(statSync(join(authDir, "oauth-passkeys.json")).mode & 0o777).toBe(
+      0o600,
+    );
   });
 });
 
