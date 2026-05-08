@@ -19,8 +19,8 @@
     "start:docs": "cd test-apps/docs && INIT_CWD=$PWD bun run --filter @rizom/brain dev:start",
     "typecheck": "tsc --noEmit",
     "eval": "brain-eval",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix"
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix"
   },
   "dependencies": {
     "@brains/a2a": "workspace:*",
@@ -40,13 +40,16 @@
     "@brains/prompt": "workspace:*",
     "@brains/rizom-ecosystem": "workspace:*",
     "@brains/site-builder-plugin": "workspace:*",
+    "@brains/site-composition": "workspace:*",
     "@brains/site-content": "workspace:*",
     "@brains/site-info": "workspace:*",
     "@brains/site-rizom": "workspace:*",
     "@brains/summary": "workspace:*",
     "@brains/theme-rizom": "workspace:*",
     "@brains/topics": "workspace:*",
-    "@brains/webserver": "workspace:*"
+    "@brains/utils": "workspace:*",
+    "@brains/webserver": "workspace:*",
+    "preact": "^10.27.2"
   },
   "devDependencies": {
     "@brains/ai-evaluation": "workspace:*",

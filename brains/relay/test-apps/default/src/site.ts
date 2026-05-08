@@ -1,17 +1,17 @@
-import { DefaultRizomLayout } from "@brains/site-rizom";
-
 export default {
-  layouts: {
-    default: DefaultRizomLayout,
-  },
   routes: [
     {
-      id: "home",
-      path: "/",
+      id: "ecosystem",
+      path: "/ecosystem",
       title: "Relay ecosystem test",
       description: "Relay with the opt-in Rizom ecosystem section",
       layout: "default",
-      navigation: { show: false },
+      navigation: {
+        show: true,
+        label: "Ecosystem",
+        slot: "primary",
+        priority: 80,
+      },
       sections: [
         {
           id: "ecosystem",
@@ -21,5 +21,4 @@ export default {
       ],
     },
   ],
-  entityDisplay: {},
 };

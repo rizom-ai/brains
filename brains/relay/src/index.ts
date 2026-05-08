@@ -23,8 +23,8 @@ import { promptPlugin } from "@brains/prompt";
 import { rizomEcosystemPlugin } from "@brains/rizom-ecosystem";
 import { agentDiscovery } from "@brains/agent-discovery";
 import { assessment } from "@brains/assessment";
-import rizomSite from "@brains/site-rizom";
 import rizomTheme from "@brains/theme-rizom";
+import { relaySite, relaySiteContentDefinition } from "./site";
 
 /**
  * Relay Brain Model
@@ -100,7 +100,7 @@ export default defineBrain({
   name: "relay",
   version: "0.1.0",
   model: "gpt-5.4-mini",
-  site: rizomSite,
+  site: relaySite,
   theme: rizomTheme,
   presets: {
     core,
@@ -154,7 +154,11 @@ export default defineBrain({
         initialSync: true,
       },
     ],
-    ["site-content", siteContentPlugin, undefined],
+    [
+      "site-content",
+      siteContentPlugin,
+      { definitions: relaySiteContentDefinition },
+    ],
     ["rizom-ecosystem", rizomEcosystemPlugin, undefined],
     ["site-info", siteInfoPlugin, undefined],
     ["site-builder", siteBuilderPlugin, {}],
