@@ -42,12 +42,13 @@ If you are new, start with the quickstart and then read the content, interface, 
 ## Planning and release readiness
 
 - [Roadmap](./roadmap.md) — current status, recently completed work, near-term priorities, and long-term direction
-- [Documentation Plan](./plans/documentation.md) — completed user-facing docs phases plus maintenance backlog
 - [Docs Manifest](./docs-manifest.yaml) — curated source docs list for docs-site sync
+- [Codebase Map](./codebase-map.html) — interactive package/dependency map (open in a browser)
+- [Roadmap (visual)](./roadmap-visual.html) — visual companion to the roadmap
 - [`doc-brain` Remaining Work](https://github.com/rizom-ai/doc-brain/blob/main/docs/remaining-work.md) — standalone docs app/deploy follow-up
+- [Custom Brain Definitions Plan](./plans/custom-brain-definitions.md) — `brain.ts` programmatic-mode escape hatch over the public `@rizom/brain` surface
 - [Content Remote Bootstrap Plan](./plans/content-remote-bootstrap.md) — directory-sync-owned bootstrap for seeded git content remotes
 - [Public Release Cleanup Plan](./plans/public-release-cleanup.md) — public repo cleanup plan
-- [Rizom Site Composition Plan](./plans/rizom-site-composition.md) — completed shared Rizom site/theme boundary and extracted app guardrails
 - [Rizom Site Follow-ups](./plans/rizom-site-tbd.md) — external product/content follow-ups for extracted Rizom apps
 
 ## Generated and prototype docs

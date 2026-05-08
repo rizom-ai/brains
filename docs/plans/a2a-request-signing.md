@@ -207,4 +207,4 @@ Caddy, nginx, and Traefik do this by default. Cloudflare's body-rewriting featur
 - `docs/plans/brain-oauth-provider.md` — co-shares the JWKS endpoint
 - `docs/plans/cms-heavy-backend.md` — sequenced after this plan
 - `docs/plans/multi-user.md` — depends on this plan for cross-interface identity
-- `docs/plans/agent-discovery.md` — peer discovery flow this plan plugs into
+- `entities/agent-discovery` — saved-agent allowlist semantics this plan plugs into

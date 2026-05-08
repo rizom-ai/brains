@@ -1,6 +1,6 @@
 # brains roadmap
 
-Last updated: 2026-04-29
+Last updated: 2026-05-08
 
 This roadmap is the public-facing view of where `brains` is headed.
 
@@ -49,21 +49,45 @@ These areas are effectively landed:
 - **Docs sync script** — `scripts/sync-docs-content.ts` generates `doc/*.md` from `docs/docs-manifest.yaml` into a content checkout; `bun run docs:check` validates manifest and links while model-specific eval fixtures stay curated by their brain packages
 - **Shell initialization coordination** — `ShellBootloader` now owns phased startup, plugin `onReady` is backed by real boot ordering, daemons/job processing start after ready hooks, and site presentation metadata no longer lives on the shell facade
 - **External plugin API** — `@rizom/brain` exposes curated `/plugins`, `/entities`, `/services`, `/interfaces`, and `/templates` authoring subpaths; `brain.yaml` loads installed plugin packages via keyed `plugins.<id>.package` entries with env-var interpolation; alpha compatibility is governed by `peerDependencies`; separate-repo reference plugins `rizom-ai/brain-plugin-hello` (service/lifecycle) and `rizom-ai/brain-plugin-recipes` (durable entity) prove the path end-to-end
+- **Rizom ecosystem section** — entity-backed `entities/rizom-ecosystem` package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared `@rizom/ui` wordmark/header alignment
+- **Professional-site Rizom alignment** — editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a `Wordmark` slot generalized in `@rizom/ui`
+- **Relay POC scaffolding** — `brains/relay` preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split
+- **Newsletter composite plugin** — `plugins/newsletter` bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry
+- **Bitwarden-backed secrets** — `brain secrets:push` pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites `.env.schema` with pinned Varlock references; generated deploy workflows run the current Varlock CLI with only `BWS_ACCESS_TOKEN` in GitHub Actions secrets
+- **External plugin smoke testing** — `brain start --startup-check` loads configured plugins, runs `onRegister` and `onReady`, then exits without starting daemons or job workers and without requiring a real AI API key
 
 ## Near-term priorities
 
-### 1. Custom brain definitions
+### 1. Relay POC delivery
 
-With the external plugin API landed, the next step is a `brain.ts` programmatic mode for instances that need composition beyond what `brain.yaml` supports — preset spread, inline plugins, custom plugin logic. `brain.yaml` stays the entry point; `brain: ./brain.ts` switches into programmatic mode and the file uses `defineBrain` plus the curated `@rizom/brain` surface.
+The active product track. `brains/relay` is mid-POC: preset split, brain prompts, eval scaffold, and SWOT eval coverage have landed; the remaining scope is shipping a credible team-brain demo on `rizom.foundation` with `preset: core` (private team brain) and validating the capture → synthesize → share → coordinate loop end-to-end before any preset-tier expansion.
 
 Plans:
 
-- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — `brain.ts` escape hatch built on the now-landed public surface
-- [external-plugin-api.md](./plans/external-plugin-api.md) — completed; tracks any future `brain search` / `brain add` / `brain remove` CLI ergonomics
+- [relay-poc-review.md](./plans/relay-poc-review.md) — POC scope, recommended capability matrix, and what stays out of `core`
+- [relay-presets.md](./plans/relay-presets.md) — preset philosophy and what's deferred past the POC
+
+### 2. Public-surface tightening
+
+The external plugin API is alpha-ready and usable today, but not frozen. These are small, focused follow-ups to the now-landed plugin authoring surface — meant to land before more external authors adopt it and lock the alpha contract harder.
+
+Plans:
+
+- [public-entity-types-reconciliation.md](./plans/public-entity-types-reconciliation.md) — fix `IEntityService` generic shape and `search` return type on `@rizom/brain/entities`; flag the alpha-phase break in a changeset
+- [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow what an official publishable plugin/entity may depend on, distinct from the external-author surface
+- [bitwarden-upstream-followup.md](./plans/bitwarden-upstream-followup.md) — varlock masking + provider-shape fixes upstream so the now-shipping Bitwarden flow stays clean
 
 ## Long-term
 
 These areas are intentionally post-`v0.2.0`. They are tracked but not gating launch.
+
+### Programmatic brain composition
+
+`brain.ts` custom definitions are a long-term escape hatch for instances that need composition beyond what `brain.yaml` supports — preset spread, inline plugins, custom plugin logic, and conditional capabilities. `brain.yaml` remains the primary path; this should wait until there is a concrete need and the public model/plugin API is stable enough to support it cleanly.
+
+Plan:
+
+- [custom-brain-definitions.md](./plans/custom-brain-definitions.md) — `brain.ts` escape hatch built on the public `@rizom/brain` surface
 
 ### Framework consolidation
 
@@ -72,7 +96,23 @@ Independent internal cleanup items — each removes a fragile coupling held toge
 Plans:
 
 - [env-schema-canonical.md](./plans/env-schema-canonical.md) — co-locate env declarations next to the consuming service; aggregate via `shellEnvVars()` in `shell/core`; have `brain-cli` consume that single source instead of `bundled-model-env-schemas.ts`.
-- [deploy-scaffolding-consolidation.md](./plans/deploy-scaffolding-consolidation.md) — extract `@brains/deploy-templates` as the canonical home for Caddyfile/Dockerfile/Kamal/scripts/workflow content; cut `brain-cli/src/commands/init.ts` from 1400+ lines; keep `@rizom/ops` fleet-only.
+- [deploy-scaffolding-consolidation.md](./plans/deploy-scaffolding-consolidation.md) — `@brains/deploy-templates` is now the canonical source for shared deploy templates/scripts/env-schema fragments; remaining work is cutting `brain-cli/src/commands/init.ts` from 1400+ lines and keeping `@rizom/ops` fleet-only.
+- [core-env-config.md](./plans/core-env-config.md) — move env defaults from core to the app/instance layer.
+- [unify-build-pipeline.md](./plans/unify-build-pipeline.md) — collapse the two parallel build pipelines.
+- [brain-cli-declaration-bundler-cleanup.md](./plans/brain-cli-declaration-bundler-cleanup.md) — replace the manual allowlist now that the declaration bundler is established.
+- [memory-reduction.md](./plans/memory-reduction.md) — registry/lazy-loading optimization phased after profiling.
+- [parallel-eval-workers.md](./plans/parallel-eval-workers.md) — subprocess-based multi-model eval parallelization.
+- [topic-auto-merge.md](./plans/topic-auto-merge.md) — cleanup around dead schema surface; bring `checkMergeSimilarity` to eval parity.
+
+### Live-deploy follow-ups
+
+Maintenance scope around what's already running in production today.
+
+Plans:
+
+- [user-offboarding-plan.md](./plans/user-offboarding-plan.md) — explicit offboarding workflow for `rover-pilot` fleets.
+- [generic-cover-image-orchestration.md](./plans/generic-cover-image-orchestration.md) — `coverImage` API for `system_create` so per-entity cover sourcing stops being one-off.
+- [content-remote-bootstrap.md](./plans/content-remote-bootstrap.md) — directory-sync-owned bootstrap for seeded git content remotes.
 
 ### Public repo cleanup
 
@@ -82,16 +122,43 @@ Plan:
 
 - [public-release-cleanup.md](./plans/public-release-cleanup.md)
 
-### Further long-horizon plans
+### Further long-horizon
 
-Tracked but not sequenced yet:
+Tracked but not sequenced yet. Grouped by theme.
 
-- hosted rovers, multi-user infra, monetization
-- desktop app, chat interface SDK, atproto integration
-- local AI runtime (sidecar for embeddings + generation)
-- topic auto-merge cleanup
-- memory reduction, parallel eval workers, unify build pipeline
-- relay presets, a2a authentication
+**Hosted product**
+
+- [hosted-rovers.md](./plans/hosted-rovers.md) — Kubernetes platform for hosted rovers
+- [hosted-rover-discord.md](./plans/hosted-rover-discord.md) — DM-only + A2A mesh for hosted rovers
+- [multi-user.md](./plans/multi-user.md) — user entities + cross-interface identity
+- [monetization.md](./plans/monetization.md) — open core + managed hosting
+
+**New surfaces**
+
+- [desktop-app.md](./plans/desktop-app.md) — Electrobun desktop wrapper
+- [chat-interface-sdk.md](./plans/chat-interface-sdk.md) — Vercel Chat SDK adapter consolidation
+- [atproto-integration.md](./plans/atproto-integration.md) — AT Protocol distribution layer
+
+**Auth / federation**
+
+- [a2a-request-signing.md](./plans/a2a-request-signing.md) — RFC 9421 request signing for inter-rover A2A
+- [brain-oauth-provider.md](./plans/brain-oauth-provider.md) — first-party OAuth provider for browser-authored CMS
+
+**CMS evolution**
+
+- [cms-on-core.md](./plans/cms-on-core.md) — admin + CMS surface on core
+- [cms-heavy-backend.md](./plans/cms-heavy-backend.md) — backend-heavier CMS once the OAuth provider exists
+- [cms-github-oauth.md](./plans/cms-github-oauth.md) — explicitly throwaway bridge until `cms-heavy-backend` ships
+
+**Renderer / HTTP surface**
+
+- [template-renderer-contracts.md](./plans/template-renderer-contracts.md) — renderer-neutral contract extraction
+- [astro-renderer-spike.md](./plans/astro-renderer-spike.md) — whether Astro should replace or complement the Preact builder
+- [unified-http-surface.md](./plans/unified-http-surface.md) — consolidate MCP/A2A/webserver HTTP surface
+
+**Local AI**
+
+- [embedding-service.md](./plans/embedding-service.md) — local AI runtime sidecar (embeddings + generation)
 
 See `docs/plans/` for individual plan status.
 
@@ -116,9 +183,9 @@ It is **not** currently targeting:
 
 ## Reference models
 
-- **`rover`** — the public reference model
+- **`rover`** — the public reference model (personal brain)
 - **`ranger`** — internal-use source model for `rizom-ai`
-- **`relay`** — internal-use source model for `rizom-foundation`
+- **`relay`** — internal-use source model for `rizom-foundation`, currently in POC with brain prompts, preset split, and SWOT eval coverage
 
 External examples and docs should treat **`rover`** as the main reference.
 

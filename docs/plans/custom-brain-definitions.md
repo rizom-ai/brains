@@ -1,5 +1,9 @@
 # Plan: Custom Brain Definitions (brain.ts)
 
+## Status
+
+Long-term / deferred. The underlying `defineBrain()` model API exists, but instance-local `brain: ./brain.ts` boot is not wired. Keep this as an escape hatch for concrete future needs; `brain.yaml` plus external plugins remains the recommended path for now.
+
 ## Goal
 
 For power users who need full programmatic control — custom plugin logic, preset composition, inline plugins — beyond what YAML config supports.
@@ -80,5 +84,4 @@ Most users should never need `brain.ts`. It is the escape hatch when YAML is not
 
 ## Dependencies
 
-- current published `@rizom/brain` package contract
-- `docs/plans/external-plugin-api.md`
+- current published `@rizom/brain` package contract — `defineBrain` and preset spread targets need to be importable for `brain.ts` to be useful to external authors

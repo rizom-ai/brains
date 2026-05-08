@@ -294,7 +294,7 @@ The simplification is "the SSE channel emits only `final` events"; the rover-sid
 - `docs/plans/hosted-rovers.md` — rover provisioning and the rover-endpoint registry the gateway queries
 - `docs/plans/multi-user.md` — Discord identity linked into the user record (§1, §5)
 - `docs/plans/a2a-request-signing.md` — auth boundary for inter-rover (peer A2A) calls; separate from the internal forwarding auth in this plan
-- `docs/plans/agent-discovery.md` — outbound A2A allowlist semantics for `a2a_call`
+- `entities/agent-discovery` — outbound A2A allowlist semantics for `a2a_call`
 
 ## Done when
 

@@ -9,7 +9,7 @@ Brains follow a **model/instance** separation:
 
 The same brain model can power multiple instances (dev, staging, prod) with different `brain.yaml` + `.env` files.
 
-**Apps are not workspace members.** As of 2026-04, `apps/*` was removed from `package.json` workspaces. Each instance directory is still a small package-like boundary for local execution and deploy scaffolding, but it is consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots.
+**Apps are not workspace members.** `apps/*` was removed from `package.json` workspaces. Each instance directory is still a small package-like boundary for local execution and deploy scaffolding, but it is consumed at runtime by the `brain` CLI from `@rizom/brain`, which reads `brain.yaml` from the cwd, dynamically imports the brain model package it references, and boots. Deployable Rizom app instances (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, `yeehaa.io`) now live in standalone repos.
 
 ## Directory Structure
 
@@ -317,10 +317,10 @@ Only needed when you want a different curated capability set than `rover` / `ran
      "type": "module",
      "main": "src/index.ts",
      "peerDependencies": {
-       "@rizom/brain": "^0.2.0-alpha.47"
+       "@rizom/brain": "^0.2.0-alpha.54"
      },
      "devDependencies": {
-       "@rizom/brain": "^0.2.0-alpha.47"
+       "@rizom/brain": "^0.2.0-alpha.54"
      }
    }
    ```

@@ -2,8 +2,7 @@
 
 ## Status
 
-Draft. This plan narrows the publishing target before more package refactors.
-It complements the external plugin API work in [`external-plugin-api.md`](./external-plugin-api.md) and the generated public contract rules in [`public-plugin-contracts.md`](./public-plugin-contracts.md).
+Draft / near-term. The external authoring path is already alpha-usable through `@rizom/brain/*`; this plan narrows the publishing target before more official package refactors and broader external adoption. It builds on the now-landed external plugin API and the generated `@rizom/brain/*` public contract.
 
 ## Goal
 

@@ -2,7 +2,7 @@
 
 ## Status
 
-Planned. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
+Planned / near-term. The external plugin API is already alpha-usable, but this type reconciliation should land before the public authoring contract hardens further. Discovered during a `/simplify` review of the recent plugins-package refactor (commits `e32e2c1b7`, `a0ddb0f48`, `42da4d4c4`). Eleven `(context: never) → as PublicContext` casts in `shell/plugins/src/public/{entity,service,interface,message-interface}-plugin.ts` are not stylistic noise — they paper over real shape divergence between public and runtime entity-service interfaces.
 
 ## Current state
 
@@ -68,12 +68,12 @@ After the fix, `grep -rn "as never\|context: never\|as EntityPluginContext\|as S
 - `ListOptions`, `SearchOptions`, `SearchResult` join `@rizom/brain/entities`.
 - `IEntityService`, `IEntitiesNamespace` are unchanged from external-author perspective (same names, accurate shapes).
 
-### 5. Plan amendment
+### 5. Public-surface notes
 
-`docs/plans/external-plugin-api.md` §1 frozen contract table needs updating:
+The published `@rizom/brain/*` contract needs the following adjustments:
 
-- `@rizom/brain/plugins` row: `IEntityService` shape now uses `<T extends BaseEntity>` and the corrected `search` return type.
-- `@rizom/brain/entities` row: gains `ListOptions`, `SearchOptions`, `SearchResult` as public types.
+- `@rizom/brain/plugins`: `IEntityService` shape uses `<T extends BaseEntity>` and the corrected `search` return type.
+- `@rizom/brain/entities`: gains `ListOptions`, `SearchOptions`, `SearchResult` as public types.
 
 Record the breaking-change note: external plugins currently typed against `<T = unknown>` for `getEntity` / `listEntities` may need a touch-up. Acceptable during alpha; flag in a changeset.
 
@@ -86,7 +86,7 @@ Record the breaking-change note: external plugins currently typed against `<T = 
 
 ## Dependencies
 
-- `docs/plans/external-plugin-api.md` — the §1 frozen contract is the authoritative source of public-surface decisions; this plan amends it.
+- The published `@rizom/brain/*` public surface — this plan tightens the entity types it exposes.
 - `@brains/entity-service` exports — the runtime types must be reachable from `@brains/plugins/public/types.ts` without pulling in implementation classes.
 - The package-local fixture in `packages/brain-cli/test/fixtures/external-plugin/` — the regression net.
 
@@ -96,7 +96,7 @@ Record the breaking-change note: external plugins currently typed against `<T = 
 2. `grep` for `as never`, `context: never`, and `as {Entity,Service,Interface}PluginContext` in `shell/plugins/src/public/` returns no matches.
 3. `bun turbo run typecheck` passes for all packages.
 4. `bun test` passes `shell/plugins/test/`, `shell/entity-service/test/`, `packages/brain-cli/test/`, and the public-API typecheck suite.
-5. `docs/plans/external-plugin-api.md` §1 reflects the new public-type contract for `@rizom/brain/plugins` and `@rizom/brain/entities`.
+5. The published `@rizom/brain/plugins` and `@rizom/brain/entities` declarations reflect the new public-type contract.
 6. A changeset notes the alpha-phase breaking change for external authors who relied on `<T = unknown>`.
 
 ## Heads up

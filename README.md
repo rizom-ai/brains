@@ -81,26 +81,27 @@ A **typed entity** is markdown plus schema-backed frontmatter, indexed for searc
 ## Repository layout
 
 ```text
-shell/                core runtime, orchestration, services, plugin lifecycle
-shared/               shared utilities, themes, UI, test helpers
-entities/             built-in entity plugins
-plugins/              built-in service plugins
-interfaces/           built-in interface plugins
-brains/               brain model packages
-sites/                structural site packages
-packages/brain-cli/   published CLI and runtime package: @rizom/brain
-deploy/               deployment recipes and templates
-docs/                 architecture, theming, roadmap, plans
-apps/                 example/runtime instance directories, not workspace packages
+shell/                 core runtime, orchestration, services, plugin lifecycle
+shared/                shared utilities, themes, UI, site engine, test helpers
+entities/              built-in entity plugins
+plugins/               built-in service plugins
+interfaces/            built-in interface plugins
+brains/                brain model packages
+sites/                 structural site packages
+packages/brain-cli/    published CLI and runtime package: @rizom/brain
+packages/brains-ops/   published operator CLI for fleets: @rizom/ops
+deploy/                deployment recipes and templates
+docs/                  architecture, theming, roadmap, plans
+apps/                  local runtime instance directories, not workspace packages
 ```
 
 ## Shipped models
 
 - `rover` — public reference model for personal knowledge and publishing
-- `ranger` — internal-use model for the rizom.ai app
-- `relay` — internal-use model for the rizom-foundation app
+- `ranger` — internal-use model powering the extracted `rizom.ai` app
+- `relay` — internal-use model powering the extracted `rizom-foundation` app (POC: preset split, brain prompts, eval scaffold)
 
-Use **`rover`** as the external reference model.
+Use **`rover`** as the external reference model. Deployable Rizom apps (`rizom.ai`, `rizom.foundation`, `rizom.work`, `mylittlephoney`, `yeehaa.io`) live in standalone repos and consume this monorepo's published runtime packages.
 
 ## Documentation
 

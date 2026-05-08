@@ -375,7 +375,7 @@
   <body>
     <div class="header">
       <h1>Brains Project Roadmap</h1>
-      <p>Last updated: 2026-04-29 — Click any item for details</p>
+      <p>Last updated: 2026-05-08 — Click any item for details</p>
     </div>
 
     <div class="legend">
@@ -660,10 +660,35 @@
         {
           id: "pluginapi",
           name: "External Plugin API",
+          status: "completed",
+          desc: "@rizom/brain exposes curated /plugins, /entities, /services, /interfaces, and /templates authoring subpaths. brain.yaml loads installed plugin packages via keyed plugins.<id>.package entries with env-var interpolation. Alpha compatibility governed by peerDependencies. Reference plugins rizom-ai/brain-plugin-hello (service/lifecycle) and rizom-ai/brain-plugin-recipes (durable entity) prove the path end-to-end.",
+          deps: ["shellinitcoord"],
+          date: "2026-04",
+        },
+        {
+          id: "relaypocdelivery",
+          name: "Relay POC Delivery",
           status: "short-term",
           step: 1,
-          desc: "The abstraction audit and shell lifecycle foundation are complete enough to proceed. onRegister/onReady semantics are now real: onRegister is for capability registration, onReady runs after identity/profile and startup coordination, and background daemons/jobs start afterward. Remaining work: public subpath exports (@rizom/brain/plugins, /entities, /services, /interfaces, /utils, /templates), brain.yaml plugins: schema with env-var interpolation, plugin API version constant, and one reference external plugin proving the path end-to-end.",
-          deps: ["shellinitcoord"],
+          desc: "Active product track. brains/relay is mid-POC: preset split, brain prompts, eval scaffold, and SWOT eval coverage have landed; remaining scope is shipping a credible team-brain demo on rizom.foundation with preset: core (private team brain) and validating the capture → synthesize → share → coordinate loop end-to-end before any preset-tier expansion.",
+          deps: ["relaypoc"],
+          blocks: [],
+        },
+        {
+          id: "custombrain",
+          name: "Custom Brain Definitions (brain.ts)",
+          status: "long-term",
+          desc: "Long-term escape hatch for instances that need composition beyond what brain.yaml supports — preset spread, inline plugins, custom plugin logic, and conditional capabilities. The underlying defineBrain() model API exists, but instance-local brain: ./brain.ts boot is not wired; defer until there is a concrete need and the public model/plugin API is stable enough.",
+          deps: ["pluginapi"],
+          blocks: [],
+        },
+        {
+          id: "publicsurfaceunify",
+          name: "Public-surface Tightening",
+          status: "short-term",
+          step: 2,
+          desc: "The external plugin API is alpha-ready and usable today, but not frozen. Near-term follow-ups: fix IEntityService generic shape and search return type on @rizom/brain/entities, narrow what an official publishable plugin/entity may depend on, and ship the varlock/Bitwarden upstream follow-ups so the now-shipping Bitwarden flow stays clean. Land before more external authors lock the alpha contract harder.",
+          deps: ["pluginapi"],
           blocks: [],
         },
         {
@@ -711,7 +736,7 @@
         {
           id: "atproto12",
           name: "AT Protocol Phases 1-2",
-          status: "short-term",
+          status: "long-term",
           desc: "Plugin skeleton, DID identity (did:web), outbound publishing to PDS, Bluesky cross-posting. Gives brains a Bluesky presence.",
           blocks: ["atproto36"],
         },
@@ -778,6 +803,69 @@
           name: "Rizom Site Variant Split",
           status: "completed",
           desc: "rizom.ai, rizom.foundation, and rizom.work each own their final route composition and section templates from app-local `src/site.ts`. Shared Rizom UI, runtime, and ecosystem code now live in `sites/rizom`, while `shared/theme-rizom` stays separate with additive app-local theme overrides where needed.",
+          date: "2026-04",
+        },
+        {
+          id: "rizomecosystem",
+          name: "Rizom Ecosystem Section",
+          status: "completed",
+          desc: "Entity-backed entities/rizom-ecosystem package powers the shared ecosystem section across Rizom site variants (rover, professional, default), with theme-aware headline contrast and shared @rizom/ui wordmark/header alignment.",
+          date: "2026-05",
+        },
+        {
+          id: "professionalsite",
+          name: "Professional-site Rizom Alignment",
+          status: "completed",
+          desc: "Editorial homepage refresh, tightened typography, shared Rizom-aligned section composition, and a Wordmark slot generalized in @rizom/ui.",
+          date: "2026-04",
+        },
+        {
+          id: "relaypoc",
+          name: "Relay POC Scaffolding",
+          status: "completed",
+          desc: "brains/relay preset split, brain prompts, eval scaffold, and SWOT eval coverage land alongside the assessment package split.",
+          date: "2026-05",
+        },
+        {
+          id: "newslettercomposite",
+          name: "Newsletter Composite Plugin",
+          status: "completed",
+          desc: "plugins/newsletter bundles the newsletter entity with the buttondown service plugin so app authors can wire newsletter publishing in one entry.",
+          date: "2026-04",
+        },
+        {
+          id: "bitwardensecrets",
+          name: "Bitwarden-backed Secrets",
+          status: "completed",
+          desc: "brain secrets:push pushes local env-backed secrets to a conventionally named Bitwarden Secrets Manager project and rewrites .env.schema with pinned Varlock references. Generated deploy workflows run the current Varlock CLI with only BWS_ACCESS_TOKEN in GitHub Actions secrets.",
+          date: "2026-04",
+        },
+        {
+          id: "startupcheck",
+          name: "External Plugin Smoke Testing",
+          status: "completed",
+          desc: "brain start --startup-check loads configured plugins, runs onRegister and onReady, then exits without starting daemons or job workers and without requiring a real AI API key. Intended for external plugin CI smoke tests.",
+          date: "2026-04",
+        },
+        {
+          id: "productionvalidation",
+          name: "Production Deploy Validation",
+          status: "completed",
+          desc: "rizom.ai, mylittlephoney.com, and yeehaa.io are live on their intended production paths. The extracted deployments use the shared HTTP-host shape (app_port: 8080, no in-container Caddyfile, direct brain start boot).",
+          date: "2026-04",
+        },
+        {
+          id: "monorepocleanup",
+          name: "Monorepo Cleanup",
+          status: "completed",
+          desc: "Transitional apps/packages removed; rizom.ai, rizom.foundation, rizom.work, mylittlephoney, and yeehaa.io extracted to standalone repos. Shared site/theme/model packages stay here and are consumed via published runtime packages.",
+          date: "2026-04",
+        },
+        {
+          id: "agentdirtighten",
+          name: "Agent Directory Tightening",
+          status: "completed",
+          desc: "Outbound A2A calls now resolve only from saved local directory entries; explicit user add/save flows approve that saved agent, discovery/review flows can remain discovered, invalid agent-contact requests no longer fall back to wishlist creation, and explicit-save generation jobs are idempotent/coalesced.",
           date: "2026-04",
         },
         {
@@ -1009,14 +1097,22 @@
     <div class="dep-group">
       <div class="dep-group-title">Near-term priorities</div>
       <div class="dep-row">
-        <span class="dep-node s-done" onclick="selectItem('rizomsites')">rizom sites ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('documentation3')">docs phase 3 ✓</span>
-        <span class="dep-plus">+</span>
-        <span class="dep-node s-done" onclick="selectItem('shellinitcoord')">shell init ✓</span>
+        <span class="dep-node s-done" onclick="selectItem('relaypoc')">relay scaffolding ✓</span>
         <span class="dep-arrow">→</span>
-        <span class="dep-node s-next" onclick="selectItem('pluginapi')">external plugin api</span>
-        <span class="dep-label">priority 1 — remaining near-term gate now that site, docs, and shell lifecycle work are complete</span>
+        <span class="dep-node s-next" onclick="selectItem('relaypocdelivery')">relay POC delivery</span>
+        <span class="dep-label">priority 1 — ship a credible team-brain demo on rizom.foundation before tier expansion</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-done" onclick="selectItem('pluginapi')">external plugin api ✓</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-next" onclick="selectItem('publicsurfaceunify')">public-surface tightening</span>
+        <span class="dep-label">priority 2 — alpha-contract follow-ups before more external authors adopt</span>
+      </div>
+      <div class="dep-row">
+        <span class="dep-node s-done" onclick="selectItem('pluginapi')">external plugin api ✓</span>
+        <span class="dep-arrow">→</span>
+        <span class="dep-node s-far" onclick="selectItem('custombrain')">custom brain definitions</span>
+        <span class="dep-label">long-term — brain.ts mode deferred until there is concrete demand</span>
       </div>
       <div class="dep-row">
         <span class="dep-node s-far" onclick="selectItem('publicrelease')">public repo cleanup</span>

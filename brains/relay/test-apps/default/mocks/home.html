@@ -1,0 +1,1482 @@
+<!doctype html>
+<html lang="en" data-theme-profile="studio">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Relay homepage — mock directions</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,520;9..144,600&family=Barlow:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ----- Rizom theme tokens (subset, lifted from theme-rizom/src/theme.css) ----- */
+      :root {
+        --layout-max-width: 72rem;
+
+        --palette-bg-deep: #0d0a1a;
+        --palette-bg-card: #1a0a3e;
+        --palette-bg-light: #f2eee8;
+        --palette-amber-dark: #c45a08;
+        --palette-amber: #e87722;
+        --palette-amber-light: #ffa366;
+        --palette-amber-bright: #f3c14f;
+        --palette-purple: #6b2fa0;
+        --palette-purple-light: #8c82c8;
+        --palette-text-light: #1a1625;
+        --palette-white: #ffffff;
+
+        --color-bg: var(--palette-bg-deep);
+        --color-bg-subtle: #0e0b1e;
+        --color-bg-card: var(--palette-bg-card);
+        --color-bg-muted: rgb(255 255 255 / 0.04);
+
+        --color-text: var(--palette-white);
+        --color-text-muted: rgb(255 255 255 / 0.6);
+        --color-text-light: rgb(255 255 255 / 0.4);
+
+        --color-accent: var(--palette-amber);
+        --color-accent-dark: var(--palette-amber-dark);
+        --color-accent-bright: var(--palette-amber-bright);
+        --color-secondary: var(--palette-purple-light);
+
+        --color-card-relay-bg: linear-gradient(
+          135deg,
+          rgb(22 16 42 / 0.85) 0%,
+          rgb(18 14 30 / 0.85) 100%
+        );
+        --color-card-relay-border: rgb(140 130 200 / 0.2);
+        --color-card-divider: rgb(255 255 255 / 0.1);
+        --color-card-panel-bg: linear-gradient(
+          135deg,
+          rgb(107 47 160 / 0.06) 0%,
+          rgb(232 119 34 / 0.03) 100%
+        );
+        --color-card-panel-border: rgb(255 255 255 / 0.06);
+        --color-glow-relay: rgb(107 47 160 / 0.25);
+        --color-glow-cta: rgb(232 119 34 / 0.3);
+
+        --color-border: rgb(255 255 255 / 0.1);
+        --color-border-light: rgb(255 255 255 / 0.04);
+
+        --font-display: "Fraunces", Georgia, serif;
+        --font-body: "Barlow", system-ui, sans-serif;
+        --font-label: "JetBrains Mono", ui-monospace, monospace;
+        --font-nav: "Barlow", system-ui, sans-serif;
+
+        --text-display-lg: clamp(40px, 5.5vw, 72px);
+        --text-display-md: clamp(32px, 4vw, 52px);
+        --text-display-sm: clamp(26px, 3vw, 36px);
+        --text-display-2xl: clamp(72px, 8vw, 120px);
+
+        --spacing-section: clamp(88px, 12vw, 120px);
+
+        --bg-noise: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='256' height='256' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      html {
+        background-color: var(--color-bg);
+        background-image: var(--bg-noise);
+      }
+      body {
+        color: var(--color-text);
+        font-family: var(--font-body);
+        line-height: 1.6;
+      }
+
+      /* ----- Mock harness (compare bar) ----- */
+      .compare-bar {
+        position: sticky;
+        top: 0;
+        z-index: 200;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        padding: 12px 24px;
+        background: rgb(13 10 26 / 0.92);
+        backdrop-filter: blur(12px);
+        border-bottom: 1px solid var(--color-border);
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-text-muted);
+      }
+      .compare-bar strong {
+        color: var(--color-text);
+        font-family: var(--font-label);
+        margin-right: 16px;
+      }
+      .compare-bar a {
+        padding: 6px 12px;
+        border: 1px solid var(--color-border);
+        border-radius: 999px;
+        color: var(--color-text-muted);
+        text-decoration: none;
+        transition: all 0.18s ease;
+      }
+      .compare-bar a:hover {
+        color: var(--color-accent);
+        border-color: var(--color-accent);
+      }
+      .compare-bar .spacer {
+        flex: 1;
+      }
+
+      /* ----- Shared section primitives ----- */
+      .container {
+        max-width: var(--layout-max-width);
+        margin: 0 auto;
+        padding: 0 24px;
+      }
+      @media (min-width: 768px) {
+        .container {
+          padding: 0 40px;
+        }
+      }
+      @media (min-width: 1280px) {
+        .container {
+          padding: 0 80px;
+        }
+      }
+
+      .direction-marker {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 32px 24px 20px;
+        max-width: var(--layout-max-width);
+        margin: 0 auto;
+      }
+      .direction-marker .tag {
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+      }
+      .direction-marker .name {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 520;
+        color: var(--color-text);
+      }
+      .direction-marker .blurb {
+        font-family: var(--font-body);
+        color: var(--color-text-muted);
+        font-size: 14px;
+        flex: 1;
+      }
+
+      .nav-stub {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 18px 0;
+        border-bottom: 1px solid var(--color-border-light);
+        margin-bottom: 24px;
+      }
+      .nav-stub .brand {
+        font-family: var(--font-nav);
+        font-weight: 700;
+        font-size: 20px;
+      }
+      .nav-stub .brand .dot {
+        color: var(--color-accent);
+      }
+      .nav-stub .brand .suffix {
+        color: var(--color-text-muted);
+        font-weight: 700;
+      }
+      .nav-stub .links {
+        display: flex;
+        gap: 28px;
+        align-items: center;
+        font-size: 15px;
+        color: var(--color-text-muted);
+      }
+      .nav-stub .links a {
+        color: inherit;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .nav-stub .links a:hover {
+        color: var(--color-text);
+      }
+      .nav-stub .cta {
+        padding: 8px 16px;
+        border: 1px solid var(--color-text);
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text);
+        text-decoration: none;
+      }
+
+      /* ----- Buttons (mirrors Button.tsx primary-strong / secondary) ----- */
+      .btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 22px 48px;
+        border-radius: 10px;
+        font-family: var(--font-body);
+        font-size: 15px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+        cursor: pointer;
+        border: 0;
+      }
+      .btn-primary {
+        background: var(--color-accent);
+        color: #fff;
+        box-shadow: 0 20px 60px -15px rgb(232 119 34 / 0.4);
+      }
+      .btn-primary:hover {
+        background: var(--color-accent-dark);
+        transform: translateY(-3px) scale(1.02);
+        box-shadow:
+          0 0 0 8px var(--color-glow-cta),
+          0 30px 80px -15px rgb(232 119 34 / 0.4);
+      }
+      .btn-secondary {
+        background: rgb(255 255 255 / 0.04);
+        color: var(--color-text);
+        border: 1px solid rgb(255 255 255 / 0.15);
+      }
+      .btn-secondary:hover {
+        background: rgb(255 255 255 / 0.08);
+        border-color: rgb(255 255 255 / 0.4);
+      }
+      @media (max-width: 640px) {
+        .btn {
+          padding: 16px 24px;
+          width: 100%;
+        }
+      }
+
+      .eyebrow {
+        font-family: var(--font-label);
+        font-size: 12px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        margin: 0;
+      }
+      .eyebrow.muted {
+        color: var(--color-secondary);
+      }
+
+      h1.display,
+      h2.display,
+      h3.display {
+        font-family: var(--font-display);
+        font-weight: 520;
+        margin: 0;
+        color: var(--color-text);
+      }
+      h1.display {
+        font-size: var(--text-display-lg);
+        line-height: 1.1;
+        letter-spacing: -1px;
+      }
+      h2.display {
+        font-size: var(--text-display-md);
+        line-height: 1.1;
+        letter-spacing: -1px;
+      }
+      h3.display {
+        font-size: var(--text-display-sm);
+        line-height: 1.2;
+        letter-spacing: -0.5px;
+      }
+
+      p.lede {
+        font-family: var(--font-body);
+        font-size: 18px;
+        line-height: 1.7;
+        color: var(--color-text-muted);
+      }
+      p.body {
+        font-family: var(--font-body);
+        font-size: 16px;
+        line-height: 1.8;
+        color: var(--color-text-muted);
+      }
+
+      .section {
+        position: relative;
+        padding: var(--spacing-section) 0;
+      }
+
+      /* ============================================
+         DIRECTION A — "Living signals" dashboard hero
+         ============================================ */
+      .dirA {
+        border-top: 1px dashed var(--color-border-light);
+      }
+      .dirA .hero {
+        padding-top: 96px;
+        padding-bottom: 80px;
+      }
+      .dirA .hero-grid {
+        display: grid;
+        gap: 56px;
+        grid-template-columns: minmax(0, 1fr);
+        align-items: end;
+      }
+      @media (min-width: 1024px) {
+        .dirA .hero-grid {
+          grid-template-columns: minmax(0, 1.05fr) minmax(420px, 0.95fr);
+        }
+      }
+      .dirA h1.display {
+        margin-top: 28px;
+        max-width: 16ch;
+      }
+      .dirA .hero p.lede {
+        margin-top: 28px;
+        max-width: 56ch;
+      }
+      .dirA .cta-row {
+        margin-top: 40px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .live-panel {
+        position: relative;
+        border-radius: 28px;
+        background: var(--color-card-relay-bg);
+        border: 1px solid var(--color-card-relay-border);
+        box-shadow: 0 24px 90px var(--color-glow-relay);
+        backdrop-filter: blur(8px);
+        padding: 22px;
+        overflow: hidden;
+      }
+      .live-panel::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at top right,
+          rgb(140 130 200 / 0.18),
+          transparent 60%
+        );
+        pointer-events: none;
+      }
+      .live-panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        position: relative;
+      }
+      .live-panel-head .label {
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.24em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+      }
+      .live-panel-head .pulse {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+      }
+      .live-panel-head .pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--color-accent);
+        box-shadow: 0 0 18px var(--color-accent);
+        animation: pulse 1.6s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.55;
+          transform: scale(1.25);
+        }
+      }
+      .stream-row {
+        display: grid;
+        grid-template-columns: 56px 1fr auto;
+        gap: 14px;
+        align-items: start;
+        padding: 14px 4px;
+        border-top: 1px solid var(--color-card-divider);
+        position: relative;
+      }
+      .stream-row:first-of-type {
+        border-top: 0;
+      }
+      .stream-row .ts {
+        font-family: var(--font-label);
+        font-size: 11px;
+        color: var(--color-text-light);
+        padding-top: 2px;
+      }
+      .stream-row .body-col {
+        min-width: 0;
+      }
+      .stream-row .source {
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-secondary);
+      }
+      .stream-row .text {
+        margin-top: 4px;
+        font-family: var(--font-body);
+        font-size: 14px;
+        color: var(--color-text);
+        line-height: 1.5;
+      }
+      .stream-row .kind {
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border);
+        color: var(--color-text-muted);
+        white-space: nowrap;
+      }
+      .stream-row .kind.synth {
+        color: var(--color-accent);
+        border-color: rgb(232 119 34 / 0.35);
+      }
+      .stream-row .kind.share {
+        color: var(--color-secondary);
+        border-color: rgb(140 130 200 / 0.4);
+      }
+
+      /* Operating-loop horizontal rail */
+      .dirA .loop {
+        background: linear-gradient(
+          180deg,
+          transparent,
+          rgb(255 255 255 / 0.02) 30%,
+          rgb(255 255 255 / 0.02) 70%,
+          transparent
+        );
+      }
+      .dirA .loop-head {
+        max-width: 720px;
+      }
+      .loop-rail {
+        margin-top: 56px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        position: relative;
+      }
+      .loop-step {
+        background: var(--color-card-panel-bg);
+        border: 1px solid var(--color-card-panel-border);
+        border-radius: 22px;
+        padding: 24px;
+        position: relative;
+        min-height: 280px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+      .loop-step .phase {
+        font-family: var(--font-display);
+        font-style: italic;
+        font-size: 56px;
+        line-height: 1;
+        color: var(--color-accent);
+        opacity: 0.7;
+      }
+      .loop-step .step-label {
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-secondary);
+        margin-top: 24px;
+      }
+      .loop-step h4 {
+        font-family: var(--font-display);
+        font-weight: 520;
+        font-size: 22px;
+        line-height: 1.25;
+        margin: 8px 0 10px;
+      }
+      .loop-step p {
+        font-family: var(--font-body);
+        font-size: 14px;
+        line-height: 1.7;
+        color: var(--color-text-muted);
+        margin: 0;
+      }
+      .loop-step .arrow {
+        position: absolute;
+        right: -22px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--color-accent);
+        font-family: var(--font-label);
+        opacity: 0.6;
+        display: none;
+      }
+      @media (min-width: 768px) {
+        .loop-step:not(:last-child) .arrow {
+          display: block;
+        }
+      }
+
+      /* ============================================
+         DIRECTION B — "Editorial brief"
+         ============================================ */
+      .dirB {
+        border-top: 1px dashed var(--color-border-light);
+      }
+      .dirB .hero {
+        padding-top: 120px;
+        padding-bottom: 72px;
+        position: relative;
+        overflow: hidden;
+      }
+      .dirB .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(
+          ellipse at 10% 20%,
+          rgb(140 130 200 / 0.14),
+          transparent 55%
+        ), radial-gradient(
+          ellipse at 90% 80%,
+          rgb(232 119 34 / 0.08),
+          transparent 55%
+        );
+        pointer-events: none;
+      }
+      .dirB .editorial-meta {
+        display: flex;
+        gap: 28px;
+        align-items: baseline;
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+      }
+      .dirB .editorial-meta .issue {
+        color: var(--color-accent);
+      }
+      .dirB h1.display {
+        font-size: clamp(48px, 6.5vw, 96px);
+        line-height: 1.02;
+        letter-spacing: -1.5px;
+        margin-top: 24px;
+        max-width: 18ch;
+        font-weight: 520;
+      }
+      .dirB h1.display em {
+        font-style: italic;
+        color: var(--color-accent);
+        font-variation-settings: "opsz" 144;
+      }
+      .dirB .byline {
+        margin-top: 36px;
+        max-width: 72ch;
+        font-family: var(--font-body);
+        font-size: 19px;
+        line-height: 1.75;
+        color: var(--color-text-muted);
+      }
+      .dirB .byline em {
+        font-family: var(--font-display);
+        color: var(--color-text);
+      }
+      .dirB .stat-floor {
+        margin-top: 64px;
+        display: grid;
+        gap: 0;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        border-top: 1px solid var(--color-border-light);
+        padding-top: 28px;
+      }
+      .stat {
+        padding: 8px 24px 8px 0;
+        border-right: 1px solid var(--color-border-light);
+      }
+      .stat:last-child {
+        border-right: 0;
+      }
+      .stat .num {
+        font-family: var(--font-display);
+        font-size: 44px;
+        line-height: 1;
+        font-weight: 520;
+        color: var(--color-text);
+      }
+      .stat .num .delta {
+        font-family: var(--font-label);
+        font-size: 12px;
+        color: var(--color-accent);
+        margin-left: 6px;
+        letter-spacing: 0.05em;
+      }
+      .stat .label {
+        margin-top: 10px;
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+      }
+
+      /* Recent synthesis feed */
+      .dirB .feed {
+        padding-top: 64px;
+      }
+      .feed-head {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .feed-head .left h2 {
+        margin-top: 12px;
+      }
+      .feed-head a.see-all {
+        font-family: var(--font-label);
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        text-decoration: none;
+      }
+      .feed-list {
+        margin-top: 40px;
+        display: flex;
+        flex-direction: column;
+      }
+      .feed-item {
+        display: grid;
+        grid-template-columns: 140px minmax(0, 1fr) auto;
+        gap: 28px;
+        padding: 28px 0;
+        border-top: 1px solid var(--color-border-light);
+        align-items: start;
+      }
+      .feed-item:first-child {
+        border-top: 1px solid var(--color-border);
+      }
+      .feed-item .when {
+        font-family: var(--font-label);
+        font-size: 12px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+      }
+      .feed-item .when .date {
+        display: block;
+        margin-top: 6px;
+        font-size: 11px;
+        color: var(--color-text-light);
+        opacity: 0.7;
+      }
+      .feed-item h3 {
+        font-family: var(--font-display);
+        font-weight: 520;
+        font-size: 26px;
+        line-height: 1.2;
+        margin: 0;
+        letter-spacing: -0.4px;
+      }
+      .feed-item h3 a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .feed-item h3 a:hover {
+        color: var(--color-accent);
+      }
+      .feed-item p {
+        font-family: var(--font-body);
+        font-size: 15px;
+        color: var(--color-text-muted);
+        line-height: 1.7;
+        margin: 8px 0 0;
+        max-width: 64ch;
+      }
+      .feed-item .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-top: 14px;
+      }
+      .chip {
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgb(140 130 200 / 0.08);
+        color: var(--color-secondary);
+        border: 1px solid rgb(140 130 200 / 0.18);
+      }
+      .feed-item .source-badge {
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+        white-space: nowrap;
+        text-align: right;
+      }
+      @media (max-width: 768px) {
+        .feed-item {
+          grid-template-columns: 1fr;
+          gap: 12px;
+        }
+        .feed-item .source-badge {
+          text-align: left;
+        }
+      }
+
+      /* ============================================
+         DIRECTION C — "System diagram"
+         ============================================ */
+      .dirC {
+        border-top: 1px dashed var(--color-border-light);
+      }
+      .dirC .hero {
+        padding-top: 80px;
+        padding-bottom: 72px;
+        text-align: center;
+      }
+      .dirC h1.display {
+        max-width: 22ch;
+        margin: 28px auto 0;
+        text-align: center;
+      }
+      .dirC .lede {
+        max-width: 64ch;
+        margin: 28px auto 0;
+        text-align: center;
+      }
+      .dirC .cta-row {
+        margin-top: 40px;
+        justify-content: center;
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .diagram {
+        margin: 80px auto 0;
+        max-width: 1020px;
+        position: relative;
+        padding: 56px 24px;
+        border-radius: 32px;
+        border: 1px solid var(--color-border-light);
+        background: linear-gradient(
+          180deg,
+          rgb(255 255 255 / 0.02),
+          transparent
+        );
+        background-image:
+          radial-gradient(
+            circle at 1px 1px,
+            rgb(255 255 255 / 0.05) 1px,
+            transparent 0
+          );
+        background-size: 24px 24px;
+      }
+      .diagram-grid {
+        display: grid;
+        gap: 32px;
+        grid-template-columns: 1fr 1.4fr 1fr;
+        align-items: center;
+      }
+      @media (max-width: 900px) {
+        .diagram-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+      }
+      .nodes {
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .node {
+        position: relative;
+        background: var(--color-card-panel-bg);
+        border: 1px solid var(--color-card-panel-border);
+        border-radius: 16px;
+        padding: 16px 18px;
+        backdrop-filter: blur(6px);
+      }
+      .node .node-label {
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-secondary);
+      }
+      .node .node-title {
+        margin-top: 6px;
+        font-family: var(--font-display);
+        font-size: 18px;
+        font-weight: 520;
+        color: var(--color-text);
+      }
+      .node .node-detail {
+        margin-top: 4px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--color-text-muted);
+        line-height: 1.5;
+      }
+      .node.input {
+        border-left: 2px solid var(--color-accent);
+      }
+      .node.output {
+        border-right: 2px solid var(--color-secondary);
+      }
+      .core {
+        position: relative;
+        aspect-ratio: 1;
+        max-width: 320px;
+        width: 100%;
+        margin: 0 auto;
+        border-radius: 50%;
+        background:
+          radial-gradient(
+            circle at center,
+            rgb(232 119 34 / 0.25),
+            transparent 65%
+          );
+        display: grid;
+        place-items: center;
+      }
+      .core::before,
+      .core::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 50%;
+        border: 1px dashed rgb(232 119 34 / 0.3);
+      }
+      .core::after {
+        inset: 24px;
+        border-color: rgb(140 130 200 / 0.35);
+        animation: spin 28s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      .core .core-inner {
+        position: relative;
+        text-align: center;
+        z-index: 1;
+        padding: 24px;
+      }
+      .core .core-inner .core-eyebrow {
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.28em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+      }
+      .core .core-inner .core-name {
+        margin-top: 8px;
+        font-family: var(--font-display);
+        font-size: 36px;
+        font-weight: 520;
+        line-height: 1;
+        color: var(--color-text);
+      }
+      .core .core-inner .core-sub {
+        margin-top: 8px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--color-text-muted);
+      }
+      .core .ring-stat {
+        position: absolute;
+        font-family: var(--font-label);
+        font-size: 10px;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+        background: var(--palette-bg-deep);
+        padding: 4px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--color-border);
+        white-space: nowrap;
+      }
+      .core .ring-stat.t {
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .core .ring-stat.r {
+        top: 50%;
+        right: -28px;
+        transform: translateY(-50%);
+      }
+      .core .ring-stat.b {
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+      .core .ring-stat.l {
+        top: 50%;
+        left: -28px;
+        transform: translateY(-50%);
+      }
+
+      .legend {
+        margin-top: 56px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+        padding-top: 32px;
+        border-top: 1px solid var(--color-border-light);
+      }
+      .legend-item .swatch {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 10px;
+        vertical-align: middle;
+      }
+      .legend-item .swatch.cap {
+        background: var(--color-accent);
+      }
+      .legend-item .swatch.syn {
+        background: var(--color-secondary);
+      }
+      .legend-item .swatch.share {
+        background: var(--palette-amber-light);
+      }
+      .legend-item .legend-title {
+        font-family: var(--font-display);
+        font-size: 16px;
+        font-weight: 520;
+        color: var(--color-text);
+      }
+      .legend-item .legend-text {
+        margin-top: 6px;
+        font-family: var(--font-body);
+        font-size: 13px;
+        color: var(--color-text-muted);
+        line-height: 1.6;
+      }
+
+      footer.mock-foot {
+        padding: 64px 24px 96px;
+        text-align: center;
+        font-family: var(--font-label);
+        font-size: 11px;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-text-light);
+      }
+      footer.mock-foot a {
+        color: var(--color-accent);
+        text-decoration: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="compare-bar">
+      <strong>Relay home — mock</strong>
+      <a href="#dirA">A · Living signals</a>
+      <a href="#dirB">B · Editorial brief</a>
+      <a href="#dirC">C · System diagram</a>
+      <span class="spacer"></span>
+      <span>studio · dark</span>
+    </div>
+
+    <!-- ============================================================
+         DIRECTION A — Living signals
+         ============================================================ -->
+    <section id="dirA" class="dirA">
+      <div class="direction-marker">
+        <span class="tag">Direction A</span>
+        <span class="name">Living signals</span>
+        <span class="blurb">
+          The brain is alive — show it. Hero pairs a clear positioning line
+          with a real-feeling stream of recent capture → synthesis → share
+          events, then reframes the loop as a horizontal rail.
+        </span>
+      </div>
+
+      <div class="container">
+        <nav class="nav-stub">
+          <div class="brand">
+            relay<span class="dot">.</span><span class="suffix">brain</span>
+          </div>
+          <div class="links">
+            <a href="#">About</a>
+            <a href="#">Ecosystem</a>
+            <a href="#" class="cta">Start here</a>
+          </div>
+        </nav>
+      </div>
+
+      <div class="container hero">
+        <div class="hero-grid">
+          <div>
+            <p class="eyebrow">A team brain, in public</p>
+            <h1 class="display">
+              Relay turns shared work into a living knowledge surface.
+            </h1>
+            <p class="lede">
+              Capture decisions, links, and field notes where collaboration
+              already happens. Relay synthesizes them into durable team memory
+              — and exposes a small public surface your team can keep current
+              without writing a website.
+            </p>
+            <div class="cta-row">
+              <a href="#" class="btn btn-primary">See the live loop</a>
+              <a href="#" class="btn btn-secondary">Read the model</a>
+            </div>
+          </div>
+
+          <aside class="live-panel">
+            <header class="live-panel-head">
+              <span class="label">Live relay · last 6 hrs</span>
+              <span class="pulse">
+                <span class="pulse-dot"></span> streaming
+              </span>
+            </header>
+
+            <div class="stream-row">
+              <span class="ts">14:02</span>
+              <div class="body-col">
+                <div class="source">Discord · #ops</div>
+                <p class="text">
+                  “Going to ship the migration on Friday — staging looks clean.”
+                </p>
+              </div>
+              <span class="kind">capture</span>
+            </div>
+
+            <div class="stream-row">
+              <span class="ts">13:48</span>
+              <div class="body-col">
+                <div class="source">Link · staging-deploy.md</div>
+                <p class="text">
+                  Migration runbook updated with rollback steps and the
+                  feature-flag gate.
+                </p>
+              </div>
+              <span class="kind">capture</span>
+            </div>
+
+            <div class="stream-row">
+              <span class="ts">13:30</span>
+              <div class="body-col">
+                <div class="source">Topic · Migrations</div>
+                <p class="text">
+                  Synthesized 4 notes into “Q2 migration sequencing” — links
+                  staging cutover to feature-flag rollout.
+                </p>
+              </div>
+              <span class="kind synth">synth</span>
+            </div>
+
+            <div class="stream-row">
+              <span class="ts">12:15</span>
+              <div class="body-col">
+                <div class="source">Public · /updates</div>
+                <p class="text">
+                  Weekly summary published — 3 decisions, 2 open questions,
+                  trimmed from 38 captures.
+                </p>
+              </div>
+              <span class="kind share">share</span>
+            </div>
+          </aside>
+        </div>
+      </div>
+
+      <div class="container loop">
+        <div class="section">
+          <div class="loop-head">
+            <p class="eyebrow muted">The relay loop</p>
+            <h2 class="display" style="margin-top: 16px">
+              Every homepage section is a phase of one operating rhythm.
+            </h2>
+            <p class="body" style="margin-top: 16px; max-width: 64ch">
+              Capture is cheap, synthesis is the work, sharing is the choice.
+              The default site is a window onto that loop — not a brochure on
+              top of it.
+            </p>
+          </div>
+
+          <div class="loop-rail">
+            <article class="loop-step">
+              <div>
+                <div class="phase">01</div>
+                <div class="step-label">Capture</div>
+                <h4>Notes, links, and chat enter as sourced entities.</h4>
+                <p>
+                  Lowest-friction capture wins. Discord, MCP, and the CLI all
+                  drop into the same shared surface.
+                </p>
+              </div>
+              <span class="arrow">→</span>
+            </article>
+
+            <article class="loop-step">
+              <div>
+                <div class="phase">02</div>
+                <div class="step-label">Synthesize</div>
+                <h4>Topics and summaries shape a map of what we know.</h4>
+                <p>
+                  Recurring threads cluster into topics; rolling summaries make
+                  the map readable to anyone who joins.
+                </p>
+              </div>
+              <span class="arrow">→</span>
+            </article>
+
+            <article class="loop-step">
+              <div>
+                <div class="phase">03</div>
+                <div class="step-label">Share</div>
+                <h4>A small public surface stays current on its own.</h4>
+                <p>
+                  Private memory keeps moving underneath; the public site only
+                  shows what survives synthesis.
+                </p>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         DIRECTION B — Editorial brief
+         ============================================================ -->
+    <section id="dirB" class="dirB">
+      <div class="direction-marker">
+        <span class="tag">Direction B</span>
+        <span class="name">Editorial brief</span>
+        <span class="blurb">
+          More magazine than landing page. A statement-of-intent hero, a
+          “today's brain” stat floor, and a recent-synthesis feed that proves
+          the system by showing what it produced this week.
+        </span>
+      </div>
+
+      <div class="container">
+        <nav class="nav-stub">
+          <div class="brand">
+            relay<span class="dot">.</span><span class="suffix">brain</span>
+          </div>
+          <div class="links">
+            <a href="#">About</a>
+            <a href="#">Ecosystem</a>
+            <a href="#" class="cta">Start here</a>
+          </div>
+        </nav>
+      </div>
+
+      <div class="container hero">
+        <div class="editorial-meta">
+          <span class="issue">Issue 14</span>
+          <span>Week of May 04, 2026</span>
+          <span>Edited by the team brain</span>
+        </div>
+        <h1 class="display">
+          A team brain that <em>remembers</em> together —
+          and answers in public.
+        </h1>
+        <p class="byline">
+          Most knowledge tools are <em>filing cabinets</em>: things you put
+          in. Relay is closer to a <em>working memory</em>: it watches what
+          you already do, organizes the trace, and keeps a small public face
+          that stays honest about what the team currently knows.
+        </p>
+
+        <div class="stat-floor">
+          <div class="stat">
+            <div class="num">142 <span class="delta">+ 18</span></div>
+            <div class="label">Captures this week</div>
+          </div>
+          <div class="stat">
+            <div class="num">12 <span class="delta">+ 2</span></div>
+            <div class="label">Active topics</div>
+          </div>
+          <div class="stat">
+            <div class="num">38 <span class="delta">+ 5</span></div>
+            <div class="label">Links indexed</div>
+          </div>
+          <div class="stat">
+            <div class="num">3</div>
+            <div class="label">Peer brains coordinated</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="container feed section" style="padding-top: 32px">
+        <div class="feed-head">
+          <div class="left">
+            <p class="eyebrow muted">Recent synthesis</p>
+            <h2 class="display">What the brain figured out this week.</h2>
+          </div>
+          <a href="#" class="see-all">All summaries →</a>
+        </div>
+
+        <div class="feed-list">
+          <article class="feed-item">
+            <div class="when">
+              <span>Wed</span>
+              <span class="date">May 06</span>
+            </div>
+            <div>
+              <h3>
+                <a href="#">Q2 migration sequencing — what we decided</a>
+              </h3>
+              <p>
+                Three open threads (feature-flag rollout, staging cutover, and
+                a rollback runbook) converged into a single sequence. The
+                feature flag stays off until staging signals are clean for 24
+                hours.
+              </p>
+              <div class="chips">
+                <span class="chip">migrations</span>
+                <span class="chip">infra</span>
+                <span class="chip">decisions</span>
+              </div>
+            </div>
+            <div class="source-badge">From 12 notes</div>
+          </article>
+
+          <article class="feed-item">
+            <div class="when">
+              <span>Tue</span>
+              <span class="date">May 05</span>
+            </div>
+            <div>
+              <h3>
+                <a href="#">Onboarding feedback, condensed</a>
+              </h3>
+              <p>
+                The first-week friction is consistent across three new joiners:
+                env setup, cred rotation, and the deploy story. Each has an
+                obvious owner; none has been picked up.
+              </p>
+              <div class="chips">
+                <span class="chip">team</span>
+                <span class="chip">onboarding</span>
+              </div>
+            </div>
+            <div class="source-badge">From 9 captures</div>
+          </article>
+
+          <article class="feed-item">
+            <div class="when">
+              <span>Mon</span>
+              <span class="date">May 04</span>
+            </div>
+            <div>
+              <h3>
+                <a href="#">What changed in the agent contract this week</a>
+              </h3>
+              <p>
+                Peer brains can now request a signed assertion before relaying
+                state. The change is opt-in for the next two cycles; existing
+                pairings keep working unsigned.
+              </p>
+              <div class="chips">
+                <span class="chip">a2a</span>
+                <span class="chip">protocol</span>
+                <span class="chip">decisions</span>
+              </div>
+            </div>
+            <div class="source-badge">From 6 notes</div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         DIRECTION C — System diagram
+         ============================================================ -->
+    <section id="dirC" class="dirC">
+      <div class="direction-marker">
+        <span class="tag">Direction C</span>
+        <span class="name">System diagram</span>
+        <span class="blurb">
+          Less marketing copy, more “here's how it works.” The homepage
+          centers on an annotated diagram of what flows in, what the brain
+          does, and what flows out — making the model legible at a glance.
+        </span>
+      </div>
+
+      <div class="container">
+        <nav class="nav-stub">
+          <div class="brand">
+            relay<span class="dot">.</span><span class="suffix">brain</span>
+          </div>
+          <div class="links">
+            <a href="#">About</a>
+            <a href="#">Ecosystem</a>
+            <a href="#" class="cta">Start here</a>
+          </div>
+        </nav>
+      </div>
+
+      <div class="container hero">
+        <p class="eyebrow" style="text-align: center">A team brain, diagrammed</p>
+        <h1 class="display">
+          Relay sits between the work and the world,
+          and keeps both honest.
+        </h1>
+        <p class="lede">
+          Capture sources flow into a shared brain; the brain organizes,
+          summarizes, and — selectively — exposes a public surface. Everything
+          else stays private and operational.
+        </p>
+        <div class="cta-row">
+          <a href="#" class="btn btn-primary">See it on a real team</a>
+          <a href="#" class="btn btn-secondary">Read the model</a>
+        </div>
+
+        <div class="diagram">
+          <div class="diagram-grid">
+            <div class="nodes">
+              <div class="node input">
+                <div class="node-label">Source · chat</div>
+                <div class="node-title">Discord</div>
+                <div class="node-detail">
+                  Shared decisions and field notes captured in flow.
+                </div>
+              </div>
+              <div class="node input">
+                <div class="node-label">Source · agent</div>
+                <div class="node-title">MCP / CLI</div>
+                <div class="node-detail">
+                  Structured captures from tools and assistants.
+                </div>
+              </div>
+              <div class="node input">
+                <div class="node-label">Source · web</div>
+                <div class="node-title">Links &amp; docs</div>
+                <div class="node-detail">
+                  External material indexed with sourceable metadata.
+                </div>
+              </div>
+            </div>
+
+            <div class="core">
+              <span class="ring-stat t">142 captures</span>
+              <span class="ring-stat r">12 topics</span>
+              <span class="ring-stat b">3 peer brains</span>
+              <span class="ring-stat l">9 summaries</span>
+              <div class="core-inner">
+                <div class="core-eyebrow">The relay</div>
+                <div class="core-name">brain</div>
+                <div class="core-sub">
+                  capture → topics → summaries
+                </div>
+              </div>
+            </div>
+
+            <div class="nodes">
+              <div class="node output">
+                <div class="node-label">Surface · public</div>
+                <div class="node-title">Default site</div>
+                <div class="node-detail">
+                  A small, durable face onto what the team currently knows.
+                </div>
+              </div>
+              <div class="node output">
+                <div class="node-label">Surface · agents</div>
+                <div class="node-title">A2A exchange</div>
+                <div class="node-detail">
+                  Peer brains coordinate over an approved, signed protocol.
+                </div>
+              </div>
+              <div class="node output">
+                <div class="node-label">Surface · query</div>
+                <div class="node-title">Team Q&amp;A</div>
+                <div class="node-detail">
+                  Ask the brain in chat; answers cite the captures behind them.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="legend">
+            <div class="legend-item">
+              <div class="legend-title">
+                <span class="swatch cap"></span>Capture
+              </div>
+              <div class="legend-text">
+                Anything the team already does that produces a trace — chat
+                messages, links, deploys, decisions.
+              </div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-title">
+                <span class="swatch syn"></span>Synthesis
+              </div>
+              <div class="legend-text">
+                The work the brain does on its own time — clustering captures
+                into topics, summaries, and durable memory.
+              </div>
+            </div>
+            <div class="legend-item">
+              <div class="legend-title">
+                <span class="swatch share"></span>Share
+              </div>
+              <div class="legend-text">
+                A small, opinionated public surface and an approved
+                agent-to-agent protocol. Most memory stays private.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="mock-foot">
+      Mock · static · no JS framework · pick a direction →
+      <a href="#dirA">A</a>&nbsp;
+      <a href="#dirB">B</a>&nbsp;
+      <a href="#dirC">C</a>
+    </footer>
+  </body>
+</html>

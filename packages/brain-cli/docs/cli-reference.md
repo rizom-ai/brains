@@ -138,9 +138,18 @@ Start the brain from the current directory.
 ```bash
 cd mybrain
 brain start
+brain start --cli              # boot with the chat REPL attached
+brain start --startup-check    # smoke-test plugin lifecycle and exit
 ```
 
 This boots the configured interfaces and services for the local instance.
+
+**Options**
+
+| Flag              | Description                                                                                                                                                                               |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--cli`           | Attach the local chat REPL after boot                                                                                                                                                     |
+| `--startup-check` | Load configured plugins, run `onRegister` and `onReady`, then exit. Does not start daemons or job workers and does not require `AI_API_KEY`. Intended for external plugin CI smoke tests. |
 
 ### `brain chat`
 

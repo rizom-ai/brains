@@ -83,6 +83,7 @@ Entity packages live in `entities/`. Most packages define one entity type; a few
 | `entities/wishlist`        | `wish`                         | Unfulfilled requests / backlog        |
 | `entities/agent-discovery` | `agent`, `skill`               | Agent directory + discoverable skills |
 | `entities/assessment`      | `swot`                         | Derived assessment outputs            |
+| `entities/rizom-ecosystem` | `ecosystem-section`            | Rizom site ecosystem section content  |
 
 ### Service plugins
 
@@ -102,6 +103,7 @@ Service plugins live in `plugins/` and provide tools, handlers, routes, orchestr
 | `plugins/site-builder`     | Static site build orchestration       |
 | `plugins/site-content`     | Site section content generation       |
 | `plugins/stock-photo`      | Stock-photo search and selection      |
+| `plugins/cms`              | Browser authoring routes + CMS config |
 | `plugins/examples`         | Reference patterns and examples       |
 
 ### Interface plugins
@@ -123,7 +125,7 @@ Interface packages live in `interfaces/`. Some chat-style interfaces use `Messag
 | `sites/`         | `default`, `personal`, `professional`, `rizom` (site compositions; may inherit from other sites) |
 | `shared/theme-*` | `base`, `default`, `rizom`                                                                       |
 | `brains/`        | `rover`, `ranger`, `relay`                                                                       |
-| `packages/`      | `brain-cli` published as `@rizom/brain`                                                          |
+| `packages/`      | `brain-cli` (published as `@rizom/brain`), `brains-ops` (published as `@rizom/ops`)              |
 
 ## Plugin model
 
@@ -246,7 +248,7 @@ Current deployment paths:
 - **Local development** via Bun inside the monorepo
 - **Published CLI** via `@rizom/brain`
 - **Container deployment** for production brains
-- **Hetzner-hosted deployments** today, with Kamal becoming the default deploy path
+- **Kamal-based self-hosted deployments** as the default deploy path, including app-local deploy artifacts, env-schema generation, Cloudflare Origin CA bootstrap, and (optionally) `@rizom/ops`-managed multi-user fleets
 
 Each deployed instance stays lightweight at the source level: a brain model package plus a lightweight instance package centered on `brain.yaml`.
 

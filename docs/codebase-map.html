@@ -56,7 +56,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-seri
 <body>
 <div id="app">
 <div id="sidebar">
-  <h1>Brains <span>Codebase Map · updated 2026-04-28</span></h1>
+  <h1>Brains <span>Codebase Map · updated 2026-05-08</span></h1>
 
   <div class="section">
     <div class="section-title">View</div>
@@ -138,10 +138,11 @@ const nodes = [
   { id:'doc',          label:'Doc',          sub:'entities/doc',          desc:'Generic docs entity. EntityPlugin with schema/adapter/datasource and componentized list/detail templates rendering /docs and /docs/:slug.', x:1188,y:110, w:W, h:H, layer:'entities' },
   { id:'agent-disc',   label:'Agent Discovery', sub:'entities/agent-discovery', desc:'Agent contacts, remote agent-card ingestion, approval state, and skill evidence.',  x:1044,y:166, w:W, h:H, layer:'entities' },
   { id:'assessment',   label:'Assessment', sub:'entities/assessment', desc:'Interpretation outputs such as SWOT. Consumes identity/profile, local skills, and saved agent evidence through in-memory capability profiles.', x:1188,y:166, w:W, h:H, layer:'entities' },
+  { id:'rizom-eco',    label:'Rizom Ecosystem', sub:'entities/rizom-ecosystem', desc:'Entity-backed Rizom ecosystem section. Schema, adapter, datasource, and template power the shared ecosystem section across Rizom site variants and the rover/professional/default sites.', x:1332,y:166, w:W, h:H, layer:'entities' },
 
   // Integration plugins (row 4)
   { id:'dir-sync',     label:'Dir Sync',     sub:'plugins/directory-sync',    desc:'File sync + git ops. Serialized with withLock().', x:36,  y:248, w:W, h:H, layer:'plugins' },
-  { id:'site-builder', label:'Site Builder', sub:'plugins/site-builder',      desc:'Site build orchestration (tools, events, jobs). Engine moving to @brains/site-engine.', x:180, y:248, w:W, h:H, layer:'plugins' },
+  { id:'site-builder', label:'Site Builder', sub:'plugins/site-builder',      desc:'Site build orchestration (tools, events, jobs). Build engine extracted to @brains/site-engine.', x:180, y:248, w:W, h:H, layer:'plugins' },
   { id:'content-pipe', label:'Pipeline',     sub:'plugins/content-pipeline',  desc:'Publish + queue orchestration.',                   x:324, y:248, w:W, h:H, layer:'plugins' },
   { id:'dashboard',    label:'Dashboard',    sub:'plugins/dashboard',         desc:'Widget registration + rendering.',                 x:468, y:248, w:W, h:H, layer:'plugins' },
   { id:'analytics',    label:'Analytics',    sub:'plugins/analytics',         desc:'Cloudflare analytics query tool.',                 x:612, y:248, w:W, h:H, layer:'plugins' },
@@ -151,6 +152,9 @@ const nodes = [
   { id:'obsidian',     label:'Obsidian',     sub:'plugins/obsidian-vault',   desc:'Obsidian vault sync.',                             x:756, y:304, w:W, h:H, layer:'plugins' },
   { id:'site-content', label:'Site Content', sub:'plugins/site-content',     desc:'Landing page content gen.',                         x:612, y:304, w:W, h:H, layer:'plugins' },
   { id:'stock-photo', label:'Stock Photo', sub:'plugins/stock-photo',     desc:'Unsplash search + select. Provider abstraction.',   x:468, y:304, w:W, h:H, layer:'plugins' },
+  { id:'cms',         label:'CMS',         sub:'plugins/cms',              desc:'Browser authoring routes + CMS config. Pairs with the @brains/cms-config types package.',     x:36,  y:304, w:W, h:H, layer:'plugins' },
+  { id:'newsletter-p',label:'Newsletter',  sub:'plugins/newsletter',       desc:'Composite plugin bundling the newsletter entity with the buttondown service plugin.', x:180, y:304, w:W, h:H, layer:'plugins' },
+  { id:'examples',    label:'Examples',    sub:'plugins/examples',         desc:'Reference plugin patterns published as @brains/plugin-examples for documentation and authoring guides.', x:324, y:304, w:W, h:H, layer:'plugins' },
 
   // Shell services (rows 5-6)
   { id:'core',         label:'Core',         sub:'shell/core',               desc:'Shell init, plugin lifecycle, entity bootstrap.',   x:36,  y:386, w:W, h:H, layer:'shell' },
@@ -174,15 +178,28 @@ const nodes = [
   { id:'site-rizom',        label:'Rizom Core',    sub:'sites/rizom',         desc:'Shared Rizom site core composed by the app-local rizom.ai, rizom.foundation, and rizom.work site files.', x:556, y:524, w:160, h:H, layer:'sites' },
 
   // Shared (row 8)
-  { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, progress.', x:36,  y:596, w:100, h:H, layer:'shared' },
+  { id:'utils',        label:'Utils',       sub:'shared/utils',           desc:'Zod, slugify, markdown, YAML, IDs, progress, logger. Overloaded grab-bag — splitting tracked separately.', x:36,  y:596, w:100, h:H, layer:'shared' },
   { id:'ui-lib',       label:'UI Library',  sub:'shared/ui-library',      desc:'Header, Footer, ThemeToggle, Card.', x:146, y:596, w:100, h:H, layer:'shared' },
-  { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:256, y:596, w:100, h:H, layer:'shared' },
-  { id:'mcp-bridge',   label:'MCP Bridge',  sub:'shared/mcp-bridge',      desc:'Base class for upstream MCP servers.', x:366, y:596, w:100, h:H, layer:'shared' },
-  { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:476, y:596, w:100, h:H, layer:'shared' },
-  { id:'site-engine',  label:'Site Engine', sub:'shared/site-engine',      desc:'Static site build engine (planned). Preact/Astro rendering.', x:586, y:596, w:100, h:H, layer:'shared' },
-  { id:'theme-base',   label:'Theme Base',  sub:'shared/theme-base',      desc:'CSS variable foundation.',             x:696, y:596, w:100, h:H, layer:'shared' },
-  { id:'brain-cli',   label:'@rizom/brain',sub:'packages/brain-cli',    desc:'CLI + runtime bundle. The published npm package.',   x:806, y:596, w:140, h:H, layer:'shared' },
-  { id:'rizom-ops',   label:'@rizom/ops',  sub:'packages/brains-ops',   desc:'Operator CLI for rover-pilot fleets. Wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.', x:956, y:596, w:140, h:H, layer:'shared' },
+  { id:'rizom-ui',     label:'Rizom UI',    sub:'shared/rizom-ui',         desc:'@rizom/ui — Rizom-brand UI primitives (Wordmark slot, header pieces) shared across app-owned Rizom variants.', x:256, y:596, w:100, h:H, layer:'shared' },
+  { id:'test-utils',   label:'Test Utils',  sub:'shared/test-utils',      desc:'Mock factories, harness helpers.',  x:366, y:596, w:100, h:H, layer:'shared' },
+  { id:'mcp-bridge',   label:'MCP Bridge',  sub:'shared/mcp-bridge',      desc:'Base class for upstream MCP servers.', x:476, y:596, w:100, h:H, layer:'shared' },
+  { id:'image-lib',    label:'Image Lib',   sub:'shared/image',           desc:'Image schema, adapter, utilities.',    x:586, y:596, w:100, h:H, layer:'shared' },
+  { id:'site-engine',  label:'Site Engine', sub:'shared/site-engine',      desc:'Renderer-agnostic site build engine utilities. Used by site-builder.', x:696, y:596, w:100, h:H, layer:'shared' },
+  { id:'site-comp',    label:'Site Compose',sub:'shared/site-composition', desc:'Shared site composition contract and merge helpers. Backbone of site-package inheritance.', x:806, y:596, w:100, h:H, layer:'shared' },
+  { id:'theme-base',   label:'Theme Base',  sub:'shared/theme-base',      desc:'composeTheme(), CSS variables, Tailwind setup, font + sticky-footer hygiene.', x:916, y:596, w:100, h:H, layer:'shared' },
+  { id:'theme-default',label:'Theme Default',sub:'shared/theme-default', desc:'Simplified editorial default theme — warm neutrals + restrained Rizom accents.', x:1026, y:596, w:110, h:H, layer:'shared' },
+  { id:'theme-rizom',  label:'Theme Rizom', sub:'shared/theme-rizom',     desc:'Rizom brand theme — amber + purple bioluminescent palette layered on theme-default.', x:1146, y:596, w:110, h:H, layer:'shared' },
+
+  // Shared row 2 (config + content + deploy)
+  { id:'cms-config',   label:'CMS Config',   sub:'shared/cms-config',          desc:'CMS config types consumed by plugins/cms.',   x:36,  y:652, w:100, h:H, layer:'shared' },
+  { id:'product-site', label:'Product Content', sub:'shared/product-site-content', desc:'Product page layouts and templates.',     x:146, y:652, w:110, h:H, layer:'shared' },
+  { id:'deploy-tpl',   label:'Deploy Templates', sub:'shared/deploy-templates', desc:'Canonical Caddyfile/Dockerfile/Kamal/scripts/workflow templates consumed by brain-cli + brains-ops.',     x:266, y:652, w:120, h:H, layer:'shared' },
+  { id:'eslint-cfg',   label:'ESLint Config', sub:'shared/eslint-config',     desc:'Shared ESLint preset.',                       x:396, y:652, w:100, h:H, layer:'shared' },
+  { id:'ts-cfg',       label:'TS Config',    sub:'shared/typescript-config',  desc:'Shared TS configs (root, library, instance).', x:506, y:652, w:100, h:H, layer:'shared' },
+
+  // Published packages (row 9)
+  { id:'brain-cli',   label:'@rizom/brain',sub:'packages/brain-cli',    desc:'CLI + runtime bundle. The published npm package: brain init/start/chat/eval/diagnostics/pin/secrets/cert.',   x:36,  y:724, w:160, h:H, layer:'shared' },
+  { id:'rizom-ops',   label:'@rizom/ops',  sub:'packages/brains-ops',   desc:'Operator CLI for rover-pilot fleets. Wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.', x:206, y:724, w:160, h:H, layer:'shared' },
 ];
 
 const connections = [
@@ -201,6 +218,17 @@ const connections = [
   { from:'dir-sync', to:'plugin-fw', type:'dep' },
   { from:'site-builder', to:'plugin-fw', type:'dep' },
   { from:'content-pipe', to:'plugin-fw', type:'dep' },
+  { from:'cms', to:'plugin-fw', type:'dep' },
+  { from:'newsletter-p', to:'plugin-fw', type:'dep' },
+  { from:'examples', to:'plugin-fw', type:'dep' },
+  { from:'rizom-eco', to:'plugin-fw', type:'dep' },
+
+  // Composite + config wiring
+  { from:'cms', to:'cms-config', type:'dep' },
+  { from:'newsletter-p', to:'newsletter', type:'dep' },
+  { from:'newsletter-p', to:'buttondown', type:'dep' },
+  { from:'site-builder', to:'site-engine', type:'dep' },
+  { from:'site-builder', to:'site-comp', type:'dep' },
 
   // Interfaces → plugin framework
   { from:'mcp-if', to:'plugin-fw', type:'dep' },
@@ -237,7 +265,7 @@ const presets = {
   'Entities': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.entities.on = true; layers.shell.on = true; },
   'Plugins': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.plugins.on = true; layers.shell.on = true; },
   'Interfaces': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.interfaces.on = true; layers.shell.on = true; layers.brains.on = true; },
-  'Sites': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.sites.on = true; layers.layouts.on = true; layers.shared.on = true; },
+  'Sites': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.sites.on = true; layers.shared.on = true; },
   'Shell': () => { Object.keys(layers).forEach(k => layers[k].on = false); layers.shell.on = true; },
 };
 

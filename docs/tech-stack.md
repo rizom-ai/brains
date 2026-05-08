@@ -219,14 +219,13 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Deployment
 
-- **[Kamal](https://kamal-deploy.org/)** — primary deploy tool (replacing Terraform + SSH)
+- **[Kamal](https://kamal-deploy.org/)** — default deploy tool
   - Hetzner Cloud as the default provider
   - Per-instance `config/deploy.yml` scaffolded by `brain init <dir> --deploy`
-  - App serves production and preview hosts directly
-  - `/health` endpoint for healthchecks
-- **[Terraform](https://www.terraform.io/)** — legacy IaC for Hetzner / Cloudflare DNS / Bunny CDN
-  - Still present under `deploy/providers/hetzner/terraform/`
-  - Being replaced by Kamal piece by piece
+  - App serves production and preview hosts directly; `/health` endpoint for healthchecks
+  - Cloudflare Origin CA via `brain cert:bootstrap`; secrets via `brain secrets:push` (GitHub Actions or Bitwarden Secrets Manager)
+  - Multi-user fleets via `@rizom/ops`
+- **[Terraform](https://www.terraform.io/)** — legacy IaC under `deploy/providers/hetzner/terraform/`, retained but no longer the primary path
 
 ## Architectural Patterns
 
@@ -280,14 +279,14 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 - `@brains/templates` — template registry
 - `@brains/ai-evaluation` — eval runner, test cases, LLM judge
 
-### Brain CLI (`packages/*`)
+### Published Packages (`packages/*`)
 
-- `@rizom/brain` — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`. Bundles the runtime while `brain init` scaffolds instance-local support files such as `package.json`, `tsconfig.json`, and optional deploy artifacts.
+- `@rizom/brain` (`packages/brain-cli`) — published CLI: `brain init`, `brain start`, `brain diagnostics`, `brain eval`, `brain pin`, `brain secrets:push`, `brain cert:bootstrap`, `brain ssh-key:bootstrap`. Bundles the runtime while `brain init` scaffolds instance-local support files such as `package.json`, `tsconfig.json`, and optional deploy artifacts.
+- `@rizom/ops` (`packages/brains-ops`) — operator CLI for rover-pilot fleets: wildcard TLS bootstrap, age-encrypted per-user secrets, content repo auto-create, multi-user deploy management.
 
 ### Interface Packages (`interfaces/*`)
 
 - `@brains/chat-repl` — interactive Ink-based REPL
-- `@brains/cli` — command-line interface plumbing
 - `@brains/mcp` — MCP transport (stdio + HTTP)
 - `@brains/webserver` — in-process Hono webserver for site pages, dashboard/CMS routes, browser-facing APIs, and `/health`
 - `@brains/discord` — Discord bot interface
@@ -295,12 +294,19 @@ The Brains project uses a modern, TypeScript-based stack optimized for building 
 
 ### Shared Packages (`shared/*`)
 
-- `@brains/utils` — Logger (JSON mode + log file), markdown, permissions, progress, Zod re-export
+- `@brains/utils` — Logger (JSON mode + log file), markdown, YAML, IDs, permissions, progress, Zod re-export (overloaded; split tracked separately)
 - `@brains/ui-library` — Preact UI components (Header, Footer, ThemeToggle, widgets)
+- `@rizom/ui` (`shared/rizom-ui`) — Rizom-brand UI primitives shared across app-owned Rizom site variants
+- `@brains/site-engine` — renderer-agnostic site build engine utilities
+- `@brains/site-composition` — shared site composition contract and merge helpers
 - `@brains/test-utils` — mock factories, test harnesses, MockShell
 - `@brains/mcp-bridge` — base class for bridging upstream MCP servers
 - `@brains/image` — image schema, adapter, utilities
-- `@brains/theme-*` — shared CSS themes (`theme-base`, `theme-default`, `theme-rizom`)
+- `@brains/cms-config` — CMS config types consumed by the `cms` plugin
+- `@brains/product-site-content` — product page layouts and templates
+- `@brains/deploy-templates` — canonical Caddyfile/Dockerfile/Kamal/scripts/workflow templates
+- `@brains/theme-base` / `@brains/theme-default` / `@brains/theme-rizom` — shared CSS themes
+- `@brains/eslint-config` / `@brains/typescript-config` — shared lint and TS configs
 
 ## Version Requirements
 

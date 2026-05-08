@@ -231,6 +231,6 @@ sync needed.
 
 ## Related
 
-- `docs/plans/external-plugin-api.md` — public library subpaths live in `build.ts`
+- the published `@rizom/brain` library subpaths (`/plugins`, `/entities`, `/services`, `/interfaces`, `/templates`, `/site`, `/themes`, `/deploy`) — defined in `build.ts`
 - `docs/plans/desktop-app.md` — potential third consumer
 - hosted rover / app-repo deploy flows — potential fourth consumer
