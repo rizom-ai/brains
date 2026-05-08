@@ -522,6 +522,7 @@
       "name": "@brains/mcp",
       "version": "0.2.0-alpha.54",
       "dependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/mcp-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@modelcontextprotocol/sdk": "^1.24.0",
@@ -694,6 +695,7 @@
       "name": "@brains/dashboard",
       "version": "0.2.0-alpha.54",
       "dependencies": {
+        "@brains/auth-service": "workspace:*",
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
         "preact": "^10.27.2",
@@ -1183,7 +1185,7 @@
     },
     "shell/auth-service": {
       "name": "@brains/auth-service",
-      "version": "0.2.0-alpha.50",
+      "version": "0.2.0-alpha.54",
       "dependencies": {
         "@brains/plugins": "workspace:*",
         "@brains/utils": "workspace:*",
