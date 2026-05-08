@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.54
+
+### Patch Changes
+
+- [`c99290b`](https://github.com/rizom-ai/brains/commit/c99290b0297672a79686568146ba918912805083) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Fix ecosystem section headline contrast in dark mode by explicitly using the active site heading token.
+
 ## 0.2.0-alpha.53
 
 ### Patch Changes

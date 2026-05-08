@@ -113,6 +113,7 @@
     "default-theme-ecosystem-dark-decks",
     "deploy-template-embedding-release",
     "deploy-template-runtime-sync",
+    "ecosystem-heading-dark-mode",
     "externalize-preact",
     "fix-brain-publish-origin-ca-subpath",
     "fix-deploy-workflow-config-script",

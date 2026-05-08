@@ -1,6 +1,6 @@
 {
   "name": "@brains/deploy-templates",
-  "version": "0.2.0-alpha.53",
+  "version": "0.2.0-alpha.54",
   "private": true,
   "type": "module",
   "main": "./src/index.ts",

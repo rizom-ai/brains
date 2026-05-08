@@ -1,5 +1,17 @@
 # @brains/plugins
 
+## 0.2.0-alpha.54
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/site-composition@0.2.0-alpha.54
+  - @brains/utils@0.2.0-alpha.54
+  - @brains/identity-service@0.2.0-alpha.54
+  - @brains/job-queue@0.2.0-alpha.54
+  - @brains/messaging-service@0.2.0-alpha.54
+  - @brains/templates@0.2.0-alpha.54
+
 ## 0.2.0-alpha.53
 
 ### Patch Changes
