@@ -35,6 +35,12 @@ The first version should stay small: coarse permission levels, explicit operator
 5. **Per-request/session permissions must replace global HTTP MCP anchor.**
    - OAuth-authenticated MCP should use the token subject's user role.
    - Static `MCP_AUTH_TOKEN` can continue to grant anchor as a deprecated fallback.
+6. **Do not reshuffle existing tool visibility in the plumbing phase.**
+   - Multi-user v1 makes roles enforceable.
+   - A later tool-permission audit decides which existing anchor tools can safely become trusted.
+7. **Operator-managed onboarding first; invitations later.**
+   - Anchors create users and explicitly attach identities.
+   - Email/self-signup/invite delivery is deferred until real workflows need it.
 
 ## Runtime user record
 
@@ -112,11 +118,11 @@ Current HTTP MCP sets the whole transport to `anchor` when auth is configured. M
 - Existing session id should continue with the permission level established at initialize time.
 - Static `MCP_AUTH_TOKEN` fallback remains anchor-only and deprecated.
 
-### Dashboard operator widgets
+### Dashboard visibility
 
-- `operator` visibility should mean `anchor` initially.
-- Future extension can add `visibility: "trusted"` if collaborator widgets are needed.
-- Dashboard login/logout continue using operator sessions, but sessions now carry a real user id.
+- Dashboard widget visibility should use the same levels as tools: `public`, `trusted`, `anchor`.
+- Existing `operator` visibility is accepted as a backward-compatible alias for `anchor`, but new code/docs should use permission-level names.
+- Dashboard login/logout continue using operator sessions, but sessions now carry a real user id and role.
 - Signed-in masthead can display the user's display name, e.g. `Alex · sign out`.
 
 ### Conversations, jobs, and audit attribution
@@ -155,7 +161,7 @@ Add anchor-visible tools:
 - `user_suspend`
 - `user_attach_identity`
 - `user_detach_identity`
-- `user_start_passkey_registration` (optional; can be UI-only at first)
+- `user_start_passkey_registration`
 - `user_revoke_passkey`
 
 ### CLI
@@ -171,6 +177,17 @@ brain user:attach-identity usr_... --type discord --subject 123456789
 ```
 
 Keep `brain auth reset-passkeys --yes` as the break-glass reset for all passkeys and active OAuth state.
+
+### Operator-managed onboarding
+
+For v1, onboarding is explicit and operator managed:
+
+1. Anchor creates a user (`brain user:create ...`).
+2. Anchor attaches one or more known identities (`brain user:attach-identity ...`).
+3. For passkeys, anchor generates a short-lived registration URL for that specific user (`brain user:start-passkey-registration usr_...`).
+4. The user opens the URL and registers a passkey; the credential binds to that user id.
+
+There is no public registration, email invitation, or self-signup in the first slice.
 
 ## Migration strategy
 
@@ -189,9 +206,7 @@ On startup or first successful login:
 2. If no users exist, create first anchor user.
 3. Rebind passkey credentials from `single-operator` to that user id.
 4. Future sessions/tokens use the real user id.
-5. Continue accepting old unexpired `single-operator` refresh tokens only if needed, or revoke all refresh tokens during migration for safety.
-
-Prefer revoking refresh tokens during migration unless real compatibility pressure appears.
+5. Revoke old `single-operator` refresh tokens during migration for safety and force affected OAuth clients through a clean one-time re-auth.
 
 ## Phased implementation
 
@@ -221,7 +236,7 @@ Validation:
 
 - a known trusted user receives trusted tools only
 - unknown callers still use `brain.yaml` rules
-- suspended users cannot authenticate or are forced to public/denied depending on interface
+- suspended users are denied authentication/session use rather than downgraded to public
 
 ### Phase 3 — MCP per-session permissions
 
@@ -240,7 +255,7 @@ Validation:
 - Add anchor-only user tools.
 - Add CLI wrappers.
 - Add attach/detach identity flows.
-- Add passkey registration for an existing signed-in anchor user to add backup credentials.
+- Add passkey registration for a specific user through an anchor-generated, short-lived setup URL.
 
 Validation:
 
@@ -262,26 +277,28 @@ Validation:
 
 ### Phase 6 — Optional invitations/onboarding
 
-Only build if real operator workflows need it:
+Only build if real operator workflows need it. This phase adds convenience on top of the v1 operator-managed foundation:
 
 - invite token
 - pending user status
 - invited-user passkey setup
 - email/Discord delivery hooks
+- resend/expiry UX
 
 ## Security notes
 
 - Auth-user records are runtime auth state and should use `0600` file permissions.
 - Never store passkey private material; public credential keys stay in passkey store.
 - Role changes and identity attach/detach require `anchor`.
-- Suspending a user should revoke their sessions and refresh tokens.
+- Suspended users are denied auth/session use.
+- Role downgrades, suspension, and identity detach revoke that user's sessions and refresh tokens immediately.
 - Identity binding must be explicit; do not auto-link two identities just because display names match.
-- Prefer revoking refresh tokens when user roles are downgraded.
 
 ## Non-goals for first slice
 
 - Fine-grained RBAC
 - hosted SaaS account system
+- changing existing tool visibility policy during role plumbing
 - public registration
 - invitation emails
 - sharing auth state through `brain-data`
