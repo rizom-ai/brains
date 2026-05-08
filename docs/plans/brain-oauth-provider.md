@@ -96,6 +96,7 @@ Mounted on the shared HTTP surface (`interfaces/webserver`) per `docs/plans/cms-
 ### Provider configuration
 
 - Issuer = `https://<brain-domain>` (production) or `http://localhost:<port>` (dev)
+- Requests are accepted only for the configured issuer, explicitly configured trusted issuers (for example preview hosts), or localhost/127.0.0.1 when local-dev issuers allow it
 - Signing keys: ES256 keypair generated on first boot, persisted in runtime auth storage outside `brain-data` (default `./data/auth`, `0600` perms)
 - JWKS published at `/.well-known/jwks.json` (shared endpoint, also serves the A2A signing key when plan 1 lands)
 - Authorization-server metadata at `/.well-known/oauth-authorization-server`
@@ -204,12 +205,12 @@ The downstream permission machinery does not change. The middleware is the only 
 5. MCP advertises auth through `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"` derived from the request origin.
 6. CMS auth remains delegated to Sveltia/GitHub for v1; Brain OAuth does not wrap `/cms`.
 7. Dashboard auth is widget-level for v1; Brain OAuth does not wrap the whole dashboard route.
+8. Issuer/host validation is strict by default: configured issuer plus configured trusted issuers; localhost/127.0.0.1 is allowed for local-dev issuers.
 
 ## Open questions
 
-1. How strict should issuer/host validation be when the same brain is reachable via localhost, preview, and production domains?
-2. Should the single-operator subject remain `single-operator` until multi-user lands, or should a local user entity be created now as a compatibility bridge?
-3. Should API-route execution receive the operator subject instead of the current `webserver` anonymous identity if private API routes are used for future write flows?
+1. Should the single-operator subject remain `single-operator` until multi-user lands, or should a local user entity be created now as a compatibility bridge?
+2. Should API-route execution receive the operator subject instead of the current `webserver` anonymous identity if private API routes are used for future write flows?
 
 ## Verification
 
@@ -223,6 +224,7 @@ The downstream permission machinery does not change. The middleware is the only 
 8. ✅ JWKS endpoint serves the OAuth signing key today, ready to also carry the A2A signing key when plan 1 lands
 9. ✅ Refresh token rotation works across brain restarts/runtime storage
 10. ✅ Single-operator mode runs without requiring the multi-user plan to ship first
+11. ✅ OAuth issuer/host validation rejects untrusted forwarded hosts while allowing configured preview hosts and local-dev localhost/127.0.0.1
 
 ## Related
 

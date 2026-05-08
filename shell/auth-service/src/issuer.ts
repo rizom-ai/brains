@@ -15,6 +15,16 @@ export function normalizeIssuer(issuer?: string): string {
   return parsed.origin;
 }
 
+export function isLoopbackIssuer(issuer: string): boolean {
+  const hostname = new URL(normalizeIssuer(issuer)).hostname.toLowerCase();
+  return (
+    hostname === "localhost" ||
+    hostname === "[::1]" ||
+    hostname === "::1" ||
+    hostname.startsWith("127.")
+  );
+}
+
 export function issuerFromRequest(
   request: Request,
   fallbackIssuer?: string,

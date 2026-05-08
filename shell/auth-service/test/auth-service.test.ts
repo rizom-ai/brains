@@ -68,6 +68,7 @@ describe("AuthService", () => {
     const service = new AuthService({
       storageDir: await tempStorageDir(),
       issuer: "http://localhost:8080",
+      trustedIssuers: ["https://brain.example.com"],
     });
 
     const response = await service.handleWellKnownRequest(
@@ -89,6 +90,78 @@ describe("AuthService", () => {
       registration_endpoint: "https://brain.example.com/register",
       jwks_uri: "https://brain.example.com/.well-known/jwks.json",
       code_challenge_methods_supported: ["S256"],
+    });
+  });
+
+  it("rejects OAuth requests from untrusted forwarded hosts", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+
+    const response = await service.handleWellKnownRequest(
+      new Request(
+        "https://brain.example.com/.well-known/oauth-authorization-server",
+        {
+          headers: {
+            host: "evil.example.com",
+            "x-forwarded-proto": "https",
+          },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.text()).toBe("Untrusted OAuth issuer");
+  });
+
+  it("allows explicitly trusted OAuth preview hosts", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+      trustedIssuers: ["https://preview.brain.example.com"],
+    });
+
+    const response = await service.handleWellKnownRequest(
+      new Request(
+        "https://brain.example.com/.well-known/oauth-authorization-server",
+        {
+          headers: {
+            host: "preview.brain.example.com",
+            "x-forwarded-proto": "https",
+          },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const metadata = await response.json();
+    expect(metadata).toMatchObject({
+      issuer: "https://preview.brain.example.com",
+      authorization_endpoint: "https://preview.brain.example.com/authorize",
+    });
+  });
+
+  it("allows localhost request issuers for localhost dev issuers", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "http://localhost:8080",
+    });
+
+    const response = await service.handleWellKnownRequest(
+      new Request(
+        "http://localhost:8080/.well-known/oauth-authorization-server",
+        {
+          headers: { host: "127.0.0.1:8080" },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(200);
+    const metadata = await response.json();
+    expect(metadata).toMatchObject({
+      issuer: "http://127.0.0.1:8080",
+      token_endpoint: "http://127.0.0.1:8080/token",
     });
   });
 
@@ -331,6 +404,34 @@ describe("AuthService", () => {
       audience: client.client_id,
       scope: ["openid", "profile", "mcp"],
     });
+
+    const verifiedFromRequestIssuer = await service.verifyBearerToken(
+      new Request("https://brain.example.com/mcp", {
+        headers: { authorization: `Bearer ${token.access_token}` },
+      }),
+      { audience: client.client_id },
+    );
+    expect(verifiedFromRequestIssuer).toMatchObject({
+      issuer: "https://brain.example.com",
+      audience: client.client_id,
+    });
+
+    let untrustedIssuerError: unknown;
+    try {
+      await service.verifyBearerToken(
+        new Request("https://brain.example.com/mcp", {
+          headers: {
+            authorization: `Bearer ${token.access_token}`,
+            host: "evil.example.com",
+            "x-forwarded-proto": "https",
+          },
+        }),
+        { audience: client.client_id },
+      );
+    } catch (error) {
+      untrustedIssuerError = error;
+    }
+    expect(untrustedIssuerError).toBeInstanceOf(Error);
 
     let verifyError: unknown;
     try {

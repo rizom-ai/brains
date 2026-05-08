@@ -20,7 +20,12 @@ export type {
   ClientRegistrationRequest,
   OAuthClientStoreOptions,
 } from "./client-store";
-export { absoluteUrl, issuerFromRequest, normalizeIssuer } from "./issuer";
+export {
+  absoluteUrl,
+  issuerFromRequest,
+  isLoopbackIssuer,
+  normalizeIssuer,
+} from "./issuer";
 export { PasskeyService } from "./passkey-service";
 export type {
   AuthenticationVerifyResult,

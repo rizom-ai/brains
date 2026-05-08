@@ -7,6 +7,10 @@ import packageJson from "../package.json";
 const authServiceConfigSchema = z.object({
   /** Public issuer origin. Defaults to the brain site URL, then localhost dev. */
   issuer: z.string().optional(),
+  /** Additional trusted issuer origins, for example a preview host. */
+  trustedIssuers: z.array(z.string()).default([]),
+  /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
+  allowLocalhostIssuers: z.boolean().optional(),
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
 });
@@ -35,6 +39,10 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
     this.service = new AuthService({
       storageDir: this.config.storageDir,
       ...(issuer ? { issuer } : {}),
+      trustedIssuers: this.config.trustedIssuers,
+      ...(this.config.allowLocalhostIssuers !== undefined
+        ? { allowLocalhostIssuers: this.config.allowLocalhostIssuers }
+        : {}),
       logger: context.logger,
     });
     await this.service.initialize();

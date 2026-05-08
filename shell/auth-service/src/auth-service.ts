@@ -19,7 +19,12 @@ import {
   type CreateOperatorSessionResult,
   type OperatorSessionRecord,
 } from "./session-store";
-import { absoluteUrl, issuerFromRequest, normalizeIssuer } from "./issuer";
+import {
+  absoluteUrl,
+  issuerFromRequest,
+  isLoopbackIssuer,
+  normalizeIssuer,
+} from "./issuer";
 import {
   getBearerToken,
   verifyAccessToken,
@@ -37,6 +42,10 @@ export interface AuthServiceOptions {
   storageDir: string;
   /** Public issuer origin, for example https://brain.example.com. */
   issuer?: string;
+  /** Additional trusted issuer origins, for example a preview host. */
+  trustedIssuers?: string[];
+  /** Allow localhost/127.0.0.1 request issuers. Defaults to true only for localhost issuers. */
+  allowLocalhostIssuers?: boolean;
   logger?: Logger;
 }
 
@@ -61,6 +70,8 @@ const AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS = 10 * 60;
 
 export class AuthService {
   private readonly issuer: string;
+  private readonly trustedIssuers: Set<string>;
+  private readonly allowLocalhostIssuers: boolean;
   private readonly keyStore: AuthKeyStore;
   private readonly clientStore: OAuthClientStore;
   private readonly authCodeStore: AuthorizationCodeStore;
@@ -76,6 +87,14 @@ export class AuthService {
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
+    this.trustedIssuers = new Set([
+      this.issuer,
+      ...(options.trustedIssuers ?? []).map((issuer) =>
+        normalizeIssuer(issuer),
+      ),
+    ]);
+    this.allowLocalhostIssuers =
+      options.allowLocalhostIssuers ?? isLoopbackIssuer(this.issuer);
     this.keyStore = new AuthKeyStore({ storageDir: options.storageDir });
     this.clientStore = new OAuthClientStore({ storageDir: options.storageDir });
     this.authCodeStore = new AuthorizationCodeStore({
@@ -188,8 +207,12 @@ export class AuthService {
     const token = getBearerToken(request);
     if (!token) return undefined;
 
+    const issuer = options.issuer
+      ? normalizeIssuer(options.issuer)
+      : this.resolveRequestIssuer(request);
+
     return verifyAccessToken(token, await this.getJwks(), {
-      issuer: normalizeIssuer(options.issuer ?? this.issuer),
+      issuer,
       ...(options.audience ? { audience: options.audience } : {}),
     });
   }
@@ -204,7 +227,15 @@ export class AuthService {
   }
 
   async handleRequest(request: Request): Promise<Response> {
-    const requestIssuer = issuerFromRequest(request, this.issuer);
+    let requestIssuer: string;
+    try {
+      requestIssuer = this.resolveRequestIssuer(request);
+    } catch (error) {
+      this.logger?.warn("Rejected OAuth request from untrusted issuer", {
+        error: error instanceof Error ? error.message : String(error),
+      });
+      return new Response("Untrusted OAuth issuer", { status: 400 });
+    }
     const path = new URL(request.url).pathname;
 
     if (request.method === "GET") {
@@ -279,6 +310,20 @@ export class AuthService {
 
   async handleWellKnownRequest(request: Request): Promise<Response> {
     return this.handleRequest(request);
+  }
+
+  private resolveRequestIssuer(request: Request): string {
+    const requestIssuer = issuerFromRequest(request, this.issuer);
+    if (
+      this.trustedIssuers.has(requestIssuer) ||
+      (this.allowLocalhostIssuers && isLoopbackIssuer(requestIssuer))
+    ) {
+      return requestIssuer;
+    }
+
+    throw new Error(
+      `Request issuer ${requestIssuer} is not in trusted issuers`,
+    );
   }
 
   private async handleSetupPage(request: Request): Promise<Response> {
