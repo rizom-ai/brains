@@ -269,7 +269,13 @@ describe("AuthService", () => {
     expect(pageResponse.status).toBe(200);
     const page = await pageResponse.text();
     expect(page).toContain("Authorize Claude Desktop");
+    const approvalToken = page.match(
+      /name="approval_token" value="([^"]+)"/,
+    )?.[1];
+    expect(approvalToken).toStartWith("oat_");
 
+    const approveParams = new URLSearchParams(authorizeUrl.searchParams);
+    approveParams.set("approval_token", approvalToken ?? "");
     const approveResponse = await service.handleRequest(
       new Request("https://brain.example.com/authorize", {
         method: "POST",
@@ -277,7 +283,7 @@ describe("AuthService", () => {
           "content-type": "application/x-www-form-urlencoded",
           cookie: session.cookie,
         },
-        body: authorizeUrl.searchParams.toString(),
+        body: approveParams.toString(),
       }),
     );
     expect(approveResponse.status).toBe(302);
@@ -441,6 +447,77 @@ describe("AuthService", () => {
 
     expect(response.status).toBe(302);
     expect(response.headers.get("location")).toBe("/");
+  });
+
+  it("requires a page-issued approval token before approving authorization", async () => {
+    const service = new AuthService({
+      storageDir: await tempStorageDir(),
+      issuer: "https://brain.example.com",
+    });
+    const client = await service.registerClient({
+      redirect_uris: ["http://127.0.0.1:6274/oauth/callback"],
+      client_name: "Claude Desktop",
+    });
+    const authorizeParams = new URLSearchParams({
+      response_type: "code",
+      client_id: client.client_id,
+      redirect_uri: "http://127.0.0.1:6274/oauth/callback",
+      code_challenge: await pkceChallenge("verifier"),
+      code_challenge_method: "S256",
+    });
+    const session = await service.createOperatorSession();
+
+    const missingTokenResponse = await service.handleRequest(
+      new Request("https://brain.example.com/authorize", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: session.cookie,
+        },
+        body: authorizeParams.toString(),
+      }),
+    );
+    expect(missingTokenResponse.status).toBe(400);
+    expect(await missingTokenResponse.text()).toContain(
+      "Invalid authorization approval token",
+    );
+
+    const pageResponse = await service.handleRequest(
+      new Request(`https://brain.example.com/authorize?${authorizeParams}`, {
+        headers: { cookie: session.cookie },
+      }),
+    );
+    const page = await pageResponse.text();
+    const approvalToken = page.match(
+      /name="approval_token" value="([^"]+)"/,
+    )?.[1];
+    expect(approvalToken).toStartWith("oat_");
+
+    const approvedParams = new URLSearchParams(authorizeParams);
+    approvedParams.set("approval_token", approvalToken ?? "");
+    const approveResponse = await service.handleRequest(
+      new Request("https://brain.example.com/authorize", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: session.cookie,
+        },
+        body: approvedParams.toString(),
+      }),
+    );
+    expect(approveResponse.status).toBe(302);
+
+    const reuseResponse = await service.handleRequest(
+      new Request("https://brain.example.com/authorize", {
+        method: "POST",
+        headers: {
+          "content-type": "application/x-www-form-urlencoded",
+          cookie: session.cookie,
+        },
+        body: approvedParams.toString(),
+      }),
+    );
+    expect(reuseResponse.status).toBe(400);
   });
 
   it("requires an operator session before showing the authorize page", async () => {

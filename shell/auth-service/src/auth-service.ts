@@ -45,7 +45,19 @@ interface SetupTokenState {
   expiresAt: number;
 }
 
+interface AuthorizationApprovalTokenState {
+  token: string;
+  sessionId: string;
+  clientId: string;
+  redirectUri: string;
+  codeChallenge: string;
+  scope?: string;
+  state?: string;
+  expiresAt: number;
+}
+
 const SETUP_TOKEN_TTL_SECONDS = 30 * 60;
+const AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS = 10 * 60;
 
 export class AuthService {
   private readonly issuer: string;
@@ -57,6 +69,10 @@ export class AuthService {
   private readonly refreshTokenStore: RefreshTokenStore;
   private readonly logger: Logger | undefined;
   private setupToken: SetupTokenState | undefined;
+  private readonly authorizationApprovalTokens = new Map<
+    string,
+    AuthorizationApprovalTokenState
+  >();
 
   constructor(options: AuthServiceOptions) {
     this.issuer = normalizeIssuer(options.issuer);
@@ -417,7 +433,11 @@ export class AuthService {
       return new Response(validation.error, { status: 400 });
     }
 
-    return htmlResponse(renderAuthorizePage(validation.params));
+    const approvalToken = this.createAuthorizationApprovalToken(
+      session,
+      validation.params,
+    );
+    return htmlResponse(renderAuthorizePage(validation.params, approvalToken));
   }
 
   private async handleAuthorizeApproval(request: Request): Promise<Response> {
@@ -432,6 +452,22 @@ export class AuthService {
     );
     if (!validation.success) {
       return new Response(validation.error, { status: 400 });
+    }
+
+    const rawApprovalToken = form.get("approval_token");
+    const approvalToken =
+      typeof rawApprovalToken === "string" ? rawApprovalToken : undefined;
+    if (
+      !approvalToken ||
+      !this.consumeAuthorizationApprovalToken(
+        approvalToken,
+        session,
+        validation.params,
+      )
+    ) {
+      return new Response("Invalid authorization approval token", {
+        status: 400,
+      });
     }
 
     const code = await this.authCodeStore.createCode({
@@ -449,6 +485,56 @@ export class AuthService {
     }
 
     return Response.redirect(redirect.toString(), 302);
+  }
+
+  private createAuthorizationApprovalToken(
+    session: OperatorSessionRecord,
+    params: ValidAuthorizationRequest,
+  ): string {
+    this.pruneExpiredAuthorizationApprovalTokens();
+    const token = `oat_${randomUUID()}`;
+    this.authorizationApprovalTokens.set(token, {
+      token,
+      sessionId: session.id,
+      clientId: params.clientId,
+      redirectUri: params.redirectUri,
+      codeChallenge: params.codeChallenge,
+      ...(params.scope ? { scope: params.scope } : {}),
+      ...(params.state ? { state: params.state } : {}),
+      expiresAt:
+        Math.floor(Date.now() / 1000) +
+        AUTHORIZATION_APPROVAL_TOKEN_TTL_SECONDS,
+    });
+    return token;
+  }
+
+  private consumeAuthorizationApprovalToken(
+    token: string,
+    session: OperatorSessionRecord,
+    params: ValidAuthorizationRequest,
+  ): boolean {
+    this.pruneExpiredAuthorizationApprovalTokens();
+    const stored = this.authorizationApprovalTokens.get(token);
+    if (!stored) return false;
+
+    this.authorizationApprovalTokens.delete(token);
+    return (
+      stored.sessionId === session.id &&
+      stored.clientId === params.clientId &&
+      stored.redirectUri === params.redirectUri &&
+      stored.codeChallenge === params.codeChallenge &&
+      stored.scope === params.scope &&
+      stored.state === params.state
+    );
+  }
+
+  private pruneExpiredAuthorizationApprovalTokens(): void {
+    const now = Math.floor(Date.now() / 1000);
+    for (const [token, stored] of this.authorizationApprovalTokens.entries()) {
+      if (stored.expiresAt <= now) {
+        this.authorizationApprovalTokens.delete(token);
+      }
+    }
   }
 
   private async validateAuthorizationRequest(params: URLSearchParams): Promise<
@@ -1094,13 +1180,17 @@ function webauthnBrowserHelpers(): string {
   `;
 }
 
-function renderAuthorizePage(params: ValidAuthorizationRequest): string {
+function renderAuthorizePage(
+  params: ValidAuthorizationRequest,
+  approvalToken: string,
+): string {
   const hidden = {
     response_type: "code",
     client_id: params.clientId,
     redirect_uri: params.redirectUri,
     code_challenge: params.codeChallenge,
     code_challenge_method: "S256",
+    approval_token: approvalToken,
     ...(params.scope ? { scope: params.scope } : {}),
     ...(params.state ? { state: params.state } : {}),
   };
