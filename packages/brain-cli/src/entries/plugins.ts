@@ -18,6 +18,7 @@ export type {
   Channel,
   EntityPluginContext,
   IConversationsNamespace,
+  IEntityService,
   IEntitiesNamespace,
   IEvalNamespace,
   IIdentityNamespace,

@@ -1,4 +1,5 @@
 import { MessageInterfacePlugin as RuntimeMessageInterfacePlugin } from "../message-interface/message-interface-plugin";
+import type { InterfacePluginContext as RuntimeInterfacePluginContext } from "../interface/context";
 import type {
   EditMessageRequest,
   SendMessageToChannelRequest,
@@ -52,13 +53,17 @@ class MessageInterfacePluginDelegate<
     super(id, packageJson, config, configSchema);
   }
 
-  protected override async onRegister(context: never): Promise<void> {
+  protected override async onRegister(
+    context: RuntimeInterfacePluginContext,
+  ): Promise<void> {
     await super.onRegister(context);
-    await this.hooks.onRegister(context as InterfacePluginContext);
+    await this.hooks.onRegister(context);
   }
 
-  protected override onReady(context: never): Promise<void> {
-    return this.hooks.onReady(context as InterfacePluginContext);
+  protected override onReady(
+    context: RuntimeInterfacePluginContext,
+  ): Promise<void> {
+    return this.hooks.onReady(context);
   }
 
   protected override onShutdown(): Promise<void> {

@@ -1,4 +1,5 @@
 import { EntityPlugin as RuntimeEntityPlugin } from "../entity/entity-plugin";
+import type { EntityPluginContext as RuntimeEntityPluginContext } from "../entity/context";
 import type {
   IShell,
   PluginCapabilities,
@@ -59,12 +60,16 @@ class EntityPluginDelegate<
     return this.hooks.getAdapter();
   }
 
-  protected override onRegister(context: never): Promise<void> {
-    return this.hooks.onRegister(context as EntityPluginContext);
+  protected override onRegister(
+    context: RuntimeEntityPluginContext,
+  ): Promise<void> {
+    return this.hooks.onRegister(context);
   }
 
-  protected override onReady(context: never): Promise<void> {
-    return this.hooks.onReady(context as EntityPluginContext);
+  protected override onReady(
+    context: RuntimeEntityPluginContext,
+  ): Promise<void> {
+    return this.hooks.onReady(context);
   }
 
   protected override onShutdown(): Promise<void> {
@@ -86,13 +91,9 @@ class EntityPluginDelegate<
   protected override interceptCreate(
     input: CreateInput,
     executionContext: CreateExecutionContext,
-    context: never,
+    context: RuntimeEntityPluginContext,
   ): Promise<CreateInterceptionResult> {
-    return this.hooks.interceptCreate(
-      input,
-      executionContext,
-      context as EntityPluginContext,
-    );
+    return this.hooks.interceptCreate(input, executionContext, context);
   }
 }
 
