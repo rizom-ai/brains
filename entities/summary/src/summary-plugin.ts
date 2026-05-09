@@ -13,11 +13,11 @@ import {
 } from "@brains/conversation-service";
 import { z } from "@brains/utils";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
-import type { SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
   summarySchema,
   type SummaryConfig,
+  type SummaryEntity,
 } from "./schemas/summary";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import { summaryListTemplate } from "./templates/summary-list";
@@ -26,6 +26,7 @@ import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
 import { registerSummaryDashboardWidget } from "./lib/dashboard-widget";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
   SUMMARY_ENTITY_TYPE,
   SUMMARY_JOB_SOURCE,
@@ -86,6 +87,7 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
         },
         initialSync: {
           shouldEnqueue: async () =>
+            context.spaces.length > 0 &&
             !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE)),
           jobData: { mode: "rebuild-all", reason: "initial-sync" },
           jobOptions: {
@@ -124,7 +126,8 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
           ): {
             priority: number;
             source: string;
-            deduplication: "coalesce";
+            delayMs: number;
+            deduplication: "skip";
             deduplicationKey: string;
             metadata: {
               operationType: "data_processing";
@@ -135,8 +138,9 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
             const parsed = conversationMessageAddedSchema.parse(payload);
             return {
               priority: 5,
+              delayMs: this.config.projectionDelayMs,
               source: SUMMARY_JOB_SOURCE,
-              deduplication: "coalesce",
+              deduplication: "skip",
               deduplicationKey: `summary:${parsed.conversationId}`,
               metadata: {
                 operationType: "data_processing" as const,
@@ -156,41 +160,31 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   ): Promise<boolean> {
     const parsed = conversationMessageAddedSchema.parse(payload);
 
-    const messageCount = await context.conversations.countMessages(
+    const conversation = await context.conversations.get(parsed.conversationId);
+    if (!conversation) return false;
+
+    const messages = await context.conversations.getMessages(
       parsed.conversationId,
+      { limit: this.config.maxSourceMessages },
     );
-    if (messageCount === 0) return false;
+    const eligibility = evaluateSummaryEligibility({
+      conversation,
+      spaces: context.spaces,
+      messages,
+    });
+    if (!eligibility.eligible) return false;
 
-    let existing: SummaryEntity | null = null;
-    try {
-      existing = await context.entityService.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: parsed.conversationId,
-      });
-    } catch {
-      existing = null;
-    }
-
-    if (!existing) {
-      return messageCount >= this.config.minMessagesBetweenProjections;
-    }
-
-    const newMessageCount = messageCount - existing.metadata.messageCount;
-    if (newMessageCount >= this.config.minMessagesBetweenProjections) {
-      return true;
-    }
-
-    if (newMessageCount <= 0) return false;
-    if (this.config.minMinutesBetweenProjections <= 0) return true;
-
-    const elapsedMs = Date.now() - Date.parse(existing.updated);
-    return elapsedMs >= this.config.minMinutesBetweenProjections * 60_000;
+    return messages.length > 0;
   }
 
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    registerSummaryDashboardWidget({ context, pluginId: this.id });
+    registerSummaryDashboardWidget({
+      context,
+      pluginId: this.id,
+      config: this.config,
+    });
 
     registerSummaryEvalHandlers({
       context,

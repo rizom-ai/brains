@@ -464,6 +464,10 @@ export class Shell implements IShell {
     return this.config.siteBaseUrl;
   }
 
+  public getSpaces(): string[] {
+    return this.config.spaces;
+  }
+
   public getDataDir(): string {
     return this.config.dataDir;
   }

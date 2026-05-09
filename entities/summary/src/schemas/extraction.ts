@@ -27,3 +27,12 @@ export const summaryExtractionResultSchema = z.object({
 export type SummaryExtractionResult = z.infer<
   typeof summaryExtractionResultSchema
 >;
+
+export const summaryProjectionDecisionSchema = z.object({
+  decision: z.enum(["skip", "update", "append"]),
+  rationale: z.string(),
+});
+
+export type SummaryProjectionDecision = z.infer<
+  typeof summaryProjectionDecisionSchema
+>;

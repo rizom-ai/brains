@@ -101,6 +101,9 @@ const instanceOverridesSchema = z.object({
   /** Trusted users (elevated access) */
   trusted: z.array(z.string()).optional(),
 
+  /** Shared conversation spaces for this brain/team */
+  spaces: z.array(z.string()).optional(),
+
   /**
    * Per-plugin config overrides and external plugin declarations, keyed by plugin ID.
    *

@@ -34,20 +34,17 @@ function messagesFor(conversationId: string): Message[] {
   ];
 }
 
-describe("SummaryProjectionHandler", () => {
-  it("projects one conversation job", async () => {
-    const context = createMockEntityPluginContext();
-    spyOn(context.conversations, "get").mockResolvedValue(
-      conversations[0] ?? null,
-    );
-    spyOn(context.conversations, "getMessages").mockResolvedValue(
-      messagesFor("conv-1"),
-    );
-    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
-    spyOn(context.ai, "generate").mockResolvedValue({
+function mockProjectionAi(
+  context: ReturnType<typeof createMockEntityPluginContext>,
+): void {
+  spyOn(context.ai, "generateObject").mockResolvedValue({
+    object: { decision: "update", rationale: "test" },
+  });
+  spyOn(context.ai, "generate").mockImplementation(<T>() => {
+    return Promise.resolve({
       entries: [
         {
-          title: "Single projection",
+          title: "Projection",
           summary: "The conversation was summarized.",
           startMessageIndex: 1,
           endMessageIndex: 1,
@@ -56,7 +53,23 @@ describe("SummaryProjectionHandler", () => {
           actionItems: [],
         },
       ],
+    } as T);
+  });
+}
+
+describe("SummaryProjectionHandler", () => {
+  it("projects one conversation job", async () => {
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
     });
+    spyOn(context.conversations, "get").mockResolvedValue(
+      conversations[0] ?? null,
+    );
+    spyOn(context.conversations, "getMessages").mockResolvedValue(
+      messagesFor("conv-1"),
+    );
+    spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    mockProjectionAi(context);
 
     const handler = new SummaryProjectionHandler(
       context,
@@ -77,7 +90,9 @@ describe("SummaryProjectionHandler", () => {
   });
 
   it("rebuilds all listed conversations", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     spyOn(context.conversations, "list").mockResolvedValue(conversations);
     spyOn(context.conversations, "get").mockImplementation((conversationId) =>
       Promise.resolve(
@@ -90,19 +105,7 @@ describe("SummaryProjectionHandler", () => {
       (conversationId) => Promise.resolve(messagesFor(conversationId)),
     );
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
-    spyOn(context.ai, "generate").mockResolvedValue({
-      entries: [
-        {
-          title: "Rebuild projection",
-          summary: "The conversation was summarized during rebuild.",
-          startMessageIndex: 1,
-          endMessageIndex: 1,
-          keyPoints: [],
-          decisions: [],
-          actionItems: [],
-        },
-      ],
-    });
+    mockProjectionAi(context);
 
     const handler = new SummaryProjectionHandler(
       context,

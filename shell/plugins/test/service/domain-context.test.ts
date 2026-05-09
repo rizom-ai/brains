@@ -75,6 +75,25 @@ describe("Top-level context properties", () => {
     });
   });
 
+  describe("context.spaces", () => {
+    it("should expose configured shared conversation spaces", () => {
+      const shell = createMockShell({
+        logger,
+        spaces: ["discord:project-*", "mcp:weekly-sync"],
+      });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.spaces).toEqual(["discord:project-*", "mcp:weekly-sync"]);
+    });
+
+    it("should default to an empty list", () => {
+      const shell = createMockShell({ logger });
+      const context = createBasePluginContext(shell, "test-plugin");
+
+      expect(context.spaces).toEqual([]);
+    });
+  });
+
   describe("context.appInfo", () => {
     it("should return app metadata", async () => {
       const shell = createMockShell({ logger });

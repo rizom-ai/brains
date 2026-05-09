@@ -73,6 +73,7 @@ export const shellConfigSchema = z.object({
   features: z.object({}).default({}),
   plugins: z.array(pluginMetadataSchema).default([]),
   dataDir: z.string().default("./brain-data"),
+  spaces: z.array(z.string()).default([]),
   siteBaseUrl: z.string().optional(),
   entityDisplay: z
     .record(
@@ -142,6 +143,7 @@ export function createShellConfig(
     features: {},
     plugins: overrides.plugins ?? [],
     permissions: overrides.permissions ?? {},
+    spaces: overrides.spaces ?? [],
     ...(overrides.dataDir && { dataDir: overrides.dataDir }),
     ...(overrides.siteBaseUrl && { siteBaseUrl: overrides.siteBaseUrl }),
     ...(overrides.entityDisplay && { entityDisplay: overrides.entityDisplay }),

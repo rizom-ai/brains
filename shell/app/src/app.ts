@@ -31,6 +31,7 @@ export class App {
 
     // Only add optional properties if they're defined
     if (config?.permissions) appConfig.permissions = config.permissions;
+    if (config?.spaces) appConfig.spaces = config.spaces;
     if (config?.cliConfig) appConfig.cliConfig = config.cliConfig;
     if (config?.shellConfig) appConfig.shellConfig = config.shellConfig;
     return new App(appConfig, shell);
@@ -75,6 +76,7 @@ export class App {
     this.applyAIConfig(shellConfig, options);
     this.applyLoggingConfig(shellConfig);
     this.applyPermissionConfig(shellConfig);
+    this.applySpacesConfig(shellConfig);
     this.applyIdentityConfig(shellConfig);
     this.applyAgentInstructions(shellConfig);
     this.applyAppMetadata(shellConfig);
@@ -132,6 +134,12 @@ export class App {
   private applyPermissionConfig(shellConfig: ShellConfig): void {
     if (this.config.permissions) {
       shellConfig.permissions = this.config.permissions;
+    }
+  }
+
+  private applySpacesConfig(shellConfig: ShellConfig): void {
+    if (this.config.spaces) {
+      shellConfig.spaces = this.config.spaces;
     }
   }
 

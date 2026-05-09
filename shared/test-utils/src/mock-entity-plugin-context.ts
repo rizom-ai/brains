@@ -32,6 +32,7 @@ export interface MockEntityPluginContextOptions {
   entityTypes?: string[];
   pluginId?: string;
   dataDir?: string;
+  spaces?: string[];
   returns?: {
     entityService?: MockEntityServiceReturns;
     ai?: MockAIReturns;
@@ -53,6 +54,7 @@ export function createMockEntityPluginContext(
     entityTypes = [],
     pluginId = "test-plugin",
     dataDir = "/tmp/test-data",
+    spaces = [],
     returns = {},
     listEntitiesImpl,
   } = options;
@@ -130,6 +132,7 @@ export function createMockEntityPluginContext(
     ),
 
     domain: undefined,
+    spaces,
     siteUrl: undefined,
     previewUrl: undefined,
 

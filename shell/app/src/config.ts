@@ -19,6 +19,7 @@ export function defineConfig(config: AppConfig): AppConfig {
 
   // Only add optional properties if they're defined
   if (config.permissions) finalConfig.permissions = config.permissions;
+  if (config.spaces) finalConfig.spaces = config.spaces;
   if (config.cliConfig) finalConfig.cliConfig = config.cliConfig;
   if (config.shellConfig) finalConfig.shellConfig = config.shellConfig;
   if (config.identity) finalConfig.identity = config.identity;

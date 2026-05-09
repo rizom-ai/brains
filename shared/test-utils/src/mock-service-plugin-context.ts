@@ -38,6 +38,8 @@ export interface MockServicePluginContextOptions {
   pluginId?: string;
   /** Data directory path */
   dataDir?: string;
+  /** Shared conversation spaces */
+  spaces?: string[];
   /** Pre-configured return values for methods */
   returns?: MockServicePluginContextReturns;
   /** Dynamic implementation for listEntities */
@@ -81,6 +83,7 @@ export function createMockServicePluginContext(
     entityTypes = [],
     pluginId = "test-plugin",
     dataDir = "/tmp/test-data",
+    spaces = [],
     returns = {},
     listEntitiesImpl,
   } = options;
@@ -133,6 +136,7 @@ export function createMockServicePluginContext(
 
     // Domain (top-level, like dataDir)
     domain: undefined,
+    spaces,
     siteUrl: undefined,
     previewUrl: undefined,
 

@@ -81,6 +81,8 @@ export const appConfigSchema = z.object({
   logFile: z.string().optional(), // Maps to logging.file
   // Plugins - validate metadata structure, trust the register function exists
   plugins: z.array(pluginMetadataSchema).default([]),
+  // Shared conversation spaces for this brain/team
+  spaces: z.array(z.string()).default([]),
   // Identity - override default identity for this app
   identity: brainCharacterBodySchema.optional(),
   // Brain-specific instructions appended to shell-neutral agent instructions
@@ -91,7 +93,7 @@ export const appConfigSchema = z.object({
 
 export type AppConfig = Omit<
   z.infer<typeof appConfigSchema>,
-  "plugins" | "deployment"
+  "plugins" | "deployment" | "spaces"
 > & {
   plugins?: Plugin[];
   // Deployment configuration (optional - accepts partial config, defaults applied by schema)
@@ -102,4 +104,6 @@ export type AppConfig = Omit<
   cliConfig?: CLIConfig;
   // Permissions - centralized permission configuration
   permissions?: PermissionConfig;
+  // Shared conversation spaces for this brain/team
+  spaces?: string[];
 };

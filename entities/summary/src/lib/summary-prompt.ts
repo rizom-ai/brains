@@ -6,6 +6,11 @@ export interface SummaryPromptInput {
   config: SummaryConfig;
 }
 
+export interface SummaryProjectionDecisionPromptInput {
+  existingSummary?: string | undefined;
+  messages: Message[];
+}
+
 function formatMessages(messages: Message[]): string {
   if (messages.length === 0) return "(No messages.)";
 
@@ -15,6 +20,35 @@ function formatMessages(messages: Message[]): string {
         `${index + 1}. [${message.timestamp}] ${message.role}: ${message.content}`,
     )
     .join("\n");
+}
+
+function truncate(value: string, maxLength: number): string {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, maxLength)}\n...(truncated)`;
+}
+
+export function buildSummaryProjectionDecisionPrompt(
+  input: SummaryProjectionDecisionPromptInput,
+): string {
+  const existingSummary = input.existingSummary?.trim();
+
+  return `Decide how to project durable conversation memory.
+
+Existing summary:
+${existingSummary ? truncate(existingSummary, 4000) : "(No existing summary.)"}
+
+New or changed messages:
+${formatMessages(input.messages)}
+
+Rules:
+- Return "skip" when the new messages are only low-signal chatter, acknowledgements, retries, or do not add durable memory.
+- Return "append" when the new messages add durable facts, decisions, or action items that can be added after the existing summary without rewriting older entries.
+- Return "update" when there is no existing summary, when older entries must be corrected, or when the new messages contradict or substantially reframe prior memory.
+- Do not summarize in this step; only decide.
+
+Return JSON with:
+- decision: "skip", "update", or "append"
+- rationale: brief reason`;
 }
 
 export function buildSummaryExtractionPrompt(
