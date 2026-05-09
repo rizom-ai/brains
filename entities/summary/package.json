@@ -1,7 +1,7 @@
 {
   "name": "@brains/summary",
   "private": true,
-  "version": "0.2.0-alpha.54",
+  "version": "0.2.0-alpha.55",
   "description": "Plugin for deriving durable conversation summaries",
   "type": "module",
   "main": "./src/index.ts",

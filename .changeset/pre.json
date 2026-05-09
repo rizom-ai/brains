@@ -101,6 +101,7 @@
     "bitwarden-secrets-push",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
+    "brain-oauth-provider",
     "brains-ops-published-delivery",
     "brains-ops-smoke-gate",
     "bundle-ranger-relay-models",
