@@ -21,6 +21,19 @@ async function loadConfigWithEnv(
   return module as typeof ShellConfigModule;
 }
 
+describe("shell config", () => {
+  it("preserves shared conversation spaces", async () => {
+    const { createShellConfig } = await loadConfigWithEnv({});
+
+    const config = createShellConfig({
+      ai: { apiKey: "test-key", model: "gpt-4o-mini" },
+      spaces: ["discord:project-*"],
+    });
+
+    expect(config.spaces).toEqual(["discord:project-*"]);
+  });
+});
+
 describe("standard shell paths", () => {
   it("uses XDG_DATA_HOME for state databases when set", async () => {
     const { getStandardConfig } = await loadConfigWithEnv({

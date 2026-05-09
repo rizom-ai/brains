@@ -196,6 +196,9 @@ export interface IShell {
   // Domain — bare domain string (e.g. "yeehaa.io"), undefined for local dev
   getDomain(): string | undefined;
 
+  // Shared conversation spaces for this brain/team
+  getSpaces(): string[];
+
   // Data directory - where plugins should store entity files
   // Default: ./brain-data, can be overridden for evals or custom deployments
   getDataDir(): string;

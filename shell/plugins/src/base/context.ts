@@ -165,6 +165,9 @@ export interface BasePluginContext {
   /** Entity display metadata from the active site package, if any */
   readonly entityDisplay: Record<string, EntityDisplayEntry> | undefined;
 
+  /** Shared conversation spaces for this brain/team */
+  readonly spaces: string[];
+
   /** App metadata (version, model, plugins) */
   readonly appInfo: () => Promise<AppInfo>;
 
@@ -282,6 +285,7 @@ export function createBasePluginContext(
     siteUrl: domain ? `https://${domain}` : undefined,
     previewUrl: domain ? `https://${derivePreviewDomain(domain)}` : undefined,
     entityDisplay: registrationContext?.entityDisplay,
+    spaces: shell.getSpaces(),
 
     messaging: createMessagingNamespace(shell, pluginId, logger),
 

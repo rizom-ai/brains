@@ -370,6 +370,21 @@ permissions:
     expect(result.permissions?.anchors).toEqual(["cli:*"]);
     expect(result.permissions?.trusted).toEqual(["discord:123456789"]);
   });
+
+  test("should parse shared conversation spaces", () => {
+    const yaml = `brain: relay
+spaces:
+  - "discord:987654321"
+  - "discord:project-*"
+  - "mcp:weekly-sync"
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.spaces).toEqual([
+      "discord:987654321",
+      "discord:project-*",
+      "mcp:weekly-sync",
+    ]);
+  });
 });
 
 // --- parseInstanceOverrides: null handling and error surfacing ---
@@ -409,6 +424,16 @@ anchors: []
 `;
     const result = parseInstanceOverrides(yaml);
     expect(result.anchors).toEqual([]);
+  });
+
+  test("empty spaces field is treated as absent, not null", () => {
+    const yaml = `brain: relay
+spaces:
+logLevel: debug
+`;
+    const result = parseInstanceOverrides(yaml);
+    expect(result.spaces).toBeUndefined();
+    expect(result.logLevel).toBe("debug");
   });
 
   test("null values inside nested plugin config are stripped", () => {
@@ -940,6 +965,19 @@ describe("resolve with instance overrides", () => {
 
     // yaml anchors override definition anchors
     expect(config.permissions?.anchors).toEqual(["mcp:stdio"]);
+  });
+
+  test("should pass spaces from yaml overrides to app config", () => {
+    const def = defineBrain({
+      name: "test",
+      version: "1.0.0",
+      capabilities: [],
+      interfaces: [],
+    });
+
+    const config = resolve(def, {}, { spaces: ["discord:project-*"] });
+
+    expect(config.spaces).toEqual(["discord:project-*"]);
   });
 
   test("should resolve @-prefixed values from package registry", () => {

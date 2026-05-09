@@ -457,6 +457,7 @@ export function resolve(
       agentInstructions: definition.agentInstructions,
     }),
     ...buildPermissions(definition.permissions, overrides),
+    ...(overrides?.spaces ? { spaces: overrides.spaces } : {}),
     deployment,
     ...buildRuntimeOverrides(env, overrides),
   };
