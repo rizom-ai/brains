@@ -1,4 +1,5 @@
 import type { JSX, ComponentChildren } from "preact";
+import { createTemplate } from "@brains/plugins";
 import type { RouteDefinitionInput } from "@brains/site-composition";
 import type { SiteContentDefinition } from "@brains/site-content";
 import { z } from "@brains/utils";
@@ -9,6 +10,14 @@ import {
   createRizomSite,
   type RizomLayoutProps,
 } from "@brains/site-rizom";
+import {
+  formatRelayDiagramContent,
+  parseRelayDiagramContent,
+  relayDiagramBaseContentSchema,
+  relayDiagramContentSchema,
+  type RelayDiagramContent,
+} from "./home-diagram-content";
+import { RelayHomeCountsDataSource } from "./home-counts-datasource";
 
 const ctaLinkSchema = z.object({
   label: z.string(),
@@ -66,80 +75,6 @@ type RelayHeroContent = z.infer<typeof relayHeroContentSchema>;
 type RelayLoopContent = z.infer<typeof relayLoopContentSchema>;
 type RelaySurfaceContent = z.infer<typeof relaySurfaceContentSchema>;
 type RelayAboutContent = z.infer<typeof relayAboutContentSchema>;
-
-const HOME_HERO_FALLBACK: RelayHeroContent = {
-  eyebrow: "Team memory / public signal",
-  headline: "Relay turns shared work into a living knowledge surface.",
-  intro:
-    "Capture decisions, links, and field notes where collaboration already happens, then synthesize them into a public-facing homepage your team can keep current.",
-  primaryCta: { label: "Explore the relay", href: "#operating-loop" },
-  secondaryCta: { label: "Read the model", href: "/about" },
-  signals: [
-    {
-      label: "Capture",
-      value: "Notes + links",
-      note: "Low-friction shared context",
-    },
-    {
-      label: "Synthesis",
-      value: "Topics + summaries",
-      note: "Durable memory from live work",
-    },
-    {
-      label: "Coordination",
-      value: "Peer brains",
-      note: "Approved agent-to-agent exchange",
-    },
-  ],
-};
-
-const HOME_LOOP_FALLBACK: RelayLoopContent = {
-  eyebrow: "Default relay loop",
-  title:
-    "A homepage should explain the operating rhythm, not pretend to be a brochure.",
-  intro:
-    "Relay's default site frames the team brain as an active memory system: what comes in, how it gets shaped, and where it becomes useful again.",
-  steps: [
-    {
-      phase: "01",
-      title: "Capture the trace",
-      text: "Team notes, links, and chat context enter as simple entities with sourceable metadata.",
-    },
-    {
-      phase: "02",
-      title: "Synthesize the pattern",
-      text: "Summaries and topics turn raw capture into a map of what the team already knows.",
-    },
-    {
-      phase: "03",
-      title: "Share the surface",
-      text: "A minimal public site exposes the stable story while private memory keeps moving underneath.",
-    },
-  ],
-};
-
-const HOME_SURFACE_FALLBACK: RelaySurfaceContent = {
-  title: "The default Relay template",
-  intro:
-    "The shape is intentionally simple: a clear positioning hero, the capture → synthesize → share loop, and a few proof surfaces that can be swapped for richer routes in the full preset.",
-  cards: [
-    {
-      label: "Private by default",
-      title: "Core memory stays operational.",
-      text: "The public site is only a surface on top of the team brain; Discord, MCP, A2A, notes, links, topics, and summaries remain the center of gravity.",
-    },
-    {
-      label: "Editable content",
-      title: "Homepage sections are durable entities.",
-      text: "Each section is backed by site-content markdown, so the sample copy becomes real starter content instead of hardcoded demo text.",
-    },
-    {
-      label: "Full preset ready",
-      title: "Docs and decks can become the knowledge hub.",
-      text: "The default preset stays minimal; full Relay instances can layer in docs, decks, and richer collection routes without changing the homepage contract.",
-    },
-  ],
-};
 
 const ABOUT_FALLBACK: RelayAboutContent = {
   title: "Relay is a collaborative team-memory brain.",
@@ -407,6 +342,199 @@ export function RelayAboutSection({
   );
 }
 
+const toneClass = (
+  tone: RelayDiagramContent["legend"][number]["tone"],
+): string => {
+  switch (tone) {
+    case "capture":
+      return "bg-accent";
+    case "synthesis":
+      return "bg-secondary";
+    case "share":
+      return "bg-accent-bright";
+  }
+};
+
+const formatCount = (value: number): string =>
+  new Intl.NumberFormat("en", {
+    notation: value > 999 ? "compact" : "standard",
+  }).format(value);
+
+const pluralizeCount = (
+  value: number,
+  singular: string,
+  plural = `${singular}s`,
+): string => `${formatCount(value)} ${value === 1 ? singular : plural}`;
+
+export function RelayDiagramSection({
+  eyebrow,
+  headline,
+  intro,
+  primaryCta,
+  secondaryCta,
+  inputs,
+  outputs,
+  core,
+  legend,
+  counts,
+}: RelayDiagramContent): JSX.Element {
+  const ringStats = [
+    {
+      key: "captures",
+      className: "top-[-10px] left-1/2 -translate-x-1/2",
+      label: pluralizeCount(counts.captures, "capture"),
+    },
+    {
+      key: "topics",
+      className: "top-1/2 right-[-28px] -translate-y-1/2",
+      label: pluralizeCount(counts.topics, "topic"),
+    },
+    {
+      key: "peers",
+      className: "bottom-[-10px] left-1/2 -translate-x-1/2",
+      label: pluralizeCount(counts.peers, "peer brain"),
+    },
+    {
+      key: "summaries",
+      className: "top-1/2 left-[-28px] -translate-y-1/2",
+      label: pluralizeCount(counts.summaries, "summary", "summaries"),
+    },
+  ];
+
+  return (
+    <Section className="pt-[150px] pb-section md:pt-[190px]" id="diagram">
+      <div className="mx-auto max-w-[1040px] text-center">
+        <p className="font-label text-label-sm uppercase tracking-[0.28em] text-accent">
+          {eyebrow}
+        </p>
+        <h1 className="mx-auto mt-7 max-w-[22ch] font-display text-display-lg text-theme">
+          {headline}
+        </h1>
+        <p className="mx-auto mt-7 max-w-[64ch] font-body text-body-lg text-theme-muted">
+          {intro}
+        </p>
+        <div className="mt-10 flex flex-col justify-center gap-3 sm:flex-row">
+          <Button href={primaryCta.href} size="lg" variant="primary-strong">
+            {primaryCta.label}
+          </Button>
+          <Button href={secondaryCta.href} size="lg" variant="secondary">
+            {secondaryCta.label}
+          </Button>
+        </div>
+      </div>
+
+      <div className="mx-auto mt-20 max-w-[1020px] rounded-[32px] border border-theme-light bg-[radial-gradient(circle_at_1px_1px,rgb(255_255_255_/_0.05)_1px,transparent_0),linear-gradient(180deg,rgb(255_255_255_/_0.02),transparent)] bg-[length:24px_24px,100%_100%] px-6 py-14">
+        <div className="grid items-center gap-8 lg:grid-cols-[1fr_1.4fr_1fr]">
+          <div className="flex flex-col gap-3.5">
+            {inputs.map((node) => (
+              <div
+                key={`${node.label}-${node.title}`}
+                className="rounded-2xl border border-card-panel-border border-l-2 border-l-accent bg-card-panel-bg px-4 py-4 text-left backdrop-blur-sm"
+              >
+                <p className="font-label text-[10px] uppercase tracking-[0.22em] text-secondary">
+                  {node.label}
+                </p>
+                <h2 className="mt-1.5 font-display text-[18px] font-medium text-theme">
+                  {node.title}
+                </h2>
+                <p className="mt-1 font-body text-[13px] leading-[1.5] text-theme-muted">
+                  {node.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          <div className="relative mx-auto grid aspect-square w-full max-w-[320px] place-items-center rounded-full bg-[radial-gradient(circle_at_center,rgb(232_119_34_/_0.25),transparent_65%)]">
+            <div className="absolute inset-0 rounded-full border border-dashed border-accent/30" />
+            <div className="absolute inset-6 animate-spin rounded-full border border-dashed border-secondary/40 [animation-duration:28s]" />
+            {ringStats.map((stat) => (
+              <span
+                key={stat.key}
+                className={`absolute whitespace-nowrap rounded-full border border-theme bg-bg px-2.5 py-1 font-label text-[10px] uppercase tracking-[0.18em] text-theme-light ${stat.className}`}
+              >
+                {stat.label}
+              </span>
+            ))}
+            <div className="relative z-[1] px-6 text-center">
+              <p className="font-label text-[10px] uppercase tracking-[0.28em] text-accent">
+                {core.eyebrow}
+              </p>
+              <p className="mt-2 font-display text-[36px] leading-none text-theme">
+                {core.name}
+              </p>
+              <p className="mt-2 font-body text-[13px] text-theme-muted">
+                {core.sub}
+              </p>
+              <p className="mt-4 font-label text-[10px] uppercase tracking-[0.18em] text-theme-light">
+                {pluralizeCount(counts.links, "link")} indexed
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-3.5">
+            {outputs.map((node) => (
+              <div
+                key={`${node.label}-${node.title}`}
+                className="rounded-2xl border border-card-panel-border border-r-2 border-r-secondary bg-card-panel-bg px-4 py-4 text-left backdrop-blur-sm"
+              >
+                <p className="font-label text-[10px] uppercase tracking-[0.22em] text-secondary">
+                  {node.label}
+                </p>
+                <h2 className="mt-1.5 font-display text-[18px] font-medium text-theme">
+                  {node.title}
+                </h2>
+                <p className="mt-1 font-body text-[13px] leading-[1.5] text-theme-muted">
+                  {node.detail}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-14 grid gap-4 border-t border-theme-light pt-8 md:grid-cols-3">
+          {legend.map((item) => (
+            <div key={item.title} className="text-left">
+              <h2 className="font-display text-[16px] font-medium text-theme">
+                <span
+                  className={`mr-2.5 inline-block h-3 w-3 rounded-[3px] align-middle ${toneClass(item.tone)}`}
+                />
+                {item.title}
+              </h2>
+              <p className="mt-1.5 font-body text-[13px] leading-[1.6] text-theme-muted">
+                {item.text}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Section>
+  );
+}
+
+const relayDiagramTemplate = createTemplate<RelayDiagramContent>({
+  name: "home-diagram",
+  description: "Relay homepage system diagram with live entity counts",
+  schema: relayDiagramContentSchema,
+  formatter: {
+    parse: (content: string) =>
+      relayDiagramContentSchema.parse({
+        ...parseRelayDiagramContent(content),
+        counts: {
+          captures: 0,
+          links: 0,
+          topics: 0,
+          summaries: 0,
+          peers: 0,
+        },
+      }),
+    format: (content: unknown) =>
+      formatRelayDiagramContent(relayDiagramBaseContentSchema.parse(content)),
+  },
+  dataSourceId: "relay-site:home-counts",
+  requiredPermission: "public",
+  layout: { component: RelayDiagramSection },
+});
+
 const RelayHeroSectionLayout = (props: unknown): JSX.Element =>
   RelayHeroSection(relayHeroContentSchema.parse(props));
 const RelayLoopSectionLayout = (props: unknown): JSX.Element =>
@@ -534,19 +662,8 @@ export const relayRoutes: RouteDefinitionInput[] = [
     },
     sections: [
       {
-        id: "hero",
-        template: "relay-site:home-hero",
-        content: HOME_HERO_FALLBACK,
-      },
-      {
-        id: "loop",
-        template: "relay-site:home-loop",
-        content: HOME_LOOP_FALLBACK,
-      },
-      {
-        id: "surface",
-        template: "relay-site:home-surface",
-        content: HOME_SURFACE_FALLBACK,
+        id: "diagram",
+        template: "relay-site:home-diagram",
       },
     ],
   },
@@ -578,5 +695,6 @@ export const relaySite = createRizomSite({
   themeProfile: "studio",
   layout: RelayLayout,
   routes: relayRoutes,
-  templates: {},
+  templates: { "home-diagram": relayDiagramTemplate },
+  dataSources: [new RelayHomeCountsDataSource()],
 });

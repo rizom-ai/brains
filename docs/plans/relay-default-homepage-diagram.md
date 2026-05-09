@@ -2,8 +2,9 @@
 
 ## Status
 
-Proposed. Visual direction picked (direction C from the mock); investigation
-of the data-wiring path complete; not yet implemented.
+Implemented. Direction C from the mock is now the Relay default homepage:
+a single system-diagram section backed by live entity counts and editable
+`site-content` copy.
 
 ## Mock
 
@@ -15,11 +16,11 @@ signals), B (Editorial brief), and C (System diagram). This plan implements
 
 ## Context
 
-The current Relay default homepage (`brains/relay/src/site.tsx`) ships three
-sections — hero, operating-loop, and surface-cards — that all explain the
-same thing in different shapes. The result reads like a marketing page that
-isn't backed by anything; the copy talks about capture/synthesize/share but
-nothing on the page is _evidence_ of it.
+The previous Relay default homepage (`brains/relay/src/site.tsx`) shipped
+three sections — hero, operating-loop, and surface-cards — that all explained
+the same thing in different shapes. The result read like a marketing page
+that wasn't backed by anything; the copy talked about capture/synthesize/share
+but nothing on the page was _evidence_ of it.
 
 Direction C reframes the homepage around an annotated system diagram:
 capture sources flow into a central brain that fans out to public surfaces.
@@ -106,42 +107,46 @@ shape before render.
 
 ## Work
 
-1. **DataSource** — `brains/relay/src/home-counts-datasource.ts`. ~50 LOC.
-   Calls `entityService.countEntities()` per type with a per-type `try/catch
-→ 0` guard. Implements the `DataSource` interface; `id =
-"relay-site:home-counts"`.
+1. **DataSource** — implemented in
+   `brains/relay/src/home-counts-datasource.ts`. It calls
+   `entityService.countEntities()` per type with a per-type guard so missing
+   or unregistered entity types yield `0`.
 
-2. **Section template + layout** — extend `relaySiteContentDefinition.sections`
-   in `brains/relay/src/site.tsx` with a `home-diagram` entry. New
-   `RelayDiagramSection` component ports the C mock to Preact, using
-   existing `Section` / `Button` from `@brains/site-rizom`. CSS-only ring
-   animation stays inline (or moves to a small style block in the layout).
+2. **Section template + layout** — implemented in `brains/relay/src/site.tsx`
+   as `RelayDiagramSection` plus a manual `relay-site:home-diagram` template.
+   The old hero/loop/surface components and schemas remain defined but are no
+   longer mounted by `/`.
 
-3. **Wire DataSource to template** — add `dataSourceId:
-"relay-site:home-counts"` on the `home-diagram` template; register the
-   DataSource through whatever path the relay site does it (mirror the
-   `rizom-ecosystem` template registration).
+3. **Wire DataSource to template** — implemented via `dataSourceId:
+"relay-site:home-counts"`. `@brains/site-rizom` now lets variant sites
+   register DataSources alongside extra templates.
 
-4. **Replace home route sections** — `relayRoutes` home goes to a single
-   `home-diagram` section. Hero/loop/surface schemas + components stay in
-   the file, just unused by `/`.
+4. **Replace home route sections** — implemented: `relayRoutes` now mounts a
+   single `diagram` section for `/`.
 
-5. **Seed content** — replace `seed-content/site-content/home/{hero,loop,
-surface}.md` with one `home/diagram.md` matching the new schema (hero
-   copy + inputs/outputs/core/legend). No counts in the markdown.
+5. **Seed content** — implemented: `seed-content/site-content/home/diagram.md`
+   and `eval-content/site-content/home/diagram.md` hold editable diagram copy.
+   Counts are not stored in markdown.
 
-6. **Verify** — `bun run start:default` from `brains/relay`, confirm the
-   homepage renders with zeroed counts on an empty brain, then seed a few
-   entities and confirm the numbers move.
+6. **Verify** — verified locally with `bun start:default`; preview output
+   renders the diagram and live counts from the current test-app entity set.
+
+## Verification
+
+- `bun run typecheck` in `brains/relay` passes.
+- `bun run typecheck` in `sites/rizom` passes.
+- Relay `src` ESLint passes.
+- `sites/rizom` lint passes.
+- Default test app boots and emits a preview build. Background AI jobs may
+  fail with a dummy `AI_API_KEY`, but the homepage build succeeds.
 
 ## Risks / open questions
 
-- **Entity type for "captures"**: assumed to be `base` (notes). Confirm
-  during implementation; if Relay considers links + notes as combined
-  "captures", the DataSource sums both.
-- **Peer-brain count source**: `@brains/agent-discovery`'s `agent` entity
-  type is the assumption. If discovered peers live in a different store
-  (e.g. an A2A registry), swap the source.
+- **Entity type for "captures"**: currently `base` (notes). Links are counted
+  separately and shown as "links indexed" in the center of the diagram. If
+  Relay later treats links + notes as one capture number, update the DataSource.
+- **Peer-brain count source**: currently `agent` from `@brains/agent-discovery`.
+  If discovered peers move to an A2A registry, swap the source.
 - **Empty-state copy**: at zero counts the diagram still shows "0 captures,
-  0 topics" etc. Likely fine — it makes the install state legible — but
-  worth a glance before merging.
+  0 topics" etc. This is intentional for fresh installs, but worth revisiting
+  after the first demo.
