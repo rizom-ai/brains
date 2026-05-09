@@ -601,6 +601,25 @@ describe("StreamableHTTPServer", () => {
         );
       });
 
+      test("should use forwarded origin in OAuth resource metadata challenge", async () => {
+        const response = await makeRequest("POST", "/mcp", {
+          port,
+          headers: {
+            Host: "docs.rizom.ai",
+            "X-Forwarded-Proto": "https",
+          },
+          body: { jsonrpc: "2.0", method: "test", params: {}, id: 1 },
+        });
+
+        expect(response.status).toBe(401);
+        expect(response.headers["www-authenticate"]).toContain(
+          'resource_metadata="https://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
+        expect(response.headers["www-authenticate"]).not.toContain(
+          'resource_metadata="http://docs.rizom.ai/.well-known/oauth-protected-resource"',
+        );
+      });
+
       test("should reject MCP requests with invalid token", async () => {
         const response = await makeRequest("POST", "/mcp", {
           port,
