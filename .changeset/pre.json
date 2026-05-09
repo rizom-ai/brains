@@ -131,6 +131,7 @@
     "ops-dockerfile-reconcile",
     "ops-per-user-plaintext-secrets",
     "ops-workflow-race-reconcile",
+    "passkey-setup-url-tool",
     "personal-layout-mobile-correctness",
     "personal-template-editorial-theme",
     "pilot-deploy-reconcile-chain",

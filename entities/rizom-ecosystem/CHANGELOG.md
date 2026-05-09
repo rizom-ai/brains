@@ -1,5 +1,14 @@
 # @brains/rizom-ecosystem
 
+## 0.2.0-alpha.57
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @brains/utils@0.2.0-alpha.57
+  - @brains/plugins@0.2.0-alpha.57
+  - @rizom/ui@0.2.0-alpha.57
+
 ## 0.2.0-alpha.56
 
 ### Patch Changes
