@@ -4,7 +4,7 @@
 
 Planning document for `@brains/summary` follow-up work after the projection-based summary rearchitecture.
 
-The current package is healthy enough structurally: summaries are derived from stored conversations via projection jobs, not digest events. The next question is product/architecture: what should summaries *do* for the brain?
+The current package is healthy enough structurally: summaries are derived from stored conversations via projection jobs, not digest events. The next question is product/architecture: what should summaries _do_ for the brain?
 
 ## Settled decisions
 
@@ -297,9 +297,9 @@ Current evals test summary generation. Add memory-behavior evals:
 
 ### Phase 4 — context retrieval
 
-- Add explicit memory retrieval contract.
-- Rank by space, recency, and relevance.
-- Add future-use evals before enabling automatic behavior broadly.
+- Add explicit memory retrieval contract. ✅ `SummaryMemoryRetriever`
+- Rank by space, recency, and relevance. ✅ same-space first, search score, then updated time
+- Add future-use evals before enabling automatic behavior broadly. In progress: unit/eval-handler coverage exists; broader behavior evals still needed before prompt injection.
 
 ## Open questions
 

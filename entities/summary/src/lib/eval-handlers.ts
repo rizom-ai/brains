@@ -3,6 +3,7 @@ import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
 import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
+import { SummaryMemoryRetriever } from "./summary-memory-retriever";
 import { SummaryProjector } from "./summary-projector";
 
 const evalMessageSchema = z.object({
@@ -18,6 +19,15 @@ const summarizeMessagesInputSchema = z.object({
 
 const projectConversationInputSchema = z.object({
   conversationId: z.string(),
+});
+
+const retrieveMemoryInputSchema = z.object({
+  query: z.string().optional(),
+  conversationId: z.string().optional(),
+  interfaceType: z.string().optional(),
+  channelId: z.string().optional(),
+  limit: z.number().int().min(1).optional(),
+  includeOtherSpaces: z.boolean().optional(),
 });
 
 const decideProjectionInputSchema = z.object({
@@ -87,6 +97,12 @@ export function registerSummaryEvalHandlers(params: {
 
     const projector = new SummaryProjector(context, logger, config);
     return projector.decideProjection(messages, existing);
+  });
+
+  context.eval.registerHandler("retrieveMemory", async (input: unknown) => {
+    const parsed = retrieveMemoryInputSchema.parse(input);
+    const retriever = new SummaryMemoryRetriever(context);
+    return retriever.retrieve(parsed);
   });
 
   context.eval.registerHandler(

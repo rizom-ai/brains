@@ -27,6 +27,12 @@ Each entry contains:
 
 Metadata contains conversation identifiers, message/entry counts, source hash, and projection version.
 
+## Memory retrieval
+
+`SummaryMemoryRetriever` is the explicit retrieval contract for using conversation memory as context. It accepts a query plus either a conversation id or an interface/channel pair, scopes results to that same conversation space by default, and returns ranked summaries with conversation, space, timestamp, and score provenance. Cross-space retrieval is opt-in with `includeOtherSpaces`.
+
+The eval handler `retrieveMemory` exposes this contract for behavior tests without enabling automatic prompt injection.
+
 ## Evals
 
 Run plugin evals with:
