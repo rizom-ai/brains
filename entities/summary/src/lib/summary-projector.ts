@@ -3,7 +3,7 @@ import { pLimit, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
-import { SUMMARY_ENTITY_TYPE } from "./constants";
+import { SUMMARY_AI_TEMPLATE_NAME, SUMMARY_ENTITY_TYPE } from "./constants";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type {
   SummaryConfig,
@@ -12,11 +12,16 @@ import type {
   SummaryMetadata,
 } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
+import { buildSummaryProjectionDecisionPrompt } from "./summary-prompt";
 import {
   evaluateSummaryEligibility,
   type SummaryEligibilityReason,
 } from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
+import {
+  summaryProjectionDecisionSchema,
+  type SummaryProjectionDecision,
+} from "../schemas/extraction";
 
 export interface ProjectSummaryResult {
   conversationId: string;
@@ -25,7 +30,7 @@ export interface ProjectSummaryResult {
   entryCount: number;
   messageCount: number;
   sourceHash: string;
-  skipReason?: SummaryEligibilityReason | "unchanged";
+  skipReason?: SummaryEligibilityReason | "unchanged" | "ai-skip";
 }
 
 export class SummaryProjector {
@@ -91,7 +96,42 @@ export class SummaryProjector {
       };
     }
 
-    const entries = await this.extractEntries(source.messages);
+    const decision = await this.decideProjection(source.messages, existing);
+    if (decision.decision === "skip") {
+      this.logger.info(
+        "Skipping conversation summary projection by AI decision",
+        {
+          conversationId,
+          rationale: decision.rationale,
+        },
+      );
+      return {
+        conversationId,
+        created: false,
+        skipped: true,
+        entryCount: existing?.metadata.entryCount ?? 0,
+        messageCount: source.messages.length,
+        sourceHash: source.sourceHash,
+        skipReason: "ai-skip",
+      };
+    }
+
+    const entries = await this.extractProjectedEntries(
+      source.messages,
+      existing,
+      decision.decision,
+    );
+    if (entries.length === 0) {
+      return {
+        conversationId,
+        created: false,
+        skipped: true,
+        entryCount: existing?.metadata.entryCount ?? 0,
+        messageCount: source.messages.length,
+        sourceHash: source.sourceHash,
+        skipReason: "ai-skip",
+      };
+    }
     const timeRange = this.getTimeRange(source.messages);
     const metadata: SummaryMetadata = {
       conversationId,
@@ -136,6 +176,58 @@ export class SummaryProjector {
       messageCount: source.messages.length,
       sourceHash: source.sourceHash,
     };
+  }
+
+  private async decideProjection(
+    messages: Message[],
+    existing: SummaryEntity | null,
+  ): Promise<SummaryProjectionDecision> {
+    const decisionMessages = this.getNewOrChangedMessages(messages, existing);
+    const prompt = buildSummaryProjectionDecisionPrompt({
+      existingSummary: existing?.content,
+      messages: decisionMessages,
+    });
+    const raw = await this.context.ai.generate<unknown>({
+      prompt,
+      templateName: SUMMARY_AI_TEMPLATE_NAME,
+      data: { schema: summaryProjectionDecisionSchema },
+    });
+    const decision = summaryProjectionDecisionSchema.parse(raw);
+
+    if (!existing && decision.decision === "append") {
+      return { ...decision, decision: "update" };
+    }
+
+    return decision;
+  }
+
+  private async extractProjectedEntries(
+    messages: Message[],
+    existing: SummaryEntity | null,
+    decision: "update" | "append",
+  ): Promise<SummaryEntry[]> {
+    if (decision === "update" || !existing) {
+      return this.extractEntries(messages);
+    }
+
+    const newEntries = await this.extractEntries(
+      this.getNewOrChangedMessages(messages, existing),
+    );
+    if (newEntries.length === 0) return [];
+
+    const existingEntries = this.adapter.parseBody(existing.content).entries;
+    return this.compactEntries([...existingEntries, ...newEntries]);
+  }
+
+  private getNewOrChangedMessages(
+    messages: Message[],
+    existing: SummaryEntity | null,
+  ): Message[] {
+    if (!existing) return messages;
+
+    const offset = existing.metadata.messageCount;
+    if (offset <= 0 || offset >= messages.length) return messages;
+    return messages.slice(offset);
   }
 
   private async extractEntries(messages: Message[]): Promise<SummaryEntry[]> {

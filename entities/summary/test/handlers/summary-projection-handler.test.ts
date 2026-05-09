@@ -34,6 +34,32 @@ function messagesFor(conversationId: string): Message[] {
   ];
 }
 
+function mockProjectionAi(
+  context: ReturnType<typeof createMockEntityPluginContext>,
+): void {
+  spyOn(context.ai, "generate").mockImplementation(
+    <T>({ prompt }: { prompt: string }) => {
+      if (String(prompt).startsWith("Decide how to project")) {
+        return Promise.resolve({ decision: "update", rationale: "test" } as T);
+      }
+
+      return Promise.resolve({
+        entries: [
+          {
+            title: "Projection",
+            summary: "The conversation was summarized.",
+            startMessageIndex: 1,
+            endMessageIndex: 1,
+            keyPoints: [],
+            decisions: [],
+            actionItems: [],
+          },
+        ],
+      } as T);
+    },
+  );
+}
+
 describe("SummaryProjectionHandler", () => {
   it("projects one conversation job", async () => {
     const context = createMockEntityPluginContext({
@@ -46,19 +72,7 @@ describe("SummaryProjectionHandler", () => {
       messagesFor("conv-1"),
     );
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
-    spyOn(context.ai, "generate").mockResolvedValue({
-      entries: [
-        {
-          title: "Single projection",
-          summary: "The conversation was summarized.",
-          startMessageIndex: 1,
-          endMessageIndex: 1,
-          keyPoints: [],
-          decisions: [],
-          actionItems: [],
-        },
-      ],
-    });
+    mockProjectionAi(context);
 
     const handler = new SummaryProjectionHandler(
       context,
@@ -94,19 +108,7 @@ describe("SummaryProjectionHandler", () => {
       (conversationId) => Promise.resolve(messagesFor(conversationId)),
     );
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
-    spyOn(context.ai, "generate").mockResolvedValue({
-      entries: [
-        {
-          title: "Rebuild projection",
-          summary: "The conversation was summarized during rebuild.",
-          startMessageIndex: 1,
-          endMessageIndex: 1,
-          keyPoints: [],
-          decisions: [],
-          actionItems: [],
-        },
-      ],
-    });
+    mockProjectionAi(context);
 
     const handler = new SummaryProjectionHandler(
       context,

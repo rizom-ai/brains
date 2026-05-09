@@ -13,11 +13,11 @@ import {
 } from "@brains/conversation-service";
 import { z } from "@brains/utils";
 import { SummaryProjectionHandler } from "./handlers/summary-projection-handler";
-import type { SummaryEntity } from "./schemas/summary";
 import {
   summaryConfigSchema,
   summarySchema,
   type SummaryConfig,
+  type SummaryEntity,
 } from "./schemas/summary";
 import { SummaryAdapter } from "./adapters/summary-adapter";
 import { summaryListTemplate } from "./templates/summary-list";
@@ -126,7 +126,8 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
           ): {
             priority: number;
             source: string;
-            deduplication: "coalesce";
+            delayMs: number;
+            deduplication: "skip";
             deduplicationKey: string;
             metadata: {
               operationType: "data_processing";
@@ -137,8 +138,9 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
             const parsed = conversationMessageAddedSchema.parse(payload);
             return {
               priority: 5,
+              delayMs: this.config.projectionDelayMs,
               source: SUMMARY_JOB_SOURCE,
-              deduplication: "coalesce",
+              deduplication: "skip",
               deduplicationKey: `summary:${parsed.conversationId}`,
               metadata: {
                 operationType: "data_processing" as const,
@@ -172,33 +174,7 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
     });
     if (!eligibility.eligible) return false;
 
-    const messageCount = messages.length;
-    if (messageCount === 0) return false;
-
-    let existing: SummaryEntity | null = null;
-    try {
-      existing = await context.entityService.getEntity<SummaryEntity>({
-        entityType: SUMMARY_ENTITY_TYPE,
-        id: parsed.conversationId,
-      });
-    } catch {
-      existing = null;
-    }
-
-    if (!existing) {
-      return messageCount >= this.config.minMessagesBetweenProjections;
-    }
-
-    const newMessageCount = messageCount - existing.metadata.messageCount;
-    if (newMessageCount >= this.config.minMessagesBetweenProjections) {
-      return true;
-    }
-
-    if (newMessageCount <= 0) return false;
-    if (this.config.minMinutesBetweenProjections <= 0) return true;
-
-    const elapsedMs = Date.now() - Date.parse(existing.updated);
-    return elapsedMs >= this.config.minMinutesBetweenProjections * 60_000;
+    return messages.length > 0;
   }
 
   protected override async onRegister(

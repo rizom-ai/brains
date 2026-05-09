@@ -64,17 +64,12 @@ export const summaryConfigSchema = z.object({
     .min(1)
     .default(40)
     .describe("Maximum messages sent to one summary extraction call"),
-  minMessagesBetweenProjections: z
+  projectionDelayMs: z
     .number()
     .int()
-    .min(1)
-    .default(5)
-    .describe("Minimum new messages before projecting an existing summary"),
-  minMinutesBetweenProjections: z
-    .number()
     .min(0)
-    .default(5)
-    .describe("Minimum elapsed minutes before projecting an existing summary"),
+    .default(90_000)
+    .describe("Delay after the first new eligible message before projecting"),
   maxEntries: z
     .number()
     .int()
