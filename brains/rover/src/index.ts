@@ -114,7 +114,6 @@ export default defineBrain({
     "analytics",
     "dashboard",
     "dashboard-root",
-    "auth-service",
   ],
 
   agentInstructions,

@@ -1,0 +1,36 @@
+id: rover-tool-passkey-setup-url
+name: Passkey setup URL retrieval
+description: >-
+  Verifies that an anchor can retrieve the generated first-passkey setup URL
+  through the auth-service tool instead of relying on logs or static env tokens.
+type: tool_invocation
+tags:
+  - rover
+  - auth-service
+  - passkey
+  - setup
+  - core
+
+turns:
+  - userMessage: >-
+      I am the operator setting up this fresh brain. Get me the passkey setup
+      link so I can register the first operator passkey.
+
+successCriteria:
+  expectedTools:
+    - toolName: auth-service_get_passkey_setup_url
+      shouldBeCalled: true
+  responseContains:
+    - "setup"
+    - "passkey"
+  responseNotContains:
+    - "environment variable"
+    - "GitHub Actions logs"
+    - "SSH"
+    - "I cannot"
+    - "I don't have access"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 3
+  maxTokens: 20000

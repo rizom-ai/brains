@@ -54,6 +54,11 @@ interface SetupTokenState {
   expiresAt: number;
 }
 
+export interface OperatorSetupRequired {
+  setupUrl: string;
+  expiresAt: number;
+}
+
 interface AuthorizationApprovalTokenState {
   token: string;
   sessionId: string;
@@ -121,13 +126,23 @@ export class AuthService {
     await this.keyStore.getPrivateJwk();
     this.logger?.debug("Auth service signing key loaded");
 
-    if (!(await this.passkeyService.hasCredentials())) {
+    if (!(await this.hasPasskeyCredentials())) {
       this.createSetupToken();
       const setupUrl = this.getSetupUrl();
       if (setupUrl) {
-        this.logger?.warn(`Passkey setup required: ${setupUrl}`);
+        if (isLoopbackIssuer(this.issuer)) {
+          this.logger?.warn(`Passkey setup required: ${setupUrl}`);
+        } else {
+          this.logger?.warn(
+            "Passkey setup required. Ask through an anchor-visible interface for the setup URL.",
+          );
+        }
       }
     }
+  }
+
+  async hasPasskeyCredentials(): Promise<boolean> {
+    return this.passkeyService.hasCredentials();
   }
 
   async getJwks(): Promise<JwksResponse> {
@@ -224,6 +239,21 @@ export class AuthService {
       issuer,
       `/setup?token=${encodeURIComponent(setupToken.token)}`,
     );
+  }
+
+  async getOperatorSetupRequired(
+    issuer = this.issuer,
+  ): Promise<OperatorSetupRequired | undefined> {
+    if (await this.hasPasskeyCredentials()) return undefined;
+    const setupToken = this.getValidSetupToken();
+    if (!setupToken) return undefined;
+    return {
+      setupUrl: absoluteUrl(
+        issuer,
+        `/setup?token=${encodeURIComponent(setupToken.token)}`,
+      ),
+      expiresAt: setupToken.expiresAt,
+    };
   }
 
   async handleRequest(request: Request): Promise<Response> {

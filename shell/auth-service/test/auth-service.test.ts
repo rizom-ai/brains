@@ -2,7 +2,24 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AuthService, normalizeIssuer } from "../src";
+import { PluginTestHarness, expectSuccess } from "@brains/plugins/test";
+import { Logger, LogLevel, z } from "@brains/utils";
+import {
+  AuthService,
+  PasskeyStore,
+  authServicePlugin,
+  normalizeIssuer,
+} from "../src";
+
+const setupRequiredToolDataSchema = z.object({
+  status: z.literal("setup_required"),
+  setupUrl: z.string(),
+  expiresAt: z.number(),
+});
+
+const setupCompleteToolDataSchema = z.object({
+  status: z.literal("complete"),
+});
 
 const tempDirs: string[] = [];
 
@@ -10,6 +27,21 @@ async function tempStorageDir(): Promise<string> {
   const dir = await mkdtemp(join(tmpdir(), "brains-auth-service-"));
   tempDirs.push(dir);
   return dir;
+}
+
+async function seedPasskeyCredential(storageDir: string): Promise<void> {
+  const now = Math.floor(Date.now() / 1000);
+  await new PasskeyStore({ storageDir }).addCredential({
+    id: "credential-id",
+    public_key: Buffer.from("public-key").toString("base64url"),
+    counter: 0,
+    subject: "single-operator",
+    user_name: "Operator",
+    credential_device_type: "singleDevice",
+    credential_backed_up: false,
+    created_at: now,
+    updated_at: now,
+  });
 }
 
 async function pkceChallenge(verifier: string): Promise<string> {
@@ -227,6 +259,74 @@ describe("AuthService", () => {
       error: "access_denied",
       error_description: "Invalid setup token",
     });
+  });
+
+  it("does not log token-bearing setup URLs for hosted issuers", async () => {
+    const storageDir = await tempStorageDir();
+    const logFile = join(storageDir, "auth.log");
+    const service = new AuthService({
+      storageDir,
+      issuer: "https://brain.example.com",
+      logger: Logger.createFresh({ level: LogLevel.WARN, logFile }),
+    });
+
+    await service.initialize();
+
+    const log = await readFile(logFile, "utf8");
+    expect(log).toContain("Passkey setup required");
+    expect(log).not.toContain("/setup?token=");
+    expect(log).not.toContain("setup_");
+  });
+
+  it("registers an anchor-visible tool to retrieve the active passkey setup URL", async () => {
+    const storageDir = await tempStorageDir();
+    const harness = new PluginTestHarness({ domain: "brain.example.com" });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+      }),
+    );
+
+    const tool = harness
+      .getCapabilities()
+      .tools.find((candidate) =>
+        candidate.name.includes("get_passkey_setup_url"),
+      );
+    expect(tool).toBeDefined();
+    expect(tool?.visibility).toBe("anchor");
+
+    const response = await harness.executeTool(tool?.name ?? "", {});
+    expectSuccess(response);
+    const data = setupRequiredToolDataSchema.parse(response.data);
+
+    expect(data.status).toBe("setup_required");
+    expect(data.setupUrl).toStartWith(
+      "https://brain.example.com/setup?token=setup_",
+    );
+    expect(typeof data.expiresAt).toBe("number");
+  });
+
+  it("setup URL retrieval tool reports complete when a passkey exists", async () => {
+    const storageDir = await tempStorageDir();
+    await seedPasskeyCredential(storageDir);
+
+    const harness = new PluginTestHarness({ domain: "brain.example.com" });
+    await harness.installPlugin(
+      authServicePlugin({
+        storageDir,
+        issuer: "https://brain.example.com",
+      }),
+    );
+
+    const response = await harness.executeTool(
+      "auth-service_get_passkey_setup_url",
+      {},
+    );
+    expectSuccess(response);
+    const data = setupCompleteToolDataSchema.parse(response.data);
+
+    expect(data).toEqual({ status: "complete" });
   });
 
   it("rejects passkey authentication options before setup", async () => {

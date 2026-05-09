@@ -1,5 +1,9 @@
-import type { ServicePluginContext, WebRouteDefinition } from "@brains/plugins";
-import { ServicePlugin } from "@brains/plugins";
+import type {
+  ServicePluginContext,
+  Tool,
+  WebRouteDefinition,
+} from "@brains/plugins";
+import { createTool, ServicePlugin, toolSuccess } from "@brains/plugins";
 import { z } from "@brains/utils";
 import { AuthService } from "./auth-service";
 import packageJson from "../package.json";
@@ -14,6 +18,13 @@ const authServiceConfigSchema = z.object({
   /** Runtime auth storage directory. Keep this outside brain-data/content. */
   storageDir: z.string().default("./data/auth"),
 });
+
+const getPasskeySetupUrlInputSchema = z.object({});
+
+type PasskeySetupToolData =
+  | { status: "setup_required"; setupUrl: string; expiresAt: number }
+  | { status: "complete" }
+  | { status: "unavailable"; reason: string };
 
 export type AuthServiceConfig = z.infer<typeof authServiceConfigSchema>;
 
@@ -54,6 +65,38 @@ export class AuthServicePlugin extends ServicePlugin<AuthServiceConfig> {
       activeAuthService = undefined;
     }
     this.service = undefined;
+  }
+
+  protected override async getTools(): Promise<Tool[]> {
+    return [
+      createTool<typeof getPasskeySetupUrlInputSchema, PasskeySetupToolData>(
+        this.id,
+        "get_passkey_setup_url",
+        "Get the first-passkey setup URL when operator setup is required. Anchor-only.",
+        getPasskeySetupUrlInputSchema,
+        async () => {
+          const service = this.getService();
+          if (await service.hasPasskeyCredentials()) {
+            return toolSuccess({ status: "complete" as const });
+          }
+
+          const setup = await service.getOperatorSetupRequired();
+          if (setup) {
+            return toolSuccess({
+              status: "setup_required" as const,
+              setupUrl: setup.setupUrl,
+              expiresAt: setup.expiresAt,
+            });
+          }
+
+          return toolSuccess({
+            status: "unavailable" as const,
+            reason: "Passkey setup URL is not available.",
+          });
+        },
+        { visibility: "anchor" },
+      ),
+    ];
   }
 
   override getWebRoutes(): WebRouteDefinition[] {
