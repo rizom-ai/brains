@@ -180,7 +180,11 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   protected override async onRegister(
     context: EntityPluginContext,
   ): Promise<void> {
-    registerSummaryDashboardWidget({ context, pluginId: this.id });
+    registerSummaryDashboardWidget({
+      context,
+      pluginId: this.id,
+      config: this.config,
+    });
 
     registerSummaryEvalHandlers({
       context,
