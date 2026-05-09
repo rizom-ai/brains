@@ -16,6 +16,9 @@ function base64UrlJson(value: unknown): string {
 
 function derToRawEcdsaSignature(signature: ArrayBuffer): Uint8Array {
   const bytes = new Uint8Array(signature);
+  if (bytes.length === 64) {
+    return bytes;
+  }
   if (bytes[0] !== 0x30) {
     return bytes;
   }

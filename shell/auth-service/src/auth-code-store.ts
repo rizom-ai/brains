@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, writeFile, chmod } from "node:fs/promises";
 import { dirname, join } from "node:path";
+import { redirectUriMatches } from "./redirect-uri";
 
 const DEFAULT_AUTH_CODE_STORE_FILE = "oauth-auth-codes.json";
 const AUTH_CODE_TTL_SECONDS = 10 * 60;
@@ -148,7 +149,7 @@ export class AuthorizationCodeStore {
       if (record.client_id !== input.clientId) {
         throw new InvalidGrantError("Authorization code client mismatch");
       }
-      if (record.redirect_uri !== input.redirectUri) {
+      if (!redirectUriMatches(record.redirect_uri, input.redirectUri)) {
         throw new InvalidGrantError("Authorization code redirect URI mismatch");
       }
 

@@ -32,7 +32,9 @@ export interface StreamableHTTPServerConfig {
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type, Authorization, MCP-Session-Id",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, MCP-Session-Id, MCP-Protocol-Version, Last-Event-ID",
+  "Access-Control-Allow-Private-Network": "true",
   "X-Content-Type-Options": "nosniff",
 } as const;
 
