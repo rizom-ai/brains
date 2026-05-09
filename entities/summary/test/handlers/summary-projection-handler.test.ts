@@ -37,27 +37,24 @@ function messagesFor(conversationId: string): Message[] {
 function mockProjectionAi(
   context: ReturnType<typeof createMockEntityPluginContext>,
 ): void {
-  spyOn(context.ai, "generate").mockImplementation(
-    <T>({ prompt }: { prompt: string }) => {
-      if (String(prompt).startsWith("Decide how to project")) {
-        return Promise.resolve({ decision: "update", rationale: "test" } as T);
-      }
-
-      return Promise.resolve({
-        entries: [
-          {
-            title: "Projection",
-            summary: "The conversation was summarized.",
-            startMessageIndex: 1,
-            endMessageIndex: 1,
-            keyPoints: [],
-            decisions: [],
-            actionItems: [],
-          },
-        ],
-      } as T);
-    },
-  );
+  spyOn(context.ai, "generateObject").mockResolvedValue({
+    object: { decision: "update", rationale: "test" },
+  });
+  spyOn(context.ai, "generate").mockImplementation(<T>() => {
+    return Promise.resolve({
+      entries: [
+        {
+          title: "Projection",
+          summary: "The conversation was summarized.",
+          startMessageIndex: 1,
+          endMessageIndex: 1,
+          keyPoints: [],
+          decisions: [],
+          actionItems: [],
+        },
+      ],
+    } as T);
+  });
 }
 
 describe("SummaryProjectionHandler", () => {

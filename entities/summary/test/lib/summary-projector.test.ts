@@ -46,27 +46,22 @@ function mockDecisionAndExtraction(
   context: ReturnType<typeof createMockEntityPluginContext>,
   decision: "skip" | "update" | "append" = "update",
 ): void {
-  spyOn(context.ai, "generate").mockImplementation(
-    <T>({ prompt }: { prompt: string }) => {
-      if (String(prompt).startsWith("Decide how to project")) {
-        return Promise.resolve({ decision, rationale: "test" } as T);
-      }
-
-      return Promise.resolve({
-        entries: [
-          {
-            title: "Projection source",
-            summary: "Summaries derive from stored conversation messages.",
-            startMessageIndex: 1,
-            endMessageIndex: 2,
-            keyPoints: ["Stored messages are source of truth"],
-            decisions: [],
-            actionItems: [],
-          },
-        ],
-      } as T);
-    },
-  );
+  spyOn(context.ai, "generateObject").mockResolvedValue({
+    object: { decision, rationale: "test" },
+  });
+  spyOn(context.ai, "generate").mockResolvedValue({
+    entries: [
+      {
+        title: "Projection source",
+        summary: "Summaries derive from stored conversation messages.",
+        startMessageIndex: 1,
+        endMessageIndex: 2,
+        keyPoints: ["Stored messages are source of truth"],
+        decisions: [],
+        actionItems: [],
+      },
+    ],
+  });
 }
 
 function makeMessages(count: number): Message[] {
@@ -120,15 +115,11 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
     const generateSpy = spyOn(context.ai, "generate").mockImplementation(
       <T>({ prompt }: { prompt: string }) => {
-        if (String(prompt).startsWith("Decide how to project")) {
-          return Promise.resolve({
-            decision: "update",
-            rationale: "test",
-          } as T);
-        }
-
         return Promise.resolve({
           entries: [
             {
@@ -156,7 +147,7 @@ describe("SummaryProjector", () => {
     const result = await projector.projectConversation("conv-1");
 
     expect(result.entryCount).toBe(3);
-    expect(generateSpy).toHaveBeenCalledTimes(4);
+    expect(generateSpy).toHaveBeenCalledTimes(3);
   });
 
   it("compacts entries when chunk output exceeds maxEntries", async () => {
@@ -168,30 +159,24 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
-    spyOn(context.ai, "generate").mockImplementation(
-      <T>({ prompt }: { prompt: string }) => {
-        if (String(prompt).startsWith("Decide how to project")) {
-          return Promise.resolve({
-            decision: "update",
-            rationale: "test",
-          } as T);
-        }
-
-        return Promise.resolve({
-          entries: [
-            {
-              title: "Chunk",
-              summary: "Chunk summary",
-              startMessageIndex: 1,
-              endMessageIndex: 1,
-              keyPoints: [],
-              decisions: [],
-              actionItems: [],
-            },
-          ],
-        } as T);
-      },
-    );
+    spyOn(context.ai, "generateObject").mockResolvedValue({
+      object: { decision: "update", rationale: "test" },
+    });
+    spyOn(context.ai, "generate").mockImplementation(<T>() => {
+      return Promise.resolve({
+        entries: [
+          {
+            title: "Chunk",
+            summary: "Chunk summary",
+            startMessageIndex: 1,
+            endMessageIndex: 1,
+            keyPoints: [],
+            decisions: [],
+            actionItems: [],
+          },
+        ],
+      } as T);
+    });
 
     const projector = new SummaryProjector(
       context,
@@ -249,7 +234,8 @@ describe("SummaryProjector", () => {
     expect(result.skipped).toBe(true);
     expect(result.skipReason).toBe("ai-skip");
     expect(upsertSpy).not.toHaveBeenCalled();
-    expect(context.ai.generate).toHaveBeenCalledTimes(1);
+    expect(context.ai.generateObject).toHaveBeenCalledTimes(1);
+    expect(context.ai.generate).not.toHaveBeenCalled();
   });
 
   it("appends new entries when AI decides the summary can be extended", async () => {
@@ -309,17 +295,17 @@ describe("SummaryProjector", () => {
     spyOn(context.conversations, "getMessages").mockResolvedValue(allMessages);
     spyOn(context.entityService, "getEntity").mockResolvedValue(existing);
     const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    spyOn(context.ai, "generateObject").mockImplementation(
+      <T>(prompt: string) => {
+        expect(prompt).toContain("90 second delayed projection");
+        expect(prompt).not.toContain("Use stored messages");
+        return Promise.resolve({
+          object: { decision: "append", rationale: "new decision" } as T,
+        });
+      },
+    );
     spyOn(context.ai, "generate").mockImplementation(
       <T>({ prompt }: { prompt: string }) => {
-        if (String(prompt).startsWith("Decide how to project")) {
-          expect(String(prompt)).toContain("90 second delayed projection");
-          expect(String(prompt)).not.toContain("Use stored messages");
-          return Promise.resolve({
-            decision: "append",
-            rationale: "new decision",
-          } as T);
-        }
-
         expect(String(prompt)).toContain("90 second delayed projection");
         expect(String(prompt)).not.toContain("Use stored messages");
         return Promise.resolve({

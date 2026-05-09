@@ -30,7 +30,7 @@ export type SummaryExtractionResult = z.infer<
 
 export const summaryProjectionDecisionSchema = z.object({
   decision: z.enum(["skip", "update", "append"]),
-  rationale: z.string().optional(),
+  rationale: z.string(),
 });
 
 export type SummaryProjectionDecision = z.infer<

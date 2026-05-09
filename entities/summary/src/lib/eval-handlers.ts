@@ -1,7 +1,7 @@
 import type { EntityPluginContext, Message } from "@brains/plugins";
 import type { Logger } from "@brains/utils";
 import { z } from "@brains/utils";
-import type { SummaryConfig } from "../schemas/summary";
+import type { SummaryConfig, SummaryEntity } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
 import { SummaryProjector } from "./summary-projector";
 
@@ -18,6 +18,13 @@ const summarizeMessagesInputSchema = z.object({
 
 const projectConversationInputSchema = z.object({
   conversationId: z.string(),
+});
+
+const decideProjectionInputSchema = z.object({
+  conversationId: z.string().default("eval-conversation"),
+  existingSummary: z.string().optional(),
+  existingMessageCount: z.number().int().min(0).default(0),
+  messages: z.array(evalMessageSchema),
 });
 
 export function registerSummaryEvalHandlers(params: {
@@ -53,6 +60,35 @@ export function registerSummaryEvalHandlers(params: {
     }));
   });
 
+  context.eval.registerHandler("decideProjection", async (input: unknown) => {
+    const parsed = decideProjectionInputSchema.parse(input);
+    const messages = parsed.messages.map((message, index): Message => {
+      const timestamp =
+        message.timestamp ??
+        new Date(Date.UTC(2026, 0, 1, 0, index)).toISOString();
+      return {
+        id: `eval-message-${index + 1}`,
+        conversationId: parsed.conversationId,
+        role: message.role,
+        content: message.content,
+        timestamp,
+        metadata: {},
+      };
+    });
+
+    const existing = parsed.existingSummary
+      ? createEvalSummaryEntity({
+          conversationId: parsed.conversationId,
+          content: parsed.existingSummary,
+          messageCount: parsed.existingMessageCount,
+          projectionVersion: config.projectionVersion,
+        })
+      : null;
+
+    const projector = new SummaryProjector(context, logger, config);
+    return projector.decideProjection(messages, existing);
+  });
+
   context.eval.registerHandler(
     "projectConversation",
     async (input: unknown) => {
@@ -61,4 +97,30 @@ export function registerSummaryEvalHandlers(params: {
       return projector.projectConversation(parsed.conversationId);
     },
   );
+}
+
+function createEvalSummaryEntity(params: {
+  conversationId: string;
+  content: string;
+  messageCount: number;
+  projectionVersion: number;
+}): SummaryEntity {
+  const now = "2026-01-01T00:00:00.000Z";
+  return {
+    id: params.conversationId,
+    entityType: "summary",
+    content: params.content,
+    contentHash: "eval-existing-summary",
+    created: now,
+    updated: now,
+    metadata: {
+      conversationId: params.conversationId,
+      channelId: "eval-channel",
+      interfaceType: "eval",
+      messageCount: params.messageCount,
+      entryCount: 1,
+      sourceHash: "eval-source-hash",
+      projectionVersion: params.projectionVersion,
+    },
+  };
 }

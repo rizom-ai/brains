@@ -3,7 +3,7 @@ import { pLimit, type Logger } from "@brains/utils";
 import { computeContentHash } from "@brains/utils/hash";
 
 const CHUNK_EXTRACTION_CONCURRENCY = 3;
-import { SUMMARY_AI_TEMPLATE_NAME, SUMMARY_ENTITY_TYPE } from "./constants";
+import { SUMMARY_ENTITY_TYPE } from "./constants";
 import { SummaryAdapter } from "../adapters/summary-adapter";
 import type {
   SummaryConfig,
@@ -178,7 +178,7 @@ export class SummaryProjector {
     };
   }
 
-  private async decideProjection(
+  public async decideProjection(
     messages: Message[],
     existing: SummaryEntity | null,
   ): Promise<SummaryProjectionDecision> {
@@ -187,12 +187,11 @@ export class SummaryProjector {
       existingSummary: existing?.content,
       messages: decisionMessages,
     });
-    const raw = await this.context.ai.generate<unknown>({
+    const { object } = await this.context.ai.generateObject(
       prompt,
-      templateName: SUMMARY_AI_TEMPLATE_NAME,
-      data: { schema: summaryProjectionDecisionSchema },
-    });
-    const decision = summaryProjectionDecisionSchema.parse(raw);
+      summaryProjectionDecisionSchema,
+    );
+    const decision = summaryProjectionDecisionSchema.parse(object);
 
     if (!existing && decision.decision === "append") {
       return { ...decision, decision: "update" };
