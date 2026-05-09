@@ -12,6 +12,10 @@ import type {
   SummaryMetadata,
 } from "../schemas/summary";
 import { SummaryExtractor } from "./summary-extractor";
+import {
+  evaluateSummaryEligibility,
+  type SummaryEligibilityReason,
+} from "./summary-space-eligibility";
 import { SummarySourceReader } from "./summary-source-reader";
 
 export interface ProjectSummaryResult {
@@ -21,6 +25,7 @@ export interface ProjectSummaryResult {
   entryCount: number;
   messageCount: number;
   sourceHash: string;
+  skipReason?: SummaryEligibilityReason | "unchanged";
 }
 
 export class SummaryProjector {
@@ -42,6 +47,28 @@ export class SummaryProjector {
   ): Promise<ProjectSummaryResult> {
     const source = await this.sourceReader.readConversation(conversationId);
 
+    const eligibility = evaluateSummaryEligibility({
+      conversation: source.conversation,
+      spaces: this.context.spaces,
+      messages: source.messages,
+    });
+    if (!eligibility.eligible) {
+      this.logger.info("Skipping conversation summary projection", {
+        conversationId,
+        reason: eligibility.reason,
+        spaceId: eligibility.spaceId,
+      });
+      return {
+        conversationId,
+        created: false,
+        skipped: true,
+        entryCount: 0,
+        messageCount: source.messages.length,
+        sourceHash: source.sourceHash,
+        skipReason: eligibility.reason,
+      };
+    }
+
     let existing: SummaryEntity | null = null;
     try {
       existing = await this.context.entityService.getEntity<SummaryEntity>({
@@ -60,6 +87,7 @@ export class SummaryProjector {
         entryCount: existing.metadata.entryCount,
         messageCount: existing.metadata.messageCount,
         sourceHash: source.sourceHash,
+        skipReason: "unchanged",
       };
     }
 

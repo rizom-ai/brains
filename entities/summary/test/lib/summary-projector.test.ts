@@ -71,7 +71,9 @@ function makeMessages(count: number): Message[] {
 
 describe("SummaryProjector", () => {
   it("projects a conversation summary from stored messages", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
     spyOn(context.entityService, "getEntity").mockResolvedValue(null);
@@ -100,7 +102,9 @@ describe("SummaryProjector", () => {
   });
 
   it("chunks long conversations before extraction", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     const longMessages = makeMessages(5);
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
@@ -137,7 +141,9 @@ describe("SummaryProjector", () => {
   });
 
   it("compacts entries when chunk output exceeds maxEntries", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     const longMessages = makeMessages(5);
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(longMessages);
@@ -171,8 +177,31 @@ describe("SummaryProjector", () => {
     );
   });
 
+  it("skips projection outside configured spaces", async () => {
+    const context = createMockEntityPluginContext({ spaces: ["discord:ops"] });
+    spyOn(context.conversations, "get").mockResolvedValue(conversation);
+    spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
+    const upsertSpy = spyOn(context.entityService, "upsertEntity");
+    const generateSpy = spyOn(context.ai, "generate");
+
+    const projector = new SummaryProjector(
+      context,
+      createSilentLogger(),
+      summaryConfigSchema.parse({}),
+    );
+
+    const result = await projector.projectConversation("conv-1");
+
+    expect(result.skipped).toBe(true);
+    expect(result.skipReason).toBe("space-not-configured");
+    expect(upsertSpy).not.toHaveBeenCalled();
+    expect(generateSpy).not.toHaveBeenCalled();
+  });
+
   it("skips projection when source hash is unchanged", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     spyOn(context.conversations, "get").mockResolvedValue(conversation);
     spyOn(context.conversations, "getMessages").mockResolvedValue(messages);
 

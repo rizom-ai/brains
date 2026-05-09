@@ -26,6 +26,7 @@ import { summaryAiResponseTemplate } from "./templates/summary-ai-response";
 import { SummaryDataSource } from "./datasources/summary-datasource";
 import { registerSummaryDashboardWidget } from "./lib/dashboard-widget";
 import { registerSummaryEvalHandlers } from "./lib/eval-handlers";
+import { evaluateSummaryEligibility } from "./lib/summary-space-eligibility";
 import {
   SUMMARY_ENTITY_TYPE,
   SUMMARY_JOB_SOURCE,
@@ -86,6 +87,7 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
         },
         initialSync: {
           shouldEnqueue: async () =>
+            context.spaces.length > 0 &&
             !(await hasPersistedTargets(context, SUMMARY_ENTITY_TYPE)),
           jobData: { mode: "rebuild-all", reason: "initial-sync" },
           jobOptions: {
@@ -156,9 +158,21 @@ export class SummaryPlugin extends EntityPlugin<SummaryEntity, SummaryConfig> {
   ): Promise<boolean> {
     const parsed = conversationMessageAddedSchema.parse(payload);
 
-    const messageCount = await context.conversations.countMessages(
+    const conversation = await context.conversations.get(parsed.conversationId);
+    if (!conversation) return false;
+
+    const messages = await context.conversations.getMessages(
       parsed.conversationId,
+      { limit: this.config.maxSourceMessages },
     );
+    const eligibility = evaluateSummaryEligibility({
+      conversation,
+      spaces: context.spaces,
+      messages,
+    });
+    if (!eligibility.eligible) return false;
+
+    const messageCount = messages.length;
     if (messageCount === 0) return false;
 
     let existing: SummaryEntity | null = null;

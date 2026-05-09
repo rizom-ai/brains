@@ -36,7 +36,9 @@ function messagesFor(conversationId: string): Message[] {
 
 describe("SummaryProjectionHandler", () => {
   it("projects one conversation job", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     spyOn(context.conversations, "get").mockResolvedValue(
       conversations[0] ?? null,
     );
@@ -77,7 +79,9 @@ describe("SummaryProjectionHandler", () => {
   });
 
   it("rebuilds all listed conversations", async () => {
-    const context = createMockEntityPluginContext();
+    const context = createMockEntityPluginContext({
+      spaces: ["cli:cli-terminal"],
+    });
     spyOn(context.conversations, "list").mockResolvedValue(conversations);
     spyOn(context.conversations, "get").mockImplementation((conversationId) =>
       Promise.resolve(
