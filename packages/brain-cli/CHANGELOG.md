@@ -1,5 +1,11 @@
 # @rizom/brain
 
+## 0.2.0-alpha.56
+
+### Patch Changes
+
+- [`e975b88`](https://github.com/rizom-ai/brains/commit/e975b88b5a917594b1b2cae9a762e346deb89b5a) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Enable the built-in OAuth/passkey auth service in Relay presets so Relay-based deployments can use MCP OAuth instead of the deprecated static `MCP_AUTH_TOKEN` fallback.
+
 ## 0.2.0-alpha.55
 
 ### Minor Changes

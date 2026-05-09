@@ -1,7 +1,7 @@
 {
   "name": "@brains/site-engine",
   "private": true,
-  "version": "0.2.0-alpha.55",
+  "version": "0.2.0-alpha.56",
   "description": "Renderer-agnostic site build engine utilities",
   "type": "module",
   "exports": {

@@ -138,6 +138,7 @@
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "professional-site-rizom-typography",
+    "relay-auth-service",
     "relay-poc-topic-sources",
     "rizom-brain-first-alpha",
     "rizom-ecosystem-no-nested-anchor",
