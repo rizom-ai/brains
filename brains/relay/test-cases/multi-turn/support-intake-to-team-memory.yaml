@@ -1,0 +1,62 @@
+id: relay-scenario-support-intake-to-team-memory
+name: Support intake becomes team memory
+description: >-
+  Real user workflow: capture a customer support signal into team memory, then
+  retrieve it with related Relay context for triage.
+type: multi_turn
+tags:
+  - relay
+  - scenario
+  - real-user
+  - support
+  - capture
+  - search
+  - core
+
+turns:
+  - userMessage: >-
+      Capture this customer signal for the Relay team: Beta Ops says their team
+      can add links, but they cannot tell which captures have already been
+      summarized or mapped to topics. They need a simple status view before the
+      pilot review.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "base"
+      responseNotContains:
+        - "ticket"
+        - "issue tracker"
+        - "I cannot"
+  - userMessage: >-
+      Search Relay memory for related context and give me a triage note that
+      includes the customer name, user pain, likely product area, and next action.
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseContains:
+        - "Beta Ops"
+        - "summar"
+        - "topic"
+      responseNotContains:
+        - "blog"
+        - "newsletter"
+        - "meeting-notes"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "base"
+    - toolName: system_search
+      shouldBeCalled: true
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 60000

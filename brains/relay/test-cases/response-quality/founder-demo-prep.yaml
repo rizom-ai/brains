@@ -1,0 +1,41 @@
+id: relay-scenario-founder-demo-prep
+name: Founder demo prep from current Relay memory
+description: >-
+  Real user scenario: a founder needs a grounded demo talk track for a skeptical
+  technical buyer, including current capabilities and remaining proof.
+type: response_quality
+tags:
+  - relay
+  - scenario
+  - real-user
+  - demo
+  - search
+  - full
+
+turns:
+  - userMessage: >-
+      We have a Relay demo in 20 minutes for a skeptical CTO. Search current
+      Relay memory and give me a talk track: what works today, why it matters,
+      what gaps remain, and what proof we should run next.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseContains:
+    - "capture"
+    - "summar"
+    - "topic"
+    - "peer"
+  responseNotContains:
+    - "fully autonomous"
+    - "production-ready"
+    - "blog"
+    - "newsletter"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 40000

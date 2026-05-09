@@ -1,0 +1,63 @@
+id: relay-scenario-research-link-to-peer-synthesis
+name: Save protocol research and synthesize peer-brain implications
+description: >-
+  Real user workflow: save a research link, then ask Relay to connect it to the
+  team's peer-brain/A2A direction using saved memory.
+type: multi_turn
+tags:
+  - relay
+  - scenario
+  - real-user
+  - link
+  - search
+  - a2a
+  - default
+
+turns:
+  - userMessage: >-
+      Save this for Relay protocol research: https://modelcontextprotocol.io/introduction
+      It relates to peer-brain interoperability and handoff context.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "link"
+            url: "https://modelcontextprotocol.io/introduction"
+      responseNotContains:
+        - "link_capture"
+        - "I cannot"
+  - userMessage: >-
+      Search the current Relay memory and explain how that MCP reference should
+      influence our peer-brain and A2A handoff plan.
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseContains:
+        - "MCP"
+        - "peer"
+        - "A2A"
+      responseNotContains:
+        - "I don't have access"
+        - "meeting-notes"
+        - "decision-record"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "link"
+        url: "https://modelcontextprotocol.io/introduction"
+    - toolName: system_search
+      shouldBeCalled: true
+  responseContains:
+    - "handoff"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 35000

@@ -1,0 +1,41 @@
+id: relay-scenario-new-teammate-onboarding
+name: New teammate onboarding from saved Relay memory
+description: >-
+  Real user scenario: a new teammate asks what Relay is, what to read first, and
+  what is deliberately out of scope.
+type: response_quality
+tags:
+  - relay
+  - scenario
+  - real-user
+  - onboarding
+  - search
+  - full
+
+turns:
+  - userMessage: >-
+      I'm joining the Relay POC team today. Search the saved Relay memory and
+      onboard me: what is Relay for, what should I read first, what workflows are
+      already supported, and what should I avoid assuming exists?
+
+successCriteria:
+  expectedTools:
+    - toolName: system_search
+      shouldBeCalled: true
+  responseContains:
+    - "Relay"
+    - "team"
+    - "memory"
+    - "peer"
+  responseNotContains:
+    - "blog platform"
+    - "newsletter pipeline"
+    - "meeting-notes plugin"
+    - "decision-record plugin"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 40000

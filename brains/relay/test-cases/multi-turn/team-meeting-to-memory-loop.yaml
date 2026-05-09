@@ -1,0 +1,64 @@
+id: relay-scenario-team-meeting-to-memory-loop
+name: Team meeting capture to follow-up plan
+description: >-
+  Real user workflow: a team lead captures rough meeting notes, then asks Relay
+  to retrieve the saved context and turn it into an actionable follow-up plan.
+type: multi_turn
+tags:
+  - relay
+  - scenario
+  - real-user
+  - capture
+  - search
+  - default
+
+turns:
+  - userMessage: >-
+      Capture these rough Relay team notes exactly enough for later follow-up:
+      Customer Alpha cannot find the latest MCP handoff; decision: keep the
+      default homepage as a system diagram with live counts; action: Daniel
+      updates seed/eval content and Mira validates dashboard identity by Friday.
+    successCriteria:
+      expectedTools:
+        - toolName: system_create
+          shouldBeCalled: true
+          argsContain:
+            entityType: "base"
+      responseNotContains:
+        - "I cannot"
+        - "meeting-notes"
+        - "decision-record"
+  - userMessage: >-
+      Now search Relay memory and give me the follow-up plan for the team. Keep
+      it grounded in what was captured, with owner/action pairs.
+    successCriteria:
+      expectedTools:
+        - toolName: system_search
+          shouldBeCalled: true
+      responseContains:
+        - "Customer Alpha"
+        - "MCP"
+        - "Daniel"
+        - "Mira"
+      responseNotContains:
+        - "blog"
+        - "newsletter"
+        - "I don't have access"
+
+successCriteria:
+  expectedTools:
+    - toolName: system_create
+      shouldBeCalled: true
+      argsContain:
+        entityType: "base"
+    - toolName: system_search
+      shouldBeCalled: true
+  responseContains:
+    - "Friday"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 60000

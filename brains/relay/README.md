@@ -42,6 +42,22 @@ System tools such as create, update, search, extract, and status are framework-l
 | `a2a`       | agent-to-agent RPC surface                     |
 | `webserver` | HTTP host for site, CMS, dashboard, and health |
 
+## Eval coverage
+
+Relay evals live in `test-cases/` and use the Relay-specific corpus in `eval-content/`. They cover plugin handlers, system-tool routing, and real user scenarios such as onboarding, demo prep, support triage, team-meeting capture, protocol research synthesis, browsing team memory, and save-first peer-brain contact flows.
+
+Run local validation with:
+
+```bash
+bun run test
+```
+
+Run model-backed evals with:
+
+```bash
+bun run eval
+```
+
 ## Seed content
 
 Default identity and starter content live in `seed-content/`:

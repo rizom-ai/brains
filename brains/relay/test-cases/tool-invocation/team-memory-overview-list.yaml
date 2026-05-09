@@ -1,0 +1,36 @@
+id: relay-tool-team-memory-overview-list
+name: Team memory overview uses content lists, not analytics
+description: >-
+  Real user scenario: a user asks to browse saved team memory; Relay should list
+  user-facing content rather than answer from aggregate analytics.
+type: tool_invocation
+tags:
+  - relay
+  - scenario
+  - real-user
+  - browse
+  - core
+
+turns:
+  - userMessage: >-
+      Show me what Relay has saved for the team. I want the actual notes, links,
+      summaries, and peer agents we can inspect, not analytics or topic stats.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+    - toolName: system_insights
+      shouldBeCalled: false
+  responseContains:
+    - "Relay"
+  responseNotContains:
+    - "topic distribution"
+    - "analytics dashboard"
+    - "blog"
+    - "newsletter"
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 8
+  maxTokens: 30000

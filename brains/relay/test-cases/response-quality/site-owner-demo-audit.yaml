@@ -1,0 +1,40 @@
+id: relay-scenario-site-owner-demo-audit
+name: Site owner demo audit from saved site content
+description: >-
+  Real user scenario: a site owner checks the public Relay story before a demo
+  and expects grounded claims, not generic product marketing.
+type: response_quality
+tags:
+  - relay
+  - scenario
+  - real-user
+  - site-content
+  - homepage
+  - default
+  - search
+
+turns:
+  - userMessage: >-
+      I'm reviewing the Relay public site before a demo. Search saved site-info
+      and site-content, then tell me what the homepage should promise, what proof
+      points are live today, and what claims we should avoid making.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_list
+      shouldBeCalled: true
+  responseContains:
+    - "capture"
+    - "synthesize"
+    - "A2A"
+  responseNotContains:
+    - "newsletter"
+    - "publishing pipeline"
+    - "generic AI assistant"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 6
+  maxTokens: 30000

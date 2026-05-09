@@ -6,6 +6,8 @@ It intentionally contains content for **existing Relay plugins only**. Do not ad
 
 ## Current fixture coverage
 
+The fixture corpus supports real Relay eval scenarios in `../test-cases/`, including new-teammate onboarding, founder demo prep, site-owner demo audit, support intake triage, meeting capture follow-up, protocol-link synthesis, team-memory browsing, and save-first peer-brain contact flows.
+
 - `brain-character/` — Relay identity and operating voice
 - `anchor-profile/` — team/organization profile
 - `site-info/` — public site metadata
