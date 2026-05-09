@@ -1,5 +1,16 @@
 # @brains/mcp
 
+## 0.2.0-alpha.58
+
+### Patch Changes
+
+- [`bd232f1`](https://github.com/rizom-ai/brains/commit/bd232f1680d632a85144b57cc2e5b57a8019a4d4) Thanks [@yeehaa123](https://github.com/yeehaa123)! - Use forwarded host/proto headers when building the MCP OAuth resource metadata challenge URL.
+
+- Updated dependencies []:
+  - @brains/auth-service@0.2.0-alpha.58
+  - @brains/mcp-service@0.2.0-alpha.58
+  - @brains/plugins@0.2.0-alpha.58
+
 ## 0.2.0-alpha.57
 
 ### Patch Changes
