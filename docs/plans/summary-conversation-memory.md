@@ -1,10 +1,10 @@
-# Summary as Conversation Memory
+# Conversation Memory
 
 ## Status
 
-Planning document for `@brains/summary` follow-up work after the projection-based summary rearchitecture.
+Planning document for `@brains/conversation-memory` follow-up work after the projection-based summary rearchitecture.
 
-The current package is healthy enough structurally: summaries are derived from stored conversations via projection jobs, not digest events. The next question is product/architecture: what should summaries _do_ for the brain?
+The package has been reframed from summary-only to conversation memory: summaries, decisions, and action items are derived from stored conversations via projection jobs, not digest events.
 
 ## Settled decisions
 
@@ -17,12 +17,12 @@ The current package is healthy enough structurally: summaries are derived from s
 - Summary triggering uses a 90-second delayed coalesced projection, not a message-count threshold.
 - The delayed projection rereads stored messages and existing summary before acting.
 - AI decides `skip` / `update` / `append`.
-- Keep the summary schema mostly as-is for this pass.
-- Decisions and action items can become separate derived entity types later if they need lifecycle.
+- Keep summaries narrative-only.
+- Store decisions and action items as separate derived entity types with provenance and status.
 
 ## Thesis
 
-`@brains/summary` should provide durable prose memory for team conversations.
+`@brains/conversation-memory` should provide durable memory for team conversations.
 
 It should answer:
 
@@ -30,18 +30,17 @@ It should answer:
 - What context should a teammate or future assistant understand later?
 - Which conversations/spaces are summarized, stale, skipped, or unsummarized?
 
-Decisions and action items may be extracted as lightweight hints in summaries for now, but they should become separate derived entities later if they need lifecycle, ownership, status, dashboards, or workflows.
+Decisions and action items are separate derived entities, not embedded lifecycle fields inside summaries.
 
 ## Current state
 
-Today, the package creates one `summary` entity per conversation.
+Today, the package projects conversation memory from stored messages:
 
-Each summary has:
+- one `summary` entity per conversation for narrative memory
+- zero or more `decision` entities for explicit decisions
+- zero or more `action-item` entities for concrete follow-up work
 
-- conversation/channel provenance
-- source message counts and hash
-- time ranges
-- entries with prose summary, key points, decisions, and action items
+Each entity has conversation/channel/space provenance, source time ranges, source message counts, and projection version.
 
 This is a good foundation, but it is still mostly passive. It makes stored conversations readable, but it does not yet define memory policy, retrieval semantics, space coverage, or dashboard behavior.
 
@@ -54,8 +53,8 @@ Stages:
 1. **Scoped durable summaries** — summarize only configured team `spaces`.
 2. **AI projection decisions** — decide `skip` / `update` / `append` from stored messages plus existing summary.
 3. **Memory dashboard** — show coverage, stale spaces, skipped conversations, and recent summaries.
-4. **Separate memory entities** — add `decision` / `action-item` later if they need lifecycle.
-5. **Context retrieval** — expose relevant summaries and later memory entities intentionally, not via blanket prompt injection.
+4. **Separate memory entities** — `decision` / `action-item` are first-class derived entities.
+5. **Context retrieval** — expose relevant summaries and memory entities intentionally, not via blanket prompt injection.
 
 ## Relay-first policy: where does team memory live?
 
@@ -207,16 +206,14 @@ This should produce a space memory artifact separate from per-conversation summa
 
 ## Schema decision
 
-Keep the `summary` schema mostly as-is for this pass.
+A summary remains one derived prose-memory entity per conversation. Summary entries contain narrative summary, time range, source message count, and key points.
 
-A summary remains one derived prose-memory entity per conversation, with entries that include narrative summary, key points, decisions, and action items. Those decision/action arrays are useful hints, but they are not the final lifecycle model for team commitments.
+Decisions and action items are separate derived entity types:
 
-Do **not** add structured decision/action objects inside summary now. If decisions or action items need ownership, status, supersession, dashboards, or workflow, add them later as separate derived entity types:
+- `decision`: explicit accepted decisions, with provenance and status
+- `action-item`: explicit follow-up work, with provenance and lifecycle status
 
-- `decision`
-- `action-item`
-
-This avoids making `summary` a kitchen sink while also avoiding a forced migration of summary internals later.
+This avoids making `summary` a kitchen sink.
 
 ## Retrieval and context use
 
@@ -224,9 +221,9 @@ Summaries should be searchable as normal entities, but future agent behavior nee
 
 Proposed behavior:
 
-- Same-space summaries are high-priority context candidates.
-- Retrieval should include source conversation/space/time provenance.
-- Future `decision` and `action-item` entities can be ranked separately once they exist.
+- Same-space memory is high-priority context.
+- Retrieval includes source conversation/space/time provenance.
+- `summary`, `decision`, and `action-item` entities are retrieved through one explicit contract.
 
 Avoid automatic blanket prompt injection. Prefer an explicit memory retrieval step that can be evaluated.
 
@@ -297,7 +294,7 @@ Current evals test summary generation. Add memory-behavior evals:
 
 ### Phase 4 — context retrieval
 
-- Add explicit memory retrieval contract. ✅ `SummaryMemoryRetriever`
+- Add explicit memory retrieval contract. ✅ `ConversationMemoryRetriever`
 - Rank by space, recency, and relevance. ✅ same-space first, search score, then updated time
 - Add future-use evals before enabling automatic behavior broadly. In progress: unit/eval-handler coverage exists; broader behavior evals still needed before prompt injection.
 

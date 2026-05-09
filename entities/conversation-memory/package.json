@@ -1,0 +1,33 @@
+{
+  "name": "@brains/conversation-memory",
+  "private": true,
+  "version": "0.2.0-alpha.57",
+  "description": "Plugin for deriving durable conversation memory",
+  "type": "module",
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src test --ext .ts,.tsx",
+    "eval": "cd evals && bun run brain-eval",
+    "lint:fix": "eslint src test --ext .ts,.tsx --fix"
+  },
+  "dependencies": {
+    "@brains/conversation-service": "workspace:*",
+    "@brains/plugins": "workspace:*",
+    "@brains/templates": "workspace:*",
+    "@brains/ui-library": "workspace:*",
+    "@brains/utils": "workspace:*"
+  },
+  "devDependencies": {
+    "@brains/eslint-config": "workspace:*",
+    "@brains/test-utils": "workspace:*",
+    "@brains/typescript-config": "workspace:*",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.56.0",
+    "typescript": "^5.3.3"
+  }
+}

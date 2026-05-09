@@ -1,0 +1,2 @@
+plugin: "@brains/conversation-memory"
+model: gpt-5.4-mini

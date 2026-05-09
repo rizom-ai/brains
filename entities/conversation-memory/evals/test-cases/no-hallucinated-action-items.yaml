@@ -1,0 +1,36 @@
+id: summary-no-hallucinated-action-items
+name: Does not hallucinate action items
+description: Avoids inventing owners or follow-up tasks when none are stated.
+type: plugin
+tags:
+  - summary
+  - hallucination
+  - action-items
+plugin: conversation-memory
+handler: summarizeMessages
+
+input:
+  conversationId: eval-no-actions
+  messages:
+    - role: user
+      content: The UI feels too generic and the package is outdated.
+      timestamp: "2026-05-04T12:00:00Z"
+    - role: assistant
+      content: The current architecture uses digest handlers and lacks eval coverage.
+      timestamp: "2026-05-04T12:01:00Z"
+    - role: user
+      content: That matches my impression.
+      timestamp: "2026-05-04T12:02:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 1
+  validateEach:
+    - path: actionItems[0]
+      exists: false
+    - path: summary
+      matches: "outdated|digest|eval"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

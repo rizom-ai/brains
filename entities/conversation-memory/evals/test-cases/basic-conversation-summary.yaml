@@ -1,0 +1,33 @@
+id: summary-basic-conversation-summary
+name: Basic conversation summary
+description: Summarizes a short conversation into one grounded entry.
+type: plugin
+tags:
+  - summary
+  - basic
+plugin: conversation-memory
+handler: summarizeMessages
+
+input:
+  conversationId: eval-basic
+  messages:
+    - role: user
+      content: We need to refactor the summary package because it is outdated.
+      timestamp: "2026-05-04T10:00:00Z"
+    - role: assistant
+      content: I recommend making summaries a projection from stored conversation messages rather than digest events.
+      timestamp: "2026-05-04T10:01:00Z"
+    - role: user
+      content: Yes, digest events should not be the source of truth.
+      timestamp: "2026-05-04T10:02:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 2
+  itemsContain:
+    - field: summary
+      pattern: "projection|stored conversation|source of truth|digest"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4

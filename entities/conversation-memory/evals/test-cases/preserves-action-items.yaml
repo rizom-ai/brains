@@ -1,0 +1,35 @@
+id: summary-preserves-action-items
+name: Preserves explicit action items
+description: Extracts concrete next steps that are explicitly assigned or requested.
+type: plugin
+tags:
+  - summary
+  - action-items
+plugin: conversation-memory
+handler: summarizeMessages
+
+input:
+  conversationId: eval-actions
+  messages:
+    - role: user
+      content: Please create a short plan doc before making more changes.
+      timestamp: "2026-05-04T13:00:00Z"
+    - role: assistant
+      content: I will add a rearchitecture plan under docs/plans and keep it succinct.
+      timestamp: "2026-05-04T13:01:00Z"
+    - role: user
+      content: Also add eval cases for decisions, action items, topic shifts, and long conversations.
+      timestamp: "2026-05-04T13:02:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 3
+  itemsContain:
+    - field: actionItemsText
+      pattern: "plan doc|docs/plans"
+    - field: actionItemsText
+      pattern: "eval"
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
