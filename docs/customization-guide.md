@@ -27,8 +27,9 @@ site:
   theme: "@acme/brain-theme"
 
 plugins:
-  mcp:
-    authToken: ${MCP_AUTH_TOKEN}
+  # Optional deprecated fallback for MCP clients that cannot use OAuth:
+  # mcp:
+  #   authToken: ${MCP_AUTH_TOKEN}
 ```
 
 Use `add` and `remove` before writing code. Many changes are just capability selection.

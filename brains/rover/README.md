@@ -84,6 +84,14 @@ Available today:
 
 No special Rover-only app is required. Start from the interface that fits your setup.
 
+### Operator login and MCP OAuth
+
+Rover includes the built-in `auth-service` in every preset. On first start, Rover prints a one-shot `/setup` URL. Open it locally, register a passkey, and use that passkey for operator login.
+
+OAuth-capable MCP clients connect to `/mcp`, discover Rover's OAuth metadata, open a browser/passkey authorization flow, and receive an MCP-scoped bearer token. `MCP_AUTH_TOKEN` remains only as a deprecated static fallback for older clients that cannot do OAuth.
+
+Auth state lives in runtime storage at `./data/auth` by default. Preserve that directory across deploys, but keep it out of `brain-data`.
+
 ## Your Website, Handled
 
 Your brain isn't just a knowledge base — it's your professional website. A fast, clean site that showcases your essays, presentations, and projects. Your domain, your brand.

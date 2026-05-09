@@ -112,7 +112,8 @@ The `.env` file should contain **only values you'd rotate or revoke**:
 AI_API_KEY=your-api-key-here
 # AI_IMAGE_KEY=your-image-key-here  # optional, defaults to AI_API_KEY
 GIT_SYNC_TOKEN=ghp_...
-MCP_AUTH_TOKEN=...
+# Deprecated static fallback for MCP HTTP clients that cannot use OAuth/passkeys:
+# MCP_AUTH_TOKEN=...
 CF_API_TOKEN=...
 CF_ZONE_ID=...
 ```
@@ -123,14 +124,14 @@ Everything else belongs in `brain.yaml`. Non-secret config like homeserver URLs,
 
 Ask: "Would I rotate or revoke this value if it leaked?" If yes → `.env`. If no → `brain.yaml`.
 
-| Secret (`.env`)     | Config (`brain.yaml`)             |
-| ------------------- | --------------------------------- |
-| `AI_API_KEY`        | `domain: recall.rizom.ai`         |
-| `GIT_SYNC_TOKEN`    | `plugins.directory-sync.git.repo` |
-| `MCP_AUTH_TOKEN`    | `plugins.mcp.transport`           |
-| `DISCORD_BOT_TOKEN` | `plugins.discord.guildId`         |
-| `CF_API_TOKEN`      | `brain cert:bootstrap`            |
-| `CF_ZONE_ID`        | `brain cert:bootstrap`            |
+| Secret (`.env`)     | Config (`brain.yaml`)                         |
+| ------------------- | --------------------------------------------- |
+| `AI_API_KEY`        | `domain: recall.rizom.ai`                     |
+| `GIT_SYNC_TOKEN`    | `plugins.directory-sync.git.repo`             |
+| `MCP_AUTH_TOKEN`    | `plugins.mcp.transport` (deprecated fallback) |
+| `DISCORD_BOT_TOKEN` | `plugins.discord.guildId`                     |
+| `CF_API_TOKEN`      | `brain cert:bootstrap`                        |
+| `CF_ZONE_ID`        | `brain cert:bootstrap`                        |
 
 ## Brain Model Definition
 

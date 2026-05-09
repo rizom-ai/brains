@@ -41,13 +41,15 @@ That gives you a runnable brain instance with:
 - `.env.example`, `.gitignore`, and `tsconfig.json`
 - `brain-data/` markdown content created/seeded on first run when directory-sync is active
 
+On first start, models that include `auth-service` print a one-shot `/setup` URL. Open it locally, register a passkey, and use that passkey for browser/OAuth-backed operator login. Runtime auth state is stored under `./data/auth` by default and must be preserved separately from `brain-data/`.
+
 Some models also scaffold `src/site.ts` and `src/theme.css` for local site/theme authoring.
 
 For the full setup flow, see [packages/brain-cli/docs/getting-started.md](packages/brain-cli/docs/getting-started.md).
 
 ## Connect from an MCP client
 
-Use the generated instance directory as the working directory and run the normal start command:
+For local stdio MCP, use the generated instance directory as the working directory and run the normal start command:
 
 ```json
 {
@@ -60,6 +62,8 @@ Use the generated instance directory as the working directory and run the normal
   }
 }
 ```
+
+For HTTP MCP, point OAuth-capable clients at `http://localhost:8080/mcp` or `https://your-domain.com/mcp`. The brain advertises OAuth metadata, performs browser/passkey login, and issues MCP-scoped bearer tokens. `MCP_AUTH_TOKEN` remains available only as a deprecated static fallback.
 
 ## How it works
 

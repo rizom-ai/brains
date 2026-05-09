@@ -86,7 +86,7 @@ Explicit provider override: `model: openai:gpt-4o-mini`
 | `AI_API_KEY`     | Yes      | API key for your AI provider            |
 | `AI_IMAGE_KEY`   | No       | Separate key for image generation       |
 | `GIT_SYNC_TOKEN` | No       | GitHub PAT for content sync             |
-| `MCP_AUTH_TOKEN` | No       | Token for MCP HTTP authentication       |
+| `MCP_AUTH_TOKEN` | No       | Deprecated static fallback for MCP HTTP |
 | `CF_API_TOKEN`   | Yes\*    | Cloudflare API token for cert bootstrap |
 | `CF_ZONE_ID`     | Yes\*    | Cloudflare zone ID for cert bootstrap   |
 

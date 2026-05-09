@@ -91,7 +91,8 @@
     "@brains/doc": "0.2.0-alpha.42",
     "@brains/deploy-templates": "0.2.0-alpha.45",
     "@brains/site-engine": "0.2.0-alpha.48",
-    "@brains/rizom-ecosystem": "0.2.0-alpha.50"
+    "@brains/rizom-ecosystem": "0.2.0-alpha.50",
+    "@brains/auth-service": "0.2.0-alpha.54"
   },
   "changesets": [
     "agent-approval-frontmatter-sync",
@@ -100,6 +101,7 @@
     "bitwarden-secrets-push",
     "brain-cli-register-override-packages",
     "brain-init-regen-derived-deploy-artifacts",
+    "brain-oauth-provider",
     "brains-ops-published-delivery",
     "brains-ops-smoke-gate",
     "bundle-ranger-relay-models",
@@ -136,6 +138,7 @@
     "plugin-owned-create-interceptors",
     "preact-runtime-deps",
     "professional-site-rizom-typography",
+    "relay-auth-service",
     "relay-poc-topic-sources",
     "rizom-brain-first-alpha",
     "rizom-ecosystem-no-nested-anchor",

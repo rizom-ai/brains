@@ -146,6 +146,7 @@ volumes:
 ];
 
 export const REQUIRED_DEPLOY_MOUNTS = [
+  "/opt/brain-runtime:/app/data",
   "/opt/brain-state:/data",
   "/opt/brain-config:/config",
   "/opt/brain-dist:/app/dist",

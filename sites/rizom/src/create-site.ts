@@ -1,4 +1,4 @@
-import type { Plugin, ServicePluginContext } from "@brains/plugins";
+import type { DataSource, Plugin, ServicePluginContext } from "@brains/plugins";
 import {
   extendSite,
   type RouteDefinitionInput,
@@ -14,6 +14,7 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
     config: Record<string, unknown>,
     private readonly contentNamespace: string,
     private readonly extraTemplates: Record<string, Template>,
+    private readonly dataSources: DataSource[] = [],
   ) {
     super(packageName, config);
   }
@@ -23,6 +24,9 @@ class RizomVariantPlugin extends RizomRuntimePlugin {
   ): Promise<void> {
     await super.onRegister(context);
     context.templates.register(this.extraTemplates, this.contentNamespace);
+    for (const dataSource of this.dataSources) {
+      context.entities.registerDataSource(dataSource);
+    }
   }
 }
 
@@ -33,6 +37,7 @@ export interface CreateRizomSiteOptions {
   layout: unknown;
   routes: RouteDefinitionInput[];
   templates: Record<string, Template>;
+  dataSources?: DataSource[];
 }
 
 export function createRizomSite(
@@ -46,6 +51,7 @@ export function createRizomSite(
       { themeProfile: options.themeProfile, ...(config ?? {}) },
       options.contentNamespace,
       options.templates,
+      options.dataSources,
     );
 
   return extendSite(rizomBaseSite, {

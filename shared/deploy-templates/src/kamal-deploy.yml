@@ -40,6 +40,7 @@ env:
 
 volumes:
   - /opt/brain-data:/app/brain-data
+  - /opt/brain-runtime:/app/data
   - /opt/brain-state:/data
   - /opt/brain-config:/config
   - /opt/brain-dist:/app/dist
