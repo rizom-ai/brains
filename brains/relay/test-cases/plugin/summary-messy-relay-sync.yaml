@@ -1,0 +1,66 @@
+id: relay-plugin-summary-messy-sync
+name: Summarize messy Relay sync with owners
+description: >-
+  Verifies the summary plugin turns a realistic messy team sync into grounded key
+  points, decisions, and owned action items.
+type: plugin
+tags:
+  - relay
+  - summary
+  - scenario
+  - refactor-guard
+plugin: summary
+handler: summarizeMessages
+
+input:
+  conversationId: relay-messy-sync
+  messages:
+    - role: user
+      content: "Quick dump from Alpha: they lost the latest MCP handoff, the dashboard still says Unknown in one stale runtime, and the homepage proof needs real counts."
+      timestamp: "2026-05-08T09:00:00Z"
+    - role: assistant
+      content: "I see three threads: handoff retrieval, dashboard identity, and homepage proof. The Unknown dashboard is likely stale runtime data rather than the corrected seed."
+      timestamp: "2026-05-08T09:01:00Z"
+    - role: user
+      content: "Decision: keep the default homepage as the system diagram with live counts, not a generic marketing hero."
+      timestamp: "2026-05-08T09:03:00Z"
+    - role: assistant
+      content: "Noted. That means homepage copy stays editable, but counts come from the Relay counts datasource."
+      timestamp: "2026-05-08T09:04:00Z"
+    - role: user
+      content: "Daniel owns seed/eval alignment today. Mira owns dashboard identity validation by Friday. I will verify the MCP handoff search after that."
+      timestamp: "2026-05-08T09:06:00Z"
+    - role: assistant
+      content: "I will preserve those owner/action pairs and keep the handoff concern separate from homepage proof."
+      timestamp: "2026-05-08T09:07:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 2
+  itemsContain:
+    - field: summary
+      words:
+        - Alpha
+        - MCP
+    - field: decisionsText
+      words:
+        - homepage
+        - diagram
+    - field: actionItemsText
+      words:
+        - Daniel
+        - seed
+    - field: actionItemsText
+      words:
+        - Mira
+        - Friday
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minCoverageScore: 4
+    minQualityScore: 4
+    evaluationPrompt: >-
+      Evaluate whether the summary preserves the real Relay workflow: Alpha's
+      MCP handoff problem, the system-diagram homepage decision, and the named
+      Daniel/Mira action items. Penalize invented owners, dates, or product
+      claims.

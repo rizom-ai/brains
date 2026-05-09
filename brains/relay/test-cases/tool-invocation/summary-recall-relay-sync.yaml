@@ -1,0 +1,43 @@
+id: relay-tool-summary-recall-sync
+name: Recall Relay POC sync summary
+description: >-
+  Real user scenario: retrieve a saved Relay conversation summary and answer
+  from it without inventing future-plugin work.
+type: tool_invocation
+tags:
+  - relay
+  - summary
+  - scenario
+  - real-user
+  - search
+  - refactor-guard
+
+turns:
+  - userMessage: >-
+      Get the saved summary with id relay-poc-sync and tell me what the team
+      decided about Relay presets and what action item remains.
+
+successCriteria:
+  expectedTools:
+    - toolName: system_get
+      shouldBeCalled: true
+      argsContain:
+        entityType: "summary"
+        id: "relay-poc-sync"
+  responseContains:
+    - "core"
+    - "default"
+    - "full"
+  responseNotContains:
+    - "meeting-notes"
+    - "decision-record"
+    - "blog"
+    - "newsletter"
+    - "I don't have access"
+  minHelpfulnessScore: 4
+  minAccuracyScore: 4
+  minInstructionFollowingScore: 4
+
+efficiency:
+  maxToolCalls: 4
+  maxTokens: 30000

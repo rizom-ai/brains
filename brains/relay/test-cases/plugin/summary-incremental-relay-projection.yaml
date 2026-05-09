@@ -1,0 +1,57 @@
+id: relay-plugin-summary-incremental-projection
+name: Incremental Relay summary projection appends new durable signal
+description: >-
+  Verifies the summary projection decision can append new Relay customer signal
+  without rewriting an existing summary entry.
+type: plugin
+tags:
+  - relay
+  - summary
+  - projection-decision
+  - scenario
+  - refactor-guard
+plugin: summary
+handler: decideProjection
+
+input:
+  conversationId: relay-incremental-summary
+  existingSummary: |
+    # Conversation Summary
+
+    ## Homepage proof
+
+    The team decided that Relay's default homepage should use a system diagram
+    backed by live counts instead of generic marketing copy.
+
+    ### Decisions
+
+    - Keep the homepage system diagram and live counts datasource.
+
+    ### Action Items
+
+    - Daniel will keep seed and eval homepage content aligned.
+  existingMessageCount: 4
+  messages:
+    - role: user
+      content: "Decision: keep the Relay homepage system diagram with live counts."
+      timestamp: "2026-05-08T09:00:00Z"
+    - role: assistant
+      content: "I will keep the diagram content editable and source counts live."
+      timestamp: "2026-05-08T09:01:00Z"
+    - role: user
+      content: "Daniel owns seed and eval homepage alignment."
+      timestamp: "2026-05-08T09:02:00Z"
+    - role: assistant
+      content: "Captured."
+      timestamp: "2026-05-08T09:03:00Z"
+    - role: user
+      content: "New customer signal from Beta Ops: they can capture links, but need a simple status view showing which captures have summaries and topics before pilot review."
+      timestamp: "2026-05-08T09:15:00Z"
+    - role: assistant
+      content: "That is new durable product feedback. I will append it rather than duplicate the homepage decision."
+      timestamp: "2026-05-08T09:16:00Z"
+
+expectedOutput:
+  validateEach:
+    - path: decision
+      equals: append

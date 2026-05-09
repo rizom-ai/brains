@@ -1,0 +1,56 @@
+id: relay-plugin-summary-no-fabricated-actions
+name: Relay summary avoids fabricated actions
+description: >-
+  Verifies sparse Relay discussion summaries do not invent owners, deadlines,
+  decisions, or action items.
+type: plugin
+tags:
+  - relay
+  - summary
+  - hallucination
+  - scenario
+  - refactor-guard
+plugin: summary
+handler: summarizeMessages
+
+input:
+  conversationId: relay-no-fabricated-actions
+  messages:
+    - role: user
+      content: "The Relay summary refactor feels promising, but I have not reviewed the final behavior yet."
+      timestamp: "2026-05-08T10:00:00Z"
+    - role: assistant
+      content: "Understood. No conclusion yet; the behavior still needs evidence."
+      timestamp: "2026-05-08T10:01:00Z"
+    - role: user
+      content: "Yes, just a cautious impression for now."
+      timestamp: "2026-05-08T10:02:00Z"
+
+expectedOutput:
+  minItems: 1
+  maxItems: 1
+  validateEach:
+    - path: actionItems[0]
+      exists: false
+  itemsNotContain:
+    - field: decisionsText
+      words:
+        - decision
+        - decided
+        - final
+    - field: actionItemsText
+      words:
+        - Daniel
+        - Mira
+        - Friday
+        - owner
+        - deadline
+        - review
+  qualityCriteria:
+    minRelevanceScore: 4
+    minAccuracyScore: 4
+    minQualityScore: 4
+    evaluationPrompt: >-
+      Evaluate whether the summary accurately reports only a cautious impression
+      about a Relay summary refactor. Penalize invented owners, deadlines,
+      decisions, evidence, or action items.
