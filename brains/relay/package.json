@@ -27,6 +27,7 @@
     "@brains/agent-discovery": "workspace:*",
     "@brains/app": "workspace:*",
     "@brains/assessment": "workspace:*",
+    "@brains/auth-service": "workspace:*",
     "@brains/cms": "workspace:*",
     "@brains/dashboard": "workspace:*",
     "@brains/decks": "workspace:*",

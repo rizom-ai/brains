@@ -21,6 +21,7 @@
 | `topics`         | topic extraction and organization           |
 | `summary`        | durable conversation summaries              |
 | `agents`         | peer-brain discovery entities               |
+| `auth-service`   | OAuth/passkey operator auth                 |
 | `cms`            | CMS surface                                 |
 | `dashboard`      | operator dashboard widgets                  |
 | `image`          | image handling for site-facing instances    |
@@ -97,8 +98,11 @@ add: [docs, decks]
 AI_API_KEY=your-api-key-here
 DISCORD_BOT_TOKEN=your-discord-token
 GIT_SYNC_TOKEN=ghp_...
-MCP_AUTH_TOKEN=your-mcp-token
+# Deprecated static fallback for non-OAuth MCP clients:
+# MCP_AUTH_TOKEN=your-mcp-token
 ```
+
+Relay includes `auth-service`, so first boot prints a one-shot `/setup` URL for passkey registration. OAuth-capable MCP clients should use the browser/passkey authorization flow against `/mcp`; keep `MCP_AUTH_TOKEN` only for older clients that cannot do OAuth.
 
 ### 4. Run the instance
 

@@ -4,6 +4,7 @@ import { MCPInterface } from "@brains/mcp";
 import { DiscordInterface } from "@brains/discord";
 import { A2AInterface } from "@brains/a2a";
 import { WebserverInterface } from "@brains/webserver";
+import { authServicePlugin } from "@brains/auth-service";
 import { directorySync } from "@brains/directory-sync";
 
 import { join } from "path";
@@ -61,6 +62,7 @@ const core = [
   "summary",
   "agents",
   "assessment",
+  "auth-service",
   "cms",
   "dashboard",
   "mcp",
@@ -143,6 +145,7 @@ export default defineBrain({
     ["decks", decksPlugin, undefined],
     ["agents", agentDiscovery, undefined],
     ["assessment", assessment, undefined],
+    ["auth-service", authServicePlugin, undefined],
     ["cms", cmsPlugin, {}],
     ["dashboard", dashboardPlugin, undefined],
     [
