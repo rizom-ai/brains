@@ -1,6 +1,6 @@
 id: relay-plugin-swot-agent-network
 name: Derive Relay SWOT from team-memory agent network
-description: Exercises Relay's normal assessment plugin against the Relay eval corpus.
+description: Exercises Relay's normal assessment plugin against an explicit Relay team-memory capability network.
 type: plugin
 tags:
   - relay
@@ -10,7 +10,84 @@ tags:
 plugin: swot
 handler: deriveSwot
 
-input: {}
+input:
+  skills:
+    - name: Capture team knowledge
+      description: Capture notes, links, summaries, docs, and decks into durable shared team memory.
+      tags:
+        - team-memory
+        - capture
+        - coordination
+      examples:
+        - Save this team decision with source context.
+        - Turn this meeting thread into durable Relay memory.
+
+    - name: Synthesize Relay memory
+      description: Turn captured Relay material into grounded summaries, topics, and public-surface guidance.
+      tags:
+        - synthesis
+        - summaries
+        - topics
+      examples:
+        - Summarize the latest Relay POC sync.
+        - Explain what the current Relay homepage can honestly claim.
+
+    - name: Coordinate peer-brain exchange
+      description: Use the local agent directory to resolve approved peer brains before A2A or MCP handoffs.
+      tags:
+        - a2a
+        - mcp
+        - agent-directory
+      examples:
+        - List approved peer brains before delegating work.
+        - Prepare the handoff context for Partner Brain.
+
+  agents:
+    - id: partner-brain
+      name: Partner Brain
+      kind: team
+      organization: Relay POC Team
+      brainName: Partner Brain
+      url: https://partner-brain.io/a2a
+      status: approved
+      discoveredAt: "2026-03-15T10:00:00.000Z"
+      about: Partner Brain coordinates shared research, summaries, and cross-team knowledge retrieval for Relay evaluation fixtures.
+      skills:
+        - name: Durable knowledge retrieval
+          description: Search prior notes, links, summaries, docs, and decks to recover grounded Relay context.
+          tags:
+            - search
+            - team-memory
+            - retrieval
+        - name: Peer-brain handoff review
+          description: Review A2A and MCP handoff packets for provenance, approved-agent routing, and useful next steps.
+          tags:
+            - a2a
+            - mcp
+            - coordination
+        - name: Public-surface audit
+          description: Check whether Relay public-site claims are supported by saved site content and summaries.
+          tags:
+            - site-content
+            - synthesis
+            - audit
+      notes: Approved peer brain for Relay A2A and directory tests.
+
+    - id: old-agent
+      name: Old Agent
+      kind: professional
+      brainName: Old Agent
+      url: https://old-agent.io/a2a
+      status: discovered
+      discoveredAt: "2026-03-10T10:00:00.000Z"
+      about: Old Agent is a peer brain kept in the Relay directory for review-state tests.
+      skills:
+        - name: Basic semantic search
+          description: Search previous entities, but without current approval for dependable Relay handoffs.
+          tags:
+            - search
+            - review-needed
+      notes: Review before relying on this peer for production A2A handoffs.
 
 expectedOutput:
   validateEach:
@@ -31,9 +108,9 @@ expectedOutput:
       Evaluate this SWOT as Relay team-memory and peer-brain guidance.
 
       Good output:
-      - uses the existing Relay corpus: team memory, synthesis, peer brains, agent directory, A2A/MCP links, skills, and public coordination surface
+      - uses the supplied Relay skills and agents: team memory capture, synthesis, peer brains, agent directory, A2A/MCP handoffs, and public-surface audit
       - gives actionable implications for what the Relay team should strengthen, test, trust, or watch next
-      - distinguishes approved/known peer-brain evidence from weaker or emerging evidence where relevant
+      - distinguishes the approved Partner Brain from the discovered/review-needed Old Agent where relevant
       - stays about collaborative intelligence and coordination, not personal publishing or marketing
 
       Bad output:

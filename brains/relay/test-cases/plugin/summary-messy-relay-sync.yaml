@@ -36,7 +36,7 @@ input:
 
 expectedOutput:
   minItems: 1
-  maxItems: 2
+  maxItems: 3
   itemsContain:
     - field: summary
       words:

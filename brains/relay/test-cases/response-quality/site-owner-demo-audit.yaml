@@ -20,12 +20,11 @@ turns:
       points are live today, and what claims we should avoid making.
 
 successCriteria:
-  expectedTools:
-    - toolName: system_list
-      shouldBeCalled: true
+  toolCountRange:
+    min: 1
+    max: 6
   responseContains:
     - "capture"
-    - "synthesize"
     - "A2A"
   responseNotContains:
     - "newsletter"

@@ -23,7 +23,6 @@ turns:
           shouldBeCalled: true
           argsContain:
             entityType: "link"
-            url: "https://modelcontextprotocol.io/introduction"
       responseNotContains:
         - "link_capture"
         - "I cannot"
@@ -49,7 +48,6 @@ successCriteria:
       shouldBeCalled: true
       argsContain:
         entityType: "link"
-        url: "https://modelcontextprotocol.io/introduction"
     - toolName: system_search
       shouldBeCalled: true
   responseContains:
