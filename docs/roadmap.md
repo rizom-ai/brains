@@ -75,7 +75,6 @@ Plans:
 
 - [public-entity-types-reconciliation.md](./plans/public-entity-types-reconciliation.md) — fix `IEntityService` generic shape and `search` return type on `@rizom/brain/entities`; flag the alpha-phase break in a changeset
 - [npm-package-boundaries.md](./plans/npm-package-boundaries.md) — narrow what an official publishable plugin/entity may depend on, distinct from the external-author surface
-- [bitwarden-upstream-followup.md](./plans/bitwarden-upstream-followup.md) — varlock masking + provider-shape fixes upstream so the now-shipping Bitwarden flow stays clean
 
 ## Long-term
 
